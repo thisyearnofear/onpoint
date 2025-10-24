@@ -1,135 +1,157 @@
-# Turborepo starter
+# OnPoint
 
-This Turborepo starter is maintained by the Turborepo core team.
+**Revolutionary multiplatform ecosystem for personalized fashion discovery and digital ownership.**
 
-## Using this example
+OnPoint combines cutting-edge AI-powered design generation, AR virtual try-on experiences, blockchain-based asset ownership, and privacy-preserving biometric identity to create a comprehensive fashion technology solution.
 
-Run the following command:
+## 🎯 Core Value Propositions
 
-```sh
-npx create-turbo@latest
+### For Users
+- Discover personalized fashion recommendations with AI-powered styling
+- Try on outfits virtually before purchasing with AR technology
+- Own your fashion items as NFTs on the blockchain
+- Connect with professional stylists through our marketplace
+- Participate in fashion challenges and earn rewards
+
+### For Stylists
+- Access verified clients through our secure marketplace
+- Receive payments via escrow smart contracts
+- Build your portfolio and reputation
+- Earn from bookings and client referrals
+
+### For Designers
+- Launch exclusive NFT collections
+- Reach a fashion-conscious audience
+- Participate in community challenges
+- Monetize designs through ongoing royalties
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+
+- pnpm 8+
+- Git
+
+### Setup
+```bash
+# Clone the repository
+git clone https://github.com/thisyearnofear/onpoint.git
+cd onpoint
+
+# Install dependencies
+pnpm install
+
+# Start development servers
+pnpm dev
 ```
 
-## What's inside?
+This will start:
+- Web app on http://localhost:3000
+- Docs site on http://localhost:3001
 
-This Turborepo includes the following packages/apps:
-
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
+## 🏗️ Architecture
 
 ```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+onpoint/
+├── apps/
+│   ├── web/              # Next.js 14.4+ Web Application
+│   └── docs/             # Documentation site
+├── packages/
+│   ├── shared-ui/        # Shared UI components
+│   ├── shared-types/     # TypeScript type definitions
+│   ├── blockchain-client/ # Web3 interaction layer
+│   ├── ai-client/        # AI service abstractions
+│   ├── ipfs-client/      # IPFS/Filecoin integration
+│   └── worldcoin-auth/   # Worldcoin SDK wrapper
 ```
 
-You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+## 🛠️ Core Principles
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
+1. **ENHANCEMENT FIRST**: Always prioritize enhancing existing components over creating new ones
+2. **AGGRESSIVE CONSOLIDATION**: Delete unnecessary code rather than deprecating
+3. **PREVENT BLOAT**: Systematically audit and consolidate before adding new features
+4. **DRY**: Single source of truth for all shared logic
+5. **CLEAN**: Clear separation of concerns with explicit dependencies
+6. **MODULAR**: Composable, testable, independent modules
+7. **PERFORMANT**: Adaptive loading, caching, and resource optimization
+8. **ORGANIZED**: Predictable file structure with domain-driven design
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
+## 📚 Documentation
 
-### Develop
+For detailed information about the project, please refer to our comprehensive documentation:
 
-To develop all apps and packages, run the following command:
+- [Architecture](./docs/ARCHITECTURE.md) - Technical specifications and system design
+- [Features](./docs/FEATURES.md) - Feature specifications and user flows
+- [Roadmap](./docs/ROADMAP.md) - Development timeline and milestones
+- [Hackathon](./docs/HACKATHON.md) - Hackathon opportunities and strategy
 
-```
-cd my-turborepo
+## 🎯 Current Development Phase
 
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
+### Phase 1: MVP Foundation (Weeks 1-4)
+**Status**: 🎯 In Progress
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
-```
+**Focus**: Core features for hackathon submissions
 
-You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+**Deliverables**:
+- ✅ Web app with Next.js setup
+- ✅ Digital closet with AI tagging
+- ✅ AI fashion critique
+- ✅ Basic collage creator
+- ✅ Wallet connection
+- ✅ NFT minting
+- ✅ IPFS integration
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
+## 🏆 Hackathon Strategy
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
+### Google Chrome Built-in AI Challenge
+- **Deadline**: November 1, 2025
+- **Prize Pool**: $70,000
+- **Target**: "Most Helpful - Chrome Extension" ($14,000)
 
-### Remote Caching
+### Worldcoin Mini App Dev Rewards
+- **Ongoing**: $100K/week
+- **Focus**: Quick stylist matching + style challenges
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+## 🧪 Development Commands
 
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+```bash
+# Install dependencies
+pnpm install
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
+# Start development servers
+pnpm dev
 
-```
-cd my-turborepo
+# Build all apps and packages
+pnpm build
 
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
+# Lint code
+pnpm lint
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
-```
+# Check types
+pnpm check-types
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
+# Format code
+pnpm format
 ```
 
-## Useful Links
+## 📈 Success Metrics
 
-Learn more about the power of Turborepo:
+### User Growth Targets
+| Metric | Q4 2025 | Q1 2026 | Q2 2026 |
+|--------|---------|---------|---------|
+| Total Users | 1,000 | 10,000 | 50,000 |
+| Daily Active Users | 100 | 1,000 | 5,000 |
+| Monthly Active Users | 300 | 3,000 | 15,000 |
 
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+## 🔗 Key Links
+
+- [GitHub Repository](https://github.com/thisyearnofear/onpoint)
+- [Discord Community](https://discord.gg/onpoint)
+- [Twitter](https://twitter.com/onpointfashion)
+- [Website](https://onpoint.app)
+
+## 📄 License
+
+All documentation is licensed under Creative Commons Attribution 4.0 International (CC BY 4.0).
+
+Code and smart contracts are licensed under MIT License.
