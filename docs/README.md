@@ -69,8 +69,8 @@ Strategic planning and execution timeline:
 **Hackathon opportunities and strategy**
 
 Details on two major hackathons:
-- **Google Chrome Built-in AI Challenge** (Nov 1 deadline, $70K prizes)
-- **Worldcoin Mini App Dev Rewards** ($100K/week)
+- **Google Chrome Built-in AI Challenge** (Nov 1 deadline)
+- **Worldcoin Mini App Dev Rewards** (asap)
 - Reference projects and inspiration
 - Submission requirements and timelines
 

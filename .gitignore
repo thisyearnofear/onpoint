@@ -50,6 +50,7 @@ out/
 
 # Qoder
 .qoder/
+.qodo/
 
 # Misc
 *.log

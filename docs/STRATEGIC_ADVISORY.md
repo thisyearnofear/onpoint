@@ -119,23 +119,18 @@ rm -rf /Users/udingethe/Dev/onpoint/Wizzers/
 
 ### Why Three Platforms?
 
-#### 1. **Maximize Hackathon Revenue**
-- Google Chrome Challenge: $70,000 prize pool
-- Worldcoin Dev Rewards: $100,000/week
-- **Total Potential**: $70K + $400K+ (Q1 2026) = $470K+
-
-#### 2. **Reach Different User Segments**
+#### 1. **Reach Different User Segments**
 - **Web App**: Full-featured users, Web3 enthusiasts, stylists
 - **Chrome Extension**: Casual users, privacy-conscious, quick feedback
 - **Mini App**: Worldcoin ecosystem users, verified humans, community-driven
 
-#### 3. **Share Core Logic**
+#### 2. **Share Core Logic**
 - Same AI models (GPT-4V, CLIP, LangChain)
 - Same blockchain integration (ZetaChain)
 - Same backend services
 - Reduces development time
 
-#### 4. **Build Network Effects**
+#### 3. **Build Network Effects**
 - Users on one platform can interact with users on others
 - Cross-platform NFT ownership
 - Unified user identity (Worldcoin World ID)
@@ -251,7 +246,7 @@ rm -rf /Users/udingethe/Dev/onpoint/Wizzers/
 **Launch**: December 1, 2025 (Week 8)
 
 **Revenue Model**:
-- Worldcoin Dev Rewards ($100K/week)
+- Worldcoin Dev Rewards 
 - Stylist booking fees
 - NFT drops and royalties
 - Premium features (future)
@@ -450,7 +445,7 @@ User sees changes on Platform B & C
 
 2. **Revenue Diversification**
    - Hackathon prizes ($70K)
-   - Dev Rewards ($100K+/week)
+   - Dev Rewards 
    - Stylist bookings
    - NFT royalties
 

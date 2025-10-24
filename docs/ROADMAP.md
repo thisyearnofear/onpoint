@@ -197,7 +197,7 @@ This multi-platform strategy allows us to:
 - Secondary: "Best Multimodal AI Application" ($9,000)
 - Tertiary: Honorable Mention ($1,000)
 
-### Worldcoin Mini App Dev Rewards ($100K/week)
+### Worldcoin Mini App Dev Rewards 
 
 **Submission Strategy**: Quick Stylist Matching + Style Challenges
 
