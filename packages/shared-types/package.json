@@ -1,0 +1,13 @@
+{
+  "name": "@onpoint/shared-types",
+  "version": "0.0.0",
+  "private": true,
+  "types": "./src/index.ts",
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "typescript": "5.9.2"
+  }
+}
