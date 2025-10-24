@@ -1,0 +1,52 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+.nyc_output
+
+# Testing
+coverage
+.nyc_output
+
+# Next.js
+/.next/
+/out/
+/build
+
+# Turborepo
+.turbo
+
+# Production
+/build
+/dist
+/.DS_Store
+*.log
+
+# Environment files
+.env*.local
+.env
+!.env.example
+
+# Typescript
+*.tsbuildinfo
+
+# IDEs
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build outputs
+dist/
+build/
+out/
+
+# Misc
+*.log
