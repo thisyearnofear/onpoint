@@ -1,10 +1,10 @@
 [build]
   base = "apps/web"
-  command = "cd ../.. && pnpm build --filter=web"
-  publish = "apps/web/.next"
+  command = "cd ../.. && pnpm install && pnpm build --filter=web"
+  publish = ".next"
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "18.18.0"
   NPM_FLAGS = "--version"
 
 [[redirects]]
