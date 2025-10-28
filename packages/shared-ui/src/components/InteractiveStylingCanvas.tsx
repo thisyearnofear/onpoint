@@ -184,6 +184,26 @@ const InteractiveStylingCanvas: React.FC = () => {
     { id: '3', productSrc: '/assets/3Product.png', modelSrc: '/assets/3Model.png', shirtName: 'AnimalCollective-T', modelSize: 'S', position: { top: '70%', left: '15%' } },
   ];
 
+  // Persistence: Load from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('onpoint-collage');
+    if (saved) {
+      const { centerImageSrc: savedSrc, shirtStates: savedStates } = JSON.parse(saved);
+      setCenterImageSrc(savedSrc || '/assets/1Model.png');
+      setShirtStates(savedStates || {
+        '1': { isGrabbed: false, isDraggingRight: false, isDraggingLeft: false, left: '15%', top: '20%' },
+        '2': { isGrabbed: false, isDraggingRight: false, isDraggingLeft: false, left: '80%', top: '45%' },
+        '3': { isGrabbed: false, isDraggingRight: false, isDraggingLeft: false, left: '15%', top: '70%' },
+      });
+    }
+  }, []);
+
+  // Persistence: Save to localStorage on changes
+  useEffect(() => {
+    const data = { centerImageSrc, shirtStates };
+    localStorage.setItem('onpoint-collage', JSON.stringify(data));
+  }, [centerImageSrc, shirtStates]);
+
   useEffect(() => {
     const preloadImages = (imageArray: string[], callback: () => void) => {
       let loadedCount = 0;
