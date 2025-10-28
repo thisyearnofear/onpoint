@@ -1,5 +1,14 @@
 'use client';
 
+// Polyfill indexedDB for server-side rendering
+if (typeof window === 'undefined') {
+  (globalThis as any).indexedDB = {
+    open: () => ({ onsuccess: () => {}, onerror: () => {} }),
+    deleteDatabase: () => ({ onsuccess: () => {}, onerror: () => {} }),
+    transaction: () => ({ objectStore: () => ({ get: () => ({ onsuccess: () => {}, onerror: () => {} }) }) }),
+  };
+}
+
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider } from 'wagmi';

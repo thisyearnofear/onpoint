@@ -11,6 +11,18 @@ const nextConfig = {
   experimental: {
     optimizeCss: true,
   },
+  // Add a webpack configuration to polyfill indexedDB in server environments
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // Polyfill indexedDB for server-side rendering
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        indexedDB: false,
+        IDBKeyRange: false,
+      };
+    }
+    return config;
+  },
 };
 
 export default nextConfig;
