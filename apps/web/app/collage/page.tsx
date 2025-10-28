@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Palette, Sparkles, Camera, MessageCircle, Save, Share2, ArrowLeft, Plus, Upload, Heart } from 'lucide-react';
+import Image from 'next/image';
+import { Palette, Sparkles, Camera, MessageCircle, Save, Share2, Plus, Heart } from 'lucide-react';
 import { Button } from '@repo/ui/button';
 import { critiqueOutfit, type CritiqueResponse } from '@onpoint/ai-client';
 import Link from 'next/link';
+import { MobileNavigation } from '@/components/mobile-navigation';
 
 export default function CollagePage() {
   const [critique, setCritique] = useState<CritiqueResponse | null>(null);
@@ -53,12 +55,6 @@ export default function CollagePage() {
       <header className="glass-effect sticky top-0 z-50 w-full border-b">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/">
-              <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Home
-              </Button>
-            </Link>
             <div className="flex items-center gap-2">
               <Palette className="h-8 w-8 text-primary" />
               <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
@@ -68,7 +64,8 @@ export default function CollagePage() {
           </div>
 
           <div className="flex items-center gap-4">
-            <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+            <MobileNavigation showBackButton={true} />
+            <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground hidden md:block">
               Connect Wallet
             </Button>
           </div>
@@ -167,14 +164,22 @@ export default function CollagePage() {
 
         {/* Collage Canvas */}
         <div className="elegant-shadow border-0 rounded-lg bg-card p-6 mb-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 min-h-[400px]">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 min-h-[400px]">
             {collageItems.map((item) => (
               <div
                 key={item.id}
                 className="relative group border-2 border-dashed border-muted-foreground/20 hover:border-primary/30 transition-colors rounded-lg p-4 flex flex-col items-center justify-center min-h-[150px] bg-card/50"
               >
                 {item.type === 'image' ? (
-                  <img src={item.src} alt={item.alt} className="max-w-full max-h-full object-contain rounded" />
+                  <div className="relative w-full h-full">
+                    <Image 
+                      src={item.src || '/assets/placeholder.png'} 
+                      alt={item.alt || 'Fashion inspiration'} 
+                      fill
+                      className="object-contain rounded"
+                      loading="lazy"
+                    />
+                  </div>
                 ) : (
                   <p className="text-center text-muted-foreground">{item.content}</p>
                 )}

@@ -1,8 +1,10 @@
 import React from 'react';
 import { Palette, Sparkles, Camera, MessageCircle } from 'lucide-react';
 import { Button } from '@repo/ui/button';
+import { Input } from '@repo/ui/input';
 import Link from 'next/link';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { MobileNavigation } from '@/components/mobile-navigation';
 
 export default function Home() {
   return (
@@ -33,6 +35,7 @@ export default function Home() {
            </nav>
 
           <div className="flex items-center gap-4">
+            <MobileNavigation />
             <ConnectButton />
           </div>
         </div>
@@ -72,7 +75,7 @@ export default function Home() {
               </Button>
                </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-2xl mx-auto">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 max-w-2xl mx-auto">
                 <div className="text-center">
                   <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center">
                     <Sparkles className="h-6 w-6 text-primary" />
@@ -116,9 +119,9 @@ export default function Home() {
             <div className="max-w-4xl mx-auto">
               <div className="elegant-shadow border-0 rounded-lg bg-card p-6">
                 <div className="flex gap-4 mb-6">
-                  <input
+                  <Input
                     placeholder="Describe your fashion idea... (e.g., 'a high-fashion streetwear jacket with reflective material')"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 flex-1"
+                    className="flex-1"
                   />
                   <Button className="fashion-gradient text-white">
                     <Sparkles className="h-4 w-4 mr-2" />
@@ -126,7 +129,7 @@ export default function Home() {
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                   <div className="border-2 border-dashed border-muted-foreground/20 hover:border-primary/30 transition-colors rounded-lg p-4 flex flex-col items-center justify-center h-32">
                     <Sparkles className="h-8 w-8 text-muted-foreground mb-2" />
                     <p className="text-sm text-muted-foreground text-center">Design Preview 1</p>
@@ -170,7 +173,7 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
               <div className="elegant-shadow border-0 rounded-lg bg-card p-6">
                 <div className="text-center mb-6">
                   <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
@@ -237,10 +240,10 @@ export default function Home() {
                   </div>
                   <div className="flex-1">
                     <div className="bg-muted rounded-lg p-4 mb-4">
-                      <p className="text-sm">Hello! I'm your AI stylist. How can I help you with your fashion journey today?</p>
+                      <p className="text-sm">Hello! I am your AI stylist. Shall we get you onpoint today?</p>
                     </div>
                     <div className="flex gap-2">
-                      <input placeholder="Ask about styling, sourcing, or fittings..." className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 flex-1" />
+                      <Input placeholder="Ask about styling, sourcing, or fittings..." className="flex-1" />
                       <Button className="fashion-gradient text-white">
                         <MessageCircle className="h-4 w-4" />
                       </Button>
@@ -250,7 +253,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-6xl mx-auto">
               <div className="elegant-shadow border-0 rounded-lg bg-card hover:scale-105 transition-transform p-6 text-center">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-600/10 flex items-center justify-center">
                   <Palette className="h-8 w-8 text-amber-600" />
