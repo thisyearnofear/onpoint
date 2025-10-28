@@ -2,6 +2,7 @@ import React from 'react';
 import { Palette, Sparkles, Camera, MessageCircle } from 'lucide-react';
 import { Button } from '@repo/ui/button';
 import Link from 'next/link';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 export default function Home() {
   return (
@@ -12,7 +13,7 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <Palette className="h-8 w-8 text-primary" />
             <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              OnPoint
+              BeOnPoint
             </span>
           </div>
 
@@ -32,12 +33,7 @@ export default function Home() {
            </nav>
 
           <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-            >
-              Connect Wallet
-            </Button>
+            <ConnectButton />
           </div>
         </div>
       </header>
@@ -50,9 +46,9 @@ export default function Home() {
           <div className="relative z-10 container mx-auto px-4 text-center">
             <div className="max-w-4xl mx-auto">
               <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
-              Look & Feel
+              Look, Feel,
               <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              {' '}OnPoint
+              {' '}BeOnPoint
               </span>
               </h1>
 
