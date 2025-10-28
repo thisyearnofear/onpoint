@@ -1,0 +1,327 @@
+/* OnPoint Fashion AI Chrome Extension Content Script Styles */
+
+/* Analyze button styles */
+.onpoint-analyze-btn {
+  pointer-events: all !important;
+  user-select: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+.onpoint-analyze-btn:hover {
+  transform: scale(1.05) !important;
+}
+
+/* Enhanced image styles */
+img[data-onpoint-enhanced="true"] {
+  position: relative;
+  transition: all 0.2s ease !important;
+}
+
+img[data-onpoint-enhanced="true"]:hover {
+  opacity: 0.85 !important;
+  filter: brightness(1.05) !important;
+  cursor: pointer !important;
+}
+
+/* Fashion image highlight effect */
+.onpoint-fashion-highlight {
+  outline: 3px solid #667eea !important;
+  outline-offset: 2px !important;
+  border-radius: 4px !important;
+  box-shadow: 0 0 20px rgba(102, 126, 234, 0.3) !important;
+}
+
+/* Notification styles */
+.onpoint-notification {
+  position: fixed !important;
+  top: 20px !important;
+  right: 20px !important;
+  z-index: 2147483647 !important;
+  pointer-events: none !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+.onpoint-notification-content {
+  background: #667eea !important;
+  color: white !important;
+  padding: 16px 20px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+  max-width: 300px !important;
+  animation: onpointSlideIn 0.3s ease !important;
+}
+
+.onpoint-notification-success .onpoint-notification-content {
+  background: #10b981 !important;
+}
+
+.onpoint-notification-error .onpoint-notification-content {
+  background: #ef4444 !important;
+}
+
+.onpoint-notification-title {
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  margin-bottom: 4px !important;
+}
+
+.onpoint-notification-message {
+  font-size: 12px !important;
+  opacity: 0.9 !important;
+  line-height: 1.4 !important;
+}
+
+/* Loading overlay */
+.onpoint-loading-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 2147483646 !important;
+  pointer-events: all !important;
+}
+
+.onpoint-loading-content {
+  background: white !important;
+  padding: 24px !important;
+  border-radius: 12px !important;
+  text-align: center !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1) !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+.onpoint-spinner {
+  width: 32px !important;
+  height: 32px !important;
+  border: 3px solid #f3f4f6 !important;
+  border-top: 3px solid #667eea !important;
+  border-radius: 50% !important;
+  animation: onpointSpin 1s linear infinite !important;
+  margin: 0 auto 12px !important;
+}
+
+/* Image scan effect */
+.onpoint-scan-effect {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.onpoint-scan-effect::after {
+  content: '' !important;
+  position: absolute !important;
+  top: -2px !important;
+  left: -2px !important;
+  right: -2px !important;
+  bottom: -2px !important;
+  background: linear-gradient(45deg, transparent 30%, rgba(102, 126, 234, 0.4) 50%, transparent 70%) !important;
+  animation: onpointScan 2s ease-in-out !important;
+  pointer-events: none !important;
+}
+
+/* Badge for analyzed images */
+.onpoint-analyzed-badge {
+  position: absolute !important;
+  bottom: 8px !important;
+  left: 8px !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  padding: 4px 8px !important;
+  border-radius: 12px !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  z-index: 10 !important;
+  pointer-events: none !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+}
+
+/* Keyframe animations */
+@keyframes onpointSlideIn {
+  from {
+    transform: translateX(100%) !important;
+    opacity: 0 !important;
+  }
+  to {
+    transform: translateX(0) !important;
+    opacity: 1 !important;
+  }
+}
+
+@keyframes onpointSpin {
+  0% { transform: rotate(0deg) !important; }
+  100% { transform: rotate(360deg) !important; }
+}
+
+@keyframes onpointScan {
+  0% {
+    transform: translateX(-100%) !important;
+    opacity: 0 !important;
+  }
+  50% {
+    opacity: 1 !important;
+  }
+  100% {
+    transform: translateX(100%) !important;
+    opacity: 0 !important;
+  }
+}
+
+@keyframes onpointPulse {
+  0%, 100% {
+    opacity: 1 !important;
+  }
+  50% {
+    opacity: 0.7 !important;
+  }
+}
+
+/* Hover effects for fashion images */
+.onpoint-fashion-image {
+  transition: all 0.2s ease !important;
+  position: relative !important;
+}
+
+.onpoint-fashion-image:hover {
+  transform: scale(1.02) !important;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+}
+
+/* Analysis result preview */
+.onpoint-preview-popup {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  background: white !important;
+  border-radius: 12px !important;
+  padding: 20px !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1) !important;
+  z-index: 2147483647 !important;
+  max-width: 300px !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  animation: onpointFadeIn 0.3s ease !important;
+  pointer-events: all !important;
+}
+
+.onpoint-preview-popup h3 {
+  margin: 0 0 8px 0 !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: #374151 !important;
+}
+
+.onpoint-preview-popup p {
+  margin: 0 0 12px 0 !important;
+  font-size: 14px !important;
+  color: #6b7280 !important;
+  line-height: 1.4 !important;
+}
+
+.onpoint-preview-popup button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  border: none !important;
+  padding: 8px 16px !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: opacity 0.2s ease !important;
+}
+
+.onpoint-preview-popup button:hover {
+  opacity: 0.9 !important;
+}
+
+@keyframes onpointFadeIn {
+  from {
+    opacity: 0 !important;
+    transform: translate(-50%, -50%) scale(0.95) !important;
+  }
+  to {
+    opacity: 1 !important;
+    transform: translate(-50%, -50%) scale(1) !important;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .onpoint-notification {
+    right: 10px !important;
+    top: 10px !important;
+  }
+
+  .onpoint-notification-content {
+    max-width: 280px !important;
+    padding: 12px 16px !important;
+  }
+
+  .onpoint-analyze-btn {
+    font-size: 11px !important;
+  }
+
+  .onpoint-preview-popup {
+    max-width: 280px !important;
+    padding: 16px !important;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .onpoint-loading-content {
+    background: #1f2937 !important;
+    color: #f9fafb !important;
+  }
+
+  .onpoint-preview-popup {
+    background: #1f2937 !important;
+  }
+
+  .onpoint-preview-popup h3 {
+    color: #f9fafb !important;
+  }
+
+  .onpoint-preview-popup p {
+    color: #d1d5db !important;
+  }
+
+  .onpoint-spinner {
+    border-color: #374151 !important;
+    border-top-color: #667eea !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .onpoint-fashion-highlight {
+    outline-width: 4px !important;
+    outline-color: #000 !important;
+  }
+
+  .onpoint-analyze-btn {
+    border: 2px solid #000 !important;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .onpoint-scan-effect::after {
+    animation: none !important;
+  }
+
+  .onpoint-spinner {
+    animation: none !important;
+    border-top-color: #667eea !important;
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "name": "@onpoint/ai-client",
+  "name": "@repo/ai-client",
   "version": "0.0.0",
   "private": true,
   "types": "./src/index.ts",
@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "zod": "^3.23.8",
-    "@onpoint/shared-types": "workspace:*"
+    "@onpoint/shared-types": "workspace:*",
+    "react": "^19.1.0"
   }
 }

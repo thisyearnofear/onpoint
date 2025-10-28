@@ -1,0 +1,71 @@
+{
+  "name": "onpoint-fashion-ai-extension",
+  "version": "1.0.0",
+  "description": "AI-powered fashion critique and styling using Chrome Built-in AI APIs",
+  "author": "OnPoint Fashion AI Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/onpoint.git",
+    "directory": "apps/chrome-extension"
+  },
+  "keywords": [
+    "chrome-extension",
+    "fashion",
+    "ai",
+    "styling",
+    "gemini-nano",
+    "chrome-built-in-ai"
+  ],
+  "scripts": {
+    "build": "npm run copy-assets && npm run validate",
+    "validate": "web-ext lint --source-dir=. --warnings-as-errors",
+    "package": "web-ext build --source-dir=. --artifacts-dir=dist",
+    "copy-assets": "mkdir -p icons && echo 'Icons copied'",
+    "dev": "web-ext run --source-dir=. --start-url=chrome://extensions/",
+    "test": "echo 'Extension tests would run here'",
+    "lint": "eslint *.js",
+    "format": "prettier --write *.js *.json *.html *.css"
+  },
+  "devDependencies": {
+    "web-ext": "^8.2.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "private": true,
+  "files": [
+    "manifest.json",
+    "popup.html",
+    "popup.css",
+    "popup.js",
+    "background.js",
+    "content.js",
+    "content.css",
+    "icons/",
+    "README.md"
+  ],
+  "chrome": {
+    "minimum_version": "138",
+    "apis_required": [
+      "ai.languageModel",
+      "ai.writer",
+      "ai.rewriter",
+      "ai.summarizer"
+    ]
+  },
+  "hackathon": {
+    "event": "Google Chrome Built-in AI Challenge 2025",
+    "submission_date": "2025-11-01",
+    "category": "Most Helpful - Chrome Extension",
+    "apis_used": [
+      "Prompt API",
+      "Writer API",
+      "Rewriter API",
+      "Summarizer API",
+      "Multimodal Support"
+    ]
+  }
+}

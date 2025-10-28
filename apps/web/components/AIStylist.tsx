@@ -1,0 +1,559 @@
+"use client";
+
+import React, { useState, useCallback, useRef, useEffect } from "react";
+import { Button } from "@repo/ui/button";
+import { Input } from "@repo/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
+import { Badge } from "@repo/ui/badge";
+import { Avatar, AvatarFallback } from "@repo/ui/avatar";
+import { ScrollArea } from "@repo/ui/scroll-area";
+import { Separator } from "@repo/ui/separator";
+import {
+  MessageCircle,
+  Sparkles,
+  Send,
+  RefreshCw,
+  User,
+  Bot,
+  Leaf,
+  Crown,
+  Zap,
+  ShoppingBag,
+  Lightbulb,
+  Star,
+} from "lucide-react";
+import { useAIStylist, checkChromeAI } from "@repo/ai-client";
+import type { StylistPersona, StyleSuggestion } from "@repo/ai-client";
+
+interface Message {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: number;
+  recommendations?: Array<{
+    item: string;
+    reason: string;
+    priority: number;
+  }>;
+  stylingTips?: string[];
+}
+
+interface PersonaCardProps {
+  persona: StylistPersona;
+  isSelected: boolean;
+  onSelect: (persona: StylistPersona) => void;
+  disabled?: boolean;
+}
+
+function PersonaCard({
+  persona,
+  isSelected,
+  onSelect,
+  disabled,
+}: PersonaCardProps) {
+  const personaConfig = {
+    luxury: {
+      title: "Luxury Expert",
+      description: "Sophisticated styling for high-end fashion",
+      icon: Crown,
+      color: "amber-600",
+      bgColor: "amber-600/10",
+    },
+    streetwear: {
+      title: "Streetwear Guru",
+      description: "Urban and contemporary fashion guidance",
+      icon: Zap,
+      color: "blue-600",
+      bgColor: "blue-600/10",
+    },
+    sustainable: {
+      title: "Sustainable Consultant",
+      description: "Eco-friendly and ethical fashion advice",
+      icon: Leaf,
+      color: "emerald-600",
+      bgColor: "emerald-600/10",
+    },
+  };
+
+  const config = personaConfig[persona];
+  const Icon = config.icon;
+
+  return (
+    <Card
+      className={`cursor-pointer transition-all duration-200 hover:scale-105 ${
+        isSelected ? `ring-2 ring-${config.color} shadow-lg` : "hover:shadow-md"
+      } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+      onClick={() => !disabled && onSelect(persona)}
+    >
+      <CardContent className="p-6 text-center">
+        <div
+          className={`w-16 h-16 mx-auto mb-4 rounded-full bg-${config.bgColor} flex items-center justify-center`}
+        >
+          <Icon className={`h-8 w-8 text-${config.color}`} />
+        </div>
+        <h3 className="text-xl font-semibold mb-2">{config.title}</h3>
+        <p className="text-muted-foreground text-sm mb-4">
+          {config.description}
+        </p>
+        <Button
+          variant={isSelected ? "default" : "outline"}
+          className={
+            isSelected ? `bg-${config.color} hover:bg-${config.color}/90` : ""
+          }
+          disabled={disabled}
+        >
+          {isSelected ? "Selected" : "Select Stylist"}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ChatMessage({
+  message,
+  isLast,
+}: {
+  message: Message;
+  isLast: boolean;
+}) {
+  const isUser = message.role === "user";
+
+  return (
+    <div
+      className={`flex gap-3 ${isUser ? "justify-end" : ""} ${isLast ? "mb-4" : "mb-6"}`}
+    >
+      {!isUser && (
+        <Avatar className="h-8 w-8 mt-1 flex-shrink-0">
+          <AvatarFallback>
+            <Bot className="h-4 w-4" />
+          </AvatarFallback>
+        </Avatar>
+      )}
+
+      <div className={`max-w-[80%] ${isUser ? "order-first" : ""}`}>
+        <div
+          className={`rounded-lg p-3 ${
+            isUser ? "bg-primary text-primary-foreground ml-auto" : "bg-muted"
+          }`}
+        >
+          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+
+          {message.recommendations && message.recommendations.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-muted-foreground/20">
+              <h5 className="text-xs font-semibold mb-2 flex items-center gap-1">
+                <ShoppingBag className="h-3 w-3" />
+                Recommendations
+              </h5>
+              <div className="space-y-2">
+                {message.recommendations.slice(0, 3).map((rec, index) => (
+                  <div key={index} className="text-xs">
+                    <div className="flex items-start gap-2">
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <Star
+                          className={`h-3 w-3 ${rec.priority >= 3 ? "text-yellow-500" : rec.priority >= 2 ? "text-blue-500" : "text-gray-400"}`}
+                        />
+                      </div>
+                      <div>
+                        <span className="font-medium">{rec.item}</span>
+                        <p className="text-muted-foreground mt-1">
+                          {rec.reason}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {message.stylingTips && message.stylingTips.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-muted-foreground/20">
+              <h5 className="text-xs font-semibold mb-2 flex items-center gap-1">
+                <Lightbulb className="h-3 w-3" />
+                Styling Tips
+              </h5>
+              <div className="space-y-1">
+                {message.stylingTips.map((tip, index) => (
+                  <p key={index} className="text-xs text-muted-foreground">
+                    • {tip}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <p className="text-xs text-muted-foreground mt-1 text-right">
+          {new Date(message.timestamp).toLocaleTimeString()}
+        </p>
+      </div>
+
+      {isUser && (
+        <Avatar className="h-8 w-8 mt-1 flex-shrink-0">
+          <AvatarFallback>
+            <User className="h-4 w-4" />
+          </AvatarFallback>
+        </Avatar>
+      )}
+    </div>
+  );
+}
+
+function StyleSuggestions({ suggestions }: { suggestions: StyleSuggestion[] }) {
+  if (suggestions.length === 0) return null;
+
+  return (
+    <Card className="mt-6">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Sparkles className="h-5 w-5" />
+          Style Suggestions
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {suggestions.map((suggestion, index) => (
+            <div key={index} className="space-y-2">
+              <h4 className="font-semibold capitalize text-sm">
+                {suggestion.category}
+              </h4>
+              <div className="space-y-2">
+                {suggestion.items.map((item, itemIndex) => (
+                  <div
+                    key={itemIndex}
+                    className="p-2 bg-muted/50 rounded text-xs"
+                  >
+                    <p className="font-medium">{item.name}</p>
+                    <p className="text-muted-foreground mt-1">
+                      {item.reasoning}
+                    </p>
+                    <Badge
+                      variant={
+                        item.priority === "high"
+                          ? "default"
+                          : item.priority === "medium"
+                            ? "secondary"
+                            : "outline"
+                      }
+                      className="mt-1 text-xs"
+                    >
+                      {item.priority}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function AIStylist() {
+  const [selectedPersona, setSelectedPersona] =
+    useState<StylistPersona>("luxury");
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [suggestions, setSuggestions] = useState<StyleSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  const {
+    conversationHistory,
+    loading,
+    error,
+    chatWithStylist,
+    generateStyleSuggestions,
+    clearConversation,
+    clearError,
+  } = useAIStylist(selectedPersona);
+
+  const [chromeAIAvailable] = useState(() => checkChromeAI());
+
+  // Sync conversation history with messages
+  useEffect(() => {
+    const newMessages: Message[] = conversationHistory.map((msg, index) => ({
+      id: `${msg.timestamp}-${index}`,
+      role: msg.role,
+      content: msg.content,
+      timestamp: msg.timestamp,
+    }));
+    setMessages(newMessages);
+  }, [conversationHistory]);
+
+  // Auto scroll to bottom
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      const scrollContainer = scrollAreaRef.current.querySelector(
+        "[data-radix-scroll-area-viewport]",
+      );
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    }
+  }, [messages]);
+
+  const handleSendMessage = useCallback(async () => {
+    if (!message.trim() || loading) return;
+
+    const userMessage = message.trim();
+    setMessage("");
+
+    try {
+      const response = await chatWithStylist(userMessage);
+      if (response) {
+        // Update the last assistant message with recommendations and tips
+        setMessages((prev) => {
+          const updated = [...prev];
+          const lastMessage = updated[updated.length - 1];
+          if (lastMessage && lastMessage.role === "assistant") {
+            updated[updated.length - 1] = {
+              ...lastMessage,
+              recommendations: response.recommendations,
+              stylingTips: response.stylingTips,
+            };
+          }
+          return updated;
+        });
+      }
+    } catch (err) {
+      console.error("Failed to send message:", err);
+    }
+  }, [message, loading, chatWithStylist]);
+
+  const handleKeyPress = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSendMessage();
+      }
+    },
+    [handleSendMessage],
+  );
+
+  const handlePersonaChange = useCallback(
+    (persona: StylistPersona) => {
+      if (persona === selectedPersona) return;
+
+      setSelectedPersona(persona);
+      clearConversation();
+      setMessages([]);
+      setSuggestions([]);
+      setShowSuggestions(false);
+    },
+    [selectedPersona, clearConversation],
+  );
+
+  const handleGenerateSuggestions = useCallback(async () => {
+    const preferences = {
+      style: selectedPersona,
+      occasion: "everyday",
+      budget: "flexible",
+    };
+
+    const newSuggestions = await generateStyleSuggestions(preferences);
+    if (newSuggestions) {
+      setSuggestions(newSuggestions);
+      setShowSuggestions(true);
+    }
+  }, [selectedPersona, generateStyleSuggestions]);
+
+  const startConversation = useCallback(() => {
+    const greetings = {
+      luxury:
+        "Hello! I'm your luxury fashion expert. I can help you discover sophisticated pieces, investment items, and timeless elegance. What would you like to explore today?",
+      streetwear:
+        "Hey! I'm your streetwear guru. Ready to dive into the latest drops, urban fashion, and fresh street style? What's on your mind?",
+      sustainable:
+        "Hi there! I'm your sustainable fashion consultant. Let's find beautiful, ethical pieces that align with your values. How can I help you build a more conscious wardrobe?",
+    };
+
+    const welcomeMessage: Message = {
+      id: `welcome-${Date.now()}`,
+      role: "assistant",
+      content: greetings[selectedPersona],
+      timestamp: Date.now(),
+    };
+
+    setMessages([welcomeMessage]);
+  }, [selectedPersona]);
+
+  return (
+    <section className="py-20 bg-subtle-gradient">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            AI Stylist Agent
+          </h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Get personalized fashion advice, sourcing recommendations, and
+            styling expertise from our AI-powered fashion consultants.
+          </p>
+          {!chromeAIAvailable && (
+            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg max-w-md mx-auto">
+              <p className="text-amber-800 dark:text-amber-200 text-sm">
+                Chrome Built-in AI not detected. Using fallback mode.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="max-w-6xl mx-auto space-y-8">
+          {/* Stylist Selection */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <PersonaCard
+              persona="luxury"
+              isSelected={selectedPersona === "luxury"}
+              onSelect={handlePersonaChange}
+              disabled={loading}
+            />
+            <PersonaCard
+              persona="streetwear"
+              isSelected={selectedPersona === "streetwear"}
+              onSelect={handlePersonaChange}
+              disabled={loading}
+            />
+            <PersonaCard
+              persona="sustainable"
+              isSelected={selectedPersona === "sustainable"}
+              onSelect={handlePersonaChange}
+              disabled={loading}
+            />
+          </div>
+
+          {/* Chat Interface */}
+          <Card className="max-w-4xl mx-auto">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <MessageCircle className="h-5 w-5" />
+                  Chat with Your Stylist
+                </CardTitle>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateSuggestions}
+                    disabled={loading}
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Get Suggestions
+                  </Button>
+                  {messages.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        clearConversation();
+                        setMessages([]);
+                        setSuggestions([]);
+                        setShowSuggestions(false);
+                      }}
+                      disabled={loading}
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Clear
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* Chat Messages */}
+              {messages.length > 0 ? (
+                <div className="space-y-4">
+                  <ScrollArea className="h-96 pr-4" ref={scrollAreaRef}>
+                    <div className="space-y-4">
+                      {messages.map((msg, index) => (
+                        <ChatMessage
+                          key={msg.id}
+                          message={msg}
+                          isLast={index === messages.length - 1}
+                        />
+                      ))}
+                      {loading && (
+                        <div className="flex gap-3">
+                          <Avatar className="h-8 w-8 mt-1">
+                            <AvatarFallback>
+                              <Bot className="h-4 w-4" />
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="bg-muted rounded-lg p-3 flex items-center gap-2">
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                            <span className="text-sm">
+                              Styling advice incoming...
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </ScrollArea>
+                  <Separator />
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <MessageCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">
+                    Ready to Style?
+                  </h3>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                    Start a conversation with your selected stylist to get
+                    personalized fashion advice.
+                  </p>
+                  <Button onClick={startConversation} disabled={loading}>
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Start Conversation
+                  </Button>
+                </div>
+              )}
+
+              {/* Message Input */}
+              {messages.length > 0 && (
+                <div className="flex gap-2 mt-4">
+                  <Input
+                    placeholder="Ask about styling, sourcing, or fittings..."
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    disabled={loading}
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={handleSendMessage}
+                    disabled={loading || !message.trim()}
+                    className="fashion-gradient text-white"
+                  >
+                    {loading ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              )}
+
+              {/* Error Display */}
+              {error && (
+                <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                  <p className="text-destructive text-sm">{error}</p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearError}
+                    className="mt-2"
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Style Suggestions */}
+          {showSuggestions && <StyleSuggestions suggestions={suggestions} />}
+        </div>
+      </div>
+    </section>
+  );
+}

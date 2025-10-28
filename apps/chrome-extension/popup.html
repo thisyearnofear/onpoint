@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OnPoint Fashion AI</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5"/>
+                    <path d="M2 12l10 5 10-5"/>
+                </svg>
+                <h1>OnPoint Fashion AI</h1>
+            </div>
+            <div class="chrome-ai-status" id="aiStatus">
+                <span class="status-indicator" id="statusIndicator"></span>
+                <span class="status-text" id="statusText">Checking AI...</span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <!-- Photo Upload Section -->
+            <section class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2v11z"/>
+                            <circle cx="12" cy="13" r="4"/>
+                        </svg>
+                    </div>
+                    <h3>Upload Outfit Photo</h3>
+                    <p>Drag & drop or click to select an image</p>
+                    <input type="file" id="photoInput" accept="image/*" hidden>
+                    <button class="upload-btn" id="uploadBtn">
+                        Select Photo
+                    </button>
+                </div>
+
+                <!-- Photo Preview -->
+                <div class="photo-preview" id="photoPreview" style="display: none;">
+                    <img id="previewImg" alt="Selected outfit">
+                    <button class="remove-photo" id="removePhoto" title="Remove photo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Analysis Section -->
+            <section class="analysis-section" id="analysisSection" style="display: none;">
+                <div class="loading-state" id="loadingState">
+                    <div class="spinner"></div>
+                    <p>Analyzing your outfit with AI...</p>
+                </div>
+
+                <div class="results" id="results" style="display: none;">
+                    <div class="rating-card">
+                        <div class="rating-header">
+                            <h3>Style Rating</h3>
+                            <div class="rating-score" id="ratingScore">-</div>
+                        </div>
+                        <div class="rating-bar">
+                            <div class="rating-fill" id="ratingFill"></div>
+                        </div>
+                        <p class="rating-text" id="ratingText">Overall assessment</p>
+                    </div>
+
+                    <div class="strengths-card">
+                        <h3>✨ What's Working</h3>
+                        <ul id="strengthsList"></ul>
+                    </div>
+
+                    <div class="improvements-card">
+                        <h3>💡 Suggestions</h3>
+                        <ul id="improvementsList"></ul>
+                    </div>
+
+                    <div class="style-notes">
+                        <h3>🎨 Style Notes</h3>
+                        <p id="styleNotesText"></p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Action Buttons -->
+            <div class="actions" id="actions" style="display: none;">
+                <button class="action-btn secondary" id="analyzeBtn">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    </svg>
+                    Analyze Outfit
+                </button>
+                <button class="action-btn primary" id="getAdviceBtn">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z"/>
+                    </svg>
+                    Get Styling Advice
+                </button>
+                <button class="action-btn secondary" id="saveBtn" style="display: none;">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
+                    </svg>
+                    Save Analysis
+                </button>
+            </div>
+
+            <!-- Styling Advice Modal -->
+            <div class="modal-overlay" id="modalOverlay" style="display: none;">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3>AI Styling Advice</h3>
+                        <button class="close-modal" id="closeModal">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="modal-content">
+                        <div class="chat-container">
+                            <div class="chat-messages" id="chatMessages"></div>
+                            <div class="chat-input">
+                                <input type="text" id="messageInput" placeholder="Ask for styling advice..." maxlength="200">
+                                <button id="sendMessage" disabled>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                                        <polygon points="22,2 15,22 11,13 2,9 22,2"></polygon>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error State -->
+            <div class="error-card" id="errorCard" style="display: none;">
+                <div class="error-icon">⚠️</div>
+                <h3>Something went wrong</h3>
+                <p id="errorText"></p>
+                <button class="retry-btn" id="retryBtn">Try Again</button>
+            </div>
+
+            <!-- Chrome AI Not Available -->
+            <div class="warning-card" id="chromeAIWarning" style="display: none;">
+                <div class="warning-icon">ℹ️</div>
+                <h3>Chrome AI Required</h3>
+                <p>This extension requires Chrome's Built-in AI APIs. Please ensure you're using Chrome 138+ with AI features enabled.</p>
+                <a href="https://developer.chrome.com/docs/ai" target="_blank" class="learn-more">Learn More</a>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="powered-by">
+                <span>Powered by</span>
+                <strong>Chrome Built-in AI</strong>
+            </div>
+            <div class="links">
+                <a href="#" id="aboutLink">About</a>
+                <a href="#" id="privacyLink">Privacy</a>
+            </div>
+        </footer>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
