@@ -190,22 +190,28 @@ const InteractiveStylingCanvas: React.FC = () => {
 
   // Persistence: Load from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem('onpoint-collage');
-    if (saved) {
-      const { centerImageSrc: savedSrc, shirtStates: savedStates } = JSON.parse(saved);
-      setCenterImageSrc(savedSrc || '/assets/1Model.png');
-      setShirtStates(savedStates || {
-        '1': { isGrabbed: false, isDraggingRight: false, isDraggingLeft: false, left: '15%', top: '20%' },
-        '2': { isGrabbed: false, isDraggingRight: false, isDraggingLeft: false, left: '80%', top: '45%' },
-        '3': { isGrabbed: false, isDraggingRight: false, isDraggingLeft: false, left: '15%', top: '70%' },
-      });
+    // Only run in browser environment
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = localStorage.getItem('onpoint-collage');
+      if (saved) {
+        const { centerImageSrc: savedSrc, shirtStates: savedStates } = JSON.parse(saved);
+        setCenterImageSrc(savedSrc || '/assets/1Model.png');
+        setShirtStates(savedStates || {
+          '1': { isGrabbed: false, isDraggingRight: false, isDraggingLeft: false, left: '15%', top: '20%' },
+          '2': { isGrabbed: false, isDraggingRight: false, isDraggingLeft: false, left: '80%', top: '45%' },
+          '3': { isGrabbed: false, isDraggingRight: false, isDraggingLeft: false, left: '15%', top: '70%' },
+        });
+      }
     }
   }, []);
 
   // Persistence: Save to localStorage on changes
   useEffect(() => {
-    const data = { centerImageSrc, shirtStates };
-    localStorage.setItem('onpoint-collage', JSON.stringify(data));
+    // Only run in browser environment
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const data = { centerImageSrc, shirtStates };
+      localStorage.setItem('onpoint-collage', JSON.stringify(data));
+    }
   }, [centerImageSrc, shirtStates]);
 
   useEffect(() => {
@@ -249,6 +255,8 @@ const InteractiveStylingCanvas: React.FC = () => {
 
     const handleStart = (e: MouseEvent | TouchEvent, shirtId: string | number) => {
       e.preventDefault();
+      // Only run in browser environment
+      if (typeof window === 'undefined' || !window.document) return;
       activeShirt = document.getElementById(`shirt-${shirtId}`);
       if (!activeShirt || !centerImageRef.current) return;
 
@@ -259,6 +267,8 @@ const InteractiveStylingCanvas: React.FC = () => {
       originalCenterImageSrc = centerImageSrc;
       isHoveringCenterImage = false;
 
+      // Only run in browser environment
+      if (typeof window === 'undefined' || !window.getComputedStyle) return;
       const computedStyle = window.getComputedStyle(activeShirt);
       currentPos.x = parseInt(computedStyle.left) || 0;
       currentPos.y = parseInt(computedStyle.top) || 0;
@@ -269,8 +279,11 @@ const InteractiveStylingCanvas: React.FC = () => {
         lastY = mouseE.clientY;
         initialTouchPos.x = mouseE.clientX;
         initialTouchPos.y = mouseE.clientY;
-        document.addEventListener('mousemove', handleMove);
-        document.addEventListener('mouseup', handleEnd);
+        // Only run in browser environment
+        if (typeof window !== 'undefined' && window.document) {
+          document.addEventListener('mousemove', handleMove);
+          document.addEventListener('mouseup', handleEnd);
+        }
       } else if (e.type === 'touchstart') {
         const touchE = e as TouchEvent;
         const touch = touchE.touches[0];
@@ -280,9 +293,12 @@ const InteractiveStylingCanvas: React.FC = () => {
           initialTouchPos.x = touch.clientX;
           initialTouchPos.y = touch.clientY;
         }
-        document.addEventListener('touchmove', handleMove, { passive: false });
-        document.addEventListener('touchend', handleEnd);
-        document.addEventListener('touchcancel', handleEnd);
+        // Only run in browser environment
+        if (typeof window !== 'undefined' && window.document) {
+          document.addEventListener('touchmove', handleMove, { passive: false });
+          document.addEventListener('touchend', handleEnd);
+          document.addEventListener('touchcancel', handleEnd);
+        }
       }
 
       activeShirt.style.cursor = 'grabbing';
@@ -391,28 +407,37 @@ const InteractiveStylingCanvas: React.FC = () => {
       setShirtStates((prev: any) => ({ ...prev, [shirtIdEnd as string]: { ...prev[shirtIdEnd as string], isGrabbed: false, isDraggingRight: false, isDraggingLeft: false } }));
 
       if (moveTimeout) clearTimeout(moveTimeout);
-      document.removeEventListener('mousemove', handleMove);
-      document.removeEventListener('mouseup', handleEnd);
-      document.removeEventListener('touchmove', handleMove);
-      document.removeEventListener('touchend', handleEnd);
-      document.removeEventListener('touchcancel', handleEnd);
+      // Only run in browser environment
+      if (typeof window !== 'undefined' && window.document) {
+        document.removeEventListener('mousemove', handleMove);
+        document.removeEventListener('mouseup', handleEnd);
+        document.removeEventListener('touchmove', handleMove);
+        document.removeEventListener('touchend', handleEnd);
+        document.removeEventListener('touchcancel', handleEnd);
+      }
       isHoveringCenterImage = false;
       activeShirt = null;
       };
 
           shirtsData.forEach(shirt => {
-            const shirtEl = document.getElementById(`shirt-${shirt.id}`);
-            if (shirtEl) {
-              const startHandler = (e: MouseEvent | TouchEvent) => handleStart(e, shirt.id);
-              shirtEl.addEventListener('mousedown', startHandler);
-              shirtEl.addEventListener('touchstart', startHandler, { passive: false });
+            // Only run in browser environment
+            if (typeof window !== 'undefined' && window.document) {
+              const shirtEl = document.getElementById(`shirt-${shirt.id}`);
+              if (shirtEl) {
+                const startHandler = (e: MouseEvent | TouchEvent) => handleStart(e, shirt.id);
+                shirtEl.addEventListener('mousedown', startHandler);
+                shirtEl.addEventListener('touchstart', startHandler, { passive: false });
+              }
             }
           });
     const handleResize = () => {
-      document.querySelectorAll('.shirt').forEach((shirt) => {
-        (shirt as HTMLElement).style.left = '';
-        (shirt as HTMLElement).style.top = '';
-      });
+      // Only run in browser environment
+      if (typeof window !== 'undefined' && window.document) {
+        document.querySelectorAll('.shirt').forEach((shirt) => {
+          (shirt as HTMLElement).style.left = '';
+          (shirt as HTMLElement).style.top = '';
+        });
+      }
       setShirtStates((prev: any) => {
         const newStates = { ...prev };
         Object.keys(newStates).forEach(key => {
@@ -426,21 +451,27 @@ const InteractiveStylingCanvas: React.FC = () => {
         });
         };
 
-    window.addEventListener('resize', handleResize);
+    // Only run in browser environment
+    if (typeof window !== 'undefined' && window.addEventListener) {
+      window.addEventListener('resize', handleResize);
+    }
 
     return () => {
-      shirtsData.forEach(shirt => {
-        const shirtEl = document.getElementById(`shirt-${shirt.id}`);
-        if (shirtEl) {
-          shirtEl.removeEventListener('mousedown', (e) => handleStart(e, shirt.id));
-          shirtEl.removeEventListener('touchstart', (e) => handleStart(e, shirt.id));
-        }
-      });
-      window.removeEventListener('resize', handleResize);
-      document.removeEventListener('mousemove', handleMove);
-      document.removeEventListener('mouseup', handleEnd);
-      document.removeEventListener('touchmove', handleMove);
-      document.removeEventListener('touchend', handleEnd);
+      // Only run in browser environment
+      if (typeof window !== 'undefined' && window.document) {
+        shirtsData.forEach(shirt => {
+          const shirtEl = document.getElementById(`shirt-${shirt.id}`);
+          if (shirtEl) {
+            shirtEl.removeEventListener('mousedown', (e) => handleStart(e, shirt.id));
+            shirtEl.removeEventListener('touchstart', (e) => handleStart(e, shirt.id));
+          }
+        });
+        window.removeEventListener('resize', handleResize);
+        document.removeEventListener('mousemove', handleMove);
+        document.removeEventListener('mouseup', handleEnd);
+        document.removeEventListener('touchmove', handleMove);
+        document.removeEventListener('touchend', handleEnd);
+      }
     };
   }, []);
 
@@ -455,8 +486,11 @@ const InteractiveStylingCanvas: React.FC = () => {
   };
 
   useEffect(() => {
-    document.addEventListener('click', handleDocumentClick);
-    return () => document.removeEventListener('click', handleDocumentClick);
+    // Only run in browser environment
+    if (typeof window !== 'undefined' && window.document) {
+      document.addEventListener('click', handleDocumentClick);
+      return () => document.removeEventListener('click', handleDocumentClick);
+    }
   }, [tooltipVisible]);
 
   return (
