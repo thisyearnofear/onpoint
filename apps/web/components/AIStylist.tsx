@@ -22,7 +22,7 @@ import {
   Lightbulb,
   Star,
 } from "lucide-react";
-import { useAIStylist, checkChromeAI } from "@repo/ai-client";
+import { useAIStylist } from "@repo/ai-client";
 import type { StylistPersona, StyleSuggestion } from "@repo/ai-client";
 
 interface Message {
@@ -269,7 +269,7 @@ export function AIStylist() {
     clearError,
   } = useAIStylist(selectedPersona);
 
-  const [chromeAIAvailable] = useState(() => checkChromeAI());
+  
 
   // Sync conversation history with messages
   useEffect(() => {
@@ -390,13 +390,7 @@ export function AIStylist() {
             Get personalized fashion advice, sourcing recommendations, and
             styling expertise from our AI-powered fashion consultants.
           </p>
-          {!chromeAIAvailable && (
-            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg max-w-md mx-auto">
-              <p className="text-amber-800 dark:text-amber-200 text-sm">
-                Chrome Built-in AI not detected. Using fallback mode.
-              </p>
-            </div>
-          )}
+          
         </div>
 
         <div className="max-w-6xl mx-auto space-y-8">

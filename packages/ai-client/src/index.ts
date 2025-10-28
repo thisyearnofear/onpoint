@@ -1,3 +1,7 @@
-// AI client for interacting with Chrome's built-in AI APIs
-
-export * from './chrome-ai-client';
+export * from './providers/base-provider';
+export * from './providers/chrome-provider';
+export * from './providers/gemini-provider';
+export * from './providers/openai-provider';
+export * from './hooks';
+export * from './context/AIContext';
+export { default as AIClientManager } from './ai-client';

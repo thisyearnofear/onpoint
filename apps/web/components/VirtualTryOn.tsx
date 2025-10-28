@@ -14,7 +14,7 @@ import {
   Scan,
   CheckCircle,
 } from "lucide-react";
-import { useVirtualTryOn, checkChromeAI } from "@repo/ai-client";
+import { useVirtualTryOn } from "@repo/ai-client";
 import type { VirtualTryOnAnalysis } from "@repo/ai-client";
 
 interface PhotoUploadProps {
@@ -267,7 +267,7 @@ export function VirtualTryOn() {
     clearError,
   } = useVirtualTryOn();
 
-  const [chromeAIAvailable] = useState(() => checkChromeAI());
+
 
   const handlePhotoSelect = useCallback(
     async (file: File) => {
@@ -318,13 +318,7 @@ export function VirtualTryOn() {
             scanning technology to visualize outfits with realistic lighting and
             proportions.
           </p>
-          {!chromeAIAvailable && (
-            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg max-w-md mx-auto">
-              <p className="text-amber-800 dark:text-amber-200 text-sm">
-                Chrome Built-in AI not detected. Some features may be limited.
-              </p>
-            </div>
-          )}
+
         </div>
 
         <div className="max-w-6xl mx-auto space-y-8">

@@ -163,7 +163,7 @@ export default function CollagePage() {
               <div>
                 <h3 className="font-semibold text-amber-800">Chrome Built-in AI Required</h3>
                 <p className="text-sm text-amber-700">
-                  This feature requires Chrome's Built-in AI capabilities. Please use a Chrome browser with the AI features enabled.
+                  This feature requires Chrome&apos;s Built-in AI capabilities. Please use a Chrome browser with the AI features enabled.
                 </p>
               </div>
             </div>
@@ -340,17 +340,27 @@ export default function CollagePage() {
                     {critique.rating}/10
                   </span>
                 </div>
-                <p className="text-muted-foreground">{critique.feedback}</p>
+
+                <p className="text-muted-foreground">{critique.styleNotes}</p>
               </div>
 
-              {critique.suggestions && (
+              {(critique.strengths.length > 0 || critique.improvements.length > 0) && (
                 <div>
-                  <h4 className="font-medium mb-2">Suggestions:</h4>
-                  <ul className="space-y-1">
-                    {critique.suggestions.map((suggestion: string, i: number) => (
+                  <h4 className="font-medium mb-2">Strengths:</h4>
+                  <ul className="space-y-1 mb-4">
+                    {critique.strengths.map((strength: string, i: number) => (
                       <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                        <span className="text-primary mt-1">•</span>
-                        {suggestion}
+                        <span className="text-green-600 mt-1">✓</span>
+                        {strength}
+                      </li>
+                    ))}
+                  </ul>
+                  <h4 className="font-medium mb-2">Improvements:</h4>
+                  <ul className="space-y-1">
+                    {critique.improvements.map((improvement: string, i: number) => (
+                      <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+                        <span className="text-amber-600 mt-1">•</span>
+                        {improvement}
                       </li>
                     ))}
                   </ul>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Palette, Sparkles, ArrowLeft, Shirt, Wand2 } from 'lucide-react';
 import { Button } from '@repo/ui/button';
 import InteractiveStylingCanvas from '@repo/shared-ui/components/InteractiveStylingCanvas';
@@ -8,12 +8,11 @@ import { useChromeAISupport, useAIColorPalette, useAIStyleSuggestions, useAIVirt
 import Link from 'next/link';
 
 export default function StylePage() {
-  const [chromeAISupported, setChromeAISupported] = useState(false);
-  const { palette, loading: paletteLoading, error: paletteError, generatePalette } = useAIColorPalette();
-  const { suggestions, loading: suggestionsLoading, error: suggestionsError, generateSuggestions } = useAIStyleSuggestions();
-  const { enhancement, loading: enhancementLoading, error: enhancementError, enhanceTryOn } = useAIVirtualTryOnEnhancement();
+  const { palette, loading: paletteLoading, generatePalette } = useAIColorPalette();
+  const { suggestions } = useAIStyleSuggestions();
+  const { enhancement, loading: enhancementLoading, enhanceTryOn } = useAIVirtualTryOnEnhancement();
+  const { supported: chromeAISupported } = useChromeAISupport();
   
-  // Mock outfit items for demonstration
   const mockOutfitItems = [
     { 
       id: '1', 
@@ -29,11 +28,6 @@ export default function StylePage() {
     }
   ];
 
-  // Check Chrome AI support
-  useEffect(() => {
-    setChromeAISupported(useChromeAISupport());
-  }, []);
-
   const handleGenerateVariations = () => {
     if (!chromeAISupported) {
       alert('Chrome AI is not supported in your browser. Please use a Chrome browser with Built-in AI enabled.');
@@ -48,8 +42,7 @@ export default function StylePage() {
       return;
     }
     
-    // In a real implementation, we would pass actual image data
-    await generatePalette('Fashion outfit with streetwear elements', 'Modern and vibrant');
+    await generatePalette('Fashion outfit with streetwear elements');
   };
 
   const handleAIEnhance = async () => {
@@ -98,7 +91,7 @@ export default function StylePage() {
               <div>
                 <h3 className="font-semibold text-amber-800">Chrome Built-in AI Required</h3>
                 <p className="text-sm text-amber-700">
-                  This feature requires Chrome's Built-in AI capabilities. Please use a Chrome browser with the AI features enabled.
+                  This feature requires Chrome&apos;s Built-in AI capabilities. Please use a Chrome browser with the AI features enabled.
                 </p>
               </div>
             </div>
@@ -187,21 +180,15 @@ export default function StylePage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {suggestions.map((suggestion, index) => (
                 <div key={index} className="border border-muted-foreground/20 rounded-lg p-4">
-                  <h4 className="font-semibold mb-2">{suggestion.style}</h4>
-                  <p className="text-sm text-muted-foreground mb-3">{suggestion.description}</p>
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs text-muted-foreground">Confidence:</span>
-                    <div className="flex items-center gap-1">
-                      {[...Array(10)].map((_, i) => (
-                        <div
-                          key={i}
-                          className={`w-2 h-2 rounded-full ${
-                            i < suggestion.confidence ? 'bg-accent' : 'bg-muted'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-xs text-muted-foreground">{suggestion.confidence}/10</span>
+                  <h4 className="font-semibold mb-2">{suggestion.category}</h4>
+                  <div className="space-y-2">
+                    {suggestion.items.map((item, itemIndex) => (
+                      <div key={itemIndex} className="text-sm">
+                        <p className="font-medium">{item.name}</p>
+                        <p className="text-muted-foreground">{item.description}</p>
+                        <p className="text-xs text-muted-foreground">{item.reasoning}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}
