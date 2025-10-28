@@ -1,0 +1,19 @@
+[build]
+  base = "apps/web"
+  command = "cd ../.. && pnpm build --filter=web"
+  publish = "apps/web/.next"
+
+[build.environment]
+  NODE_VERSION = "18"
+  NPM_FLAGS = "--version"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[context.production]
+  command = "cd ../.. && pnpm install && pnpm build --filter=web"
+
+[context.deploy-preview]
+  command = "cd ../.. && pnpm install && pnpm build --filter=web"
