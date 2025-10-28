@@ -1,24 +1,118 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Palette, Sparkles, Camera, MessageCircle, Save, Share2, Plus, Heart } from 'lucide-react';
+import { Palette, Sparkles, Camera, MessageCircle, Save, Share2, Plus, Heart, Shirt, Coins } from 'lucide-react';
 import { Button } from '@repo/ui/button';
-import { critiqueOutfit, type CritiqueResponse } from '@onpoint/ai-client';
+import { critiqueOutfit, generateClothingFromCollage, type CritiqueResponse, type ClothingGenerationResponse, isChromeAISupported } from '@onpoint/ai-client';
+import { mintNFT, type MintResult } from '@onpoint/blockchain-client';
 import Link from 'next/link';
 import { MobileNavigation } from '@/components/mobile-navigation';
 
 export default function CollagePage() {
   const [critique, setCritique] = useState<CritiqueResponse | null>(null);
+  const [clothingDesign, setClothingDesign] = useState<ClothingGenerationResponse | null>(null);
+  const [mintResult, setMintResult] = useState<MintResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [chromeAISupported, setChromeAISupported] = useState(false);
+
+  // Check if Chrome AI is supported
+  useEffect(() => {
+    setChromeAISupported(isChromeAISupported());
+  }, []);
+
+  // Mock collage items - in a real app, these would come from user uploads or selections
+  const collageItems = [
+    { 
+      id: '1', 
+      name: 'Urban Streetwear Jacket', 
+      description: 'High-fashion streetwear jacket with reflective material and bold geometric patterns',
+      imageUrl: '/assets/1Product.png', 
+      createdAt: new Date(), 
+      updatedAt: new Date() 
+    },
+    { 
+      id: '2', 
+      name: 'Designer Sneakers', 
+      description: 'Limited edition sneakers with unique color blocking and premium materials',
+      imageUrl: '/assets/2Product.png', 
+      createdAt: new Date(), 
+      updatedAt: new Date() 
+    },
+    { 
+      id: '3', 
+      name: 'Statement Accessories', 
+      description: 'Bold accessories that complement the urban aesthetic with metallic finishes',
+      imageUrl: '/assets/3Product.png', 
+      createdAt: new Date(), 
+      updatedAt: new Date() 
+    }
+  ];
 
   const handleGetCritique = async () => {
+    if (!chromeAISupported) {
+      alert('Chrome AI is not supported in your browser. Please use a Chrome browser with Built-in AI enabled.');
+      return;
+    }
+
     setLoading(true);
     try {
-      const result = await critiqueOutfit('Current collage inspiration');
+      const result = await critiqueOutfit(collageItems);
       setCritique(result);
     } catch (error) {
       console.error('Failed to get critique:', error);
+      alert('Failed to get AI critique. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerateGarment = async () => {
+    if (!chromeAISupported) {
+      alert('Chrome AI is not supported in your browser. Please use a Chrome browser with Built-in AI enabled.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await generateClothingFromCollage(collageItems);
+      setClothingDesign(result);
+    } catch (error) {
+      console.error('Failed to generate clothing:', error);
+      alert('Failed to generate clothing design. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMintNFT = async () => {
+    if (!chromeAISupported) {
+      alert('Chrome AI is not supported in your browser. Please use a Chrome browser with Built-in AI enabled.');
+      return;
+    }
+
+    if (!clothingDesign) {
+      alert('Please generate a clothing design first.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // In a real implementation, we would use actual contract config
+      const contractConfig = {
+        address: '0x0000000000000000000000000000000000000000' as const, // Placeholder
+        abi: [] // Placeholder
+      };
+      
+      const result = await mintNFT(contractConfig, JSON.stringify({
+        ...clothingDesign,
+        imageUrl: '/assets/1Product.png' // Placeholder
+      }));
+      
+      setMintResult(result);
+    } catch (error) {
+      console.error('Failed to mint NFT:', error);
+      alert('Failed to mint NFT. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -33,21 +127,9 @@ export default function CollagePage() {
     alert('Share link copied to clipboard!');
   };
 
-  const handleGenerateGarment = () => {
-    alert('Generate new garment - feature coming soon! This would create a custom shirt, shorts, trousers, or jacket from your collage.');
-  };
-
   const handleAddImage = () => {
     alert('Add image - upload or search for fashion inspiration!');
   };
-
-  // Mock collage items
-  const collageItems = [
-    { id: 1, type: 'image', src: '/assets/1Product.png', alt: 'Fashion inspiration 1' },
-    { id: 2, type: 'image', src: '/assets/2Product.png', alt: 'Fashion inspiration 2' },
-    { id: 3, type: 'text', content: 'Urban streetwear vibes' },
-    { id: 4, type: 'image', src: '/assets/3Product.png', alt: 'Fashion inspiration 3' },
-  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -73,6 +155,21 @@ export default function CollagePage() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {/* Chrome AI Support Warning */}
+        {!chromeAISupported && (
+          <div className="elegant-shadow border-0 rounded-lg bg-amber-50 border border-amber-200 p-4 mb-6 max-w-4xl mx-auto">
+            <div className="flex items-center gap-3">
+              <Sparkles className="h-5 w-5 text-amber-600" />
+              <div>
+                <h3 className="font-semibold text-amber-800">Chrome Built-in AI Required</h3>
+                <p className="text-sm text-amber-700">
+                  This feature requires Chrome's Built-in AI capabilities. Please use a Chrome browser with the AI features enabled.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Page Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
@@ -92,9 +189,13 @@ export default function CollagePage() {
             <Plus className="h-4 w-4" />
             Add Inspiration
           </Button>
-          <Button onClick={handleGenerateGarment} className="fashion-gradient text-white flex items-center gap-2">
-            <Sparkles className="h-4 w-4" />
-            Generate Garment
+          <Button 
+            onClick={handleGenerateGarment} 
+            disabled={loading || !chromeAISupported}
+            className="fashion-gradient text-white flex items-center gap-2"
+          >
+            <Shirt className="h-4 w-4" />
+            {loading ? 'Generating...' : 'Generate Garment'}
           </Button>
           <Button onClick={handleSave} className="flex items-center gap-2">
             <Save className="h-4 w-4" />
@@ -106,13 +207,110 @@ export default function CollagePage() {
           </Button>
           <Button
             onClick={handleGetCritique}
-            disabled={loading}
+            disabled={loading || !chromeAISupported}
             className="fashion-gradient text-white flex items-center gap-2"
           >
             <Sparkles className="h-4 w-4" />
             {loading ? 'Getting Critique...' : 'Get AI Critique'}
           </Button>
         </div>
+
+        {/* AI Clothing Design Display */}
+        {clothingDesign && (
+          <div className="elegant-shadow border-0 rounded-lg bg-card p-6 mb-8 max-w-4xl mx-auto">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Shirt className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="text-xl font-semibold">AI Generated Clothing Design</h3>
+              <Button 
+                onClick={handleMintNFT}
+                disabled={loading || !chromeAISupported}
+                className="ml-auto fashion-gradient text-white flex items-center gap-2"
+                size="sm"
+              >
+                <Coins className="h-4 w-4" />
+                {loading ? 'Minting...' : 'Mint as NFT'}
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-medium mb-2">Design Description</h4>
+                <p className="text-muted-foreground mb-4">{clothingDesign.description}</p>
+                
+                <h4 className="font-medium mb-2">Style Notes</h4>
+                <p className="text-muted-foreground">{clothingDesign.styleNotes}</p>
+              </div>
+              
+              <div>
+                <h4 className="font-medium mb-2">Color Palette</h4>
+                <div className="flex gap-2 mb-4">
+                  {clothingDesign.colorPalette.map((color, index) => (
+                    <div key={index} className="flex flex-col items-center">
+                      <div 
+                        className="w-8 h-8 rounded-full border border-muted-foreground/20" 
+                        style={{ backgroundColor: color }}
+                      />
+                      <span className="text-xs text-muted-foreground mt-1">{color}</span>
+                    </div>
+                  ))}
+                </div>
+                
+                <h4 className="font-medium mb-2">Materials</h4>
+                <div className="flex flex-wrap gap-2">
+                  {clothingDesign.materials.map((material, index) => (
+                    <span 
+                      key={index} 
+                      className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full"
+                    >
+                      {material}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-6 flex justify-center">
+              <Button 
+                onClick={handleMintNFT}
+                disabled={loading || !chromeAISupported}
+                className="fashion-gradient text-white flex items-center gap-2"
+              >
+                <Coins className="h-4 w-4 mr-2" />
+                Mint Custom Piece as NFT
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* NFT Minting Result */}
+        {mintResult && (
+          <div className="elegant-shadow border-0 rounded-lg bg-card p-6 mb-8 max-w-4xl mx-auto">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                <Coins className="h-5 w-5 text-accent" />
+              </div>
+              <h3 className="text-xl font-semibold">NFT Minting Result</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-muted-foreground mb-2">
+                  <span className="font-medium">Status:</span> {mintResult.status}
+                </p>
+                <p className="text-muted-foreground">
+                  <span className="font-medium">Token ID:</span> {mintResult.tokenId}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground break-all">
+                  <span className="font-medium">Transaction:</span> {mintResult.transactionHash}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* AI Critique Display */}
         {critique && (
@@ -170,19 +368,18 @@ export default function CollagePage() {
                 key={item.id}
                 className="relative group border-2 border-dashed border-muted-foreground/20 hover:border-primary/30 transition-colors rounded-lg p-4 flex flex-col items-center justify-center min-h-[150px] bg-card/50"
               >
-                {item.type === 'image' ? (
-                  <div className="relative w-full h-full">
-                    <Image 
-                      src={item.src || '/assets/placeholder.png'} 
-                      alt={item.alt || 'Fashion inspiration'} 
-                      fill
-                      className="object-contain rounded"
-                      loading="lazy"
-                    />
-                  </div>
-                ) : (
-                  <p className="text-center text-muted-foreground">{item.content}</p>
-                )}
+                <div className="relative w-full h-full">
+                  <Image 
+                    src={item.imageUrl || '/assets/placeholder.png'} 
+                    alt={item.name || 'Fashion inspiration'} 
+                    fill
+                    className="object-contain rounded"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="absolute bottom-2 left-2 right-2 bg-black/50 text-white text-xs p-1 rounded truncate">
+                  {item.name}
+                </div>
                 <Button
                   size="sm"
                   variant="ghost"

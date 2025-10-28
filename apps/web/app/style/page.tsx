@@ -1,22 +1,64 @@
 'use client';
 
-import React from 'react';
-import { Palette, Sparkles, ArrowLeft } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Palette, Sparkles, ArrowLeft, Shirt, Wand2 } from 'lucide-react';
 import { Button } from '@repo/ui/button';
 import InteractiveStylingCanvas from '@repo/shared-ui/components/InteractiveStylingCanvas';
+import { useChromeAISupport, useAIColorPalette, useAIStyleSuggestions, useAIVirtualTryOnEnhancement } from '@onpoint/ai-client';
 import Link from 'next/link';
 
 export default function StylePage() {
+  const [chromeAISupported, setChromeAISupported] = useState(false);
+  const { palette, loading: paletteLoading, error: paletteError, generatePalette } = useAIColorPalette();
+  const { suggestions, loading: suggestionsLoading, error: suggestionsError, generateSuggestions } = useAIStyleSuggestions();
+  const { enhancement, loading: enhancementLoading, error: enhancementError, enhanceTryOn } = useAIVirtualTryOnEnhancement();
+  
+  // Mock outfit items for demonstration
+  const mockOutfitItems = [
+    { 
+      id: '1', 
+      name: 'Urban Streetwear Jacket', 
+      description: 'High-fashion streetwear jacket with reflective material and bold geometric patterns',
+      imageUrl: '/assets/1Product.png'
+    },
+    { 
+      id: '2', 
+      name: 'Designer Sneakers', 
+      description: 'Limited edition sneakers with unique color blocking and premium materials',
+      imageUrl: '/assets/2Product.png'
+    }
+  ];
+
+  // Check Chrome AI support
+  useEffect(() => {
+    setChromeAISupported(useChromeAISupport());
+  }, []);
+
   const handleGenerateVariations = () => {
-    alert('Generate variations - feature coming soon!');
+    if (!chromeAISupported) {
+      alert('Chrome AI is not supported in your browser. Please use a Chrome browser with Built-in AI enabled.');
+      return;
+    }
+    alert('Generate variations with AI - feature implementation in progress!');
   };
 
-  const handleColorPalette = () => {
-    alert('Color palette - feature coming soon!');
+  const handleColorPalette = async () => {
+    if (!chromeAISupported) {
+      alert('Chrome AI is not supported in your browser. Please use a Chrome browser with Built-in AI enabled.');
+      return;
+    }
+    
+    // In a real implementation, we would pass actual image data
+    await generatePalette('Fashion outfit with streetwear elements', 'Modern and vibrant');
   };
 
-  const handleAIEnhance = () => {
-    alert('AI enhance - feature coming soon!');
+  const handleAIEnhance = async () => {
+    if (!chromeAISupported) {
+      alert('Chrome AI is not supported in your browser. Please use a Chrome browser with Built-in AI enabled.');
+      return;
+    }
+    
+    await enhanceTryOn(mockOutfitItems);
   };
 
   return (
@@ -48,6 +90,21 @@ export default function StylePage() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {/* Chrome AI Support Warning */}
+        {!chromeAISupported && (
+          <div className="elegant-shadow border-0 rounded-lg bg-amber-50 border border-amber-200 p-4 mb-6 max-w-4xl mx-auto">
+            <div className="flex items-center gap-3">
+              <Sparkles className="h-5 w-5 text-amber-600" />
+              <div>
+                <h3 className="font-semibold text-amber-800">Chrome Built-in AI Required</h3>
+                <p className="text-sm text-amber-700">
+                  This feature requires Chrome's Built-in AI capabilities. Please use a Chrome browser with the AI features enabled.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Page Header */}
         <div className="text-center mb-8">
         <h1 className="text-4xl md:text-5xl font-bold mb-4">
@@ -63,19 +120,137 @@ export default function StylePage() {
 
         {/* Action Buttons */}
         <div className="flex flex-wrap justify-center gap-4 mb-8">
-        <Button onClick={handleGenerateVariations} variant="outline" className="flex items-center gap-2">
+        <Button 
+          onClick={handleGenerateVariations} 
+          variant="outline" 
+          className="flex items-center gap-2"
+          disabled={!chromeAISupported}
+        >
         <Sparkles className="h-4 w-4" />
         Generate Variations
         </Button>
-        <Button onClick={handleColorPalette} variant="outline" className="flex items-center gap-2">
+        <Button 
+          onClick={handleColorPalette} 
+          variant="outline" 
+          className="flex items-center gap-2"
+          disabled={!chromeAISupported || paletteLoading}
+        >
         <Palette className="h-4 w-4" />
-        Color Palette
+        {paletteLoading ? 'Generating Palette...' : 'Color Palette'}
         </Button>
-        <Button onClick={handleAIEnhance} className="fashion-gradient text-white flex items-center gap-2">
-        <Sparkles className="h-4 w-4" />
-        AI Enhance
+        <Button 
+          onClick={handleAIEnhance} 
+          className="fashion-gradient text-white flex items-center gap-2"
+          disabled={!chromeAISupported || enhancementLoading}
+        >
+        <Wand2 className="h-4 w-4" />
+        {enhancementLoading ? 'Enhancing...' : 'AI Enhance'}
         </Button>
         </div>
+
+        {/* AI Color Palette Display */}
+        {palette && (
+          <div className="elegant-shadow border-0 rounded-lg bg-card p-6 mb-8 max-w-4xl mx-auto">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Palette className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="text-xl font-semibold">AI Generated Color Palette</h3>
+            </div>
+            
+            <p className="text-muted-foreground mb-4">{palette.description}</p>
+            
+            <div className="flex flex-wrap gap-4">
+              {palette.colors.map((color, index) => (
+                <div key={index} className="flex flex-col items-center">
+                  <div 
+                    className="w-16 h-16 rounded-lg border border-muted-foreground/20 shadow-sm" 
+                    style={{ backgroundColor: color }}
+                  />
+                  <span className="text-xs text-muted-foreground mt-2 font-mono">{color}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* AI Style Suggestions Display */}
+        {suggestions && (
+          <div className="elegant-shadow border-0 rounded-lg bg-card p-6 mb-8 max-w-4xl mx-auto">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                <Shirt className="h-5 w-5 text-accent" />
+              </div>
+              <h3 className="text-xl font-semibold">AI Style Suggestions</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {suggestions.map((suggestion, index) => (
+                <div key={index} className="border border-muted-foreground/20 rounded-lg p-4">
+                  <h4 className="font-semibold mb-2">{suggestion.style}</h4>
+                  <p className="text-sm text-muted-foreground mb-3">{suggestion.description}</p>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground">Confidence:</span>
+                    <div className="flex items-center gap-1">
+                      {[...Array(10)].map((_, i) => (
+                        <div
+                          key={i}
+                          className={`w-2 h-2 rounded-full ${
+                            i < suggestion.confidence ? 'bg-accent' : 'bg-muted'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-xs text-muted-foreground">{suggestion.confidence}/10</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* AI Virtual Try-On Enhancement Display */}
+        {enhancement && (
+          <div className="elegant-shadow border-0 rounded-lg bg-card p-6 mb-8 max-w-4xl mx-auto">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Wand2 className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="text-xl font-semibold">AI Enhanced Virtual Try-On</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-medium mb-3">Enhanced Outfit</h4>
+                <div className="space-y-3">
+                  {enhancement.enhancedOutfit.map((item, index) => (
+                    <div key={index} className="flex items-center gap-3 p-3 bg-muted/10 rounded-lg">
+                      <div className="w-12 h-12 rounded bg-muted-foreground/10 flex items-center justify-center">
+                        <Shirt className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <h5 className="font-medium">{item.name}</h5>
+                        <p className="text-sm text-muted-foreground">{item.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="font-medium mb-3">Styling Tips</h4>
+                <ul className="space-y-2">
+                  {enhancement.stylingTips.map((tip, index) => (
+                    <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
+                      <span className="text-primary mt-1">•</span>
+                      {tip}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Interactive Canvas */}
         <div className="elegant-shadow border-0 rounded-lg bg-card p-6">

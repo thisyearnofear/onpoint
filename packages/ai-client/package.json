@@ -14,8 +14,7 @@
     "typescript": "5.9.2"
   },
   "dependencies": {
-  "openai": "^4.77.0",
-  "zod": "^3.23.8",
+    "zod": "^3.23.8",
     "@onpoint/shared-types": "workspace:*"
   }
 }

@@ -1,5 +1,5 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { http } from 'wagmi';
+import { createStorage, http } from 'wagmi';
 // Importing commonly available chains
 import { mainnet, sepolia } from 'wagmi/chains';
 // We'll define additional chains manually if they're not available in wagmi/chains
@@ -80,6 +80,17 @@ const zetaChain = {
   testnet: false,
 } as const;
 
+// Custom storage that works on both client and server
+const customStorage = typeof window !== 'undefined' 
+  ? undefined // Use default storage on client
+  : createStorage({
+      storage: {
+        getItem: () => null,
+        setItem: () => {},
+        removeItem: () => {},
+      },
+    });
+
 export const config = getDefaultConfig({
   appName: 'BeOnPoint',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
@@ -93,4 +104,5 @@ export const config = getDefaultConfig({
     [sepolia.id]: http(),
   },
   ssr: true,
+  storage: customStorage,
 });
