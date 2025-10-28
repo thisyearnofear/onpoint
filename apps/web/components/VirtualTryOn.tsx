@@ -186,57 +186,85 @@ function BodyScanSimulation({
 
 function AnalysisResults({ analysis }: { analysis: VirtualTryOnAnalysis }) {
   return (
-    <Card>
-      <CardHeader>
+    <Card className="elegant-shadow">
+      <CardHeader className="glass-effect">
         <CardTitle className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5" />
+          <Sparkles className="h-5 w-5 text-primary" />
           Analysis Results
         </CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Personalized fit analysis and recommendations
+        </p>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h4 className="font-semibold mb-3">Body Profile</h4>
-            <div className="space-y-2">
+      <CardContent className="space-y-6">
+        {/* Body Profile Section */}
+        <div className="glass-effect rounded-lg p-4">
+          <h4 className="font-semibold mb-4 flex items-center gap-2 text-primary">
+            <User className="h-4 w-4" />
+            Body Profile
+          </h4>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">
-                  Body Type:
+                <span className="text-sm font-medium text-muted-foreground">
+                  Body Type
                 </span>
-                <Badge variant="outline">{analysis.bodyType}</Badge>
+                <Badge variant="outline" className="border-primary/30 text-primary">
+                  {analysis.bodyType || "Analyzing..."}
+                </Badge>
               </div>
+            </div>
+            <div className="space-y-3">
               {Object.entries(analysis.measurements).map(([key, value]) => (
                 <div key={key} className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground capitalize">
-                    {key}:
+                  <span className="text-sm font-medium text-muted-foreground capitalize">
+                    {key}
                   </span>
-                  <span className="text-sm">{value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h4 className="font-semibold mb-3">Fit Recommendations</h4>
-            <div className="space-y-2">
-              {analysis.fitRecommendations.slice(0, 5).map((rec, index) => (
-                <div key={index} className="text-sm p-2 bg-muted/50 rounded">
-                  {rec}
+                  <span className="text-sm font-mono bg-primary/5 px-2 py-1 rounded text-primary">
+                    {value || "—"}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
+        {/* Fit Recommendations Section */}
+        <div className="glass-effect rounded-lg p-4">
+          <h4 className="font-semibold mb-4 flex items-center gap-2 text-accent">
+            <CheckCircle className="h-4 w-4" />
+            Fit Recommendations
+          </h4>
+          <div className="space-y-3">
+            {analysis.fitRecommendations.slice(0, 5).map((rec, index) => (
+              <div key={index} className="flex items-start gap-3 p-3 bg-accent/5 rounded-lg border border-accent/20">
+                <span className="text-accent font-bold mt-0.5 text-sm">{index + 1}.</span>
+                <span className="text-sm leading-relaxed">{rec}</span>
+              </div>
+            ))}
+            {analysis.fitRecommendations.length === 0 && (
+              <div className="text-sm text-muted-foreground italic p-3 text-center">
+                Analysis in progress...
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Style Adjustments Section */}
         {analysis.styleAdjustments.length > 0 && (
-          <div className="mt-6">
-            <h4 className="font-semibold mb-3">Style Adjustments</h4>
-            <div className="grid grid-cols-1 gap-2">
+          <div className="glass-effect rounded-lg p-4">
+            <h4 className="font-semibold mb-4 flex items-center gap-2 text-primary">
+              <Sparkles className="h-4 w-4" />
+              Style Tips
+            </h4>
+            <div className="space-y-3">
               {analysis.styleAdjustments.map((adjustment, index) => (
                 <div
                   key={index}
-                  className="text-sm p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border-l-4 border-blue-500"
+                  className="flex items-start gap-3 p-3 bg-primary/5 rounded-lg border border-primary/20"
                 >
-                  {adjustment}
+                  <span className="text-primary font-bold mt-0.5 text-sm">{index + 1}.</span>
+                  <span className="text-sm leading-relaxed">{adjustment}</span>
                 </div>
               ))}
             </div>
@@ -310,15 +338,16 @@ export function VirtualTryOn() {
     <section className="py-20">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+            <Sparkles className="h-10 w-10 text-white" />
+          </div>
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             Virtual Try-On
           </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            See yourself wearing your creations. Upload a photo or use body
-            scanning technology to visualize outfits with realistic lighting and
-            proportions.
+          <p className="text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed">
+            See yourself in any outfit with intelligent fit analysis and realistic visualization.
+            Upload a photo or use our body scanning technology for personalized results.
           </p>
-
         </div>
 
         <div className="max-w-6xl mx-auto space-y-8">
@@ -344,6 +373,9 @@ export function VirtualTryOn() {
                   <Camera className="h-5 w-5" />
                   Selected Photo
                 </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Selected for AI analysis and virtual try-on
+                </p>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col items-center gap-4">
@@ -351,22 +383,37 @@ export function VirtualTryOn() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={previewUrl}
-                      alt="Selected for try-on"
+                      alt="Selected for AI analysis and virtual try-on"
                       className="w-full h-auto rounded-lg shadow-lg"
                     />
                     {loading && (
                       <div className="absolute inset-0 bg-black/20 rounded-lg flex items-center justify-center">
-                        <RefreshCw className="h-8 w-8 text-white animate-spin" />
+                        <div className="text-center">
+                          <RefreshCw className="h-8 w-8 text-white animate-spin mx-auto mb-2" />
+                          <p className="text-white text-sm font-medium">Analyzing...</p>
+                        </div>
                       </div>
                     )}
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={handleReset}
-                    disabled={loading}
-                  >
-                    Choose Different Photo
-                  </Button>
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={handleReset}
+                      disabled={loading}
+                    >
+                      Choose Different Photo
+                    </Button>
+                    {analysis && (
+                      <Button
+                        variant="secondary"
+                        onClick={() => setSelectedPhoto(null)}
+                        disabled={loading}
+                      >
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Re-analyze
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -428,45 +475,86 @@ export function VirtualTryOn() {
 
           {/* Try-On Action */}
           {(selectedPhoto || scanComplete) && (
-            <div className="text-center">
-              <Button
-                className="fashion-gradient text-white px-8 py-3 text-lg"
-                onClick={handleTryOnDesign}
-                disabled={loading || !analysis}
-              >
-                {loading ? (
-                  <>
-                    <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-5 w-5 mr-2" />
-                    Try On Selected Design
-                  </>
-                )}
-              </Button>
-
-              {analysis && (
-                <p className="text-muted-foreground text-sm mt-2">
-                  Ready to visualize outfit combinations based on your
-                  measurements
+            <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
+              <CardContent className="text-center py-8">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Sparkles className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Ready for Virtual Try-On</h3>
+                <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                  {analysis
+                    ? "Visualize outfit combinations with your personalized fit analysis"
+                    : "Upload a photo or complete body scan to get started"
+                  }
                 </p>
-              )}
-            </div>
+                <Button
+                  className="fashion-gradient text-white px-6 py-2"
+                  onClick={handleTryOnDesign}
+                  disabled={loading || !analysis}
+                >
+                  {loading ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Try On Outfits
+                    </>
+                  )}
+                </Button>
+
+                {analysis && (
+                  <div className="mt-4 flex items-center justify-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span>Body analyzed</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span>Measurements ready</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      <span>Ready</span>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           )}
 
           {/* Getting Started Message */}
           {!selectedPhoto && !scanComplete && !loading && (
-            <Card className="border-dashed">
+            <Card className="border-dashed border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5">
               <CardContent className="flex flex-col items-center justify-center py-16">
-                <Camera className="h-16 w-16 text-muted-foreground mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Get Started</h3>
-                <p className="text-muted-foreground text-center max-w-md">
-                  Upload a photo or use our body scanning technology to begin
-                  your virtual try-on experience. Our AI will analyze your
-                  measurements for the perfect fit.
+                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Sparkles className="h-10 w-10 text-primary" />
+                </div>
+                <h3 className="text-2xl font-semibold mb-3">Virtual Try-On Experience</h3>
+                <p className="text-muted-foreground text-center max-w-lg mb-6 leading-relaxed">
+                  Experience intelligent fashion visualization. Upload a photo or use our
+                  body scanning technology to get personalized measurements and see yourself
+                  in any outfit with realistic lighting and proportions.
                 </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-2xl">
+                  <div className="text-center p-4 rounded-lg bg-background/50">
+                    <Camera className="h-6 w-6 text-primary mx-auto mb-2" />
+                    <p className="text-sm font-medium">Photo Upload</p>
+                    <p className="text-xs text-muted-foreground">Quick AI analysis</p>
+                  </div>
+                  <div className="text-center p-4 rounded-lg bg-background/50">
+                    <Scan className="h-6 w-6 text-accent mx-auto mb-2" />
+                    <p className="text-sm font-medium">Body Scan</p>
+                    <p className="text-xs text-muted-foreground">Precise measurements</p>
+                  </div>
+                  <div className="text-center p-4 rounded-lg bg-background/50">
+                    <Sparkles className="h-6 w-6 text-primary mx-auto mb-2" />
+                    <p className="text-sm font-medium">AI Try-On</p>
+                    <p className="text-xs text-muted-foreground">Virtual visualization</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}

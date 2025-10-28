@@ -13,9 +13,9 @@ export default class AIClientManager {
   private detectBestProvider(): AIProvider {
     if (this.isChromeExtension() && typeof window !== 'undefined' && window.ai) {
       return new ChromeAIProvider();
-    } else if (process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
+    } else if (process.env.GEMINI_API_KEY) {
       return new GeminiProvider();
-    } else if (process.env.NEXT_PUBLIC_OPENAI_API_KEY) {
+    } else if (process.env.OPENAI_API_KEY) {
       return new OpenAIProvider();
     }
     throw new Error('No AI provider available');

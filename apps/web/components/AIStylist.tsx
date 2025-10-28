@@ -56,22 +56,28 @@ function PersonaCard({
       title: "Luxury Expert",
       description: "Sophisticated styling for high-end fashion",
       icon: Crown,
-      color: "amber-600",
-      bgColor: "amber-600/10",
+      color: "text-amber-600",
+      bgColor: "bg-amber-600/10",
+      ringColor: "ring-amber-600",
+      buttonBg: "bg-amber-600 hover:bg-amber-600/90",
     },
     streetwear: {
       title: "Streetwear Guru",
       description: "Urban and contemporary fashion guidance",
       icon: Zap,
-      color: "blue-600",
-      bgColor: "blue-600/10",
+      color: "text-blue-600",
+      bgColor: "bg-blue-600/10",
+      ringColor: "ring-blue-600",
+      buttonBg: "bg-blue-600 hover:bg-blue-600/90",
     },
     sustainable: {
       title: "Sustainable Consultant",
       description: "Eco-friendly and ethical fashion advice",
       icon: Leaf,
-      color: "emerald-600",
-      bgColor: "emerald-600/10",
+      color: "text-emerald-600",
+      bgColor: "bg-emerald-600/10",
+      ringColor: "ring-emerald-600",
+      buttonBg: "bg-emerald-600 hover:bg-emerald-600/90",
     },
   };
 
@@ -80,25 +86,29 @@ function PersonaCard({
 
   return (
     <Card
-      className={`cursor-pointer transition-all duration-200 hover:scale-105 ${
-        isSelected ? `ring-2 ring-${config.color} shadow-lg` : "hover:shadow-md"
+      className={`cursor-pointer transition-all duration-200 elegant-shadow hover:scale-105 ${
+        isSelected ? `ring-2 ${config.ringColor} shadow-xl bg-primary/5` : "hover:shadow-xl"
       } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
       onClick={() => !disabled && onSelect(persona)}
     >
-      <CardContent className="p-6 text-center">
-        <div
-          className={`w-16 h-16 mx-auto mb-4 rounded-full bg-${config.bgColor} flex items-center justify-center`}
-        >
-          <Icon className={`h-8 w-8 text-${config.color}`} />
+      <CardHeader className="glass-effect pb-4">
+        <div className="text-center">
+          <div
+            className={`w-16 h-16 mx-auto mb-4 rounded-full ${config.bgColor} flex items-center justify-center`}
+          >
+            <Icon className={`h-8 w-8 ${config.color}`} />
+          </div>
+          <CardTitle className="text-xl mb-2">{config.title}</CardTitle>
+          <p className="text-muted-foreground text-sm">
+            {config.description}
+          </p>
         </div>
-        <h3 className="text-xl font-semibold mb-2">{config.title}</h3>
-        <p className="text-muted-foreground text-sm mb-4">
-          {config.description}
-        </p>
+      </CardHeader>
+      <CardContent className="pt-0">
         <Button
           variant={isSelected ? "default" : "outline"}
           className={
-            isSelected ? `bg-${config.color} hover:bg-${config.color}/90` : ""
+            isSelected ? `${config.buttonBg} text-white` : `border-primary/30 text-primary hover:bg-primary/5`
           }
           disabled={disabled}
         >
@@ -203,42 +213,48 @@ function StyleSuggestions({ suggestions }: { suggestions: StyleSuggestion[] }) {
   if (suggestions.length === 0) return null;
 
   return (
-    <Card className="mt-6">
-      <CardHeader>
+    <Card className="mt-8 elegant-shadow">
+      <CardHeader className="glass-effect">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <Sparkles className="h-5 w-5" />
+          <Sparkles className="h-5 w-5 text-primary" />
           Style Suggestions
         </CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Personalized recommendations based on your style preferences
+        </p>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {suggestions.map((suggestion, index) => (
-            <div key={index} className="space-y-2">
-              <h4 className="font-semibold capitalize text-sm">
+            <div key={index} className="glass-effect rounded-lg p-4">
+              <h4 className="font-semibold capitalize text-base mb-4 flex items-center gap-2 text-primary">
+                <ShoppingBag className="h-4 w-4" />
                 {suggestion.category}
               </h4>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {suggestion.items.map((item, itemIndex) => (
                   <div
                     key={itemIndex}
-                    className="p-2 bg-muted/50 rounded text-xs"
+                    className="p-3 bg-background/50 rounded-lg border border-primary/10"
                   >
-                    <p className="font-medium">{item.name}</p>
-                    <p className="text-muted-foreground mt-1">
-                      {item.reasoning}
-                    </p>
-                    <Badge
-                      variant={
-                        item.priority === "high"
-                          ? "default"
-                          : item.priority === "medium"
+                    <div className="flex items-start justify-between mb-2">
+                      <p className="font-medium text-sm">{item.name}</p>
+                      <Badge
+                        variant={
+                          item.priority === "high"
+                            ? "default"
+                            : item.priority === "medium"
                             ? "secondary"
                             : "outline"
-                      }
-                      className="mt-1 text-xs"
-                    >
-                      {item.priority}
-                    </Badge>
+                        }
+                        className="text-xs ml-2"
+                      >
+                        {item.priority}
+                      </Badge>
+                    </div>
+                    <p className="text-muted-foreground text-xs leading-relaxed">
+                      {item.reasoning}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -383,14 +399,16 @@ export function AIStylist() {
     <section className="py-20 bg-subtle-gradient">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+            <MessageCircle className="h-10 w-10 text-white" />
+          </div>
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             AI Stylist Agent
           </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed">
             Get personalized fashion advice, sourcing recommendations, and
-            styling expertise from our AI-powered fashion consultants.
+            styling expertise from our intelligent fashion consultants.
           </p>
-          
         </div>
 
         <div className="max-w-6xl mx-auto space-y-8">
@@ -417,19 +435,20 @@ export function AIStylist() {
           </div>
 
           {/* Chat Interface */}
-          <Card className="max-w-4xl mx-auto">
-            <CardHeader>
+          <Card className="max-w-4xl mx-auto elegant-shadow">
+            <CardHeader className="glass-effect">
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
-                  <MessageCircle className="h-5 w-5" />
+                  <MessageCircle className="h-5 w-5 text-primary" />
                   Chat with Your Stylist
                 </CardTitle>
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleGenerateSuggestions}
                     disabled={loading}
+                    className="border-primary/30 text-primary hover:bg-primary/5"
                   >
                     <Sparkles className="h-4 w-4 mr-2" />
                     Get Suggestions
@@ -445,9 +464,10 @@ export function AIStylist() {
                         setShowSuggestions(false);
                       }}
                       disabled={loading}
+                      className="border-accent/30 text-accent hover:bg-accent/5"
                     >
                       <RefreshCw className="h-4 w-4 mr-2" />
-                      Clear
+                      Clear Chat
                     </Button>
                   )}
                 </div>
@@ -504,25 +524,29 @@ export function AIStylist() {
 
               {/* Message Input */}
               {messages.length > 0 && (
-                <div className="flex gap-2 mt-4">
-                  <Input
-                    placeholder="Ask about styling, sourcing, or fittings..."
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    onKeyDown={handleKeyPress}
-                    disabled={loading}
-                    className="flex-1"
-                  />
+                <div className="flex gap-3 mt-6">
+                  <div className="flex-1 relative">
+                    <Input
+                      placeholder="Ask about styling, sourcing, or fittings..."
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      onKeyDown={handleKeyPress}
+                      disabled={loading}
+                      className="pr-12"
+                    />
+                    <MessageCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  </div>
                   <Button
                     onClick={handleSendMessage}
                     disabled={loading || !message.trim()}
-                    className="fashion-gradient text-white"
+                    className="fashion-gradient text-white min-w-[100px]"
                   >
                     {loading ? (
                       <RefreshCw className="h-4 w-4 animate-spin" />
                     ) : (
                       <Send className="h-4 w-4" />
                     )}
+                    {loading ? "Sending..." : "Send"}
                   </Button>
                 </div>
               )}

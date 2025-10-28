@@ -47,34 +47,34 @@ export function DesignStudio() {
   const renderDesignPreview = (design: DesignGeneration, index: number) => (
     <Card
       key={design.id}
-      className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
+      className={`cursor-pointer transition-all duration-200 elegant-shadow ${
         selectedDesign === design.id
-          ? "ring-2 ring-primary shadow-lg"
-          : "hover:ring-1 hover:ring-primary/50"
+          ? "ring-2 ring-primary shadow-xl bg-primary/5"
+          : "hover:ring-1 hover:ring-primary/30 hover:shadow-xl"
       }`}
       onClick={() => setSelectedDesign(design.id)}
     >
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-3 glass-effect">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <Sparkles className="h-4 w-4" />
+          <Sparkles className="h-4 w-4 text-primary" />
           Design {index + 1}
         </CardTitle>
+        <p className="text-xs text-muted-foreground">
+          {new Date(design.timestamp).toLocaleTimeString()}
+        </p>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          <p className="text-xs text-muted-foreground line-clamp-3">
+          <p className="text-sm text-foreground line-clamp-3 leading-relaxed">
             {design.description.split("\n")[0]}
           </p>
           <div className="flex flex-wrap gap-1">
             {design.tags.slice(0, 3).map((tag, tagIndex) => (
-              <Badge key={tagIndex} variant="secondary" className="text-xs">
+              <Badge key={tagIndex} variant="outline" className="text-xs border-primary/30 text-primary">
                 {tag}
               </Badge>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground">
-            {new Date(design.timestamp).toLocaleTimeString()}
-          </p>
         </div>
       </CardContent>
     </Card>
@@ -95,19 +95,22 @@ export function DesignStudio() {
 
         <div className="max-w-6xl mx-auto space-y-8">
           {/* Input Section */}
-          <Card>
+          <Card className="elegant-shadow">
             <CardContent className="p-6">
               <div className="flex gap-4 mb-6">
-                <Input
-                  placeholder="Describe your fashion idea... (e.g., 'a high-fashion streetwear jacket with reflective material')"
-                  value={visionInput}
-                  onChange={(e) => setVisionInput(e.target.value)}
-                  onKeyDown={(e) =>
-                    e.key === "Enter" && !loading && handleGenerate()
-                  }
-                  className="flex-1"
-                  disabled={loading}
-                />
+                <div className="flex-1 relative">
+                  <Input
+                    placeholder="Describe your fashion vision... (e.g., 'elegant evening gown with floral embroidery')"
+                    value={visionInput}
+                    onChange={(e) => setVisionInput(e.target.value)}
+                    onKeyDown={(e) =>
+                      e.key === "Enter" && !loading && handleGenerate()
+                    }
+                    className="pr-12"
+                    disabled={loading}
+                  />
+                  <Sparkles className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                </div>
                 <Button
                   onClick={handleGenerate}
                   disabled={loading || !visionInput.trim()}
@@ -123,8 +126,8 @@ export function DesignStudio() {
               </div>
 
               {error && (
-                <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                  <p className="text-destructive text-sm">{error}</p>
+                <div className="mb-4 p-4 glass-effect border border-destructive/20 rounded-lg">
+                  <p className="text-destructive text-sm font-medium">{error}</p>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -148,8 +151,8 @@ export function DesignStudio() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-between items-center">
-                <div className="flex gap-2">
+              <div className="flex justify-between items-center glass-effect rounded-lg p-4">
+                <div className="flex gap-3">
                   <Button
                     variant="outline"
                     size="sm"
@@ -158,9 +161,10 @@ export function DesignStudio() {
                       selectedDesignData &&
                       handleVariationGenerate(selectedDesignData)
                     }
+                    className="border-primary/30 text-primary hover:bg-primary/5"
                   >
                     <RefreshCw className="h-4 w-4 mr-2" />
-                    Variations
+                    Generate Variations
                   </Button>
                   <Button
                     variant="outline"
@@ -177,19 +181,21 @@ export function DesignStudio() {
                             : "none";
                       }
                     }}
+                    className="border-accent/30 text-accent hover:bg-accent/5"
                   >
                     <Wand2 className="h-4 w-4 mr-2" />
-                    Refine
+                    Refine Design
                   </Button>
                 </div>
                 <Button
-                  variant="ghost"
+                  variant="secondary"
                   size="sm"
                   disabled={!selectedDesign}
                   onClick={() => {
                     // TODO: Implement save to lookbook
                     alert("Save to Lookbook feature coming soon!");
                   }}
+                  className="bg-primary/10 text-primary hover:bg-primary/20"
                 >
                   <Save className="h-4 w-4 mr-2" />
                   Save to Lookbook
@@ -200,37 +206,44 @@ export function DesignStudio() {
 
           {/* Refinement Section */}
           <div id="refinement-section" style={{ display: "none" }}>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">
+            <Card className="elegant-shadow">
+              <CardHeader className="glass-effect">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Wand2 className="h-5 w-5 text-accent" />
                   Refine Selected Design
                 </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Make adjustments to perfect your design
+                </p>
               </CardHeader>
               <CardContent>
                 <div className="flex gap-4">
-                  <Input
-                    placeholder="Describe what you'd like to change... (e.g., 'make it more casual', 'add floral patterns')"
-                    value={refinementInput}
-                    onChange={(e) => setRefinementInput(e.target.value)}
-                    onKeyDown={(e) =>
-                      e.key === "Enter" && !loading && handleRefine()
-                    }
-                    className="flex-1"
-                    disabled={loading}
-                  />
+                  <div className="flex-1 relative">
+                    <Input
+                      placeholder="Describe refinements... (e.g., 'softer colors', 'more structured silhouette')"
+                      value={refinementInput}
+                      onChange={(e) => setRefinementInput(e.target.value)}
+                      onKeyDown={(e) =>
+                        e.key === "Enter" && !loading && handleRefine()
+                      }
+                      className="pr-12"
+                      disabled={loading}
+                    />
+                    <Wand2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  </div>
                   <Button
                     onClick={handleRefine}
                     disabled={
                       loading || !refinementInput.trim() || !selectedDesign
                     }
-                    variant="outline"
+                    className="fashion-gradient text-white min-w-[100px]"
                   >
                     {loading ? (
                       <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
                       <Wand2 className="h-4 w-4 mr-2" />
                     )}
-                    Apply
+                    Apply Changes
                   </Button>
                 </div>
               </CardContent>
@@ -239,41 +252,53 @@ export function DesignStudio() {
 
           {/* Selected Design Details */}
           {selectedDesignData && (
-            <Card>
-              <CardHeader>
+            <Card className="elegant-shadow">
+              <CardHeader className="glass-effect">
                 <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5" />
+                  <Sparkles className="h-5 w-5 text-primary" />
                   Design Details
                 </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Complete specifications for your selected design
+                </p>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div>
-                    <h4 className="font-semibold mb-2">Design Description</h4>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <div className="glass-effect rounded-lg p-4">
+                    <h4 className="font-semibold mb-4 flex items-center gap-2 text-primary">
+                      <Sparkles className="h-4 w-4" />
+                      Design Description
+                    </h4>
                     <div className="prose prose-sm max-w-none">
                       {selectedDesignData.description
                         .split("\n")
                         .map((line, index) => (
-                          <p key={index} className="mb-2 text-sm">
+                          <p key={index} className="mb-3 text-sm leading-relaxed">
                             {line}
                           </p>
                         ))}
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="font-semibold mb-2">Original Prompt</h4>
-                      <p className="text-sm text-muted-foreground italic">
+                  <div className="space-y-6">
+                    <div className="glass-effect rounded-lg p-4">
+                      <h4 className="font-semibold mb-3 flex items-center gap-2 text-accent">
+                        <Wand2 className="h-4 w-4" />
+                        Original Prompt
+                      </h4>
+                      <p className="text-sm text-muted-foreground italic leading-relaxed">
                         &ldquo;{selectedDesignData.designPrompt}&rdquo;
                       </p>
                     </div>
 
-                    <div>
-                      <h4 className="font-semibold mb-2">Tags</h4>
+                    <div className="glass-effect rounded-lg p-4">
+                      <h4 className="font-semibold mb-3 flex items-center gap-2 text-primary">
+                        <Badge className="h-4 w-4 p-0" />
+                        Tags
+                      </h4>
                       <div className="flex flex-wrap gap-2">
                         {selectedDesignData.tags.map((tag, index) => (
-                          <Badge key={index} variant="outline">
+                          <Badge key={index} variant="outline" className="border-primary/30 text-primary">
                             {tag}
                           </Badge>
                         ))}
@@ -281,13 +306,13 @@ export function DesignStudio() {
                     </div>
 
                     {selectedDesignData.variations.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold mb-2">
-                          Variations Available
+                      <div className="glass-effect rounded-lg p-4">
+                        <h4 className="font-semibold mb-3 flex items-center gap-2 text-accent">
+                          <RefreshCw className="h-4 w-4" />
+                          Variations
                         </h4>
                         <p className="text-sm text-muted-foreground">
-                          {selectedDesignData.variations.length} variation(s)
-                          generated
+                          {selectedDesignData.variations.length} variation(s) available
                         </p>
                       </div>
                     )}
@@ -299,16 +324,34 @@ export function DesignStudio() {
 
           {/* Getting Started Message */}
           {designs.length === 0 && !loading && (
-            <Card className="border-dashed">
+            <Card className="border-dashed border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5">
               <CardContent className="flex flex-col items-center justify-center py-16">
-                <Sparkles className="h-16 w-16 text-muted-foreground mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Ready to Create?</h3>
-                <p className="text-muted-foreground text-center max-w-md">
-                  Describe your fashion vision above and let AI generate unique
-                  designs for you. Try prompts like &ldquo;vintage-inspired
-                  denim jacket&rdquo; or &ldquo;elegant evening dress with
-                  geometric patterns&rdquo;.
+                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Sparkles className="h-10 w-10 text-primary" />
+                </div>
+                <h3 className="text-2xl font-semibold mb-3">Design Studio Ready</h3>
+                <p className="text-muted-foreground text-center max-w-lg mb-6 leading-relaxed">
+                  Transform your fashion vision into reality. Describe any garment or style
+                  you can imagine, and watch as AI brings your creative concepts to life
+                  with detailed designs and specifications.
                 </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-2xl">
+                  <div className="text-center p-4 rounded-lg bg-background/50">
+                    <Sparkles className="h-6 w-6 text-primary mx-auto mb-2" />
+                    <p className="text-sm font-medium">AI Generation</p>
+                    <p className="text-xs text-muted-foreground">Instant design creation</p>
+                  </div>
+                  <div className="text-center p-4 rounded-lg bg-background/50">
+                    <RefreshCw className="h-6 w-6 text-accent mx-auto mb-2" />
+                    <p className="text-sm font-medium">Variations</p>
+                    <p className="text-xs text-muted-foreground">Multiple options</p>
+                  </div>
+                  <div className="text-center p-4 rounded-lg bg-background/50">
+                    <Wand2 className="h-6 w-6 text-primary mx-auto mb-2" />
+                    <p className="text-sm font-medium">Refinement</p>
+                    <p className="text-xs text-muted-foreground">Iterative improvement</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}
