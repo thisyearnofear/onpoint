@@ -27,7 +27,7 @@ const ShirtsContainer = styled.div`
 
 const CenterImage = styled.img`
   position: absolute;
-  max-width: 18%;
+  max-width: 25%;
   height: auto;
   top: 50%;
   left: 50%;
@@ -43,7 +43,9 @@ const CenterImage = styled.img`
   -webkit-user-drag: none;
 `;
 
-const Shirt = styled.img<{ isGrabbed?: boolean; isDraggingRight?: boolean; isDraggingLeft?: boolean }>`
+const Shirt = styled.img.withConfig({
+  shouldForwardProp: (prop) => !['isGrabbed', 'isDraggingRight', 'isDraggingLeft'].includes(prop),
+})<{ isGrabbed?: boolean; isDraggingRight?: boolean; isDraggingLeft?: boolean }>`
   position: absolute;
   max-width: 9.8%;
   height: auto;
@@ -68,7 +70,9 @@ const Shirt = styled.img<{ isGrabbed?: boolean; isDraggingRight?: boolean; isDra
   `}
 `;
 
-const InfoTooltip = styled.span<{ tooltipVisible?: boolean }>`
+const InfoTooltip = styled.span.withConfig({
+  shouldForwardProp: (prop) => prop !== 'tooltipVisible',
+})<{ tooltipVisible?: boolean }>`
   position: absolute;
   top: 25%;
   left: 55%;
@@ -138,7 +142,7 @@ const ResponsiveShirt = styled(Shirt)`
 
 const ResponsiveCenterImage = styled(CenterImage)`
   @media (max-width: 767px) {
-    max-width: 70%;
+    max-width: 80%;
     top: 45%;
     left: 50%;
   }
@@ -243,19 +247,21 @@ const InteractiveStylingCanvas: React.FC = () => {
     let originalCenterImageSrc = centerImageSrc;
     let isHoveringCenterImage = false;
 
-    const handleStart = (e: MouseEvent | TouchEvent, shirtId: string) => {
+    const handleStart = (e: MouseEvent | TouchEvent, shirtId: string | number) => {
       e.preventDefault();
       activeShirt = document.getElementById(`shirt-${shirtId}`);
       if (!activeShirt || !centerImageRef.current) return;
+
+      const shirtState = shirtStates[shirtId as keyof typeof shirtStates];
+      initialShirtPos.left = shirtState.left;
+      initialShirtPos.top = shirtState.top;
 
       originalCenterImageSrc = centerImageSrc;
       isHoveringCenterImage = false;
 
       const computedStyle = window.getComputedStyle(activeShirt);
-      initialShirtPos.left = computedStyle.left;
-      initialShirtPos.top = computedStyle.top;
-      currentPos.x = parseInt(initialShirtPos.left) || 0;
-      currentPos.y = parseInt(initialShirtPos.top) || 0;
+      currentPos.x = parseInt(computedStyle.left) || 0;
+      currentPos.y = parseInt(computedStyle.top) || 0;
 
       if (e.type === 'mousedown') {
         const mouseE = e as MouseEvent;
@@ -281,8 +287,8 @@ const InteractiveStylingCanvas: React.FC = () => {
 
       activeShirt.style.cursor = 'grabbing';
       activeShirt.style.zIndex = '1000';
-      setShirtStates((prev: any) => ({ ...prev, [shirtId as string]: { ...prev[shirtId as string], isGrabbed: true, isDraggingRight: false, isDraggingLeft: false } }));
-    };
+      setShirtStates((prev: any) => ({ ...prev, [shirtId]: { ...prev[shirtId], isGrabbed: true, isDraggingRight: false, isDraggingLeft: false } }));
+      };
 
     const handleMove = (e: MouseEvent | TouchEvent) => {
       if (!activeShirt || !centerImageRef.current) return;
@@ -311,12 +317,11 @@ const InteractiveStylingCanvas: React.FC = () => {
 
       const shirtRect = activeShirt.getBoundingClientRect();
       const centerImageRect = centerImageRef.current.getBoundingClientRect();
-      const collision = !(
-        shirtRect.right < centerImageRect.left ||
-        shirtRect.left > centerImageRect.right ||
-        shirtRect.bottom < centerImageRect.top ||
-        shirtRect.top > centerImageRect.bottom
-      );
+      const collision = 
+        shirtRect.right >= centerImageRect.left &&
+        shirtRect.left <= centerImageRect.right &&
+        shirtRect.bottom >= centerImageRect.top &&
+        shirtRect.top <= centerImageRect.bottom;
 
       if (collision && !isHoveringCenterImage) {
         const hoverSrc = originalCenterImageSrc.replace('Model.png', 'ModelHover.png');
@@ -344,7 +349,7 @@ const InteractiveStylingCanvas: React.FC = () => {
           isMoving = false;
         }
       }, 50);
-    };
+      };
 
     const handleEnd = (e: MouseEvent | TouchEvent) => {
       if (!activeShirt || !centerImageRef.current) return;
@@ -354,8 +359,11 @@ const InteractiveStylingCanvas: React.FC = () => {
       const shirtCenterX = shirtRect.left + shirtRect.width / 2;
       const shirtCenterY = shirtRect.top + shirtRect.height / 2;
 
-      const collision = shirtCenterX >= centerImageRect.left && shirtCenterX <= centerImageRect.right &&
-                        shirtCenterY >= centerImageRect.top && shirtCenterY <= centerImageRect.bottom;
+      const collision = 
+        shirtCenterX >= centerImageRect.left &&
+        shirtCenterX <= centerImageRect.right &&
+        shirtCenterY >= centerImageRect.top &&
+        shirtCenterY <= centerImageRect.bottom;
 
       if (collision) {
         const shirtId = activeShirt.id.split('-')[1];
@@ -367,7 +375,6 @@ const InteractiveStylingCanvas: React.FC = () => {
         activeShirt.style.left = initialShirtPos.left;
         activeShirt.style.top = initialShirtPos.top;
         currentPos.x = parseInt(initialShirtPos.left) || 0;
-        currentPos.y = parseInt(initialShirtPos.top) || 0;
       } else {
         activeShirt.style.left = initialShirtPos.left;
         activeShirt.style.top = initialShirtPos.top;
@@ -381,7 +388,7 @@ const InteractiveStylingCanvas: React.FC = () => {
       activeShirt.style.cursor = 'grab';
       activeShirt.style.zIndex = '';
       const shirtIdEnd = activeShirt!.id.split('-')[1];
-      setShirtStates((prev: any) => ({ ...prev, [shirtIdEnd as string]: { ...prev[shirtIdEnd as string], isGrabbed: false, isDraggingRight: false, isDraggingLeft: false, left: initialShirtPos.left, top: initialShirtPos.top } }));
+      setShirtStates((prev: any) => ({ ...prev, [shirtIdEnd as string]: { ...prev[shirtIdEnd as string], isGrabbed: false, isDraggingRight: false, isDraggingLeft: false } }));
 
       if (moveTimeout) clearTimeout(moveTimeout);
       document.removeEventListener('mousemove', handleMove);
@@ -391,34 +398,51 @@ const InteractiveStylingCanvas: React.FC = () => {
       document.removeEventListener('touchcancel', handleEnd);
       isHoveringCenterImage = false;
       activeShirt = null;
-    };
+      };
 
-    shirtsData.forEach(shirt => {
-      const shirtEl = document.getElementById(`shirt-${shirt.id}`);
-      if (shirtEl) {
-        shirtEl.addEventListener('mousedown', (e) => handleStart(e, shirt.id));
-        shirtEl.addEventListener('touchstart', (e) => handleStart(e, shirt.id), { passive: false });
-      }
-    });
-
+          shirtsData.forEach(shirt => {
+            const shirtEl = document.getElementById(`shirt-${shirt.id}`);
+            if (shirtEl) {
+              const startHandler = (e: MouseEvent | TouchEvent) => handleStart(e, shirt.id);
+              shirtEl.addEventListener('mousedown', startHandler);
+              shirtEl.addEventListener('touchstart', startHandler, { passive: false });
+            }
+          });
     const handleResize = () => {
       document.querySelectorAll('.shirt').forEach((shirt) => {
         (shirt as HTMLElement).style.left = '';
         (shirt as HTMLElement).style.top = '';
       });
-    };
+      setShirtStates((prev: any) => {
+        const newStates = { ...prev };
+        Object.keys(newStates).forEach(key => {
+          const shirtData = shirtsData.find(s => s.id === key);
+          if (shirtData) {
+            newStates[key].left = shirtData.position.left;
+            newStates[key].top = shirtData.position.top;
+          }
+        });
+        return newStates;
+        });
+        };
 
     window.addEventListener('resize', handleResize);
 
     return () => {
+      shirtsData.forEach(shirt => {
+        const shirtEl = document.getElementById(`shirt-${shirt.id}`);
+        if (shirtEl) {
+          shirtEl.removeEventListener('mousedown', (e) => handleStart(e, shirt.id));
+          shirtEl.removeEventListener('touchstart', (e) => handleStart(e, shirt.id));
+        }
+      });
       window.removeEventListener('resize', handleResize);
       document.removeEventListener('mousemove', handleMove);
       document.removeEventListener('mouseup', handleEnd);
       document.removeEventListener('touchmove', handleMove);
       document.removeEventListener('touchend', handleEnd);
-      document.removeEventListener('touchcancel', handleEnd);
     };
-  }, [centerImageSrc, shirtsData]);
+  }, []);
 
   const handleTooltipClick = () => {
     setTooltipVisible(!tooltipVisible);
@@ -449,6 +473,7 @@ const InteractiveStylingCanvas: React.FC = () => {
               data-mouse-src={shirt.modelSrc}
               data-shirt-name={shirt.shirtName}
               data-model-size={shirt.modelSize}
+              className="shirt"
               isGrabbed={state?.isGrabbed}
               isDraggingRight={state?.isDraggingRight}
               isDraggingLeft={state?.isDraggingLeft}

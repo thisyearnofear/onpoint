@@ -1,157 +1,82 @@
 # OnPoint
 
-**Revolutionary multiplatform ecosystem for personalized fashion discovery and digital ownership.**
+**AI-powered fashion discovery platform with virtual try-on and digital ownership.**
 
-OnPoint combines cutting-edge AI-powered design generation, AR virtual try-on experiences, blockchain-based asset ownership, and privacy-preserving biometric identity to create a comprehensive fashion technology solution.
-
-## 🎯 Core Value Propositions
-
-### For Users
-- Discover personalized fashion recommendations with AI-powered styling
-- Try on outfits virtually before purchasing with AR technology
-- Own your fashion items as NFTs on the blockchain
-- Connect with professional stylists through our marketplace
-- Participate in fashion challenges and earn rewards
-
-### For Stylists
-- Access verified clients through our secure marketplace
-- Receive payments via escrow smart contracts
-- Build your portfolio and reputation
-- Earn from bookings and client referrals
-
-### For Designers
-- Launch exclusive NFT collections
-- Reach a fashion-conscious audience
-- Participate in community challenges
-- Monetize designs through ongoing royalties
+OnPoint combines AI design generation, AR virtual try-on, blockchain asset ownership, and privacy-preserving identity to create a comprehensive fashion technology solution.
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Node.js 18+
-- pnpm 8+
-- Git
-
-### Setup
 ```bash
-# Clone the repository
+# Clone and setup
 git clone https://github.com/thisyearnofear/onpoint.git
 cd onpoint
-
-# Install dependencies
 pnpm install
 
-# Start development servers
+# Start development
 pnpm dev
+# → Web app: http://localhost:3000
 ```
 
-This will start:
-- Web app on http://localhost:3000
-- Docs site on http://localhost:3001
+## 🎯 Core Features
+
+- **AI Collage Creator**: Generate personalized fashion designs from images and text
+- **Virtual Style Lab**: Interactive try-on with drag-and-drop styling
+- **AI Fashion Critique**: Get expert styling feedback and suggestions
+- **Digital Ownership**: Mint fashion items as NFTs on blockchain
+- **Stylist Marketplace**: Connect with professional fashion consultants
 
 ## 🏗️ Architecture
 
 ```
 onpoint/
-├── apps/
-│   ├── web/              # Next.js 14.4+ Web Application
-│   └── docs/             # Documentation site
+├── apps/web/              # Next.js main application
 ├── packages/
-│   ├── shared-ui/        # Shared UI components (e.g., Interactive Styling Canvas)
-│   ├── shared-types/     # TypeScript type definitions
-│   ├── blockchain-client/ # Web3 interaction layer
-│   ├── ai-client/        # AI service abstractions
-│   ├── ipfs-client/      # IPFS/Filecoin integration
-│   └── worldcoin-auth/   # Worldcoin SDK wrapper
+│   ├── shared-ui/         # Reusable UI components
+│   ├── ai-client/         # AI service integrations
+│   ├── blockchain-client/ # Web3 interactions
+│   └── worldcoin-auth/    # Identity verification
+└── docs/                  # Documentation
 ```
-
-## 🛠️ Core Principles
-
-1. **ENHANCEMENT FIRST**: Always prioritize enhancing existing components over creating new ones
-2. **AGGRESSIVE CONSOLIDATION**: Delete unnecessary code rather than deprecating
-3. **PREVENT BLOAT**: Systematically audit and consolidate before adding new features
-4. **DRY**: Single source of truth for all shared logic
-5. **CLEAN**: Clear separation of concerns with explicit dependencies
-6. **MODULAR**: Composable, testable, independent modules
-7. **PERFORMANT**: Adaptive loading, caching, and resource optimization
-8. **ORGANIZED**: Predictable file structure with domain-driven design
 
 ## 📚 Documentation
 
-For detailed information about the project, please refer to our comprehensive documentation:
+- **[Architecture](./docs/ARCHITECTURE.md)** - Technical specifications and system design
+- **[Features](./docs/FEATURES.md)** - Feature specifications and user flows  
+- **[Roadmap](./docs/ROADMAP.md)** - Development timeline and milestones
+- **[Hackathon](./docs/HACKATHON.md)** - Competition strategy and opportunities
 
-- [Architecture](./docs/ARCHITECTURE.md) - Technical specifications and system design
-- [Features](./docs/FEATURES.md) - Feature specifications and user flows
-- [Roadmap](./docs/ROADMAP.md) - Development timeline and milestones
-- [Hackathon](./docs/HACKATHON.md) - Hackathon opportunities and strategy
-
-## 🎯 Current Development Phase
-
-### Phase 1: MVP Foundation (Weeks 1-4)
-**Status**: 🎯 In Progress (7/10 Complete)
-
-**Focus**: Core features for hackathon submissions
-
-**Deliverables**:
-- ✅ Web app with Next.js setup
-- ✅ Digital closet with AI tagging
-- ✅ AI fashion critique (integrated into collage creator)
-- ✅ Enhanced collage creator with interactive styling, persistence, and sharing
-- ✅ Wallet connection
-- ✅ NFT minting
-- ✅ IPFS integration
-
-## 🏆 Hackathon Strategy
-
-### Google Chrome Built-in AI Challenge
-- **Deadline**: November 1, 2025
-- **Prize Pool**: $70,000
-- **Target**: "Most Helpful - Chrome Extension" ($14,000)
-
-### Worldcoin Mini App Dev Rewards
-- **Ongoing**: $100K/week
-- **Focus**: Quick stylist matching + style challenges
-
-## 🧪 Development Commands
+## 🛠️ Development
 
 ```bash
-# Install dependencies
-pnpm install
-
-# Start development servers
-pnpm dev
-
-# Build all apps and packages
-pnpm build
-
-# Lint code
-pnpm lint
-
-# Check types
-pnpm check-types
-
-# Format code
-pnpm format
+pnpm dev        # Start development server
+pnpm build      # Build for production
+pnpm lint       # Lint code
+pnpm format     # Format code
 ```
 
-## 📈 Success Metrics
+## 🏆 Current Status
 
-### User Growth Targets
-| Metric | Q4 2025 | Q1 2026 | Q2 2026 |
-|--------|---------|---------|---------|
-| Total Users | 1,000 | 10,000 | 50,000 |
-| Daily Active Users | 100 | 1,000 | 5,000 |
-| Monthly Active Users | 300 | 3,000 | 15,000 |
+**Phase 1: MVP Foundation** (7/10 Complete)
+- ✅ Web app with Next.js setup
+- ✅ AI-powered collage creator
+- ✅ Interactive styling canvas
+- ✅ Fashion critique system
+- ✅ Wallet connection & NFT minting
+- 🔄 Mobile app development
+- 🔄 Worldcoin mini app
+- 🔄 Advanced AI features
 
-## 🔗 Key Links
+## 🎯 Hackathon Targets
 
-- [GitHub Repository](https://github.com/thisyearnofear/onpoint)
-- [Discord Community](https://discord.gg/onpoint)
-- [Twitter](https://twitter.com/onpointfashion)
-- [Website](https://onpoint.app)
+- **Google Chrome Built-in AI Challenge** - Nov 1, 2025 ($70K prize pool)
+- **Worldcoin Mini App Dev Rewards** - Ongoing ($100K/week)
+
+## 🔗 Links
+
+- [Live Demo](https://onpoint.app)
+- [GitHub](https://github.com/thisyearnofear/onpoint)
+- [Discord](https://discord.gg/onpoint)
 
 ## 📄 License
 
-All documentation is licensed under Creative Commons Attribution 4.0 International (CC BY 4.0).
-
-Code and smart contracts are licensed under MIT License.
+MIT License - see LICENSE file for details.

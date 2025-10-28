@@ -1,50 +1,85 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: 0 0% 98%;
+    --foreground: 240 10% 3.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+
+    --primary: 346 75% 55%;
+    --primary-foreground: 355 100% 97%;
+
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+
+    --accent: 27 96% 61%;
+    --accent-foreground: 240 5.9% 10%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 346 75% 55%;
+
+    --radius: 0.75rem;
+
+    --gradient-fashion: linear-gradient(135deg,
+        hsl(346 75% 55% / 0.9) 0%,
+        hsl(27 96% 61% / 0.8) 50%,
+        hsl(240 5% 84% / 0.7) 100%);
+
+    --gradient-subtle: linear-gradient(180deg,
+        hsl(0 0% 100% / 0.95) 0%,
+        hsl(0 0% 98% / 0.98) 100%);
+
+    --shadow-elegant: 0 20px 40px -10px hsl(346 75% 55% / 0.15);
+    --shadow-soft: 0 8px 30px hsl(240 5.9% 90% / 0.3);
   }
 }
 
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-}
-
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-.imgDark {
-  display: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
+@layer base {
+  * {
+    border-color: hsl(var(--border));
   }
 
-  .imgLight {
-    display: none;
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
-  .imgDark {
-    display: unset;
+}
+
+@layer components {
+  .fashion-gradient {
+    background: var(--gradient-fashion);
+  }
+
+  .subtle-gradient {
+    background: var(--gradient-subtle);
+  }
+
+  .elegant-shadow {
+    box-shadow: var(--shadow-elegant);
+  }
+
+  .soft-shadow {
+    box-shadow: var(--shadow-soft);
+  }
+
+  .glass-effect {
+    backdrop-filter: blur(16px);
+    background: hsl(0 0% 100% / 0.8);
+    border: 1px solid hsl(240 5.9% 90% / 0.3);
   }
 }
