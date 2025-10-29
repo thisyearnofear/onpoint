@@ -208,18 +208,40 @@ export function AIStylist() {
       if (persona === selectedPersona) return;
 
       setSelectedPersona(persona);
-      clearConversation();
-      setMessages([]);
-      setSuggestions([]);
-      setShowSuggestions(false);
-      setActiveGuidedPrompt(null);
-      // If we're in chat mode, go back to context gathering to let user reconsider with new persona
-      if (contextStep === 'chat') {
-        setContextStep('context');
-        setContextData({ occasion: '', weather: '', location: '', time: '', gender: '', ageRange: '', ethnicity: '' });
+
+      // If we're in chat mode, smoothly transition to new persona
+      if (contextStep === 'chat' && messages.length > 0) {
+        // Add a transition message from the new persona
+        const greetings = {
+          luxury: "Hello! I'm your luxury fashion expert taking over this conversation. I can help you discover sophisticated pieces, investment items, and timeless elegance.",
+          streetwear: "Hey! I'm your streetwear guru jumping in. Ready to dive into the latest drops, urban fashion, and fresh street style?",
+          sustainable: "Hi there! I'm your sustainable fashion consultant now. Let's find beautiful, ethical pieces that align with your values.",
+          edina: "Darling! Sweetie! It's Edina taking over, and I am absolutely OBSESSED with making you look fabulous! Let's continue this fashion journey!",
+          miranda: "I am Miranda Priestly, and I'm taking over this conversation. We will continue, but now we'll meet the highest standards.",
+          shaft: "Right on. John Shaft here, taking over your style consultation. Let's keep this smooth and make you look sharp.",
+        };
+
+        const transitionMessage: Message = {
+          id: `transition-${Date.now()}`,
+          role: "assistant",
+          content: greetings[persona],
+          timestamp: Date.now(),
+        };
+
+        setMessages(prev => [...prev, transitionMessage]);
+
+        // Clear the AI conversation history but keep the UI messages
+        clearConversation();
+      } else {
+        // If not in chat mode, clear everything (original behavior for context step)
+        clearConversation();
+        setMessages([]);
+        setSuggestions([]);
+        setShowSuggestions(false);
+        setActiveGuidedPrompt(null);
       }
     },
-    [selectedPersona, clearConversation, setMessages, setSuggestions, setShowSuggestions, setActiveGuidedPrompt, contextStep, setContextStep, setContextData],
+    [selectedPersona, clearConversation, setMessages, setSuggestions, setShowSuggestions, setActiveGuidedPrompt, contextStep, messages.length],
   );
 
   const handleGenerateSuggestions = useCallback(async () => {
