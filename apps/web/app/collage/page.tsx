@@ -15,31 +15,55 @@ export default function CollagePage() {
   const [mintResult, setMintResult] = useState<MintResult | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Mock collage items - in a real app, these would come from user uploads or selections
+  // Fashion items using our existing style lab images
   const collageItems = [
-    { 
-      id: '1', 
-      name: 'Urban Streetwear Jacket', 
+    {
+      id: '1',
+      name: 'Urban Streetwear Jacket',
       description: 'High-fashion streetwear jacket with reflective material and bold geometric patterns',
-      imageUrl: '/assets/1Product.png', 
-      createdAt: new Date(), 
-      updatedAt: new Date() 
+      imageUrl: '/assets/1Product.png',
+      createdAt: new Date(),
+      updatedAt: new Date()
     },
-    { 
-      id: '2', 
-      name: 'Designer Sneakers', 
+    {
+      id: '2',
+      name: 'Designer Sneakers',
       description: 'Limited edition sneakers with unique color blocking and premium materials',
-      imageUrl: '/assets/2Product.png', 
-      createdAt: new Date(), 
-      updatedAt: new Date() 
+      imageUrl: '/assets/2Product.png',
+      createdAt: new Date(),
+      updatedAt: new Date()
     },
-    { 
-      id: '3', 
-      name: 'Statement Accessories', 
+    {
+      id: '3',
+      name: 'Statement Accessories',
       description: 'Bold accessories that complement the urban aesthetic with metallic finishes',
-      imageUrl: '/assets/3Product.png', 
-      createdAt: new Date(), 
-      updatedAt: new Date() 
+      imageUrl: '/assets/3Product.png',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    {
+      id: '4',
+      name: 'Model Look 1',
+      description: 'Complete styled look showcasing modern urban fashion',
+      imageUrl: '/assets/1Model.png',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    {
+      id: '5',
+      name: 'Model Look 2',
+      description: 'Sophisticated ensemble with contemporary styling',
+      imageUrl: '/assets/2Model.png',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    {
+      id: '6',
+      name: 'Model Look 3',
+      description: 'Elegant styling with attention to detail and proportion',
+      imageUrl: '/assets/3Model.png',
+      createdAt: new Date(),
+      updatedAt: new Date()
     }
   ];
 
@@ -82,12 +106,12 @@ export default function CollagePage() {
         address: '0x0000000000000000000000000000000000000000' as const, // Placeholder
         abi: [] // Placeholder
       };
-      
+
       const result = await mintNFT(contractConfig, JSON.stringify({
         ...clothingDesign,
         imageUrl: '/assets/1Product.png' // Placeholder
       }));
-      
+
       setMintResult(result);
     } catch (error) {
       console.error('Failed to mint NFT:', error);
@@ -155,8 +179,8 @@ export default function CollagePage() {
             <Plus className="h-4 w-4" />
             Add Inspiration
           </Button>
-          <Button 
-            onClick={handleGenerateGarment} 
+          <Button
+            onClick={handleGenerateGarment}
             disabled={loading}
             className="fashion-gradient text-white flex items-center gap-2"
           >
@@ -189,7 +213,7 @@ export default function CollagePage() {
                 <Shirt className="h-5 w-5 text-primary" />
               </div>
               <h3 className="text-xl font-semibold">AI Generated Clothing Design</h3>
-              <Button 
+              <Button
                 onClick={handleMintNFT}
                 disabled={loading}
                 className="ml-auto fashion-gradient text-white flex items-center gap-2"
@@ -199,35 +223,35 @@ export default function CollagePage() {
                 {loading ? 'Minting...' : 'Mint as NFT'}
               </Button>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <h4 className="font-medium mb-2">Design Description</h4>
                 <p className="text-muted-foreground mb-4">{clothingDesign.description}</p>
-                
+
                 <h4 className="font-medium mb-2">Style Notes</h4>
                 <p className="text-muted-foreground">{clothingDesign.styleNotes}</p>
               </div>
-              
+
               <div>
                 <h4 className="font-medium mb-2">Color Palette</h4>
                 <div className="flex gap-2 mb-4">
                   {clothingDesign.colorPalette.map((color, index) => (
                     <div key={index} className="flex flex-col items-center">
-                      <div 
-                        className="w-8 h-8 rounded-full border border-muted-foreground/20" 
+                      <div
+                        className="w-8 h-8 rounded-full border border-muted-foreground/20"
                         style={{ backgroundColor: color }}
                       />
                       <span className="text-xs text-muted-foreground mt-1">{color}</span>
                     </div>
                   ))}
                 </div>
-                
+
                 <h4 className="font-medium mb-2">Materials</h4>
                 <div className="flex flex-wrap gap-2">
                   {clothingDesign.materials.map((material, index) => (
-                    <span 
-                      key={index} 
+                    <span
+                      key={index}
                       className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full"
                     >
                       {material}
@@ -236,9 +260,9 @@ export default function CollagePage() {
                 </div>
               </div>
             </div>
-            
+
             <div className="mt-6 flex justify-center">
-              <Button 
+              <Button
                 onClick={handleMintNFT}
                 disabled={loading}
                 className="fashion-gradient text-white flex items-center gap-2"
@@ -259,7 +283,7 @@ export default function CollagePage() {
               </div>
               <h3 className="text-xl font-semibold">NFT Minting Result</h3>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p className="text-muted-foreground mb-2">
@@ -296,9 +320,8 @@ export default function CollagePage() {
                     {[...Array(10)].map((_, i) => (
                       <div
                         key={i}
-                        className={`w-2 h-2 rounded-full ${
-                          i < critique.rating ? 'bg-accent' : 'bg-muted'
-                        }`}
+                        className={`w-2 h-2 rounded-full ${i < critique.rating ? 'bg-accent' : 'bg-muted'
+                          }`}
                       />
                     ))}
                   </div>
@@ -345,9 +368,9 @@ export default function CollagePage() {
                 className="relative group border-2 border-dashed border-muted-foreground/20 hover:border-primary/30 transition-colors rounded-lg p-4 flex flex-col items-center justify-center min-h-[150px] bg-card/50"
               >
                 <div className="relative w-full h-full">
-                  <Image 
-                    src={item.imageUrl || '/assets/placeholder.png'} 
-                    alt={item.name || 'Fashion inspiration'} 
+                  <Image
+                    src={item.imageUrl || '/assets/placeholder.png'}
+                    alt={item.name || 'Fashion inspiration'}
                     fill
                     className="object-contain rounded"
                     loading="lazy"

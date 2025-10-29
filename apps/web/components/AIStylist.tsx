@@ -113,7 +113,7 @@ const contextFields = [
 
 export function AIStylist() {
   const [selectedPersona, setSelectedPersona] =
-    useState<StylistPersona>("luxury");
+    useState<StylistPersona>("miranda");
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [suggestions, setSuggestions] = useState<StyleSuggestion[]>([]);
@@ -142,16 +142,20 @@ export function AIStylist() {
     clearError,
   } = useAIStylist(selectedPersona);
 
-  // Sync conversation history with messages
+  // Sync conversation history with messages (but don't overwrite during persona transitions)
   useEffect(() => {
-    const newMessages: Message[] = conversationHistory.map((msg, index) => ({
-      id: `${msg.timestamp}-${index}`,
-      role: msg.role,
-      content: msg.content,
-      timestamp: msg.timestamp,
-    }));
-    setMessages(newMessages);
-  }, [conversationHistory]);
+    // Only sync if we have conversation history or no existing messages
+    // This prevents clearing messages during persona transitions
+    if (conversationHistory.length > 0 || messages.length === 0) {
+      const newMessages: Message[] = conversationHistory.map((msg, index) => ({
+        id: `${msg.timestamp}-${index}`,
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp,
+      }));
+      setMessages(newMessages);
+    }
+  }, [conversationHistory, messages.length]);
 
   // Auto scroll to bottom
   useEffect(() => {
