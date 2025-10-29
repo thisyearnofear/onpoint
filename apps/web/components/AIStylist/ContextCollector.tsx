@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
-import { Sparkles, Calendar, Cloud, MapPin, Clock, Users, User, Globe } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 interface ContextField {
   id: string;
@@ -40,7 +40,7 @@ export function ContextCollector({
       <CardContent>
         <div className="space-y-6">
           <div className="text-center mb-6">
-            <h3 className="text-xl font-semibold mb-2">Let's get to know your style situation</h3>
+            <h3 className="text-xl font-semibold mb-2">Let&apos;s get to know your style situation</h3>
             <p className="text-muted-foreground">Fill in these details to get personalized styling advice</p>
           </div>
           

@@ -1,6 +1,5 @@
 import React from 'react';
 import { Avatar, AvatarFallback } from "@repo/ui/avatar";
-import { Badge } from "@repo/ui/badge";
 import {
   Bot,
   User,

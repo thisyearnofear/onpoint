@@ -305,7 +305,7 @@ export function AIStylist() {
     }
   };
 
-  const validateContext = (): boolean => {
+  const validateContext = useCallback((): boolean => {
     const requiredFields = ['occasion', 'weather', 'location', 'time'];
     const errors: Record<string, boolean> = {};
     
@@ -317,7 +317,7 @@ export function AIStylist() {
     
     setContextErrors(errors);
     return Object.keys(errors).length === 0;
-  };
+  }, [contextData, setContextErrors]);
 
   const handleStartChat = useCallback(() => {
     if (validateContext()) {

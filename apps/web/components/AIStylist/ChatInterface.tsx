@@ -4,10 +4,10 @@ import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { ScrollArea } from "@repo/ui/scroll-area";
 import { Separator } from "@repo/ui/separator";
-import { MessageCircle, Sparkles, Send, RefreshCw, Bot, User } from "lucide-react";
+import { MessageCircle, Sparkles, Send, RefreshCw, Bot } from "lucide-react";
 import { ChatMessage } from './ChatMessage';
 import { Avatar, AvatarFallback } from "@repo/ui/avatar";
-import type { StylistPersona } from "@repo/ai-client";
+import type { StylistPersona, StyleSuggestion } from "@repo/ai-client";
 
 interface Message {
   id: string;
@@ -32,13 +32,13 @@ interface ChatInterfaceProps {
   selectedPersona: StylistPersona;
   loading: boolean;
   messages: Message[];
-  scrollAreaRef: React.RefObject<HTMLDivElement>;
+  scrollAreaRef: React.RefObject<HTMLDivElement | null>;
   activeGuidedPrompt: number | null;
   guidedPrompts: GuidedPrompt[];
   handleGenerateSuggestions: () => Promise<void>;
   clearConversation: () => void;
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
-  setSuggestions: React.Dispatch<React.SetStateAction<any[]>>;
+  setSuggestions: React.Dispatch<React.SetStateAction<StyleSuggestion[]>>;
   setShowSuggestions: React.Dispatch<React.SetStateAction<boolean>>;
   setActiveGuidedPrompt: React.Dispatch<React.SetStateAction<number | null>>;
   startConversation: () => void;
