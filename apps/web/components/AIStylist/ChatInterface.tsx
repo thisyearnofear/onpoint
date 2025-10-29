@@ -4,7 +4,7 @@ import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { ScrollArea } from "@repo/ui/scroll-area";
 import { Separator } from "@repo/ui/separator";
-import { MessageCircle, Sparkles, Send, RefreshCw, Bot } from "lucide-react";
+import { MessageCircle, Sparkles, Send, RefreshCw, Bot, Palette } from "lucide-react";
 import { ChatMessage } from './ChatMessage';
 import { Avatar, AvatarFallback } from "@repo/ui/avatar";
 import type { StylistPersona, StyleSuggestion } from "@repo/ai-client";
@@ -92,6 +92,16 @@ export function ChatInterface({
               <Sparkles className="h-3 w-3 mr-1" />
               Suggestions
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open('/collage', '_blank')}
+              className="border-accent/30 text-accent hover:bg-accent/5 h-8 text-xs px-2"
+              title="Create visual inspiration board"
+            >
+              <Palette className="h-3 w-3 mr-1" />
+              Collage
+            </Button>
             {messages.length > 0 && (
               <Button
                 variant="outline"
@@ -104,7 +114,7 @@ export function ChatInterface({
                   setActiveGuidedPrompt(null);
                 }}
                 disabled={loading}
-                className="border-accent/30 text-accent hover:bg-accent/5 h-8 text-xs px-2"
+                className="border-muted-foreground/30 text-muted-foreground hover:bg-muted/5 h-8 text-xs px-2"
               >
                 <RefreshCw className="h-3 w-3 mr-1" />
                 Clear

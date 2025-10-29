@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
-import { MessageCircle, Sparkles, User, Globe, Calendar, Sun, Cloud, Users, MapPin, Clock } from "lucide-react";
+import { MessageCircle, User, Globe, Calendar, Sun, Cloud, Users, MapPin, Clock } from "lucide-react";
 import { useAIStylist } from "@repo/ai-client";
 import type { StylistPersona, StyleSuggestion } from "@repo/ai-client";
 import { Button } from "@repo/ui/button";
@@ -48,8 +48,7 @@ const guidedPrompts = [
   },
   {
     icon: MapPin,
-    label: 'Location',
-    placeholder: 'Where are you going?',
+    text: "Where are you going?",
     examples: ["City", "Beach", "Mountains", "Restaurant"]
   },
   {
@@ -290,6 +289,31 @@ export function AIStylist() {
     setActiveGuidedPrompt(null);
   };
 
+  // Generate contextual prompts based on collected data
+  const getContextualPrompts = useCallback(() => {
+    const basePrompts = [...guidedPrompts];
+    
+    // Add context-specific prompts if we have context data
+    if (contextData.occasion && contextData.weather && contextData.location) {
+      const contextualPrompts = [
+        {
+          icon: MessageCircle,
+          text: `What should I wear for ${contextData.occasion}?`,
+          examples: ["Show me options", "What colors work?", "Any specific brands?"]
+        },
+        {
+          icon: MapPin,
+          text: `Best styles for ${contextData.location}?`,
+          examples: ["Local fashion", "Weather appropriate", "Cultural considerations"]
+        }
+      ];
+      
+      return [...contextualPrompts, ...basePrompts.slice(0, 4)];
+    }
+    
+    return basePrompts;
+  }, [contextData]);
+
   const handleContextChange = (field: string, value: string) => {
     setContextData(prev => ({
       ...prev,
@@ -415,7 +439,7 @@ export function AIStylist() {
               messages={messages}
               scrollAreaRef={scrollAreaRef}
               activeGuidedPrompt={activeGuidedPrompt}
-              guidedPrompts={guidedPrompts}
+              guidedPrompts={getContextualPrompts()}
               handleGenerateSuggestions={handleGenerateSuggestions}
               clearConversation={clearConversation}
               setMessages={setMessages}
