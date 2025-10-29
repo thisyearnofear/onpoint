@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Palette, Sparkles, Camera, MessageCircle, Save, Share2, Plus, Heart, Shirt, Coins } from 'lucide-react';
 import { Button } from '@repo/ui/button';
-import { critiqueOutfit, generateClothingFromCollage, type CritiqueResponse, type ClothingGenerationResponse, isChromeAISupported } from '@onpoint/ai-client';
+import { critiqueOutfit, generateClothingFromCollage, type CritiqueResponse, type ClothingGenerationResponse } from '@onpoint/ai-client';
 import { mintNFT, type MintResult } from '@onpoint/blockchain-client';
 import Link from 'next/link';
 import { MobileNavigation } from '@/components/mobile-navigation';
@@ -14,12 +14,6 @@ export default function CollagePage() {
   const [clothingDesign, setClothingDesign] = useState<ClothingGenerationResponse | null>(null);
   const [mintResult, setMintResult] = useState<MintResult | null>(null);
   const [loading, setLoading] = useState(false);
-  const [chromeAISupported, setChromeAISupported] = useState(false);
-
-  // Check if Chrome AI is supported
-  useEffect(() => {
-    setChromeAISupported(isChromeAISupported());
-  }, []);
 
   // Mock collage items - in a real app, these would come from user uploads or selections
   const collageItems = [
@@ -50,11 +44,6 @@ export default function CollagePage() {
   ];
 
   const handleGetCritique = async () => {
-    if (!chromeAISupported) {
-      alert('Chrome AI is not supported in your browser. Please use a Chrome browser with Built-in AI enabled.');
-      return;
-    }
-
     setLoading(true);
     try {
       const result = await critiqueOutfit(collageItems);
@@ -68,11 +57,6 @@ export default function CollagePage() {
   };
 
   const handleGenerateGarment = async () => {
-    if (!chromeAISupported) {
-      alert('Chrome AI is not supported in your browser. Please use a Chrome browser with Built-in AI enabled.');
-      return;
-    }
-
     setLoading(true);
     try {
       const result = await generateClothingFromCollage(collageItems);
@@ -86,11 +70,6 @@ export default function CollagePage() {
   };
 
   const handleMintNFT = async () => {
-    if (!chromeAISupported) {
-      alert('Chrome AI is not supported in your browser. Please use a Chrome browser with Built-in AI enabled.');
-      return;
-    }
-
     if (!clothingDesign) {
       alert('Please generate a clothing design first.');
       return;
@@ -155,20 +134,7 @@ export default function CollagePage() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        {/* Chrome AI Support Warning */}
-        {!chromeAISupported && (
-          <div className="elegant-shadow border-0 rounded-lg bg-amber-50 border border-amber-200 p-4 mb-6 max-w-4xl mx-auto">
-            <div className="flex items-center gap-3">
-              <Sparkles className="h-5 w-5 text-amber-600" />
-              <div>
-                <h3 className="font-semibold text-amber-800">Chrome Built-in AI Required</h3>
-                <p className="text-sm text-amber-700">
-                  This feature requires Chrome&apos;s Built-in AI capabilities. Please use a Chrome browser with the AI features enabled.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+
 
         {/* Page Header */}
         <div className="text-center mb-8">
@@ -191,7 +157,7 @@ export default function CollagePage() {
           </Button>
           <Button 
             onClick={handleGenerateGarment} 
-            disabled={loading || !chromeAISupported}
+            disabled={loading}
             className="fashion-gradient text-white flex items-center gap-2"
           >
             <Shirt className="h-4 w-4" />
@@ -207,7 +173,7 @@ export default function CollagePage() {
           </Button>
           <Button
             onClick={handleGetCritique}
-            disabled={loading || !chromeAISupported}
+            disabled={loading}
             className="fashion-gradient text-white flex items-center gap-2"
           >
             <Sparkles className="h-4 w-4" />
@@ -225,7 +191,7 @@ export default function CollagePage() {
               <h3 className="text-xl font-semibold">AI Generated Clothing Design</h3>
               <Button 
                 onClick={handleMintNFT}
-                disabled={loading || !chromeAISupported}
+                disabled={loading}
                 className="ml-auto fashion-gradient text-white flex items-center gap-2"
                 size="sm"
               >
@@ -274,7 +240,7 @@ export default function CollagePage() {
             <div className="mt-6 flex justify-center">
               <Button 
                 onClick={handleMintNFT}
-                disabled={loading || !chromeAISupported}
+                disabled={loading}
                 className="fashion-gradient text-white flex items-center gap-2"
               >
                 <Coins className="h-4 w-4 mr-2" />

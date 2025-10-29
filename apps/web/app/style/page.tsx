@@ -4,14 +4,13 @@ import React from 'react';
 import { Palette, Sparkles, ArrowLeft, Shirt, Wand2 } from 'lucide-react';
 import { Button } from '@repo/ui/button';
 import InteractiveStylingCanvas from '@repo/shared-ui/components/InteractiveStylingCanvas';
-import { useChromeAISupport, useAIColorPalette, useAIStyleSuggestions, useAIVirtualTryOnEnhancement } from '@onpoint/ai-client';
+import { useAIColorPalette, useAIStyleSuggestions, useAIVirtualTryOnEnhancement } from '@onpoint/ai-client';
 import Link from 'next/link';
 
 export default function StylePage() {
   const { palette, loading: paletteLoading, generatePalette } = useAIColorPalette();
   const { suggestions } = useAIStyleSuggestions();
   const { enhancement, loading: enhancementLoading, enhanceTryOn } = useAIVirtualTryOnEnhancement();
-  const { supported: chromeAISupported } = useChromeAISupport();
   
   const mockOutfitItems = [
     { 
@@ -29,27 +28,15 @@ export default function StylePage() {
   ];
 
   const handleGenerateVariations = () => {
-    if (!chromeAISupported) {
-      alert('Chrome AI is not supported in your browser. Please use a Chrome browser with Built-in AI enabled.');
-      return;
-    }
     alert('Generate variations with AI - feature implementation in progress!');
   };
 
   const handleColorPalette = async () => {
-    if (!chromeAISupported) {
-      alert('Chrome AI is not supported in your browser. Please use a Chrome browser with Built-in AI enabled.');
-      return;
-    }
     
     await generatePalette('Fashion outfit with streetwear elements');
   };
 
   const handleAIEnhance = async () => {
-    if (!chromeAISupported) {
-      alert('Chrome AI is not supported in your browser. Please use a Chrome browser with Built-in AI enabled.');
-      return;
-    }
     
     await enhanceTryOn(mockOutfitItems);
   };
@@ -83,20 +70,7 @@ export default function StylePage() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        {/* Chrome AI Support Warning */}
-        {!chromeAISupported && (
-          <div className="elegant-shadow border-0 rounded-lg bg-amber-50 border border-amber-200 p-4 mb-6 max-w-4xl mx-auto">
-            <div className="flex items-center gap-3">
-              <Sparkles className="h-5 w-5 text-amber-600" />
-              <div>
-                <h3 className="font-semibold text-amber-800">Chrome Built-in AI Required</h3>
-                <p className="text-sm text-amber-700">
-                  This feature requires Chrome&apos;s Built-in AI capabilities. Please use a Chrome browser with the AI features enabled.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+
 
         {/* Page Header */}
         <div className="text-center mb-8">
@@ -117,7 +91,7 @@ export default function StylePage() {
           onClick={handleGenerateVariations} 
           variant="outline" 
           className="flex items-center gap-2"
-          disabled={!chromeAISupported}
+          disabled={false}
         >
         <Sparkles className="h-4 w-4" />
         Generate Variations
@@ -126,7 +100,7 @@ export default function StylePage() {
           onClick={handleColorPalette} 
           variant="outline" 
           className="flex items-center gap-2"
-          disabled={!chromeAISupported || paletteLoading}
+          disabled={paletteLoading}
         >
         <Palette className="h-4 w-4" />
         {paletteLoading ? 'Generating Palette...' : 'Color Palette'}
@@ -134,7 +108,7 @@ export default function StylePage() {
         <Button 
           onClick={handleAIEnhance} 
           className="fashion-gradient text-white flex items-center gap-2"
-          disabled={!chromeAISupported || enhancementLoading}
+          disabled={enhancementLoading}
         >
         <Wand2 className="h-4 w-4" />
         {enhancementLoading ? 'Enhancing...' : 'AI Enhance'}
