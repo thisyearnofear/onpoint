@@ -101,7 +101,11 @@ export class ServerProvider implements AIProvider {
             };
         } catch (error) {
             console.error('Server chat error:', error);
-            throw new Error('Failed to chat with stylist');
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            if (errorMessage.includes('No AI provider available')) {
+                throw new Error('AI service not configured. Please set up your API keys in the environment variables.');
+            }
+            throw new Error(`Failed to chat with stylist: ${errorMessage}`);
         }
     }
 

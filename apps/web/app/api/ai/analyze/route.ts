@@ -3,8 +3,10 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import OpenAI from 'openai';
 
 // Initialize AI clients with server-side environment variables
-const gemini = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
-const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+const gemini = process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_gemini_api_key_here'
+    ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
+const openai = process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your_openai_api_key_here'
+    ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
 export async function POST(request: NextRequest) {
     try {
@@ -37,7 +39,9 @@ export async function POST(request: NextRequest) {
             });
             result = response.choices[0]?.message?.content;
         } else {
-            return NextResponse.json({ error: 'No AI provider available' }, { status: 500 });
+            return NextResponse.json({
+                error: 'No AI provider available. Please configure GEMINI_API_KEY or OPENAI_API_KEY in your environment variables.'
+            }, { status: 500 });
         }
 
         return NextResponse.json({ result, provider: provider === 'auto' ? (gemini ? 'gemini' : 'openai') : provider });

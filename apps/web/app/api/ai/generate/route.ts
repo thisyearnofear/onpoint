@@ -3,8 +3,10 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import OpenAI from 'openai';
 
 // Initialize AI clients with server-side environment variables
-const gemini = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
-const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+const gemini = process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_gemini_api_key_here'
+    ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
+const openai = process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your_openai_api_key_here'
+    ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
 export async function POST(request: NextRequest) {
     try {
@@ -22,6 +24,8 @@ export async function POST(request: NextRequest) {
             enhancedPrompt = `As a fashion design expert, ${prompt}. Provide detailed design suggestions including colors, patterns, materials, and styling tips.`;
         } else if (type === 'critique') {
             enhancedPrompt = `As a fashion critic, analyze this outfit: ${prompt}. Provide constructive feedback on style, fit, color coordination, and overall aesthetic.`;
+        } else if (type === 'chat') {
+            enhancedPrompt = `${prompt}. Provide specific fashion recommendations with reasoning, and include practical styling tips. Format your response to be conversational and helpful.`;
         }
 
         // Try to use the specified provider or auto-select
@@ -45,7 +49,9 @@ export async function POST(request: NextRequest) {
             });
             result = response.choices[0]?.message?.content;
         } else {
-            return NextResponse.json({ error: 'No AI provider available' }, { status: 500 });
+            return NextResponse.json({
+                error: 'No AI provider available. Please configure GEMINI_API_KEY or OPENAI_API_KEY in your environment variables.'
+            }, { status: 500 });
         }
 
         return NextResponse.json({
