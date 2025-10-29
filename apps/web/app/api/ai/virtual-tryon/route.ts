@@ -16,8 +16,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Analysis type is required' }, { status: 400 });
         }
 
-        let result;
-        let enhancedPrompt;
+        let result: string | undefined;
+        let enhancedPrompt: string;
 
         if (type === 'body-analysis') {
             // For body analysis from photo description or measurements
@@ -33,7 +33,7 @@ Provide detailed analysis including:
 Be specific and practical in your recommendations.`;
         } else if (type === 'outfit-fit') {
             // For analyzing how specific outfits would fit
-            enhancedPrompt = `As a fashion stylist, analyze how these outfit items would work together: "${data.items?.map((item: any) => `${item.name}: ${item.description || item.type}`).join(', ')}".
+            enhancedPrompt = `As a fashion stylist, analyze how these outfit items would work together: "${data.items?.map((item: { name: string; description?: string; type?: string }) => `${item.name}: ${item.description || item.type || ''}`).join(', ')}".
 
 Consider:
 1. How the pieces complement each other in terms of fit and silhouette
@@ -45,7 +45,7 @@ Consider:
 Provide actionable styling advice.`;
         } else if (type === 'enhancement') {
             // For enhancing virtual try-on experience
-            enhancedPrompt = `As a virtual styling consultant, enhance this outfit combination: "${data.items?.map((item: any) => `${item.name}: ${item.description}`).join(', ')}".
+            enhancedPrompt = `As a virtual styling consultant, enhance this outfit combination: "${data.items?.map((item: { name: string; description?: string }) => `${item.name}: ${item.description || ''}`).join(', ')}".
 
 Provide:
 1. Enhanced styling suggestions to elevate the look
@@ -55,6 +55,9 @@ Provide:
 5. Color and texture combinations that would work well
 
 Focus on practical, achievable improvements.`;
+        } else {
+            // Default case
+            enhancedPrompt = `As a fashion consultant, provide analysis for: ${type}`;
         }
 
         // Use OpenAI for analytical tasks (preferred for fit analysis)
@@ -69,7 +72,8 @@ Focus on practical, achievable improvements.`;
                 max_tokens: 800,
                 temperature: 0.7,
             });
-            result = response.choices[0]?.message?.content;
+            const openaiResult = response.choices[0]?.message?.content;
+            result = openaiResult === null ? undefined : openaiResult;
         } else if (provider === 'gemini' && gemini) {
             if (!gemini) {
                 return NextResponse.json({ error: 'Gemini API key not configured' }, { status: 500 });
@@ -77,7 +81,8 @@ Focus on practical, achievable improvements.`;
 
             const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
             const response = await model.generateContent(enhancedPrompt);
-            result = response.response.text();
+            const textResult = response.response.text();
+            result = textResult === null ? undefined : textResult;
         } else {
             return NextResponse.json({
                 error: 'No AI provider available. Please configure GEMINI_API_KEY or OPENAI_API_KEY in your environment variables.'
@@ -85,7 +90,7 @@ Focus on practical, achievable improvements.`;
         }
 
         // Parse the response based on type
-        const analysisData = parseVirtualTryOnResponse(result, type, data);
+        const analysisData = parseVirtualTryOnResponse(result || '', type, data);
 
         return NextResponse.json({
             ...analysisData,
@@ -98,8 +103,7 @@ Focus on practical, achievable improvements.`;
     }
 }
 
-function parseVirtualTryOnResponse(aiResponse: string, type: string, originalData: any) {
-    const lines = aiResponse.split('\n').filter(line => line.trim());
+function parseVirtualTryOnResponse(aiResponse: string, type: string, originalData: { items?: Array<{ name: string; description?: string }> }) {
 
     if (type === 'body-analysis') {
         // Extract body type
@@ -146,8 +150,9 @@ function extractMeasurement(text: string, bodyPart: string): string | null {
     const regex = new RegExp(`${bodyPart}[:\\s]*([^\\n]*?)(?=\\n|$)`, 'i');
     const match = text.match(regex);
 
-    if (match) {
-        const found = sizeWords.find(size => match[1].toLowerCase().includes(size));
+    if (match && match[1]) {
+        const measurementValue = match[1];
+        const found = sizeWords.find(size => measurementValue.toLowerCase().includes(size));
         return found || 'medium';
     }
     return null;
@@ -219,11 +224,11 @@ function extractStylingTips(text: string): string[] {
 
 function extractOutfitRecommendations(text: string): Array<{ item: string; reason: string; priority: number }> {
     const recommendations: Array<{ item: string; reason: string; priority: number }> = [];
-    const lines = text.split('\n');
 
+    const lines = text.split('\n');
     for (let i = 0; i < lines.length && recommendations.length < 5; i++) {
         const line = lines[i];
-        if (line.includes('recommend') || line.includes('suggest') || line.includes('add') || line.includes('try')) {
+        if (line && (line.includes('recommend') || line.includes('suggest') || line.includes('add') || line.includes('try'))) {
             const cleaned = line.replace(/^\d+\.?\s*/, '').trim();
             if (cleaned.length > 10) {
                 recommendations.push({

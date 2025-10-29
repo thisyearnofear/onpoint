@@ -5,7 +5,8 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "outputs": [".next/**", "!.next/cache/**"],
+      "env": ["GEMINI_API_KEY", "OPENAI_API_KEY", "NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID"]
     },
     "lint": {
       "dependsOn": ["^lint"]

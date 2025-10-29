@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Color palette description is required' }, { status: 400 });
         }
 
-        let result;
+        let result: string | undefined;
         const enhancedPrompt = `As a professional color consultant and fashion stylist, create a cohesive color palette for: "${description}".
 
 Style preference: ${style}
@@ -40,7 +40,8 @@ Format your response clearly with color names, hex codes, and explanations.`;
 
             const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
             const response = await model.generateContent(enhancedPrompt);
-            result = response.response.text();
+            const textResult = response.response.text();
+            result = textResult === null ? undefined : textResult;
         } else if (provider === 'openai' || (provider === 'auto' && openai)) {
             if (!openai) {
                 return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 });
@@ -52,7 +53,8 @@ Format your response clearly with color names, hex codes, and explanations.`;
                 max_tokens: 800,
                 temperature: 0.8, // Higher creativity for color selection
             });
-            result = response.choices[0]?.message?.content;
+            const openaiResult = response.choices[0]?.message?.content;
+            result = openaiResult === null ? undefined : openaiResult;
         } else {
             return NextResponse.json({
                 error: 'No AI provider available. Please configure GEMINI_API_KEY or OPENAI_API_KEY in your environment variables.'
@@ -60,7 +62,7 @@ Format your response clearly with color names, hex codes, and explanations.`;
         }
 
         // Parse the response to extract color data
-        const paletteData = parseColorPaletteResponse(result, description, style, season);
+        const paletteData = parseColorPaletteResponse(result || '', description, style, season);
 
         return NextResponse.json({
             ...paletteData,

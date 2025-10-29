@@ -16,8 +16,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
         }
 
-        let result;
-        let enhancedPrompt = prompt;
+        let result: string | undefined;
+        let enhancedPrompt: string = prompt;
 
         // Enhance prompt based on type
         if (type === 'design') {
@@ -58,14 +58,16 @@ export async function POST(request: NextRequest) {
         if (shouldUseGemini && gemini) {
             const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
             const response = await model.generateContent(enhancedPrompt);
-            result = response.response.text();
+            const textResult = response.response.text();
+            result = textResult === null ? undefined : textResult;
         } else if (shouldUseOpenAI && openai) {
             const response = await openai.chat.completions.create({
                 model: 'gpt-3.5-turbo',
                 messages: [{ role: 'user', content: enhancedPrompt }],
                 max_tokens: type === 'chat' ? 300 : 1500,
             });
-            result = response.choices[0]?.message?.content;
+            const openaiResult = response.choices[0]?.message?.content;
+            result = openaiResult === null ? undefined : openaiResult;
         } else if (provider === 'openai' && !openai) {
             return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 });
         } else if (provider === 'gemini' && !gemini) {

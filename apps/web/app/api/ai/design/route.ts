@@ -16,8 +16,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Design prompt is required' }, { status: 400 });
         }
 
-        let result;
-        let enhancedPrompt;
+        let result: string | undefined;
+        let enhancedPrompt: string;
 
         // Create detailed design prompts based on type
         if (type === 'design') {
@@ -54,6 +54,9 @@ Focus on:
 5. Professional finishing touches and quality improvements
 
 Provide specific improvements and reasoning.`;
+        } else {
+            // Default case
+            enhancedPrompt = `As a professional fashion designer, create a detailed design based on: "${prompt}".`;
         }
 
         // Use Gemini for creative design tasks (preferred for fashion creativity)
@@ -64,7 +67,8 @@ Provide specific improvements and reasoning.`;
 
             const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
             const response = await model.generateContent(enhancedPrompt);
-            result = response.response.text();
+            const textResult = response.response.text();
+            result = textResult === null ? undefined : textResult;
         } else if (provider === 'openai' || (provider === 'auto' && openai)) {
             if (!openai) {
                 return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 });
@@ -76,7 +80,8 @@ Provide specific improvements and reasoning.`;
                 max_tokens: 1000,
                 temperature: 0.8, // Higher creativity for design tasks
             });
-            result = response.choices[0]?.message?.content;
+            const openaiResult = response.choices[0]?.message?.content;
+            result = openaiResult === null ? undefined : openaiResult;
         } else {
             return NextResponse.json({
                 error: 'No AI provider available. Please configure GEMINI_API_KEY or OPENAI_API_KEY in your environment variables.'
@@ -84,7 +89,7 @@ Provide specific improvements and reasoning.`;
         }
 
         // Parse the response to extract structured data
-        const designData = parseDesignResponse(result, prompt);
+        const designData = parseDesignResponse(result || '', prompt);
 
         return NextResponse.json({
             ...designData,
@@ -99,7 +104,6 @@ Provide specific improvements and reasoning.`;
 
 function parseDesignResponse(aiResponse: string, originalPrompt: string) {
     // Extract structured data from AI response
-    const lines = aiResponse.split('\n').filter(line => line.trim());
 
     // Extract colors (look for hex codes or color names)
     const colorMatches = aiResponse.match(/#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}/g) || [];
