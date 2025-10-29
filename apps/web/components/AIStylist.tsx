@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { MessageCircle, Sparkles, User, Globe, Calendar, Sun, Cloud, Users, MapPin, Clock } from "lucide-react";
 import { useAIStylist } from "@repo/ai-client";
