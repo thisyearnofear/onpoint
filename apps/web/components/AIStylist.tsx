@@ -21,6 +21,12 @@ import {
   ShoppingBag,
   Lightbulb,
   Star,
+  Calendar,
+  Sun,
+  Cloud,
+  Users,
+  MapPin,
+  Clock,
 } from "lucide-react";
 import { useAIStylist } from "@repo/ai-client";
 import type { StylistPersona, StyleSuggestion } from "@repo/ai-client";
@@ -44,6 +50,40 @@ interface PersonaCardProps {
   onSelect: (persona: StylistPersona) => void;
   disabled?: boolean;
 }
+
+// Guided prompt suggestions
+const guidedPrompts = [
+  {
+    icon: Calendar,
+    text: "What occasion are you preparing for?",
+    examples: ["Work meeting", "Wedding", "Casual weekend", "Date night"]
+  },
+  {
+    icon: Sun,
+    text: "What season is it?",
+    examples: ["Spring", "Summer", "Fall", "Winter"]
+  },
+  {
+    icon: Cloud,
+    text: "What's the weather forecast?",
+    examples: ["Sunny", "Rainy", "Cold", "Warm"]
+  },
+  {
+    icon: Users,
+    text: "Who will be there?",
+    examples: ["Friends", "Family", "Colleagues", "Love interest"]
+  },
+  {
+    icon: MapPin,
+    text: "Where are you going?",
+    examples: ["City", "Beach", "Mountains", "Restaurant"]
+  },
+  {
+    icon: Clock,
+    text: "What time of day?",
+    examples: ["Morning", "Afternoon", "Evening", "Night"]
+  }
+];
 
 function PersonaCard({
   persona,
@@ -113,35 +153,36 @@ function PersonaCard({
 
   return (
     <Card
-      className={`cursor-pointer transition-all duration-200 elegant-shadow hover:scale-105 ${
-        isSelected ? `ring-2 ${config.ringColor} shadow-xl bg-primary/5` : "hover:shadow-xl"
+      className={`cursor-pointer transition-all duration-200 elegant-shadow hover:scale-[1.02] ${
+        isSelected ? `ring-2 ${config.ringColor} shadow-xl bg-primary/5` : "hover:shadow-lg"
       } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
       onClick={() => !disabled && onSelect(persona)}
     >
-      <CardHeader className="glass-effect pb-4">
-        <div className="text-center">
+      <div className="p-4">
+        <div className="flex items-center gap-3">
           <div
-            className={`w-16 h-16 mx-auto mb-4 rounded-full ${config.bgColor} flex items-center justify-center`}
+            className={`w-10 h-10 rounded-full ${config.bgColor} flex items-center justify-center flex-shrink-0`}
           >
-            <Icon className={`h-8 w-8 ${config.color}`} />
+            <Icon className={`h-5 w-5 ${config.color}`} />
           </div>
-          <CardTitle className="text-xl mb-2">{config.title}</CardTitle>
-          <p className="text-muted-foreground text-sm">
-            {config.description}
-          </p>
+          <div className="flex-1 min-w-0">
+            <h4 className="font-semibold text-sm truncate">{config.title}</h4>
+            <p className="text-muted-foreground text-xs truncate">
+              {config.description}
+            </p>
+          </div>
         </div>
-      </CardHeader>
-      <CardContent className="pt-0">
         <Button
+          size="sm"
           variant={isSelected ? "default" : "outline"}
-          className={
+          className={`w-full mt-3 text-xs ${
             isSelected ? `${config.buttonBg} text-white` : `border-primary/30 text-primary hover:bg-primary/5`
-          }
+          }`}
           disabled={disabled}
         >
-          {isSelected ? "Selected" : "Select Stylist"}
+          {isSelected ? "Selected" : "Select"}
         </Button>
-      </CardContent>
+      </div>
     </Card>
   );
 }
@@ -157,7 +198,7 @@ function ChatMessage({
 
   return (
     <div
-      className={`flex gap-3 ${isUser ? "justify-end" : ""} ${isLast ? "mb-4" : "mb-6"}`}
+      className={`flex gap-3 ${isUser ? "justify-end" : ""} ${isLast ? "mb-2" : "mb-4"}`}
     >
       {!isUser && (
         <Avatar className="h-8 w-8 mt-1 flex-shrink-0">
@@ -167,7 +208,7 @@ function ChatMessage({
         </Avatar>
       )}
 
-      <div className={`max-w-[80%] ${isUser ? "order-first" : ""}`}>
+      <div className={`max-w-[85%] ${isUser ? "order-first" : ""}`}>
         <div
           className={`rounded-lg p-3 ${
             isUser ? "bg-primary text-primary-foreground ml-auto" : "bg-muted"
@@ -221,7 +262,7 @@ function ChatMessage({
         </div>
 
         <p className="text-xs text-muted-foreground mt-1 text-right">
-          {new Date(message.timestamp).toLocaleTimeString()}
+          {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </p>
       </div>
 
@@ -240,32 +281,29 @@ function StyleSuggestions({ suggestions }: { suggestions: StyleSuggestion[] }) {
   if (suggestions.length === 0) return null;
 
   return (
-    <Card className="mt-8 elegant-shadow">
-      <CardHeader className="glass-effect">
+    <Card className="mt-6 elegant-shadow">
+      <CardHeader className="glass-effect pb-3 pt-4">
         <CardTitle className="flex items-center gap-2 text-lg">
           <Sparkles className="h-5 w-5 text-primary" />
           Style Suggestions
         </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Personalized recommendations based on your style preferences
-        </p>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <CardContent className="pt-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {suggestions.map((suggestion, index) => (
-            <div key={index} className="glass-effect rounded-lg p-4">
-              <h4 className="font-semibold capitalize text-base mb-4 flex items-center gap-2 text-primary">
+            <div key={index} className="glass-effect rounded-lg p-3">
+              <h4 className="font-semibold capitalize text-sm mb-3 flex items-center gap-2 text-primary">
                 <ShoppingBag className="h-4 w-4" />
                 {suggestion.category}
               </h4>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {suggestion.items.map((item, itemIndex) => (
                   <div
                     key={itemIndex}
-                    className="p-3 bg-background/50 rounded-lg border border-primary/10"
+                    className="p-2 bg-background/50 rounded-lg border border-primary/10"
                   >
-                    <div className="flex items-start justify-between mb-2">
-                      <p className="font-medium text-sm">{item.name}</p>
+                    <div className="flex items-start justify-between mb-1">
+                      <p className="font-medium text-xs">{item.name}</p>
                       <Badge
                         variant={
                           item.priority === "high"
@@ -300,6 +338,7 @@ export function AIStylist() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [suggestions, setSuggestions] = useState<StyleSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeGuidedPrompt, setActiveGuidedPrompt] = useState<number | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -311,8 +350,6 @@ export function AIStylist() {
     clearConversation,
     clearError,
   } = useAIStylist(selectedPersona);
-
-  
 
   // Sync conversation history with messages
   useEffect(() => {
@@ -384,6 +421,7 @@ export function AIStylist() {
       setMessages([]);
       setSuggestions([]);
       setShowSuggestions(false);
+      setActiveGuidedPrompt(null);
     },
     [selectedPersona, clearConversation],
   );
@@ -428,94 +466,103 @@ export function AIStylist() {
     setMessages([welcomeMessage]);
   }, [selectedPersona]);
 
+  const handleGuidedPromptSelect = (promptText: string) => {
+    setMessage(promptText);
+    setActiveGuidedPrompt(null);
+  };
+
   return (
-    <section className="py-20 bg-subtle-gradient">
+    <section className="py-16 bg-subtle-gradient">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <MessageCircle className="h-10 w-10 text-white" />
+        <div className="text-center mb-10">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+            <MessageCircle className="h-8 w-8 text-white" />
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold mb-3">
             AI Stylist Agent
           </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed">
+          <p className="text-muted-foreground max-w-2xl mx-auto text-base leading-relaxed">
             Get personalized fashion advice, sourcing recommendations, and
             styling expertise from our intelligent fashion consultants.
           </p>
         </div>
 
-        <div className="max-w-6xl mx-auto space-y-8">
-          {/* Stylist Selection */}
-          <div className="space-y-6">
-            <div className="text-center">
-              <h3 className="text-xl font-semibold mb-2">Professional Stylists</h3>
-              <p className="text-muted-foreground text-sm">Expert fashion consultants</p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <PersonaCard
-                persona="luxury"
-                isSelected={selectedPersona === "luxury"}
-                onSelect={handlePersonaChange}
-                disabled={loading}
-              />
-              <PersonaCard
-                persona="streetwear"
-                isSelected={selectedPersona === "streetwear"}
-                onSelect={handlePersonaChange}
-                disabled={loading}
-              />
-              <PersonaCard
-                persona="sustainable"
-                isSelected={selectedPersona === "sustainable"}
-                onSelect={handlePersonaChange}
-                disabled={loading}
-              />
-            </div>
-            
-            <div className="text-center">
-              <h3 className="text-xl font-semibold mb-2">Iconic Fashion Characters</h3>
-              <p className="text-muted-foreground text-sm">Legendary style personalities</p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <PersonaCard
-                persona="edina"
-                isSelected={selectedPersona === "edina"}
-                onSelect={handlePersonaChange}
-                disabled={loading}
-              />
-              <PersonaCard
-                persona="miranda"
-                isSelected={selectedPersona === "miranda"}
-                onSelect={handlePersonaChange}
-                disabled={loading}
-              />
-              <PersonaCard
-                persona="shaft"
-                isSelected={selectedPersona === "shaft"}
-                onSelect={handlePersonaChange}
-                disabled={loading}
-              />
-            </div>
-          </div>
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* Compact Stylist Selection */}
+          <Card className="elegant-shadow">
+            <CardHeader className="glass-effect pb-4 pt-4">
+              <CardTitle className="text-center text-lg">Choose Your Stylist</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {/* Top Row - 3 Stylists */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                <PersonaCard
+                  persona="luxury"
+                  isSelected={selectedPersona === "luxury"}
+                  onSelect={handlePersonaChange}
+                  disabled={loading}
+                />
+                <PersonaCard
+                  persona="streetwear"
+                  isSelected={selectedPersona === "streetwear"}
+                  onSelect={handlePersonaChange}
+                  disabled={loading}
+                />
+                <PersonaCard
+                  persona="sustainable"
+                  isSelected={selectedPersona === "sustainable"}
+                  onSelect={handlePersonaChange}
+                  disabled={loading}
+                />
+              </div>
+              
+              {/* Bottom Row - 3 Stylists */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <PersonaCard
+                  persona="edina"
+                  isSelected={selectedPersona === "edina"}
+                  onSelect={handlePersonaChange}
+                  disabled={loading}
+                />
+                <PersonaCard
+                  persona="miranda"
+                  isSelected={selectedPersona === "miranda"}
+                  onSelect={handlePersonaChange}
+                  disabled={loading}
+                />
+                <PersonaCard
+                  persona="shaft"
+                  isSelected={selectedPersona === "shaft"}
+                  onSelect={handlePersonaChange}
+                  disabled={loading}
+                />
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Chat Interface */}
-          <Card className="max-w-4xl mx-auto elegant-shadow">
-            <CardHeader className="glass-effect">
+          <Card className="elegant-shadow">
+            <CardHeader className="glass-effect pb-3 pt-4">
               <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-lg">
                   <MessageCircle className="h-5 w-5 text-primary" />
-                  Chat with Your Stylist
+                  Chat with {selectedPersona === "luxury" ? "Luxury Expert" : 
+                           selectedPersona === "streetwear" ? "Streetwear Guru" : 
+                           selectedPersona === "sustainable" ? "Sustainable Consultant" : 
+                           selectedPersona === "edina" ? "Edina Monsoon" : 
+                           selectedPersona === "miranda" ? "Miranda Priestly" : 
+                           "John Shaft"}
                 </CardTitle>
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleGenerateSuggestions}
                     disabled={loading}
-                    className="border-primary/30 text-primary hover:bg-primary/5"
+                    className="border-primary/30 text-primary hover:bg-primary/5 h-8 text-xs px-2"
                   >
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Get Suggestions
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    Suggestions
                   </Button>
                   {messages.length > 0 && (
                     <Button
@@ -526,23 +573,24 @@ export function AIStylist() {
                         setMessages([]);
                         setSuggestions([]);
                         setShowSuggestions(false);
+                        setActiveGuidedPrompt(null);
                       }}
                       disabled={loading}
-                      className="border-accent/30 text-accent hover:bg-accent/5"
+                      className="border-accent/30 text-accent hover:bg-accent/5 h-8 text-xs px-2"
                     >
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Clear Chat
+                      <RefreshCw className="h-3 w-3 mr-1" />
+                      Clear
                     </Button>
                   )}
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               {/* Chat Messages */}
               {messages.length > 0 ? (
                 <div className="space-y-4">
-                  <ScrollArea className="h-96 pr-4" ref={scrollAreaRef}>
-                    <div className="space-y-4">
+                  <ScrollArea className="h-80 pr-2" ref={scrollAreaRef}>
+                    <div className="space-y-4 py-2">
                       {messages.map((msg, index) => (
                         <ChatMessage
                           key={msg.id}
@@ -567,19 +615,54 @@ export function AIStylist() {
                       )}
                     </div>
                   </ScrollArea>
+                  
+                  {/* Guided Prompts */}
+                  {activeGuidedPrompt !== null && (
+                    <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium flex items-center gap-2">
+                          {guidedPrompts[activeGuidedPrompt]?.icon && 
+                            React.createElement(guidedPrompts[activeGuidedPrompt].icon, { className: "h-4 w-4" })}
+                          {guidedPrompts[activeGuidedPrompt]?.text}
+                        </h4>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-6 w-6 p-0"
+                          onClick={() => setActiveGuidedPrompt(null)}
+                        >
+                          ×
+                        </Button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {guidedPrompts[activeGuidedPrompt]?.examples?.map((example, idx) => (
+                          <Button
+                            key={idx}
+                            variant="outline"
+                            size="sm"
+                            className="text-xs h-7"
+                            onClick={() => handleGuidedPromptSelect(example)}
+                          >
+                            {example}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
                   <Separator />
                 </div>
               ) : (
-                <div className="text-center py-12">
-                  <MessageCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">
+                <div className="text-center py-8">
+                  <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                  <h3 className="text-lg font-semibold mb-2">
                     Ready to Style?
                   </h3>
-                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                  <p className="text-muted-foreground mb-4 text-sm max-w-md mx-auto">
                     Start a conversation with your selected stylist to get
                     personalized fashion advice.
                   </p>
-                  <Button onClick={startConversation} disabled={loading}>
+                  <Button onClick={startConversation} disabled={loading} size="sm">
                     <MessageCircle className="h-4 w-4 mr-2" />
                     Start Conversation
                   </Button>
@@ -588,30 +671,52 @@ export function AIStylist() {
 
               {/* Message Input */}
               {messages.length > 0 && (
-                <div className="flex gap-3 mt-6">
-                  <div className="flex-1 relative">
-                    <Input
-                      placeholder="Ask about styling, sourcing, or fittings..."
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      onKeyDown={handleKeyPress}
-                      disabled={loading}
-                      className="pr-12"
-                    />
-                    <MessageCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <div className="mt-4">
+                  {/* Quick Prompt Buttons */}
+                  {activeGuidedPrompt === null && messages.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {guidedPrompts.slice(0, 3).map((prompt, index) => {
+                        const Icon = prompt.icon;
+                        return (
+                          <Button
+                            key={index}
+                            variant="outline"
+                            size="sm"
+                            className="text-xs h-7"
+                            onClick={() => setActiveGuidedPrompt(index)}
+                          >
+                            <Icon className="h-3 w-3 mr-1" />
+                            {prompt.text.split(' ')[0]}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  
+                  <div className="flex gap-2">
+                    <div className="flex-1 relative">
+                      <Input
+                        placeholder="Ask about styling, sourcing, or fittings..."
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        onKeyDown={handleKeyPress}
+                        disabled={loading}
+                        className="pr-10 text-sm"
+                      />
+                      <MessageCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <Button
+                      onClick={handleSendMessage}
+                      disabled={loading || !message.trim()}
+                      className="fashion-gradient text-white min-w-[80px] h-10 text-sm"
+                    >
+                      {loading ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                    </Button>
                   </div>
-                  <Button
-                    onClick={handleSendMessage}
-                    disabled={loading || !message.trim()}
-                    className="fashion-gradient text-white min-w-[100px]"
-                  >
-                    {loading ? (
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4" />
-                    )}
-                    {loading ? "Sending..." : "Send"}
-                  </Button>
                 </div>
               )}
 
@@ -623,7 +728,7 @@ export function AIStylist() {
                     variant="ghost"
                     size="sm"
                     onClick={clearError}
-                    className="mt-2"
+                    className="mt-2 h-6 text-xs"
                   >
                     Dismiss
                   </Button>
