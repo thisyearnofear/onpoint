@@ -101,9 +101,8 @@ export function PersonaCard({
   return (
     <div className="relative">
       <Card
-        className={`cursor-pointer transition-all duration-200 elegant-shadow hover:scale-[1.02] ${
-          isSelected ? `ring-2 ${config.ringColor} shadow-xl bg-primary/5` : "hover:shadow-lg"
-        } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+        className={`cursor-pointer transition-all duration-200 elegant-shadow hover:scale-[1.02] ${isSelected ? `ring-2 ${config.ringColor} shadow-xl bg-primary/5` : "hover:shadow-lg"
+          } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
         onClick={() => !disabled && onSelect(persona)}
         onMouseEnter={() => setShowPreview(true)}
         onMouseLeave={() => setShowPreview(false)}
@@ -125,9 +124,8 @@ export function PersonaCard({
           <Button
             size="sm"
             variant={isSelected ? "default" : "outline"}
-            className={`w-full mt-3 text-xs ${
-              isSelected ? `${config.buttonBg} text-white` : `border-primary/30 text-primary hover:bg-primary/5`
-            }`}
+            className={`w-full mt-3 text-xs ${isSelected ? `${config.buttonBg} text-white` : `border-primary/30 text-primary hover:bg-primary/5`
+              }`}
             disabled={disabled}
           >
             {isSelected ? "Selected" : "Select"}
@@ -150,7 +148,7 @@ export function PersonaCard({
               <p className="text-xs font-medium mb-1">Specializes in:</p>
               <div className="flex flex-wrap gap-1">
                 {config.expertise.map((skill, idx) => (
-                  <span 
+                  <span
                     key={idx}
                     className={`text-xs px-2 py-1 rounded-full ${config.bgColor} ${config.color}`}
                   >
