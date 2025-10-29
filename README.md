@@ -1,4 +1,4 @@
-# OnPoint
+# OnPoint Fashion AI Platform
 
 **AI-powered fashion discovery platform with virtual try-on and digital ownership.**
 
@@ -40,10 +40,12 @@ onpoint/
 
 ## 📚 Documentation
 
-- **[Architecture](./docs/ARCHITECTURE.md)** - Technical specifications and system design
-- **[Features](./docs/FEATURES.md)** - Feature specifications and user flows  
-- **[Roadmap](./docs/ROADMAP.md)** - Development timeline and milestones
-- **[Hackathon](./docs/HACKATHON.md)** - Competition strategy and opportunities
+Detailed documentation has been consolidated into four main files:
+
+1. **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Technical architecture, system design, and implementation details
+2. **[FEATURES.md](docs/FEATURES.md)** - User-facing features and functionality specifications
+3. **[AI_INTEGRATION.md](docs/AI_INTEGRATION.md)** - AI provider integration and implementation strategies
+4. **[ROADMAP.md](docs/ROADMAP.md)** - Development timeline, milestones, and strategic planning
 
 ## 🛠️ Development
 

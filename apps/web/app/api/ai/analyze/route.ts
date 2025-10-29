@@ -18,16 +18,8 @@ export async function POST(request: NextRequest) {
 
         let result;
 
-        // Try to use the specified provider or auto-select
-        if (provider === 'gemini' || (provider === 'auto' && gemini)) {
-            if (!gemini) {
-                return NextResponse.json({ error: 'Gemini API key not configured' }, { status: 500 });
-            }
-
-            const model = gemini.getGenerativeModel({ model: 'gemini-pro' });
-            const response = await model.generateContent(prompt);
-            result = response.response.text();
-        } else if (provider === 'openai' || (provider === 'auto' && openai)) {
+        // Try to use the specified provider or auto-select (prefer OpenAI)
+        if (provider === 'openai' || (provider === 'auto' && openai)) {
             if (!openai) {
                 return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 });
             }
@@ -38,13 +30,17 @@ export async function POST(request: NextRequest) {
                 max_tokens: 1000,
             });
             result = response.choices[0]?.message?.content;
+        } else if (provider === 'gemini' && gemini) {
+            const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+            const response = await model.generateContent(prompt);
+            result = response.response.text();
         } else {
             return NextResponse.json({
                 error: 'No AI provider available. Please configure GEMINI_API_KEY or OPENAI_API_KEY in your environment variables.'
             }, { status: 500 });
         }
 
-        return NextResponse.json({ result, provider: provider === 'auto' ? (gemini ? 'gemini' : 'openai') : provider });
+        return NextResponse.json({ result, provider: provider === 'auto' ? (openai ? 'openai' : 'gemini') : provider });
     } catch (error) {
         console.error('AI analysis error:', error);
         return NextResponse.json({ error: 'Failed to analyze with AI' }, { status: 500 });

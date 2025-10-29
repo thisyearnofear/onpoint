@@ -62,4 +62,4 @@ export interface StylistResponse {
   stylingTips: string[];
 }
 
-export type StylistPersona = "luxury" | "streetwear" | "sustainable";
+export type StylistPersona = "luxury" | "streetwear" | "sustainable" | "edina" | "miranda" | "shaft";

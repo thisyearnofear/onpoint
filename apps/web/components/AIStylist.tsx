@@ -79,6 +79,33 @@ function PersonaCard({
       ringColor: "ring-emerald-600",
       buttonBg: "bg-emerald-600 hover:bg-emerald-600/90",
     },
+    edina: {
+      title: "Edina Monsoon",
+      description: "Absolutely Fabulous fashion victim, darling!",
+      icon: Sparkles,
+      color: "text-pink-600",
+      bgColor: "bg-pink-600/10",
+      ringColor: "ring-pink-600",
+      buttonBg: "bg-pink-600 hover:bg-pink-600/90",
+    },
+    miranda: {
+      title: "Miranda Priestly",
+      description: "Runway editor with impossibly high standards",
+      icon: Star,
+      color: "text-purple-600",
+      bgColor: "bg-purple-600/10",
+      ringColor: "ring-purple-600",
+      buttonBg: "bg-purple-600 hover:bg-purple-600/90",
+    },
+    shaft: {
+      title: "John Shaft Style",
+      description: "Cool 1970s sophistication with an edge",
+      icon: ShoppingBag,
+      color: "text-orange-600",
+      bgColor: "bg-orange-600/10",
+      ringColor: "ring-orange-600",
+      buttonBg: "bg-orange-600 hover:bg-orange-600/90",
+    },
   };
 
   const config = personaConfig[persona];
@@ -383,6 +410,12 @@ export function AIStylist() {
         "Hey! I'm your streetwear guru. Ready to dive into the latest drops, urban fashion, and fresh street style? What's on your mind?",
       sustainable:
         "Hi there! I'm your sustainable fashion consultant. Let's find beautiful, ethical pieces that align with your values. How can I help you build a more conscious wardrobe?",
+      edina:
+        "Darling! Sweetie! It's Edina, and I am absolutely OBSESSED with making you look fabulous! We're going to create looks that are so avant-garde, so cutting-edge, so absolutely divine! What fashion emergency can I solve for you today?",
+      miranda:
+        "I am Miranda Priestly. You have come to me seeking fashion guidance, and I will provide it - but only if you're prepared to meet the highest standards. Tell me what you need, and I will determine if it's worthy of my attention.",
+      shaft:
+        "Right on. You've come to the right cat for some serious style advice. I know how to put together a look that commands respect and turns heads. What kind of situation are we styling for? Let's make it smooth.",
     };
 
     const welcomeMessage: Message = {
@@ -413,25 +446,56 @@ export function AIStylist() {
 
         <div className="max-w-6xl mx-auto space-y-8">
           {/* Stylist Selection */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <PersonaCard
-              persona="luxury"
-              isSelected={selectedPersona === "luxury"}
-              onSelect={handlePersonaChange}
-              disabled={loading}
-            />
-            <PersonaCard
-              persona="streetwear"
-              isSelected={selectedPersona === "streetwear"}
-              onSelect={handlePersonaChange}
-              disabled={loading}
-            />
-            <PersonaCard
-              persona="sustainable"
-              isSelected={selectedPersona === "sustainable"}
-              onSelect={handlePersonaChange}
-              disabled={loading}
-            />
+          <div className="space-y-6">
+            <div className="text-center">
+              <h3 className="text-xl font-semibold mb-2">Professional Stylists</h3>
+              <p className="text-muted-foreground text-sm">Expert fashion consultants</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <PersonaCard
+                persona="luxury"
+                isSelected={selectedPersona === "luxury"}
+                onSelect={handlePersonaChange}
+                disabled={loading}
+              />
+              <PersonaCard
+                persona="streetwear"
+                isSelected={selectedPersona === "streetwear"}
+                onSelect={handlePersonaChange}
+                disabled={loading}
+              />
+              <PersonaCard
+                persona="sustainable"
+                isSelected={selectedPersona === "sustainable"}
+                onSelect={handlePersonaChange}
+                disabled={loading}
+              />
+            </div>
+            
+            <div className="text-center">
+              <h3 className="text-xl font-semibold mb-2">Iconic Fashion Characters</h3>
+              <p className="text-muted-foreground text-sm">Legendary style personalities</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <PersonaCard
+                persona="edina"
+                isSelected={selectedPersona === "edina"}
+                onSelect={handlePersonaChange}
+                disabled={loading}
+              />
+              <PersonaCard
+                persona="miranda"
+                isSelected={selectedPersona === "miranda"}
+                onSelect={handlePersonaChange}
+                disabled={loading}
+              />
+              <PersonaCard
+                persona="shaft"
+                isSelected={selectedPersona === "shaft"}
+                onSelect={handlePersonaChange}
+                disabled={loading}
+              />
+            </div>
           </div>
 
           {/* Chat Interface */}

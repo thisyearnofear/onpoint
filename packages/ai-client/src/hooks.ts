@@ -16,7 +16,26 @@ export const useDesignStudio = () => {
       setError(null);
 
       try {
-        const design = await aiClient.generateDesign(visionDescription);
+        const response = await fetch('/api/ai/design', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: visionDescription, type: 'design' })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Design API error: ${response.status}`);
+        }
+
+        const designData = await response.json();
+        const design: DesignGeneration = {
+          id: designData.id,
+          description: designData.description,
+          designPrompt: designData.designPrompt,
+          variations: designData.variations,
+          tags: designData.tags,
+          timestamp: designData.timestamp
+        };
+
         setDesigns((prev) => [design, ...prev]);
         return design;
       } catch (err) {
@@ -29,7 +48,7 @@ export const useDesignStudio = () => {
         setLoading(false);
       }
     },
-    [aiClient],
+    [],
   );
 
   const refineDesign = React.useCallback(
@@ -44,12 +63,31 @@ export const useDesignStudio = () => {
           throw new Error(`Design with ID ${designId} not found`);
         }
 
-        // Create a new design based on the refinement
-        const refinedPrompt = `${designToRefine.designPrompt} - ${refinementPrompt}`;
-        const refinedDesign = await aiClient.generateDesign(refinedPrompt);
+        // Create a refinement prompt
+        const fullPrompt = `Original design: ${designToRefine.designPrompt}\nRefinement request: ${refinementPrompt}`;
+
+        const response = await fetch('/api/ai/design', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: fullPrompt, type: 'refinement' })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Refinement API error: ${response.status}`);
+        }
+
+        const refinedData = await response.json();
+        const refinedDesign: DesignGeneration = {
+          id: refinedData.id,
+          description: refinedData.description,
+          designPrompt: `${designToRefine.designPrompt} (refined)`,
+          variations: refinedData.variations,
+          tags: refinedData.tags,
+          timestamp: refinedData.timestamp
+        };
 
         // Replace the original design with the refined one
-        setDesigns(prev => prev.map(d => d.id === designId ? refinedDesign! : d));
+        setDesigns(prev => prev.map(d => d.id === designId ? refinedDesign : d));
         return true;
       } catch (err) {
         setError(
@@ -61,7 +99,7 @@ export const useDesignStudio = () => {
         setLoading(false);
       }
     },
-    [aiClient, designs]
+    [designs]
   );
 
   return {
@@ -89,9 +127,35 @@ export const useVirtualTryOn = () => {
       setError(null);
 
       try {
-        const analysisData = await aiClient.analyzePhoto(imageFile);
-        setAnalysis(analysisData);
-        return analysisData;
+        // For now, we'll simulate photo analysis with a description
+        // In a real implementation, you'd process the image file
+        const description = imageFile.name.includes('body-scan')
+          ? 'Body scan analysis for virtual try-on measurements'
+          : 'Photo analysis for virtual try-on fitting';
+
+        const response = await fetch('/api/ai/virtual-tryon', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'body-analysis',
+            data: { description, fileName: imageFile.name }
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Virtual try-on API error: ${response.status}`);
+        }
+
+        const analysisData = await response.json();
+        const analysis: VirtualTryOnAnalysis = {
+          bodyType: analysisData.bodyType,
+          measurements: analysisData.measurements,
+          fitRecommendations: analysisData.fitRecommendations,
+          styleAdjustments: analysisData.styleAdjustments
+        };
+
+        setAnalysis(analysis);
+        return analysis;
       } catch (err) {
         setError(
           `Failed to analyze photo: ${err instanceof Error ? err.message : "Unknown error"}`,
@@ -102,18 +166,39 @@ export const useVirtualTryOn = () => {
         setLoading(false);
       }
     },
-    [aiClient],
+    [],
   );
 
   const enhanceTryOn = React.useCallback(
-    async (outfitItems: Array<{ name: string, type: string }>): Promise<boolean> => {
+    async (outfitItems: Array<{ name: string, type?: string, description?: string }>): Promise<boolean> => {
       setLoading(true);
       setError(null);
 
       try {
-        // This would be a more complex implementation in the future
-        // For now we'll just return true to indicate success
-        console.log("Enhancing try-on with items:", outfitItems);
+        const response = await fetch('/api/ai/virtual-tryon', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'enhancement',
+            data: { items: outfitItems }
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Enhancement API error: ${response.status}`);
+        }
+
+        const enhancementData = await response.json();
+
+        // Update analysis with enhancement data
+        if (analysis) {
+          setAnalysis(prev => prev ? {
+            ...prev,
+            fitRecommendations: [...prev.fitRecommendations, ...enhancementData.recommendations.map((r: any) => r.item)],
+            styleAdjustments: [...prev.styleAdjustments, ...enhancementData.stylingTips]
+          } : prev);
+        }
+
         return true;
       } catch (err) {
         setError(
@@ -125,7 +210,7 @@ export const useVirtualTryOn = () => {
         setLoading(false);
       }
     },
-    []
+    [analysis]
   );
 
   return {
@@ -253,27 +338,41 @@ export const useAIStylist = (persona: StylistPersona = "luxury") => {
 export const useAIColorPalette = () => {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [palette, setPalette] = React.useState<{ colors: string[], description: string } | null>(null);
+  const [palette, setPalette] = React.useState<{
+    colors: string[],
+    colorDetails?: Array<{ name: string, hex: string, description: string }>,
+    description: string,
+    style?: string,
+    season?: string,
+    stylingSuggestions?: string[]
+  } | null>(null);
   const aiClient = useAIClient();
 
   const generatePalette = React.useCallback(
-    async (description: string): Promise<boolean> => {
+    async (description: string, style: string = 'modern', season: string = 'all-season'): Promise<boolean> => {
       setLoading(true);
       setError(null);
 
       try {
-        // For now, we'll generate a mock palette
-        const mockPalette = {
-          colors: [
-            '#FF6B6B',
-            '#4ECDC4',
-            '#45B7D1',
-            '#96CEB4',
-            '#FFEAA7'
-          ],
-          description: `Color palette generated for: ${description}`
-        };
-        setPalette(mockPalette);
+        const response = await fetch('/api/ai/color-palette', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ description, style, season })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Color palette API error: ${response.status}`);
+        }
+
+        const paletteData = await response.json();
+        setPalette({
+          colors: paletteData.colors.map((c: any) => c.hex),
+          colorDetails: paletteData.colors,
+          description: paletteData.description,
+          style: paletteData.style,
+          season: paletteData.season,
+          stylingSuggestions: paletteData.stylingSuggestions
+        });
         return true;
       } catch (err) {
         setError(

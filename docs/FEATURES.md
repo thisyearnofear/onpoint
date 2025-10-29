@@ -1,10 +1,8 @@
-# OnPoint Features & User Flows
+# OnPoint Platform Features
 
 **Version:** 1.0  
-**Last Updated:** October 24, 2025  
+**Last Updated:** October 29, 2025  
 **Status:** Feature Specification
-
----
 
 ## Table of Contents
 
@@ -33,7 +31,7 @@
 | Stylist Marketplace | ✅ | ✅ | ✅ | Core |
 | NFT Minting | ✅ | ✅ | ✅ | Web3 |
 | Worldcoin Verification | - | ✅ | ✅ | Identity |
-| Style Challenges | - | - | �� | Community |
+| Style Challenges | - | - | ✅ | Community |
 | Exclusive Drops | - | - | ✅ | Community |
 
 ---
@@ -639,7 +637,7 @@ Lightweight, focused application within Worldcoin ecosystem. Leverages World ID 
 4. Top 3 stylist recommendations displayed
    ↓
 5. One-click booking with escrow payment
-   ���
+   ↓
 6. Session scheduled and confirmed
 ```
 

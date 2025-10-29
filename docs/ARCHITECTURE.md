@@ -1,10 +1,8 @@
-# OnPoint Architecture & Technical Specification
+# OnPoint Platform Architecture
 
 **Version:** 1.0  
-**Last Updated:** October 24, 2025  
+**Last Updated:** October 29, 2025  
 **Status:** Production-Ready Specification
-
----
 
 ## Table of Contents
 
@@ -49,7 +47,7 @@ onpoint-monorepo/
 ├─────────────────┬──────────────────┬────────────────────────┤
 │   Web App       │   Mobile App     │  Worldcoin Mini App    │
 │  (Next.js 14.4+)│  (React Native)  │  (Lightweight Widget)  │
-└────────┬────────┴────────┬─────────┴──────────┬───────���─────┘
+└────────┬────────┴────────┬─────────┴──────────┬─────────────┘
          │                 │                    │
          └─────────────────┼────────────────────┘
                            │
@@ -62,7 +60,7 @@ onpoint-monorepo/
                            │
 ┌──────────────────────────┴───────────────────────────────────┐
 │                    Infrastructure Layer                       │
-├──────────���───┬──────────────┬──────────────┬─────────────────┤
+├──────────────┬──────────────┬──────────────┬─────────────────┤
 │   Vercel     │  Cloudflare  │   IPFS      │   Blockchain     │
 │   (Web)      │    (CDN)     │  Gateways   │   (ZetaChain)    │
 └──────────────┴──────────────┴──────────────┴─────────────────┘
@@ -85,10 +83,10 @@ onpoint-monorepo/
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    AI Service Layer                          │
-├─────────────────┬─���────────────┬──────────────┬─────────────┤
+├─────────────────┬──────────────┬──────────────┬─────────────┤
 │  Tagging        │  Critique    │  Generation  │  Sourcing   │
 │  Service        │  Service     │  Service     │  Service    │
-│  (CLIP/GPT-4V)  │  (GPT-4V)    │  (DALL-E 3) │  (GPT-4V)   │
+│  (CLIP/GPT-4V)  │  (GPT-4V)    │  (DALL-E 3)  │  (GPT-4V)   │
 └─────────────────┴──────────────┴──────────────┴─────────────┘
          │                │              │              │
          └────────────────┴──────────────┴──────────────┘
