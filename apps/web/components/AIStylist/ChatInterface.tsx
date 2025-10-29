@@ -7,28 +7,68 @@ import { Separator } from "@repo/ui/separator";
 import { MessageCircle, Sparkles, Send, RefreshCw, Bot, User } from "lucide-react";
 import { ChatMessage } from './ChatMessage';
 import { Avatar, AvatarFallback } from "@repo/ui/avatar";
+import type { StylistPersona } from "@repo/ai-client";
 
-export function ChatInterface({ 
-  selectedPersona, 
-  loading, 
-  messages, 
-  scrollAreaRef, 
-  activeGuidedPrompt, 
-  guidedPrompts, 
-  handleGenerateSuggestions, 
-  clearConversation, 
-  setMessages, 
-  setSuggestions, 
-  setShowSuggestions, 
-  setActiveGuidedPrompt, 
-  startConversation, 
-  message, 
-  setMessage, 
-  handleKeyPress, 
+interface Message {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: number;
+  recommendations?: Array<{
+    item: string;
+    reason: string;
+    priority: number;
+  }>;
+  stylingTips?: string[];
+}
+
+interface GuidedPrompt {
+  icon: React.ElementType;
+  text: string;
+  examples?: string[];
+}
+
+interface ChatInterfaceProps {
+  selectedPersona: StylistPersona;
+  loading: boolean;
+  messages: Message[];
+  scrollAreaRef: React.RefObject<HTMLDivElement>;
+  activeGuidedPrompt: number | null;
+  guidedPrompts: GuidedPrompt[];
+  handleGenerateSuggestions: () => Promise<void>;
+  clearConversation: () => void;
+  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+  setSuggestions: React.Dispatch<React.SetStateAction<any[]>>;
+  setShowSuggestions: React.Dispatch<React.SetStateAction<boolean>>;
+  setActiveGuidedPrompt: React.Dispatch<React.SetStateAction<number | null>>;
+  startConversation: () => void;
+  message: string;
+  setMessage: React.Dispatch<React.SetStateAction<string>>;
+  handleKeyPress: (e: React.KeyboardEvent) => void;
+  handleSendMessage: () => Promise<void>;
+  handleGuidedPromptSelect: (promptText: string) => void;
+}
+
+export function ChatInterface({
+  selectedPersona,
+  loading,
+  messages,
+  scrollAreaRef,
+  activeGuidedPrompt,
+  guidedPrompts,
+  handleGenerateSuggestions,
+  clearConversation,
+  setMessages,
+  setSuggestions,
+  setShowSuggestions,
+  setActiveGuidedPrompt,
+  startConversation,
+  message,
+  setMessage,
+  handleKeyPress,
   handleSendMessage,
-  handleGuidedPromptSelect
-}) {
-  return (
+  handleGuidedPromptSelect,
+}: ChatInterfaceProps) {  return (
     <Card className="elegant-shadow">
       <CardHeader className="glass-effect pb-3 pt-4">
         <div className="flex items-center justify-between">

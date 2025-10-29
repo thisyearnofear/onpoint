@@ -192,7 +192,7 @@ export function AIStylist() {
     } catch (err) {
       console.error("Failed to send message:", err);
     }
-  }, [message, loading, chatWithStylist]);
+  }, [message, loading, chatWithStylist, setMessages]);
 
   const handleKeyPress = useCallback(
     (e: React.KeyboardEvent) => {
@@ -220,7 +220,7 @@ export function AIStylist() {
         setContextData({occasion: '', weather: '', location: '', time: '', gender: '', ageRange: '', ethnicity: ''});
       }
     },
-    [selectedPersona, clearConversation],
+    [selectedPersona, clearConversation, setMessages, setSuggestions, setShowSuggestions, setActiveGuidedPrompt, contextStep, setContextStep, setContextData],
   );
 
   const handleGenerateSuggestions = useCallback(async () => {
@@ -235,7 +235,7 @@ export function AIStylist() {
       setSuggestions(newSuggestions);
       setShowSuggestions(true);
     }
-  }, [selectedPersona, generateStyleSuggestions]);
+  }, [selectedPersona, generateStyleSuggestions, setSuggestions, setShowSuggestions]);
 
   const startConversation = useCallback(() => {
     const greetings = {
@@ -262,7 +262,7 @@ export function AIStylist() {
 
     setMessages([welcomeMessage]);
     setContextStep('chat');
-  }, [selectedPersona]);
+  }, [selectedPersona, setMessages, setContextStep]);
 
   const handleGuidedPromptSelect = (promptText: string) => {
     // If we're still in context gathering phase, try to map the selection to context fields
@@ -319,7 +319,7 @@ export function AIStylist() {
     return Object.keys(errors).length === 0;
   };
 
-  const handleStartChat = () => {
+  const handleStartChat = useCallback(() => {
     if (validateContext()) {
       // Create a context summary message to provide to the AI
       let contextSummary = `I'm styling for: ${contextData.occasion} in ${contextData.weather} weather, at ${contextData.location}, during ${contextData.time}.`;
@@ -347,9 +347,9 @@ export function AIStylist() {
       // Send context to stylist to begin conversation
       chatWithStylist(contextSummary);
     }
-  };
+  }, [validateContext, contextData, setMessages, setContextStep, chatWithStylist]);
 
-  const handleSkipContext = () => {
+  const handleSkipContext = useCallback(() => {
     setContextStep('chat');
     const greetings = {
       luxury:
@@ -374,7 +374,7 @@ export function AIStylist() {
     };
 
     setMessages([welcomeMessage]);
-  };
+  }, [selectedPersona, setMessages, setContextStep]);
 
   return (
     <section className="py-16 bg-subtle-gradient">

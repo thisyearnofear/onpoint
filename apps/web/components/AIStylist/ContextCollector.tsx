@@ -2,9 +2,33 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Calendar, Cloud, MapPin, Clock, Users, User, Globe } from "lucide-react";
 
-export function ContextCollector({ contextData, contextErrors, contextFields, handleContextChange, handleStartChat, handleSkipContext }) {
+interface ContextField {
+  id: string;
+  icon: React.ElementType;
+  label: string;
+  placeholder: string;
+  examples: string[];
+}
+
+interface ContextCollectorProps {
+  contextData: Record<string, string>;
+  contextErrors: Record<string, boolean>;
+  contextFields: ContextField[];
+  handleContextChange: (field: string, value: string) => void;
+  handleStartChat: () => void;
+  handleSkipContext: () => void;
+}
+
+export function ContextCollector({
+  contextData,
+  contextErrors,
+  contextFields,
+  handleContextChange,
+  handleStartChat,
+  handleSkipContext,
+}: ContextCollectorProps) {
   return (
     <Card className="elegant-shadow">
       <CardHeader className="glass-effect pb-3 pt-4">
