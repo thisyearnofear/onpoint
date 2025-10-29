@@ -216,7 +216,7 @@ export function AIStylist() {
       // If we're in chat mode, go back to context gathering to let user reconsider with new persona
       if (contextStep === 'chat') {
         setContextStep('context');
-        setContextData({occasion: '', weather: '', location: '', time: '', gender: '', ageRange: '', ethnicity: ''});
+        setContextData({ occasion: '', weather: '', location: '', time: '', gender: '', ageRange: '', ethnicity: '' });
       }
     },
     [selectedPersona, clearConversation, setMessages, setSuggestions, setShowSuggestions, setActiveGuidedPrompt, contextStep, setContextStep, setContextData],
@@ -268,7 +268,7 @@ export function AIStylist() {
     if (contextStep === 'context' || contextStep === 'initial') {
       // Try to match the prompt to one of our context fields
       let matchedField = false;
-      
+
       for (const field of contextFields) {
         if (field.examples.includes(promptText)) {
           handleContextChange(field.id, promptText);
@@ -276,7 +276,7 @@ export function AIStylist() {
           break;
         }
       }
-      
+
       // If no field matched, just add to message
       if (!matchedField) {
         setMessage(prev => prev ? `${prev} ${promptText}` : promptText);
@@ -285,14 +285,14 @@ export function AIStylist() {
       // In chat mode, add to message
       setMessage(prev => prev ? `${prev} ${promptText}` : promptText);
     }
-    
+
     setActiveGuidedPrompt(null);
   };
 
   // Generate contextual prompts based on collected data
   const getContextualPrompts = useCallback(() => {
     const basePrompts = [...guidedPrompts];
-    
+
     // Add context-specific prompts if we have context data
     if (contextData.occasion && contextData.weather && contextData.location) {
       const contextualPrompts = [
@@ -307,10 +307,10 @@ export function AIStylist() {
           examples: ["Local fashion", "Weather appropriate", "Cultural considerations"]
         }
       ];
-      
+
       return [...contextualPrompts, ...basePrompts.slice(0, 4)];
     }
-    
+
     return basePrompts;
   }, [contextData]);
 
@@ -319,7 +319,7 @@ export function AIStylist() {
       ...prev,
       [field]: value
     }));
-    
+
     // Clear error when user starts typing
     if (contextErrors[field]) {
       setContextErrors(prev => ({
@@ -332,13 +332,13 @@ export function AIStylist() {
   const validateContext = useCallback((): boolean => {
     const requiredFields = ['occasion', 'weather', 'location', 'time'];
     const errors: Record<string, boolean> = {};
-    
+
     requiredFields.forEach(field => {
       if (!contextData[field as keyof typeof contextData]) {
         errors[field] = true;
       }
     });
-    
+
     setContextErrors(errors);
     return Object.keys(errors).length === 0;
   }, [contextData, setContextErrors]);
@@ -356,18 +356,18 @@ export function AIStylist() {
       if (contextData.ethnicity) {
         contextSummary += `, and of ${contextData.ethnicity} ethnicity.`;
       }
-      
+
       const contextMessage: Message = {
         id: `context-${Date.now()}`,
         role: "user",
         content: contextSummary,
         timestamp: Date.now(),
       };
-      
+
       // Add context message to conversation and proceed to chat
       setMessages([contextMessage]);
       setContextStep('chat');
-      
+
       // Send context to stylist to begin conversation
       chatWithStylist(contextSummary);
     }
@@ -399,6 +399,10 @@ export function AIStylist() {
 
     setMessages([welcomeMessage]);
   }, [selectedPersona, setMessages, setContextStep]);
+
+  const handleToggleContext = useCallback(() => {
+    setContextStep('context');
+  }, [setContextStep]);
 
   return (
     <section className="py-16 bg-subtle-gradient">
@@ -452,6 +456,8 @@ export function AIStylist() {
               handleKeyPress={handleKeyPress}
               handleSendMessage={handleSendMessage}
               handleGuidedPromptSelect={handleGuidedPromptSelect}
+              handleToggleContext={handleToggleContext}
+              contextData={contextData}
             />
           )}
 

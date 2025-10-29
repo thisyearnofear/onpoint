@@ -4,7 +4,7 @@ import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { ScrollArea } from "@repo/ui/scroll-area";
 import { Separator } from "@repo/ui/separator";
-import { MessageCircle, Sparkles, Send, RefreshCw, Bot, Palette } from "lucide-react";
+import { MessageCircle, Sparkles, Send, RefreshCw, Bot, Palette, Settings } from "lucide-react";
 import { ChatMessage } from './ChatMessage';
 import { Avatar, AvatarFallback } from "@repo/ui/avatar";
 import type { StylistPersona, StyleSuggestion } from "@repo/ai-client";
@@ -47,6 +47,8 @@ interface ChatInterfaceProps {
   handleKeyPress: (e: React.KeyboardEvent) => void;
   handleSendMessage: () => Promise<void>;
   handleGuidedPromptSelect: (promptText: string) => void;
+  handleToggleContext: () => void;
+  contextData: Record<string, string>;
 }
 
 export function ChatInterface({
@@ -68,20 +70,33 @@ export function ChatInterface({
   handleKeyPress,
   handleSendMessage,
   handleGuidedPromptSelect,
-}: ChatInterfaceProps) {  return (
+  handleToggleContext,
+  contextData,
+}: ChatInterfaceProps) {
+  return (
     <Card className="elegant-shadow">
       <CardHeader className="glass-effect pb-3 pt-4">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
             <MessageCircle className="h-5 w-5 text-primary" />
-            Chat with {selectedPersona === "luxury" ? "Luxury Expert" : 
-                     selectedPersona === "streetwear" ? "Streetwear Guru" : 
-                     selectedPersona === "sustainable" ? "Sustainable Consultant" : 
-                     selectedPersona === "edina" ? "Edina Monsoon" : 
-                     selectedPersona === "miranda" ? "Miranda Priestly" : 
-                     "John Shaft"}
+            Chat with {selectedPersona === "luxury" ? "Luxury Expert" :
+              selectedPersona === "streetwear" ? "Streetwear Guru" :
+                selectedPersona === "sustainable" ? "Sustainable Consultant" :
+                  selectedPersona === "edina" ? "Edina Monsoon" :
+                    selectedPersona === "miranda" ? "Miranda Priestly" :
+                      "John Shaft"}
           </CardTitle>
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleToggleContext}
+              className="border-muted-foreground/30 text-muted-foreground hover:bg-muted/5 h-8 text-xs px-2"
+              title="Add or update context"
+            >
+              <Settings className="h-3 w-3 mr-1" />
+              Context
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -124,6 +139,30 @@ export function ChatInterface({
         </div>
       </CardHeader>
       <CardContent className="pt-0">
+        {/* Context Summary */}
+        {messages.length > 0 && (contextData.occasion || contextData.weather || contextData.location || contextData.time) && (
+          <div className="mb-4 p-2 bg-primary/5 rounded-lg border border-primary/20">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs text-primary">
+                <Settings className="h-3 w-3" />
+                <span>
+                  {[contextData.occasion, contextData.weather, contextData.location, contextData.time]
+                    .filter(Boolean)
+                    .join(' • ')}
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleToggleContext}
+                className="h-6 text-xs text-primary hover:bg-primary/10"
+              >
+                Edit
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Chat Messages */}
         {messages.length > 0 ? (
           <div className="space-y-4">
@@ -153,19 +192,19 @@ export function ChatInterface({
                 )}
               </div>
             </ScrollArea>
-            
+
             {/* Guided Prompts */}
             {activeGuidedPrompt !== null && (
               <div className="mt-4 p-3 bg-muted/50 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="text-sm font-medium flex items-center gap-2">
-                    {guidedPrompts[activeGuidedPrompt]?.icon && 
+                    {guidedPrompts[activeGuidedPrompt]?.icon &&
                       React.createElement(guidedPrompts[activeGuidedPrompt].icon, { className: "h-4 w-4" })}
                     {guidedPrompts[activeGuidedPrompt]?.text}
                   </h4>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="h-6 w-6 p-0"
                     onClick={() => setActiveGuidedPrompt(null)}
                   >
@@ -187,7 +226,7 @@ export function ChatInterface({
                 </div>
               </div>
             )}
-            
+
             <Separator />
           </div>
         ) : (
@@ -230,7 +269,7 @@ export function ChatInterface({
                 })}
               </div>
             )}
-            
+
             <div className="flex gap-2">
               <div className="flex-1 relative">
                 <Input

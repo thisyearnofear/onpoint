@@ -29,36 +29,18 @@ export function ContextCollector({
   handleStartChat,
   handleSkipContext,
 }: ContextCollectorProps) {
-  const [currentStep, setCurrentStep] = React.useState(0);
+  const [showOptional, setShowOptional] = React.useState(false);
 
-  // Progressive disclosure: Essential fields first, then optional
+  // Essential fields for better styling advice
   const essentialFields = contextFields.slice(0, 4); // occasion, weather, location, time
-
-  const showingEssential = currentStep === 0;
-  const fieldsToShow = showingEssential ? essentialFields : contextFields;
+  const optionalFields = contextFields.slice(4); // gender, age, ethnicity
 
   // Quick scenario presets
   const quickScenarios = [
-    {
-      label: "Work Meeting",
-      icon: "💼",
-      data: { occasion: "Work meeting", weather: "Indoor", location: "Office", time: "Morning" }
-    },
-    {
-      label: "Date Night",
-      icon: "💕",
-      data: { occasion: "Date night", weather: "Evening", location: "Restaurant", time: "Evening" }
-    },
-    {
-      label: "Weekend Casual",
-      icon: "☀️",
-      data: { occasion: "Casual weekend", weather: "Sunny", location: "City", time: "Afternoon" }
-    },
-    {
-      label: "Special Event",
-      icon: "✨",
-      data: { occasion: "Wedding", weather: "Outdoor", location: "Venue", time: "Evening" }
-    }
+    { label: "Work", icon: "💼", data: { occasion: "Work meeting", weather: "Indoor", location: "Office", time: "Morning" } },
+    { label: "Date", icon: "💕", data: { occasion: "Date night", weather: "Evening", location: "Restaurant", time: "Evening" } },
+    { label: "Casual", icon: "☀️", data: { occasion: "Casual weekend", weather: "Sunny", location: "City", time: "Afternoon" } },
+    { label: "Event", icon: "✨", data: { occasion: "Wedding", weather: "Outdoor", location: "Venue", time: "Evening" } }
   ];
 
   const handleQuickScenario = (scenarioData: Record<string, string>) => {
@@ -72,90 +54,68 @@ export function ContextCollector({
   );
 
   return (
-    <Card className="elegant-shadow">
-      <CardHeader className="glass-effect pb-3 pt-4">
-        <CardTitle className="flex items-center gap-2 text-lg">
+    <Card className="elegant-shadow max-w-2xl mx-auto">
+      <CardHeader className="glass-effect pb-4 pt-6 text-center">
+        <div className="flex items-center justify-center gap-2 mb-2">
           <Sparkles className="h-5 w-5 text-primary" />
-          Style Context
-        </CardTitle>
-        <div className="flex items-center gap-2 mt-2">
-          <div className={`h-2 w-2 rounded-full ${showingEssential ? 'bg-primary' : 'bg-primary/30'}`} />
-          <div className={`h-2 w-2 rounded-full ${!showingEssential ? 'bg-primary' : 'bg-primary/30'}`} />
-          <span className="text-xs text-muted-foreground ml-2">
-            Step {currentStep + 1} of 2
-          </span>
+          <CardTitle className="text-lg">Style Context</CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleSkipContext}
+            className="ml-auto text-xs"
+          >
+            Skip
+          </Button>
         </div>
+        <p className="text-sm text-muted-foreground">
+          Help me understand your styling needs for better recommendations
+        </p>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-6">
-          <div className="text-center mb-6">
-            <h3 className="text-xl font-semibold mb-2">
-              {showingEssential ? "Quick Setup" : "Personal Details (Optional)"}
-            </h3>
-            <p className="text-muted-foreground">
-              {showingEssential
-                ? "Start with a quick scenario or fill in the essentials"
-                : "Add more details for personalized recommendations"
-              }
-            </p>
+      <CardContent className="space-y-4">
+        {/* Quick Scenarios */}
+        <div className="text-center">
+          <div className="grid grid-cols-4 gap-2 mb-4">
+            {quickScenarios.map((scenario, idx) => (
+              <Button
+                key={idx}
+                variant="outline"
+                size="sm"
+                className="h-12 flex-col gap-1 text-xs"
+                onClick={() => handleQuickScenario(scenario.data)}
+              >
+                <span className="text-base">{scenario.icon}</span>
+                {scenario.label}
+              </Button>
+            ))}
           </div>
+          <div className="text-xs text-muted-foreground mb-4">Quick presets or customize below</div>
+        </div>
 
-          {/* Quick Scenarios - Only show on first step */}
-          {showingEssential && (
-            <div className="mb-6">
-              <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                <span>⚡</span> Quick Start
-              </h4>
-              <div className="grid grid-cols-2 gap-2">
-                {quickScenarios.map((scenario, idx) => (
-                  <Button
-                    key={idx}
-                    variant="outline"
-                    size="sm"
-                    className="h-auto p-3 text-left justify-start"
-                    onClick={() => handleQuickScenario(scenario.data)}
-                  >
-                    <span className="mr-2">{scenario.icon}</span>
-                    <span className="text-xs">{scenario.label}</span>
-                  </Button>
-                ))}
-              </div>
-              <div className="text-center my-4">
-                <span className="text-xs text-muted-foreground bg-background px-2">or customize below</span>
-              </div>
-            </div>
-          )}
-
-          {fieldsToShow.map((field) => {
+        {/* Essential Fields - Compact Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          {essentialFields.map((field) => {
             const Icon = field.icon;
-            const isRequired = essentialFields.includes(field);
             return (
-              <div key={field.id} className="space-y-2">
-                <div className="flex items-center gap-2 mb-1">
-                  <Icon className="h-4 w-4 text-primary" />
-                  <label className="font-medium text-sm">{field.label}</label>
-                  {isRequired && contextErrors[field.id] && (
-                    <span className="text-xs text-destructive ml-auto">(required)</span>
-                  )}
-                  {!isRequired && (
-                    <span className="text-xs text-muted-foreground ml-auto">(optional)</span>
-                  )}
+              <div key={field.id} className="space-y-1">
+                <div className="flex items-center gap-1">
+                  <Icon className="h-3 w-3 text-primary" />
+                  <label className="text-xs font-medium">{field.label}</label>
+                  {contextErrors[field.id] && <span className="text-xs text-destructive">*</span>}
                 </div>
-
                 <Input
                   placeholder={field.placeholder}
                   value={contextData[field.id as keyof typeof contextData]}
                   onChange={(e) => handleContextChange(field.id, e.target.value)}
-                  className={contextErrors[field.id] ? "border-destructive" : ""}
+                  className={`text-xs h-8 ${contextErrors[field.id] ? "border-destructive" : ""}`}
                 />
-
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {field.examples.map((example, idx) => (
+                <div className="flex flex-wrap gap-1">
+                  {field.examples.slice(0, 2).map((example, idx) => (
                     <Button
                       key={idx}
                       variant={contextData[field.id as keyof typeof contextData] === example ? "default" : "outline"}
                       size="sm"
-                      className="text-xs h-7"
+                      className="text-xs h-6 px-2"
                       onClick={() => handleContextChange(field.id, example)}
                     >
                       {example}
@@ -165,51 +125,81 @@ export function ContextCollector({
               </div>
             );
           })}
+        </div>
 
-          <div className="flex gap-3 pt-4">
-            {showingEssential ? (
-              <>
-                <Button
-                  onClick={handleStartChat}
-                  className="fashion-gradient text-white flex-1"
-                  disabled={!hasEssentialData}
-                >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Start Styling Session
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentStep(1)}
-                  disabled={!hasEssentialData}
-                >
-                  Add Details
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={handleSkipContext}
-                  size="sm"
-                >
-                  Skip
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentStep(0)}
-                >
-                  Back
-                </Button>
-                <Button
-                  onClick={handleStartChat}
-                  className="fashion-gradient text-white flex-1"
-                >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Start Styling Session
-                </Button>
-              </>
-            )}
+        {/* Optional Fields Toggle */}
+        {!showOptional && (
+          <div className="text-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowOptional(true)}
+              className="text-xs text-muted-foreground"
+            >
+              + Add personal details for better recommendations
+            </Button>
           </div>
+        )}
+
+        {/* Optional Fields */}
+        {showOptional && (
+          <div className="border-t pt-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">Personal Details (Optional)</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowOptional(false)}
+                className="text-xs h-6"
+              >
+                Hide
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 gap-3">
+              {optionalFields.map((field) => {
+                const Icon = field.icon;
+                return (
+                  <div key={field.id} className="flex items-center gap-3">
+                    <div className="flex items-center gap-1 min-w-0 flex-1">
+                      <Icon className="h-3 w-3 text-primary flex-shrink-0" />
+                      <label className="text-xs font-medium flex-shrink-0">{field.label}</label>
+                      <Input
+                        placeholder={field.placeholder}
+                        value={contextData[field.id as keyof typeof contextData]}
+                        onChange={(e) => handleContextChange(field.id, e.target.value)}
+                        className="text-xs h-7 flex-1"
+                      />
+                    </div>
+                    <div className="flex gap-1">
+                      {field.examples.slice(0, 3).map((example, idx) => (
+                        <Button
+                          key={idx}
+                          variant={contextData[field.id as keyof typeof contextData] === example ? "default" : "outline"}
+                          size="sm"
+                          className="text-xs h-6 px-2"
+                          onClick={() => handleContextChange(field.id, example)}
+                        >
+                          {example}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Action Button */}
+        <div className="pt-4 text-center">
+          <Button
+            onClick={handleStartChat}
+            className="fashion-gradient text-white px-8"
+            disabled={!hasEssentialData}
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            Start Styling Session
+          </Button>
         </div>
       </CardContent>
     </Card>
