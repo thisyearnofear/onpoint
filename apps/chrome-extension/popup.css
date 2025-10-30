@@ -398,6 +398,17 @@ body {
   border-color: #9ca3af;
 }
 
+.action-btn.outline {
+  background: transparent;
+  color: #667eea;
+  border: 2px solid #667eea;
+}
+
+.action-btn.outline:hover {
+  background: #667eea;
+  color: white;
+}
+
 .action-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -784,5 +795,131 @@ body {
     background: #374151;
     border-color: #4b5563;
     color: #f9fafb;
+  }
+}
+
+/* Mode Toggle */
+.mode-toggle {
+  margin-top: 12px;
+  padding: 8px 0;
+  border-top: 1px solid #e5e7eb;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.toggle-label input[type="checkbox"] {
+  display: none;
+}
+
+.toggle-slider {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background: #d1d5db;
+  border-radius: 10px;
+  transition: background-color 0.3s ease;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-label input:checked + .toggle-slider {
+  background: #667eea;
+}
+
+.toggle-label input:checked + .toggle-slider::before {
+  transform: translateX(16px);
+}
+
+/* Saved Photos */
+.saved-photos {
+  margin-top: 16px;
+}
+
+.saved-photos h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.saved-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+  gap: 8px;
+}
+
+.saved-photo-item {
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #f3f4f6;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.saved-photo-item:hover {
+  transform: scale(1.05);
+}
+
+.saved-photo-item img {
+  width: 100%;
+  height: 60px;
+  object-fit: cover;
+  display: block;
+}
+
+.delete-photo {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.saved-photo-item:hover .delete-photo {
+  display: flex;
+}
+
+.notification {
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
   }
 }
