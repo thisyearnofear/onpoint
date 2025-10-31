@@ -17,6 +17,34 @@ pnpm dev
 # → Web app: http://localhost:3000
 ```
 
+## 🛠️ Environment Variables
+
+To run the application, you need to set up the following environment variables in your `.env.local` file:
+
+```bash
+# AI Provider Keys (at least one required)
+REPLICATE_API_TOKEN=your_replicate_api_token_here
+OPENAI_API_KEY=your_openai_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# WalletConnect Project ID (required for wallet connections)
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id_here
+
+# Worldcoin App ID (required for Worldcoin integration)
+NEXT_PUBLIC_WORLDCOIN_APP_ID=your_worldcoin_app_id_here
+
+# ZetaChain RPC (required for blockchain interactions)
+ZETA_RPC_URL=https://zetachain-evm.blockpi.network/v1/rpc/public
+```
+
+You can copy the `.env.example` file to create your `.env.local`:
+
+```bash
+cp .env.example .env.local
+```
+
+Then edit the `.env.local` file with your actual API keys and credentials.
+
 ## 🎯 Core Features
 
 - **AI Collage Creator**: Generate personalized fashion designs from images and text
