@@ -24,9 +24,23 @@ import {
   ShoppingBag,
   Eye,
 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useVirtualTryOn } from "@repo/ai-client";
 import { useReplicateVirtualTryOn } from "@repo/ai-client";
 import type { VirtualTryOnAnalysis, StylistPersona } from "@repo/ai-client";
+
+// Stub components to fix build errors
+const PersonalityCard = ({ persona, isSelected, onSelect, disabled }: any) => (
+  <div className={`p-3 border rounded-lg cursor-pointer ${isSelected ? 'border-primary' : 'border-border'}`} onClick={() => !disabled && onSelect(persona)}>
+    <div className="text-sm font-medium">{persona}</div>
+  </div>
+);
+
+const TryOnResult = ({ result }: any) => (
+  <div className="p-4 border rounded-lg">
+    <div className="text-sm">Try-on result: {JSON.stringify(result)}</div>
+  </div>
+);
 
 interface PhotoUploadProps {
   onPhotoSelect: (file: File) => void;
@@ -298,6 +312,10 @@ export function VirtualTryOn() {
 
   const [fashionAnalysis, setFashionAnalysis] = useState<any | null>(null);
   const [showAnalysis, setShowAnalysis] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const [tryOnResult, setTryOnResult] = useState<any | null>(null);
+  const [showPersonalitySelection, setShowPersonalitySelection] = useState(false);
+  const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
 
   const {
     analysis,
@@ -363,6 +381,11 @@ export function VirtualTryOn() {
     }
   }, [selectedPhoto, analyzeFashionImage]);
 
+  const handlePersonaSelect = useCallback((persona: string) => {
+    setSelectedPersona(persona);
+    setShowPersonalitySelection(false);
+  }, []);
+
   // New function for personality critique
   const handlePersonalityCritique = useCallback(async (persona: StylistPersona) => {
     if (!selectedPhoto) return;
@@ -378,6 +401,12 @@ export function VirtualTryOn() {
     }
   }, [selectedPhoto, getPersonalityCritique]);
 
+  const handleGetCritique = useCallback(() => {
+    if (selectedPersona) {
+      handlePersonalityCritique(selectedPersona as StylistPersona);
+    }
+  }, [selectedPersona, handlePersonalityCritique]);
+
   const handleReset = useCallback(() => {
     setSelectedPhoto(null);
     setPreviewUrl(null);
@@ -386,6 +415,8 @@ export function VirtualTryOn() {
     setTryOnResult(null);
     setFashionAnalysis(null);
     setShowAnalysis(false);
+    setShowPersonalitySelection(false);
+    setSelectedPersona(null);
     clearAnalysis();
     clearError();
     clearReplicateError();

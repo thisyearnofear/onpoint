@@ -30,7 +30,7 @@ export class ReplicateProvider {
                 garment_des: garmentDes
             };
 
-            const output = await this.replicate.run(this.model, { input });
+            const output = await this.replicate.run(this.model as any, { input });
             
             // The output is a URL to the generated image
             if (typeof output === 'string') {
@@ -170,7 +170,7 @@ export class ReplicateProvider {
         
         // Extract rating if present
         const ratingMatch = analysisText.match(/(?:rating|score).*?(\d+(?:\.\d+)?)/i);
-        const rating = ratingMatch ? parseFloat(ratingMatch[1]) : 7;
+        const rating = ratingMatch && ratingMatch[1] ? parseFloat(ratingMatch[1]) : 7;
         
         // Extract key sections
         const strengths: string[] = [];
@@ -196,12 +196,11 @@ export class ReplicateProvider {
         }
         
         return {
-            fullAnalysis: analysisText,
-            rating: Math.min(10, Math.max(1, rating)),
-            strengths: strengths.slice(0, 5),
-            improvements: improvements.slice(0, 5),
-            styleNotes: "Analysis completed successfully"
+        fullAnalysis: analysisText,
+        rating: Math.min(10, Math.max(1, rating)),
+        strengths: strengths.slice(0, 5),
+        improvements: improvements.slice(0, 5),
+        styleNotes: "Analysis completed successfully"
         };
-    }
-}
+        }
 }
