@@ -2,6 +2,8 @@ import React from 'react';
 import { useAIClient } from './context/AIContext';
 import { DesignGeneration, VirtualTryOnAnalysis, StylistResponse, CritiqueResponse, StylistPersona, StyleSuggestion } from './providers/base-provider';
 import AIClientManager from './ai-client';
+import { ReplicateProvider } from './providers/replicate-provider';
+import { fileToBase64 } from './utils/file-utils';
 
 // Design Studio Implementation
 export const useDesignStudio = () => {
@@ -121,12 +123,64 @@ export const useVirtualTryOn = () => {
   );
   const aiClient = useAIClient();
 
+  // Generate a cache key based on file properties
+  const generateCacheKey = React.useCallback((file: File): string => {
+    return `vto-analysis-${file.name}-${file.size}-${file.lastModified}`;
+  }, []);
+
+  // Get cached analysis if available
+  const getCachedAnalysis = React.useCallback((file: File): VirtualTryOnAnalysis | null => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const cacheKey = generateCacheKey(file);
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          // Check if cache is still valid (less than 1 hour old)
+          if (Date.now() - parsed.timestamp < 3600000) {
+            return parsed.data;
+          } else {
+            // Remove expired cache
+            localStorage.removeItem(cacheKey);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to retrieve cached analysis:", err);
+    }
+    return null;
+  }, [generateCacheKey]);
+
+  // Cache analysis result
+  const cacheAnalysis = React.useCallback((file: File, analysis: VirtualTryOnAnalysis) => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const cacheKey = generateCacheKey(file);
+        const cacheData = {
+          data: analysis,
+          timestamp: Date.now()
+        };
+        localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+      }
+    } catch (err) {
+      console.warn("Failed to cache analysis:", err);
+    }
+  }, [generateCacheKey]);
+
   const analyzePhoto = React.useCallback(
     async (imageFile: File): Promise<VirtualTryOnAnalysis | null> => {
       setLoading(true);
       setError(null);
 
       try {
+        // Check cache first
+        const cachedAnalysis = getCachedAnalysis(imageFile);
+        if (cachedAnalysis) {
+          setAnalysis(cachedAnalysis);
+          setLoading(false);
+          return cachedAnalysis;
+        }
+
         // For now, we'll simulate photo analysis with a description
         // In a real implementation, you'd process the image file
         const description = imageFile.name.includes('body-scan')
@@ -155,6 +209,7 @@ export const useVirtualTryOn = () => {
         };
 
         setAnalysis(analysis);
+        cacheAnalysis(imageFile, analysis);
         return analysis;
       } catch (err) {
         setError(
@@ -166,7 +221,7 @@ export const useVirtualTryOn = () => {
         setLoading(false);
       }
     },
-    [],
+    [getCachedAnalysis, cacheAnalysis],
   );
 
   const enhanceTryOn = React.useCallback(
@@ -515,6 +570,192 @@ export const useAIVirtualTryOnEnhancement = () => {
     enhanceTryOn,
     clearError: () => setError(null),
   };
+};
+
+// Replicate Virtual Try-On Hook
+export const useReplicateVirtualTryOn = () => {
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [result, setResult] = React.useState<string | null>(null);
+  
+  // Generate a cache key based on input parameters
+  const generateCacheKey = React.useCallback((garmImg: string, humanImg: string, garmentDes: string): string => {
+    return `replicate-vto-${btoa(garmImg)}-${btoa(humanImg)}-${btoa(garmentDes)}`;
+  }, []);
+
+  // Get cached result if available
+  const getCachedResult = React.useCallback((garmImg: string, humanImg: string, garmentDes: string): string | null => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const cacheKey = generateCacheKey(garmImg, humanImg, garmentDes);
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          // Check if cache is still valid (less than 24 hours old)
+          if (Date.now() - parsed.timestamp < 86400000) {
+            return parsed.data;
+          } else {
+            // Remove expired cache
+            localStorage.removeItem(cacheKey);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to retrieve cached result:", err);
+    }
+    return null;
+  }, [generateCacheKey]);
+
+  // Cache result
+  const cacheResult = React.useCallback((garmImg: string, humanImg: string, garmentDes: string, result: string) => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const cacheKey = generateCacheKey(garmImg, humanImg, garmentDes);
+        const cacheData = {
+          data: result,
+          timestamp: Date.now()
+        };
+        localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+      }
+    } catch (err) {
+      console.warn("Failed to cache result:", err);
+    }
+  }, [generateCacheKey]);
+
+  const processVirtualTryOn = React.useCallback(
+    async (garmImg: string, humanImg: string, garmentDes: string): Promise<string | null> => {
+      setLoading(true);
+      setError(null);
+      setResult(null);
+
+      try {
+        // Check cache first
+        const cachedResult = getCachedResult(garmImg, humanImg, garmentDes);
+        if (cachedResult) {
+          setResult(cachedResult);
+          setLoading(false);
+          return cachedResult;
+        }
+
+        // Initialize Replicate provider
+        const aiClientManager = new AIClientManager();
+        const replicateProvider = aiClientManager.getReplicateProvider();
+        
+        if (!replicateProvider) {
+          throw new Error('Replicate provider not configured. Please set REPLICATE_API_TOKEN environment variable.');
+        }
+
+        const outputUrl = await replicateProvider.processVirtualTryOn(garmImg, humanImg, garmentDes);
+        setResult(outputUrl);
+        cacheResult(garmImg, humanImg, garmentDes, outputUrl);
+        return outputUrl;
+      } catch (err) {
+        setError(
+          `Failed to process virtual try-on: ${err instanceof Error ? err.message : "Unknown error"}`,
+        );
+        console.error("Virtual try-on error:", err);
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [getCachedResult, cacheResult]
+  );
+
+  // New hook for fashion image analysis
+  const analyzeFashionImage = React.useCallback(
+    async (imageFile: File): Promise<any | null> => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        // Convert file to base64
+        const base64 = await fileToBase64(imageFile);
+        
+        // Initialize Replicate provider
+        const aiClientManager = new AIClientManager();
+        const replicateProvider = aiClientManager.getReplicateProvider();
+        
+        if (!replicateProvider) {
+          throw new Error('Replicate provider not configured. Please set REPLICATE_API_TOKEN environment variable.');
+        }
+
+        const analysis = await replicateProvider.analyzeFashionImage(base64);
+        return analysis;
+      } catch (err) {
+        setError(
+          `Failed to analyze fashion image: ${err instanceof Error ? err.message : "Unknown error"}`,
+        );
+        console.error("Fashion analysis error:", err);
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  // New hook for personality critiques
+  const getPersonalityCritique = React.useCallback(
+    async (imageFile: File, persona: string): Promise<string | null> => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        // Convert file to base64
+        const base64 = await fileToBase64(imageFile);
+        
+        // Initialize Replicate provider
+        const aiClientManager = new AIClientManager();
+        const replicateProvider = aiClientManager.getReplicateProvider();
+        
+        if (!replicateProvider) {
+          throw new Error('Replicate provider not configured. Please set REPLICATE_API_TOKEN environment variable.');
+        }
+
+        const critique = await replicateProvider.getPersonalityCritique(base64, persona);
+        return critique;
+      } catch (err) {
+        setError(
+          `Failed to get ${persona} critique: ${err instanceof Error ? err.message : "Unknown error"}`,
+        );
+        console.error("Personality critique error:", err);
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  return {
+    result,
+    loading,
+    error,
+    processVirtualTryOn,
+    analyzeFashionImage,
+    getPersonalityCritique,
+    clearResult: () => setResult(null),
+    clearError: () => setError(null),
+  };
+};
+
+// Helper function to convert File to base64
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        // Remove the data URL prefix
+        const base64 = reader.result.split(',')[1];
+        resolve(base64);
+      } else {
+        reject(new Error('Failed to convert file to base64'));
+      }
+    };
+    reader.onerror = error => reject(error);
+  });
 };
 
 // Helper functions for collage page

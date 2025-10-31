@@ -3,12 +3,15 @@ import { ChromeAIProvider } from './providers/chrome-provider';
 import { GeminiProvider } from './providers/gemini-provider';
 import { OpenAIProvider } from './providers/openai-provider';
 import { ServerProvider } from './providers/server-provider';
+import { ReplicateProvider } from './providers/replicate-provider';
 
 export default class AIClientManager {
   private provider: AIProvider;
+  private replicateProvider: ReplicateProvider | null = null;
 
   constructor() {
     this.provider = this.detectBestProvider();
+    this.replicateProvider = this.initReplicateProvider();
   }
 
   private detectBestProvider(): AIProvider {
@@ -25,11 +28,22 @@ export default class AIClientManager {
     throw new Error('No AI provider available');
   }
 
+  private initReplicateProvider(): ReplicateProvider | null {
+    if (process.env.REPLICATE_API_TOKEN) {
+      return new ReplicateProvider(process.env.REPLICATE_API_TOKEN);
+    }
+    return null;
+  }
+
   private isChromeExtension(): boolean {
     return typeof chrome !== 'undefined' && !!chrome.runtime?.id;
   }
 
   public getProvider(): AIProvider {
     return this.provider;
+  }
+
+  public getReplicateProvider(): ReplicateProvider | null {
+    return this.replicateProvider;
   }
 }

@@ -13,9 +13,20 @@ import {
   User,
   Scan,
   CheckCircle,
+  X,
+  Shirt,
+  MessageCircle,
+  Crown,
+  Zap,
+  Leaf,
+  Sparkles as SparklesIcon,
+  Star,
+  ShoppingBag,
+  Eye,
 } from "lucide-react";
 import { useVirtualTryOn } from "@repo/ai-client";
-import type { VirtualTryOnAnalysis } from "@repo/ai-client";
+import { useReplicateVirtualTryOn } from "@repo/ai-client";
+import type { VirtualTryOnAnalysis, StylistPersona } from "@repo/ai-client";
 
 interface PhotoUploadProps {
   onPhotoSelect: (file: File) => void;
@@ -285,6 +296,9 @@ export function VirtualTryOn() {
     { name: "Tailored Trousers", type: "bottom" },
   ]);
 
+  const [fashionAnalysis, setFashionAnalysis] = useState<any | null>(null);
+  const [showAnalysis, setShowAnalysis] = useState(false);
+
   const {
     analysis,
     loading,
@@ -294,6 +308,17 @@ export function VirtualTryOn() {
     clearAnalysis,
     clearError,
   } = useVirtualTryOn();
+
+  const {
+    result: replicateResult,
+    loading: replicateLoading,
+    error: replicateError,
+    processVirtualTryOn,
+    analyzeFashionImage,
+    getPersonalityCritique,
+    clearResult,
+    clearError: clearReplicateError,
+  } = useReplicateVirtualTryOn();
 
 
 
@@ -323,16 +348,52 @@ export function VirtualTryOn() {
     await enhanceTryOn(outfitItems);
   }, [analysis, enhanceTryOn, outfitItems]);
 
+  // New function for fashion analysis
+  const handleFashionAnalysis = useCallback(async () => {
+    if (!selectedPhoto) return;
+    
+    try {
+      const analysis = await analyzeFashionImage(selectedPhoto);
+      if (analysis) {
+        setFashionAnalysis(analysis);
+        setShowAnalysis(true);
+      }
+    } catch (err) {
+      console.error("Fashion analysis error:", err);
+    }
+  }, [selectedPhoto, analyzeFashionImage]);
+
+  // New function for personality critique
+  const handlePersonalityCritique = useCallback(async (persona: StylistPersona) => {
+    if (!selectedPhoto) return;
+    
+    try {
+      const critique = await getPersonalityCritique(selectedPhoto, persona);
+      if (critique) {
+        // In a real implementation, you would display the critique
+        alert(`Critique from ${persona}: ${critique}`);
+      }
+    } catch (err) {
+      console.error("Personality critique error:", err);
+    }
+  }, [selectedPhoto, getPersonalityCritique]);
+
   const handleReset = useCallback(() => {
     setSelectedPhoto(null);
     setPreviewUrl(null);
     setScanComplete(false);
+    setShowCamera(false);
+    setTryOnResult(null);
+    setFashionAnalysis(null);
+    setShowAnalysis(false);
     clearAnalysis();
     clearError();
+    clearReplicateError();
+    clearResult();
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
     }
-  }, [clearAnalysis, clearError, previewUrl]);
+  }, [clearAnalysis, clearError, clearReplicateError, clearResult, previewUrl]);
 
   return (
     <section className="py-20">
@@ -471,9 +532,127 @@ export function VirtualTryOn() {
           )}
 
           {/* Analysis Results */}
-          {analysis && <AnalysisResults analysis={analysis} />}
+          <AnimatePresence mode="wait">
+            {analysis && !tryOnResult && !showPersonalitySelection && !showAnalysis && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <AnalysisResults analysis={analysis} />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          {/* Try-On Action */}
+          {/* Personality Selection */}
+          <AnimatePresence mode="wait">
+            {showPersonalitySelection && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <MessageCircle className="h-5 w-5" />
+                      Select Stylist Persona
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Choose a personality to critique your outfit
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <PersonalityCard 
+                          persona="luxury" 
+                          isSelected={selectedPersona === "luxury"} 
+                          onSelect={handlePersonaSelect}
+                          disabled={loading || replicateLoading}
+                        />
+                        <PersonalityCard 
+                          persona="streetwear" 
+                          isSelected={selectedPersona === "streetwear"} 
+                          onSelect={handlePersonaSelect}
+                          disabled={loading || replicateLoading}
+                        />
+                        <PersonalityCard 
+                          persona="sustainable" 
+                          isSelected={selectedPersona === "sustainable"} 
+                          onSelect={handlePersonaSelect}
+                          disabled={loading || replicateLoading}
+                        />
+                        <PersonalityCard 
+                          persona="edina" 
+                          isSelected={selectedPersona === "edina"} 
+                          onSelect={handlePersonaSelect}
+                          disabled={loading || replicateLoading}
+                        />
+                        <PersonalityCard 
+                          persona="miranda" 
+                          isSelected={selectedPersona === "miranda"} 
+                          onSelect={handlePersonaSelect}
+                          disabled={loading || replicateLoading}
+                        />
+                        <PersonalityCard 
+                          persona="shaft" 
+                          isSelected={selectedPersona === "shaft"} 
+                          onSelect={handlePersonaSelect}
+                          disabled={loading || replicateLoading}
+                        />
+                      </div>
+                      <div className="flex justify-center">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setShowPersonalitySelection(false)}
+                          disabled={loading || replicateLoading}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Fashion Analysis */}
+          <AnimatePresence mode="wait">
+            {showAnalysis && fashionAnalysis && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <FashionAnalysis 
+                  analysis={fashionAnalysis} 
+                  onBack={() => setShowAnalysis(false)} 
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Try-On Result */}
+          <AnimatePresence mode="wait">
+            {tryOnResult && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <TryOnResult 
+                  result={tryOnResult} 
+                  onBack={() => setTryOnResult(null)} 
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
           {(selectedPhoto || scanComplete) && (
             <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
               <CardContent className="text-center py-8">
@@ -487,23 +666,93 @@ export function VirtualTryOn() {
                     : "Upload a photo or complete body scan to get started"
                   }
                 </p>
-                <Button
-                  className="fashion-gradient text-white px-6 py-2"
-                  onClick={handleTryOnDesign}
-                  disabled={loading || !analysis}
-                >
-                  {loading ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Try On Outfits
-                    </>
-                  )}
-                </Button>
+                
+                {!showPersonalitySelection ? (
+                  <div className="flex flex-col gap-3">
+                    <Button
+                      className="fashion-gradient text-white px-6 py-2"
+                      onClick={handleTryOnDesign}
+                      disabled={loading || !analysis}
+                    >
+                      {loading ? (
+                        <>
+                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Shirt className="h-4 w-4 mr-2" />
+                          Try On Outfits
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleGetCritique}
+                      disabled={loading || !analysis}
+                    >
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Get AI Critique
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleFashionAnalysis}
+                      disabled={loading || !selectedPhoto}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Fashion Analysis
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Select a Stylist Persona</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      <PersonalityCard 
+                        persona="luxury" 
+                        isSelected={selectedPersona === "luxury"} 
+                        onSelect={handlePersonaSelect}
+                        disabled={loading}
+                      />
+                      <PersonalityCard 
+                        persona="streetwear" 
+                        isSelected={selectedPersona === "streetwear"} 
+                        onSelect={handlePersonaSelect}
+                        disabled={loading}
+                      />
+                      <PersonalityCard 
+                        persona="sustainable" 
+                        isSelected={selectedPersona === "sustainable"} 
+                        onSelect={handlePersonaSelect}
+                        disabled={loading}
+                      />
+                      <PersonalityCard 
+                        persona="edina" 
+                        isSelected={selectedPersona === "edina"} 
+                        onSelect={handlePersonaSelect}
+                        disabled={loading}
+                      />
+                      <PersonalityCard 
+                        persona="miranda" 
+                        isSelected={selectedPersona === "miranda"} 
+                        onSelect={handlePersonaSelect}
+                        disabled={loading}
+                      />
+                      <PersonalityCard 
+                        persona="shaft" 
+                        isSelected={selectedPersona === "shaft"} 
+                        onSelect={handlePersonaSelect}
+                        disabled={loading}
+                      />
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowPersonalitySelection(false)}
+                      disabled={loading}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                )}
 
                 {analysis && (
                   <div className="mt-4 flex items-center justify-center gap-4 text-sm text-muted-foreground">
@@ -562,4 +811,97 @@ export function VirtualTryOn() {
       </div>
     </section>
   );
-}
+};
+
+const FashionAnalysis = ({ analysis, onBack }: { analysis: any; onBack: () => void }) => (
+  <Card>
+    <CardHeader>
+      <CardTitle className="flex items-center gap-2">
+        <Eye className="h-5 w-5" />
+        Fashion Analysis Results
+      </CardTitle>
+      <p className="text-sm text-muted-foreground">
+        Detailed analysis of your outfit
+      </p>
+    </CardHeader>
+    <CardContent>
+      <div className="space-y-6">
+        {/* Rating */}
+        {analysis.rating && (
+          <div className="glass-effect rounded-lg p-4">
+            <h4 className="font-semibold mb-2 flex items-center gap-2 text-primary">
+              <Star className="h-4 w-4" />
+              Overall Rating
+            </h4>
+            <div className="flex items-center gap-2">
+              <span className="text-2xl font-bold">{analysis.rating}/10</span>
+              <div className="flex">
+                {[...Array(5)].map((_, i) => (
+                  <Star 
+                    key={i} 
+                    className={`h-5 w-5 ${i < Math.floor(analysis.rating / 2) ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} 
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Strengths */}
+        {analysis.strengths && analysis.strengths.length > 0 && (
+          <div className="glass-effect rounded-lg p-4">
+            <h4 className="font-semibold mb-3 flex items-center gap-2 text-green-600">
+              <CheckCircle className="h-4 w-4" />
+              Strengths
+            </h4>
+            <ul className="space-y-2">
+              {analysis.strengths.map((strength: string, index: number) => (
+                <li key={index} className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">{strength}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Areas for Improvement */}
+        {analysis.improvements && analysis.improvements.length > 0 && (
+          <div className="glass-effect rounded-lg p-4">
+            <h4 className="font-semibold mb-3 flex items-center gap-2 text-orange-600">
+              <Sparkles className="h-4 w-4" />
+              Areas for Improvement
+            </h4>
+            <ul className="space-y-2">
+              {analysis.improvements.map((improvement: string, index: number) => (
+                <li key={index} className="flex items-start gap-2">
+                  <Sparkles className="h-4 w-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">{improvement}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Full Analysis */}
+        {analysis.fullAnalysis && (
+          <div className="glass-effect rounded-lg p-4">
+            <h4 className="font-semibold mb-3 flex items-center gap-2 text-primary">
+              <MessageCircle className="h-4 w-4" />
+              Detailed Analysis
+            </h4>
+            <div className="text-sm whitespace-pre-wrap">
+              {analysis.fullAnalysis}
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-center">
+          <Button variant="outline" onClick={onBack}>
+            Back to Try-On
+          </Button>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);

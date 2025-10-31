@@ -6,6 +6,11 @@ export interface AIProvider {
   analyzePhoto(file: File): Promise<VirtualTryOnAnalysis>;
 }
 
+export interface ReplicateProviderInterface {
+  processVirtualTryOn(garmImg: string, humanImg: string, garmentDes: string): Promise<string>;
+  analyzeHumanImage(file: File): Promise<VirtualTryOnAnalysis>;
+}
+
 export interface AnalysisInput {
   description?: string;
   image?: File;

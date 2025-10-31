@@ -79,9 +79,9 @@ export function ChatInterface({
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
             <MessageCircle className="h-5 w-5 text-primary" />
-            Chat with {selectedPersona === "luxury" ? "Luxury Expert" :
-              selectedPersona === "streetwear" ? "Streetwear Guru" :
-                selectedPersona === "sustainable" ? "Sustainable Consultant" :
+            Chat with {selectedPersona === "luxury" ? "Anna Karenina" :
+              selectedPersona === "streetwear" ? "Artful Dodger" :
+                selectedPersona === "sustainable" ? "Mowgli" :
                   selectedPersona === "edina" ? "Edina Monsoon" :
                     selectedPersona === "miranda" ? "Miranda Priestly" :
                       "John Shaft"}
