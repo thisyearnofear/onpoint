@@ -1,5 +1,7 @@
 import { StylistPersona } from '../providers/base-provider';
 
+export type CritiqueMode = 'roast' | 'flatter' | 'objective';
+
 interface PersonalityConfig {
     model: string;
     prompt: string;
@@ -7,7 +9,52 @@ interface PersonalityConfig {
     maxTokens: number;
 }
 
+interface CritiqueModeConfig {
+    name: string;
+    description: string;
+    icon: string;
+    color: string;
+    promptModifier: string;
+    temperatureAdjustment: number;
+}
+
 export class PersonalityService {
+    private critiqueModes: Record<CritiqueMode, CritiqueModeConfig> = {
+        roast: {
+            name: '🔥 Roast Mode',
+            description: 'Brutally honest, no-holds-barred critique',
+            icon: 'Flame',
+            color: 'text-red-600',
+            promptModifier: `
+ROAST MODE: Be brutally honest and hilariously savage in your critique. Don't hold back - roast this outfit like you're at a comedy club. 
+Point out every fashion faux pas with wit and humor. Be harsh but entertaining. Make it sting but make it funny.
+Use humor, sarcasm, and sharp observations. This person asked for it!`,
+            temperatureAdjustment: 0.2
+        },
+        flatter: {
+            name: '💖 Flatter Mode',
+            description: 'Encouraging, confidence-boosting feedback',
+            icon: 'Heart',
+            color: 'text-pink-600',
+            promptModifier: `
+FLATTER MODE: Be incredibly encouraging and confidence-boosting. Find the positive in everything and make this person feel amazing about their style choices.
+Focus on what's working well, how great they look, and gentle suggestions for enhancement. Be warm, supportive, and uplifting.
+Make them feel like a fashion icon while still providing helpful advice.`,
+            temperatureAdjustment: -0.1
+        },
+        objective: {
+            name: '⚖️ Objective Mode',
+            description: 'Balanced, professional fashion analysis',
+            icon: 'Scale',
+            color: 'text-blue-600',
+            promptModifier: `
+OBJECTIVE MODE: Provide a balanced, professional fashion analysis. Be honest but constructive, pointing out both strengths and areas for improvement.
+Use fashion industry terminology and focus on technical aspects like fit, proportion, color theory, and styling principles.
+Be informative and educational while remaining neutral and professional.`,
+            temperatureAdjustment: 0
+        }
+    };
+
     private personas: Record<StylistPersona, PersonalityConfig> = {
         luxury: {
             model: 'gpt-4o-mini',
@@ -65,8 +112,32 @@ export class PersonalityService {
         }
     };
 
-    async generateCritique(imageBase64: string, persona: StylistPersona): Promise<string> {
-        const config = this.personas[persona];
+    async generateCritique(
+        imageBase64: string,
+        persona: StylistPersona,
+        mode: CritiqueMode = 'objective'
+    ): Promise<string> {
+        const personaConfig = this.personas[persona];
+        const modeConfig = this.critiqueModes[mode];
+
+        // Enhance the prompt with mode-specific instructions
+        const enhancedConfig = {
+            ...personaConfig,
+            prompt: `${personaConfig.prompt}\n\n${modeConfig.promptModifier}`,
+            temperature: Math.max(0.1, Math.min(1.0, personaConfig.temperature + modeConfig.temperatureAdjustment))
+        };
+
+        // Check cache first
+        const cacheKey = `${persona}_${mode}_${imageBase64.substring(0, 50)}`;
+        try {
+            const { critiqueModeCache } = await import('../utils/cache.js');
+            const cached = await critiqueModeCache.get(cacheKey);
+            if (cached) {
+                return cached;
+            }
+        } catch (cacheError) {
+            console.warn('Cache check failed:', cacheError);
+        }
 
         try {
             const response = await fetch('/api/ai/personality-critique', {
@@ -75,7 +146,8 @@ export class PersonalityService {
                 body: JSON.stringify({
                     imageBase64,
                     persona,
-                    config,
+                    mode,
+                    config: enhancedConfig,
                     provider: 'auto'
                 })
             });
@@ -85,11 +157,29 @@ export class PersonalityService {
             }
 
             const data = await response.json();
-            return data.critique || 'Unable to generate critique at this time.';
+            const critique = data.critique || 'Unable to generate critique at this time.';
+
+            // Cache the result
+            try {
+                const { critiqueModeCache } = await import('../utils/cache.js');
+                await critiqueModeCache.set(cacheKey, critique);
+            } catch (cacheError) {
+                console.warn('Cache set failed:', cacheError);
+            }
+
+            return critique;
         } catch (error) {
             console.error('Personality critique error:', error);
             throw error;
         }
+    }
+
+    getCritiqueModeInfo(mode: CritiqueMode) {
+        return this.critiqueModes[mode];
+    }
+
+    getAllCritiqueModes(): CritiqueMode[] {
+        return Object.keys(this.critiqueModes) as CritiqueMode[];
     }
 
     getPersonalityInfo(persona: StylistPersona) {

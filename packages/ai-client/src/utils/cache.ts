@@ -105,4 +105,5 @@ export class AIResultCache<T> {
 export const virtualTryOnCache = new AIResultCache<any>('virtual_tryon', 24 * 60 * 60 * 1000); // 24 hours
 export const styleSuggestionsCache = new AIResultCache<any>('style_suggestions', 12 * 60 * 60 * 1000); // 12 hours
 export const personalityCritiqueCache = new AIResultCache<string>('personality_critique', 6 * 60 * 60 * 1000); // 6 hours
+export const critiqueModeCache = new AIResultCache<string>('critique_mode', 4 * 60 * 60 * 1000); // 4 hours
 export const fashionAnalysisCache = new AIResultCache<any>('fashion_analysis', 24 * 60 * 60 * 1000); // 24 hours

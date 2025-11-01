@@ -23,12 +23,74 @@ import {
   Star,
   ShoppingBag,
   Eye,
+  Flame,
+  Heart,
+  Scale,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useVirtualTryOn } from "@repo/ai-client";
 import { useReplicateVirtualTryOn } from "@repo/ai-client";
-import type { VirtualTryOnAnalysis, StylistPersona } from "@repo/ai-client";
+import type { VirtualTryOnAnalysis, StylistPersona, CritiqueMode } from "@repo/ai-client";
 import { personalityService } from "@repo/ai-client";
+
+// Critique mode selector component
+const CritiqueModeCard = ({
+  mode,
+  isSelected,
+  onSelect,
+  disabled
+}: {
+  mode: CritiqueMode;
+  isSelected: boolean;
+  onSelect: (mode: CritiqueMode) => void;
+  disabled?: boolean;
+}) => {
+  const getModeConfig = (mode: CritiqueMode) => {
+    const configs = {
+      roast: {
+        icon: Flame,
+        label: "🔥 Roast Mode",
+        description: "Brutally honest, no mercy",
+        color: "text-red-600",
+        bg: "bg-red-50"
+      },
+      flatter: {
+        icon: Heart,
+        label: "💖 Flatter Mode",
+        description: "Confidence-boosting vibes",
+        color: "text-pink-600",
+        bg: "bg-pink-50"
+      },
+      objective: {
+        icon: Scale,
+        label: "⚖️ Objective Mode",
+        description: "Professional analysis",
+        color: "text-blue-600",
+        bg: "bg-blue-50"
+      }
+    };
+    return configs[mode];
+  };
+
+  const config = getModeConfig(mode);
+  const Icon = config.icon;
+
+  return (
+    <div
+      className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${isSelected
+        ? `border-primary ${config.bg} shadow-md`
+        : 'border-border hover:border-primary/50'
+        } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+      onClick={() => !disabled && onSelect(mode)}
+    >
+      <div className="flex flex-col items-center gap-2 text-center">
+        <Icon className={`h-6 w-6 ${config.color}`} />
+        <div className="text-sm font-medium">{config.label}</div>
+        <div className="text-xs text-muted-foreground">{config.description}</div>
+      </div>
+    </div>
+  );
+};
 
 // Enhanced personality card with proper styling and icons
 const PersonalityCard = ({
@@ -396,7 +458,9 @@ export function VirtualTryOn() {
   const [tryOnResult, setTryOnResult] = useState<any | null>(null);
   const [showPersonalitySelection, setShowPersonalitySelection] = useState(false);
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
-  const [critiqueResult, setCritiqueResult] = useState<{ persona: StylistPersona; critique: string } | null>(null);
+  const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('objective');
+  const [showCritiqueModeSelection, setShowCritiqueModeSelection] = useState(false);
+  const [critiqueResult, setCritiqueResult] = useState<{ persona: StylistPersona; critique: string; mode: CritiqueMode } | null>(null);
 
   const {
     analysis,
@@ -501,9 +565,9 @@ export function VirtualTryOn() {
       reader.onload = async (e) => {
         const imageBase64 = e.target?.result as string;
         try {
-          const critique = await personalityService.generateCritique(imageBase64, persona);
+          const critique = await personalityService.generateCritique(imageBase64, persona, selectedCritiqueMode);
           if (critique) {
-            setCritiqueResult({ persona, critique });
+            setCritiqueResult({ persona, critique, mode: selectedCritiqueMode });
           }
         } catch (error) {
           console.error("Personality critique error:", error);
@@ -530,7 +594,9 @@ export function VirtualTryOn() {
     setFashionAnalysis(null);
     setShowAnalysis(false);
     setShowPersonalitySelection(false);
+    setShowCritiqueModeSelection(false);
     setSelectedPersona(null);
+    setSelectedCritiqueMode('objective');
     setCritiqueResult(null);
     clearAnalysis();
     clearError();
@@ -691,9 +757,75 @@ export function VirtualTryOn() {
             )}
           </AnimatePresence>
 
+          {/* Critique Mode Selection */}
+          <AnimatePresence mode="wait">
+            {showCritiqueModeSelection && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <MessageCircle className="h-5 w-5" />
+                      Choose Your Critique Style
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      How would you like your fashion feedback delivered?
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <CritiqueModeCard
+                          mode="roast"
+                          isSelected={selectedCritiqueMode === "roast"}
+                          onSelect={setSelectedCritiqueMode}
+                          disabled={loading}
+                        />
+                        <CritiqueModeCard
+                          mode="flatter"
+                          isSelected={selectedCritiqueMode === "flatter"}
+                          onSelect={setSelectedCritiqueMode}
+                          disabled={loading}
+                        />
+                        <CritiqueModeCard
+                          mode="objective"
+                          isSelected={selectedCritiqueMode === "objective"}
+                          onSelect={setSelectedCritiqueMode}
+                          disabled={loading}
+                        />
+                      </div>
+                      <div className="flex gap-3 justify-center">
+                        <Button
+                          variant="outline"
+                          onClick={() => setShowCritiqueModeSelection(false)}
+                          disabled={loading}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setShowCritiqueModeSelection(false);
+                            setShowPersonalitySelection(true);
+                          }}
+                          disabled={loading}
+                        >
+                          Continue to Stylist Selection
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Personality Selection */}
           <AnimatePresence mode="wait">
-            {showPersonalitySelection && (
+            {showPersonalitySelection && !showCritiqueModeSelection && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -795,7 +927,12 @@ export function VirtualTryOn() {
                 <CritiqueResult
                   persona={critiqueResult.persona}
                   critique={critiqueResult.critique}
+                  mode={critiqueResult.mode}
                   onBack={() => setCritiqueResult(null)}
+                  onTryDifferentMode={() => {
+                    setCritiqueResult(null);
+                    setShowCritiqueModeSelection(true);
+                  }}
                 />
               </motion.div>
             )}
@@ -817,7 +954,7 @@ export function VirtualTryOn() {
               </motion.div>
             )}
           </AnimatePresence>
-          {(selectedPhoto || scanComplete) && !critiqueResult && !tryOnResult && !showAnalysis && (
+          {(selectedPhoto || scanComplete) && !critiqueResult && !tryOnResult && !showAnalysis && !showCritiqueModeSelection && (
             <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
               <CardContent className="text-center py-8">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
@@ -852,7 +989,7 @@ export function VirtualTryOn() {
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={handleGetCritique}
+                      onClick={() => setShowCritiqueModeSelection(true)}
                       disabled={loading || !analysis}
                     >
                       <MessageCircle className="h-4 w-4 mr-2" />
@@ -977,15 +1114,19 @@ export function VirtualTryOn() {
   );
 };
 
-// Critique result component for displaying personality-based critiques
+// Enhanced critique result component with mode-specific styling
 const CritiqueResult = ({
   persona,
   critique,
-  onBack
+  mode,
+  onBack,
+  onTryDifferentMode
 }: {
   persona: StylistPersona;
   critique: string;
+  mode: CritiqueMode;
   onBack: () => void;
+  onTryDifferentMode: () => void;
 }) => {
   const getPersonaConfig = (persona: StylistPersona) => {
     const configs = {
@@ -999,24 +1140,47 @@ const CritiqueResult = ({
     return configs[persona] || configs.luxury;
   };
 
-  const config = getPersonaConfig(persona);
-  const Icon = config.icon;
+  const getModeConfig = (mode: CritiqueMode) => {
+    const configs = {
+      roast: { icon: Flame, label: "Roast Mode", color: "text-red-600", bg: "bg-red-50", border: "border-red-200" },
+      flatter: { icon: Heart, label: "Flatter Mode", color: "text-pink-600", bg: "bg-pink-50", border: "border-pink-200" },
+      objective: { icon: Scale, label: "Objective Mode", color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200" }
+    };
+    return configs[mode];
+  };
+
+  const personaConfig = getPersonaConfig(persona);
+  const modeConfig = getModeConfig(mode);
+  const PersonaIcon = personaConfig.icon;
+  const ModeIcon = modeConfig.icon;
 
   return (
-    <Card className="max-w-2xl mx-auto">
-      <CardHeader className={`${config.bg} border-b`}>
-        <CardTitle className="flex items-center gap-3">
-          <Icon className={`h-6 w-6 ${config.color}`} />
-          <div>
-            <div className="text-lg">{config.label}</div>
-            <div className="text-sm text-muted-foreground font-normal">Fashion Critique</div>
+    <Card className={`max-w-2xl mx-auto ${modeConfig.border}`}>
+      <CardHeader className={`${modeConfig.bg} border-b`}>
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <PersonaIcon className={`h-6 w-6 ${personaConfig.color}`} />
+            <div>
+              <div className="text-lg">{personaConfig.label}</div>
+              <div className="text-sm text-muted-foreground font-normal">Fashion Critique</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <ModeIcon className={`h-5 w-5 ${modeConfig.color}`} />
+            <span className={`text-sm font-medium ${modeConfig.color}`}>{modeConfig.label}</span>
           </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-6">
         <div className="space-y-4">
-          <div className="prose prose-sm max-w-none">
-            <div className="whitespace-pre-wrap text-sm leading-relaxed">
+          <div className={`prose prose-sm max-w-none ${mode === 'roast' ? 'text-red-900' :
+            mode === 'flatter' ? 'text-pink-900' :
+              'text-blue-900'
+            }`}>
+            <div className={`whitespace-pre-wrap text-sm leading-relaxed p-4 rounded-lg ${mode === 'roast' ? 'bg-red-50 border border-red-200' :
+              mode === 'flatter' ? 'bg-pink-50 border border-pink-200' :
+                'bg-blue-50 border border-blue-200'
+              }`}>
               {critique}
             </div>
           </div>
@@ -1024,9 +1188,12 @@ const CritiqueResult = ({
             <Button variant="outline" onClick={onBack} className="flex-1">
               Back to Try-On
             </Button>
-            <Button className="flex-1">
+            <Button
+              className="flex-1"
+              onClick={onTryDifferentMode}
+            >
               <MessageCircle className="h-4 w-4 mr-2" />
-              Get Another Critique
+              Try Different Mode
             </Button>
           </div>
         </div>

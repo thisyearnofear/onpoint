@@ -128,7 +128,7 @@ export const useVirtualTryOn = () => {
   // Get cached analysis if available using shared cache utility
   const getCachedAnalysis = React.useCallback(async (file: File): Promise<VirtualTryOnAnalysis | null> => {
     try {
-      const { virtualTryOnCache } = await import('./utils/cache');
+      const { virtualTryOnCache } = await import('./utils/cache.js');
       const cacheKey = virtualTryOnCache.generateFileKey(file);
       return await virtualTryOnCache.get(cacheKey);
     } catch (err) {
@@ -140,7 +140,7 @@ export const useVirtualTryOn = () => {
   // Cache analysis result using shared cache utility
   const cacheAnalysis = React.useCallback(async (file: File, analysis: VirtualTryOnAnalysis) => {
     try {
-      const { virtualTryOnCache } = await import('./utils/cache');
+      const { virtualTryOnCache } = await import('./utils/cache.js');
       const cacheKey = virtualTryOnCache.generateFileKey(file);
       await virtualTryOnCache.set(cacheKey, analysis);
     } catch (err) {

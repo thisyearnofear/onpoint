@@ -4,7 +4,7 @@ import { corsHeaders } from '../_utils/http';
 
 export async function POST(request: NextRequest) {
     try {
-        const { imageBase64, persona, config, provider = 'auto' } = await request.json();
+        const { imageBase64, persona, mode, config, provider = 'auto' } = await request.json();
         const origin = request.headers.get('origin') || '*';
 
         if (!imageBase64 || !persona || !config) {
@@ -48,6 +48,7 @@ Keep your response engaging and true to your character while being genuinely hel
         return NextResponse.json({
             critique: text || 'Unable to generate critique at this time.',
             persona,
+            mode,
             provider: provider === 'auto' ? usedProvider : provider
         }, { headers: corsHeaders(origin) });
     } catch (error) {
