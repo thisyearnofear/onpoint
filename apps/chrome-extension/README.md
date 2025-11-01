@@ -67,6 +67,32 @@ Built for the **Google Chrome Built-in AI Challenge 2025**, utilizing:
    - Ensure Gemini Nano model is available
    - The extension will show AI status in the popup
 
+### Configure Origin Trial Tokens via .env (optional)
+
+If you need Origin Trial tokens (e.g., Writer/Rewriter/Proofreader APIs, or Prompt on Chrome 131–136), manage them through a local `.env` file.
+
+1. Create `.env` next to `manifest.json` using the template:
+   ```bash
+   cp .env.example .env
+   # Edit .env and paste your token strings
+   ```
+
+2. Supported variables (paste full token strings):
+   - `OT_WRITER_TOKEN` — Chrome Extensions token
+   - `OT_REWRITER_TOKEN` — Chrome Extensions token
+   - `OT_PROOFREADER_TOKEN` — Chrome Extensions token
+   - `OT_PROMPT_TOKEN` — Chrome Extensions token (only for Chrome 131–136)
+   - `OT_EXTRA_TOKENS` — optional, comma-separated list for rotations
+
+3. Inject tokens into `manifest.json`:
+   ```bash
+   npm run inject-ot
+   # or as part of build
+   npm run build
+   ```
+
+This keeps tokens out of version control and writes them into `manifest.json` under `trial_tokens`. Page-origin tokens (Third‑party matching) can be saved directly in the popup Diagnostics and are injected by the content script.
+
 ### Alternative Installation
 Download the packaged extension from our [releases page](../../releases) and install directly.
 

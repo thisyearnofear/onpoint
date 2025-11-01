@@ -46,6 +46,9 @@ class OnPointContentScript {
   }
 
   setup() {
+    // Inject origin trial tokens early so AI features can be enabled in page context
+    // Note: This is asynchronous; fire and forget to avoid blocking UI
+    this.injectOriginTrialTokens();
     this.isEnabled = true;
     this.scanForFashionImages();
     this.setupImageObserver();
@@ -338,6 +341,41 @@ class OnPointContentScript {
         img.style.outlineOffset = '';
       });
     }, 3000);
+  }
+
+  // Inject Origin Trial tokens (third-party) into page context for content scripts
+  async injectOriginTrialTokens() {
+    try {
+      const { otThirdPartyToken, otThirdPartyTokens } = await chrome.storage.local.get([
+        'otThirdPartyToken',
+        'otThirdPartyTokens'
+      ]);
+
+      const tokens = [];
+      if (typeof otThirdPartyToken === 'string' && otThirdPartyToken.trim()) {
+        tokens.push(otThirdPartyToken.trim());
+      }
+      if (Array.isArray(otThirdPartyTokens)) {
+        for (const t of otThirdPartyTokens) {
+          if (typeof t === 'string' && t.trim()) tokens.push(t.trim());
+        }
+      }
+
+      if (tokens.length === 0) return;
+
+      // Inject meta tags for each token
+      const head = document.head || document.getElementsByTagName('head')[0];
+      for (const token of tokens) {
+        const meta = document.createElement('meta');
+        meta.httpEquiv = 'origin-trial';
+        meta.content = token;
+        head.appendChild(meta);
+      }
+      // Optional: mark on window for debugging
+      window.__onpointOTInjected = true;
+    } catch (err) {
+      console.warn('Failed to inject Origin Trial tokens:', err?.message || err);
+    }
   }
 
   // Clean up when page unloads

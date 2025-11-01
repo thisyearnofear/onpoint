@@ -123,49 +123,30 @@ export const useVirtualTryOn = () => {
   );
   const aiClient = useAIClient();
 
-  // Generate a cache key based on file properties
-  const generateCacheKey = React.useCallback((file: File): string => {
-    return `vto-analysis-${file.name}-${file.size}-${file.lastModified}`;
-  }, []);
 
-  // Get cached analysis if available
-  const getCachedAnalysis = React.useCallback((file: File): VirtualTryOnAnalysis | null => {
+
+  // Get cached analysis if available using shared cache utility
+  const getCachedAnalysis = React.useCallback(async (file: File): Promise<VirtualTryOnAnalysis | null> => {
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const cacheKey = generateCacheKey(file);
-        const cached = localStorage.getItem(cacheKey);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          // Check if cache is still valid (less than 1 hour old)
-          if (Date.now() - parsed.timestamp < 3600000) {
-            return parsed.data;
-          } else {
-            // Remove expired cache
-            localStorage.removeItem(cacheKey);
-          }
-        }
-      }
+      const { virtualTryOnCache } = await import('./utils/cache');
+      const cacheKey = virtualTryOnCache.generateFileKey(file);
+      return await virtualTryOnCache.get(cacheKey);
     } catch (err) {
       console.warn("Failed to retrieve cached analysis:", err);
+      return null;
     }
-    return null;
-  }, [generateCacheKey]);
+  }, []);
 
-  // Cache analysis result
-  const cacheAnalysis = React.useCallback((file: File, analysis: VirtualTryOnAnalysis) => {
+  // Cache analysis result using shared cache utility
+  const cacheAnalysis = React.useCallback(async (file: File, analysis: VirtualTryOnAnalysis) => {
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const cacheKey = generateCacheKey(file);
-        const cacheData = {
-          data: analysis,
-          timestamp: Date.now()
-        };
-        localStorage.setItem(cacheKey, JSON.stringify(cacheData));
-      }
+      const { virtualTryOnCache } = await import('./utils/cache');
+      const cacheKey = virtualTryOnCache.generateFileKey(file);
+      await virtualTryOnCache.set(cacheKey, analysis);
     } catch (err) {
       console.warn("Failed to cache analysis:", err);
     }
-  }, [generateCacheKey]);
+  }, []);
 
   const analyzePhoto = React.useCallback(
     async (imageFile: File): Promise<VirtualTryOnAnalysis | null> => {
@@ -174,7 +155,7 @@ export const useVirtualTryOn = () => {
 
       try {
         // Check cache first
-        const cachedAnalysis = getCachedAnalysis(imageFile);
+        const cachedAnalysis = await getCachedAnalysis(imageFile);
         if (cachedAnalysis) {
           setAnalysis(cachedAnalysis);
           setLoading(false);
@@ -209,7 +190,7 @@ export const useVirtualTryOn = () => {
         };
 
         setAnalysis(analysis);
-        cacheAnalysis(imageFile, analysis);
+        await cacheAnalysis(imageFile, analysis);
         return analysis;
       } catch (err) {
         setError(
@@ -328,39 +309,24 @@ export const useAIStylist = (persona: StylistPersona = "luxury") => {
 
       try {
         const suggestionPrompt = `Generate style suggestions for a ${preferences.style} style, for ${preferences.occasion || 'everyday'} occasion with ${preferences.budget || 'flexible'} budget. Provide suggestions in categories with items, descriptions, reasoning, and priority.`;
-        // For now, we'll generate a mock response - in the future this could call the AI
-        const mockSuggestions: StyleSuggestion[] = [
-          {
-            category: "tops",
-            items: [
-              {
-                name: "Basic T-Shirt",
-                description: "A versatile cotton t-shirt",
-                reasoning: "Essential piece that goes with everything",
-                priority: "high"
-              },
-              {
-                name: "Blazer",
-                description: "A tailored blazer",
-                reasoning: "Elevates any outfit instantly",
-                priority: "high"
-              }
-            ]
-          },
-          {
-            category: "bottoms",
-            items: [
-              {
-                name: "Dark Jeans",
-                description: "Classic dark wash jeans",
-                reasoning: "Goes with everything and fits any occasion",
-                priority: "high"
-              }
-            ]
-          }
-        ];
+        // Generate real AI-powered style suggestions
+        const response = await fetch('/api/ai/style-suggestions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: suggestionPrompt,
+            preferences,
+            provider: 'auto',
+            model: 'flash'
+          })
+        });
 
-        return mockSuggestions;
+        if (!response.ok) {
+          throw new Error(`Failed to generate style suggestions: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.suggestions || [];
       } catch (err) {
         setError(
           `Failed to generate style suggestions: ${err instanceof Error ? err.message : "Unknown error"}`,
@@ -464,43 +430,23 @@ export const useAIStyleSuggestions = () => {
       setError(null);
 
       try {
-        // For now, we'll generate mock suggestions
-        const mockSuggestions: StyleSuggestion[] = [
-          {
-            category: "accessories",
-            items: [
-              {
-                name: "Statement Necklace",
-                description: "Bold gold chain with geometric elements",
-                reasoning: "Adds visual interest to simple outfits",
-                priority: "high"
-              }
-            ]
-          },
-          {
-            category: "outerwear",
-            items: [
-              {
-                name: "Leather Jacket",
-                description: "Classic black leather jacket for layering",
-                reasoning: "Versatile piece that works with any outfit",
-                priority: "high"
-              }
-            ]
-          },
-          {
-            category: "bags",
-            items: [
-              {
-                name: "Structured Handbag",
-                description: "Minimalist structured bag in neutral tones",
-                reasoning: "Professional yet stylish accessory",
-                priority: "medium"
-              }
-            ]
-          }
-        ];
-        setSuggestions(mockSuggestions);
+        // Generate real AI-powered style suggestions
+        const response = await fetch('/api/ai/style-suggestions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: 'Generate personalized style suggestions based on current trends and user preferences',
+            provider: 'auto',
+            model: 'flash'
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to generate style suggestions: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setSuggestions(data.suggestions || []);
         return true;
       } catch (err) {
         setError(
@@ -577,7 +523,7 @@ export const useReplicateVirtualTryOn = () => {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [result, setResult] = React.useState<string | null>(null);
-  
+
   // Generate a cache key based on input parameters
   const generateCacheKey = React.useCallback((garmImg: string, humanImg: string, garmentDes: string): string => {
     return `replicate-vto-${btoa(garmImg)}-${btoa(humanImg)}-${btoa(garmentDes)}`;
@@ -640,7 +586,7 @@ export const useReplicateVirtualTryOn = () => {
         // Initialize Replicate provider
         const aiClientManager = new AIClientManager();
         const replicateProvider = aiClientManager.getReplicateProvider();
-        
+
         if (!replicateProvider) {
           throw new Error('Replicate provider not configured. Please set REPLICATE_API_TOKEN environment variable.');
         }
@@ -671,11 +617,11 @@ export const useReplicateVirtualTryOn = () => {
       try {
         // Convert file to base64
         const base64 = await fileToBase64(imageFile);
-        
+
         // Initialize Replicate provider
         const aiClientManager = new AIClientManager();
         const replicateProvider = aiClientManager.getReplicateProvider();
-        
+
         if (!replicateProvider) {
           throw new Error('Replicate provider not configured. Please set REPLICATE_API_TOKEN environment variable.');
         }
@@ -704,11 +650,11 @@ export const useReplicateVirtualTryOn = () => {
       try {
         // Convert file to base64
         const base64 = await fileToBase64(imageFile);
-        
+
         // Initialize Replicate provider
         const aiClientManager = new AIClientManager();
         const replicateProvider = aiClientManager.getReplicateProvider();
-        
+
         if (!replicateProvider) {
           throw new Error('Replicate provider not configured. Please set REPLICATE_API_TOKEN environment variable.');
         }

@@ -1,19 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import OpenAI from 'openai';
-
-// Initialize AI clients with server-side environment variables
-const gemini = process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_gemini_api_key_here'
-    ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
-const openai = process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your_openai_api_key_here'
-    ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+import { generateText } from '../_utils/providers';
+import { corsHeaders } from '../_utils/http';
 
 export async function POST(request: NextRequest) {
     try {
-        const { description, style = 'modern', season = 'all-season', provider = 'auto' } = await request.json();
+        const { description, style = 'modern', season = 'all-season', provider = 'auto', model } = await request.json();
+        const origin = request.headers.get('origin') || '*';
 
         if (!description) {
-            return NextResponse.json({ error: 'Color palette description is required' }, { status: 400 });
+            return NextResponse.json({ error: 'Color palette description is required' }, { status: 400, headers: corsHeaders(origin) });
         }
 
         let result: string | undefined;
@@ -32,42 +27,25 @@ Provide:
 
 Format your response clearly with color names, hex codes, and explanations.`;
 
-        // Use Gemini for creative color tasks (preferred for artistic decisions)
-        if (provider === 'gemini' || (provider === 'auto' && gemini)) {
-            if (!gemini) {
-                return NextResponse.json({ error: 'Gemini API key not configured' }, { status: 500 });
-            }
-
-            const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
-            const response = await model.generateContent(enhancedPrompt);
-            const textResult = response.response.text();
-            result = textResult === null ? undefined : textResult;
-        } else if (provider === 'openai' || (provider === 'auto' && openai)) {
-            if (!openai) {
-                return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 });
-            }
-
-            const response = await openai.chat.completions.create({
-                model: 'gpt-3.5-turbo',
-                messages: [{ role: 'user', content: enhancedPrompt }],
-                max_tokens: 800,
-                temperature: 0.8, // Higher creativity for color selection
-            });
-            const openaiResult = response.choices[0]?.message?.content;
-            result = openaiResult === null ? undefined : openaiResult;
-        } else {
-            return NextResponse.json({
-                error: 'No AI provider available. Please configure GEMINI_API_KEY or OPENAI_API_KEY in your environment variables.'
-            }, { status: 500 });
-        }
+        const modelChoice = model as ('pro' | 'flash' | 'flash-lite' | undefined);
+        const { text, usedProvider } = await generateText({
+            prompt: enhancedPrompt,
+            provider,
+            preferGemini: true,
+            preferOpenAI: false,
+            geminiModel: modelChoice ? (await import('../_utils/providers')).resolveGeminiModel(modelChoice) : 'gemini-2.5-flash',
+            openaiModel: modelChoice ? (await import('../_utils/providers')).resolveOpenAIModel(modelChoice) : 'gpt-3.5-turbo',
+            openaiOptions: { max_tokens: 800, temperature: 0.8 },
+        });
+        result = text;
 
         // Parse the response to extract color data
         const paletteData = parseColorPaletteResponse(result || '', description, style, season);
 
         return NextResponse.json({
             ...paletteData,
-            provider: provider === 'auto' ? (gemini ? 'gemini' : 'openai') : provider
-        });
+            provider: provider === 'auto' ? usedProvider : provider
+        }, { headers: corsHeaders(origin) });
     } catch (error) {
         console.error('AI color palette error:', error);
         return NextResponse.json({ error: 'Failed to generate color palette' }, { status: 500 });
@@ -204,4 +182,9 @@ function extractStylingSuggestions(text: string): string[] {
         'Use neutral colors to balance bold accent colors',
         'Consider the occasion when selecting color combinations'
     ];
+}
+
+export async function OPTIONS(request: NextRequest) {
+    const origin = request.headers.get('origin') || '*';
+    return new NextResponse(null, { status: 204, headers: corsHeaders(origin) });
 }

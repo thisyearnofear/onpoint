@@ -23,6 +23,22 @@ const nextConfig = {
     }
     return config;
   },
+  async headers() {
+    const headers = [];
+    const tokens = [];
+    if (process.env.ORIGIN_TRIAL_TOKEN) tokens.push(process.env.ORIGIN_TRIAL_TOKEN);
+    if (process.env.ORIGIN_TRIAL_TOKENS) {
+      process.env.ORIGIN_TRIAL_TOKENS.split(',').map(t => t.trim()).filter(Boolean).forEach(t => tokens.push(t));
+    }
+
+    if (tokens.length > 0) {
+      headers.push({
+        source: '/:path*',
+        headers: tokens.map((token) => ({ key: 'Origin-Trial', value: token })),
+      });
+    }
+    return headers;
+  },
 };
 
 export default nextConfig;

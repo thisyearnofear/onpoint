@@ -1,19 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import OpenAI from 'openai';
-
-// Initialize AI clients with server-side environment variables
-const gemini = process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_gemini_api_key_here'
-    ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
-const openai = process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your_openai_api_key_here'
-    ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+import { generateText } from '../_utils/providers';
+import { corsHeaders } from '../_utils/http';
 
 export async function POST(request: NextRequest) {
     try {
-        const { prompt, provider = 'auto', type = 'design' } = await request.json();
+        const { prompt, provider = 'auto', type = 'design', model } = await request.json();
+        const origin = request.headers.get('origin') || '*';
 
         if (!prompt) {
-            return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
+            return NextResponse.json({ error: 'Prompt is required' }, { status: 400, headers: corsHeaders(origin) });
         }
 
         let result: string | undefined;
@@ -49,54 +44,38 @@ export async function POST(request: NextRequest) {
         const isCharacterPersona = ['edina', 'miranda', 'shaft'].includes(persona);
         const isProfessionalPersona = ['luxury', 'streetwear', 'sustainable'].includes(persona);
 
-        const shouldUseGemini = provider === 'gemini' ||
-            (provider === 'auto' && isCharacterPersona && gemini);
-        const shouldUseOpenAI = provider === 'openai' ||
-            (provider === 'auto' && isProfessionalPersona && openai);
+        const preferGemini = provider === 'gemini' || (provider === 'auto' && isCharacterPersona);
+        const preferOpenAI = provider === 'openai' || (provider === 'auto' && isProfessionalPersona);
 
-        // Try to use the specified provider or auto-select
-        if (shouldUseGemini && gemini) {
-            const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
-            const response = await model.generateContent(enhancedPrompt);
-            const textResult = response.response.text();
-            result = textResult === null ? undefined : textResult;
-        } else if (shouldUseOpenAI && openai) {
-            const response = await openai.chat.completions.create({
-                model: 'gpt-3.5-turbo',
-                messages: [{ role: 'user', content: enhancedPrompt }],
-                max_tokens: type === 'chat' ? 300 : 1500,
-            });
-            const openaiResult = response.choices[0]?.message?.content;
-            result = openaiResult === null ? undefined : openaiResult;
-        } else if (provider === 'openai' && !openai) {
-            return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 });
-        } else if (provider === 'gemini' && !gemini) {
-            return NextResponse.json({ error: 'Gemini API key not configured' }, { status: 500 });
-        } else {
-            return NextResponse.json({
-                error: 'No AI provider available. Please configure GEMINI_API_KEY or OPENAI_API_KEY in your environment variables.'
-            }, { status: 500 });
-        }
+        // Optional model selection per request
+        const modelChoice = model as ('pro' | 'flash' | 'flash-lite' | undefined);
+
+        const { text, usedProvider } = await generateText({
+            prompt: enhancedPrompt,
+            provider,
+            preferGemini,
+            preferOpenAI,
+            geminiModel: modelChoice ? (await import('../_utils/providers')).resolveGeminiModel(modelChoice) : 'gemini-2.5-flash',
+            openaiModel: modelChoice ? (await import('../_utils/providers')).resolveOpenAIModel(modelChoice) : 'gpt-3.5-turbo',
+            openaiOptions: { max_tokens: type === 'chat' ? 300 : 1500 },
+        });
+        result = text;
 
         // Determine which provider was actually used
-        let actualProvider = provider;
-        if (provider === 'auto') {
-            if (shouldUseGemini && gemini) {
-                actualProvider = 'gemini';
-            } else if (shouldUseOpenAI && openai) {
-                actualProvider = 'openai';
-            } else {
-                actualProvider = gemini ? 'gemini' : 'openai';
-            }
-        }
+        const actualProvider = provider === 'auto' ? usedProvider : provider;
 
         return NextResponse.json({
             result,
             provider: actualProvider,
             type
-        });
+        }, { headers: corsHeaders(origin) });
     } catch (error) {
         console.error('AI generation error:', error);
         return NextResponse.json({ error: 'Failed to generate with AI' }, { status: 500 });
     }
+}
+
+export async function OPTIONS(request: NextRequest) {
+    const origin = request.headers.get('origin') || '*';
+    return new NextResponse(null, { status: 204, headers: corsHeaders(origin) });
 }

@@ -5,8 +5,13 @@ class OnPointExtension {
     this.currentPhoto = null;
     this.analysisResults = null;
     this.chromeAIAvailable = false;
+    this.chromeAILiteAvailable = false;
     this.aiSession = null;
     this.chatMessages = [];
+    // Server-first architecture; optional on-device fallback when available
+    this.serverAvailable = false;
+    this.serverStatus = null;
+    this.serverModelChoice = 'flash';
 
     // Page analysis properties
     this.pageImageFile = null;
@@ -28,10 +33,63 @@ class OnPointExtension {
   }
 
   async init() {
+    await this.checkServerStatus();
     await this.checkChromeAI();
+    await this.loadUserContext(); // Load user preferences and history
     this.setupEventListeners();
+    await this.loadServerModelChoice();
+    this.setupModelSelector();
     await this.loadSavedPhotos();
     this.updateUIState();
+    await this.renderDiagnostics();
+  }
+
+  // Check server AI status via /api/ai/status
+  async checkServerStatus() {
+    const statusIndicator = document.getElementById('statusIndicator');
+    const statusText = document.getElementById('statusText');
+    try {
+      const status = await window.OnPointAPI?.status();
+      if (status && status.ok) {
+        this.serverAvailable = true;
+        this.serverStatus = status;
+        if (statusIndicator) statusIndicator.className = 'status-indicator';
+        if (statusText) statusText.textContent = 'Server Ready';
+      } else {
+        this.serverAvailable = false;
+      }
+    } catch (e) {
+      this.serverAvailable = false;
+    }
+  }
+
+  async loadServerModelChoice() {
+    try {
+      const { serverModelChoice } = await chrome.storage?.local?.get(['serverModelChoice']) || {};
+      if (typeof serverModelChoice === 'string' && serverModelChoice) {
+        this.serverModelChoice = serverModelChoice;
+      }
+    } catch (e) {
+      // ignore storage errors
+    }
+  }
+
+  setupModelSelector() {
+    const select = document.getElementById('serverModelSelect');
+    if (!select) return;
+    // Initialize value
+    select.value = this.serverModelChoice;
+    select.addEventListener('change', async (e) => {
+      const value = e.target.value;
+      if (value === 'flash' || value === 'pro' || value === 'flash-lite') {
+        this.serverModelChoice = value;
+        try {
+          await chrome.storage?.local?.set({ serverModelChoice: value });
+        } catch (err) {
+          console.warn('Failed to persist model choice:', err);
+        }
+      }
+    });
   }
 
   // Check if Chrome AI APIs are available
@@ -43,25 +101,33 @@ class OnPointExtension {
       statusIndicator.className = 'status-indicator checking';
       statusText.textContent = 'Checking AI...';
 
-      if ('ai' in window && window.ai.languageModel) {
+      const hasLM = 'ai' in window && !!window.ai?.languageModel;
+      const hasWriter = 'ai' in window && !!window.ai?.writer;
+      const hasSummarizer = 'ai' in window && !!window.ai?.summarizer;
+
+      if (hasLM) {
         const availability = await window.ai.languageModel.availability();
 
         if (availability === 'readily' || availability === 'after-download') {
           this.chromeAIAvailable = true;
           statusIndicator.className = 'status-indicator';
-          statusText.textContent = 'AI Ready';
-
-          // Initialize AI session
-          await this.initializeAISession();
+          statusText.textContent = availability === 'readily' ? 'AI Ready' : 'AI Downloading';
         } else {
           throw new Error('AI not available on this device');
         }
+      } else if (hasWriter || hasSummarizer) {
+        // Lite Mode: limited features available without full Prompt API
+        this.chromeAIAvailable = false;
+        this.chromeAILiteAvailable = true;
+        statusIndicator.className = 'status-indicator';
+        statusText.textContent = 'AI Lite Mode';
       } else {
         throw new Error('Chrome AI APIs not found');
       }
     } catch (error) {
       console.warn('Chrome AI not available:', error);
       this.chromeAIAvailable = false;
+      this.chromeAILiteAvailable = false;
       statusIndicator.className = 'status-indicator unavailable';
       statusText.textContent = 'AI Unavailable';
       this.showChromeAIWarning();
@@ -85,6 +151,67 @@ class OnPointExtension {
       }
     } catch (error) {
       console.error('Failed to initialize AI session:', error);
+    }
+  }
+
+  // Initialize Prompt API with user activation and show model download progress when available
+  async ensureAISessionInitialized() {
+    if (this.aiSession) return;
+
+    const statusIndicator = document.getElementById('statusIndicator');
+    const statusText = document.getElementById('statusText');
+
+    try {
+      if (!(window.ai && window.ai.languageModel)) {
+        throw new Error('Prompt API not available in this context');
+      }
+
+      const availability = await window.ai.languageModel.availability();
+      if (availability === 'after-download') {
+        if (statusIndicator) statusIndicator.className = 'status-indicator checking';
+        if (statusText) statusText.textContent = 'AI Downloading…';
+      }
+
+      const options = {
+        temperature: 0.7,
+        topK: 30,
+        initialPrompts: [{
+          role: 'system',
+          content: `You are a professional fashion stylist AI. Analyze outfits and provide constructive, helpful feedback.
+                   Focus on color coordination, fit, style coherence, and practical styling advice.
+                   Always be encouraging while offering specific improvement suggestions.
+                   Rate outfits on a 1-10 scale and provide actionable recommendations.`
+        }]
+      };
+
+      // Attach a monitor if supported to surface download progress
+      try {
+        options.monitor = (m) => {
+          m.addEventListener('downloadprogress', (e) => {
+            const pct = Math.round((e.loaded || 0) * 100);
+            if (statusIndicator) statusIndicator.className = 'status-indicator checking';
+            if (statusText) statusText.textContent = `AI Downloading ${pct}%`;
+          });
+          m.addEventListener('downloadcomplete', () => {
+            if (statusIndicator) statusIndicator.className = 'status-indicator';
+            if (statusText) statusText.textContent = 'AI Ready';
+          });
+        };
+      } catch (_) {
+        // Safe no-op if monitor is not supported
+      }
+
+      this.aiSession = await window.ai.languageModel.create(options);
+
+      if (statusIndicator) statusIndicator.className = 'status-indicator';
+      if (statusText) statusText.textContent = 'AI Ready';
+      this.chromeAIAvailable = true;
+    } catch (error) {
+      console.warn('ensureAISessionInitialized failed:', error);
+      if (statusIndicator) statusIndicator.className = 'status-indicator unavailable';
+      if (statusText) statusText.textContent = 'AI Unavailable';
+      this.chromeAIAvailable = false;
+      this.showChromeAIWarning();
     }
   }
 
@@ -166,6 +293,49 @@ class OnPointExtension {
       e.preventDefault();
       chrome.tabs.create({ url: 'https://onpoint.fashion/privacy' });
     });
+
+    // Removed web app option per user request; no external fallback
+
+    // Diagnostics interactions
+    const diagToggle = document.getElementById('diagnosticsToggle');
+    const diagBody = document.getElementById('diagnosticsBody');
+    const diagRefresh = document.getElementById('diagnosticsRefresh');
+
+    if (diagToggle && diagBody) {
+      diagToggle.addEventListener('click', () => {
+        const isHidden = diagBody.style.display === 'none';
+        diagBody.style.display = isHidden ? 'block' : 'none';
+      });
+    }
+
+    if (diagRefresh) {
+      diagRefresh.addEventListener('click', async () => {
+        await this.checkChromeAI();
+        await this.renderDiagnostics();
+      });
+    }
+
+    const saveOTTokenBtn = document.getElementById('saveOTTokenBtn');
+    const otTokenInput = document.getElementById('otTokenInput');
+    if (saveOTTokenBtn && otTokenInput) {
+      saveOTTokenBtn.addEventListener('click', async () => {
+        const token = otTokenInput.value.trim();
+        if (!token) return;
+        try {
+          const existing = await chrome.storage.local.get(['otThirdPartyTokens']);
+          const list = Array.isArray(existing.otThirdPartyTokens) ? existing.otThirdPartyTokens : [];
+          // Avoid duplicates
+          if (!list.includes(token)) list.push(token);
+          await chrome.storage.local.set({ otThirdPartyToken: token, otThirdPartyTokens: list });
+          // Simple feedback
+          saveOTTokenBtn.textContent = 'Saved';
+          setTimeout(() => { saveOTTokenBtn.textContent = 'Save Token'; }, 1200);
+          await this.renderDiagnostics();
+        } catch (err) {
+          console.warn('Failed to save OT token:', err?.message || err);
+        }
+      });
+    }
   }
 
   handlePhotoSelect(event) {
@@ -212,47 +382,43 @@ class OnPointExtension {
     this.showLoading();
 
     try {
-      if (!this.chromeAIAvailable) {
-        // Fallback analysis without Chrome AI
-        await this.performFallbackAnalysis();
+      // Prefer server-side analysis when available
+      if (this.serverAvailable) {
+        let analysisPrompt = this.buildAnalysisPrompt({
+          virtualTryOn: this.virtualTryOnMode,
+          comparison: this.comparisonMode && !!this.productPhoto,
+          pageUrl: null
+        });
+        analysisPrompt = this.buildContextualPrompt(analysisPrompt);
+
+        const serverResp = await window.OnPointAPI.analyze(analysisPrompt, 'auto', this.serverModelChoice);
+        const responseText = serverResp?.result || '';
+        this.analysisResults = this.virtualTryOnMode ?
+          this.parseVirtualTryOnResponse(responseText) :
+          this.parseAnalysisResponse(responseText);
+        await this.displayResults();
         return;
       }
 
-      // Use Chrome AI for analysis
-      let analysisPrompt;
-      if (this.virtualTryOnMode) {
-        analysisPrompt = `Provide a detailed virtual try-on experience for this outfit. Describe:
-
-        1. How this outfit would look and feel when worn by different body types (petite, athletic, plus-size)
-        2. Visual styling suggestions - how it flows, drapes, and moves
-        3. Color and pattern interactions in real lighting conditions
-        4. Occasion versatility and styling adaptability
-        5. A vivid, imaginative description of wearing this outfit in a real scenario
-
-        Focus on creating an immersive, positive visualization experience. Be descriptive and encouraging.`;
-      } else if (this.comparisonMode && this.productPhoto) {
-        analysisPrompt = `Compare this personal outfit with the selected product item and provide styling advice:
-
-        1. Overall compatibility rating (1-10) between the personal style and product
-        2. How well they coordinate in terms of color, style, and aesthetic
-        3. Specific styling suggestions for wearing the product with similar outfits
-        4. Recommended accessories or modifications to make them work together
-        5. Alternative styling approaches for this product
-
-        Be specific about coordination and provide actionable styling recommendations.`;
-      } else {
-        analysisPrompt = `Analyze this fashion outfit and provide:
-
-        1. Overall rating (1-10) with brief explanation
-        2. 3-4 specific strengths of the outfit
-        3. 2-3 areas for improvement with actionable suggestions
-        4. Style notes about the overall aesthetic
-        5. Your confidence level in this analysis
-
-        Be constructive and focus on actionable advice. The user wants to improve their style.`;
+      // Attempt session init on user action to trigger model download when available
+      if (!this.aiSession && (window.ai && window.ai.languageModel)) {
+        await this.ensureAISessionInitialized();
       }
 
-      const response = await this.aiSession.prompt(analysisPrompt);
+      if (!this.chromeAIAvailable) {
+        // Fallback analysis without full Prompt API
+        await this.performFallbackAnalysis();
+        return;
+      }
+      // Use Chrome AI for analysis
+      let analysisPrompt = this.buildAnalysisPrompt({
+        virtualTryOn: this.virtualTryOnMode,
+        comparison: this.comparisonMode && !!this.productPhoto,
+        pageUrl: null
+      });
+      analysisPrompt = this.buildContextualPrompt(analysisPrompt);
+
+      const response = await this.modelPromptWithImage(analysisPrompt, this.currentPhoto);
 
       // Parse AI response into structured data
       this.analysisResults = this.virtualTryOnMode ?
@@ -272,8 +438,23 @@ class OnPointExtension {
     this.currentPhoto = null; // Clear current photo since this is from page
 
     try {
+      // Prefer server-side image analysis when available
+      if (this.serverAvailable) {
+        const serverResp = await window.OnPointAPI.analyzeImage(imageUrl, 'auto', this.serverModelChoice);
+        const responseText = serverResp?.result || '';
+        this.analysisResults = this.parseAnalysisResponse(responseText);
+        // Store page context
+        this.pageImageUrl = imageUrl;
+        this.pageImageAlt = imageAlt;
+        this.pageUrl = pageUrl;
+        await this.displayResults();
+        // Update UI to show page context
+        this.showPageContext();
+        return;
+      }
+
       if (!this.chromeAIAvailable) {
-        this.showError('Chrome AI is required for page image analysis. Please upload a photo directly.');
+        this.showError('Server unavailable and Chrome AI required for page image analysis. Please upload a photo directly.');
         return;
       }
 
@@ -295,19 +476,15 @@ class OnPointExtension {
       this.pageImageAlt = imageAlt;
       this.pageUrl = pageUrl;
 
-      // Use Chrome AI for analysis with context
-      const contextInfo = pageUrl ? ` from ${new URL(pageUrl).hostname}` : '';
-      const analysisPrompt = `Analyze this fashion outfit${contextInfo} and provide:
+      // Use Chrome AI for analysis with page context
+      let analysisPrompt = this.buildAnalysisPrompt({
+        virtualTryOn: false,
+        comparison: false,
+        pageUrl
+      });
+      analysisPrompt = this.buildContextualPrompt(analysisPrompt);
 
-      1. Overall rating (1-10) with brief explanation
-      2. 3-4 specific strengths of the outfit
-      3. 2-3 areas for improvement with actionable suggestions
-      4. Style notes about the overall aesthetic and how it might fit different body types
-      5. Your confidence level in this analysis
-
-      Consider the context that this appears to be a product or styled outfit${contextInfo}. Be constructive and focus on actionable advice.`;
-
-      const aiResponse = await this.aiSession.prompt(analysisPrompt);
+      const aiResponse = await this.modelPromptWithImage(analysisPrompt, this.pageImageFile);
 
       // Parse AI response into structured data
       this.analysisResults = this.parseAnalysisResponse(aiResponse);
@@ -320,6 +497,95 @@ class OnPointExtension {
     } catch (error) {
       console.error('Page analysis error:', error);
       this.showError('Failed to analyze page outfit. The image may be inaccessible or too large.');
+    }
+  }
+
+  buildAnalysisPrompt({ virtualTryOn = false, comparison = false, pageUrl = null }) {
+    // Enhanced structured prompt for better multimodal analysis
+    const basePrompt = `You are an expert fashion stylist and personal shopper with expertise in color theory, body styling, and current fashion trends. 
+
+ANALYSIS INSTRUCTIONS:
+1. Examine the outfit image carefully, noting colors, patterns, fit, styling, and overall composition
+2. Consider seasonal appropriateness, occasion suitability, and current fashion trends
+3. Evaluate color coordination, proportion balance, and styling techniques
+4. Provide specific, actionable feedback that helps improve the overall look
+
+Please provide your analysis in this exact structured format:
+
+RATING: [number from 1-10 with one decimal place]
+STRENGTHS: 
+- [specific positive aspect with reasoning]
+- [specific positive aspect with reasoning] 
+- [specific positive aspect with reasoning]
+IMPROVEMENTS:
+- [specific actionable suggestion with explanation]
+- [specific actionable suggestion with explanation]
+STYLE_NOTES: [professional styling advice focusing on how to enhance the look, including specific recommendations for accessories, colors, or styling techniques]
+CONFIDENCE: [your confidence level in this analysis from 1-10]
+
+FOCUS AREAS:
+- Color harmony and coordination
+- Fit and proportions
+- Styling and accessories
+- Occasion appropriateness
+- Current fashion trends alignment`;
+
+    if (virtualTryOn) {
+      return basePrompt + `\n\nSPECIAL FOCUS: Virtual Try-On Analysis
+Evaluate how well this outfit would translate to virtual try-on experiences:
+- Clarity of garment details and textures
+- Color accuracy representation
+- Fit visualization potential
+- Online shopping appeal and marketability`;
+    }
+
+    if (comparison) {
+      return basePrompt + `\n\nSPECIAL FOCUS: Comparative Analysis
+This is part of a comparison study. Emphasize:
+- Unique distinguishing features of this outfit
+- Comparative strengths and weaknesses
+- Specific elements that set this look apart
+- Ranking factors for outfit comparison`;
+    }
+
+    if (pageUrl) {
+      const domain = new URL(pageUrl).hostname;
+      return basePrompt + `\n\nCONTEXT: Image Source Analysis
+This outfit image was found on: ${domain}
+Consider the presentation context:
+- Website styling and target audience
+- Brand aesthetic alignment
+- Marketing presentation quality
+- Contextual appropriateness for the platform`;
+    }
+
+    return basePrompt;
+  }
+
+  async modelPromptWithImage(promptText, imageFile) {
+    if (!this.aiSession) throw new Error('AI session not initialized');
+
+    // Try multimodal prompt if supported
+    try {
+      const imageDataUrl = imageFile ? await this.fileToDataURL(imageFile) : null;
+
+      // Attempt object-form prompt with image attachment
+      if (imageDataUrl) {
+        const res = await this.aiSession.prompt({ text: promptText, images: [imageDataUrl] });
+        if (typeof res === 'string') return res;
+        if (res && typeof res === 'object') return res.text || res.output || '';
+      }
+
+      // Fallback to text-only prompt if object-form not supported or no image
+      return await this.aiSession.prompt(promptText);
+    } catch (err) {
+      console.warn('Multimodal prompt failed; falling back to text-only:', err);
+      // Explicitly try text-only to avoid hard failure
+      try {
+        return await this.aiSession.prompt(promptText);
+      } catch (e2) {
+        throw e2;
+      }
     }
   }
 
@@ -345,28 +611,210 @@ class OnPointExtension {
   }
 
   async performFallbackAnalysis() {
-    // Simulate analysis delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Try Lite Mode (writer/summarizer) first
+    const analysisPrompt = `Analyze this fashion outfit and provide:\n- Overall rating (1-10) with brief explanation\n- 3 specific strengths\n- 2 areas for improvement with actionable suggestions\n- One short style note\nKeep it concise and actionable.`;
 
-    // Mock analysis results
-    this.analysisResults = {
-      rating: Math.floor(Math.random() * 3) + 7, // 7-9
-      strengths: [
-        'Good color coordination between pieces',
-        'Appropriate fit for the style',
-        'Well-balanced proportions',
-        'Suitable for the occasion'
-      ],
-      improvements: [
-        'Consider adding a statement accessory',
-        'The silhouette could be more defined',
-        'Try experimenting with texture contrast'
-      ],
-      styleNotes: 'Clean, well-coordinated look with good attention to detail. The overall aesthetic is polished and appropriate.',
-      confidence: 0.8
+    try {
+      if (this.chromeAILiteAvailable) {
+        const liteText = await this.liteGenerate(analysisPrompt);
+        if (liteText && liteText.trim()) {
+          this.analysisResults = this.parseAnalysisResponse(liteText);
+          await this.displayResults();
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Fallback analysis failed:', e);
+    }
+
+    // No mock: surface explicit error to the UI
+    this.analysisResults = null;
+    this.showError('AI unavailable: Lite Mode not available.');
+  }
+
+  async liteGenerate(inputText) {
+    try {
+      if (window.ai?.writer?.write) {
+        const res = await window.ai.writer.write({ input: inputText });
+        if (typeof res === 'string') return res;
+        if (res && typeof res === 'object') return res.output || res.text || '';
+      }
+      if (window.ai?.summarizer?.summarize) {
+        const res = await window.ai.summarizer.summarize({ input: inputText });
+        if (typeof res === 'string') return res;
+        if (res && typeof res === 'object') return res.summary || res.text || '';
+      }
+    } catch (error) {
+      console.warn('Lite generation error:', error);
+    }
+    return null;
+  }
+
+  // Enhanced rewriter function for fashion descriptions
+  async rewriteForStyle(text, style = 'professional') {
+    try {
+      if (window.ai?.rewriter?.rewrite) {
+        const stylePrompts = {
+          professional: 'Rewrite this fashion advice in a professional, expert stylist tone',
+          casual: 'Rewrite this fashion advice in a friendly, casual tone',
+          concise: 'Rewrite this fashion advice to be more concise and actionable',
+          detailed: 'Rewrite this fashion advice with more detailed explanations'
+        };
+
+        const prompt = stylePrompts[style] || stylePrompts.professional;
+        const res = await window.ai.rewriter.rewrite({ 
+          input: text,
+          context: prompt
+        });
+        
+        if (typeof res === 'string') return res;
+        if (res && typeof res === 'object') return res.output || res.text || res.rewritten || text;
+      }
+    } catch (error) {
+      console.warn('Rewriter error:', error);
+    }
+    return text;
+  }
+
+  // Enhanced summarizer function for outfit insights
+  async summarizeOutfitAnalysis(analysisText) {
+    try {
+      if (window.ai?.summarizer?.summarize) {
+        const res = await window.ai.summarizer.summarize({ 
+          input: analysisText,
+          type: 'key-points',
+          format: 'markdown',
+          length: 'short'
+        });
+        
+        if (typeof res === 'string') return res;
+        if (res && typeof res === 'object') return res.summary || res.text || res.output || null;
+      }
+    } catch (error) {
+      console.warn('Summarizer error:', error);
+    }
+    return null;
+  }
+
+  async renderDiagnostics() {
+    const serverEl = document.getElementById('diagServerStatus');
+    const providersEl = document.getElementById('diagProvidersStatus');
+    const promptEl = document.getElementById('diagPromptStatus');
+    const liteEl = document.getElementById('diagLiteStatus');
+    const translatorEl = document.getElementById('diagTranslatorStatus');
+    const langDetectEl = document.getElementById('diagLangDetectStatus');
+    const proofreaderEl = document.getElementById('diagProofreaderStatus');
+    const writerEl = document.getElementById('diagWriterStatus');
+    const rewriterEl = document.getElementById('diagRewriterStatus');
+    const otExtEl = document.getElementById('diagOTExtStatus');
+    const otPageEl = document.getElementById('diagOTPageStatus');
+    const noteEl = document.getElementById('diagNote');
+
+    const setBadge = (el, text, cls) => {
+      if (!el) return;
+      el.textContent = text;
+      el.className = `diag-badge ${cls}`;
     };
 
-    await this.displayResults();
+    // Server status
+    if (serverEl) {
+      setBadge(serverEl, this.serverAvailable ? 'Connected' : 'Unavailable', this.serverAvailable ? 'ok' : 'error');
+    }
+    if (providersEl) {
+      const p = this.serverStatus?.providers;
+      if (p) {
+        const list = [p.gemini ? 'Gemini' : null, p.openai ? 'OpenAI' : null].filter(Boolean).join(', ');
+        setBadge(providersEl, list || 'None', list ? 'ok' : 'error');
+      } else {
+        setBadge(providersEl, 'Unknown', 'warn');
+      }
+    }
+
+    // Prompt Model status
+    if (this.chromeAIAvailable) {
+      setBadge(promptEl, 'Ready', 'ok');
+    } else if (window.ai?.languageModel) {
+      setBadge(promptEl, 'Detected', 'warn');
+    } else {
+      setBadge(promptEl, 'Missing', 'error');
+    }
+
+    // Lite Mode status
+    const liteDetected = !!(window.ai?.writer || window.ai?.summarizer);
+    if (this.chromeAILiteAvailable) {
+      setBadge(liteEl, 'Active', 'ok');
+    } else if (liteDetected) {
+      setBadge(liteEl, 'Detected', 'warn');
+    } else {
+      setBadge(liteEl, 'Unavailable', 'error');
+    }
+
+    // Origin Trial (Extension)
+    if (otExtEl && chrome?.runtime?.getManifest) {
+      const manifest = chrome.runtime.getManifest();
+      const tokens = manifest?.trial_tokens || [];
+      const hasTokens = Array.isArray(tokens) && tokens.some(t => typeof t === 'string' && t.trim());
+      setBadge(otExtEl, hasTokens ? 'Configured' : 'Missing', hasTokens ? 'ok' : 'error');
+    }
+
+    // Origin Trial (Pages)
+    if (otPageEl && chrome?.storage?.local) {
+      try {
+        const { otThirdPartyToken, otThirdPartyTokens } = await chrome.storage.local.get(['otThirdPartyToken', 'otThirdPartyTokens']);
+        const tokens = [];
+        if (typeof otThirdPartyToken === 'string' && otThirdPartyToken.trim()) tokens.push(otThirdPartyToken.trim());
+        if (Array.isArray(otThirdPartyTokens)) {
+          for (const t of otThirdPartyTokens) if (typeof t === 'string' && t.trim()) tokens.push(t.trim());
+        }
+        const hasTokens = tokens.length > 0;
+        setBadge(otPageEl, hasTokens ? 'Saved' : 'Not Set', hasTokens ? 'ok' : 'error');
+      } catch (err) {
+        setBadge(otPageEl, 'Unknown', 'warn');
+      }
+    }
+
+    // Translator
+    if (translatorEl) {
+      const available = !!window.ai?.translator?.translate;
+      setBadge(translatorEl, available ? 'Available' : 'Unavailable', available ? 'ok' : 'error');
+    }
+
+    // Language Detector
+    if (langDetectEl) {
+      const available = !!window.ai?.languageDetector?.detect;
+      setBadge(langDetectEl, available ? 'Available' : 'Unavailable', available ? 'ok' : 'error');
+    }
+
+    // Proofreader
+    if (proofreaderEl) {
+      const available = !!window.ai?.proofreader?.proofread;
+      setBadge(proofreaderEl, available ? 'Available' : 'Unavailable', available ? 'ok' : 'error');
+    }
+
+    // Writer
+    if (writerEl) {
+      const available = !!window.ai?.writer?.write;
+      setBadge(writerEl, available ? 'Available' : 'Unavailable', available ? 'ok' : 'error');
+    }
+
+    // Rewriter
+    if (rewriterEl) {
+      const available = !!window.ai?.rewriter?.rewrite;
+      setBadge(rewriterEl, available ? 'Available' : 'Unavailable', available ? 'ok' : 'error');
+    }
+
+    // Diagnostic note
+    if (noteEl) {
+      let note = '';
+      if (this.chromeAIAvailable) {
+        note = 'Prompt model ready. Full analysis and chat enabled.';
+      } else if (this.chromeAILiteAvailable) {
+        note = 'Lite Mode active. Using on-device writer/summarizer for concise results.';
+      } else {
+        note = 'Chrome AI unavailable. On-device AI disabled; features limited.';
+      }
+      noteEl.textContent = note;
+    }
   }
 
   parseAnalysisResponse(response) {
@@ -483,31 +931,70 @@ class OnPointExtension {
   async displayResults() {
     const results = this.analysisResults;
 
+    // Enhanced: Use Rewriter API to polish the style notes
+    let enhancedStyleNotes = results.styleNotes;
+    try {
+      enhancedStyleNotes = await this.rewriteForStyle(results.styleNotes, 'professional');
+    } catch (error) {
+      console.warn('Style notes enhancement failed:', error);
+    }
+
+    // Enhanced: Use Summarizer API to create a concise summary
+    let outfitSummary = '';
+    try {
+      const fullAnalysis = `Rating: ${results.rating}/10. Strengths: ${results.strengths.join(', ')}. Improvements: ${results.improvements.join(', ')}. Style: ${enhancedStyleNotes}`;
+      outfitSummary = await this.summarizeOutfitAnalysis(fullAnalysis);
+    } catch (error) {
+      console.warn('Summary generation failed:', error);
+    }
+
     // Update rating
     document.getElementById('ratingScore').textContent = `${results.rating.toFixed(1)}/10`;
     document.getElementById('ratingFill').style.width = `${(results.rating / 10) * 100}%`;
     document.getElementById('ratingText').textContent = this.getRatingText(results.rating);
 
-    // Update strengths
+    // Add outfit summary if available
+    const ratingText = document.getElementById('ratingText');
+    if (outfitSummary && ratingText) {
+      const summaryEl = document.createElement('p');
+      summaryEl.className = 'outfit-summary';
+      summaryEl.style.cssText = 'margin-top: 8px; font-size: 12px; color: #666; font-style: italic;';
+      summaryEl.innerHTML = `<strong>AI Summary:</strong> ${outfitSummary}`;
+      ratingText.appendChild(summaryEl);
+    }
+
+    // Update strengths with enhanced descriptions
     const strengthsList = document.getElementById('strengthsList');
     strengthsList.innerHTML = '';
-    results.strengths.forEach(strength => {
+    for (const strength of results.strengths) {
       const li = document.createElement('li');
-      li.textContent = strength;
+      try {
+        // Enhanced: Polish each strength with Rewriter API
+        const enhancedStrength = await this.rewriteForStyle(strength, 'concise');
+        li.textContent = enhancedStrength;
+      } catch (error) {
+        li.textContent = strength;
+      }
       strengthsList.appendChild(li);
-    });
+    }
 
-    // Update improvements
+    // Update improvements with enhanced descriptions
     const improvementsList = document.getElementById('improvementsList');
     improvementsList.innerHTML = '';
-    results.improvements.forEach(improvement => {
+    for (const improvement of results.improvements) {
       const li = document.createElement('li');
-      li.textContent = improvement;
+      try {
+        // Enhanced: Polish each improvement with Rewriter API
+        const enhancedImprovement = await this.rewriteForStyle(improvement, 'detailed');
+        li.textContent = enhancedImprovement;
+      } catch (error) {
+        li.textContent = improvement;
+      }
       improvementsList.appendChild(li);
-    });
+    }
 
-    // Update style notes
-    document.getElementById('styleNotesText').textContent = results.styleNotes;
+    // Update style notes with enhanced version
+    document.getElementById('styleNotesText').textContent = enhancedStyleNotes;
 
     // Show results
     document.getElementById('loadingState').style.display = 'none';
@@ -556,20 +1043,90 @@ class OnPointExtension {
 
     // Get AI response
     try {
+      // Prefer server chat when available
+      if (this.serverAvailable) {
+        const persona = 'luxury';
+        const context = this.analysisResults
+          ? `Outfit rated ${this.analysisResults.rating}/10. Strengths: ${this.analysisResults.strengths.join(', ')}. Improvements: ${this.analysisResults.improvements.join(', ')}.`
+          : 'No prior outfit analysis context.';
+        // Slash commands for server features
+        if (message.startsWith('/design ')) {
+          const designPrompt = message.slice(8).trim();
+          const resp = await window.OnPointAPI.design(designPrompt, 'design', 'auto', this.serverModelChoice);
+          const text = resp?.result || 'No design generated.';
+          this.addChatMessage('assistant', text);
+          return;
+        }
+
+        if (message.startsWith('/palette ')) {
+          const raw = message.slice(9).trim();
+          // Simple parser: "desc | style=modern | season=summer"
+          const parts = raw.split('|').map(p => p.trim());
+          const description = parts[0] || raw;
+          const stylePart = parts.find(p => p.startsWith('style='));
+          const seasonPart = parts.find(p => p.startsWith('season='));
+          const style = stylePart ? stylePart.split('=')[1] : 'modern';
+          const season = seasonPart ? seasonPart.split('=')[1] : 'all-season';
+          const resp = await window.OnPointAPI.colorPalette(description, style, season, 'auto', this.serverModelChoice);
+          const text = resp?.result || 'No palette generated.';
+          this.addChatMessage('assistant', text);
+          return;
+        }
+
+        const prompt = `As a ${persona} fashion stylist, using the context: ${context}\nRespond to: ${message}`;
+        let response = (await window.OnPointAPI.chat(prompt, 'auto', this.serverModelChoice))?.result || '';
+        // Optional polishing and translation to maintain parity with client flow
+        try {
+          response = await this.rewriteForStyle(response, 'professional');
+        } catch (e) {
+          console.warn('Response polishing failed (server):', e);
+        }
+        response = await this.translateIfEnabled(response);
+        this.addChatMessage('assistant', response || 'No response');
+        return;
+      }
+
+      // Ensure Prompt API session is initialized on first chat send
+      if (!this.aiSession && (window.ai && window.ai.languageModel)) {
+        await this.ensureAISessionInitialized();
+      }
+
       let response;
+
+      // Light client-side enhancement: proofread the user's question
+      const cleanMessage = await this.proofreadText(message);
 
       if (this.chromeAIAvailable && this.aiSession) {
         // Build context from current analysis
         const contextPrompt = this.analysisResults
-          ? `Context: The user's outfit was rated ${this.analysisResults.rating}/10. Strengths: ${this.analysisResults.strengths.join(', ')}. Areas for improvement: ${this.analysisResults.improvements.join(', ')}. User question: ${message}`
-          : `User question about fashion styling: ${message}`;
+          ? `Context: The user's outfit was rated ${this.analysisResults.rating}/10. Strengths: ${this.analysisResults.strengths.join(', ')}. Areas for improvement: ${this.analysisResults.improvements.join(', ')}. User question: ${cleanMessage}`
+          : `User question about fashion styling: ${cleanMessage}`;
 
         response = await this.aiSession.prompt(contextPrompt);
       } else {
-        // Fallback responses
-        response = this.getFallbackResponse(message);
+        // Lite Mode chat only; no server fallback
+        let text = null;
+        if (this.chromeAILiteAvailable) {
+          text = await this.liteGenerate(`Provide concise styling advice for: ${cleanMessage}`);
+        }
+
+        if (!text) {
+          this.addChatMessage('assistant', 'AI unavailable: Lite Mode not available.');
+          return;
+        }
+        response = text;
       }
 
+      // Enhanced: Polish the response with Rewriter API for better styling advice
+      try {
+        const polishedResponse = await this.rewriteForStyle(response, 'professional');
+        response = polishedResponse;
+      } catch (error) {
+        console.warn('Response polishing failed:', error);
+      }
+
+      // Optional translation to UI language
+      response = await this.translateIfEnabled(response);
       this.addChatMessage('assistant', response);
 
     } catch (error) {
@@ -578,27 +1135,57 @@ class OnPointExtension {
     }
   }
 
-  getFallbackResponse(message) {
-    const lowerMessage = message.toLowerCase();
-
-    if (lowerMessage.includes('color') || lowerMessage.includes('colour')) {
-      return "For colors, try complementary or analogous color schemes. Neutrals like navy, gray, and beige are versatile bases. Add pops of color through accessories.";
+  async proofreadText(text) {
+    try {
+      if (window.ai?.proofreader?.proofread) {
+        const res = await window.ai.proofreader.proofread({ input: text });
+        if (typeof res === 'string') return res;
+        if (res && typeof res === 'object') return res.text || res.corrected || res.output || text;
+      }
+    } catch (e) {
+      console.warn('Proofreader error:', e);
     }
-
-    if (lowerMessage.includes('accessory') || lowerMessage.includes('accessories')) {
-      return "Accessories can elevate any outfit! Try a statement necklace, watch, or scarf. Keep it balanced - if you're wearing bold clothing, choose subtle accessories.";
-    }
-
-    if (lowerMessage.includes('fit') || lowerMessage.includes('size')) {
-      return "Proper fit is crucial! Clothes should follow your body's natural lines without being too tight or loose. Consider tailoring for the perfect fit.";
-    }
-
-    if (lowerMessage.includes('occasion') || lowerMessage.includes('event')) {
-      return "Consider the occasion's dress code and setting. When in doubt, it's better to be slightly overdressed than underdressed. Comfort is also key!";
-    }
-
-    return "That's a great question! For personalized styling advice, consider the occasion, your body type, and personal style preferences. What specific aspect would you like to focus on?";
+    return text;
   }
+
+  async detectLanguage(text) {
+    try {
+      if (window.ai?.languageDetector?.detect) {
+        const res = await window.ai.languageDetector.detect({ input: text });
+        if (typeof res === 'string') return res;
+        if (res && typeof res === 'object') return res.language || res.code || res.lang || null;
+      }
+    } catch (e) {
+      console.warn('Language detection error:', e);
+    }
+    return null;
+  }
+
+  async translateIfEnabled(text) {
+    try {
+      const toggle = document.getElementById('translateAdviceToggle');
+      if (!toggle || !toggle.checked) return text;
+
+      const target = (navigator.language || 'en').split('-')[0];
+
+      // Avoid translating if already in target language
+      const detected = await this.detectLanguage(text);
+      if (detected && detected.toLowerCase().startsWith(target.toLowerCase())) {
+        return text;
+      }
+
+      if (window.ai?.translator?.translate) {
+        const res = await window.ai.translator.translate({ input: text, targetLanguage: target });
+        if (typeof res === 'string') return res;
+        if (res && typeof res === 'object') return res.text || res.translation || res.output || text;
+      }
+    } catch (e) {
+      console.warn('Translation error:', e);
+    }
+    return text;
+  }
+
+  // Removed mock fallback responses to surface real availability issues
 
   addChatMessage(role, content) {
     this.chatMessages.push({ role, content, timestamp: Date.now() });
@@ -881,18 +1468,305 @@ class OnPointExtension {
     document.getElementById('chromeAIWarning').style.display = 'block';
   }
 
+  // Enhanced batch processing for multiple outfit analysis
+  async batchAnalyzeOutfits(imageFiles, options = {}) {
+    const { 
+      maxConcurrent = 3, 
+      includeComparison = true, 
+      generateSummary = true 
+    } = options;
+    
+    if (!Array.isArray(imageFiles) || imageFiles.length === 0) {
+      throw new Error('No images provided for batch analysis');
+    }
+
+    const results = [];
+    const batches = [];
+    
+    // Split into batches to avoid overwhelming the API
+    for (let i = 0; i < imageFiles.length; i += maxConcurrent) {
+      batches.push(imageFiles.slice(i, i + maxConcurrent));
+    }
+
+    try {
+      // Process each batch sequentially
+      for (const batch of batches) {
+        const batchPromises = batch.map(async (file, index) => {
+          try {
+            const prompt = this.buildAnalysisPrompt({ 
+              comparison: includeComparison && imageFiles.length > 1 
+            });
+            
+            const response = await this.modelPromptWithImage(prompt, file);
+            const analysis = this.parseAnalysisResponse(response);
+            
+            return {
+              index: results.length + index,
+              filename: file.name,
+              analysis,
+              success: true
+            };
+          } catch (error) {
+            console.warn(`Analysis failed for ${file.name}:`, error);
+            return {
+              index: results.length + index,
+              filename: file.name,
+              error: error.message,
+              success: false
+            };
+          }
+        });
+
+        const batchResults = await Promise.all(batchPromises);
+        results.push(...batchResults);
+        
+        // Small delay between batches to be respectful to the API
+        if (batches.indexOf(batch) < batches.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+
+      // Generate comparative summary if requested
+      let summary = null;
+      if (generateSummary && results.filter(r => r.success).length > 1) {
+        summary = await this.generateBatchSummary(results);
+      }
+
+      return {
+        results,
+        summary,
+        totalAnalyzed: results.filter(r => r.success).length,
+        totalFailed: results.filter(r => !r.success).length
+      };
+
+    } catch (error) {
+      console.error('Batch analysis failed:', error);
+      throw error;
+    }
+  }
+
+  async generateBatchSummary(batchResults) {
+    try {
+      const successfulResults = batchResults.filter(r => r.success);
+      if (successfulResults.length < 2) return null;
+
+      // Create summary text for the Summarizer API
+      const summaryText = successfulResults.map(result => {
+        const { analysis } = result;
+        return `Outfit ${result.index + 1} (${result.filename}): Rating ${analysis.rating}/10. Strengths: ${analysis.strengths.join(', ')}. Improvements: ${analysis.improvements.join(', ')}.`;
+      }).join(' ');
+
+      const fullSummary = `Batch Analysis Results: ${summaryText}`;
+      
+      // Use Summarizer API to create concise comparison
+      const summary = await this.summarizeOutfitAnalysis(fullSummary);
+      
+      // Enhanced summary with Rewriter API
+      const enhancedSummary = await this.rewriteForStyle(
+        summary || 'Multiple outfits analyzed with varying ratings and styling recommendations.',
+        'professional'
+      );
+
+      return {
+        conciseSummary: enhancedSummary,
+        topRated: successfulResults.reduce((best, current) => 
+          current.analysis.rating > best.analysis.rating ? current : best
+        ),
+        averageRating: (successfulResults.reduce((sum, r) => sum + r.analysis.rating, 0) / successfulResults.length).toFixed(1),
+        commonStrengths: this.findCommonElements(successfulResults.map(r => r.analysis.strengths)),
+        commonImprovements: this.findCommonElements(successfulResults.map(r => r.analysis.improvements))
+      };
+    } catch (error) {
+      console.warn('Summary generation failed:', error);
+      return null;
+    }
+  }
+
+  findCommonElements(arrays) {
+    if (!arrays.length) return [];
+    
+    const elementCounts = {};
+    const threshold = Math.ceil(arrays.length * 0.4); // 40% threshold for "common"
+    
+    arrays.forEach(array => {
+      const uniqueElements = [...new Set(array.map(item => item.toLowerCase().trim()))];
+      uniqueElements.forEach(element => {
+        elementCounts[element] = (elementCounts[element] || 0) + 1;
+      });
+    });
+    
+    return Object.entries(elementCounts)
+      .filter(([_, count]) => count >= threshold)
+      .map(([element, _]) => element)
+      .slice(0, 3); // Return top 3 common elements
+  }
+
+  async displayBatchResults(batchData) {
+    const { results, summary, totalAnalyzed, totalFailed } = batchData;
+    
+    // Create batch results container
+    const batchContainer = document.createElement('div');
+    batchContainer.className = 'batch-results';
+    batchContainer.innerHTML = `
+      <div class="batch-header">
+        <h3>Batch Analysis Results</h3>
+        <p>Analyzed: ${totalAnalyzed} outfits | Failed: ${totalFailed}</p>
+      </div>
+    `;
+
+    // Add summary if available
+    if (summary) {
+      const summaryDiv = document.createElement('div');
+      summaryDiv.className = 'batch-summary';
+      summaryDiv.innerHTML = `
+        <h4>Analysis Summary</h4>
+        <p><strong>Average Rating:</strong> ${summary.averageRating}/10</p>
+        <p><strong>Top Rated:</strong> ${summary.topRated.filename} (${summary.topRated.analysis.rating}/10)</p>
+        <p><strong>AI Summary:</strong> ${summary.conciseSummary}</p>
+        ${summary.commonStrengths.length ? `<p><strong>Common Strengths:</strong> ${summary.commonStrengths.join(', ')}</p>` : ''}
+        ${summary.commonImprovements.length ? `<p><strong>Common Areas for Improvement:</strong> ${summary.commonImprovements.join(', ')}</p>` : ''}
+      `;
+      batchContainer.appendChild(summaryDiv);
+    }
+
+    // Add individual results
+    const resultsContainer = document.createElement('div');
+    resultsContainer.className = 'batch-individual-results';
+    
+    results.forEach(result => {
+      const resultDiv = document.createElement('div');
+      resultDiv.className = `batch-result-item ${result.success ? 'success' : 'error'}`;
+      
+      if (result.success) {
+        const { analysis } = result;
+        resultDiv.innerHTML = `
+          <h5>${result.filename}</h5>
+          <p><strong>Rating:</strong> ${analysis.rating}/10</p>
+          <p><strong>Strengths:</strong> ${analysis.strengths.slice(0, 2).join(', ')}</p>
+          <p><strong>Key Improvement:</strong> ${analysis.improvements[0] || 'None specified'}</p>
+        `;
+      } else {
+        resultDiv.innerHTML = `
+          <h5>${result.filename}</h5>
+          <p class="error">Analysis failed: ${result.error}</p>
+        `;
+      }
+      
+      resultsContainer.appendChild(resultDiv);
+    });
+    
+    batchContainer.appendChild(resultsContainer);
+    
+    // Replace or append to results area
+    const resultsArea = document.getElementById('results');
+    resultsArea.innerHTML = '';
+    resultsArea.appendChild(batchContainer);
+    resultsArea.style.display = 'block';
+  }
+
   updateUIState() {
     // Update UI based on Chrome AI availability
     if (!this.chromeAIAvailable) {
       const warningText = document.createElement('div');
       warningText.className = 'ai-warning';
-      warningText.innerHTML = `
+      warningText.innerHTML = this.chromeAILiteAvailable
+        ? `
+        <small style="color: #0ea5e9; font-size: 11px;">
+          ℹ️ AI Lite Mode active – some features limited
+        </small>
+      `
+        : `
         <small style="color: #d97706; font-size: 11px;">
           ⚠️ Limited functionality - Chrome AI not available
         </small>
       `;
       document.querySelector('.header').appendChild(warningText);
     }
+  }
+
+  // Enhanced context awareness with user preferences and historical data
+  async loadUserContext() {
+    try {
+      const contextData = await chrome.storage.local.get([
+        'userPreferences',
+        'analysisHistory',
+        'styleProfile',
+        'seasonalPreferences'
+      ]);
+
+      this.userContext = {
+        preferences: contextData.userPreferences || this.getDefaultPreferences(),
+        history: contextData.analysisHistory || [],
+        styleProfile: contextData.styleProfile || null,
+        seasonalPrefs: contextData.seasonalPreferences || {}
+      };
+
+      return this.userContext;
+    } catch (error) {
+      console.warn('Failed to load user context:', error);
+      this.userContext = {
+        preferences: this.getDefaultPreferences(),
+        history: [],
+        styleProfile: null,
+        seasonalPrefs: {}
+      };
+      return this.userContext;
+    }
+  }
+
+  getDefaultPreferences() {
+    return {
+      preferredStyles: ['casual', 'professional'],
+      bodyType: null,
+      colorPreferences: [],
+      budgetRange: 'medium',
+      occasionTypes: ['work', 'casual', 'social'],
+      sustainabilityFocus: false,
+      brandPreferences: [],
+      avoidColors: [],
+      fitPreferences: 'regular'
+    };
+  }
+
+  buildContextualPrompt(basePrompt) {
+    if (!this.userContext) return basePrompt;
+
+    let contextualAdditions = [];
+
+    // Add user preferences context
+    if (this.userContext.preferences) {
+      const prefs = this.userContext.preferences;
+      
+      if (prefs.preferredStyles.length > 0) {
+        contextualAdditions.push(`User prefers ${prefs.preferredStyles.join(' and ')} styles.`);
+      }
+      
+      if (prefs.bodyType) {
+        contextualAdditions.push(`Consider styling for ${prefs.bodyType} body type.`);
+      }
+      
+      if (prefs.colorPreferences.length > 0) {
+        contextualAdditions.push(`User gravitates toward ${prefs.colorPreferences.join(', ')} colors.`);
+      }
+    }
+
+    // Add seasonal context
+    const currentSeason = this.getCurrentSeason();
+    contextualAdditions.push(`Current season: ${currentSeason}. Consider seasonal appropriateness.`);
+
+    if (contextualAdditions.length > 0) {
+      return basePrompt + `\n\nUSER CONTEXT:\n${contextualAdditions.join(' ')}\n\nUse this context to provide more personalized styling advice.`;
+    }
+
+    return basePrompt;
+  }
+
+  getCurrentSeason() {
+    const month = new Date().getMonth();
+    if (month >= 2 && month <= 4) return 'spring';
+    if (month >= 5 && month <= 7) return 'summer';
+    if (month >= 8 && month <= 10) return 'fall';
+    return 'winter';
   }
 
   updateUIMode() {

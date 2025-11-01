@@ -5,4 +5,6 @@ export * from './providers/openai-provider';
 export * from './providers/server-provider';
 export * from './hooks';
 export * from './context/AIContext';
+export * from './services/personality-service';
+export * from './utils/cache';
 export { default as AIClientManager } from './ai-client';

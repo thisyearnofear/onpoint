@@ -262,13 +262,26 @@ class OnPointBackground {
   }
 
   showNotification(title, message) {
+    // Try a safe icon and catch failures to avoid unhandled promise errors
+    const DEFAULT_ICON_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABWJ6YFAAAACXBIWXMAAAsSAAALEgHS3X78AAAAGHRFWHRDcmVhdGlvbiBUaW1lAAAyMDI1LTEwLTAxVDAwOjAwOjAwWfD4lAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjM3K8+v2wAAABp0RVh0VGl0bGUAAE1pbmltYWwgNDh4NDggcG5nIGljb24gQWJjZGVmghwAAABQSURBVGje7cExAQAAAMKg9U9tCF8gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB8AtmBAAGvJ0nWAAAAAElFTkSuQmCC';
     if (chrome.notifications) {
-      chrome.notifications.create({
+      const options = {
         type: 'basic',
-        iconUrl: 'icons/icon-48.png',
-        title: title,
-        message: message
-      });
+        iconUrl: DEFAULT_ICON_DATA_URL,
+        title,
+        message,
+      };
+      try {
+        const maybePromise = chrome.notifications.create(options);
+        // Handle both callback-based and promise-based APIs
+        if (maybePromise && typeof maybePromise.then === 'function') {
+          maybePromise.catch((err) => {
+            console.warn('Notification failed to show:', err?.message || err);
+          });
+        }
+      } catch (err) {
+        console.warn('Notification create threw:', err?.message || err);
+      }
     }
   }
 

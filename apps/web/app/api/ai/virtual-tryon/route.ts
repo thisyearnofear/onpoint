@@ -1,19 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import OpenAI from 'openai';
-
-// Initialize AI clients with server-side environment variables
-const gemini = process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_gemini_api_key_here'
-    ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
-const openai = process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your_openai_api_key_here'
-    ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+import { generateText } from '../_utils/providers';
+import { corsHeaders } from '../_utils/http';
 
 export async function POST(request: NextRequest) {
     try {
-        const { type, data, provider = 'auto' } = await request.json();
+        const { type, data, provider = 'auto', model } = await request.json();
+        const origin = request.headers.get('origin') || '*';
 
         if (!type) {
-            return NextResponse.json({ error: 'Analysis type is required' }, { status: 400 });
+            return NextResponse.json({ error: 'Analysis type is required' }, { status: 400, headers: corsHeaders(origin) });
         }
 
         let result: string | undefined;
@@ -60,43 +55,26 @@ Focus on practical, achievable improvements.`;
             enhancedPrompt = `As a fashion consultant, provide analysis for: ${type}`;
         }
 
-        // Use OpenAI for analytical tasks (preferred for fit analysis)
-        if (provider === 'openai' || (provider === 'auto' && openai)) {
-            if (!openai) {
-                return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 });
-            }
-
-            const response = await openai.chat.completions.create({
-                model: 'gpt-3.5-turbo',
-                messages: [{ role: 'user', content: enhancedPrompt }],
-                max_tokens: 800,
-                temperature: 0.7,
-            });
-            const openaiResult = response.choices[0]?.message?.content;
-            result = openaiResult === null ? undefined : openaiResult;
-        } else if (provider === 'gemini' && gemini) {
-            if (!gemini) {
-                return NextResponse.json({ error: 'Gemini API key not configured' }, { status: 500 });
-            }
-
-            const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
-            const response = await model.generateContent(enhancedPrompt);
-            const textResult = response.response.text();
-            result = textResult === null ? undefined : textResult;
-        } else {
-            return NextResponse.json({
-                error: 'No AI provider available. Please configure GEMINI_API_KEY or OPENAI_API_KEY in your environment variables.'
-            }, { status: 500 });
-        }
+        const modelChoice = model as ('pro' | 'flash' | 'flash-lite' | undefined);
+        const { text, usedProvider } = await generateText({
+            prompt: enhancedPrompt,
+            provider,
+            preferGemini: false,
+            preferOpenAI: true,
+            geminiModel: modelChoice ? (await import('../_utils/providers')).resolveGeminiModel(modelChoice) : 'gemini-2.5-flash',
+            openaiModel: modelChoice ? (await import('../_utils/providers')).resolveOpenAIModel(modelChoice) : 'gpt-3.5-turbo',
+            openaiOptions: { max_tokens: 800, temperature: 0.7 },
+        });
+        result = text;
 
         // Parse the response based on type
         const analysisData = parseVirtualTryOnResponse(result || '', type, data);
 
         return NextResponse.json({
             ...analysisData,
-            provider: provider === 'auto' ? (openai ? 'openai' : 'gemini') : provider,
+            provider: provider === 'auto' ? usedProvider : provider,
             type
-        });
+        }, { headers: corsHeaders(origin) });
     } catch (error) {
         console.error('AI virtual try-on error:', error);
         return NextResponse.json({ error: 'Failed to analyze virtual try-on' }, { status: 500 });
@@ -245,4 +223,9 @@ function extractOutfitRecommendations(text: string): Array<{ item: string; reaso
         { item: 'Add complementary accessories', reason: 'Completes the outfit', priority: 2 },
         { item: 'Pay attention to fit and proportions', reason: 'Ensures flattering silhouette', priority: 3 }
     ];
+}
+
+export async function OPTIONS(request: NextRequest) {
+    const origin = request.headers.get('origin') || '*';
+    return new NextResponse(null, { status: 204, headers: corsHeaders(origin) });
 }

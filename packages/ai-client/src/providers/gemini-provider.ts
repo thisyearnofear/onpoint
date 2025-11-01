@@ -8,7 +8,7 @@ export class GeminiProvider implements AIProvider {
 
   constructor() {
     this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+    this.model = this.genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
   }
 
   async analyzeOutfit(input: AnalysisInput): Promise<CritiqueResponse> {

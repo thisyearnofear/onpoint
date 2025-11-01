@@ -29,8 +29,17 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## Origin Trial (Chrome Built‑in AI)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+If you plan to use Chrome’s Built‑in AI APIs from the web app (not the extension), you can enable an Origin Trial token via an HTTP header. Support is already wired in `next.config.js`:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Obtain an Origin Trial token for the feature from Chrome’s Origin Trials.
+2. Create `.env.local` at the project root and set:
+   
+   ```env
+   ORIGIN_TRIAL_TOKEN=your_token_here
+   ```
+3. Start the dev server. The app will send `Origin-Trial: <token>` for all routes.
+4. Verify in DevTools → Network tab → any request → Headers.
+
+Note: The Chrome extension does not require Origin Trials; it accesses Built‑in AI directly within the extension context when available on the device.

@@ -145,6 +145,86 @@
                 </button>
             </div>
 
+            <!-- Diagnostics Panel -->
+            <section class="diagnostics-card" id="diagnosticsCard">
+                <div class="diagnostics-header" id="diagnosticsToggle">
+                    <div class="diag-title">
+                        <svg class="diag-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 6v6l4 2"/>
+                        </svg>
+                        <h3>Diagnostics</h3>
+                    </div>
+                    <button class="diag-refresh" id="diagnosticsRefresh">Recheck</button>
+                </div>
+                <div class="diagnostics-body" id="diagnosticsBody">
+                    <div class="diag-row">
+                        <span class="diag-label">Server API</span>
+                        <span class="diag-badge" id="diagServerStatus">Unknown</span>
+                    </div>
+                    <div class="diag-row">
+                        <span class="diag-label">Server Providers</span>
+                        <span class="diag-badge" id="diagProvidersStatus">Unknown</span>
+                    </div>
+                    <div class="diag-row">
+                        <span class="diag-label">Server Model</span>
+                        <span>
+                            <select id="serverModelSelect" style="font-size:12px; padding:4px 6px; border:1px solid #d1d5db; border-radius:4px;">
+                                <option value="flash">Flash (fast)</option>
+                                <option value="pro">Pro (detailed)</option>
+                                <option value="flash-lite">Flash Lite (cheapest)</option>
+                            </select>
+                        </span>
+                    </div>
+                    <div class="diag-row">
+                        <span class="diag-label">Prompt Model</span>
+                        <span class="diag-badge" id="diagPromptStatus">Unknown</span>
+                    </div>
+                    <div class="diag-row">
+                        <span class="diag-label">Lite Mode</span>
+                        <span class="diag-badge" id="diagLiteStatus">Unknown</span>
+                    </div>
+                    <div class="diag-row">
+                        <span class="diag-label">Origin Trial (Extension)</span>
+                        <span class="diag-badge" id="diagOTExtStatus">Unknown</span>
+                    </div>
+                    <div class="diag-row">
+                        <span class="diag-label">Origin Trial (Pages)</span>
+                        <span class="diag-badge" id="diagOTPageStatus">Unknown</span>
+                    </div>
+                    <div class="diag-row">
+                        <span class="diag-label">Translator</span>
+                        <span class="diag-badge" id="diagTranslatorStatus">Unknown</span>
+                    </div>
+                    <div class="diag-row">
+                        <span class="diag-label">Language Detector</span>
+                        <span class="diag-badge" id="diagLangDetectStatus">Unknown</span>
+                    </div>
+                    <div class="diag-row">
+                        <span class="diag-label">Proofreader</span>
+                        <span class="diag-badge" id="diagProofreaderStatus">Unknown</span>
+                    </div>
+                    <div class="diag-row">
+                        <span class="diag-label">Writer</span>
+                        <span class="diag-badge" id="diagWriterStatus">Unknown</span>
+                    </div>
+                    <div class="diag-row">
+                        <span class="diag-label">Rewriter</span>
+                        <span class="diag-badge" id="diagRewriterStatus">Unknown</span>
+                    </div>
+                    <div style="margin-top: 8px; padding: 8px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px;">
+                        <div style="font-size: 12px; color: #374151; margin-bottom: 6px;">Page Origin Trial token (third-party):</div>
+                        <div style="display:flex; gap:8px;">
+                            <input id="otTokenInput" type="text" placeholder="Paste token for pages (third-party)" style="flex:1; font-size:12px; padding:6px 8px; border:1px solid #d1d5db; border-radius:4px;" />
+                            <button id="saveOTTokenBtn" class="diag-refresh" style="font-size:12px;">Save Token</button>
+                        </div>
+                        <div style="font-size: 11px; color: #6b7280; margin-top: 6px;">Saved token is injected by the content script into pages you visit.</div>
+                    </div>
+                    <div class="diag-note" id="diagNote"></div>
+                </div>
+            </section>
+
+
             <!-- Styling Advice Modal -->
             <div class="modal-overlay" id="modalOverlay" style="display: none;">
                 <div class="modal">
@@ -168,6 +248,13 @@
                                         <polygon points="22,2 15,22 11,13 2,9 22,2"></polygon>
                                     </svg>
                                 </button>
+                            </div>
+                            <div class="chat-options" style="padding: 0 16px 12px 16px;">
+                                <label class="toggle-label" style="font-size: 12px;">
+                                    <input type="checkbox" id="translateAdviceToggle" />
+                                    <span class="toggle-slider"></span>
+                                    Translate advice to UI language
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -204,6 +291,7 @@
         </footer>
     </div>
 
+    <script src="scripts/apiClient.js"></script>
     <script src="popup.js"></script>
 </body>
 </html>

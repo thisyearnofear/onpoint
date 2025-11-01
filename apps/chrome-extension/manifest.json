@@ -5,29 +5,27 @@
   "description": "AI-powered fashion critique and styling using Chrome Built-in AI APIs",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "contextMenus",
+    "notifications",
+    "alarms",
+    "tabs"
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "OnPoint Fashion AI",
-    "default_icon": {
-      "16": "icons/icon-16.png",
-      "32": "icons/icon-32.png",
-      "48": "icons/icon-48.png",
-      "128": "icons/icon-128.png"
-    }
-  },
-  "icons": {
-    "16": "icons/icon-16.png",
-    "32": "icons/icon-32.png",
-    "48": "icons/icon-48.png",
-    "128": "icons/icon-128.png"
+    "default_title": "OnPoint Fashion AI"
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "css": ["content.css"]
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ]
     }
   ],
   "background": {
@@ -35,14 +33,27 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["popup.html", "styles/*", "scripts/*"],
-      "matches": ["<all_urls>"]
+      "resources": [
+        "popup.html",
+        "styles/*",
+        "scripts/*"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ],
   "host_permissions": [
+    "http://localhost:3000/*",
     "https://*/*"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
-  }
+  },
+  "trial_tokens": [
+    "AicaWZuGPvw/ZJrQqEGiQvJ1QdNXY+DpijmVhFk+ReHuZ4fLBgBXJY/+/pnF4ZNVyTsM8G4iGI/2kZIS0XiOqQwAAABseyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vbG1nZW1wYWdwaHBnbWFubmpsZ2ZkaHBoY2hhaGNvZmQiLCJmZWF0dXJlIjoiQUlXcml0ZXJBUEkiLCJleHBpcnkiOjE3NzY3Mjk2MDB9",
+    "Ar263DJIf6eDFoP30fPsCsK89eswFvaFnGPtEDju5409c/joKHEoF4ni1Gg02L09u2WJgJN1wZo+fdBwKKlOnwkAAABueyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vbG1nZW1wYWdwaHBnbWFubmpsZ2ZkaHBoY2hhaGNvZmQiLCJmZWF0dXJlIjoiQUlSZXdyaXRlckFQSSIsImV4cGlyeSI6MTc3NjcyOTYwMH0=",
+    "An+x+1bp12yiI4OIzZQ82eGGtjYl6j+oNzseQGlctZgbFdLTIgN1pqxf1j2DhGqMD3iMKqPf2HHjieUdLCUHCwgAAABxeyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vbG1nZW1wYWdwaHBnbWFubmpsZ2ZkaHBoY2hhaGNvZmQiLCJmZWF0dXJlIjoiQUlQcm9vZnJlYWRlckFQSSIsImV4cGlyeSI6MTc3OTE0ODgwMH0=",
+    "AjxTaFRDkjryo9isuZRtnx2/0h10SluZWG/UrJ0GVRzKuPFq1FTJLFrZZfmM4PnQ9JiOTRzO1jMybc7dbInqHwUAAAB7eyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vbG1nZW1wYWdwaHBnbWFubmpsZ2ZkaHBoY2hhaGNvZmQiLCJmZWF0dXJlIjoiQUlQcm9tcHRBUElNdWx0aW1vZGFsSW5wdXQiLCJleHBpcnkiOjE3NzQzMTA0MDB9"
+  ]
 }

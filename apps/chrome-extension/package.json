@@ -18,7 +18,8 @@
     "chrome-built-in-ai"
   ],
   "scripts": {
-    "build": "npm run copy-assets && npm run validate",
+    "build": "npm run inject-ot && npm run copy-assets && npm run validate",
+    "inject-ot": "node scripts/inject-origin-trials.mjs",
     "validate": "web-ext lint --source-dir=. --warnings-as-errors",
     "package": "web-ext build --source-dir=. --artifacts-dir=dist",
     "copy-assets": "mkdir -p icons && echo 'Icons copied'",
