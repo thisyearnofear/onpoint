@@ -61,10 +61,10 @@ const CritiqueModeCard = ({
         color: "text-pink-600",
         bg: "bg-pink-50"
       },
-      objective: {
+      real: {
         icon: Scale,
-        label: "⚖️ Objective Mode",
-        description: "Professional analysis",
+        label: "💯 Real Mode",
+        description: "Honest balanced feedback",
         color: "text-blue-600",
         bg: "bg-blue-50"
       }
@@ -458,7 +458,7 @@ export function VirtualTryOn() {
   const [tryOnResult, setTryOnResult] = useState<any | null>(null);
   const [showPersonalitySelection, setShowPersonalitySelection] = useState(false);
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
-  const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('objective');
+  const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('real');
   const [showCritiqueModeSelection, setShowCritiqueModeSelection] = useState(false);
   const [critiqueResult, setCritiqueResult] = useState<{ persona: StylistPersona; critique: string; mode: CritiqueMode } | null>(null);
 
@@ -596,7 +596,7 @@ export function VirtualTryOn() {
     setShowPersonalitySelection(false);
     setShowCritiqueModeSelection(false);
     setSelectedPersona(null);
-    setSelectedCritiqueMode('objective');
+    setSelectedCritiqueMode('real');
     setCritiqueResult(null);
     clearAnalysis();
     clearError();
@@ -792,8 +792,8 @@ export function VirtualTryOn() {
                           disabled={loading}
                         />
                         <CritiqueModeCard
-                          mode="objective"
-                          isSelected={selectedCritiqueMode === "objective"}
+                          mode="real"
+                          isSelected={selectedCritiqueMode === "real"}
                           onSelect={setSelectedCritiqueMode}
                           disabled={loading}
                         />
@@ -1144,7 +1144,7 @@ const CritiqueResult = ({
     const configs = {
       roast: { icon: Flame, label: "Roast Mode", color: "text-red-600", bg: "bg-red-50", border: "border-red-200" },
       flatter: { icon: Heart, label: "Flatter Mode", color: "text-pink-600", bg: "bg-pink-50", border: "border-pink-200" },
-      objective: { icon: Scale, label: "Objective Mode", color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200" }
+      real: { icon: Scale, label: "Real Mode", color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200" }
     };
     return configs[mode];
   };

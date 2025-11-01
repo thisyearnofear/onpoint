@@ -1,6 +1,6 @@
 import { StylistPersona } from '../providers/base-provider';
 
-export type CritiqueMode = 'roast' | 'flatter' | 'objective';
+export type CritiqueMode = 'roast' | 'flatter' | 'real';
 
 interface PersonalityConfig {
     model: string;
@@ -42,15 +42,15 @@ Focus on what's working well, how great they look, and gentle suggestions for en
 Make them feel like a fashion icon while still providing helpful advice.`,
             temperatureAdjustment: -0.1
         },
-        objective: {
-            name: '⚖️ Objective Mode',
-            description: 'Balanced, professional fashion analysis',
+        real: {
+            name: '💯 Real Mode',
+            description: 'Honest, balanced fashion feedback',
             icon: 'Scale',
             color: 'text-blue-600',
             promptModifier: `
-OBJECTIVE MODE: Provide a balanced, professional fashion analysis. Be honest but constructive, pointing out both strengths and areas for improvement.
-Use fashion industry terminology and focus on technical aspects like fit, proportion, color theory, and styling principles.
-Be informative and educational while remaining neutral and professional.`,
+REAL MODE: Give honest, balanced fashion feedback. Be straightforward and genuine - tell it like it is without being mean or overly nice.
+Point out both what's working and what could be improved. Focus on practical advice that's actually helpful.
+Be authentic and relatable, like advice from a trusted friend who knows fashion.`,
             temperatureAdjustment: 0
         }
     };
@@ -115,7 +115,7 @@ Be informative and educational while remaining neutral and professional.`,
     async generateCritique(
         imageBase64: string,
         persona: StylistPersona,
-        mode: CritiqueMode = 'objective'
+        mode: CritiqueMode = 'real'
     ): Promise<string> {
         const personaConfig = this.personas[persona];
         const modeConfig = this.critiqueModes[mode];
