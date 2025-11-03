@@ -60,6 +60,25 @@ const celo = {
   testnet: false,
 } as const;
 
+const celoAlfajores = {
+  id: 44787,
+  name: 'Celo Alfajores',
+  nativeCurrency: { name: 'Celo', symbol: 'CELO', decimals: 18 },
+  rpcUrls: {
+    default: { http: ['https://alfajores-forno.celo-testnet.org'] },
+  },
+  blockExplorers: {
+    default: { name: 'CeloScan', url: 'https://alfajores.celoscan.io' },
+  },
+  contracts: {
+    multicall3: {
+      address: '0xcA11bde05977b3631167028862bE2a173976CA11',
+      blockCreated: 14569024,
+    },
+  },
+  testnet: true,
+} as const;
+
 // Note: ZetaChain may need to be added via a custom RPC if not available
 const zetaChain = {
   id: 7000,
@@ -81,25 +100,26 @@ const zetaChain = {
 } as const;
 
 // Custom storage that works on both client and server
-const customStorage = typeof window !== 'undefined' 
+const customStorage = typeof window !== 'undefined'
   ? undefined // Use default storage on client
   : createStorage({
-      storage: {
-        getItem: () => null,
-        setItem: () => {},
-        removeItem: () => {},
-      },
-    });
+    storage: {
+      getItem: () => null,
+      setItem: () => { },
+      removeItem: () => { },
+    },
+  });
 
 export const config = getDefaultConfig({
   appName: 'BeOnPoint',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
-  chains: [mainnet, base, arbitrum, celo, zetaChain, sepolia],
+  chains: [mainnet, base, arbitrum, celo, celoAlfajores, zetaChain, sepolia],
   transports: {
     [mainnet.id]: http(),
     [base.id]: http(),
     [arbitrum.id]: http(),
     [celo.id]: http(),
+    [celoAlfajores.id]: http(process.env.CELO_ALFAJORES_RPC_URL),
     [zetaChain.id]: http(),
     [sepolia.id]: http(),
   },

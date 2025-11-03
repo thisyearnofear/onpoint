@@ -13,7 +13,6 @@ import {
   User,
   Scan,
   CheckCircle,
-  X,
   Shirt,
   MessageCircle,
   Crown,
@@ -32,7 +31,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useVirtualTryOn } from "@repo/ai-client";
 import { useReplicateVirtualTryOn } from "@repo/ai-client";
 import type { VirtualTryOnAnalysis, StylistPersona, CritiqueMode } from "@repo/ai-client";
-import { personalityService } from "@repo/ai-client";
+
 import { useSocialActivities } from "../lib/hooks/useMemoryAPI";
 import { useMiniApp } from "@neynar/react";
 import { SocialUtils } from "../lib/utils/social";
@@ -493,13 +492,13 @@ export function VirtualTryOn() {
 
   const [fashionAnalysis, setFashionAnalysis] = useState<any | null>(null);
   const [showAnalysis, setShowAnalysis] = useState(false);
-  const [showCamera, setShowCamera] = useState(false);
   const [tryOnResult, setTryOnResult] = useState<any | null>(null);
   const [showPersonalitySelection, setShowPersonalitySelection] = useState(false);
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
   const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('real');
   const [showCritiqueModeSelection, setShowCritiqueModeSelection] = useState(false);
   const [critiqueResult, setCritiqueResult] = useState<{ persona: StylistPersona; critique: string; mode: CritiqueMode } | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
 
   const {
     analysis,
@@ -522,8 +521,7 @@ export function VirtualTryOn() {
     clearError: clearReplicateError,
   } = useReplicateVirtualTryOn();
 
-  const { recordTryOn, recordReaction } = useSocialActivities();
-  const { context } = useMiniApp();
+  const { recordTryOn } = useSocialActivities();
 
 
 
@@ -563,7 +561,7 @@ export function VirtualTryOn() {
         });
 
         if (response.ok) {
-          const analysisData = await response.json();
+          await response.json();
           // The analysis will be set through the API response
         }
       } catch (error) {
@@ -602,35 +600,7 @@ export function VirtualTryOn() {
     setShowPersonalitySelection(false);
   }, []);
 
-  // New function for personality critique
-  const handlePersonalityCritique = useCallback(async (persona: StylistPersona) => {
-    if (!selectedPhoto) return;
 
-    try {
-      // Convert file to base64 for API
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const imageBase64 = e.target?.result as string;
-        try {
-          const critique = await personalityService.generateCritique(imageBase64, persona, selectedCritiqueMode);
-          if (critique) {
-            setCritiqueResult({ persona, critique, mode: selectedCritiqueMode });
-          }
-        } catch (error) {
-          console.error("Personality critique error:", error);
-        }
-      };
-      reader.readAsDataURL(selectedPhoto);
-    } catch (err) {
-      console.error("Personality critique error:", err);
-    }
-  }, [selectedPhoto]);
-
-  const handleGetCritique = useCallback(() => {
-    if (selectedPersona) {
-      handlePersonalityCritique(selectedPersona as StylistPersona);
-    }
-  }, [selectedPersona, handlePersonalityCritique]);
 
   const handleReset = useCallback(() => {
     setSelectedPhoto(null);

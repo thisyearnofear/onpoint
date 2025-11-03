@@ -1,5 +1,26 @@
 // Shared types for the OnPoint application
 
+// Import specific types from memory module
+import {
+  EnhancedUserProfile,
+  SocialReaction,
+  MemoryIdentitySource,
+  MemorySocialStats,
+  MemoryIdentity,
+  MemoryIdentityGraph,
+  MemoryUser,
+  SocialActivity
+} from './memory';
+
+// Import MemoryAPIClient and MemoryUtils from memory-client module
+import { MemoryAPIClient, MemoryUtils } from './memory-client';
+
+// Re-export all types from memory module
+export * from './memory';
+
+// Re-export MemoryAPIClient and MemoryUtils
+export { MemoryAPIClient, MemoryUtils } from './memory-client';
+
 export interface Item {
   id: string;
   name: string;
@@ -31,7 +52,3 @@ export interface Critique {
   // Enhanced with social identity
   critic?: EnhancedUserProfile;
 }
-
-// Re-export Memory API types
-export * from './memory';
-export * from './memory-client';

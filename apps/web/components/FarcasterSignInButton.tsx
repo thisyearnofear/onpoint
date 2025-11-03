@@ -37,7 +37,7 @@ export function FarcasterSignInButton() {
         });
       }
       setIsSignedIn(true);
-    } catch (e) {
+    } catch {
       // Ignore sign-in errors
     }
   };

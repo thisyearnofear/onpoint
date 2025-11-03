@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       },
     };
     return NextResponse.json(status, { headers: corsHeaders(origin) });
-  } catch (e) {
+  } catch {
     return NextResponse.json({ ok: false, error: 'Status check failed' }, { status: 500, headers: corsHeaders(origin) });
   }
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { corsHeaders } from '../_utils/http';
-import { generateVision, resolveGeminiModel } from '../_utils/providers';
+import { generateVision } from '../_utils/providers';
 
 export async function POST(request: NextRequest) {
   try {

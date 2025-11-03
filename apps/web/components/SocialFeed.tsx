@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@repo/ui/card';
+import { Card, CardContent } from '@repo/ui/card';
 import { Button } from '@repo/ui/button';
 import { Input } from '@repo/ui/input';
 import { Badge } from '@repo/ui/badge';
@@ -14,9 +14,7 @@ import {
     Palette,
     Clock,
     TrendingUp,
-    Search,
-    Users,
-    Plus
+    Search
 } from 'lucide-react';
 import { FarcasterUser } from './FarcasterUser';
 import { useMemoryAPI, useSocialActivities } from '../lib/hooks/useMemoryAPI';

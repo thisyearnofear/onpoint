@@ -1,11 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { useAccount } from 'wagmi';
 import { useMiniApp } from '@neynar/react';
 import {
     MemoryAPIClient,
-    MemoryUtils,
-    MemoryIdentity,
-    EnhancedUserProfile,
     SocialActivity
 } from '@onpoint/shared-types';
 

@@ -39,7 +39,7 @@ export function FarcasterUser({ fid, compact = false }: FarcasterUserProps) {
                     <span className="text-sm font-medium">
                         {user.displayName || user.username || `User ${userFid}`}
                     </span>
-                    {user.verifications?.length > 0 && (
+                    {'verifications' in user && Array.isArray(user.verifications) && user.verifications.length > 0 && (
                         <Verified className="w-3 h-3 text-blue-500" />
                     )}
                 </div>
@@ -60,14 +60,14 @@ export function FarcasterUser({ fid, compact = false }: FarcasterUserProps) {
                     <h3 className="font-semibold">
                         {user.displayName || user.username || `User ${userFid}`}
                     </h3>
-                    {user.verifications?.length > 0 && (
+                    {'verifications' in user && Array.isArray(user.verifications) && user.verifications.length > 0 && (
                         <Verified className="w-4 h-4 text-blue-500" />
                     )}
                 </div>
                 <p className="text-sm text-muted-foreground">@{user.username}</p>
                 <div className="flex items-center space-x-4 mt-2 text-sm text-muted-foreground">
-                    <span>{user.followerCount || 0} followers</span>
-                    <span>{user.followingCount || 0} following</span>
+                    <span>{(user as any).followerCount || 0} followers</span>
+                    <span>{(user as any).followingCount || 0} following</span>
                 </div>
                 <Badge variant="secondary" className="mt-2">
                     <span className="mr-1">🟣</span>

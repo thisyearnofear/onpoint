@@ -6,7 +6,7 @@ export async function POST(req: Request) {
     // TODO: handle Farcaster/Neynar notification payloads
     console.log('Webhook received', body);
     return NextResponse.json({ ok: true }, { status: 200 });
-  } catch (e) {
+  } catch {
     return NextResponse.json({ ok: false, error: 'Invalid payload' }, { status: 400 });
   }
 }

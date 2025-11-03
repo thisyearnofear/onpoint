@@ -75,6 +75,18 @@ Detailed documentation has been consolidated into four main files:
 3. **[AI_INTEGRATION.md](docs/AI_INTEGRATION.md)** - AI provider integration and implementation strategies
 4. **[ROADMAP.md](docs/ROADMAP.md)** - Development timeline, milestones, and strategic planning
 
+## 📖 Project Overview
+
+OnPoint is a revolutionary multiplatform ecosystem for personalized fashion discovery and digital ownership. The platform combines cutting-edge AI-powered design generation, AR virtual try-on experiences, and blockchain-based asset ownership to create a comprehensive fashion technology solution.
+
+### Core Value Propositions
+
+- **AI-Powered Fashion Discovery**: Multimodal AI generates personalized designs from images and text prompts
+- **Virtual Try-On**: AR/XR technology enables realistic outfit visualization
+- **Digital Ownership**: Blockchain-based NFT system for fashion items and designs
+- **Stylist Ecosystem**: Connect users with fashion professionals through programmable payments
+- **Cross-Platform Sync**: Seamless experience across web, mobile, and mini-app environments
+
 ## 🛠️ Development
 
 ```bash

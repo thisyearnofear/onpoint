@@ -8,7 +8,8 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/components/*": ["components/*"]
+      "@/components/*": ["components/*"],
+      "@onpoint/shared-types": ["../../packages/shared-types/src/index.ts"]
     }
   },
   "include": [

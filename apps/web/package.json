@@ -11,10 +11,15 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "@dnd-kit/core": "6.3.1",
+    "@dnd-kit/sortable": "10.0.0",
+    "@dnd-kit/utilities": "3.2.2",
     "@farcaster/miniapp-sdk": "^0.2.1",
     "@farcaster/miniapp-wagmi-connector": "^1.1.0",
     "@google/generative-ai": "0.24.1",
     "@neynar/react": "1.2.20",
+    "@onpoint/shared-types": "workspace:*",
+    "@pigment-css/react": "0.0.30",
     "@rainbow-me/rainbowkit": "^2.2.9",
     "@repo/ai-client": "workspace:*",
     "@repo/shared-ui": "workspace:*",
@@ -27,6 +32,7 @@
     "clsx": "2.1.1",
     "critters": "0.0.25",
     "framer-motion": "^12.23.24",
+    "html2canvas": "1.4.1",
     "lucide-react": "0.548.0",
     "next": "^15.5.0",
     "openai": "6.7.0",
