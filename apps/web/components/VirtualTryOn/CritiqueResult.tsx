@@ -82,7 +82,13 @@ export function CritiqueResult({ persona, critique, mode, onBack, onTryDifferent
               <MessageCircle className="h-4 w-4 mr-2" />
               Try Different Mode
             </Button>
-          </div>
+            </div>
+
+            {/* AI Model Transparency Label */}
+            <div className="text-xs text-gray-500 text-center mt-3 flex items-center justify-center gap-1">
+            <span>🤖</span>
+            <span>Analysis by GPT-4o-mini AI model</span>
+            </div>
         </div>
       </CardContent>
     </Card>

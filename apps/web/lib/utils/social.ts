@@ -13,11 +13,29 @@ export class SocialUtils {
      */
     static async shareContent(options: ShareOptions, farcasterContext?: any): Promise<boolean> {
         try {
-            if (farcasterContext?.client) {
-                // Share to Farcaster feed
-                console.log('Sharing to Farcaster:', options);
-                // This would integrate with Farcaster's sharing API
-                return true;
+            if (farcasterContext?.client && farcasterContext?.user?.fid) {
+                // Share to Farcaster feed via API
+                const response = await fetch('/api/social/cast', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        signerUuid: farcasterContext.user.fid.toString(), // This might need adjustment based on your signer setup
+                        text: options.text,
+                        embeds: options.imageUrl ? [{ url: options.imageUrl }] : undefined,
+                    }),
+                });
+
+                if (response.ok) {
+                    return true;
+                } else {
+                    console.error('Failed to post to Farcaster:', await response.text());
+                    // Fallback to clipboard
+                    const shareText = options.url ? `${options.text} ${options.url}` : options.text;
+                    await navigator.clipboard.writeText(shareText);
+                    return true;
+                }
             } else {
                 // Fallback to clipboard
                 const shareText = options.url ? `${options.text} ${options.url}` : options.text;
@@ -26,7 +44,15 @@ export class SocialUtils {
             }
         } catch (error) {
             console.error('Share failed:', error);
-            return false;
+            // Final fallback to clipboard
+            try {
+                const shareText = options.url ? `${options.text} ${options.url}` : options.text;
+                await navigator.clipboard.writeText(shareText);
+                return true;
+            } catch (clipboardError) {
+                console.error('Clipboard fallback failed:', clipboardError);
+                return false;
+            }
         }
     }
 

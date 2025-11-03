@@ -23,7 +23,7 @@ export function BodyScan({ onScanComplete, disabled }: BodyScanProps) {
     // Check if user has uploaded a photo first
     const hasPhoto = document.querySelector('img[alt*="Selected for AI analysis"]') !== null;
     if (!hasPhoto) {
-      setError("Please upload a photo first before starting body scan");
+      setError("Please upload a photo first using the 'Upload Photo' option above");
       return;
     }
 
@@ -94,7 +94,7 @@ export function BodyScan({ onScanComplete, disabled }: BodyScanProps) {
         </div>
         <CardTitle className="text-center text-xl">Body Scan (Beta)</CardTitle>
         <p className="text-muted-foreground text-center">
-          Generate guided measurements with your device camera
+          Advanced measurement extraction from uploaded photos
         </p>
       </CardHeader>
       <CardContent>
@@ -126,10 +126,10 @@ export function BodyScan({ onScanComplete, disabled }: BodyScanProps) {
 
           <p className="text-sm text-muted-foreground mb-4">
             {isScanning
-              ? "Analyzing body measurements..."
+              ? "Analyzing your photo for precise measurements..."
               : scanComplete
                 ? "Scan complete! Measurements captured."
-                : "Generate precise body measurements for perfect fit"}
+                : "Generate precise body measurements from your photo"}
           </p>
 
           <div className="flex gap-2 justify-center">

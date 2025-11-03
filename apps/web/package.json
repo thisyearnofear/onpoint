@@ -17,6 +17,7 @@
     "@farcaster/miniapp-sdk": "^0.2.1",
     "@farcaster/miniapp-wagmi-connector": "^1.1.0",
     "@google/generative-ai": "0.24.1",
+    "@neynar/nodejs-sdk": "3.34.0",
     "@neynar/react": "1.2.20",
     "@onpoint/shared-types": "workspace:*",
     "@pigment-css/react": "0.0.30",

@@ -13,7 +13,6 @@ import { useSocialActivities } from "../lib/hooks/useMemoryAPI";
 
 import {
   PhotoUpload,
-  BodyScan,
   AnalysisResults,
   ActionHub,
   PhotoPreview,
@@ -84,10 +83,10 @@ export function VirtualTryOn() {
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
 
-      // Analyze the photo
-      await analyzePhoto(file);
+      // Don't automatically analyze - let user choose what to do
+      // await analyzePhoto(file);
     },
-    [analyzePhoto],
+    [],
   );
 
   const handleReanalyze = useCallback(async () => {
@@ -189,11 +188,11 @@ export function VirtualTryOn() {
             <Sparkles className="h-10 w-10 text-white" />
           </div>
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Virtual Try-On
+            Stylist
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed">
-            See yourself in any outfit with intelligent fit analysis and realistic visualization.
-            Upload a photo or use our body scanning technology for personalized results.
+            Get personalized fashion analysis, body measurements, and AI-powered styling recommendations.
+            Upload a photo or use our body scanning technology for tailored fashion insights.
           </p>
         </div>
 
@@ -202,16 +201,10 @@ export function VirtualTryOn() {
             <div className="space-y-6">
               {/* Upload Methods */}
               {!selectedPhoto && !scanComplete && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <PhotoUpload
-                    onPhotoSelect={handlePhotoSelect}
-                    disabled={loading}
-                  />
-                  <BodyScan
-                    onScanComplete={handleScanComplete}
-                    disabled={loading}
-                  />
-                </div>
+                <PhotoUpload
+                  onPhotoSelect={handlePhotoSelect}
+                  disabled={loading}
+                />
               )}
 
               {/* Photo Preview */}
@@ -222,6 +215,7 @@ export function VirtualTryOn() {
                   analysis={analysis}
                   onReset={handleReset}
                   onReanalyze={handleReanalyze}
+                  onAnalyze={() => selectedPhoto && analyzePhoto(selectedPhoto)}
                 />
               )}
 
@@ -478,6 +472,7 @@ export function VirtualTryOn() {
               scanComplete={scanComplete}
               selectedPhoto={selectedPhoto}
               onTryOnDesign={handleTryOnDesign}
+              onBodyScan={handleScanComplete}
               onCritiqueModeSelection={() => setShowCritiqueModeSelection(true)}
               onFashionAnalysis={handleFashionAnalysis}
             />

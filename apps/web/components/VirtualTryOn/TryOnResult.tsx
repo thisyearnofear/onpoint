@@ -84,6 +84,12 @@ export function TryOnResult({ result, onBack }: TryOnResultProps) {
             <ShoppingBag className="h-4 w-4 mr-2" />
             Shop Similar Items
           </Button>
+
+              {/* AI Model Transparency Label */}
+          <div className="text-xs text-gray-500 text-center mt-3 flex items-center justify-center gap-1">
+            <span>🤖</span>
+            <span>Powered by IDM-VTON AI model</span>
+          </div>
         </div>
       </CardContent>
     </Card>

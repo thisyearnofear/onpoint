@@ -13,6 +13,7 @@ interface ActionHubProps {
   scanComplete: boolean;
   selectedPhoto: File | null;
   onTryOnDesign: () => void;
+  onBodyScan: () => void;
   onCritiqueModeSelection: () => void;
   onFashionAnalysis: () => void;
 }
@@ -24,6 +25,7 @@ export function ActionHub({
   scanComplete,
   selectedPhoto,
   onTryOnDesign,
+  onBodyScan,
   onCritiqueModeSelection,
   onFashionAnalysis,
 }: ActionHubProps) {
@@ -31,14 +33,47 @@ export function ActionHub({
 
   return (
     <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-primary" />
-          AI Experience Hub
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Choose the next step for your personalized style session.
-        </p>
+     <CardHeader>
+       <CardTitle className="flex items-center gap-2">
+         <Sparkles className="h-5 w-5 text-primary" />
+         Style Experience Hub
+       </CardTitle>
+       <p className="text-sm text-muted-foreground">
+         Choose the next step for your personalized style session.
+       </p>
+
+        {/* Progress indicator - responsive design */}
+        <div className="mt-3">
+        {/* Mobile: vertical stacked */}
+        <div className="md:hidden space-y-2">
+        <div className="flex items-center gap-2 text-xs">
+            <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0"></div>
+            <span className="text-primary font-medium">✓ Photo uploaded</span>
+          </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="w-2 h-2 rounded-full bg-muted-foreground/30 flex-shrink-0"></div>
+            <span>Choose your AI experience below</span>
+          </div>
+        </div>
+
+        {/* Desktop: horizontal */}
+        <div className="hidden md:flex items-center justify-center gap-2">
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-primary"></div>
+              <span className="text-xs text-primary font-medium">Photo Ready</span>
+            </div>
+            <div className="w-4 h-px bg-muted-foreground/30"></div>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-muted-foreground/30"></div>
+              <span className="text-xs text-muted-foreground">Choose Experience</span>
+            </div>
+            <div className="w-4 h-px bg-muted-foreground/30"></div>
+        <div className="flex items-center gap-1">
+        <div className="w-2 h-2 rounded-full bg-muted-foreground/30"></div>
+        <span className="text-xs text-muted-foreground">See Results</span>
+        </div>
+        </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {analysis ? (
@@ -59,7 +94,7 @@ export function ActionHub({
         ) : (
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <RefreshCw className="h-4 w-4 animate-spin" />
-            <span>Building your fit profile...</span>
+            <span>Choose your next step below</span>
           </div>
         )}
 
@@ -77,8 +112,8 @@ export function ActionHub({
                   <Shirt className="h-4 w-4 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold">Virtual Try-On</p>
-                  <p className="text-sm text-muted-foreground">Render realistic outfit swaps using your fit data.</p>
+                  <p className="text-sm font-semibold">Style Outfit Generator</p>
+                  <p className="text-sm text-muted-foreground">AI creates personalized outfit combinations tailored to your body type and measurements.</p>
                 </div>
               </div>
               <Button
@@ -94,9 +129,32 @@ export function ActionHub({
                 ) : (
                   <>
                     <Shirt className="h-4 w-4 mr-2" />
-                    Launch Try-On
+                    Generate Outfit
                   </>
                 )}
+              </Button>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-accent/30 bg-accent/5 p-4">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="rounded-full bg-accent/10 p-2">
+                  <Sparkles className="h-4 w-4 text-accent" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">Body Scan</p>
+                  <p className="text-sm text-muted-foreground">Advanced AI extracts precise body measurements for perfect virtual fitting.</p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                onClick={onBodyScan}
+                disabled={loading || !selectedPhoto}
+                className="w-full md:w-auto"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Start Scan
               </Button>
             </div>
           </div>
@@ -108,8 +166,8 @@ export function ActionHub({
                   <MessageCircle className="h-4 w-4 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold">AI Critique</p>
-                  <p className="text-sm text-muted-foreground">Pick a stylist persona for feedback in the tone you prefer.</p>
+                  <p className="text-sm font-semibold">AI Stylist Critique</p>
+                  <p className="text-sm text-muted-foreground">Get personalized fashion feedback from expert personas with different styles and tones.</p>
                 </div>
               </div>
               <Button
@@ -130,8 +188,8 @@ export function ActionHub({
                   <Eye className="h-4 w-4 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold">Look Breakdown</p>
-                  <p className="text-sm text-muted-foreground">Get trend insights and styling tips from your submitted photo.</p>
+                  <p className="text-sm font-semibold">Fashion Analysis</p>
+                  <p className="text-sm text-muted-foreground">Detailed style breakdown with trend insights, color analysis, and improvement tips.</p>
                 </div>
               </div>
               <Button

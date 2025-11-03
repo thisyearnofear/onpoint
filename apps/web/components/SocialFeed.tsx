@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent } from '@repo/ui/card';
 import { Button } from '@repo/ui/button';
 import { Input } from '@repo/ui/input';
@@ -32,40 +33,49 @@ export function SocialFeed({ filter = 'all', showDiscovery = true }: SocialFeedP
     const [selectedPlatform, setSelectedPlatform] = useState<string>('all');
     const { recordReaction } = useSocialActivities();
     const { searchUsers } = useMemoryAPI();
+    const searchParams = useSearchParams();
 
-    // Mock data - replace with actual API calls
+    // Fetch real social feed from Neynar API
     useEffect(() => {
-        const mockActivities: SocialActivity[] = [
-            {
-                id: '1',
-                userId: '0x1234...5678',
-                type: 'try_on',
-                targetId: 'outfit-1',
-                metadata: { outfitName: 'Summer Vibes Collection' },
-                createdAt: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-            },
-            {
-                id: '2',
-                userId: '0x8765...4321',
-                type: 'mint',
-                targetId: 'nft-1',
-                metadata: { nftName: 'Cyberpunk Jacket #001' },
-                createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-            },
-            {
-                id: '3',
-                userId: '0x9999...1111',
-                type: 'reaction',
-                targetId: 'outfit-2',
-                metadata: { reactionType: 'fire', targetName: 'Minimalist Chic' },
-                createdAt: new Date(Date.now() - 1000 * 60 * 60 * 4), // 4 hours ago
-            },
-        ];
+        const fetchFeed = async () => {
+            setIsLoading(true);
+            try {
+                const feedType = filter === 'trending' ? 'trending' : 'following';
+                const fid = searchParams.get('fid') || '3'; // Default to some FID for demo
 
-        setTimeout(() => {
-            setActivities(mockActivities);
-            setIsLoading(false);
-        }, 1000);
+                const response = await fetch(`/api/social/feed?fid=${fid}&feedType=${feedType}&limit=25`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch feed');
+                }
+
+                const data = await response.json();
+
+                // Transform Neynar casts to SocialActivity format
+                const socialActivities: SocialActivity[] = data.casts.map((cast: any) => ({
+                    id: cast.id,
+                    userId: cast.author.fid.toString(),
+                    type: 'cast', // Generic cast type
+                    targetId: cast.id,
+                    metadata: {
+                        text: cast.text,
+                        author: cast.author,
+                        embeds: cast.embeds,
+                        reactions: cast.reactions,
+                    },
+                    createdAt: new Date(cast.timestamp),
+                }));
+
+                setActivities(socialActivities);
+            } catch (error) {
+                console.error('Failed to fetch social feed:', error);
+                // Fallback to empty array on error
+                setActivities([]);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchFeed();
     }, [filter]);
 
     if (isLoading) {
@@ -231,25 +241,28 @@ function SocialActivityCard({
     });
 
     const getActivityIcon = (type: SocialActivity['type']) => {
-        switch (type) {
-            case 'try_on': return <Camera className="w-5 h-5 text-blue-500" />;
-            case 'mint': return <Sparkles className="w-5 h-5 text-purple-500" />;
-            case 'reaction': return <Heart className="w-5 h-5 text-red-500" />;
-            case 'share': return <Share className="w-5 h-5 text-green-500" />;
-            default: return <Palette className="w-5 h-5 text-gray-500" />;
+    switch (type) {
+    case 'try_on': return <Camera className="w-5 h-5 text-blue-500" />;
+    case 'mint': return <Sparkles className="w-5 h-5 text-purple-500" />;
+    case 'reaction': return <Heart className="w-5 h-5 text-red-500" />;
+    case 'share': return <Share className="w-5 h-5 text-green-500" />;
+    case 'cast': return <MessageCircle className="w-5 h-5 text-blue-500" />;
+        default: return <Palette className="w-5 h-5 text-gray-500" />;
         }
     };
 
     const getActivityText = (activity: SocialActivity) => {
-        switch (activity.type) {
-            case 'try_on':
-                return `tried on ${activity.metadata?.outfitName || 'an outfit'}`;
-            case 'mint':
-                return `minted ${activity.metadata?.nftName || 'an NFT'}`;
-            case 'reaction':
-                return `reacted to ${activity.metadata?.targetName || 'an item'}`;
-            case 'share':
-                return `shared ${activity.metadata?.targetName || 'an item'}`;
+    switch (activity.type) {
+    case 'try_on':
+        return `tried on ${activity.metadata?.outfitName || 'an outfit'}`;
+    case 'mint':
+        return `minted ${activity.metadata?.nftName || 'an NFT'}`;
+    case 'reaction':
+        return `reacted to ${activity.metadata?.targetName || 'an item'}`;
+    case 'share':
+        return `shared ${activity.metadata?.targetName || 'an item'}`;
+    case 'cast':
+            return 'posted on Farcaster';
             default:
                 return 'did something cool';
         }
@@ -300,21 +313,42 @@ function SocialActivityCard({
 
                     {/* Activity Content */}
                     {activity.type === 'try_on' && (
-                        <div className="bg-muted/50 rounded-lg p-4">
-                            <div className="aspect-video bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg flex items-center justify-center">
-                                <Camera className="w-12 h-12 text-muted-foreground" />
-                            </div>
-                            <p className="mt-2 font-medium">{activity.metadata?.outfitName}</p>
-                        </div>
+                    <div className="bg-muted/50 rounded-lg p-4">
+                    <div className="aspect-video bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg flex items-center justify-center">
+                    <Camera className="w-12 h-12 text-muted-foreground" />
+                    </div>
+                    <p className="mt-2 font-medium">{activity.metadata?.outfitName}</p>
+                    </div>
                     )}
 
                     {activity.type === 'mint' && (
-                        <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-lg p-4">
-                            <div className="aspect-square bg-gradient-to-br from-purple-400 to-pink-400 rounded-lg flex items-center justify-center max-w-32">
-                                <Sparkles className="w-8 h-8 text-white" />
-                            </div>
-                            <p className="mt-2 font-medium">{activity.metadata?.nftName}</p>
-                            <p className="text-sm text-muted-foreground">NFT Collection</p>
+                    <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-lg p-4">
+                    <div className="aspect-square bg-gradient-to-br from-purple-400 to-pink-400 rounded-lg flex items-center justify-center max-w-32">
+                    <Sparkles className="w-8 h-8 text-white" />
+                    </div>
+                    <p className="mt-2 font-medium">{activity.metadata?.nftName}</p>
+                    <p className="text-sm text-muted-foreground">NFT Collection</p>
+                    </div>
+                    )}
+
+                    {activity.type === 'cast' && (
+                        <div className="bg-muted/30 rounded-lg p-4">
+                            <p className="text-sm leading-relaxed mb-3">{activity.metadata?.text}</p>
+                            {activity.metadata?.embeds && activity.metadata.embeds.length > 0 && (
+                                <div className="space-y-2">
+                                    {activity.metadata.embeds.map((embed: any, index: number) => (
+                                        <div key={index} className="bg-background rounded border p-2">
+                                            {embed.url && (
+                                                <img
+                                                    src={embed.url}
+                                                    alt="Cast embed"
+                                                    className="max-w-full h-auto rounded max-h-48 object-cover"
+                                                />
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
 

@@ -25,8 +25,20 @@ export function useMemoryAPI(): {
 
     // Search users by platform (for discovery)
     const searchUsers = useMutation({
-        mutationFn: ({ platform, query }: { platform: string; query: string }) =>
-            memoryClient.searchUsers(platform, query),
+        mutationFn: async ({ platform, query }: { platform: string; query: string }) => {
+            if (platform === 'farcaster') {
+                // Use Neynar for Farcaster search
+                const response = await fetch(`/api/social/search?q=${encodeURIComponent(query)}&limit=10`);
+                if (!response.ok) {
+                    throw new Error('Failed to search users');
+                }
+                const data = await response.json();
+                return data.users || [];
+            } else {
+                // Fallback to Memory Protocol for other platforms
+                return memoryClient.searchUsers(platform, query);
+            }
+        },
     });
 
     // Link wallet to Memory Protocol for rewards

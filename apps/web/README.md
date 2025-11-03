@@ -61,6 +61,8 @@ Create `apps/web/.env.local` and set:
 ```
 NEXT_PUBLIC_URL=https://your-domain.example
 NEYNAR_API_KEY=your_neynar_api_key
+FARCASTER_ACCOUNT_ASSOCIATION_JSON={"signature":"...","account":"..."}
+NEYNAR_WEBHOOK_SECRET=optional_shared_secret_for_webhook_validation
 ```
 
 `NEXT_PUBLIC_URL` must be an HTTPS domain reachable by Farcaster clients (use a tunnel like ngrok for local testing).
@@ -69,10 +71,18 @@ NEYNAR_API_KEY=your_neynar_api_key
 
 1. Deploy and ensure `https://your-domain/.well-known/farcaster.json` returns the manifest.
 2. Open the Farcaster Manifest Tool and claim ownership for your domain.
-3. Paste the generated `accountAssociation` JSON into your manifest route (replace `null`).
+3. Paste the generated `accountAssociation` JSON into `FARCASTER_ACCOUNT_ASSOCIATION_JSON` env.
 
 ### Notes
 
 - Images used in embeds should be 3:2 aspect ratio and served with proper `image/*` content-type.
 - When running inside a Mini App host, the sign-in button appears and the splash screen is hidden after `ready()`.
 - For wallet integrations inside Mini Apps, consider `@farcaster/miniapp-wagmi-connector` with wagmi.
+
+### Social API routes
+
+- `POST /api/social/signer` — create Neynar managed signer (returns `signer_uuid`, `signer_approval_url`).
+- `POST /api/social/cast` — publish a cast using `signerUuid`.
+- `POST /api/social/reaction` — like or recast a cast.
+- `GET  /api/social/search?q=...` — search Farcaster users.
+- `POST /api/webhook` — inbound notifications (optional HMAC validation via `NEYNAR_WEBHOOK_SECRET`).

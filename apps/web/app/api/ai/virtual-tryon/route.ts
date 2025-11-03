@@ -18,14 +18,13 @@ export async function POST(request: NextRequest) {
             // For body analysis from photo description or measurements
             enhancedPrompt = `As a fashion fit specialist, analyze this body profile: "${data.description || 'Standard body measurements'}".
 
-Provide detailed analysis including:
-1. Body type classification (pear, apple, hourglass, rectangle, inverted triangle)
-2. Estimated measurements for shoulders, chest, waist, and hips (in general terms like small, medium, large)
-3. 5-7 specific fit recommendations for different garment types
-4. 3-5 style adjustments that would be most flattering
-5. Considerations for proportion balancing
+Provide CONCISE analysis including:
+1. Body type classification (one word: pear, apple, hourglass, rectangle, inverted triangle)
+2. Measurements for shoulders, chest, waist, hips (only: small, medium, large)
+3. 3-4 key fit recommendations for common garments
+4. 2-3 essential styling tips
 
-Be specific and practical in your recommendations.`;
+Keep it practical and focused on measurements and fit. No generic advice.`;
         } else if (type === 'outfit-fit') {
             // For analyzing how specific outfits would fit
             enhancedPrompt = `As a fashion stylist, analyze how these outfit items would work together: "${data.items?.map((item: { name: string; description?: string; type?: string }) => `${item.name}: ${item.description || item.type || ''}`).join(', ')}".
@@ -149,13 +148,7 @@ function extractRecommendations(text: string): string[] {
         }
     }
 
-    return recommendations.length > 0 ? recommendations.slice(0, 7) : [
-        'Consider tailored fits for a polished look',
-        'Pay attention to proportions when mixing oversized and fitted pieces',
-        'Choose colors that complement your skin tone',
-        'Invest in well-fitting undergarments as a foundation',
-        'Consider the occasion when selecting outfit formality'
-    ];
+    return recommendations.length > 0 ? recommendations.slice(0, 4) : [];
 }
 
 function extractStyleAdjustments(text: string): string[] {
@@ -171,12 +164,7 @@ function extractStyleAdjustments(text: string): string[] {
         }
     }
 
-    return adjustments.length > 0 ? adjustments.slice(0, 5) : [
-        'Adjust hem lengths for optimal proportions',
-        'Consider belt placement to define waist',
-        'Balance volume between top and bottom pieces',
-        'Use layering to create visual interest'
-    ];
+    return adjustments.length > 0 ? adjustments.slice(0, 3) : [];
 }
 
 function extractStylingTips(text: string): string[] {

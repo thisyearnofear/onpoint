@@ -11,9 +11,10 @@ interface PhotoPreviewProps {
   analysis: any;
   onReset: () => void;
   onReanalyze: () => void;
+  onAnalyze: () => void;
 }
 
-export function PhotoPreview({ previewUrl, loading, analysis, onReset, onReanalyze }: PhotoPreviewProps) {
+export function PhotoPreview({ previewUrl, loading, analysis, onReset, onReanalyze, onAnalyze }: PhotoPreviewProps) {
   if (!previewUrl) return null;
 
   return (
@@ -52,6 +53,16 @@ export function PhotoPreview({ previewUrl, loading, analysis, onReset, onReanaly
             >
               Choose Different Photo
             </Button>
+            {!analysis && (
+              <Button
+                onClick={onAnalyze}
+                disabled={loading}
+                className="fashion-gradient text-white"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Analyze Photo
+              </Button>
+            )}
             {analysis && (
               <Button
                 variant="secondary"

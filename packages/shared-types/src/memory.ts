@@ -38,7 +38,7 @@ export interface MemoryUser {
 export interface SocialActivity {
     id: string;
     userId: string;
-    type: 'try_on' | 'mint' | 'reaction' | 'share' | 'follow';
+    type: 'try_on' | 'mint' | 'reaction' | 'share' | 'follow' | 'cast';
     targetId: string; // outfit ID, NFT ID, etc.
     metadata?: Record<string, any>;
     createdAt: Date;
