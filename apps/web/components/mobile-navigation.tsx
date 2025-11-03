@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Menu, X, Palette, Sparkles } from 'lucide-react';
+import { Menu, X, Palette, Sparkles, Users } from 'lucide-react';
 import { Button } from '@repo/ui/button';
 import Link from 'next/link';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
@@ -44,7 +44,7 @@ export function MobileNavigation({ showBackButton = false }: MobileNavigationPro
                 <X className="h-6 w-6" />
               </Button>
             </div>
-            
+
             <nav className="flex-1 flex flex-col p-4 gap-4">
               {showBackButton ? (
                 <Button asChild variant="ghost" className="justify-start">
@@ -53,22 +53,29 @@ export function MobileNavigation({ showBackButton = false }: MobileNavigationPro
                   </Link>
                 </Button>
               ) : null}
-              
+
               <Button asChild variant="ghost" className="justify-start">
                 <Link href="/collage" onClick={() => setIsOpen(false)}>
                   <Sparkles className="h-4 w-4 mr-2" />
                   Collage Creator
                 </Link>
               </Button>
-              
+
               <Button asChild variant="ghost" className="justify-start">
                 <Link href="/style" onClick={() => setIsOpen(false)}>
                   <Palette className="h-4 w-4 mr-2" />
                   Style Lab
                 </Link>
               </Button>
+
+              <Button asChild variant="ghost" className="justify-start">
+                <Link href="/social" onClick={() => setIsOpen(false)}>
+                  <Users className="h-4 w-4 mr-2" />
+                  Social
+                </Link>
+              </Button>
             </nav>
-            
+
             <div className="p-4 border-t">
               <ConnectButton />
             </div>

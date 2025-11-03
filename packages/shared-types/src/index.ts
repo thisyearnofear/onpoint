@@ -15,6 +15,11 @@ export interface Outfit {
   items: Item[];
   createdAt: Date;
   updatedAt: Date;
+  // Enhanced with social data
+  creator?: EnhancedUserProfile;
+  reactions?: SocialReaction[];
+  mintCount?: number;
+  tryOnCount?: number;
 }
 
 export interface Critique {
@@ -23,4 +28,10 @@ export interface Critique {
   feedback: string;
   rating: number;
   createdAt: Date;
+  // Enhanced with social identity
+  critic?: EnhancedUserProfile;
 }
+
+// Re-export Memory API types
+export * from './memory';
+export * from './memory-client';

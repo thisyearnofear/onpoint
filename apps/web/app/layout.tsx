@@ -25,8 +25,29 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const baseUrl = process.env.NEXT_PUBLIC_URL ?? "";
+  const embed = {
+    version: "1",
+    imageUrl: `${baseUrl}/assets/1Product.png`,
+    button: {
+      title: "Start BeOnPoint",
+      action: {
+        type: "launch_frame",
+        name: "BeOnPoint",
+        url: baseUrl || undefined,
+        splashImageUrl: `${baseUrl}/assets/1Product.png`,
+        splashBackgroundColor: "#0F0F13",
+      },
+    },
+  };
   return (
     <html lang="en">
+      <head>
+        {/* Farcaster Mini App embed for discovery in casts */}
+        <meta name="fc:miniapp" content={JSON.stringify(embed)} />
+        {/* Backward compatibility with legacy Frames */}
+        <meta name="fc:frame" content={JSON.stringify(embed)} />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Providers>
           {children}

@@ -20,21 +20,44 @@ import { WagmiProvider } from "wagmi";
 import { RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import { config } from "../config/wagmi";
 import { AIProviderContext } from "@repo/ai-client";
+import { sdk } from "@farcaster/miniapp-sdk";
+import { useEffect } from "react";
+import { MiniAppProvider, useMiniApp } from "@neynar/react";
 
 const queryClient = new QueryClient();
 
 
 
+function MiniAppReady() {
+  const { isSDKLoaded } = useMiniApp();
+  useEffect(() => {
+    const init = async () => {
+      try {
+        if (isSDKLoaded && sdk?.actions?.ready) {
+          await sdk.actions.ready();
+        }
+      } catch {
+        // ignore
+      }
+    };
+    init();
+  }, [isSDKLoaded]);
+  return null;
+}
+
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>
-          <AIProviderContext>
-            {children}
-          </AIProviderContext>
-        </RainbowKitProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
+    <MiniAppProvider analyticsEnabled={true}>
+      <WagmiProvider config={config}>
+        <QueryClientProvider client={queryClient}>
+          <RainbowKitProvider>
+            <AIProviderContext>
+              <MiniAppReady />
+              {children}
+            </AIProviderContext>
+          </RainbowKitProvider>
+        </QueryClientProvider>
+      </WagmiProvider>
+    </MiniAppProvider>
   );
 }

@@ -1,5 +1,5 @@
 import React from "react";
-import { Palette, Sparkles, Camera, MessageCircle } from "lucide-react";
+import { Palette, Sparkles, Camera, MessageCircle, Users } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import Link from "next/link";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
@@ -7,6 +7,7 @@ import { MobileNavigation } from "@/components/mobile-navigation";
 import { DesignStudio } from "../components/DesignStudio";
 import { VirtualTryOn } from "../components/VirtualTryOn";
 import { AIStylist } from "../components/AIStylist";
+import { FarcasterSignInButton } from "../components/FarcasterSignInButton";
 
 export default function Home() {
   return (
@@ -34,10 +35,17 @@ export default function Home() {
                 Style Lab
               </Link>
             </Button>
+            <Button asChild variant="ghost" className="flex items-center gap-2">
+              <Link href="/social">
+                <Users className="h-4 w-4" />
+                Social
+              </Link>
+            </Button>
           </nav>
 
           <div className="flex items-center gap-4">
             <MobileNavigation />
+            <FarcasterSignInButton />
             <ConnectButton />
           </div>
         </div>
@@ -94,7 +102,7 @@ export default function Home() {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 max-w-2xl mx-auto">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-8 max-w-3xl mx-auto">
                 <div className="text-center">
                   <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center">
                     <Sparkles className="h-6 w-6 text-primary" />
@@ -118,6 +126,12 @@ export default function Home() {
                     <Palette className="h-6 w-6 text-accent" />
                   </div>
                   <p className="text-sm font-medium">Style Lab</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Users className="h-6 w-6 text-primary" />
+                  </div>
+                  <p className="text-sm font-medium">Social Hub</p>
                 </div>
               </div>
             </div>

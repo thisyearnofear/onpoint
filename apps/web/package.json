@@ -11,8 +11,11 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "@farcaster/miniapp-sdk": "^0.2.1",
+    "@farcaster/miniapp-wagmi-connector": "^1.1.0",
     "@google/generative-ai": "0.24.1",
-    "@rainbow-me/rainbowkit": "^2.0.0",
+    "@neynar/react": "1.2.20",
+    "@rainbow-me/rainbowkit": "^2.2.9",
     "@repo/ai-client": "workspace:*",
     "@repo/shared-ui": "workspace:*",
     "@repo/ui": "workspace:*",

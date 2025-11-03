@@ -43,3 +43,36 @@ If you plan to use Chrome’s Built‑in AI APIs from the web app (not the exten
 4. Verify in DevTools → Network tab → any request → Headers.
 
 Note: The Chrome extension does not require Origin Trials; it accesses Built‑in AI directly within the extension context when available on the device.
+
+## Farcaster Mini App Integration
+
+This app is integrated with Farcaster Mini Apps per the 2025 specification:
+
+- SDK: `@farcaster/miniapp-sdk` initialized in `app/providers.tsx` with `sdk.actions.ready()`.
+- Embed metadata: `fc:miniapp` and `fc:frame` meta tags added in `app/layout.tsx`.
+- Manifest: Served at `/.well-known/farcaster.json` via Next route, built from env vars.
+- Sign-in: Minimal Farcaster sign-in button (`components/FarcasterSignInButton.tsx`).
+- Notifications: Webhook placeholder at `app/api/webhook/route.ts`.
+
+### Required Environment Variables
+
+Create `apps/web/.env.local` and set:
+
+```
+NEXT_PUBLIC_URL=https://your-domain.example
+NEYNAR_API_KEY=your_neynar_api_key
+```
+
+`NEXT_PUBLIC_URL` must be an HTTPS domain reachable by Farcaster clients (use a tunnel like ngrok for local testing).
+
+### Claim Manifest Ownership
+
+1. Deploy and ensure `https://your-domain/.well-known/farcaster.json` returns the manifest.
+2. Open the Farcaster Manifest Tool and claim ownership for your domain.
+3. Paste the generated `accountAssociation` JSON into your manifest route (replace `null`).
+
+### Notes
+
+- Images used in embeds should be 3:2 aspect ratio and served with proper `image/*` content-type.
+- When running inside a Mini App host, the sign-in button appears and the splash screen is hidden after `ready()`.
+- For wallet integrations inside Mini Apps, consider `@farcaster/miniapp-wagmi-connector` with wagmi.
