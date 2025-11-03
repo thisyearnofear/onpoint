@@ -119,7 +119,7 @@ export const config = getDefaultConfig({
     [base.id]: http(),
     [arbitrum.id]: http(),
     [celo.id]: http(),
-    [celoAlfajores.id]: http(process.env.CELO_ALFAJORES_RPC_URL),
+    [celoAlfajores.id]: http(process.env.NEXT_PUBLIC_CELO_ALFAJORES_RPC_URL),
     [zetaChain.id]: http(),
     [sepolia.id]: http(),
   },
