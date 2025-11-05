@@ -25,6 +25,8 @@ import {
   FashionAnalysis,
 } from "./VirtualTryOn/index";
 
+import { PersonDescriptionEditor } from "./VirtualTryOn/PersonDescriptionEditor";
+
 
 
 export function VirtualTryOn() {
@@ -43,6 +45,9 @@ const [tryOnResult, setTryOnResult] = useState<any | null>(null);
 const [showPersonalitySelection, setShowPersonalitySelection] = useState(false);
 const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
 const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('real');
+  const [personDescription, setPersonDescription] = useState<string>('');
+  const [isAnalyzingPerson, setIsAnalyzingPerson] = useState(false);
+  const [showPersonDescription, setShowPersonDescription] = useState(false);
 
   // Use the enhancement hook
   const { enhancement, enhanceTryOn, loading: enhancementLoading, error: enhancementError } = useAIVirtualTryOnEnhancement();
@@ -73,8 +78,9 @@ const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('
   const { recordTryOn } = useSocialActivities();
 
   const hasInput = Boolean(selectedPhoto || scanComplete);
-  const canShowAnalysisCard = Boolean(analysis && !tryOnResult && !showPersonalitySelection && !showAnalysis && !critiqueResult);
-  const canShowActionHub = hasInput && !critiqueResult && !tryOnResult && !showAnalysis && !showCritiqueModeSelection && !showPersonalitySelection;
+  const canShowAnalysisCard = Boolean(analysis && !tryOnResult && !showPersonalitySelection && !showAnalysis && !critiqueResult && !showPersonDescription);
+  const canShowActionHub = hasInput && !analysis && !critiqueResult && !tryOnResult && !showAnalysis && !showCritiqueModeSelection && !showPersonalitySelection && !showPersonDescription;
+  const canShowPersonDescription = Boolean(showPersonDescription && !tryOnResult && !critiqueResult);
 
 
   const handlePhotoSelect = useCallback(
@@ -128,16 +134,61 @@ const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('
     }
   }, [analyzePhoto, selectedPhoto]);
 
+  const handleAnalyzePerson = useCallback(async () => {
+    if (!selectedPhoto) return;
+
+    setIsAnalyzingPerson(true);
+    setPersonDescription('');
+
+    try {
+      // Convert photo to base64 for analysis
+      const photoData = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(selectedPhoto);
+      });
+
+      const response = await fetch('/api/ai/analyze-person', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photoData })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPersonDescription(data.description);
+        setShowPersonDescription(true);
+      } else {
+        console.error('Person analysis failed');
+        alert('Failed to analyze person. Please try again.');
+      }
+    } catch (error) {
+      console.error('Person analysis error:', error);
+      alert('Failed to analyze person. Please try again.');
+    } finally {
+      setIsAnalyzingPerson(false);
+    }
+  }, [selectedPhoto]);
+
   const handleTryOnDesign = useCallback(async () => {
-    if (!analysis) return;
+    if (!analysis || !selectedPhoto || !personDescription) return;
 
     // Record social activity for try-on
     const outfitId = `outfit-${Date.now()}`; // Generate unique outfit ID
     recordTryOn(outfitId);
 
-    // Start the enhancement process
-    await enhanceTryOn(outfitItems);
-  }, [analysis, enhanceTryOn, outfitItems, recordTryOn]);
+    // Convert photo to base64 for analysis
+    const photoData = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(selectedPhoto);
+    });
+
+    // Start the enhancement process with the person's description
+    await enhanceTryOn(outfitItems, photoData, personDescription);
+  }, [analysis, enhanceTryOn, outfitItems, recordTryOn, selectedPhoto, personDescription]);
 
   // Watch for enhancement completion and set try-on result
   React.useEffect(() => {
@@ -188,6 +239,9 @@ const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('
     setSelectedPersona(null);
     setSelectedCritiqueMode('real');
     setCritiqueResult(null);
+    setPersonDescription('');
+    setIsAnalyzingPerson(false);
+    setShowPersonDescription(false);
     clearAnalysis();
     clearError();
     clearReplicateError();
@@ -279,7 +333,36 @@ const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
               >
-                <AnalysisResults analysis={analysis} />
+                <AnalysisResults
+                  analysis={analysis}
+                  onAnalyzePerson={handleAnalyzePerson}
+                  onCritiqueModeSelection={() => setShowCritiqueModeSelection(true)}
+                  onFashionAnalysis={handleFashionAnalysis}
+                  isAnalyzingPerson={isAnalyzingPerson}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Person Description Editor */}
+          <AnimatePresence mode="wait">
+            {canShowPersonDescription && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <PersonDescriptionEditor
+                  description={personDescription}
+                  onDescriptionChange={setPersonDescription}
+                  onConfirm={handleTryOnDesign}
+                  onCancel={() => {
+                    setShowPersonDescription(false);
+                    setPersonDescription('');
+                  }}
+                  loading={enhancementLoading}
+                />
               </motion.div>
             )}
           </AnimatePresence>
@@ -467,16 +550,20 @@ const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('
 
           {/* Try-On Result */}
           <AnimatePresence mode="wait">
-            {tryOnResult && !critiqueResult && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <TryOnResult
-                  result={tryOnResult}
-                  onBack={() => setTryOnResult(null)}
+          {(tryOnResult || enhancementLoading) && !critiqueResult && (
+          <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+          >
+          <TryOnResult
+          result={tryOnResult || { id: 'loading', image: '' }}
+          onBack={() => {
+            setTryOnResult(null);
+              // Also clear any loading state if needed
+             }}
+                loading={enhancementLoading && !tryOnResult}
                 />
               </motion.div>
             )}

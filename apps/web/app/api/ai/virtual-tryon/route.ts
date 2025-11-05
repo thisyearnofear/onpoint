@@ -7,6 +7,8 @@ export async function POST(request: NextRequest) {
         const { type, data, provider = 'auto', model } = await request.json();
         const origin = request.headers.get('origin') || '*';
 
+        console.log('Virtual try-on request:', { type, hasPhotoData: !!data.photoData, hasPersonDescription: !!data.personDescription, itemCount: data.items?.length });
+
         if (!type) {
             return NextResponse.json({ error: 'Analysis type is required' }, { status: 400, headers: corsHeaders(origin) });
         }
@@ -52,6 +54,121 @@ Focus on practical, achievable improvements.`;
         } else {
             // Default case
             enhancedPrompt = `As a fashion consultant, provide analysis for: ${type}`;
+        }
+
+        if (type === 'generate-outfit-image') {
+            // Handle image generation with Venice
+            const veniceApiKey = process.env.VENICE_API_KEY;
+            if (!veniceApiKey) {
+                return NextResponse.json({ error: 'Venice API key not configured' }, { status: 500, headers: corsHeaders(origin) });
+            }
+
+            // Use the provided person description (analyzed in step 1)
+            const personDescription = data.personDescription || '';
+
+            // Create personalized prompt using the analysis
+            const outfitDescription = data.items?.map((item: { name: string; description?: string }) => `${item.name}: ${item.description || ''}`).join(', ');
+
+            // Check if person description is too long for Venice API (1500 char limit)
+            let truncatedPersonDescription = personDescription;
+            const basePromptLength = `Create a high-quality fashion photograph. They are wearing: ${outfitDescription}. The image should be a full-body portrait, professional fashion photography style, clean background, realistic lighting, detailed textures, modern fashion aesthetic. Create an attractive fashion model that would wear this outfit well.`.length;
+            const availableLength = 1500 - basePromptLength;
+
+            if (personDescription.length > availableLength) {
+                truncatedPersonDescription = personDescription.substring(0, availableLength - 3) + '...';
+                console.log(`Person description truncated from ${personDescription.length} to ${truncatedPersonDescription.length} characters`);
+            }
+
+            const enhancedPrompt = `Create a high-quality fashion photograph. ${truncatedPersonDescription ? `The person should match this description: ${truncatedPersonDescription}. ` : ''}They are wearing: ${outfitDescription}. The image should be a full-body portrait, professional fashion photography style, clean background, realistic lighting, detailed textures, modern fashion aesthetic. ${truncatedPersonDescription ? 'Make sure the person\'s appearance matches the description provided.' : 'Create an attractive fashion model that would wear this outfit well.'}`;
+
+            const response = await fetch("https://api.venice.ai/api/v1/image/generate", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${veniceApiKey}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    model: "venice-sd35",
+                    prompt: enhancedPrompt,
+                    width: 512,
+                    height: 768, // Portrait aspect for fashion
+                    format: "webp",
+                    cfg_scale: 7,
+                    steps: 20,
+                }),
+            });
+
+            console.log('Venice API response status:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Venice API error response:', errorText);
+                throw new Error(`Venice API error: ${response.status} ${response.statusText}`);
+            }
+
+            const veniceData = await response.json();
+            console.log('Venice API response data keys:', Object.keys(veniceData));
+
+            if (!veniceData.images || veniceData.images.length === 0) {
+                console.error('No images in Venice response:', veniceData);
+                throw new Error("No image generated");
+            }
+
+            console.log('Successfully generated image from Venice');
+
+            // Generate personalized styling tips based on the person's analysis
+            let personalizedTips: string[] = [];
+            if (personDescription) {
+                try {
+                    console.log('Generating personalized styling tips...');
+                    const stylingTipsPrompt = `Based on this person's appearance: "${personDescription}"
+
+And considering they are wearing: ${outfitDescription}
+
+Provide 4 specific, personalized styling tips that would complement their body type, features, and the outfit. Make the tips practical and tailored to their specific characteristics. Focus on:
+- How the outfit flatters their body shape
+- Colors that work with their skin tone/ethnicity
+- Accessories or styling choices that enhance their features
+- Any adjustments needed for their specific measurements
+
+Keep each tip concise but specific to their appearance.`;
+
+                    console.log('Calling generateText for styling tips...');
+                    const tipsResponse = await generateText({
+                        prompt: stylingTipsPrompt,
+                        provider,
+                        preferGemini: false,
+                        preferOpenAI: true,
+                        geminiModel: 'gemini-2.5-flash',
+                        openaiModel: 'gpt-3.5-turbo',
+                        openaiOptions: { max_tokens: 400, temperature: 0.7 },
+                    });
+
+                    console.log('Tips response received, text length:', tipsResponse.text?.length || 0);
+                    personalizedTips = extractStylingTips(tipsResponse.text || '');
+                    console.log('Generated personalized tips:', personalizedTips);
+                } catch (tipsError) {
+                    console.error('Styling tips generation error:', tipsError);
+                    personalizedTips = [];
+                }
+            }
+
+            // Fallback to generic tips if personalization failed
+            if (personalizedTips.length === 0) {
+                personalizedTips = [
+                    'Layer pieces to add depth and dimension to your outfit',
+                    'Choose accessories that complement your personal style',
+                    'Ensure proper fit for comfort and confidence',
+                    'Consider the color harmony of your complete look'
+                ];
+            }
+
+            return NextResponse.json({
+                generatedImage: veniceData.images[0],
+                enhancedOutfit: data.items || [],
+                stylingTips: personalizedTips,
+                type
+            }, { headers: corsHeaders(origin) });
         }
 
         const modelChoice = model as ('pro' | 'flash' | 'flash-lite' | undefined);
@@ -172,19 +289,30 @@ function extractStylingTips(text: string): string[] {
     const lines = text.split('\n');
 
     for (const line of lines) {
-        if (line.includes('tip') || line.includes('style') || line.includes('wear') || line.includes('pair')) {
-            const cleaned = line.replace(/^\d+\.?\s*/, '').trim();
-            if (cleaned.length > 10) {
+        // Look for lines that start with numbers, bullets, or contain styling-related keywords
+        const isTipLine = /^\d+\./.test(line) ||  // Numbered list
+            /^[-•*]/.test(line) ||   // Bullet points
+            /\b(tip|style|wear|pair|color|accessory|fit|flatter|enhance|complement)\b/i.test(line);
+
+        if (isTipLine) {
+            const cleaned = line.replace(/^\d+\.?\s*/, '').replace(/^[-•*]\s*/, '').trim();
+            if (cleaned.length > 10 && cleaned.length < 200) {
                 tips.push(cleaned);
             }
         }
     }
 
-    return tips.length > 0 ? tips.slice(0, 5) : [
-        'Mix textures for visual interest',
-        'Balance proportions between top and bottom',
-        'Add accessories to complete the look',
-        'Consider the occasion when styling'
+    // If no tips found, try to extract any reasonable sentences
+    if (tips.length === 0) {
+        const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 20 && s.trim().length < 150);
+        tips.push(...sentences.slice(0, 4));
+    }
+
+    return tips.length > 0 ? tips.slice(0, 4) : [
+        'Layer pieces to add depth and dimension to your outfit',
+        'Choose accessories that complement your personal style',
+        'Ensure proper fit for comfort and confidence',
+        'Consider the color harmony of your complete look'
     ];
 }
 

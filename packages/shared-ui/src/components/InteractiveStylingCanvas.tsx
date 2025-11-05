@@ -233,9 +233,9 @@ const InteractiveStylingCanvas: React.FC<InteractiveStylingCanvasProps> = ({
       setElementColors(prev => ({
         ...prev,
         [shirtId]: selectedColor
-    }));
+      }));
       onColorApplied?.(shirtId, selectedColor);
-  }
+    }
   };
 
   const [centerImageSrc, setCenterImageSrc] = useState('/assets/1Model.png');
@@ -322,7 +322,6 @@ const InteractiveStylingCanvas: React.FC<InteractiveStylingCanvasProps> = ({
       e.preventDefault();
       // Only run in browser environment
       if (typeof window === 'undefined' || !window.document) return;
-      isDraggingRef.current = true;
       activeShirt = document.getElementById(`shirt-${shirtId}`);
       if (!activeShirt || !centerImageRef.current) return;
 
@@ -417,6 +416,7 @@ const InteractiveStylingCanvas: React.FC<InteractiveStylingCanvasProps> = ({
       }
       const isMovingNow = Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2;
       if (isMovingNow && !isMoving) {
+        isDraggingRef.current = true;
         setShirtStates((prev: any) => ({ ...prev, [shirtIdMoving as string]: { ...prev[shirtIdMoving as string], isGrabbed: false, isDraggingRight: deltaX > 0, isDraggingLeft: deltaX < 0 } }));
         isMoving = true;
       } else if (isMoving && deltaX !== 0) {
@@ -583,7 +583,8 @@ const InteractiveStylingCanvas: React.FC<InteractiveStylingCanvasProps> = ({
         style={{
         top: state?.top,
         left: state?.left,
-        filter: appliedColor ? `sepia(1) hue-rotate(${getHueRotation(appliedColor)}) saturate(2)` : undefined
+        filter: appliedColor ? `hue-rotate(${getHueRotation(appliedColor)}) saturate(3) brightness(1.2)` : undefined,
+        transition: 'filter 0.3s ease-in-out'
         }}
         onClick={canApplyColor ? () => handleElementClick(shirt.id) : undefined}
         title={canApplyColor ? `Click to apply ${selectedColor}` : undefined}

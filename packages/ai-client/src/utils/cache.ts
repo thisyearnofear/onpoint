@@ -107,3 +107,4 @@ export const styleSuggestionsCache = new AIResultCache<any>('style_suggestions',
 export const personalityCritiqueCache = new AIResultCache<string>('personality_critique', 6 * 60 * 60 * 1000); // 6 hours
 export const critiqueModeCache = new AIResultCache<string>('critique_mode', 4 * 60 * 60 * 1000); // 4 hours
 export const fashionAnalysisCache = new AIResultCache<any>('fashion_analysis', 24 * 60 * 60 * 1000); // 24 hours
+export const colorPaletteCache = new AIResultCache<any>('color_palette', 24 * 60 * 60 * 1000); // 24 hours

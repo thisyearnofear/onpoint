@@ -185,22 +185,20 @@ export default function StylePage() {
 
         {/* AI Color Palette Display */}
         {palette && (
-        <div className="elegant-shadow border-0 rounded-lg bg-card p-4 mb-6 max-w-2xl mx-auto">
-        <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
+        <div className="elegant-shadow border-0 rounded-lg bg-card p-4 mb-6 max-w-2xl mx-auto text-center">
+        <div className="flex items-center justify-center gap-2 mb-3">
         <Palette className="h-4 w-4 text-primary" />
           <span className="font-medium">Color Palette</span>
         </div>
-        <span className="text-xs text-muted-foreground">Click to apply</span>
-        </div>
+        <span className="text-xs text-muted-foreground block mb-3">Click to apply</span>
 
         <p className="text-sm text-muted-foreground mb-3">{palette.description}</p>
 
-        <div className="flex flex-wrap gap-3 mb-3">
-              {palette.colors.map((color, index) => {
-            const isSelected = selectedCanvasColor === (typeof color === 'string' ? color : color.hex);
-          const hexValue = typeof color === 'string' ? color : color.hex;
-        const nameValue = typeof color === 'string' ? '' : color.name;
+        <div className="flex flex-wrap justify-center gap-3 mb-3">
+              {palette.colors.map((color: any, index: number) => {
+            const hexValue = typeof color === 'string' ? color : color.hex;
+            const nameValue = typeof color === 'string' ? '' : color.name;
+            const isSelected = selectedCanvasColor === hexValue;
 
         return (
         <div key={index} className="flex flex-col items-center cursor-pointer group">
@@ -232,11 +230,11 @@ export default function StylePage() {
             </div>
 
         {/* Compact Styling Tips */}
-        {palette.stylingTips && palette.stylingTips.length > 0 && (
-        <div className="text-xs text-muted-foreground space-y-1">
-        {palette.stylingTips.slice(0, 2).map((tip, index) => (
-        <div key={index} className="flex items-start gap-1">
-        <span className="text-primary mt-1">•</span>
+        {(palette as any).stylingTips && (palette as any).stylingTips.length > 0 && (
+        <div className="text-xs text-muted-foreground space-y-1 text-center">
+        {(palette as any).stylingTips.slice(0, 2).map((tip: string, index: number) => (
+        <div key={index} className="flex items-center justify-center gap-1">
+        <span className="text-primary">•</span>
         <span>{tip}</span>
         </div>
         ))}

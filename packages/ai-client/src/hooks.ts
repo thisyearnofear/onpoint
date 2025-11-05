@@ -125,28 +125,7 @@ export const useVirtualTryOn = () => {
 
 
 
-  // Get cached analysis if available using shared cache utility
-  const getCachedAnalysis = React.useCallback(async (file: File): Promise<VirtualTryOnAnalysis | null> => {
-    try {
-      const { virtualTryOnCache } = await import('./utils/cache');
-      const cacheKey = virtualTryOnCache.generateFileKey(file);
-      return await virtualTryOnCache.get(cacheKey);
-    } catch (err) {
-      console.warn("Failed to retrieve cached analysis:", err);
-      return null;
-    }
-  }, []);
-
-  // Cache analysis result using shared cache utility
-  const cacheAnalysis = React.useCallback(async (file: File, analysis: VirtualTryOnAnalysis) => {
-    try {
-      const { virtualTryOnCache } = await import('./utils/cache');
-      const cacheKey = virtualTryOnCache.generateFileKey(file);
-      await virtualTryOnCache.set(cacheKey, analysis);
-    } catch (err) {
-      console.warn("Failed to cache analysis:", err);
-    }
-  }, []);
+  // Cache functionality removed to resolve import issues - functionality works without caching
 
   const analyzePhoto = React.useCallback(
     async (imageFile: File): Promise<VirtualTryOnAnalysis | null> => {
@@ -154,16 +133,7 @@ export const useVirtualTryOn = () => {
       setError(null);
 
       try {
-        // Check cache first
-        const cachedAnalysis = await getCachedAnalysis(imageFile);
-        if (cachedAnalysis) {
-          setAnalysis(cachedAnalysis);
-          setLoading(false);
-          return cachedAnalysis;
-        }
-
-        // For now, we'll simulate photo analysis with a description
-        // In a real implementation, you'd process the image file
+        // Direct API call without caching to avoid import issues
         const description = imageFile.name.includes('body-scan')
           ? 'Body scan analysis for virtual try-on measurements'
           : 'Photo analysis for virtual try-on fitting';
@@ -190,7 +160,6 @@ export const useVirtualTryOn = () => {
         };
 
         setAnalysis(analysis);
-        await cacheAnalysis(imageFile, analysis);
         return analysis;
       } catch (err) {
         setError(
@@ -202,7 +171,7 @@ export const useVirtualTryOn = () => {
         setLoading(false);
       }
     },
-    [getCachedAnalysis, cacheAnalysis],
+    [],
   );
 
   const enhanceTryOn = React.useCallback(
@@ -369,18 +338,24 @@ export const useAIColorPalette = () => {
   } | null>(null);
   const aiClient = useAIClient();
 
+  // Cache functionality removed to resolve import issues
+
   const generatePalette = React.useCallback(
     async (description: string, style: string = 'modern', season: string = 'all-season'): Promise<boolean> => {
       setLoading(true);
       setError(null);
 
-      // Add timeout to prevent infinite loading
-      const timeoutId = setTimeout(() => {
-        setLoading(false);
-        setError('Request timed out. Please try again.');
-      }, 30000); // 30 second timeout
+      let timeoutId: NodeJS.Timeout | undefined;
 
       try {
+        // Direct API call without caching to avoid import issues
+
+        // Add timeout to prevent infinite loading
+        timeoutId = setTimeout(() => {
+          setLoading(false);
+          setError('Request timed out. Please try again.');
+        }, 30000); // 30 second timeout
+
         const response = await fetch('/api/ai/color-palette', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -392,18 +367,22 @@ export const useAIColorPalette = () => {
         }
 
         const paletteData = await response.json();
-        setPalette({
+        const paletteResult = {
           colors: paletteData.colors.map((c: any) => c.hex),
           colorDetails: paletteData.colors,
           description: paletteData.description,
           style: paletteData.style,
           season: paletteData.season,
           stylingSuggestions: paletteData.stylingSuggestions
-        });
+        };
+
+        setPalette(paletteResult);
         clearTimeout(timeoutId);
         return true;
       } catch (err) {
-        clearTimeout(timeoutId);
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
         setError(
           `Failed to generate color palette: ${err instanceof Error ? err.message : "Unknown error"}`,
         );
@@ -481,50 +460,57 @@ export const useAIStyleSuggestions = () => {
 
 // Virtual Try-On Enhancement Hook for Style Page
 export const useAIVirtualTryOnEnhancement = () => {
-const [loading, setLoading] = React.useState(false);
-const [error, setError] = React.useState<string | null>(null);
-const [enhancement, setEnhancement] = React.useState<{ enhancedOutfit: Array<{ name: string, description: string, image?: string }>, stylingTips: string[], generatedImage?: string } | null>(null);
-const aiClient = useAIClient();
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [enhancement, setEnhancement] = React.useState<{ enhancedOutfit: Array<{ name: string, description: string, image?: string }>, stylingTips: string[], generatedImage?: string } | null>(null);
+  const aiClient = useAIClient();
 
-const enhanceTryOn = React.useCallback(
-async (outfitItems: Array<{ name: string, description: string }>): Promise<boolean> => {
-setLoading(true);
-setError(null);
+  const enhanceTryOn = React.useCallback(
+    async (outfitItems: Array<{ name: string, description: string }>, photoData?: string, personDescription?: string): Promise<boolean> => {
+      setLoading(true);
+      setError(null);
 
-try {
-const veniceProvider = aiClient.getVeniceProvider();
-if (!veniceProvider) {
-  throw new Error("Venice provider not available. Please configure VENICE_API_KEY.");
-}
+      try {
+        // Call the server API for outfit image generation
+        const response = await fetch('/api/ai/virtual-tryon', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'generate-outfit-image',
+            data: {
+              items: outfitItems,
+              photoData: photoData,
+              personDescription: personDescription
+            }
+          })
+        });
 
-// Create a detailed prompt for outfit generation
-const outfitDescription = outfitItems.map(item => `${item.name}: ${item.description}`).join(', ');
-const prompt = `Create a high-quality fashion photograph of a person wearing: ${outfitDescription}. The image should be a full-body portrait, professional fashion photography style, clean background, realistic lighting, detailed textures, modern fashion aesthetic.`;
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to generate outfit image');
+        }
 
-console.log("Generating outfit image with prompt:", prompt);
+        const result = await response.json();
 
-// Generate the outfit image using Venice
-const generatedImageBase64 = await veniceProvider.generateOutfitImage(prompt);
-
-setEnhancement({
-enhancedOutfit: outfitItems,
-  stylingTips: [
-    'Mix textures for visual interest - pair smooth fabrics with textured pieces',
-    'Balance proportions - if wearing oversized top, pair with fitted bottoms',
-      'Add a layering piece to create depth and versatility',
-    'Consider the occasion when selecting accessories'
-    ],
-      generatedImage: generatedImageBase64
-    });
+        setEnhancement({
+          enhancedOutfit: result.enhancedOutfit || outfitItems,
+          stylingTips: result.stylingTips || [
+            'Mix textures for visual interest - pair smooth fabrics with textured pieces',
+            'Balance proportions - if wearing oversized top, pair with fitted bottoms',
+            'Add a layering piece to create depth and versatility',
+            'Consider the occasion when selecting accessories'
+          ],
+          generatedImage: result.generatedImage
+        });
 
         return true;
-    } catch (err) {
-    setError(
-      `Failed to enhance try-on: ${err instanceof Error ? err.message : "Unknown error"}`,
-    );
-    console.error("Try-on enhancement error:", err);
-    return false;
-    } finally {
+      } catch (err) {
+        setError(
+          `Failed to enhance try-on: ${err instanceof Error ? err.message : "Unknown error"}`,
+        );
+        console.error("Try-on enhancement error:", err);
+        return false;
+      } finally {
         setLoading(false);
       }
     },

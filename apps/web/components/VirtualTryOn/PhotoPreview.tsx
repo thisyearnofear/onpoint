@@ -19,8 +19,8 @@ export function PhotoPreview({ previewUrl, loading, analysis, onReset, onReanaly
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+      <CardHeader className="text-center">
+        <CardTitle className="flex items-center justify-center gap-2">
           <Camera className="h-5 w-5" />
           Selected Photo
         </CardTitle>
