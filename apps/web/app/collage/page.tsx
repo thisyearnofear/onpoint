@@ -32,11 +32,12 @@ interface CanvasItem extends CollageItem {
 function DraggableLibraryItem({ item, onAdd }: { item: CollageItem; onAdd: (item: CollageItem) => void }) {
   return (
     <div className="relative group border-2 border-dashed border-muted-foreground/20 hover:border-primary/30 transition-colors rounded-lg p-4 flex flex-col items-center justify-center min-h-[120px]">
-      <div className="relative w-full h-full">
+      <div className="relative w-full h-32">
         <Image
           src={item.imageUrl || '/assets/placeholder.png'}
           alt={item.name || 'Fashion inspiration'}
           fill
+          sizes="320px"
           className="object-contain rounded"
           loading="lazy"
         />
