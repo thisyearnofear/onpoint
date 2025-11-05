@@ -45,7 +45,7 @@ const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
 const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('real');
 
   // Use the enhancement hook
-  const { enhancement, enhanceTryOn } = useAIVirtualTryOnEnhancement();
+  const { enhancement, enhanceTryOn, loading: enhancementLoading, error: enhancementError } = useAIVirtualTryOnEnhancement();
   const [showCritiqueModeSelection, setShowCritiqueModeSelection] = useState(false);
   const [critiqueResult, setCritiqueResult] = useState<{ persona: StylistPersona; critique: string; mode: CritiqueMode } | null>(null);
   // const [showCamera, setShowCamera] = useState(false); // Not currently used
@@ -55,7 +55,6 @@ const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('
     loading,
     error,
     analyzePhoto,
-    enhanceTryOn,
     clearAnalysis,
     clearError,
   } = useVirtualTryOn();
