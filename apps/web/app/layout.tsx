@@ -54,7 +54,10 @@ export default function RootLayout({
         {/* Backward compatibility with legacy Frames */}
         <meta name="fc:frame" content={JSON.stringify(embed)} />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        suppressHydrationWarning
+      >
         <Providers>
           {children}
         </Providers>

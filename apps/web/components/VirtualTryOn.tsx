@@ -5,7 +5,7 @@ import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { Sparkles, MessageCircle } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useVirtualTryOn } from "@repo/ai-client";
+import { useVirtualTryOn, useAIVirtualTryOnEnhancement } from "@repo/ai-client";
 import { useReplicateVirtualTryOn } from "@repo/ai-client";
 import type { VirtualTryOnAnalysis, StylistPersona, CritiqueMode } from "@repo/ai-client";
 
@@ -28,21 +28,24 @@ import {
 
 
 export function VirtualTryOn() {
-  const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [scanComplete, setScanComplete] = useState(false);
-  const [outfitItems] = useState([
-    { name: "Classic Blazer", description: "Navy wool blazer with gold buttons, structured shoulders", type: "outerwear" },
-    { name: "Silk Blouse", description: "Cream silk button-up blouse with subtle pattern", type: "top" },
-    { name: "Tailored Trousers", description: "Black wool trousers with sharp creases and slim fit", type: "bottom" },
-  ]);
+const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
+const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+const [scanComplete, setScanComplete] = useState(false);
+const [outfitItems] = useState([
+{ name: "Classic Blazer", description: "Navy wool blazer with gold buttons, structured shoulders", type: "outerwear" },
+{ name: "Silk Blouse", description: "Cream silk button-up blouse with subtle pattern", type: "top" },
+{ name: "Tailored Trousers", description: "Black wool trousers with sharp creases and slim fit", type: "bottom" },
+]);
 
-  const [fashionAnalysis, setFashionAnalysis] = useState<any | null>(null);
-  const [showAnalysis, setShowAnalysis] = useState(false);
-  const [tryOnResult, setTryOnResult] = useState<any | null>(null);
-  const [showPersonalitySelection, setShowPersonalitySelection] = useState(false);
-  const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
-  const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('real');
+const [fashionAnalysis, setFashionAnalysis] = useState<any | null>(null);
+const [showAnalysis, setShowAnalysis] = useState(false);
+const [tryOnResult, setTryOnResult] = useState<any | null>(null);
+const [showPersonalitySelection, setShowPersonalitySelection] = useState(false);
+const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
+const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('real');
+
+  // Use the enhancement hook
+  const { enhancement, enhanceTryOn } = useAIVirtualTryOnEnhancement();
   const [showCritiqueModeSelection, setShowCritiqueModeSelection] = useState(false);
   const [critiqueResult, setCritiqueResult] = useState<{ persona: StylistPersona; critique: string; mode: CritiqueMode } | null>(null);
   // const [showCamera, setShowCamera] = useState(false); // Not currently used
@@ -133,9 +136,14 @@ export function VirtualTryOn() {
     const outfitId = `outfit-${Date.now()}`; // Generate unique outfit ID
     recordTryOn(outfitId);
 
-    const success = await enhanceTryOn(outfitItems);
-    if (success && enhancement?.generatedImage) {
-      // Set the try-on result to display the generated outfit image
+    // Start the enhancement process
+    await enhanceTryOn(outfitItems);
+  }, [analysis, enhanceTryOn, outfitItems, recordTryOn]);
+
+  // Watch for enhancement completion and set try-on result
+  React.useEffect(() => {
+    if (enhancement?.generatedImage) {
+      const outfitId = `outfit-${Date.now()}`;
       setTryOnResult({
         id: outfitId,
         image: enhancement.generatedImage,
@@ -144,7 +152,7 @@ export function VirtualTryOn() {
         timestamp: Date.now()
       });
     }
-  }, [analysis, enhanceTryOn, outfitItems, recordTryOn, enhancement]);
+  }, [enhancement]);
 
   // New function for fashion analysis
   const handleFashionAnalysis = useCallback(async () => {
