@@ -27,7 +27,7 @@ const ShirtsContainer = styled.div`
 
 const CenterImage = styled.img`
   position: absolute;
-  max-width: 25%;
+  max-width: 35%;
   height: auto;
   top: 50%;
   left: 50%;
@@ -53,20 +53,24 @@ const Shirt = styled.img.withConfig({
   transform-origin: center center;
   will-change: transform;
   cursor: grab;
+  z-index: 20;
 
   ${({ isGrabbed }) => isGrabbed && `
     transform: scale(1.05);
     filter: drop-shadow(0 5px 10px rgba(0,0,0,0.15));
+    z-index: 1000;
   `}
 
   ${({ isDraggingRight }) => isDraggingRight && `
     transform: perspective(500px) rotateY(-15deg) rotateX(5deg) scale(0.92, 0.98) skew(-5deg, 2deg);
     filter: drop-shadow(5px 5px 15px rgba(0,0,0,0.2));
+    z-index: 1000;
   `}
 
   ${({ isDraggingLeft }) => isDraggingLeft && `
     transform: perspective(500px) rotateY(15deg) rotateX(5deg) scale(0.92, 0.98) skew(5deg, -2deg);
     filter: drop-shadow(-5px 5px 15px rgba(0,0,0,0.2));
+    z-index: 1000;
   `}
 `;
 
@@ -137,6 +141,7 @@ const ResponsiveShirt = styled(Shirt)`
   @media (max-width: 767px) {
     max-width: 21%;
     transition: transform 0.2s ease-out;
+    z-index: 20;
   }
 `;
 
@@ -145,6 +150,13 @@ const ResponsiveCenterImage = styled(CenterImage)`
     max-width: 80%;
     top: 45%;
     left: 50%;
+    z-index: 10;
+  }
+  @media (max-width: 429px) {
+    max-width: 90%;
+    top: 45%;
+    left: 50%;
+    z-index: 10;
   }
 `;
 
@@ -233,6 +245,7 @@ const InteractiveStylingCanvas: React.FC<InteractiveStylingCanvasProps> = ({
     '2': { isGrabbed: false, isDraggingRight: false, isDraggingLeft: false, left: '80%', top: '45%' },
     '3': { isGrabbed: false, isDraggingRight: false, isDraggingLeft: false, left: '15%', top: '70%' },
   });
+  const pendingImageSrcRef = useRef<string | null>(null);
 
   const shirtsData: ShirtData[] = [
     { id: '1', productSrc: '/assets/1Product.png', modelSrc: '/assets/1Model.png', shirtName: 'Ratphex-T', modelSize: 'L', position: { top: '20%', left: '15%' } },
@@ -386,11 +399,13 @@ const InteractiveStylingCanvas: React.FC<InteractiveStylingCanvasProps> = ({
 
       const shirtRect = activeShirt.getBoundingClientRect();
       const centerImageRect = centerImageRef.current.getBoundingClientRect();
-      const collision = 
-        shirtRect.right >= centerImageRect.left &&
-        shirtRect.left <= centerImageRect.right &&
-        shirtRect.bottom >= centerImageRect.top &&
-        shirtRect.top <= centerImageRect.bottom;
+      const shirtCenterX = shirtRect.left + shirtRect.width / 2;
+      const shirtCenterY = shirtRect.top + shirtRect.height / 2;
+      const centerImageCenterX = centerImageRect.left + centerImageRect.width / 2;
+      const centerImageCenterY = centerImageRect.top + centerImageRect.height / 2;
+
+      const collision = Math.abs(shirtCenterX - centerImageCenterX) < centerImageRect.width * 0.4 &&
+                       Math.abs(shirtCenterY - centerImageCenterY) < centerImageRect.height * 0.4;
 
       if (collision && !isHoveringCenterImage) {
         const hoverSrc = originalCenterImageSrc.replace('Model.png', 'ModelHover.png');
@@ -428,22 +443,30 @@ const InteractiveStylingCanvas: React.FC<InteractiveStylingCanvasProps> = ({
       const shirtCenterX = shirtRect.left + shirtRect.width / 2;
       const shirtCenterY = shirtRect.top + shirtRect.height / 2;
 
-      const collision = 
-        shirtCenterX >= centerImageRect.left &&
-        shirtCenterX <= centerImageRect.right &&
-        shirtCenterY >= centerImageRect.top &&
-        shirtCenterY <= centerImageRect.bottom;
+      const centerImageCenterX = centerImageRect.left + centerImageRect.width / 2;
+      const centerImageCenterY = centerImageRect.top + centerImageRect.height / 2;
+
+      const collision = Math.abs(shirtCenterX - centerImageCenterX) < centerImageRect.width * 0.4 &&
+                       Math.abs(shirtCenterY - centerImageCenterY) < centerImageRect.height * 0.4;
 
       if (collision) {
         const shirtId = activeShirt.id.split('-')[1];
         const shirt = shirtsData.find(s => s.id === shirtId);
         if (shirt) {
-          setCenterImageSrc(shirt.modelSrc);
-          originalCenterImageSrc = shirt.modelSrc;
+          pendingImageSrcRef.current = shirt.modelSrc;
+          // Use setTimeout to avoid React state update during render
+          setTimeout(() => {
+            if (pendingImageSrcRef.current) {
+              setCenterImageSrc(pendingImageSrcRef.current);
+              originalCenterImageSrc = pendingImageSrcRef.current;
+              pendingImageSrcRef.current = null;
+            }
+          }, 0);
         }
         activeShirt.style.left = initialShirtPos.left;
         activeShirt.style.top = initialShirtPos.top;
         currentPos.x = parseInt(initialShirtPos.left) || 0;
+        currentPos.y = parseInt(initialShirtPos.top) || 0;
       } else {
         activeShirt.style.left = initialShirtPos.left;
         activeShirt.style.top = initialShirtPos.top;
@@ -490,23 +513,10 @@ const InteractiveStylingCanvas: React.FC<InteractiveStylingCanvasProps> = ({
     const handleResize = () => {
       // Only run in browser environment
       if (typeof window !== 'undefined' && window.document) {
-        document.querySelectorAll('.shirt').forEach((shirt) => {
-          (shirt as HTMLElement).style.left = '';
-          (shirt as HTMLElement).style.top = '';
-        });
+        // Don't reset positions on resize - let them stay where they are
+        // This prevents the shirts from jumping to center and then back
       }
-      setShirtStates((prev: any) => {
-        const newStates = { ...prev };
-        Object.keys(newStates).forEach(key => {
-          const shirtData = shirtsData.find(s => s.id === key);
-          if (shirtData) {
-            newStates[key].left = shirtData.position.left;
-            newStates[key].top = shirtData.position.top;
-          }
-        });
-        return newStates;
-        });
-        };
+    };
 
     // Only run in browser environment
     if (typeof window !== 'undefined' && window.addEventListener) {
