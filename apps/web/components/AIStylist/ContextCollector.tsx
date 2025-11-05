@@ -93,23 +93,23 @@ export function ContextCollector({
         </div>
 
         {/* Essential Fields - Compact Grid */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 text-center">
           {essentialFields.map((field) => {
             const Icon = field.icon;
             return (
-              <div key={field.id} className="space-y-1">
-                <div className="flex items-center gap-1">
-                  <Icon className="h-3 w-3 text-primary" />
-                  <label className="text-xs font-medium">{field.label}</label>
-                  {contextErrors[field.id] && <span className="text-xs text-destructive">*</span>}
+            <div key={field.id} className="space-y-1 text-center">
+                <div className="flex items-center justify-center gap-1">
+                <Icon className="h-3 w-3 text-primary" />
+                <label className="text-xs font-medium">{field.label}</label>
+                {contextErrors[field.id] && <span className="text-xs text-destructive">*</span>}
                 </div>
                 <Input
                   placeholder={field.placeholder}
                   value={contextData[field.id as keyof typeof contextData]}
                   onChange={(e) => handleContextChange(field.id, e.target.value)}
-                  className={`text-xs h-8 ${contextErrors[field.id] ? "border-destructive" : ""}`}
+                  className={`text-xs h-8 text-center ${contextErrors[field.id] ? "border-destructive" : ""}`}
                 />
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-1 justify-center">
                   {field.examples.slice(0, 2).map((example, idx) => (
                     <Button
                       key={idx}

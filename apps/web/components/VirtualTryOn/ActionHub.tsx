@@ -93,7 +93,6 @@ export function ActionHub({
           </div>
         ) : (
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <RefreshCw className="h-4 w-4 animate-spin" />
             <span>Choose your next step below</span>
           </div>
         )}
@@ -117,20 +116,20 @@ export function ActionHub({
                 </div>
               </div>
               <Button
-                className="fashion-gradient text-white px-6 py-2 w-full md:w-auto"
+                className="fashion-gradient text-white px-6 py-3 h-16 w-full md:w-auto"
                 onClick={onTryOnDesign}
                 disabled={loading || !analysis}
               >
                 {loading ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Processing...
-                  </>
+                  <div className="flex flex-col items-center gap-1">
+                    <RefreshCw className="h-5 w-5 animate-spin" />
+                    <span className="text-xs font-medium">Processing...</span>
+                  </div>
                 ) : (
-                  <>
-                    <Shirt className="h-4 w-4 mr-2" />
-                    Generate Outfit
-                  </>
+                  <div className="flex flex-col items-center gap-1">
+                    <Shirt className="h-5 w-5" />
+                    <span className="text-xs font-medium">Generate</span>
+                  </div>
                 )}
               </Button>
             </div>
@@ -151,10 +150,12 @@ export function ActionHub({
                 variant="outline"
                 onClick={onBodyScan}
                 disabled={loading || !selectedPhoto}
-                className="w-full md:w-auto"
+                className="h-16 w-full md:w-auto"
               >
-                <Sparkles className="h-4 w-4 mr-2" />
-                Start Scan
+                <div className="flex flex-col items-center gap-1">
+                  <Sparkles className="h-5 w-5" />
+                  <span className="text-xs font-medium">Scan</span>
+                </div>
               </Button>
             </div>
           </div>
@@ -174,9 +175,12 @@ export function ActionHub({
                 variant="outline"
                 onClick={onCritiqueModeSelection}
                 disabled={loading || !analysis}
-                className="w-full md:w-auto"
+                className="h-16 w-full md:w-auto"
               >
-                Choose Persona
+                <div className="flex flex-col items-center gap-1">
+                  <MessageCircle className="h-5 w-5" />
+                  <span className="text-xs font-medium">Persona</span>
+                </div>
               </Button>
             </div>
           </div>
@@ -196,9 +200,12 @@ export function ActionHub({
                 variant="outline"
                 onClick={onFashionAnalysis}
                 disabled={loading || !selectedPhoto}
-                className="w-full md:w-auto"
+                className="h-16 w-full md:w-auto"
               >
-                Analyze Photo
+                <div className="flex flex-col items-center gap-1">
+                  <Eye className="h-5 w-5" />
+                  <span className="text-xs font-medium">Analyze</span>
+                </div>
               </Button>
             </div>
           </div>
