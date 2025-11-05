@@ -1,8 +1,8 @@
 import React from "react";
 import { Palette, Sparkles, Camera, MessageCircle, Users } from "lucide-react";
 import { Button } from "@repo/ui/button";
-import Link from "next/link";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import Link from "next/link";
 import { MobileNavigation } from "@/components/mobile-navigation";
 import { DesignStudio } from "../components/DesignStudio";
 import { VirtualTryOn } from "../components/VirtualTryOn";
@@ -44,9 +44,106 @@ export default function Home() {
           </nav>
 
           <div className="flex items-center gap-4">
-            <MobileNavigation />
-            <FarcasterSignInButton />
-            <ConnectButton />
+          <MobileNavigation />
+          <FarcasterSignInButton />
+          <ConnectButton.Custom>
+              {({
+                account,
+                chain,
+                openAccountModal,
+                openChainModal,
+                openConnectModal,
+                authenticationStatus,
+                mounted,
+              }) => {
+                const ready = mounted && authenticationStatus !== 'loading';
+                const connected =
+                  ready &&
+                  account &&
+                  chain &&
+                  (!authenticationStatus ||
+                    authenticationStatus === 'authenticated');
+
+                return (
+                  <div
+                    {...(!ready && {
+                      'aria-hidden': true,
+                      'style': {
+                        opacity: 0,
+                        pointerEvents: 'none',
+                        userSelect: 'none',
+                      },
+                    })}
+                  >
+                    {(() => {
+                      if (!connected) {
+                        return (
+                          <Button
+                            onClick={openConnectModal}
+                            variant="outline"
+                            size="sm"
+                            className="hidden sm:flex items-center gap-2"
+                          >
+                            Connect Wallet
+                          </Button>
+                        );
+                      }
+
+                      return (
+                        <div className="flex items-center gap-2">
+                          {/* Network Selector - Hidden on mobile */}
+                          <Button
+                            onClick={openChainModal}
+                            variant="outline"
+                            size="sm"
+                            className="hidden sm:flex items-center gap-2 px-3 py-2 text-xs"
+                          >
+                            {chain.hasIcon && (
+                              <div
+                                style={{
+                                  background: chain.iconBackground,
+                                  width: 12,
+                                  height: 12,
+                                  borderRadius: 999,
+                                  overflow: 'hidden',
+                                  marginRight: 4,
+                                }}
+                              >
+                                {chain.iconUrl && (
+                                  <img
+                                    alt={chain.name ?? 'Chain icon'}
+                                    src={chain.iconUrl}
+                                    style={{ width: 12, height: 12 }}
+                                  />
+                                )}
+                              </div>
+                            )}
+                            {chain.name}
+                          </Button>
+
+                          {/* Account Button - Compact on mobile */}
+                          <Button
+                            onClick={openAccountModal}
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-2 px-3 py-2"
+                          >
+                            {account.displayBalance ? (
+                              <span className="hidden sm:inline text-xs text-muted-foreground">
+                                {account.displayBalance}
+                              </span>
+                            ) : null}
+                            <span className="text-sm font-medium">
+                              {account.displayName}
+                            </span>
+                          </Button>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                );
+              }}
+            </ConnectButton.Custom>
           </div>
         </div>
       </header>

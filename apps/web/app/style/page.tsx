@@ -3,6 +3,7 @@
 import React from 'react';
 import { Palette, Sparkles, ArrowLeft, Shirt, Wand2 } from 'lucide-react';
 import { Button } from '@repo/ui/button';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Input } from '@repo/ui/input';
 import InteractiveStylingCanvas from '@repo/shared-ui/components/InteractiveStylingCanvas';
 import { useAIColorPalette, useAIStyleSuggestions, useAIVirtualTryOnEnhancement } from '@onpoint/ai-client';
@@ -78,9 +79,102 @@ export default function StylePage() {
           </div>
 
           <div className="flex items-center gap-4">
-            <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
-              Connect Wallet
-            </Button>
+          <ConnectButton.Custom>
+          {({
+              account,
+                chain,
+                openAccountModal,
+                openChainModal,
+                openConnectModal,
+                authenticationStatus,
+                mounted,
+              }) => {
+                const ready = mounted && authenticationStatus !== 'loading';
+                const connected =
+                  ready &&
+                  account &&
+                  chain &&
+                  (!authenticationStatus ||
+                    authenticationStatus === 'authenticated');
+
+                return (
+                  <div
+                    {...(!ready && {
+                      'aria-hidden': true,
+                      'style': {
+                        opacity: 0,
+                        pointerEvents: 'none',
+                        userSelect: 'none',
+                      },
+                    })}
+                  >
+                    {(() => {
+                      if (!connected) {
+                        return (
+                          <Button
+                            onClick={openConnectModal}
+                            variant="outline"
+                            className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                          >
+                            Connect Wallet
+                          </Button>
+                        );
+                      }
+
+                      return (
+                        <div className="flex items-center gap-2">
+                          {/* Network Selector - Hidden on mobile */}
+                          <Button
+                            onClick={openChainModal}
+                            variant="outline"
+                            size="sm"
+                            className="hidden sm:flex items-center gap-2 px-3 py-2 text-xs"
+                          >
+                            {chain.hasIcon && (
+                              <div
+                                style={{
+                                  background: chain.iconBackground,
+                                  width: 12,
+                                  height: 12,
+                                  borderRadius: 999,
+                                  overflow: 'hidden',
+                                  marginRight: 4,
+                                }}
+                              >
+                                {chain.iconUrl && (
+                                  <img
+                                    alt={chain.name ?? 'Chain icon'}
+                                    src={chain.iconUrl}
+                                    style={{ width: 12, height: 12 }}
+                                  />
+                                )}
+                              </div>
+                            )}
+                            {chain.name}
+                          </Button>
+
+                          {/* Account Button - Compact on mobile */}
+                          <Button
+                            onClick={openAccountModal}
+                            variant="outline"
+                            className="flex items-center gap-2 px-3 py-2"
+                          >
+                            {account.displayBalance ? (
+                              <span className="hidden sm:inline text-xs text-muted-foreground">
+                                {account.displayBalance}
+                              </span>
+                            ) : null}
+                            <span className="text-sm font-medium">
+                              {account.displayName}
+                            </span>
+                          </Button>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                );
+              }}
+            </ConnectButton.Custom>
           </div>
         </div>
       </header>
