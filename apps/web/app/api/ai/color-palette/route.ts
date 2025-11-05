@@ -12,20 +12,19 @@ export async function POST(request: NextRequest) {
         }
 
         let result: string | undefined;
-        const enhancedPrompt = `As a professional color consultant and fashion stylist, create a cohesive color palette for: "${description}".
+        const enhancedPrompt = `Create a modern ${style} color palette for: "${description}" (${season} season).
 
-Style preference: ${style}
-Season consideration: ${season}
+Return ONLY a JSON object with this exact format:
+{
+  "colors": [
+    {"name": "Color Name", "hex": "#HEXCODE", "description": "Brief reason"},
+    {"name": "Color Name", "hex": "#HEXCODE", "description": "Brief reason"}
+  ],
+  "description": "One sentence palette description",
+  "stylingTips": ["Tip 1", "Tip 2", "Tip 3"]
+}
 
-Provide:
-1. 5-7 specific colors with exact names (like "Deep Navy", "Warm Ivory", "Sage Green")
-2. Hex color codes for each color (e.g., #1A365D)
-3. Brief description of why each color works in this palette
-4. How the colors complement each other
-5. Styling suggestions for using these colors together
-6. Occasion suitability (casual, formal, versatile)
-
-Format your response clearly with color names, hex codes, and explanations.`;
+Use 5-6 complementary colors. Be concise.`;
 
         const modelChoice = model as ('pro' | 'flash' | 'flash-lite' | undefined);
         const { text, usedProvider } = await generateText({
@@ -39,8 +38,20 @@ Format your response clearly with color names, hex codes, and explanations.`;
         });
         result = text;
 
-        // Parse the response to extract color data
-        const paletteData = parseColorPaletteResponse(result || '', description, style, season);
+        // Parse the JSON response
+        let paletteData;
+        try {
+            const jsonMatch = result?.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                paletteData = JSON.parse(jsonMatch[0]);
+            } else {
+                throw new Error('No JSON found in response');
+            }
+        } catch (parseError) {
+            console.error('JSON parse error:', parseError);
+            // Fallback to old parsing method
+            paletteData = parseColorPaletteResponse(result || '', description, style, season);
+        }
 
         return NextResponse.json({
             ...paletteData,

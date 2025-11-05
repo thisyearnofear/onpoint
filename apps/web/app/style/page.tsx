@@ -9,7 +9,7 @@ import { useAIColorPalette, useAIStyleSuggestions, useAIVirtualTryOnEnhancement 
 import Link from 'next/link';
 
 export default function StylePage() {
-  const { palette, loading: paletteLoading, generatePalette } = useAIColorPalette();
+  const { palette, loading: paletteLoading, error: paletteError, generatePalette, clearError } = useAIColorPalette();
   const { suggestions } = useAIStyleSuggestions();
   const { enhancement, loading: enhancementLoading, enhanceTryOn } = useAIVirtualTryOnEnhancement();
 
@@ -120,7 +120,10 @@ export default function StylePage() {
         <Input
           type="text"
           value={palettePrompt}
-          onChange={(e) => setPalettePrompt(e.target.value)}
+          onChange={(e) => {
+            setPalettePrompt(e.target.value);
+            if (paletteError) clearError(); // Clear error when user types
+          }}
           placeholder="e.g., 'Summer beach outfit', 'Professional business attire', 'Evening cocktail dress'..."
             className="text-sm"
             />
@@ -129,14 +132,21 @@ export default function StylePage() {
             </p>
           </div>
         <Button
-          onClick={handleColorPalette}
-          variant="outline"
-          className="flex items-center gap-2 w-full"
-            disabled={paletteLoading}
+        onClick={handleColorPalette}
+        variant="outline"
+        className="flex items-center gap-2 w-full"
+        disabled={paletteLoading}
         >
-          <Palette className="h-4 w-4" />
-            {paletteLoading ? 'Generating Palette...' : 'Generate Color Palette'}
-            </Button>
+        <Palette className="h-4 w-4" />
+        {paletteLoading ? (
+            <>
+                <div className="animate-spin rounded-full h-3 w-3 border border-current border-t-transparent" />
+                Generating...
+              </>
+            ) : (
+              'Generate Palette'
+            )}
+          </Button>
           </div>
 
           {/* Quick Presets */}
@@ -167,75 +177,73 @@ export default function StylePage() {
         </Button>
         </div>
 
+        {/* Error Display */}
+        {paletteError && (
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 mb-4 max-w-2xl mx-auto">
+            <p className="text-sm text-destructive">{paletteError}</p>
+          </div>
+        )}
+
         {/* AI Color Palette Display */}
         {palette && (
-        <div className="elegant-shadow border-0 rounded-lg bg-card p-6 mb-8 max-w-4xl mx-auto">
-        <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-        <Palette className="h-5 w-5 text-primary" />
+        <div className="elegant-shadow border-0 rounded-lg bg-card p-4 mb-6 max-w-2xl mx-auto">
+        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+        <Palette className="h-4 w-4 text-primary" />
+          <span className="font-medium">Color Palette</span>
         </div>
-        <div className="flex-1">
-            <h3 className="text-xl font-semibold">AI Generated Color Palette</h3>
-            <p className="text-sm text-muted-foreground">Click colors below to apply them to the canvas elements</p>
-          </div>
+        <span className="text-xs text-muted-foreground">Click to apply</span>
         </div>
 
-        <p className="text-muted-foreground mb-4">{palette.description}</p>
+        <p className="text-sm text-muted-foreground mb-3">{palette.description}</p>
 
-        <div className="flex flex-wrap gap-4 mb-4">
-        {palette.colors.map((color, index) => {
-        const isSelected = selectedCanvasColor === color;
+        <div className="flex flex-wrap gap-3 mb-3">
+              {palette.colors.map((color, index) => {
+            const isSelected = selectedCanvasColor === (typeof color === 'string' ? color : color.hex);
+          const hexValue = typeof color === 'string' ? color : color.hex;
+        const nameValue = typeof color === 'string' ? '' : color.name;
+
         return (
-        <div key={index} className="flex flex-col items-center group cursor-pointer">
+        <div key={index} className="flex flex-col items-center cursor-pointer group">
         <div
-          className={`w-16 h-16 rounded-lg border-2 shadow-sm transition-all duration-200 ${
-              isSelected
-                ? 'border-primary ring-2 ring-primary/20 scale-110'
-                : 'border-muted-foreground/20 group-hover:border-primary/50 group-hover:shadow-md'
-          }`}
-        style={{ backgroundColor: color }}
-          onClick={() => setSelectedCanvasColor(isSelected ? undefined : color)}
-            title={isSelected ? `Selected: ${color} - Click to deselect` : `Click to select ${color} for canvas`}
-            />
-              <span className={`text-xs mt-2 font-mono transition-colors ${
-                  isSelected ? 'text-primary font-semibold' : 'text-muted-foreground group-hover:text-primary'
-                    }`}>
-                      {color}
-                    </span>
-                    {palette.colorDetails && palette.colorDetails[index] && (
-                      <span className={`text-xs mt-1 max-w-[80px] text-center leading-tight ${
-                        isSelected ? 'text-primary' : 'text-muted-foreground'
-                      }`}>
-                        {palette.colorDetails[index].name}
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Styling Suggestions */}
-            {palette.stylingSuggestions && palette.stylingSuggestions.length > 0 && (
-              <div className="border-t pt-4">
-                <h4 className="font-medium mb-3">💡 Styling Tips:</h4>
-                <ul className="space-y-2">
-                  {palette.stylingSuggestions.slice(0, 3).map((tip, index) => (
-                    <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
-                      <span className="text-primary mt-1">•</span>
-                      {tip}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Canvas Integration Notice */}
-            <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-dashed border-muted-foreground/30">
-              <p className="text-sm text-muted-foreground text-center">
-                🎨 <strong>Pro Tip:</strong> Click on elements in the canvas below to change their colors using your new palette!
-              </p>
-            </div>
+        className={`w-12 h-12 rounded-md border-2 transition-all duration-200 ${
+        isSelected
+        ? 'border-primary ring-2 ring-primary/20 scale-110'
+            : 'border-muted-foreground/20 group-hover:border-primary/50'
+        }`}
+        style={{ backgroundColor: hexValue }}
+        onClick={() => setSelectedCanvasColor(isSelected ? undefined : hexValue)}
+          title={isSelected ? `Selected: ${hexValue}` : `Click to select ${hexValue}`}
+        />
+        <span className={`text-xs mt-1 font-mono transition-colors ${
+          isSelected ? 'text-primary font-medium' : 'text-muted-foreground'
+        }`}>
+          {hexValue}
+        </span>
+        {nameValue && (
+        <span className={`text-xs max-w-[60px] text-center leading-tight ${
+          isSelected ? 'text-primary' : 'text-muted-foreground'
+        }`}>
+          {nameValue}
+          </span>
+          )}
           </div>
+          );
+          })}
+            </div>
+
+        {/* Compact Styling Tips */}
+        {palette.stylingTips && palette.stylingTips.length > 0 && (
+        <div className="text-xs text-muted-foreground space-y-1">
+        {palette.stylingTips.slice(0, 2).map((tip, index) => (
+        <div key={index} className="flex items-start gap-1">
+        <span className="text-primary mt-1">•</span>
+        <span>{tip}</span>
+        </div>
+        ))}
+        </div>
+        )}
+        </div>
         )}
 
         {/* AI Style Suggestions Display */}

@@ -374,6 +374,12 @@ export const useAIColorPalette = () => {
       setLoading(true);
       setError(null);
 
+      // Add timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        setLoading(false);
+        setError('Request timed out. Please try again.');
+      }, 30000); // 30 second timeout
+
       try {
         const response = await fetch('/api/ai/color-palette', {
           method: 'POST',
@@ -394,14 +400,17 @@ export const useAIColorPalette = () => {
           season: paletteData.season,
           stylingSuggestions: paletteData.stylingSuggestions
         });
+        clearTimeout(timeoutId);
         return true;
       } catch (err) {
+        clearTimeout(timeoutId);
         setError(
           `Failed to generate color palette: ${err instanceof Error ? err.message : "Unknown error"}`,
         );
         console.error("Color palette error:", err);
         return false;
       } finally {
+        // Ensure loading state is always cleared
         setLoading(false);
       }
     },
