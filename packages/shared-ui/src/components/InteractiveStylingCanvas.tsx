@@ -169,10 +169,59 @@ interface ShirtData {
   position: { top: string; left: string };
 }
 
-const InteractiveStylingCanvas: React.FC = () => {
+interface InteractiveStylingCanvasProps {
+  selectedColor?: string;
+  onColorApplied?: (elementId: string, color: string) => void;
+}
+
+// Helper function to convert hex color to hue rotation for CSS filter
+const getHueRotation = (hexColor: string): string => {
+  // Convert hex to RGB
+  const r = parseInt(hexColor.slice(1, 3), 16);
+  const g = parseInt(hexColor.slice(3, 5), 16);
+  const b = parseInt(hexColor.slice(5, 7), 16);
+
+  // Convert RGB to HSL to get hue
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+
+  if (max === min) {
+    h = 0; // achromatic
+  } else {
+    const d = max - min;
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+
+  return `${Math.round(h * 360)}deg`;
+};
+
+const InteractiveStylingCanvas: React.FC<InteractiveStylingCanvasProps> = ({
+  selectedColor,
+  onColorApplied
+}) => {
   const shirtsContainerRef = useRef<HTMLDivElement>(null);
   const centerImageRef = useRef<HTMLImageElement>(null);
   const infoTooltipRef = useRef<HTMLSpanElement>(null);
+
+  // State for element colors
+  const [elementColors, setElementColors] = useState<Record<string, string>>({});
+
+  // Handle color application to elements
+  const handleElementClick = (shirtId: string) => {
+    if (selectedColor) {
+      setElementColors(prev => ({
+        ...prev,
+        [shirtId]: selectedColor
+      }));
+      onColorApplied?.(shirtId, selectedColor);
+    }
+  };
 
   const [centerImageSrc, setCenterImageSrc] = useState('/assets/1Model.png');
   const [tooltipVisible, setTooltipVisible] = useState(false);
@@ -497,22 +546,40 @@ const InteractiveStylingCanvas: React.FC = () => {
     <ResponsiveContainer>
       <ShirtsContainer ref={shirtsContainerRef}>
         {shirtsData.map(shirt => {
-          const state = shirtStates[shirt.id];
-          return (
-            <ResponsiveShirt
-              key={shirt.id}
-              id={`shirt-${shirt.id}`}
-              src={shirt.productSrc}
-              alt={shirt.shirtName}
-              data-mouse-src={shirt.modelSrc}
-              data-shirt-name={shirt.shirtName}
+        const state = shirtStates[shirt.id];
+        const appliedColor = elementColors[shirt.id];
+        const canApplyColor = selectedColor && !state?.isGrabbed;
+        return (
+        <div
+        key={shirt.id}
+        className={`relative ${canApplyColor ? 'cursor-pointer hover:ring-2 hover:ring-primary/50 rounded' : ''}`}
+        onClick={() => handleElementClick(shirt.id)}
+        title={canApplyColor ? `Click to apply ${selectedColor}` : undefined}
+        >
+        <ResponsiveShirt
+          id={`shirt-${shirt.id}`}
+          src={shirt.productSrc}
+          alt={shirt.shirtName}
+          data-mouse-src={shirt.modelSrc}
+            data-shirt-name={shirt.shirtName}
               data-model-size={shirt.modelSize}
-              className="shirt"
-              isGrabbed={state?.isGrabbed}
-              isDraggingRight={state?.isDraggingRight}
-              isDraggingLeft={state?.isDraggingLeft}
-              style={{ top: state?.top, left: state?.left }}
-            />
+                className={`shirt transition-all duration-200 ${canApplyColor ? 'hover:scale-105' : ''}`}
+                isGrabbed={state?.isGrabbed}
+                isDraggingRight={state?.isDraggingRight}
+                isDraggingLeft={state?.isDraggingLeft}
+                style={{
+                  top: state?.top,
+                  left: state?.left,
+                  filter: appliedColor ? `sepia(1) hue-rotate(${getHueRotation(appliedColor)}) saturate(2)` : undefined
+                }}
+              />
+              {appliedColor && (
+                <div
+                  className="absolute inset-0 pointer-events-none rounded opacity-20"
+                  style={{ backgroundColor: appliedColor }}
+                />
+              )}
+            </div>
           );
         })}
         <ResponsiveCenterImage ref={centerImageRef} id="centerImage" src={centerImageSrc} alt="Model wearing Product" />

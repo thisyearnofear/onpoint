@@ -14,6 +14,7 @@ export default function StylePage() {
   const { enhancement, loading: enhancementLoading, enhanceTryOn } = useAIVirtualTryOnEnhancement();
 
   const [palettePrompt, setPalettePrompt] = React.useState('Fashion outfit with streetwear elements');
+  const [selectedCanvasColor, setSelectedCanvasColor] = React.useState<string | undefined>();
 
   const palettePresets = [
     'Fashion outfit with streetwear elements',
@@ -115,13 +116,18 @@ export default function StylePage() {
         {/* Color Palette Input and Button */}
         <div className="flex flex-col gap-3 min-w-[300px]">
         <div className="flex flex-col gap-2">
+        <div className="space-y-2">
         <Input
           type="text"
           value={palettePrompt}
           onChange={(e) => setPalettePrompt(e.target.value)}
-          placeholder="Describe your outfit or style..."
+          placeholder="e.g., 'Summer beach outfit', 'Professional business attire', 'Evening cocktail dress'..."
             className="text-sm"
-          />
+            />
+            <p className="text-xs text-muted-foreground">
+              💡 Try: occasion + style + mood (e.g., "casual weekend outfit", "formal wedding colors", "minimalist office wear")
+            </p>
+          </div>
         <Button
           onClick={handleColorPalette}
           variant="outline"
@@ -163,26 +169,71 @@ export default function StylePage() {
 
         {/* AI Color Palette Display */}
         {palette && (
-          <div className="elegant-shadow border-0 rounded-lg bg-card p-6 mb-8 max-w-4xl mx-auto">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <Palette className="h-5 w-5 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold">AI Generated Color Palette</h3>
+        <div className="elegant-shadow border-0 rounded-lg bg-card p-6 mb-8 max-w-4xl mx-auto">
+        <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+        <Palette className="h-5 w-5 text-primary" />
+        </div>
+        <div className="flex-1">
+            <h3 className="text-xl font-semibold">AI Generated Color Palette</h3>
+            <p className="text-sm text-muted-foreground">Click colors below to apply them to the canvas elements</p>
+          </div>
+        </div>
+
+        <p className="text-muted-foreground mb-4">{palette.description}</p>
+
+        <div className="flex flex-wrap gap-4 mb-4">
+        {palette.colors.map((color, index) => {
+        const isSelected = selectedCanvasColor === color;
+        return (
+        <div key={index} className="flex flex-col items-center group cursor-pointer">
+        <div
+          className={`w-16 h-16 rounded-lg border-2 shadow-sm transition-all duration-200 ${
+              isSelected
+                ? 'border-primary ring-2 ring-primary/20 scale-110'
+                : 'border-muted-foreground/20 group-hover:border-primary/50 group-hover:shadow-md'
+          }`}
+        style={{ backgroundColor: color }}
+          onClick={() => setSelectedCanvasColor(isSelected ? undefined : color)}
+            title={isSelected ? `Selected: ${color} - Click to deselect` : `Click to select ${color} for canvas`}
+            />
+              <span className={`text-xs mt-2 font-mono transition-colors ${
+                  isSelected ? 'text-primary font-semibold' : 'text-muted-foreground group-hover:text-primary'
+                    }`}>
+                      {color}
+                    </span>
+                    {palette.colorDetails && palette.colorDetails[index] && (
+                      <span className={`text-xs mt-1 max-w-[80px] text-center leading-tight ${
+                        isSelected ? 'text-primary' : 'text-muted-foreground'
+                      }`}>
+                        {palette.colorDetails[index].name}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-            
-            <p className="text-muted-foreground mb-4">{palette.description}</p>
-            
-            <div className="flex flex-wrap gap-4">
-              {palette.colors.map((color, index) => (
-                <div key={index} className="flex flex-col items-center">
-                  <div 
-                    className="w-16 h-16 rounded-lg border border-muted-foreground/20 shadow-sm" 
-                    style={{ backgroundColor: color }}
-                  />
-                  <span className="text-xs text-muted-foreground mt-2 font-mono">{color}</span>
-                </div>
-              ))}
+
+            {/* Styling Suggestions */}
+            {palette.stylingSuggestions && palette.stylingSuggestions.length > 0 && (
+              <div className="border-t pt-4">
+                <h4 className="font-medium mb-3">💡 Styling Tips:</h4>
+                <ul className="space-y-2">
+                  {palette.stylingSuggestions.slice(0, 3).map((tip, index) => (
+                    <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
+                      <span className="text-primary mt-1">•</span>
+                      {tip}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Canvas Integration Notice */}
+            <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-dashed border-muted-foreground/30">
+              <p className="text-sm text-muted-foreground text-center">
+                🎨 <strong>Pro Tip:</strong> Click on elements in the canvas below to change their colors using your new palette!
+              </p>
             </div>
           </div>
         )}
@@ -261,7 +312,13 @@ export default function StylePage() {
 
         {/* Interactive Canvas */}
         <div className="elegant-shadow border-0 rounded-lg bg-card p-6">
-        <InteractiveStylingCanvas />
+          <InteractiveStylingCanvas
+            selectedColor={selectedCanvasColor}
+            onColorApplied={(elementId, color) => {
+              console.log(`Applied ${color} to element ${elementId}`);
+              // Could add toast notification here
+            }}
+          />
         </div>
 
         {/* Tips Section */}
@@ -279,18 +336,18 @@ export default function StylePage() {
         <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-accent/10 flex items-center justify-center">
         <Palette className="h-6 w-6 text-accent" />
         </div>
-        <h3 className="font-semibold mb-2">Color Mixing</h3>
+        <h3 className="font-semibold mb-2">AI Color Palettes</h3>
         <p className="text-sm text-muted-foreground">
-        Click on elements to change colors and see live previews
+        Generate professional color palettes, then click colors to apply them to canvas elements
         </p>
         </div>
         <div className="text-center p-4 rounded-lg bg-card/50 border">
         <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-primary/10 flex items-center justify-center">
         <Sparkles className="h-6 w-6 text-primary" />
         </div>
-        <h3 className="font-semibold mb-2">AI Suggestions</h3>
+        <h3 className="font-semibold mb-2">AI Enhancement</h3>
         <p className="text-sm text-muted-foreground">
-        Get intelligent recommendations for color combinations and styles
+        Get AI-powered styling tips and outfit recommendations
         </p>
         </div>
         </div>
