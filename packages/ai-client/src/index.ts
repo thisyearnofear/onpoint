@@ -3,6 +3,7 @@ export * from './providers/chrome-provider';
 export * from './providers/gemini-provider';
 export * from './providers/openai-provider';
 export * from './providers/server-provider';
+export * from './providers/venice-provider';
 export * from './hooks';
 export * from './context/AIContext';
 export * from './services/personality-service';

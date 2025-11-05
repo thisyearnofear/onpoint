@@ -472,41 +472,54 @@ export const useAIStyleSuggestions = () => {
 
 // Virtual Try-On Enhancement Hook for Style Page
 export const useAIVirtualTryOnEnhancement = () => {
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [enhancement, setEnhancement] = React.useState<{ enhancedOutfit: Array<{ name: string, description: string }>, stylingTips: string[] } | null>(null);
-  const aiClient = useAIClient();
+const [loading, setLoading] = React.useState(false);
+const [error, setError] = React.useState<string | null>(null);
+const [enhancement, setEnhancement] = React.useState<{ enhancedOutfit: Array<{ name: string, description: string, image?: string }>, stylingTips: string[], generatedImage?: string } | null>(null);
+const aiClient = useAIClient();
 
-  const enhanceTryOn = React.useCallback(
-    async (outfitItems: Array<{ name: string, description: string }>): Promise<boolean> => {
-      setLoading(true);
-      setError(null);
+const enhanceTryOn = React.useCallback(
+async (outfitItems: Array<{ name: string, description: string }>): Promise<boolean> => {
+setLoading(true);
+setError(null);
 
-      try {
-        // This would be a more complex implementation in the future
-        // For now we'll just return true to indicate success
-        console.log("Enhancing try-on with items:", outfitItems);
-        setEnhancement({
-          enhancedOutfit: outfitItems,
-          stylingTips: [
-            'Mix textures for visual interest - pair smooth fabrics with textured pieces',
-            'Balance proportions - if wearing oversized top, pair with fitted bottoms',
-            'Add a layering piece to create depth and versatility',
-            'Consider the occasion when selecting accessories'
-          ]
-        });
+try {
+const veniceProvider = aiClient.getVeniceProvider();
+if (!veniceProvider) {
+  throw new Error("Venice provider not available. Please configure VENICE_API_KEY.");
+}
+
+// Create a detailed prompt for outfit generation
+const outfitDescription = outfitItems.map(item => `${item.name}: ${item.description}`).join(', ');
+const prompt = `Create a high-quality fashion photograph of a person wearing: ${outfitDescription}. The image should be a full-body portrait, professional fashion photography style, clean background, realistic lighting, detailed textures, modern fashion aesthetic.`;
+
+console.log("Generating outfit image with prompt:", prompt);
+
+// Generate the outfit image using Venice
+const generatedImageBase64 = await veniceProvider.generateOutfitImage(prompt);
+
+setEnhancement({
+enhancedOutfit: outfitItems,
+  stylingTips: [
+    'Mix textures for visual interest - pair smooth fabrics with textured pieces',
+    'Balance proportions - if wearing oversized top, pair with fitted bottoms',
+      'Add a layering piece to create depth and versatility',
+    'Consider the occasion when selecting accessories'
+    ],
+      generatedImage: generatedImageBase64
+    });
+
         return true;
-      } catch (err) {
-        setError(
-          `Failed to enhance try-on: ${err instanceof Error ? err.message : "Unknown error"}`,
-        );
-        console.error("Try-on enhancement error:", err);
-        return false;
-      } finally {
+    } catch (err) {
+    setError(
+      `Failed to enhance try-on: ${err instanceof Error ? err.message : "Unknown error"}`,
+    );
+    console.error("Try-on enhancement error:", err);
+    return false;
+    } finally {
         setLoading(false);
       }
     },
-    []
+    [aiClient]
   );
 
   return {

@@ -4,14 +4,17 @@ import { GeminiProvider } from './providers/gemini-provider';
 import { OpenAIProvider } from './providers/openai-provider';
 import { ServerProvider } from './providers/server-provider';
 import { ReplicateProvider } from './providers/replicate-provider';
+import { VeniceProvider } from './providers/venice-provider';
 
 export default class AIClientManager {
   private provider: AIProvider;
   private replicateProvider: ReplicateProvider | null = null;
+  private veniceProvider: VeniceProvider | null = null;
 
   constructor() {
     this.provider = this.detectBestProvider();
     this.replicateProvider = this.initReplicateProvider();
+    this.veniceProvider = this.initVeniceProvider();
   }
 
   private detectBestProvider(): AIProvider {
@@ -35,6 +38,13 @@ export default class AIClientManager {
     return null;
   }
 
+  private initVeniceProvider(): VeniceProvider | null {
+    if (process.env.VENICE_API_KEY) {
+      return new VeniceProvider(process.env.VENICE_API_KEY);
+    }
+    return null;
+  }
+
   private isChromeExtension(): boolean {
     return typeof chrome !== 'undefined' && !!chrome.runtime?.id;
   }
@@ -45,5 +55,9 @@ export default class AIClientManager {
 
   public getReplicateProvider(): ReplicateProvider | null {
     return this.replicateProvider;
+  }
+
+  public getVeniceProvider(): VeniceProvider | null {
+    return this.veniceProvider;
   }
 }

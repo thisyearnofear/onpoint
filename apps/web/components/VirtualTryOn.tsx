@@ -32,9 +32,9 @@ export function VirtualTryOn() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [scanComplete, setScanComplete] = useState(false);
   const [outfitItems] = useState([
-    { name: "Classic Blazer", type: "outerwear" },
-    { name: "Silk Blouse", type: "top" },
-    { name: "Tailored Trousers", type: "bottom" },
+    { name: "Classic Blazer", description: "Navy wool blazer with gold buttons, structured shoulders", type: "outerwear" },
+    { name: "Silk Blouse", description: "Cream silk button-up blouse with subtle pattern", type: "top" },
+    { name: "Tailored Trousers", description: "Black wool trousers with sharp creases and slim fit", type: "bottom" },
   ]);
 
   const [fashionAnalysis, setFashionAnalysis] = useState<any | null>(null);
@@ -133,8 +133,18 @@ export function VirtualTryOn() {
     const outfitId = `outfit-${Date.now()}`; // Generate unique outfit ID
     recordTryOn(outfitId);
 
-    await enhanceTryOn(outfitItems);
-  }, [analysis, enhanceTryOn, outfitItems, recordTryOn]);
+    const success = await enhanceTryOn(outfitItems);
+    if (success && enhancement?.generatedImage) {
+      // Set the try-on result to display the generated outfit image
+      setTryOnResult({
+        id: outfitId,
+        image: enhancement.generatedImage,
+        description: enhancement.enhancedOutfit.map(item => item.name).join(', '),
+        stylingTips: enhancement.stylingTips,
+        timestamp: Date.now()
+      });
+    }
+  }, [analysis, enhanceTryOn, outfitItems, recordTryOn, enhancement]);
 
   // New function for fashion analysis
   const handleFashionAnalysis = useCallback(async () => {
@@ -464,6 +474,27 @@ export function VirtualTryOn() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Fashion Analysis Result */}
+          <AnimatePresence mode="wait">
+            {showAnalysis && fashionAnalysis && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <FashionAnalysis
+                  analysis={fashionAnalysis}
+                  onBack={() => {
+                    setFashionAnalysis(null);
+                    setShowAnalysis(false);
+                  }}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {canShowActionHub && (
             <ActionHub
               analysis={analysis}
