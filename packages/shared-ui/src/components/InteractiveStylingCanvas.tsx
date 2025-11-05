@@ -212,15 +212,18 @@ const InteractiveStylingCanvas: React.FC<InteractiveStylingCanvasProps> = ({
   // State for element colors
   const [elementColors, setElementColors] = useState<Record<string, string>>({});
 
+  // Track drag state to prevent click when dragging
+  const isDraggingRef = useRef(false);
+
   // Handle color application to elements
   const handleElementClick = (shirtId: string) => {
-    if (selectedColor) {
+    if (selectedColor && !isDraggingRef.current) {
       setElementColors(prev => ({
         ...prev,
         [shirtId]: selectedColor
-      }));
+    }));
       onColorApplied?.(shirtId, selectedColor);
-    }
+  }
   };
 
   const [centerImageSrc, setCenterImageSrc] = useState('/assets/1Model.png');
@@ -306,6 +309,7 @@ const InteractiveStylingCanvas: React.FC<InteractiveStylingCanvasProps> = ({
       e.preventDefault();
       // Only run in browser environment
       if (typeof window === 'undefined' || !window.document) return;
+      isDraggingRef.current = true;
       activeShirt = document.getElementById(`shirt-${shirtId}`);
       if (!activeShirt || !centerImageRef.current) return;
 
@@ -456,6 +460,10 @@ const InteractiveStylingCanvas: React.FC<InteractiveStylingCanvasProps> = ({
       setShirtStates((prev: any) => ({ ...prev, [shirtIdEnd as string]: { ...prev[shirtIdEnd as string], isGrabbed: false, isDraggingRight: false, isDraggingLeft: false } }));
 
       if (moveTimeout) clearTimeout(moveTimeout);
+      // Reset drag state after a short delay to allow click events
+      setTimeout(() => {
+        isDraggingRef.current = false;
+      }, 100);
       // Only run in browser environment
       if (typeof window !== 'undefined' && window.document) {
         document.removeEventListener('mousemove', handleMove);
@@ -550,37 +558,27 @@ const InteractiveStylingCanvas: React.FC<InteractiveStylingCanvasProps> = ({
         const appliedColor = elementColors[shirt.id];
         const canApplyColor = selectedColor && !state?.isGrabbed;
         return (
-        <div
-        key={shirt.id}
-        className={`relative ${canApplyColor ? 'cursor-pointer hover:ring-2 hover:ring-primary/50 rounded' : ''}`}
-        onClick={() => handleElementClick(shirt.id)}
-        title={canApplyColor ? `Click to apply ${selectedColor}` : undefined}
-        >
         <ResponsiveShirt
-          id={`shirt-${shirt.id}`}
-          src={shirt.productSrc}
-          alt={shirt.shirtName}
+        key={shirt.id}
+        id={`shirt-${shirt.id}`}
+        src={shirt.productSrc}
+        alt={shirt.shirtName}
           data-mouse-src={shirt.modelSrc}
-            data-shirt-name={shirt.shirtName}
-              data-model-size={shirt.modelSize}
-                className={`shirt transition-all duration-200 ${canApplyColor ? 'hover:scale-105' : ''}`}
-                isGrabbed={state?.isGrabbed}
-                isDraggingRight={state?.isDraggingRight}
-                isDraggingLeft={state?.isDraggingLeft}
-                style={{
-                  top: state?.top,
-                  left: state?.left,
-                  filter: appliedColor ? `sepia(1) hue-rotate(${getHueRotation(appliedColor)}) saturate(2)` : undefined
-                }}
-              />
-              {appliedColor && (
-                <div
-                  className="absolute inset-0 pointer-events-none rounded opacity-20"
-                  style={{ backgroundColor: appliedColor }}
-                />
-              )}
-            </div>
-          );
+        data-shirt-name={shirt.shirtName}
+        data-model-size={shirt.modelSize}
+        className={`shirt transition-all duration-200 ${canApplyColor ? 'cursor-pointer hover:scale-105' : ''}`}
+        isGrabbed={state?.isGrabbed}
+        isDraggingRight={state?.isDraggingRight}
+        isDraggingLeft={state?.isDraggingLeft}
+        style={{
+        top: state?.top,
+        left: state?.left,
+        filter: appliedColor ? `sepia(1) hue-rotate(${getHueRotation(appliedColor)}) saturate(2)` : undefined
+        }}
+        onClick={canApplyColor ? () => handleElementClick(shirt.id) : undefined}
+        title={canApplyColor ? `Click to apply ${selectedColor}` : undefined}
+        />
+        );
         })}
         <ResponsiveCenterImage ref={centerImageRef} id="centerImage" src={centerImageSrc} alt="Model wearing Product" />
         <ResponsiveInfoTooltip
