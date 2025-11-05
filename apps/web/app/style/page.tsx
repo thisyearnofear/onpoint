@@ -3,6 +3,7 @@
 import React from 'react';
 import { Palette, Sparkles, ArrowLeft, Shirt, Wand2 } from 'lucide-react';
 import { Button } from '@repo/ui/button';
+import { Input } from '@repo/ui/input';
 import InteractiveStylingCanvas from '@repo/shared-ui/components/InteractiveStylingCanvas';
 import { useAIColorPalette, useAIStyleSuggestions, useAIVirtualTryOnEnhancement } from '@onpoint/ai-client';
 import Link from 'next/link';
@@ -11,17 +12,28 @@ export default function StylePage() {
   const { palette, loading: paletteLoading, generatePalette } = useAIColorPalette();
   const { suggestions } = useAIStyleSuggestions();
   const { enhancement, loading: enhancementLoading, enhanceTryOn } = useAIVirtualTryOnEnhancement();
-  
+
+  const [palettePrompt, setPalettePrompt] = React.useState('Fashion outfit with streetwear elements');
+
+  const palettePresets = [
+    'Fashion outfit with streetwear elements',
+    'Professional business attire',
+    'Casual weekend outfit',
+    'Evening cocktail dress',
+    'Summer beach wear',
+    'Winter formal wear'
+  ];
+
   const mockOutfitItems = [
-    { 
-      id: '1', 
-      name: 'Urban Streetwear Jacket', 
+    {
+      id: '1',
+      name: 'Urban Streetwear Jacket',
       description: 'High-fashion streetwear jacket with reflective material and bold geometric patterns',
       imageUrl: '/assets/1Product.png'
     },
-    { 
-      id: '2', 
-      name: 'Designer Sneakers', 
+    {
+      id: '2',
+      name: 'Designer Sneakers',
       description: 'Limited edition sneakers with unique color blocking and premium materials',
       imageUrl: '/assets/2Product.png'
     }
@@ -32,8 +44,11 @@ export default function StylePage() {
   };
 
   const handleColorPalette = async () => {
-    
-    await generatePalette('Fashion outfit with streetwear elements');
+    if (!palettePrompt.trim()) {
+      alert('Please enter a description for your color palette');
+      return;
+    }
+    await generatePalette(palettePrompt);
   };
 
   const handleAIEnhance = async () => {
@@ -87,26 +102,57 @@ export default function StylePage() {
 
         {/* Action Buttons */}
         <div className="flex flex-wrap justify-center gap-4 mb-8">
-        <Button 
-          onClick={handleGenerateVariations} 
-          variant="outline" 
-          className="flex items-center gap-2"
-          disabled={false}
+        <Button
+        onClick={handleGenerateVariations}
+        variant="outline"
+        className="flex items-center gap-2"
+        disabled={false}
         >
         <Sparkles className="h-4 w-4" />
         Generate Variations
         </Button>
-        <Button 
-          onClick={handleColorPalette} 
-          variant="outline" 
-          className="flex items-center gap-2"
-          disabled={paletteLoading}
+
+        {/* Color Palette Input and Button */}
+        <div className="flex flex-col gap-3 min-w-[300px]">
+        <div className="flex flex-col gap-2">
+        <Input
+          type="text"
+          value={palettePrompt}
+          onChange={(e) => setPalettePrompt(e.target.value)}
+          placeholder="Describe your outfit or style..."
+            className="text-sm"
+          />
+        <Button
+          onClick={handleColorPalette}
+          variant="outline"
+          className="flex items-center gap-2 w-full"
+            disabled={paletteLoading}
         >
-        <Palette className="h-4 w-4" />
-        {paletteLoading ? 'Generating Palette...' : 'Color Palette'}
-        </Button>
-        <Button 
-          onClick={handleAIEnhance} 
+          <Palette className="h-4 w-4" />
+            {paletteLoading ? 'Generating Palette...' : 'Generate Color Palette'}
+            </Button>
+          </div>
+
+          {/* Quick Presets */}
+          <div className="flex flex-wrap gap-1 justify-center">
+            <span className="text-xs text-muted-foreground mr-2 self-center">Quick:</span>
+            {palettePresets.slice(0, 3).map((preset, index) => (
+              <Button
+                key={index}
+                variant="ghost"
+                size="sm"
+                className="text-xs h-6 px-2"
+                onClick={() => setPalettePrompt(preset)}
+                disabled={paletteLoading}
+              >
+                {preset.split(' ')[0]}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        <Button
+          onClick={handleAIEnhance}
           className="fashion-gradient text-white flex items-center gap-2"
           disabled={enhancementLoading}
         >
