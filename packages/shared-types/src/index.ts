@@ -21,28 +21,89 @@ export * from './memory';
 // Re-export MemoryAPIClient and MemoryUtils
 export { MemoryAPIClient, MemoryUtils } from './memory-client';
 
-export interface Item {
-  id: string;
-  name: string;
-  description: string;
-  imageUrl: string;
-  createdAt: Date;
-  updatedAt: Date;
+// Re-export fashion data and utilities
+export * from './fashion-data';
+
+// ============ Fashion Domain Types ============
+
+/**
+ * Product categories - modeled after astro-shop pattern
+ */
+export enum FashionCategory {
+  Shirts = "shirts",
+  Pants = "pants",
+  Shoes = "shoes",
+  Accessories = "accessories",
+  Outerwear = "outerwear",
+  Dresses = "dresses",
 }
 
-export interface Outfit {
+/**
+ * Core fashion item with transition metadata
+ * Single source of truth for all fashion product data
+ */
+export interface FashionItem {
+  // Identifiers
   id: string;
+  slug: string; // URL-friendly identifier for transitions
+  
+  // Display data
   name: string;
-  items: Item[];
+  description: string;
+  price: number;
+  category: FashionCategory;
+  
+  // Media - includes transition names for View Transitions API
+  cover: string;
+  coverCredits?: string;
+  productImages?: string[]; // Multiple product views
+  modelImages?: string[]; // Model wear views
+  
+  // Styling canvas specific
+  productSrc?: string; // Primary product image for canvas
+  modelSrc?: string; // Model image for canvas
+  modelSize?: string; // Size worn by model
+  modelHeight?: string; // Model height for reference
+  
+  // Metadata
   createdAt: Date;
   updatedAt: Date;
+  
+  // Blockchain/NFT integration
+  contractAddress?: string;
+  tokenId?: string;
+  
+  // Social engagement
+  tryOnCount?: number;
+  mintCount?: number;
+  averageRating?: number;
+}
+
+/**
+ * Outfit composition - group of FashionItems
+ */
+export interface Outfit {
+  id: string;
+  slug?: string;
+  name: string;
+  description?: string;
+  items: FashionItem[];
+  
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+  
   // Enhanced with social data
   creator?: EnhancedUserProfile;
   reactions?: SocialReaction[];
   mintCount?: number;
   tryOnCount?: number;
+  averageRating?: number;
 }
 
+/**
+ * AI-generated critique/feedback
+ */
 export interface Critique {
   id: string;
   outfitId: string;
@@ -51,4 +112,14 @@ export interface Critique {
   createdAt: Date;
   // Enhanced with social identity
   critic?: EnhancedUserProfile;
+}
+
+// Legacy types - kept for backward compatibility
+export interface Item {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  createdAt: Date;
+  updatedAt: Date;
 }

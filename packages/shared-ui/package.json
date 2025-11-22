@@ -2,12 +2,24 @@
   "name": "@repo/shared-ui",
   "version": "0.0.0",
   "private": true,
+  "types": "./src/index.ts",
   "exports": {
-    "./components/*": "./src/components/*.tsx"
+    ".": "./src/index.ts",
+    "./components/*": "./src/components/*.tsx",
+    "./components/FashionCard": "./src/components/FashionCard.tsx",
+    "./components/TransitionDetail": "./src/components/TransitionDetail.tsx",
+    "./components/TransitionLink": "./src/components/TransitionLink.tsx",
+    "./components/CardEnhanced": "./src/components/CardEnhanced.tsx",
+    "./components/ShopGrid": "./src/components/ShopGrid.tsx",
+    "./components/EngagementBadge": "./src/components/EngagementBadge.tsx",
+    "./components/InteractiveStylingCanvas": "./src/components/InteractiveStylingCanvas.tsx"
   },
   "dependencies": {
     "react": "^19.1.0",
-    "styled-components": "^6.1.0"
+    "react-dom": "^19.1.0",
+    "styled-components": "^6.1.0",
+    "lucide-react": "^0.376.0",
+    "@onpoint/shared-types": "workspace:*"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",

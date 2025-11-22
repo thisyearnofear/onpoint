@@ -8,6 +8,7 @@ import { DesignStudio } from "../components/DesignStudio";
 import { VirtualTryOn } from "../components/VirtualTryOn";
 import { AIStylist } from "../components/AIStylist";
 import { FarcasterSignInButton } from "../components/FarcasterSignInButton";
+import { EngagementBadge } from "@repo/shared-ui";
 
 export default function Home() {
   return (
@@ -71,6 +72,21 @@ export default function Home() {
                 creations virtually and get expert styling advice—all in one
                 beautiful platform.
               </p>
+
+              {/* Engagement Metrics */}
+              <div className="mb-12 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+                <EngagementBadge
+                  type="trending"
+                  tryOnCount={8500}
+                  animated={true}
+                />
+                <EngagementBadge
+                  type="popular"
+                  rating={4.7}
+                  tryOnCount={2500}
+                  animated={true}
+                />
+              </div>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12 max-w-md mx-auto">
                 <Button

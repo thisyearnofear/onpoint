@@ -37,7 +37,11 @@ export function TryOnResult({ result, onBack, loading = false }: TryOnResultProp
 
   // Handle both string and object formats
   const resultData = typeof result === 'string' ? { image: result } : result;
-  const { image, description, stylingTips } = resultData;
+  const { image, description, stylingTips } = resultData as {
+    image: string;
+    description?: string;
+    stylingTips?: string[];
+  };
 
   const handleShare = async () => {
     const shareText = `Just tried on this amazing look with BeOnPoint! 🔥 #BeOnPoint #Fashion #AI`;

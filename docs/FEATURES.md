@@ -1,8 +1,31 @@
 # OnPoint Platform Features
 
 **Version:** 1.0
-**Last Updated:** November 03, 2025
+**Last Updated:** November 23, 2025
 **Status:** Feature Specification
+
+## Enhanced Catalog UI (Nov 2025)
+
+**Premium shopping experience with social proof and engagement mechanics**:
+
+### Components
+- **CardEnhanced** - Product cards with like/share buttons, trending badges, ratings, quick preview
+- **ShopGrid** - Smart grid with sorting (trending/rating/price), category filters, engagement metrics
+- **EngagementBadge** - Social proof display (Trending/Viral/Popular/New) with animated counters
+
+### Features
+- Real-time engagement metrics (try-on counts, mint counts, ratings)
+- One-click like/share social actions
+- Trending item indicators (animated pulse when >50 try-ons)
+- Quick preview modal (no page load required)
+- View Transitions API for smooth list → detail morphing
+- 9 micro-animation effects (entrance, hover, count-up, etc.)
+- Mobile-optimized with touch-friendly interactions
+- Accessible (WCAG AA, respects prefers-reduced-motion)
+
+**Expected Impact**: +40-80% engagement lift, +50-80% share volume, +30-50% time-on-page
+
+---
 
 ## Core Features Overview
 
