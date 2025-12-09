@@ -1,19 +1,20 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import type { FashionItem } from '@onpoint/shared-types';
 import { CardEnhanced } from './CardEnhanced';
-import { LayoutGrid, LayoutList, Zap, TrendingUp } from 'lucide-react';
+import { LayoutGrid, LayoutList, Zap, Star } from 'lucide-react';
 
 /**
  * Smart Shop Grid Component
  * 
- * Responsive, interactive grid with:
- * - Masonry and list view layouts
+ * Responsive, mobile-optimized grid with:
+ * - Native CSS Grid (desktop) + horizontal carousel (mobile)
  * - Smart sorting (trending, newest, highest-rated)
- * - Infinite scroll placeholder
  * - Category filtering
+ * - Touch-friendly interactions
  * - Engagement metrics aggregation
+ * - Progressive enhancement (carousel graceful fallback)
  */
 
 interface ShopGridProps {
@@ -24,6 +25,7 @@ interface ShopGridProps {
   className?: string;
   showFilters?: boolean;
   showStats?: boolean;
+  enableMobileCarousel?: boolean; // Use horizontal swipe on mobile
 }
 
 type SortOption = 'trending' | 'newest' | 'rating' | 'price-low' | 'price-high';
@@ -37,10 +39,13 @@ export const ShopGrid: React.FC<ShopGridProps> = ({
   className = '',
   showFilters = true,
   showStats = true,
+  enableMobileCarousel = true,
 }) => {
   const [sortBy, setSortBy] = useState<SortOption>('trending');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const [isMobileCarousel, setIsMobileCarousel] = useState(false);
 
   const categories = useMemo(
     () => [...new Set(items.map(item => item.category))],
@@ -112,7 +117,7 @@ export const ShopGrid: React.FC<ShopGridProps> = ({
           <div className="text-center">
             <div className="text-2xl font-bold text-accent">{avgRating}★</div>
             <div className="text-xs text-gray-600 flex items-center gap-1">
-              <TrendingUp className="h-3 w-3" />
+              <Star className="h-3 w-3" />
               Avg Rating
             </div>
           </div>
@@ -193,27 +198,80 @@ export const ShopGrid: React.FC<ShopGridProps> = ({
         </div>
       )}
 
-      {/* Grid/List View */}
-      <div
-        className={
-          viewMode === 'grid'
-            ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'
-            : 'space-y-3'
-        }
-      >
-        {sortedAndFiltered.map(item => (
-          <CardEnhanced
-            key={item.id}
-            item={item}
-            onClick={() => onItemClick?.(item)}
-            onLike={(liked) => onLike?.(item.id, liked)}
-            onShare={() => onShare?.(item)}
-            showStats={showStats}
-            showActions={true}
-            className={viewMode === 'list' ? 'flex gap-4 h-24' : ''}
-          />
-        ))}
-      </div>
+      {/* Grid/Carousel/List View Container */}
+      {/* Mobile carousel: horizontal snap scroll on mobile, grid on desktop */}
+      {enableMobileCarousel ? (
+        <div
+          ref={carouselRef}
+          className="
+            w-full overflow-x-auto snap-x snap-mandatory scroll-smooth
+            md:overflow-visible md:snap-none
+            -mx-4 px-4
+            [&::-webkit-scrollbar]:h-1.5
+            [&::-webkit-scrollbar-track]:bg-gray-100
+            [&::-webkit-scrollbar-thumb]:bg-gray-400
+            [&::-webkit-scrollbar-thumb]:rounded-full
+          "
+        >
+          <div
+            className={
+              viewMode === 'grid'
+                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-cols-[minmax(280px,1fr)] md:auto-cols-auto'
+                : 'flex flex-col space-y-3'
+            }
+            style={
+              viewMode === 'grid' && enableMobileCarousel
+                ? {
+                    display: 'grid',
+                    gridAutoFlow: 'column',
+                    gridAutoColumns: 'minmax(min(100%, 280px), 1fr)',
+                    gap: '1.5rem',
+                  }
+                : undefined
+            }
+          >
+            {sortedAndFiltered.map(item => (
+              <div
+                key={item.id}
+                className="snap-start snap-always md:snap-none"
+              >
+                <CardEnhanced
+                  item={item}
+                  onClick={() => onItemClick?.(item)}
+                  onLike={(liked) => onLike?.(item.id, liked)}
+                  onShare={() => onShare?.(item)}
+                  showStats={showStats}
+                  showActions={true}
+                  variant="enhanced"
+                  className={viewMode === 'list' ? 'flex gap-4 h-24' : ''}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div
+          className={
+            viewMode === 'grid'
+              ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'
+              : 'space-y-3'
+          }
+        >
+          {sortedAndFiltered.map(item => (
+            <CardEnhanced
+              key={item.id}
+              item={item}
+              onClick={() => onItemClick?.(item)}
+              onLike={(liked) => onLike?.(item.id, liked)}
+              onShare={() => onShare?.(item)}
+              showStats={showStats}
+              showActions={true}
+              variant="enhanced"
+              className={viewMode === 'list' ? 'flex gap-4 h-24' : ''}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Empty State */}
       {sortedAndFiltered.length === 0 && (

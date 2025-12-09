@@ -68,7 +68,7 @@ export default function ShopPage() {
           />
         </div>
 
-        {/* Shop Grid with Enhanced Cards */}
+        {/* Shop Grid with Mobile Carousel & Enhanced Cards */}
         <ShopGrid
           items={CANVAS_ITEMS}
           onItemClick={handleItemClick}
@@ -76,6 +76,7 @@ export default function ShopPage() {
           onShare={handleShare}
           showFilters={true}
           showStats={true}
+          enableMobileCarousel={true}
         />
       </div>
 

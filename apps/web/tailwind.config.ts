@@ -17,6 +17,15 @@ export default {
       }
     },
     extend: {
+      // Container query breakpoints (mobile-optimized)
+      containers: {
+        xs: '20rem',
+        sm: '24rem',
+        md: '28rem',
+        lg: '32rem',
+        xl: '36rem',
+        '2xl': '42rem',
+      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
