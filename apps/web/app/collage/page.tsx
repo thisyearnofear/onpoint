@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { Palette, Sparkles, Camera, MessageCircle, Save, Share2, Plus, Shirt, Search } from 'lucide-react';
 import { Button } from '@repo/ui/button';
-import { critiqueOutfit, generateClothingFromCollage, type CritiqueResponse, type ClothingGenerationResponse } from '@onpoint/ai-client';
+import { critiqueOutfit, generateClothingFromCollage, type CritiqueResponse, type ClothingGenerationResponse } from '@repo/ai-client';
 import Link from 'next/link';
 import { MobileNavigation } from '@/components/mobile-navigation';
 // import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCenter, PointerSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core';

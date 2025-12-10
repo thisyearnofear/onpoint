@@ -6,7 +6,7 @@ import { Button } from '@repo/ui/button';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Input } from '@repo/ui/input';
 import InteractiveStylingCanvas from '@repo/shared-ui/components/InteractiveStylingCanvas';
-import { useAIColorPalette, useAIStyleSuggestions, useAIVirtualTryOnEnhancement } from '@onpoint/ai-client';
+import { useAIColorPalette, useAIStyleSuggestions, useAIVirtualTryOnEnhancement } from '@repo/ai-client';
 import Link from 'next/link';
 
 export default function StylePage() {
