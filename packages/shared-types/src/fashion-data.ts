@@ -11,7 +11,7 @@
  * - Virtual try-on references
  */
 
-import type { FashionItem } from './index';
+import type { FashionItem, FashionCategory } from './index';
 import { FashionCategory as FC } from './fashion-category';
 
 /**
