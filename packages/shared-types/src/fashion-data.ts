@@ -12,7 +12,7 @@
  */
 
 import type { FashionItem } from './index';
-import { FashionCategory as FC, type FashionCategory } from './fashion-category';
+import { FashionCategory as FC } from './fashion-category';
 
 /**
  * Core styling canvas items - these are the draggable items in InteractiveStylingCanvas
