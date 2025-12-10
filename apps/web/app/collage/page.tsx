@@ -122,7 +122,7 @@ export default function CollagePage() {
     });
   }, [fashionLibrary, searchQuery, selectedCategory]);
 
-  const categories = ['all', ...Array.from(new Set(fashionLibrary.map(item => item.category)))];
+  const categories = ['all', ...Array.from(new Set(fashionLibrary.map(item => item.category).filter(Boolean)))];
 
   const handleGetCritique = async () => {
     if (canvasItems.length === 0) {
