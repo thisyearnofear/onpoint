@@ -18,13 +18,6 @@ import { MemoryAPIClient, MemoryUtils } from './memory-client';
 // Re-export all types from memory module
 export * from './memory';
 
-// Re-export MemoryAPIClient and MemoryUtils
-export { MemoryAPIClient, MemoryUtils } from './memory-client';
-
-// Re-export fashion data and utilities
-export * from './fashion-data';
-
-// ============ Fashion Domain Types ============
 
 /**
  * Product categories - modeled after astro-shop pattern
@@ -37,6 +30,85 @@ export enum FashionCategory {
   Outerwear = "outerwear",
   Dresses = "dresses",
 }
+=======
+
+/**
+ * Product categories - modeled after astro-shop pattern
+ */
+export enum FashionCategory {
+  Shirts = "shirts",
+  Pants = "pants",
+  Shoes = "shoes",
+  Accessories = "accessories",
+  Outerwear = "outerwear",
+  Dresses = "dresses",
+}
+=======
+
+/**
+ * Product categories - modeled after astro-shop pattern
+ */
+export enum FashionCategory {
+  Shirts = "shirts",
+  Pants = "pants",
+  Shoes = "shoes",
+  Accessories = "accessories",
+  Outerwear = "outerwear",
+  Dresses = "dresses",
+}
+
+// Re-export fashion data and utilities
+export * from './fashion-data';
+=======
+// Re-export MemoryAPIClient and MemoryUtils
+export { MemoryAPIClient, MemoryUtils } from './memory-client';
+
+// Re-export fashion category enum
+export { FashionCategory } from './fashion-category';
+
+// Re-export fashion data and utilities
+export * from './fashion-data';============
+
+/**
+ * Product categories - modeled after astro-shop pattern
+ */
+export enum FashionCategory {
+  Shirts = "shirts",
+  Pants = "pants",
+  Shoes = "shoes",
+  Accessories = "accessories",
+  Outerwear = "outerwear",
+  Dresses = "dresses",
+}
+
+// Re-export fashion data and utilities
+export * from './fashion-data';============
+
+/**
+ * Product categories - modeled after astro-shop pattern
+ */
+export enum FashionCategory {
+  Shirts = "shirts",
+  Pants = "pants",
+  Shoes = "shoes",
+  Accessories = "accessories",
+  Outerwear = "outerwear",
+  Dresses = "dresses",
+}============
+
+/**
+ * Product categories - modeled after astro-shop pattern
+ */
+export enum FashionCategory {
+  Shirts = "shirts",
+  Pants = "pants",
+  Shoes = "shoes",
+  Accessories = "accessories",
+  Outerwear = "outerwear",
+  Dresses = "dresses",
+}
+
+import { FashionCategory } from './fashion-category';
 
 /**
  * Core fashion item with transition metadata

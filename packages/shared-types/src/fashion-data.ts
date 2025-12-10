@@ -11,8 +11,8 @@
  * - Virtual try-on references
  */
 
-import type { FashionItem, FashionCategory } from './index';
-import { FashionCategory as FC } from './index';
+import type { FashionItem } from './index';
+import { FashionCategory as FC, type FashionCategory } from './fashion-category';
 
 /**
  * Core styling canvas items - these are the draggable items in InteractiveStylingCanvas
