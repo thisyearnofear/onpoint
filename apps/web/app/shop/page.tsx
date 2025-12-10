@@ -62,7 +62,7 @@ export default function ShopPage() {
           />
           <EngagementBadge
             type="viral"
-            tryOnCount={Math.max(...CANVAS_ITEMS.map(item => item.tryOnCount || 0))}
+            tryOnCount={CANVAS_ITEMS.length > 0 ? Math.max(...CANVAS_ITEMS.map(item => item.tryOnCount || 0)) : 0}
             mintCount={12}
             animated
           />

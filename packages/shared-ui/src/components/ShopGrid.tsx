@@ -48,36 +48,36 @@ export const ShopGrid: React.FC<ShopGridProps> = ({
   const [isMobileCarousel, setIsMobileCarousel] = useState(false);
 
   const categories = useMemo(
-    () => [...new Set(items.map(item => item.category))],
+    () => [...new Set(items?.map(item => item.category)?.filter(Boolean) || [])],
     [items]
   );
 
   const sortedAndFiltered = useMemo(() => {
-    let result = items;
+    let result = items || [];
 
     // Filter by category
     if (selectedCategory) {
-      result = result.filter(item => item.category === selectedCategory);
+      result = result.filter(item => item?.category === selectedCategory);
     }
 
     // Sort
     switch (sortBy) {
       case 'trending':
-        result = [...result].sort((a, b) => (b.tryOnCount || 0) - (a.tryOnCount || 0));
+        result = [...result].sort((a, b) => (b?.tryOnCount || 0) - (a?.tryOnCount || 0));
         break;
       case 'rating':
-        result = [...result].sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0));
+        result = [...result].sort((a, b) => (b?.averageRating || 0) - (a?.averageRating || 0));
         break;
       case 'newest':
         result = [...result].sort((a, b) => 
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          new Date(b?.createdAt || 0).getTime() - new Date(a?.createdAt || 0).getTime()
         );
         break;
       case 'price-low':
-        result = [...result].sort((a, b) => a.price - b.price);
+        result = [...result].sort((a, b) => (a?.price || 0) - (b?.price || 0));
         break;
       case 'price-high':
-        result = [...result].sort((a, b) => b.price - a.price);
+        result = [...result].sort((a, b) => (b?.price || 0) - (a?.price || 0));
         break;
     }
 
@@ -85,13 +85,13 @@ export const ShopGrid: React.FC<ShopGridProps> = ({
   }, [items, sortBy, selectedCategory]);
 
   const totalEngagement = useMemo(
-    () => items.reduce((sum, item) => sum + (item.tryOnCount || 0), 0),
+    () => (items || []).reduce((sum, item) => sum + (item?.tryOnCount || 0), 0),
     [items]
   );
 
   const avgRating = useMemo(
-    () => items.length > 0 
-      ? (items.reduce((sum, item) => sum + (item.averageRating || 0), 0) / items.length).toFixed(1)
+    () => (items || []).length > 0 
+      ? ((items || []).reduce((sum, item) => sum + (item?.averageRating || 0), 0) / (items || []).length).toFixed(1)
       : '0',
     [items]
   );
