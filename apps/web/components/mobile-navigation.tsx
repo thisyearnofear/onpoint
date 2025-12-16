@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Menu, X, Palette, Sparkles, Users } from 'lucide-react';
 import { Button } from '@repo/ui/button';
 import Link from 'next/link';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { EnhancedConnectButton } from './EnhancedConnectButton';
 
 interface MobileNavigationProps {
   showBackButton?: boolean;
@@ -77,7 +77,7 @@ export function MobileNavigation({ showBackButton = false }: MobileNavigationPro
             </nav>
 
             <div className="p-4 border-t">
-              <ConnectButton />
+              <EnhancedConnectButton className="w-full" />
             </div>
           </div>
         </div>

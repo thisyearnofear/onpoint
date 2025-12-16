@@ -2,6 +2,7 @@ import { getDefaultConfig } from '@rainbow-me/rainbowkit';
 import { createStorage, http } from 'wagmi';
 // Importing commonly available chains
 import { mainnet, sepolia } from 'wagmi/chains';
+import { Chain } from 'wagmi/chains';
 // We'll define additional chains manually if they're not available in wagmi/chains
 
 // Define additional chains that may not be in wagmi/chains

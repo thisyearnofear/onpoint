@@ -17,7 +17,7 @@ if (typeof window === "undefined") {
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
-import { RainbowKitProvider } from "@rainbow-me/rainbowkit";
+import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
 import { config } from "../config/wagmi";
 import { AIProviderContext } from "@repo/ai-client";
 import { sdk } from "@farcaster/miniapp-sdk";
@@ -50,7 +50,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <MiniAppProvider analyticsEnabled={true}>
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
-          <RainbowKitProvider>
+          <RainbowKitProvider
+            theme={darkTheme({
+              accentColor: '#7c3aed',
+              accentColorForeground: 'white',
+              borderRadius: 'medium',
+              fontStack: 'system',
+            })}
+          >
             <AIProviderContext>
               <MiniAppReady />
               {children}

@@ -1,7 +1,7 @@
 import React from "react";
 import { Palette, Sparkles, Camera, MessageCircle, Users } from "lucide-react";
 import { Button } from "@repo/ui/button";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { EnhancedConnectButton, ChainStatusIndicator } from "../components/chains";
 import Link from "next/link";
 import { MobileNavigation } from "@/components/mobile-navigation";
 import { DesignStudio } from "../components/DesignStudio";
@@ -47,7 +47,8 @@ export default function Home() {
           <div className="flex items-center gap-4">
             <MobileNavigation />
             <FarcasterSignInButton />
-            <ConnectButton showBalance={false} chainStatus="none" />
+            <ChainStatusIndicator />
+            <EnhancedConnectButton showBalance={false} chainStatus="none" />
           </div>
         </div>
       </header>

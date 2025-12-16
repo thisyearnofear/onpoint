@@ -3,7 +3,7 @@
 import React from 'react';
 import { Palette, Sparkles, ArrowLeft, Shirt, Wand2 } from 'lucide-react';
 import { Button } from '@repo/ui/button';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { EnhancedConnectButton, ChainStatusIndicator } from '../../components/chains';
 import { Input } from '@repo/ui/input';
 import InteractiveStylingCanvas from '@repo/shared-ui/components/InteractiveStylingCanvas';
 import { useAIColorPalette, useAIStyleSuggestions, useAIVirtualTryOnEnhancement } from '@repo/ai-client';
@@ -79,7 +79,8 @@ export default function StylePage() {
           </div>
 
           <div className="flex items-center gap-4">
-          <ConnectButton showBalance={false} chainStatus="none" />
+            <ChainStatusIndicator />
+            <EnhancedConnectButton showBalance={false} chainStatus="none" />
           </div>
         </div>
       </header>
