@@ -5,7 +5,7 @@ import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { Badge } from "@repo/ui/badge";
-import { Sparkles, RefreshCw, Save, Wand2 } from "lucide-react";
+import { Sparkles, RefreshCw, Save, Wand2, Leaf } from "lucide-react";
 import { useDesignStudio } from "@repo/ai-client";
 import type { DesignGeneration } from "@repo/ai-client";
 
@@ -13,6 +13,7 @@ export function DesignStudio() {
   const [visionInput, setVisionInput] = useState("");
   const [refinementInput, setRefinementInput] = useState("");
   const [selectedDesign, setSelectedDesign] = useState<string | null>(null);
+  const [africanInspiration, setAfricanInspiration] = useState(false);
 
   const { designs, loading, error, generateDesign, refineDesign, clearError } =
     useDesignStudio();
@@ -20,12 +21,12 @@ export function DesignStudio() {
   const handleGenerate = useCallback(async () => {
     if (!visionInput.trim()) return;
 
-    const design = await generateDesign(visionInput.trim());
+    const design = await generateDesign(visionInput.trim(), africanInspiration);
     if (design) {
       setSelectedDesign(design.id);
       setVisionInput("");
     }
-  }, [visionInput, generateDesign]);
+  }, [visionInput, generateDesign, africanInspiration]);
 
   const handleRefine = useCallback(async () => {
     if (!selectedDesign || !refinementInput.trim()) return;
@@ -39,9 +40,9 @@ export function DesignStudio() {
   const handleVariationGenerate = useCallback(
     async (baseDesign: DesignGeneration) => {
       const variationPrompt = `Create a variation of: ${baseDesign.designPrompt}`;
-      await generateDesign(variationPrompt);
+      await generateDesign(variationPrompt, africanInspiration);
     },
-    [generateDesign],
+    [generateDesign, africanInspiration],
   );
 
   const renderDesignPreview = (design: DesignGeneration, index: number) => (
@@ -122,6 +123,24 @@ export function DesignStudio() {
                     <Sparkles className="h-4 w-4 mr-2" />
                   )}
                   Generate
+                </Button>
+              </div>
+
+              {/* African Inspiration Toggle - Subtle enhancement */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Leaf className="h-4 w-4 text-primary" />
+                  <span className="text-sm text-muted-foreground">
+                    African Inspiration
+                  </span>
+                </div>
+                <Button
+                  variant={africanInspiration ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAfricanInspiration(!africanInspiration)}
+                  className={`min-w-[100px] ${africanInspiration ? "fashion-gradient text-white" : "border-primary/30 text-primary"}`}
+                >
+                  {africanInspiration ? "Enabled" : "Enable"}
                 </Button>
               </div>
 

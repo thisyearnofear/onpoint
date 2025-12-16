@@ -122,3 +122,75 @@ export function getCanvasItemsByCategory(): Record<string, FashionItem[]> {
    
    return grouped;
 }
+
+/**
+ * African Pattern Type
+ */
+interface AfricanPattern {
+  name: string;
+  origin: string;
+  characteristics: string;
+  culturalSignificance: string;
+  colorPalette: readonly string[];
+}
+
+/**
+ * African Pattern Library
+ * 
+ * Cultural pattern data for African-inspired designs
+ * Used by AI generator and styling suggestions
+ */
+export const AFRICAN_PATTERNS: readonly AfricanPattern[] = [
+  {
+    name: 'Ankara',
+    origin: 'West Africa',
+    characteristics: 'Vibrant wax prints with bold geometric patterns',
+    culturalSignificance: 'Celebratory wear, everyday fashion',
+    colorPalette: ['#FF5722', '#FF9800', '#4CAF50', '#2196F3'],
+  },
+  {
+    name: 'Kente',
+    origin: 'Ghana (Ashanti)',
+    characteristics: 'Woven silk strips with intricate geometric designs',
+    culturalSignificance: 'Royalty, special occasions, cultural pride',
+    colorPalette: ['#FFD700', '#FF4500', '#008000', '#000080'],
+  },
+  {
+    name: 'Adire',
+    origin: 'Yoruba (Nigeria)',
+    characteristics: 'Indigo tie-dye with white resist patterns',
+    culturalSignificance: 'Traditional craftsmanship, spiritual patterns',
+    colorPalette: ['#1A237E', '#FFFFFF', '#5D4037'],
+  },
+  {
+    name: 'Bogolan',
+    origin: 'Mali (Bambara)',
+    characteristics: 'Mud-cloth with earthy tones and symbolic motifs',
+    culturalSignificance: 'Rites of passage, storytelling through patterns',
+    colorPalette: ['#5D4037', '#8D6E63', '#FFFFFF', '#3E2723'],
+  },
+  {
+    name: 'Shweshwe',
+    origin: 'South Africa',
+    characteristics: 'Printed cotton with intricate floral and geometric designs',
+    culturalSignificance: 'Traditional attire, cultural identity',
+    colorPalette: ['#8E24AA', '#3F51B5', '#009688', '#FFC107'],
+  },
+];
+
+/**
+ * Get African pattern by name
+ * @param name - Pattern name
+ * @returns African pattern data or undefined
+ */
+export function getAfricanPatternByName(name: string): AfricanPattern | undefined {
+  return AFRICAN_PATTERNS.find(pattern => pattern.name === name);
+}
+
+/**
+ * Get random African pattern for AI inspiration
+ * @returns Random African pattern
+ */
+export function getRandomAfricanPattern(): AfricanPattern | undefined {
+  return AFRICAN_PATTERNS[Math.floor(Math.random() * AFRICAN_PATTERNS.length)];
+}

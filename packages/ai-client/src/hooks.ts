@@ -13,7 +13,7 @@ export const useDesignStudio = () => {
   const aiClient = useAIClient();
 
   const generateDesign = React.useCallback(
-    async (visionDescription: string): Promise<DesignGeneration | null> => {
+    async (visionDescription: string, africanInspiration = false): Promise<DesignGeneration | null> => {
       setLoading(true);
       setError(null);
 
@@ -21,7 +21,7 @@ export const useDesignStudio = () => {
         const response = await fetch('/api/ai/design', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: visionDescription, type: 'design' })
+          body: JSON.stringify({ prompt: visionDescription, type: 'design', africanInspiration })
         });
 
         if (!response.ok) {

@@ -99,6 +99,26 @@ const zetaChain = {
   testnet: false,
 } as const;
 
+// Lisk Mainnet configuration
+const lisk = {
+  id: 1135,
+  name: 'Lisk',
+  nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+  rpcUrls: {
+    default: { http: ['https://rpc.api.lisk.com'] },
+  },
+  blockExplorers: {
+    default: { name: 'Blockscout', url: 'https://blockscout.lisk.com' },
+  },
+  contracts: {
+    multicall3: {
+      address: '0xcA11bde05977b3631167028862bE2a173976CA11',
+      blockCreated: 1,
+    },
+  },
+  testnet: false,
+} as const;
+
 // Custom storage that works on both client and server
 const customStorage = typeof window !== 'undefined'
   ? undefined // Use default storage on client
@@ -113,7 +133,7 @@ const customStorage = typeof window !== 'undefined'
 export const config = getDefaultConfig({
   appName: 'BeOnPoint',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
-  chains: [mainnet, base, arbitrum, celo, celoAlfajores, zetaChain, sepolia],
+  chains: [mainnet, base, arbitrum, celo, celoAlfajores, zetaChain, lisk, sepolia],
   transports: {
     [mainnet.id]: http(),
     [base.id]: http(),
@@ -121,6 +141,7 @@ export const config = getDefaultConfig({
     [celo.id]: http(),
     [celoAlfajores.id]: http(process.env.NEXT_PUBLIC_CELO_ALFAJORES_RPC_URL),
     [zetaChain.id]: http(),
+    [lisk.id]: http(),
     [sepolia.id]: http(),
   },
   ssr: true,

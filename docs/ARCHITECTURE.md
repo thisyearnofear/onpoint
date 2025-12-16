@@ -256,7 +256,7 @@ onpoint-monorepo/
 - Zero protocol fees, runs at gas cost
 - Unstoppable contracts, no maintenance required
 - Battle-tested by major platforms
-- Multichain support (Base, Optimism, Celo)
+- Multichain support (Base, Optimism, Celo, Lisk)
 
 **Implementation**:
 - Create splits for each NFT mint (85% creator, 10% platform, 5% stylist)
@@ -268,6 +268,46 @@ onpoint-monorepo/
 ## AI & Machine Learning
 
 ### 4.1 AI Integration Overview
+
+### 4.2 African Differentiation Layer
+
+**Current Implementation (Lightweight)**:
+- Pattern Recognition Service: African pattern library with cultural metadata
+- Cultural Context Engine: AI prompt enhancement with African inspiration  
+- Regional Style Database: 5 core African textile patterns with authenticity
+
+**Future AI Training Architecture**:
+```
+African Fashion Dataset (15K+ images)
+    ↓
+Cloud GPU Training (AWS SageMaker/Google Vertex AI)
+    ↓
+African-Specific AI Models
+    ↓
+┌─────────────┬─────────────┬─────────────┐
+│Image Classification │ Similarity Search │ Trend Prediction │
+└─────────────┴─────────────┴─────────────┘
+    ↓
+Enhanced Design Studio Integration
+```
+
+**Training Pipeline**:
+1. Data Preparation: Clean and normalize African fashion images
+2. Cloud GPU Training: Leverage platforms with efficient GPU access
+3. Model Optimization: Fine-tune for African fashion specificity
+4. Deployment: Integrate via API endpoints for performance
+
+**Expected Outputs**:
+- African style classification (Ankara, Kente, Adire, Bogolan, Shweshwe)
+- Pattern recognition and extraction
+- Cultural trend analysis for African markets
+- Personalized African fashion recommendations
+
+**Performance Considerations**:
+- Use cloud GPUs to handle large dataset processing efficiently
+- Implement progressive loading for dataset integration
+- Cache frequently accessed African style data
+- Monitor performance impact before full integration
 
 **Primary AI Services**:
 - OpenAI GPT-4V for multimodal analysis and critiques

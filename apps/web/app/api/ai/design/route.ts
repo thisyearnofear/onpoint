@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateText } from '../_utils/providers';
 import { corsHeaders } from '../_utils/http';
+import { getRandomAfricanPattern, AFRICAN_PATTERNS } from '@onpoint/shared-types';
 
 export async function POST(request: NextRequest) {
     try {
-        const { prompt, type = 'design', provider = 'auto', model } = await request.json();
+        const { prompt, type = 'design', provider = 'auto', model, africanInspiration = false } = await request.json();
         const origin = request.headers.get('origin') || '*';
 
         if (!prompt) {
@@ -14,9 +15,26 @@ export async function POST(request: NextRequest) {
         let result: string | undefined;
         let enhancedPrompt: string;
 
+        // Add African inspiration if requested
+        let africanContext = '';
+        if (africanInspiration) {
+            const pattern = getRandomAfricanPattern();
+            if (pattern) {
+                africanContext = `
+
+African Inspiration Context:
+- Pattern: ${pattern.name} (${pattern.origin})
+- Characteristics: ${pattern.characteristics}
+- Color Palette: ${pattern.colorPalette.join(', ')}
+- Cultural Significance: ${pattern.culturalSignificance}
+
+Incorporate these African design elements subtly and authentically into your creation.`;
+            }
+        }
+
         // Create detailed design prompts based on type
         if (type === 'design') {
-            enhancedPrompt = `As a professional fashion designer, create a detailed design based on: "${prompt}".
+            enhancedPrompt = `As a professional fashion designer, create a detailed design based on: "${prompt}".${africanContext}
 
 Include:
 1. Detailed garment description with silhouette, fit, and construction details
@@ -28,7 +46,7 @@ Include:
 
 Format your response with clear sections for each element.`;
         } else if (type === 'variation') {
-            enhancedPrompt = `Create a fashion design variation of: "${prompt}".
+            enhancedPrompt = `Create a fashion design variation of: "${prompt}".${africanContext}
 
 Provide:
 1. A fresh take on the original concept with different styling
@@ -39,7 +57,7 @@ Provide:
 
 Keep the essence but make it distinctly different.`;
         } else if (type === 'refinement') {
-            enhancedPrompt = `Refine and improve this fashion design: "${prompt}".
+            enhancedPrompt = `Refine and improve this fashion design: "${prompt}".${africanContext}
 
 Focus on:
 1. Enhanced design details and construction
