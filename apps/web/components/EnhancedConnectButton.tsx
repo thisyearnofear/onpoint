@@ -3,7 +3,7 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount, useChainId } from "wagmi";
 import { getChainName, getChainColor, getChainIcon } from "../components/chains";
-import { Button } from "@repo/ui";
+import { Button } from "@repo/ui/button";
 import { ChevronDown, Wallet } from "lucide-react";
 
 /**
