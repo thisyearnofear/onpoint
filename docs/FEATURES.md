@@ -33,7 +33,8 @@
 
 | Feature | Web | Mobile | Mini App | Status |
 |---------|-----|--------|----------|--------|
-| AI Stylist | ✅ | ✅ | ✅ | Complete |
+| AI Stylist (Standard) | ✅ | ✅ | ✅ | Complete |
+| AI Stylist (Live AR)  | 🔄 | - | - | In Progress |
 | Virtual Try-On | ✅ | ✅ | - | Complete |
 | Design Studio | ✅ | ✅ | - | Complete |
 | Digital Closet | ✅ | ✅ | ✅ | Complete |
@@ -43,7 +44,10 @@
 
 ## AI Stylist with Personality-Based Critiques
 
-Users can receive fashion critiques from six distinct AI personalities:
+The AI Stylist module offers optionality between a standard asynchronous text interaction and a real-time, uninterrupted voice-and-vision experience.
+
+### Standard Mode (Text-Based)
+Users can receive asynchronous fashion critiques from six distinct AI personalities using OpenAI/Replicate models:
 
 1. **Anna Karenina** - Russian aristocratic fashion with refined 19th-century high society style
 2. **Artful Dodger** - Street-smart youth with gritty urban style and sneakerhead expertise
@@ -58,6 +62,13 @@ Users can receive fashion critiques from six distinct AI personalities:
 - Context-aware conversations
 - Style suggestion generation
 - Cross-component integration for enhanced user experience
+
+### Live AR Stylist Mode (Gemini Multimodal Live)
+A next-generation, premium styling experience powered by the **Google GenAI SDK** and the Gemini Live API:
+- **Real-Time Vision**: Agent naturally "sees" the clothes the user holds up to the camera.
+- **Interruptible Audio**: Users can talk and be interrupted in real-time, perfectly simulating a FaceTime call with a fashion consultant.
+- **Multimodal Context**: Seamless transitions between audio instructions and visual outfit analysis.
+- **Deployment**: Connecting via WebSockets provisioned by endpoints running on **Google Cloud**.
 
 ## Virtual Try-On Experience
 

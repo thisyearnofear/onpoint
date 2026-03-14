@@ -15,6 +15,7 @@
     "typescript": "5.9.2"
   },
   "dependencies": {
+    "@google/genai": "1.45.0",
     "@onpoint/shared-types": "workspace:*",
     "framer-motion": "^12.4.5",
     "react": "^19.1.0",

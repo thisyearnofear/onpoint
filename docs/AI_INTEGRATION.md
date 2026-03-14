@@ -13,17 +13,25 @@ OnPoint uses a hybrid approach with a shared AI client interface that works acro
 
 ### Provider Interface
 
-The system implements a unified interface for all AI providers:
+The system implements a unified interface for all AI providers, including the new continuous streaming mode required for the Live Agent:
 
 ```typescript
 export interface AIProvider {
-  name: string;
+  name: string; // e.g., 'openai', 'replicate', 'gemini-live'
   analyzeOutfit(input: AnalysisInput): Promise<CritiqueResponse>;
   generateDesign(prompt: string): Promise<DesignGeneration>;
   chatWithStylist(message: string, persona: StylistPersona): Promise<StylistResponse>;
   analyzePhoto(file: File): Promise<VirtualTryOnAnalysis>;
+  // Support for Gemini Live continuous audio/vision streaming
+  connectLiveSession?(): Promise<LiveSession>; 
 }
 ```
+
+### The "Optionality" Strategy (Hackathon Architecture)
+Rather than replacing the stable HTTP-based Replicate & OpenAI dependencies, the Gemini Live API (`@google/genai`) is built as a next-generation **"Live AR Stylist"** feature within the platform.
+This fulfills the "Enhancement First" core principle and ensures users have the optionality to choose:
+- **Standard Mode (Async/Text)**: Uses existing OpenAI & Replicate processing.
+- **Live Mode (Real-time Audio/Vision)**: Instantiates the `GeminiLiveProvider` which taps into the Gemini Multimodal Live API via WebSockets for a continuous voice/camera styling session.
 
 ## Key AI Models & Services
 

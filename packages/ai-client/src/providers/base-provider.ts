@@ -1,9 +1,18 @@
+export interface LiveSession {
+  // Stub for now, to be expanded with realtime websocket controls
+  connect: () => Promise<void>;
+  disconnect: () => void;
+  sendAudio: (audioData: ArrayBuffer) => void;
+  sendImage: (imageData: string) => void;
+}
+
 export interface AIProvider {
   name: string;
   analyzeOutfit(input: AnalysisInput): Promise<CritiqueResponse>;
   generateDesign(prompt: string): Promise<DesignGeneration>;
   chatWithStylist(message: string, persona: StylistPersona): Promise<StylistResponse>;
   analyzePhoto(file: File): Promise<VirtualTryOnAnalysis>;
+  connectLiveSession?(): Promise<LiveSession>;
 }
 
 export interface ReplicateProviderInterface {

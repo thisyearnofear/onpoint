@@ -88,6 +88,23 @@ OnPoint is a revolutionary multiplatform ecosystem for personalized fashion disc
 - [ ] Verify 0xSplits royalty distribution
 - [ ] Performance optimization and error handling
 
+### Phase 2.5: Google Gemini Live Agent Integration 🚀 New Priority
+**Timeline**: 1-2 weeks (For Hackathon Deadline)
+**Focus**: Add real-time "Live AR Stylist" mode utilizing Gemini Multimodal Live API.
+
+**Week 1 - Infrastructure & SDK**:
+- [ ] Register Google Cloud Project and configure Vertex AI/GenAI services
+- [ ] Install `@google/genai` in `packages/ai-client`
+- [ ] Create `GeminiLiveProvider` adhering to `AIProvider` abstractions
+- [ ] Deploy secure WebSocket provisioning endpoints to **Google Cloud Run**
+
+**Week 2 - UI/UX & Integration**:
+- [ ] Add "Switch to Live AR Stylist" toggle in the Virtual Try-On and Style Lab UI
+- [ ] Build continuous audio/camera streaming frontend connected to the Live API
+- [ ] Integrate personality-based system instructions for the Live Voice
+- [ ] Record demo video (A/B standard mode vs. next-gen Live Mode)
+- [ ] Submit to Devpost
+
 ### Phase 3: Social & Community Features ✅ Complete
 
 **Deliverables**:

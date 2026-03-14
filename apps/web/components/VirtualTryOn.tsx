@@ -23,6 +23,7 @@ import {
   TryOnResult,
   CritiqueResult,
   FashionAnalysis,
+  LiveStylistView,
 } from "./VirtualTryOn/index";
 
 import { PersonDescriptionEditor } from "./VirtualTryOn/PersonDescriptionEditor";
@@ -48,6 +49,7 @@ const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('
   const [personDescription, setPersonDescription] = useState<string>('');
   const [isAnalyzingPerson, setIsAnalyzingPerson] = useState(false);
   const [showPersonDescription, setShowPersonDescription] = useState(false);
+  const [showLiveStylist, setShowLiveStylist] = useState(false);
 
   // Use the enhancement hook
   const { enhancement, enhanceTryOn, loading: enhancementLoading, error: enhancementError } = useAIVirtualTryOnEnhancement();
@@ -268,7 +270,36 @@ const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('
         </div>
 
         <div className="max-w-6xl mx-auto">
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+          {/* Live Stylist Toggle */}
+          <div className="flex justify-end mb-6">
+            <Button
+              variant={showLiveStylist ? "default" : "outline"}
+              onClick={() => setShowLiveStylist(!showLiveStylist)}
+              className="flex items-center gap-2 shadow-sm"
+            >
+              <Sparkles className="w-4 h-4 text-primary" />
+              {showLiveStylist ? "Exit Live AR Stylist" : "Try Live AR Stylist (Gemini)"}
+            </Button>
+          </div>
+
+          <AnimatePresence mode="wait">
+            {showLiveStylist ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.3 }}
+              >
+                <LiveStylistView onBack={() => setShowLiveStylist(false)} />
+              </motion.div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]"
+              >
             <div className="space-y-6">
               {/* Upload Methods */}
               {!selectedPhoto && !scanComplete && (
@@ -606,7 +637,9 @@ const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('
               {/* Getting Started Message */}
               <WelcomeCard hasInput={hasInput} loading={loading} />
             </div>
-          </div>
+          </motion.div>
+          )}
+          </AnimatePresence>
         </div>
       </div>
     </section>

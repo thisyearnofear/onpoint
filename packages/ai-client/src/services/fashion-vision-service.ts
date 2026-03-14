@@ -83,8 +83,17 @@ export class FashionVisionService {
                 Focus on classic menswear, sophisticated edge, and timeless cool.`
             };
 
-            const input = {
-                prompt: `${personaPrompts[persona] || personaPrompts.luxury}
+            const personaKey = persona as string;
+            // The Replicate run endpoint takes `object` as the input type, but `input` is being validated
+            // by TS in strict mode. By assigning personaPrompts[persona] we're doing string | undefined indexing.
+            // We use personaKey to get a definite type.
+            let promptText = personaPrompts.luxury;
+            if (personaKey && personaPrompts[personaKey]) {
+                promptText = personaPrompts[personaKey];
+            }
+
+            const input: any = {
+                prompt: `${promptText}
                 
                 Analyze this image and provide your signature style of critique.
                 Be authentic to your personality while providing valuable fashion feedback.`,
@@ -100,7 +109,7 @@ export class FashionVisionService {
             if (typeof output === 'string') {
                 return output;
             } else if (Array.isArray(output)) {
-                return output.join('');
+                return (output as any[]).join('');
             } else if (typeof output === 'object' && output !== null) {
                 return JSON.stringify(output);
             }
@@ -123,7 +132,7 @@ export class FashionVisionService {
         
         // Extract rating if present
         const ratingMatch = analysisText.match(/(?:rating|score).*?(\d+(?:\.\d+)?)/i);
-        const rating = ratingMatch ? parseFloat(ratingMatch[1]) : 7;
+        const rating = ratingMatch && ratingMatch[1] ? parseFloat(ratingMatch[1]) : 7;
         
         // Extract key sections
         const strengths: string[] = [];
