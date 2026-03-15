@@ -35,7 +35,7 @@ export const getChainColor = (chainId: number) => {
 };
 
 export const getChainFeatures = (chainId: number) => {
-  const features = {
+  const features: Record<number, string> = {
     1: 'Ethereum Mainnet - Most secure and widely adopted',
     8453: 'Base - Low-cost Ethereum L2 by Coinbase',
     42161: 'Arbitrum - Scalable Ethereum rollup',
