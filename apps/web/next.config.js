@@ -22,6 +22,14 @@ const nextConfig = {
         IDBKeyRange: false,
       };
     }
+    
+    // Alias missing modules for MetaMask/WalletConnect
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'pino-pretty': false,
+      '@react-native-async-storage/async-storage': false,
+    };
+
     return config;
   },
   async headers() {

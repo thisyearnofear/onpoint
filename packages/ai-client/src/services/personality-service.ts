@@ -130,7 +130,7 @@ Be authentic and relatable, like advice from a trusted friend who knows fashion.
         // Check cache first
         const cacheKey = `${persona}_${mode}_${imageBase64.substring(0, 50)}`;
         try {
-            const { critiqueModeCache } = await import('../utils/cache.js');
+            const { critiqueModeCache } = await import('../utils/cache');
             const cached = await critiqueModeCache.get(cacheKey);
             if (cached) {
                 return cached;
@@ -161,7 +161,7 @@ Be authentic and relatable, like advice from a trusted friend who knows fashion.
 
             // Cache the result
             try {
-                const { critiqueModeCache } = await import('../utils/cache.js');
+                const { critiqueModeCache } = await import('../utils/cache');
                 await critiqueModeCache.set(cacheKey, critique);
             } catch (cacheError) {
                 console.warn('Cache set failed:', cacheError);
