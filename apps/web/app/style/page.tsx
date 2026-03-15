@@ -80,7 +80,7 @@ export default function StylePage() {
 
           <div className="flex items-center gap-4">
             <ChainStatusIndicator />
-            <EnhancedConnectButton showBalance={false} chainStatus="none" />
+            <EnhancedConnectButton />
           </div>
         </div>
       </header>

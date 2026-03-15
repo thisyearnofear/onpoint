@@ -48,7 +48,7 @@ export default function Home() {
             <MobileNavigation />
             <FarcasterSignInButton />
             <ChainStatusIndicator />
-            <EnhancedConnectButton showBalance={false} chainStatus="none" />
+            <EnhancedConnectButton />
           </div>
         </div>
       </header>
