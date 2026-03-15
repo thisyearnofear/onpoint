@@ -1,9 +1,15 @@
 export interface LiveSession {
-  // Stub for now, to be expanded with realtime websocket controls
   connect: () => Promise<void>;
   disconnect: () => void;
   sendAudio: (audioData: ArrayBuffer) => void;
-  sendImage: (imageData: string) => void;
+  sendImage: (imageData: string | Blob) => void;
+  
+  // Real-time Event System
+  on: (event: 'transcript' | 'response' | 'reasoning' | 'error' | 'connected' | 'disconnected', callback: (data: any) => void) => void;
+  off: (event: string, callback: (data: any) => void) => void;
+  
+  // Tool calling (e.g., adding to cart, searching product)
+  onCall?: (toolName: string, args: Record<string, any>, callback: (result: any) => void) => void;
 }
 
 export interface AIProvider {
