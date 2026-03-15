@@ -1,4 +1,4 @@
-import { config } from '../../config/wagmi';
+import { allConfiguredChains } from '../../config/chains';
 
 /**
  * Single source of truth for chain-related utilities
@@ -6,11 +6,11 @@ import { config } from '../../config/wagmi';
  */
 
 export const getAllChains = () => {
-  return config.chains;
+  return allConfiguredChains;
 };
 
 export const getChainById = (chainId: number) => {
-  return config.chains.find(chain => chain.id === chainId);
+  return (allConfiguredChains as any[]).find(chain => chain.id === chainId);
 };
 
 export const getChainName = (chainId: number) => {
@@ -52,5 +52,5 @@ export const getSupportedChainsForDisplay = () => {
   // Filter and sort chains for optimal display
   return getAllChains()
     .filter((chain: any) => !chain.testnet || chain.id === 44787) // Include Celo Alfajores testnet
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a: any, b: any) => a.name.localeCompare(b.name));
 };
