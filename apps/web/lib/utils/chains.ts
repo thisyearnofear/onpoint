@@ -51,6 +51,6 @@ export const getChainFeatures = (chainId: number) => {
 export const getSupportedChainsForDisplay = () => {
   // Filter and sort chains for optimal display
   return getAllChains()
-    .filter(chain => !chain.testnet || chain.id === 44787) // Include Celo Alfajores testnet
+    .filter((chain: any) => !chain.testnet || chain.id === 44787) // Include Celo Alfajores testnet
     .sort((a, b) => a.name.localeCompare(b.name));
 };
