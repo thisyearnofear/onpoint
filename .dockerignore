@@ -1,0 +1,11 @@
+node_modules
+.next
+.turbo
+apps/**/node_modules
+packages/**/node_modules
+.git
+.env.local
+.env
+Dockerfile
+README.md
+docs

@@ -7,9 +7,9 @@ export async function POST(request: NextRequest) {
         
         // In a production environment, you would perform user authentication here
         // Optional: Check rate limits for this user's live session instantiation.
-        const geminiApiKey = process.env.GEMINI_API_KEY;
+        const geminiApiKey = process.env.VERTEX_API_KEY || process.env.GEMINI_API_KEY;
         if (!geminiApiKey) {
-            return NextResponse.json({ error: 'Gemini API key not configured on server' }, { status: 500, headers: corsHeaders(origin) });
+            return NextResponse.json({ error: 'Vertex/Gemini API key not configured on server' }, { status: 500, headers: corsHeaders(origin) });
         }
 
         console.log('Provisioning Live AR Session...');
