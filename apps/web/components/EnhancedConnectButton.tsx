@@ -12,15 +12,10 @@ import { ChevronDown, Wallet } from "lucide-react";
  */
 
 export function EnhancedConnectButton({ 
-  showBalance = false,
-  chainStatus = "icon",
   className = ""
 }: {
-  showBalance?: boolean;
-  chainStatus?: "icon" | "name" | "none";
   className?: string;
 }) {
-  const { isConnected } = useAccount();
   const chainId = useChainId();
   const currentChainName = getChainName(chainId);
   const chainColor = getChainColor(chainId);
@@ -69,9 +64,6 @@ export function EnhancedConnectButton({
                   onClick={() => {
                     const el = document.querySelector('[role="button"][aria-label="Connect Wallet"]');
                     if (el instanceof HTMLElement) el.click();
-                    // Or if RainbowKit provides a global open, but typically we trigger via its own trigger
-                    // For Custom button, we must provide our own onClick that opens the modal
-                    const openConnectModal = (window as any).openConnectModal; // This is a hack, usually we get it from props
                   }}
                 >
                   <div className="flex items-center gap-2" onClick={openAccountModal}>
