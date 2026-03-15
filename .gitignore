@@ -40,4 +40,4 @@ yarn-error.log*
 .qoder/
 
 # pnpm
-pnpm-lock.yaml
+# pnpm-lock.yaml removed to allow deterministic cloud builds

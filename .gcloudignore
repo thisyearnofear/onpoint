@@ -1,0 +1,9 @@
+.git
+.gitignore
+node_modules
+.next
+.turbo
+apps/**/node_modules
+packages/**/node_modules
+# Do NOT ignore pnpm-lock.yaml for cloud builds
+!pnpm-lock.yaml
