@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@repo/ui/card';
 import { Button } from '@repo/ui/button';
-import { Mic, Video, PhoneOff, Sparkles, AlertCircle } from 'lucide-react';
+import { Mic, Video, PhoneOff, Sparkles, AlertCircle, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGeminiLive } from '@repo/ai-client';
 
