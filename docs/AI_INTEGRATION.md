@@ -30,8 +30,13 @@ export interface AIProvider {
 ### The "Optionality" Strategy (Hackathon Architecture)
 Rather than replacing the stable HTTP-based Replicate & OpenAI dependencies, the Gemini Live API (`@google/genai`) is built as a next-generation **"Live AR Stylist"** feature within the platform.
 This fulfills the "Enhancement First" core principle and ensures users have the optionality to choose:
-- **Standard Mode (Async/Text)**: Uses existing OpenAI & Replicate processing.
-- **Live Mode (Real-time Audio/Vision)**: Instantiates the `GeminiLiveProvider` which taps into the Gemini Multimodal Live API via WebSockets for a continuous voice/camera styling session.
+- **Standard Mode (Async/Text)**: Uses existing OpenAI & Replicate processing for reliable, high-detail fashion critiques.
+- **Live Mode (Real-time Audio/Vision)**: Instantiates the `GeminiLiveProvider` which taps into the Gemini Multimodal Live API via WebSockets. It uses the **Vertex AI** backend for low-latency voice/camera styling sessions.
+
+### Real-Time Reasoning & Trust
+A key innovation in the Live Mode is the **Agent Reasoning Terminal**. 
+- **The Philosophy**: "Show Your Work." By surfacing the AI's internal processing steps (e.g., `> Analyzing fabric texture...`, `> Symmetry check: PASS`), we build user trust and justification for the final critique.
+- **UI Implementation**: A glassmorphic monospace terminal that scrolls real-time "thoughts" emitted by the `GeminiLiveProvider`.
 
 ## Key AI Models & Services
 
@@ -78,6 +83,12 @@ This fulfills the "Enhancement First" core principle and ensures users have the 
 - Performance optimizations with caching
 - Animated UI components with Framer Motion
 - Responsive design for all screen sizes
+
+### Live AR Stylist Features
+- **Multimodal Live Analysis**: Simultaneous audio and video processing for natural styling conversation.
+- **Tactical Screenshot Protocol**: Canvas-based frame capture that overlays the AI's reasoning onto a "Proof of Style" image.
+- **Agentic Actions**: AI reasoning triggers actionable UI elements like **Celo Tipping** and **Farcaster Sharing**.
+- **Mobile Shutter Flash**: Visual feedback protocol to synchronize AI capture with user expectation.
 
 ### AI Stylist Features
 - Personality-based critiques with six distinct AI personas

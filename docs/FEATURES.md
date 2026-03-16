@@ -34,7 +34,7 @@
 | Feature | Web | Mobile | Mini App | Status |
 |---------|-----|--------|----------|--------|
 | AI Stylist (Standard) | ✅ | ✅ | ✅ | Complete |
-| AI Stylist (Live AR)  | 🔄 | - | - | In Progress |
+| AI Stylist (Live AR)  | ✅ | ✅ | ✅ | Complete |
 | Virtual Try-On | ✅ | ✅ | - | Complete |
 | Design Studio | ✅ | ✅ | - | Complete |
 | Digital Closet | ✅ | ✅ | ✅ | Complete |
@@ -68,7 +68,14 @@ A next-generation, premium styling experience powered by the **Google GenAI SDK*
 - **Real-Time Vision**: Agent naturally "sees" the clothes the user holds up to the camera.
 - **Interruptible Audio**: Users can talk and be interrupted in real-time, perfectly simulating a FaceTime call with a fashion consultant.
 - **Multimodal Context**: Seamless transitions between audio instructions and visual outfit analysis.
-- **Deployment**: Connecting via WebSockets provisioned by endpoints running on **Google Cloud**.
+- **Premium Tactical HUD**: Animated scanning grid, corner brackets, and **Agent Reasoning Terminal** for high-end sci-fi aesthetic.
+- **Haptic Delight**: Tactical physical feedback when taking snapshots or receiving critiques.
+- **Deployment**: Connecting via WebSockets provisioned by endpoints running on **Google Cloud Run**.
+
+### Social Loop & Ownership Proof
+- **Snapshot Capture**: One-tap frame capture with AR HUD overlays and AI critique text embedded.
+- **Native Farcaster Sharing**: Direct integration with `sdk.actions.composeCast` to share "Proof of Style" directly to the feed.
+- **Agentic Tipping (Celo)**: Users can tip their AI Stylist in **cUSD** directly from the session. Supports Celo Mainnet and Alfajores with automatic network switching.
 
 ## Virtual Try-On Experience
 

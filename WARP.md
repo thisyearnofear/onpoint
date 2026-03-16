@@ -48,19 +48,22 @@ cd apps/web && pnpm check-types
 Create `.env.local` in `apps/web/` with the following:
 
 ```bash
-# AI Providers (at least one required)
+# AI Providers
 REPLICATE_API_TOKEN=your_replicate_token
 OPENAI_API_KEY=your_openai_key
 GEMINI_API_KEY=your_gemini_key
+VERTEX_API_KEY=your_vertex_key # Required for Gemini Live sessions
+
+# Social & Mini App
+NEYNAR_API_KEY=your_neynar_key # Required for Farcaster/Social features
+NEXT_PUBLIC_WORLDCOIN_APP_ID=your_worldcoin_app_id
 
 # Web3 (required for wallet connections)
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
 
-# Worldcoin (required for identity features)
-NEXT_PUBLIC_WORLDCOIN_APP_ID=your_worldcoin_app_id
-
 # Blockchain RPC
 ZETA_RPC_URL=https://zetachain-evm.blockpi.network/v1/rpc/public
+CELO_RPC_URL=https://forno.celo.org
 ```
 
 ## Architecture Overview
@@ -114,7 +117,8 @@ AI providers are abstracted through a unified interface in `packages/ai-client`:
 - **Provider Implementations**: ChromeProvider, GeminiProvider, OpenAIProvider, ReplicateProvider, VeniceProvider, ServerProvider
 - **Key AI Features**:
   - Virtual try-on: IDM-VTON via Replicate
-  - Fashion critique: GPT-4o-mini with 6 personality modes (luxury, streetwear, sustainable, edina, miranda, shaft)
+  - Fashion critique: GPT-4o-mini with 6 personality modes
+  - **Live AR Stylist**: Real-time voice/vision via Gemini Live (GeminiLiveProvider)
   - Design generation: DALL-E/Stable Diffusion via Replicate
   - Image analysis: Vision models for outfit analysis
 

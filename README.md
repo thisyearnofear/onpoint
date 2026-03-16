@@ -22,10 +22,14 @@ pnpm dev
 To run the application, you need to set up the following environment variables in your `.env.local` file:
 
 ```bash
-# AI Provider Keys (at least one required)
+# AI Provider Keys
 REPLICATE_API_TOKEN=your_replicate_api_token_here
 OPENAI_API_KEY=your_openai_api_key_here
 GEMINI_API_KEY=your_gemini_api_key_here
+VERTEX_API_KEY=your_vertex_api_key_here # For Gemini Live sessions
+
+# Social & Mini App Keys
+NEYNAR_API_KEY=your_neynar_api_key_here # For Farcaster/Social features
 
 # WalletConnect Project ID (required for wallet connections)
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id_here
@@ -33,8 +37,9 @@ NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id_here
 # Worldcoin App ID (required for Worldcoin integration)
 NEXT_PUBLIC_WORLDCOIN_APP_ID=your_worldcoin_app_id_here
 
-# ZetaChain RPC (required for blockchain interactions)
+# ZetaChain/Celo RPC
 ZETA_RPC_URL=https://zetachain-evm.blockpi.network/v1/rpc/public
+CELO_RPC_URL=https://forno.celo.org
 ```
 
 You can copy the `.env.example` file to create your `.env.local`:
@@ -48,9 +53,12 @@ Then edit the `.env.local` file with your actual API keys and credentials.
 ## 🎯 Core Features
 
 - **Fashion Catalog**: Browse items with trending badges, ratings, and social proof metrics
+- **Live AR Stylist**: Real-time voice & vision fashion critique powered by Gemini Live
+- **Premium Tactical HUD**: Sci-fi AR overlay with Agent Reasoning terminal and haptic feedback
+- **Social Loop**: Snapshot capture and native Farcaster sharing with "Proof of Style"
+- **Agentic Tipping**: Tip your AI stylist in cUSD via Celo (Hackathon ready)
 - **AI Collage Creator**: Generate personalized fashion designs from images and text
 - **Virtual Style Lab**: Interactive try-on with drag-and-drop styling
-- **AI Fashion Critique**: Get expert styling feedback and suggestions
 - **Digital Ownership**: Mint fashion items as NFTs on blockchain
 - **Stylist Marketplace**: Connect with professional fashion consultants
 - **Enhanced UI**: Premium product cards with like/share actions, view transitions, and micro-animations
@@ -105,6 +113,9 @@ pnpm format     # Format code
 - ✅ AI-powered collage creator
 - ✅ Interactive styling canvas
 - ✅ Fashion critique system
+- ✅ **Live AR Stylist (Gemini Live)**
+- ✅ **Farcaster Social Loop (Snapshot + Posting)**
+- ✅ **Celo Agentic Tipping (cUSD)**
 - ✅ Wallet connection & NFT minting
 - ✅ Enhanced UI with engagement features (CardEnhanced, ShopGrid, EngagementBadge)
 - 🔄 Mobile app development
@@ -112,6 +123,7 @@ pnpm format     # Format code
 
 ## 🎯 Hackathon Targets
 
+- **Celo Agents for the Real World hackathon** - Q1 2026 (Agentic Tipping via cUSD)
 - **Google Chrome Built-in AI Challenge** - Nov 1, 2025 ($70K prize pool)
 - **Worldcoin Mini App Dev Rewards** - Ongoing ($100K/week)
 
