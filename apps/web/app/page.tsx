@@ -15,10 +15,15 @@ export default function Home() {
             <div className="p-1.5 rounded-xl bg-gradient-to-br from-primary to-accent shadow-lg shadow-primary/20">
               <Palette className="h-5 w-5 text-white" />
             </div>
-            <span className="text-lg font-bold tracking-tighter bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
-              BeOnPoint
-              <span className="ml-1 text-[10px] text-primary align-top uppercase tracking-widest opacity-80">Agent</span>
-            </span>
+            <div className="leading-tight">
+              <span className="text-lg font-bold tracking-tighter bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+                BeOnPoint
+                <span className="ml-1 text-[10px] text-primary align-top uppercase tracking-widest opacity-80">Agent</span>
+              </span>
+              <p className="hidden md:block text-[10px] text-muted-foreground uppercase tracking-wider">
+                AI fashion guidance, virtual try-on, and confident outfit decisions
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">

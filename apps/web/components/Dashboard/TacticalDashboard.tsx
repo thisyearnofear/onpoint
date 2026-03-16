@@ -9,7 +9,10 @@ import {
   LayoutDashboard,
   Users,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  CheckCircle2,
+  Target,
+  Clock
 } from 'lucide-react';
 import { CommandCenter } from './CommandCenter';
 import { DesignStudio } from '../DesignStudio';
@@ -23,11 +26,11 @@ export function TacticalDashboard() {
   const [mode, setMode] = useState<AppMode>('dashboard');
 
   const navItems = [
-    { id: 'dashboard', label: 'HUB', icon: LayoutDashboard, color: 'text-foreground' },
-    { id: 'design', label: 'DESIGN', icon: Palette, color: 'text-indigo-400' },
-    { id: 'try-on', label: 'TRY-ON', icon: Camera, color: 'text-accent' },
-    { id: 'stylist', label: 'STYLIST', icon: MessageCircle, color: 'text-primary' },
-    { id: 'social', label: 'FEED', icon: Users, color: 'text-blue-400' },
+    { id: 'dashboard', label: 'HOME', icon: LayoutDashboard, color: 'text-foreground' },
+    { id: 'design', label: 'DESIGN STUDIO', icon: Palette, color: 'text-indigo-400' },
+    { id: 'try-on', label: 'VIRTUAL TRY-ON', icon: Camera, color: 'text-accent' },
+    { id: 'stylist', label: 'AI STYLIST', icon: MessageCircle, color: 'text-primary' },
+    { id: 'social', label: 'COMMUNITY FEED', icon: Users, color: 'text-blue-400' },
   ];
 
   const renderContent = () => {
@@ -42,9 +45,53 @@ export function TacticalDashboard() {
           >
             <div className="space-y-2">
               <h2 className="text-3xl font-bold text-foreground tracking-tighter">Command Center</h2>
-              <p className="text-muted-foreground text-sm max-w-sm leading-relaxed">
-                Welcome back, Agent. Your fashion intelligence network is active.
+              <p className="text-muted-foreground text-sm max-w-2xl leading-relaxed">
+                Find outfits that actually work for your body, style, and budget. BeOnPoint helps you decide faster with AI guidance, realistic try-on, and confidence before you buy.
               </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="rounded-3xl border border-border bg-card/60 p-5 space-y-4">
+                <div className="flex items-center gap-2 text-foreground">
+                  <Target className="w-4 h-4 text-primary" />
+                  <h3 className="text-sm font-bold uppercase tracking-wider">What we solve</h3>
+                </div>
+                <ul className="space-y-3 text-sm text-muted-foreground">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 mt-0.5 text-primary shrink-0" />
+                    <span>Stop guessing if an outfit will suit you before checkout.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 mt-0.5 text-primary shrink-0" />
+                    <span>Get personalized style advice without booking a stylist session.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 mt-0.5 text-primary shrink-0" />
+                    <span>Save time by moving from inspiration to decision in minutes.</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="rounded-3xl border border-border bg-card/60 p-5 space-y-4">
+                <div className="flex items-center gap-2 text-foreground">
+                  <Clock className="w-4 h-4 text-accent" />
+                  <h3 className="text-sm font-bold uppercase tracking-wider">How it works</h3>
+                </div>
+                <ol className="space-y-3 text-sm text-muted-foreground">
+                  <li className="flex items-start gap-2">
+                    <span className="w-5 h-5 rounded-full bg-muted text-foreground text-[10px] font-bold grid place-items-center mt-0.5">1</span>
+                    <span>Upload a photo in <strong className="text-foreground">Virtual Try-On</strong> to preview fit and silhouette.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="w-5 h-5 rounded-full bg-muted text-foreground text-[10px] font-bold grid place-items-center mt-0.5">2</span>
+                    <span>Use <strong className="text-foreground">AI Stylist</strong> to get outfit recommendations for your event, vibe, and budget.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="w-5 h-5 rounded-full bg-muted text-foreground text-[10px] font-bold grid place-items-center mt-0.5">3</span>
+                    <span>Save or mint your final look in <strong className="text-foreground">Design Studio</strong> and share with the community.</span>
+                  </li>
+                </ol>
+              </div>
             </div>
             
             <CommandCenter />
@@ -52,18 +99,25 @@ export function TacticalDashboard() {
             <div className="grid grid-cols-1 gap-4">
                <DashboardActionCard 
                  title="Launch Live AR Stylist"
-                 description="Real-time multimodal session with Gemini Pro Vision."
+                 description="See how outfits look on you and get instant confidence before you buy."
                  icon={<Camera className="w-6 h-6 text-accent" />}
                  onClick={() => setMode('try-on')}
-                 buttonText="Start Session"
+                 buttonText="Start Try-On"
                  tag="Hot"
                />
                <DashboardActionCard 
                  title="AI Design Studio"
-                 description="Generate unique patterns and styles on-chain."
+                 description="Create personalized looks and keep your best concepts in one place."
                  icon={<Palette className="w-6 h-6 text-indigo-400" />}
                  onClick={() => setMode('design')}
-                 buttonText="Open Studio"
+                 buttonText="Open Design Studio"
+               />
+               <DashboardActionCard 
+                 title="Talk to AI Stylist"
+                 description="Tell us your occasion and budget, then get practical outfit suggestions fast."
+                 icon={<MessageCircle className="w-6 h-6 text-primary" />}
+                 onClick={() => setMode('stylist')}
+                 buttonText="Chat Now"
                />
             </div>
           </motion.div>
@@ -112,7 +166,14 @@ export function TacticalDashboard() {
   );
 }
 
-function DashboardActionCard({ title, description, icon, onClick, buttonText, tag }: any) {
+function DashboardActionCard({ title, description, icon, onClick, buttonText, tag }: {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+  buttonText: string;
+  tag?: string;
+}) {
   return (
     <div 
       onClick={onClick}
@@ -136,6 +197,9 @@ function DashboardActionCard({ title, description, icon, onClick, buttonText, ta
         <div className="flex-1">
           <h3 className="text-lg font-bold text-foreground tracking-tight mb-1 group-hover:text-primary transition-colors">{title}</h3>
           <p className="text-muted-foreground text-xs leading-relaxed max-w-xs">{description}</p>
+          <button className="mt-3 text-[10px] uppercase tracking-widest font-bold text-primary/90 group-hover:text-primary transition-colors">
+            {buttonText}
+          </button>
         </div>
         <div className="self-center">
           <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-all transform group-hover:translate-x-1" />

@@ -9,6 +9,11 @@ import { sdk } from '@farcaster/miniapp-sdk';
 import { CeloTipButton } from './CeloTipButton';
 import { MintLookButton } from './MintLookButton';
 
+interface CaptureOption {
+  image: string;
+  comment: string;
+}
+
 interface LiveStylistViewProps {
   onBack: () => void;
 }
@@ -27,11 +32,35 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   } = useGeminiLive();
   const { context } = useMiniApp();
 
-  const [aiResponse, setAiResponse] = useState<string>('');
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [captures, setCaptures] = useState<CaptureOption[]>([]);
+  const [selectedCaptureIndex, setSelectedCaptureIndex] = useState<number>(0);
+  const [finalAdvice, setFinalAdvice] = useState<string>('');
   const [uploadedData, setUploadedData] = useState<{ url: string; ipfsUrl: string; ipfsCid: string } | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [showFlash, setShowFlash] = useState(false);
+
+  const hasCaptures = captures.length > 0;
+  const selectedCapture = hasCaptures ? captures[selectedCaptureIndex] : null;
+
+  useEffect(() => {
+    if (liveAiResponse?.trim()) {
+      setFinalAdvice(liveAiResponse.trim());
+    }
+  }, [liveAiResponse]);
+
+  useEffect(() => {
+    return () => {
+      stopSession();
+    };
+  }, [stopSession]);
+
+  const parseAdvice = (text: string) => {
+    return text
+      .split(/(?:\n|•|-\s|\d+\.\s)/g)
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0)
+      .slice(0, 3);
+  };
 
   const handleCapture = async () => {
     if (!videoRef.current) return;
@@ -71,8 +100,10 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
       // Bottom Right
       ctx.beginPath(); ctx.moveTo(canvas.width - margin - len, canvas.height - margin); ctx.lineTo(canvas.width - margin, canvas.height - margin); ctx.lineTo(canvas.width - margin, canvas.height - margin - len); ctx.stroke();
 
+      const comment = (liveAiResponse || finalAdvice || 'Great structure. Keep this silhouette and add one accent accessory.').trim();
+
       // Draw AI Response if exists
-      if (aiResponse) {
+      if (comment) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         const rectWidth = canvas.width * 0.8;
         const rectHeight = 100;
@@ -89,7 +120,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
         ctx.textAlign = 'center';
         
         // Text wrap support
-        const words = aiResponse.split(' ');
+        const words = comment.split(' ');
         let line = '';
         let y = rectY + 60;
         for(let n = 0; n < words.length; n++) {
@@ -113,9 +144,14 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
       ctx.fillText('BeOnPoint AR Stylist', margin + 20, margin + 40);
 
       const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-      setCapturedImage(dataUrl);
-      setAiResponse(liveAiResponse);
+      setCaptures((prev) => {
+        const next = [{ image: dataUrl, comment }, ...prev].slice(0, 4);
+        setSelectedCaptureIndex(0);
+        return next;
+      });
+      setFinalAdvice(comment);
       setUploadedData(null); // Reset upload state for new capture
+      stopSession();
     } catch (err) {
       console.error('Capture failed:', err);
     } finally {
@@ -125,10 +161,13 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
   const uploadCapture = async () => {
     if (uploadedData) return uploadedData;
+    if (!selectedCapture) {
+      throw new Error('No capture selected');
+    }
     
     setIsCapturing(true);
     try {
-      const response = await fetch(capturedImage!);
+      const response = await fetch(selectedCapture.image);
       const blob = await response.blob();
       
       const formData = new FormData();
@@ -192,7 +231,15 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           </div>
           
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={onBack} className="rounded-full bg-black/40 backdrop-blur-xl border border-white/10 text-white hover:bg-destructive/60">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                stopSession();
+                onBack();
+              }}
+              className="rounded-full bg-black/40 backdrop-blur-xl border border-white/10 text-white hover:bg-destructive/60"
+            >
               <PhoneOff className="w-4 h-4" />
             </Button>
           </div>
@@ -230,7 +277,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
         {/* User Transcription & AI Captions */}
         <AnimatePresence>
-          {isConnected && (transcript || aiResponse) && (
+          {isConnected && (transcript || liveAiResponse) && (
             <motion.div 
                initial={{ y: 20, opacity: 0 }}
                animate={{ y: 0, opacity: 1 }}
@@ -241,14 +288,36 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                   "{transcript}"
                 </div>
               )}
-              {aiResponse && (
+              {liveAiResponse && (
                 <div className="px-5 py-3 rounded-2xl bg-primary/20 backdrop-blur-xl border border-primary/30 text-white text-lg font-medium shadow-2xl shadow-primary/20 max-w-[90%] leading-snug">
-                  {aiResponse}
+                  {liveAiResponse}
                 </div>
               )}
             </motion.div>
           )}
         </AnimatePresence>
+
+        {!!error && (
+          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full bg-destructive/85 px-4 py-2 text-[11px] text-destructive-foreground shadow-lg">
+            <AlertCircle className="h-3.5 w-3.5" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {!!finalAdvice && !isConnected && !hasCaptures && (
+          <div className="absolute bottom-6 left-6 right-6 z-30 rounded-2xl bg-black/65 border border-white/10 backdrop-blur-xl p-4 space-y-2">
+            <div className="text-[10px] uppercase tracking-[0.18em] font-semibold text-primary">Final stylist advice</div>
+            <div className="text-white text-sm leading-relaxed">{finalAdvice}</div>
+            <ul className="space-y-1 text-white/80 text-xs">
+              {parseAdvice(finalAdvice).map((tip) => (
+                <li key={tip} className="flex items-start gap-2">
+                  <span className="text-primary">•</span>
+                  <span>{tip}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Video Feed */}
         <div className="relative w-full h-full min-h-[600px] flex justify-center items-center bg-black overflow-hidden">
@@ -301,7 +370,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
         {/* Floating Call Controls */}
         <AnimatePresence>
-          {isConnected && !capturedImage && (
+          {isConnected && !hasCaptures && (
             <motion.div 
               initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -331,7 +400,10 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                   variant="destructive" 
                   size="icon" 
                   className="w-12 h-12 rounded-full shadow-lg shadow-destructive/20"
-                  onClick={stopSession}
+                  onClick={() => {
+                    stopSession();
+                    setFinalAdvice(liveAiResponse || finalAdvice);
+                  }}
                 >
                   <PhoneOff className="w-5 h-5" />
                 </Button>
@@ -342,7 +414,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
         {/* Captured Preview & Share Overlay */}
         <AnimatePresence>
-          {capturedImage && (
+          {hasCaptures && selectedCapture && (
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -350,10 +422,38 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               className="absolute inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-6 pb-[env(safe-area-inset-bottom)]"
             >
               <div className="relative w-full aspect-video rounded-xl overflow-hidden shadow-2xl border border-white/10 mb-8 max-w-2xl">
-                <img src={capturedImage} className="w-full h-full object-cover" alt="Captured Frame" />
+                <img src={selectedCapture.image} className="w-full h-full object-cover" alt="Captured Frame" />
                 <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-primary/80 backdrop-blur-md text-[10px] font-bold text-white tracking-widest uppercase">
                   Proof of Style
                 </div>
+              </div>
+
+              {captures.length > 1 && (
+                <div className="w-full max-w-2xl mb-6">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/60 mb-2">Choose your proof shot</p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {captures.map((item, index) => (
+                      <button
+                        type="button"
+                        key={`${item.image}-${index}`}
+                        onClick={() => {
+                          setSelectedCaptureIndex(index);
+                          setUploadedData(null);
+                        }}
+                        className={`relative rounded-lg overflow-hidden border transition ${
+                          selectedCaptureIndex === index ? 'border-primary ring-2 ring-primary/40' : 'border-white/20'
+                        }`}
+                      >
+                        <img src={item.image} alt={`Proof option ${index + 1}`} className="h-16 w-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="w-full max-w-2xl mb-6 rounded-xl border border-white/10 bg-white/5 p-3">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-primary mb-1">Stylist comment on this shot</p>
+                <p className="text-sm text-white/90 leading-relaxed">{selectedCapture.comment}</p>
               </div>
 
               <div className="flex flex-col gap-4 w-full max-w-xs">
@@ -366,7 +466,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                       const data = await uploadCapture();
                       const { url } = data;
                       
-                      const shareText = `Just got a live style critique from my AI Stylist on BeOnPoint! 📸✨\n\nAI noticed: "${aiResponse || 'My style is on point!'}"\n\n#BeOnPoint #AIStylist #FashionProof`;
+                      const shareText = `Just got a live style critique from my AI Stylist on BeOnPoint! 📸✨\n\nStylist notes: "${selectedCapture.comment || 'My style is on point!'}"\n\n#BeOnPoint #AIStylist #FashionProof`;
 
                       // 3. Share via SDK if available, or API fallback
                       if (context?.client) {
@@ -380,7 +480,8 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                         alert('Link copied to clipboard! (Not in Farcaster App)');
                       }
                       
-                      setCapturedImage(null);
+                      setCaptures([]);
+                      setSelectedCaptureIndex(0);
                     } catch (err) {
                       console.error('Share failed:', err);
                       alert('Failed to share capture. Please try again.');
@@ -410,14 +511,18 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 <MintLookButton 
                   imageUrl={uploadedData?.url || ''} 
                   ipfsCid={uploadedData?.ipfsCid || ''}
-                  aiCritique={aiResponse}
+                  aiCritique={selectedCapture.comment}
                   onUpload={uploadCapture}
                 />
 
                 <Button 
                   variant="ghost" 
                   className="w-full text-white/60 hover:text-white"
-                  onClick={() => setCapturedImage(null)}
+                  onClick={() => {
+                    setCaptures([]);
+                    setSelectedCaptureIndex(0);
+                    setUploadedData(null);
+                  }}
                 >
                   Discard
                 </Button>
