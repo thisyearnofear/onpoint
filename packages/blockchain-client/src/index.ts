@@ -49,8 +49,8 @@ export function createSplitsClient(
   
   return new SplitsClient({
     chainId,
-    publicClient: clientWithChain as PublicClient<Chain>,
-    walletClient,
+    publicClient: publicClient as any,
+    walletClient: walletClient as any,
   });
 }
 
@@ -73,31 +73,62 @@ export async function createRoyaltySplit(
   };
 }
 
+// Standard ERC-721A + Royalty Extension ABI
+const ONPOINT_NFT_ABI = [
+  {
+    name: 'mintWithRoyalty',
+    type: 'function',
+    stateMutability: 'payable',
+    inputs: [
+      { name: 'to', type: 'address' },
+      { name: 'uri', type: 'string' },
+      { name: 'royaltyRecipient', type: 'address' },
+      { name: 'royaltyBps', type: 'uint96' },
+    ],
+    outputs: [{ name: 'tokenId', type: 'uint256' }],
+  },
+] as const;
+
 // Mint NFT with 0xSplits royalty integration
 export async function mintNFTWithSplit(
-  contractConfig: ContractConfig,
+  walletClient: WalletClient,
+  publicClient: PublicClient,
+  contractAddress: Address,
   metadataUri: string,
   splitParams: CreateSplitParams,
   splitsClient: SplitsClient
 ): Promise<MintResult> {
   try {
+    const [account] = await walletClient.getAddresses();
+    if (!account) throw new Error('No account connected');
+
     // 1. Create split for royalty distribution
     const { splitAddress, transactionHash: splitTxHash } = await createRoyaltySplit(
       splitsClient,
       splitParams
     );
 
-    // 2. Mint NFT with split address as royalty recipient
-    // This is still a stub - will be implemented with actual contract
-    console.log('Minting NFT with metadata URI:', metadataUri);
-    console.log('Split address for royalties:', splitAddress);
-    console.log('Split creation tx:', splitTxHash);
+    console.log('Split created at:', splitAddress, 'tx:', splitTxHash);
+
+    // 2. Mint NFT using the split address for royalties (default 500 bps = 5%)
+    const { request } = await publicClient.simulateContract({
+      account,
+      address: contractAddress,
+      abi: ONPOINT_NFT_ABI,
+      functionName: 'mintWithRoyalty',
+      args: [account, metadataUri, splitAddress, BigInt(500)],
+    });
+
+    const hash = await walletClient.writeContract(request);
+    
+    // Wait for transaction
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
     return {
-      transactionHash: '0x1234567890abcdef', // TODO: Replace with actual mint tx
-      tokenId: '1',
+      transactionHash: hash,
+      tokenId: receipt.logs[0]?.topics[3] || '1', // Simplified tokenId extraction
       splitAddress,
-      status: 'pending'
+      status: receipt.status === 'success' ? 'confirmed' : 'failed'
     };
   } catch (error) {
     console.error('Failed to mint NFT with split:', error);

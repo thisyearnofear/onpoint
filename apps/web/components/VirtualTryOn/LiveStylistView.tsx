@@ -7,6 +7,7 @@ import { useGeminiLive } from '@repo/ai-client';
 import { useMiniApp } from '@neynar/react';
 import { sdk } from '@farcaster/miniapp-sdk';
 import { CeloTipButton } from './CeloTipButton';
+import { MintLookButton } from './MintLookButton';
 
 interface LiveStylistViewProps {
   onBack: () => void;
@@ -21,12 +22,14 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     startSession, 
     stopSession,
     transcript,
-    aiResponse,
+    aiResponse: liveAiResponse,
     reasoning
   } = useGeminiLive();
   const { context } = useMiniApp();
 
+  const [aiResponse, setAiResponse] = useState<string>('');
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [uploadedData, setUploadedData] = useState<{ url: string; ipfsUrl: string; ipfsCid: string } | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [showFlash, setShowFlash] = useState(false);
 
@@ -111,8 +114,38 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
       const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
       setCapturedImage(dataUrl);
+      setAiResponse(liveAiResponse);
+      setUploadedData(null); // Reset upload state for new capture
     } catch (err) {
       console.error('Capture failed:', err);
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
+  const uploadCapture = async () => {
+    if (uploadedData) return uploadedData;
+    
+    setIsCapturing(true);
+    try {
+      const response = await fetch(capturedImage!);
+      const blob = await response.blob();
+      
+      const formData = new FormData();
+      formData.append('image', blob, 'stylist-capture.jpg');
+      
+      const uploadRes = await fetch('/api/social/upload', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!uploadRes.ok) throw new Error('Upload failed');
+      const data = await uploadRes.json();
+      setUploadedData(data);
+      return data;
+    } catch (err) {
+      console.error('Upload failed:', err);
+      throw err;
     } finally {
       setIsCapturing(false);
     }
@@ -329,23 +362,9 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                   disabled={isCapturing}
                   onClick={async () => {
                     try {
-                      setIsCapturing(true);
-                      
-                      // 1. Convert base64 to Blob
-                      const response = await fetch(capturedImage!);
-                      const blob = await response.blob();
-                      
-                      // 2. Upload to our new API
-                      const formData = new FormData();
-                      formData.append('image', blob, 'stylist-capture.jpg');
-                      
-                      const uploadRes = await fetch('/api/social/upload', {
-                        method: 'POST',
-                        body: formData
-                      });
-                      
-                      if (!uploadRes.ok) throw new Error('Upload failed');
-                      const { url } = await uploadRes.json();
+                      // 1. Upload if not already uploaded
+                      const data = await uploadCapture();
+                      const { url } = data;
                       
                       const shareText = `Just got a live style critique from my AI Stylist on BeOnPoint! 📸✨\n\nAI noticed: "${aiResponse || 'My style is on point!'}"\n\n#BeOnPoint #AIStylist #FashionProof`;
 
@@ -381,6 +400,19 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 </div>
 
                 <CeloTipButton />
+
+                <div className="flex items-center gap-2">
+                   <div className="h-[1px] flex-1 bg-white/10" />
+                   <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Ownership</span>
+                   <div className="h-[1px] flex-1 bg-white/10" />
+                </div>
+
+                <MintLookButton 
+                  imageUrl={uploadedData?.url || ''} 
+                  ipfsCid={uploadedData?.ipfsCid || ''}
+                  aiCritique={aiResponse}
+                  onUpload={uploadCapture}
+                />
 
                 <Button 
                   variant="ghost" 

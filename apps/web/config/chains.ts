@@ -53,6 +53,9 @@ export const celo = {
     },
     cUSD: {
       address: '0x765DE8164458C172EE097029dfb482Ff182ad001',
+    },
+    OnPointNFT: {
+      address: '0xdb65806c994C3f55079a6136a8E0886CbB2B64B1',
     }
   },
   testnet: false,
@@ -75,6 +78,9 @@ export const celoAlfajores = {
     },
     cUSD: {
       address: '0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1',
+    },
+    OnPointNFT: {
+      address: '0xdb65806c994C3f55079a6136a8E0886CbB2B64B1',
     }
   },
   testnet: true,

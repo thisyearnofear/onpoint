@@ -69,6 +69,9 @@ importers:
       '@repo/ai-client':
         specifier: workspace:*
         version: link:../../packages/ai-client
+      '@repo/blockchain-client':
+        specifier: workspace:*
+        version: link:../../packages/blockchain-client
       '@repo/ipfs-client':
         specifier: workspace:*
         version: link:../../packages/ipfs-client

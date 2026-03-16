@@ -23,6 +23,7 @@
     "@pigment-css/react": "0.0.30",
     "@rainbow-me/rainbowkit": "^2.2.9",
     "@repo/ai-client": "workspace:*",
+    "@repo/blockchain-client": "workspace:*",
     "@repo/ipfs-client": "workspace:*",
     "@repo/shared-ui": "workspace:*",
     "@repo/ui": "workspace:*",
