@@ -63,13 +63,14 @@ export class GeminiLiveProvider implements AIProvider {
         
         // Simulation loop for high-fidelity "Reasoning" (Delight Factor)
         const simulations = [
-          "Noticing fabric texture...",
-          "Analyzing color harmony...",
-          "Symmetry check: PASS",
-          "Detecting style archetype: Streetwear",
-          "Session Milestone: Share Target Ready",
-          "Stylist Reward Protocol: cUSD Enabled",
-          "Proposing accessories...",
+          "Optimizing for lighting conditions...",
+          "Neural Stylist: Please step back for full-body view.",
+          "Analyzing silhouette and proportions...",
+          "Checking color palette compatibility...",
+          "Syncing with Filecoin styles database...",
+          "Tip: Try a different angle for better analysis.",
+          "Lighthouse storage protocol: Ready.",
+          "Agent Miranda: Standing by for excellence.",
         ];
         
         let simIdx = 0;

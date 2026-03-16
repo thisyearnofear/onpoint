@@ -38,6 +38,8 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   const [uploadedData, setUploadedData] = useState<{ url: string; ipfsUrl: string; ipfsCid: string } | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [showFlash, setShowFlash] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(true);
+  const [terminalExpanded, setTerminalExpanded] = useState(false);
 
   const hasCaptures = captures.length > 0;
   const selectedCapture = hasCaptures ? captures[selectedCaptureIndex] : null;
@@ -151,7 +153,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
       });
       setFinalAdvice(comment);
       setUploadedData(null); // Reset upload state for new capture
-      stopSession();
+      // Removed stopSession() here to allow multiple captures
     } catch (err) {
       console.error('Capture failed:', err);
     } finally {
@@ -245,30 +247,83 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           </div>
         </div>
 
-        {/* Live Reasoning Terminal (Side HUD) */}
+        {/* Instructions Overlay */}
+        <AnimatePresence>
+          {showInstructions && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-[60] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6 text-center"
+            >
+              <div className="max-w-xs space-y-6">
+                <div className="w-20 h-20 mx-auto rounded-full bg-primary/20 flex items-center justify-center border border-primary/40">
+                  <Sparkles className="w-10 h-10 text-primary" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold text-white">Neural Stylist Ready</h3>
+                  <p className="text-white/60 text-sm leading-relaxed">
+                    For the best results:
+                  </p>
+                  <ul className="text-left text-xs text-white/50 space-y-2 py-4">
+                    <li className="flex items-center gap-3">
+                      <div className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center text-[10px]">1</div>
+                      Step back 5-8 feet for a full-body scan.
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <div className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center text-[10px]">2</div>
+                      Ensure lighting is bright (face the light).
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <div className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center text-[10px]">3</div>
+                      Speak to your stylist about your plans.
+                    </li>
+                  </ul>
+                </div>
+                <Button 
+                  onClick={() => setShowInstructions(false)}
+                  className="w-full py-6 rounded-full font-bold text-lg bg-primary text-white"
+                >
+                  I'm Ready
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Live Reasoning Terminal (Bottom Dock) */}
         <AnimatePresence>
           {isConnected && reasoning.length > 0 && (
             <motion.div 
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -20, opacity: 0 }}
-              className="absolute left-6 top-24 w-48 z-30 hidden md:block"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 20, opacity: 0 }}
+              onClick={() => setTerminalExpanded(!terminalExpanded)}
+              className={`absolute bottom-32 left-6 right-6 z-40 transition-all duration-300 cursor-pointer ${terminalExpanded ? 'h-48' : 'h-11 overflow-hidden'}`}
             >
-              <div className="p-3 rounded-lg bg-black/40 backdrop-blur-xl border border-white/5 font-mono text-[10px] space-y-2">
-                <div className="text-primary/60 flex items-center gap-2">
-                  <span className="animate-pulse">●</span> AGENT_REASONING
+              <div className={`h-full w-full p-3 rounded-xl bg-black/60 backdrop-blur-2xl border ${terminalExpanded ? 'border-primary/40 shadow-[0_0_30px_rgba(var(--primary),0.3)]' : 'border-white/10'} font-mono text-[10px] transition-all duration-500`}>
+                <div className="flex justify-between items-center mb-2">
+                  <div className="text-primary flex items-center gap-2 font-bold tracking-widest uppercase">
+                    <motion.div 
+                      animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="w-1.5 h-1.5 rounded-full bg-primary" 
+                    />
+                    Agent_Analysis {terminalExpanded ? '[-]' : '[+]'}
+                  </div>
+                  <div className="text-white/40 text-[8px] uppercase">Multimodal Feedback</div>
                 </div>
-                <div className="space-y-1">
-                  {reasoning.map((item, i) => (
+                <div className="space-y-1.5">
+                  {reasoning.slice(0, terminalExpanded ? 10 : 1).map((item, i) => (
                     <motion.div 
                       key={i} 
                       initial={{ opacity: 0, x: -5 }}
-                      animate={{ opacity: 1 - (i * 0.15), x: 0 }}
-                      className="text-white/70 overflow-hidden text-ellipsis whitespace-nowrap"
+                      animate={{ opacity: 1 - (i * 0.1), x: 0 }}
+                      className="text-white/70 line-clamp-1"
                     >
                       {`> ${item}`}
                     </motion.div>
-                  )) || null}
+                  ))}
                 </div>
               </div>
             </motion.div>
@@ -281,7 +336,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             <motion.div 
                initial={{ y: 20, opacity: 0 }}
                animate={{ y: 0, opacity: 1 }}
-               className="absolute bottom-28 left-6 right-6 z-30 flex flex-col items-center gap-3 text-center"
+               className={`absolute ${terminalExpanded ? 'bottom-56' : 'bottom-44'} left-6 right-6 z-30 flex flex-col items-center gap-3 text-center transition-all duration-300`}
             >
               {transcript && (
                 <div className="px-4 py-2 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 text-white/90 text-sm max-w-[80%]">
@@ -385,28 +440,34 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 <Button 
                    onClick={handleCapture}
                    disabled={isCapturing}
-                   className="w-14 h-14 rounded-full bg-primary text-white shadow-lg shadow-primary/30 hover:scale-110 transition-transform"
+                   className="w-16 h-16 rounded-full bg-primary text-white shadow-[0_0_20px_rgba(var(--primary),0.4)] hover:scale-110 active:scale-95 transition-all border-4 border-white/10"
                 >
-                  {isCapturing ? <Sparkles className="animate-spin w-6 h-6" /> : <Camera className="w-6 h-6" />}
+                  {isCapturing ? <Sparkles className="animate-spin w-7 h-7" /> : <Camera className="w-7 h-7" />}
                 </Button>
 
-                <Button variant="ghost" size="icon" className="w-12 h-12 rounded-full bg-white/5 text-white hover:bg-white/20">
-                  <Video className="w-5 h-5" />
-                </Button>
+                <div className="w-[1px] h-8 bg-white/10 mx-1" />
 
-                <div className="w-[1px] h-8 bg-white/10 mx-2" />
-
-                <Button 
-                  variant="destructive" 
-                  size="icon" 
-                  className="w-12 h-12 rounded-full shadow-lg shadow-destructive/20"
-                  onClick={() => {
-                    stopSession();
-                    setFinalAdvice(liveAiResponse || finalAdvice);
-                  }}
-                >
-                  <PhoneOff className="w-5 h-5" />
-                </Button>
+                <div className="flex flex-col items-center">
+                  <Button 
+                    variant="outline"
+                    size="icon" 
+                    className="w-12 h-12 rounded-full border-white/20 text-white hover:bg-green-500/20"
+                    onClick={async () => {
+                      try { await (sdk.haptics.impactOccurred as any)('medium'); } catch {}
+                      stopSession();
+                    }}
+                  >
+                    <div className="relative">
+                      <PhoneOff className="w-5 h-5 text-red-500" />
+                      {hasCaptures && (
+                        <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-[8px] flex items-center justify-center font-bold">
+                          {captures.length}
+                        </div>
+                      )}
+                    </div>
+                  </Button>
+                  <span className="text-[7px] font-black uppercase tracking-widest mt-1 text-white/40">Finish</span>
+                </div>
               </div>
             </motion.div>
           )}
