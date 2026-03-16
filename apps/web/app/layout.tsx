@@ -47,17 +47,26 @@ export default function RootLayout({
     },
   };
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(() => {
+  try {
+    const storageKey = 'onpoint-theme';
+    const stored = localStorage.getItem(storageKey);
+    const resolved = stored || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.classList.toggle('dark', resolved === 'dark');
+  } catch {}
+})();`,
+          }}
+        />
         {/* Farcaster Mini App embed for discovery in casts */}
         <meta name="fc:miniapp" content={JSON.stringify(embed)} />
         {/* Backward compatibility with legacy Frames */}
         <meta name="fc:frame" content={JSON.stringify(embed)} />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-        suppressHydrationWarning
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Providers>
           {children}
         </Providers>

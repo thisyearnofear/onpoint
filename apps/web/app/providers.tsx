@@ -17,11 +17,11 @@ if (typeof window === "undefined") {
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
-import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
+import { RainbowKitProvider, darkTheme, lightTheme } from "@rainbow-me/rainbowkit";
 import { config } from "../config/wagmi";
 import { AIProviderContext } from "@repo/ai-client";
 import { sdk } from "@farcaster/miniapp-sdk";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { MiniAppProvider, useMiniApp } from "@neynar/react";
 
 const queryClient = new QueryClient();
@@ -45,17 +45,37 @@ function MiniAppReady() {
   return null;
 }
 
+function useResolvedTheme() {
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
+
+  useEffect(() => {
+    const resolve = () => {
+      setTheme(document.documentElement.classList.contains("dark") ? "dark" : "light");
+    };
+
+    resolve();
+    const observer = new MutationObserver(resolve);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+
+    return () => observer.disconnect();
+  }, []);
+
+  return theme;
+}
+
 export function Providers({ children }: { children: React.ReactNode }) {
+  const theme = useResolvedTheme();
+
   return (
     <MiniAppProvider analyticsEnabled={true}>
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
           <RainbowKitProvider
-            theme={darkTheme({
-              accentColor: '#7c3aed',
-              accentColorForeground: 'white',
-              borderRadius: 'medium',
-              fontStack: 'system',
+            theme={(theme === "dark" ? darkTheme : lightTheme)({
+              accentColor: "#7c3aed",
+              accentColorForeground: "white",
+              borderRadius: "medium",
+              fontStack: "system",
             })}
           >
             <AIProviderContext>

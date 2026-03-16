@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   Palette, 
   Camera, 
   MessageCircle, 
@@ -11,7 +11,6 @@ import {
   ChevronRight,
   Sparkles
 } from 'lucide-react';
-import { Button } from '@repo/ui/button';
 import { CommandCenter } from './CommandCenter';
 import { DesignStudio } from '../DesignStudio';
 import { VirtualTryOn } from '../VirtualTryOn';
@@ -24,7 +23,7 @@ export function TacticalDashboard() {
   const [mode, setMode] = useState<AppMode>('dashboard');
 
   const navItems = [
-    { id: 'dashboard', label: 'HUB', icon: LayoutDashboard, color: 'text-white' },
+    { id: 'dashboard', label: 'HUB', icon: LayoutDashboard, color: 'text-foreground' },
     { id: 'design', label: 'DESIGN', icon: Palette, color: 'text-indigo-400' },
     { id: 'try-on', label: 'TRY-ON', icon: Camera, color: 'text-accent' },
     { id: 'stylist', label: 'STYLIST', icon: MessageCircle, color: 'text-primary' },
@@ -42,8 +41,8 @@ export function TacticalDashboard() {
             className="space-y-8"
           >
             <div className="space-y-2">
-              <h2 className="text-3xl font-bold text-white tracking-tighter">Command Center</h2>
-              <p className="text-white/40 text-sm max-w-sm leading-relaxed">
+              <h2 className="text-3xl font-bold text-foreground tracking-tighter">Command Center</h2>
+              <p className="text-muted-foreground text-sm max-w-sm leading-relaxed">
                 Welcome back, Agent. Your fashion intelligence network is active.
               </p>
             </div>
@@ -81,9 +80,9 @@ export function TacticalDashboard() {
   };
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-4rem)] bg-black">
+    <div className="flex flex-col min-h-[calc(100vh-4rem)] bg-background">
       {/* Dynamic Header/Mode Switcher */}
-      <div className="sticky top-16 z-40 bg-black/80 backdrop-blur-md border-b border-white/5 px-2 md:px-0">
+      <div className="sticky top-16 z-40 bg-background/80 backdrop-blur-md border-b border-border/60 px-2 md:px-0">
         <div className="container mx-auto">
           <div className="flex items-center justify-between overflow-x-auto no-scrollbar py-3 gap-2">
             {navItems.map((item) => (
@@ -92,8 +91,8 @@ export function TacticalDashboard() {
                 onClick={() => setMode(item.id as AppMode)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all whitespace-nowrap ${
                   mode === item.id 
-                    ? 'bg-white/10 text-white ring-1 ring-white/20' 
-                    : 'text-white/40 hover:text-white/60'
+                    ? 'bg-muted text-foreground ring-1 ring-border' 
+                    : 'text-muted-foreground hover:text-foreground/80'
                 }`}
               >
                 <item.icon className={`w-4 h-4 ${mode === item.id ? item.color : ''}`} />
@@ -117,7 +116,7 @@ function DashboardActionCard({ title, description, icon, onClick, buttonText, ta
   return (
     <div 
       onClick={onClick}
-      className="group relative p-6 rounded-3xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] hover:border-white/10 transition-all cursor-pointer overflow-hidden"
+      className="group relative p-6 rounded-3xl bg-card/60 border border-border hover:bg-card hover:border-border/80 transition-all cursor-pointer overflow-hidden"
     >
       <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
         {icon}
@@ -131,15 +130,15 @@ function DashboardActionCard({ title, description, icon, onClick, buttonText, ta
       )}
 
       <div className="flex items-start gap-4">
-        <div className="p-3 rounded-2xl bg-white/5 ring-1 ring-white/5 group-hover:ring-white/10 transition-all">
+        <div className="p-3 rounded-2xl bg-muted/50 ring-1 ring-border group-hover:ring-border/80 transition-all">
           {icon}
         </div>
         <div className="flex-1">
-          <h3 className="text-lg font-bold text-white tracking-tight mb-1 group-hover:text-primary transition-colors">{title}</h3>
-          <p className="text-white/40 text-xs leading-relaxed max-w-xs">{description}</p>
+          <h3 className="text-lg font-bold text-foreground tracking-tight mb-1 group-hover:text-primary transition-colors">{title}</h3>
+          <p className="text-muted-foreground text-xs leading-relaxed max-w-xs">{description}</p>
         </div>
         <div className="self-center">
-          <ChevronRight className="w-5 h-5 text-white/20 group-hover:text-white transition-all transform group-hover:translate-x-1" />
+          <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-all transform group-hover:translate-x-1" />
         </div>
       </div>
     </div>
