@@ -1,7 +1,7 @@
 # OnPoint Platform Features
 
 **Version:** 1.0
-**Last Updated:** November 23, 2025
+**Last Updated:** March 16, 2026
 **Status:** Feature Specification
 
 ## Enhanced Catalog UI (Nov 2025)

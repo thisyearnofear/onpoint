@@ -1,51 +1,26 @@
 import React from "react";
-import { Palette, Sparkles, Camera, MessageCircle, Users } from "lucide-react";
-import { Button } from "@repo/ui/button";
+import { Palette } from "lucide-react";
 import { EnhancedConnectButton, ChainStatusIndicator } from "../components/chains";
-import Link from "next/link";
-import { MobileNavigation } from "@/components/mobile-navigation";
-import { DesignStudio } from "../components/DesignStudio";
-import { VirtualTryOn } from "../components/VirtualTryOn";
-import { AIStylist } from "../components/AIStylist";
 import { FarcasterSignInButton } from "../components/FarcasterSignInButton";
-import { EngagementBadge } from "@repo/shared-ui";
+import { TacticalDashboard } from "../components/Dashboard/TacticalDashboard";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-black text-white selection:bg-primary/30">
       {/* Header */}
-      <header className="glass-effect sticky top-0 z-50 w-full border-b">
-        <div className="container flex h-16 items-center justify-between">
+      <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-black/60 backdrop-blur-xl">
+        <div className="container flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            <Palette className="h-8 w-8 text-primary" />
-            <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            <div className="p-1.5 rounded-xl bg-gradient-to-br from-primary to-accent shadow-lg shadow-primary/20">
+              <Palette className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-lg font-bold tracking-tighter bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
               BeOnPoint
+              <span className="ml-1 text-[10px] text-primary align-top uppercase tracking-widest opacity-80">Agent</span>
             </span>
           </div>
 
-          <nav className="hidden md:flex items-center gap-6">
-            <Button asChild variant="ghost" className="flex items-center gap-2">
-              <Link href="/collage">
-                <Sparkles className="h-4 w-4" />
-                Collage Creator
-              </Link>
-            </Button>
-            <Button asChild variant="ghost" className="flex items-center gap-2">
-              <Link href="/style">
-                <Palette className="h-4 w-4" />
-                Style Lab
-              </Link>
-            </Button>
-            <Button asChild variant="ghost" className="flex items-center gap-2">
-              <Link href="/social">
-                <Users className="h-4 w-4" />
-                Social
-              </Link>
-            </Button>
-          </nav>
-
-          <div className="flex items-center gap-4">
-            <MobileNavigation />
+          <div className="flex items-center gap-2">
             <FarcasterSignInButton />
             <ChainStatusIndicator />
             <EnhancedConnectButton />
@@ -54,116 +29,16 @@ export default function Home() {
       </header>
 
       <main>
-        {/* Hero Section */}
-        <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-          <div className="absolute inset-0 fashion-gradient opacity-5"></div>
-
-          <div className="relative z-10 container mx-auto px-4 text-center">
-            <div className="max-w-4xl mx-auto">
-              <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
-                Look, Feel,
-                <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  {" "}
-                  BeOnPoint
-                </span>
-              </h1>
-
-              <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-                Design, visualize, and personalize clothing with AI. Try on your
-                creations virtually and get expert styling advice—all in one
-                beautiful platform.
-              </p>
-
-              {/* Engagement Metrics */}
-              <div className="mb-12 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-                <EngagementBadge
-                  type="trending"
-                  tryOnCount={8500}
-                  animated={true}
-                />
-                <EngagementBadge
-                  type="popular"
-                  rating={4.7}
-                  tryOnCount={2500}
-                  animated={true}
-                />
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12 max-w-md mx-auto">
-                <Button
-                  asChild
-                  size="lg"
-                  className="fashion-gradient text-white hover:opacity-90 elegant-shadow px-8 py-4 h-auto min-h-[56px] text-lg font-semibold"
-                >
-                  <Link
-                    href="/collage"
-                    className="flex items-center justify-center gap-3 whitespace-nowrap"
-                  >
-                    <Sparkles className="h-5 w-5 flex-shrink-0" />
-                    <span>Create Collage</span>
-                  </Link>
-                </Button>
-                <Button
-                  asChild
-                  variant="outline"
-                  size="lg"
-                  className="soft-shadow px-8 py-4 h-auto min-h-[56px] text-lg font-semibold border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                >
-                  <Link
-                    href="/style"
-                    className="flex items-center justify-center gap-3 whitespace-nowrap"
-                  >
-                    <Palette className="h-5 w-5 flex-shrink-0" />
-                    <span>Style Lab</span>
-                  </Link>
-                </Button>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-8 max-w-3xl mx-auto">
-                <div className="text-center">
-                  <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Sparkles className="h-6 w-6 text-primary" />
-                  </div>
-                  <p className="text-sm font-medium">AI Design</p>
-                </div>
-                <div className="text-center">
-                  <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-accent/10 flex items-center justify-center">
-                    <Camera className="h-6 w-6 text-accent" />
-                  </div>
-                  <p className="text-sm font-medium">Virtual Try-On</p>
-                </div>
-                <div className="text-center">
-                  <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center">
-                    <MessageCircle className="h-6 w-6 text-primary" />
-                  </div>
-                  <p className="text-sm font-medium">AI Stylist</p>
-                </div>
-                <div className="text-center">
-                  <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-accent/10 flex items-center justify-center">
-                    <Palette className="h-6 w-6 text-accent" />
-                  </div>
-                  <p className="text-sm font-medium">Style Lab</p>
-                </div>
-                <div className="text-center">
-                  <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Users className="h-6 w-6 text-primary" />
-                  </div>
-                  <p className="text-sm font-medium">Social Hub</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Design Studio Section */}
-        <DesignStudio />
-
-        {/* Virtual Try-On Section */}
-        <VirtualTryOn />
-
-        {/* AI Stylist Section */}
-        <AIStylist />
+        <TacticalDashboard />
       </main>
+
+      {/* Global Terminal Footer (Minimalist) */}
+      <footer className="border-t border-white/5 py-4 bg-black">
+        <div className="container mx-auto px-4 flex justify-between items-center text-[10px] font-mono text-white/20 uppercase tracking-widest">
+          <div>Ref: ONPOINT_PROTOCOL_V1.5</div>
+          <div>Status: Fully Operational</div>
+        </div>
+      </footer>
     </div>
   );
 }
