@@ -1,8 +1,8 @@
 # OnPoint Development Roadmap
 
-**Version:** 2.0
-**Last Updated:** November 23, 2025
-**Status:** MVP Launch Preparation
+**Version:** 2.1
+**Last Updated:** March 16, 2026
+**Status:** MVP Beta & Hackathon Submission
 
 ## Executive Summary
 
@@ -18,9 +18,8 @@ OnPoint is a revolutionary multiplatform ecosystem for personalized fashion disc
 
 ## Development Progress
 
-### Phase 1: MVP Foundation ✅ UI Complete + Data/Transitions
-
-**Status**: UI Complete, Smart Contracts Required
+### Phase 1: MVP Foundation ✅ Complete
+**Status**: Core UI & Logic Complete. 
 
 **Completed**:
 - ✅ Web app with Next.js setup
@@ -39,10 +38,9 @@ OnPoint is a revolutionary multiplatform ecosystem for personalized fashion disc
   - Mobile-optimized, accessible (WCAG AA)
 
 **Critical Missing for MVP Launch**:
-- ❌ ERC-721 Smart contracts for fashion NFTs
-- ❌ IPFS metadata storage implementation
-- ❌ 0xSplits integration for creator royalties
-- ❌ End-to-end NFT minting workflow
+- ❌ ERC-721 Smart contracts for production fashion NFTs
+- ❌ Production-grade IPFS pinning service (currently stubbed)
+- ❌ End-to-end NFT minting workflow for custom designs
 
 ### Implementation Plan for Blockchain Integration (2-3 weeks)
 
@@ -64,10 +62,15 @@ OnPoint is a revolutionary multiplatform ecosystem for personalized fashion disc
 - Verify 0xSplits royalty distribution mechanics
 - Performance optimization and comprehensive error handling
 
-### Phase 2: Blockchain Infrastructure 🚧 Current Priority
+### Phase 2: Blockchain Infrastructure 🚧 In Progress (Breaking Path)
 
-**Timeline**: 2-3 weeks
-**Focus**: Complete MVP blockchain functionality
+**Timeline**: Ongoing
+**Focus**: Transition from stubs to production-ready Celo & ZetaChain interactions.
+
+**突破 (Breakthrough)**: 
+- ✅ **Agentic Tipping Protocol**: Implemented real-time cUSD tipping for AI stylists on Celo/Alfajores.
+- ✅ **Decentralized Proof of Style**: Integrated **Lighthouse (Filecoin/IPFS)** for immutable snapshot storage. Eligible for Protocol Labs Genesis Hackathon.
+- ✅ **Network Switching**: Automatic chain detection and switching for Celo-native transactions.
 
 **Week 1 - Smart Contracts & Deployment**:
 - [ ] Create OnPointNFT contract (ERC-721A)

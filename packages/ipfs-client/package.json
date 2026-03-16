@@ -11,6 +11,7 @@
     "typescript": "5.9.2"
   },
   "dependencies": {
+    "@lighthouse-web3/sdk": "0.4.4",
     "@onpoint/shared-types": "workspace:*"
   }
 }

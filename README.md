@@ -28,6 +28,9 @@ OPENAI_API_KEY=your_openai_api_key_here
 GEMINI_API_KEY=your_gemini_api_key_here
 VERTEX_API_KEY=your_vertex_api_key_here # For Gemini Live sessions
 
+# Decentralized Storage
+LIGHTHOUSE_API_KEY=your_lighthouse_api_key_here # For Filecoin/IPFS native storage
+
 # Social & Mini App Keys
 NEYNAR_API_KEY=your_neynar_api_key_here # For Farcaster/Social features
 
@@ -108,7 +111,7 @@ pnpm format     # Format code
 
 ## 🏆 Current Status
 
-**Phase 1: MVP Foundation** (8/10 Complete)
+**Phase 1: MVP Foundation** (9/10 Complete)
 - ✅ Web app with Next.js setup
 - ✅ AI-powered collage creator
 - ✅ Interactive styling canvas

@@ -54,6 +54,9 @@ OPENAI_API_KEY=your_openai_key
 GEMINI_API_KEY=your_gemini_key
 VERTEX_API_KEY=your_vertex_key # Required for Gemini Live sessions
 
+# Decentralized Storage
+LIGHTHOUSE_API_KEY=your_lighthouse_key # For Filecoin/IPFS storage
+
 # Social & Mini App
 NEYNAR_API_KEY=your_neynar_key # Required for Farcaster/Social features
 NEXT_PUBLIC_WORLDCOIN_APP_ID=your_worldcoin_app_id
