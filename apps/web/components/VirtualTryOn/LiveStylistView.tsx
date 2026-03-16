@@ -4,6 +4,8 @@ import { Button } from '@repo/ui/button';
 import { Mic, Video, PhoneOff, Sparkles, AlertCircle, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGeminiLive } from '@repo/ai-client';
+import { useMiniApp } from '@neynar/react';
+import { sdk } from '@farcaster/miniapp-sdk';
 
 interface LiveStylistViewProps {
   onBack: () => void;
@@ -21,10 +23,90 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     aiResponse,
     reasoning
   } = useGeminiLive();
+  const { context } = useMiniApp();
 
-  const handleCapture = () => {
-    // High-fidelity capture logic (Snapshot with AR Overlay)
-    alert('Capture Snapshot ready for Farcaster! (Simulation)');
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+
+  const handleCapture = async () => {
+    if (!videoRef.current) return;
+    setIsCapturing(true);
+
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+
+      // Draw video frame
+      ctx.drawImage(videoRef.current, 0, 0);
+
+      // Add HUD Overlays
+      ctx.strokeStyle = 'rgba(124, 58, 237, 0.5)'; // Primary color
+      ctx.lineWidth = 4;
+      
+      // Draw corner brackets
+      const margin = 40;
+      const len = 60;
+      // Top Left
+      ctx.beginPath(); ctx.moveTo(margin, margin + len); ctx.lineTo(margin, margin); ctx.lineTo(margin + len, margin); ctx.stroke();
+      // Top Right
+      ctx.beginPath(); ctx.moveTo(canvas.width - margin - len, margin); ctx.lineTo(canvas.width - margin, margin); ctx.lineTo(canvas.width - margin, margin + len); ctx.stroke();
+      // Bottom Left
+      ctx.beginPath(); ctx.moveTo(margin, canvas.height - margin - len); ctx.lineTo(margin, canvas.height - margin); ctx.lineTo(margin + len, canvas.height - margin); ctx.stroke();
+      // Bottom Right
+      ctx.beginPath(); ctx.moveTo(canvas.width - margin - len, canvas.height - margin); ctx.lineTo(canvas.width - margin, canvas.height - margin); ctx.lineTo(canvas.width - margin, canvas.height - margin - len); ctx.stroke();
+
+      // Draw AI Response if exists
+      if (aiResponse) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        const rectWidth = canvas.width * 0.8;
+        const rectHeight = 100;
+        const rectX = (canvas.width - rectWidth) / 2;
+        const rectY = canvas.height - 180;
+        
+        // Rounded rect for text
+        ctx.beginPath();
+        ctx.roundRect(rectX, rectY, rectWidth, rectHeight, 20);
+        ctx.fill();
+
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 32px sans-serif';
+        ctx.textAlign = 'center';
+        
+        // Text wrap support
+        const words = aiResponse.split(' ');
+        let line = '';
+        let y = rectY + 60;
+        for(let n = 0; n < words.length; n++) {
+          const testLine = line + words[n] + ' ';
+          const metrics = ctx.measureText(testLine);
+          if (metrics.width > rectWidth - 40 && n > 0) {
+            ctx.fillText(line, canvas.width / 2, y);
+            line = words[n] + ' ';
+            y += 40;
+          } else {
+            line = testLine;
+          }
+        }
+        ctx.fillText(line, canvas.width / 2, y);
+      }
+
+      // Branding
+      ctx.fillStyle = 'rgba(124, 58, 237, 0.9)';
+      ctx.font = 'bold 24px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('BeOnPoint AR Stylist', margin + 20, margin + 40);
+
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+      setCapturedImage(dataUrl);
+    } catch (err) {
+      console.error('Capture failed:', err);
+    } finally {
+      setIsCapturing(false);
+    }
   };
 
   return (
@@ -165,7 +247,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
         {/* Floating Call Controls */}
         <AnimatePresence>
-          {isConnected && (
+          {isConnected && !capturedImage && (
             <motion.div 
               initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -179,9 +261,10 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 
                 <Button 
                    onClick={handleCapture}
+                   disabled={isCapturing}
                    className="w-14 h-14 rounded-full bg-primary text-white shadow-lg shadow-primary/30 hover:scale-110 transition-transform"
                 >
-                  <Camera className="w-6 h-6" />
+                  {isCapturing ? <Sparkles className="animate-spin w-6 h-6" /> : <Camera className="w-6 h-6" />}
                 </Button>
 
                 <Button variant="ghost" size="icon" className="w-12 h-12 rounded-full bg-white/5 text-white hover:bg-white/20">
@@ -197,6 +280,84 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                   onClick={stopSession}
                 >
                   <PhoneOff className="w-5 h-5" />
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Captured Preview & Share Overlay */}
+        <AnimatePresence>
+          {capturedImage && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="absolute inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-6"
+            >
+              <div className="relative w-full aspect-video rounded-xl overflow-hidden shadow-2xl border border-white/10 mb-8 max-w-2xl">
+                <img src={capturedImage} className="w-full h-full object-cover" alt="Captured Frame" />
+                <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-primary/80 backdrop-blur-md text-[10px] font-bold text-white tracking-widest uppercase">
+                  Proof of Style
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-4 w-full max-w-xs">
+                <Button 
+                  className="w-full bg-primary hover:bg-primary/90 text-white rounded-full py-6 text-lg font-bold"
+                  disabled={isCapturing}
+                  onClick={async () => {
+                    try {
+                      setIsCapturing(true);
+                      
+                      // 1. Convert base64 to Blob
+                      const response = await fetch(capturedImage!);
+                      const blob = await response.blob();
+                      
+                      // 2. Upload to our new API
+                      const formData = new FormData();
+                      formData.append('image', blob, 'stylist-capture.jpg');
+                      
+                      const uploadRes = await fetch('/api/social/upload', {
+                        method: 'POST',
+                        body: formData
+                      });
+                      
+                      if (!uploadRes.ok) throw new Error('Upload failed');
+                      const { url } = await uploadRes.json();
+                      
+                      const shareText = `Just got a live style critique from my AI Stylist on BeOnPoint! 📸✨\n\nAI noticed: "${aiResponse || 'My style is on point!'}"\n\n#BeOnPoint #AIStylist #FashionProof`;
+
+                      // 3. Share via SDK if available, or API fallback
+                      if (context?.client) {
+                        await (sdk.actions as any).composeCast({
+                          text: shareText,
+                          embeds: [url]
+                        });
+                      } else {
+                        // Fallback to clipboard or API
+                        await navigator.clipboard.writeText(`${shareText} ${url}`);
+                        alert('Link copied to clipboard! (Not in Farcaster App)');
+                      }
+                      
+                      setCapturedImage(null);
+                    } catch (err) {
+                      console.error('Share failed:', err);
+                      alert('Failed to share capture. Please try again.');
+                    } finally {
+                      setIsCapturing(false);
+                    }
+                  }}
+                >
+                  {isCapturing ? <Sparkles className="animate-spin w-6 h-6 mr-2" /> : null}
+                  {isCapturing ? 'Preparing Post...' : 'Share to Farcaster'}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="w-full text-white/60 hover:text-white"
+                  onClick={() => setCapturedImage(null)}
+                >
+                  Discard
                 </Button>
               </div>
             </motion.div>
