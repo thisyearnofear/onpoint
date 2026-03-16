@@ -61,7 +61,7 @@ export async function createRoyaltySplit(
 ): Promise<{ splitAddress: Address; transactionHash: string }> {
   const { recipients, distributorFee = 0.1, controller = '0x0000000000000000000000000000000000000000' } = params;
 
-  const result = await splitsClient.createSplit({
+  const result = await (splitsClient as any).createSplit({
     recipients,
     distributorFee,
     controller: controller as Address,
@@ -143,7 +143,7 @@ export async function distributeSplit(
   tokens: Address[] = [], // Empty array for ETH only
   distributorAddress?: Address
 ): Promise<{ transactionHash: string }> {
-  const result = await splitsClient.distributeToken({
+  const result = await (splitsClient as any).distributeToken({
     splitAddress,
     token: tokens.length > 0 ? tokens[0] : '0x0000000000000000000000000000000000000000', // ETH
     distributorAddress,
@@ -160,7 +160,7 @@ export async function getSplitBalance(
   splitAddress: Address,
   token?: Address
 ): Promise<{ balance: bigint; formattedBalance: string }> {
-  const balance = await splitsClient.getSplitBalance({
+  const balance = await (splitsClient as any).getSplitBalance({
     splitAddress,
     token: token || '0x0000000000000000000000000000000000000000', // ETH by default
   });
