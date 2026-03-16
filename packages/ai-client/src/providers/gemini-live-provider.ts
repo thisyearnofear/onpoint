@@ -67,6 +67,8 @@ export class GeminiLiveProvider implements AIProvider {
           "Analyzing color harmony...",
           "Symmetry check: PASS",
           "Detecting style archetype: Streetwear",
+          "Session Milestone: Share Target Ready",
+          "Stylist Reward Protocol: cUSD Enabled",
           "Proposing accessories...",
         ];
         

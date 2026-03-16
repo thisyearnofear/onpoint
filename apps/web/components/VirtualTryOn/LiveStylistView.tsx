@@ -28,10 +28,13 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [showFlash, setShowFlash] = useState(false);
 
   const handleCapture = async () => {
     if (!videoRef.current) return;
     setIsCapturing(true);
+    setShowFlash(true);
+    setTimeout(() => setShowFlash(false), 150);
     
     // Premium Haptic Feedback
     try {
@@ -251,6 +254,18 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           )}
         </div>
 
+        {/* Camera Flash Effect */}
+        <AnimatePresence>
+          {showFlash && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-[100] bg-white pointer-events-none"
+            />
+          )}
+        </AnimatePresence>
+
         {/* Floating Call Controls */}
         <AnimatePresence>
           {isConnected && !capturedImage && (
@@ -258,7 +273,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 50, opacity: 0 }}
-              className="absolute bottom-8 left-0 right-0 flex justify-center items-center gap-6 z-40"
+              className="absolute bottom-8 sm:bottom-12 left-0 right-0 flex justify-center items-center gap-6 z-40 px-6 pb-[env(safe-area-inset-bottom)]"
             >
               <div className="flex items-center gap-4 px-6 py-3 rounded-full bg-black/60 backdrop-blur-2xl border border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
                 <Button variant="ghost" size="icon" className="w-12 h-12 rounded-full bg-white/5 text-white hover:bg-white/20">
@@ -299,7 +314,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="absolute inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-6"
+              className="absolute inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-6 pb-[env(safe-area-inset-bottom)]"
             >
               <div className="relative w-full aspect-video rounded-xl overflow-hidden shadow-2xl border border-white/10 mb-8 max-w-2xl">
                 <img src={capturedImage} className="w-full h-full object-cover" alt="Captured Frame" />
