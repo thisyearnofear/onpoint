@@ -31,6 +31,11 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   const handleCapture = async () => {
     if (!videoRef.current) return;
     setIsCapturing(true);
+    
+    // Premium Haptic Feedback
+    try {
+      await (sdk.haptics.impactOccurred as any)('heavy');
+    } catch { /* ignore if not supported */ }
 
     try {
       const canvas = document.createElement('canvas');
