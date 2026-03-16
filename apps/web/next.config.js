@@ -4,6 +4,14 @@ const nextConfig = {
   compiler: {
     styledComponents: true,
   },
+  transpilePackages: [
+    '@onpoint/ipfs-client',
+    '@onpoint/shared-types',
+    '@repo/ai-client',
+    '@repo/shared-ui',
+    '@repo/ui',
+    '@repo/blockchain-client'
+  ],
   images: {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
