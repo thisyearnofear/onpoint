@@ -57,9 +57,6 @@ importers:
       '@neynar/react':
         specifier: 1.2.20
         version: 1.2.20(@farcaster/miniapp-sdk@0.2.1(bufferutil@4.0.9)(typescript@5.9.2)(utf-8-validate@5.0.10)(zod@4.1.12))(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(swr@2.3.6(react@19.2.1))(typescript@5.9.2)
-      '@onpoint/ipfs-client':
-        specifier: workspace:*
-        version: link:../../packages/ipfs-client
       '@onpoint/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
@@ -72,6 +69,9 @@ importers:
       '@repo/ai-client':
         specifier: workspace:*
         version: link:../../packages/ai-client
+      '@repo/ipfs-client':
+        specifier: workspace:*
+        version: link:../../packages/ipfs-client
       '@repo/shared-ui':
         specifier: workspace:*
         version: link:../../packages/shared-ui

@@ -5,7 +5,7 @@ const nextConfig = {
     styledComponents: true,
   },
   transpilePackages: [
-    '@onpoint/ipfs-client',
+    '@repo/ipfs-client',
     '@onpoint/shared-types',
     '@repo/ai-client',
     '@repo/shared-ui',

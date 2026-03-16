@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadToIPFS } from '@onpoint/ipfs-client';
+import { uploadToIPFS } from '@repo/ipfs-client';
 
 export async function POST(request: NextRequest) {
   try {
