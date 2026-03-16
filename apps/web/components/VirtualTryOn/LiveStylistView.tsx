@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent } from '@repo/ui/card';
 import { Button } from '@repo/ui/button';
-import { Mic, Video, PhoneOff, Sparkles, AlertCircle, Camera } from 'lucide-react';
+import { Mic, Video, PhoneOff, Sparkles, AlertCircle, Camera, Clock, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGeminiLive } from '@repo/ai-client';
 import { useMiniApp } from '@neynar/react';
@@ -40,6 +40,8 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   const [showFlash, setShowFlash] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
   const [terminalExpanded, setTerminalExpanded] = useState(false);
+  const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
 
   const hasCaptures = captures.length > 0;
   const selectedCapture = hasCaptures ? captures[selectedCaptureIndex] : null;
@@ -50,9 +52,21 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     }
   }, [liveAiResponse]);
 
+  // Voice Synthesis Logic
+  useEffect(() => {
+    if (isVoiceEnabled && liveAiResponse) {
+      const utterance = new SpeechSynthesisUtterance(liveAiResponse);
+      utterance.rate = 1.1;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.cancel(); // Stop current speech
+      window.speechSynthesis.speak(utterance);
+    }
+  }, [liveAiResponse, isVoiceEnabled]);
+
   useEffect(() => {
     return () => {
       stopSession();
+      window.speechSynthesis.cancel();
     };
   }, [stopSession]);
 
@@ -86,64 +100,16 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
       // Draw video frame
       ctx.drawImage(videoRef.current, 0, 0);
 
-      // Add HUD Overlays
-      ctx.strokeStyle = 'rgba(124, 58, 237, 0.5)'; // Primary color
+      // Add HUD Overlays (Subtle)
+      ctx.strokeStyle = 'rgba(124, 58, 237, 0.5)';
       ctx.lineWidth = 4;
       
-      // Draw corner brackets
       const margin = 40;
       const len = 60;
-      // Top Left
       ctx.beginPath(); ctx.moveTo(margin, margin + len); ctx.lineTo(margin, margin); ctx.lineTo(margin + len, margin); ctx.stroke();
-      // Top Right
       ctx.beginPath(); ctx.moveTo(canvas.width - margin - len, margin); ctx.lineTo(canvas.width - margin, margin); ctx.lineTo(canvas.width - margin, margin + len); ctx.stroke();
-      // Bottom Left
-      ctx.beginPath(); ctx.moveTo(margin, canvas.height - margin - len); ctx.lineTo(margin, canvas.height - margin); ctx.lineTo(margin + len, canvas.height - margin); ctx.stroke();
-      // Bottom Right
-      ctx.beginPath(); ctx.moveTo(canvas.width - margin - len, canvas.height - margin); ctx.lineTo(canvas.width - margin, canvas.height - margin); ctx.lineTo(canvas.width - margin, canvas.height - margin - len); ctx.stroke();
 
-      const comment = (liveAiResponse || finalAdvice || 'Great structure. Keep this silhouette and add one accent accessory.').trim();
-
-      // Draw AI Response if exists
-      if (comment) {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        const rectWidth = canvas.width * 0.8;
-        const rectHeight = 100;
-        const rectX = (canvas.width - rectWidth) / 2;
-        const rectY = canvas.height - 180;
-        
-        // Rounded rect for text
-        ctx.beginPath();
-        ctx.roundRect(rectX, rectY, rectWidth, rectHeight, 20);
-        ctx.fill();
-
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 32px sans-serif';
-        ctx.textAlign = 'center';
-        
-        // Text wrap support
-        const words = comment.split(' ');
-        let line = '';
-        let y = rectY + 60;
-        for(let n = 0; n < words.length; n++) {
-          const testLine = line + words[n] + ' ';
-          const metrics = ctx.measureText(testLine);
-          if (metrics.width > rectWidth - 40 && n > 0) {
-            ctx.fillText(line, canvas.width / 2, y);
-            line = words[n] + ' ';
-            y += 40;
-          } else {
-            line = testLine;
-          }
-        }
-        ctx.fillText(line, canvas.width / 2, y);
-      }
-
-      // Branding
-      ctx.fillStyle = 'rgba(124, 58, 237, 0.9)';
-      ctx.font = 'bold 24px sans-serif';
-      ctx.textAlign = 'left';
-      ctx.fillText('BeOnPoint AR Stylist', margin + 20, margin + 40);
+      const comment = (liveAiResponse || finalAdvice || 'Captured look for analysis.').trim();
 
       const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
       setCaptures((prev) => {
@@ -152,14 +118,61 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
         return next;
       });
       setFinalAdvice(comment);
-      setUploadedData(null); // Reset upload state for new capture
-      // Removed stopSession() here to allow multiple captures
+      setUploadedData(null);
     } catch (err) {
       console.error('Capture failed:', err);
     } finally {
       setIsCapturing(false);
     }
   };
+
+  const startTimerCapture = useCallback(() => {
+    if (countdown !== null) return;
+    setCountdown(3);
+    
+    // Play countdown sound if possible
+    try {
+      const ctx = new AudioContext();
+      const playBeep = (freq: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.1);
+      };
+
+      let count = 3;
+      const interval = setInterval(() => {
+        count--;
+        if (count > 0) {
+          playBeep(880);
+          setCountdown(count);
+        } else {
+          clearInterval(interval);
+          playBeep(1760);
+          setCountdown(null);
+          handleCapture();
+        }
+      }, 1000);
+      playBeep(880); // First beep
+    } catch {
+      // Fallback if AudioContext fails
+      let count = 3;
+      const interval = setInterval(() => {
+        count--;
+        if (count > 0) setCountdown(count);
+        else {
+          clearInterval(interval);
+          setCountdown(null);
+          handleCapture();
+        }
+      }, 1000);
+    }
+  }, [countdown, handleCapture]);
 
   const uploadCapture = async () => {
     if (uploadedData) return uploadedData;
@@ -222,132 +235,108 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
       <CardContent className="p-0 flex flex-col items-center justify-center min-h-[600px] relative">
         
         {/* Top Navigation & Status */}
-        <div className="absolute top-6 left-6 right-6 flex justify-between items-center z-30">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-black/40 backdrop-blur-xl border border-white/10">
+        <div className="absolute top-6 left-4 right-4 flex justify-between items-center z-30">
+          <div className="flex items-center gap-3">
+            <div className="px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 shadow-[0_0_10px_#22c55e]' : 'bg-red-500 animate-pulse'}`} />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">
+              <span className="text-[10px] font-black uppercase tracking-widest text-white/90">
                 {isConnected ? 'Agent Active' : 'System Standby'}
               </span>
             </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
+            
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => {
-                stopSession();
-                onBack();
-              }}
-              className="rounded-full bg-black/40 backdrop-blur-xl border border-white/10 text-white hover:bg-destructive/60"
+              onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
+              className={`rounded-full px-3 h-8 border backdrop-blur-xl transition-all ${isVoiceEnabled ? 'bg-primary border-primary/40 text-white' : 'bg-black/40 border-white/10 text-white/60'}`}
             >
-              <PhoneOff className="w-4 h-4" />
+              {isVoiceEnabled ? <Volume2 className={`w-3.5 h-3.5 mr-1.5`} /> : <VolumeX className={`w-3.5 h-3.5 mr-1.5`} />}
+              <span className="text-[8px] font-bold uppercase tracking-widest">{isVoiceEnabled ? 'Voice On' : 'Voice Off'}</span>
             </Button>
           </div>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              stopSession();
+              onBack();
+            }}
+            className="rounded-full w-10 h-10 bg-black/40 backdrop-blur-xl border border-white/10 text-white hover:bg-destructive"
+          >
+            <PhoneOff className="w-4 h-4" />
+          </Button>
         </div>
 
-        {/* Instructions Overlay */}
-        <AnimatePresence>
-          {showInstructions && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 z-[60] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6 text-center"
-            >
-              <div className="max-w-xs space-y-6">
-                <div className="w-20 h-20 mx-auto rounded-full bg-primary/20 flex items-center justify-center border border-primary/40">
-                  <Sparkles className="w-10 h-10 text-primary" />
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-xl font-bold text-white">Neural Stylist Ready</h3>
-                  <p className="text-white/60 text-sm leading-relaxed">
-                    For the best results:
-                  </p>
-                  <ul className="text-left text-xs text-white/50 space-y-2 py-4">
-                    <li className="flex items-center gap-3">
-                      <div className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center text-[10px]">1</div>
-                      Step back 5-8 feet for a full-body scan.
-                    </li>
-                    <li className="flex items-center gap-3">
-                      <div className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center text-[10px]">2</div>
-                      Ensure lighting is bright (face the light).
-                    </li>
-                    <li className="flex items-center gap-3">
-                      <div className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center text-[10px]">3</div>
-                      Speak to your stylist about your plans.
-                    </li>
-                  </ul>
-                </div>
-                <Button 
-                  onClick={() => setShowInstructions(false)}
-                  className="w-full py-6 rounded-full font-bold text-lg bg-primary text-white"
-                >
-                  I'm Ready
-                </Button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Live Reasoning Terminal (Bottom Dock) */}
+        {/* Dynamic Reasoning Ticker (Top Center) */}
         <AnimatePresence>
           {isConnected && reasoning.length > 0 && (
             <motion.div 
-              initial={{ y: 20, opacity: 0 }}
+              initial={{ y: -50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 20, opacity: 0 }}
+              exit={{ y: -50, opacity: 0 }}
               onClick={() => setTerminalExpanded(!terminalExpanded)}
-              className={`absolute bottom-32 left-6 right-6 z-40 transition-all duration-300 cursor-pointer ${terminalExpanded ? 'h-48' : 'h-11 overflow-hidden'}`}
+              className="absolute top-20 left-4 right-4 z-40"
             >
-              <div className={`h-full w-full p-3 rounded-xl bg-black/60 backdrop-blur-2xl border ${terminalExpanded ? 'border-primary/40 shadow-[0_0_30px_rgba(var(--primary),0.3)]' : 'border-white/10'} font-mono text-[10px] transition-all duration-500`}>
-                <div className="flex justify-between items-center mb-2">
-                  <div className="text-primary flex items-center gap-2 font-bold tracking-widest uppercase">
-                    <motion.div 
-                      animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                      className="w-1.5 h-1.5 rounded-full bg-primary" 
-                    />
-                    Agent_Analysis {terminalExpanded ? '[-]' : '[+]'}
+              <div className={`w-full transition-all duration-500 ${terminalExpanded ? 'max-h-64' : 'max-h-16'} overflow-hidden rounded-2xl bg-black/40 backdrop-blur-3xl border border-white/10 shadow-2xl`}>
+                <div className="p-4 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <motion.div 
+                        animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                        className="w-2 h-2 rounded-full bg-primary shadow-[0_0_10px_rgba(var(--primary),0.8)]" 
+                      />
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Stylist Intelligence</span>
+                    </div>
+                    <span className="text-[9px] text-white/30 uppercase font-mono">{terminalExpanded ? 'Collapse' : 'Logs'}</span>
                   </div>
-                  <div className="text-white/40 text-[8px] uppercase">Multimodal Feedback</div>
-                </div>
-                <div className="space-y-1.5">
-                  {reasoning.slice(0, terminalExpanded ? 10 : 1).map((item, i) => (
-                    <motion.div 
-                      key={i} 
-                      initial={{ opacity: 0, x: -5 }}
-                      animate={{ opacity: 1 - (i * 0.1), x: 0 }}
-                      className="text-white/70 line-clamp-1"
-                    >
-                      {`> ${item}`}
-                    </motion.div>
-                  ))}
+                  
+                  <div className="font-mono">
+                    {terminalExpanded ? (
+                      <div className="space-y-1.5 max-h-40 overflow-y-auto no-scrollbar pb-2">
+                        {reasoning.map((item, i) => (
+                          <div key={i} className="text-[11px] text-white/60 border-l border-white/5 pl-3 leading-relaxed">
+                            <span className="text-primary/40 mr-2">›</span>{item}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-sm font-medium text-white line-clamp-2 leading-relaxed tracking-tight italic">
+                        "{reasoning[0]}"
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* User Transcription & AI Captions */}
+        {/* AI Captions & Countdown */}
         <AnimatePresence>
-          {isConnected && (transcript || liveAiResponse) && (
+          {countdown !== null && (
+            <motion.div 
+              initial={{ scale: 2, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              className="absolute inset-0 z-[70] flex items-center justify-center bg-black/20"
+            >
+              <span className="text-9xl font-black text-white drop-shadow-[0_0_50px_rgba(var(--primary),0.8)]">
+                {countdown}
+              </span>
+            </motion.div>
+          )}
+
+          {isConnected && liveAiResponse && !terminalExpanded && (
             <motion.div 
                initial={{ y: 20, opacity: 0 }}
                animate={{ y: 0, opacity: 1 }}
-               className={`absolute ${terminalExpanded ? 'bottom-56' : 'bottom-44'} left-6 right-6 z-30 flex flex-col items-center gap-3 text-center transition-all duration-300`}
+               className="absolute bottom-32 left-6 right-6 z-30 flex flex-col items-center gap-3 text-center"
             >
-              {transcript && (
-                <div className="px-4 py-2 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 text-white/90 text-sm max-w-[80%]">
-                  "{transcript}"
-                </div>
-              )}
-              {liveAiResponse && (
-                <div className="px-5 py-3 rounded-2xl bg-primary/20 backdrop-blur-xl border border-primary/30 text-white text-lg font-medium shadow-2xl shadow-primary/20 max-w-[90%] leading-snug">
-                  {liveAiResponse}
-                </div>
-              )}
+              <div className="px-6 py-4 rounded-[2rem] bg-primary shadow-[0_20px_50px_rgba(var(--primary),0.3)] text-white text-lg font-bold shadow-2xl max-w-[90%] leading-tight transform-gpu animate-float">
+                {liveAiResponse}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -430,28 +419,37 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 50, opacity: 0 }}
-              className="absolute bottom-8 sm:bottom-12 left-0 right-0 flex justify-center items-center gap-6 z-40 px-6 pb-[env(safe-area-inset-bottom)]"
+              className="absolute bottom-10 left-0 right-0 flex justify-center items-center z-40 px-6"
             >
-              <div className="flex items-center gap-4 px-6 py-3 rounded-full bg-black/60 backdrop-blur-2xl border border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
-                <Button variant="ghost" size="icon" className="w-12 h-12 rounded-full bg-white/5 text-white hover:bg-white/20">
-                  <Mic className="w-5 h-5" />
-                </Button>
+              <div className="flex items-center gap-4 px-6 py-4 rounded-[2.5rem] bg-black/60 backdrop-blur-3xl border border-white/10 shadow-2xl ring-1 ring-white/5">
+                <div className="flex flex-col items-center">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={startTimerCapture}
+                    disabled={countdown !== null}
+                    className={`w-12 h-12 rounded-full border transition-all ${countdown !== null ? 'bg-primary/20 border-primary' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}
+                  >
+                    <Clock className={`w-5 h-5 ${countdown !== null ? 'animate-pulse' : ''}`} />
+                  </Button>
+                  <span className="text-[7px] font-black uppercase tracking-widest mt-1.5 text-white/40">Auto</span>
+                </div>
                 
                 <Button 
                    onClick={handleCapture}
                    disabled={isCapturing}
-                   className="w-16 h-16 rounded-full bg-primary text-white shadow-[0_0_20px_rgba(var(--primary),0.4)] hover:scale-110 active:scale-95 transition-all border-4 border-white/10"
+                   className="w-16 h-16 rounded-full bg-primary text-white shadow-[0_0_30px_rgba(var(--primary),0.4)] hover:scale-110 active:scale-95 transition-all border-4 border-white/20"
                 >
                   {isCapturing ? <Sparkles className="animate-spin w-7 h-7" /> : <Camera className="w-7 h-7" />}
                 </Button>
 
-                <div className="w-[1px] h-8 bg-white/10 mx-1" />
+                <div className="w-[1px] h-10 bg-white/10 mx-1" />
 
                 <div className="flex flex-col items-center">
                   <Button 
                     variant="outline"
                     size="icon" 
-                    className="w-12 h-12 rounded-full border-white/20 text-white hover:bg-green-500/20"
+                    className="w-12 h-12 rounded-full border-white/20 text-white hover:bg-red-500/20 hover:border-red-500/40 transition-all"
                     onClick={async () => {
                       try { await (sdk.haptics.impactOccurred as any)('medium'); } catch {}
                       stopSession();
@@ -460,13 +458,17 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                     <div className="relative">
                       <PhoneOff className="w-5 h-5 text-red-500" />
                       {hasCaptures && (
-                        <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-[8px] flex items-center justify-center font-bold">
+                        <motion.div 
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-primary text-[10px] flex items-center justify-center font-black border-2 border-black"
+                        >
                           {captures.length}
-                        </div>
+                        </motion.div>
                       )}
                     </div>
                   </Button>
-                  <span className="text-[7px] font-black uppercase tracking-widest mt-1 text-white/40">Finish</span>
+                  <span className="text-[7px] font-black uppercase tracking-widest mt-1.5 text-white/40">Finish</span>
                 </div>
               </div>
             </motion.div>

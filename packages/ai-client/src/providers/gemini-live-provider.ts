@@ -63,14 +63,14 @@ export class GeminiLiveProvider implements AIProvider {
         
         // Simulation loop for high-fidelity "Reasoning" (Delight Factor)
         const simulations = [
-          "Optimizing for lighting conditions...",
-          "Neural Stylist: Please step back for full-body view.",
-          "Analyzing silhouette and proportions...",
-          "Checking color palette compatibility...",
-          "Syncing with Filecoin styles database...",
-          "Tip: Try a different angle for better analysis.",
-          "Lighthouse storage protocol: Ready.",
-          "Agent Miranda: Standing by for excellence.",
+          "I'm ready when you are. Just step back a bit.",
+          "Good lighting. I can see the silhouette clearly.",
+          "Analyzing the drape of your clothing...",
+          "Neural Link: Color matching active.",
+          "Try a side profile for a complete analysis.",
+          "Lighthouse Sync: Style metadata generated.",
+          "Looking sharp, Agent. Let's find your best angle.",
+          "Pose for me! I'll hold the focus.",
         ];
         
         let simIdx = 0;
