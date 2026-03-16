@@ -51,6 +51,9 @@ export const celo = {
       address: '0xcA11bde05977b3631167028862bE2a173976CA11',
       blockCreated: 13112599,
     },
+    cUSD: {
+      address: '0x765DE8164458C172EE097029dfb482Ff182ad001',
+    }
   },
   testnet: false,
 } as const;
@@ -70,6 +73,9 @@ export const celoAlfajores = {
       address: '0xcA11bde05977b3631167028862bE2a173976CA11',
       blockCreated: 14569024,
     },
+    cUSD: {
+      address: '0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1',
+    }
   },
   testnet: true,
 } as const;

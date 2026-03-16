@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGeminiLive } from '@repo/ai-client';
 import { useMiniApp } from '@neynar/react';
 import { sdk } from '@farcaster/miniapp-sdk';
+import { CeloTipButton } from './CeloTipButton';
 
 interface LiveStylistViewProps {
   onBack: () => void;
@@ -357,6 +358,15 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                   {isCapturing ? <Sparkles className="animate-spin w-6 h-6 mr-2" /> : null}
                   {isCapturing ? 'Preparing Post...' : 'Share to Farcaster'}
                 </Button>
+
+                <div className="flex items-center gap-2">
+                   <div className="h-[1px] flex-1 bg-white/10" />
+                   <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">or</span>
+                   <div className="h-[1px] flex-1 bg-white/10" />
+                </div>
+
+                <CeloTipButton />
+
                 <Button 
                   variant="ghost" 
                   className="w-full text-white/60 hover:text-white"
