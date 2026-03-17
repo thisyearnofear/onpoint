@@ -67,17 +67,31 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     const posCount = positives.filter(p => allText.includes(p)).length;
     const negCount = negatives.filter(n => allText.includes(n)).length;
     const total = posCount + negCount;
-    // Score 5-10 based on positive-to-negative ratio, with floor of 5
-    const rawScore = total === 0 ? 7 : Math.round(5 + (posCount / total) * 5);
-    const score = Math.min(10, Math.max(5, rawScore));
+    // Base score 7, adjusted by sentiment. 
+    // Critique mode is harsher (lower base).
+    const base = isCritique ? 5 : 7;
+    const sentimentBonus = total === 0 ? 0 : (posCount / total) * 3 - (negCount / total) * 2;
+    
+    const score = Math.min(10, Math.max(1, Math.round(base + sentimentBonus)));
 
     const takeaways = reasoning
       .slice(0, 5)
       .map(r => r.replace(/^["\s]+|["\s]+$/g, ''))
-      .filter(r => r.length > 15 && r.length < 120);
+      .filter(r => r.length > 12 && r.length < 120);
 
     return { score, topics: topics.slice(0, 4), takeaways };
-  }, [reasoning, finalAdvice]);
+  }, [reasoning, finalAdvice, sessionGoal]);
+
+  const isCritique = sessionGoal === 'critique';
+
+  // Position detection derived from reasoning
+  const positionStatus = React.useMemo(() => {
+    if (!isConnected || reasoning.length === 0) return 'analyzing';
+    const latest = (reasoning[0] || '').toLowerCase();
+    if (latest.includes('step back') || latest.includes('too close') || latest.includes('positioning')) return 'bad';
+    if (latest.includes('good') || latest.includes('ready') || latest.includes('silhouette') || latest.includes('perfect')) return 'good';
+    return 'analyzing';
+  }, [isConnected, reasoning]);
 
   const GOAL_OPTIONS = [
     { id: 'event' as const, label: 'Event Styling', desc: 'Prepare for a special occasion — formal, party, or date night', icon: Calendar, color: 'from-purple-500 to-indigo-600' },
@@ -197,28 +211,30 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
   const startTimerCapture = useCallback(() => {
     if (countdown !== null) return;
-    setCountdown(3);
+    setCountdown(10);
     
     // Play countdown sound if possible
     try {
-      const ctx = new AudioContext();
-      const playBeep = (freq: number) => {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const playBeep = async (freq: number) => {
+        if (ctx.state === 'suspended') await ctx.resume();
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.frequency.setValueAtTime(freq, ctx.currentTime);
-        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.setValueAtTime(0.05, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
         osc.start();
         osc.stop(ctx.currentTime + 0.1);
       };
 
-      let count = 3;
+      let count = 10;
       const interval = setInterval(() => {
         count--;
         if (count > 0) {
-          playBeep(880);
+          if (count <= 3) playBeep(880); // Speed up beeps for last 3s
+          else if (count % 2 === 0) playBeep(440);
           setCountdown(count);
         } else {
           clearInterval(interval);
@@ -227,10 +243,9 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           handleCapture();
         }
       }, 1000);
-      playBeep(880); // First beep
+      playBeep(440); // Initial beep
     } catch {
-      // Fallback if AudioContext fails
-      let count = 3;
+      let count = 10;
       const interval = setInterval(() => {
         count--;
         if (count > 0) setCountdown(count);
@@ -447,8 +462,24 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             autoPlay
             playsInline
             muted
-            className={`w-full h-full object-cover transition-all duration-1000 ${isConnected ? 'scale-105 opacity-80' : 'opacity-40 grayscale'}`}
+            className={`w-full h-full object-cover transition-all duration-1000 rounded-3xl ${
+              positionStatus === 'good' ? 'ring-8 ring-green-500/40 opacity-100' : 
+              positionStatus === 'bad' ? 'ring-8 ring-orange-500/40 opacity-90 grayscale-[0.2]' : 
+              'opacity-40 grayscale'
+            }`}
           />
+
+          {/* Neural HUD Overlay */}
+          {isConnected && (
+             <div className="absolute inset-4 border-2 border-white/5 rounded-[2rem] pointer-events-none overflow-hidden">
+                <div className={`absolute inset-0 bg-gradient-to-b from-transparent to-black/20 ${positionStatus === 'good' ? 'opacity-20' : 'opacity-0'}`} />
+                <motion.div 
+                  animate={{ y: [0, 400, 0] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                  className="w-full h-[2px] bg-primary/20 blur-sm shadow-[0_0_15px_rgba(var(--primary),0.5)]" 
+                />
+             </div>
+          )}
 
           {/* Real-time Coaching Overlays */}
           <AnimatePresence>
