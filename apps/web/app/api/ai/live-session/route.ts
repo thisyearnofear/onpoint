@@ -28,14 +28,33 @@ export async function POST(request: NextRequest) {
 
         console.log('Provisioning Live AR Session...', { goal, usingByok: Boolean(byok) });
 
+        // Build an AG-UI compliant agent manifest for the frontend
+        const agentManifest = {
+          protocol: 'AG-UI v0.1',
+          sessionGoal: goal,
+          plannedSteps: [
+            { step: 1, action: 'intent_parse',      description: 'Parse session goal and configure agent' },
+            { step: 2, action: 'celo_context',      description: 'Verify Celo wallet + contract availability', chain: 'celo' },
+            { step: 3, action: 'vision_analysis',   description: 'Stream and analyze video frames via Gemini Live' },
+            { step: 4, action: 'style_reasoning',   description: 'Apply goal-aware styling analysis' },
+            { step: 5, action: 'score_calculation', description: 'Derive sentiment-weighted style score' },
+            { step: 6, action: 'celo_mint_proposal',description: 'Propose NFT mint when score ≥ 8', chain: 'celo' },
+          ],
+          celoContracts: {
+            nft: '0xdb65806c994C3f55079a6136a8E0886CbB2B64B1',
+            cUSD: '0x765DE8164458C172EE097029dfb482Ff182ad001',
+          }
+        };
+
         // Return the required configuration for the frontend to securely connect to the websocket
         return NextResponse.json({
             config: {
                 apiKey: geminiApiKey,
                 baseURL: 'wss://generativelanguage.googleapis.com/ws',
-                model: 'models/gemini-3.1-flash-lite-preview',
+                model: 'models/gemini-2.0-flash-live-001',
                 systemInstruction: goalInstructions[goal] || goalInstructions.daily,
-            }
+            },
+            agentManifest
         }, { headers: corsHeaders(origin) });
 
     } catch (error) {
