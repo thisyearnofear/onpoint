@@ -5,7 +5,7 @@ export interface LiveSession {
   sendImage: (imageData: string | Blob) => void;
   
   // Real-time Event System
-  on: (event: 'transcript' | 'response' | 'reasoning' | 'error' | 'connected' | 'disconnected', callback: (data: any) => void) => void;
+  on: (event: 'transcript' | 'response' | 'reasoning' | 'error' | 'connected' | 'disconnected' | 'protocol', callback: (data: any) => void) => void;
   off: (event: string, callback: (data: any) => void) => void;
   
   // Tool calling (e.g., adding to cart, searching product)

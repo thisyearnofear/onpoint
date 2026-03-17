@@ -100,6 +100,13 @@ export class GeminiLiveProvider implements AIProvider {
              clearInterval(simInterval);
              return;
           }
+
+          // Inject Protocol Events at specific intervals
+          if (simIdx === 0) emit('protocol', { step: 'INTENT', text: 'Initializing Agentic Mesh...' });
+          if (simIdx === 1) emit('protocol', { step: 'CELO', text: 'Connecting to Celo Alfajores...' });
+          if (simIdx === 3) emit('protocol', { step: 'SECURITY', text: 'Verifying session integrity...' });
+          if (simIdx === 5) emit('protocol', { step: 'ACTION', text: 'Ready for on-chain execution.' });
+
           emit('reasoning', simulations![simIdx % simulations!.length]);
           simIdx++;
         }, 3000);

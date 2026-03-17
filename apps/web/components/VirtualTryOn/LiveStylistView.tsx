@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Card, CardContent } from '@repo/ui/card';
 import { Button } from '@repo/ui/button';
 import { Mic, Video, PhoneOff, Sparkles, AlertCircle, Camera, Clock, Volume2, VolumeX, Calendar, Sun, MessageSquareWarning, CheckCircle, Palette, Ruler, Eye } from 'lucide-react';
@@ -18,6 +18,15 @@ interface LiveStylistViewProps {
   onBack: () => void;
 }
 
+type ActivityType = 'thought' | 'decision' | 'action';
+
+interface Activity {
+  id: string;
+  type: ActivityType;
+  text: string;
+  timestamp: number;
+}
+
 export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   const { 
     isConnected, 
@@ -28,9 +37,12 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     stopSession,
     transcript,
     aiResponse: liveAiResponse,
-    reasoning
+    reasoning,
+    agentEvents
   } = useGeminiLive();
   const { context } = useMiniApp();
+
+  const [activities, setActivities] = useState<Activity[]>([]);
 
   const [captures, setCaptures] = useState<CaptureOption[]>([]);
   const [selectedCaptureIndex, setSelectedCaptureIndex] = useState<number>(0);
@@ -48,7 +60,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   const [showSummary, setShowSummary] = useState(false);
 
   // Derive a session summary from reasoning + AI responses
-  const sessionSummary = React.useMemo(() => {
+  const sessionSummary = useMemo(() => {
     if (reasoning.length === 0 && !finalAdvice) return null;
 
     const allText = [...reasoning, finalAdvice].filter(Boolean).join(' ').toLowerCase();
@@ -64,6 +76,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     if (/event|occasion|formal|casual|dress code/.test(allText)) topics.push('Occasion Match');
     if (/layer|outerwear|cardigan|jacket/.test(allText)) topics.push('Layering');
 
+    const isCritique = sessionGoal === 'critique';
     const posCount = positives.filter(p => allText.includes(p)).length;
     const negCount = negatives.filter(n => allText.includes(n)).length;
     const total = posCount + negCount;
@@ -85,7 +98,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   const isCritique = sessionGoal === 'critique';
 
   // Position detection derived from reasoning
-  const positionStatus = React.useMemo(() => {
+  const positionStatus = useMemo(() => {
     if (!isConnected || reasoning.length === 0) return 'analyzing';
     const latest = (reasoning[0] || '').toLowerCase();
     if (latest.includes('step back') || latest.includes('too close') || latest.includes('positioning')) return 'bad';
@@ -130,84 +143,77 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   }, [isConnected, reasoning]);
 
   useEffect(() => {
-    if (liveAiResponse?.trim()) {
-      setFinalAdvice(liveAiResponse.trim());
+    if (agentEvents.length > 0) {
+      const latest = agentEvents[0];
+      if (!latest) return;
+      setActivities(prev => [{
+        id: `protocol-${latest.id}`,
+        type: 'action' as ActivityType,
+        text: String(latest.text ?? ''),
+        timestamp: Number(latest.id) || Date.now()
+      }, ...prev].slice(0, 10));
     }
-  }, [liveAiResponse]);
+  }, [agentEvents]);
 
-  // Voice Synthesis Logic
   useEffect(() => {
-    if (isVoiceEnabled && liveAiResponse) {
+    if (reasoning.length > 0) {
+      const latest = reasoning[0] ?? '';
+      if (!latest) return;
+      const type: ActivityType =
+        latest.toLowerCase().includes('analyzing') || latest.toLowerCase().includes('checking') ? 'thought' :
+        latest.toLowerCase().includes('perfect') || latest.toLowerCase().includes('locked') ? 'decision' : 'thought';
+
+      setActivities(prev => [{
+        id: Math.random().toString(36).substr(2, 9),
+        type,
+        text: latest,
+        timestamp: Date.now()
+      }, ...prev].slice(0, 10) as Activity[]);
+    }
+  }, [reasoning]);
+
+  useEffect(() => {
+    if (liveAiResponse?.trim() && isVoiceEnabled) {
       const utterance = new SpeechSynthesisUtterance(liveAiResponse);
-      utterance.rate = 1.1;
+      utterance.rate = 1.0;
       utterance.pitch = 1.0;
-      window.speechSynthesis.cancel(); // Stop current speech
       window.speechSynthesis.speak(utterance);
     }
   }, [liveAiResponse, isVoiceEnabled]);
 
-  useEffect(() => {
-    return () => {
-      stopSession();
-      window.speechSynthesis.cancel();
-    };
-  }, [stopSession]);
-
-  const parseAdvice = (text: string) => {
-    return text
-      .split(/(?:\n|•|-\s|\d+\.\s)/g)
-      .map((item) => item.trim())
-      .filter((item) => item.length > 0)
-      .slice(0, 3);
-  };
-
-  const handleCapture = async () => {
-    if (!videoRef.current) return;
-    setIsCapturing(true);
-    setShowFlash(true);
-    setTimeout(() => setShowFlash(false), 150);
-    
-    // Premium Haptic Feedback
-    try {
-      await (sdk.haptics.impactOccurred as any)('heavy');
-    } catch { /* ignore if not supported */ }
+  const handleCapture = useCallback(async () => {
+    if (!videoRef.current || isCapturing) return;
 
     try {
+      setIsCapturing(true);
+      setShowFlash(true);
+      setTimeout(() => setShowFlash(false), 150);
+
+      // Pulse haptic if on Farcaster
+      try { sdk.actions.ready(); } catch {}
+      
       const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
       canvas.width = videoRef.current.videoWidth;
       canvas.height = videoRef.current.videoHeight;
-
-      // Draw video frame
-      ctx.drawImage(videoRef.current, 0, 0);
-
-      // Add HUD Overlays (Subtle)
-      ctx.strokeStyle = 'rgba(124, 58, 237, 0.5)';
-      ctx.lineWidth = 4;
-      
-      const margin = 40;
-      const len = 60;
-      ctx.beginPath(); ctx.moveTo(margin, margin + len); ctx.lineTo(margin, margin); ctx.lineTo(margin + len, margin); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(canvas.width - margin - len, margin); ctx.lineTo(canvas.width - margin, margin); ctx.lineTo(canvas.width - margin, margin + len); ctx.stroke();
-
-      const comment = (liveAiResponse || finalAdvice || 'Captured look for analysis.').trim();
-
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-      setCaptures((prev) => {
-        const next = [{ image: dataUrl, comment }, ...prev].slice(0, 4);
-        setSelectedCaptureIndex(0);
-        return next;
-      });
-      setFinalAdvice(comment);
-      setUploadedData(null);
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(videoRef.current, 0, 0);
+        const image = canvas.toDataURL('image/jpeg', 0.82);
+        
+        const newCapture = {
+          image,
+          comment: reasoning[0] || 'Analyzing style selection…'
+        };
+        
+        setCaptures(prev => [...prev, newCapture]);
+        setSelectedCaptureIndex(captures.length);
+      }
     } catch (err) {
-      console.error('Capture failed:', err);
+      console.error('Capture error:', err);
     } finally {
       setIsCapturing(false);
     }
-  };
+  }, [isCapturing, reasoning, videoRef, captures.length]);
 
   const startTimerCapture = useCallback(() => {
     if (countdown !== null) return;
@@ -258,205 +264,355 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     }
   }, [countdown, handleCapture]);
 
-  const uploadCapture = async () => {
-    if (uploadedData) return uploadedData;
-    if (!selectedCapture) {
-      throw new Error('No capture selected');
-    }
-    
-    setIsCapturing(true);
+  const handleFinish = async () => {
+    setFinalAdvice(liveAiResponse || "Great session! You've got a solid handle on your personal style.");
+    setShowSummary(true);
+    stopSession();
+  };
+
+  const handleShare = async () => {
+    if (!selectedCapture || !sessionSummary) return;
+
     try {
-      const response = await fetch(selectedCapture.image);
-      const blob = await response.blob();
+      const text = `Check out my OnPoint Style Score: ${sessionSummary.score}/10! 👗✨\n\nAnalyzed: ${sessionSummary.topics.join(', ')}\n\nTakeaway: ${sessionSummary.takeaways[0] || "Found my perfect look!"}\n\nMinted on Celo via @onpoint`;
       
-      const formData = new FormData();
-      formData.append('image', blob, 'stylist-capture.jpg');
-      
-      const uploadRes = await fetch('/api/social/upload', {
-        method: 'POST',
-        body: formData
-      });
-      
-      if (!uploadRes.ok) throw new Error('Upload failed');
-      const data = await uploadRes.json();
-      setUploadedData(data);
-      return data;
+      const shareUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(window.location.host)}`;
+      window.open(shareUrl, '_blank');
     } catch (err) {
-      console.error('Upload failed:', err);
-      throw err;
-    } finally {
-      setIsCapturing(false);
+      console.error('Share error:', err);
     }
   };
 
-  return (
-    <Card className="overflow-hidden border-0 shadow-2xl bg-black relative rounded-2xl min-h-[600px]">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none z-10" />
-      
-      {/* Tactical Scanning HUD Overlay */}
-      <AnimatePresence>
-        {isConnected && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="absolute inset-0 z-20 pointer-events-none"
-          >
-            {/* Scanning Horizontal Line */}
-            <motion.div 
-              animate={{ top: ['0%', '100%', '0%'] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-              className="absolute left-0 right-0 h-[1px] bg-primary/40 shadow-[0_0_15px_rgba(var(--primary),0.8)]"
-            />
-            {/* Corner Brackets */}
-            <div className="absolute top-8 left-8 w-8 h-8 border-t-2 border-l-2 border-primary/40 rounded-tl-lg" />
-            <div className="absolute top-8 right-8 w-8 h-8 border-t-2 border-r-2 border-primary/40 rounded-tr-lg" />
-            <div className="absolute bottom-8 left-8 w-8 h-8 border-b-2 border-l-2 border-primary/40 rounded-bl-lg" />
-            <div className="absolute bottom-8 right-8 w-8 h-8 border-b-2 border-r-2 border-primary/40 rounded-br-lg" />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <CardContent className="p-0 flex flex-col items-center justify-center min-h-[600px] relative">
-        
-        {/* Top Navigation & Status */}
-        <div className="absolute top-6 left-4 right-4 flex justify-between items-center z-30">
+  if (showSummary && sessionSummary) {
+    return (
+      <div className="flex flex-col h-full bg-slate-950 overflow-y-auto pb-20">
+        {/* Header */}
+        <div className="p-6 flex items-center justify-between border-b border-indigo-500/20 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
           <div className="flex items-center gap-3">
-            <div className="px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 shadow-[0_0_10px_#22c55e]' : 'bg-red-500 animate-pulse'}`} />
-              <span className="text-[10px] font-black uppercase tracking-widest text-white/90">
-                {isConnected ? 'Agent Active' : 'System Standby'}
-              </span>
+            <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+              <Sparkles className="w-5 h-5 text-indigo-400" />
             </div>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
-              className={`rounded-full px-3 h-8 border backdrop-blur-xl transition-all ${isVoiceEnabled ? 'bg-primary border-primary/40 text-white' : 'bg-black/40 border-white/10 text-white/60'}`}
-            >
-              {isVoiceEnabled ? <Volume2 className={`w-3.5 h-3.5 mr-1.5`} /> : <VolumeX className={`w-3.5 h-3.5 mr-1.5`} />}
-              <span className="text-[8px] font-bold uppercase tracking-widest">{isVoiceEnabled ? 'Voice On' : 'Voice Off'}</span>
-            </Button>
+            <div>
+              <h1 className="text-lg font-bold text-white tracking-tight">Session Summary</h1>
+              <p className="text-[10px] text-indigo-300/60 uppercase tracking-widest font-mono">Proof of Style Verified</p>
+            </div>
           </div>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              stopSession();
-              onBack();
-            }}
-            className="rounded-full w-10 h-10 bg-black/40 backdrop-blur-xl border border-white/10 text-white hover:bg-destructive"
+          <Button 
+            variant="ghost" 
+            className="text-white bg-white/5 hover:bg-white/10 rounded-full"
+            onClick={onBack}
           >
-            <PhoneOff className="w-4 h-4" />
+            Done
           </Button>
         </div>
 
-        {/* Dynamic Reasoning Ticker (Top Center) */}
-        <AnimatePresence>
-          {isConnected && reasoning.length > 0 && (
-            <motion.div 
-              initial={{ y: -50, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -50, opacity: 0 }}
-              onClick={() => setTerminalExpanded(!terminalExpanded)}
-              className="absolute top-20 left-4 right-4 z-40"
-            >
-              <div className={`w-full transition-all duration-500 ${terminalExpanded ? 'max-h-64' : 'max-h-16'} overflow-hidden rounded-2xl bg-black/40 backdrop-blur-3xl border border-white/10 shadow-2xl`}>
-                <div className="p-4 space-y-3">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <motion.div 
-                        animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                        className="w-2 h-2 rounded-full bg-primary shadow-[0_0_10px_rgba(var(--primary),0.8)]" 
-                      />
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Stylist Intelligence</span>
-                    </div>
-                    <span className="text-[9px] text-white/30 uppercase font-mono">{terminalExpanded ? 'Collapse' : 'Logs'}</span>
+        <div className="p-6 space-y-6">
+          {/* Style Score Card */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 to-indigo-900 p-8 shadow-2xl shadow-indigo-500/20"
+          >
+             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-3xl rounded-full -mr-16 -mt-16" />
+             <div className="relative z-10 flex flex-col items-center text-center py-4">
+                <span className="text-white/60 text-xs font-mono uppercase tracking-[0.2em] mb-4">Final Style Score</span>
+                <div className="relative">
+                  <div className="text-8xl font-black text-white italic tracking-tighter tabular-nums drop-shadow-2xl">
+                    {sessionSummary.score}
                   </div>
-                  
-                  <div className="font-mono">
+                  <div className="absolute -right-6 bottom-4 text-2xl font-bold text-indigo-300">/10</div>
+                </div>
+                <div className="mt-4 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-md">
+                   <span className="text-[10px] font-bold text-white uppercase tracking-widest">
+                     {sessionSummary.score >= 8 ? 'Elite Persona' : sessionSummary.score >= 5 ? 'Strong Baseline' : 'Growth Potential'}
+                   </span>
+                </div>
+             </div>
+          </motion.div>
+
+          {/* Key Takeaways */}
+          <div className="space-y-4">
+            <h2 className="text-white/40 text-[10px] font-bold uppercase tracking-widest px-1 flex items-center gap-2">
+              <Sparkles className="w-3 h-3" />
+              AI Stylist Insights
+            </h2>
+            <div className="grid grid-cols-1 gap-3">
+              {sessionSummary.takeaways.map((takeaway, i) => (
+                <motion.div 
+                  key={i}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="bg-slate-900/80 border border-indigo-500/20 p-4 rounded-2xl flex gap-3 items-start"
+                >
+                  <div className="w-6 h-6 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <CheckCircle className="w-3.5 h-3.5 text-indigo-400" />
+                  </div>
+                  <p className="text-sm text-slate-300 leading-snug">{takeaway}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
+          {/* Analyzed Topics */}
+          <div className="space-y-4">
+            <h2 className="text-white/40 text-[10px] font-bold uppercase tracking-widest px-1">Infrastructure Focus</h2>
+            <div className="flex flex-wrap gap-2">
+              {sessionSummary.topics.map((topic, i) => (
+                <div key={i} className="px-3 py-2 rounded-xl bg-indigo-500/5 border border-indigo-500/10 flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-500/40" />
+                  <span className="text-xs text-indigo-300/80">{topic}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Photo Gallery Wrap */}
+          {hasCaptures && (
+            <div className="space-y-4">
+              <h2 className="text-white/40 text-[10px] font-bold uppercase tracking-widest px-1">Proof of Style Artifacts</h2>
+              <div className="flex gap-4 overflow-x-auto pb-4 -mx-6 px-6 no-scrollbar">
+                {captures.map((cap, i) => (
+                  <motion.div 
+                    key={i}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setSelectedCaptureIndex(i)}
+                    className={`relative w-40 h-56 rounded-2xl overflow-hidden shrink-0 transition-all border-2 ${
+                      selectedCaptureIndex === i ? 'border-primary shadow-[0_0_20px_rgba(var(--primary),0.3)]' : 'border-white/5 grayscale-[0.8] opacity-60'
+                    }`}
+                  >
+                    <img src={cap.image} alt="" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-3">
+                      <p className="text-[10px] text-white/50 font-mono">0x{Math.random().toString(16).substr(2, 6)}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex flex-col gap-3 pt-4">
+            {selectedCapture && (
+               <MintLookButton 
+                 imageUrl={selectedCapture.image}
+                 ipfsCid=""
+                 aiCritique={finalAdvice}
+                 onUpload={async () => {
+                    const res = await fetch('/api/ipfs/upload', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ data: selectedCapture.image, name: 'outfit.jpg' })
+                    });
+                    return res.json();
+                 }}
+               />
+            )}
+            <Button 
+               className="w-full bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-full py-6 text-lg font-bold gap-2"
+               onClick={handleShare}
+            >
+               Share to Warpcast
+            </Button>
+            <CeloTipButton />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!sessionGoal) {
+    return (
+      <div className="flex flex-col h-full bg-slate-950 p-6">
+        <div className="flex-1 flex flex-col justify-center items-center text-center space-y-8 max-w-sm mx-auto">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-black text-white tracking-tighter italic">LIVE STYLIST</h1>
+            <p className="text-slate-400 text-sm">Select your session goal to begin legal/style analysis.</p>
+          </div>
+
+          <div className="w-full space-y-3">
+            {GOAL_OPTIONS.map((goal) => (
+              <button
+                key={goal.id}
+                onClick={() => setSessionGoal(goal.id)}
+                className="w-full text-left p-5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all hover:border-indigo-500/30 group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${goal.color} flex items-center justify-center shrink-0`}>
+                    <goal.icon className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white group-hover:text-indigo-300 transition-colors">{goal.label}</h3>
+                    <p className="text-xs text-slate-400 line-clamp-1">{goal.desc}</p>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <div className="w-full space-y-4 pt-4">
+            <button 
+              onClick={() => setShowByokInput(!showByokInput)}
+              className="text-indigo-400 text-xs font-bold uppercase tracking-widest"
+            >
+              {showByokInput ? 'Cancel BYOK' : 'Use My Own Gemini Key'}
+            </button>
+
+            <AnimatePresence>
+              {showByokInput && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="space-y-3"
+                >
+                  <input 
+                    type="password"
+                    placeholder="Enter Gemini API Key"
+                    value={userApiKey}
+                    onChange={(e) => setUserApiKey(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500"
+                  />
+                  <p className="text-[10px] text-slate-500">Your key is used locally and never stored on our servers.</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        <Button 
+          variant="ghost" 
+          className="text-slate-500 hover:text-white"
+          onClick={onBack}
+        >
+          Back to Wardrobe
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full bg-black overflow-hidden relative font-sans">
+      {/* Top Ticker reasoning */}
+      <div className="absolute top-0 inset-x-0 z-[60] p-4 pointer-events-none">
+        <motion.div
+          initial={{ y: -50 }}
+          animate={{ y: 0 }}
+          className="max-w-md mx-auto pointer-events-auto"
+        >
+          <div 
+            className={`backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden transition-all duration-500 ${terminalExpanded ? 'shadow-2xl' : 'shadow-lg'}`}
+          >
+            <div 
+              className="bg-black/60 px-4 py-3 flex items-center justify-between cursor-pointer"
+              onClick={() => setTerminalExpanded(!terminalExpanded)}
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex gap-1">
+                  <div className="w-2 h-2 rounded-full bg-rose-500" />
+                  <div className="w-2 h-2 rounded-full bg-amber-500" />
+                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                  <span className="text-[10px] font-mono text-indigo-300 uppercase tracking-widest">Neural Stylist Reasoning</span>
+                </div>
+              </div>
+              <motion.div
+                animate={{ rotate: terminalExpanded ? 180 : 0 }}
+              >
+                <div className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center">
+                  <svg width="10" height="6" viewBox="0 0 10 6" fill="none" className="text-white/40">
+                    <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              </motion.div>
+            </div>
+            
+            <AnimatePresence>
+              {(terminalExpanded || reasoning.length > 0) && (
+                <motion.div
+                  initial={{ height: 0 }}
+                  animate={{ height: terminalExpanded ? 'auto' : 48 }}
+                  exit={{ height: 0 }}
+                  className="px-4 pb-3 overflow-hidden"
+                >
+                  <div className="font-mono text-[11px] space-y-1 py-1">
                     {terminalExpanded ? (
-                      <div className="space-y-1.5 max-h-40 overflow-y-auto no-scrollbar pb-2">
-                        {reasoning.map((item, i) => (
-                          <div key={i} className="text-[11px] text-white/60 border-l border-white/5 pl-3 leading-relaxed">
-                            <span className="text-primary/40 mr-2">›</span>{item}
-                          </div>
-                        ))}
-                      </div>
+                      reasoning.map((r, i) => (
+                        <motion.div 
+                          key={i}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="flex gap-2"
+                        >
+                          <span className="text-white/20">[{reasoning.length - i}]</span>
+                          <span className={`${i === 0 ? 'text-indigo-400' : 'text-white/50'}`}>&gt; {r}</span>
+                        </motion.div>
+                      ))
                     ) : (
-                      <div className="text-sm font-medium text-white line-clamp-2 leading-relaxed tracking-tight italic">
-                        "{reasoning[0]}"
+                      <div className="flex gap-2 items-center">
+                        <span className="text-indigo-400">&gt;</span>
+                        <span className="text-slate-300 animate-in fade-in slide-in-from-left-2 truncate">
+                          {reasoning[0] || 'Awaiting visual telemetry…'}
+                        </span>
                       </div>
                     )}
                   </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* AI Captions & Countdown */}
-        <AnimatePresence>
-          {countdown !== null && (
-            <motion.div 
-              initial={{ scale: 2, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0, opacity: 0 }}
-              className="absolute inset-0 z-[70] flex items-center justify-center bg-black/20"
-            >
-              <span className="text-9xl font-black text-white drop-shadow-[0_0_50px_rgba(var(--primary),0.8)]">
-                {countdown}
-              </span>
-            </motion.div>
-          )}
-
-          {isConnected && liveAiResponse && !terminalExpanded && (
-            <motion.div 
-               initial={{ y: 20, opacity: 0 }}
-               animate={{ y: 0, opacity: 1 }}
-               className="absolute bottom-32 left-6 right-6 z-30 flex flex-col items-center gap-3 text-center"
-            >
-              <div className="px-6 py-4 rounded-[2rem] bg-primary shadow-[0_20px_50px_rgba(var(--primary),0.3)] text-white text-lg font-bold shadow-2xl max-w-[90%] leading-tight transform-gpu animate-float">
-                {liveAiResponse}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {!!error && (
-          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full bg-destructive/85 px-4 py-2 text-[11px] text-destructive-foreground shadow-lg">
-            <AlertCircle className="h-3.5 w-3.5" />
-            <span>{error}</span>
-            {!showByokInput && (
-              <button
-                onClick={() => setShowByokInput(true)}
-                className="ml-1 rounded-full border border-white/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/90 hover:bg-white/10"
-              >
-                Use my key
-              </button>
-            )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-        )}
+        </motion.div>
+      </div>
 
-        {!!finalAdvice && !isConnected && !hasCaptures && (
-          <div className="absolute bottom-6 left-6 right-6 z-30 rounded-2xl bg-black/65 border border-white/10 backdrop-blur-xl p-4 space-y-2">
-            <div className="text-[10px] uppercase tracking-[0.18em] font-semibold text-primary">Final stylist advice</div>
-            <div className="text-white text-sm leading-relaxed">{finalAdvice}</div>
-            <ul className="space-y-1 text-white/80 text-xs">
-              {parseAdvice(finalAdvice).map((tip) => (
-                <li key={tip} className="flex items-start gap-2">
-                  <span className="text-primary">•</span>
-                  <span>{tip}</span>
-                </li>
+      {/* Main Viewport */}
+      <div className="flex-1 relative bg-slate-900 overflow-hidden">
+        {isInitializing && (
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-sm">
+            <div className="relative">
+              <div className="w-20 h-20 rounded-full border-t-2 border-indigo-500 animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full border-b-2 border-indigo-400 animate-spin-slow" />
+              </div>
+            </div>
+            <p className="mt-8 text-indigo-400 font-mono text-[10px] uppercase tracking-[0.3em] animate-pulse">Initializing Agentic Mesh</p>
+            <div className="mt-4 flex gap-1">
+              {[0, 1, 2].map(i => (
+                <div key={i} className="w-1 h-1 rounded-full bg-indigo-500/40" />
               ))}
-            </ul>
+            </div>
           </div>
         )}
 
-        {/* Video Feed */}
-        <div className="relative w-full h-full min-h-[600px] flex justify-center items-center bg-black overflow-hidden">
+        {error ? (
+          <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-rose-950/20 backdrop-blur-3xl">
+            <div className="bg-slate-900/90 border border-rose-500/30 p-8 rounded-3xl max-w-sm w-full shadow-2xl">
+              <div className="w-16 h-16 rounded-2xl bg-rose-500/20 flex items-center justify-center mb-6 mx-auto">
+                <AlertCircle className="w-8 h-8 text-rose-500" />
+              </div>
+              <h2 className="text-xl font-bold text-white text-center mb-2">Interface Failure</h2>
+              <p className="text-slate-400 text-sm text-center mb-8">{error}</p>
+              <div className="flex flex-col gap-3">
+                <Button 
+                  className="w-full bg-rose-600 hover:bg-rose-500 text-white rounded-full font-bold"
+                  onClick={() => startSession(sessionGoal, userApiKey)}
+                >
+                  Restart Interface
+                </Button>
+                {!userApiKey && (
+                  <Button 
+                    variant="ghost"
+                    className="text-white hover:bg-white/5 font-bold"
+                    onClick={() => setSessionGoal(null)}
+                  >
+                    Select New Goal
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
           <video
             ref={videoRef}
             autoPlay
@@ -468,440 +624,269 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               'opacity-40 grayscale'
             }`}
           />
+        )}
 
-          {/* Neural HUD Overlay */}
-          {isConnected && (
-             <div className="absolute inset-4 border-2 border-white/5 rounded-[2rem] pointer-events-none overflow-hidden">
-                <div className={`absolute inset-0 bg-gradient-to-b from-transparent to-black/20 ${positionStatus === 'good' ? 'opacity-20' : 'opacity-0'}`} />
-                <motion.div 
-                  animate={{ y: [0, 400, 0] }}
-                  transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-                  className="w-full h-[2px] bg-primary/20 blur-sm shadow-[0_0_15px_rgba(var(--primary),0.5)]" 
-                />
-             </div>
-          )}
-
-          {/* Real-time Coaching Overlays */}
-          <AnimatePresence>
-            {coachingBadges.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                className="absolute top-24 right-4 z-30 flex flex-col gap-2"
-              >
-                {coachingBadges.map((badge) => (
-                  <motion.div
-                    key={badge.id}
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.8, opacity: 0 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                    className={`flex items-center gap-2 rounded-full bg-gradient-to-r ${badge.color} backdrop-blur-xl px-3 py-1.5 shadow-lg border border-white/10`}
-                  >
-                    <badge.icon className="w-3.5 h-3.5 text-white" />
-                    <span className="text-[10px] font-bold text-white uppercase tracking-wider">{badge.label}</span>
-                  </motion.div>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Connection State UI */}
-          {!isConnected && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center z-30">
+        {/* Neural HUD Overlay */}
+        {isConnected && (
+            <div className="absolute inset-4 border-2 border-white/5 rounded-[2rem] pointer-events-none overflow-hidden">
+              <div className={`absolute inset-0 bg-gradient-to-b from-transparent to-black/20 ${positionStatus === 'good' ? 'opacity-20' : 'opacity-0'}`} />
               <motion.div 
-                animate={{ scale: [1, 1.1, 1], opacity: [0.8, 1, 0.8] }}
-                transition={{ duration: 3, repeat: Infinity }}
-                className="w-32 h-32 mb-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-[0_0_60px_rgba(var(--primary),0.6)]"
-              >
-                <Sparkles className="w-12 h-12 text-white" />
-              </motion.div>
-              
-              <h2 className="text-3xl font-bold mb-3 text-white tracking-tight">OnPoint Intelligence</h2>
-              <p className="text-white/60 max-w-sm mb-8 text-lg">
-                {sessionGoal
-                  ? `Starting your ${GOAL_OPTIONS.find(g => g.id === sessionGoal)?.label.toLowerCase()} session…`
-                  : 'Choose a goal for your live styling session.'}
-              </p>
-
-              {!sessionGoal ? (
-                <div className="w-full max-w-sm space-y-3">
-                  {GOAL_OPTIONS.map((goal) => (
-                    <motion.button
-                      key={goal.id}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => setSessionGoal(goal.id)}
-                      className="w-full flex items-center gap-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl p-4 text-left hover:bg-white/10 hover:border-white/20 transition-all group"
-                    >
-                      <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${goal.color} flex items-center justify-center flex-shrink-0 shadow-lg group-hover:shadow-xl transition-shadow`}>
-                        <goal.icon className="w-5 h-5 text-white" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-bold text-white">{goal.label}</div>
-                        <div className="text-xs text-white/50 leading-relaxed truncate">{goal.desc}</div>
-                      </div>
-                    </motion.button>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-3">
-                  {showByokInput && (
-                    <div className="w-full max-w-sm rounded-2xl border border-white/15 bg-black/40 p-3 backdrop-blur-xl">
-                      <div className="text-[10px] uppercase tracking-[0.18em] font-semibold text-white/60 mb-2">
-                        Optional BYOK fallback
-                      </div>
-                      <input
-                        type="password"
-                        autoComplete="off"
-                        spellCheck={false}
-                        placeholder="Paste your Gemini API key"
-                        value={userApiKey}
-                        onChange={(e) => setUserApiKey(e.target.value)}
-                        className="w-full rounded-xl border border-white/20 bg-black/50 px-3 py-2 text-sm text-white placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-primary/60"
-                      />
-                      <div className="mt-2 text-[11px] text-white/50 leading-relaxed">
-                        Used for this live session only and never shown in logs.
-                      </div>
-                    </div>
-                  )}
-                  <Button 
-                    onClick={() => startSession(sessionGoal, userApiKey)} 
-                    disabled={isInitializing}
-                    className="rounded-full px-10 py-7 text-xl font-bold shadow-2xl shadow-primary/50 transition-all hover:scale-105 bg-white text-black active:scale-95"
-                  >
-                    {isInitializing ? "Initializing Neural Link…" : "Start Live Session"}
-                  </Button>
-                  <button
-                    onClick={() => {
-                      setSessionGoal(null);
-                      setShowByokInput(false);
-                    }}
-                    className="text-xs text-white/40 hover:text-white/70 transition-colors underline underline-offset-2"
-                  >
-                    Change goal
-                  </button>
-                  {!showByokInput && (
-                    <button
-                      onClick={() => setShowByokInput(true)}
-                      className="text-xs text-white/40 hover:text-white/70 transition-colors underline underline-offset-2"
-                    >
-                      Use your own Gemini API key
-                    </button>
-                  )}
-                </div>
-              )}
+                animate={{ y: [0, 600, 0] }}
+                transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
+                className="w-full h-[1px] bg-indigo-500/20 blur-[1px]" 
+              />
             </div>
-          )}
+        )}
+
+        {/* Agent Activity Trace (AG-UI Style) */}
+        <div className="absolute left-4 top-24 bottom-24 w-64 pointer-events-none hidden lg:flex flex-col gap-2 overflow-hidden">
+          <AnimatePresence>
+            {agentEvents.map((event, idx) => (
+              <motion.div
+                key={`${event.step}-${event.id}`}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1 - (idx * 0.2), x: 0 }}
+                className="bg-black/60 border border-indigo-500/30 backdrop-blur-md p-3 rounded-lg flex flex-col gap-1"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                  <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-tighter">{event.step}</span>
+                </div>
+                <div className="text-[11px] font-mono text-white/80 leading-tight">
+                  {event.text}
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
 
-        {/* Camera Flash Effect */}
+        <div className="absolute right-4 top-24 bottom-24 w-64 pointer-events-none hidden lg:flex flex-col gap-2 overflow-hidden">
+          <AnimatePresence>
+            {activities.map((activity, idx) => (
+              <motion.div
+                key={activity.id}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 0.8 - (idx * 0.1), x: 0 }}
+                className={`p-3 rounded-xl border text-[10px] uppercase tracking-wider font-mono backdrop-blur-md flex flex-col gap-1 ${
+                  activity.type === 'decision' ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-black/40 border-white/10 text-white/60'
+                }`}
+              >
+                <div className="flex justify-between opacity-50">
+                  <span>{activity.type}</span>
+                  <span>{new Date(activity.timestamp).toLocaleTimeString([], { hour12: false, minute: '2-digit', second: '2-digit' })}</span>
+                </div>
+                <div className="leading-relaxed text-left">{activity.text}</div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+
+        {/* Real-time Coaching Overlays */}
+        <AnimatePresence>
+          {coachingBadges.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              className="absolute right-6 top-32 flex flex-col gap-2 z-40"
+            >
+              {coachingBadges.map((badge) => (
+                <div key={badge.id} className={`flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r ${badge.color} border border-white/20 shadow-lg`}>
+                  <badge.icon className="w-3.5 h-3.5 text-white" />
+                  <span className="text-[10px] font-bold text-white uppercase tracking-wider">{badge.label}</span>
+                </div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Action Suggestion Toast */}
+        <AnimatePresence>
+          {sessionSummary && sessionSummary.score >= 8 && isConnected && (
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="absolute bottom-32 inset-x-0 flex justify-center z-50 px-6"
+            >
+              <div className="bg-indigo-600 border border-indigo-400 shadow-[0_0_30px_rgba(99,102,241,0.4)] p-4 rounded-3xl flex items-center gap-4 max-w-md w-full">
+                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-white font-bold text-sm">Agent Recommendation</h4>
+                  <p className="text-white/80 text-xs">Style Score is Elite. I propose minting this Proof of Style to Celo.</p>
+                </div>
+                <Button 
+                  size="sm"
+                  className="bg-white text-indigo-600 hover:bg-white/90 font-bold rounded-full px-4"
+                  onClick={handleCapture}
+                >
+                  Capture
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Captures Mini-Gallery */}
+        {hasCaptures && (
+          <div className="absolute left-6 bottom-32 z-40 flex flex-col gap-3">
+             <div className="flex -space-x-3">
+               {captures.slice(-3).map((cap, i) => (
+                 <motion.div 
+                   key={i} 
+                   initial={{ scale: 0, x: -20 }}
+                   animate={{ scale: 1, x: 0 }}
+                   className="w-12 h-16 rounded-lg border-2 border-white/10 overflow-hidden shadow-xl"
+                 >
+                   <img src={cap.image} alt="" className="w-full h-full object-cover" />
+                 </motion.div>
+               ))}
+               {captures.length > 3 && (
+                 <div className="w-12 h-16 rounded-lg bg-indigo-600/80 border-2 border-white/20 backdrop-blur-md flex items-center justify-center font-bold text-white text-xs">
+                   +{captures.length - 3}
+                 </div>
+               )}
+             </div>
+          </div>
+        )}
+
+        {/* Flash Overlay */}
         <AnimatePresence>
           {showFlash && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 z-[100] bg-white pointer-events-none"
+              className="absolute inset-0 z-50 bg-white"
             />
           )}
         </AnimatePresence>
-
-        {/* Floating Call Controls */}
+        
+        {/* Countdown Overlay */}
         <AnimatePresence>
-          {isConnected && !hasCaptures && (
-            <motion.div 
-              initial={{ y: 50, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 50, opacity: 0 }}
-              className="absolute bottom-10 left-0 right-0 flex justify-center items-center z-40 px-6"
-            >
-              <div className="flex items-center gap-4 px-6 py-4 rounded-[2.5rem] bg-black/60 backdrop-blur-3xl border border-white/10 shadow-2xl ring-1 ring-white/5">
-                <div className="flex flex-col items-center">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={startTimerCapture}
-                    disabled={countdown !== null}
-                    className={`w-12 h-12 rounded-full border transition-all ${countdown !== null ? 'bg-primary/20 border-primary' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}
-                  >
-                    <Clock className={`w-5 h-5 ${countdown !== null ? 'animate-pulse' : ''}`} />
-                  </Button>
-                  <span className="text-[7px] font-black uppercase tracking-widest mt-1.5 text-white/40">Auto</span>
-                </div>
-                
-                <Button 
-                   onClick={handleCapture}
-                   disabled={isCapturing}
-                   className="w-16 h-16 rounded-full bg-primary text-white shadow-[0_0_30px_rgba(var(--primary),0.4)] hover:scale-110 active:scale-95 transition-all border-4 border-white/20"
-                >
-                  {isCapturing ? <Sparkles className="animate-spin w-7 h-7" /> : <Camera className="w-7 h-7" />}
-                </Button>
-
-                <div className="w-[1px] h-10 bg-white/10 mx-1" />
-
-                <div className="flex flex-col items-center">
-                  <Button 
-                    variant="outline"
-                    size="icon" 
-                    className="w-12 h-12 rounded-full border-white/20 text-white hover:bg-red-500/20 hover:border-red-500/40 transition-all"
-                    onClick={async () => {
-                      try { await (sdk.haptics.impactOccurred as any)('medium'); } catch {}
-                      stopSession();
-                      setShowSummary(true);
-                    }}
-                  >
-                    <div className="relative">
-                      <PhoneOff className="w-5 h-5 text-red-500" />
-                      {hasCaptures && (
-                        <motion.div 
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-primary text-[10px] flex items-center justify-center font-black border-2 border-black"
-                        >
-                          {captures.length}
-                        </motion.div>
-                      )}
-                    </div>
-                  </Button>
-                  <span className="text-[7px] font-black uppercase tracking-widest mt-1.5 text-white/40">Finish</span>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Captured Preview & Share Overlay */}
-        <AnimatePresence>
-          {hasCaptures && selectedCapture && (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="absolute inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-6 pb-[env(safe-area-inset-bottom)]"
-            >
-              <div className="relative w-full aspect-video rounded-xl overflow-hidden shadow-2xl border border-white/10 mb-8 max-w-2xl">
-                <img src={selectedCapture.image} className="w-full h-full object-cover" alt="Captured Frame" />
-                <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-primary/80 backdrop-blur-md text-[10px] font-bold text-white tracking-widest uppercase">
-                  Proof of Style
-                </div>
-                {/* Style Score Badge */}
-                {sessionSummary && (
-                  <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20">
-                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black text-white"
-                      style={{
-                        background: sessionSummary.score >= 8 ? 'linear-gradient(135deg, #22c55e, #16a34a)'
-                          : sessionSummary.score >= 6 ? 'linear-gradient(135deg, #f59e0b, #d97706)'
-                          : 'linear-gradient(135deg, #ef4444, #dc2626)'
-                      }}
-                    >
-                      {sessionSummary.score}
-                    </div>
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-white/80">Style Score</span>
-                  </div>
-                )}
-              </div>
-
-              {captures.length > 1 && (
-                <div className="w-full max-w-2xl mb-6">
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/60 mb-2">Choose your proof shot</p>
-                  <div className="grid grid-cols-4 gap-2">
-                    {captures.map((item, index) => (
-                      <button
-                        type="button"
-                        key={`${item.image}-${index}`}
-                        onClick={() => {
-                          setSelectedCaptureIndex(index);
-                          setUploadedData(null);
-                        }}
-                        className={`relative rounded-lg overflow-hidden border transition ${
-                          selectedCaptureIndex === index ? 'border-primary ring-2 ring-primary/40' : 'border-white/20'
-                        }`}
-                      >
-                        <img src={item.image} alt={`Proof option ${index + 1}`} className="h-16 w-full object-cover" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="w-full max-w-2xl mb-6 rounded-xl border border-white/10 bg-white/5 p-3">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-primary mb-1">Stylist comment on this shot</p>
-                <p className="text-sm text-white/90 leading-relaxed">{selectedCapture.comment}</p>
-              </div>
-
-              <div className="flex flex-col gap-4 w-full max-w-xs">
-                <Button 
-                  className="w-full bg-primary hover:bg-primary/90 text-white rounded-full py-6 text-lg font-bold"
-                  disabled={isCapturing}
-                  onClick={async () => {
-                    try {
-                      // 1. Upload if not already uploaded
-                      const data = await uploadCapture();
-                      const { url } = data;
-                      
-                      const scoreLine = sessionSummary ? `\n📊 Style Score: ${sessionSummary.score}/10` : '';
-                      const topicsLine = sessionSummary?.topics.length ? `\n🏷️ ${sessionSummary.topics.join(' • ')}` : '';
-                      const shareText = `Just got a live style critique from my AI Stylist on BeOnPoint! 📸✨${scoreLine}${topicsLine}\n\nStylist notes: "${selectedCapture.comment || 'My style is on point!'}"\n\n#BeOnPoint #AIStylist #FashionProof`;
-
-                      // 3. Share via SDK if available, or API fallback
-                      if (context?.client) {
-                        await (sdk.actions as any).composeCast({
-                          text: shareText,
-                          embeds: [url]
-                        });
-                      } else {
-                        // Fallback to clipboard or API
-                        await navigator.clipboard.writeText(`${shareText} ${url}`);
-                        alert('Link copied to clipboard! (Not in Farcaster App)');
-                      }
-                      
-                      setCaptures([]);
-                      setSelectedCaptureIndex(0);
-                    } catch (err) {
-                      console.error('Share failed:', err);
-                      alert('Failed to share capture. Please try again.');
-                    } finally {
-                      setIsCapturing(false);
-                    }
-                  }}
-                >
-                  {isCapturing ? <Sparkles className="animate-spin w-6 h-6 mr-2" /> : null}
-                  {isCapturing ? 'Preparing Post...' : 'Share to Farcaster'}
-                </Button>
-
-                <div className="flex items-center gap-2">
-                   <div className="h-[1px] flex-1 bg-white/10" />
-                   <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">or</span>
-                   <div className="h-[1px] flex-1 bg-white/10" />
-                </div>
-
-                <CeloTipButton />
-
-                <div className="flex items-center gap-2">
-                   <div className="h-[1px] flex-1 bg-white/10" />
-                   <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Ownership</span>
-                   <div className="h-[1px] flex-1 bg-white/10" />
-                </div>
-
-                <MintLookButton 
-                  imageUrl={uploadedData?.url || ''} 
-                  ipfsCid={uploadedData?.ipfsCid || ''}
-                  aiCritique={selectedCapture.comment}
-                  onUpload={uploadCapture}
-                />
-
-                <Button 
-                  variant="ghost" 
-                  className="w-full text-white/60 hover:text-white"
-                  onClick={() => {
-                    setCaptures([]);
-                    setSelectedCaptureIndex(0);
-                    setUploadedData(null);
-                  }}
-                >
-                  Discard
-                </Button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Session Completion Summary */}
-        <AnimatePresence>
-          {showSummary && sessionSummary && (
+          {countdown !== null && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="absolute inset-0 z-50 bg-black/95 backdrop-blur-3xl flex flex-col items-center justify-center p-6"
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 2, opacity: 0 }}
+              className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none"
             >
-              <div className="w-full max-w-sm space-y-6">
-                {/* Score Ring */}
-                <div className="flex flex-col items-center">
-                  <div className="relative w-28 h-28 mb-3">
-                    <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                      <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="6" />
-                      <motion.circle
-                        cx="50" cy="50" r="42" fill="none"
-                        stroke={sessionSummary.score >= 8 ? '#22c55e' : sessionSummary.score >= 6 ? '#f59e0b' : '#ef4444'}
-                        strokeWidth="6" strokeLinecap="round"
-                        strokeDasharray={`${sessionSummary.score * 26.4} 264`}
-                        initial={{ strokeDasharray: '0 264' }}
-                        animate={{ strokeDasharray: `${sessionSummary.score * 26.4} 264` }}
-                        transition={{ duration: 1.2, ease: 'easeOut' }}
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-3xl font-black text-white">{sessionSummary.score}</span>
-                      <span className="text-[9px] uppercase tracking-widest text-white/50 font-bold">Style Score</span>
-                    </div>
-                  </div>
-                  <p className="text-white/60 text-sm">
-                    {sessionSummary.score >= 8 ? 'Looking sharp! 🔥' : sessionSummary.score >= 6 ? 'Solid foundation with room to level up' : 'Let\'s work on a few things'}
-                  </p>
-                </div>
-
-                {/* Topics Analyzed */}
-                {sessionSummary.topics.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-[10px] uppercase tracking-[0.18em] font-semibold text-white/40">Topics Analyzed</p>
-                    <div className="flex flex-wrap gap-2">
-                      {sessionSummary.topics.map((topic) => (
-                        <span key={topic} className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] font-medium text-white/70">
-                          {topic}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Key Takeaways */}
-                {sessionSummary.takeaways.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-[10px] uppercase tracking-[0.18em] font-semibold text-white/40">Key Takeaways</p>
-                    <ul className="space-y-1.5">
-                      {sessionSummary.takeaways.map((tip, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm text-white/80 leading-relaxed">
-                          <span className="text-primary mt-0.5 flex-shrink-0">•</span>
-                          <span className="italic">"{tip}"</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="flex flex-col gap-3 pt-2">
-                  <Button
-                    onClick={() => {
-                      setShowSummary(false);
-                      setSessionGoal(null);
-                      setFinalAdvice('');
-                      onBack();
-                    }}
-                    className="w-full bg-white text-black rounded-full py-5 font-bold hover:scale-[1.02] active:scale-95 transition-all"
-                  >
-                    Done
-                  </Button>
-                  <button
-                    onClick={() => {
-                      setShowSummary(false);
-                      setSessionGoal(null);
-                      setFinalAdvice('');
-                    }}
-                    className="text-xs text-white/40 hover:text-white/70 transition-colors underline underline-offset-2 text-center"
-                  >
-                    Start a new session
-                  </button>
-                </div>
+              <div className="text-[12rem] font-black text-white italic drop-shadow-[0_0_50px_rgba(255,255,255,0.4)]">
+                {countdown}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-      </CardContent>
-    </Card>
+        {/* Instruction Toast */}
+        <AnimatePresence>
+          {showInstructions && isConnected && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="absolute bottom-32 inset-x-0 flex justify-center z-40 px-6"
+            >
+              <div className="bg-slate-900/40 backdrop-blur-2xl border border-white/10 p-4 rounded-3xl flex items-center gap-4 max-w-sm w-full shadow-2xl">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 flex items-center justify-center shrink-0 border border-indigo-500/30">
+                  <Camera className="w-5 h-5 text-indigo-400" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-white font-bold text-xs uppercase tracking-wider">Style Capture Active</h4>
+                  <p className="text-slate-400 text-[10px] leading-snug">The AI is analyzing your silhouettes. Use the Timer to step back and capture full poses.</p>
+                </div>
+                <button 
+                  onClick={() => setShowInstructions(false)}
+                  className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors"
+                >
+                  <AlertCircle className="w-4 h-4 text-white/40" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Control Bar */}
+      <div className="bg-slate-950 px-6 py-6 pb-10 flex items-center justify-around gap-4 border-t border-white/5 relative z-50 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => stopSession()}
+          className="w-14 h-14 rounded-full bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 group"
+        >
+          <PhoneOff className="w-6 h-6 text-rose-500 group-hover:scale-110 transition-transform" />
+        </Button>
+
+        <div className="flex items-center gap-4">
+          <Button
+            size="icon"
+            onClick={startTimerCapture}
+            className={`w-18 h-18 rounded-full transition-all duration-300 shadow-xl ${
+              countdown !== null 
+                ? 'bg-amber-600 scale-95 shadow-amber-500/20' 
+                : 'bg-white hover:bg-slate-200 shadow-white/10'
+            }`}
+          >
+            <Clock className={`w-8 h-8 ${countdown !== null ? 'text-white' : 'text-slate-950'}`} />
+          </Button>
+
+          <Button
+            size="icon"
+            onClick={handleCapture}
+            className="w-18 h-18 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white shadow-xl shadow-indigo-500/20"
+            disabled={isCapturing}
+          >
+            {isCapturing ? <Sparkles className="animate-spin w-8 h-8" /> : <Camera className="w-8 h-8" />}
+          </Button>
+        </div>
+
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
+            className={`w-14 h-14 rounded-full border transition-all ${
+              isVoiceEnabled 
+                ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)]' 
+                : 'bg-white/5 border-white/10 text-white/40'
+            }`}
+          >
+            {isVoiceEnabled ? <Volume2 className="w-6 h-6" /> : <VolumeX className="w-6 h-6" />}
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="w-14 h-14 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 font-bold text-lg italic shadow-emerald-500/10"
+            onClick={handleFinish}
+          >
+            <div className="relative">
+              <span className="relative z-10 italic">#1</span>
+              <Sparkles className="absolute -top-1 -right-1 w-3 h-3 text-emerald-400 opacity-50" />
+            </div>
+          </Button>
+        </div>
+      </div>
+
+      {!isConnected && !isInitializing && (
+        <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md">
+          <div className="max-w-xs w-full p-8 rounded-3xl bg-slate-900 border border-white/10 text-center shadow-2xl">
+            <div className="w-20 h-20 rounded-2xl bg-indigo-600/20 flex items-center justify-center mx-auto mb-6 border border-indigo-500/30">
+              <Mic className="w-10 h-10 text-indigo-400" />
+            </div>
+            <h2 className="text-2xl font-black text-white italic tracking-tight mb-2 uppercase">READY FOR SCAN?</h2>
+            <p className="text-slate-400 text-sm mb-8 leading-relaxed">The AI Stylist is ready to connect. Ensure your camera and microphone are accessible.</p>
+            <Button 
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-full py-6 text-lg font-bold shadow-xl shadow-indigo-500/20"
+              onClick={() => startSession(sessionGoal!, userApiKey)}
+            >
+              ACTIVATE AGENT
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

@@ -9,6 +9,7 @@ export function useGeminiLive() {
   const [transcript, setTranscript] = useState<string>('');
   const [aiResponse, setAiResponse] = useState<string>('');
   const [reasoning, setReasoning] = useState<string[]>([]);
+  const [agentEvents, setAgentEvents] = useState<any[]>([]);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -53,6 +54,7 @@ export function useGeminiLive() {
       session.on('transcript', (text) => setTranscript(text));
       session.on('response', (text) => setAiResponse(prev => prev + ' ' + text));
       session.on('reasoning', (text) => setReasoning(prev => [text, ...prev].slice(0, 10)));
+      session.on('protocol', (data) => setAgentEvents(prev => [{ ...data, id: Date.now() }, ...prev].slice(0, 5)));
       session.on('error', (err) => setError(err));
       session.on('disconnected', () => setIsConnected(false));
 
@@ -101,6 +103,7 @@ export function useGeminiLive() {
     setTranscript('');
     setAiResponse('');
     setReasoning([]);
+    setAgentEvents([]);
   }, []);
   
   return {
@@ -110,6 +113,7 @@ export function useGeminiLive() {
     transcript,
     aiResponse,
     reasoning,
+    agentEvents,
     videoRef,
     startSession,
     stopSession
