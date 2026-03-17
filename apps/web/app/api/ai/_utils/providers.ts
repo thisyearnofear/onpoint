@@ -39,13 +39,13 @@ export async function generateText({
   provider,
   preferGemini = false,
   preferOpenAI = false,
-  geminiModel = 'gemini-2.5-flash',
+  geminiModel = 'gemini-3.1-flash-lite-preview',
   openaiModel = 'gpt-3.5-turbo',
   openaiOptions = {},
 }: GenerateTextOptions): Promise<{ text: string; usedProvider: 'gemini' | 'openai' }> {
   const hasGemini = geminiAvailable();
   const hasOpenAI = openaiAvailable();
-
+  
   // Determine provider
   let selected: 'gemini' | 'openai' | null = null;
   if (provider === 'gemini') {
@@ -94,12 +94,12 @@ export type ModelChoice = 'pro' | 'flash' | 'flash-lite' | undefined;
 export function resolveGeminiModel(choice: ModelChoice): string {
   switch (choice) {
     case 'pro':
-      return 'gemini-2.5-pro';
+      return 'gemini-3.1-pro';
     case 'flash-lite':
-      return 'gemini-2.5-flash-lite';
+      return 'gemini-3.1-flash-lite-preview';
     case 'flash':
     default:
-      return 'gemini-2.5-flash';
+      return 'gemini-3.1-flash-lite-preview';
   }
 }
 

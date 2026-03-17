@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { Sparkles, MessageCircle } from "lucide-react";
@@ -24,7 +24,12 @@ import {
   CritiqueResult,
   FashionAnalysis,
   LiveStylistView,
+  ProgressRail,
+  deriveCurrentStage,
+  LookVersionHistory,
+  CompareView,
 } from "./VirtualTryOn/index";
+import type { LookVersion } from "./VirtualTryOn/index";
 
 import { PersonDescriptionEditor } from "./VirtualTryOn/PersonDescriptionEditor";
 
@@ -50,6 +55,9 @@ const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('
   const [isAnalyzingPerson, setIsAnalyzingPerson] = useState(false);
   const [showPersonDescription, setShowPersonDescription] = useState(false);
   const [showLiveStylist, setShowLiveStylist] = useState(false);
+  const [lookVersions, setLookVersions] = useState<LookVersion[]>([]);
+  const [compareVersionIds, setCompareVersionIds] = useState<Set<string>>(new Set());
+  const [showCompare, setShowCompare] = useState(false);
 
   // Use the enhancement hook
   const { enhancement, enhanceTryOn, loading: enhancementLoading, error: enhancementError } = useAIVirtualTryOnEnhancement();
@@ -83,6 +91,17 @@ const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('
   const canShowAnalysisCard = Boolean(analysis && !tryOnResult && !showPersonalitySelection && !showAnalysis && !critiqueResult && !showPersonDescription);
   const canShowActionHub = hasInput && !analysis && !critiqueResult && !tryOnResult && !showAnalysis && !showCritiqueModeSelection && !showPersonalitySelection && !showPersonDescription;
   const canShowPersonDescription = Boolean(showPersonDescription && !tryOnResult && !critiqueResult);
+
+  const currentStage = deriveCurrentStage({
+    hasInput,
+    analysis,
+    enhancementLoading,
+    tryOnResult,
+    showPersonDescription,
+    isAnalyzingPerson,
+    showCritiqueModeSelection,
+    showPersonalitySelection,
+  });
 
 
   const handlePhotoSelect = useCallback(
@@ -196,15 +215,29 @@ const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('
   React.useEffect(() => {
     if (enhancement?.generatedImage) {
       const outfitId = `outfit-${Date.now()}`;
-      setTryOnResult({
+      const result = {
         id: outfitId,
         image: enhancement.generatedImage,
         description: enhancement.enhancedOutfit.map(item => item.name).join(', '),
         stylingTips: enhancement.stylingTips,
+        structuredTips: enhancement.structuredTips,
         timestamp: Date.now()
-      });
+      };
+      setTryOnResult(result);
+      // Save to version history
+      setLookVersions((prev) => [
+        ...prev,
+        {
+          id: outfitId,
+          imageUrl: enhancement.generatedImage!,
+          prompt: personDescription,
+          stylingTips: enhancement.stylingTips,
+          timestamp: Date.now(),
+          label: `Look ${prev.length + 1}`,
+        },
+      ]);
     }
-  }, [enhancement]);
+  }, [enhancement, personDescription]);
 
   // New function for fashion analysis
   const handleFashionAnalysis = useCallback(async () => {
@@ -228,6 +261,27 @@ const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('
 
 
 
+  const handleToggleCompareVersion = useCallback((id: string) => {
+    setCompareVersionIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else if (next.size < 3) {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleOpenCompare = useCallback(() => {
+    setShowCompare(true);
+  }, []);
+
+  const compareVersions = useMemo(
+    () => lookVersions.filter((v) => compareVersionIds.has(v.id)),
+    [lookVersions, compareVersionIds],
+  );
+
   const handleReset = useCallback(() => {
     setSelectedPhoto(null);
     setPreviewUrl(null);
@@ -238,6 +292,9 @@ const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('
     setShowAnalysis(false);
     setShowPersonalitySelection(false);
     setShowCritiqueModeSelection(false);
+    setLookVersions([]);
+    setCompareVersionIds(new Set());
+    setShowCompare(false);
     setSelectedPersona(null);
     setSelectedCritiqueMode('real');
     setCritiqueResult(null);
@@ -293,6 +350,11 @@ const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('
                 <LiveStylistView onBack={() => setShowLiveStylist(false)} />
               </motion.div>
             ) : (
+              <>
+              <div className="mb-4">
+                <ProgressRail currentStage={currentStage} />
+              </div>
+
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -595,10 +657,40 @@ const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('
               // Also clear any loading state if needed
              }}
                 loading={enhancementLoading && !tryOnResult}
+                originalPhotoUrl={previewUrl ?? undefined}
+                onVariantFromTip={({ tip, payload }) => {
+                  // Use the action payload (specific variant instruction) when available, otherwise fall back to tip text
+                  const instruction = payload || tip;
+                  setPersonDescription((prev) => prev ? `${prev}. Variation: ${instruction}` : instruction);
+                  handleTryOnDesign();
+                }}
                 />
+              {/* Version history strip — shown when 2+ looks exist */}
+              {lookVersions.length >= 2 && (
+                <div className="mt-3">
+                  <LookVersionHistory
+                    versions={lookVersions}
+                    selectedVersionIds={compareVersionIds}
+                    onToggleSelect={handleToggleCompareVersion}
+                    onCompare={handleOpenCompare}
+                  />
+                </div>
+              )}
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Compare modal */}
+          {showCompare && compareVersions.length >= 2 && (
+            <CompareView
+              versions={compareVersions}
+              originalPhotoUrl={previewUrl ?? undefined}
+              onClose={() => {
+                setShowCompare(false);
+                setCompareVersionIds(new Set());
+              }}
+            />
+          )}
 
           {/* Fashion Analysis Result */}
           <AnimatePresence mode="wait">
@@ -627,6 +719,8 @@ const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('
               hasInput={hasInput}
               scanComplete={scanComplete}
               selectedPhoto={selectedPhoto}
+              recommendedAction={analysis ? 'generate' : 'scan'}
+              currentStage={currentStage}
               onTryOnDesign={handleTryOnDesign}
               onBodyScan={handleScanComplete}
               onCritiqueModeSelection={() => setShowCritiqueModeSelection(true)}
@@ -638,6 +732,7 @@ const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('
               <WelcomeCard hasInput={hasInput} loading={loading} />
             </div>
           </motion.div>
+          </>
           )}
           </AnimatePresence>
         </div>

@@ -15,7 +15,7 @@ export function useGeminiLive() {
   const sessionRef = useRef<LiveSession | null>(null);
   const frameIntervalRef = useRef<number | null>(null);
   
-  const startSession = useCallback(async () => {
+  const startSession = useCallback(async (sessionGoal?: string, userApiKey?: string) => {
     try {
       setIsInitializing(true);
       setError(null);
@@ -31,13 +31,20 @@ export function useGeminiLive() {
       }
       
       // Fetch provisioned config
-      const response = await fetch('/api/ai/live-session', { method: 'POST' });
+      const response = await fetch('/api/ai/live-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          goal: sessionGoal || 'daily',
+          apiKey: userApiKey?.trim() || undefined
+        })
+      });
       const { config, error: provError } = await response.json().catch(() => ({}));
       if (provError || !config) throw new Error(provError || 'Failed to provision session');
       
       const provider = new GeminiLiveProvider({
         apiKey: config.apiKey,
-        httpOptions: { baseUrl: config.baseURL }
+        httpOptions: { baseUrl: config.baseURL, systemInstruction: config.systemInstruction }
       });
       
       const session = await provider.connectLiveSession!();

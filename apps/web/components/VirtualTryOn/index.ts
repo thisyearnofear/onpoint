@@ -11,3 +11,8 @@ export { TryOnResult } from './TryOnResult';
 export { CritiqueResult } from './CritiqueResult';
 export { FashionAnalysis } from './FashionAnalysis';
 export { LiveStylistView } from './LiveStylistView';
+export { ProgressRail, deriveCurrentStage } from './ProgressRail';
+export type { TryOnStage } from './ProgressRail';
+export { LookVersionHistory } from './LookVersionHistory';
+export type { LookVersion } from './LookVersionHistory';
+export { CompareView } from './CompareView';

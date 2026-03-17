@@ -462,7 +462,12 @@ export const useAIStyleSuggestions = () => {
 export const useAIVirtualTryOnEnhancement = () => {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [enhancement, setEnhancement] = React.useState<{ enhancedOutfit: Array<{ name: string, description: string, image?: string }>, stylingTips: string[], generatedImage?: string } | null>(null);
+  const [enhancement, setEnhancement] = React.useState<{
+    enhancedOutfit: Array<{ name: string, description: string, image?: string }>;
+    stylingTips: string[];
+    structuredTips?: Array<{ text: string; action?: { type: string; label: string; payload: string } }>;
+    generatedImage?: string;
+  } | null>(null);
   const aiClient = useAIClient();
 
   const enhanceTryOn = React.useCallback(
@@ -500,6 +505,7 @@ export const useAIVirtualTryOnEnhancement = () => {
             'Add a layering piece to create depth and versatility',
             'Consider the occasion when selecting accessories'
           ],
+          structuredTips: result.structuredTips,
           generatedImage: result.generatedImage
         });
 

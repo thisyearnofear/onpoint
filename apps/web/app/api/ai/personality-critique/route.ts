@@ -37,7 +37,7 @@ Keep your response engaging and true to your character while being genuinely hel
             provider,
             preferGemini: false,
             preferOpenAI: true,
-            geminiModel: 'gemini-2.5-flash',
+            geminiModel: 'gemini-3.1-flash-lite-preview',
             openaiModel: config.model || 'gpt-4o-mini',
             openaiOptions: {
                 max_tokens: config.maxTokens || 400,

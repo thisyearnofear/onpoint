@@ -5,6 +5,7 @@ import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { Sparkles, Shirt, MessageCircle, Eye, RefreshCw, CheckCircle } from "lucide-react";
 import type { VirtualTryOnAnalysis } from "@repo/ai-client";
+import { ProgressRail, type TryOnStage } from "./ProgressRail";
 
 interface ActionHubProps {
   analysis: VirtualTryOnAnalysis | null;
@@ -12,6 +13,8 @@ interface ActionHubProps {
   hasInput: boolean;
   scanComplete: boolean;
   selectedPhoto: File | null;
+  recommendedAction?: 'generate' | 'scan' | 'critique' | 'analysis';
+  currentStage?: TryOnStage;
   onTryOnDesign: () => void;
   onBodyScan: () => void;
   onCritiqueModeSelection: () => void;
@@ -24,6 +27,8 @@ export function ActionHub({
   hasInput,
   scanComplete,
   selectedPhoto,
+  recommendedAction = 'generate',
+  currentStage = 'analyze_fit',
   onTryOnDesign,
   onBodyScan,
   onCritiqueModeSelection,
@@ -42,37 +47,9 @@ export function ActionHub({
          Choose the next step for your personalized style session.
        </p>
 
-        {/* Progress indicator - responsive design */}
+        {/* 5-stage progress rail */}
         <div className="mt-3">
-        {/* Mobile: vertical stacked */}
-        <div className="md:hidden space-y-2">
-        <div className="flex items-center gap-2 text-xs">
-            <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0"></div>
-            <span className="text-primary font-medium">✓ Photo uploaded</span>
-          </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <div className="w-2 h-2 rounded-full bg-muted-foreground/30 flex-shrink-0"></div>
-            <span>Choose your AI experience below</span>
-          </div>
-        </div>
-
-        {/* Desktop: horizontal */}
-        <div className="hidden md:flex items-center justify-center gap-2">
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-primary"></div>
-              <span className="text-xs text-primary font-medium">Photo Ready</span>
-            </div>
-            <div className="w-4 h-px bg-muted-foreground/30"></div>
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-muted-foreground/30"></div>
-              <span className="text-xs text-muted-foreground">Choose Experience</span>
-            </div>
-            <div className="w-4 h-px bg-muted-foreground/30"></div>
-        <div className="flex items-center gap-1">
-        <div className="w-2 h-2 rounded-full bg-muted-foreground/30"></div>
-        <span className="text-xs text-muted-foreground">See Results</span>
-        </div>
-        </div>
+          <ProgressRail currentStage={currentStage} />
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -104,7 +81,10 @@ export function ActionHub({
         )}
 
         <div className="space-y-4">
-          <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 relative">
+            {recommendedAction === 'generate' && (
+              <span className="absolute -top-2 right-3 text-[10px] font-medium bg-primary text-white rounded-full px-2 py-0.5">✨ Recommended</span>
+            )}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-start gap-3">
                 <div className="rounded-full bg-primary/10 p-2">
@@ -135,7 +115,10 @@ export function ActionHub({
             </div>
           </div>
 
-          <div className="rounded-lg border border-accent/30 bg-accent/5 p-4">
+          <div className="rounded-lg border border-accent/30 bg-accent/5 p-4 relative">
+            {recommendedAction === 'scan' && (
+              <span className="absolute -top-2 right-3 text-[10px] font-medium bg-primary text-white rounded-full px-2 py-0.5">✨ Recommended</span>
+            )}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-start gap-3">
                 <div className="rounded-full bg-accent/10 p-2">
@@ -160,7 +143,10 @@ export function ActionHub({
             </div>
           </div>
 
-          <div className="rounded-lg border border-border p-4">
+          <div className="rounded-lg border border-border p-4 relative">
+            {recommendedAction === 'critique' && (
+              <span className="absolute -top-2 right-3 text-[10px] font-medium bg-primary text-white rounded-full px-2 py-0.5">✨ Recommended</span>
+            )}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-start gap-3">
                 <div className="rounded-full bg-muted p-2">
@@ -185,7 +171,10 @@ export function ActionHub({
             </div>
           </div>
 
-          <div className="rounded-lg border border-border p-4">
+          <div className="rounded-lg border border-border p-4 relative">
+            {recommendedAction === 'analysis' && (
+              <span className="absolute -top-2 right-3 text-[10px] font-medium bg-primary text-white rounded-full px-2 py-0.5">✨ Recommended</span>
+            )}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-start gap-3">
                 <div className="rounded-full bg-muted p-2">

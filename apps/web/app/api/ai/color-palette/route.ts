@@ -32,7 +32,7 @@ Use 5-6 complementary colors. Be concise.`;
             provider,
             preferGemini: true,
             preferOpenAI: false,
-            geminiModel: modelChoice ? (await import('../_utils/providers')).resolveGeminiModel(modelChoice) : 'gemini-2.5-flash',
+            geminiModel: modelChoice ? (await import('../_utils/providers')).resolveGeminiModel(modelChoice) : 'gemini-3.1-flash-lite-preview',
             openaiModel: modelChoice ? (await import('../_utils/providers')).resolveOpenAIModel(modelChoice) : 'gpt-3.5-turbo',
             openaiOptions: { max_tokens: 800, temperature: 0.8 },
         });

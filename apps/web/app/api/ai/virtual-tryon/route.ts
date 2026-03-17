@@ -118,6 +118,7 @@ Focus on practical, achievable improvements.`;
 
             // Generate personalized styling tips based on the person's analysis
             let personalizedTips: string[] = [];
+            let structuredTips: Array<{ text: string; action?: { type: string; label: string; payload: string } }> = [];
             if (personDescription) {
                 try {
                     console.log('Generating personalized styling tips...');
@@ -125,13 +126,25 @@ Focus on practical, achievable improvements.`;
 
 And considering they are wearing: ${outfitDescription}
 
-Provide 4 specific, personalized styling tips that would complement their body type, features, and the outfit. Make the tips practical and tailored to their specific characteristics. Focus on:
-- How the outfit flatters their body shape
-- Colors that work with their skin tone/ethnicity
-- Accessories or styling choices that enhance their features
-- Any adjustments needed for their specific measurements
+Provide exactly 4 specific, personalized styling tips. For each tip, suggest a concrete action the user could take. Respond ONLY with valid JSON in this exact format (no markdown, no code fences):
+[
+  {
+    "text": "The styling tip text here",
+    "action": {
+      "type": "regenerate_variant",
+      "label": "Short label for the action button",
+      "payload": "Specific modification instruction to append to the outfit prompt for a variant"
+    }
+  }
+]
 
-Keep each tip concise but specific to their appearance.`;
+Action types to use: "regenerate_variant" (general style change), "color_change" (suggest different colors), "garment_swap" (suggest replacing a specific garment).
+If a tip doesn't have a clear actionable variant, omit the "action" field for that tip.
+Make tips practical and tailored to their specific body type, features, and the outfit. Focus on:
+- How the outfit flatters their body shape
+- Colors that work with their skin tone
+- Accessories or styling choices that enhance their features
+- Any adjustments for their specific measurements`;
 
                     console.log('Calling generateText for styling tips...');
                     const tipsResponse = await generateText({
@@ -139,14 +152,17 @@ Keep each tip concise but specific to their appearance.`;
                         provider,
                         preferGemini: false,
                         preferOpenAI: true,
-                        geminiModel: 'gemini-2.5-flash',
+                        geminiModel: 'gemini-3.1-flash-lite-preview',
                         openaiModel: 'gpt-3.5-turbo',
                         openaiOptions: { max_tokens: 400, temperature: 0.7 },
                     });
 
                     console.log('Tips response received, text length:', tipsResponse.text?.length || 0);
-                    personalizedTips = extractStylingTips(tipsResponse.text || '');
+                    const parsed = extractStructuredStylingTips(tipsResponse.text || '');
+                    personalizedTips = parsed.textTips;
+                    structuredTips = parsed.structuredTips;
                     console.log('Generated personalized tips:', personalizedTips);
+                    console.log('Structured tips:', structuredTips);
                 } catch (tipsError) {
                     console.error('Styling tips generation error:', tipsError);
                     personalizedTips = [];
@@ -167,6 +183,7 @@ Keep each tip concise but specific to their appearance.`;
                 generatedImage: veniceData.images[0],
                 enhancedOutfit: data.items || [],
                 stylingTips: personalizedTips,
+                structuredTips,
                 type
             }, { headers: corsHeaders(origin) });
         }
@@ -177,7 +194,7 @@ Keep each tip concise but specific to their appearance.`;
             provider,
             preferGemini: false,
             preferOpenAI: true,
-            geminiModel: modelChoice ? (await import('../_utils/providers')).resolveGeminiModel(modelChoice) : 'gemini-2.5-flash',
+            geminiModel: modelChoice ? (await import('../_utils/providers')).resolveGeminiModel(modelChoice) : 'gemini-3.1-flash-lite-preview',
             openaiModel: modelChoice ? (await import('../_utils/providers')).resolveOpenAIModel(modelChoice) : 'gpt-3.5-turbo',
             openaiOptions: { max_tokens: 800, temperature: 0.7 },
         });
@@ -284,14 +301,35 @@ function extractStyleAdjustments(text: string): string[] {
     return adjustments.length > 0 ? adjustments.slice(0, 3) : [];
 }
 
-function extractStylingTips(text: string): string[] {
+function extractStructuredStylingTips(text: string): {
+    textTips: string[];
+    structuredTips: Array<{ text: string; action?: { type: string; label: string; payload: string } }>;
+} {
+    // Try to parse as JSON first
+    try {
+        const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        const parsed = JSON.parse(cleaned);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]?.text) {
+            const valid = parsed.slice(0, 4).filter((item: Record<string, unknown>) => typeof item.text === 'string');
+            return {
+                textTips: valid.map((item: { text: string }) => item.text),
+                structuredTips: valid.map((item: { text: string; action?: { type: string; label: string; payload: string } }) => ({
+                    text: item.text,
+                    action: item.action && item.action.type && item.action.label && item.action.payload ? item.action : undefined,
+                })),
+            };
+        }
+    } catch {
+        // Not valid JSON — fall through to text extraction
+    }
+
+    // Fallback: extract tips as plain text (backward compatible)
     const tips: string[] = [];
     const lines = text.split('\n');
 
     for (const line of lines) {
-        // Look for lines that start with numbers, bullets, or contain styling-related keywords
-        const isTipLine = /^\d+\./.test(line) ||  // Numbered list
-            /^[-•*]/.test(line) ||   // Bullet points
+        const isTipLine = /^\d+\./.test(line) ||
+            /^[-•*]/.test(line) ||
             /\b(tip|style|wear|pair|color|accessory|fit|flatter|enhance|complement)\b/i.test(line);
 
         if (isTipLine) {
@@ -302,18 +340,22 @@ function extractStylingTips(text: string): string[] {
         }
     }
 
-    // If no tips found, try to extract any reasonable sentences
     if (tips.length === 0) {
         const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 20 && s.trim().length < 150);
         tips.push(...sentences.slice(0, 4));
     }
 
-    return tips.length > 0 ? tips.slice(0, 4) : [
+    const textTips = tips.length > 0 ? tips.slice(0, 4) : [
         'Layer pieces to add depth and dimension to your outfit',
         'Choose accessories that complement your personal style',
         'Ensure proper fit for comfort and confidence',
         'Consider the color harmony of your complete look'
     ];
+
+    return {
+        textTips,
+        structuredTips: textTips.map(text => ({ text })),
+    };
 }
 
 function extractOutfitRecommendations(text: string): Array<{ item: string; reason: string; priority: number }> {

@@ -13,10 +13,12 @@ import {
 export class GeminiLiveProvider implements AIProvider {
   name = 'gemini-live';
   private ai: GoogleGenAI;
+  private systemInstruction?: string;
 
-  constructor(config?: { apiKey?: string; httpOptions?: { baseUrl?: string } }) {
+  constructor(config?: { apiKey?: string; httpOptions?: { baseUrl?: string; systemInstruction?: string } }) {
     // We now accept the provisional config from the backend or default to environment config
     this.ai = new GoogleGenAI(config || {});
+    this.systemInstruction = config?.httpOptions?.systemInstruction;
   }
 
   async analyzeOutfit(input: AnalysisInput): Promise<CritiqueResponse> {
@@ -61,17 +63,36 @@ export class GeminiLiveProvider implements AIProvider {
         isConnected = true;
         emit('connected', true);
         
-        // Simulation loop for high-fidelity "Reasoning" (Delight Factor)
-        const simulations = [
-          "I'm ready when you are. Just step back a bit.",
-          "Good lighting. I can see the silhouette clearly.",
-          "Analyzing the drape of your clothing...",
-          "Neural Link: Color matching active.",
-          "Try a side profile for a complete analysis.",
-          "Lighthouse Sync: Style metadata generated.",
-          "Looking sharp, Agent. Let's find your best angle.",
-          "Pose for me! I'll hold the focus.",
-        ];
+        // Goal-aware simulation messages for high-fidelity "Reasoning" (Delight Factor)
+        const simulationsByGoal: Record<string, string[]> = {
+          event: [
+            "Checking if this outfit fits the event dress code...",
+            "Evaluating formality level — looking for that sweet spot.",
+            "Analyzing accessory choices for event impact...",
+            "Color palette scan — does it read 'special occasion'?",
+            "Considering standout details to make a statement.",
+            "Scanning silhouette for confidence-boosting potential.",
+          ],
+          daily: [
+            "I'm ready when you are. Just step back a bit.",
+            "Good lighting. I can see the silhouette clearly.",
+            "Analyzing the drape of your clothing...",
+            "Checking fit and proportions for everyday wear.",
+            "Color coordination scan in progress...",
+            "Looking for small tweaks that elevate the look.",
+            "Solid everyday outfit — let's see if we can level it up.",
+          ],
+          critique: [
+            "Alright, let's do this. No sugarcoating.",
+            "Scanning the full outfit objectively...",
+            "Evaluating fit — being honest about what I see.",
+            "Color theory check — is this working or not?",
+            "Proportion analysis — cold read mode.",
+            "Noting what stands out (for better or worse)...",
+          ],
+        };
+        const simulations = simulationsByGoal[this.systemInstruction?.includes('event') ? 'event' : this.systemInstruction?.includes('critic') ? 'critique' : 'daily']
+          || simulationsByGoal.daily;
         
         let simIdx = 0;
         const simInterval = setInterval(() => {
@@ -79,7 +100,7 @@ export class GeminiLiveProvider implements AIProvider {
              clearInterval(simInterval);
              return;
           }
-          emit('reasoning', simulations[simIdx % simulations.length]);
+          emit('reasoning', simulations![simIdx % simulations!.length]);
           simIdx++;
         }, 3000);
       },

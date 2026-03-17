@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
         openai: openaiAvailable(),
       },
       defaults: {
-        geminiModel: 'gemini-2.5-flash',
+        geminiModel: 'gemini-3.1-flash-lite',
         openaiModel: 'gpt-3.5-turbo',
       },
     };

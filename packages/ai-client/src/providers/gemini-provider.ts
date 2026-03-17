@@ -8,7 +8,7 @@ export class GeminiProvider implements AIProvider {
 
   constructor() {
     this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+    this.model = this.genAI.getGenerativeModel({ model: "gemini-3.1-pro" });
   }
 
   async analyzeOutfit(input: AnalysisInput): Promise<CritiqueResponse> {
@@ -31,7 +31,7 @@ export class GeminiProvider implements AIProvider {
 
   async analyzePhoto(file: File): Promise<VirtualTryOnAnalysis> {
     const imageData = await this.fileToGenerativePart(file);
-    const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-pro-vision" });
+    const model = this.genAI.getGenerativeModel({ model: "gemini-3.1-pro" });
 
     const prompt = `Analyze this fashion photo:
   1. Identify body type and proportions
