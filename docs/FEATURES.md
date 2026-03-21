@@ -9,11 +9,13 @@
 **Premium shopping experience with social proof and engagement mechanics**:
 
 ### Components
+
 - **CardEnhanced** - Product cards with like/share buttons, trending badges, ratings, quick preview
 - **ShopGrid** - Smart grid with sorting (trending/rating/price), category filters, engagement metrics
 - **EngagementBadge** - Social proof display (Trending/Viral/Popular/New) with animated counters
 
 ### Features
+
 - Real-time engagement metrics (try-on counts, mint counts, ratings)
 - One-click like/share social actions
 - Trending item indicators (animated pulse when >50 try-ons)
@@ -31,22 +33,23 @@
 
 ### Feature Matrix
 
-| Feature | Web | Mobile | Mini App | Status |
-|---------|-----|--------|----------|--------|
-| AI Stylist (Standard) | ✅ | ✅ | ✅ | Complete |
-| AI Stylist (Live AR)  | ✅ | ✅ | ✅ | Complete |
-| Virtual Try-On | ✅ | ✅ | - | Complete |
-| Design Studio | ✅ | ✅ | - | Complete |
-| Digital Closet | ✅ | ✅ | ✅ | Complete |
-| NFT Minting | ✅ | ✅ | ✅ | Complete |
-| Worldcoin Verification | - | ✅ | ✅ | Complete |
-| Style Challenges | - | - | ✅ | Complete |
+| Feature                | Web | Mobile | Mini App | Status   |
+| ---------------------- | --- | ------ | -------- | -------- |
+| AI Stylist (Standard)  | ✅  | ✅     | ✅       | Complete |
+| AI Stylist (Live AR)   | ✅  | ✅     | ✅       | Complete |
+| Virtual Try-On         | ✅  | ✅     | -        | Complete |
+| Design Studio          | ✅  | ✅     | -        | Complete |
+| Digital Closet         | ✅  | ✅     | ✅       | Complete |
+| NFT Minting            | ✅  | ✅     | ✅       | Complete |
+| Worldcoin Verification | -   | ✅     | ✅       | Complete |
+| Style Challenges       | -   | -      | ✅       | Complete |
 
 ## AI Stylist with Personality-Based Critiques
 
 The AI Stylist module offers optionality between a standard asynchronous text interaction and a real-time, uninterrupted voice-and-vision experience.
 
 ### Standard Mode (Text-Based)
+
 Users can receive asynchronous fashion critiques from six distinct AI personalities using OpenAI/Replicate models:
 
 1. **Anna Karenina** - Russian aristocratic fashion with refined 19th-century high society style
@@ -57,22 +60,45 @@ Users can receive asynchronous fashion critiques from six distinct AI personalit
 6. **John Shaft** - Cool 1970s sophistication with an edge
 
 ### Key Capabilities
+
 - Upload images or take photos for analysis
 - Receive personality-based styling advice
 - Context-aware conversations
 - Style suggestion generation
 - Cross-component integration for enhanced user experience
 
-### Live AR Stylist Mode (Gemini Multimodal Live)
-A next-generation, premium styling experience powered by the **Google GenAI SDK** and the Gemini Live API:
+### Live AR Stylist Mode (Dual-Provider Architecture)
+
+A next-generation styling experience with two tiers:
+
+#### Venice AI (Free Tier)
+
+- **AI-Powered Analysis**: Uses Venice AI's vision models (`mistral-31-24b`) for outfit analysis
+- **Adaptive Polling**: Frame capture rate adjusts based on user motion (2-5 seconds)
+- **Free Access**: No payment required - uses OnPoint's API key
+- **Rate Limit**: 60 sessions per minute
+
+#### Gemini Live (Premium Tier)
+
+Powered by the **Google GenAI SDK** and the Gemini Live API:
+
 - **Real-Time Vision**: Agent naturally "sees" the clothes the user holds up to the camera.
 - **Interruptible Audio**: Users can talk and be interrupted in real-time, perfectly simulating a FaceTime call with a fashion consultant.
 - **Multimodal Context**: Seamless transitions between audio instructions and visual outfit analysis.
 - **Premium Tactical HUD**: Animated scanning grid, corner brackets, and **Agent Reasoning Terminal** for high-end sci-fi aesthetic.
 - **Haptic Delight**: Tactical physical feedback when taking snapshots or receiving critiques.
-- **Deployment**: Connecting via WebSockets provisioned by endpoints running on **Google Cloud Run**.
+- **Pricing**: 0.5 CELO per session OR Bring Your Own Key (BYOK)
+- **Payment**: Integrated with Celo blockchain for seamless crypto payments
+
+### Payment & Session Tokens
+
+- **CELO Integration**: Users can pay for Gemini Live access using CELO cryptocurrency
+- **Server-Side Verification**: Transactions verified on-chain before granting access
+- **JWT Session Tokens**: 24-hour tokens issued after payment verification
+- **BYOK Alternative**: Users can provide their own Gemini API key to skip payment
 
 ### Social Loop & Ownership Proof
+
 - **Snapshot Capture**: One-tap frame capture with AR HUD overlays and AI critique text embedded.
 - **Native Farcaster Sharing**: Direct integration with `sdk.actions.composeCast` to share "Proof of Style" directly to the feed.
 - **Agentic Tipping (Celo)**: Users can tip their AI Stylist in **cUSD** directly from the session. Supports Celo Mainnet and Alfajores with automatic network switching.

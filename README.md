@@ -4,7 +4,8 @@
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-indigo)](https://onpoint-web-647723858538.us-central1.run.app)
 [![Built on Celo](https://img.shields.io/badge/Chain-Celo-35D07F)](https://celo.org)
-[![Powered by Gemini Live](https://img.shields.io/badge/AI-Gemini%20Live-blue)](https://ai.google.dev)
+[![AI Providers](https://img.shields.io/badge/AI-Venice%20%7C%20Gemini-blue)](https://venice.ai)
+[![Free Tier Available](https://img.shields.io/badge/Free-Venice%20AI-brightgreen)](https://venice.ai)
 [![AG-UI Protocol](https://img.shields.io/badge/Protocol-AG--UI%20v0.1-purple)](https://github.com/ag-ui-protocol/ag-ui)
 
 ---
@@ -58,26 +59,34 @@ GET /api/ai/agent?goal=event
 onpoint/
 ├── apps/web/
 │   ├── app/api/ai/
-│   │   ├── agent/          ← Structured AG-UI protocol trace (NEW)
-│   │   ├── live-session/   ← Provisions Gemini Live WebSocket + goal system prompts
-│   │   ├── virtual-tryon/  ← Static image analysis (Gemini 1.5 Flash)
+│   │   ├── agent/              ← Structured AG-UI protocol trace
+│   │   ├── live-session/       ← Provisions Venice AI / Gemini Live + goal system prompts
+│   │   ├── verify-payment/     ← Server-side CELO payment verification (NEW)
+│   │   ├── analytics/          ← Analytics event ingestion (NEW)
+│   │   ├── virtual-tryon/      ← Static image analysis (Gemini 1.5 Flash)
 │   │   ├── style-suggestions/
 │   │   └── personality-critique/
 │   ├── components/VirtualTryOn/
-│   │   ├── LiveStylistView.tsx  ← Core agent UI (goals, capture, score, mint)
-│   │   ├── MintLookButton.tsx   ← Celo NFT mint with 85/15 revenue split
-│   │   └── CeloTipButton.tsx    ← cUSD tip agent in Celo
+│   │   ├── LiveStylistView.tsx          ← Core agent UI with provider selection
+│   │   ├── GeminiLivePaymentButton.tsx   ← CELO payment for premium access (NEW)
+│   │   ├── MintLookButton.tsx           ← Celo NFT mint with 85/15 revenue split
+│   │   └── CeloTipButton.tsx            ← cUSD tip agent in Celo
+│   ├── lib/utils/
+│   │   ├── rate-limit.ts        ← API rate limiting utility (NEW)
+│   │   └── analytics.ts         ← Analytics tracking + A/B testing (NEW)
 │   └── config/
 │       └── chains.ts            ← Celo mainnet + Alfajores configured
 │
 ├── packages/
 │   ├── ai-client/
-│   │   ├── src/use-gemini-live.ts          ← Hook: live session + AG-UI events
+│   │   ├── src/use-gemini-live.ts      ← Hook: Gemini Live session
+│   │   ├── src/use-venice-live.ts      ← Hook: Venice Live session (NEW)
 │   │   └── src/providers/
-│   │       ├── base-provider.ts            ← LiveSession protocol interface
-│   │       └── gemini-live-provider.ts     ← Goal-aware simulation + protocol events
+│   │       ├── base-provider.ts        ← LiveSession protocol interface
+│   │       ├── gemini-live-provider.ts ← Gemini WebSocket provider
+│   │       └── venice-live-provider.ts ← Venice polling provider (NEW)
 │   └── blockchain-client/
-│       └── src/                            ← Celo NFT minting + 0xSplits
+│       └── src/                        ← Celo NFT minting + 0xSplits
 │
 └── README.md
 ```
@@ -87,20 +96,34 @@ onpoint/
 ## 🔑 Agent Features
 
 ### 1. Goal-Aware Session Intelligence
+
 The agent adapts its entire reasoning system to one of three goals:
 
-| Goal | System Prompt Strategy | Score Base |
-|---|---|---|
-| **Event Styling** | Formal/occasion-appropriate focus | 7/10 |
-| **Daily Outfit Check** | Fit, coordination, versatility | 7/10 |
-| **Honest Critique** | Zero sugarcoating, direct ratings | 5/10 |
+| Goal                   | System Prompt Strategy            | Score Base |
+| ---------------------- | --------------------------------- | ---------- |
+| **Event Styling**      | Formal/occasion-appropriate focus | 7/10       |
+| **Daily Outfit Check** | Fit, coordination, versatility    | 7/10       |
+| **Honest Critique**    | Zero sugarcoating, direct ratings | 5/10       |
 
-### 2. Real-Time Multimodal Perception
-- **Gemini Live WebSocket** streams video frames at 1fps for continuous analysis
-- **Microphone input** for voice-responsive coaching
+### 2. Dual-Provider Live Perception
+
+Users choose between two AI providers:
+
+#### Venice AI (Free)
+
+- **Polling-based analysis** at 2-5 second intervals (adaptive to motion)
+- **Vision model**: `mistral-31-24b` via Venice AI API
+- **No payment required** - uses OnPoint's API key
+
+#### Gemini Live (Premium - 0.5 CELO or BYOK)
+
+- **Real-time WebSocket** streaming with sub-100ms latency
+- **Full audio input/output** for voice-responsive coaching
+- **Microphone input** for natural conversation
 - **Position Detection**: frame turns 🟢 green (good distance) or 🟠 orange (too close) based on AI spatial reasoning
 
 ### 3. Autonomous Scoring & Mint Proposal
+
 ```typescript
 // Agent autonomously proposes on-chain action when score threshold met
 if (sessionSummary.score >= 8 && isConnected) {
@@ -111,7 +134,9 @@ if (sessionSummary.score >= 8 && isConnected) {
 ```
 
 ### 4. AG-UI Protocol Trace
+
 Left panel in the Live Stylist UI shows real-time protocol events:
+
 ```
 [INTENT]    Initializing Agentic Mesh...
 [CELO]      Connecting to Celo Alfajores...
@@ -120,6 +145,7 @@ Left panel in the Live Stylist UI shows real-time protocol events:
 ```
 
 ### 5. Proof of Style — On-Chain NFT
+
 - Captures are stored on **Filecoin/IPFS via Lighthouse**
 - Metadata (AI critique + style score) minted as NFT on **Celo mainnet**
 - **85% royalty** flows to creator via [0xSplits](https://splits.org)
@@ -166,22 +192,22 @@ NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=
 
 ## 📡 API Reference
 
-| Endpoint | Method | Description |
-|---|---|---|
-| `/api/ai/agent` | GET/POST | AG-UI protocol trace for current session |
-| `/api/ai/live-session` | POST | Provisions Gemini Live WebSocket config |
-| `/api/ai/virtual-tryon` | POST | Static image analysis (body, outfit, enhancement) |
-| `/api/ai/style-suggestions` | POST | Personalized style recommendations |
-| `/api/ai/personality-critique` | POST | AI fashion critic response |
-| `/api/ipfs/upload` | POST | Upload to Filecoin via Lighthouse |
+| Endpoint                       | Method   | Description                                       |
+| ------------------------------ | -------- | ------------------------------------------------- |
+| `/api/ai/agent`                | GET/POST | AG-UI protocol trace for current session          |
+| `/api/ai/live-session`         | POST     | Provisions Gemini Live WebSocket config           |
+| `/api/ai/virtual-tryon`        | POST     | Static image analysis (body, outfit, enhancement) |
+| `/api/ai/style-suggestions`    | POST     | Personalized style recommendations                |
+| `/api/ai/personality-critique` | POST     | AI fashion critic response                        |
+| `/api/ipfs/upload`             | POST     | Upload to Filecoin via Lighthouse                 |
 
 ## 🔗 On-Chain Contracts
 
-| Network | Contract | Address |
-|---|---|---|
-| Celo Mainnet | OnPoint NFT | `0xdb65806c994C3f55079a6136a8E0886CbB2B64B1` |
+| Network        | Contract              | Address                                      |
+| -------------- | --------------------- | -------------------------------------------- |
+| Celo Mainnet   | OnPoint NFT           | `0xdb65806c994C3f55079a6136a8E0886CbB2B64B1` |
 | Celo Alfajores | OnPoint NFT (testnet) | `0xdb65806c994C3f55079a6136a8E0886CbB2B64B1` |
-| Celo Mainnet | cUSD | `0x765DE8164458C172EE097029dfb482Ff182ad001` |
+| Celo Mainnet   | cUSD                  | `0x765DE8164458C172EE097029dfb482Ff182ad001` |
 
 ## 🏆 Hackathon Targets
 

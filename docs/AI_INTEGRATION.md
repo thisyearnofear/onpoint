@@ -1,14 +1,14 @@
 # OnPoint AI Integration Guide
 
-**Version:** 2.0
-**Last Updated:** March 17, 2026
-**Status:** Production Implementation with Google Cloud Integration
+**Version:** 3.0
+**Last Updated:** March 21, 2026
+**Status:** Production Implementation with Dual-Provider Architecture
 
 ## AI Provider Abstraction
 
 OnPoint uses a hybrid approach with a shared AI client interface that works across multiple platforms:
 
-1. **Web Application**: Uses cloud AI APIs (Replicate, OpenAI)
+1. **Web Application**: Uses cloud AI APIs (Venice AI, Gemini Live, Replicate, OpenAI)
 2. **Shared Logic**: Common AI client interface for all platforms
 
 ### Provider Interface
@@ -17,26 +17,82 @@ The system implements a unified interface for all AI providers, including the ne
 
 ```typescript
 export interface AIProvider {
-  name: string; // e.g., 'openai', 'replicate', 'gemini-live'
+  name: string; // e.g., 'openai', 'replicate', 'gemini-live', 'venice-live'
   analyzeOutfit(input: AnalysisInput): Promise<CritiqueResponse>;
   generateDesign(prompt: string): Promise<DesignGeneration>;
-  chatWithStylist(message: string, persona: StylistPersona): Promise<StylistResponse>;
+  chatWithStylist(
+    message: string,
+    persona: StylistPersona,
+  ): Promise<StylistResponse>;
   analyzePhoto(file: File): Promise<VirtualTryOnAnalysis>;
-  // Support for Gemini Live continuous audio/vision streaming
+  // Support for live audio/vision streaming
   connectLiveSession?(): Promise<LiveSession>;
 }
 ```
 
-### The "Optionality" Strategy (Hackathon Architecture)
-Rather than replacing the stable HTTP-based Replicate & OpenAI dependencies, the Gemini Live API (`@google/genai`) is built as a next-generation **"Live AR Stylist"** feature within the platform.
-This fulfills the "Enhancement First" core principle and ensures users have the optionality to choose:
-- **Standard Mode (Async/Text)**: Uses existing OpenAI & Replicate processing for reliable, high-detail fashion critiques.
-- **Live Mode (Real-time Audio/Vision)**: Instantiates the `GeminiLiveProvider` which taps into the Gemini Multimodal Live API via WebSockets. It uses the **Vertex AI** backend for low-latency voice/camera styling sessions.
+### Dual-Provider Architecture (Free + Premium)
+
+The Live AR Stylist now offers two tiers:
+
+| Feature        | Venice AI (Free)          | Gemini Live (Premium)   |
+| -------------- | ------------------------- | ----------------------- |
+| **Cost**       | Free (we provide API key) | 0.5 CELO or BYOK        |
+| **Streaming**  | Polling (2-5s adaptive)   | Real-time WebSocket     |
+| **Audio**      | Not supported             | Full audio input/output |
+| **Vision**     | `mistral-31-24b`          | Gemini 2.0 Flash Live   |
+| **Rate Limit** | 60 req/min                | 10 sessions/hour        |
+
+#### Venice AI (Free Tier)
+
+- Uses the Venice AI API with OpenAI-compatible interface
+- Polling-based "live" experience with motion-adaptive frame rate
+- High motion: 2s intervals | Medium: 3s | Low: 5s
+- Vision analysis via `mistral-31-24b` model
+- No payment required - API key provided by OnPoint
+
+#### Gemini Live (Premium Tier)
+
+- Real-time bidirectional WebSocket streaming
+- Full audio input/output for voice interactions
+- Instant feedback with sub-100ms latency
+- Requires CELO payment (0.5 CELO) or BYOK (Bring Your Own Key)
+- Session tokens issued after payment verification
+
+### Payment & Token System
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    GEMINI LIVE ACCESS FLOW                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Option 1: CELO Payment                                          │
+│  ────────────────────                                            │
+│  User pays 0.5 CELO → Verify on-chain → Issue JWT → Grant access │
+│                                                                  │
+│  Option 2: BYOK (Bring Your Own Key)                            │
+│  ──────────────────────────────────                              │
+│  User provides Gemini API key → Validate key → Grant access      │
+│                                                                  │
+│  Option 3: Free Venice AI                                        │
+│  ──────────────────────                                          │
+│  No payment needed → Use OnPoint's Venice key → Polling mode     │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### The "Optionality" Strategy
+
+The system fulfills the "Enhancement First" core principle and ensures users have the optionality to choose:
+
+- **Free Mode (Venice AI)**: Uses Venice AI for reliable, cost-effective style analysis with polling-based updates.
+- **Premium Mode (Gemini Live)**: Instantiates the `GeminiLiveProvider` for real-time voice/camera styling sessions with WebSocket streaming.
 
 ### Real-Time Reasoning & Trust
+
 A key innovation in the Live Mode is the **Agent Reasoning Terminal**.
+
 - **The Philosophy**: "Show Your Work." By surfacing the AI's internal processing steps (e.g., `> Analyzing fabric texture...`, `> Symmetry check: PASS`), we build user trust and justification for the final critique.
-- **UI Implementation**: A glassmorphic monospace terminal that scrolls real-time "thoughts" emitted by the `GeminiLiveProvider`.
+- **UI Implementation**: A glassmorphic monospace terminal that scrolls real-time "thoughts" emitted by the provider.
 
 ---
 
@@ -124,14 +180,14 @@ OnPoint leverages **Google Cloud Run** to deploy secure, scalable WebSocket endp
 
 ### Google Cloud Services Utilized
 
-| Service | Purpose | Configuration |
-|---------|---------|---------------|
-| **Cloud Run** | Serverless container hosting for Next.js app | 1 vCPU, 1GB RAM, 300s timeout, 80 concurrency |
-| **Vertex AI** | Gemini Live API access with enterprise SLA | API key via Secret Manager |
-| **Artifact Registry** | Container image storage | Multi-region (us) |
-| **Cloud Build** | CI/CD pipeline for container builds | Automated on git push |
-| **Secret Manager** | Secure API key storage | VERTEX_API_KEY, GEMINI_API_KEY |
-| **Cloud Monitoring** | Performance metrics and alerting | Latency, error rates, request counts |
+| Service               | Purpose                                      | Configuration                                 |
+| --------------------- | -------------------------------------------- | --------------------------------------------- |
+| **Cloud Run**         | Serverless container hosting for Next.js app | 1 vCPU, 1GB RAM, 300s timeout, 80 concurrency |
+| **Vertex AI**         | Gemini Live API access with enterprise SLA   | API key via Secret Manager                    |
+| **Artifact Registry** | Container image storage                      | Multi-region (us)                             |
+| **Cloud Build**       | CI/CD pipeline for container builds          | Automated on git push                         |
+| **Secret Manager**    | Secure API key storage                       | VERTEX_API_KEY, GEMINI_API_KEY                |
+| **Cloud Monitoring**  | Performance metrics and alerting             | Latency, error rates, request counts          |
 
 ---
 
@@ -214,7 +270,7 @@ FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV production
-# Do not use VERTEX_API_KEY as a build arg for security; 
+# Do not use VERTEX_API_KEY as a build arg for security;
 # it will be provided at runtime by Cloud Run
 
 RUN addgroup --system --gid 1001 nodejs
@@ -249,19 +305,19 @@ spec:
   template:
     spec:
       containers:
-      - image: us-central1-docker.pkg.dev/<PROJECT_ID>/onpoint-containers/onpoint:latest
-        ports:
-        - containerPort: 3000
-        env:
-        - name: VERTEX_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: VERTEX_API_KEY
-              key: latest
-        resources:
-          limits:
-            cpu: 1000m
-            memory: 1Gi
+        - image: us-central1-docker.pkg.dev/<PROJECT_ID>/onpoint-containers/onpoint:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: VERTEX_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: VERTEX_API_KEY
+                  key: latest
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1Gi
       timeoutSeconds: 300
       containerConcurrency: 80
 ```
@@ -273,7 +329,7 @@ spec:
 ### WebSocket Provisioning Flow
 
 ```
-1. User clicks "Start Live AR Session" 
+1. User clicks "Start Live AR Session"
          │
          ▼
 2. Frontend calls POST /api/ai/live-session
@@ -307,47 +363,50 @@ spec:
 **File:** `apps/web/app/api/ai/live-session/route.ts`
 
 ```typescript
-import { NextRequest, NextResponse } from 'next/server';
-import { corsHeaders } from '../_utils/http';
+import { NextRequest, NextResponse } from "next/server";
+import { corsHeaders } from "../_utils/http";
 
 export async function POST(request: NextRequest) {
-    try {
-        const origin = request.headers.get('origin') || '*';
+  try {
+    const origin = request.headers.get("origin") || "*";
 
-        // In a production environment, you would perform user authentication here
-        // Optional: Check rate limits for this user's live session instantiation.
-        const geminiApiKey = process.env.VERTEX_API_KEY || process.env.GEMINI_API_KEY;
-        if (!geminiApiKey) {
-            return NextResponse.json(
-              { error: 'Vertex/Gemini API key not configured on server' },
-              { status: 500, headers: corsHeaders(origin) }
-            );
-        }
-
-        console.log('Provisioning Live AR Session...');
-
-        // Return the required configuration for the frontend to securely 
-        // connect to the websocket
-        return NextResponse.json({
-            config: {
-                apiKey: geminiApiKey,
-                baseURL: 'wss://generativelanguage.googleapis.com/ws',
-                model: 'models/gemini-3.1-flash-lite-preview'
-            }
-        }, { headers: corsHeaders(origin) });
-
-    } catch (error) {
-        console.error('Live Session provisioning error:', error);
-        return NextResponse.json(
-          { error: 'Failed to provision session' },
-          { status: 500 }
-        );
+    // In a production environment, you would perform user authentication here
+    // Optional: Check rate limits for this user's live session instantiation.
+    const geminiApiKey =
+      process.env.VERTEX_API_KEY || process.env.GEMINI_API_KEY;
+    if (!geminiApiKey) {
+      return NextResponse.json(
+        { error: "Vertex/Gemini API key not configured on server" },
+        { status: 500, headers: corsHeaders(origin) },
+      );
     }
+
+    console.log("Provisioning Live AR Session...");
+
+    // Return the required configuration for the frontend to securely
+    // connect to the websocket
+    return NextResponse.json(
+      {
+        config: {
+          apiKey: geminiApiKey,
+          baseURL: "wss://generativelanguage.googleapis.com/ws",
+          model: "models/gemini-3.1-flash-lite-preview",
+        },
+      },
+      { headers: corsHeaders(origin) },
+    );
+  } catch (error) {
+    console.error("Live Session provisioning error:", error);
+    return NextResponse.json(
+      { error: "Failed to provision session" },
+      { status: 500 },
+    );
+  }
 }
 
 export async function OPTIONS(request: NextRequest) {
-    const origin = request.headers.get('origin') || '*';
-    return new NextResponse(null, { status: 204, headers: corsHeaders(origin) });
+  const origin = request.headers.get("origin") || "*";
+  return new NextResponse(null, { status: 204, headers: corsHeaders(origin) });
 }
 ```
 
@@ -372,7 +431,7 @@ export class GeminiLiveProvider implements AIProvider {
   private ai: GoogleGenAI;
 
   constructor(config?: { apiKey?: string; httpOptions?: { baseUrl?: string } }) {
-    // We now accept the provisional config from the backend or default to 
+    // We now accept the provisional config from the backend or default to
     // environment config
     this.ai = new GoogleGenAI(config || {});
   }
@@ -382,7 +441,7 @@ export class GeminiLiveProvider implements AIProvider {
   }
 
   async generateDesign(prompt: string): Promise<DesignGeneration> {
-    throw new Error('GeminiLiveProvider does not implement generateDesign. 
+    throw new Error('GeminiLiveProvider does not implement generateDesign.
                      Use Replicate/OpenAI.');
   }
 
@@ -391,7 +450,7 @@ export class GeminiLiveProvider implements AIProvider {
   }
 
   async analyzePhoto(file: File): Promise<VirtualTryOnAnalysis> {
-    throw new Error('GeminiLiveProvider: use connectLiveSession for real-time 
+    throw new Error('GeminiLiveProvider: use connectLiveSession for real-time
                      photo analysis');
   }
 
@@ -416,9 +475,9 @@ export class GeminiLiveProvider implements AIProvider {
       connect: async () => {
         console.log('[GeminiLiveProvider] Opening Multimodal Live WebSocket...');
 
-        // In a real production app, we would use the authorized URL from the 
+        // In a real production app, we would use the authorized URL from the
         // provisioned session.
-        // For now, we'll simulate the response loop while the user's 
+        // For now, we'll simulate the response loop while the user's
         // VERTEX_API_KEY is active.
         isConnected = true;
         emit('connected', true);
@@ -455,7 +514,7 @@ export class GeminiLiveProvider implements AIProvider {
       },
       sendImage: (imageData: string | Blob) => {
         // Here we would push vision frames to the websocket
-        // For the delight factor, we'll trigger a simulated response if it's 
+        // For the delight factor, we'll trigger a simulated response if it's
         // the first frame
         if (isConnected) {
             // In a real implementation, this triggers the Realtime model analysis
@@ -472,16 +531,16 @@ export class GeminiLiveProvider implements AIProvider {
 **File:** `packages/ai-client/src/use-gemini-live.ts`
 
 ```typescript
-import { useState, useCallback, useRef } from 'react';
-import { LiveSession } from './providers/base-provider';
-import { GeminiLiveProvider } from './providers/gemini-live-provider';
+import { useState, useCallback, useRef } from "react";
+import { LiveSession } from "./providers/base-provider";
+import { GeminiLiveProvider } from "./providers/gemini-live-provider";
 
 export function useGeminiLive() {
   const [isConnected, setIsConnected] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [transcript, setTranscript] = useState<string>('');
-  const [aiResponse, setAiResponse] = useState<string>('');
+  const [transcript, setTranscript] = useState<string>("");
+  const [aiResponse, setAiResponse] = useState<string>("");
   const [reasoning, setReasoning] = useState<string[]>([]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -496,8 +555,8 @@ export function useGeminiLive() {
 
       // Request camera and microphone permissions
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 1280, height: 720, facingMode: 'user' },
-        audio: true
+        video: { width: 1280, height: 720, facingMode: "user" },
+        audio: true,
       });
       streamRef.current = stream;
 
@@ -506,43 +565,49 @@ export function useGeminiLive() {
       }
 
       // Fetch provisioned config from Cloud Run endpoint
-      const response = await fetch('/api/ai/live-session', { method: 'POST' });
-      const { config, error: provError } = await response.json().catch(() => ({}));
-      if (provError || !config) throw new Error(provError || 'Failed to provision session');
+      const response = await fetch("/api/ai/live-session", { method: "POST" });
+      const { config, error: provError } = await response
+        .json()
+        .catch(() => ({}));
+      if (provError || !config)
+        throw new Error(provError || "Failed to provision session");
 
       const provider = new GeminiLiveProvider({
         apiKey: config.apiKey,
-        httpOptions: { baseUrl: config.baseURL }
+        httpOptions: { baseUrl: config.baseURL },
       });
 
       const session = await provider.connectLiveSession!();
 
       // Attach event listeners
-      session.on('transcript', (text) => setTranscript(text));
-      session.on('response', (text) => setAiResponse(prev => prev + ' ' + text));
-      session.on('reasoning', (text) => setReasoning(prev => [text, ...prev].slice(0, 10)));
-      session.on('error', (err) => setError(err));
-      session.on('disconnected', () => setIsConnected(false));
+      session.on("transcript", (text) => setTranscript(text));
+      session.on("response", (text) =>
+        setAiResponse((prev) => prev + " " + text),
+      );
+      session.on("reasoning", (text) =>
+        setReasoning((prev) => [text, ...prev].slice(0, 10)),
+      );
+      session.on("error", (err) => setError(err));
+      session.on("disconnected", () => setIsConnected(false));
 
       await session.connect();
       sessionRef.current = session;
       setIsConnected(true);
 
       // Start sending video frames (simple canvas capture at 1fps for analysis)
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
       frameIntervalRef.current = window.setInterval(() => {
         if (videoRef.current && ctx && sessionRef.current) {
           canvas.width = videoRef.current.videoWidth;
           canvas.height = videoRef.current.videoHeight;
           ctx.drawImage(videoRef.current, 0, 0);
-          const base64Image = canvas.toDataURL('image/jpeg', 0.6);
+          const base64Image = canvas.toDataURL("image/jpeg", 0.6);
           sessionRef.current.sendImage(base64Image);
         }
       }, 1000);
-
     } catch (err: any) {
-      setError(err.message || 'Failed to start live session');
+      setError(err.message || "Failed to start live session");
       console.error(err);
     } finally {
       setIsInitializing(false);
@@ -559,15 +624,15 @@ export function useGeminiLive() {
       sessionRef.current = null;
     }
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
     setIsConnected(false);
-    setTranscript('');
-    setAiResponse('');
+    setTranscript("");
+    setAiResponse("");
     setReasoning([]);
   }, []);
 
@@ -580,7 +645,7 @@ export function useGeminiLive() {
     reasoning,
     videoRef,
     startSession,
-    stopSession
+    stopSession,
   };
 }
 ```
@@ -602,9 +667,9 @@ export function useGeminiLive() {
 // CORS headers for cross-origin requests
 export function corsHeaders(origin: string): Record<string, string> {
   return {
-    'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
   };
 }
 ```
@@ -614,43 +679,46 @@ export function corsHeaders(origin: string): Record<string, string> {
 ```typescript
 // In production, add authentication before provisioning
 export async function POST(request: NextRequest) {
-    const origin = request.headers.get('origin') || '*';
-    
-    // 1. Verify user authentication (e.g., session token, JWT)
-    const user = await authenticateUser(request);
-    if (!user) {
-        return NextResponse.json(
-          { error: 'Authentication required' },
-          { status: 401, headers: corsHeaders(origin) }
-        );
-    }
-    
-    // 2. Check rate limits (e.g., 10 sessions per hour per user)
-    const rateLimitExceeded = await checkRateLimit(user.id);
-    if (rateLimitExceeded) {
-        return NextResponse.json(
-          { error: 'Rate limit exceeded' },
-          { status: 429, headers: corsHeaders(origin) }
-        );
-    }
-    
-    // 3. Proceed with provisioning...
+  const origin = request.headers.get("origin") || "*";
+
+  // 1. Verify user authentication (e.g., session token, JWT)
+  const user = await authenticateUser(request);
+  if (!user) {
+    return NextResponse.json(
+      { error: "Authentication required" },
+      { status: 401, headers: corsHeaders(origin) },
+    );
+  }
+
+  // 2. Check rate limits (e.g., 10 sessions per hour per user)
+  const rateLimitExceeded = await checkRateLimit(user.id);
+  if (rateLimitExceeded) {
+    return NextResponse.json(
+      { error: "Rate limit exceeded" },
+      { status: 429, headers: corsHeaders(origin) },
+    );
+  }
+
+  // 3. Proceed with provisioning...
 }
 ```
 
 ## Key AI Models & Services
 
 ### Virtual Try-On
+
 - **IDM-VTON** via Replicate API
 - Garment and human image processing
 - Realistic fitting visualization
 
 ### Fashion Analysis & Critique
+
 - **GPT-4o-mini** via Replicate API
 - Personality-based styling advice
 - Outfit rating and improvement suggestions
 
 ### Design Generation
+
 - **DALL-E/Stable Diffusion** via Replicate API
 - Text-to-image generation
 - Style variation creation
@@ -665,12 +733,14 @@ export async function POST(request: NextRequest) {
 ## UX Optimization
 
 ### Performance Features
+
 - Image compression for faster uploads
 - Local caching for repeated requests
 - Loading states and progress indicators
 - Responsive design for all devices
 
 ### Personality-Based Interactions
+
 - Six distinct AI personas with unique voices
 - Context-aware styling recommendations
 - Personalized critique styles
@@ -679,18 +749,21 @@ export async function POST(request: NextRequest) {
 ## Completed Improvements
 
 ### Virtual Try-On Enhancements
+
 - Camera integration with image capture
 - Performance optimizations with caching
 - Animated UI components with Framer Motion
 - Responsive design for all screen sizes
 
 ### Live AR Stylist Features
+
 - **Multimodal Live Analysis**: Simultaneous audio and video processing for natural styling conversation.
 - **Tactical Screenshot Protocol**: Canvas-based frame capture that overlays the AI's reasoning onto a "Proof of Style" image.
 - **Agentic Actions**: AI reasoning triggers actionable UI elements like **Celo Tipping** and **Farcaster Sharing**.
 - **Mobile Shutter Flash**: Visual feedback protocol to synchronize AI capture with user expectation.
 
 ### AI Stylist Features
+
 - Personality-based critiques with six distinct AI personas
 - Context-aware conversations
 - Style suggestion generation
