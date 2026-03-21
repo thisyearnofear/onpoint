@@ -32,6 +32,11 @@ import { useAccount } from "wagmi";
 import { AgentStatus } from "../Agent/AgentStatus";
 import { AgentActionCard } from "../Agent/AgentActionCard";
 import { TipModal } from "../Agent/TipModal";
+import {
+  AgentApprovalModal,
+  useAgentApproval,
+  type ApprovalRequest,
+} from "../Agent/AgentApprovalModal";
 import { trackProviderSelected } from "../../lib/utils/analytics";
 
 type AIProvider = "venice" | "gemini";
@@ -91,6 +96,15 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [initStep, setInitStep] = useState<string>("connecting");
   const [showTipModal, setShowTipModal] = useState(false);
+
+  // Agent approval hook
+  const {
+    currentApproval,
+    isModalOpen: isApprovalModalOpen,
+    setIsModalOpen: setIsApprovalModalOpen,
+    approveRequest,
+    rejectRequest,
+  } = useAgentApproval();
 
   // Use the appropriate provider based on selection
   const activeProvider = selectedProvider === "venice" ? venice : gemini;
@@ -630,6 +644,15 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           <TipModal
             isOpen={showTipModal}
             onClose={() => setShowTipModal(false)}
+          />
+
+          {/* Agent Approval Modal */}
+          <AgentApprovalModal
+            isOpen={isApprovalModalOpen}
+            onClose={() => setIsApprovalModalOpen(false)}
+            onApprove={approveRequest}
+            onReject={rejectRequest}
+            request={currentApproval}
           />
         </div>
       </div>
@@ -1379,6 +1402,15 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
         <TipModal
           isOpen={showTipModal}
           onClose={() => setShowTipModal(false)}
+        />
+
+        {/* Agent Approval Modal */}
+        <AgentApprovalModal
+          isOpen={isApprovalModalOpen}
+          onClose={() => setIsApprovalModalOpen(false)}
+          onApprove={approveRequest}
+          onReject={rejectRequest}
+          request={currentApproval}
         />
 
         {/* Flash Overlay */}
