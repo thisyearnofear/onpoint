@@ -1,0 +1,276 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Sparkles,
+  Check,
+  X,
+  Clock,
+  Zap,
+  Coins,
+  ShoppingBag,
+  AlertCircle,
+} from "lucide-react";
+import { Button } from "@repo/ui/button";
+import type { ActionType } from "../../lib/middleware/agent-controls";
+
+export interface AgentSuggestion {
+  id: string;
+  agentId: string;
+  actionType: ActionType;
+  amount: string;
+  description: string;
+  recipient?: string;
+  status: "pending" | "accepted" | "rejected" | "expired" | "executed";
+  createdAt: number;
+  expiresAt: number;
+  autoApprovable: boolean;
+}
+
+interface AgentSuggestionToastProps {
+  suggestion: AgentSuggestion;
+  onAccept: (id: string) => void;
+  onReject: (id: string) => void;
+  onDismiss: () => void;
+}
+
+const ACTION_ICONS: Record<ActionType, React.ElementType> = {
+  purchase: ShoppingBag,
+  mint: Sparkles,
+  tip: Coins,
+  premium: Zap,
+  agent_to_agent: Coins,
+};
+
+const ACTION_LABELS: Record<ActionType, string> = {
+  purchase: "Buy Now",
+  mint: "Mint NFT",
+  tip: "Send Tip",
+  premium: "Go Premium",
+  agent_to_agent: "Transfer",
+};
+
+export function AgentSuggestionToast({
+  suggestion,
+  onAccept,
+  onReject,
+  onDismiss,
+}: AgentSuggestionToastProps) {
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const Icon = ACTION_ICONS[suggestion.actionType] || Sparkles;
+  const actionLabel = ACTION_LABELS[suggestion.actionType] || "Execute";
+
+  // Calculate time remaining
+  useEffect(() => {
+    const updateTimer = () => {
+      const remaining = Math.max(0, suggestion.expiresAt - Date.now());
+      setTimeLeft(remaining);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [suggestion.expiresAt]);
+
+  // Auto-dismiss when expired
+  useEffect(() => {
+    if (timeLeft === 0 && suggestion.status === "pending") {
+      onDismiss();
+    }
+  }, [timeLeft, suggestion.status, onDismiss]);
+
+  const secondsLeft = Math.floor(timeLeft / 1000);
+
+  const handleAccept = async () => {
+    setIsProcessing(true);
+    try {
+      await onAccept(suggestion.id);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleReject = () => {
+    onReject(suggestion.id);
+    onDismiss();
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 50, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 20, scale: 0.95 }}
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm"
+    >
+      <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="px-4 py-3 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 border-b border-white/10">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-purple-500/30 flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-purple-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-white text-sm font-medium">
+                AI Stylist Suggests
+              </p>
+            </div>
+            <div className="flex items-center gap-1 text-xs text-slate-400">
+              <Clock className="w-3 h-3" />
+              <span>{secondsLeft}s</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
+              <Icon className="w-5 h-5 text-slate-300" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white text-sm font-medium truncate">
+                {suggestion.description}
+              </p>
+              <p className="text-amber-400 font-bold mt-1">
+                {suggestion.amount}
+              </p>
+            </div>
+          </div>
+
+          {/* Auto-approve badge */}
+          {suggestion.autoApprovable && (
+            <div className="mt-3 flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/10 rounded-lg px-3 py-2">
+              <Zap className="w-3 h-3" />
+              <span>Quick action - auto-executes in 5s</span>
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="px-4 pb-4 flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleReject}
+            disabled={isProcessing}
+            className="flex-1 h-10 border-white/10 text-slate-300 hover:bg-white/10 text-sm"
+          >
+            <X className="w-4 h-4 mr-1" />
+            Skip
+          </Button>
+          <Button
+            onClick={handleAccept}
+            disabled={isProcessing}
+            className="flex-1 h-10 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-sm"
+          >
+            {isProcessing ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1" />
+            ) : (
+              <Check className="w-4 h-4 mr-1" />
+            )}
+            {actionLabel}
+          </Button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ============================================
+// Hook for managing suggestions
+// ============================================
+
+export function useAgentSuggestions(agentId: string = "onpoint-stylist") {
+  const [suggestions, setSuggestions] = useState<AgentSuggestion[]>([]);
+  const [currentSuggestion, setCurrentSuggestion] =
+    useState<AgentSuggestion | null>(null);
+
+  // Poll for new suggestions
+  useEffect(() => {
+    const pollSuggestions = async () => {
+      try {
+        const response = await fetch(
+          `/api/agent/suggestion?agentId=${agentId}`,
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setSuggestions(data.suggestions || []);
+
+          // Show first pending suggestion
+          const pending = data.suggestions?.find(
+            (s: AgentSuggestion) =>
+              s.status === "pending" || s.status === "accepted",
+          );
+          if (
+            pending &&
+            (!currentSuggestion || currentSuggestion.id !== pending.id)
+          ) {
+            setCurrentSuggestion(pending);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to poll suggestions:", error);
+      }
+    };
+
+    pollSuggestions();
+    const interval = setInterval(pollSuggestions, 5000);
+    return () => clearInterval(interval);
+  }, [agentId, currentSuggestion]);
+
+  const acceptSuggestion = async (id: string) => {
+    const response = await fetch("/api/agent/suggestion", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, action: "accept" }),
+    });
+
+    if (response.ok) {
+      setCurrentSuggestion(null);
+    }
+  };
+
+  const rejectSuggestion = async (id: string) => {
+    const response = await fetch("/api/agent/suggestion", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, action: "reject" }),
+    });
+
+    if (response.ok) {
+      setCurrentSuggestion(null);
+    }
+  };
+
+  const createSuggestion = async (params: {
+    actionType: ActionType;
+    amount: string;
+    description: string;
+    recipient?: string;
+  }) => {
+    const response = await fetch("/api/agent/suggestion", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...params, agentId }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      setCurrentSuggestion(data.suggestion);
+      return data;
+    }
+
+    throw new Error("Failed to create suggestion");
+  };
+
+  return {
+    suggestions,
+    currentSuggestion,
+    acceptSuggestion,
+    rejectSuggestion,
+    createSuggestion,
+    dismissSuggestion: () => setCurrentSuggestion(null),
+  };
+}

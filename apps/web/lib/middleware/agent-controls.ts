@@ -50,6 +50,54 @@ export interface AgentControlsConfig {
   dailyPurchaseLimit?: bigint;
   dailyMintLimit?: bigint;
   requireApprovalAbove?: bigint; // Amount requiring approval
+  autonomyThreshold?: bigint; // Amount below which actions auto-approve silently
+}
+
+// ============================================
+// Agent Suggestion Types (for quick accept)
+// ============================================
+
+export type SuggestionStatus =
+  | "pending"
+  | "accepted"
+  | "rejected"
+  | "expired"
+  | "executed";
+
+export interface AgentSuggestion {
+  id: string;
+  agentId: string;
+  actionType: ActionType;
+  amount: string;
+  description: string;
+  recipient?: string;
+  metadata?: Record<string, unknown>;
+  status: SuggestionStatus;
+  createdAt: number;
+  expiresAt: number;
+  autoApprovable: boolean; // True if below autonomy threshold
+}
+
+// ============================================
+// Style Memory Types (for recommendations)
+// ============================================
+
+export interface StylePreference {
+  userId: string;
+  colors: string[];
+  categories: string[];
+  brands: string[];
+  priceRange: { min: number; max: number };
+  lastUpdated: number;
+}
+
+export interface StyleRecommendation {
+  id: string;
+  userId: string;
+  productId: string;
+  reason: string;
+  confidence: number; // 0-100
+  createdAt: number;
 }
 
 // ============================================
@@ -93,11 +141,27 @@ const DEFAULT_LIMITS: Record<
 };
 
 // ============================================
+// Default Autonomy Threshold
+// ============================================
+
+/** Actions below this amount auto-approve without user interaction */
+const DEFAULT_AUTONOMY_THRESHOLD = parseEther("5"); // 5 cUSD
+
+// ============================================
 // In-Memory Store (use Redis in production)
 // ============================================
 
 // Spending limits per agent
 const spendingLimits: Map<string, SpendingLimit[]> = new Map();
+
+// Autonomy thresholds per agent
+const autonomyThresholds: Map<string, bigint> = new Map();
+
+// Pending suggestions for quick-accept
+const pendingSuggestions: Map<string, AgentSuggestion> = new Map();
+
+// Style preferences per user
+const stylePreferences: Map<string, StylePreference> = new Map();
 
 // Pending approvals
 const pendingApprovals: Map<string, ApprovalRequest> = new Map();
@@ -237,6 +301,214 @@ export function getRemainingLimit(
 }
 
 // ============================================
+// Autonomy Threshold Management
+// ============================================
+
+/**
+ * Set autonomy threshold for an agent
+ * Actions below this amount auto-approve without user interaction
+ */
+export function setAutonomyThreshold(agentId: string, threshold: bigint): void {
+  autonomyThresholds.set(agentId, threshold);
+}
+
+/**
+ * Get autonomy threshold for an agent
+ */
+export function getAutonomyThreshold(agentId: string): bigint {
+  return autonomyThresholds.get(agentId) || DEFAULT_AUTONOMY_THRESHOLD;
+}
+
+/**
+ * Check if an amount is below autonomy threshold (auto-approve)
+ */
+export function isBelowAutonomyThreshold(
+  agentId: string,
+  amount: bigint,
+): boolean {
+  const threshold = getAutonomyThreshold(agentId);
+  return amount <= threshold;
+}
+
+// ============================================
+// Suggestion System (Quick Accept)
+// ============================================
+
+/**
+ * Create a suggestion for an action (can be quick-accepted if below threshold)
+ */
+export function createSuggestion(params: {
+  agentId: string;
+  actionType: ActionType;
+  amount: string;
+  description: string;
+  recipient?: string;
+  metadata?: Record<string, unknown>;
+  expiresInMinutes?: number;
+}): AgentSuggestion {
+  const id = `suggestion_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const expiresIn = params.expiresInMinutes || 10; // 10 minutes
+
+  // Parse the amount to check if it's auto-approvable
+  const amountWei = parseAmount(params.amount);
+  const autoApprovable = isBelowAutonomyThreshold(params.agentId, amountWei);
+
+  const suggestion: AgentSuggestion = {
+    id,
+    agentId: params.agentId,
+    actionType: params.actionType,
+    amount: params.amount,
+    description: params.description,
+    recipient: params.recipient,
+    metadata: params.metadata,
+    status: autoApprovable ? "accepted" : "pending", // Auto-accept if below threshold
+    createdAt: Date.now(),
+    expiresAt: Date.now() + expiresIn * 60 * 1000,
+    autoApprovable,
+  };
+
+  pendingSuggestions.set(id, suggestion);
+  return suggestion;
+}
+
+/**
+ * Get a suggestion by ID
+ */
+export function getSuggestion(id: string): AgentSuggestion | null {
+  const suggestion = pendingSuggestions.get(id);
+
+  if (!suggestion) return null;
+
+  // Check if expired
+  if (Date.now() > suggestion.expiresAt && suggestion.status === "pending") {
+    suggestion.status = "expired";
+  }
+
+  return suggestion;
+}
+
+/**
+ * Accept a suggestion (user quick-accept)
+ */
+export function acceptSuggestion(id: string): boolean {
+  const suggestion = pendingSuggestions.get(id);
+
+  if (!suggestion || suggestion.status !== "pending") {
+    return false;
+  }
+
+  if (Date.now() > suggestion.expiresAt) {
+    suggestion.status = "expired";
+    return false;
+  }
+
+  suggestion.status = "accepted";
+  return true;
+}
+
+/**
+ * Reject a suggestion
+ */
+export function rejectSuggestion(id: string): boolean {
+  const suggestion = pendingSuggestions.get(id);
+
+  if (!suggestion || suggestion.status !== "pending") {
+    return false;
+  }
+
+  suggestion.status = "rejected";
+  return true;
+}
+
+/**
+ * Mark suggestion as executed
+ */
+export function markSuggestionExecuted(id: string): boolean {
+  const suggestion = pendingSuggestions.get(id);
+
+  if (!suggestion || suggestion.status !== "accepted") {
+    return false;
+  }
+
+  suggestion.status = "executed";
+  return true;
+}
+
+/**
+ * Get pending suggestions for an agent
+ */
+export function getPendingSuggestions(agentId: string): AgentSuggestion[] {
+  const now = Date.now();
+  return Array.from(pendingSuggestions.values()).filter(
+    (s) =>
+      s.agentId === agentId &&
+      (s.status === "pending" || s.status === "accepted") &&
+      s.expiresAt > now,
+  );
+}
+
+// ============================================
+// Style Memory (for recommendations)
+// ============================================
+
+/**
+ * Get or create style preferences for a user
+ */
+export function getStylePreferences(userId: string): StylePreference {
+  if (!stylePreferences.has(userId)) {
+    stylePreferences.set(userId, {
+      userId,
+      colors: [],
+      categories: [],
+      brands: [],
+      priceRange: { min: 0, max: 500 },
+      lastUpdated: Date.now(),
+    });
+  }
+  return stylePreferences.get(userId)!;
+}
+
+/**
+ * Update style preferences
+ */
+export function updateStylePreferences(
+  userId: string,
+  updates: Partial<Omit<StylePreference, "userId" | "lastUpdated">>,
+): StylePreference {
+  const prefs = getStylePreferences(userId);
+
+  if (updates.colors)
+    prefs.colors = [...new Set([...prefs.colors, ...updates.colors])];
+  if (updates.categories)
+    prefs.categories = [
+      ...new Set([...prefs.categories, ...updates.categories]),
+    ];
+  if (updates.brands)
+    prefs.brands = [...new Set([...prefs.brands, ...updates.brands])];
+  if (updates.priceRange) prefs.priceRange = updates.priceRange;
+  prefs.lastUpdated = Date.now();
+
+  stylePreferences.set(userId, prefs);
+  return prefs;
+}
+
+/**
+ * Track a try-on and update preferences
+ */
+export function trackStyleInteraction(
+  userId: string,
+  product: { category: string; price: number },
+): void {
+  updateStylePreferences(userId, {
+    categories: [product.category],
+    priceRange: {
+      min: 0,
+      max: Math.max(product.price * 1.5, 500),
+    },
+  });
+}
+
+// ============================================
 // Approval Workflow
 // ============================================
 
@@ -342,6 +614,7 @@ export function getPendingApprovals(agentId: string): ApprovalRequest[] {
 /**
  * Validate if an action can proceed
  * Returns the result including whether approval is needed
+ * Now supports autonomy threshold - small amounts auto-approve
  */
 export function validateAction(params: {
   agentId: string;
@@ -353,6 +626,7 @@ export function validateAction(params: {
 }): {
   allowed: boolean;
   requiresApproval: boolean;
+  autoApproved: boolean; // True if auto-approved via autonomy threshold
   approvalRequest?: ApprovalRequest;
   reason?: string;
   limit?: SpendingLimit;
@@ -373,37 +647,81 @@ export function validateAction(params: {
     return {
       allowed: false,
       requiresApproval: false,
+      autoApproved: false,
       reason: limitCheck.reason,
       limit: limitCheck.limit,
     };
   }
 
-  // Check if approval is required
   const limit = limitCheck.limit!;
 
-  if (limit.requiresApproval) {
-    // Create approval request
-    const approvalRequest = createApprovalRequest({
-      agentId,
-      actionType,
-      amount: amountFormatted,
-      description,
-      recipient,
-    });
-
+  // If action doesn't require approval, it's allowed
+  if (!limit.requiresApproval) {
     return {
-      allowed: false, // Not allowed until approved
-      requiresApproval: true,
-      approvalRequest,
+      allowed: true,
+      requiresApproval: false,
+      autoApproved: false,
       limit,
     };
   }
 
-  // Action is allowed without approval
+  // Action requires approval - check autonomy threshold
+  if (isBelowAutonomyThreshold(agentId, amount)) {
+    // Auto-approve via autonomy threshold
+    return {
+      allowed: true,
+      requiresApproval: false,
+      autoApproved: true, // Indicate this was auto-approved
+      limit,
+    };
+  }
+
+  // Above threshold - create approval request
+  const approvalRequest = createApprovalRequest({
+    agentId,
+    actionType,
+    amount: amountFormatted,
+    description,
+    recipient,
+  });
+
   return {
-    allowed: true,
-    requiresApproval: false,
+    allowed: false,
+    requiresApproval: true,
+    autoApproved: false,
+    approvalRequest,
     limit,
+  };
+}
+
+/**
+ * Suggest an action to the user (can be quick-accepted)
+ * Returns a suggestion that may be auto-accepted if below threshold
+ */
+export function suggestAction(params: {
+  agentId: string;
+  actionType: ActionType;
+  amount: string;
+  description: string;
+  recipient?: string;
+  metadata?: Record<string, unknown>;
+}): {
+  suggestion: AgentSuggestion;
+  autoExecuted: boolean;
+} {
+  const suggestion = createSuggestion(params);
+
+  // If auto-approved (below threshold), mark for immediate execution
+  if (suggestion.autoApprovable) {
+    return {
+      suggestion,
+      autoExecuted: true,
+    };
+  }
+
+  return {
+    suggestion,
+    autoExecuted: false,
   };
 }
 
@@ -438,6 +756,16 @@ function formatEther(value: bigint): string {
   return fractionalPart ? `${integerPart}.${fractionalPart}` : integerPart;
 }
 
+/**
+ * Parse amount string (e.g., "5 cUSD") to wei
+ */
+function parseAmount(amount: string): bigint {
+  // Handle common formats: "5 cUSD", "5.00 cUSD", "5"
+  const cleaned = amount.replace(/[^0-9.]/g, "");
+  const num = parseFloat(cleaned) || 0;
+  return BigInt(Math.floor(num * 1e18));
+}
+
 // ============================================
 // Exports
 // ============================================
@@ -450,6 +778,28 @@ export const AgentControls = {
   recordSpending,
   getRemainingLimit,
 
+  // Autonomy
+  setAutonomyThreshold,
+  getAutonomyThreshold,
+  isBelowAutonomyThreshold,
+
+  // Suggestions (Quick Accept)
+  createSuggestion,
+  getSuggestion,
+  acceptSuggestion,
+  rejectSuggestion,
+  markSuggestionExecuted,
+  getPendingSuggestions,
+
+  // Style Memory
+  getStylePreferences,
+  updateStylePreferences,
+  trackStyleInteraction,
+
+  // Validation
+  validateAction,
+  suggestAction,
+
   // Approvals
   createApprovalRequest,
   getApprovalRequest,
@@ -457,6 +807,6 @@ export const AgentControls = {
   rejectRequest,
   getPendingApprovals,
 
-  // Validation
-  validateAction,
+  // Validation (already exported above)
+  // validateAction,
 };
