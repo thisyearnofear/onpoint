@@ -30,6 +30,7 @@ import { AgentSuggestionToast } from "../Agent/AgentSuggestionToast";
 import { SuggestionHistoryPanel } from "../Agent/SuggestionHistoryPanel";
 import { CartDrawer, CartButton } from "../Shop/CartDrawer";
 import { CheckoutModal } from "../Shop/CheckoutModal";
+import { SessionEndingCard } from "./SessionEndingCard";
 import { useCartStore } from "../../lib/stores/cart-store";
 import { trackProviderSelected } from "../../lib/utils/analytics";
 import { useLiveSession, GOAL_OPTIONS } from "./hooks/useLiveSession";
@@ -1040,77 +1041,21 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
         </AnimatePresence>
       </div>
 
-      {/* Session Expired Upsell Overlay */}
+      {/* Session Ending Card — replaces upsell overlay */}
       <AnimatePresence>
-        {(sessionExpired || capturesExhausted) && !showSummary && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-md"
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              className="max-w-sm w-full mx-6 p-8 rounded-3xl bg-slate-900 border border-indigo-500/30 text-center shadow-2xl shadow-indigo-500/10"
-            >
-              <div className="w-16 h-16 rounded-2xl bg-indigo-600/20 flex items-center justify-center mx-auto mb-6 border border-indigo-500/30">
-                <Crown className="w-8 h-8 text-indigo-400" />
-              </div>
-
-              <h2 className="text-2xl font-black text-white mb-2">
-                {sessionExpired ? "Free Session Ended" : "Captures Exhausted"}
-              </h2>
-
-              <p className="text-slate-400 text-sm mb-6 leading-relaxed">
-                {sessionExpired
-                  ? "Your 3-minute free session is up. Upgrade for unlimited styling time."
-                  : "You've used all 3 free captures. Unlock unlimited captures with Gemini Live."}
-              </p>
-
-              {captures.length > 0 && (
-                <p className="text-indigo-300 text-xs mb-6">
-                  You have {captures.length} capture
-                  {captures.length !== 1 ? "s" : ""} ready to mint as Proof of
-                  Style NFTs.
-                </p>
-              )}
-
-              <div className="flex flex-col gap-3">
-                <Button
-                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-full py-6 text-base font-bold shadow-xl shadow-indigo-500/20"
-                  onClick={() => {
-                    handleFinish();
-                  }}
-                >
-                  <Crown className="w-4 h-4 mr-2" />
-                  Upgrade to Gemini Live
-                </Button>
-
-                {captures.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    className="w-full text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-full py-4 text-sm font-bold border border-amber-500/20"
-                    onClick={() => {
-                      handleFinish();
-                    }}
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Mint Your Style First
-                  </Button>
-                )}
-
-                <Button
-                  variant="ghost"
-                  className="text-slate-500 hover:text-white text-xs"
-                  onClick={handleFinish}
-                >
-                  View Session Summary
-                </Button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
+        {(sessionExpired || capturesExhausted) &&
+          !showSummary &&
+          sessionSummary && (
+            <SessionEndingCard
+              summary={sessionSummary}
+              captures={captures}
+              sessionExpired={sessionExpired}
+              isVenice={isVenice}
+              onUpgrade={handleFinish}
+              onMint={handleFinish}
+              onViewSummary={handleFinish}
+            />
+          )}
       </AnimatePresence>
 
       {/* Control Bar — Mobile-safe */}

@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from "react";
 import { LiveSession } from "./providers/base-provider";
 import { VeniceLiveProvider } from "./providers/venice-live-provider";
 
-const VENICE_FREE_SESSION_SECONDS = 180; // 3 minutes
+const VENICE_FREE_SESSION_SECONDS = 60; // 1 minute
 const VENICE_WARNING_THRESHOLD = 30; // warn at 30s remaining
 
 export function useVeniceLive() {
