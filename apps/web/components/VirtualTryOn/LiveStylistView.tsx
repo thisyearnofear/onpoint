@@ -49,6 +49,10 @@ import {
 } from "../Agent/AgentSuggestionToast";
 import { SuggestionHistoryPanel } from "../Agent/SuggestionHistoryPanel";
 import type { ActionType } from "../../lib/middleware/agent-controls";
+import { useCartStore } from "../../lib/stores/cart-store";
+import { CartDrawer, CartButton } from "../Shop/CartDrawer";
+import { CheckoutModal } from "../Shop/CheckoutModal";
+import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import { trackProviderSelected } from "../../lib/utils/analytics";
 
 type AIProvider = "venice" | "gemini";
@@ -108,6 +112,9 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [initStep, setInitStep] = useState<string>("connecting");
   const [showTipModal, setShowTipModal] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
+
+  const addItemToCart = useCartStore((s) => s.addItem);
 
   // Agent approval hook
   const {
@@ -251,6 +258,27 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
     return { score, topics: topics.slice(0, 4), takeaways };
   }, [reasoning, finalAdvice, sessionGoal]);
+
+  // Accept suggestion handler — adds purchase items to cart
+  const handleAcceptSuggestion = useCallback(
+    async (id: string) => {
+      await acceptSuggestion(id);
+      // If it's a purchase suggestion, try to add the best matching product to cart
+      if (currentSuggestion?.actionType === "purchase") {
+        const desc = currentSuggestion.description.toLowerCase();
+        const matched = CANVAS_ITEMS.find(
+          (item) =>
+            desc.includes(item.name.toLowerCase()) ||
+            desc.includes(item.slug.toLowerCase()) ||
+            desc.includes(item.category.toLowerCase()),
+        );
+        if (matched) {
+          addItemToCart(matched);
+        }
+      }
+    },
+    [acceptSuggestion, currentSuggestion, addItemToCart],
+  );
 
   // Create mint suggestion when score is elite
   useEffect(() => {
@@ -1430,7 +1458,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           {currentSuggestion && (
             <AgentSuggestionToast
               suggestion={currentSuggestion}
-              onAccept={acceptSuggestion}
+              onAccept={handleAcceptSuggestion}
               onReject={rejectSuggestion}
               onDismiss={dismissSuggestion}
             />
@@ -1495,6 +1523,15 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 Tip Stylist
               </span>
             </motion.button>
+
+            {/* Cart Button */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <CartButton />
+            </motion.div>
           </div>
         )}
 
@@ -1511,6 +1548,13 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           onApprove={approveRequest}
           onReject={rejectRequest}
           request={currentApproval}
+        />
+
+        {/* Cart & Checkout */}
+        <CartDrawer onCheckout={() => setShowCheckout(true)} />
+        <CheckoutModal
+          isOpen={showCheckout}
+          onClose={() => setShowCheckout(false)}
         />
 
         {/* Flash Overlay */}

@@ -1,15 +1,21 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { ShopGrid, EngagementBadge } from '@repo/shared-ui';
-import { CANVAS_ITEMS } from '@onpoint/shared-types';
-import type { FashionItem } from '@onpoint/shared-types';
-import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import React, { useState } from "react";
+import { ShopGrid, EngagementBadge } from "@repo/shared-ui";
+import { CANVAS_ITEMS } from "@onpoint/shared-types";
+import type { FashionItem } from "@onpoint/shared-types";
+import Link from "next/link";
+import { ArrowLeft, ShoppingBag } from "lucide-react";
+import { CartDrawer, CartButton } from "../../components/Shop/CartDrawer";
+import { CheckoutModal } from "../../components/Shop/CheckoutModal";
+import { useCartStore } from "../../lib/stores/cart-store";
 
 export default function ShopPage() {
   const [selectedItem, setSelectedItem] = useState<FashionItem | null>(null);
   const [likedItems, setLikedItems] = useState<Set<string>>(new Set());
+  const [showCheckout, setShowCheckout] = useState(false);
+  const addItem = useCartStore((s) => s.addItem);
+  const openCart = useCartStore((s) => s.openCart);
 
   const handleItemClick = (item: FashionItem) => {
     setSelectedItem(item);
@@ -41,12 +47,15 @@ export default function ShopPage() {
       {/* Navigation Bar */}
       <div className="sticky top-0 z-40 border-b border-gray-200 bg-white/80 backdrop-blur-md">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-gray-700 hover:text-primary transition-colors">
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-gray-700 hover:text-primary transition-colors"
+          >
             <ArrowLeft className="h-5 w-5" />
             <span>Back</span>
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">Shop Collection</h1>
-          <div className="w-12" /> {/* Spacer */}
+          <CartButton />
         </div>
       </div>
 
@@ -56,13 +65,20 @@ export default function ShopPage() {
         <div className="mb-12 grid grid-cols-1 md:grid-cols-2 gap-6">
           <EngagementBadge
             type="trending"
-            tryOnCount={CANVAS_ITEMS.reduce((sum, item) => sum + (item.tryOnCount || 0), 0)}
+            tryOnCount={CANVAS_ITEMS.reduce(
+              (sum, item) => sum + (item.tryOnCount || 0),
+              0,
+            )}
             rating={4.7}
             animated
           />
           <EngagementBadge
             type="viral"
-            tryOnCount={CANVAS_ITEMS.length > 0 ? Math.max(...CANVAS_ITEMS.map(item => item.tryOnCount || 0)) : 0}
+            tryOnCount={
+              CANVAS_ITEMS.length > 0
+                ? Math.max(...CANVAS_ITEMS.map((item) => item.tryOnCount || 0))
+                : 0
+            }
             mintCount={12}
             animated
           />
@@ -86,7 +102,9 @@ export default function ShopPage() {
           <div className="bg-white rounded-2xl max-w-2xl w-full p-8 space-y-6 animate-bounce-in-up">
             <div className="flex items-start justify-between">
               <div>
-                <h2 className="text-3xl font-bold text-gray-900">{selectedItem.name}</h2>
+                <h2 className="text-3xl font-bold text-gray-900">
+                  {selectedItem.name}
+                </h2>
                 <p className="text-gray-600 mt-2">{selectedItem.description}</p>
               </div>
               <button
@@ -123,14 +141,24 @@ export default function ShopPage() {
             </div>
 
             <button
-              onClick={() => setSelectedItem(null)}
-              className="w-full py-3 px-4 rounded-lg bg-primary text-white font-semibold hover:bg-primary/90 transition-colors"
+              onClick={() => {
+                addItem(selectedItem);
+                setSelectedItem(null);
+              }}
+              className="w-full py-3 px-4 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition-colors flex items-center justify-center gap-2"
             >
-              Try It On
+              <ShoppingBag className="w-4 h-4" />
+              Add to Cart — ${selectedItem.price}
             </button>
           </div>
         </div>
       )}
+      {/* Cart & Checkout */}
+      <CartDrawer onCheckout={() => setShowCheckout(true)} />
+      <CheckoutModal
+        isOpen={showCheckout}
+        onClose={() => setShowCheckout(false)}
+      />
     </div>
   );
 }
