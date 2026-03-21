@@ -1,15 +1,9 @@
-import React, {
-  useEffect,
-  useState,
-  useCallback,
-  useMemo,
-  useRef,
-} from "react";
-import { Card, CardContent } from "@repo/ui/card";
+"use client";
+
+import React from "react";
 import { Button } from "@repo/ui/button";
 import {
   Mic,
-  Video,
   PhoneOff,
   Sparkles,
   AlertCircle,
@@ -17,624 +11,102 @@ import {
   Clock,
   Volume2,
   VolumeX,
-  Calendar,
-  Sun,
-  MessageSquareWarning,
-  CheckCircle,
-  Palette,
-  Ruler,
-  Eye,
   Zap,
   Crown,
+  CheckCircle,
   Coins,
+  ShoppingBag,
+  Eye,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useGeminiLive, useVeniceLive } from "@repo/ai-client";
-import { useMiniApp } from "@neynar/react";
-import { sdk } from "@farcaster/miniapp-sdk";
+import { useAccount } from "wagmi";
 import { MintLookButton } from "./MintLookButton";
 import { GeminiLivePaymentButton } from "./GeminiLivePaymentButton";
-import { useAccount } from "wagmi";
 import { AgentStatus } from "../Agent/AgentStatus";
 import { AgentActionCard } from "../Agent/AgentActionCard";
 import { TipModal } from "../Agent/TipModal";
-import {
-  AgentApprovalModal,
-  useAgentApproval,
-  type ApprovalRequest,
-} from "../Agent/AgentApprovalModal";
-import {
-  AgentSuggestionToast,
-  useAgentSuggestions,
-} from "../Agent/AgentSuggestionToast";
+import { AgentApprovalModal } from "../Agent/AgentApprovalModal";
+import { AgentSuggestionToast } from "../Agent/AgentSuggestionToast";
 import { SuggestionHistoryPanel } from "../Agent/SuggestionHistoryPanel";
-import type { ActionType } from "../../lib/middleware/agent-controls";
-import { useCartStore } from "../../lib/stores/cart-store";
 import { CartDrawer, CartButton } from "../Shop/CartDrawer";
 import { CheckoutModal } from "../Shop/CheckoutModal";
-import { CANVAS_ITEMS } from "@onpoint/shared-types";
+import { useCartStore } from "../../lib/stores/cart-store";
 import { trackProviderSelected } from "../../lib/utils/analytics";
-
-type AIProvider = "venice" | "gemini";
-
-interface CaptureOption {
-  image: string;
-  comment: string;
-}
+import { useLiveSession, GOAL_OPTIONS } from "./hooks/useLiveSession";
 
 interface LiveStylistViewProps {
   onBack: () => void;
 }
 
-type ActivityType = "thought" | "decision" | "action";
-
-interface Activity {
-  id: string;
-  type: ActivityType;
-  text: string;
-  timestamp: number;
-}
-
 export function LiveStylistView({ onBack }: LiveStylistViewProps) {
-  const gemini = useGeminiLive();
-  const venice = useVeniceLive();
-  const { context } = useMiniApp();
+  const session = useLiveSession();
   const { isConnected: isWalletConnected } = useAccount();
+  const cartItemCount = useCartStore((s) => s.itemCount());
+  const openCart = useCartStore((s) => s.openCart);
+  const [showTipModal, setShowTipModal] = React.useState(false);
+  const [showCheckout, setShowCheckout] = React.useState(false);
+  const [showInstructions, setShowInstructions] = React.useState(true);
 
-  const [selectedProvider, setSelectedProvider] = useState<AIProvider | null>(
-    null,
-  );
-  const [activities, setActivities] = useState<Activity[]>([]);
-
-  const [captures, setCaptures] = useState<CaptureOption[]>([]);
-  const [selectedCaptureIndex, setSelectedCaptureIndex] = useState<number>(0);
-  const [finalAdvice, setFinalAdvice] = useState<string>("");
-  const [uploadedData, setUploadedData] = useState<{
-    url: string;
-    ipfsUrl: string;
-    ipfsCid: string;
-  } | null>(null);
-  const [isCapturing, setIsCapturing] = useState(false);
-  const [showFlash, setShowFlash] = useState(false);
-  const [showInstructions, setShowInstructions] = useState(true);
-  const [terminalExpanded, setTerminalExpanded] = useState(false);
-  const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
-  const [countdown, setCountdown] = useState<number | null>(null);
-  const [sessionGoal, setSessionGoal] = useState<
-    "event" | "daily" | "critique" | null
-  >(null);
-  const [userApiKey, setUserApiKey] = useState("");
-  const [showByokInput, setShowByokInput] = useState(false);
-  const [showSummary, setShowSummary] = useState(false);
-  const [geminiPaymentToken, setGeminiPaymentToken] = useState<string | null>(
-    null,
-  );
-  const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
-  const [initStep, setInitStep] = useState<string>("connecting");
-  const [showTipModal, setShowTipModal] = useState(false);
-  const [showCheckout, setShowCheckout] = useState(false);
-
-  const addItemToCart = useCartStore((s) => s.addItem);
-
-  // Agent approval hook
   const {
-    currentApproval,
-    isModalOpen: isApprovalModalOpen,
-    setIsModalOpen: setIsApprovalModalOpen,
-    approveRequest,
-    rejectRequest,
-  } = useAgentApproval();
-
-  // Agent suggestions hook
-  const {
-    suggestions,
-    currentSuggestion,
-    acceptSuggestion,
-    rejectSuggestion,
-    createSuggestion,
-    dismissSuggestion,
-  } = useAgentSuggestions();
-
-  // Track whether we've already created a mint suggestion for this session score
-  const mintSuggestionCreatedRef = useRef(false);
-
-  // Smart suggestion gating
-  const lastSuggestionTimeRef = useRef(0);
-  const suggestedItemTypesRef = useRef<Set<string>>(new Set());
-  const sessionStartTimeRef = useRef(0);
-
-  // Use the appropriate provider based on selection
-  const activeProvider = selectedProvider === "venice" ? venice : gemini;
-  const {
+    selectedProvider,
+    setSelectedProvider,
+    sessionGoal,
+    setSessionGoal,
+    initStep,
+    setInitStep,
+    showSummary,
+    setShowSummary,
+    finalAdvice,
     isConnected,
     isInitializing,
     error,
     videoRef,
     startSession,
     stopSession,
-    transcript,
-    aiResponse: liveAiResponse,
+    handleFinish,
     reasoning,
     agentEvents,
-  } = activeProvider;
+    sessionSummary,
+    positionStatus,
+    captures,
+    selectedCaptureIndex,
+    setSelectedCaptureIndex,
+    isCapturing,
+    showFlash,
+    countdown,
+    handleCapture,
+    startTimerCapture,
+    hasCaptures,
+    selectedCapture,
+    activities,
+    coachingBadges,
+    terminalExpanded,
+    setTerminalExpanded,
+    isVoiceEnabled,
+    setIsVoiceEnabled,
+    userApiKey,
+    setUserApiKey,
+    showByokInput,
+    setShowByokInput,
+    geminiPaymentToken,
+    setGeminiPaymentToken,
+    showPaymentSuccess,
+    setShowPaymentSuccess,
+    uploadedData,
+    setUploadedData,
+    suggestions,
+    currentSuggestion,
+    handleAcceptSuggestion,
+    rejectSuggestion,
+    dismissSuggestion,
+    currentApproval,
+    isApprovalModalOpen,
+    setIsApprovalModalOpen,
+    approveRequest,
+    rejectRequest,
+  } = session;
 
-  // Mark session start for phase-aware gating
-  useEffect(() => {
-    if (isConnected && sessionStartTimeRef.current === 0) {
-      sessionStartTimeRef.current = Date.now();
-    }
-    if (!isConnected) {
-      sessionStartTimeRef.current = 0;
-      suggestedItemTypesRef.current.clear();
-      lastSuggestionTimeRef.current = 0;
-      mintSuggestionCreatedRef.current = false;
-      recommendationsFetchedRef.current = false;
-    }
-  }, [isConnected]);
-
-  const SUGGESTION_COOLDOWN_MS = 30_000;
-  const SESSION_WARMUP_MS = 15_000;
-
-  const canCreateSuggestion = useCallback((itemType: string) => {
-    const now = Date.now();
-    const elapsed = now - lastSuggestionTimeRef.current;
-    const sessionAge = now - sessionStartTimeRef.current;
-
-    if (elapsed < SUGGESTION_COOLDOWN_MS) return false;
-    if (sessionAge < SESSION_WARMUP_MS) return false;
-    if (suggestedItemTypesRef.current.has(itemType)) return false;
-
-    lastSuggestionTimeRef.current = now;
-    suggestedItemTypesRef.current.add(itemType);
-    return true;
-  }, []);
-
-  // Derive a session summary from reasoning + AI responses
-  const sessionSummary = useMemo(() => {
-    if (reasoning.length === 0 && !finalAdvice) return null;
-
-    const allText = [...reasoning, finalAdvice]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-    const positives = [
-      "good",
-      "great",
-      "sharp",
-      "excellent",
-      "love",
-      "perfect",
-      "solid",
-      "working",
-      "flattering",
-      "on point",
-      "elevate",
-      "strong",
-    ];
-    const negatives = [
-      "avoid",
-      "not working",
-      "clash",
-      "off",
-      "wrong",
-      "too tight",
-      "too loose",
-      "mismatch",
-      "distract",
-      "overpower",
-    ];
-    const topics: string[] = [];
-
-    if (/color|palette|tone|shade|hue|coordination/.test(allText))
-      topics.push("Color Harmony");
-    if (/fit|drape|silhouette|proportion|shape|tailor/.test(allText))
-      topics.push("Fit & Proportion");
-    if (/accessory|jewelry|watch|belt|bag|shoe/.test(allText))
-      topics.push("Accessories");
-    if (/texture|fabric|material/.test(allText))
-      topics.push("Fabric & Texture");
-    if (/posture|stance|pose|angle/.test(allText))
-      topics.push("Posture & Pose");
-    if (/event|occasion|formal|casual|dress code/.test(allText))
-      topics.push("Occasion Match");
-    if (/layer|outerwear|cardigan|jacket/.test(allText))
-      topics.push("Layering");
-
-    const isCritique = sessionGoal === "critique";
-    const posCount = positives.filter((p) => allText.includes(p)).length;
-    const negCount = negatives.filter((n) => allText.includes(n)).length;
-    const total = posCount + negCount;
-    // Base score 7, adjusted by sentiment.
-    // Critique mode is harsher (lower base).
-    const base = isCritique ? 5 : 7;
-    const sentimentBonus =
-      total === 0 ? 0 : (posCount / total) * 3 - (negCount / total) * 2;
-
-    const score = Math.min(10, Math.max(1, Math.round(base + sentimentBonus)));
-
-    const takeaways = reasoning
-      .slice(0, 5)
-      .map((r) => r.replace(/^["\s]+|["\s]+$/g, ""))
-      .filter((r) => r.length > 12 && r.length < 120);
-
-    return { score, topics: topics.slice(0, 4), takeaways };
-  }, [reasoning, finalAdvice, sessionGoal]);
-
-  // Accept suggestion handler — adds purchase items to cart
-  const handleAcceptSuggestion = useCallback(
-    async (id: string) => {
-      await acceptSuggestion(id);
-      // If it's a purchase suggestion, try to add the best matching product to cart
-      if (currentSuggestion?.actionType === "purchase") {
-        const desc = currentSuggestion.description.toLowerCase();
-        const matched = CANVAS_ITEMS.find(
-          (item) =>
-            desc.includes(item.name.toLowerCase()) ||
-            desc.includes(item.slug.toLowerCase()) ||
-            desc.includes(item.category.toLowerCase()),
-        );
-        if (matched) {
-          addItemToCart(matched);
-        }
-      }
-    },
-    [acceptSuggestion, currentSuggestion, addItemToCart],
-  );
-
-  // Create mint suggestion when score is elite
-  useEffect(() => {
-    if (
-      sessionSummary &&
-      sessionSummary.score >= 8 &&
-      isConnected &&
-      !mintSuggestionCreatedRef.current
-    ) {
-      mintSuggestionCreatedRef.current = true;
-      createSuggestion({
-        actionType: "mint" as ActionType,
-        amount: "0.5 cUSD",
-        description: `Style Score is Elite (${sessionSummary.score}/10). Mint this Proof of Style to Celo?`,
-      }).catch((err) =>
-        console.error("Failed to create mint suggestion:", err),
-      );
-    }
-  }, [sessionSummary, isConnected, createSuggestion]);
-
-  // Create purchase suggestion when AI reasoning mentions specific items
-  useEffect(() => {
-    if (!isConnected || reasoning.length === 0) return;
-    const latest = (reasoning[0] || "").toLowerCase();
-
-    const itemKeywords: Record<string, string> = {
-      shirt: "shirt",
-      jacket: "jacket",
-      shoe: "shoe",
-      sneaker: "shoe",
-      bag: "bag",
-      accessory: "accessory",
-      dress: "dress",
-      coat: "coat",
-      trouser: "trouser",
-      denim: "denim",
-    };
-
-    // Detect when AI recommends a specific purchase
-    const isRecommendation =
-      latest.includes("recommend") || latest.includes("suggest");
-    if (!isRecommendation) return;
-
-    const matchedType = Object.entries(itemKeywords).find(([keyword]) =>
-      latest.includes(keyword),
-    );
-    if (!matchedType) return;
-
-    const [, itemType] = matchedType;
-    if (!canCreateSuggestion(itemType)) return;
-
-    createSuggestion({
-      actionType: "purchase" as ActionType,
-      amount: "< 5 cUSD",
-      description:
-        reasoning[0]?.slice(0, 100) || "AI recommends this item for your look",
-    }).catch(() => {});
-  }, [reasoning, isConnected, createSuggestion, canCreateSuggestion]);
-
-  // Fetch personalized recommendations after warmup and create suggestion
-  const recommendationsFetchedRef = useRef(false);
-  useEffect(() => {
-    if (!isConnected || recommendationsFetchedRef.current) return;
-
-    const sessionAge = Date.now() - sessionStartTimeRef.current;
-    if (sessionAge < SUGGESTION_COOLDOWN_MS * 2) return; // Wait 60s into session
-
-    recommendationsFetchedRef.current = true;
-
-    fetch("/api/agent/style?limit=1")
-      .then((res) => res.json())
-      .then((data) => {
-        const rec = data.recommendations?.[0];
-        if (!rec) return;
-        if (!canCreateSuggestion(rec.category)) return;
-
-        createSuggestion({
-          actionType: "purchase" as ActionType,
-          amount: `$${rec.price} cUSD`,
-          description: `Based on your style: ${rec.name} — ${rec.description}`,
-        }).catch(() => {});
-      })
-      .catch(() => {});
-  }, [isConnected, createSuggestion, canCreateSuggestion]);
-
-  const isCritique = sessionGoal === "critique";
-
-  // Position detection derived from reasoning
-  const positionStatus = useMemo(() => {
-    if (!isConnected || reasoning.length === 0) return "analyzing";
-    const latest = (reasoning[0] || "").toLowerCase();
-    if (
-      latest.includes("step back") ||
-      latest.includes("too close") ||
-      latest.includes("positioning")
-    )
-      return "bad";
-    if (
-      latest.includes("good") ||
-      latest.includes("ready") ||
-      latest.includes("silhouette") ||
-      latest.includes("perfect")
-    )
-      return "good";
-    return "analyzing";
-  }, [isConnected, reasoning]);
-
-  const GOAL_OPTIONS = [
-    {
-      id: "event" as const,
-      label: "Event Styling",
-      desc: "Prepare for a special occasion — formal, party, or date night",
-      icon: Calendar,
-      color: "from-purple-500 to-indigo-600",
-    },
-    {
-      id: "daily" as const,
-      label: "Daily Outfit Check",
-      desc: "Quick review of your everyday look for fit and coordination",
-      icon: Sun,
-      color: "from-amber-500 to-orange-600",
-    },
-    {
-      id: "critique" as const,
-      label: "Honest Critique",
-      desc: "No sugarcoating — real talk on what works and what doesn't",
-      icon: MessageSquareWarning,
-      color: "from-rose-500 to-red-600",
-    },
-  ];
-
-  const hasCaptures = captures.length > 0;
-  const selectedCapture = hasCaptures ? captures[selectedCaptureIndex] : null;
-
-  // Coaching overlays — derived from reasoning keywords
-  const [coachingBadges, setCoachingBadges] = useState<
-    Array<{
-      id: string;
-      label: string;
-      icon: typeof CheckCircle;
-      color: string;
-    }>
-  >([]);
-
-  useEffect(() => {
-    if (!isConnected || reasoning.length === 0) {
-      setCoachingBadges([]);
-      return;
-    }
-    const latest = (reasoning[0] || "").toLowerCase();
-    const badges: typeof coachingBadges = [];
-
-    if (/color|palette|tone|shade|hue/.test(latest)) {
-      badges.push({
-        id: "color",
-        label: "Color Check",
-        icon: Palette,
-        color: "from-violet-500/80 to-purple-600/80",
-      });
-    }
-    if (/fit|drape|silhouette|proportion|shape/.test(latest)) {
-      badges.push({
-        id: "fit",
-        label: "Fit Analysis",
-        icon: Ruler,
-        color: "from-emerald-500/80 to-green-600/80",
-      });
-    }
-    if (/good|great|sharp|excellent|love|perfect|solid|working/.test(latest)) {
-      badges.push({
-        id: "approval",
-        label: "Looking Good",
-        icon: CheckCircle,
-        color: "from-sky-500/80 to-blue-600/80",
-      });
-    }
-    if (
-      /scan|analyz|check|evaluat|review/.test(latest) &&
-      !badges.some((b) => b.id === "approval")
-    ) {
-      badges.push({
-        id: "scanning",
-        label: "Scanning…",
-        icon: Eye,
-        color: "from-amber-500/80 to-orange-600/80",
-      });
-    }
-
-    setCoachingBadges(badges);
-  }, [isConnected, reasoning]);
-
-  useEffect(() => {
-    if (agentEvents.length > 0) {
-      const latest = agentEvents[0];
-      if (!latest) return;
-      setActivities((prev) =>
-        [
-          {
-            id: `protocol-${latest.id}`,
-            type: "action" as ActivityType,
-            text: String(latest.text ?? ""),
-            timestamp: Number(latest.id) || Date.now(),
-          },
-          ...prev,
-        ].slice(0, 10),
-      );
-    }
-  }, [agentEvents]);
-
-  useEffect(() => {
-    if (reasoning.length > 0) {
-      const latest = reasoning[0] ?? "";
-      if (!latest) return;
-      const type: ActivityType =
-        latest.toLowerCase().includes("analyzing") ||
-        latest.toLowerCase().includes("checking")
-          ? "thought"
-          : latest.toLowerCase().includes("perfect") ||
-              latest.toLowerCase().includes("locked")
-            ? "decision"
-            : "thought";
-
-      setActivities(
-        (prev) =>
-          [
-            {
-              id: Math.random().toString(36).substr(2, 9),
-              type,
-              text: latest,
-              timestamp: Date.now(),
-            },
-            ...prev,
-          ].slice(0, 10) as Activity[],
-      );
-    }
-  }, [reasoning]);
-
-  useEffect(() => {
-    if (liveAiResponse?.trim() && isVoiceEnabled) {
-      const utterance = new SpeechSynthesisUtterance(liveAiResponse);
-      utterance.rate = 1.0;
-      utterance.pitch = 1.0;
-      window.speechSynthesis.speak(utterance);
-    }
-  }, [liveAiResponse, isVoiceEnabled]);
-
-  const handleCapture = useCallback(async () => {
-    if (!videoRef.current || isCapturing) return;
-
-    try {
-      setIsCapturing(true);
-      setShowFlash(true);
-      setTimeout(() => setShowFlash(false), 150);
-
-      // Pulse haptic if on Farcaster
-      try {
-        sdk.actions.ready();
-      } catch {}
-
-      const canvas = document.createElement("canvas");
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.drawImage(videoRef.current, 0, 0);
-        const image = canvas.toDataURL("image/jpeg", 0.82);
-
-        const newCapture = {
-          image,
-          comment: reasoning[0] || "Analyzing style selection…",
-        };
-
-        setCaptures((prev) => [...prev, newCapture]);
-        setSelectedCaptureIndex(captures.length);
-      }
-    } catch (err) {
-      console.error("Capture error:", err);
-    } finally {
-      setIsCapturing(false);
-    }
-  }, [isCapturing, reasoning, videoRef, captures.length]);
-
-  const startTimerCapture = useCallback(() => {
-    if (countdown !== null) return;
-    setCountdown(10);
-
-    // Play countdown sound if possible
-    try {
-      const ctx = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
-      const playBeep = async (freq: number) => {
-        if (ctx.state === "suspended") await ctx.resume();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.frequency.setValueAtTime(freq, ctx.currentTime);
-        gain.gain.setValueAtTime(0.05, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.1);
-      };
-
-      let count = 10;
-      const interval = setInterval(() => {
-        count--;
-        if (count > 0) {
-          if (count <= 3)
-            playBeep(880); // Speed up beeps for last 3s
-          else if (count % 2 === 0) playBeep(440);
-          setCountdown(count);
-        } else {
-          clearInterval(interval);
-          playBeep(1760);
-          setCountdown(null);
-          handleCapture();
-        }
-      }, 1000);
-      playBeep(440); // Initial beep
-    } catch {
-      let count = 10;
-      const interval = setInterval(() => {
-        count--;
-        if (count > 0) setCountdown(count);
-        else {
-          clearInterval(interval);
-          setCountdown(null);
-          handleCapture();
-        }
-      }, 1000);
-    }
-  }, [countdown, handleCapture]);
-
-  const handleFinish = async () => {
-    setFinalAdvice(
-      liveAiResponse ||
-        "Great session! You've got a solid handle on your personal style.",
-    );
-    setShowSummary(true);
-    stopSession();
-  };
-
-  const handleShare = async () => {
-    if (!selectedCapture || !sessionSummary) return;
-
-    try {
-      const text = `Check out my OnPoint Style Score: ${sessionSummary.score}/10! 👗✨\n\nAnalyzed: ${sessionSummary.topics.join(", ")}\n\nTakeaway: ${sessionSummary.takeaways[0] || "Found my perfect look!"}\n\nMinted on Celo via @onpoint`;
-
-      const shareUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(window.location.host)}`;
-      window.open(shareUrl, "_blank");
-    } catch (err) {
-      console.error("Share error:", err);
-    }
-  };
-
+  // ── Session Summary Screen ──
   if (showSummary && sessionSummary) {
     return (
       <div className="flex flex-col h-full bg-slate-950 overflow-y-auto pb-20">
@@ -721,24 +193,26 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           </div>
 
           {/* Analyzed Topics */}
-          <div className="space-y-4">
-            <h2 className="text-white/40 text-[10px] font-bold uppercase tracking-widest px-1">
-              Infrastructure Focus
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {sessionSummary.topics.map((topic, i) => (
-                <div
-                  key={i}
-                  className="px-3 py-2 rounded-xl bg-indigo-500/5 border border-indigo-500/10 flex items-center gap-2"
-                >
-                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-500/40" />
-                  <span className="text-xs text-indigo-300/80">{topic}</span>
-                </div>
-              ))}
+          {sessionSummary.topics.length > 0 && (
+            <div className="space-y-4">
+              <h2 className="text-white/40 text-[10px] font-bold uppercase tracking-widest px-1">
+                Infrastructure Focus
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {sessionSummary.topics.map((topic, i) => (
+                  <div
+                    key={i}
+                    className="px-3 py-2 rounded-xl bg-indigo-500/5 border border-indigo-500/10 flex items-center gap-2"
+                  >
+                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500/40" />
+                    <span className="text-xs text-indigo-300/80">{topic}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Photo Gallery Wrap */}
+          {/* Photo Gallery */}
           {hasCaptures && (
             <div className="space-y-4">
               <h2 className="text-white/40 text-[10px] font-bold uppercase tracking-widest px-1">
@@ -774,7 +248,6 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
           {/* Action Buttons */}
           <div className="flex flex-col gap-3 pt-4">
-            {/* Suggestion History */}
             <SuggestionHistoryPanel suggestions={suggestions} />
 
             {selectedCapture && (
@@ -797,32 +270,31 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             )}
             <Button
               className="w-full bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-full py-6 text-lg font-bold gap-2"
-              onClick={handleShare}
+              onClick={() => {
+                if (!selectedCapture || !sessionSummary) return;
+                const text = `Check out my OnPoint Style Score: ${sessionSummary.score}/10! 👗✨\n\nAnalyzed: ${sessionSummary.topics.join(", ")}\n\nTakeaway: ${sessionSummary.takeaways[0] || "Found my perfect look!"}\n\nMinted on Celo via @onpoint`;
+                const shareUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(window.location.host)}`;
+                window.open(shareUrl, "_blank");
+              }}
             >
               Share to Warpcast
             </Button>
 
-            {/* Agent Status Card - Compact View */}
             <AgentStatus
               compact
               showActions
               onTipClick={() => setShowTipModal(true)}
             />
-
-            {/* Agent Action Card - Full Featured */}
             <AgentActionCard
               score={sessionSummary?.score}
               onMintClick={selectedCapture ? () => {} : undefined}
             />
           </div>
 
-          {/* Tip Modal */}
           <TipModal
             isOpen={showTipModal}
             onClose={() => setShowTipModal(false)}
           />
-
-          {/* Agent Approval Modal */}
           <AgentApprovalModal
             isOpen={isApprovalModalOpen}
             onClose={() => setIsApprovalModalOpen(false)}
@@ -835,7 +307,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     );
   }
 
-  // Provider selection screen
+  // ── Provider Selection Screen ──
   if (!selectedProvider) {
     return (
       <div className="flex flex-col h-full bg-slate-950 p-6">
@@ -850,7 +322,6 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           </div>
 
           <div className="w-full space-y-4">
-            {/* Venice AI - Free */}
             <button
               onClick={() => {
                 trackProviderSelected({ provider: "venice" });
@@ -879,7 +350,6 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               </div>
             </button>
 
-            {/* Gemini Live - Premium */}
             <button
               onClick={() => {
                 trackProviderSelected({ provider: "gemini" });
@@ -928,36 +398,32 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     );
   }
 
-  // Goal selection screen (only shown after provider is selected)
+  // ── Goal Selection Screen ──
   if (!sessionGoal) {
     return (
       <div className="flex flex-col h-full bg-slate-950 p-6">
         <div className="flex-1 flex flex-col justify-center items-center text-center space-y-8 max-w-sm mx-auto">
           <div className="space-y-2">
             <div className="flex items-center justify-center gap-2 mb-4">
-              <span
-                className={`px-2 py-1 text-[10px] font-bold rounded-full ${
+              <div
+                className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                   selectedProvider === "venice"
-                    ? "bg-emerald-500/20 text-emerald-400"
-                    : "bg-indigo-500/20 text-indigo-400"
+                    ? "bg-emerald-500/20"
+                    : "bg-indigo-500/20"
                 }`}
               >
-                {selectedProvider === "venice"
-                  ? "Venice AI (Free)"
-                  : "Gemini Live (Premium)"}
-              </span>
-              <button
-                onClick={() => setSelectedProvider(null)}
-                className="text-[10px] text-slate-500 hover:text-slate-300 underline"
-              >
-                Change
-              </button>
+                {selectedProvider === "venice" ? (
+                  <Zap className="w-5 h-5 text-emerald-400" />
+                ) : (
+                  <Crown className="w-5 h-5 text-indigo-400" />
+                )}
+              </div>
             </div>
-            <h1 className="text-3xl font-black text-white tracking-tighter italic">
-              LIVE STYLIST
+            <h1 className="text-2xl font-black text-white tracking-tighter italic">
+              SESSION GOAL
             </h1>
             <p className="text-slate-400 text-sm">
-              Select your session goal to begin style analysis.
+              What are you styling for today?
             </p>
           </div>
 
@@ -966,105 +432,72 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               <button
                 key={goal.id}
                 onClick={() => setSessionGoal(goal.id)}
-                className="w-full text-left p-5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all hover:border-indigo-500/30 group"
+                className="w-full text-left p-5 rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] hover:from-white/10 hover:to-white/5 border border-white/10 transition-all group"
               >
                 <div className="flex items-center gap-4">
                   <div
-                    className={`w-12 h-12 rounded-xl bg-gradient-to-br ${goal.color} flex items-center justify-center shrink-0`}
+                    className={`w-10 h-10 rounded-xl bg-gradient-to-br ${goal.color} flex items-center justify-center shrink-0`}
                   >
-                    <goal.icon className="w-6 h-6 text-white" />
+                    <goal.icon className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-white group-hover:text-indigo-300 transition-colors">
+                    <h3 className="font-bold text-white group-hover:text-indigo-300 transition-colors text-sm">
                       {goal.label}
                     </h3>
-                    <p className="text-xs text-slate-400 line-clamp-1">
-                      {goal.desc}
-                    </p>
+                    <p className="text-xs text-slate-500 mt-0.5">{goal.desc}</p>
                   </div>
                 </div>
               </button>
             ))}
           </div>
 
-          {/* Gemini options: Payment or BYOK */}
+          {/* Gemini Payment Flow */}
           {selectedProvider === "gemini" && (
-            <div className="w-full space-y-4 pt-4">
-              {/* Payment success message */}
-              <AnimatePresence>
-                {showPaymentSuccess && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="p-4 bg-emerald-500/10 rounded-2xl border border-emerald-500/20"
-                  >
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="w-5 h-5 text-emerald-400" />
-                      <p className="text-emerald-300 text-sm font-medium">
-                        Gemini Live unlocked! Select a session goal to start.
-                      </p>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Payment button - show if no BYOK and no payment yet */}
-              {!showByokInput && !geminiPaymentToken && (
-                <div className="space-y-3">
+            <div className="w-full space-y-3">
+              {!geminiPaymentToken && !showByokInput && (
+                <>
                   <GeminiLivePaymentButton
-                    onSuccess={(token) => {
+                    onSuccess={(token: string) => {
                       setGeminiPaymentToken(token);
                       setShowPaymentSuccess(true);
                       setTimeout(() => setShowPaymentSuccess(false), 3000);
                     }}
-                    onError={(err) => console.error("Payment error:", err)}
                   />
+                  <button
+                    onClick={() => setShowByokInput(true)}
+                    className="w-full text-center text-xs text-slate-500 hover:text-slate-300 transition-colors"
+                  >
+                    Or use your own API key →
+                  </button>
+                </>
+              )}
+
+              {showByokInput && (
+                <div className="w-full space-y-2">
+                  <input
+                    type="password"
+                    value={userApiKey}
+                    onChange={(e) => setUserApiKey(e.target.value)}
+                    placeholder="Enter Gemini API key"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
+                  />
+                  <p className="text-[10px] text-slate-500">
+                    Your key is stored locally and never sent to our servers.
+                  </p>
                 </div>
               )}
 
-              {/* BYOK toggle */}
-              <div className="flex items-center justify-center">
-                <div className="h-px bg-white/10 flex-1" />
-                <span className="px-3 text-[10px] text-slate-500 uppercase">
-                  or
-                </span>
-                <div className="h-px bg-white/10 flex-1" />
-              </div>
-
-              <button
-                onClick={() => setShowByokInput(!showByokInput)}
-                className="text-indigo-400 text-xs font-bold uppercase tracking-widest"
-              >
-                {showByokInput ? "Cancel BYOK" : "Use My Own Gemini Key (BYOK)"}
-              </button>
-
-              <AnimatePresence>
-                {showByokInput && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="space-y-3"
-                  >
-                    <input
-                      type="password"
-                      placeholder="Enter Gemini API Key"
-                      value={userApiKey}
-                      onChange={(e) => setUserApiKey(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500"
-                    />
-                    <p className="text-[10px] text-slate-500">
-                      Your key is used locally and never stored on our servers.
-                    </p>
-                    {userApiKey && (
-                      <p className="text-[10px] text-emerald-400">
-                        Using your own API key — no payment required.
-                      </p>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {showPaymentSuccess && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-center"
+                >
+                  <p className="text-emerald-400 text-sm font-bold">
+                    Payment verified
+                  </p>
+                </motion.div>
+              )}
             </div>
           )}
         </div>
@@ -1080,10 +513,11 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     );
   }
 
+  // ── Main Live Session View ──
   return (
     <div className="flex flex-col h-full bg-black overflow-hidden relative font-sans">
-      {/* Top Ticker reasoning */}
-      <div className="absolute top-0 inset-x-0 z-[60] p-4 pointer-events-none">
+      {/* Top Ticker — Neural Stylist Reasoning */}
+      <div className="absolute top-0 inset-x-0 z-[30] p-4 pointer-events-none">
         <motion.div
           initial={{ y: -50 }}
           animate={{ y: 0 }}
@@ -1175,106 +609,68 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
       {/* Main Viewport */}
       <div className="flex-1 relative bg-slate-900 overflow-hidden">
+        {/* Init Loader */}
         {isInitializing && (
-          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-sm">
+          <div className="absolute inset-0 z-[70] flex flex-col items-center justify-center bg-black/90 backdrop-blur-sm">
             <div className="relative">
               <div className="w-20 h-20 rounded-full border-t-2 border-indigo-500 animate-spin" />
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-12 h-12 rounded-full border-b-2 border-indigo-400 animate-spin-slow" />
               </div>
             </div>
-
-            {/* Step-by-step progress indicator */}
             <div className="mt-8 w-64 space-y-4">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                    initStep === "connecting"
-                      ? "bg-indigo-500 animate-pulse"
-                      : initStep !== "error"
-                        ? "bg-emerald-500"
-                        : "bg-slate-600"
-                  }`}
-                >
-                  {initStep !== "connecting" && initStep !== "error" ? (
-                    <CheckCircle className="w-4 h-4 text-white" />
-                  ) : initStep === "connecting" ? (
-                    <div className="w-2 h-2 bg-white rounded-full" />
-                  ) : null}
-                </div>
-                <span
-                  className={`text-xs ${initStep === "connecting" ? "text-indigo-400" : "text-emerald-400"}`}
-                >
-                  Connecting to camera...
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                    initStep === "authenticating"
-                      ? "bg-indigo-500 animate-pulse"
-                      : initStep === "ready" || initStep === "starting"
-                        ? "bg-emerald-500"
-                        : "bg-slate-600"
-                  }`}
-                >
-                  {initStep === "ready" || initStep === "starting" ? (
-                    <CheckCircle className="w-4 h-4 text-white" />
-                  ) : initStep === "authenticating" ? (
-                    <div className="w-2 h-2 bg-white rounded-full" />
-                  ) : null}
-                </div>
-                <span
-                  className={`text-xs ${
-                    initStep === "authenticating"
-                      ? "text-indigo-400"
-                      : initStep === "ready" || initStep === "starting"
-                        ? "text-emerald-400"
-                        : "text-slate-500"
-                  }`}
-                >
-                  Authenticating with{" "}
-                  {selectedProvider === "venice" ? "Venice AI" : "Gemini"}...
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                    initStep === "starting"
-                      ? "bg-indigo-500 animate-pulse"
-                      : initStep === "ready"
-                        ? "bg-emerald-500"
-                        : "bg-slate-600"
-                  }`}
-                >
-                  {initStep === "ready" ? (
-                    <CheckCircle className="w-4 h-4 text-white" />
-                  ) : initStep === "starting" ? (
-                    <div className="w-2 h-2 bg-white rounded-full" />
-                  ) : null}
-                </div>
-                <span
-                  className={`text-xs ${
-                    initStep === "starting"
-                      ? "text-indigo-400"
-                      : initStep === "ready"
-                        ? "text-emerald-400"
-                        : "text-slate-500"
-                  }`}
-                >
-                  Starting AI session...
-                </span>
-              </div>
+              {["connecting", "authenticating", "starting"].map((step, i) => {
+                const labels = [
+                  "Connecting to camera...",
+                  `Authenticating with ${selectedProvider === "venice" ? "Venice AI" : "Gemini"}...`,
+                  "Starting AI session...",
+                ];
+                const isCurrent =
+                  initStep === step ||
+                  (step === "connecting" &&
+                    initStep !== "authenticating" &&
+                    initStep !== "starting" &&
+                    initStep !== "ready" &&
+                    initStep !== "error");
+                const isDone =
+                  (step === "connecting" &&
+                    (initStep === "authenticating" ||
+                      initStep === "starting" ||
+                      initStep === "ready")) ||
+                  (step === "authenticating" &&
+                    (initStep === "starting" || initStep === "ready")) ||
+                  (step === "starting" && initStep === "ready");
+                return (
+                  <div key={step} className="flex items-center gap-3">
+                    <div
+                      className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                        isCurrent
+                          ? "bg-indigo-500 animate-pulse"
+                          : isDone
+                            ? "bg-emerald-500"
+                            : "bg-slate-600"
+                      }`}
+                    >
+                      {isDone ? (
+                        <CheckCircle className="w-4 h-4 text-white" />
+                      ) : isCurrent ? (
+                        <div className="w-2 h-2 bg-white rounded-full" />
+                      ) : null}
+                    </div>
+                    <span
+                      className={`text-xs ${isCurrent ? "text-indigo-400" : isDone ? "text-emerald-400" : "text-slate-500"}`}
+                    >
+                      {labels[i]}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-
             <p className="mt-8 text-indigo-400 font-mono text-[10px] uppercase tracking-[0.3em] animate-pulse">
               {selectedProvider === "venice"
                 ? "Initializing Style Scanner (Free)"
                 : "Initializing Live Agent (Premium)"}
             </p>
-
             {selectedProvider === "gemini" && (
               <p className="mt-2 text-amber-400/60 text-[10px]">
                 Real-time streaming enabled
@@ -1283,14 +679,13 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           </div>
         )}
 
+        {/* Error Screen */}
         {error ? (
-          <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-rose-950/20 backdrop-blur-3xl">
+          <div className="absolute inset-0 z-[70] flex items-center justify-center p-6 bg-rose-950/20 backdrop-blur-3xl">
             <div className="bg-slate-900/90 border border-rose-500/30 p-8 rounded-3xl max-w-sm w-full shadow-2xl">
               <div className="w-16 h-16 rounded-2xl bg-rose-500/20 flex items-center justify-center mb-6 mx-auto">
                 <AlertCircle className="w-8 h-8 text-rose-500" />
               </div>
-
-              {/* Smart error title based on error type */}
               <h2 className="text-xl font-bold text-white text-center mb-2">
                 {error.toLowerCase().includes("rate limit")
                   ? "Session Limit Reached"
@@ -1302,17 +697,13 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                       ? "Payment Issue"
                       : "Connection Issue"}
               </h2>
-
-              {/* Smart error message with fallback suggestions */}
               <div className="text-center mb-8 space-y-3">
                 <p className="text-slate-400 text-sm">{error}</p>
-
-                {/* Provider-specific fallback suggestions */}
                 {selectedProvider === "venice" &&
                   error.toLowerCase().includes("rate limit") && (
                     <div className="p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
                       <p className="text-indigo-300 text-xs">
-                        💡 Upgrade to <strong>Gemini Live</strong> for unlimited
+                        Upgrade to <strong>Gemini Live</strong> for unlimited
                         sessions (0.5 CELO)
                       </p>
                       <Button
@@ -1328,26 +719,14 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                       </Button>
                     </div>
                   )}
-
                 {error.toLowerCase().includes("camera") && (
                   <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20">
                     <p className="text-amber-300 text-xs">
-                      Please allow camera access in your browser settings to use
-                      Live AR Stylist.
-                    </p>
-                  </div>
-                )}
-
-                {error.toLowerCase().includes("venice") && (
-                  <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
-                    <p className="text-emerald-300 text-xs">
-                      Venice AI is temporarily unavailable. Try again in a
-                      moment or switch to Gemini Live.
+                      Please allow camera access in your browser settings.
                     </p>
                   </div>
                 )}
               </div>
-
               <div className="flex flex-col gap-3">
                 <Button
                   className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-full font-bold"
@@ -1403,8 +782,8 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           </div>
         )}
 
-        {/* Agent Activity Trace (AG-UI Style) */}
-        <div className="absolute left-4 top-24 bottom-24 w-64 pointer-events-none hidden lg:flex flex-col gap-2 overflow-hidden">
+        {/* Agent Activity Trace — Desktop Only (z-30) */}
+        <div className="absolute left-4 top-24 bottom-24 w-64 pointer-events-none hidden lg:flex flex-col gap-2 overflow-hidden z-[30]">
           <AnimatePresence>
             {agentEvents.map((event, idx) => (
               <motion.div
@@ -1427,7 +806,8 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           </AnimatePresence>
         </div>
 
-        <div className="absolute right-4 top-24 bottom-24 w-64 pointer-events-none hidden lg:flex flex-col gap-2 overflow-hidden">
+        {/* Activities Panel — Desktop Only (z-30) */}
+        <div className="absolute right-4 top-24 bottom-24 w-64 pointer-events-none hidden lg:flex flex-col gap-2 overflow-hidden z-[30]">
           <AnimatePresence>
             {activities.map((activity, idx) => (
               <motion.div
@@ -1456,14 +836,14 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           </AnimatePresence>
         </div>
 
-        {/* Real-time Coaching Overlays */}
+        {/* Coaching Badges (z-40) — includes instruction toast merged in */}
         <AnimatePresence>
           {coachingBadges.length > 0 && (
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
-              className="absolute right-6 top-32 flex flex-col gap-2 z-40"
+              className="absolute right-6 top-32 flex flex-col gap-2 z-[40]"
             >
               {coachingBadges.map((badge) => (
                 <div
@@ -1480,146 +860,14 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           )}
         </AnimatePresence>
 
-        {/* Agent Suggestion Toast */}
-        <AnimatePresence>
-          {currentSuggestion && (
-            <AgentSuggestionToast
-              suggestion={currentSuggestion}
-              onAccept={handleAcceptSuggestion}
-              onReject={rejectSuggestion}
-              onDismiss={dismissSuggestion}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Captures Mini-Gallery */}
-        {hasCaptures && (
-          <div className="absolute left-6 bottom-32 z-40 flex flex-col gap-3">
-            <div className="flex -space-x-3">
-              {captures.slice(-3).map((cap, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ scale: 0, x: -20 }}
-                  animate={{ scale: 1, x: 0 }}
-                  className="w-12 h-16 rounded-lg border-2 border-white/10 overflow-hidden shadow-xl"
-                >
-                  <img
-                    src={cap.image}
-                    alt=""
-                    className="w-full h-full object-cover"
-                  />
-                </motion.div>
-              ))}
-              {captures.length > 3 && (
-                <div className="w-12 h-16 rounded-lg bg-indigo-600/80 border-2 border-white/20 backdrop-blur-md flex items-center justify-center font-bold text-white text-xs">
-                  +{captures.length - 3}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Floating Agent Status & Tip Button */}
-        {isConnected && (
-          <div className="absolute right-6 bottom-32 z-40 flex flex-col gap-2">
-            {/* Compact Agent Status */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex items-center gap-2 px-3 py-2 bg-slate-900/80 backdrop-blur-xl rounded-full border border-white/10 shadow-lg"
-            >
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                <Sparkles className="w-3 h-3 text-white" />
-              </div>
-              <span className="text-[10px] text-slate-300 font-medium">
-                AI Stylist Active
-              </span>
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            </motion.div>
-
-            {/* Tip Button */}
-            <motion.button
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-              onClick={() => setShowTipModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-500/20 to-orange-500/20 backdrop-blur-xl rounded-full border border-amber-500/30 hover:from-amber-500/30 hover:to-orange-500/30 transition-all group shadow-lg"
-            >
-              <Coins className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
-              <span className="text-[11px] text-amber-300 font-bold">
-                Tip Stylist
-              </span>
-            </motion.button>
-
-            {/* Cart Button */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <CartButton />
-            </motion.div>
-          </div>
-        )}
-
-        {/* Tip Modal */}
-        <TipModal
-          isOpen={showTipModal}
-          onClose={() => setShowTipModal(false)}
-        />
-
-        {/* Agent Approval Modal */}
-        <AgentApprovalModal
-          isOpen={isApprovalModalOpen}
-          onClose={() => setIsApprovalModalOpen(false)}
-          onApprove={approveRequest}
-          onReject={rejectRequest}
-          request={currentApproval}
-        />
-
-        {/* Cart & Checkout */}
-        <CartDrawer onCheckout={() => setShowCheckout(true)} />
-        <CheckoutModal
-          isOpen={showCheckout}
-          onClose={() => setShowCheckout(false)}
-        />
-
-        {/* Flash Overlay */}
-        <AnimatePresence>
-          {showFlash && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 z-50 bg-white"
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Countdown Overlay */}
-        <AnimatePresence>
-          {countdown !== null && (
-            <motion.div
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 2, opacity: 0 }}
-              className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none"
-            >
-              <div className="text-[12rem] font-black text-white italic drop-shadow-[0_0_50px_rgba(255,255,255,0.4)]">
-                {countdown}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Instruction Toast */}
+        {/* Instruction Toast — merged into coaching system, shows first 15s */}
         <AnimatePresence>
           {showInstructions && isConnected && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              className="absolute bottom-32 inset-x-0 flex justify-center z-40 px-6"
+              className="absolute bottom-32 inset-x-0 flex justify-center z-[40] px-6"
             >
               <div className="bg-slate-900/40 backdrop-blur-2xl border border-white/10 p-4 rounded-3xl flex items-center gap-4 max-w-sm w-full shadow-2xl">
                 <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 flex items-center justify-center shrink-0 border border-indigo-500/30">
@@ -1644,70 +892,211 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Auto-dismiss instruction toast after 15s */}
+        {showInstructions && isConnected && (
+          <AutoDismissTimer
+            ms={15_000}
+            onDismiss={() => setShowInstructions(false)}
+          />
+        )}
+
+        {/* Agent Suggestion Toast (z-50) */}
+        <AnimatePresence>
+          {currentSuggestion && (
+            <AgentSuggestionToast
+              suggestion={currentSuggestion}
+              onAccept={handleAcceptSuggestion}
+              onReject={rejectSuggestion}
+              onDismiss={dismissSuggestion}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Captures Mini-Gallery (z-40) */}
+        {hasCaptures && (
+          <div className="absolute left-6 bottom-32 z-[40] flex flex-col gap-3">
+            <div className="flex -space-x-3">
+              {captures.slice(-3).map((cap, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ scale: 0, x: -20 }}
+                  animate={{ scale: 1, x: 0 }}
+                  className="w-12 h-16 rounded-lg border-2 border-white/10 overflow-hidden shadow-xl"
+                >
+                  <img
+                    src={cap.image}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                </motion.div>
+              ))}
+              {captures.length > 3 && (
+                <div className="w-12 h-16 rounded-lg bg-indigo-600/80 border-2 border-white/20 backdrop-blur-md flex items-center justify-center font-bold text-white text-xs">
+                  +{captures.length - 3}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Floating Status — Desktop Only (z-50) */}
+        {isConnected && (
+          <div className="absolute right-6 bottom-32 z-[50] hidden sm:flex flex-col gap-2">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex items-center gap-2 px-3 py-2 bg-slate-900/80 backdrop-blur-xl rounded-full border border-white/10 shadow-lg"
+            >
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                <Sparkles className="w-3 h-3 text-white" />
+              </div>
+              <span className="text-[10px] text-slate-300 font-medium">
+                AI Stylist Active
+              </span>
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            </motion.div>
+
+            <motion.button
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              onClick={() => setShowTipModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-500/20 to-orange-500/20 backdrop-blur-xl rounded-full border border-amber-500/30 hover:from-amber-500/30 hover:to-orange-500/30 transition-all group shadow-lg"
+            >
+              <Coins className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
+              <span className="text-[11px] text-amber-300 font-bold">
+                Tip Stylist
+              </span>
+            </motion.button>
+          </div>
+        )}
+
+        {/* Modals (z-60) */}
+        <TipModal
+          isOpen={showTipModal}
+          onClose={() => setShowTipModal(false)}
+        />
+        <AgentApprovalModal
+          isOpen={isApprovalModalOpen}
+          onClose={() => setIsApprovalModalOpen(false)}
+          onApprove={approveRequest}
+          onReject={rejectRequest}
+          request={currentApproval}
+        />
+        <CartDrawer onCheckout={() => setShowCheckout(true)} />
+        <CheckoutModal
+          isOpen={showCheckout}
+          onClose={() => setShowCheckout(false)}
+        />
+
+        {/* Flash Overlay (z-70) */}
+        <AnimatePresence>
+          {showFlash && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-[70] bg-white"
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Countdown Overlay (z-70) */}
+        <AnimatePresence>
+          {countdown !== null && (
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 2, opacity: 0 }}
+              className="absolute inset-0 z-[70] flex items-center justify-center pointer-events-none"
+            >
+              <div className="text-[12rem] font-black text-white italic drop-shadow-[0_0_50px_rgba(255,255,255,0.4)]">
+                {countdown}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Control Bar */}
-      <div className="bg-slate-950 px-6 py-6 pb-10 flex items-center justify-around gap-4 border-t border-white/5 relative z-50 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
+      {/* Control Bar — Mobile-safe */}
+      <div
+        className="bg-slate-950 px-4 sm:px-6 py-4 sm:py-6 pb-6 sm:pb-10 flex items-center justify-around gap-2 sm:gap-4 border-t border-white/5 relative z-[50] shadow-[0_-20px_50px_rgba(0,0,0,0.5)]"
+        style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
+      >
         <Button
           variant="ghost"
           size="icon"
           onClick={() => stopSession()}
-          className="w-14 h-14 rounded-full bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 group"
+          className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 group"
         >
-          <PhoneOff className="w-6 h-6 text-rose-500 group-hover:scale-110 transition-transform" />
+          <PhoneOff className="w-5 h-5 sm:w-6 sm:h-6 text-rose-500 group-hover:scale-110 transition-transform" />
         </Button>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <Button
             size="icon"
             onClick={startTimerCapture}
-            className={`w-18 h-18 rounded-full transition-all duration-300 shadow-xl ${
+            className={`w-14 h-14 sm:w-18 sm:h-18 rounded-full transition-all duration-300 shadow-xl ${
               countdown !== null
                 ? "bg-amber-600 scale-95 shadow-amber-500/20"
                 : "bg-white hover:bg-slate-200 shadow-white/10"
             }`}
           >
             <Clock
-              className={`w-8 h-8 ${countdown !== null ? "text-white" : "text-slate-950"}`}
+              className={`w-6 h-6 sm:w-8 sm:h-8 ${countdown !== null ? "text-white" : "text-slate-950"}`}
             />
           </Button>
 
           <Button
             size="icon"
             onClick={handleCapture}
-            className="w-18 h-18 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white shadow-xl shadow-indigo-500/20"
+            className="w-14 h-14 sm:w-18 sm:h-18 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white shadow-xl shadow-indigo-500/20"
             disabled={isCapturing}
           >
             {isCapturing ? (
-              <Sparkles className="animate-spin w-8 h-8" />
+              <Sparkles className="animate-spin w-6 h-6 sm:w-8 sm:h-8" />
             ) : (
-              <Camera className="w-8 h-8" />
+              <Camera className="w-6 h-6 sm:w-8 sm:h-8" />
             )}
           </Button>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-1 sm:gap-2 items-center">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
-            className={`w-14 h-14 rounded-full border transition-all ${
+            className={`w-10 h-10 sm:w-14 sm:h-14 rounded-full border transition-all ${
               isVoiceEnabled
                 ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
                 : "bg-white/5 border-white/10 text-white/40"
             }`}
           >
             {isVoiceEnabled ? (
-              <Volume2 className="w-6 h-6" />
+              <Volume2 className="w-5 h-5 sm:w-6 sm:h-6" />
             ) : (
-              <VolumeX className="w-6 h-6" />
+              <VolumeX className="w-5 h-5 sm:w-6 sm:h-6" />
             )}
           </Button>
+
+          {/* Cart indicator */}
+          <button
+            onClick={openCart}
+            className="relative w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-all"
+          >
+            <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6 text-slate-300" />
+            {cartItemCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center">
+                {cartItemCount}
+              </span>
+            )}
+          </button>
 
           <Button
             variant="ghost"
             size="icon"
-            className="w-14 h-14 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 font-bold text-lg italic shadow-emerald-500/10"
+            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 font-bold text-lg italic shadow-emerald-500/10"
             onClick={handleFinish}
           >
             <div className="relative">
@@ -1718,8 +1107,9 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
         </div>
       </div>
 
+      {/* Ready for Scan prompt */}
       {!isConnected && !isInitializing && (
-        <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md">
+        <div className="absolute inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-md">
           <div className="max-w-xs w-full p-8 rounded-3xl bg-slate-900 border border-white/10 text-center shadow-2xl">
             <div className="w-20 h-20 rounded-2xl bg-indigo-600/20 flex items-center justify-center mx-auto mb-6 border border-indigo-500/30">
               <Mic className="w-10 h-10 text-indigo-400" />
@@ -1752,4 +1142,20 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
       )}
     </div>
   );
+}
+
+// ── Helper: auto-dismiss timer ──
+
+function AutoDismissTimer({
+  ms,
+  onDismiss,
+}: {
+  ms: number;
+  onDismiss: () => void;
+}) {
+  React.useEffect(() => {
+    const timer = setTimeout(onDismiss, ms);
+    return () => clearTimeout(timer);
+  }, [ms, onDismiss]);
+  return null;
 }

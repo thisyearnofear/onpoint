@@ -9,6 +9,9 @@ import {
   ExternalLink,
   ShoppingBag,
   AlertCircle,
+  Shield,
+  Wallet,
+  Info,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { useCartStore, type CartItem } from "../../lib/stores/cart-store";
@@ -196,6 +199,36 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                     </span>
                   </div>
 
+                  {/* Trust Signals */}
+                  <div className="mx-6 p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-xl space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-indigo-400" />
+                      <span className="text-xs font-medium text-indigo-300">
+                        Secured by Celo Blockchain
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Wallet className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                      <div className="text-[10px] text-slate-400 leading-relaxed">
+                        <span className="text-white font-medium">
+                          Agent Wallet:{" "}
+                        </span>
+                        Your AI stylist has a wallet that holds funds for
+                        purchases. Purchases under{" "}
+                        <span className="text-amber-400 font-bold">
+                          $5 auto-approve
+                        </span>
+                        . Larger purchases require your confirmation.
+                      </div>
+                    </div>
+                    {total > 5 && (
+                      <div className="flex items-center gap-2 text-amber-400 text-[10px]">
+                        <AlertCircle className="w-3 h-3" />
+                        <span>Approval required for this purchase</span>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Error */}
                   {result && !result.success && (
                     <div className="mx-6 mb-2 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-start gap-2">
@@ -222,8 +255,9 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                         `Pay ${total.toFixed(2)} cUSD`
                       )}
                     </Button>
-                    <p className="text-[10px] text-slate-600 text-center">
-                      Payment processed via agent wallet on Celo
+                    <p className="text-[10px] text-slate-500 text-center flex items-center justify-center gap-1">
+                      <Shield className="w-3 h-3" />
+                      Agent pays on your behalf via Celo
                     </p>
                   </div>
                 </>

@@ -41,3 +41,4 @@ yarn-error.log*
 
 # pnpm
 # pnpm-lock.yaml removed to allow deterministic cloud builds
+.blackboxcli/

@@ -26,6 +26,13 @@ export interface AgentSuggestion {
   createdAt: number;
   expiresAt: number;
   autoApprovable: boolean;
+  // Enhanced fields for personalized recommendations
+  reasoning?: string;
+  observedFeatures?: {
+    colors?: string[];
+    fit?: "relaxed" | "fitted" | "loose" | "regular";
+    style?: string[];
+  };
 }
 
 interface AgentSuggestionToastProps {
@@ -126,6 +133,38 @@ export function AgentSuggestionToast({
 
         {/* Content */}
         <div className="p-4">
+          {/* Observed features - what the AI noticed */}
+          {suggestion.observedFeatures && (
+            <div className="mb-3 p-2.5 rounded-xl bg-white/5 border border-white/5">
+              <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1.5">
+                I noticed you're wearing
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {suggestion.observedFeatures.colors?.map((color, i) => (
+                  <span
+                    key={`color-${i}`}
+                    className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-medium"
+                  >
+                    {color}
+                  </span>
+                ))}
+                {suggestion.observedFeatures.fit && (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-medium">
+                    {suggestion.observedFeatures.fit} fit
+                  </span>
+                )}
+                {suggestion.observedFeatures.style?.map((style, i) => (
+                  <span
+                    key={`style-${i}`}
+                    className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-medium"
+                  >
+                    {style}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
               <Icon className="w-5 h-5 text-slate-300" />
@@ -139,6 +178,14 @@ export function AgentSuggestionToast({
               </p>
             </div>
           </div>
+
+          {/* Reasoning - why the AI recommends this */}
+          {suggestion.reasoning && (
+            <div className="mt-3 flex items-start gap-2 text-xs text-slate-400 bg-slate-800/50 rounded-lg px-3 py-2">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0 mt-0.5" />
+              <p>{suggestion.reasoning}</p>
+            </div>
+          )}
 
           {/* Auto-approve badge */}
           {suggestion.autoApprovable && (

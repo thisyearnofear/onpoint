@@ -18,6 +18,7 @@ const TrackInteractionSchema = z.object({
   userId: z.string().default("default"),
   category: z.string(),
   price: z.number(),
+  sessionGoal: z.enum(["event", "daily", "critique"]).optional(),
 });
 
 const GetRecommendationsSchema = z.object({
@@ -41,10 +42,42 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const { userId, category, price } = parsed.data;
+    const { userId, category, price, sessionGoal } = parsed.data;
 
     await AgentControls.initStore("onpoint-stylist");
     AgentControls.trackStyleInteraction(userId, { category, price });
+
+    // Seed style preferences based on session goal for first-time users
+    if (sessionGoal) {
+      const prefs = AgentControls.getStylePreferences(userId);
+      // If no existing preferences, seed based on session goal
+      if (prefs.categories.length === 0 && prefs.colors.length === 0) {
+        const goalSeeds: Record<
+          string,
+          { categories: string[]; colors: string[] }
+        > = {
+          event: {
+            categories: ["dress", "jacket", "accessory"],
+            colors: ["black", "navy", "burgundy", "gold"],
+          },
+          daily: {
+            categories: ["shirt", "denim", "sneaker"],
+            colors: ["white", "blue", "gray", "beige"],
+          },
+          critique: {
+            categories: ["shirt", "trouser"],
+            colors: ["neutral"],
+          },
+        };
+        const seed = goalSeeds[sessionGoal];
+        if (seed) {
+          AgentControls.trackStyleInteraction(userId, {
+            category: seed.categories[0]!,
+            price: 50,
+          });
+        }
+      }
+    }
 
     return NextResponse.json(
       { success: true },
