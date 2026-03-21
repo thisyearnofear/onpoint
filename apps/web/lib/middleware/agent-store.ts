@@ -16,6 +16,8 @@ import type {
   ApprovalRequest,
 } from "./agent-controls";
 
+import type { CommissionRecord } from "../utils/commissions";
+
 // ============================================
 // Redis Key Schema
 // ============================================
@@ -28,6 +30,8 @@ const KEYS = {
   approval: (id: string) => `agent:approval:${id}`,
   approvalIndex: (agentId: string) => `agent:approvals:${agentId}`,
   stylePrefs: (userId: string) => `agent:style:${userId}`,
+  commission: (id: string) => `agent:commission:${id}`,
+  commissionIndex: () => `agent:commissions`,
 };
 
 // ============================================
@@ -291,6 +295,29 @@ export async function loadStylePreferences(
   userId: string,
 ): Promise<StylePreference | null> {
   return redisGet<StylePreference>(KEYS.stylePrefs(userId));
+}
+
+// ============================================
+// Commission Persistence
+// ============================================
+
+export async function persistCommission(
+  record: CommissionRecord,
+): Promise<void> {
+  await Promise.all([
+    redisSetEx(KEYS.commission(record.id), record, 86400 * 90), // 90 day TTL
+    redisSadd(KEYS.commissionIndex(), record.id),
+  ]);
+}
+
+export async function loadCommission(
+  id: string,
+): Promise<CommissionRecord | null> {
+  return redisGet<CommissionRecord>(KEYS.commission(id));
+}
+
+export async function loadCommissionIds(): Promise<string[]> {
+  return redisSmembers(KEYS.commissionIndex());
 }
 
 // ============================================

@@ -2,7 +2,7 @@
  * Agent Checkout API
  *
  * Processes cart checkout with cUSD payments on Celo.
- * Supports the agent-driven purchase flow with spending limits.
+ * Supports commission splits: seller, platform, affiliate, agent.
  *
  * For the Tether Hackathon Galactica - Agent Wallets Track
  */
@@ -15,9 +15,18 @@ import {
   type ActionType,
 } from "../../../../lib/middleware/agent-controls";
 import { ERC20, type TokenTransferResult } from "../../../../lib/utils/erc20";
+import {
+  calculateSplit,
+  createCommissionRecord,
+} from "../../../../lib/utils/commissions";
+import { persistCommission } from "../../../../lib/middleware/agent-store";
 import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import { corsHeaders } from "../../ai/_utils/http";
-import { PLATFORM_WALLET, getExplorerUrl } from "../../../../config/chains";
+import {
+  PLATFORM_WALLET,
+  AGENT_WALLET,
+  getExplorerUrl,
+} from "../../../../config/chains";
 
 // Build product lookup from catalog
 const PRODUCT_MAP = Object.fromEntries(
@@ -29,6 +38,7 @@ const PRODUCT_MAP = Object.fromEntries(
       name: item.name,
       price: item.price,
       category: item.category,
+      seller: PLATFORM_WALLET as Address, // All products sold by OnPoint for now
     },
   ]),
 );
@@ -42,6 +52,8 @@ const CheckoutSchema = z.object({
   items: z.array(CheckoutItemSchema).min(1),
   chain: z.enum(["celo", "celoAlfajores"]).default("celo"),
   agentId: z.string().default("onpoint-stylist"),
+  affiliateId: z.string().optional(),
+  referringAgentId: z.string().optional(),
 });
 
 interface CheckoutResponse {
@@ -60,6 +72,12 @@ interface CheckoutResponse {
     txHash: string;
     chain: string;
     explorerUrl: string;
+    commissions: Array<{
+      label: string;
+      percentBps: number;
+      amount: string;
+      address: string;
+    }>;
     timestamp: number;
   };
   approvalRequired?: boolean;
@@ -88,7 +106,8 @@ export async function POST(
       );
     }
 
-    const { items, chain, agentId } = parsed.data;
+    const { items, chain, agentId, affiliateId, referringAgentId } =
+      parsed.data;
 
     await AgentControls.initStore(agentId);
 
@@ -99,6 +118,7 @@ export async function POST(
       quantity: number;
       unitPrice: number;
       subtotal: number;
+      seller: Address;
     }> = [];
 
     let totalAmount = 0;
@@ -121,11 +141,36 @@ export async function POST(
         quantity: item.quantity,
         unitPrice: product.price,
         subtotal,
+        seller: product.seller,
       });
     }
 
     const totalWei = parseEther(totalAmount.toString());
     const totalFormatted = `${totalAmount} cUSD`;
+
+    // Resolve affiliate/agent addresses
+    // In production, look these up from a registry. For now, use known wallets.
+    let affiliateAddress: Address | undefined;
+    let agentAddress: Address | undefined;
+
+    if (affiliateId) {
+      // Affiliate wallet lookup — in production this queries a registry
+      // For now, treat affiliateId as a wallet address if it looks like one
+      if (affiliateId.startsWith("0x") && affiliateId.length === 42) {
+        affiliateAddress = affiliateId as Address;
+      }
+    }
+
+    if (referringAgentId) {
+      // Agent wallet — use the agent wallet constant
+      agentAddress = AGENT_WALLET;
+    }
+
+    // Calculate commission split
+    const split = calculateSplit(totalWei, PLATFORM_WALLET, {
+      affiliateAddress,
+      agentAddress,
+    });
 
     // Validate against spending limits
     const validation = AgentControls.validateAction({
@@ -171,28 +216,50 @@ export async function POST(
       );
     }
 
+    const orderId = `order_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
     // Get agent private key
     const agentPrivateKey = process.env.AGENT_PRIVATE_KEY as
       | `0x${string}`
       | undefined;
 
     if (!agentPrivateKey) {
-      // Demo mode: simulate success
-      console.log("[Checkout API] No AGENT_PRIVATE_KEY, simulating transfer");
+      // Demo mode: simulate success with commission split
+      console.log(
+        "[Checkout API] No AGENT_PRIVATE_KEY, simulating transfer with splits",
+      );
+      console.log(
+        "[Checkout API] Split:",
+        split.recipients.map(
+          (r) =>
+            `${r.label}: ${(Number(r.amount) / 1e18).toFixed(2)} cUSD (${r.percentBps / 100}%)`,
+        ),
+      );
 
-      const orderId = `order_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      // Track commission record
+      const commissionRecord = createCommissionRecord(orderId, split, {
+        affiliateId,
+        agentId: referringAgentId,
+      });
+      await persistCommission(commissionRecord);
 
       return NextResponse.json(
         {
           success: true,
           order: {
             id: orderId,
-            items: resolvedItems,
+            items: resolvedItems.map(({ seller, ...item }) => item),
             totalAmount: totalFormatted,
             totalWei: totalWei.toString(),
             txHash: "0x" + "0".repeat(64),
             chain,
             explorerUrl: "https://celoscan.io",
+            commissions: split.recipients.map((r) => ({
+              label: r.label,
+              percentBps: r.percentBps,
+              amount: (Number(r.amount) / 1e18).toFixed(2),
+              address: r.address,
+            })),
             timestamp: Date.now(),
           },
         },
@@ -200,31 +267,50 @@ export async function POST(
       );
     }
 
-    // Execute cUSD transfer
-    const transferResult: TokenTransferResult = await ERC20.transfer({
-      chain,
-      tokenAddress: cUSDAddress,
-      to: PLATFORM_WALLET,
-      amount: totalWei,
-      privateKey: agentPrivateKey,
-    });
+    // Execute cUSD transfers to each recipient
+    const txHashes: string[] = [];
+
+    for (const recipient of split.recipients) {
+      if (recipient.amount === 0n) continue;
+
+      const result: TokenTransferResult = await ERC20.transfer({
+        chain,
+        tokenAddress: cUSDAddress,
+        to: recipient.address,
+        amount: recipient.amount,
+        privateKey: agentPrivateKey,
+      });
+
+      txHashes.push(result.hash);
+    }
 
     // Record spending
     AgentControls.recordSpending(agentId, "purchase" as ActionType, totalWei);
 
-    const orderId = `order_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    // Track commission record
+    const commissionRecord = createCommissionRecord(orderId, split, {
+      affiliateId,
+      agentId: referringAgentId,
+    });
+    await persistCommission(commissionRecord);
 
     return NextResponse.json(
       {
         success: true,
         order: {
           id: orderId,
-          items: resolvedItems,
+          items: resolvedItems.map(({ seller, ...item }) => item),
           totalAmount: totalFormatted,
           totalWei: totalWei.toString(),
-          txHash: transferResult.hash,
+          txHash: txHashes[0] ?? "0x",
           chain,
-          explorerUrl: getExplorerUrl(chain, transferResult.hash),
+          explorerUrl: getExplorerUrl(chain, txHashes[0] ?? "0x"),
+          commissions: split.recipients.map((r) => ({
+            label: r.label,
+            percentBps: r.percentBps,
+            amount: (Number(r.amount) / 1e18).toFixed(2),
+            address: r.address,
+          })),
           timestamp: Date.now(),
         },
       },
