@@ -1,55 +1,145 @@
-# OnPoint — AI Styling Agent on Celo
+# OnPoint — Agent Infrastructure for Celo
 
-> **An autonomous AI agent that perceives your outfit in real-time, reasons about fit and style, then proposes and executes on-chain actions on Celo — all in one seamless loop.**
+> **Reusable middleware for AI agents with economic agency: spending controls, commission splits, state persistence, and suggestion UX. Proof-of-concept: an autonomous AI stylist that perceives, reasons, shops, and pays on Celo.**
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-indigo)](https://onpoint-web-647723858538.us-central1.run.app)
 [![Built on Celo](https://img.shields.io/badge/Chain-Celo-35D07F)](https://celo.org)
-[![AI Providers](https://img.shields.io/badge/AI-Venice%20%7C%20Gemini-blue)](https://venice.ai)
-[![Free Tier Available](https://img.shields.io/badge/Free-Venice%20AI-brightgreen)](https://venice.ai)
-[![AG-UI Protocol](https://img.shields.io/badge/Protocol-AG--UI%20v0.1-purple)](https://github.com/ag-ui-protocol/ag-ui)
+[![Track](https://img.shields.io/badge/Track-Infrastructure-purple)](https://celoplatform.notion.site/Build-Agents-for-the-Real-World-Celo-Hackathon-V2-2fdd5cb803de80c99010c04b6902a3a9)
+[![Free Tier](https://img.shields.io/badge/Free-Venice%20AI-brightgreen)](https://venice.ai)
 
 ---
 
-## 🤖 What Does the Agent Actually Do?
+## The Problem
 
-OnPoint is not a chatbot wrapped in a UI. It is a **goal-aware, multimodal AI agent** with a full perceive → reason → decide → act loop:
+Every agent that touches money on Celo needs the same things: spending limits, approval workflows, commission splits, state persistence, and UI for user-agent interactions. Today, every team builds these from scratch — or skips them entirely and ships agents with no guardrails.
+
+## What We Built
+
+Five production-ready modules that any agent builder can drop in:
+
+### 1. Agent Controls Middleware (`agent-controls.ts`)
+
+Spending limits, autonomy thresholds, and approval workflows. Any agent that sends cUSD, mints NFTs, or tips other agents needs this.
+
+```typescript
+// Validate any agent action against spending limits
+const result = AgentControls.validateAction({
+  agentId: "onpoint-stylist",
+  actionType: "purchase",
+  amount: parseEther("3"),
+  recipient: "0x...",
+});
+// result.autoApproved === true (under $5 threshold)
+// result.requiresApproval === true (over threshold → creates approval request)
+```
+
+- **Autonomy threshold**: actions under configurable amount auto-execute
+- **Per-action limits**: daily spend caps per action type
+- **Approval workflow**: creates pending requests that users accept/reject via toast UI
+- **11 mutation functions** with fire-and-forget Redis persistence
+
+### 2. Commission Split Architecture (`commissions.ts`)
+
+Four-tier revenue distribution for any transaction. Plug-and-play for marketplace agents.
+
+```typescript
+const split = calculateSplit(totalWei, sellerAddress, {
+  affiliateAddress: "0x...",
+  agentAddress: "0x...",
+});
+// → [{ label: "seller", 85% }, { label: "platform", 10% },
+//    { label: "affiliate", 3% }, { label: "agent", 2% }]
+```
+
+- Unallocated shares roll to platform (no affiliate → platform gets 13%)
+- Commission records persisted to Redis with 90-day TTL
+- No dust loss on small amounts (uses platform as remainder recipient)
+
+### 3. State Persistence Layer (`agent-store.ts`)
+
+Redis-backed storage with in-memory fallback. Zero-config: works without Redis, persists when Redis is configured.
+
+| Key Schema              | Content             | TTL            |
+| ----------------------- | ------------------- | -------------- |
+| `agent:limits:{id}`     | Spending limits     | Permanent      |
+| `agent:suggestion:{id}` | Suggestion records  | expiresAt + 1h |
+| `agent:approval:{id}`   | Approval requests   | expiresAt + 1h |
+| `agent:style:{userId}`  | User preferences    | Permanent      |
+| `agent:commission:{id}` | Transaction records | 90 days        |
+
+- Uses Upstash Redis REST API (same pattern as rate-limiting — no SDK dependency)
+- BigInt serialization handled (spending limits store wei as strings)
+- `initStore()` hydration on first API call per request
+
+### 4. Suggestion Toast System (`AgentSuggestionToast.tsx`)
+
+Time-bounded UI for agent-to-user proposals. Smart gating prevents spam.
+
+- **10-second countdown** with auto-dismiss
+- **Auto-approve badge** for sub-threshold actions
+- **Smart gating**: 30s cooldown, item-type dedup, 15s session warmup
+- Accept/reject flows through to API with status tracking
+- `useAgentSuggestions` hook: polls API, manages current suggestion state
+
+### 5. Style Memory + Recommendations (`getRecommendedItems`)
+
+Tracks user interaction preferences and scores product recommendations.
+
+```typescript
+// Track interactions
+AgentControls.trackStyleInteraction(userId, { category: "shirts", price: 129 });
+
+// Get personalized recommendations
+const items = getRecommendedItems(
+  {
+    categories: ["shirts", "outerwear"],
+    priceRange: { min: 50, max: 200 },
+  },
+  3,
+);
+// → Scores by: category match (+10), price fit (+5), rating bonus, variety noise
+```
+
+---
+
+## Proof of Concept: AI Stylist Agent
+
+The modules above power a complete agent loop:
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                   ONPOINT AGENT LOOP                    │
-│                                                         │
-│  PERCEIVE        REASON           DECIDE        ACT     │
-│  ────────        ──────           ──────        ───     │
-│  Gemini Live  →  Style Score  →  Score ≥ 8?  →  Mint   │
-│  (vision +       (sentiment-      ↓yes           NFT    │
-│   audio)          weighted)    Propose Celo       on    │
-│                               NFT + split       Celo   │
-│                               ↓no                      │
-│                              Continue coaching          │
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                    PERCEIVE → REASON → ACT                    │
+│                                                              │
+│  📷 Camera     →  🧠 Venice/Gemini  →  💡 Suggestion Toast  │
+│  (live video)     (AI analysis)        (auto-approve < $5)   │
+│       ↓                ↓                      ↓              │
+│  Style Memory  ←  Track prefs    →   🛒 Cart + Checkout     │
+│  (personalize)    (categories)        (cUSD on Celo)         │
+│                                          ↓                   │
+│                                    💰 Commission Split       │
+│                                    (85/10/3/2 on-chain)      │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-### Agent Protocol Trace (AG-UI v0.1)
+### Live Styling Session
 
-The agent exposes its internal state as a live event stream — viewable in the UI and queryable via REST:
+- **Venice AI** (free, 1-min session): polling-based vision analysis at 3s intervals
+- **Gemini Live** (paid, 0.5 CELO): real-time WebSocket streaming with audio
+- Session timer + capture limits with shareable ending card
+- Coaching badges overlay real-time AI observations
 
-```json
-GET /api/ai/agent?goal=event
+### Shopping + Payment
 
-{
-  "sessionId": "agent_lx3q8k",
-  "intent": "Event Styling",
-  "steps": [
-    { "step": 1, "action": "intent_parse",      "status": "done",    "durationMs": 12  },
-    { "step": 2, "action": "celo_wallet_check", "status": "done",    "chain": "celo"   },
-    { "step": 3, "action": "vision_analysis",   "status": "running", "durationMs": 380 },
-    { "step": 4, "action": "style_reasoning",   "status": "running"                    },
-    { "step": 5, "action": "score_calculation", "status": "pending"                    },
-    { "step": 6, "action": "celo_mint_proposal","status": "pending",  "chain": "celo"  }
-  ],
-  "meta": { "model": "gemini-2.0-flash-live", "protocol": "AG-UI v0.1" }
-}
-```
+- 13 products across 6 categories with real fashion photography
+- Zustand cart store with localStorage persistence
+- Checkout API executes cUSD ERC-20 transfers with commission splits
+- Agent approval modal for over-threshold transactions
+
+### Social
+
+- Shareable session ending card with style score, insights, and topic badges
+- Warpcast integration for Farcaster sharing
+- Runs as a Farcaster mini-app
 
 ---
 
@@ -58,98 +148,77 @@ GET /api/ai/agent?goal=event
 ```
 onpoint/
 ├── apps/web/
-│   ├── app/api/ai/
-│   │   ├── agent/              ← Structured AG-UI protocol trace
-│   │   ├── live-session/       ← Provisions Venice AI / Gemini Live + goal system prompts
-│   │   ├── verify-payment/     ← Server-side CELO payment verification (NEW)
-│   │   ├── analytics/          ← Analytics event ingestion (NEW)
-│   │   ├── virtual-tryon/      ← Static image analysis (Gemini 1.5 Flash)
-│   │   ├── style-suggestions/
-│   │   └── personality-critique/
-│   ├── components/VirtualTryOn/
-│   │   ├── LiveStylistView.tsx          ← Core agent UI with provider selection
-│   │   ├── GeminiLivePaymentButton.tsx   ← CELO payment for premium access (NEW)
-│   │   ├── MintLookButton.tsx           ← Celo NFT mint with 85/15 revenue split
-│   │   └── CeloTipButton.tsx            ← cUSD tip agent in Celo
-│   ├── lib/utils/
-│   │   ├── rate-limit.ts        ← API rate limiting utility (NEW)
-│   │   └── analytics.ts         ← Analytics tracking + A/B testing (NEW)
+│   ├── app/api/agent/
+│   │   ├── suggestion/     ← Suggestion CRUD (create, accept, reject)
+│   │   ├── approval/       ← Approval workflow API
+│   │   ├── checkout/       ← Cart checkout with commission splits
+│   │   ├── mint/           ← NFT minting on Celo
+│   │   ├── purchase/       ← Agent-driven purchases
+│   │   └── style/          ← Style tracking + recommendations
+│   ├── components/
+│   │   ├── Agent/
+│   │   │   ├── AgentSuggestionToast.tsx    ← Toast UI + useAgentSuggestions hook
+│   │   │   ├── AgentApprovalModal.tsx      ← Approval UI + useAgentApproval hook
+│   │   │   ├── SuggestionHistoryPanel.tsx  ← Session history
+│   │   │   └── AgentStatus.tsx             ← Agent state display
+│   │   ├── Shop/
+│   │   │   ├── CartDrawer.tsx              ← Slide-out cart
+│   │   │   ├── CartButton.tsx              ← Cart icon with badge
+│   │   │   └── CheckoutModal.tsx           ← Checkout + payment UI
+│   │   └── VirtualTryOn/
+│   │       ├── LiveStylistView.tsx         ← Main agent UI (~850 lines)
+│   │       ├── SessionEndingCard.tsx       ← Shareable ending card
+│   │       └── hooks/useLiveSession.ts     ← Session state hook (695 lines)
+│   ├── lib/
+│   │   ├── middleware/
+│   │   │   ├── agent-controls.ts           ← ⭐ Spending limits, approvals
+│   │   │   └── agent-store.ts              ← ⭐ Redis persistence layer
+│   │   ├── utils/
+│   │   │   ├── commissions.ts              ← ⭐ Revenue split calculator
+│   │   │   ├── erc20.ts                    ← cUSD transfer utility
+│   │   │   └── logger.ts                   ← Structured logging
+│   │   └── stores/
+│   │       └── cart-store.ts               ← Zustand cart state
 │   └── config/
-│       └── chains.ts            ← Celo mainnet + Alfajores configured
+│       ├── chains.ts                       ← Celo chain config + contracts
+│       └── wagmi.ts                        ← Wallet configuration
 │
 ├── packages/
-│   ├── ai-client/
-│   │   ├── src/use-gemini-live.ts      ← Hook: Gemini Live session
-│   │   ├── src/use-venice-live.ts      ← Hook: Venice Live session (NEW)
-│   │   └── src/providers/
-│   │       ├── base-provider.ts        ← LiveSession protocol interface
-│   │       ├── gemini-live-provider.ts ← Gemini WebSocket provider
-│   │       └── venice-live-provider.ts ← Venice polling provider (NEW)
-│   └── blockchain-client/
-│       └── src/                        ← Celo NFT minting + 0xSplits
+│   ├── shared-types/
+│   │   └── src/
+│   │       ├── fashion-data.ts             ← Product catalog + getRecommendedItems
+│   │       └── fashion-category.ts         ← Category enum
+│   └── ai-client/
+│       └── src/
+│           ├── use-venice-live.ts           ← Venice AI hook (with session timer)
+│           ├── use-gemini-live.ts           ← Gemini Live hook
+│           └── providers/                   ← AI provider implementations
 │
+├── agent-economy-plan.md                    ← Architecture vision doc
 └── README.md
 ```
 
+⭐ = Reusable infrastructure module
+
 ---
 
-## 🔑 Agent Features
+## 🔑 Key Design Decisions
 
-### 1. Goal-Aware Session Intelligence
+### Autonomy Threshold ($5)
 
-The agent adapts its entire reasoning system to one of three goals:
+Small actions auto-execute without interrupting the user. Large actions require explicit approval. This creates the right UX: frictionless for trivial decisions, safe for meaningful ones.
 
-| Goal                   | System Prompt Strategy            | Score Base |
-| ---------------------- | --------------------------------- | ---------- |
-| **Event Styling**      | Formal/occasion-appropriate focus | 7/10       |
-| **Daily Outfit Check** | Fit, coordination, versatility    | 7/10       |
-| **Honest Critique**    | Zero sugarcoating, direct ratings | 5/10       |
+### Write-Through Cache Pattern
 
-### 2. Dual-Provider Live Perception
+Maps serve as synchronous read cache. Every mutation persists to Redis fire-and-forget. `initStore()` hydrates on first API call. No blocking on network calls, graceful fallback when Redis is unavailable.
 
-Users choose between two AI providers:
+### Commission Roll-Up
 
-#### Venice AI (Free)
+Without affiliate/agent refs, their share rolls to platform (not lost to rounding). This means the platform always gets a minimum of 10% + any unallocated shares, ensuring no value leaks.
 
-- **Polling-based analysis** at 2-5 second intervals (adaptive to motion)
-- **Vision model**: `mistral-31-24b` via Venice AI API
-- **No payment required** - uses OnPoint's API key
+### Session Gating
 
-#### Gemini Live (Premium - 0.5 CELO or BYOK)
-
-- **Real-time WebSocket** streaming with sub-100ms latency
-- **Full audio input/output** for voice-responsive coaching
-- **Microphone input** for natural conversation
-- **Position Detection**: frame turns 🟢 green (good distance) or 🟠 orange (too close) based on AI spatial reasoning
-
-### 3. Autonomous Scoring & Mint Proposal
-
-```typescript
-// Agent autonomously proposes on-chain action when score threshold met
-if (sessionSummary.score >= 8 && isConnected) {
-  // Shows "Agent Recommendation" toast → proposes Celo NFT mint
-  // Contract: 0xdb65806c994C3f55079a6136a8E0886CbB2B64B1
-  // Split: 85% creator, 15% platform (via 0xSplits)
-}
-```
-
-### 4. AG-UI Protocol Trace
-
-Left panel in the Live Stylist UI shows real-time protocol events:
-
-```
-[INTENT]    Initializing Agentic Mesh...
-[CELO]      Connecting to Celo Alfajores...
-[SECURITY]  Verifying session integrity...
-[ACTION]    Ready for on-chain execution.
-```
-
-### 5. Proof of Style — On-Chain NFT
-
-- Captures are stored on **Filecoin/IPFS via Lighthouse**
-- Metadata (AI critique + style score) minted as NFT on **Celo mainnet**
-- **85% royalty** flows to creator via [0xSplits](https://splits.org)
-- Shareable to Farcaster with score, topics, and takeaways
+30-second cooldown between suggestions, item-type dedup, 15-second warmup. Prevents the AI from spamming the user with toasts during live sessions. The AI is powerful — the UX must constrain it.
 
 ---
 
@@ -169,53 +238,61 @@ pnpm dev
 # → Web app: http://localhost:3000
 ```
 
-## 🛠️ Environment Variables
+### Environment Variables
 
 ```bash
 # AI
-VERTEX_API_KEY=          # Gemini Live sessions (required)
+VERTEX_API_KEY=          # Gemini Live sessions
 GEMINI_API_KEY=          # Fallback for static AI routes
 
+# Agent Persistence (optional — works without Redis)
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+
 # Storage
-LIGHTHOUSE_API_KEY=      # Filecoin/IPFS native storage
+LIGHTHOUSE_API_KEY=      # Filecoin/IPFS storage
 
 # Social
-NEYNAR_API_KEY=          # Farcaster social features
+NEYNAR_API_KEY=          # Farcaster mini-app
 
 # Wallet
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=
-
-# Chain RPCs (configured in config/chains.ts)
-# Celo: https://forno.celo.org (built-in)
-# Alfajores: https://alfajores-forno.celo-testnet.org (built-in)
+AGENT_PRIVATE_KEY=       # Agent wallet for cUSD transfers (demo mode if unset)
 ```
+
+---
 
 ## 📡 API Reference
 
-| Endpoint                       | Method   | Description                                       |
-| ------------------------------ | -------- | ------------------------------------------------- |
-| `/api/ai/agent`                | GET/POST | AG-UI protocol trace for current session          |
-| `/api/ai/live-session`         | POST     | Provisions Gemini Live WebSocket config           |
-| `/api/ai/virtual-tryon`        | POST     | Static image analysis (body, outfit, enhancement) |
-| `/api/ai/style-suggestions`    | POST     | Personalized style recommendations                |
-| `/api/ai/personality-critique` | POST     | AI fashion critic response                        |
-| `/api/ipfs/upload`             | POST     | Upload to Filecoin via Lighthouse                 |
+| Endpoint                | Method         | Description                          |
+| ----------------------- | -------------- | ------------------------------------ |
+| `/api/agent/suggestion` | GET/POST/PATCH | Suggestion CRUD                      |
+| `/api/agent/approval`   | GET/POST/PATCH | Approval workflow                    |
+| `/api/agent/checkout`   | POST           | Cart checkout with commission splits |
+| `/api/agent/mint`       | POST           | NFT minting on Celo                  |
+| `/api/agent/purchase`   | POST           | Agent-driven purchases               |
+| `/api/agent/style`      | GET/POST       | Style tracking + recommendations     |
 
-## 🔗 On-Chain Contracts
+---
 
-| Network        | Contract              | Address                                      |
-| -------------- | --------------------- | -------------------------------------------- |
-| Celo Mainnet   | OnPoint NFT           | `0xdb65806c994C3f55079a6136a8E0886CbB2B64B1` |
-| Celo Alfajores | OnPoint NFT (testnet) | `0xdb65806c994C3f55079a6136a8E0886CbB2B64B1` |
-| Celo Mainnet   | cUSD                  | `0x765DE8164458C172EE097029dfb482Ff182ad001` |
+## 🔗 On-Chain
 
-## 🏆 Hackathon Targets
+| Network      | Contract    | Address                                      |
+| ------------ | ----------- | -------------------------------------------- |
+| Celo Mainnet | OnPoint NFT | `0xdb65806c994C3f55079a6136a8E0886CbB2B64B1` |
+| Celo Mainnet | cUSD        | `0x765DE8164458C172EE097029dfb482Ff182ad001` |
 
-- **[Celo: Build Agents for the Real World V2](https://celoplatform.notion.site/Build-Agents-for-the-Real-World-Celo-Hackathon-V2-2fdd5cb803de80c99010c04b6902a3a9)** — Q1 2026
-  - Main Track: Best Agent on Celo
-  - Infra Track: AG-UI protocol implementation
-- **Google Chrome Built-in AI Challenge** — Nov 2025
-- **PL Genesis Frontiers of Collaboration** — Filecoin/IPFS storage
+---
+
+## 🏆 Hackathon
+
+**[Celo: Build Agents for the Real World V2](https://celoplatform.notion.site/Build-Agents-for-the-Real-World-Celo-Hackathon-V2-2fdd5cb803de80c99010c04b6902a3a9)**
+
+**Track: Infrastructure** — Building foundational middleware that other agent builders on Celo can use.
+
+The agent-controls middleware, commission splits, state persistence, suggestion UX, and style memory system are designed as drop-in modules. The AI stylist agent is the proof-of-concept that validates them working together.
+
+---
 
 ## 🔗 Links
 
