@@ -2,7 +2,7 @@
  * ERC-20 Token Utilities
  *
  * Provides ERC-20 token operations using viem directly.
- * Used alongside WDK (which handles native tokens).
+ * Uses centralized chain configuration from /config/chains.ts.
  *
  * For the Tether Hackathon Galactica - Agent Wallets Track
  */
@@ -17,30 +17,16 @@ import {
   type Hash,
 } from "viem";
 import { celo, celoAlfajores, base, mainnet, polygon } from "viem/chains";
+import {
+  type ChainName,
+  RPC_URLS,
+  TOKEN_ADDRESSES,
+  getExplorerUrl as getExplorerUrlFromConfig,
+} from "../../config/chains";
 
-// ============================================
-// Configuration
-// ============================================
-
-type ChainName = "celo" | "celoAlfajores" | "base" | "ethereum" | "polygon";
-
-const CHAIN_CONFIG: Record<
-  ChainName,
-  { id: number; name: string; rpc: string }
-> = {
-  celo: { id: 42220, name: "Celo", rpc: "https://forno.celo.org" },
-  celoAlfajores: {
-    id: 44787,
-    name: "Celo Alfajores",
-    rpc: "https://alfajores-forno.celo-testnet.org",
-  },
-  base: { id: 8453, name: "Base", rpc: "https://mainnet.base.org" },
-  ethereum: { id: 1, name: "Ethereum", rpc: "https://eth.drpc.org" },
-  polygon: { id: 137, name: "Polygon", rpc: "https://polygon.drpc.org" },
-};
-
+// Chain objects mapping (internal, not exported)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const CHAIN_OBJECTS: Record<ChainName, any> = {
+const CHAIN_OBJECTS: Record<string, any> = {
   celo,
   celoAlfajores,
   base,
@@ -48,32 +34,43 @@ const CHAIN_OBJECTS: Record<ChainName, any> = {
   polygon,
 };
 
-const RPC_URLS: Record<ChainName, string> = {
-  celo: CHAIN_CONFIG.celo.rpc,
-  celoAlfajores: CHAIN_CONFIG.celoAlfajores.rpc,
-  base: CHAIN_CONFIG.base.rpc,
-  ethereum: CHAIN_CONFIG.ethereum.rpc,
-  polygon: CHAIN_CONFIG.polygon.rpc,
-};
+// ============================================
+// Types (use shared types when available)
+// ============================================
 
-const TOKEN_ADDRESSES: Record<string, Record<ChainName, Address | null>> = {
-  cUSD: {
-    celo: "0x765DE8164458C172EE097029dfb482Ff182ad001",
-    celoAlfajores: "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1",
-    base: null,
-    ethereum: null,
-    polygon: null,
-  },
-  USDT: {
-    celo: "0x48065d0d464B2E7f5C1c2B2A3778F3fC8116d8F5",
-    celoAlfajores: null,
-    base: "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
-    ethereum: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-    polygon: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
-  },
-};
+export interface ERC20Balance {
+  token: Address;
+  symbol: string;
+  decimals: number;
+  balance: bigint;
+  formattedBalance: string;
+}
 
-// ERC-20 ABI
+export interface TransferParams {
+  chain: ChainName;
+  tokenAddress: Address;
+  to: Address;
+  amount: bigint;
+  privateKey: `0x${string}`;
+}
+
+export interface ApproveParams {
+  chain: ChainName;
+  tokenAddress: Address;
+  spender: Address;
+  amount: bigint;
+  privateKey: `0x${string}`;
+}
+
+export interface TokenTransferResult {
+  hash: Hash;
+  from: Address;
+  to: Address;
+  amount: string;
+  symbol: string;
+}
+
+// ERC-20 ABI (minimal set needed)
 const ERC20_ABI = [
   {
     name: "balanceOf",
@@ -127,42 +124,6 @@ const ERC20_ABI = [
     outputs: [{ name: "", type: "uint256" }],
   },
 ] as const;
-
-// ============================================
-// Types
-// ============================================
-
-export interface ERC20Balance {
-  token: Address;
-  symbol: string;
-  decimals: number;
-  balance: bigint;
-  formattedBalance: string;
-}
-
-export interface TransferParams {
-  chain: ChainName;
-  tokenAddress: Address;
-  to: Address;
-  amount: bigint;
-  privateKey: `0x${string}`;
-}
-
-export interface ApproveParams {
-  chain: ChainName;
-  tokenAddress: Address;
-  spender: Address;
-  amount: bigint;
-  privateKey: `0x${string}`;
-}
-
-export interface TokenTransferResult {
-  hash: Hash;
-  from: Address;
-  to: Address;
-  amount: string;
-  symbol: string;
-}
 
 // ============================================
 // Helpers
@@ -246,18 +207,20 @@ export async function getAllowance(
   return allowance as bigint;
 }
 
+// Re-export from chains.ts for convenience
 export function getCUSDAddress(chain: ChainName): Address | null {
-  const cUSD = TOKEN_ADDRESSES.cUSD;
-  if (!cUSD) return null;
-  return cUSD[chain] ?? null;
+  return TOKEN_ADDRESSES.cUSD[chain];
 }
 
 export function getTokenAddress(
-  symbol: string,
+  symbol: keyof typeof TOKEN_ADDRESSES,
   chain: ChainName,
 ): Address | null {
   return TOKEN_ADDRESSES[symbol]?.[chain] ?? null;
 }
+
+// Re-export from chains.ts
+export { getExplorerUrlFromConfig as getExplorerUrl };
 
 // ============================================
 // Write Operations
@@ -284,7 +247,7 @@ export async function transferToken(
   });
 
   const publicClient = createPublicClient({
-    chain: CHAIN_OBJECTS[chain],
+    chain: viemChain,
     transport: http(RPC_URLS[chain]),
   });
 
@@ -342,47 +305,36 @@ export async function transferCUSD(
     throw new Error(`cUSD not available on ${chain}`);
   }
 
-  const amountWei = parseEther(amount);
-
   return transferToken({
     chain,
     tokenAddress,
     to,
-    amount: amountWei,
+    amount: parseEther(amount),
     privateKey,
   });
 }
 
 // ============================================
-// Utilities
-// ============================================
-
-export function getExplorerUrl(chain: ChainName, hash: string): string {
-  const explorers: Record<ChainName, string> = {
-    celo: "https://celoscan.io/tx/",
-    celoAlfajores: "https://alfajores.celoscan.io/tx/",
-    base: "https://basescan.org/tx/",
-    ethereum: "https://etherscan.io/tx/",
-    polygon: "https://polygonscan.com/tx/",
-  };
-  return `${explorers[chain]}${hash}`;
-}
-
-// ============================================
-// Export
+// Export consolidated object
 // ============================================
 
 export const ERC20 = {
+  // Read
   getBalance: getERC20Balance,
   getAllowance,
   getCUSDAddress,
   getTokenAddress,
+
+  // Write
   transfer: transferToken,
   approve: approveToken,
   transferCUSD,
-  getExplorerUrl,
+
+  // Utils
+  getExplorerUrl: getExplorerUrlFromConfig,
   parseEther,
   formatEther,
+
+  // Constants from centralized config
   TOKEN_ADDRESSES,
-  CHAIN_CONFIG,
 };

@@ -9,39 +9,15 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { type Address, parseEther } from "viem";
+import { parseEther, type Address } from "viem";
 import {
   AgentControls,
   type ActionType,
 } from "../../../../lib/middleware/agent-controls";
-import {
-  ERC20,
-  getExplorerUrl,
-  type TokenTransferResult,
-} from "../../../../lib/utils/erc20";
+import { ERC20, type TokenTransferResult } from "../../../../lib/utils/erc20";
 import { CANVAS_ITEMS } from "@onpoint/shared-types";
-
-// CORS headers
-function corsHeaders(origin: string | null): HeadersInit {
-  const allowedOrigins = [
-    "https://beonpoint.netlify.app",
-    "https://onpoint.fashion",
-    "http://localhost:3000",
-    "http://localhost:3001",
-  ];
-
-  const allowedOrigin = allowedOrigins.includes(origin || "") ? origin! : "*";
-
-  return {
-    "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Max-Age": "86400",
-  };
-}
-
-// Platform fee wallet (receives 15%)
-const PLATFORM_WALLET = "0x05f012C12123D69E8324A251ae7D15A92C4549c1" as Address;
+import { corsHeaders } from "../../ai/_utils/http";
+import { PLATFORM_WALLET, getExplorerUrl } from "../../../../config/chains";
 
 // Product catalog - maps CANVAS_ITEMS to purchase-ready format
 const PRODUCTS: Record<
@@ -103,7 +79,7 @@ interface PurchaseResponse {
 export async function POST(
   request: NextRequest,
 ): Promise<NextResponse<PurchaseResponse>> {
-  const origin = request.headers.get("origin");
+  const origin = request.headers.get("origin") ?? undefined;
 
   try {
     // Parse and validate request
@@ -270,7 +246,7 @@ export async function POST(
 
 // GET endpoint to list available products
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const origin = request.headers.get("origin");
+  const origin = request.headers.get("origin") ?? undefined;
   const url = new URL(request.url);
   const category = url.searchParams.get("category");
 
@@ -290,6 +266,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 export async function OPTIONS(request: NextRequest): Promise<NextResponse> {
   return new NextResponse(null, {
     status: 200,
-    headers: corsHeaders(request.headers.get("origin")),
+    headers: corsHeaders(request.headers.get("origin") ?? undefined),
   });
 }

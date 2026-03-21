@@ -9,30 +9,17 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { type Address } from "viem";
+import { type Address, parseEther } from "viem";
 import {
   AgentControls,
   type ActionType,
 } from "../../../../lib/middleware/agent-controls";
-
-// CORS headers
-function corsHeaders(origin: string | null): HeadersInit {
-  const allowedOrigins = [
-    "https://beonpoint.netlify.app",
-    "https://onpoint.fashion",
-    "http://localhost:3000",
-    "http://localhost:3001",
-  ];
-
-  const allowedOrigin = allowedOrigins.includes(origin || "") ? origin! : "*";
-
-  return {
-    "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Max-Age": "86400",
-  };
-}
+import { corsHeaders } from "../../ai/_utils/http";
+import {
+  NFT_CONTRACTS,
+  getExplorerUrl,
+  type ChainName,
+} from "../../../../config/chains";
 
 // Request validation
 const MintRequestSchema = z.object({
@@ -68,16 +55,10 @@ interface MintResponse {
   error?: string;
 }
 
-// Contract addresses
-const NFT_CONTRACTS: Record<string, Address> = {
-  celo: "0xdb65806c994C3f55079a6136a8E0886CbB2B64B1",
-  celoAlfajores: "0xdb65806c994C3f55079a6136a8E0886CbB2B64B1",
-};
-
 export async function POST(
   request: NextRequest,
 ): Promise<NextResponse<MintResponse>> {
-  const origin = request.headers.get("origin");
+  const origin = request.headers.get("origin") ?? undefined;
 
   try {
     // Parse and validate request
@@ -234,7 +215,7 @@ export async function POST(
           hash: "0x" + "demo" + "0".repeat(60),
           tokenId: "pending",
           chain,
-          explorerUrl: getExplorerUrl(chain),
+          explorerUrl: getExplorerUrl(chain as ChainName, "demo"),
           splitAddress: royaltyAddr,
         },
       },
@@ -253,23 +234,6 @@ export async function POST(
 export async function OPTIONS(request: NextRequest): Promise<NextResponse> {
   return new NextResponse(null, {
     status: 200,
-    headers: corsHeaders(request.headers.get("origin")),
+    headers: corsHeaders(request.headers.get("origin") ?? undefined),
   });
-}
-
-// ============================================
-// Helpers
-// ============================================
-
-function parseEther(value: string): bigint {
-  const num = parseFloat(value);
-  return BigInt(Math.floor(num * 1e18));
-}
-
-function getExplorerUrl(chain: string): string {
-  const explorers: Record<string, string> = {
-    celo: "https://celoscan.io/tx/",
-    celoAlfajores: "https://alfajores.celoscan.io/tx/",
-  };
-  return explorers[chain] || "https://celoscan.io/tx/";
 }

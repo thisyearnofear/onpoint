@@ -13,25 +13,7 @@ import {
   AgentControls,
   type ActionType,
 } from "../../../../lib/middleware/agent-controls";
-
-// CORS headers
-function corsHeaders(origin: string | null): HeadersInit {
-  const allowedOrigins = [
-    "https://beonpoint.netlify.app",
-    "https://onpoint.fashion",
-    "http://localhost:3000",
-    "http://localhost:3001",
-  ];
-
-  const allowedOrigin = allowedOrigins.includes(origin || "") ? origin! : "*";
-
-  return {
-    "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Max-Age": "86400",
-  };
-}
+import { corsHeaders } from "../../ai/_utils/http";
 
 // Request schemas
 const CreateApprovalSchema = z.object({
@@ -49,7 +31,7 @@ const UpdateApprovalSchema = z.object({
 
 // GET - Check approval status
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const origin = request.headers.get("origin");
+  const origin = request.headers.get("origin") ?? undefined;
   const url = new URL(request.url);
   const id = url.searchParams.get("id");
   const agentId = url.searchParams.get("agentId") || "onpoint-stylist";
@@ -90,7 +72,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 // POST - Create approval request
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const origin = request.headers.get("origin");
+  const origin = request.headers.get("origin") ?? undefined;
 
   try {
     const body = await request.json();
@@ -130,7 +112,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
 // PATCH - Approve or reject request
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
-  const origin = request.headers.get("origin");
+  const origin = request.headers.get("origin") ?? undefined;
 
   try {
     const body = await request.json();
@@ -179,6 +161,6 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 export async function OPTIONS(request: NextRequest): Promise<NextResponse> {
   return new NextResponse(null, {
     status: 200,
-    headers: corsHeaders(request.headers.get("origin")),
+    headers: corsHeaders(request.headers.get("origin") ?? undefined),
   });
 }

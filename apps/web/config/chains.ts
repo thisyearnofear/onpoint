@@ -1,18 +1,43 @@
-import { mainnet, sepolia } from 'wagmi/chains';
+import { mainnet, sepolia } from "wagmi/chains";
+import { type Address } from "viem";
+
+// ============================================
+// Chain Name Types
+// ============================================
+
+export type ChainName =
+  | "celo"
+  | "celoAlfajores"
+  | "base"
+  | "ethereum"
+  | "polygon"
+  | "arbitrum";
+
+// ============================================
+// Platform Wallets
+// ============================================
+
+/** Platform fee wallet - receives 15% of NFT sales */
+export const PLATFORM_WALLET =
+  "0x05f012C12123D69E8324A251ae7D15A92C4549c1" as Address;
+
+/** Agent wallet for AI Stylist operations */
+export const AGENT_WALLET =
+  "0x05f012C12123D69E8324A251ae7D15A92C4549c1" as Address;
 
 export const base = {
   id: 8453,
-  name: 'Base',
-  nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+  name: "Base",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
   rpcUrls: {
-    default: { http: ['https://mainnet.base.org'] },
+    default: { http: ["https://mainnet.base.org"] },
   },
   blockExplorers: {
-    default: { name: 'Basescan', url: 'https://basescan.org' },
+    default: { name: "Basescan", url: "https://basescan.org" },
   },
   contracts: {
     multicall3: {
-      address: '0xca11bde05977b3631167028862be2a173976ca11',
+      address: "0xca11bde05977b3631167028862be2a173976ca11",
       blockCreated: 5022,
     },
   },
@@ -20,17 +45,17 @@ export const base = {
 
 export const arbitrum = {
   id: 42161,
-  name: 'Arbitrum One',
-  nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+  name: "Arbitrum One",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
   rpcUrls: {
-    default: { http: ['https://arb1.arbitrum.io/rpc'] },
+    default: { http: ["https://arb1.arbitrum.io/rpc"] },
   },
   blockExplorers: {
-    default: { name: 'Arbiscan', url: 'https://arbiscan.io' },
+    default: { name: "Arbiscan", url: "https://arbiscan.io" },
   },
   contracts: {
     multicall3: {
-      address: '0xca11bde05977b3631167028862be2a173976ca11',
+      address: "0xca11bde05977b3631167028862be2a173976ca11",
       blockCreated: 7654707,
     },
   },
@@ -38,67 +63,67 @@ export const arbitrum = {
 
 export const celo = {
   id: 42220,
-  name: 'Celo',
-  nativeCurrency: { name: 'Celo', symbol: 'CELO', decimals: 18 },
+  name: "Celo",
+  nativeCurrency: { name: "Celo", symbol: "CELO", decimals: 18 },
   rpcUrls: {
-    default: { http: ['https://forno.celo.org'] },
+    default: { http: ["https://forno.celo.org"] },
   },
   blockExplorers: {
-    default: { name: 'CeloScan', url: 'https://celoscan.io' },
+    default: { name: "CeloScan", url: "https://celoscan.io" },
   },
   contracts: {
     multicall3: {
-      address: '0xcA11bde05977b3631167028862bE2a173976CA11',
+      address: "0xcA11bde05977b3631167028862bE2a173976CA11",
       blockCreated: 13112599,
     },
     cUSD: {
-      address: '0x765DE8164458C172EE097029dfb482Ff182ad001',
+      address: "0x765DE8164458C172EE097029dfb482Ff182ad001",
     },
     OnPointNFT: {
-      address: '0xdb65806c994C3f55079a6136a8E0886CbB2B64B1',
-    }
+      address: "0xdb65806c994C3f55079a6136a8E0886CbB2B64B1",
+    },
   },
   testnet: false,
 } as const;
 
 export const celoAlfajores = {
   id: 44787,
-  name: 'Celo Alfajores',
-  nativeCurrency: { name: 'Celo', symbol: 'CELO', decimals: 18 },
+  name: "Celo Alfajores",
+  nativeCurrency: { name: "Celo", symbol: "CELO", decimals: 18 },
   rpcUrls: {
-    default: { http: ['https://alfajores-forno.celo-testnet.org'] },
+    default: { http: ["https://alfajores-forno.celo-testnet.org"] },
   },
   blockExplorers: {
-    default: { name: 'CeloScan', url: 'https://alfajores.celoscan.io' },
+    default: { name: "CeloScan", url: "https://alfajores.celoscan.io" },
   },
   contracts: {
     multicall3: {
-      address: '0xcA11bde05977b3631167028862bE2a173976CA11',
+      address: "0xcA11bde05977b3631167028862bE2a173976CA11",
       blockCreated: 14569024,
     },
     cUSD: {
-      address: '0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1',
+      address: "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1",
     },
     OnPointNFT: {
-      address: '0xdb65806c994C3f55079a6136a8E0886CbB2B64B1',
-    }
+      address: "0xdb65806c994C3f55079a6136a8E0886CbB2B64B1",
+    },
   },
   testnet: true,
 } as const;
 
 export const zetaChain = {
   id: 7000,
-  name: 'ZetaChain',
-  nativeCurrency: { name: 'Zeta', symbol: 'ZETA', decimals: 18 },
+  name: "ZetaChain",
+  nativeCurrency: { name: "Zeta", symbol: "ZETA", decimals: 18 },
   rpcUrls: {
-    default: { http: ['https://zetachain-evm.blockpi.network/v1/rpc/public'] },
+    default: { http: ["https://zetachain-evm.blockpi.network/v1/rpc/public"] },
   },
   blockExplorers: {
-    default: { name: 'ZetaScan', url: 'https://explorer.zetachain.com' },
+    default: { name: "ZetaScan", url: "https://explorer.zetachain.com" },
   },
   contracts: {
     multicall3: {
-      address: '0xcA11bde05977b3631167028862bE2a173976CA11',
+      address: "0xcA11bde05977b3631167028862bE2a173976CA11",
       blockCreated: 1564717,
     },
   },
@@ -107,21 +132,130 @@ export const zetaChain = {
 
 export const lisk = {
   id: 1135,
-  name: 'Lisk',
-  nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+  name: "Lisk",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
   rpcUrls: {
-    default: { http: ['https://rpc.api.lisk.com'] },
+    default: { http: ["https://rpc.api.lisk.com"] },
   },
   blockExplorers: {
-    default: { name: 'Blockscout', url: 'https://blockscout.lisk.com' },
+    default: { name: "Blockscout", url: "https://blockscout.lisk.com" },
   },
   contracts: {
     multicall3: {
-      address: '0xcA11bde05977b3631167028862bE2a173976CA11',
+      address: "0xcA11bde05977b3631167028862bE2a173976CA11",
       blockCreated: 1,
     },
   },
   testnet: false,
 } as const;
 
-export const allConfiguredChains = [mainnet, base, arbitrum, celo, celoAlfajores, zetaChain, lisk, sepolia];
+export const allConfiguredChains = [
+  mainnet,
+  base,
+  arbitrum,
+  celo,
+  celoAlfajores,
+  zetaChain,
+  lisk,
+  sepolia,
+];
+
+// ============================================
+// RPC URLs (single source of truth)
+// ============================================
+
+export const RPC_URLS: Record<ChainName, string> = {
+  celo: "https://forno.celo.org",
+  celoAlfajores: "https://alfajores-forno.celo-testnet.org",
+  base: "https://mainnet.base.org",
+  ethereum: "https://eth.drpc.org",
+  polygon: "https://polygon.drpc.org",
+  arbitrum: "https://arb1.arbitrum.io/rpc",
+};
+
+// ============================================
+// Explorer URLs (single source of truth)
+// ============================================
+
+export const EXPLORER_URLS: Record<ChainName, string> = {
+  celo: "https://celoscan.io/tx/",
+  celoAlfajores: "https://alfajores.celoscan.io/tx/",
+  base: "https://basescan.org/tx/",
+  ethereum: "https://etherscan.io/tx/",
+  polygon: "https://polygonscan.com/tx/",
+  arbitrum: "https://arbiscan.io/tx/",
+};
+
+// ============================================
+// Contract Addresses (single source of truth)
+// ============================================
+
+export const TOKEN_ADDRESSES = {
+  cUSD: {
+    celo: "0x765DE8164458C172EE097029dfb482Ff182ad001" as Address,
+    celoAlfajores: "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1" as Address,
+    base: null,
+    ethereum: null,
+    polygon: null,
+    arbitrum: null,
+  },
+  USDT: {
+    celo: "0x48065d0d464B2E7f5C1c2B2A3778F3fC8116d8F5" as Address,
+    celoAlfajores: null,
+    base: "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2" as Address,
+    ethereum: "0xdAC17F958D2ee523a2206206994597C13D831ec7" as Address,
+    polygon: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F" as Address,
+    arbitrum: null,
+  },
+} as const;
+
+export const NFT_CONTRACTS = {
+  celo: "0xdb65806c994C3f55079a6136a8E0886CbB2B64B1" as Address,
+  celoAlfajores: "0xdb65806c994C3f55079a6136a8E0886CbB2B64B1" as Address,
+  base: null,
+  ethereum: null,
+  polygon: null,
+  arbitrum: null,
+} as const;
+
+// ============================================
+// Helper Functions
+// ============================================
+
+/**
+ * Get explorer URL for a transaction
+ */
+export function getExplorerUrl(chain: ChainName, hash: string): string {
+  return `${EXPLORER_URLS[chain]}${hash}`;
+}
+
+/**
+ * Get token address by symbol and chain
+ */
+export function getTokenAddress(
+  symbol: keyof typeof TOKEN_ADDRESSES,
+  chain: ChainName,
+): Address | null {
+  return TOKEN_ADDRESSES[symbol]?.[chain] ?? null;
+}
+
+/**
+ * Get NFT contract address for a chain
+ */
+export function getNFTContract(chain: ChainName): Address | null {
+  return NFT_CONTRACTS[chain];
+}
+
+/**
+ * Check if a chain supports cUSD
+ */
+export function supportsCUSD(chain: ChainName): boolean {
+  return TOKEN_ADDRESSES.cUSD[chain] !== null;
+}
+
+/**
+ * Check if a chain supports NFT minting
+ */
+export function supportsNFTMinting(chain: ChainName): boolean {
+  return NFT_CONTRACTS[chain] !== null;
+}
