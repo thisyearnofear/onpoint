@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { ErrorBoundary } from "../ui/ErrorBoundary";
+import { logger } from "../../lib/utils/logger";
 import { CommandCenter } from "./CommandCenter";
 import { DesignStudio } from "../DesignStudio";
 import { VirtualTryOn } from "../VirtualTryOn";
@@ -263,8 +264,11 @@ export function TacticalDashboard() {
           <div className="h-[calc(100vh-12rem)]">
             <ErrorBoundary
               onError={(error: Error) => {
-                console.error("LiveStylistView crashed:", error);
-                // TODO: Report to error tracking service
+                logger.error(
+                  "LiveStylistView crashed",
+                  { component: "LiveStylistView" },
+                  error,
+                );
               }}
             >
               <LiveStylistView onBack={() => setMode("dashboard")} />
