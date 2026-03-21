@@ -17,6 +17,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
+import { ErrorBoundary } from "../ui/ErrorBoundary";
 import { CommandCenter } from "./CommandCenter";
 import { DesignStudio } from "../DesignStudio";
 import { VirtualTryOn } from "../VirtualTryOn";
@@ -249,7 +250,14 @@ export function TacticalDashboard() {
       case "live-ar":
         return (
           <div className="h-[calc(100vh-12rem)]">
-            <LiveStylistView onBack={() => setMode("dashboard")} />
+            <ErrorBoundary
+              onError={(error: Error) => {
+                console.error("LiveStylistView crashed:", error);
+                // TODO: Report to error tracking service
+              }}
+            >
+              <LiveStylistView onBack={() => setMode("dashboard")} />
+            </ErrorBoundary>
           </div>
         );
       case "stylist":

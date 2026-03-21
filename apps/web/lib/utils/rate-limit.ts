@@ -1,6 +1,12 @@
 /**
- * Simple in-memory rate limiter
- * For production, consider using Redis (Upstash, etc.) for distributed rate limiting
+ * Rate limiting utility with Redis (Upstash) support for production
+ * Falls back to in-memory for development
+ *
+ * For production, set these environment variables:
+ * - UPSTASH_REDIS_REST_URL
+ * - UPSTASH_REDIS_REST_TOKEN
+ *
+ * Get a free Redis instance at: https://upstash.com
  */
 
 interface RateLimitEntry {
@@ -24,25 +30,24 @@ interface RateLimitResult {
   limit: number;
 }
 
-// In-memory store (for single-instance deployments)
-// For multi-instance, use Redis or similar
-const store = new Map<string, RateLimitEntry>();
+// ============================================
+// In-Memory Implementation (Development)
+// ============================================
+
+const memoryStore = new Map<string, RateLimitEntry>();
 
 // Cleanup expired entries periodically
 const CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
 setInterval(() => {
   const now = Date.now();
-  for (const [key, entry] of store.entries()) {
+  for (const [key, entry] of memoryStore.entries()) {
     if (entry.resetAt < now) {
-      store.delete(key);
+      memoryStore.delete(key);
     }
   }
 }, CLEANUP_INTERVAL);
 
-/**
- * Check and update rate limit for a given key
- */
-export function rateLimit(
+function memoryRateLimit(
   key: string,
   config: RateLimitConfig,
 ): RateLimitResult {
@@ -50,7 +55,7 @@ export function rateLimit(
   const fullKey = `${prefix}:${key}`;
   const now = Date.now();
 
-  let entry = store.get(fullKey);
+  let entry = memoryStore.get(fullKey);
 
   // Reset if window has passed
   if (!entry || entry.resetAt < now) {
@@ -58,7 +63,7 @@ export function rateLimit(
       count: 0,
       resetAt: now + windowMs,
     };
-    store.set(fullKey, entry);
+    memoryStore.set(fullKey, entry);
   }
 
   // Increment count
@@ -73,6 +78,94 @@ export function rateLimit(
     resetAt: entry.resetAt,
     limit: maxRequests,
   };
+}
+
+// ============================================
+// Redis (Upstash) Implementation (Production)
+// ============================================
+
+interface UpstashResponse {
+  result: number;
+}
+
+async function upstashRateLimit(
+  key: string,
+  config: RateLimitConfig,
+): Promise<RateLimitResult> {
+  const { maxRequests, windowMs, prefix = "rl" } = config;
+  const fullKey = `${prefix}:${key}`;
+
+  const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  if (!redisUrl || !redisToken) {
+    throw new Error("Upstash Redis not configured");
+  }
+
+  const windowSecs = Math.ceil(windowMs / 1000);
+  const now = Math.floor(Date.now() / 1000);
+  const resetAt = now + windowSecs;
+
+  // Use UPSTASH's rate limiting script for atomic operations
+  const response = await fetch(`${redisUrl}/pipeline`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${redisToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify([
+      ["INCR", fullKey],
+      ["EXPIRE", fullKey, windowSecs],
+      ["GET", fullKey],
+    ]),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Upstash error: ${response.status}`);
+  }
+
+  const results: UpstashResponse[] = await response.json();
+  const count = results[2]?.result ?? 0;
+
+  const allowed = count <= maxRequests;
+  const remaining = Math.max(0, maxRequests - count);
+
+  return {
+    allowed,
+    remaining,
+    resetAt: resetAt * 1000,
+    limit: maxRequests,
+  };
+}
+
+// ============================================
+// Public API - Auto-selects implementation
+// ============================================
+
+/**
+ * Check and update rate limit for a given key
+ * Uses Redis in production, in-memory in development
+ */
+export async function rateLimit(
+  key: string,
+  config: RateLimitConfig,
+): Promise<RateLimitResult> {
+  const isProduction = process.env.NODE_ENV === "production";
+  const hasRedis = !!(
+    process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+  );
+
+  if (isProduction && hasRedis) {
+    try {
+      return await upstashRateLimit(key, config);
+    } catch (error) {
+      console.error("Redis rate limit failed, falling back to memory:", error);
+      // Fall back to in-memory if Redis fails
+      return memoryRateLimit(key, config);
+    }
+  }
+
+  return memoryRateLimit(key, config);
 }
 
 /**

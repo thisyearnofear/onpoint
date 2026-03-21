@@ -1077,13 +1077,68 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               <div className="w-16 h-16 rounded-2xl bg-rose-500/20 flex items-center justify-center mb-6 mx-auto">
                 <AlertCircle className="w-8 h-8 text-rose-500" />
               </div>
+
+              {/* Smart error title based on error type */}
               <h2 className="text-xl font-bold text-white text-center mb-2">
-                Interface Failure
+                {error.toLowerCase().includes("rate limit")
+                  ? "Session Limit Reached"
+                  : error.toLowerCase().includes("camera") ||
+                      error.toLowerCase().includes("permission")
+                    ? "Camera Access Required"
+                    : error.toLowerCase().includes("payment") ||
+                        error.toLowerCase().includes("verification")
+                      ? "Payment Issue"
+                      : "Connection Issue"}
               </h2>
-              <p className="text-slate-400 text-sm text-center mb-8">{error}</p>
+
+              {/* Smart error message with fallback suggestions */}
+              <div className="text-center mb-8 space-y-3">
+                <p className="text-slate-400 text-sm">{error}</p>
+
+                {/* Provider-specific fallback suggestions */}
+                {selectedProvider === "venice" &&
+                  error.toLowerCase().includes("rate limit") && (
+                    <div className="p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
+                      <p className="text-indigo-300 text-xs">
+                        💡 Upgrade to <strong>Gemini Live</strong> for unlimited
+                        sessions (0.5 CELO)
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 text-indigo-400 hover:text-indigo-300 text-xs"
+                        onClick={() => {
+                          setSelectedProvider("gemini");
+                          setSessionGoal(null);
+                        }}
+                      >
+                        Switch to Gemini Live →
+                      </Button>
+                    </div>
+                  )}
+
+                {error.toLowerCase().includes("camera") && (
+                  <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20">
+                    <p className="text-amber-300 text-xs">
+                      Please allow camera access in your browser settings to use
+                      Live AR Stylist.
+                    </p>
+                  </div>
+                )}
+
+                {error.toLowerCase().includes("venice") && (
+                  <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                    <p className="text-emerald-300 text-xs">
+                      Venice AI is temporarily unavailable. Try again in a
+                      moment or switch to Gemini Live.
+                    </p>
+                  </div>
+                )}
+              </div>
+
               <div className="flex flex-col gap-3">
                 <Button
-                  className="w-full bg-rose-600 hover:bg-rose-500 text-white rounded-full font-bold"
+                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-full font-bold"
                   onClick={() =>
                     startSession(
                       sessionGoal,
@@ -1091,17 +1146,18 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                     )
                   }
                 >
-                  Restart Interface
+                  Try Again
                 </Button>
-                {!userApiKey && !geminiPaymentToken && (
-                  <Button
-                    variant="ghost"
-                    className="text-white hover:bg-white/5 font-bold"
-                    onClick={() => setSessionGoal(null)}
-                  >
-                    Select New Goal
-                  </Button>
-                )}
+                <Button
+                  variant="ghost"
+                  className="text-slate-400 hover:text-white hover:bg-white/5 font-bold"
+                  onClick={() => {
+                    setSelectedProvider(null);
+                    setSessionGoal(null);
+                  }}
+                >
+                  Choose Different Provider
+                </Button>
               </div>
             </div>
           </div>

@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     const byok = typeof apiKey === "string" ? apiKey.trim() : "";
 
     // Apply general rate limiting
-    const generalLimit = rateLimit(clientId, RateLimits.general);
+    const generalLimit = await rateLimit(clientId, RateLimits.general);
     if (!generalLimit.allowed) {
       return NextResponse.json(
         {
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
     // Venice AI - Free (we provide the API key)
     if (provider === "venice") {
       // Apply Venice-specific rate limiting
-      const veniceLimit = rateLimit(clientId, RateLimits.veniceFree);
+      const veniceLimit = await rateLimit(clientId, RateLimits.veniceFree);
       if (!veniceLimit.allowed) {
         return NextResponse.json(
           {
@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
 
       // Apply Gemini-specific rate limiting (per wallet for token users)
       const geminiKey = isValidToken ? walletAddress : clientId;
-      const geminiLimit = rateLimit(geminiKey, RateLimits.geminiSession);
+      const geminiLimit = await rateLimit(geminiKey, RateLimits.geminiSession);
 
       if (!geminiLimit.allowed) {
         return NextResponse.json(

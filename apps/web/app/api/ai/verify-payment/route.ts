@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
 
   try {
     // Apply rate limiting for payment verification
-    const verifyLimit = rateLimit(clientId, RateLimits.paymentVerify);
+    const verifyLimit = await rateLimit(clientId, RateLimits.paymentVerify);
     if (!verifyLimit.allowed) {
       return NextResponse.json(
         {
