@@ -86,12 +86,12 @@ export function SessionEndingCard({
           <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-black/10 blur-2xl rounded-full" />
 
           <div className="relative z-10">
-            {/* Header */}
+            {/* Header — BeOnPoint branding */}
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-white/80" />
-                <span className="text-[10px] font-mono text-white/60 uppercase tracking-[0.2em]">
-                  Proof of Style
+                <span className="text-sm font-black text-white tracking-tight italic">
+                  BeOnPoint
                 </span>
               </div>
               <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider">
@@ -101,6 +101,9 @@ export function SessionEndingCard({
 
             {/* Score — hero element */}
             <div className="flex flex-col items-center text-center">
+              <span className="text-[9px] font-mono text-white/40 uppercase tracking-[0.25em] mb-2">
+                Proof of Style
+              </span>
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
@@ -271,6 +274,18 @@ export function SessionEndingCard({
               View Full Summary →
             </button>
           </motion.div>
+
+          {/* Branding footer */}
+          <div className="flex items-center justify-center gap-1.5 pt-3 border-t border-white/5">
+            <Sparkles className="w-3 h-3 text-indigo-500/40" />
+            <span className="text-[9px] text-slate-700 font-medium">
+              Styled by{" "}
+              <span className="text-indigo-500/50 font-bold italic">
+                OnPoint
+              </span>{" "}
+              AI
+            </span>
+          </div>
         </div>
       </motion.div>
     </motion.div>
