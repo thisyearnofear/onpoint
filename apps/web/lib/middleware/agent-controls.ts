@@ -8,6 +8,24 @@
  * For the Tether Hackathon Galactica - Agent Wallets Track
  */
 
+import {
+  loadSpendingLimits,
+  persistSpendingLimits,
+  loadAutonomyThreshold,
+  persistAutonomyThreshold,
+  persistSuggestion,
+  loadSuggestion as loadSuggestionFromStore,
+  persistApproval,
+  persistStylePreferences,
+  loadStylePreferences,
+  hydrateSuggestions,
+  hydrateApprovals,
+  isRedisConfigured,
+} from "./agent-store";
+
+// Re-export for API routes that need direct store access
+export { loadSuggestionFromStore };
+
 // ============================================
 // Types
 // ============================================
@@ -148,7 +166,7 @@ const DEFAULT_LIMITS: Record<
 const DEFAULT_AUTONOMY_THRESHOLD = parseEther("5"); // 5 cUSD
 
 // ============================================
-// In-Memory Store (use Redis in production)
+// In-Memory Store (backed by Redis in production)
 // ============================================
 
 // Spending limits per agent
@@ -165,6 +183,44 @@ const stylePreferences: Map<string, StylePreference> = new Map();
 
 // Pending approvals
 const pendingApprovals: Map<string, ApprovalRequest> = new Map();
+
+// Track which agents have been hydrated from Redis
+const hydratedAgents: Set<string> = new Set();
+
+/**
+ * Initialize the store by loading persisted state from Redis.
+ * Call once at the start of each API request.
+ * Safe to call multiple times — only hydrates once per agent per process.
+ */
+export async function initStore(agentId: string): Promise<void> {
+  if (hydratedAgents.has(agentId)) return;
+  hydratedAgents.add(agentId);
+
+  if (!isRedisConfigured()) return;
+
+  try {
+    // Load spending limits
+    const limits = await loadSpendingLimits(agentId);
+    if (limits) {
+      spendingLimits.set(agentId, limits);
+    }
+
+    // Load autonomy threshold
+    const threshold = await loadAutonomyThreshold(agentId);
+    if (threshold !== null) {
+      autonomyThresholds.set(agentId, threshold);
+    }
+
+    // Hydrate suggestions and approvals
+    await Promise.all([
+      hydrateSuggestions(agentId, pendingSuggestions),
+      hydrateApprovals(agentId, pendingApprovals),
+    ]);
+  } catch (err) {
+    console.error(`Redis hydration failed for ${agentId}:`, err);
+    // Continue with in-memory state
+  }
+}
 
 // ============================================
 // Core Functions
@@ -208,6 +264,7 @@ export function initializeAgentLimits(
   }
 
   spendingLimits.set(agentId, limits);
+  persistSpendingLimits(agentId, limits).catch(() => {});
   return limits;
 }
 
@@ -275,6 +332,7 @@ export function recordSpending(
 
   if (limit) {
     limit.spentToday += amount;
+    persistSpendingLimits(agentId, limits).catch(() => {});
   }
 }
 
@@ -310,6 +368,7 @@ export function getRemainingLimit(
  */
 export function setAutonomyThreshold(agentId: string, threshold: bigint): void {
   autonomyThresholds.set(agentId, threshold);
+  persistAutonomyThreshold(agentId, threshold).catch(() => {});
 }
 
 /**
@@ -368,6 +427,7 @@ export function createSuggestion(params: {
   };
 
   pendingSuggestions.set(id, suggestion);
+  persistSuggestion(suggestion).catch(() => {});
   return suggestion;
 }
 
@@ -403,6 +463,7 @@ export function acceptSuggestion(id: string): boolean {
   }
 
   suggestion.status = "accepted";
+  persistSuggestion(suggestion).catch(() => {});
   return true;
 }
 
@@ -417,6 +478,7 @@ export function rejectSuggestion(id: string): boolean {
   }
 
   suggestion.status = "rejected";
+  persistSuggestion(suggestion).catch(() => {});
   return true;
 }
 
@@ -431,6 +493,7 @@ export function markSuggestionExecuted(id: string): boolean {
   }
 
   suggestion.status = "executed";
+  persistSuggestion(suggestion).catch(() => {});
   return true;
 }
 
@@ -489,6 +552,7 @@ export function updateStylePreferences(
   prefs.lastUpdated = Date.now();
 
   stylePreferences.set(userId, prefs);
+  persistStylePreferences(prefs).catch(() => {});
   return prefs;
 }
 
@@ -541,6 +605,7 @@ export function createApprovalRequest(params: {
   };
 
   pendingApprovals.set(id, request);
+  persistApproval(request).catch(() => {});
   return request;
 }
 
@@ -577,6 +642,7 @@ export function approveRequest(id: string, userSignature?: string): boolean {
 
   request.status = "approved";
   request.userSignature = userSignature;
+  persistApproval(request).catch(() => {});
   return true;
 }
 
@@ -591,6 +657,7 @@ export function rejectRequest(id: string): boolean {
   }
 
   request.status = "rejected";
+  persistApproval(request).catch(() => {});
   return true;
 }
 
@@ -771,6 +838,9 @@ function parseAmount(amount: string): bigint {
 // ============================================
 
 export const AgentControls = {
+  // Store initialization
+  initStore,
+
   // Limits
   initializeAgentLimits,
   getAgentLimits,

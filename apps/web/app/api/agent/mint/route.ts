@@ -82,6 +82,8 @@ export async function POST(
       approvalId,
     } = parsed.data;
 
+    await AgentControls.initStore(agentId);
+
     // Check if NFT contract exists on this chain
     const nftContract = NFT_CONTRACTS[chain];
     if (!nftContract) {

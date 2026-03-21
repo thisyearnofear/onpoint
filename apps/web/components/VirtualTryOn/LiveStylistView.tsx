@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { Card, CardContent } from "@repo/ui/card";
 import { Button } from "@repo/ui/button";
 import {
@@ -37,6 +43,12 @@ import {
   useAgentApproval,
   type ApprovalRequest,
 } from "../Agent/AgentApprovalModal";
+import {
+  AgentSuggestionToast,
+  useAgentSuggestions,
+} from "../Agent/AgentSuggestionToast";
+import { SuggestionHistoryPanel } from "../Agent/SuggestionHistoryPanel";
+import type { ActionType } from "../../lib/middleware/agent-controls";
 import { trackProviderSelected } from "../../lib/utils/analytics";
 
 type AIProvider = "venice" | "gemini";
@@ -106,6 +118,24 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     rejectRequest,
   } = useAgentApproval();
 
+  // Agent suggestions hook
+  const {
+    suggestions,
+    currentSuggestion,
+    acceptSuggestion,
+    rejectSuggestion,
+    createSuggestion,
+    dismissSuggestion,
+  } = useAgentSuggestions();
+
+  // Track whether we've already created a mint suggestion for this session score
+  const mintSuggestionCreatedRef = useRef(false);
+
+  // Smart suggestion gating
+  const lastSuggestionTimeRef = useRef(0);
+  const suggestedItemTypesRef = useRef<Set<string>>(new Set());
+  const sessionStartTimeRef = useRef(0);
+
   // Use the appropriate provider based on selection
   const activeProvider = selectedProvider === "venice" ? venice : gemini;
   const {
@@ -120,6 +150,36 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     reasoning,
     agentEvents,
   } = activeProvider;
+
+  // Mark session start for phase-aware gating
+  useEffect(() => {
+    if (isConnected && sessionStartTimeRef.current === 0) {
+      sessionStartTimeRef.current = Date.now();
+    }
+    if (!isConnected) {
+      sessionStartTimeRef.current = 0;
+      suggestedItemTypesRef.current.clear();
+      lastSuggestionTimeRef.current = 0;
+      mintSuggestionCreatedRef.current = false;
+    }
+  }, [isConnected]);
+
+  const SUGGESTION_COOLDOWN_MS = 30_000;
+  const SESSION_WARMUP_MS = 15_000;
+
+  const canCreateSuggestion = useCallback((itemType: string) => {
+    const now = Date.now();
+    const elapsed = now - lastSuggestionTimeRef.current;
+    const sessionAge = now - sessionStartTimeRef.current;
+
+    if (elapsed < SUGGESTION_COOLDOWN_MS) return false;
+    if (sessionAge < SESSION_WARMUP_MS) return false;
+    if (suggestedItemTypesRef.current.has(itemType)) return false;
+
+    lastSuggestionTimeRef.current = now;
+    suggestedItemTypesRef.current.add(itemType);
+    return true;
+  }, []);
 
   // Derive a session summary from reasoning + AI responses
   const sessionSummary = useMemo(() => {
@@ -191,6 +251,64 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
     return { score, topics: topics.slice(0, 4), takeaways };
   }, [reasoning, finalAdvice, sessionGoal]);
+
+  // Create mint suggestion when score is elite
+  useEffect(() => {
+    if (
+      sessionSummary &&
+      sessionSummary.score >= 8 &&
+      isConnected &&
+      !mintSuggestionCreatedRef.current
+    ) {
+      mintSuggestionCreatedRef.current = true;
+      createSuggestion({
+        actionType: "mint" as ActionType,
+        amount: "0.5 cUSD",
+        description: `Style Score is Elite (${sessionSummary.score}/10). Mint this Proof of Style to Celo?`,
+      }).catch((err) =>
+        console.error("Failed to create mint suggestion:", err),
+      );
+    }
+  }, [sessionSummary, isConnected, createSuggestion]);
+
+  // Create purchase suggestion when AI reasoning mentions specific items
+  useEffect(() => {
+    if (!isConnected || reasoning.length === 0) return;
+    const latest = (reasoning[0] || "").toLowerCase();
+
+    const itemKeywords: Record<string, string> = {
+      shirt: "shirt",
+      jacket: "jacket",
+      shoe: "shoe",
+      sneaker: "shoe",
+      bag: "bag",
+      accessory: "accessory",
+      dress: "dress",
+      coat: "coat",
+      trouser: "trouser",
+      denim: "denim",
+    };
+
+    // Detect when AI recommends a specific purchase
+    const isRecommendation =
+      latest.includes("recommend") || latest.includes("suggest");
+    if (!isRecommendation) return;
+
+    const matchedType = Object.entries(itemKeywords).find(([keyword]) =>
+      latest.includes(keyword),
+    );
+    if (!matchedType) return;
+
+    const [, itemType] = matchedType;
+    if (!canCreateSuggestion(itemType)) return;
+
+    createSuggestion({
+      actionType: "purchase" as ActionType,
+      amount: "< 5 cUSD",
+      description:
+        reasoning[0]?.slice(0, 100) || "AI recommends this item for your look",
+    }).catch(() => {});
+  }, [reasoning, isConnected, createSuggestion, canCreateSuggestion]);
 
   const isCritique = sessionGoal === "critique";
 
@@ -601,6 +719,9 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
           {/* Action Buttons */}
           <div className="flex flex-col gap-3 pt-4">
+            {/* Suggestion History */}
+            <SuggestionHistoryPanel suggestions={suggestions} />
+
             {selectedCapture && (
               <MintLookButton
                 imageUrl={selectedCapture.image}
@@ -1304,36 +1425,15 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           )}
         </AnimatePresence>
 
-        {/* Action Suggestion Toast */}
+        {/* Agent Suggestion Toast */}
         <AnimatePresence>
-          {sessionSummary && sessionSummary.score >= 8 && isConnected && (
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="absolute bottom-32 inset-x-0 flex justify-center z-50 px-6"
-            >
-              <div className="bg-indigo-600 border border-indigo-400 shadow-[0_0_30px_rgba(99,102,241,0.4)] p-4 rounded-3xl flex items-center gap-4 max-w-md w-full">
-                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
-                  <Sparkles className="w-6 h-6 text-white" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-white font-bold text-sm">
-                    Agent Recommendation
-                  </h4>
-                  <p className="text-white/80 text-xs">
-                    Style Score is Elite. I propose minting this Proof of Style
-                    to Celo.
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  className="bg-white text-indigo-600 hover:bg-white/90 font-bold rounded-full px-4"
-                  onClick={handleCapture}
-                >
-                  Capture
-                </Button>
-              </div>
-            </motion.div>
+          {currentSuggestion && (
+            <AgentSuggestionToast
+              suggestion={currentSuggestion}
+              onAccept={acceptSuggestion}
+              onReject={rejectSuggestion}
+              onDismiss={dismissSuggestion}
+            />
           )}
         </AnimatePresence>
 

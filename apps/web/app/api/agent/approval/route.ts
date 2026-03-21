@@ -36,6 +36,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const id = url.searchParams.get("id");
   const agentId = url.searchParams.get("agentId") || "onpoint-stylist";
 
+  await AgentControls.initStore(agentId);
+
   try {
     if (id) {
       // Get specific approval request
@@ -87,6 +89,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const { actionType, amount, description, recipient, agentId } = parsed.data;
 
+    await AgentControls.initStore(agentId);
+
     // Create the approval request using AgentControls
     const approvalRequest = AgentControls.createApprovalRequest({
       agentId,
@@ -126,6 +130,8 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     }
 
     const { id, action } = parsed.data;
+
+    await AgentControls.initStore("onpoint-stylist");
 
     let success: boolean;
 

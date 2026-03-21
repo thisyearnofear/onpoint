@@ -95,6 +95,8 @@ export async function POST(
 
     const { productId, quantity, chain, agentId, approvalId } = parsed.data;
 
+    await AgentControls.initStore(agentId);
+
     // Get product from catalog
     const product = PRODUCTS[productId.toLowerCase()];
     if (!product) {

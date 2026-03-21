@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import {
   AgentControls,
+  loadSuggestionFromStore,
   type ActionType,
 } from "../../../../lib/middleware/agent-controls";
 import { corsHeaders } from "../../ai/_utils/http";
@@ -35,6 +36,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const url = new URL(request.url);
   const id = url.searchParams.get("id");
   const agentId = url.searchParams.get("agentId") || "onpoint-stylist";
+
+  await AgentControls.initStore(agentId);
 
   try {
     if (id) {
@@ -85,6 +88,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const { actionType, amount, description, recipient, agentId } = parsed.data;
 
+    await AgentControls.initStore(agentId);
+
     // Use suggestAction which handles autonomy threshold
     const result = AgentControls.suggestAction({
       agentId,
@@ -129,6 +134,14 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     }
 
     const { id, action } = parsed.data;
+
+    // Ensure store is hydrated (load suggestion if not in memory)
+    if (!AgentControls.getSuggestion(id)) {
+      const stored = await loadSuggestionFromStore(id);
+      if (stored) {
+        await AgentControls.initStore(stored.agentId);
+      }
+    }
 
     let success: boolean;
 
