@@ -93,6 +93,7 @@ export const GOAL_OPTIONS = [
 
 const SUGGESTION_COOLDOWN_MS = 30_000;
 const SESSION_WARMUP_MS = 15_000;
+const VENICE_FREE_CAPTURES = 3;
 
 // ── Hook ──
 
@@ -139,7 +140,8 @@ export function useLiveSession() {
   } | null>(null);
 
   // ── External hooks ──
-  const activeProvider = selectedProvider === "venice" ? venice : gemini;
+  const isVenice = selectedProvider === "venice";
+  const activeProvider = isVenice ? venice : gemini;
   const {
     isConnected,
     isInitializing,
@@ -152,6 +154,17 @@ export function useLiveSession() {
     reasoning,
     agentEvents,
   } = activeProvider;
+
+  // Venice session timer (undefined for Gemini — no limit)
+  const sessionTimeRemaining = isVenice
+    ? (venice as any).sessionTimeRemaining
+    : undefined;
+  const sessionExpired = isVenice ? (venice as any).sessionExpired : false;
+
+  // Capture limits: 3 for Venice (free), unlimited for Gemini (paid)
+  const maxCaptures = isVenice ? VENICE_FREE_CAPTURES : Infinity;
+  const capturesRemaining = Math.max(0, maxCaptures - captures.length);
+  const capturesExhausted = capturesRemaining <= 0;
 
   const {
     suggestions,
@@ -509,6 +522,7 @@ export function useLiveSession() {
   // ── Capture logic ──
   const handleCapture = useCallback(async () => {
     if (!videoRef.current || isCapturing) return;
+    if (isVenice && captures.length >= VENICE_FREE_CAPTURES) return;
 
     try {
       setIsCapturing(true);
@@ -657,6 +671,14 @@ export function useLiveSession() {
     selectedCapture,
     uploadedData,
     setUploadedData,
+    capturesRemaining,
+    capturesExhausted,
+    maxCaptures,
+
+    // Session limits
+    sessionTimeRemaining,
+    sessionExpired,
+    isVenice,
 
     // Activities
     activities,

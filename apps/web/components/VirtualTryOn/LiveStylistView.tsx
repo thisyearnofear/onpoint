@@ -104,6 +104,12 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     setIsApprovalModalOpen,
     approveRequest,
     rejectRequest,
+    capturesRemaining,
+    capturesExhausted,
+    maxCaptures,
+    sessionTimeRemaining,
+    sessionExpired,
+    isVenice,
   } = session;
 
   // ── Session Summary Screen ──
@@ -542,6 +548,21 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                     Neural Stylist Reasoning
                   </span>
                 </div>
+                {/* Session timer for Venice free tier */}
+                {isVenice && isConnected && sessionTimeRemaining != null && (
+                  <span
+                    className={`text-[10px] font-mono font-bold ${
+                      sessionTimeRemaining <= 30
+                        ? "text-rose-400 animate-pulse"
+                        : sessionTimeRemaining <= 60
+                          ? "text-amber-400"
+                          : "text-slate-500"
+                    }`}
+                  >
+                    {Math.floor(sessionTimeRemaining / 60)}:
+                    {String(sessionTimeRemaining % 60).padStart(2, "0")}
+                  </span>
+                )}
               </div>
               <motion.div animate={{ rotate: terminalExpanded ? 180 : 0 }}>
                 <div className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center">
@@ -1019,6 +1040,79 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
         </AnimatePresence>
       </div>
 
+      {/* Session Expired Upsell Overlay */}
+      <AnimatePresence>
+        {(sessionExpired || capturesExhausted) && !showSummary && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-md"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="max-w-sm w-full mx-6 p-8 rounded-3xl bg-slate-900 border border-indigo-500/30 text-center shadow-2xl shadow-indigo-500/10"
+            >
+              <div className="w-16 h-16 rounded-2xl bg-indigo-600/20 flex items-center justify-center mx-auto mb-6 border border-indigo-500/30">
+                <Crown className="w-8 h-8 text-indigo-400" />
+              </div>
+
+              <h2 className="text-2xl font-black text-white mb-2">
+                {sessionExpired ? "Free Session Ended" : "Captures Exhausted"}
+              </h2>
+
+              <p className="text-slate-400 text-sm mb-6 leading-relaxed">
+                {sessionExpired
+                  ? "Your 3-minute free session is up. Upgrade for unlimited styling time."
+                  : "You've used all 3 free captures. Unlock unlimited captures with Gemini Live."}
+              </p>
+
+              {captures.length > 0 && (
+                <p className="text-indigo-300 text-xs mb-6">
+                  You have {captures.length} capture
+                  {captures.length !== 1 ? "s" : ""} ready to mint as Proof of
+                  Style NFTs.
+                </p>
+              )}
+
+              <div className="flex flex-col gap-3">
+                <Button
+                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-full py-6 text-base font-bold shadow-xl shadow-indigo-500/20"
+                  onClick={() => {
+                    handleFinish();
+                  }}
+                >
+                  <Crown className="w-4 h-4 mr-2" />
+                  Upgrade to Gemini Live
+                </Button>
+
+                {captures.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    className="w-full text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-full py-4 text-sm font-bold border border-amber-500/20"
+                    onClick={() => {
+                      handleFinish();
+                    }}
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Mint Your Style First
+                  </Button>
+                )}
+
+                <Button
+                  variant="ghost"
+                  className="text-slate-500 hover:text-white text-xs"
+                  onClick={handleFinish}
+                >
+                  View Session Summary
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Control Bar — Mobile-safe */}
       <div
         className="bg-slate-950 px-4 sm:px-6 py-4 sm:py-6 pb-6 sm:pb-10 flex items-center justify-around gap-2 sm:gap-4 border-t border-white/5 relative z-[50] shadow-[0_-20px_50px_rgba(0,0,0,0.5)]"
@@ -1033,33 +1127,54 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           <PhoneOff className="w-5 h-5 sm:w-6 sm:h-6 text-rose-500 group-hover:scale-110 transition-transform" />
         </Button>
 
-        <div className="flex items-center gap-2 sm:gap-4">
-          <Button
-            size="icon"
-            onClick={startTimerCapture}
-            className={`w-14 h-14 sm:w-18 sm:h-18 rounded-full transition-all duration-300 shadow-xl ${
-              countdown !== null
-                ? "bg-amber-600 scale-95 shadow-amber-500/20"
-                : "bg-white hover:bg-slate-200 shadow-white/10"
-            }`}
-          >
-            <Clock
-              className={`w-6 h-6 sm:w-8 sm:h-8 ${countdown !== null ? "text-white" : "text-slate-950"}`}
-            />
-          </Button>
+        <div className="flex flex-col items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <Button
+              size="icon"
+              onClick={startTimerCapture}
+              className={`w-14 h-14 sm:w-18 sm:h-18 rounded-full transition-all duration-300 shadow-xl ${
+                countdown !== null
+                  ? "bg-amber-600 scale-95 shadow-amber-500/20"
+                  : capturesExhausted
+                    ? "bg-white/20 cursor-not-allowed"
+                    : "bg-white hover:bg-slate-200 shadow-white/10"
+              }`}
+              disabled={capturesExhausted}
+            >
+              <Clock
+                className={`w-6 h-6 sm:w-8 sm:h-8 ${countdown !== null ? "text-white" : capturesExhausted ? "text-white/30" : "text-slate-950"}`}
+              />
+            </Button>
 
-          <Button
-            size="icon"
-            onClick={handleCapture}
-            className="w-14 h-14 sm:w-18 sm:h-18 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white shadow-xl shadow-indigo-500/20"
-            disabled={isCapturing}
-          >
-            {isCapturing ? (
-              <Sparkles className="animate-spin w-6 h-6 sm:w-8 sm:h-8" />
-            ) : (
-              <Camera className="w-6 h-6 sm:w-8 sm:h-8" />
-            )}
-          </Button>
+            <Button
+              size="icon"
+              onClick={handleCapture}
+              className={`w-14 h-14 sm:w-18 sm:h-18 rounded-full text-white shadow-xl ${
+                capturesExhausted
+                  ? "bg-slate-700 cursor-not-allowed shadow-none"
+                  : "bg-indigo-600 hover:bg-indigo-500 shadow-indigo-500/20"
+              }`}
+              disabled={isCapturing || capturesExhausted}
+            >
+              {isCapturing ? (
+                <Sparkles className="animate-spin w-6 h-6 sm:w-8 sm:h-8" />
+              ) : (
+                <Camera className="w-6 h-6 sm:w-8 sm:h-8" />
+              )}
+            </Button>
+          </div>
+          {/* Captures remaining badge — Venice free tier only */}
+          {isVenice && (
+            <span
+              className={`text-[10px] font-mono font-bold ${
+                capturesExhausted ? "text-rose-400" : "text-slate-500"
+              }`}
+            >
+              {capturesExhausted
+                ? "Free captures used"
+                : `${capturesRemaining} capture${capturesRemaining !== 1 ? "s" : ""} left`}
+            </span>
+          )}
         </div>
 
         <div className="flex gap-1 sm:gap-2 items-center">
