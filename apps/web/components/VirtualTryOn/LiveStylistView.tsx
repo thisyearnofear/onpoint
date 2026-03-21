@@ -168,6 +168,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
       suggestedItemTypesRef.current.clear();
       lastSuggestionTimeRef.current = 0;
       mintSuggestionCreatedRef.current = false;
+      recommendationsFetchedRef.current = false;
     }
   }, [isConnected]);
 
@@ -337,6 +338,32 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
         reasoning[0]?.slice(0, 100) || "AI recommends this item for your look",
     }).catch(() => {});
   }, [reasoning, isConnected, createSuggestion, canCreateSuggestion]);
+
+  // Fetch personalized recommendations after warmup and create suggestion
+  const recommendationsFetchedRef = useRef(false);
+  useEffect(() => {
+    if (!isConnected || recommendationsFetchedRef.current) return;
+
+    const sessionAge = Date.now() - sessionStartTimeRef.current;
+    if (sessionAge < SUGGESTION_COOLDOWN_MS * 2) return; // Wait 60s into session
+
+    recommendationsFetchedRef.current = true;
+
+    fetch("/api/agent/style?limit=1")
+      .then((res) => res.json())
+      .then((data) => {
+        const rec = data.recommendations?.[0];
+        if (!rec) return;
+        if (!canCreateSuggestion(rec.category)) return;
+
+        createSuggestion({
+          actionType: "purchase" as ActionType,
+          amount: `$${rec.price} cUSD`,
+          description: `Based on your style: ${rec.name} — ${rec.description}`,
+        }).catch(() => {});
+      })
+      .catch(() => {});
+  }, [isConnected, createSuggestion, canCreateSuggestion]);
 
   const isCritique = sessionGoal === "critique";
 

@@ -1,9 +1,9 @@
 /**
  * Fashion Data Source
- * 
+ *
  * Centralized, type-safe fashion item definitions
  * Modeled after astro-shop's clean data pattern
- * 
+ *
  * This is the single source of truth for:
  * - Product catalog
  * - Styling canvas items
@@ -11,60 +11,215 @@
  * - Virtual try-on references
  */
 
-import type { FashionItem, FashionCategory } from './index';
-import { FashionCategory as FC } from './fashion-category';
+import type { FashionItem, FashionCategory } from "./index";
+import { FashionCategory as FC } from "./fashion-category";
 
 /**
  * Core styling canvas items - these are the draggable items in InteractiveStylingCanvas
  */
 export const CANVAS_ITEMS: FashionItem[] = [
+  // ── Shirts ──
   {
-    id: '1',
-    slug: 't-705-shirt-brave',
-    name: 'Ratphex-T',
-    description: 'Bold graphic tee with streetwear aesthetic',
+    id: "1",
+    slug: "t-705-shirt-brave",
+    name: "Ratphex-T",
+    description: "Bold graphic tee with streetwear aesthetic",
     price: 129,
     category: FC.Shirts,
-    cover: '/assets/1Product.png',
-    productSrc: '/assets/1Product.png',
-    modelSrc: '/assets/1Model.png',
-    modelSize: 'L',
+    cover: "/assets/1Product.png",
+    productSrc: "/assets/1Product.png",
+    modelSrc: "/assets/1Model.png",
+    modelSize: "L",
     modelHeight: "5'4\"",
     createdAt: new Date(),
     updatedAt: new Date(),
     averageRating: 4.5,
   },
   {
-    id: '2',
-    slug: 'ratward-scissor-t',
-    name: 'RatwardScissor-T',
-    description: 'Minimalist geometric design with clean lines',
+    id: "2",
+    slug: "ratward-scissor-t",
+    name: "RatwardScissor-T",
+    description: "Minimalist geometric design with clean lines",
     price: 99,
     category: FC.Shirts,
-    cover: '/assets/2Product.png',
-    productSrc: '/assets/2Product.png',
-    modelSrc: '/assets/2Model.png',
-    modelSize: 'XL',
+    cover: "/assets/2Product.png",
+    productSrc: "/assets/2Product.png",
+    modelSrc: "/assets/2Model.png",
+    modelSize: "XL",
     modelHeight: "5'4\"",
     createdAt: new Date(),
     updatedAt: new Date(),
     averageRating: 4.2,
   },
   {
-    id: '3',
-    slug: 'animal-collective-t',
-    name: 'AnimalCollective-T',
-    description: 'Vintage-inspired animal graphics on premium cotton',
+    id: "3",
+    slug: "animal-collective-t",
+    name: "AnimalCollective-T",
+    description: "Vintage-inspired animal graphics on premium cotton",
     price: 79,
     category: FC.Shirts,
-    cover: '/assets/3Product.png',
-    productSrc: '/assets/3Product.png',
-    modelSrc: '/assets/3Model.png',
-    modelSize: 'S',
+    cover: "/assets/3Product.png",
+    productSrc: "/assets/3Product.png",
+    modelSrc: "/assets/3Model.png",
+    modelSize: "S",
     modelHeight: "5'4\"",
     createdAt: new Date(),
     updatedAt: new Date(),
     averageRating: 4.8,
+  },
+  {
+    id: "4",
+    slug: "mono-oversized-tee",
+    name: "Mono Oversized Tee",
+    description: "Relaxed fit cotton tee in monochrome wash",
+    price: 65,
+    category: FC.Shirts,
+    cover: "/assets/1Product.png",
+    productSrc: "/assets/1Product.png",
+    modelSrc: "/assets/1Model.png",
+    modelSize: "M",
+    modelHeight: "5'8\"",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    averageRating: 4.0,
+  },
+
+  // ── Pants ──
+  {
+    id: "5",
+    slug: "wide-leg-cargo-trouser",
+    name: "Wide Leg Cargo",
+    description: "Relaxed wide-leg cargo with utility pockets",
+    price: 145,
+    category: FC.Pants,
+    cover: "/assets/2Product.png",
+    productSrc: "/assets/2Product.png",
+    modelSize: "32",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    averageRating: 4.3,
+  },
+  {
+    id: "6",
+    slug: "slim-tapered-denim",
+    name: "Slim Tapered Denim",
+    description: "Classic slim fit with tapered leg in dark indigo",
+    price: 115,
+    category: FC.Pants,
+    cover: "/assets/3Product.png",
+    productSrc: "/assets/3Product.png",
+    modelSize: "30",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    averageRating: 4.6,
+  },
+
+  // ── Shoes ──
+  {
+    id: "7",
+    slug: "chunky-platform-sneaker",
+    name: "Chunky Platform Sneaker",
+    description: "Elevated sole sneaker with retro paneling",
+    price: 185,
+    category: FC.Shoes,
+    cover: "/assets/1Product.png",
+    productSrc: "/assets/1Product.png",
+    modelSize: "10",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    averageRating: 4.7,
+  },
+  {
+    id: "8",
+    slug: "minimalist-leather-loafer",
+    name: "Minimalist Leather Loafer",
+    description: "Clean silhouette loafer in smooth leather",
+    price: 165,
+    category: FC.Shoes,
+    cover: "/assets/2Product.png",
+    productSrc: "/assets/2Product.png",
+    modelSize: "9",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    averageRating: 4.4,
+  },
+
+  // ── Accessories ──
+  {
+    id: "9",
+    slug: "silver-chain-necklace",
+    name: "Silver Chain Necklace",
+    description: "Chunky curb chain in sterling silver finish",
+    price: 55,
+    category: FC.Accessories,
+    cover: "/assets/3Product.png",
+    productSrc: "/assets/3Product.png",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    averageRating: 4.1,
+  },
+  {
+    id: "10",
+    slug: "leather-crossbody-bag",
+    name: "Leather Crossbody Bag",
+    description: "Compact crossbody in textured vegan leather",
+    price: 89,
+    category: FC.Accessories,
+    cover: "/assets/1Product.png",
+    productSrc: "/assets/1Product.png",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    averageRating: 4.5,
+  },
+
+  // ── Outerwear ──
+  {
+    id: "11",
+    slug: "oversized-bomber-jacket",
+    name: "Oversized Bomber Jacket",
+    description: "Boxy bomber in nylon with ribbed cuffs",
+    price: 210,
+    category: FC.Outerwear,
+    cover: "/assets/2Product.png",
+    productSrc: "/assets/2Product.png",
+    modelSrc: "/assets/2Model.png",
+    modelSize: "L",
+    modelHeight: "5'10\"",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    averageRating: 4.6,
+  },
+  {
+    id: "12",
+    slug: "cropped-puffer-vest",
+    name: "Cropped Puffer Vest",
+    description: "Lightweight cropped puffer with matte finish",
+    price: 135,
+    category: FC.Outerwear,
+    cover: "/assets/3Product.png",
+    productSrc: "/assets/3Product.png",
+    modelSize: "M",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    averageRating: 4.3,
+  },
+
+  // ── Dresses ──
+  {
+    id: "13",
+    slug: "asymmetric-midi-dress",
+    name: "Asymmetric Midi Dress",
+    description: "Draped midi with asymmetric hem in jersey",
+    price: 175,
+    category: FC.Dresses,
+    cover: "/assets/1Product.png",
+    productSrc: "/assets/1Product.png",
+    modelSrc: "/assets/1Model.png",
+    modelSize: "S",
+    modelHeight: "5'6\"",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    averageRating: 4.9,
   },
 ];
 
@@ -74,7 +229,7 @@ export const CANVAS_ITEMS: FashionItem[] = [
  * @returns Fashion item or undefined
  */
 export function getFashionItemById(id: string): FashionItem | undefined {
-  return CANVAS_ITEMS.find(item => item.id === id);
+  return CANVAS_ITEMS.find((item) => item.id === id);
 }
 
 /**
@@ -83,7 +238,7 @@ export function getFashionItemById(id: string): FashionItem | undefined {
  * @returns Fashion item or undefined
  */
 export function getFashionItemBySlug(slug: string): FashionItem | undefined {
-  return CANVAS_ITEMS.find(item => item.slug === slug);
+  return CANVAS_ITEMS.find((item) => item.slug === slug);
 }
 
 /**
@@ -91,19 +246,24 @@ export function getFashionItemBySlug(slug: string): FashionItem | undefined {
  * @param category - Fashion category
  * @returns Array of fashion items
  */
-export function getFashionItemsByCategory(category: FashionCategory): FashionItem[] {
-  return CANVAS_ITEMS.filter(item => item.category === category);
+export function getFashionItemsByCategory(
+  category: FashionCategory,
+): FashionItem[] {
+  return CANVAS_ITEMS.filter((item) => item.category === category);
 }
 
 /**
  * Get transition name for View Transitions API
  * Unique per item to enable smooth morphing between views
- * 
+ *
  * @param itemId - Fashion item ID
  * @param element - What element to transition (image, title, price, etc)
  * @returns Transition name string
  */
-export function getTransitionName(itemId: string, element: 'image' | 'title' | 'description' | 'price'): string {
+export function getTransitionName(
+  itemId: string,
+  element: "image" | "title" | "description" | "price",
+): string {
   return `fashion-item-${itemId}-${element}`;
 }
 
@@ -111,16 +271,16 @@ export function getTransitionName(itemId: string, element: 'image' | 'title' | '
  * Get all canvas items sorted by category
  */
 export function getCanvasItemsByCategory(): Record<string, FashionItem[]> {
-   const grouped: Record<string, FashionItem[]> = {};
-   
-   CANVAS_ITEMS.forEach(item => {
-     if (!grouped[item.category]) {
-       grouped[item.category] = [];
-     }
-     grouped[item.category]!.push(item);
-   });
-   
-   return grouped;
+  const grouped: Record<string, FashionItem[]> = {};
+
+  CANVAS_ITEMS.forEach((item) => {
+    if (!grouped[item.category]) {
+      grouped[item.category] = [];
+    }
+    grouped[item.category]!.push(item);
+  });
+
+  return grouped;
 }
 
 /**
@@ -136,45 +296,46 @@ interface AfricanPattern {
 
 /**
  * African Pattern Library
- * 
+ *
  * Cultural pattern data for African-inspired designs
  * Used by AI generator and styling suggestions
  */
 export const AFRICAN_PATTERNS: readonly AfricanPattern[] = [
   {
-    name: 'Ankara',
-    origin: 'West Africa',
-    characteristics: 'Vibrant wax prints with bold geometric patterns',
-    culturalSignificance: 'Celebratory wear, everyday fashion',
-    colorPalette: ['#FF5722', '#FF9800', '#4CAF50', '#2196F3'],
+    name: "Ankara",
+    origin: "West Africa",
+    characteristics: "Vibrant wax prints with bold geometric patterns",
+    culturalSignificance: "Celebratory wear, everyday fashion",
+    colorPalette: ["#FF5722", "#FF9800", "#4CAF50", "#2196F3"],
   },
   {
-    name: 'Kente',
-    origin: 'Ghana (Ashanti)',
-    characteristics: 'Woven silk strips with intricate geometric designs',
-    culturalSignificance: 'Royalty, special occasions, cultural pride',
-    colorPalette: ['#FFD700', '#FF4500', '#008000', '#000080'],
+    name: "Kente",
+    origin: "Ghana (Ashanti)",
+    characteristics: "Woven silk strips with intricate geometric designs",
+    culturalSignificance: "Royalty, special occasions, cultural pride",
+    colorPalette: ["#FFD700", "#FF4500", "#008000", "#000080"],
   },
   {
-    name: 'Adire',
-    origin: 'Yoruba (Nigeria)',
-    characteristics: 'Indigo tie-dye with white resist patterns',
-    culturalSignificance: 'Traditional craftsmanship, spiritual patterns',
-    colorPalette: ['#1A237E', '#FFFFFF', '#5D4037'],
+    name: "Adire",
+    origin: "Yoruba (Nigeria)",
+    characteristics: "Indigo tie-dye with white resist patterns",
+    culturalSignificance: "Traditional craftsmanship, spiritual patterns",
+    colorPalette: ["#1A237E", "#FFFFFF", "#5D4037"],
   },
   {
-    name: 'Bogolan',
-    origin: 'Mali (Bambara)',
-    characteristics: 'Mud-cloth with earthy tones and symbolic motifs',
-    culturalSignificance: 'Rites of passage, storytelling through patterns',
-    colorPalette: ['#5D4037', '#8D6E63', '#FFFFFF', '#3E2723'],
+    name: "Bogolan",
+    origin: "Mali (Bambara)",
+    characteristics: "Mud-cloth with earthy tones and symbolic motifs",
+    culturalSignificance: "Rites of passage, storytelling through patterns",
+    colorPalette: ["#5D4037", "#8D6E63", "#FFFFFF", "#3E2723"],
   },
   {
-    name: 'Shweshwe',
-    origin: 'South Africa',
-    characteristics: 'Printed cotton with intricate floral and geometric designs',
-    culturalSignificance: 'Traditional attire, cultural identity',
-    colorPalette: ['#8E24AA', '#3F51B5', '#009688', '#FFC107'],
+    name: "Shweshwe",
+    origin: "South Africa",
+    characteristics:
+      "Printed cotton with intricate floral and geometric designs",
+    culturalSignificance: "Traditional attire, cultural identity",
+    colorPalette: ["#8E24AA", "#3F51B5", "#009688", "#FFC107"],
   },
 ];
 
@@ -183,8 +344,10 @@ export const AFRICAN_PATTERNS: readonly AfricanPattern[] = [
  * @param name - Pattern name
  * @returns African pattern data or undefined
  */
-export function getAfricanPatternByName(name: string): AfricanPattern | undefined {
-  return AFRICAN_PATTERNS.find(pattern => pattern.name === name);
+export function getAfricanPatternByName(
+  name: string,
+): AfricanPattern | undefined {
+  return AFRICAN_PATTERNS.find((pattern) => pattern.name === name);
 }
 
 /**
@@ -193,4 +356,58 @@ export function getAfricanPatternByName(name: string): AfricanPattern | undefine
  */
 export function getRandomAfricanPattern(): AfricanPattern | undefined {
   return AFRICAN_PATTERNS[Math.floor(Math.random() * AFRICAN_PATTERNS.length)];
+}
+
+/**
+ * Style preferences for recommendation scoring
+ */
+export interface StylePreferences {
+  categories: string[];
+  priceRange: { min: number; max: number };
+  colors?: string[];
+}
+
+/**
+ * Score and rank items by style preferences.
+ * Returns items sorted by relevance (highest score first).
+ *
+ * @param prefs - User's tracked style preferences
+ * @param limit - Max items to return
+ * @param excludeIds - Item IDs to skip (e.g., already in cart)
+ */
+export function getRecommendedItems(
+  prefs: StylePreferences,
+  limit = 3,
+  excludeIds: string[] = [],
+): FashionItem[] {
+  const scored = CANVAS_ITEMS.filter((item) => !excludeIds.includes(item.id))
+    .map((item) => {
+      let score = 0;
+
+      // Category match (strongest signal)
+      if (prefs.categories.length > 0) {
+        if (prefs.categories.includes(item.category)) {
+          score += 10;
+        }
+      }
+
+      // Price range match
+      if (
+        item.price >= prefs.priceRange.min &&
+        item.price <= prefs.priceRange.max
+      ) {
+        score += 5;
+      }
+
+      // Rating bonus
+      score += item.averageRating ?? 0;
+
+      // Slight randomness for variety
+      score += Math.random() * 0.5;
+
+      return { item, score };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  return scored.slice(0, limit).map((s) => s.item);
 }
