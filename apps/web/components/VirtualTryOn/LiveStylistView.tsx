@@ -20,25 +20,19 @@ import {
   Eye,
   Zap,
   Crown,
+  Coins,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGeminiLive, useVeniceLive } from "@repo/ai-client";
 import { useMiniApp } from "@neynar/react";
 import { sdk } from "@farcaster/miniapp-sdk";
-import { CeloTipButton } from "./CeloTipButton";
 import { MintLookButton } from "./MintLookButton";
 import { GeminiLivePaymentButton } from "./GeminiLivePaymentButton";
 import { useAccount } from "wagmi";
-import {
-  trackProviderSelected,
-  trackSessionStarted,
-  trackSessionEnded,
-  trackPaymentInitiated,
-  trackPaymentCompleted,
-  trackPaymentFailed,
-  trackError,
-  getABTestValue,
-} from "../../lib/utils/analytics";
+import { AgentStatus } from "../Agent/AgentStatus";
+import { AgentActionCard } from "../Agent/AgentActionCard";
+import { TipModal } from "../Agent/TipModal";
+import { trackProviderSelected } from "../../lib/utils/analytics";
 
 type AIProvider = "venice" | "gemini";
 
@@ -96,6 +90,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   );
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [initStep, setInitStep] = useState<string>("connecting");
+  const [showTipModal, setShowTipModal] = useState(false);
 
   // Use the appropriate provider based on selection
   const activeProvider = selectedProvider === "venice" ? venice : gemini;
@@ -616,8 +611,26 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             >
               Share to Warpcast
             </Button>
-            <CeloTipButton />
+
+            {/* Agent Status Card - Compact View */}
+            <AgentStatus
+              compact
+              showActions
+              onTipClick={() => setShowTipModal(true)}
+            />
+
+            {/* Agent Action Card - Full Featured */}
+            <AgentActionCard
+              score={sessionSummary?.score}
+              onMintClick={selectedCapture ? () => {} : undefined}
+            />
           </div>
+
+          {/* Tip Modal */}
+          <TipModal
+            isOpen={showTipModal}
+            onClose={() => setShowTipModal(false)}
+          />
         </div>
       </div>
     );
@@ -1327,6 +1340,46 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             </div>
           </div>
         )}
+
+        {/* Floating Agent Status & Tip Button */}
+        {isConnected && (
+          <div className="absolute right-6 bottom-32 z-40 flex flex-col gap-2">
+            {/* Compact Agent Status */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex items-center gap-2 px-3 py-2 bg-slate-900/80 backdrop-blur-xl rounded-full border border-white/10 shadow-lg"
+            >
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                <Sparkles className="w-3 h-3 text-white" />
+              </div>
+              <span className="text-[10px] text-slate-300 font-medium">
+                AI Stylist Active
+              </span>
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            </motion.div>
+
+            {/* Tip Button */}
+            <motion.button
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              onClick={() => setShowTipModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-500/20 to-orange-500/20 backdrop-blur-xl rounded-full border border-amber-500/30 hover:from-amber-500/30 hover:to-orange-500/30 transition-all group shadow-lg"
+            >
+              <Coins className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
+              <span className="text-[11px] text-amber-300 font-bold">
+                Tip Stylist
+              </span>
+            </motion.button>
+          </div>
+        )}
+
+        {/* Tip Modal */}
+        <TipModal
+          isOpen={showTipModal}
+          onClose={() => setShowTipModal(false)}
+        />
 
         {/* Flash Overlay */}
         <AnimatePresence>

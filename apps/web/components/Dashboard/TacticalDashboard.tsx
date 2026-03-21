@@ -24,6 +24,8 @@ import { VirtualTryOn } from "../VirtualTryOn";
 import { AIStylist } from "../AIStylist";
 import { SocialFeed } from "../SocialFeed";
 import { LiveStylistView } from "../VirtualTryOn/LiveStylistView";
+import { AgentStatus } from "../Agent/AgentStatus";
+import { AgentActionCard } from "../Agent/AgentActionCard";
 
 type AppMode =
   | "dashboard"
@@ -223,7 +225,16 @@ export function TacticalDashboard() {
               </div>
             </div>
 
-            <CommandCenter />
+            {/* Agent Wallet & Tipping - WDK Integration Highlight */}
+            <AgentActionCard variant="banner" />
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Agent Status Card */}
+              <AgentStatus showActions={true} />
+
+              {/* Command Center */}
+              <CommandCenter />
+            </div>
 
             <div className="grid grid-cols-1 gap-4">
               <DashboardActionCard
