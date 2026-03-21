@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { corsHeaders } from "../_utils/http";
-import { verifySessionToken } from "../verify-payment/route";
+import { verifySessionToken } from "../../../../lib/utils/session-token";
 import {
   rateLimit,
   RateLimits,

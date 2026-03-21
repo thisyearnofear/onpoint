@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { corsHeaders } from "../_utils/http";
 import { createPublicClient, http, formatEther } from "viem";
 import { celo, celoAlfajores } from "../../../../config/chains";
-import { createHmac, randomBytes } from "crypto";
 import {
   rateLimit,
   RateLimits,
   rateLimitHeaders,
   getClientId,
 } from "../../../../lib/utils/rate-limit";
+import { createSessionToken } from "../../../../lib/utils/session-token";
+import type { SessionTokenPayload } from "../../../../lib/utils/session-token";
 
 // Payment recipient address (OnPoint's wallet)
 const RECIPIENT_ADDRESS = "0xdb65806c994C3f55079a6136a8E0886CbB2B64B1";
@@ -19,71 +20,11 @@ const MIN_PAYMENT_CELO = 0.4;
 // Session token duration (24 hours)
 const TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
-// HMAC secret for signing tokens (should be in environment variables)
-const TOKEN_SECRET =
-  process.env.TOKEN_SECRET ||
-  process.env.JWT_SECRET ||
-  "dev-secret-change-in-production";
-
 interface VerifyPaymentRequest {
   transactionHash: string;
   chainId?: number;
   expectedAmount?: string;
   walletAddress?: string;
-}
-
-interface SessionTokenPayload {
-  sub: string; // wallet address
-  iat: number; // issued at
-  exp: number; // expires at
-  provider: "gemini";
-  txHash: string;
-  amount: string;
-}
-
-/**
- * Create a signed session token using HMAC
- */
-function createSessionToken(payload: SessionTokenPayload): string {
-  const header = Buffer.from(
-    JSON.stringify({ alg: "HS256", typ: "JWT" }),
-  ).toString("base64url");
-  const payloadStr = Buffer.from(JSON.stringify(payload)).toString("base64url");
-  const signature = createHmac("sha256", TOKEN_SECRET)
-    .update(`${header}.${payloadStr}`)
-    .digest("base64url");
-  return `${header}.${payloadStr}.${signature}`;
-}
-
-/**
- * Verify a session token (for internal use)
- */
-export function verifySessionToken(token: string): SessionTokenPayload | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-
-    const [header, payload, signature] = parts as [string, string, string];
-
-    // Verify signature
-    const expectedSig = createHmac("sha256", TOKEN_SECRET)
-      .update(`${header}.${payload}`)
-      .digest("base64url");
-
-    if (signature !== expectedSig) return null;
-
-    // Decode payload
-    const decoded = JSON.parse(
-      Buffer.from(payload, "base64url").toString(),
-    ) as SessionTokenPayload;
-
-    // Check expiry
-    if (decoded.exp < Date.now()) return null;
-
-    return decoded;
-  } catch {
-    return null;
-  }
 }
 
 /**
