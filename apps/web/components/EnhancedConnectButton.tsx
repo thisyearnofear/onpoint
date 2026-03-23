@@ -28,7 +28,14 @@ export function EnhancedConnectButton({
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       <ConnectButton.Custom>
-        {({ account, chain, openAccountModal, openChainModal, mounted }) => {
+        {({
+          account,
+          chain,
+          openAccountModal,
+          openChainModal,
+          openConnectModal,
+          mounted,
+        }) => {
           const ready = mounted;
           const connected = ready && account && chain;
 
@@ -69,12 +76,7 @@ export function EnhancedConnectButton({
                 <Button
                   variant="outline"
                   className="border-primary/50 bg-primary/10 hover:bg-primary/20 text-primary transition-all active:scale-95"
-                  onClick={() => {
-                    const el = document.querySelector(
-                      '[role="button"][aria-label="Connect Wallet"]',
-                    );
-                    if (el instanceof HTMLElement) el.click();
-                  }}
+                  onClick={openConnectModal}
                 >
                   <div className="flex items-center gap-2">
                     <Wallet className="h-4 w-4" />
