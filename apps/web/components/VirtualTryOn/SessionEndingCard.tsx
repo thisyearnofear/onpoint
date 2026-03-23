@@ -87,7 +87,7 @@ export function SessionEndingCard({
         initial={{ scale: 0.85, y: 40, opacity: 0 }}
         animate={{ scale: 1, y: 0, opacity: 1 }}
         transition={{ type: "spring", damping: 20, stiffness: 150, delay: 0.1 }}
-        className="w-full max-w-sm mx-4 overflow-hidden rounded-3xl"
+        className="w-full max-w-sm mx-3 sm:mx-4 overflow-hidden rounded-3xl"
       >
         {/* Card top — gradient hero with score */}
         <div
@@ -127,7 +127,7 @@ export function SessionEndingCard({
                 }}
                 className="relative mb-3"
               >
-                <span className="text-[6rem] font-black text-white leading-none tracking-tighter tabular-nums drop-shadow-lg">
+                <span className="text-[5rem] sm:text-[6rem] font-black text-white leading-none tracking-tighter tabular-nums drop-shadow-lg">
                   {summary.score}
                 </span>
                 <span className="absolute -right-4 bottom-2 text-lg font-bold text-white/50">

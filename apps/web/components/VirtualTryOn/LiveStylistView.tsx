@@ -996,11 +996,13 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             autoPlay
             playsInline
             muted
-            className={`w-full h-full object-cover transition-all duration-1000 rounded-3xl ${
+            className={`w-full h-full object-cover transition-all duration-1000 ${
+              isMobile ? "rounded-2xl" : "rounded-3xl"
+            } ${
               positionStatus === "good"
-                ? "ring-8 ring-green-500/40 opacity-100"
+                ? `${isMobile ? "ring-4" : "ring-8"} ring-green-500/40 opacity-100`
                 : positionStatus === "bad"
-                  ? "ring-8 ring-orange-500/40 opacity-90 grayscale-[0.2]"
+                  ? `${isMobile ? "ring-4" : "ring-8"} ring-orange-500/40 opacity-90 grayscale-[0.2]`
                   : "opacity-40 grayscale"
             }`}
           />
@@ -1115,7 +1117,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              className={`absolute ${isMobile ? "bottom-28" : "bottom-32"} inset-x-0 flex justify-center z-[40] px-4 sm:px-6`}
+              className={`absolute ${isMobile ? "bottom-36" : "bottom-32"} inset-x-0 flex justify-center z-[40] px-4 sm:px-6`}
             >
               <div className="bg-slate-900/40 backdrop-blur-2xl border border-white/10 p-4 rounded-3xl flex items-center gap-4 max-w-sm w-full shadow-2xl">
                 <div
@@ -1371,12 +1373,12 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           )}
         </div>
 
-        <div className="flex gap-1 sm:gap-2 items-center">
+        <div className="flex gap-2 items-center">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
-            className={`w-10 h-10 sm:w-14 sm:h-14 rounded-full border transition-all ${
+            className={`w-11 h-11 sm:w-14 sm:h-14 rounded-full border transition-all ${
               isVoiceEnabled
                 ? `bg-${personaStyling.color}/20 border-${personaStyling.color}/40 text-${personaStyling.accent} shadow-[0_0_15px_rgba(99,102,241,0.2)]`
                 : "bg-white/5 border-white/10 text-white/40"
@@ -1389,10 +1391,10 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             )}
           </Button>
 
-          {/* Cart indicator */}
+          {/* Cart + Tip — mobile accessible */}
           <button
             onClick={openCart}
-            className="relative w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-all"
+            className="relative w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-all"
           >
             <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6 text-slate-300" />
             {cartItemCount > 0 && (
@@ -1402,10 +1404,18 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             )}
           </button>
 
+          {/* Mobile tip button */}
+          <button
+            onClick={() => setShowTipModal(true)}
+            className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 flex items-center justify-center transition-all"
+          >
+            <Coins className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
+          </button>
+
           <Button
             variant="ghost"
             size="icon"
-            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 font-bold text-lg italic shadow-emerald-500/10"
+            className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 font-bold text-lg italic shadow-emerald-500/10"
             onClick={handleFinish}
           >
             <div className="relative">
