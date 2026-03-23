@@ -47,6 +47,9 @@ const agentTipLedger: Array<{
 
 /**
  * Resolve agent WDK address for a given chain.
+ * NOTE: In the current architecture, all agents share the same WDK wallet.
+ * For true agent-to-agent tipping with distinct wallets, each agent would need
+ * its own WDK seed phrase. Currently used for internal tip recording only.
  */
 async function resolveAgentAddress(chain: string): Promise<string> {
   try {
@@ -102,6 +105,9 @@ export async function POST(request: NextRequest) {
     // Initialize spending controls for the tipping agent
     await AgentControls.initStore(fromAgentId);
 
+    // Resolve recipient agent's wallet address for validation
+    const recipientAddress = await resolveAgentAddress(chain);
+
     // Convert amount to wei for spending limit validation
     const { parseEther } = await import("viem");
     const amountWei = parseEther(amount);
@@ -113,7 +119,7 @@ export async function POST(request: NextRequest) {
       amount: amountWei,
       amountFormatted: `${amount} ${token || "cUSD"}`,
       description: `Agent tip: ${fromAgentId} → ${toAgentId}`,
-      recipient: "0x0000000000000000000000000000000000000000",
+      recipient: recipientAddress || undefined,
     });
 
     if (validation.requiresApproval) {
@@ -144,7 +150,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Resolve both agents' WDK wallet addresses
+    // Resolve agent WDK wallet addresses
+    // NOTE: Currently resolves to the same wallet since all agents share one WDK wallet.
+    // For multi-agent tipping, each agent needs its own WDK identity.
     const fromAddress = await resolveAgentAddress(chain);
     const toAddress = await resolveAgentAddress(chain);
 

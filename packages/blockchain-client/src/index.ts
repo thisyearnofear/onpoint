@@ -1,7 +1,12 @@
 // Blockchain client for interacting with smart contracts and 0xSplits
 
-import { type Address, type PublicClient, type WalletClient, type Chain } from 'viem';
-import { SplitsClient } from '@0xsplits/splits-sdk';
+import {
+  type Address,
+  type PublicClient,
+  type WalletClient,
+  type Chain,
+} from "viem";
+import { SplitsClient } from "@0xsplits/splits-sdk";
 
 export interface NetworkConfig {
   chainId: number;
@@ -19,7 +24,7 @@ export interface MintResult {
   transactionHash: string;
   tokenId: string;
   splitAddress?: Address;
-  status: 'pending' | 'confirmed' | 'failed';
+  status: "pending" | "confirmed" | "failed";
 }
 
 export interface SplitRecipient {
@@ -37,16 +42,16 @@ export interface CreateSplitParams {
 export function createSplitsClient(
   chainId: number,
   publicClient: PublicClient,
-  walletClient?: WalletClient
+  walletClient?: WalletClient,
 ): SplitsClient {
   // Extract the chain from the public client
   const chain = publicClient.chain;
-  
+
   // Create a new public client with the chain explicitly set if it's missing
-  const clientWithChain = chain 
-    ? publicClient 
+  const clientWithChain = chain
+    ? publicClient
     : { ...publicClient, chain: undefined };
-  
+
   return new SplitsClient({
     chainId,
     publicClient: publicClient as any,
@@ -57,9 +62,13 @@ export function createSplitsClient(
 // Create a split for NFT royalty distribution
 export async function createRoyaltySplit(
   splitsClient: SplitsClient,
-  params: CreateSplitParams
+  params: CreateSplitParams,
 ): Promise<{ splitAddress: Address; transactionHash: string }> {
-  const { recipients, distributorFee = 0.1, controller = '0x0000000000000000000000000000000000000000' } = params;
+  const {
+    recipients,
+    distributorFee = 0.1,
+    controller = "0x0000000000000000000000000000000000000000",
+  } = params;
 
   const result = await (splitsClient as any).createSplit({
     recipients,
@@ -76,16 +85,16 @@ export async function createRoyaltySplit(
 // Standard ERC-721A + Royalty Extension ABI
 const ONPOINT_NFT_ABI = [
   {
-    name: 'mintWithRoyalty',
-    type: 'function',
-    stateMutability: 'payable',
+    name: "mintWithRoyalty",
+    type: "function",
+    stateMutability: "payable",
     inputs: [
-      { name: 'to', type: 'address' },
-      { name: 'uri', type: 'string' },
-      { name: 'royaltyRecipient', type: 'address' },
-      { name: 'royaltyBps', type: 'uint96' },
+      { name: "to", type: "address" },
+      { name: "uri", type: "string" },
+      { name: "royaltyRecipient", type: "address" },
+      { name: "royaltyBps", type: "uint96" },
     ],
-    outputs: [{ name: 'tokenId', type: 'uint256' }],
+    outputs: [{ name: "tokenId", type: "uint256" }],
   },
 ] as const;
 
@@ -96,42 +105,40 @@ export async function mintNFTWithSplit(
   contractAddress: Address,
   metadataUri: string,
   splitParams: CreateSplitParams,
-  splitsClient: SplitsClient
+  splitsClient: SplitsClient,
 ): Promise<MintResult> {
   try {
     const [account] = await walletClient.getAddresses();
-    if (!account) throw new Error('No account connected');
+    if (!account) throw new Error("No account connected");
 
     // 1. Create split for royalty distribution
-    const { splitAddress, transactionHash: splitTxHash } = await createRoyaltySplit(
-      splitsClient,
-      splitParams
-    );
+    const { splitAddress, transactionHash: splitTxHash } =
+      await createRoyaltySplit(splitsClient, splitParams);
 
-    console.log('Split created at:', splitAddress, 'tx:', splitTxHash);
+    console.log("Split created at:", splitAddress, "tx:", splitTxHash);
 
     // 2. Mint NFT using the split address for royalties (default 500 bps = 5%)
     const { request } = await publicClient.simulateContract({
       account,
       address: contractAddress,
       abi: ONPOINT_NFT_ABI,
-      functionName: 'mintWithRoyalty',
+      functionName: "mintWithRoyalty",
       args: [account, metadataUri, splitAddress, BigInt(500)],
     });
 
     const hash = await walletClient.writeContract(request);
-    
+
     // Wait for transaction
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
     return {
       transactionHash: hash,
-      tokenId: receipt.logs[0]?.topics[3] || '1', // Simplified tokenId extraction
+      tokenId: receipt.logs[0]?.topics[3] || "1", // Simplified tokenId extraction
       splitAddress,
-      status: receipt.status === 'success' ? 'confirmed' : 'failed'
+      status: receipt.status === "success" ? "confirmed" : "failed",
     };
   } catch (error) {
-    console.error('Failed to mint NFT with split:', error);
+    console.error("Failed to mint NFT with split:", error);
     throw error;
   }
 }
@@ -141,11 +148,14 @@ export async function distributeSplit(
   splitsClient: SplitsClient,
   splitAddress: Address,
   tokens: Address[] = [], // Empty array for ETH only
-  distributorAddress?: Address
+  distributorAddress?: Address,
 ): Promise<{ transactionHash: string }> {
   const result = await (splitsClient as any).distributeToken({
     splitAddress,
-    token: tokens.length > 0 ? tokens[0] : '0x0000000000000000000000000000000000000000', // ETH
+    token:
+      tokens.length > 0
+        ? tokens[0]
+        : "0x0000000000000000000000000000000000000000", // ETH
     distributorAddress,
   });
 
@@ -158,11 +168,11 @@ export async function distributeSplit(
 export async function getSplitBalance(
   splitsClient: SplitsClient,
   splitAddress: Address,
-  token?: Address
+  token?: Address,
 ): Promise<{ balance: bigint; formattedBalance: string }> {
   const balance = await (splitsClient as any).getSplitBalance({
     splitAddress,
-    token: token || '0x0000000000000000000000000000000000000000', // ETH by default
+    token: token || "0x0000000000000000000000000000000000000000", // ETH by default
   });
 
   return {
@@ -172,15 +182,13 @@ export async function getSplitBalance(
 }
 
 // Legacy function for backward compatibility
+// ⚠️ DEPRECATED: Use mintNFTWithSplit for real on-chain minting
 export async function mintNFT(
   contractConfig: ContractConfig,
-  metadataUri: string
+  metadataUri: string,
 ): Promise<MintResult> {
-  console.log('Using legacy mint function - consider upgrading to mintNFTWithSplit');
-  return {
-    transactionHash: '0x1234567890abcdef',
-    tokenId: '1',
-    status: 'pending'
-  };
+  throw new Error(
+    "mintNFT is deprecated. Use mintNFTWithSplit for real on-chain NFT minting with commission splits. " +
+      "Ensure AGENT_PRIVATE_KEY is configured in your environment.",
+  );
 }
-
