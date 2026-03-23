@@ -110,7 +110,7 @@ export function AgentSuggestionToast({
       initial={{ opacity: 0, y: 50, scale: 0.9 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 20, scale: 0.95 }}
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm"
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[80] w-full max-w-sm"
     >
       <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
         {/* Header */}
@@ -233,6 +233,7 @@ export function useAgentSuggestions(agentId: string = "onpoint-stylist") {
   const [suggestions, setSuggestions] = useState<AgentSuggestion[]>([]);
   const [currentSuggestion, setCurrentSuggestion] =
     useState<AgentSuggestion | null>(null);
+  const dismissedIds = React.useRef<Set<string>>(new Set());
 
   // Poll for new suggestions
   useEffect(() => {
@@ -245,10 +246,11 @@ export function useAgentSuggestions(agentId: string = "onpoint-stylist") {
           const data = await response.json();
           setSuggestions(data.suggestions || []);
 
-          // Show first pending suggestion
+          // Show first pending suggestion that hasn't been dismissed
           const pending = data.suggestions?.find(
             (s: AgentSuggestion) =>
-              s.status === "pending" || s.status === "accepted",
+              (s.status === "pending" || s.status === "accepted") &&
+              !dismissedIds.current.has(s.id),
           );
           if (
             pending &&
@@ -318,6 +320,11 @@ export function useAgentSuggestions(agentId: string = "onpoint-stylist") {
     acceptSuggestion,
     rejectSuggestion,
     createSuggestion,
-    dismissSuggestion: () => setCurrentSuggestion(null),
+    dismissSuggestion: () => {
+      if (currentSuggestion) {
+        dismissedIds.current.add(currentSuggestion.id);
+      }
+      setCurrentSuggestion(null);
+    },
   };
 }

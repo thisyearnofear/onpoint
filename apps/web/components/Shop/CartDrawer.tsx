@@ -104,9 +104,9 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
                     <div className="flex flex-col items-end justify-between">
                       <button
                         onClick={() => removeItem(item.product.id)}
-                        className="w-6 h-6 rounded-full hover:bg-rose-500/20 flex items-center justify-center transition-colors group"
+                        className="w-10 h-10 rounded-full hover:bg-rose-500/20 flex items-center justify-center transition-colors group"
                       >
-                        <Trash2 className="w-3.5 h-3.5 text-slate-600 group-hover:text-rose-400" />
+                        <Trash2 className="w-4 h-4 text-slate-600 group-hover:text-rose-400" />
                       </button>
 
                       <div className="flex items-center gap-2">
@@ -114,20 +114,20 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
                           onClick={() =>
                             updateQuantity(item.product.id, item.quantity - 1)
                           }
-                          className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors border border-white/10"
+                          className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors border border-white/10"
                         >
-                          <Minus className="w-3 h-3 text-slate-400" />
+                          <Minus className="w-4 h-4 text-slate-400" />
                         </button>
-                        <span className="text-sm font-mono text-white w-6 text-center">
+                        <span className="text-sm font-mono text-white w-8 text-center">
                           {item.quantity}
                         </span>
                         <button
                           onClick={() =>
                             updateQuantity(item.product.id, item.quantity + 1)
                           }
-                          className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors border border-white/10"
+                          className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors border border-white/10"
                         >
-                          <Plus className="w-3 h-3 text-slate-400" />
+                          <Plus className="w-4 h-4 text-slate-400" />
                         </button>
                       </div>
                     </div>

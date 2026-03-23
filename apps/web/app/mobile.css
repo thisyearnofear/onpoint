@@ -1,7 +1,11 @@
 /* Mobile-specific optimizations */
 
 /* Ensure proper touch targets */
-button, a, input, select, textarea {
+button,
+a,
+input,
+select,
+textarea {
   min-height: 44px;
   min-width: 44px;
 }
@@ -40,7 +44,7 @@ button, a, input, select, textarea {
   .text-responsive {
     font-size: clamp(0.875rem, 2.5vw, 1rem);
   }
-  
+
   .heading-responsive {
     font-size: clamp(1.5rem, 5vw, 2.5rem);
   }
@@ -60,4 +64,13 @@ button, a, input, select, textarea {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Hide scrollbars for horizontal scrolling containers */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

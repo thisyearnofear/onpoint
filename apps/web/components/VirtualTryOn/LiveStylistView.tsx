@@ -202,16 +202,24 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     return (
       <div className="flex flex-col h-full bg-slate-950 overflow-y-auto pb-20">
         {/* Header */}
-        <div className={`p-6 flex items-center justify-between border-b border-${personaStyling.color}/20 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50`}>
+        <div
+          className={`p-6 flex items-center justify-between border-b border-${personaStyling.color}/20 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50`}
+        >
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full bg-${personaStyling.color}/20 flex items-center justify-center border border-${personaStyling.color}/30 shadow-[0_0_15px_rgba(99,102,241,0.2)]`}>
-              <PersonaIcon className={`w-5 h-5 text-${personaStyling.accent}`} />
+            <div
+              className={`w-10 h-10 rounded-full bg-${personaStyling.color}/20 flex items-center justify-center border border-${personaStyling.color}/30 shadow-[0_0_15px_rgba(99,102,241,0.2)]`}
+            >
+              <PersonaIcon
+                className={`w-5 h-5 text-${personaStyling.accent}`}
+              />
             </div>
             <div>
               <h1 className="text-lg font-bold text-white tracking-tight">
                 Session Summary
               </h1>
-              <p className={`text-[10px] text-${personaStyling.text}/60 uppercase tracking-widest font-mono`}>
+              <p
+                className={`text-[10px] text-${personaStyling.text}/60 uppercase tracking-widest font-mono`}
+              >
                 Proof of Style Verified
               </p>
             </div>
@@ -238,10 +246,12 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 Final Style Score
               </span>
               <div className="relative">
-                <div className="text-8xl font-black text-white italic tracking-tighter tabular-nums drop-shadow-2xl">
+                <div className="text-6xl sm:text-7xl md:text-8xl font-black text-white italic tracking-tighter tabular-nums drop-shadow-2xl">
                   {sessionSummary.score}
                 </div>
-                <div className={`absolute -right-6 bottom-4 text-2xl font-bold text-${personaStyling.text}`}>
+                <div
+                  className={`absolute -right-6 bottom-4 text-2xl font-bold text-${personaStyling.text}`}
+                >
                   /10
                 </div>
               </div>
@@ -629,7 +639,11 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   }
 
   // ── Persona Selection Screen ──
-  if (selectedProvider && sessionGoal && (!selectedPersona || (!isConnected && !isInitializing))) {
+  if (
+    selectedProvider &&
+    sessionGoal &&
+    (!selectedPersona || (!isConnected && !isInitializing))
+  ) {
     return (
       <div className="flex flex-col h-full bg-slate-950 p-6 overflow-y-auto">
         <div className="flex-1 flex flex-col justify-center items-center text-center space-y-8 max-w-lg mx-auto py-10">
@@ -722,8 +736,12 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                   <div className="w-2 h-2 rounded-full bg-emerald-500" />
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full bg-${personaStyling.color} animate-pulse`} />
-                  <span className={`text-[10px] font-mono text-${personaStyling.text} uppercase tracking-widest`}>
+                  <div
+                    className={`w-2 h-2 rounded-full bg-${personaStyling.color} animate-pulse`}
+                  />
+                  <span
+                    className={`text-[10px] font-mono text-${personaStyling.text} uppercase tracking-widest`}
+                  >
                     {personaStyling.label}
                   </span>
                 </div>
@@ -793,7 +811,9 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                       ))
                     ) : (
                       <div className="flex gap-2 items-center">
-                        <span className={`text-${personaStyling.text}`}>&gt;</span>
+                        <span className={`text-${personaStyling.text}`}>
+                          &gt;
+                        </span>
                         <span className="text-slate-300 animate-in fade-in slide-in-from-left-2 truncate">
                           {reasoning[0] || "Awaiting visual telemetry…"}
                         </span>
@@ -813,9 +833,13 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
         {isInitializing && (
           <div className="absolute inset-0 z-[70] flex flex-col items-center justify-center bg-black/90 backdrop-blur-sm">
             <div className="relative">
-              <div className={`w-20 h-20 rounded-full border-t-2 border-${personaStyling.color} animate-spin`} />
+              <div
+                className={`w-20 h-20 rounded-full border-t-2 border-${personaStyling.color} animate-spin`}
+              />
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className={`w-12 h-12 rounded-full border-b-2 border-${personaStyling.accent} animate-spin-slow`} />
+                <div
+                  className={`w-12 h-12 rounded-full border-b-2 border-${personaStyling.accent} animate-spin-slow`}
+                />
               </div>
             </div>
             <div className="mt-8 w-64 space-y-4">
@@ -866,7 +890,9 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 );
               })}
             </div>
-            <p className={`mt-8 text-${personaStyling.text} font-mono text-[10px] uppercase tracking-[0.3em] animate-pulse`}>
+            <p
+              className={`mt-8 text-${personaStyling.text} font-mono text-[10px] uppercase tracking-[0.3em] animate-pulse`}
+            >
               {selectedProvider === "venice"
                 ? "Initializing Style Scanner (Free)"
                 : "Initializing Live Agent (Premium)"}
@@ -983,7 +1009,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
         )}
 
         {/* Agent Activity Trace — Desktop Only (z-30) */}
-        <div className="absolute left-4 top-24 bottom-24 w-64 pointer-events-none hidden lg:flex flex-col gap-2 overflow-hidden z-[30]">
+        <div className="absolute left-4 top-24 bottom-24 w-64 pointer-events-none hidden xl:flex flex-col gap-2 overflow-hidden z-[30]">
           <AnimatePresence>
             {agentEvents.map((event, idx) => (
               <motion.div
@@ -993,8 +1019,12 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 className={`bg-black/60 border border-${personaStyling.color}/30 backdrop-blur-md p-3 rounded-lg flex flex-col gap-1`}
               >
                 <div className="flex items-center gap-2">
-                  <div className={`w-1.5 h-1.5 rounded-full bg-${personaStyling.accent} animate-pulse`} />
-                  <span className={`text-[10px] font-bold text-${personaStyling.accent} uppercase tracking-tighter`}>
+                  <div
+                    className={`w-1.5 h-1.5 rounded-full bg-${personaStyling.accent} animate-pulse`}
+                  />
+                  <span
+                    className={`text-[10px] font-bold text-${personaStyling.accent} uppercase tracking-tighter`}
+                  >
                     {event.step}
                   </span>
                 </div>
@@ -1007,7 +1037,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
         </div>
 
         {/* Activities Panel — Desktop Only (z-30) */}
-        <div className="absolute right-4 top-24 bottom-24 w-64 pointer-events-none hidden lg:flex flex-col gap-2 overflow-hidden z-[30]">
+        <div className="absolute right-4 top-24 bottom-24 w-64 pointer-events-none hidden xl:flex flex-col gap-2 overflow-hidden z-[30]">
           <AnimatePresence>
             {activities.map((activity, idx) => (
               <motion.div
@@ -1070,7 +1100,9 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               className="absolute bottom-32 inset-x-0 flex justify-center z-[40] px-6"
             >
               <div className="bg-slate-900/40 backdrop-blur-2xl border border-white/10 p-4 rounded-3xl flex items-center gap-4 max-w-sm w-full shadow-2xl">
-                <div className={`w-10 h-10 rounded-2xl bg-${personaStyling.color}/20 flex items-center justify-center shrink-0 border border-${personaStyling.color}/30`}>
+                <div
+                  className={`w-10 h-10 rounded-2xl bg-${personaStyling.color}/20 flex items-center justify-center shrink-0 border border-${personaStyling.color}/30`}
+                >
                   <Camera className={`w-5 h-5 text-${personaStyling.accent}`} />
                 </div>
                 <div className="flex-1">
@@ -1148,7 +1180,9 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               animate={{ opacity: 1, x: 0 }}
               className="flex items-center gap-2 px-3 py-2 bg-slate-900/80 backdrop-blur-xl rounded-full border border-white/10 shadow-lg"
             >
-              <div className={`w-6 h-6 rounded-full bg-gradient-to-br from-${personaStyling.color} to-${personaStyling.accent} flex items-center justify-center`}>
+              <div
+                className={`w-6 h-6 rounded-full bg-gradient-to-br from-${personaStyling.color} to-${personaStyling.accent} flex items-center justify-center`}
+              >
                 <PersonaIcon className="w-3 h-3 text-white" />
               </div>
               <span className="text-[10px] text-slate-300 font-medium">
@@ -1211,7 +1245,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               exit={{ scale: 2, opacity: 0 }}
               className="absolute inset-0 z-[70] flex items-center justify-center pointer-events-none"
             >
-              <div className="text-[12rem] font-black text-white italic drop-shadow-[0_0_50px_rgba(255,255,255,0.4)]">
+              <div className="text-[8rem] sm:text-[10rem] md:text-[12rem] font-black text-white italic drop-shadow-[0_0_50px_rgba(255,255,255,0.4)]">
                 {countdown}
               </div>
             </motion.div>
