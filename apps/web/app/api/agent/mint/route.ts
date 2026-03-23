@@ -3,13 +3,21 @@
  *
  * Allows the AI Agent to mint NFTs on behalf of users.
  * Uses @repo/blockchain-client for NFT minting with 0xSplits.
+ * Uses Tether WDK to resolve the agent's self-custodial wallet.
  *
  * For the Tether Hackathon Galactica - Agent Wallets Track
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { type Address, parseEther } from "viem";
+import {
+  type Address,
+  parseEther,
+  createPublicClient,
+  createWalletClient,
+  http,
+} from "viem";
+import { celo, celoAlfajores } from "viem/chains";
 import {
   AgentControls,
   type ActionType,
@@ -17,9 +25,12 @@ import {
 import { corsHeaders } from "../../ai/_utils/http";
 import {
   NFT_CONTRACTS,
+  PLATFORM_WALLET,
   getExplorerUrl,
   type ChainName,
 } from "../../../../config/chains";
+import { getAgentWallet } from "../../../../lib/services/agent-wallet";
+import { mintNFTWithSplit, createSplitsClient } from "@repo/blockchain-client";
 
 // Request validation
 const MintRequestSchema = z.object({
@@ -145,12 +156,29 @@ export async function POST(
       }
     }
 
-    // Check for required environment variables
-    const agentPrivateKey = process.env.AGENT_PRIVATE_KEY;
-    const rpcUrl =
-      chain === "celoAlfajores"
-        ? "https://alfajores-forno.celo-testnet.org"
-        : "https://forno.celo.org";
+    // Resolve agent wallet via WDK
+    let agentWdkAddress: string | null = null;
+    try {
+      const wallet = await getAgentWallet();
+      const addresses = await wallet.getAddresses();
+      agentWdkAddress =
+        addresses[chain] ??
+        addresses.celo ??
+        Object.values(addresses)[0] ??
+        null;
+      if (agentWdkAddress) {
+        console.log(
+          `[Mint API] WDK agent address (${chain}): ${agentWdkAddress}`,
+        );
+      }
+    } catch (wdkErr) {
+      console.warn("[Mint API] WDK not available:", wdkErr);
+    }
+
+    // Get agent private key from environment
+    const agentPrivateKey = process.env.AGENT_PRIVATE_KEY as
+      | `0x${string}`
+      | undefined;
 
     if (!agentPrivateKey) {
       // For demo: return simulated success
@@ -170,38 +198,43 @@ export async function POST(
       );
     }
 
-    // For production: use @repo/blockchain-client
-    // import { mintNFTWithSplit, createSplitsClient } from "@repo/blockchain-client";
-    //
-    // const publicClient = createPublicClient({
-    //   chain: celo,
-    //   transport: http(rpcUrl),
-    // });
-    //
-    // const walletClient = createWalletClient({
-    //   account: agentPrivateKey,
-    //   chain: celo,
-    //   transport: http(rpcUrl),
-    // });
-    //
-    // const splitsClient = createSplitsClient(42220, publicClient, walletClient);
-    //
-    // const result = await mintNFTWithSplit(
-    //   walletClient,
-    //   publicClient,
-    //   nftContract,
-    //   metadataUri,
-    //   {
-    //     recipients: [
-    //       { address: royaltyAddr, percentAllocation: 85 },
-    //       { address: PLATFORM_WALLET, percentAllocation: 15 },
-    //     ],
-    //   },
-    //   splitsClient
-    // );
+    // Production: mint via @repo/blockchain-client
+    const chainConfig = chain === "celoAlfajores" ? celoAlfajores : celo;
+    const rpcUrl =
+      chain === "celoAlfajores"
+        ? "https://alfajores-forno.celo-testnet.org"
+        : "https://forno.celo.org";
 
-    // For now, return simulated success with note
-    console.log("[Mint API] Full blockchain-client integration pending");
+    const publicClient = createPublicClient({
+      chain: chainConfig,
+      transport: http(rpcUrl),
+    });
+
+    const walletClient = createWalletClient({
+      account: agentPrivateKey,
+      chain: chainConfig,
+      transport: http(rpcUrl),
+    });
+
+    const splitsClient = createSplitsClient(
+      chainConfig.id,
+      publicClient as any,
+      walletClient as any,
+    );
+
+    const result = await mintNFTWithSplit(
+      walletClient as any,
+      publicClient as any,
+      nftContract as Address,
+      metadataUri,
+      {
+        recipients: [
+          { address: royaltyAddr as Address, percentAllocation: 85 },
+          { address: PLATFORM_WALLET as Address, percentAllocation: 15 },
+        ],
+      },
+      splitsClient,
+    );
 
     // Record the spending
     AgentControls.recordSpending(
@@ -214,11 +247,14 @@ export async function POST(
       {
         success: true,
         mint: {
-          hash: "0x" + "demo" + "0".repeat(60),
-          tokenId: "pending",
+          hash: result.transactionHash,
+          tokenId: result.tokenId,
           chain,
-          explorerUrl: getExplorerUrl(chain as ChainName, "demo"),
-          splitAddress: royaltyAddr,
+          explorerUrl: getExplorerUrl(
+            chain as ChainName,
+            result.transactionHash,
+          ),
+          splitAddress: result.splitAddress,
         },
       },
       { status: 200, headers: corsHeaders(origin) },

@@ -1,8 +1,6 @@
 import * as React from "react";
 import { cn } from "./lib/utils";
 
-/* eslint-disable react/prop-types */
-
 const Avatar = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
