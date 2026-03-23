@@ -156,7 +156,7 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
 
                 <button
                   onClick={clearCart}
-                  className="w-full text-center text-xs text-slate-600 hover:text-rose-400 transition-colors"
+                  className="w-full text-center text-xs text-slate-600 hover:text-rose-400 transition-colors py-3"
                 >
                   Clear cart
                 </button>

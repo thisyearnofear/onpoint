@@ -12,6 +12,8 @@ import {
   Ruler,
   Eye,
   Zap,
+  Coins,
+  ShoppingBag,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import type { SessionSummary, CaptureOption } from "./hooks/useLiveSession";
@@ -24,6 +26,13 @@ interface SessionEndingCardProps {
   onUpgrade: () => void;
   onMint: () => void;
   onViewSummary: () => void;
+  onTip?: () => void;
+  recommendedProducts?: Array<{
+    name: string;
+    price: number;
+    category: string;
+  }>;
+  onViewShop?: () => void;
 }
 
 const TOPIC_ICONS: Record<string, React.ElementType> = {
@@ -44,6 +53,9 @@ export function SessionEndingCard({
   onUpgrade,
   onMint,
   onViewSummary,
+  onTip,
+  recommendedProducts = [],
+  onViewShop,
 }: SessionEndingCardProps) {
   const scoreColor =
     summary.score >= 8
@@ -209,6 +221,77 @@ export function SessionEndingCard({
                   {captures[0]!.comment.slice(0, 50)}…
                 </p>
               </div>
+            </motion.div>
+          )}
+
+          {/* Tip your stylist */}
+          {onTip && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.85 }}
+              className="flex gap-2"
+            >
+              <Button
+                onClick={onTip}
+                className="flex-1 bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 text-amber-300 border border-amber-500/30 rounded-full py-4 text-sm font-bold gap-2"
+              >
+                <Coins className="w-4 h-4" />
+                Tip Stylist
+              </Button>
+              {summary.score >= 8 && (
+                <Button
+                  onClick={onMint}
+                  className="flex-1 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 hover:from-indigo-500/30 hover:to-purple-500/30 text-indigo-300 border border-indigo-500/30 rounded-full py-4 text-sm font-bold gap-2"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Mint NFT
+                </Button>
+              )}
+            </motion.div>
+          )}
+
+          {/* Recommended products */}
+          {recommendedProducts.length > 0 && onViewShop && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.88 }}
+              className="space-y-2"
+            >
+              <p className="text-[9px] text-slate-600 uppercase tracking-widest font-bold">
+                Recommended For You
+              </p>
+              <div className="space-y-2">
+                {recommendedProducts.slice(0, 3).map((product, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5"
+                  >
+                    <div className="flex items-center gap-2">
+                      <ShoppingBag className="w-4 h-4 text-indigo-400" />
+                      <div>
+                        <p className="text-xs text-white font-medium">
+                          {product.name}
+                        </p>
+                        <p className="text-[10px] text-slate-500">
+                          {product.category}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-xs text-amber-400 font-bold">
+                      ${product.price}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <Button
+                onClick={onViewShop}
+                variant="ghost"
+                className="w-full text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-full py-3 text-xs font-bold"
+              >
+                View All Products <ArrowRight className="w-3 h-3 ml-1" />
+              </Button>
             </motion.div>
           )}
 

@@ -52,6 +52,7 @@ export interface SessionSummary {
   score: number;
   topics: string[];
   takeaways: string[];
+  recommendations?: Array<{ name: string; price: number; category: string }>;
 }
 
 type SessionGoal = "event" | "daily" | "critique" | null;
@@ -114,6 +115,7 @@ export function useLiveSession() {
   const [initStep, setInitStep] = useState<string>("connecting");
   const [showSummary, setShowSummary] = useState(false);
   const [finalAdvice, setFinalAdvice] = useState<string>("");
+  const [sessionEndedManually, setSessionEndedManually] = useState(false);
 
   // ── Capture state ──
   const [captures, setCaptures] = useState<CaptureOption[]>([]);
@@ -315,7 +317,15 @@ export function useLiveSession() {
       .map((r) => r.replace(/^["\s]+|["\s]+$/g, ""))
       .filter((r) => r.length > 12 && r.length < 120);
 
-    return { score, topics: topics.slice(0, 4), takeaways };
+    // Pick 3 relevant product recommendations
+    const shuffled = [...CANVAS_ITEMS].sort(() => Math.random() - 0.5);
+    const recommendations = shuffled.slice(0, 3).map((p) => ({
+      name: p.name,
+      price: p.price,
+      category: p.category,
+    }));
+
+    return { score, topics: topics.slice(0, 4), takeaways, recommendations };
   }, [reasoning, finalAdvice, sessionGoal]);
 
   // ── Position detection ──
@@ -448,10 +458,10 @@ export function useLiveSession() {
   const handleAcceptSuggestion = useCallback(
     async (id: string) => {
       await acceptSuggestion(id);
-      
+
       // Track mission progress based on action type
       const userId = "user-" + Date.now(); // In production, use actual user ID
-      
+
       if (currentSuggestion?.actionType === "purchase") {
         const desc = currentSuggestion.description.toLowerCase();
         const matched = CANVAS_ITEMS.find(
@@ -470,7 +480,7 @@ export function useLiveSession() {
           console.error("Mission tracking error:", err);
         }
       }
-      
+
       if (currentSuggestion?.actionType === "mint") {
         // Track mint for missions
         try {
@@ -652,12 +662,13 @@ export function useLiveSession() {
 
   // ── Session actions ──
   const handleFinish = useCallback(async () => {
+    setSessionEndedManually(true);
     setFinalAdvice(
       liveAiResponse ||
         "Great session! You've got a solid handle on your personal style.",
     );
     setShowSummary(true);
-    
+
     // Track session completion for missions
     try {
       const userId = "user-" + Date.now(); // In production, use actual user ID
@@ -665,7 +676,7 @@ export function useLiveSession() {
         persona: selectedPersona || undefined,
         score: sessionSummary?.score,
       });
-      
+
       // Track persona usage if applicable
       if (selectedPersona) {
         MissionService.updateMissionProgress(userId, "persona-used", {
@@ -675,7 +686,7 @@ export function useLiveSession() {
     } catch (err) {
       console.error("Mission tracking error:", err);
     }
-    
+
     stopSession();
   }, [liveAiResponse, stopSession, selectedPersona, sessionSummary]);
 
@@ -683,7 +694,11 @@ export function useLiveSession() {
     async (goal: SessionGoal, apiKey?: string, persona?: string) => {
       setSessionGoal(goal);
       if (persona) setSelectedPersona(persona);
-      await providerStartSession(goal ?? undefined, apiKey || undefined, persona || undefined);
+      await providerStartSession(
+        goal ?? undefined,
+        apiKey || undefined,
+        persona || undefined,
+      );
     },
     [providerStartSession],
   );
@@ -710,6 +725,7 @@ export function useLiveSession() {
     showSummary,
     setShowSummary,
     finalAdvice,
+    sessionEndedManually,
     isConnected,
     isInitializing,
     error,

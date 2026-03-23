@@ -1115,7 +1115,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              className="absolute bottom-32 inset-x-0 flex justify-center z-[40] px-6"
+              className={`absolute ${isMobile ? "bottom-28" : "bottom-32"} inset-x-0 flex justify-center z-[40] px-4 sm:px-6`}
             >
               <div className="bg-slate-900/40 backdrop-blur-2xl border border-white/10 p-4 rounded-3xl flex items-center gap-4 max-w-sm w-full shadow-2xl">
                 <div
@@ -1165,7 +1165,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
         {/* Captures Mini-Gallery — Desktop Only (z-40) */}
         {hasCaptures && !isMobile && (
-          <div className="absolute left-6 bottom-32 z-[40] flex flex-col gap-3">
+          <div className="absolute left-6 bottom-28 sm:bottom-32 z-[40] flex flex-col gap-3">
             <div className="flex -space-x-3">
               {captures.slice(-3).map((cap, i) => (
                 <motion.div
@@ -1192,7 +1192,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
         {/* Floating Status — Desktop Only (z-50) */}
         {isConnected && !isMobile && (
-          <div className="absolute right-6 bottom-32 z-[50] hidden sm:flex flex-col gap-2">
+          <div className="absolute right-6 bottom-28 sm:bottom-32 z-[50] hidden sm:flex flex-col gap-2">
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -1298,8 +1298,11 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               sessionExpired={sessionExpired}
               isVenice={isVenice}
               onUpgrade={handleFinish}
-              onMint={handleFinish}
+              onMint={() => setShowTipModal(false)}
               onViewSummary={handleFinish}
+              onTip={() => setShowTipModal(true)}
+              recommendedProducts={sessionSummary.recommendations || []}
+              onViewShop={openCart}
             />
           )}
       </AnimatePresence>

@@ -175,7 +175,7 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                     <button
                       onClick={handleClose}
                       disabled={isProcessing}
-                      className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors disabled:opacity-50"
+                      className="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors disabled:opacity-50"
                     >
                       <X className="w-5 h-5 text-slate-400" />
                     </button>
