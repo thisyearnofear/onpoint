@@ -43,3 +43,5 @@ yarn-error.log*
 # pnpm-lock.yaml removed to allow deterministic cloud builds
 .blackboxcli/
 scripts/
+.synthesis-credentials
+.synthesis-credentials

@@ -40,6 +40,13 @@ interface AgentStatusProps {
   onTipClick?: () => void;
 }
 
+const EXPLORER_URLS = [
+  { chain: "Celo", url: "https://celoscan.io" },
+  { chain: "Base", url: "https://basescan.org" },
+  { chain: "ETH", url: "https://etherscan.io" },
+  { chain: "Polygon", url: "https://polygonscan.com" },
+];
+
 /**
  * AgentStatus - Displays the AI Agent's wallet information
  *
@@ -219,28 +226,33 @@ export function AgentStatus({
 
       {/* Actions */}
       {showActions && (
-        <div className="px-4 pb-4 flex gap-2">
+        <div className="px-4 pb-4 space-y-2">
           <Button
-            className="flex-1 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold"
+            className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold"
             onClick={onTipClick}
           >
             <Coins className="w-4 h-4 mr-2" />
             Tip Agent
           </Button>
-          <Button
-            variant="outline"
-            className="flex-1 border-white/10 text-white hover:bg-white/5"
-            onClick={() =>
-              window.open(
-                "https://celoscan.io/address/" +
-                  walletData?.wallets[0]?.address,
-                "_blank",
-              )
-            }
-          >
-            <ExternalLink className="w-4 h-4 mr-2" />
-            View on Explorer
-          </Button>
+          <div className="flex flex-wrap gap-1.5">
+            {EXPLORER_URLS.map(({ chain, url }) => (
+              <Button
+                key={chain}
+                variant="outline"
+                size="sm"
+                className="flex-1 min-w-[80px] border-white/10 text-white hover:bg-white/5 text-[10px]"
+                onClick={() =>
+                  window.open(
+                    `${url}/address/${walletData?.wallets[0]?.address}`,
+                    "_blank",
+                  )
+                }
+              >
+                <ExternalLink className="w-3 h-3 mr-1" />
+                {chain}
+              </Button>
+            ))}
+          </div>
         </div>
       )}
     </motion.div>

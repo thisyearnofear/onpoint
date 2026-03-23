@@ -11,6 +11,7 @@ import {
   MessageCircle,
   ThumbsUp,
   AlertCircle,
+  Globe,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { useAccount } from "wagmi";
@@ -20,6 +21,13 @@ interface TipModalProps {
   onClose: () => void;
   agentAddress?: string;
 }
+
+const SUPPORTED_CHAINS = [
+  { id: "celo", label: "Celo", token: "cUSD" },
+  { id: "base", label: "Base", token: "USDT" },
+  { id: "ethereum", label: "Ethereum", token: "USDT" },
+  { id: "polygon", label: "Polygon", token: "USDT" },
+];
 
 const TIP_AMOUNTS = [
   { amount: "0.1", label: "Thanks!", emoji: "🙏" },
@@ -37,6 +45,7 @@ const AGENT_RESPONSES = [
 
 export function TipModal({ isOpen, onClose, agentAddress }: TipModalProps) {
   const { address: connectedAddress, isConnected } = useAccount();
+  const [selectedChain, setSelectedChain] = useState("celo");
   const [selectedAmount, setSelectedAmount] = useState<string | null>(null);
   const [customAmount, setCustomAmount] = useState("");
   const [message, setMessage] = useState("");
@@ -47,6 +56,9 @@ export function TipModal({ isOpen, onClose, agentAddress }: TipModalProps) {
   const [resolvedToAddress, setResolvedToAddress] = useState<string | null>(
     null,
   );
+
+  const currentToken =
+    SUPPORTED_CHAINS.find((c) => c.id === selectedChain)?.token ?? "cUSD";
 
   const handleTip = async () => {
     const amount = selectedAmount || customAmount;
@@ -67,8 +79,8 @@ export function TipModal({ isOpen, onClose, agentAddress }: TipModalProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount,
-          chain: "celo",
-          token: "cUSD",
+          chain: selectedChain,
+          token: currentToken,
           message: message || undefined,
           fromAddress: connectedAddress,
           toAddress: agentAddress,
@@ -177,7 +189,8 @@ export function TipModal({ isOpen, onClose, agentAddress }: TipModalProps) {
                       Tip Sent!
                     </h3>
                     <p className="text-slate-400 text-sm">
-                      {selectedAmount || customAmount} cUSD transferred
+                      {selectedAmount || customAmount} {currentToken}{" "}
+                      transferred
                     </p>
                     {resolvedToAddress && (
                       <p className="text-slate-500 text-xs mt-1">
@@ -237,6 +250,32 @@ export function TipModal({ isOpen, onClose, agentAddress }: TipModalProps) {
                     </div>
                   )}
 
+                  {/* Chain Selector */}
+                  <div>
+                    <label className="text-slate-400 text-xs uppercase tracking-wider mb-2 flex items-center gap-1">
+                      <Globe className="w-3 h-3" />
+                      Network
+                    </label>
+                    <div className="flex gap-2">
+                      {SUPPORTED_CHAINS.map((chain) => (
+                        <button
+                          key={chain.id}
+                          onClick={() => setSelectedChain(chain.id)}
+                          className={`flex-1 py-2 px-3 rounded-xl text-xs font-medium transition-all ${
+                            selectedChain === chain.id
+                              ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/50"
+                              : "bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10"
+                          }`}
+                        >
+                          {chain.label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-slate-500 text-[10px] mt-1">
+                      Tipping with {currentToken}
+                    </p>
+                  </div>
+
                   {/* Amount Grid */}
                   <div className="grid grid-cols-2 gap-3">
                     {TIP_AMOUNTS.map((tip) => (
@@ -254,7 +293,7 @@ export function TipModal({ isOpen, onClose, agentAddress }: TipModalProps) {
                       >
                         <div className="text-2xl mb-1">{tip.emoji}</div>
                         <div className="text-white font-bold">
-                          {tip.amount} cUSD
+                          {tip.amount} {currentToken}
                         </div>
                         <div className="text-slate-400 text-xs">
                           {tip.label}
@@ -282,7 +321,7 @@ export function TipModal({ isOpen, onClose, agentAddress }: TipModalProps) {
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-lg font-bold focus:outline-none focus:border-amber-500/50"
                       />
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">
-                        cUSD
+                        {currentToken}
                       </span>
                     </div>
                   </div>
@@ -325,14 +364,18 @@ export function TipModal({ isOpen, onClose, agentAddress }: TipModalProps) {
                     ) : (
                       <>
                         <Coins className="w-5 h-5 mr-2" />
-                        Send {selectedAmount || customAmount || "0"} cUSD
+                        Send {selectedAmount || customAmount || "0"}{" "}
+                        {currentToken}
                       </>
                     )}
                   </Button>
 
                   <p className="text-center text-slate-500 text-xs">
-                    Tips sent to the agent&apos;s self-custodial WDK wallet on
-                    Celo
+                    Tips sent to the agent&apos;s WDK wallet on{" "}
+                    {
+                      SUPPORTED_CHAINS.find((c) => c.id === selectedChain)
+                        ?.label
+                    }
                   </p>
                 </motion.div>
               )}

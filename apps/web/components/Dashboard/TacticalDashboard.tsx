@@ -145,14 +145,18 @@ export function TacticalDashboard() {
                   onClick={() => setMode("live-ar")}
                   className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold py-4 px-8 rounded-2xl shadow-lg shadow-emerald-500/25 flex items-center gap-3"
                 >
-                  < Video className="w-5 h-5" />
+                  <Video className="w-5 h-5" />
                   <span>Start Live AR Session</span>
                 </Button>
               </div>
             </motion.div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="rounded-3xl border border-border bg-card/60 p-5 space-y-4">
+            {/* Agent Wallet — Prominent placement for WDK visibility */}
+            <AgentActionCard variant="banner" />
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <AgentStatus showActions={true} />
+              <div className="lg:col-span-2 rounded-3xl border border-border bg-card/60 p-5 space-y-4">
                 <div className="flex items-center gap-2 text-foreground">
                   <Target className="w-4 h-4 text-primary" />
                   <h3 className="text-sm font-bold uppercase tracking-wider">
@@ -228,21 +232,15 @@ export function TacticalDashboard() {
               </div>
             </div>
 
-            {/* Agent Wallet & Tipping - WDK Integration Highlight */}
-            <AgentActionCard variant="banner" />
-
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Agent Status Card */}
-              <AgentStatus showActions={true} />
+              {/* Command Center */}
+              <CommandCenter />
 
               {/* Missions Panel */}
               <MissionsPanel userId="user-default" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Command Center */}
-              <CommandCenter />
-
               {/* Quick Actions */}
               <div className="rounded-3xl border border-border bg-card/60 p-5 space-y-4">
                 <div className="flex items-center gap-2 text-foreground">
