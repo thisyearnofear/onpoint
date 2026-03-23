@@ -2,8 +2,21 @@
 
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, Sparkles, Loader2, CheckCircle2, X } from "lucide-react";
-import { useAccount } from "wagmi";
+import {
+  Heart,
+  Sparkles,
+  Loader2,
+  CheckCircle2,
+  X,
+  ExternalLink,
+} from "lucide-react";
+import {
+  useAccount,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+} from "wagmi";
+import { parseEther, type Address } from "viem";
+import { celo } from "viem/chains";
 
 interface TipSheetProps {
   isOpen: boolean;
@@ -12,6 +25,25 @@ interface TipSheetProps {
   /** Session score (0-10) gates available tip amounts */
   score?: number;
 }
+
+/**
+ * cUSD ERC-20 contract on Celo mainnet.
+ * Minimal ABI for transfer().
+ */
+const CUSD_ADDRESS = "0x765DE8164458C172EE097029dfb482Ff182ad001" as const;
+
+const ERC20_TRANSFER_ABI = [
+  {
+    name: "transfer",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+] as const;
 
 /**
  * Score-gated tip configuration.
@@ -46,13 +78,6 @@ const TIP_CONFIG = {
   },
 } as const;
 
-const AGENT_RESPONSES = [
-  "Thank you! Your support keeps me styling. Keep being fabulous!",
-  "You're too kind! I'll keep finding you the perfect looks.",
-  "This means the world! Your style journey is my priority.",
-  "With supporters like you, I'll become the best stylist ever!",
-];
-
 /**
  * Get tip configuration based on session score.
  */
@@ -64,12 +89,19 @@ function getTipConfig(score?: number) {
 }
 
 /**
+ * Default agent wallet (same as PLATFORM_WALLET from chains config).
+ */
+const DEFAULT_AGENT_ADDRESS =
+  "0x05f012C12123D69E8324A251ae7D15A92C4549c1" as Address;
+
+/**
  * TipSheet - Bottom sheet for post-session tipping
  *
  * Design:
  * - Progressive disclosure: single CTA → expands to amounts
  * - Score-gated: amounts adapt to session quality
  * - Inline feedback: success shown in-place, no state transition
+ * - Real on-chain ERC-20 transfer via wagmi
  */
 export function TipSheet({
   isOpen,
@@ -79,43 +111,81 @@ export function TipSheet({
 }: TipSheetProps) {
   const { address: connectedAddress, isConnected } = useAccount();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [sentAmount, setSentAmount] = useState<string | null>(null);
+  const [txHash, setTxHash] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  const {
+    writeContract,
+    isPending: isWritePending,
+    data: hash,
+    reset: resetWrite,
+  } = useWriteContract();
+
+  const { isLoading: isConfirming, isSuccess: isConfirmed } =
+    useWaitForTransactionReceipt({ hash });
 
   const config = useMemo(() => getTipConfig(score), [score]);
   const showTipPrompt = config.amounts.length > 0;
 
-  const handleQuickTip = async (amount: string) => {
-    if (!isConnected || !connectedAddress) return;
+  const isProcessing = isWritePending || isConfirming;
 
-    setIsProcessing(true);
-
-    try {
-      const response = await fetch("/api/agent/tip", {
+  // When the on-chain tx confirms, record it server-side
+  React.useEffect(() => {
+    if (isConfirmed && hash && sentAmount && connectedAddress) {
+      setTxHash(hash);
+      // Fire-and-forget: record the confirmed tip on the server
+      fetch("/api/agent/tip", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount,
+          amount: sentAmount,
           chain: "celo",
           token: "cUSD",
           fromAddress: connectedAddress,
-          toAddress: agentAddress,
+          txHash: hash,
         }),
-      });
-
-      if (!response.ok) throw new Error("Tip failed");
-
-      setSentAmount(amount);
-    } catch (err) {
-      console.error("Tip failed:", err);
-    } finally {
-      setIsProcessing(false);
+      }).catch(() => {});
     }
+  }, [isConfirmed, hash, sentAmount, connectedAddress]);
+
+  const handleQuickTip = async (amount: string) => {
+    if (!isConnected || !connectedAddress) return;
+    setLocalError(null);
+    resetWrite();
+
+    const recipient = (agentAddress || DEFAULT_AGENT_ADDRESS) as Address;
+
+    writeContract(
+      {
+        address: CUSD_ADDRESS,
+        abi: ERC20_TRANSFER_ABI,
+        functionName: "transfer",
+        args: [recipient, parseEther(amount)],
+        chainId: celo.id,
+      },
+      {
+        onSuccess: () => {
+          setSentAmount(amount);
+        },
+        onError: (err) => {
+          console.error("Tip transfer failed:", err);
+          setLocalError(
+            err.message?.includes("User rejected")
+              ? "Transaction cancelled"
+              : "Transfer failed — make sure you have enough cUSD and CELO for gas",
+          );
+        },
+      },
+    );
   };
 
   const handleClose = () => {
     setIsExpanded(false);
     setSentAmount(null);
+    setTxHash(null);
+    setLocalError(null);
+    resetWrite();
     onClose();
   };
 
@@ -178,9 +248,16 @@ export function TipSheet({
               </div>
             )}
 
+            {/* Error display */}
+            {localError && (
+              <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-3 text-center mb-4">
+                <p className="text-rose-300 text-sm">{localError}</p>
+              </div>
+            )}
+
             <AnimatePresence mode="wait">
-              {sentAmount ? (
-                /* Inline success feedback */
+              {sentAmount && txHash ? (
+                /* Inline success feedback with tx link */
                 <motion.div
                   key="success"
                   initial={{ opacity: 0, y: 10 }}
@@ -192,12 +269,40 @@ export function TipSheet({
                     <CheckCircle2 className="w-5 h-5 text-white" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-white font-medium">Thanks sent!</p>
+                    <p className="text-white font-medium">Tip sent on-chain!</p>
                     <p className="text-slate-400 text-xs">
                       {sentAmount} cUSD on Celo
                     </p>
+                    <a
+                      href={`https://celoscan.io/tx/${txHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-emerald-400 text-[10px] inline-flex items-center gap-1 mt-1 hover:underline"
+                    >
+                      View transaction <ExternalLink className="w-3 h-3" />
+                    </a>
                   </div>
                   <Sparkles className="w-5 h-5 text-amber-400" />
+                </motion.div>
+              ) : isProcessing ? (
+                /* Processing state */
+                <motion.div
+                  key="processing"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4"
+                >
+                  <Loader2 className="w-6 h-6 text-amber-400 animate-spin shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-white font-medium">
+                      {isWritePending
+                        ? "Confirm in your wallet…"
+                        : "Waiting for confirmation…"}
+                    </p>
+                    <p className="text-slate-400 text-xs">
+                      {sentAmount || "…"} cUSD on Celo
+                    </p>
+                  </div>
                 </motion.div>
               ) : !showTipPrompt ? (
                 /* No tip prompt for low scores */
@@ -228,11 +333,7 @@ export function TipSheet({
                         disabled={!isConnected || isProcessing}
                         className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-amber-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {isProcessing ? (
-                          <Loader2 className="w-6 h-6 text-amber-400 animate-spin" />
-                        ) : (
-                          <span className="text-2xl">{tip.icon}</span>
-                        )}
+                        <span className="text-2xl">{tip.icon}</span>
                         <span className="text-white font-bold">
                           {tip.amount} cUSD
                         </span>
@@ -243,7 +344,7 @@ export function TipSheet({
                     ))}
                   </div>
                   <p className="text-center text-slate-500 text-xs">
-                    Tips go directly to the stylist's wallet on Celo
+                    Tips sent on-chain to the stylist&apos;s wallet on Celo
                   </p>
                 </motion.div>
               ) : (
