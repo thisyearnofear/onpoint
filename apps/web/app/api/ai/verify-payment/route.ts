@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { corsHeaders } from "../_utils/http";
 import { createPublicClient, http, formatEther } from "viem";
-import { celo, celoAlfajores } from "../../../../config/chains";
+import { celo, celoSepolia } from "../../../../config/chains";
 import {
   rateLimit,
   RateLimits,
@@ -40,7 +40,7 @@ async function verifyTransaction(
   amount: string;
   blockNumber: bigint;
 }> {
-  const chain = chainId === celo.id ? celo : celoAlfajores;
+  const chain = chainId === celo.id ? celo : celoSepolia;
 
   const client = createPublicClient({
     chain,
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
     const body: VerifyPaymentRequest = await request.json();
     const {
       transactionHash,
-      chainId = celoAlfajores.id,
+      chainId = celoSepolia.id,
       expectedAmount = MIN_PAYMENT_CELO.toString(),
       walletAddress,
     } = body;

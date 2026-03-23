@@ -55,7 +55,7 @@ const CheckoutItemSchema = z.object({
 
 const CheckoutSchema = z.object({
   items: z.array(CheckoutItemSchema).min(1),
-  chain: z.enum(["celo", "celoAlfajores"]).default("celo"),
+  chain: z.enum(["celo", "celoSepolia"]).default("celo"),
   agentId: z.string().default("onpoint-stylist"),
   affiliateId: z.string().optional(),
   referringAgentId: z.string().optional(),

@@ -48,7 +48,7 @@ const PRODUCTS: Record<
 const PurchaseRequestSchema = z.object({
   productId: z.string(),
   quantity: z.number().min(1).max(10),
-  chain: z.enum(["celo", "celoAlfajores", "base"]).default("celo"),
+  chain: z.enum(["celo", "celoSepolia", "base"]).default("celo"),
   agentId: z.string().default("onpoint-stylist"),
   approvalId: z.string().optional(),
   affiliateId: z.string().optional(),

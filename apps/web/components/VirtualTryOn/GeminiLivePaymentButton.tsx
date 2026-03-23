@@ -18,7 +18,7 @@ import {
   AlertCircle,
   CreditCard,
 } from "lucide-react";
-import { celo, celoAlfajores } from "../../config/chains";
+import { celo, celoSepolia } from "../../config/chains";
 
 // OnPoint's receiving wallet for Gemini Live payments
 const RECIPIENT_ADDRESS = "0xdb65806c994C3f55079a6136a8E0886CbB2B64B1";
@@ -56,12 +56,12 @@ export function GeminiLivePaymentButton({
   // Check CELO balance
   const { data: balanceData } = useBalance({
     address,
-    chainId: celoAlfajores.id, // Check on testnet by default, will switch if needed
+    chainId: celoSepolia.id, // Check on testnet by default, will switch if needed
   });
 
   const PAYMENT_AMOUNT = "0.5"; // 0.5 CELO for Gemini Live access
-  const isOnCelo = chainId === celo.id || chainId === celoAlfajores.id;
-  const isTestnet = chainId === celoAlfajores.id;
+  const isOnCelo = chainId === celo.id || chainId === celoSepolia.id;
+  const isTestnet = chainId === celoSepolia.id;
 
   // Check if user has enough balance
   const hasEnoughBalance =
@@ -75,7 +75,7 @@ export function GeminiLivePaymentButton({
 
     if (!isOnCelo) {
       // Switch to Celo testnet first
-      switchChain({ chainId: celoAlfajores.id });
+      switchChain({ chainId: celoSepolia.id });
       return;
     }
 
@@ -304,7 +304,7 @@ export function GeminiLivePaymentButton({
 
       <p className="text-[10px] text-slate-500 text-center">
         {isTestnet
-          ? "Testnet — using Celo Alfajores"
+          ? "Testnet — using Celo Sepolia"
           : "Mainnet — real CELO will be charged"}
       </p>
     </div>

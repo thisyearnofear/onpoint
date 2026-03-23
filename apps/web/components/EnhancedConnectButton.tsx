@@ -11,7 +11,7 @@ import { Button } from "@repo/ui/button";
 import { ChevronDown, Wallet, Trophy, AlertCircle, Star } from "lucide-react";
 import { MissionService } from "../lib/services/mission-service";
 import { useMiniApp } from "@neynar/react";
-import { celo, celoAlfajores } from "../config/chains";
+import { celo, celoSepolia } from "../config/chains";
 
 /**
  * Enhanced ConnectButton with chain visibility and Mission Progress
@@ -26,7 +26,7 @@ export function EnhancedConnectButton({
   const { address } = useAccount();
   const chainId = useChainId();
   const { context } = useMiniApp();
-  
+
   const currentChainName = getChainName(chainId);
   const chainColor = getChainColor(chainId);
   const chainIcon = getChainIcon(chainId);
@@ -38,7 +38,7 @@ export function EnhancedConnectButton({
   const isStyleElite = badges.includes("style-elite");
 
   // Celo-First Logic
-  const isCelo = chainId === celo.id || chainId === celoAlfajores.id;
+  const isCelo = chainId === celo.id || chainId === celoSepolia.id;
   const inMiniApp = !!context?.client;
   const showCeloWarning = inMiniApp && !isCelo;
 

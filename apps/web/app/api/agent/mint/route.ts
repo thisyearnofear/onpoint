@@ -17,13 +17,14 @@ import {
   createWalletClient,
   http,
 } from "viem";
-import { celo, celoAlfajores } from "viem/chains";
+import { celo } from "viem/chains";
 import {
   AgentControls,
   type ActionType,
 } from "../../../../lib/middleware/agent-controls";
 import { corsHeaders } from "../../ai/_utils/http";
 import {
+  celoSepolia,
   NFT_CONTRACTS,
   PLATFORM_WALLET,
   getExplorerUrl,
@@ -41,7 +42,7 @@ const MintRequestSchema = z.object({
     .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid address")
     .optional(),
   royaltyBps: z.number().min(0).max(10000).default(500).optional(),
-  chain: z.enum(["celo", "celoAlfajores"]).default("celo"),
+  chain: z.enum(["celo", "celoSepolia"]).default("celo"),
   agentId: z.string().default("onpoint-stylist"),
   approvalId: z.string().optional(),
 });
@@ -196,10 +197,10 @@ export async function POST(
     }
 
     // Production: mint via @repo/blockchain-client
-    const chainConfig = chain === "celoAlfajores" ? celoAlfajores : celo;
+    const chainConfig = chain === "celoSepolia" ? celoSepolia : celo;
     const rpcUrl =
-      chain === "celoAlfajores"
-        ? "https://alfajores-forno.celo-testnet.org"
+      chain === "celoSepolia"
+        ? "https://celo-sepolia.g.alchemy.com/v2/W73tCsyRsW9JfV4orIbr7"
         : "https://forno.celo.org";
 
     const publicClient = createPublicClient({

@@ -16,7 +16,7 @@ import {
   type Address,
   type Hash,
 } from "viem";
-import { celo, celoAlfajores, base, mainnet, polygon } from "viem/chains";
+import { celo, celoSepolia, base, mainnet, polygon } from "viem/chains";
 import {
   type ChainName,
   RPC_URLS,
@@ -28,7 +28,7 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const CHAIN_OBJECTS: Record<string, any> = {
   celo,
-  celoAlfajores,
+  celoSepolia,
   base,
   ethereum: mainnet,
   polygon,

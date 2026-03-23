@@ -1,13 +1,29 @@
 "use client";
 
-import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
-import { MessageCircle, User, Globe, Calendar, Sun, Cloud, Users, MapPin, Clock } from "lucide-react";
+import React, {
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  useMemo,
+} from "react";
+import {
+  MessageCircle,
+  User,
+  Globe,
+  Calendar,
+  Sun,
+  Cloud,
+  Users,
+  MapPin,
+  Clock,
+} from "lucide-react";
 import { useAIStylist } from "@repo/ai-client";
 import type { StylistPersona, StyleSuggestion } from "@repo/ai-client";
 import { Button } from "@repo/ui/button";
 import { useAccount, useChainId } from "wagmi";
 import { MissionService } from "../lib/services/mission-service";
-import { celo, celoAlfajores } from "../config/chains";
+import { celo, celoSepolia } from "../config/chains";
 import { useMiniApp } from "@neynar/react";
 
 import { StylistSelection } from "./AIStylist/StylistSelection";
@@ -33,102 +49,102 @@ const guidedPrompts = [
   {
     icon: Calendar,
     text: "What occasion are you preparing for?",
-    examples: ["Work meeting", "Wedding", "Casual weekend", "Date night"]
+    examples: ["Work meeting", "Wedding", "Casual weekend", "Date night"],
   },
   {
     icon: Sun,
     text: "What season is it?",
-    examples: ["Spring", "Summer", "Fall", "Winter"]
+    examples: ["Spring", "Summer", "Fall", "Winter"],
   },
   {
     icon: Cloud,
     text: "What's the weather forecast?",
-    examples: ["Sunny", "Rainy", "Cold", "Warm"]
+    examples: ["Sunny", "Rainy", "Cold", "Warm"],
   },
   {
     icon: Users,
     text: "Who will be there?",
-    examples: ["Friends", "Family", "Colleagues", "Love interest"]
+    examples: ["Friends", "Family", "Colleagues", "Love interest"],
   },
   {
     icon: MapPin,
     text: "Where are you going?",
-    examples: ["City", "Beach", "Mountains", "Restaurant"]
+    examples: ["City", "Beach", "Mountains", "Restaurant"],
   },
   {
     icon: Clock,
     text: "What time of day?",
-    examples: ["Morning", "Afternoon", "Evening", "Night"]
-  }
+    examples: ["Morning", "Afternoon", "Evening", "Night"],
+  },
 ];
 
 // Context fields for structured styling information
 const contextFields = [
   {
-    id: 'occasion',
+    id: "occasion",
     icon: Calendar,
-    label: 'Occasion',
-    placeholder: 'What event or activity?',
-    examples: ["Work meeting", "Wedding", "Casual weekend", "Date night"]
+    label: "Occasion",
+    placeholder: "What event or activity?",
+    examples: ["Work meeting", "Wedding", "Casual weekend", "Date night"],
   },
   {
-    id: 'weather',
+    id: "weather",
     icon: Cloud,
-    label: 'Weather',
-    placeholder: 'Current weather?',
-    examples: ["Sunny", "Rainy", "Cold", "Warm"]
+    label: "Weather",
+    placeholder: "Current weather?",
+    examples: ["Sunny", "Rainy", "Cold", "Warm"],
   },
   {
-    id: 'location',
+    id: "location",
     icon: MapPin,
-    label: 'Location',
-    placeholder: 'Where are you going?',
-    examples: ["City", "Beach", "Mountains", "Restaurant"]
+    label: "Location",
+    placeholder: "Where are you going?",
+    examples: ["City", "Beach", "Mountains", "Restaurant"],
   },
   {
-    id: 'time',
+    id: "time",
     icon: Clock,
-    label: 'Time of Day',
-    placeholder: 'What time?',
-    examples: ["Morning", "Afternoon", "Evening", "Night"]
+    label: "Time of Day",
+    placeholder: "What time?",
+    examples: ["Morning", "Afternoon", "Evening", "Night"],
   },
   {
-    id: 'gender',
+    id: "gender",
     icon: Users,
-    label: 'Gender',
-    placeholder: 'Your gender?',
-    examples: ["Male", "Female", "Non-binary"]
+    label: "Gender",
+    placeholder: "Your gender?",
+    examples: ["Male", "Female", "Non-binary"],
   },
   {
-    id: 'ageRange',
+    id: "ageRange",
     icon: User,
-    label: 'Age Range',
-    placeholder: 'Your age range?',
-    examples: ["18-25", "26-35", "36-45", "46+"]
+    label: "Age Range",
+    placeholder: "Your age range?",
+    examples: ["18-25", "26-35", "36-45", "46+"],
   },
   {
-    id: 'ethnicity',
+    id: "ethnicity",
     icon: Globe,
-    label: 'Ethnicity',
-    placeholder: 'Your ethnicity?',
-    examples: ["Caucasian", "Asian", "Hispanic", "African", "Other"]
-  }
+    label: "Ethnicity",
+    placeholder: "Your ethnicity?",
+    examples: ["Caucasian", "Asian", "Hispanic", "African", "Other"],
+  },
 ];
 
 export function AIStylist() {
   const { address } = useAccount();
   const chainId = useChainId();
   const { context: miniAppContext } = useMiniApp();
-  
+
   // Memoized user style context for AI personalization
   const userStyleContext = useMemo(() => {
     if (!address) return undefined;
-    
+
     return {
       xp: MissionService.getUserXp(address),
       badges: MissionService.getUserBadges(address),
       fid: miniAppContext?.user?.fid,
-      isCeloUser: chainId === celo.id || chainId === celoAlfajores.id
+      isCeloUser: chainId === celo.id || chainId === celoSepolia.id,
     };
   }, [address, chainId, miniAppContext]);
 
@@ -138,18 +154,24 @@ export function AIStylist() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [suggestions, setSuggestions] = useState<StyleSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [activeGuidedPrompt, setActiveGuidedPrompt] = useState<number | null>(null);
-  const [contextStep, setContextStep] = useState<'initial' | 'context' | 'chat'>('context');
+  const [activeGuidedPrompt, setActiveGuidedPrompt] = useState<number | null>(
+    null,
+  );
+  const [contextStep, setContextStep] = useState<
+    "initial" | "context" | "chat"
+  >("context");
   const [contextData, setContextData] = useState({
-    occasion: '',
-    weather: '',
-    location: '',
-    time: '',
-    gender: '',
-    ageRange: '',
-    ethnicity: ''
+    occasion: "",
+    weather: "",
+    location: "",
+    time: "",
+    gender: "",
+    ageRange: "",
+    ethnicity: "",
   });
-  const [contextErrors, setContextErrors] = useState<Record<string, boolean>>({});
+  const [contextErrors, setContextErrors] = useState<Record<string, boolean>>(
+    {},
+  );
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -234,15 +256,21 @@ export function AIStylist() {
       setSelectedPersona(persona);
 
       // If we're in chat mode, smoothly transition to new persona
-      if (contextStep === 'chat' && messages.length > 0) {
+      if (contextStep === "chat" && messages.length > 0) {
         // Add a transition message from the new persona
         const greetings = {
-          luxury: "Hello! I'm your luxury fashion expert taking over this conversation. I can help you discover sophisticated pieces, investment items, and timeless elegance.",
-          streetwear: "Hey! I'm your streetwear guru jumping in. Ready to dive into the latest drops, urban fashion, and fresh street style?",
-          sustainable: "Hi there! I'm your sustainable fashion consultant now. Let's find beautiful, ethical pieces that align with your values.",
-          edina: "Darling! Sweetie! It's Edina taking over, and I am absolutely OBSESSED with making you look fabulous! Let's continue this fashion journey!",
-          miranda: "I am Miranda Priestly, and I'm taking over this conversation. We will continue, but now we'll meet the highest standards.",
-          shaft: "Right on. John Shaft here, taking over your style consultation. Let's keep this smooth and make you look sharp.",
+          luxury:
+            "Hello! I'm your luxury fashion expert taking over this conversation. I can help you discover sophisticated pieces, investment items, and timeless elegance.",
+          streetwear:
+            "Hey! I'm your streetwear guru jumping in. Ready to dive into the latest drops, urban fashion, and fresh street style?",
+          sustainable:
+            "Hi there! I'm your sustainable fashion consultant now. Let's find beautiful, ethical pieces that align with your values.",
+          edina:
+            "Darling! Sweetie! It's Edina taking over, and I am absolutely OBSESSED with making you look fabulous! Let's continue this fashion journey!",
+          miranda:
+            "I am Miranda Priestly, and I'm taking over this conversation. We will continue, but now we'll meet the highest standards.",
+          shaft:
+            "Right on. John Shaft here, taking over your style consultation. Let's keep this smooth and make you look sharp.",
         };
 
         const transitionMessage: Message = {
@@ -252,7 +280,7 @@ export function AIStylist() {
           timestamp: Date.now(),
         };
 
-        setMessages(prev => [...prev, transitionMessage]);
+        setMessages((prev) => [...prev, transitionMessage]);
 
         // Clear the AI conversation history but keep the UI messages
         clearConversation();
@@ -265,7 +293,16 @@ export function AIStylist() {
         setActiveGuidedPrompt(null);
       }
     },
-    [selectedPersona, clearConversation, setMessages, setSuggestions, setShowSuggestions, setActiveGuidedPrompt, contextStep, messages.length],
+    [
+      selectedPersona,
+      clearConversation,
+      setMessages,
+      setSuggestions,
+      setShowSuggestions,
+      setActiveGuidedPrompt,
+      contextStep,
+      messages.length,
+    ],
   );
 
   const handleGenerateSuggestions = useCallback(async () => {
@@ -280,7 +317,12 @@ export function AIStylist() {
       setSuggestions(newSuggestions);
       setShowSuggestions(true);
     }
-  }, [selectedPersona, generateStyleSuggestions, setSuggestions, setShowSuggestions]);
+  }, [
+    selectedPersona,
+    generateStyleSuggestions,
+    setSuggestions,
+    setShowSuggestions,
+  ]);
 
   const startConversation = useCallback(() => {
     const greetings = {
@@ -306,12 +348,12 @@ export function AIStylist() {
     };
 
     setMessages([welcomeMessage]);
-    setContextStep('chat');
+    setContextStep("chat");
   }, [selectedPersona, setMessages, setContextStep]);
 
   const handleGuidedPromptSelect = (promptText: string) => {
     // If we're still in context gathering phase, try to map the selection to context fields
-    if (contextStep === 'context' || contextStep === 'initial') {
+    if (contextStep === "context" || contextStep === "initial") {
       // Try to match the prompt to one of our context fields
       let matchedField = false;
 
@@ -325,11 +367,11 @@ export function AIStylist() {
 
       // If no field matched, just add to message
       if (!matchedField) {
-        setMessage(prev => prev ? `${prev} ${promptText}` : promptText);
+        setMessage((prev) => (prev ? `${prev} ${promptText}` : promptText));
       }
     } else {
       // In chat mode, add to message
-      setMessage(prev => prev ? `${prev} ${promptText}` : promptText);
+      setMessage((prev) => (prev ? `${prev} ${promptText}` : promptText));
     }
 
     setActiveGuidedPrompt(null);
@@ -345,13 +387,21 @@ export function AIStylist() {
         {
           icon: MessageCircle,
           text: `What should I wear for ${contextData.occasion}?`,
-          examples: ["Show me options", "What colors work?", "Any specific brands?"]
+          examples: [
+            "Show me options",
+            "What colors work?",
+            "Any specific brands?",
+          ],
         },
         {
           icon: MapPin,
           text: `Best styles for ${contextData.location}?`,
-          examples: ["Local fashion", "Weather appropriate", "Cultural considerations"]
-        }
+          examples: [
+            "Local fashion",
+            "Weather appropriate",
+            "Cultural considerations",
+          ],
+        },
       ];
 
       return [...contextualPrompts, ...basePrompts.slice(0, 4)];
@@ -361,25 +411,25 @@ export function AIStylist() {
   }, [contextData]);
 
   const handleContextChange = (field: string, value: string) => {
-    setContextData(prev => ({
+    setContextData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
 
     // Clear error when user starts typing
     if (contextErrors[field]) {
-      setContextErrors(prev => ({
+      setContextErrors((prev) => ({
         ...prev,
-        [field]: false
+        [field]: false,
       }));
     }
   };
 
   const validateContext = useCallback((): boolean => {
-    const requiredFields = ['occasion', 'weather', 'location', 'time'];
+    const requiredFields = ["occasion", "weather", "location", "time"];
     const errors: Record<string, boolean> = {};
 
-    requiredFields.forEach(field => {
+    requiredFields.forEach((field) => {
       if (!contextData[field as keyof typeof contextData]) {
         errors[field] = true;
       }
@@ -412,15 +462,22 @@ export function AIStylist() {
 
       // Add context message to conversation and proceed to chat
       setMessages([contextMessage]);
-      setContextStep('chat');
+      setContextStep("chat");
 
       // Send context to stylist to begin conversation
       chatWithStylist(contextSummary, userStyleContext);
     }
-  }, [validateContext, contextData, setMessages, setContextStep, chatWithStylist, userStyleContext]);
+  }, [
+    validateContext,
+    contextData,
+    setMessages,
+    setContextStep,
+    chatWithStylist,
+    userStyleContext,
+  ]);
 
   const handleSkipContext = useCallback(() => {
-    setContextStep('chat');
+    setContextStep("chat");
     const greetings = {
       luxury:
         "Hello! I'm your luxury fashion expert. I can help you discover sophisticated pieces, investment items, and timeless elegance. What would you like to explore today?",
@@ -447,7 +504,7 @@ export function AIStylist() {
   }, [selectedPersona, setMessages, setContextStep]);
 
   const handleToggleContext = useCallback(() => {
-    setContextStep('context');
+    setContextStep("context");
   }, [setContextStep]);
 
   return (
@@ -473,7 +530,7 @@ export function AIStylist() {
             loading={loading}
           />
 
-          {contextStep === 'context' ? (
+          {contextStep === "context" ? (
             <ContextCollector
               contextData={contextData}
               contextErrors={contextErrors}

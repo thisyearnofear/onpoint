@@ -7,7 +7,7 @@ import { type Address } from "viem";
 
 export type ChainName =
   | "celo"
-  | "celoAlfajores"
+  | "celoSepolia"
   | "base"
   | "ethereum"
   | "polygon"
@@ -86,26 +86,21 @@ export const celo = {
   testnet: false,
 } as const;
 
-export const celoAlfajores = {
-  id: 44787,
-  name: "Celo Alfajores",
+export const celoSepolia = {
+  id: 11142220,
+  name: "Celo Sepolia",
   nativeCurrency: { name: "Celo", symbol: "CELO", decimals: 18 },
   rpcUrls: {
-    default: { http: ["https://alfajores-forno.celo-testnet.org"] },
+    default: {
+      http: ["https://celo-sepolia.g.alchemy.com/v2/W73tCsyRsW9JfV4orIbr7"],
+    },
   },
   blockExplorers: {
-    default: { name: "CeloScan", url: "https://alfajores.celoscan.io" },
+    default: { name: "CeloScan", url: "https://sepolia.celoscan.io" },
   },
   contracts: {
     multicall3: {
       address: "0xcA11bde05977b3631167028862bE2a173976CA11",
-      blockCreated: 14569024,
-    },
-    cUSD: {
-      address: "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1",
-    },
-    OnPointNFT: {
-      address: "0xdb65806c994C3f55079a6136a8E0886CbB2B64B1",
     },
   },
   testnet: true,
@@ -154,7 +149,7 @@ export const allConfiguredChains = [
   base,
   arbitrum,
   celo,
-  celoAlfajores,
+  celoSepolia,
   zetaChain,
   lisk,
   sepolia,
@@ -166,7 +161,7 @@ export const allConfiguredChains = [
 
 export const RPC_URLS: Record<ChainName, string> = {
   celo: "https://forno.celo.org",
-  celoAlfajores: "https://alfajores-forno.celo-testnet.org",
+  celoSepolia: "https://celo-sepolia.g.alchemy.com/v2/W73tCsyRsW9JfV4orIbr7",
   base: "https://mainnet.base.org",
   ethereum: "https://eth.drpc.org",
   polygon: "https://polygon.drpc.org",
@@ -179,7 +174,7 @@ export const RPC_URLS: Record<ChainName, string> = {
 
 export const EXPLORER_URLS: Record<ChainName, string> = {
   celo: "https://celoscan.io/tx/",
-  celoAlfajores: "https://alfajores.celoscan.io/tx/",
+  celoSepolia: "https://sepolia.celoscan.io/tx/",
   base: "https://basescan.org/tx/",
   ethereum: "https://etherscan.io/tx/",
   polygon: "https://polygonscan.com/tx/",
@@ -193,7 +188,7 @@ export const EXPLORER_URLS: Record<ChainName, string> = {
 export const TOKEN_ADDRESSES = {
   cUSD: {
     celo: "0x765DE8164458C172EE097029dfb482Ff182ad001" as Address,
-    celoAlfajores: "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1" as Address,
+    celoSepolia: null, // Redeploy cUSD on Sepolia and update
     base: null,
     ethereum: null,
     polygon: null,
@@ -201,7 +196,7 @@ export const TOKEN_ADDRESSES = {
   },
   USDT: {
     celo: "0x48065d0d464B2E7f5C1c2B2A3778F3fC8116d8F5" as Address,
-    celoAlfajores: null,
+    celoSepolia: null,
     base: "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2" as Address,
     ethereum: "0xdAC17F958D2ee523a2206206994597C13D831ec7" as Address,
     polygon: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F" as Address,
@@ -211,7 +206,7 @@ export const TOKEN_ADDRESSES = {
 
 export const NFT_CONTRACTS = {
   celo: "0xdb65806c994C3f55079a6136a8E0886CbB2B64B1" as Address,
-  celoAlfajores: "0xdb65806c994C3f55079a6136a8E0886CbB2B64B1" as Address,
+  celoSepolia: null, // Redeploy OnPointNFT on Sepolia and update
   base: null,
   ethereum: null,
   polygon: null,

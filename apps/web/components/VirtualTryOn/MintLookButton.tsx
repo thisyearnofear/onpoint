@@ -16,7 +16,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { celo, celoAlfajores } from "../../config/chains";
+import { celo, celoSepolia } from "../../config/chains";
 import { type Address } from "viem";
 
 interface MintLookButtonProps {
@@ -166,7 +166,7 @@ export function MintLookButton({
       const { uri: metadataUri } = await uploadRes.json();
 
       // 4. Get contract address
-      const currentChain = chainId === celoAlfajores.id ? celoAlfajores : celo;
+      const currentChain = chainId === celoSepolia.id ? celoSepolia : celo;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const contractAddress = (currentChain.contracts as any).OnPointNFT
         ?.address;
@@ -199,7 +199,7 @@ export function MintLookButton({
         setMintError({
           title: "Wrong Network",
           message: msg,
-          hint: "Switch to Celo or Celo Alfajores to mint.",
+          hint: "Switch to Celo or Celo Sepolia to mint.",
         });
       } else {
         setMintError({
@@ -224,7 +224,7 @@ export function MintLookButton({
 
   // ── Success state ──
   if (mintedTokenId) {
-    const currentChain = chainId === celoAlfajores.id ? celoAlfajores : celo;
+    const currentChain = chainId === celoSepolia.id ? celoSepolia : celo;
     const explorerUrl = currentChain.blockExplorers.default.url;
 
     return (
