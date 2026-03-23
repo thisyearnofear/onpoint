@@ -55,6 +55,15 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   const [showInstructions, setShowInstructions] = React.useState(true);
   const [showStyleReport, setShowStyleReport] = React.useState(false);
 
+  // Mobile detection — hide non-essential HUD elements on small screens
+  const [isMobile, setIsMobile] = React.useState(false);
+  React.useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   const {
     selectedProvider,
     setSelectedProvider,
@@ -67,6 +76,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     showSummary,
     setShowSummary,
     finalAdvice,
+    sessionEndedManually,
     isConnected,
     isInitializing,
     error,
@@ -716,14 +726,16 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   return (
     <div className="flex flex-col h-full bg-black overflow-hidden relative font-sans">
       {/* Top Ticker — Neural Stylist Reasoning */}
-      <div className="absolute top-0 inset-x-0 z-[30] p-4 pointer-events-none">
+      <div
+        className={`absolute top-0 inset-x-0 z-[30] ${isMobile ? "p-2" : "p-4"} pointer-events-none`}
+      >
         <motion.div
           initial={{ y: -50 }}
           animate={{ y: 0 }}
-          className="max-w-md mx-auto pointer-events-auto"
+          className={`${isMobile ? "max-w-[95vw]" : "max-w-md"} mx-auto pointer-events-auto`}
         >
           <div
-            className={`backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden transition-all duration-500 ${terminalExpanded ? "shadow-2xl" : "shadow-lg"}`}
+            className={`backdrop-blur-xl border border-white/10 rounded-xl sm:rounded-2xl overflow-hidden transition-all duration-500 ${terminalExpanded ? "shadow-2xl" : "shadow-lg"}`}
           >
             <div
               className="bg-black/60 px-4 py-3 flex items-center justify-between cursor-pointer"
@@ -994,17 +1006,21 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           />
         )}
 
-        {/* Neural HUD Overlay */}
+        {/* Neural HUD Overlay — Simplified on Mobile */}
         {isConnected && (
-          <div className="absolute inset-4 border-2 border-white/5 rounded-[2rem] pointer-events-none overflow-hidden">
+          <div
+            className={`absolute ${isMobile ? "inset-2" : "inset-4"} border-2 border-white/5 rounded-[1.5rem] sm:rounded-[2rem] pointer-events-none overflow-hidden`}
+          >
             <div
               className={`absolute inset-0 bg-gradient-to-b from-transparent to-black/20 ${positionStatus === "good" ? "opacity-20" : "opacity-0"}`}
             />
-            <motion.div
-              animate={{ y: [0, 600, 0] }}
-              transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-              className={`w-full h-[1px] bg-${personaStyling.color}/20 blur-[1px]`}
-            />
+            {!isMobile && (
+              <motion.div
+                animate={{ y: [0, 600, 0] }}
+                transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+                className={`w-full h-[1px] bg-${personaStyling.color}/20 blur-[1px]`}
+              />
+            )}
           </div>
         )}
 
@@ -1066,26 +1082,28 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           </AnimatePresence>
         </div>
 
-        {/* Coaching Badges (z-40) — includes instruction toast merged in */}
+        {/* Coaching Badges (z-40) — Show only first badge on mobile */}
         <AnimatePresence>
           {coachingBadges.length > 0 && (
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
-              className="absolute right-6 top-32 flex flex-col gap-2 z-[40]"
+              className="absolute right-4 sm:right-6 top-24 sm:top-32 flex flex-col gap-2 z-[40]"
             >
-              {coachingBadges.map((badge) => (
-                <div
-                  key={badge.id}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r ${badge.color} border border-white/20 shadow-lg`}
-                >
-                  <badge.icon className="w-3.5 h-3.5 text-white" />
-                  <span className="text-[10px] font-bold text-white uppercase tracking-wider">
-                    {badge.label}
-                  </span>
-                </div>
-              ))}
+              {(isMobile ? coachingBadges.slice(0, 1) : coachingBadges).map(
+                (badge) => (
+                  <div
+                    key={badge.id}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r ${badge.color} border border-white/20 shadow-lg`}
+                  >
+                    <badge.icon className="w-3.5 h-3.5 text-white" />
+                    <span className="text-[10px] font-bold text-white uppercase tracking-wider">
+                      {badge.label}
+                    </span>
+                  </div>
+                ),
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -1145,8 +1163,8 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           )}
         </AnimatePresence>
 
-        {/* Captures Mini-Gallery (z-40) */}
-        {hasCaptures && (
+        {/* Captures Mini-Gallery — Desktop Only (z-40) */}
+        {hasCaptures && !isMobile && (
           <div className="absolute left-6 bottom-32 z-[40] flex flex-col gap-3">
             <div className="flex -space-x-3">
               {captures.slice(-3).map((cap, i) => (
@@ -1173,7 +1191,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
         )}
 
         {/* Floating Status — Desktop Only (z-50) */}
-        {isConnected && (
+        {isConnected && !isMobile && (
           <div className="absolute right-6 bottom-32 z-[50] hidden sm:flex flex-col gap-2">
             <motion.div
               initial={{ opacity: 0, x: 20 }}
@@ -1203,6 +1221,22 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 Tip Stylist
               </span>
             </motion.button>
+          </div>
+        )}
+
+        {/* Mobile: Compact Status Indicator */}
+        {isConnected && isMobile && (
+          <div className="absolute right-4 top-24 z-[50]">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900/80 backdrop-blur-xl rounded-full border border-white/10"
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[9px] text-slate-400 font-medium">
+                LIVE
+              </span>
+            </motion.div>
           </div>
         )}
 
@@ -1253,9 +1287,9 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
         </AnimatePresence>
       </div>
 
-      {/* Session Ending Card — replaces upsell overlay */}
+      {/* Session Ending Card — shows on manual stop, session expired, or captures exhausted */}
       <AnimatePresence>
-        {(sessionExpired || capturesExhausted) &&
+        {(sessionExpired || capturesExhausted || sessionEndedManually) &&
           !showSummary &&
           sessionSummary && (
             <SessionEndingCard
@@ -1278,7 +1312,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => stopSession()}
+          onClick={() => handleFinish()}
           className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 group"
         >
           <PhoneOff className="w-5 h-5 sm:w-6 sm:h-6 text-rose-500 group-hover:scale-110 transition-transform" />
