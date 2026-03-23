@@ -33,6 +33,7 @@ export function AgentActionCard({
   variant = "default",
   score,
   onMintClick,
+  onPremiumClick,
 }: AgentActionCardProps) {
   const [showTipModal, setShowTipModal] = useState(false);
 
@@ -168,8 +169,9 @@ export function AgentActionCard({
           </button>
 
           <button
-            onClick={() => {}}
-            className="w-full flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 transition-all group"
+            onClick={onPremiumClick || (() => {})}
+            className="w-full flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 transition-all group disabled:opacity-50"
+            disabled={!onPremiumClick}
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
@@ -178,7 +180,7 @@ export function AgentActionCard({
               <div className="text-left">
                 <p className="text-white font-medium">Buy Premium Access</p>
                 <p className="text-slate-400 text-xs">
-                  0.5 CELO for Gemini Live
+                  0.5 CELO for Venice AI features
                 </p>
               </div>
             </div>
@@ -207,12 +209,18 @@ export function AgentActionCard({
         </div>
 
         {/* Footer */}
-        <div className="px-6 pb-6">
+        <div className="px-6 pb-6 space-y-2">
           <div className="flex items-center gap-2 p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
             <Shield className="w-4 h-4 text-emerald-400 shrink-0" />
             <p className="text-emerald-300 text-xs">
-              Secured by Tether WDK - Your tips go directly to the agent&apos;s
-              self-custodial wallet
+              Secured by Tether WDK — Self-custodial on Celo, Base, ETH &
+              Polygon
+            </p>
+          </div>
+          <div className="flex items-center gap-2 p-3 bg-sky-500/10 rounded-xl border border-sky-500/20">
+            <Shield className="w-4 h-4 text-sky-400 shrink-0" />
+            <p className="text-sky-300 text-xs">
+              Privacy-first AI — No data retention by Venice AI
             </p>
           </div>
         </div>
