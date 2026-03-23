@@ -20,6 +20,10 @@ export function useGeminiLive() {
     try {
       setIsInitializing(true);
       setError(null);
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Camera access is not supported in this browser or over non-secure context (HTTP). Please use HTTPS.");
+      }
+
       
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: 1280, height: 720, facingMode: 'user' },

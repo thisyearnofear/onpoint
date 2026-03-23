@@ -629,7 +629,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   }
 
   // ── Persona Selection Screen ──
-  if (selectedProvider && sessionGoal && !selectedPersona) {
+  if (selectedProvider && sessionGoal && (!selectedPersona || (!isConnected && !isInitializing))) {
     return (
       <div className="flex flex-col h-full bg-slate-950 p-6 overflow-y-auto">
         <div className="flex-1 flex flex-col justify-center items-center text-center space-y-8 max-w-lg mx-auto py-10">

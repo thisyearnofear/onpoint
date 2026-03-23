@@ -38,6 +38,10 @@ export function useVeniceLive() {
         setError(null);
         setSessionExpired(false);
         setSessionTimeRemaining(VENICE_FREE_SESSION_SECONDS);
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error("Camera access is not supported in this browser or over non-secure context (HTTP). Please use HTTPS.");
+        }
+
 
         // Get user media for video
         const stream = await navigator.mediaDevices.getUserMedia({
