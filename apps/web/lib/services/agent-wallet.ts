@@ -4,15 +4,14 @@
  * This service enables the AI Stylist agent to operate as an autonomous
  * economic agent with self-custodial wallet capabilities.
  *
- * Uses centralized chain configuration from /config/chains.ts.
- * ERC-20 operations should use /lib/utils/erc20.ts instead.
+ * WDK uses bare-node-runtime which may not be available in all environments.
+ * When WDK native addons are unavailable, falls back to AGENT_WALLET_ADDRESS
+ * env var for address resolution.
  *
  * For the Tether Hackathon Galactica - Agent Wallets Track
  */
 
-import WDK from "@tetherto/wdk";
-import WalletManagerEvm from "@tetherto/wdk-wallet-evm";
-import { celo, celoAlfajores, base, mainnet, polygon } from "viem/chains";
+import { celo, base, mainnet, polygon } from "viem/chains";
 import {
   RPC_URLS,
   NFT_CONTRACTS,
@@ -20,11 +19,34 @@ import {
   type ChainName,
 } from "../../config/chains";
 
+// WDK modules loaded dynamically at runtime
+let WDK: any = null;
+let WalletManagerEvm: any = null;
+let wdkAvailable = false;
+
+async function loadWDK() {
+  if (WDK !== null) return; // Already attempted
+  try {
+    const wdkModule = await import("@tetherto/wdk");
+    WDK = wdkModule.default ?? wdkModule;
+    const evmModule = await import("@tetherto/wdk-wallet-evm");
+    WalletManagerEvm = evmModule.default ?? evmModule;
+    wdkAvailable = true;
+    console.log("[AgentWallet] WDK loaded successfully");
+  } catch (err: any) {
+    console.warn(
+      "[AgentWallet] WDK not available, using env fallback:",
+      err?.message || err,
+    );
+    WDK = null;
+    wdkAvailable = false;
+  }
+}
+
 // ============================================
 // Types
 // ============================================
 
-// Map our ChainName to WDK chain keys
 const WDK_CHAINS = {
   ethereum: {
     name: "Ethereum",
@@ -75,40 +97,55 @@ interface TransactionResult {
 }
 
 // ============================================
+// Fallback: resolve from env var
+// ============================================
+
+function getFallbackAddresses(): Record<string, string> {
+  const addr =
+    process.env.AGENT_WALLET_ADDRESS ||
+    // If AGENT_PRIVATE_KEY is set, derive address from it in production
+    // For demo/hackathon, use a known address for display
+    "0x05f012C12123D69E8324A251ae7D15A92C4549c1";
+  return {
+    celo: addr,
+    base: addr,
+    ethereum: addr,
+    polygon: addr,
+  };
+}
+
+// ============================================
 // Agent Wallet Service
 // ============================================
 
-/**
- * AgentWalletService - Self-custodial wallet for AI Agent operations
- *
- * This service enables the OnPoint AI Stylist to:
- * 1. Hold and manage funds across multiple chains
- * 2. Receive tips from users (CELO, native tokens)
- * 3. Execute payments for API usage (CELO for Gemini Live)
- *
- * For ERC-20 operations (cUSD, USDT), use /lib/utils/erc20.ts
- * For NFT minting, use /packages/blockchain-client
- */
 export class AgentWalletService {
-  private wdk: InstanceType<typeof WDK> | null = null;
+  private wdk: any = null;
   private seedPhrase: string;
   private registeredChains: Set<WDKChain>;
   private initialized = false;
+  private usingWdk = false;
 
   constructor(config: AgentWalletConfig = {}) {
-    this.seedPhrase = config.seedPhrase || this.generateSeedPhrase();
+    this.seedPhrase = config.seedPhrase || "";
     this.registeredChains = new Set(config.chains || ["celo", "base"]);
-  }
-
-  private generateSeedPhrase(): string {
-    return WDK.getRandomSeedPhrase();
   }
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
-    console.log("[AgentWallet] Initializing WDK...");
+    await loadWDK();
 
+    if (!wdkAvailable) {
+      this.initialized = true;
+      console.log("[AgentWallet] Using env fallback (WDK unavailable)");
+      return;
+    }
+
+    if (!this.seedPhrase) {
+      this.seedPhrase = WDK.getRandomSeedPhrase();
+    }
+
+    console.log("[AgentWallet] Initializing WDK...");
     this.wdk = new WDK(this.seedPhrase);
 
     for (const chain of this.registeredChains) {
@@ -125,60 +162,78 @@ export class AgentWalletService {
       }
     }
 
+    this.usingWdk = true;
     this.initialized = true;
     console.log("[AgentWallet] Initialization complete");
   }
 
   async getAddresses(): Promise<Record<string, string>> {
-    if (!this.wdk) throw new Error("Wallet not initialized");
+    if (!this.initialized) await this.initialize();
 
-    const addresses: Record<string, string> = {};
-
-    for (const chain of this.registeredChains) {
-      try {
-        const account = await this.wdk.getAccount(chain, 0);
-        const address = await account.getAddress();
-        addresses[chain] = address;
-      } catch (err) {
-        console.error(`[AgentWallet] Failed to get address for ${chain}:`, err);
+    // WDK path
+    if (this.usingWdk && this.wdk) {
+      const addresses: Record<string, string> = {};
+      for (const chain of this.registeredChains) {
+        try {
+          const account = await this.wdk.getAccount(chain, 0);
+          addresses[chain] = await account.getAddress();
+        } catch (err) {
+          console.error(
+            `[AgentWallet] Failed to get address for ${chain}:`,
+            err,
+          );
+        }
       }
+      return addresses;
     }
 
-    return addresses;
+    // Fallback path
+    return getFallbackAddresses();
   }
 
   async getWalletInfo(): Promise<WalletInfo[]> {
-    if (!this.wdk) throw new Error("Wallet not initialized");
+    if (!this.initialized) await this.initialize();
 
-    const wallets: WalletInfo[] = [];
-
-    for (const chain of this.registeredChains) {
-      try {
-        const chainConfig = WDK_CHAINS[chain];
-        const account = await this.wdk!.getAccount(chain, 0);
-        const address = await account.getAddress();
-        const balance = await account.getBalance();
-
-        wallets.push({
-          chain: chainConfig.name,
-          address,
-          balance: balance.toString(),
-          chainId: chainConfig.chainId,
-        });
-      } catch (err) {
-        console.error(`[AgentWallet] Failed to get info for ${chain}:`, err);
+    if (this.usingWdk && this.wdk) {
+      const wallets: WalletInfo[] = [];
+      for (const chain of this.registeredChains) {
+        try {
+          const chainConfig = WDK_CHAINS[chain];
+          const account = await this.wdk.getAccount(chain, 0);
+          const address = await account.getAddress();
+          const balance = await account.getBalance();
+          wallets.push({
+            chain: chainConfig.name,
+            address,
+            balance: balance.toString(),
+            chainId: chainConfig.chainId,
+          });
+        } catch (err) {
+          console.error(`[AgentWallet] Failed to get info for ${chain}:`, err);
+        }
       }
+      return wallets;
     }
 
-    return wallets;
+    // Fallback: return addresses with zero balance
+    const fallbacks = getFallbackAddresses();
+    return Object.entries(fallbacks).map(([chain, address]) => ({
+      chain: WDK_CHAINS[chain as WDKChain]?.name ?? chain,
+      address,
+      balance: "0",
+      chainId: WDK_CHAINS[chain as WDKChain]?.chainId ?? 0,
+    }));
   }
 
   async getBalance(chain: WDKChain): Promise<string> {
-    if (!this.wdk) throw new Error("Wallet not initialized");
+    if (!this.initialized) await this.initialize();
 
-    const account = await this.wdk.getAccount(chain, 0);
-    const balance = await account.getBalance();
-    return balance.toString();
+    if (this.usingWdk && this.wdk) {
+      const account = await this.wdk.getAccount(chain, 0);
+      const balance = await account.getBalance();
+      return balance.toString();
+    }
+    return "0";
   }
 
   async sendTransaction(
@@ -186,15 +241,13 @@ export class AgentWalletService {
     to: string,
     value: bigint,
   ): Promise<TransactionResult> {
-    if (!this.wdk) throw new Error("Wallet not initialized");
+    if (!this.usingWdk || !this.wdk) {
+      throw new Error("WDK not available — cannot send transactions");
+    }
 
     const chainConfig = WDK_CHAINS[chain];
     const account = await this.wdk.getAccount(chain, 0);
-
-    const result = await account.sendTransaction({
-      to,
-      value,
-    });
+    const result = await account.sendTransaction({ to, value });
 
     return {
       hash: result.hash,
@@ -204,20 +257,12 @@ export class AgentWalletService {
     };
   }
 
-  async estimateTransactionCost(
-    chain: WDKChain,
-    to: string,
-    value: bigint,
-  ): Promise<string> {
-    if (!this.wdk) throw new Error("Wallet not initialized");
-
-    const account = await this.wdk.getAccount(chain, 0);
-    const quote = await account.quoteSendTransaction({ to, value });
-    return quote.fee.toString();
-  }
-
   getSeedPhrase(): string {
     return this.seedPhrase;
+  }
+
+  isWdkAvailable(): boolean {
+    return wdkAvailable;
   }
 
   async getAgentAddresses(): Promise<{
@@ -236,10 +281,6 @@ export class AgentWalletService {
     };
   }
 
-  /**
-   * Check if NFT minting is available on this chain
-   * For actual minting, use @repo/blockchain-client
-   */
   canMintNFT(chain: ChainName): boolean {
     return NFT_CONTRACTS[chain] !== null;
   }
@@ -266,5 +307,6 @@ export async function getAgentWalletInfo() {
   return {
     addresses: await wallet.getAgentAddresses(),
     walletInfo: await wallet.getWalletInfo(),
+    wdkAvailable: wallet.isWdkAvailable(),
   };
 }
