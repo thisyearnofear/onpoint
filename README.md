@@ -1,25 +1,26 @@
-# OnPoint — Agent Infrastructure for Celo
+# OnPoint — Agent Economy Platform powered by Tether WDK
 
-> **Reusable middleware for AI agents with economic agency: spending controls, commission splits, state persistence, and suggestion UX. Proof-of-concept: an autonomous AI stylist that perceives, reasons, shops, and pays on Celo.**
+> **Reusable middleware for AI agents with economic agency: spending controls, commission splits, state persistence, and suggestion UX. Self-custodial multi-chain wallets via Tether WDK. Proof-of-concept: an autonomous AI stylist that perceives, reasons, shops, and pays onchain.**
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-indigo)](https://onpoint-web-647723858538.us-central1.run.app)
-[![Built on Celo](https://img.shields.io/badge/Chain-Celo-35D07F)](https://celo.org)
-[![Track](https://img.shields.io/badge/Track-Infrastructure-purple)](https://celoplatform.notion.site/Build-Agents-for-the-Real-World-Celo-Hackathon-V2-2fdd5cb803de80c99010c04b6902a3a9)
+[![Tether WDK](https://img.shields.io/badge/Wallet-Tether%20WDK-0EA5E9)](https://docs.wallet.tether.io)
+[![Multi-Chain](https://img.shields.io/badge/Chains-Celo%20%7C%20Base%20%7C%20Ethereum%20%7C%20Polygon-22C55E)]()
+[![Hackathon](https://img.shields.io/badge/Hackathon-Tether%20Galactica%20WDK%20Edition-purple)](https://dorahacks.io/hackathon/hackathon-galactica-wdk-2026-01/detail)
 [![Free Tier](https://img.shields.io/badge/Free-Venice%20AI-brightgreen)](https://venice.ai)
 
 ---
 
 ## The Problem
 
-Every agent that touches money on Celo needs the same things: spending limits, approval workflows, commission splits, state persistence, and UI for user-agent interactions. Today, every team builds these from scratch — or skips them entirely and ships agents with no guardrails.
+Every agent that touches money onchain needs the same things: spending limits, approval workflows, commission splits, state persistence, and UI for user-agent interactions. Today, every team builds these from scratch — or skips them entirely and ships agents with no guardrails.
 
 ## What We Built
 
-Five production-ready modules that any agent builder can drop in:
+Five production-ready modules that any agent builder can drop in, powered by a self-custodial agent wallet via Tether WDK:
 
 ### 1. Agent Controls Middleware (`agent-controls.ts`)
 
-Spending limits, autonomy thresholds, and approval workflows. Any agent that sends cUSD, mints NFTs, or tips other agents needs this.
+Spending limits, autonomy thresholds, and approval workflows. Any agent that sends cUSD/USDT, mints NFTs, or tips other agents needs this.
 
 ```typescript
 // Validate any agent action against spending limits
@@ -102,6 +103,33 @@ const items = getRecommendedItems(
 
 ---
 
+## Self-Custodial Agent Wallet (Tether WDK)
+
+The agent operates its own self-custodial wallet via [Tether WDK](https://docs.wallet.tether.io), supporting multiple chains out of the box:
+
+```typescript
+// lib/services/agent-wallet.ts
+import WDK from "@tetherto/wdk";
+import WalletManagerEvm from "@tetherto/wdk-wallet-evm";
+
+// Agent wallet supports multiple chains
+const SUPPORTED_CHAINS = {
+  celo: { name: "Celo", provider: "https://forno.celo.org" },
+  base: { name: "Base", provider: "https://mainnet.base.org" },
+  ethereum: { name: "Ethereum", provider: "https://eth.drpc.org" },
+  polygon: { name: "Polygon", provider: "https://polygon-rpc.com" },
+};
+```
+
+| Capability           | Implementation                             |
+| -------------------- | ------------------------------------------ |
+| **Multi-Chain**      | Celo, Base, Ethereum, Polygon via WDK      |
+| **Receive Tips**     | Users tip agent in cUSD/USDT via WDK       |
+| **Execute Payments** | Agent charges CELO for premium Gemini Live |
+| **Mint NFTs**        | Agent proposes + mints style NFTs on Celo  |
+
+---
+
 ## Proof of Concept: AI Stylist Agent
 
 The modules above power a complete agent loop:
@@ -114,10 +142,14 @@ The modules above power a complete agent loop:
 │  (live video)     (AI analysis)        (auto-approve < $5)   │
 │       ↓                ↓                      ↓              │
 │  Style Memory  ←  Track prefs    →   🛒 Cart + Checkout     │
-│  (personalize)    (categories)        (cUSD on Celo)         │
+│  (personalize)    (categories)        (cUSD/USDT onchain)    │
 │                                          ↓                   │
 │                                    💰 Commission Split       │
-│                                    (85/10/3/2 on-chain)      │
+│                                    (85/10/3/2 onchain)       │
+│                                          ↓                   │
+│                                    🔐 Tether WDK Wallet     │
+│                                    (self-custodial, multi-   │
+│                                     chain agent treasury)    │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -130,9 +162,9 @@ The modules above power a complete agent loop:
 
 ### Shopping + Payment
 
-- 13 products across 6 categories with real fashion photography
+- 24 products across 6 categories with real fashion photography
 - Zustand cart store with localStorage persistence
-- Checkout API executes cUSD ERC-20 transfers with commission splits
+- Checkout API executes cUSD/USDT transfers with commission splits
 - Agent approval modal for over-threshold transactions
 
 ### Social
@@ -143,22 +175,25 @@ The modules above power a complete agent loop:
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 onpoint/
 ├── apps/web/
 │   ├── app/api/agent/
+│   │   ├── wallet/         ← WDK agent wallet info (addresses, balances)
 │   │   ├── suggestion/     ← Suggestion CRUD (create, accept, reject)
 │   │   ├── approval/       ← Approval workflow API
 │   │   ├── checkout/       ← Cart checkout with commission splits
 │   │   ├── mint/           ← NFT minting on Celo
 │   │   ├── purchase/       ← Agent-driven purchases
+│   │   ├── tip/            ← Agent tipping (WDK wallet receive)
 │   │   └── style/          ← Style tracking + recommendations
 │   ├── components/
 │   │   ├── Agent/
 │   │   │   ├── AgentSuggestionToast.tsx    ← Toast UI + useAgentSuggestions hook
 │   │   │   ├── AgentApprovalModal.tsx      ← Approval UI + useAgentApproval hook
+│   │   │   ├── TipModal.tsx                ← Tipping UI (WDK wallet)
 │   │   │   ├── SuggestionHistoryPanel.tsx  ← Session history
 │   │   │   └── AgentStatus.tsx             ← Agent state display
 │   │   ├── Shop/
@@ -173,15 +208,17 @@ onpoint/
 │   │   ├── middleware/
 │   │   │   ├── agent-controls.ts           ← ⭐ Spending limits, approvals
 │   │   │   └── agent-store.ts              ← ⭐ Redis persistence layer
+│   │   ├── services/
+│   │   │   └── agent-wallet.ts             ← ⭐ Tether WDK wallet service
 │   │   ├── utils/
 │   │   │   ├── commissions.ts              ← ⭐ Revenue split calculator
-│   │   │   ├── erc20.ts                    ← cUSD transfer utility
+│   │   │   ├── erc20.ts                    ← cUSD/USDT transfer utility
 │   │   │   └── logger.ts                   ← Structured logging
 │   │   └── stores/
 │   │       └── cart-store.ts               ← Zustand cart state
 │   └── config/
-│       ├── chains.ts                       ← Celo chain config + contracts
-│       └── wagmi.ts                        ← Wallet configuration
+│       ├── chains.ts                       ← Multi-chain config (Celo, Base, ETH, Polygon)
+│       └── wagmi.ts                        ← Wallet configuration (RainbowKit)
 │
 ├── packages/
 │   ├── shared-types/
@@ -194,6 +231,8 @@ onpoint/
 │           ├── use-gemini-live.ts           ← Gemini Live hook
 │           └── providers/                   ← AI provider implementations
 │
+├── openclaw/
+│   └── AGENT_SOUL.md                       ← Agent persona + behavior spec
 ├── agent-economy-plan.md                    ← Architecture vision doc
 └── README.md
 ```
@@ -202,11 +241,15 @@ onpoint/
 
 ---
 
-## 🔑 Key Design Decisions
+## Key Design Decisions
 
 ### Autonomy Threshold ($5)
 
 Small actions auto-execute without interrupting the user. Large actions require explicit approval. This creates the right UX: frictionless for trivial decisions, safe for meaningful ones.
+
+### WDK for Agent Treasury
+
+The agent wallet uses Tether WDK's seed phrase to derive accounts across chains. This means a single mnemonic controls the agent's treasury on Celo, Base, Ethereum, and Polygon — self-custodial and portable.
 
 ### Write-Through Cache Pattern
 
@@ -222,7 +265,7 @@ Without affiliate/agent refs, their share rolls to platform (not lost to roundin
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Clone and setup
@@ -257,48 +300,52 @@ NEYNAR_API_KEY=          # Farcaster mini-app
 
 # Wallet
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=
-AGENT_PRIVATE_KEY=       # Agent wallet for cUSD transfers (demo mode if unset)
+AGENT_PRIVATE_KEY=       # Agent wallet for cUSD/USDT transfers (demo mode if unset)
 ```
 
 ---
 
-## 📡 API Reference
+## API Reference
 
-| Endpoint                | Method         | Description                          |
-| ----------------------- | -------------- | ------------------------------------ |
-| `/api/agent/suggestion` | GET/POST/PATCH | Suggestion CRUD                      |
-| `/api/agent/approval`   | GET/POST/PATCH | Approval workflow                    |
-| `/api/agent/checkout`   | POST           | Cart checkout with commission splits |
-| `/api/agent/mint`       | POST           | NFT minting on Celo                  |
-| `/api/agent/purchase`   | POST           | Agent-driven purchases               |
-| `/api/agent/style`      | GET/POST       | Style tracking + recommendations     |
+| Endpoint                | Method         | Description                                 |
+| ----------------------- | -------------- | ------------------------------------------- |
+| `/api/agent/wallet`     | GET            | Agent WDK wallet info (addresses, balances) |
+| `/api/agent/suggestion` | GET/POST/PATCH | Suggestion CRUD                             |
+| `/api/agent/approval`   | GET/POST/PATCH | Approval workflow                           |
+| `/api/agent/tip`        | POST           | Tip the agent (WDK wallet receive)          |
+| `/api/agent/checkout`   | POST           | Cart checkout with commission splits        |
+| `/api/agent/mint`       | POST           | NFT minting on Celo                         |
+| `/api/agent/purchase`   | POST           | Agent-driven purchases                      |
+| `/api/agent/style`      | GET/POST       | Style tracking + recommendations            |
 
 ---
 
-## 🔗 On-Chain
+## On-Chain
 
 | Network      | Contract    | Address                                      |
 | ------------ | ----------- | -------------------------------------------- |
 | Celo Mainnet | OnPoint NFT | `0xdb65806c994C3f55079a6136a8E0886CbB2B64B1` |
 | Celo Mainnet | cUSD        | `0x765DE8164458C172EE097029dfb482Ff182ad001` |
+| Multi-chain  | USDT        | See `config/chains.ts` for addresses         |
 
 ---
 
-## 🏆 Hackathon
+## Hackathon
 
-**[Celo: Build Agents for the Real World V2](https://celoplatform.notion.site/Build-Agents-for-the-Real-World-Celo-Hackathon-V2-2fdd5cb803de80c99010c04b6902a3a9)**
+**[Tether Hackathon Galactica: WDK Edition 1](https://dorahacks.io/hackathon/hackathon-galactica-wdk-2026-01/detail)**
 
-**Track: Infrastructure** — Building foundational middleware that other agent builders on Celo can use.
+**Track: Agent Wallets (WDK/Openclaw Integration)**
 
-The agent-controls middleware, commission splits, state persistence, suggestion UX, and style memory system are designed as drop-in modules. The AI stylist agent is the proof-of-concept that validates them working together.
+The agent-controls middleware, commission splits, state persistence, suggestion UX, and style memory system are designed as drop-in modules. The AI stylist agent is the proof-of-concept that validates them working together — with Tether WDK providing the self-custodial multi-chain agent wallet.
 
 ---
 
-## 🔗 Links
+## Links
 
 - **[Live Demo](https://onpoint-web-647723858538.us-central1.run.app)**
 - [GitHub](https://github.com/thisyearnofear/onpoint)
+- [WDK Docs](https://docs.wallet.tether.io)
 
-## 📄 License
+## License
 
 MIT

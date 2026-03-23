@@ -1,3 +1,4 @@
+import { describe, test, expect } from "vitest";
 import { 
   getAllChains, 
   getChainById, 
@@ -56,7 +57,11 @@ describe('Chain Utilities', () => {
     
     // Check that chains are sorted alphabetically
     for (let i = 0; i < chains.length - 1; i++) {
-      expect(chains[i].name.localeCompare(chains[i + 1].name)).toBeLessThanOrEqual(0);
+      const current = chains[i];
+      const next = chains[i + 1];
+      if (current && next) {
+        expect(current.name.localeCompare(next.name)).toBeLessThanOrEqual(0);
+      }
     }
   });
 });

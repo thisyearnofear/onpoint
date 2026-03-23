@@ -224,6 +224,10 @@ Be authentic and relatable, like advice from a trusted friend who knows fashion.
 
         return info[persona];
     }
+
+    getPersonaPrompt(persona: StylistPersona): string {
+        return this.personas[persona]?.prompt || '';
+    }
 }
 
 export const personalityService = new PersonalityService();

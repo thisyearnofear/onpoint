@@ -2,7 +2,8 @@
  * Agent Purchase API
  *
  * Allows the AI Agent to execute purchases on behalf of users.
- * Uses viem directly for ERC-20 payments (cUSD).
+ * Uses Tether WDK to resolve the agent's self-custodial wallet address.
+ * ERC-20 transfers (cUSD/USDT) use viem for ABI encoding.
  *
  * For the Tether Hackathon Galactica - Agent Wallets Track
  */
@@ -18,6 +19,7 @@ import { ERC20, type TokenTransferResult } from "../../../../lib/utils/erc20";
 import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import { corsHeaders } from "../../ai/_utils/http";
 import { PLATFORM_WALLET, getExplorerUrl } from "../../../../config/chains";
+import { getAgentWallet } from "../../../../lib/services/agent-wallet";
 
 // Product catalog - maps CANVAS_ITEMS to purchase-ready format
 const PRODUCTS: Record<
@@ -168,8 +170,27 @@ export async function POST(
       }
     }
 
+    // Resolve agent wallet via WDK
+    let agentWdkAddress: string | null = null;
+    try {
+      const wallet = await getAgentWallet();
+      const addresses = await wallet.getAddresses();
+      agentWdkAddress =
+        addresses[chain] ??
+        addresses.celo ??
+        Object.values(addresses)[0] ??
+        null;
+      if (agentWdkAddress) {
+        console.log(
+          `[Purchase API] WDK agent address (${chain}): ${agentWdkAddress}`,
+        );
+      }
+    } catch (wdkErr) {
+      console.warn("[Purchase API] WDK not available:", wdkErr);
+    }
+
     // Get agent private key from environment
-    // In production, use AWS KMS or similar
+    // In production, derive from WDK seed phrase or use AWS KMS
     const agentPrivateKey = process.env.AGENT_PRIVATE_KEY as
       | `0x${string}`
       | undefined;

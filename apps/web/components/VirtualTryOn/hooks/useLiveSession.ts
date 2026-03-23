@@ -11,6 +11,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useGeminiLive, useVeniceLive } from "@repo/ai-client";
 import { sdk } from "@farcaster/miniapp-sdk";
+import { PersonaVoice } from "../../../lib/utils/persona-voice";
 import {
   useAgentSuggestions,
   type AgentSuggestion,
@@ -19,6 +20,8 @@ import { useAgentApproval } from "../../Agent/AgentApprovalModal";
 import { useCartStore } from "../../../lib/stores/cart-store";
 import type { ActionType } from "../../../lib/middleware/agent-controls";
 import { CANVAS_ITEMS } from "@onpoint/shared-types";
+import { MissionService } from "../../../lib/services/mission-service";
+import { StyleContextStore } from "../../../lib/services/style-context-store";
 
 // ── Types ──
 
@@ -106,6 +109,7 @@ export function useLiveSession() {
   const [selectedProvider, setSelectedProvider] = useState<AIProvider | null>(
     null,
   );
+  const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
   const [sessionGoal, setSessionGoal] = useState<SessionGoal>(null);
   const [initStep, setInitStep] = useState<string>("connecting");
   const [showSummary, setShowSummary] = useState(false);
@@ -211,6 +215,16 @@ export function useLiveSession() {
           body: JSON.stringify({ category, price: 100 }),
         }).catch(() => {});
       }
+
+      // Get contextual prompt from StyleContextStore for cross-feature continuity
+      const userId = "user-" + Date.now(); // In production, use actual user ID
+      StyleContextStore.getContextualPrompt(userId)
+        .then((prompt) => {
+          if (prompt) {
+            console.log("Style context loaded:", prompt);
+          }
+        })
+        .catch(() => {});
     }
     if (!isConnected) {
       sessionStartTimeRef.current = 0;
@@ -405,23 +419,39 @@ export function useLiveSession() {
             ...prev,
           ].slice(0, 10) as Activity[],
       );
-    }
-  }, [reasoning]);
 
-  // ── Voice synthesis ──
-  useEffect(() => {
-    if (liveAiResponse?.trim() && isVoiceEnabled) {
-      const utterance = new SpeechSynthesisUtterance(liveAiResponse);
-      utterance.rate = 1.0;
-      utterance.pitch = 1.0;
-      window.speechSynthesis.speak(utterance);
+      // Record style analysis to StyleContextStore for cross-feature continuity
+      const userId = "user-" + Date.now(); // In production, use actual user ID
+      StyleContextStore.recordStyleAnalysis(userId, {
+        source: "live-ar",
+        type: "recommendation",
+        content: latest,
+        metadata: {
+          persona: selectedPersona || undefined,
+          score: sessionSummary?.score,
+          timestamp: Date.now(),
+        },
+      }).catch(() => {});
     }
-  }, [liveAiResponse, isVoiceEnabled]);
+  }, [reasoning, selectedPersona, sessionSummary]);
+
+  // ── Voice synthesis (persona-aware) ──
+  useEffect(() => {
+    if (liveAiResponse?.trim() && isVoiceEnabled && selectedPersona) {
+      PersonaVoice.speakAsPersona(liveAiResponse, selectedPersona).catch(
+        () => {},
+      );
+    }
+  }, [liveAiResponse, isVoiceEnabled, selectedPersona]);
 
   // ── Accept suggestion handler ──
   const handleAcceptSuggestion = useCallback(
     async (id: string) => {
       await acceptSuggestion(id);
+      
+      // Track mission progress based on action type
+      const userId = "user-" + Date.now(); // In production, use actual user ID
+      
       if (currentSuggestion?.actionType === "purchase") {
         const desc = currentSuggestion.description.toLowerCase();
         const matched = CANVAS_ITEMS.find(
@@ -432,6 +462,21 @@ export function useLiveSession() {
         );
         if (matched) {
           addItemToCart(matched);
+        }
+        // Track purchase for missions
+        try {
+          MissionService.updateMissionProgress(userId, "purchase-count");
+        } catch (err) {
+          console.error("Mission tracking error:", err);
+        }
+      }
+      
+      if (currentSuggestion?.actionType === "mint") {
+        // Track mint for missions
+        try {
+          MissionService.updateMissionProgress(userId, "mint-count");
+        } catch (err) {
+          console.error("Mission tracking error:", err);
         }
       }
     },
@@ -612,13 +657,33 @@ export function useLiveSession() {
         "Great session! You've got a solid handle on your personal style.",
     );
     setShowSummary(true);
+    
+    // Track session completion for missions
+    try {
+      const userId = "user-" + Date.now(); // In production, use actual user ID
+      MissionService.updateMissionProgress(userId, "session-complete", {
+        persona: selectedPersona || undefined,
+        score: sessionSummary?.score,
+      });
+      
+      // Track persona usage if applicable
+      if (selectedPersona) {
+        MissionService.updateMissionProgress(userId, "persona-used", {
+          persona: selectedPersona,
+        });
+      }
+    } catch (err) {
+      console.error("Mission tracking error:", err);
+    }
+    
     stopSession();
-  }, [liveAiResponse, stopSession]);
+  }, [liveAiResponse, stopSession, selectedPersona, sessionSummary]);
 
   const startSession = useCallback(
-    async (goal: SessionGoal, apiKey?: string) => {
+    async (goal: SessionGoal, apiKey?: string, persona?: string) => {
       setSessionGoal(goal);
-      await providerStartSession(goal ?? undefined, apiKey || undefined);
+      if (persona) setSelectedPersona(persona);
+      await providerStartSession(goal ?? undefined, apiKey || undefined, persona || undefined);
     },
     [providerStartSession],
   );
@@ -636,6 +701,8 @@ export function useLiveSession() {
     activeProvider,
 
     // Session
+    selectedPersona,
+    setSelectedPersona,
     sessionGoal,
     setSessionGoal,
     initStep,

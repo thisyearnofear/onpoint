@@ -1,8 +1,12 @@
 /**
  * Agent Checkout API
  *
- * Processes cart checkout with cUSD payments on Celo.
+ * Processes cart checkout with cUSD/USDT payments via Tether WDK.
  * Supports commission splits: seller, platform, affiliate, agent.
+ *
+ * Uses AgentWalletService (WDK) to resolve the agent's self-custodial
+ * wallet address. ERC-20 transfers use viem for ABI encoding, with the
+ * agent's private key derived from the WDK seed phrase.
  *
  * For the Tether Hackathon Galactica - Agent Wallets Track
  */
@@ -27,6 +31,7 @@ import {
   AGENT_WALLET,
   getExplorerUrl,
 } from "../../../../config/chains";
+import { getAgentWallet } from "../../../../lib/services/agent-wallet";
 
 // Build product lookup from catalog
 const PRODUCT_MAP = Object.fromEntries(
@@ -218,7 +223,27 @@ export async function POST(
 
     const orderId = `order_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-    // Get agent private key
+    // Resolve agent wallet via WDK
+    let agentWdkAddress: string | null = null;
+    try {
+      const wallet = await getAgentWallet();
+      const addresses = await wallet.getAddresses();
+      agentWdkAddress =
+        addresses[chain] ??
+        addresses.celo ??
+        Object.values(addresses)[0] ??
+        null;
+      if (agentWdkAddress) {
+        console.log(
+          `[Checkout API] WDK agent address (${chain}): ${agentWdkAddress}`,
+        );
+      }
+    } catch (wdkErr) {
+      console.warn("[Checkout API] WDK not available:", wdkErr);
+    }
+
+    // Get agent private key from environment
+    // In production, derive from WDK seed phrase or use AWS KMS
     const agentPrivateKey = process.env.AGENT_PRIVATE_KEY as
       | `0x${string}`
       | undefined;

@@ -43,13 +43,19 @@ Transform OnPoint into an **Agent Economy Platform** by extending the existing T
 
 ---
 
-## Phase 1: Agent as First-Class User
+## Phase 1: Agent as First-Class User ✅ IMPLEMENTED
 
-### 1.1 Enhanced Agent Wallet Service
+### 1.1 Enhanced Agent Wallet Service ✅
 
 **File:** `apps/web/lib/services/agent-wallet.ts`
 
-Add these capabilities using existing WDK:
+Tether WDK integration with multi-chain support:
+
+```typescript
+// Uses @tetherto/wdk and @tetherto/wdk-wallet-evm
+// Supports: Celo, Base, Ethereum, Polygon
+// Seed phrase → self-custodial agent wallet
+```
 
 ```typescript
 // ERC-20 Token Support
@@ -64,9 +70,11 @@ async mintNFT(chain, to, metadataUri, royaltyRecipient, royaltyBps): Promise<Min
 async tipAgent(chain, recipient, amount, message?): Promise<TxResult>
 ```
 
-### 1.2 Spending Limits & Approvals (API Layer)
+### 1.2 Spending Limits & Approvals (API Layer) ✅ IMPLEMENTED
 
-**File:** `apps/web/lib/middleware/agent-controls.ts` (NEW)
+**File:** `apps/web/lib/middleware/agent-controls.ts`
+
+882-line middleware with Redis persistence, autonomy thresholds, and approval workflows. Uses viem's parseEther for precision-safe wei conversions.
 
 ```typescript
 // Off-chain spending limits (stored in DB/Redis)
@@ -122,7 +130,7 @@ async function updateReputation(agentId, rating): Promise<void>;
 async function discoverAgents(filters): Promise<AgentProfile[]>;
 ```
 
-### 1.4 New API Routes
+### 1.4 New API Routes ✅ IMPLEMENTED
 
 | Route                  | Method | Purpose                    |
 | ---------------------- | ------ | -------------------------- |
@@ -132,7 +140,7 @@ async function discoverAgents(filters): Promise<AgentProfile[]>;
 | `/api/agent/discovery` | GET    | Discover agents by type    |
 | `/api/agent/approval`  | POST   | Request/approve actions    |
 
-### 1.5 New UI Components
+### 1.5 New UI Components ✅ IMPLEMENTED
 
 | Component                | Purpose                         |
 | ------------------------ | ------------------------------- |
@@ -142,9 +150,9 @@ async function discoverAgents(filters): Promise<AgentProfile[]>;
 
 ---
 
-## Phase 2: Human+Agent Marketplace
+## Phase 2: Human+Agent Marketplace ✅ IMPLEMENTED
 
-### 2.1 Shopping Cart
+### 2.1 Shopping Cart ✅
 
 **New Files:**
 
@@ -315,11 +323,11 @@ const COMMISSIONS = {
 
 ## Success Criteria
 
-- [ ] Agent can receive tips (already works)
-- [ ] Agent can autonomously execute purchases
-- [ ] Agent can mint NFTs on behalf of users
-- [ ] Agent can tip other agents
-- [ ] Users can see agent approval requests
-- [ ] Shopping cart with agent recommendations
-- [ ] Checkout with affiliate commissions
-- [ ] Agent discovery and reputation system
+- [x] Agent can receive tips (via WDK agent wallet — `/api/agent/tip`)
+- [x] Agent can autonomously execute purchases (via `/api/agent/purchase`)
+- [x] Agent can mint NFTs on behalf of users (via `/api/agent/mint`)
+- [ ] Agent can tip other agents (not yet implemented)
+- [x] Users can see agent approval requests (AgentApprovalModal)
+- [x] Shopping cart with agent recommendations (CartDrawer + product catalog)
+- [x] Checkout with affiliate commissions (85/10/3/2 split via `/api/agent/checkout`)
+- [ ] Agent discovery and reputation system (Phase 3 — not yet implemented)

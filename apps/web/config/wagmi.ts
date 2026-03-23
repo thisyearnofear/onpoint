@@ -1,23 +1,32 @@
 "use client";
-import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { createStorage, http } from 'wagmi';
+import { getDefaultConfig } from "@rainbow-me/rainbowkit";
+import { createStorage, http } from "wagmi";
 // Importing commonly available chains
-import { mainnet, sepolia } from 'wagmi/chains';
-import { base, arbitrum, celo, celoAlfajores, zetaChain, lisk, allConfiguredChains } from './chains';
+import { mainnet, sepolia } from "wagmi/chains";
+import {
+  base,
+  arbitrum,
+  celo,
+  celoAlfajores,
+  zetaChain,
+  lisk,
+  allConfiguredChains,
+} from "./chains";
 
 // Custom storage that works on both client and server
-const customStorage = typeof window !== 'undefined'
-  ? undefined // Use default storage on client
-  : createStorage({
-    storage: {
-      getItem: () => null,
-      setItem: () => { },
-      removeItem: () => { },
-    },
-  });
+const customStorage =
+  typeof window !== "undefined"
+    ? undefined // Use default storage on client
+    : createStorage({
+        storage: {
+          getItem: () => null,
+          setItem: () => {},
+          removeItem: () => {},
+        },
+      });
 
 export const config = getDefaultConfig({
-  appName: 'BeOnPoint',
+  appName: "OnPoint",
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
   chains: allConfiguredChains as any,
   transports: {

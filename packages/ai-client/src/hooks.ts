@@ -657,7 +657,7 @@ export const useReplicateVirtualTryOn = () => {
 
   // New hook for personality critiques
   const getPersonalityCritique = React.useCallback(
-    async (imageFile: File, persona: string): Promise<string | null> => {
+    async (imageFile: File, persona: string, mode: string = 'real'): Promise<string | null> => {
       setLoading(true);
       setError(null);
 
@@ -673,7 +673,7 @@ export const useReplicateVirtualTryOn = () => {
           throw new Error('Replicate provider not configured. Please set REPLICATE_API_TOKEN environment variable.');
         }
 
-        const critique = await replicateProvider.getPersonalityCritique(base64, persona);
+        const critique = await replicateProvider.getPersonalityCritique(base64, persona, mode);
         return critique;
       } catch (err) {
         setError(

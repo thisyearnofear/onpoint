@@ -112,7 +112,7 @@ export class ReplicateProvider {
     }
 
     // New method for personality-specific critiques
-    async getPersonalityCritique(imageBase64: string, persona: string): Promise<string> {
+    async getPersonalityCritique(imageBase64: string, persona: string, mode: string = 'real'): Promise<string> {
         try {
             const personaPrompts: Record<string, string> = {
                 luxury: `As a luxury fashion expert, provide an sophisticated critique of this outfit. 
@@ -134,15 +134,23 @@ export class ReplicateProvider {
                 Focus on classic menswear, sophisticated edge, and timeless cool.`
             };
 
+            const modePrompts: Record<string, string> = {
+                roast: "ROAST MODE: Be brutally honest and hilariously savage in your critique. Don't hold back - roast this outfit like you're at a comedy club. Point out every fashion faux pas with wit and humor.",
+                flatter: "FLATTER MODE: Be incredibly encouraging and confidence-boosting. Find the positive in everything and make this person feel amazing about their style choices.",
+                real: "REAL MODE: Give honest, balanced fashion feedback. Be straightforward and genuine - tell it like it is without being mean or overly nice."
+            };
+
             const input = {
                 prompt: `${personaPrompts[persona] || personaPrompts.luxury}
+                
+                ${modePrompts[mode] || modePrompts.real}
                 
                 Analyze this image and provide your signature style of critique.
                 Be authentic to your personality while providing valuable fashion feedback.`,
                 image_input: `data:image/jpeg;base64,${imageBase64}`,
                 system_prompt: "You are a professional fashion stylist with a distinct personality.",
                 max_completion_tokens: 1500,
-                temperature: 0.8
+                temperature: mode === 'roast' ? 0.9 : mode === 'flatter' ? 0.6 : 0.7
             };
 
             const output = await this.replicate.run("openai/gpt-4o-mini", { input });

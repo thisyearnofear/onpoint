@@ -254,10 +254,25 @@ const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('
     }
   }, [selectedPhoto, analyzeFashionImage]);
 
-  const handlePersonaSelect = useCallback((persona: string) => {
+  const handlePersonaSelect = useCallback(async (persona: string) => {
     setSelectedPersona(persona);
     setShowPersonalitySelection(false);
-  }, []);
+    
+    if (selectedPhoto) {
+      try {
+        const critique = await getPersonalityCritique(selectedPhoto, persona, selectedCritiqueMode);
+        if (critique) {
+          setCritiqueResult({
+            persona: persona as StylistPersona,
+            critique,
+            mode: selectedCritiqueMode
+          });
+        }
+      } catch (err) {
+        console.error("Error getting persona critique:", err);
+      }
+    }
+  }, [selectedPhoto, getPersonalityCritique, selectedCritiqueMode]);
 
 
 

@@ -20,6 +20,7 @@ import {
 import { FarcasterUser } from './FarcasterUser';
 import { useMemoryAPI, useSocialActivities } from '../lib/hooks/useMemoryAPI';
 import { SocialActivity } from '@onpoint/shared-types';
+import { EmptyState } from './ui/EmptyState';
 
 interface SocialFeedProps {
     filter?: 'all' | 'following' | 'trending';
@@ -213,15 +214,10 @@ export function SocialFeed({ filter = 'all', showDiscovery = true }: SocialFeedP
             </div>
 
             {activities.length === 0 && (
-                <Card>
-                    <CardContent className="p-12 text-center">
-                        <Sparkles className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                        <h3 className="text-lg font-medium mb-2">No activities yet</h3>
-                        <p className="text-muted-foreground">
-                            Start creating outfits and trying them on to see social activities here!
-                        </p>
-                    </CardContent>
-                </Card>
+                <EmptyState
+                    variant="social-feed"
+                    action={{ label: "Start Styling", onClick: () => window.location.href = '/style' }}
+                />
             )}
         </div>
     );

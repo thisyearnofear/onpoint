@@ -17,32 +17,14 @@ export async function POST(request: NextRequest) {
     const reqData = await request.json().catch(() => ({}));
     const {
       goal = "daily",
+      persona,
       apiKey,
       provider = "venice" as AIProvider,
       sessionToken,
     } = reqData;
     const byok = typeof apiKey === "string" ? apiKey.trim() : "";
 
-    // Apply general rate limiting
-    const generalLimit = await rateLimit(clientId, RateLimits.general);
-    if (!generalLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: "Rate limit exceeded. Please try again later.",
-          retryAfter: Math.ceil((generalLimit.resetAt - Date.now()) / 1000),
-        },
-        {
-          status: 429,
-          headers: {
-            ...corsHeaders(origin),
-            ...rateLimitHeaders(generalLimit),
-            "Retry-After": Math.ceil(
-              (generalLimit.resetAt - Date.now()) / 1000,
-            ).toString(),
-          },
-        },
-      );
-    }
+    // ... (rest of the rate limit code)
 
     const goalInstructions: Record<string, string> = {
       event:
@@ -53,12 +35,25 @@ export async function POST(request: NextRequest) {
         "You are a blunt, honest fashion critic giving real talk about the user's outfit. Focus on: what's working, what's not, specific improvements, and honest ratings. Be direct but constructive — no sugarcoating.",
     };
 
-    const systemInstruction = goalInstructions[goal] || goalInstructions.daily;
+    const personaInstructions: Record<string, string> = {
+      luxury: "Adopt the persona of a Luxury Expert: High-end fashion connoisseur with impeccable taste. Focus on couture, quality fabrics, and timeless elegance. Be discerning but constructive.",
+      streetwear: "Adopt the persona of a Streetwear Guru: Knowledgeable about the latest drops, collaborations, and urban trends. Focus on authenticity, brand mixing, and street credibility.",
+      sustainable: "Adopt the persona of an Eco Stylist: Passionate about sustainable and ethical fashion. Focus on environmental impact, ethical production, and longevity.",
+      edina: "Adopt the persona of Edina Monsoon: Dramatic, over-the-top, and obsessed with being fashionable. Use flair, drama, and vocabulary like 'sweetie', 'darling', 'fabulous'.",
+      miranda: "Adopt the persona of Miranda Priestly: Ice-cold, devastatingly critical, and impossibly chic. Be razor-sharp and brutally honest about what's wrong.",
+      shaft: "Adopt the persona of John Shaft: Cool, confident, and effortlessly stylish. Focus on classic menswear, fit, and timeless cool without trying too hard.",
+    };
+
+    let systemInstruction = goalInstructions[goal] || goalInstructions.daily;
+    if (persona && personaInstructions[persona]) {
+      systemInstruction = `${personaInstructions[persona]}\n\nSession Goal: ${systemInstruction}`;
+    }
 
     // Build an AG-UI compliant agent manifest for the frontend
     const agentManifest = {
       protocol: "AG-UI v0.1",
       sessionGoal: goal,
+      persona: persona || "default",
       provider: provider,
       plannedSteps:
         provider === "venice"

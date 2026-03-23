@@ -30,8 +30,8 @@ OnPoint is a **goal-aware, multimodal AI agent** with a complete perceive → re
 │  Gemini Live  →  Style Score  →  Score ≥ 8?  →  Mint NFT       │
 │  + Venice AI     (sentiment-      ↓yes      +  Tipping Bot      │
 │  (vision)        weighted)    Tip Stylist   +  WDK Agent Wallet │
-│                                   ↓no                           │
-│                              Continue coaching                   │
+│                                   ↓no         (cUSD/USDT,       │
+│                              Continue coaching  multi-chain)     │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -115,14 +115,14 @@ GET /api/agent/wallet
 
 - Agent proposes mint when score ≥ 8
 - User approves via WDK signature
-- 85/15 revenue split via 0xSplits
+- 85/10/3/2 commission split (seller/platform/affiliate/agent)
 - Stored on Celo blockchain
 
 ### 3. Agent Tipping
 
-- Users can tip the AI Stylist in cUSD
+- Users can tip the AI Stylist in cUSD or USDT
 - Agent responds with personalized thank you
-- Tipping tracked on-chain
+- Tipping tracked on-chain via WDK agent wallet
 
 ### 4. Multi-Chain Wallet via WDK
 

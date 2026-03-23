@@ -16,7 +16,7 @@ export function useGeminiLive() {
   const sessionRef = useRef<LiveSession | null>(null);
   const frameIntervalRef = useRef<number | null>(null);
   
-  const startSession = useCallback(async (sessionGoal?: string, userApiKey?: string) => {
+  const startSession = useCallback(async (sessionGoal?: string, userApiKey?: string, persona?: string) => {
     try {
       setIsInitializing(true);
       setError(null);
@@ -37,6 +37,7 @@ export function useGeminiLive() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           goal: sessionGoal || 'daily',
+          persona,
           apiKey: userApiKey?.trim() || undefined
         })
       });

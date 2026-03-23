@@ -10,8 +10,10 @@ import {
   X,
   MessageCircle,
   ThumbsUp,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
+import { useAccount } from "wagmi";
 
 interface TipModalProps {
   isOpen: boolean;
@@ -27,62 +29,69 @@ const TIP_AMOUNTS = [
 ];
 
 const AGENT_RESPONSES = [
-  "Thank you so much! Your support keeps me styling. Keep being fabulous! 💅✨",
+  "Thank you so much! Your support keeps me styling. Keep being fabulous! ✨",
   "WOW! You're too kind! I'll keep finding you the perfect looks. You rock! 🎉",
   "This means the world to me! Your style journey is my priority. Let's go! 🚀",
   "Incredible! With supporters like you, I'll become the best AI stylist ever! 💜",
 ];
 
 export function TipModal({ isOpen, onClose, agentAddress }: TipModalProps) {
+  const { address: connectedAddress, isConnected } = useAccount();
   const [selectedAmount, setSelectedAmount] = useState<string | null>(null);
   const [customAmount, setCustomAmount] = useState("");
   const [message, setMessage] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [agentResponse, setAgentResponse] = useState<string | null>(null);
+  const [resolvedToAddress, setResolvedToAddress] = useState<string | null>(
+    null,
+  );
 
   const handleTip = async () => {
     const amount = selectedAmount || customAmount;
     if (!amount || parseFloat(amount) <= 0) return;
 
+    if (!isConnected || !connectedAddress) {
+      setError("Please connect your wallet first");
+      return;
+    }
+
     setIsProcessing(true);
     setAgentResponse(null);
+    setError(null);
 
     try {
-      // Call the agent tip API
       const response = await fetch("/api/agent/tip", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount,
           chain: "celo",
+          token: "cUSD",
           message: message || undefined,
-          // In a real implementation, these would come from the connected wallet
-          fromAddress: "0x0000000000000000000000000000000000000000",
-          toAddress:
-            agentAddress || "0xdb65806c994C3f55079a6136a8E0886CbB2B64B1",
+          fromAddress: connectedAddress,
+          toAddress: agentAddress,
         }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setAgentResponse(
-          data.agentResponse ??
-            AGENT_RESPONSES[Math.floor(Math.random() * AGENT_RESPONSES.length)],
-        );
-        setIsSuccess(true);
-      } else {
-        throw new Error("Tip failed");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Tip failed");
       }
-    } catch (err) {
-      console.error("Tip failed:", err);
-      // For demo, show success anyway
-      const randomResponse =
-        AGENT_RESPONSES[Math.floor(Math.random() * AGENT_RESPONSES.length)];
+
+      setResolvedToAddress(data.tip?.toAddress ?? null);
       setAgentResponse(
-        randomResponse ?? "Thank you for supporting the AI Stylist! 💜",
+        data.agentResponse ??
+          AGENT_RESPONSES[Math.floor(Math.random() * AGENT_RESPONSES.length)],
       );
       setIsSuccess(true);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to send tip";
+      setError(errorMessage);
+      console.error("Tip failed:", err);
     } finally {
       setIsProcessing(false);
     }
@@ -93,7 +102,9 @@ export function TipModal({ isOpen, onClose, agentAddress }: TipModalProps) {
     setCustomAmount("");
     setMessage("");
     setIsSuccess(false);
+    setError(null);
     setAgentResponse(null);
+    setResolvedToAddress(null);
     onClose();
   };
 
@@ -166,8 +177,14 @@ export function TipModal({ isOpen, onClose, agentAddress }: TipModalProps) {
                       Tip Sent!
                     </h3>
                     <p className="text-slate-400 text-sm">
-                      {selectedAmount || customAmount} CELO transferred
+                      {selectedAmount || customAmount} cUSD transferred
                     </p>
+                    {resolvedToAddress && (
+                      <p className="text-slate-500 text-xs mt-1">
+                        To: {resolvedToAddress.slice(0, 6)}...
+                        {resolvedToAddress.slice(-4)}
+                      </p>
+                    )}
                   </div>
 
                   {agentResponse && (
@@ -202,6 +219,24 @@ export function TipModal({ isOpen, onClose, agentAddress }: TipModalProps) {
                   exit={{ opacity: 0, y: -10 }}
                   className="space-y-5"
                 >
+                  {/* Wallet status */}
+                  {!isConnected && (
+                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                      <p className="text-amber-200 text-xs">
+                        Connect your wallet to send tips
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Error display */}
+                  {error && (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                      <p className="text-red-200 text-xs">{error}</p>
+                    </div>
+                  )}
+
                   {/* Amount Grid */}
                   <div className="grid grid-cols-2 gap-3">
                     {TIP_AMOUNTS.map((tip) => (
@@ -219,7 +254,7 @@ export function TipModal({ isOpen, onClose, agentAddress }: TipModalProps) {
                       >
                         <div className="text-2xl mb-1">{tip.emoji}</div>
                         <div className="text-white font-bold">
-                          {tip.amount} CELO
+                          {tip.amount} cUSD
                         </div>
                         <div className="text-slate-400 text-xs">
                           {tip.label}
@@ -247,7 +282,7 @@ export function TipModal({ isOpen, onClose, agentAddress }: TipModalProps) {
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-lg font-bold focus:outline-none focus:border-amber-500/50"
                       />
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">
-                        CELO
+                        cUSD
                       </span>
                     </div>
                   </div>
@@ -276,7 +311,9 @@ export function TipModal({ isOpen, onClose, agentAddress }: TipModalProps) {
                   <Button
                     onClick={handleTip}
                     disabled={
-                      (!selectedAmount && !customAmount) || isProcessing
+                      (!selectedAmount && !customAmount) ||
+                      isProcessing ||
+                      !isConnected
                     }
                     className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -288,14 +325,14 @@ export function TipModal({ isOpen, onClose, agentAddress }: TipModalProps) {
                     ) : (
                       <>
                         <Coins className="w-5 h-5 mr-2" />
-                        Send {selectedAmount || customAmount || "0"} CELO
+                        Send {selectedAmount || customAmount || "0"} cUSD
                       </>
                     )}
                   </Button>
 
                   <p className="text-center text-slate-500 text-xs">
-                    Tips are sent directly to the AI Agent&apos;s self-custodial
-                    wallet on Celo
+                    Tips sent to the agent&apos;s self-custodial WDK wallet on
+                    Celo
                   </p>
                 </motion.div>
               )}

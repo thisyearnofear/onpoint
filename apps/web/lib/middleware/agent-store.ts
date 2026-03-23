@@ -17,6 +17,7 @@ import type {
 } from "./agent-controls";
 
 import type { CommissionRecord } from "../utils/commissions";
+import type { UserMissionState } from "../services/mission-service";
 
 // ============================================
 // Redis Key Schema
@@ -32,6 +33,7 @@ const KEYS = {
   stylePrefs: (userId: string) => `agent:style:${userId}`,
   commission: (id: string) => `agent:commission:${id}`,
   commissionIndex: () => `agent:commissions`,
+  missionState: (userId: string) => `agent:missions:${userId}`,
 };
 
 // ============================================
@@ -318,6 +320,22 @@ export async function loadCommission(
 
 export async function loadCommissionIds(): Promise<string[]> {
   return redisSmembers(KEYS.commissionIndex());
+}
+
+// ============================================
+// Mission State Persistence
+// ============================================
+
+export async function persistMissionState(
+  state: UserMissionState,
+): Promise<void> {
+  await redisSetEx(KEYS.missionState(state.userId), state, 86400 * 30); // 30 day TTL
+}
+
+export async function loadMissionState(
+  userId: string,
+): Promise<UserMissionState | null> {
+  return redisGet<UserMissionState>(KEYS.missionState(userId));
 }
 
 // ============================================

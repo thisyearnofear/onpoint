@@ -8,6 +8,7 @@
  * For the Tether Hackathon Galactica - Agent Wallets Track
  */
 
+import { parseEther, formatEther } from "viem";
 import {
   loadSpendingLimits,
   persistSpendingLimits,
@@ -797,40 +798,12 @@ export function suggestAction(params: {
 // ============================================
 
 /**
- * Parse ETH value (simplified - use viem's parseEther in production)
- */
-function parseEther(value: string): bigint {
-  const num = parseFloat(value);
-  const wei = BigInt(Math.floor(num * 1e18));
-  return wei;
-}
-
-/**
- * Format ETH value (simplified - use viem's formatEther in production)
- */
-function formatEther(value: bigint): string {
-  const str = value.toString();
-  const len = str.length;
-
-  if (len <= 18) {
-    const padded = str.padStart(18, "0");
-    const trimmed = padded.replace(/0+$/, "");
-    return trimmed ? `0.${trimmed}` : "0";
-  }
-
-  const integerPart = str.slice(0, len - 18);
-  const fractionalPart = str.slice(len - 18).replace(/0+$/, "");
-  return fractionalPart ? `${integerPart}.${fractionalPart}` : integerPart;
-}
-
-/**
  * Parse amount string (e.g., "5 cUSD") to wei
  */
 function parseAmount(amount: string): bigint {
   // Handle common formats: "5 cUSD", "5.00 cUSD", "5"
   const cleaned = amount.replace(/[^0-9.]/g, "");
-  const num = parseFloat(cleaned) || 0;
-  return BigInt(Math.floor(num * 1e18));
+  return parseEther(cleaned || "0");
 }
 
 // ============================================

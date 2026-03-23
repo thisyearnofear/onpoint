@@ -27,6 +27,8 @@ import { SocialFeed } from "../SocialFeed";
 import { LiveStylistView } from "../VirtualTryOn/LiveStylistView";
 import { AgentStatus } from "../Agent/AgentStatus";
 import { AgentActionCard } from "../Agent/AgentActionCard";
+import { MissionsPanel } from "../Agent/MissionsPanel";
+import { NewUserOnboarding } from "./NewUserOnboarding";
 
 type AppMode =
   | "dashboard"
@@ -143,7 +145,7 @@ export function TacticalDashboard() {
                   onClick={() => setMode("live-ar")}
                   className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold py-4 px-8 rounded-2xl shadow-lg shadow-emerald-500/25 flex items-center gap-3"
                 >
-                  <Video className="w-5 h-5" />
+                  < Video className="w-5 h-5" />
                   <span>Start Live AR Session</span>
                 </Button>
               </div>
@@ -233,8 +235,57 @@ export function TacticalDashboard() {
               {/* Agent Status Card */}
               <AgentStatus showActions={true} />
 
+              {/* Missions Panel */}
+              <MissionsPanel userId="user-default" />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Command Center */}
               <CommandCenter />
+
+              {/* Quick Actions */}
+              <div className="rounded-3xl border border-border bg-card/60 p-5 space-y-4">
+                <div className="flex items-center gap-2 text-foreground">
+                  <Zap className="w-4 h-4 text-amber-400" />
+                  <h3 className="text-sm font-bold uppercase tracking-wider">
+                    Quick Actions
+                  </h3>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setMode("try-on")}
+                    className="text-xs"
+                  >
+                    Virtual Try-On
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setMode("stylist")}
+                    className="text-xs"
+                  >
+                    AI Stylist
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setMode("design")}
+                    className="text-xs"
+                  >
+                    Design Studio
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setMode("social")}
+                    className="text-xs"
+                  >
+                    Community
+                  </Button>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4">
@@ -284,6 +335,7 @@ export function TacticalDashboard() {
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)] bg-background">
+      <NewUserOnboarding />
       {/* Dynamic Header/Mode Switcher */}
       <div className="sticky top-16 z-40 bg-background/80 backdrop-blur-md border-b border-border/60 px-2 md:px-0">
         <div className="container mx-auto">

@@ -32,7 +32,7 @@ export function useVeniceLive() {
   }, []);
 
   const startSession = useCallback(
-    async (sessionGoal?: string) => {
+    async (sessionGoal?: string, userApiKey?: string, persona?: string) => {
       try {
         setIsInitializing(true);
         setError(null);
@@ -56,6 +56,7 @@ export function useVeniceLive() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             goal: sessionGoal || "daily",
+            persona,
             provider: "venice",
           }),
         });

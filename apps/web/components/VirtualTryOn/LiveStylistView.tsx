@@ -17,6 +17,9 @@ import {
   Coins,
   ShoppingBag,
   Eye,
+  Leaf,
+  Star,
+  MessageCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAccount } from "wagmi";
@@ -31,9 +34,12 @@ import { SuggestionHistoryPanel } from "../Agent/SuggestionHistoryPanel";
 import { CartDrawer, CartButton } from "../Shop/CartDrawer";
 import { CheckoutModal } from "../Shop/CheckoutModal";
 import { SessionEndingCard } from "./SessionEndingCard";
+import { StyleReportCard } from "./StyleReportCard";
 import { useCartStore } from "../../lib/stores/cart-store";
 import { trackProviderSelected } from "../../lib/utils/analytics";
 import { useLiveSession, GOAL_OPTIONS } from "./hooks/useLiveSession";
+import { PersonalityCard } from "./PersonalityCard";
+import type { StylistPersona } from "@repo/ai-client";
 
 interface LiveStylistViewProps {
   onBack: () => void;
@@ -47,10 +53,13 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   const [showTipModal, setShowTipModal] = React.useState(false);
   const [showCheckout, setShowCheckout] = React.useState(false);
   const [showInstructions, setShowInstructions] = React.useState(true);
+  const [showStyleReport, setShowStyleReport] = React.useState(false);
 
   const {
     selectedProvider,
     setSelectedProvider,
+    selectedPersona,
+    setSelectedPersona,
     sessionGoal,
     setSessionGoal,
     initStep,
@@ -113,21 +122,96 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     isVenice,
   } = session;
 
+  const personaStyling = React.useMemo(() => {
+    const defaultStyle = {
+      color: "indigo-500",
+      text: "indigo-400",
+      border: "border-indigo-500/20",
+      bg: "bg-indigo-500/10",
+      accent: "indigo-400",
+      icon: Sparkles,
+      label: "Neural Stylist Reasoning",
+    };
+
+    if (!selectedPersona) return defaultStyle;
+
+    const styles: Record<string, typeof defaultStyle> = {
+      luxury: {
+        color: "amber-500",
+        text: "amber-400",
+        border: "border-amber-500/20",
+        bg: "bg-amber-500/10",
+        accent: "amber-400",
+        icon: Crown,
+        label: "Luxury Expert Intelligence",
+      },
+      streetwear: {
+        color: "blue-500",
+        text: "blue-400",
+        border: "border-blue-500/20",
+        bg: "bg-blue-500/10",
+        accent: "blue-400",
+        icon: Zap,
+        label: "Streetwear Guru Vision",
+      },
+      sustainable: {
+        color: "emerald-500",
+        text: "emerald-400",
+        border: "border-emerald-500/20",
+        bg: "bg-emerald-500/10",
+        accent: "emerald-400",
+        icon: Leaf,
+        label: "Eco Stylist Awareness",
+      },
+      edina: {
+        color: "purple-500",
+        text: "purple-400",
+        border: "border-purple-500/20",
+        bg: "bg-purple-500/10",
+        accent: "purple-400",
+        icon: Sparkles,
+        label: "Fabulous Edina Insights",
+      },
+      miranda: {
+        color: "rose-500",
+        text: "rose-400",
+        border: "border-rose-500/20",
+        bg: "bg-rose-500/10",
+        accent: "rose-400",
+        icon: Star,
+        label: "Miranda's Final Judgment",
+      },
+      shaft: {
+        color: "orange-500",
+        text: "orange-400",
+        border: "border-orange-500/20",
+        bg: "bg-orange-500/10",
+        accent: "orange-400",
+        icon: MessageCircle,
+        label: "Shaft's Style Protocol",
+      },
+    };
+
+    return (styles[selectedPersona] as typeof defaultStyle) || defaultStyle;
+  }, [selectedPersona]);
+
+  const PersonaIcon = personaStyling.icon;
+
   // ── Session Summary Screen ──
   if (showSummary && sessionSummary) {
     return (
       <div className="flex flex-col h-full bg-slate-950 overflow-y-auto pb-20">
         {/* Header */}
-        <div className="p-6 flex items-center justify-between border-b border-indigo-500/20 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
+        <div className={`p-6 flex items-center justify-between border-b border-${personaStyling.color}/20 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50`}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
-              <Sparkles className="w-5 h-5 text-indigo-400" />
+            <div className={`w-10 h-10 rounded-full bg-${personaStyling.color}/20 flex items-center justify-center border border-${personaStyling.color}/30 shadow-[0_0_15px_rgba(99,102,241,0.2)]`}>
+              <PersonaIcon className={`w-5 h-5 text-${personaStyling.accent}`} />
             </div>
             <div>
               <h1 className="text-lg font-bold text-white tracking-tight">
                 Session Summary
               </h1>
-              <p className="text-[10px] text-indigo-300/60 uppercase tracking-widest font-mono">
+              <p className={`text-[10px] text-${personaStyling.text}/60 uppercase tracking-widest font-mono`}>
                 Proof of Style Verified
               </p>
             </div>
@@ -146,7 +230,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 to-indigo-900 p-8 shadow-2xl shadow-indigo-500/20"
+            className={`relative overflow-hidden rounded-3xl bg-gradient-to-br from-${personaStyling.color} to-slate-900 p-8 shadow-2xl shadow-${personaStyling.color}/20`}
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-3xl rounded-full -mr-16 -mt-16" />
             <div className="relative z-10 flex flex-col items-center text-center py-4">
@@ -157,7 +241,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 <div className="text-8xl font-black text-white italic tracking-tighter tabular-nums drop-shadow-2xl">
                   {sessionSummary.score}
                 </div>
-                <div className="absolute -right-6 bottom-4 text-2xl font-bold text-indigo-300">
+                <div className={`absolute -right-6 bottom-4 text-2xl font-bold text-${personaStyling.text}`}>
                   /10
                 </div>
               </div>
@@ -257,6 +341,15 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           <div className="flex flex-col gap-3 pt-4">
             <SuggestionHistoryPanel suggestions={suggestions} />
 
+            {/* Style Report Card Button */}
+            <Button
+              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-full py-5 text-sm font-bold shadow-lg shadow-indigo-500/20 gap-2"
+              onClick={() => setShowStyleReport(true)}
+            >
+              <Sparkles className="w-4 h-4" />
+              View Style Report
+            </Button>
+
             {selectedCapture && (
               <MintLookButton
                 imageUrl={selectedCapture.image}
@@ -309,6 +402,21 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             onReject={rejectRequest}
             request={currentApproval}
           />
+
+          {/* Style Report Card Modal */}
+          <AnimatePresence>
+            {showStyleReport && sessionSummary && (
+              <StyleReportCard
+                score={sessionSummary.score}
+                persona={(selectedPersona as StylistPersona) || "luxury"}
+                takeaways={sessionSummary.takeaways}
+                topics={sessionSummary.topics}
+                captureImage={selectedCapture?.image}
+                sessionGoal={sessionGoal || undefined}
+                onClose={() => setShowStyleReport(false)}
+              />
+            )}
+          </AnimatePresence>
         </div>
       </div>
     );
@@ -406,7 +514,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   }
 
   // ── Goal Selection Screen ──
-  if (!sessionGoal) {
+  if (selectedProvider && !sessionGoal) {
     return (
       <div className="flex flex-col h-full bg-slate-950 p-6">
         <div className="flex-1 flex flex-col justify-center items-center text-center space-y-8 max-w-sm mx-auto">
@@ -426,7 +534,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 )}
               </div>
             </div>
-            <h1 className="text-2xl font-black text-white tracking-tighter italic">
+            <h1 className="text-2xl font-black text-white tracking-tighter italic uppercase">
               SESSION GOAL
             </h1>
             <p className="text-slate-400 text-sm">
@@ -520,6 +628,76 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     );
   }
 
+  // ── Persona Selection Screen ──
+  if (selectedProvider && sessionGoal && !selectedPersona) {
+    return (
+      <div className="flex flex-col h-full bg-slate-950 p-6 overflow-y-auto">
+        <div className="flex-1 flex flex-col justify-center items-center text-center space-y-8 max-w-lg mx-auto py-10">
+          <div className="space-y-2">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
+              <Sparkles className="w-8 h-8 text-indigo-400" />
+            </div>
+            <h1 className="text-2xl font-black text-white tracking-tighter italic uppercase">
+              CHOOSE YOUR STYLIST
+            </h1>
+            <p className="text-slate-400 text-sm">
+              Select a personality to guide your session.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full">
+            {(
+              [
+                "luxury",
+                "streetwear",
+                "sustainable",
+                "edina",
+                "miranda",
+                "shaft",
+              ] as StylistPersona[]
+            ).map((persona) => (
+              <PersonalityCard
+                key={persona}
+                persona={persona}
+                isSelected={selectedPersona === persona}
+                onSelect={(p) => setSelectedPersona(p)}
+              />
+            ))}
+          </div>
+
+          <div className="w-full flex flex-col gap-4">
+            <Button
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-full py-6 text-lg font-bold shadow-xl shadow-indigo-500/20"
+              disabled={!selectedPersona}
+              onClick={async () => {
+                setInitStep("connecting");
+                await new Promise((r) => setTimeout(r, 300));
+                setInitStep("authenticating");
+                await new Promise((r) => setTimeout(r, 500));
+                setInitStep("starting");
+                await startSession(
+                  sessionGoal!,
+                  userApiKey || geminiPaymentToken || undefined,
+                  selectedPersona!,
+                );
+              }}
+            >
+              ACTIVATE {selectedPersona?.toUpperCase() || "AGENT"}
+            </Button>
+
+            <Button
+              variant="ghost"
+              className="text-slate-500 hover:text-white"
+              onClick={() => setSessionGoal(null)}
+            >
+              Back to Goal Selection
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ── Main Live Session View ──
   return (
     <div className="flex flex-col h-full bg-black overflow-hidden relative font-sans">
@@ -544,9 +722,9 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                   <div className="w-2 h-2 rounded-full bg-emerald-500" />
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                  <span className="text-[10px] font-mono text-indigo-300 uppercase tracking-widest">
-                    Neural Stylist Reasoning
+                  <div className={`w-2 h-2 rounded-full bg-${personaStyling.color} animate-pulse`} />
+                  <span className={`text-[10px] font-mono text-${personaStyling.text} uppercase tracking-widest`}>
+                    {personaStyling.label}
                   </span>
                 </div>
                 {/* Session timer for Venice free tier */}
@@ -607,7 +785,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                             [{reasoning.length - i}]
                           </span>
                           <span
-                            className={`${i === 0 ? "text-indigo-400" : "text-white/50"}`}
+                            className={`${i === 0 ? `text-${personaStyling.text}` : "text-white/50"}`}
                           >
                             &gt; {r}
                           </span>
@@ -615,7 +793,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                       ))
                     ) : (
                       <div className="flex gap-2 items-center">
-                        <span className="text-indigo-400">&gt;</span>
+                        <span className={`text-${personaStyling.text}`}>&gt;</span>
                         <span className="text-slate-300 animate-in fade-in slide-in-from-left-2 truncate">
                           {reasoning[0] || "Awaiting visual telemetry…"}
                         </span>
@@ -635,9 +813,9 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
         {isInitializing && (
           <div className="absolute inset-0 z-[70] flex flex-col items-center justify-center bg-black/90 backdrop-blur-sm">
             <div className="relative">
-              <div className="w-20 h-20 rounded-full border-t-2 border-indigo-500 animate-spin" />
+              <div className={`w-20 h-20 rounded-full border-t-2 border-${personaStyling.color} animate-spin`} />
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-12 h-12 rounded-full border-b-2 border-indigo-400 animate-spin-slow" />
+                <div className={`w-12 h-12 rounded-full border-b-2 border-${personaStyling.accent} animate-spin-slow`} />
               </div>
             </div>
             <div className="mt-8 w-64 space-y-4">
@@ -667,7 +845,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                     <div
                       className={`w-6 h-6 rounded-full flex items-center justify-center ${
                         isCurrent
-                          ? "bg-indigo-500 animate-pulse"
+                          ? `bg-${personaStyling.color} animate-pulse`
                           : isDone
                             ? "bg-emerald-500"
                             : "bg-slate-600"
@@ -680,7 +858,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                       ) : null}
                     </div>
                     <span
-                      className={`text-xs ${isCurrent ? "text-indigo-400" : isDone ? "text-emerald-400" : "text-slate-500"}`}
+                      className={`text-xs ${isCurrent ? `text-${personaStyling.text}` : isDone ? "text-emerald-400" : "text-slate-500"}`}
                     >
                       {labels[i]}
                     </span>
@@ -688,7 +866,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 );
               })}
             </div>
-            <p className="mt-8 text-indigo-400 font-mono text-[10px] uppercase tracking-[0.3em] animate-pulse">
+            <p className={`mt-8 text-${personaStyling.text} font-mono text-[10px] uppercase tracking-[0.3em] animate-pulse`}>
               {selectedProvider === "venice"
                 ? "Initializing Style Scanner (Free)"
                 : "Initializing Live Agent (Premium)"}
@@ -799,7 +977,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             <motion.div
               animate={{ y: [0, 600, 0] }}
               transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-              className="w-full h-[1px] bg-indigo-500/20 blur-[1px]"
+              className={`w-full h-[1px] bg-${personaStyling.color}/20 blur-[1px]`}
             />
           </div>
         )}
@@ -812,11 +990,11 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 key={`${event.step}-${event.id}`}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1 - idx * 0.2, x: 0 }}
-                className="bg-black/60 border border-indigo-500/30 backdrop-blur-md p-3 rounded-lg flex flex-col gap-1"
+                className={`bg-black/60 border border-${personaStyling.color}/30 backdrop-blur-md p-3 rounded-lg flex flex-col gap-1`}
               >
                 <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                  <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-tighter">
+                  <div className={`w-1.5 h-1.5 rounded-full bg-${personaStyling.accent} animate-pulse`} />
+                  <span className={`text-[10px] font-bold text-${personaStyling.accent} uppercase tracking-tighter`}>
                     {event.step}
                   </span>
                 </div>
@@ -892,8 +1070,8 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               className="absolute bottom-32 inset-x-0 flex justify-center z-[40] px-6"
             >
               <div className="bg-slate-900/40 backdrop-blur-2xl border border-white/10 p-4 rounded-3xl flex items-center gap-4 max-w-sm w-full shadow-2xl">
-                <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 flex items-center justify-center shrink-0 border border-indigo-500/30">
-                  <Camera className="w-5 h-5 text-indigo-400" />
+                <div className={`w-10 h-10 rounded-2xl bg-${personaStyling.color}/20 flex items-center justify-center shrink-0 border border-${personaStyling.color}/30`}>
+                  <Camera className={`w-5 h-5 text-${personaStyling.accent}`} />
                 </div>
                 <div className="flex-1">
                   <h4 className="text-white font-bold text-xs uppercase tracking-wider">
@@ -970,8 +1148,8 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               animate={{ opacity: 1, x: 0 }}
               className="flex items-center gap-2 px-3 py-2 bg-slate-900/80 backdrop-blur-xl rounded-full border border-white/10 shadow-lg"
             >
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                <Sparkles className="w-3 h-3 text-white" />
+              <div className={`w-6 h-6 rounded-full bg-gradient-to-br from-${personaStyling.color} to-${personaStyling.accent} flex items-center justify-center`}>
+                <PersonaIcon className="w-3 h-3 text-white" />
               </div>
               <span className="text-[10px] text-slate-300 font-medium">
                 AI Stylist Active
@@ -1097,7 +1275,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               className={`w-14 h-14 sm:w-18 sm:h-18 rounded-full text-white shadow-xl ${
                 capturesExhausted
                   ? "bg-slate-700 cursor-not-allowed shadow-none"
-                  : "bg-indigo-600 hover:bg-indigo-500 shadow-indigo-500/20"
+                  : `bg-${personaStyling.color} hover:bg-${personaStyling.accent} shadow-${personaStyling.color}/20`
               }`}
               disabled={isCapturing || capturesExhausted}
             >
@@ -1129,7 +1307,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
             className={`w-10 h-10 sm:w-14 sm:h-14 rounded-full border transition-all ${
               isVoiceEnabled
-                ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
+                ? `bg-${personaStyling.color}/20 border-${personaStyling.color}/40 text-${personaStyling.accent} shadow-[0_0_15px_rgba(99,102,241,0.2)]`
                 : "bg-white/5 border-white/10 text-white/40"
             }`}
           >
@@ -1166,40 +1344,6 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           </Button>
         </div>
       </div>
-
-      {/* Ready for Scan prompt */}
-      {!isConnected && !isInitializing && (
-        <div className="absolute inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-md">
-          <div className="max-w-xs w-full p-8 rounded-3xl bg-slate-900 border border-white/10 text-center shadow-2xl">
-            <div className="w-20 h-20 rounded-2xl bg-indigo-600/20 flex items-center justify-center mx-auto mb-6 border border-indigo-500/30">
-              <Mic className="w-10 h-10 text-indigo-400" />
-            </div>
-            <h2 className="text-2xl font-black text-white italic tracking-tight mb-2 uppercase">
-              READY FOR SCAN?
-            </h2>
-            <p className="text-slate-400 text-sm mb-8 leading-relaxed">
-              The AI Stylist is ready to connect. Ensure your camera and
-              microphone are accessible.
-            </p>
-            <Button
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-full py-6 text-lg font-bold shadow-xl shadow-indigo-500/20"
-              onClick={async () => {
-                setInitStep("connecting");
-                await new Promise((r) => setTimeout(r, 300));
-                setInitStep("authenticating");
-                await new Promise((r) => setTimeout(r, 500));
-                setInitStep("starting");
-                await startSession(
-                  sessionGoal!,
-                  userApiKey || geminiPaymentToken || undefined,
-                );
-              }}
-            >
-              ACTIVATE AGENT
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
