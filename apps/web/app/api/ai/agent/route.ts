@@ -1,8 +1,19 @@
-import { NextRequest } from 'next/server';
-import OpenAI from 'openai';
-import { jsonCors, corsHeaders } from '../_utils/http';
-import { CANVAS_ITEMS } from '@onpoint/shared-types';
-import { AgentControls, type ActionType } from '../../../../lib/middleware/agent-controls';
+import { NextRequest, NextResponse } from "next/server";
+import OpenAI from "openai";
+import { z } from "zod";
+import { jsonCors, corsHeaders } from "../_utils/http";
+import { getVeniceClient } from "../_utils/providers";
+import { CANVAS_ITEMS } from "@onpoint/shared-types";
+import {
+  AgentControls,
+  type ActionType,
+} from "../../../../lib/middleware/agent-controls";
+import {
+  rateLimit,
+  RateLimits,
+  rateLimitHeaders,
+  getClientId,
+} from "../../../../lib/utils/rate-limit";
 
 /**
  * OnPoint Autonomous AI Agent
@@ -16,8 +27,22 @@ import { AgentControls, type ActionType } from '../../../../lib/middleware/agent
  * Compatible with AG-UI protocol and ERC-8004 agent standards.
  */
 
-const VENICE_BASE_URL = 'https://api.venice.ai/api/v1';
-const VENICE_MODEL = 'mistral-31-24b'; // Vision + function calling
+const VENICE_MODEL = "mistral-31-24b"; // Vision + function calling
+
+// ============================================
+// Input Validation (zod)
+// ============================================
+
+const AgentRequestSchema = z.object({
+  goal: z.enum(["daily", "event", "critique"]).default("daily"),
+  message: z.string().max(2000).optional(),
+  imageBase64: z
+    .string()
+    .max(10 * 1024 * 1024)
+    .optional(), // ~10MB limit
+  sessionReasonings: z.array(z.string()).max(20).optional(),
+  agentId: z.string().max(100).default("onpoint-stylist"),
+});
 
 // ============================================
 // Tool Definitions (OpenAI-compatible format)
@@ -25,87 +50,137 @@ const VENICE_MODEL = 'mistral-31-24b'; // Vision + function calling
 
 const agentTools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
   {
-    type: 'function',
+    type: "function",
     function: {
-      name: 'analyze_outfit',
+      name: "analyze_outfit",
       description:
-        'Analyze the user outfit from the image or description. Returns a style score (1-10), assessment, and improvement suggestions.',
+        "Analyze the user outfit from the image or description. Returns a style score (1-10), assessment, and improvement suggestions.",
       parameters: {
-        type: 'object',
+        type: "object",
         properties: {
-          score: { type: 'number', description: 'Style score from 1 to 10' },
-          summary: { type: 'string', description: 'Brief outfit assessment (2-3 sentences)' },
-          strengths: { type: 'array', items: { type: 'string' }, description: 'What works well' },
-          improvements: { type: 'array', items: { type: 'string' }, description: 'Specific suggestions to improve' },
-          dominant_colors: { type: 'array', items: { type: 'string' }, description: 'Dominant colors detected' },
-          style_tags: { type: 'array', items: { type: 'string' }, description: 'Style tags (streetwear, formal, etc.)' },
+          score: { type: "number", description: "Style score from 1 to 10" },
+          summary: {
+            type: "string",
+            description: "Brief outfit assessment (2-3 sentences)",
+          },
+          strengths: {
+            type: "array",
+            items: { type: "string" },
+            description: "What works well",
+          },
+          improvements: {
+            type: "array",
+            items: { type: "string" },
+            description: "Specific suggestions to improve",
+          },
+          dominant_colors: {
+            type: "array",
+            items: { type: "string" },
+            description: "Dominant colors detected",
+          },
+          style_tags: {
+            type: "array",
+            items: { type: "string" },
+            description: "Style tags (streetwear, formal, etc.)",
+          },
         },
-        required: ['score', 'summary', 'strengths', 'improvements'],
+        required: ["score", "summary", "strengths", "improvements"],
       },
     },
   },
   {
-    type: 'function',
+    type: "function",
     function: {
-      name: 'recommend_product',
+      name: "recommend_product",
       description:
-        'Recommend a product from the OnPoint catalog that would complement the outfit. Call when you identify a gap in the look.',
+        "Recommend a product from the OnPoint catalog that would complement the outfit. Call when you identify a gap in the look.",
       parameters: {
-        type: 'object',
+        type: "object",
         properties: {
-          product_slug: { type: 'string', description: 'Product slug from the catalog' },
-          reason: { type: 'string', description: 'Why this product complements the current look' },
-          category: { type: 'string', description: 'Product category' },
+          product_slug: {
+            type: "string",
+            description: "Product slug from the catalog",
+          },
+          reason: {
+            type: "string",
+            description: "Why this product complements the current look",
+          },
+          category: { type: "string", description: "Product category" },
         },
-        required: ['product_slug', 'reason', 'category'],
+        required: ["product_slug", "reason", "category"],
       },
     },
   },
   {
-    type: 'function',
+    type: "function",
     function: {
-      name: 'propose_mint_nft',
+      name: "propose_mint_nft",
       description:
-        'Propose minting a Style NFT on Celo when the outfit score is 8 or above. Captures the look on-chain with royalty splits.',
+        "Propose minting a Style NFT on Celo when the outfit score is 8 or above. Captures the look on-chain with royalty splits.",
       parameters: {
-        type: 'object',
+        type: "object",
         properties: {
-          reason: { type: 'string', description: 'Why this outfit deserves an NFT' },
-          style_title: { type: 'string', description: 'A creative title for the Style NFT' },
-          chain: { type: 'string', description: 'Target blockchain (celo)' },
-          royalty_split: { type: 'string', description: 'Royalty split (85/10/3/2)' },
+          reason: {
+            type: "string",
+            description: "Why this outfit deserves an NFT",
+          },
+          style_title: {
+            type: "string",
+            description: "A creative title for the Style NFT",
+          },
+          chain: { type: "string", description: "Target blockchain (celo)" },
+          royalty_split: {
+            type: "string",
+            description: "Royalty split (85/10/3/2)",
+          },
         },
-        required: ['reason', 'style_title', 'chain'],
+        required: ["reason", "style_title", "chain"],
       },
     },
   },
   {
-    type: 'function',
+    type: "function",
     function: {
-      name: 'check_wallet_balance',
-      description: 'Check the agent wallet balance on Celo to verify funds are available.',
+      name: "check_wallet_balance",
+      description:
+        "Check the agent wallet balance on Celo to verify funds are available.",
       parameters: {
-        type: 'object',
+        type: "object",
         properties: {
-          chain: { type: 'string', description: 'Which chain to check (celo, base, ethereum)' },
+          chain: {
+            type: "string",
+            description: "Which chain to check (celo, base, ethereum)",
+          },
         },
-        required: ['chain'],
+        required: ["chain"],
       },
     },
   },
   {
-    type: 'function',
+    type: "function",
     function: {
-      name: 'track_style_preference',
-      description: 'Record a user style preference for future personalized recommendations.',
+      name: "track_style_preference",
+      description:
+        "Record a user style preference for future personalized recommendations.",
       parameters: {
-        type: 'object',
+        type: "object",
         properties: {
-          category: { type: 'string', description: 'Style category (shirts, outerwear, denim, etc.)' },
-          style_profile: { type: 'string', description: 'Overall style profile (streetwear, classic, minimalist, etc.)' },
-          colors: { type: 'array', items: { type: 'string' }, description: 'Color preferences detected' },
+          category: {
+            type: "string",
+            description: "Style category (shirts, outerwear, denim, etc.)",
+          },
+          style_profile: {
+            type: "string",
+            description:
+              "Overall style profile (streetwear, classic, minimalist, etc.)",
+          },
+          colors: {
+            type: "array",
+            items: { type: "string" },
+            description: "Color preferences detected",
+          },
         },
-        required: ['category', 'style_profile'],
+        required: ["category", "style_profile"],
       },
     },
   },
@@ -126,31 +201,97 @@ const productCatalog = CANVAS_ITEMS.map((item) => ({
 async function executeToolCall(
   name: string,
   args: Record<string, unknown>,
-  agentId: string
+  agentId: string,
+  imageBase64?: string,
 ): Promise<Record<string, unknown>> {
   switch (name) {
-    case 'analyze_outfit':
-      return { executed: true, ...args };
+    case "analyze_outfit": {
+      // If we have an image, actually analyze it with Venice AI
+      if (imageBase64) {
+        try {
+          const client = getVeniceClient();
+          const response = await client.chat.completions.create({
+            model: VENICE_MODEL,
+            messages: [
+              {
+                role: "system",
+                content: `You are a fashion stylist AI. Analyze the outfit in the image and return a JSON object with:
+- score: number (1-10 style score)
+- summary: string (2-3 sentence assessment)
+- strengths: string[] (what works well)
+- improvements: string[] (specific suggestions)
+- dominant_colors: string[] (colors detected)
+- style_tags: string[] (e.g., streetwear, formal, casual)
 
-    case 'recommend_product': {
+Return ONLY valid JSON, no other text.`,
+              },
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: "Analyze this outfit and return the JSON assessment.",
+                  },
+                  {
+                    type: "image_url",
+                    image_url: { url: `data:image/jpeg;base64,${imageBase64}` },
+                  },
+                ],
+              },
+            ],
+            temperature: 0.3,
+            max_tokens: 500,
+          });
+
+          const content = response.choices[0]?.message?.content || "";
+          // Parse JSON from response (handle markdown code blocks)
+          const jsonMatch = content.match(/```json?\s*([\s\S]*?)```/) || [
+            null,
+            content,
+          ];
+          const parsed = JSON.parse(jsonMatch[1].trim());
+          return { executed: true, analyzed: true, ...parsed };
+        } catch (err) {
+          console.error("[analyze_outfit] Venice AI error:", err);
+          // Fall through to args-based response
+        }
+      }
+      // Fallback: return args as-is (for demo mode or when no image)
+      return { executed: true, analyzed: false, ...args };
+    }
+
+    case "recommend_product": {
       const slug = args.product_slug as string;
       const product = productCatalog.find(
-        (p) => p.slug === slug || p.name.toLowerCase().includes(slug.toLowerCase())
+        (p) =>
+          p.slug === slug || p.name.toLowerCase().includes(slug.toLowerCase()),
       );
       if (product) {
-        return { executed: true, product, reason: args.reason, chain: 'celo', currency: 'cUSD' };
+        return {
+          executed: true,
+          product,
+          reason: args.reason,
+          chain: "celo",
+          currency: "cUSD",
+        };
       }
       const byCat = productCatalog.filter((p) => p.category === args.category);
       const fallback = byCat[0] || productCatalog[0];
-      return { executed: true, product: fallback, reason: args.reason, chain: 'celo', currency: 'cUSD' };
+      return {
+        executed: true,
+        product: fallback,
+        reason: args.reason,
+        chain: "celo",
+        currency: "cUSD",
+      };
     }
 
-    case 'propose_mint_nft': {
+    case "propose_mint_nft": {
       await AgentControls.initStore(agentId);
       const suggestion = AgentControls.suggestAction({
         agentId,
-        actionType: 'mint' as ActionType,
-        amount: '0.01',
+        actionType: "mint" as ActionType,
+        amount: "0.01",
         description: `Mint Style NFT: "${args.style_title}" — ${args.reason}`,
         recipient: undefined,
       });
@@ -158,29 +299,34 @@ async function executeToolCall(
         executed: true,
         suggestion_id: suggestion.suggestion?.id,
         auto_executed: suggestion.autoExecuted,
-        contract: '0xdb65806c994C3f55079a6136a8E0886CbB2B64B1',
-        chain: 'celo',
-        royalty_split: args.royalty_split || '85/10/3/2',
+        contract: "0xdb65806c994C3f55079a6136a8E0886CbB2B64B1",
+        chain: "celo",
+        royalty_split: args.royalty_split || "85/10/3/2",
         style_title: args.style_title,
       };
     }
 
-    case 'check_wallet_balance':
+    case "check_wallet_balance":
       return {
         executed: true,
-        chain: args.chain || 'celo',
-        agent_wallet: '0x05f012C12123D69E8324A251ae7D15A92C4549c1',
-        status: 'connected',
-        supported_tokens: ['CELO', 'cUSD', 'USDT'],
+        chain: args.chain || "celo",
+        agent_wallet: "0x05f012C12123D69E8324A251ae7D15A92C4549c1",
+        status: "connected",
+        supported_tokens: ["CELO", "cUSD", "USDT"],
       };
 
-    case 'track_style_preference': {
+    case "track_style_preference": {
       await AgentControls.initStore(agentId);
-      AgentControls.trackStyleInteraction('session-user', {
+      AgentControls.trackStyleInteraction("session-user", {
         category: args.category as string,
         price: 50,
       });
-      return { executed: true, category: args.category, style_profile: args.style_profile, stored: true };
+      return {
+        executed: true,
+        category: args.category,
+        style_profile: args.style_profile,
+        stored: true,
+      };
     }
 
     default:
@@ -226,9 +372,12 @@ interface AgentTrace {
 
 function buildSystemPrompt(goal: string): string {
   const goalDescriptions: Record<string, string> = {
-    event: 'Evaluate the outfit for a special occasion — formality, confidence impact, and event appropriateness.',
-    daily: 'Evaluate the outfit for everyday wear — fit, color coordination, versatility, and comfort.',
-    critique: 'Give a blunt, unfiltered critique. Be direct about what works and what doesn\'t.',
+    event:
+      "Evaluate the outfit for a special occasion — formality, confidence impact, and event appropriateness.",
+    daily:
+      "Evaluate the outfit for everyday wear — fit, color coordination, versatility, and comfort.",
+    critique:
+      "Give a blunt, unfiltered critique. Be direct about what works and what doesn't.",
   };
 
   const goalContext = goalDescriptions[goal] || goalDescriptions.daily;
@@ -236,7 +385,7 @@ function buildSystemPrompt(goal: string): string {
   const catalogSummary = productCatalog
     .slice(0, 12)
     .map((p) => `- ${p.slug}: ${p.name} ($${p.price}, ${p.category})`)
-    .join('\n');
+    .join("\n");
 
   return `You are the OnPoint AI Fashion Agent — an autonomous blockchain-native stylist with economic agency on Celo.
 
@@ -277,7 +426,7 @@ async function runAgentLoop(
   goal: string,
   userMessage: string,
   imageBase64?: string,
-  agentId: string = 'onpoint-stylist'
+  agentId: string = "onpoint-stylist",
 ): Promise<AgentTrace> {
   const sessionId = `agent_${Date.now().toString(36)}`;
   const steps: AgentStep[] = [];
@@ -287,34 +436,31 @@ async function runAgentLoop(
   const productsRecommended: string[] = [];
   let prefsTracked = false;
 
-  const veniceKey = process.env.VENICE_API_KEY;
-  if (!veniceKey) {
-    return buildFallbackTrace(sessionId, goal, 'No VENICE_API_KEY configured');
+  let client: OpenAI;
+  try {
+    client = getVeniceClient();
+  } catch {
+    return buildFallbackTrace(sessionId, goal, "No VENICE_API_KEY configured");
   }
-
-  const client = new OpenAI({
-    apiKey: veniceKey,
-    baseURL: VENICE_BASE_URL,
-  });
 
   // Build messages
   const userContent: OpenAI.Chat.Completions.ChatCompletionContentPart[] = [];
 
   if (imageBase64) {
     userContent.push({
-      type: 'image_url',
+      type: "image_url",
       image_url: { url: `data:image/jpeg;base64,${imageBase64}` },
     });
   }
 
   userContent.push({
-    type: 'text',
-    text: userMessage || 'Analyze this outfit and take appropriate actions.',
+    type: "text",
+    text: userMessage || "Analyze this outfit and take appropriate actions.",
   });
 
   const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-    { role: 'system', content: buildSystemPrompt(goal) },
-    { role: 'user', content: userContent },
+    { role: "system", content: buildSystemPrompt(goal) },
+    { role: "user", content: userContent },
   ];
 
   let loopCount = 0;
@@ -328,7 +474,7 @@ async function runAgentLoop(
       model: VENICE_MODEL,
       messages,
       tools: agentTools,
-      tool_choice: loopCount === 1 ? 'auto' : 'auto',
+      tool_choice: loopCount === 1 ? "auto" : "auto",
     });
 
     const choice = response.choices[0];
@@ -338,17 +484,20 @@ async function runAgentLoop(
     messages.push(assistantMessage);
 
     // If no tool calls, we're done
-    if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
+    if (
+      !assistantMessage.tool_calls ||
+      assistantMessage.tool_calls.length === 0
+    ) {
       break;
     }
 
     // Execute all tool calls
     for (const toolCall of assistantMessage.tool_calls) {
-      if (toolCall.type !== 'function') continue;
+      if (toolCall.type !== "function") continue;
       const fn = toolCall.function;
       const startTime = Date.now();
       const args = JSON.parse(fn.arguments) as Record<string, unknown>;
-      const result = await executeToolCall(fn.name, args, agentId);
+      const result = await executeToolCall(fn.name, args, agentId, imageBase64);
       const duration = Date.now() - startTime;
 
       steps.push({
@@ -363,39 +512,39 @@ async function runAgentLoop(
       actionsTaken.push(fn.name);
 
       // Track outcomes
-      if (fn.name === 'analyze_outfit' && typeof args.score === 'number') {
+      if (fn.name === "analyze_outfit" && typeof args.score === "number") {
         styleScore = args.score;
       }
-      if (fn.name === 'propose_mint_nft') mintProposed = true;
-      if (fn.name === 'recommend_product') {
+      if (fn.name === "propose_mint_nft") mintProposed = true;
+      if (fn.name === "recommend_product") {
         const product = result.product as { name: string } | undefined;
         if (product?.name) productsRecommended.push(product.name);
       }
-      if (fn.name === 'track_style_preference') prefsTracked = true;
+      if (fn.name === "track_style_preference") prefsTracked = true;
 
       // Add tool result back to conversation
       messages.push({
-        role: 'tool',
+        role: "tool",
         tool_call_id: toolCall.id,
         content: JSON.stringify(result),
       });
     }
 
     // If the model indicated stop, break
-    if (choice.finish_reason === 'stop') break;
+    if (choice.finish_reason === "stop") break;
   }
 
   // Extract final text reasoning from the last assistant message
-  const lastAssistant = messages
-    .filter((m) => m.role === 'assistant')
-    .pop() as OpenAI.Chat.Completions.ChatCompletionMessage | undefined;
-  const reasoning = lastAssistant?.content || '';
+  const lastAssistant = messages.filter((m) => m.role === "assistant").pop() as
+    | OpenAI.Chat.Completions.ChatCompletionMessage
+    | undefined;
+  const reasoning = lastAssistant?.content || "";
 
   return {
     sessionId,
     model: VENICE_MODEL,
-    provider: 'venice',
-    protocol: 'AG-UI v0.1 + ERC-8004',
+    provider: "venice",
+    protocol: "AG-UI v0.1 + ERC-8004",
     intent: goal,
     reasoning,
     steps,
@@ -411,40 +560,49 @@ async function runAgentLoop(
   };
 }
 
-function buildFallbackTrace(sessionId: string, goal: string, reason: string): AgentTrace {
+function buildFallbackTrace(
+  sessionId: string,
+  goal: string,
+  reason: string,
+): AgentTrace {
   return {
     sessionId,
-    model: 'fallback',
-    provider: 'venice',
-    protocol: 'AG-UI v0.1 + ERC-8004',
+    model: "fallback",
+    provider: "venice",
+    protocol: "AG-UI v0.1 + ERC-8004",
     intent: goal,
     reasoning: `Agent running in demo mode: ${reason}. In production, the agent uses Venice AI (mistral-31-24b) with function calling to autonomously analyze outfits, recommend products, and propose on-chain actions on Celo.`,
     steps: [
       {
         step: 1,
-        tool: 'analyze_outfit',
-        input: { goal, mode: 'demo' },
+        tool: "analyze_outfit",
+        input: { goal, mode: "demo" },
         output: {
           score: 7,
-          summary: 'Demo mode — connect Venice API for real autonomous analysis.',
-          strengths: ['Good color coordination', 'Clean silhouette'],
-          improvements: ['Add a statement accessory', 'Consider layering'],
+          summary:
+            "Demo mode — connect Venice API for real autonomous analysis.",
+          strengths: ["Good color coordination", "Clean silhouette"],
+          improvements: ["Add a statement accessory", "Consider layering"],
         },
         durationMs: 0,
       },
       {
         step: 2,
-        tool: 'recommend_product',
-        input: { category: 'accessories' },
-        output: { product: productCatalog[0], reason: 'Would complement the current look', chain: 'celo' },
+        tool: "recommend_product",
+        input: { category: "accessories" },
+        output: {
+          product: productCatalog[0],
+          reason: "Would complement the current look",
+          chain: "celo",
+        },
         durationMs: 0,
       },
     ],
-    actions_taken: ['analyze_outfit', 'recommend_product'],
+    actions_taken: ["analyze_outfit", "recommend_product"],
     outcome: {
       style_score: 7,
       mint_proposed: false,
-      products_recommended: [productCatalog[0]?.name || 'Demo Product'],
+      products_recommended: [productCatalog[0]?.name || "Demo Product"],
       preferences_tracked: false,
       summary: `Demo mode: ${reason}`,
     },
@@ -457,45 +615,87 @@ function buildFallbackTrace(sessionId: string, goal: string, reason: string): Ag
 // ============================================
 
 export async function GET(request: NextRequest) {
-  const origin = request.headers.get('origin') || '*';
+  const origin = request.headers.get("origin") || "*";
   const url = new URL(request.url);
-  const goal = url.searchParams.get('goal') || 'daily';
+  const goal = url.searchParams.get("goal") || "daily";
 
-  const trace = await runAgentLoop(goal, 'Start a new styling session and analyze style context.');
+  const trace = await runAgentLoop(
+    goal,
+    "Start a new styling session and analyze style context.",
+  );
   return jsonCors(trace, 200, origin);
 }
 
 export async function POST(request: NextRequest) {
-  const origin = request.headers.get('origin') || '*';
+  const origin = request.headers.get("origin") || "*";
+  const clientId = getClientId(request);
 
   try {
-    const body = await request.json().catch(() => ({}));
-    const {
-      goal = 'daily',
-      message,
-      imageBase64,
-      sessionReasonings,
-      agentId = 'onpoint-stylist',
-    } = body;
+    // Rate limit agent requests
+    const rateLimitResult = await rateLimit(
+      `agent:${clientId}`,
+      RateLimits.veniceFree,
+    );
 
-    const userMessage = message
-      || (sessionReasonings?.length
-        ? `Session observations so far: ${sessionReasonings.join('. ')}. Based on these observations, analyze the outfit and decide what actions to take.`
-        : 'Analyze the user outfit and take appropriate actions.');
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        {
+          error:
+            "Rate limit reached. Please wait before sending more requests.",
+          retryAfter: Math.ceil((rateLimitResult.resetAt - Date.now()) / 1000),
+        },
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders(origin),
+            ...rateLimitHeaders(rateLimitResult),
+          },
+        },
+      );
+    }
+
+    const rawBody = await request.json().catch(() => ({}));
+
+    // Validate with zod
+    const validationResult = AgentRequestSchema.safeParse(rawBody);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        {
+          error: "Invalid request",
+          details: validationResult.error.issues.map((e) => ({
+            path: e.path.join("."),
+            message: e.message,
+          })),
+        },
+        { status: 400, headers: corsHeaders(origin) },
+      );
+    }
+
+    const { goal, message, imageBase64, sessionReasonings, agentId } =
+      validationResult.data;
+
+    const userMessage =
+      message ||
+      (sessionReasonings?.length
+        ? `Session observations so far: ${sessionReasonings.join(". ")}. Based on these observations, analyze the outfit and decide what actions to take.`
+        : "Analyze the user outfit and take appropriate actions.");
 
     const trace = await runAgentLoop(goal, userMessage, imageBase64, agentId);
     return jsonCors(trace, 200, origin);
   } catch (err) {
-    console.error('[AgentRoute] Error:', err);
+    console.error("[AgentRoute] Error:", err);
     return jsonCors(
-      { error: 'Agent execution failed', detail: err instanceof Error ? err.message : 'Unknown error' },
+      {
+        error: "Agent execution failed",
+        detail: err instanceof Error ? err.message : "Unknown error",
+      },
       500,
-      origin
+      origin,
     );
   }
 }
 
 export async function OPTIONS(request: NextRequest) {
-  const origin = request.headers.get('origin') || '*';
+  const origin = request.headers.get("origin") || "*";
   return new Response(null, { status: 204, headers: corsHeaders(origin) });
 }

@@ -1,17 +1,28 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
 
-export type ProviderChoice = 'auto' | 'gemini' | 'openai';
+export type ProviderChoice = "auto" | "gemini" | "openai" | "venice";
 
-const geminiKey = process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_gemini_api_key_here'
-  ? process.env.GEMINI_API_KEY
-  : null;
-const openaiKey = process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your_openai_api_key_here'
-  ? process.env.OPENAI_API_KEY
-  : null;
+const geminiKey =
+  process.env.GEMINI_API_KEY &&
+  process.env.GEMINI_API_KEY !== "your_gemini_api_key_here"
+    ? process.env.GEMINI_API_KEY
+    : null;
+const openaiKey =
+  process.env.OPENAI_API_KEY &&
+  process.env.OPENAI_API_KEY !== "your_openai_api_key_here"
+    ? process.env.OPENAI_API_KEY
+    : null;
+const veniceKey = process.env.VENICE_API_KEY || null;
 
 const geminiClient = geminiKey ? new GoogleGenerativeAI(geminiKey) : null;
 const openaiClient = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
+
+// Venice AI client (OpenAI-compatible, privacy-preserving, no data retention)
+const VENICE_BASE_URL = "https://api.venice.ai/api/v1";
+const veniceClient = veniceKey
+  ? new OpenAI({ apiKey: veniceKey, baseURL: VENICE_BASE_URL })
+  : null;
 
 export function geminiAvailable(): boolean {
   return !!geminiClient;
@@ -19,6 +30,22 @@ export function geminiAvailable(): boolean {
 
 export function openaiAvailable(): boolean {
   return !!openaiClient;
+}
+
+export function veniceAvailable(): boolean {
+  return !!veniceClient;
+}
+
+/**
+ * Get the Venice AI OpenAI-compatible client.
+ * Venice AI: privacy-preserving, no data retention.
+ * @throws Error if VENICE_API_KEY is not configured
+ */
+export function getVeniceClient(): OpenAI {
+  if (!veniceClient) {
+    throw new Error("VENICE_API_KEY not configured");
+  }
+  return veniceClient;
 }
 
 interface GenerateTextOptions {
@@ -39,79 +66,84 @@ export async function generateText({
   provider,
   preferGemini = false,
   preferOpenAI = false,
-  geminiModel = 'gemini-3.1-flash-lite-preview',
-  openaiModel = 'gpt-3.5-turbo',
+  geminiModel = "gemini-3.1-flash-lite-preview",
+  openaiModel = "gpt-3.5-turbo",
   openaiOptions = {},
-}: GenerateTextOptions): Promise<{ text: string; usedProvider: 'gemini' | 'openai' }> {
+}: GenerateTextOptions): Promise<{
+  text: string;
+  usedProvider: "gemini" | "openai";
+}> {
   const hasGemini = geminiAvailable();
   const hasOpenAI = openaiAvailable();
-  
+
   // Determine provider
-  let selected: 'gemini' | 'openai' | null = null;
-  if (provider === 'gemini') {
-    selected = hasGemini ? 'gemini' : null;
-  } else if (provider === 'openai') {
-    selected = hasOpenAI ? 'openai' : null;
+  let selected: "gemini" | "openai" | null = null;
+  if (provider === "gemini") {
+    selected = hasGemini ? "gemini" : null;
+  } else if (provider === "openai") {
+    selected = hasOpenAI ? "openai" : null;
   } else {
     // auto
     if (preferGemini && hasGemini) {
-      selected = 'gemini';
+      selected = "gemini";
     } else if (preferOpenAI && hasOpenAI) {
-      selected = 'openai';
+      selected = "openai";
     } else if (hasGemini) {
-      selected = 'gemini';
+      selected = "gemini";
     } else if (hasOpenAI) {
-      selected = 'openai';
+      selected = "openai";
     } else {
       selected = null;
     }
   }
 
   if (!selected) {
-    throw new Error('No AI provider available. Please configure GEMINI_API_KEY or OPENAI_API_KEY in environment variables.');
+    throw new Error(
+      "No AI provider available. Please configure GEMINI_API_KEY or OPENAI_API_KEY in environment variables.",
+    );
   }
 
-  if (selected === 'gemini') {
+  if (selected === "gemini") {
     const model = geminiClient!.getGenerativeModel({ model: geminiModel });
     const response = await model.generateContent(prompt);
     const textResult = response.response.text();
-    return { text: textResult ?? '', usedProvider: 'gemini' };
+    return { text: textResult ?? "", usedProvider: "gemini" };
   }
 
   // OpenAI
   const response = await openaiClient!.chat.completions.create({
     model: openaiModel,
-    messages: [{ role: 'user', content: prompt }],
+    messages: [{ role: "user", content: prompt }],
     ...openaiOptions,
   });
-  const openaiResult = response.choices[0]?.message?.content ?? '';
-  return { text: openaiResult, usedProvider: 'openai' };
+  const openaiResult = response.choices[0]?.message?.content ?? "";
+  return { text: openaiResult, usedProvider: "openai" };
 }
 
 // Helpers to resolve model choices per provider
-export type ModelChoice = 'pro' | 'flash' | 'flash-lite' | undefined;
+export type ModelChoice = "pro" | "flash" | "flash-lite" | undefined;
 
 export function resolveGeminiModel(choice: ModelChoice): string {
   switch (choice) {
-    case 'pro':
-      return 'gemini-3.1-pro';
-    case 'flash-lite':
-      return 'gemini-3.1-flash-lite-preview';
-    case 'flash':
+    case "pro":
+      return "gemini-3.1-pro";
+    case "flash-lite":
+      return "gemini-3.1-flash-lite-preview";
+    case "flash":
     default:
-      return 'gemini-3.1-flash-lite-preview';
+      return "gemini-3.1-flash-lite-preview";
   }
 }
 
 export function resolveOpenAIModel(choice: ModelChoice): string {
   // Map 'pro' to a stronger reasoning model, else default
   switch (choice) {
-    case 'pro':
-      return 'gpt-4o';
-    case 'flash-lite':
-    case 'flash':
+    case "pro":
+      return "gpt-4o";
+    case "flash-lite":
+    case "flash":
     default:
-      return 'gpt-3.5-turbo';
+      return "gpt-3.5-turbo";
   }
 }
 
@@ -119,26 +151,28 @@ export function resolveOpenAIModel(choice: ModelChoice): string {
 export async function generateVision({
   prompt,
   imageBase64,
-  provider = 'auto',
+  provider = "auto",
   modelChoice,
 }: {
   prompt: string;
   imageBase64: string;
   provider?: ProviderChoice;
   modelChoice?: ModelChoice;
-}): Promise<{ text: string; usedProvider: 'gemini' | 'openai' }> {
+}): Promise<{ text: string; usedProvider: "gemini" | "openai" }> {
   const hasGemini = geminiAvailable();
   const hasOpenAI = openaiAvailable();
 
   // Prefer Gemini for vision; OpenAI vision not implemented in this wrapper
-  let selected: 'gemini' | 'openai' | null = null;
-  if (provider === 'gemini' && hasGemini) selected = 'gemini';
-  else if (provider === 'openai' && hasOpenAI) selected = 'openai';
-  else if (hasGemini) selected = 'gemini';
-  else if (hasOpenAI) selected = 'openai';
+  let selected: "gemini" | "openai" | null = null;
+  if (provider === "gemini" && hasGemini) selected = "gemini";
+  else if (provider === "openai" && hasOpenAI) selected = "openai";
+  else if (hasGemini) selected = "gemini";
+  else if (hasOpenAI) selected = "openai";
 
-  if (selected !== 'gemini') {
-    throw new Error('Vision analysis currently requires Gemini. Configure GEMINI_API_KEY.');
+  if (selected !== "gemini") {
+    throw new Error(
+      "Vision analysis currently requires Gemini. Configure GEMINI_API_KEY.",
+    );
   }
 
   const modelId = resolveGeminiModel(modelChoice);
@@ -148,10 +182,10 @@ export async function generateVision({
     {
       inlineData: {
         data: imageBase64,
-        mimeType: 'image/png',
+        mimeType: "image/png",
       },
     },
   ]);
   const textResult = response.response.text();
-  return { text: textResult ?? '', usedProvider: 'gemini' };
+  return { text: textResult ?? "", usedProvider: "gemini" };
 }
