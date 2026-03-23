@@ -190,34 +190,22 @@ export async function POST(
     }
 
     // Get agent private key from environment
-    // In production, derive from WDK seed phrase or use AWS KMS
     const agentPrivateKey = process.env.AGENT_PRIVATE_KEY as
       | `0x${string}`
       | undefined;
-    if (!agentPrivateKey) {
-      // For demo: return success without actual transfer
-      console.log(
-        "[Purchase API] No AGENT_PRIVATE_KEY set, simulating transfer",
-      );
 
-      const purchaseId = `purchase_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    if (!agentPrivateKey) {
+      // Production: signing required for real on-chain receipts
+      console.error("[Purchase API] AGENT_PRIVATE_KEY not configured");
 
       return NextResponse.json(
         {
-          success: true,
-          purchase: {
-            id: purchaseId,
-            productId: product.id,
-            productName: product.name,
-            quantity,
-            totalAmount: totalFormatted,
-            txHash: "0x" + "0".repeat(64), // Simulated
-            chain,
-            explorerUrl: `https://celoscan.io`,
-            timestamp: Date.now(),
-          },
+          success: false,
+          error:
+            "Agent signing not configured. Set AGENT_PRIVATE_KEY to enable real purchases with on-chain receipts.",
+          code: "SIGNING_NOT_CONFIGURED",
         },
-        { status: 200, headers: corsHeaders(origin) },
+        { status: 503, headers: corsHeaders(origin) },
       );
     }
 

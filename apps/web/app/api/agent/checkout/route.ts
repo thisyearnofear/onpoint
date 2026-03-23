@@ -243,52 +243,22 @@ export async function POST(
     }
 
     // Get agent private key from environment
-    // In production, derive from WDK seed phrase or use AWS KMS
     const agentPrivateKey = process.env.AGENT_PRIVATE_KEY as
       | `0x${string}`
       | undefined;
 
     if (!agentPrivateKey) {
-      // Demo mode: simulate success with commission split
-      console.log(
-        "[Checkout API] No AGENT_PRIVATE_KEY, simulating transfer with splits",
-      );
-      console.log(
-        "[Checkout API] Split:",
-        split.recipients.map(
-          (r) =>
-            `${r.label}: ${(Number(r.amount) / 1e18).toFixed(2)} cUSD (${r.percentBps / 100}%)`,
-        ),
-      );
-
-      // Track commission record
-      const commissionRecord = createCommissionRecord(orderId, split, {
-        affiliateId,
-        agentId: referringAgentId,
-      });
-      await persistCommission(commissionRecord);
+      // Production: signing required for real on-chain receipts
+      console.error("[Checkout API] AGENT_PRIVATE_KEY not configured");
 
       return NextResponse.json(
         {
-          success: true,
-          order: {
-            id: orderId,
-            items: resolvedItems.map(({ seller, ...item }) => item),
-            totalAmount: totalFormatted,
-            totalWei: totalWei.toString(),
-            txHash: "0x" + "0".repeat(64),
-            chain,
-            explorerUrl: "https://celoscan.io",
-            commissions: split.recipients.map((r) => ({
-              label: r.label,
-              percentBps: r.percentBps,
-              amount: (Number(r.amount) / 1e18).toFixed(2),
-              address: r.address,
-            })),
-            timestamp: Date.now(),
-          },
+          success: false,
+          error:
+            "Agent signing not configured. Set AGENT_PRIVATE_KEY to enable real checkout with on-chain receipts.",
+          code: "SIGNING_NOT_CONFIGURED",
         },
-        { status: 200, headers: corsHeaders(origin) },
+        { status: 503, headers: corsHeaders(origin) },
       );
     }
 

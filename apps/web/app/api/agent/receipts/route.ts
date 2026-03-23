@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { corsHeaders } from "../../api/ai/_utils/http";
+import { corsHeaders } from "../../ai/_utils/http";
 import {
   getAgentIdentity,
   getAllReceipts,

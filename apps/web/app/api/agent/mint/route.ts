@@ -181,20 +181,17 @@ export async function POST(
       | undefined;
 
     if (!agentPrivateKey) {
-      // For demo: return simulated success
-      console.log("[Mint API] No AGENT_PRIVATE_KEY set, simulating mint");
+      // Production: signing required for real on-chain receipts
+      console.error("[Mint API] AGENT_PRIVATE_KEY not configured");
 
       return NextResponse.json(
         {
-          success: true,
-          mint: {
-            hash: "0x" + "0".repeat(64),
-            tokenId: "1",
-            chain,
-            explorerUrl: "https://celoscan.io",
-          },
+          success: false,
+          error:
+            "Agent signing not configured. Set AGENT_PRIVATE_KEY to enable real NFT minting with on-chain receipts.",
+          code: "SIGNING_NOT_CONFIGURED",
         },
-        { status: 200, headers: corsHeaders(origin) },
+        { status: 503, headers: corsHeaders(origin) },
       );
     }
 
