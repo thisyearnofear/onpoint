@@ -14,6 +14,15 @@ import {
   rateLimitHeaders,
   getClientId,
 } from "../../../../lib/utils/rate-limit";
+import {
+  recordReceipt,
+  getSessionReceipts,
+  type AgentAction,
+} from "../../../../lib/services/agent-registry";
+import { getAgentWallet } from "../../../../lib/services/agent-wallet";
+import { createPublicClient, http, formatEther } from "viem";
+import { celo, base, mainnet, polygon } from "viem/chains";
+import { RPC_URLS } from "../../../../config/chains";
 
 /**
  * OnPoint Autonomous AI Agent
@@ -202,10 +211,12 @@ async function executeToolCall(
   name: string,
   args: Record<string, unknown>,
   agentId: string,
+  sessionId: string,
   imageBase64?: string,
 ): Promise<Record<string, unknown>> {
   switch (name) {
     case "analyze_outfit": {
+      let result: Record<string, unknown>;
       // If we have an image, actually analyze it with Venice AI
       if (imageBase64) {
         try {
@@ -250,14 +261,30 @@ Return ONLY valid JSON, no other text.`,
             content,
           ];
           const parsed = JSON.parse(jsonMatch[1].trim());
-          return { executed: true, analyzed: true, ...parsed };
+          result = { executed: true, analyzed: true, ...parsed };
         } catch (err) {
           console.error("[analyze_outfit] Venice AI error:", err);
           // Fall through to args-based response
+          result = { executed: true, analyzed: false, ...args };
         }
+      } else {
+        // Fallback: return args as-is (for demo mode or when no image)
+        result = { executed: true, analyzed: false, ...args };
       }
-      // Fallback: return args as-is (for demo mode or when no image)
-      return { executed: true, analyzed: false, ...args };
+
+      // Record ERC-8004 receipt
+      recordReceipt({
+        action: "analyze_outfit" as AgentAction,
+        sessionId,
+        metadata: {
+          hasImage: !!imageBase64,
+          score: result.score,
+          provider: "venice",
+          model: VENICE_MODEL,
+        },
+      });
+
+      return result;
     }
 
     case "recommend_product": {
@@ -266,20 +293,27 @@ Return ONLY valid JSON, no other text.`,
         (p) =>
           p.slug === slug || p.name.toLowerCase().includes(slug.toLowerCase()),
       );
-      if (product) {
-        return {
-          executed: true,
-          product,
+      const selectedProduct =
+        product ||
+        productCatalog.find((p) => p.category === args.category) ||
+        productCatalog[0];
+
+      // Record ERC-8004 receipt
+      recordReceipt({
+        action: "recommend_product" as AgentAction,
+        sessionId,
+        metadata: {
+          productSlug: selectedProduct?.slug,
+          productName: selectedProduct?.name,
+          category: args.category,
           reason: args.reason,
           chain: "celo",
-          currency: "cUSD",
-        };
-      }
-      const byCat = productCatalog.filter((p) => p.category === args.category);
-      const fallback = byCat[0] || productCatalog[0];
+        },
+      });
+
       return {
         executed: true,
-        product: fallback,
+        product: selectedProduct,
         reason: args.reason,
         chain: "celo",
         currency: "cUSD",
@@ -295,6 +329,22 @@ Return ONLY valid JSON, no other text.`,
         description: `Mint Style NFT: "${args.style_title}" — ${args.reason}`,
         recipient: undefined,
       });
+
+      // Record ERC-8004 receipt
+      recordReceipt({
+        action: "propose_mint_nft" as AgentAction,
+        sessionId,
+        metadata: {
+          styleTitle: args.style_title,
+          reason: args.reason,
+          contract: "0xdb65806c994C3f55079a6136a8E0886CbB2B64B1",
+          chain: "celo",
+          royaltySplit: args.royalty_split || "85/10/3/2",
+          suggestionId: suggestion.suggestion?.id,
+          autoExecuted: suggestion.autoExecuted,
+        },
+      });
+
       return {
         executed: true,
         suggestion_id: suggestion.suggestion?.id,
@@ -306,14 +356,24 @@ Return ONLY valid JSON, no other text.`,
       };
     }
 
-    case "check_wallet_balance":
+    case "check_wallet_balance": {
+      const chain = (args.chain as string) || "celo";
+
+      // Record ERC-8004 receipt
+      recordReceipt({
+        action: "check_wallet_balance" as AgentAction,
+        sessionId,
+        metadata: { chain },
+      });
+
       return {
         executed: true,
-        chain: args.chain || "celo",
+        chain,
         agent_wallet: "0x05f012C12123D69E8324A251ae7D15A92C4549c1",
         status: "connected",
         supported_tokens: ["CELO", "cUSD", "USDT"],
       };
+    }
 
     case "track_style_preference": {
       await AgentControls.initStore(agentId);
@@ -321,6 +381,18 @@ Return ONLY valid JSON, no other text.`,
         category: args.category as string,
         price: 50,
       });
+
+      // Record ERC-8004 receipt
+      recordReceipt({
+        action: "track_style_preference" as AgentAction,
+        sessionId,
+        metadata: {
+          category: args.category,
+          styleProfile: args.style_profile,
+          colors: args.colors,
+        },
+      });
+
       return {
         executed: true,
         category: args.category,
@@ -363,6 +435,13 @@ interface AgentTrace {
     preferences_tracked: boolean;
     summary: string;
   };
+  /** ERC-8004 receipts for this session */
+  receipts: {
+    id: string;
+    action: string;
+    timestamp: string;
+    txHash?: string;
+  }[];
   timestamp: string;
 }
 
@@ -497,7 +576,13 @@ async function runAgentLoop(
       const fn = toolCall.function;
       const startTime = Date.now();
       const args = JSON.parse(fn.arguments) as Record<string, unknown>;
-      const result = await executeToolCall(fn.name, args, agentId, imageBase64);
+      const result = await executeToolCall(
+        fn.name,
+        args,
+        agentId,
+        sessionId,
+        imageBase64,
+      );
       const duration = Date.now() - startTime;
 
       steps.push({
@@ -540,6 +625,14 @@ async function runAgentLoop(
     | undefined;
   const reasoning = lastAssistant?.content || "";
 
+  // Get ERC-8004 receipts for this session
+  const receipts = getSessionReceipts(sessionId).map((r) => ({
+    id: r.id,
+    action: r.action,
+    timestamp: r.timestamp,
+    txHash: r.txHash,
+  }));
+
   return {
     sessionId,
     model: VENICE_MODEL,
@@ -556,6 +649,7 @@ async function runAgentLoop(
       preferences_tracked: prefsTracked,
       summary: reasoning.slice(0, 300),
     },
+    receipts,
     timestamp: new Date().toISOString(),
   };
 }
@@ -606,6 +700,7 @@ function buildFallbackTrace(
       preferences_tracked: false,
       summary: `Demo mode: ${reason}`,
     },
+    receipts: [],
     timestamp: new Date().toISOString(),
   };
 }
