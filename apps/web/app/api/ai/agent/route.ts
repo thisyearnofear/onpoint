@@ -273,7 +273,7 @@ Return ONLY valid JSON, no other text.`,
       }
 
       // Record ERC-8004 receipt
-      recordReceipt({
+      await recordReceipt({
         action: "analyze_outfit" as AgentAction,
         sessionId,
         metadata: {
@@ -299,7 +299,7 @@ Return ONLY valid JSON, no other text.`,
         productCatalog[0];
 
       // Record ERC-8004 receipt
-      recordReceipt({
+      await recordReceipt({
         action: "recommend_product" as AgentAction,
         sessionId,
         metadata: {
@@ -331,7 +331,7 @@ Return ONLY valid JSON, no other text.`,
       });
 
       // Record ERC-8004 receipt
-      recordReceipt({
+      await recordReceipt({
         action: "propose_mint_nft" as AgentAction,
         sessionId,
         metadata: {
@@ -390,7 +390,7 @@ Return ONLY valid JSON, no other text.`,
       }
 
       // Record ERC-8004 receipt
-      recordReceipt({
+      await recordReceipt({
         action: "check_wallet_balance" as AgentAction,
         sessionId,
         metadata: { chain, agentAddress, nativeBalance },
@@ -414,7 +414,7 @@ Return ONLY valid JSON, no other text.`,
       });
 
       // Record ERC-8004 receipt
-      recordReceipt({
+      await recordReceipt({
         action: "track_style_preference" as AgentAction,
         sessionId,
         metadata: {
@@ -459,6 +459,7 @@ interface AgentTrace {
   reasoning: string;
   steps: AgentStep[];
   actions_taken: string[];
+  post_loop_actions?: string[];
   outcome: {
     style_score: number | null;
     mint_proposed: boolean;
@@ -657,6 +658,71 @@ async function runAgentLoop(
     if (choice.finish_reason === "stop") break;
   }
 
+  // ============================================
+  // Post-Loop: Auto-trigger actions based on outcomes
+  // ============================================
+
+  const postLoopActions: string[] = [];
+
+  // If score >= 8 but agent didn't propose mint, auto-propose
+  if (styleScore !== null && styleScore >= 8 && !mintProposed) {
+    await AgentControls.initStore(agentId);
+    const mintSuggestion = AgentControls.suggestAction({
+      agentId,
+      actionType: "mint" as ActionType,
+      amount: "0.01",
+      description: `Auto-mint: Style score ${styleScore}/10 — exceptional look detected`,
+      recipient: undefined,
+    });
+
+    await recordReceipt({
+      action: "propose_mint_nft" as AgentAction,
+      sessionId,
+      metadata: {
+        autoTriggered: true,
+        score: styleScore,
+        reason: "Score >= 8 threshold met",
+        contract: "0xdb65806c994C3f55079a6136a8E0886CbB2B64B1",
+        chain: "celo",
+        suggestionId: mintSuggestion.suggestion?.id,
+      },
+    });
+
+    mintProposed = true;
+    postLoopActions.push("auto_propose_mint");
+  }
+
+  // If score >= 7, suggest a small tip to the stylist
+  if (styleScore !== null && styleScore >= 7) {
+    await AgentControls.initStore(agentId);
+    const tipAmount =
+      styleScore >= 9 ? "0.5" : styleScore >= 8 ? "0.25" : "0.1";
+
+    const tipSuggestion = AgentControls.suggestAction({
+      agentId,
+      actionType: "tip" as ActionType,
+      amount: tipAmount,
+      description: `Tip your stylist for a ${styleScore}/10 analysis`,
+      recipient: "0x2C4FAa0Bbb141344829978B1E697b29756795991",
+    });
+
+    await recordReceipt({
+      action: "auto_tip" as AgentAction,
+      sessionId,
+      metadata: {
+        autoTriggered: true,
+        score: styleScore,
+        tipAmount,
+        token: "cUSD",
+        chain: "celo",
+        suggestionId: tipSuggestion.suggestion?.id,
+        autoExecuted: tipSuggestion.autoExecuted,
+      },
+    });
+
+    postLoopActions.push("auto_suggest_tip");
+  }
+
   // Extract final text reasoning from the last assistant message
   const lastAssistant = messages.filter((m) => m.role === "assistant").pop() as
     | OpenAI.Chat.Completions.ChatCompletionMessage
@@ -679,7 +745,8 @@ async function runAgentLoop(
     intent: goal,
     reasoning,
     steps,
-    actions_taken: actionsTaken,
+    actions_taken: [...actionsTaken, ...postLoopActions],
+    post_loop_actions: postLoopActions,
     outcome: {
       style_score: styleScore,
       mint_proposed: mintProposed,

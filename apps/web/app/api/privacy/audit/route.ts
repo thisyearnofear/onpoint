@@ -75,8 +75,8 @@ export async function POST(request: NextRequest) {
 
     auditLog.push(entry);
 
-    // Record as ERC-8004 receipt
-    recordReceipt({
+    // Record as ERC-8004 receipt (on-chain for verifiable privacy proof)
+    await recordReceipt({
       action: "privacy_audit" as AgentAction,
       sessionId,
       metadata: {
