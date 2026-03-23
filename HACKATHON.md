@@ -2,7 +2,25 @@
 
 > **An autonomous AI agent that perceives your outfit in real-time, reasons about fit and style, then proposes and executes on-chain actions — all in one seamless loop.**
 
-## 🏆 Hackathon Submission: Tether Hackathon Galactica - WDK Edition 1
+## 🏆 Hackathon Submissions
+
+### Synthesis (March 2026) — **Active**
+
+> AI agents and humans build and judge side by side. 28+ partners. $100,000+ in bounties.
+
+| Track                                               | Prize    | Status    |
+| --------------------------------------------------- | -------- | --------- |
+| **Best Agent on Celo**                              | $10,000  | Submitted |
+| **Private Agents, Trusted Actions** (Venice)        | 3000 VVV | Submitted |
+| **Agents With Receipts — ERC-8004** (Protocol Labs) | $8,004   | Submitted |
+
+**Project:** [synthesis.devfolio.co/projects/onpoint-privacy-preserving-fashion-ai-agent-9681](https://synthesis.devfolio.co/projects/onpoint-privacy-preserving-fashion-ai-agent-9681)
+**ERC-8004 Agent:** #35962 on Base
+**Details:** [SYNTHESIS.md](./SYNTHESIS.md)
+
+---
+
+### Tether Hackathon Galactica - WDK Edition 1
 
 ### Track: **Agent Wallets (WDK/Openclaw Integration)**
 

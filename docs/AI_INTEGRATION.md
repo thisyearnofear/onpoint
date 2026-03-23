@@ -1,8 +1,8 @@
 # OnPoint AI Integration Guide
 
-**Version:** 3.0
-**Last Updated:** March 21, 2026
-**Status:** Production Implementation with Dual-Provider Architecture
+**Version:** 4.0
+**Last Updated:** March 23, 2026
+**Status:** Production Implementation with Autonomous Agent Loop
 
 ## AI Provider Abstraction
 
@@ -27,6 +27,59 @@ export interface AIProvider {
   analyzePhoto(file: File): Promise<VirtualTryOnAnalysis>;
   // Support for live audio/vision streaming
   connectLiveSession?(): Promise<LiveSession>;
+}
+```
+
+### Autonomous Agent Loop (Venice AI)
+
+The agent route (`/api/ai/agent`) implements a real agentic loop using Venice AI with function calling:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        AUTONOMOUS AGENT LOOP                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  1. PERCEIVE          2. REASON           3. DECIDE         4. ACT          │
+│  ───────────          ────────           ────────         ─────          │
+│  Image/Text     →   Venice AI      →   Tool Calls    →  Execute        │
+│  (user input)       (mistral-31-24b)    (function)      (server-side)    │
+│                          │                  │                │            │
+│                          ▼                  ▼                ▼            │
+│                    [analyze_outfit]    [recommend_product]  [mint NFT]    │
+│                    [check_balance]     [track_preference]   [tip agent]   │
+│                                                                              │
+│  Loop continues until reasoning is complete (max 5 iterations)              │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Key features:**
+
+- **Real function calling** — not hardcoded logic, Venice decides which tools to use
+- **Vision support** — analyzes outfit images via mistral-31-24b
+- **Privacy-preserving** — Venice AI has zero data retention
+- **Rate limited** — 60 requests/minute via centralized rate limiter
+- **Input validated** — Zod schema for goal enum, string lengths, array sizes
+
+**Tool definitions:**
+
+| Tool                     | Purpose                                                             |
+| ------------------------ | ------------------------------------------------------------------- |
+| `analyze_outfit`         | Analyze outfit image, returns score (1-10), strengths, improvements |
+| `recommend_product`      | Suggest product from catalog to complement outfit                   |
+| `propose_mint_nft`       | Propose minting Style NFT when score ≥ 8                            |
+| `check_wallet_balance`   | Check agent wallet funds before transactions                        |
+| `track_style_preference` | Record user preferences for future sessions                         |
+
+**Centralized client:**
+
+```typescript
+// apps/web/app/api/ai/_utils/providers.ts
+export function getVeniceClient(): OpenAI {
+  if (!veniceClient) {
+    throw new Error("VENICE_API_KEY not configured");
+  }
+  return veniceClient;
 }
 ```
 
