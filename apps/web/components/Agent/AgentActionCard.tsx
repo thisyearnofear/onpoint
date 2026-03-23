@@ -17,6 +17,7 @@ interface AgentActionCardProps {
   variant?: "default" | "compact" | "banner";
   score?: number;
   onMintClick?: () => void;
+  onPremiumClick?: () => void;
 }
 
 /**
@@ -133,14 +134,15 @@ export function AgentActionCard({
                 <div className="flex items-center gap-1">
                   <BadgeCheck className="w-3 h-3 text-emerald-400" />
                   <span className="text-emerald-400 text-xs">
-                    Self-Custodial on Celo
+                    Multi-Chain via Tether WDK
                   </span>
                 </div>
               </div>
             </div>
             <p className="text-slate-300 text-sm leading-relaxed">
-              Our AI Stylist has its own wallet and can receive tips, make
-              payments, and mint NFTs autonomously.
+              Our AI Stylist has a self-custodial wallet on Celo, Base,
+              Ethereum, and Polygon. It can receive tips, make payments, and
+              mint NFTs autonomously.
             </p>
           </div>
         </div>
