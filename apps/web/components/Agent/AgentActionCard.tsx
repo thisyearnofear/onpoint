@@ -11,7 +11,7 @@ import {
   Shield,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
-import { TipModal } from "./TipModal";
+import { TipSheet } from "./TipModal";
 
 interface AgentActionCardProps {
   variant?: "default" | "compact" | "banner";
@@ -49,9 +49,10 @@ export function AgentActionCard({
             Tip Stylist
           </span>
         </button>
-        <TipModal
+        <TipSheet
           isOpen={showTipModal}
           onClose={() => setShowTipModal(false)}
+          score={score}
         />
       </>
     );
@@ -103,9 +104,10 @@ export function AgentActionCard({
             </div>
           </div>
         </motion.div>
-        <TipModal
+        <TipSheet
           isOpen={showTipModal}
           onClose={() => setShowTipModal(false)}
+          score={score}
         />
       </>
     );
@@ -226,7 +228,11 @@ export function AgentActionCard({
         </div>
       </motion.div>
 
-      <TipModal isOpen={showTipModal} onClose={() => setShowTipModal(false)} />
+      <TipSheet
+        isOpen={showTipModal}
+        onClose={() => setShowTipModal(false)}
+        score={score}
+      />
     </>
   );
 }

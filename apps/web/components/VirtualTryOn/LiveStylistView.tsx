@@ -27,7 +27,7 @@ import { MintLookButton } from "./MintLookButton";
 import { GeminiLivePaymentButton } from "./GeminiLivePaymentButton";
 import { AgentStatus } from "../Agent/AgentStatus";
 import { AgentActionCard } from "../Agent/AgentActionCard";
-import { TipModal } from "../Agent/TipModal";
+import { TipSheet } from "../Agent/TipModal";
 import { AgentApprovalModal } from "../Agent/AgentApprovalModal";
 import { AgentSuggestionToast } from "../Agent/AgentSuggestionToast";
 import { SuggestionHistoryPanel } from "../Agent/SuggestionHistoryPanel";
@@ -40,6 +40,10 @@ import { trackProviderSelected } from "../../lib/utils/analytics";
 import { useLiveSession, GOAL_OPTIONS } from "./hooks/useLiveSession";
 import { PersonalityCard } from "./PersonalityCard";
 import type { StylistPersona } from "@repo/ai-client";
+import { getScoreTier, generateShareText } from "../../lib/utils/score-utils";
+import { getPersonaConfig, ALL_PERSONAS } from "../../lib/utils/persona-config";
+import { SocialUtils } from "../../lib/utils/social";
+import { AnimatedScore } from "./AnimatedScore";
 
 interface LiveStylistViewProps {
   onBack: () => void;
@@ -94,6 +98,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     isCapturing,
     showFlash,
     countdown,
+    captureToast,
     handleCapture,
     startTimerCapture,
     hasCaptures,
@@ -132,78 +137,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     isVenice,
   } = session;
 
-  const personaStyling = React.useMemo(() => {
-    const defaultStyle = {
-      color: "indigo-500",
-      text: "indigo-400",
-      border: "border-indigo-500/20",
-      bg: "bg-indigo-500/10",
-      accent: "indigo-400",
-      icon: Sparkles,
-      label: "Neural Stylist Reasoning",
-    };
-
-    if (!selectedPersona) return defaultStyle;
-
-    const styles: Record<string, typeof defaultStyle> = {
-      luxury: {
-        color: "amber-500",
-        text: "amber-400",
-        border: "border-amber-500/20",
-        bg: "bg-amber-500/10",
-        accent: "amber-400",
-        icon: Crown,
-        label: "Luxury Expert Intelligence",
-      },
-      streetwear: {
-        color: "blue-500",
-        text: "blue-400",
-        border: "border-blue-500/20",
-        bg: "bg-blue-500/10",
-        accent: "blue-400",
-        icon: Zap,
-        label: "Streetwear Guru Vision",
-      },
-      sustainable: {
-        color: "emerald-500",
-        text: "emerald-400",
-        border: "border-emerald-500/20",
-        bg: "bg-emerald-500/10",
-        accent: "emerald-400",
-        icon: Leaf,
-        label: "Eco Stylist Awareness",
-      },
-      edina: {
-        color: "purple-500",
-        text: "purple-400",
-        border: "border-purple-500/20",
-        bg: "bg-purple-500/10",
-        accent: "purple-400",
-        icon: Sparkles,
-        label: "Fabulous Edina Insights",
-      },
-      miranda: {
-        color: "rose-500",
-        text: "rose-400",
-        border: "border-rose-500/20",
-        bg: "bg-rose-500/10",
-        accent: "rose-400",
-        icon: Star,
-        label: "Miranda's Final Judgment",
-      },
-      shaft: {
-        color: "orange-500",
-        text: "orange-400",
-        border: "border-orange-500/20",
-        bg: "bg-orange-500/10",
-        accent: "orange-400",
-        icon: MessageCircle,
-        label: "Shaft's Style Protocol",
-      },
-    };
-
-    return (styles[selectedPersona] as typeof defaultStyle) || defaultStyle;
-  }, [selectedPersona]);
+  const personaStyling = getPersonaConfig(selectedPersona);
 
   const PersonaIcon = personaStyling.icon;
 
@@ -248,31 +182,33 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`relative overflow-hidden rounded-3xl bg-gradient-to-br from-${personaStyling.color} to-slate-900 p-8 shadow-2xl shadow-${personaStyling.color}/20`}
+            className={`relative overflow-hidden rounded-3xl bg-gradient-to-br from-${personaStyling.color} to-slate-900 p-6 sm:p-8 shadow-2xl shadow-${personaStyling.color}/20`}
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-3xl rounded-full -mr-16 -mt-16" />
-            <div className="relative z-10 flex flex-col items-center text-center py-4">
-              <span className="text-white/60 text-xs font-mono uppercase tracking-[0.2em] mb-4">
-                Final Style Score
-              </span>
-              <div className="relative">
-                <div className="text-6xl sm:text-7xl md:text-8xl font-black text-white italic tracking-tighter tabular-nums drop-shadow-2xl">
-                  {sessionSummary.score}
+            <div className="relative z-10">
+              <div className="flex items-center gap-6">
+                {/* Score — compact with animation */}
+                <div className="flex flex-col items-center shrink-0">
+                  <AnimatedScore
+                    score={sessionSummary.score}
+                    delay={0.2}
+                    size="md"
+                  />
                 </div>
-                <div
-                  className={`absolute -right-6 bottom-4 text-2xl font-bold text-${personaStyling.text}`}
-                >
-                  /10
-                </div>
-              </div>
-              <div className="mt-4 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-md">
-                <span className="text-[10px] font-bold text-white uppercase tracking-widest">
-                  {sessionSummary.score >= 8
-                    ? "Elite Persona"
-                    : sessionSummary.score >= 5
-                      ? "Strong Baseline"
-                      : "Growth Potential"}
-                </span>
+
+                {/* Adjacent takeaway */}
+                {sessionSummary.takeaways.length > 0 && (
+                  <div className="flex-1 min-w-0 border-l border-white/10 pl-5">
+                    <p
+                      className={`text-[9px] text-${personaStyling.text}/60 uppercase tracking-widest mb-1.5 font-bold`}
+                    >
+                      Top Insight
+                    </p>
+                    <p className="text-sm text-white/90 leading-relaxed line-clamp-3">
+                      &ldquo;{sessionSummary.takeaways[0]}&rdquo;
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>
@@ -283,40 +219,61 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               <Sparkles className="w-3 h-3" />
               AI Stylist Insights
             </h2>
-            <div className="grid grid-cols-1 gap-3">
-              {sessionSummary.takeaways.map((takeaway, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  className="bg-slate-900/80 border border-indigo-500/20 p-4 rounded-2xl flex gap-3 items-start"
-                >
-                  <div className="w-6 h-6 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                    <CheckCircle className="w-3.5 h-3.5 text-indigo-400" />
-                  </div>
-                  <p className="text-sm text-slate-300 leading-snug">
-                    {takeaway}
-                  </p>
-                </motion.div>
-              ))}
-            </div>
+            {sessionSummary.takeaways.length > 0 ? (
+              <div className="grid grid-cols-1 gap-3">
+                {sessionSummary.takeaways.map((takeaway, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    className={`bg-slate-900/80 border border-${personaStyling.color}/20 p-4 rounded-2xl flex gap-3 items-start`}
+                  >
+                    <div
+                      className={`w-6 h-6 rounded-lg bg-${personaStyling.color}/10 flex items-center justify-center shrink-0 mt-0.5`}
+                    >
+                      <CheckCircle
+                        className={`w-3.5 h-3.5 text-${personaStyling.accent}`}
+                      />
+                    </div>
+                    <p className="text-sm text-slate-300 leading-snug">
+                      {takeaway}
+                    </p>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-6 text-center">
+                <p className="text-sm text-slate-500">
+                  No specific insights captured this session.
+                </p>
+                <p className="text-[10px] text-slate-600 mt-1">
+                  Try a longer session for deeper analysis.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Analyzed Topics */}
           {sessionSummary.topics.length > 0 && (
             <div className="space-y-4">
               <h2 className="text-white/40 text-[10px] font-bold uppercase tracking-widest px-1">
-                Infrastructure Focus
+                Style Analysis Focus
               </h2>
               <div className="flex flex-wrap gap-2">
                 {sessionSummary.topics.map((topic, i) => (
                   <div
                     key={i}
-                    className="px-3 py-2 rounded-xl bg-indigo-500/5 border border-indigo-500/10 flex items-center gap-2"
+                    className={`px-3 py-2 rounded-xl bg-${personaStyling.color}/5 border border-${personaStyling.color}/10 flex items-center gap-2`}
                   >
-                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500/40" />
-                    <span className="text-xs text-indigo-300/80">{topic}</span>
+                    <div
+                      className={`w-1.5 h-1.5 rounded-full bg-${personaStyling.color}/40`}
+                    />
+                    <span
+                      className={`text-xs text-${personaStyling.accent}/80`}
+                    >
+                      {topic}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -343,12 +300,12 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                   >
                     <img
                       src={cap.image}
-                      alt=""
+                      alt={`Style capture ${i + 1} of ${captures.length}`}
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-3">
                       <p className="text-[10px] text-white/50 font-mono">
-                        0x{Math.random().toString(16).substr(2, 6)}
+                        0x{cap.image.slice(22, 28)}
                       </p>
                     </div>
                   </motion.div>
@@ -363,7 +320,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
             {/* Style Report Card Button */}
             <Button
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-full py-5 text-sm font-bold shadow-lg shadow-indigo-500/20 gap-2"
+              className={`w-full bg-gradient-to-r from-${personaStyling.color} to-${personaStyling.accent} hover:opacity-90 text-white rounded-full py-5 text-sm font-bold shadow-lg shadow-${personaStyling.color}/20 gap-2`}
               onClick={() => setShowStyleReport(true)}
             >
               <Sparkles className="w-4 h-4" />
@@ -390,14 +347,22 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             )}
             <Button
               className="w-full bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-full py-6 text-lg font-bold gap-2"
-              onClick={() => {
+              onClick={async () => {
                 if (!selectedCapture || !sessionSummary) return;
-                const text = `Check out my OnPoint Style Score: ${sessionSummary.score}/10! 👗✨\n\nAnalyzed: ${sessionSummary.topics.join(", ")}\n\nTakeaway: ${sessionSummary.takeaways[0] || "Found my perfect look!"}\n\nMinted on Celo via @onpoint`;
-                const shareUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(window.location.host)}`;
-                window.open(shareUrl, "_blank");
+                const text = generateShareText({
+                  score: sessionSummary.score,
+                  personaLabel: personaStyling.label,
+                  topics: sessionSummary.topics,
+                  takeaways: sessionSummary.takeaways,
+                  sessionGoal: sessionGoal || undefined,
+                });
+                await SocialUtils.shareContent({
+                  text,
+                  imageDataUrl: selectedCapture.image,
+                });
               }}
             >
-              Share to Warpcast
+              Share to Farcaster
             </Button>
 
             <AgentStatus
@@ -411,9 +376,10 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             />
           </div>
 
-          <TipModal
+          <TipSheet
             isOpen={showTipModal}
             onClose={() => setShowTipModal(false)}
+            score={sessionSummary?.score}
           />
           <AgentApprovalModal
             isOpen={isApprovalModalOpen}
@@ -431,6 +397,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 persona={(selectedPersona as StylistPersona) || "luxury"}
                 takeaways={sessionSummary.takeaways}
                 topics={sessionSummary.topics}
+                fullFeedback={sessionSummary.fullFeedback}
                 captureImage={selectedCapture?.image}
                 sessionGoal={sessionGoal || undefined}
                 onClose={() => setShowStyleReport(false)}
@@ -670,16 +637,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full">
-            {(
-              [
-                "luxury",
-                "streetwear",
-                "sustainable",
-                "edina",
-                "miranda",
-                "shaft",
-              ] as StylistPersona[]
-            ).map((persona) => (
+            {ALL_PERSONAS.map((persona) => (
               <PersonalityCard
                 key={persona}
                 persona={persona}
@@ -738,8 +696,18 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             className={`backdrop-blur-xl border border-white/10 rounded-xl sm:rounded-2xl overflow-hidden transition-all duration-500 ${terminalExpanded ? "shadow-2xl" : "shadow-lg"}`}
           >
             <div
+              role="button"
+              tabIndex={0}
+              aria-expanded={terminalExpanded}
+              aria-label="Toggle analysis feed"
               className="bg-black/60 px-4 py-3 flex items-center justify-between cursor-pointer"
               onClick={() => setTerminalExpanded(!terminalExpanded)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setTerminalExpanded(!terminalExpanded);
+                }
+              }}
             >
               <div className="flex items-center gap-3">
                 <div className="flex gap-1">
@@ -991,21 +959,48 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             </div>
           </div>
         ) : (
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className={`w-full h-full object-cover transition-all duration-1000 ${
-              isMobile ? "rounded-2xl" : "rounded-3xl"
-            } ${
-              positionStatus === "good"
-                ? `${isMobile ? "ring-4" : "ring-8"} ring-green-500/40 opacity-100`
-                : positionStatus === "bad"
-                  ? `${isMobile ? "ring-4" : "ring-8"} ring-orange-500/40 opacity-90 grayscale-[0.2]`
-                  : "opacity-40 grayscale"
-            }`}
-          />
+          <>
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              aria-label={
+                positionStatus === "good"
+                  ? "Good position detected"
+                  : positionStatus === "bad"
+                    ? "Adjust your position — step back or center yourself"
+                    : "Analyzing your position"
+              }
+              className={`w-full h-full object-cover transition-all duration-1000 ${
+                isMobile ? "rounded-2xl" : "rounded-3xl"
+              } ${
+                positionStatus === "good"
+                  ? `${isMobile ? "ring-4" : "ring-8"} ring-green-500/40 opacity-100`
+                  : positionStatus === "bad"
+                    ? `${isMobile ? "ring-4" : "ring-8"} ring-orange-500/40 opacity-90 grayscale-[0.2]`
+                    : "opacity-40 grayscale"
+              }`}
+            />
+            {/* Position status text indicator (for colorblind users / accessibility) */}
+            {isConnected && positionStatus !== "analyzing" && (
+              <div
+                className={`absolute ${isMobile ? "top-14" : "top-20"} inset-x-0 flex justify-center pointer-events-none z-[25]`}
+              >
+                <div
+                  className={`px-3 py-1 rounded-full backdrop-blur-md text-[10px] font-bold uppercase tracking-wider ${
+                    positionStatus === "good"
+                      ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                      : "bg-orange-500/20 text-orange-400 border border-orange-500/30"
+                  }`}
+                >
+                  {positionStatus === "good"
+                    ? "Good Position"
+                    : "Adjust Position"}
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Neural HUD Overlay — Simplified on Mobile */}
@@ -1136,7 +1131,8 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 </div>
                 <button
                   onClick={() => setShowInstructions(false)}
-                  className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors"
+                  aria-label="Dismiss instructions"
+                  className="w-11 h-11 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors"
                 >
                   <AlertCircle className="w-4 h-4 text-white/40" />
                 </button>
@@ -1178,7 +1174,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 >
                   <img
                     src={cap.image}
-                    alt=""
+                    alt={`Recent capture ${i + 1}`}
                     className="w-full h-full object-cover"
                   />
                 </motion.div>
@@ -1210,19 +1206,6 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               </span>
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             </motion.div>
-
-            <motion.button
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-              onClick={() => setShowTipModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-500/20 to-orange-500/20 backdrop-blur-xl rounded-full border border-amber-500/30 hover:from-amber-500/30 hover:to-orange-500/30 transition-all group shadow-lg"
-            >
-              <Coins className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
-              <span className="text-[11px] text-amber-300 font-bold">
-                Tip Stylist
-              </span>
-            </motion.button>
           </div>
         )}
 
@@ -1243,9 +1226,10 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
         )}
 
         {/* Modals (z-60) */}
-        <TipModal
+        <TipSheet
           isOpen={showTipModal}
           onClose={() => setShowTipModal(false)}
+          score={sessionSummary?.score}
         />
         <AgentApprovalModal
           isOpen={isApprovalModalOpen}
@@ -1287,6 +1271,29 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Capture Confirmation Toast (z-70) */}
+        <AnimatePresence>
+          {captureToast && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className={`absolute ${isMobile ? "bottom-36" : "bottom-32"} inset-x-0 flex justify-center z-[70] pointer-events-none`}
+            >
+              <div
+                className={`bg-${personaStyling.color}/20 backdrop-blur-xl border border-${personaStyling.color}/30 px-4 py-2 rounded-full flex items-center gap-2`}
+              >
+                <CheckCircle
+                  className={`w-4 h-4 text-${personaStyling.accent}`}
+                />
+                <span className="text-xs text-white font-medium">
+                  {captureToast}
+                </span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Session Ending Card — shows on manual stop, session expired, or captures exhausted */}
@@ -1299,7 +1306,12 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               captures={captures}
               sessionExpired={sessionExpired}
               isVenice={isVenice}
-              onUpgrade={handleFinish}
+              onUpgrade={() => {
+                stopSession();
+                setSelectedProvider(null);
+                setSessionGoal(null);
+                setSelectedPersona(null);
+              }}
               onMint={() => setShowTipModal(false)}
               onViewSummary={handleFinish}
               onTip={() => setShowTipModal(true)}
@@ -1403,26 +1415,6 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               </span>
             )}
           </button>
-
-          {/* Mobile tip button */}
-          <button
-            onClick={() => setShowTipModal(true)}
-            className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 flex items-center justify-center transition-all"
-          >
-            <Coins className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
-          </button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 font-bold text-lg italic shadow-emerald-500/10"
-            onClick={handleFinish}
-          >
-            <div className="relative">
-              <span className="relative z-10 italic">#1</span>
-              <Sparkles className="absolute -top-1 -right-1 w-3 h-3 text-emerald-400 opacity-50" />
-            </div>
-          </Button>
         </div>
       </div>
     </div>

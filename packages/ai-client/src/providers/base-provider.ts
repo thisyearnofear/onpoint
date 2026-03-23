@@ -12,11 +12,18 @@ export interface LiveSession {
   onCall?: (toolName: string, args: Record<string, any>, callback: (result: any) => void) => void;
 }
 
+export interface UserStyleContext {
+  xp?: number;
+  badges?: string[];
+  fid?: number;
+  isCeloUser?: boolean;
+}
+
 export interface AIProvider {
   name: string;
   analyzeOutfit(input: AnalysisInput): Promise<CritiqueResponse>;
   generateDesign(prompt: string): Promise<DesignGeneration>;
-  chatWithStylist(message: string, persona: StylistPersona): Promise<StylistResponse>;
+  chatWithStylist(message: string, persona: StylistPersona, context?: UserStyleContext): Promise<StylistResponse>;
   analyzePhoto(file: File): Promise<VirtualTryOnAnalysis>;
   connectLiveSession?(): Promise<LiveSession>;
 }
@@ -29,7 +36,7 @@ export interface ReplicateProviderInterface {
 export interface AnalysisInput {
   description?: string;
   image?: File;
-  context?: any;
+  context?: UserStyleContext;
 }
 
 // Existing types from ai-client.ts

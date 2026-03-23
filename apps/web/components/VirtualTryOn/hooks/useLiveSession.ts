@@ -48,10 +48,17 @@ export interface CoachingBadge {
   color: string;
 }
 
+export interface SessionFeedback {
+  text: string;
+  timestamp: number;
+  type: "praise" | "critique" | "suggestion" | "observation";
+}
+
 export interface SessionSummary {
   score: number;
   topics: string[];
   takeaways: string[];
+  fullFeedback: SessionFeedback[];
   recommendations?: Array<{ name: string; price: number; category: string }>;
 }
 
@@ -107,9 +114,24 @@ export function useLiveSession() {
   const venice = useVeniceLive();
 
   // ── Session state ──
+  // Initialize from localStorage (DRY - single source of truth for preference)
   const [selectedProvider, setSelectedProvider] = useState<AIProvider | null>(
-    null,
+    () => {
+      if (typeof window === "undefined") return null;
+      const saved = localStorage.getItem("onpoint_preferred_provider");
+      return saved === "venice" || saved === "gemini" ? saved : null;
+    },
   );
+
+  // Persist provider preference
+  const handleSetProvider = (provider: AIProvider | null) => {
+    setSelectedProvider(provider);
+    if (provider) {
+      localStorage.setItem("onpoint_preferred_provider", provider);
+    } else {
+      localStorage.removeItem("onpoint_preferred_provider");
+    }
+  };
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
   const [sessionGoal, setSessionGoal] = useState<SessionGoal>(null);
   const [initStep, setInitStep] = useState<string>("connecting");
@@ -123,6 +145,7 @@ export function useLiveSession() {
   const [isCapturing, setIsCapturing] = useState(false);
   const [showFlash, setShowFlash] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [captureToast, setCaptureToast] = useState<string | null>(null);
 
   // ── UI toggles ──
   const [terminalExpanded, setTerminalExpanded] = useState(false);
@@ -197,11 +220,13 @@ export function useLiveSession() {
   const suggestedItemTypesRef = useRef<Set<string>>(new Set());
   const sessionStartTimeRef = useRef(0);
   const recommendationsFetchedRef = useRef(false);
+  const sessionUserIdRef = useRef<string>("");
 
   // ── Session start tracking ──
   useEffect(() => {
     if (isConnected && sessionStartTimeRef.current === 0) {
       sessionStartTimeRef.current = Date.now();
+      sessionUserIdRef.current = "user-" + Date.now();
 
       // Seed style memory from session goal
       const goalToCategory: Record<string, string> = {
@@ -219,8 +244,7 @@ export function useLiveSession() {
       }
 
       // Get contextual prompt from StyleContextStore for cross-feature continuity
-      const userId = "user-" + Date.now(); // In production, use actual user ID
-      StyleContextStore.getContextualPrompt(userId)
+      StyleContextStore.getContextualPrompt(sessionUserIdRef.current)
         .then((prompt) => {
           if (prompt) {
             console.log("Style context loaded:", prompt);
@@ -230,6 +254,7 @@ export function useLiveSession() {
     }
     if (!isConnected) {
       sessionStartTimeRef.current = 0;
+      sessionUserIdRef.current = "";
       suggestedItemTypesRef.current.clear();
       lastSuggestionTimeRef.current = 0;
       mintSuggestionCreatedRef.current = false;
@@ -260,34 +285,73 @@ export function useLiveSession() {
       .filter(Boolean)
       .join(" ")
       .toLowerCase();
-    const positives = [
-      "good",
-      "great",
-      "sharp",
-      "excellent",
-      "love",
-      "perfect",
-      "solid",
-      "working",
-      "flattering",
-      "on point",
-      "elevate",
-      "strong",
-    ];
-    const negatives = [
-      "avoid",
-      "not working",
-      "clash",
-      "off",
-      "wrong",
-      "too tight",
-      "too loose",
-      "mismatch",
-      "distract",
-      "overpower",
-    ];
-    const topics: string[] = [];
 
+    // ── Classify each reasoning entry ──
+    const classifyEntry = (text: string): SessionFeedback["type"] => {
+      const lower = text.toLowerCase();
+      const hasSuggestion =
+        /replace|swap|switch|opt for|try instead|consider|would work better|recommend|suggest/.test(
+          lower,
+        );
+      const hasCritique =
+        /avoid|not working|clash|off|wrong|too tight|too loose|mismatch|distract|overpower|remove|change/.test(
+          lower,
+        );
+      const hasPraise =
+        /good|great|sharp|excellent|love|perfect|solid|flattering|on point|working well|strong look/.test(
+          lower,
+        );
+
+      if (hasSuggestion) return "suggestion";
+      if (hasCritique && !hasPraise) return "critique";
+      if (hasPraise && !hasCritique) return "praise";
+      return "observation";
+    };
+
+    const feedbackEntries: SessionFeedback[] = reasoning.map((r) => ({
+      text: r.replace(/^["\s]+|["\s]+$/g, ""),
+      timestamp: Date.now(),
+      type: classifyEntry(r),
+    }));
+
+    if (finalAdvice) {
+      feedbackEntries.push({
+        text: finalAdvice.replace(/^["\s]+|["\s]+$/g, ""),
+        timestamp: Date.now(),
+        type: classifyEntry(finalAdvice),
+      });
+    }
+
+    const fullFeedback = feedbackEntries;
+
+    // ── Score based on classified feedback ──
+    const praiseCount = fullFeedback.filter((f) => f.type === "praise").length;
+    const critiqueCount = fullFeedback.filter(
+      (f) => f.type === "critique",
+    ).length;
+    const suggestionCount = fullFeedback.filter(
+      (f) => f.type === "suggestion",
+    ).length;
+    const totalClassified = praiseCount + critiqueCount + suggestionCount;
+
+    const isCritique = sessionGoal === "critique";
+    const base = isCritique ? 5 : 7;
+
+    let score: number;
+    if (totalClassified === 0) {
+      score = base;
+    } else {
+      // Suggestions imply the current outfit needs improvement → reduce score
+      // Praise raises score, critiques lower it
+      const praiseRatio = praiseCount / totalClassified;
+      const critiqueRatio =
+        (critiqueCount + suggestionCount * 0.7) / totalClassified;
+      const sentimentBonus = praiseRatio * 3 - critiqueRatio * 2.5;
+      score = Math.min(10, Math.max(1, Math.round(base + sentimentBonus)));
+    }
+
+    // ── Topic detection ──
+    const topics: string[] = [];
     if (/color|palette|tone|shade|hue|coordination/.test(allText))
       topics.push("Color Harmony");
     if (/fit|drape|silhouette|proportion|shape|tailor/.test(allText))
@@ -303,29 +367,43 @@ export function useLiveSession() {
     if (/layer|outerwear|cardigan|jacket/.test(allText))
       topics.push("Layering");
 
-    const isCritique = sessionGoal === "critique";
-    const posCount = positives.filter((p) => allText.includes(p)).length;
-    const negCount = negatives.filter((n) => allText.includes(n)).length;
-    const total = posCount + negCount;
-    const base = isCritique ? 5 : 7;
-    const sentimentBonus =
-      total === 0 ? 0 : (posCount / total) * 3 - (negCount / total) * 2;
-    const score = Math.min(10, Math.max(1, Math.round(base + sentimentBonus)));
+    // ── Takeaways: prioritize suggestions > critiques > praise > observations ──
+    const prioritized = [...fullFeedback]
+      .filter((f) => f.text.length > 12 && f.text.length < 200)
+      .sort((a, b) => {
+        const order: Record<string, number> = {
+          suggestion: 0,
+          critique: 1,
+          praise: 2,
+          observation: 3,
+        };
+        return (order[a.type] ?? 3) - (order[b.type] ?? 3);
+      });
 
-    const takeaways = reasoning
-      .slice(0, 5)
-      .map((r) => r.replace(/^["\s]+|["\s]+$/g, ""))
-      .filter((r) => r.length > 12 && r.length < 120);
+    const takeaways = prioritized.slice(0, 5).map((f) => f.text);
 
-    // Pick 3 relevant product recommendations
-    const shuffled = [...CANVAS_ITEMS].sort(() => Math.random() - 0.5);
+    // Pick 3 product recommendations (deterministic per session via content hash)
+    const seed = allText.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+    const shuffled = [...CANVAS_ITEMS]
+      .map((item, i) => ({
+        item,
+        sort: (seed * (i + 1) * 2654435761) % CANVAS_ITEMS.length,
+      }))
+      .sort((a, b) => a.sort - b.sort)
+      .map((x) => x.item);
     const recommendations = shuffled.slice(0, 3).map((p) => ({
       name: p.name,
       price: p.price,
       category: p.category,
     }));
 
-    return { score, topics: topics.slice(0, 4), takeaways, recommendations };
+    return {
+      score,
+      topics: topics.slice(0, 4),
+      takeaways,
+      fullFeedback,
+      recommendations,
+    };
   }, [reasoning, finalAdvice, sessionGoal]);
 
   // ── Position detection ──
@@ -431,8 +509,7 @@ export function useLiveSession() {
       );
 
       // Record style analysis to StyleContextStore for cross-feature continuity
-      const userId = "user-" + Date.now(); // In production, use actual user ID
-      StyleContextStore.recordStyleAnalysis(userId, {
+      StyleContextStore.recordStyleAnalysis(sessionUserIdRef.current, {
         source: "live-ar",
         type: "recommendation",
         content: latest,
@@ -459,8 +536,7 @@ export function useLiveSession() {
     async (id: string) => {
       await acceptSuggestion(id);
 
-      // Track mission progress based on action type
-      const userId = "user-" + Date.now(); // In production, use actual user ID
+      const userId = sessionUserIdRef.current;
 
       if (currentSuggestion?.actionType === "purchase") {
         const desc = currentSuggestion.description.toLowerCase();
@@ -603,6 +679,12 @@ export function useLiveSession() {
 
         setCaptures((prev) => [...prev, newCapture]);
         setSelectedCaptureIndex(captures.length);
+
+        // Show capture confirmation toast
+        const captureCount = captures.length + 1;
+        const maxLabel = isVenice ? `${VENICE_FREE_CAPTURES}` : "∞";
+        setCaptureToast(`Capture saved! (${captureCount}/${maxLabel})`);
+        setTimeout(() => setCaptureToast(null), 2000);
       }
     } catch (err) {
       console.error("Capture error:", err);
@@ -671,7 +753,7 @@ export function useLiveSession() {
 
     // Track session completion for missions
     try {
-      const userId = "user-" + Date.now(); // In production, use actual user ID
+      const userId = sessionUserIdRef.current;
       MissionService.updateMissionProgress(userId, "session-complete", {
         persona: selectedPersona || undefined,
         score: sessionSummary?.score,
@@ -712,7 +794,7 @@ export function useLiveSession() {
   return {
     // Provider
     selectedProvider,
-    setSelectedProvider,
+    setSelectedProvider: handleSetProvider,
     activeProvider,
 
     // Session
@@ -748,6 +830,7 @@ export function useLiveSession() {
     isCapturing,
     showFlash,
     countdown,
+    captureToast,
     handleCapture,
     startTimerCapture,
     hasCaptures,

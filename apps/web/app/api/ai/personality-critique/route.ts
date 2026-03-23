@@ -4,7 +4,7 @@ import { corsHeaders } from '../_utils/http';
 
 export async function POST(request: NextRequest) {
     try {
-        const { imageBase64, persona, mode, config, provider = 'auto' } = await request.json();
+        const { imageBase64, persona, mode, config, provider = 'auto', userContext } = await request.json();
         const origin = request.headers.get('origin') || '*';
 
         if (!imageBase64 || !persona || !config) {
@@ -16,8 +16,27 @@ export async function POST(request: NextRequest) {
             });
         }
 
+        // ── Identity-Based Personalization ──
+        let contextInjection = '';
+        if (userContext) {
+            const level = userContext.xp ? Math.floor(userContext.xp / 100) + 1 : 1;
+            const badgeList = userContext.badges?.join(', ') || 'none';
+            
+            contextInjection = `
+[USER IDENTITY CONTEXT]
+- Style Level: ${level}
+- Achievements: ${badgeList}
+- Celo Native: ${userContext.isCeloUser ? 'Yes' : 'No'}
+
+Tailor your critique tone to their level. ${level > 5 ? 'Be sophisticated and technical.' : 'Be encouraging and educational.'}
+${userContext.isCeloUser ? 'They are part of the Celo fashion community.' : ''}
+`;
+        }
+
         // Create the enhanced prompt for personality-based critique
         const enhancedPrompt = `${config.prompt}
+
+${contextInjection}
 
 Please analyze the outfit in this image and provide a critique that matches your personality and expertise. 
 Consider:

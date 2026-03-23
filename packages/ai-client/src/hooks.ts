@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAIClient } from './context/AIContext';
-import { DesignGeneration, VirtualTryOnAnalysis, StylistResponse, CritiqueResponse, StylistPersona, StyleSuggestion } from './providers/base-provider';
+import { DesignGeneration, VirtualTryOnAnalysis, StylistResponse, CritiqueResponse, StylistPersona, StyleSuggestion, UserStyleContext } from './providers/base-provider';
 import AIClientManager from './ai-client';
 import { ReplicateProvider } from './providers/replicate-provider';
 import { fileToBase64 } from './utils/file-utils';
@@ -243,12 +243,12 @@ export const useAIStylist = (persona: StylistPersona = "luxury") => {
   const aiClient = useAIClient();
 
   const chatWithStylist = React.useCallback(
-    async (message: string): Promise<StylistResponse | null> => {
+    async (message: string, context?: UserStyleContext): Promise<StylistResponse | null> => {
       setLoading(true);
       setError(null);
 
       try {
-        const stylistResponse = await aiClient.chatWithStylist(message, persona);
+        const stylistResponse = await aiClient.chatWithStylist(message, persona, context);
 
         // Update conversation history
         setConversationHistory((prev) => [

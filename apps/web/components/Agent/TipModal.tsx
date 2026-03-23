@@ -1,77 +1,94 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Coins,
-  Sparkles,
-  Loader2,
-  CheckCircle2,
-  X,
-  MessageCircle,
-  ThumbsUp,
-  AlertCircle,
-  Globe,
-} from "lucide-react";
-import { Button } from "@repo/ui/button";
+import { Heart, Sparkles, Loader2, CheckCircle2, X } from "lucide-react";
 import { useAccount } from "wagmi";
 
-interface TipModalProps {
+interface TipSheetProps {
   isOpen: boolean;
   onClose: () => void;
   agentAddress?: string;
+  /** Session score (0-10) gates available tip amounts */
+  score?: number;
 }
 
-const SUPPORTED_CHAINS = [
-  { id: "celo", label: "Celo", token: "cUSD" },
-  { id: "base", label: "Base", token: "USDT" },
-  { id: "ethereum", label: "Ethereum", token: "USDT" },
-  { id: "polygon", label: "Polygon", token: "USDT" },
-];
-
-const TIP_AMOUNTS = [
-  { amount: "0.1", label: "Thanks!", emoji: "🙏" },
-  { amount: "0.25", label: "Great tip!", emoji: "👏" },
-  { amount: "0.5", label: "Amazing!", emoji: "🔥" },
-  { amount: "1.0", label: "Superstar!", emoji: "⭐" },
-];
+/**
+ * Score-gated tip configuration.
+ * Single source of truth for all tip amounts and labels.
+ */
+const TIP_CONFIG = {
+  /** Score < 5: No tip prompt should be shown */
+  low: {
+    amounts: [],
+    headline: "Thanks for trying!",
+    subtext: "Better luck next session",
+  },
+  /** Score 5-7: Standard thank you */
+  standard: {
+    amounts: [
+      { amount: "0.1", label: "Thanks!", icon: "🙏" },
+      { amount: "0.25", label: "Great!", icon: "👏" },
+      { amount: "0.5", label: "Amazing!", icon: "🔥" },
+    ],
+    headline: "Say Thanks",
+    subtext: "Great session with your stylist",
+  },
+  /** Score 8+: Premium celebration */
+  premium: {
+    amounts: [
+      { amount: "0.5", label: "Great!", icon: "👏" },
+      { amount: "1.0", label: "Amazing!", icon: "🔥" },
+      { amount: "2.0", label: "Superstar!", icon: "⭐" },
+    ],
+    headline: "Elite Style Session!",
+    subtext: "Your stylist nailed it — celebrate!",
+  },
+} as const;
 
 const AGENT_RESPONSES = [
-  "Thank you so much! Your support keeps me styling. Keep being fabulous! ✨",
-  "WOW! You're too kind! I'll keep finding you the perfect looks. You rock! 🎉",
-  "This means the world to me! Your style journey is my priority. Let's go! 🚀",
-  "Incredible! With supporters like you, I'll become the best AI stylist ever! 💜",
+  "Thank you! Your support keeps me styling. Keep being fabulous!",
+  "You're too kind! I'll keep finding you the perfect looks.",
+  "This means the world! Your style journey is my priority.",
+  "With supporters like you, I'll become the best stylist ever!",
 ];
 
-export function TipModal({ isOpen, onClose, agentAddress }: TipModalProps) {
+/**
+ * Get tip configuration based on session score.
+ */
+function getTipConfig(score?: number) {
+  if (!score) return TIP_CONFIG.standard;
+  if (score >= 8) return TIP_CONFIG.premium;
+  if (score >= 5) return TIP_CONFIG.standard;
+  return TIP_CONFIG.low;
+}
+
+/**
+ * TipSheet - Bottom sheet for post-session tipping
+ *
+ * Design:
+ * - Progressive disclosure: single CTA → expands to amounts
+ * - Score-gated: amounts adapt to session quality
+ * - Inline feedback: success shown in-place, no state transition
+ */
+export function TipSheet({
+  isOpen,
+  onClose,
+  agentAddress,
+  score,
+}: TipSheetProps) {
   const { address: connectedAddress, isConnected } = useAccount();
-  const [selectedChain, setSelectedChain] = useState("celo");
-  const [selectedAmount, setSelectedAmount] = useState<string | null>(null);
-  const [customAmount, setCustomAmount] = useState("");
-  const [message, setMessage] = useState("");
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [agentResponse, setAgentResponse] = useState<string | null>(null);
-  const [resolvedToAddress, setResolvedToAddress] = useState<string | null>(
-    null,
-  );
+  const [sentAmount, setSentAmount] = useState<string | null>(null);
 
-  const currentToken =
-    SUPPORTED_CHAINS.find((c) => c.id === selectedChain)?.token ?? "cUSD";
+  const config = useMemo(() => getTipConfig(score), [score]);
+  const showTipPrompt = config.amounts.length > 0;
 
-  const handleTip = async () => {
-    const amount = selectedAmount || customAmount;
-    if (!amount || parseFloat(amount) <= 0) return;
-
-    if (!isConnected || !connectedAddress) {
-      setError("Please connect your wallet first");
-      return;
-    }
+  const handleQuickTip = async (amount: string) => {
+    if (!isConnected || !connectedAddress) return;
 
     setIsProcessing(true);
-    setAgentResponse(null);
-    setError(null);
 
     try {
       const response = await fetch("/api/agent/tip", {
@@ -79,30 +96,17 @@ export function TipModal({ isOpen, onClose, agentAddress }: TipModalProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount,
-          chain: selectedChain,
-          token: currentToken,
-          message: message || undefined,
+          chain: "celo",
+          token: "cUSD",
           fromAddress: connectedAddress,
           toAddress: agentAddress,
         }),
       });
 
-      const data = await response.json();
+      if (!response.ok) throw new Error("Tip failed");
 
-      if (!response.ok) {
-        throw new Error(data.error || "Tip failed");
-      }
-
-      setResolvedToAddress(data.tip?.toAddress ?? null);
-      setAgentResponse(
-        data.agentResponse ??
-          AGENT_RESPONSES[Math.floor(Math.random() * AGENT_RESPONSES.length)],
-      );
-      setIsSuccess(true);
+      setSentAmount(amount);
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to send tip";
-      setError(errorMessage);
       console.error("Tip failed:", err);
     } finally {
       setIsProcessing(false);
@@ -110,13 +114,8 @@ export function TipModal({ isOpen, onClose, agentAddress }: TipModalProps) {
   };
 
   const handleClose = () => {
-    setSelectedAmount(null);
-    setCustomAmount("");
-    setMessage("");
-    setIsSuccess(false);
-    setError(null);
-    setAgentResponse(null);
-    setResolvedToAddress(null);
+    setIsExpanded(false);
+    setSentAmount(null);
     onClose();
   };
 
@@ -128,255 +127,141 @@ export function TipModal({ isOpen, onClose, agentAddress }: TipModalProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 z-50 flex items-end justify-center"
       >
         {/* Backdrop */}
         <div
-          className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           onClick={handleClose}
         />
 
-        {/* Modal */}
+        {/* Bottom Sheet */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-md bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl border border-white/10 shadow-2xl overflow-hidden"
+          initial={{ y: "100%" }}
+          animate={{ y: 0 }}
+          exit={{ y: "100%" }}
+          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          className="relative w-full max-w-lg bg-gradient-to-b from-slate-800 to-slate-900 rounded-t-3xl border-t border-white/10 shadow-2xl"
         >
+          {/* Drag Handle */}
+          <div className="flex justify-center pt-3 pb-2">
+            <div className="w-10 h-1 rounded-full bg-white/20" />
+          </div>
+
           {/* Header */}
-          <div className="px-6 py-5 border-b border-white/10">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-                  <Coins className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-white font-bold text-lg">
-                    Tip Your Stylist
-                  </h2>
-                  <p className="text-slate-400 text-sm">
-                    Support your AI fashion assistant
-                  </p>
-                </div>
+          <div className="px-6 pb-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+                <Heart className="w-5 h-5 text-white" />
               </div>
-              <button
-                onClick={handleClose}
-                className="p-2 hover:bg-white/10 rounded-full transition-colors"
-              >
-                <X className="w-5 h-5 text-slate-400" />
-              </button>
+              <div>
+                <h2 className="text-white font-bold">{config.headline}</h2>
+                <p className="text-slate-400 text-xs">{config.subtext}</p>
+              </div>
             </div>
+            <button
+              onClick={handleClose}
+              className="p-2 hover:bg-white/10 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5 text-slate-400" />
+            </button>
           </div>
 
           {/* Content */}
-          <div className="p-6">
+          <div className="px-6 pb-8">
+            {/* Wallet status */}
+            {!isConnected && (
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-center mb-4">
+                <p className="text-amber-200 text-sm">
+                  Connect your wallet to send tips
+                </p>
+              </div>
+            )}
+
             <AnimatePresence mode="wait">
-              {isSuccess ? (
-                /* Success State */
+              {sentAmount ? (
+                /* Inline success feedback */
                 <motion.div
                   key="success"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="text-center space-y-4"
+                  className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4"
                 >
-                  <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center">
-                    <CheckCircle2 className="w-10 h-10 text-white" />
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-5 h-5 text-white" />
                   </div>
-
-                  <div>
-                    <h3 className="text-white font-bold text-xl mb-1">
-                      Tip Sent!
-                    </h3>
-                    <p className="text-slate-400 text-sm">
-                      {selectedAmount || customAmount} {currentToken}{" "}
-                      transferred
+                  <div className="flex-1">
+                    <p className="text-white font-medium">Thanks sent!</p>
+                    <p className="text-slate-400 text-xs">
+                      {sentAmount} cUSD on Celo
                     </p>
-                    {resolvedToAddress && (
-                      <p className="text-slate-500 text-xs mt-1">
-                        To: {resolvedToAddress.slice(0, 6)}...
-                        {resolvedToAddress.slice(-4)}
-                      </p>
-                    )}
                   </div>
-
-                  {agentResponse && (
-                    <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-2xl p-4 border border-purple-500/20">
-                      <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shrink-0">
-                          <Sparkles className="w-4 h-4 text-white" />
-                        </div>
-                        <div className="text-left">
-                          <p className="text-purple-200 text-sm italic">
-                            &quot;{agentResponse}&quot;
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <Button
-                    onClick={handleClose}
-                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold"
-                  >
-                    <ThumbsUp className="w-4 h-4 mr-2" />
-                    Keep Styling
-                  </Button>
+                  <Sparkles className="w-5 h-5 text-amber-400" />
                 </motion.div>
-              ) : (
-                /* Tip Selection */
+              ) : !showTipPrompt ? (
+                /* No tip prompt for low scores */
                 <motion.div
-                  key="selection"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="space-y-5"
+                  key="no-tip"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center py-4"
                 >
-                  {/* Wallet status */}
-                  {!isConnected && (
-                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
-                      <p className="text-amber-200 text-xs">
-                        Connect your wallet to send tips
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Error display */}
-                  {error && (
-                    <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-                      <p className="text-red-200 text-xs">{error}</p>
-                    </div>
-                  )}
-
-                  {/* Chain Selector */}
-                  <div>
-                    <label className="text-slate-400 text-xs uppercase tracking-wider mb-2 flex items-center gap-1">
-                      <Globe className="w-3 h-3" />
-                      Network
-                    </label>
-                    <div className="flex gap-2">
-                      {SUPPORTED_CHAINS.map((chain) => (
-                        <button
-                          key={chain.id}
-                          onClick={() => setSelectedChain(chain.id)}
-                          className={`flex-1 py-2 px-3 rounded-xl text-xs font-medium transition-all ${
-                            selectedChain === chain.id
-                              ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/50"
-                              : "bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10"
-                          }`}
-                        >
-                          {chain.label}
-                        </button>
-                      ))}
-                    </div>
-                    <p className="text-slate-500 text-[10px] mt-1">
-                      Tipping with {currentToken}
-                    </p>
-                  </div>
-
-                  {/* Amount Grid */}
-                  <div className="grid grid-cols-2 gap-3">
-                    {TIP_AMOUNTS.map((tip) => (
+                  <p className="text-slate-400 text-sm">
+                    Keep practicing — your stylist will get you there!
+                  </p>
+                </motion.div>
+              ) : isExpanded ? (
+                /* Expanded: amount selection */
+                <motion.div
+                  key="expanded"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="space-y-3"
+                >
+                  <div className="grid grid-cols-3 gap-3">
+                    {config.amounts.map((tip) => (
                       <button
                         key={tip.amount}
-                        onClick={() => {
-                          setSelectedAmount(tip.amount);
-                          setCustomAmount("");
-                        }}
-                        className={`p-4 rounded-2xl border transition-all ${
-                          selectedAmount === tip.amount
-                            ? "bg-gradient-to-br from-amber-500/20 to-orange-500/20 border-amber-500/50"
-                            : "bg-white/5 border-white/10 hover:bg-white/10"
-                        }`}
+                        onClick={() => handleQuickTip(tip.amount)}
+                        disabled={!isConnected || isProcessing}
+                        className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-amber-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <div className="text-2xl mb-1">{tip.emoji}</div>
-                        <div className="text-white font-bold">
-                          {tip.amount} {currentToken}
-                        </div>
-                        <div className="text-slate-400 text-xs">
+                        {isProcessing ? (
+                          <Loader2 className="w-6 h-6 text-amber-400 animate-spin" />
+                        ) : (
+                          <span className="text-2xl">{tip.icon}</span>
+                        )}
+                        <span className="text-white font-bold">
+                          {tip.amount} cUSD
+                        </span>
+                        <span className="text-slate-400 text-xs">
                           {tip.label}
-                        </div>
+                        </span>
                       </button>
                     ))}
                   </div>
-
-                  {/* Custom Amount */}
-                  <div>
-                    <label className="text-slate-400 text-xs uppercase tracking-wider mb-2 block">
-                      Custom Amount
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0.01"
-                        placeholder="0.00"
-                        value={customAmount}
-                        onChange={(e) => {
-                          setCustomAmount(e.target.value);
-                          setSelectedAmount(null);
-                        }}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-lg font-bold focus:outline-none focus:border-amber-500/50"
-                      />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">
-                        {currentToken}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Message (Optional) */}
-                  <div>
-                    <label className="text-slate-400 text-xs uppercase tracking-wider mb-2 block">
-                      Message (Optional)
-                    </label>
-                    <div className="relative">
-                      <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                      <input
-                        type="text"
-                        placeholder="Thanks for the great advice!"
-                        value={message}
-                        onChange={(e) =>
-                          setMessage(e.target.value.slice(0, 100))
-                        }
-                        maxLength={100}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500/50"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Submit */}
-                  <Button
-                    onClick={handleTip}
-                    disabled={
-                      (!selectedAmount && !customAmount) ||
-                      isProcessing ||
-                      !isConnected
-                    }
-                    className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isProcessing ? (
-                      <>
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <Coins className="w-5 h-5 mr-2" />
-                        Send {selectedAmount || customAmount || "0"}{" "}
-                        {currentToken}
-                      </>
-                    )}
-                  </Button>
-
                   <p className="text-center text-slate-500 text-xs">
-                    Tips sent to the agent&apos;s WDK wallet on{" "}
-                    {
-                      SUPPORTED_CHAINS.find((c) => c.id === selectedChain)
-                        ?.label
-                    }
+                    Tips go directly to the stylist's wallet on Celo
                   </p>
+                </motion.div>
+              ) : (
+                /* Collapsed: single CTA (progressive disclosure) */
+                <motion.div
+                  key="collapsed"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <button
+                    onClick={() => setIsExpanded(true)}
+                    disabled={!isConnected}
+                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold py-4 rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Heart className="w-5 h-5" />
+                    Say Thanks
+                  </button>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -386,3 +271,8 @@ export function TipModal({ isOpen, onClose, agentAddress }: TipModalProps) {
     </AnimatePresence>
   );
 }
+
+/**
+ * @deprecated Use TipSheet instead - kept for backward compatibility
+ */
+export const TipModal = TipSheet;

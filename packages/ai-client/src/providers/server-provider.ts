@@ -1,4 +1,4 @@
-import { AIProvider, AnalysisInput, CritiqueResponse, DesignGeneration, StylistPersona, StylistResponse, VirtualTryOnAnalysis } from './base-provider';
+import { AIProvider, AnalysisInput, CritiqueResponse, DesignGeneration, StylistPersona, StylistResponse, VirtualTryOnAnalysis, UserStyleContext } from './base-provider';
 
 export class ServerProvider implements AIProvider {
     name = "Server";
@@ -78,14 +78,14 @@ export class ServerProvider implements AIProvider {
         }
     }
 
-    async chatWithStylist(message: string, persona: StylistPersona): Promise<StylistResponse> {
+    async chatWithStylist(message: string, persona: StylistPersona, context?: UserStyleContext): Promise<StylistResponse> {
         try {
             const prompt = `As a ${persona} fashion stylist, respond to: ${message}`;
 
             const response = await fetch(`${this.baseUrl}/generate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt, type: 'chat' })
+                body: JSON.stringify({ prompt, type: 'chat', context })
             });
 
             if (!response.ok) {

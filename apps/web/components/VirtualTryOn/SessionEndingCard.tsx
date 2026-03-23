@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import {
   Sparkles,
@@ -17,6 +17,9 @@ import {
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import type { SessionSummary, CaptureOption } from "./hooks/useLiveSession";
+import { getScoreConfig, generateShareText } from "../../lib/utils/score-utils";
+import { SocialUtils } from "../../lib/utils/social";
+import { AnimatedScore } from "./AnimatedScore";
 
 interface SessionEndingCardProps {
   summary: SessionSummary;
@@ -57,23 +60,24 @@ export function SessionEndingCard({
   recommendedProducts = [],
   onViewShop,
 }: SessionEndingCardProps) {
-  const scoreColor =
-    summary.score >= 8
-      ? "from-amber-400 to-yellow-500"
-      : summary.score >= 5
-        ? "from-indigo-400 to-purple-500"
-        : "from-slate-400 to-slate-500";
+  const scoreConfig = getScoreConfig(summary.score);
 
-  const scoreLabel =
-    summary.score >= 8 ? "Elite" : summary.score >= 5 ? "Strong" : "Developing";
+  const [isSharing, setIsSharing] = useState(false);
 
-  const shareToWarpcast = () => {
-    const topicText = summary.topics.slice(0, 3).join(" · ");
-    const takeawayText = summary.takeaways[0] || "Found my perfect look!";
-    const text = `${scoreLabel} Style Score: ${summary.score}/10\n\n${topicText}\n\n"${takeawayText}"\n\nStyled by @onpoint AI`;
-
-    const shareUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent("https://onpoint.vercel.app")}`;
-    window.open(shareUrl, "_blank");
+  const shareToFarcaster = async () => {
+    setIsSharing(true);
+    const text = generateShareText({
+      score: summary.score,
+      personaLabel: "OnPoint AI Stylist",
+      topics: summary.topics,
+      takeaways: summary.takeaways,
+    });
+    await SocialUtils.shareContent({
+      text,
+      imageDataUrl: captures[0]?.image,
+      url: window.location.origin,
+    });
+    setIsSharing(false);
   };
 
   return (
@@ -87,11 +91,11 @@ export function SessionEndingCard({
         initial={{ scale: 0.85, y: 40, opacity: 0 }}
         animate={{ scale: 1, y: 0, opacity: 1 }}
         transition={{ type: "spring", damping: 20, stiffness: 150, delay: 0.1 }}
-        className="w-full max-w-sm mx-3 sm:mx-4 overflow-hidden rounded-3xl"
+        className="w-full max-w-sm mx-3 sm:mx-4 overflow-hidden rounded-3xl max-h-[90vh] flex flex-col"
       >
         {/* Card top — gradient hero with score */}
         <div
-          className={`relative bg-gradient-to-br ${scoreColor} p-8 pb-10 overflow-hidden`}
+          className={`relative bg-gradient-to-br ${scoreConfig.gradient} p-8 pb-10 overflow-hidden`}
         >
           {/* Decorative blur circles */}
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 blur-3xl rounded-full" />
@@ -116,41 +120,13 @@ export function SessionEndingCard({
               <span className="text-[9px] font-mono text-white/40 uppercase tracking-[0.25em] mb-2">
                 Proof of Style
               </span>
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{
-                  type: "spring",
-                  damping: 12,
-                  stiffness: 120,
-                  delay: 0.3,
-                }}
-                className="relative mb-3"
-              >
-                <span className="text-[5rem] sm:text-[6rem] font-black text-white leading-none tracking-tighter tabular-nums drop-shadow-lg">
-                  {summary.score}
-                </span>
-                <span className="absolute -right-4 bottom-2 text-lg font-bold text-white/50">
-                  /10
-                </span>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="px-4 py-1 rounded-full bg-white/20 border border-white/30 backdrop-blur-sm"
-              >
-                <span className="text-[10px] font-bold text-white uppercase tracking-[0.15em]">
-                  {scoreLabel} Persona
-                </span>
-              </motion.div>
+              <AnimatedScore score={summary.score} delay={0.3} size="lg" />
             </div>
           </div>
         </div>
 
         {/* Card body — dark */}
-        <div className="bg-slate-950 p-6 space-y-5">
+        <div className="bg-slate-950 p-6 space-y-5 overflow-y-auto no-scrollbar">
           {/* Topics analyzed */}
           {summary.topics.length > 0 && (
             <motion.div
@@ -180,20 +156,27 @@ export function SessionEndingCard({
             </motion.div>
           )}
 
-          {/* Key insight — top takeaway */}
+          {/* Key insights — top takeaways */}
           {summary.takeaways.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7 }}
-              className="bg-indigo-500/5 border border-indigo-500/10 rounded-2xl p-4"
+              className="bg-indigo-500/5 border border-indigo-500/10 rounded-2xl p-4 space-y-3"
             >
-              <p className="text-[9px] text-indigo-400/60 uppercase tracking-widest mb-2 font-bold">
-                Key Insight
+              <p className="text-[9px] text-indigo-400/60 uppercase tracking-widest font-bold">
+                Key Insights
               </p>
-              <p className="text-sm text-slate-200 leading-relaxed">
-                &ldquo;{summary.takeaways[0]}&rdquo;
-              </p>
+              {summary.takeaways.slice(0, 3).map((takeaway, i) => (
+                <p key={i} className="text-sm text-slate-200 leading-relaxed">
+                  &ldquo;{takeaway}&rdquo;
+                </p>
+              ))}
+              {summary.takeaways.length > 3 && (
+                <p className="text-[10px] text-slate-500">
+                  +{summary.takeaways.length - 3} more in full report
+                </p>
+              )}
             </motion.div>
           )}
 
@@ -302,11 +285,16 @@ export function SessionEndingCard({
             transition={{ delay: 0.9 }}
           >
             <Button
-              onClick={shareToWarpcast}
+              onClick={shareToFarcaster}
+              disabled={isSharing}
               className="w-full bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-full py-5 text-sm font-bold gap-2"
             >
-              <Share2 className="w-4 h-4" />
-              Share on Warpcast
+              {isSharing ? (
+                <Sparkles className="w-4 h-4 animate-spin" />
+              ) : (
+                <Share2 className="w-4 h-4" />
+              )}
+              {isSharing ? "Uploading…" : "Share on Farcaster"}
             </Button>
           </motion.div>
 
@@ -331,7 +319,7 @@ export function SessionEndingCard({
                 <ArrowRight className="w-3.5 h-3.5 opacity-60" />
               </Button>
 
-              {captures.length > 0 && (
+              {captures.length > 0 && summary.score < 8 && (
                 <Button
                   onClick={onMint}
                   variant="ghost"

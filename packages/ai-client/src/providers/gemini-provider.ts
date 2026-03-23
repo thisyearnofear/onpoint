@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { AIProvider, AnalysisInput, CritiqueResponse, DesignGeneration, StylistPersona, StylistResponse, VirtualTryOnAnalysis } from "./base-provider";
+import { AIProvider, AnalysisInput, CritiqueResponse, DesignGeneration, StylistPersona, StylistResponse, VirtualTryOnAnalysis, UserStyleContext } from "./base-provider";
 
 export class GeminiProvider implements AIProvider {
   name = "Gemini";
@@ -23,8 +23,8 @@ export class GeminiProvider implements AIProvider {
     return this.parseDesignResponse(result.response.text(), prompt);
   }
 
-  async chatWithStylist(message: string, persona: StylistPersona): Promise<StylistResponse> {
-    const stylistPrompt = this.buildStylistPrompt(message, persona);
+  async chatWithStylist(message: string, persona: StylistPersona, context?: UserStyleContext): Promise<StylistResponse> {
+    const stylistPrompt = this.buildStylistPrompt(message, persona, context);
     const result = await this.model.generateContent(stylistPrompt);
     return this.parseStylistResponse(result.response.text());
   }
@@ -79,6 +79,12 @@ export class GeminiProvider implements AIProvider {
   }
 
   private buildFashionAnalysisPrompt(input: AnalysisInput): string {
+    const contextStr = input.context ? `
+[USER CONTEXT]
+Style Level: ${Math.floor((input.context.xp || 0) / 100) + 1}
+Achievements: ${input.context.badges?.join(', ') || 'none'}
+Celo Native: ${input.context.isCeloUser ? 'Yes' : 'No'}` : '';
+
     return `You are a professional fashion critic. Analyze this outfit and provide:
     1. Overall rating (1-10) with explanation
     2. 3-4 specific strengths
@@ -86,6 +92,7 @@ export class GeminiProvider implements AIProvider {
     4. Style notes
     5. Confidence level
     
+    ${contextStr}
     ${input.description ? `Description: ${input.description}` : ''}
     
     Format as JSON with fields: rating, strengths[], improvements[], styleNotes, confidence`;
@@ -105,8 +112,18 @@ Include:
 Keep it practical and achievable.`;
   }
 
-  private buildStylistPrompt(message: string, persona: StylistPersona): string {
-    return `${message}
+  private buildStylistPrompt(message: string, persona: StylistPersona, context?: UserStyleContext): string {
+    const contextStr = context ? `
+[USER IDENTITY CONTEXT]
+Style Level: ${Math.floor((context.xp || 0) / 100) + 1}
+Achievements: ${context.badges?.join(', ') || 'none'}
+Celo User: ${context.isCeloUser ? 'Yes' : 'No'}
+
+Acknowledge their status and tailor your tone. ${Math.floor((context.xp || 0) / 100) + 1 > 5 ? 'Be sophisticated.' : 'Be educational.'}` : '';
+
+    return `${contextStr}
+    
+    User Question: ${message}
 
 Please provide:
 1. A helpful, personalized response in your styling expertise

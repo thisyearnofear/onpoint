@@ -12,5 +12,4 @@ export * from "./use-venice-live";
 export * from "./context/AIContext";
 export * from "./services/personality-service";
 export * from "./utils/cache";
-export type { CritiqueMode } from "./services/personality-service";
 export { default as AIClientManager } from "./ai-client";

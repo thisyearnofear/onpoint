@@ -133,6 +133,29 @@ export function trackError(
 }
 
 /**
+ * Track styling tip variant click
+ * P0.4 - Try Variant buttons under styling tips
+ */
+export function trackStylingTipVariantClicked(properties: {
+  tip_index: number;
+  tip_text: string;
+  has_custom_action: boolean;
+  action_type?: string;
+}): void {
+  trackEvent("styling_tip_variant_clicked", properties);
+}
+
+/**
+ * Track before/after compare toggle
+ * P0.5 - Hold to compare original vs generated
+ */
+export function trackResultCompareToggled(properties: {
+  duration_ms: number;
+}): void {
+  trackEvent("result_compare_toggled", properties);
+}
+
+/**
  * Flush events to the server
  */
 export async function flushEvents(): Promise<void> {

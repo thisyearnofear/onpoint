@@ -13,6 +13,7 @@ const ALLOWED_ORIGINS = [
   "https://app.onpoint.xyz",
   // Farcaster Mini App frame contexts
   "https://farcaster.xyz",
+  "https://farcaster.com",
   "https://warpcast.com",
   // Development (only in non-production)
   ...(process.env.NODE_ENV !== "production"

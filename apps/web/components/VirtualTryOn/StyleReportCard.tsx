@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useCallback } from "react";
+import React, { useRef, useCallback, useState } from "react";
 import { Button } from "@repo/ui/button";
 import {
   Sparkles,
@@ -14,9 +14,24 @@ import {
   Star,
   MessageCircle,
   ExternalLink,
+  ChevronDown,
+  ChevronUp,
+  ThumbsUp,
+  AlertTriangle,
+  Lightbulb,
+  Eye,
+  FileText,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import type { StylistPersona } from "@repo/ai-client";
+import type { SessionFeedback } from "./hooks/useLiveSession";
+import {
+  getScoreTier,
+  generateShareText,
+  generateFullReportText,
+} from "../../lib/utils/score-utils";
+import { getPersonaConfig } from "../../lib/utils/persona-config";
+import { SocialUtils } from "../../lib/utils/social";
 
 // ── Types ──
 
@@ -25,53 +40,24 @@ interface StyleReportCardProps {
   persona: StylistPersona;
   takeaways: string[];
   topics: string[];
+  fullFeedback?: SessionFeedback[];
   captureImage?: string;
   sessionGoal?: string;
   onClose: () => void;
 }
 
-// ── Persona Styling Map ──
-
-const PERSONA_STYLES: Record<
-  StylistPersona,
-  { gradient: string; icon: React.ElementType; label: string; accent: string }
+const FEEDBACK_TYPE_CONFIG: Record<
+  SessionFeedback["type"],
+  { icon: React.ElementType; color: string; label: string }
 > = {
-  luxury: {
-    gradient: "from-amber-500 to-yellow-600",
-    icon: Crown,
-    label: "Anna Karenina",
-    accent: "text-amber-400",
+  praise: { icon: ThumbsUp, color: "text-emerald-400", label: "Praise" },
+  critique: { icon: AlertTriangle, color: "text-amber-400", label: "Critique" },
+  suggestion: {
+    icon: Lightbulb,
+    color: "text-indigo-400",
+    label: "Suggestion",
   },
-  streetwear: {
-    gradient: "from-blue-500 to-cyan-600",
-    icon: Zap,
-    label: "Artful Dodger",
-    accent: "text-blue-400",
-  },
-  sustainable: {
-    gradient: "from-emerald-500 to-green-600",
-    icon: Leaf,
-    label: "Mowgli",
-    accent: "text-emerald-400",
-  },
-  edina: {
-    gradient: "from-purple-500 to-pink-600",
-    icon: Sparkles,
-    label: "Edina Monsoon",
-    accent: "text-purple-400",
-  },
-  miranda: {
-    gradient: "from-rose-500 to-red-600",
-    icon: Star,
-    label: "Miranda Priestly",
-    accent: "text-rose-400",
-  },
-  shaft: {
-    gradient: "from-orange-500 to-amber-600",
-    icon: MessageCircle,
-    label: "John Shaft",
-    accent: "text-orange-400",
-  },
+  observation: { icon: Eye, color: "text-slate-400", label: "Observation" },
 };
 
 // ── Component ──
@@ -81,44 +67,58 @@ export function StyleReportCard({
   persona,
   takeaways,
   topics,
+  fullFeedback = [],
   captureImage,
   sessionGoal,
   onClose,
 }: StyleReportCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
-  const [copied, setCopied] = React.useState(false);
-  const [isSharing, setIsSharing] = React.useState(false);
+  const [copied, setCopied] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [showAllTakeaways, setShowAllTakeaways] = useState(false);
+  const [showFullFeedback, setShowFullFeedback] = useState(false);
 
-  const personaStyle = PERSONA_STYLES[persona] || PERSONA_STYLES.luxury;
+  const personaStyle = getPersonaConfig(persona);
   const PersonaIcon = personaStyle.icon;
 
-  // ── Score Rating ──
-  const getScoreRating = (s: number): string => {
-    if (s >= 9) return "Legendary";
-    if (s >= 8) return "Elite";
-    if (s >= 7) return "Strong";
-    if (s >= 5) return "Solid";
-    return "Growing";
-  };
+  const visibleTakeaways = showAllTakeaways ? takeaways : takeaways.slice(0, 2);
+  const hasMoreTakeaways = takeaways.length > 2;
+
+  // ── Generate Full Feedback Text ──
+  const handleDownloadFeedback = useCallback(() => {
+    const text = generateFullReportText({
+      score,
+      personaLabel: personaStyle.characterName,
+      topics,
+      takeaways,
+      sessionGoal,
+      fullFeedback,
+    });
+    const blob = new Blob([text], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.download = `onpoint-style-report-${score}-out-of-10.txt`;
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, [score, persona, topics, takeaways, fullFeedback, sessionGoal]);
 
   // ── Generate Share Text ──
-  const generateShareText = useCallback((): string => {
-    const rating = getScoreRating(score);
-    const topicStr = topics.slice(0, 3).join(", ");
-    const takeaway = takeaways[0] || "Found my perfect look!";
-    return `🔥 OnPoint Style Report\n\nScore: ${score}/10 (${rating})\nStylist: ${personaStyle.label}\nFocus: ${topicStr || "Personal Style"}\n\n"${takeaway}"\n\nMinted on Celo via @onpoint`;
-  }, [score, persona, topics, takeaways]);
-
-  // ── Copy to Clipboard ──
   const handleCopy = useCallback(async () => {
+    const text = generateShareText({
+      score,
+      personaLabel: personaStyle.characterName,
+      topics,
+      takeaways,
+      sessionGoal,
+    });
     try {
-      await navigator.clipboard.writeText(generateShareText());
+      await navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback
       const textarea = document.createElement("textarea");
-      textarea.value = generateShareText();
+      textarea.value = text;
       document.body.appendChild(textarea);
       textarea.select();
       document.execCommand("copy");
@@ -126,21 +126,37 @@ export function StyleReportCard({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
-  }, [generateShareText]);
+  }, [score, persona, topics, takeaways]);
 
   // ── Share to Farcaster ──
-  const handleShareFarcaster = useCallback(() => {
-    const text = generateShareText();
-    const url = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}`;
-    window.open(url, "_blank");
-  }, [generateShareText]);
+  const [isSharingFarcaster, setIsSharingFarcaster] = useState(false);
+
+  const handleShareFarcaster = useCallback(async () => {
+    setIsSharingFarcaster(true);
+    const text = generateShareText({
+      score,
+      personaLabel: personaStyle.characterName,
+      topics,
+      takeaways,
+    });
+    await SocialUtils.shareContent({
+      text,
+      imageDataUrl: captureImage,
+    });
+    setIsSharingFarcaster(false);
+  }, [score, persona, topics, takeaways, captureImage]);
 
   // ── Share to Twitter ──
   const handleShareTwitter = useCallback(() => {
-    const text = generateShareText();
+    const text = generateShareText({
+      score,
+      personaLabel: personaStyle.characterName,
+      topics,
+      takeaways,
+    });
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
     window.open(url, "_blank");
-  }, [generateShareText]);
+  }, [score, persona, topics, takeaways]);
 
   // ── Download as Image (canvas-based) ──
   const handleDownload = useCallback(async () => {
@@ -148,8 +164,6 @@ export function StyleReportCard({
 
     try {
       setIsSharing(true);
-
-      // Use html2canvas if available, otherwise fallback to screenshot
       const html2canvas = (window as any).html2canvas;
       if (html2canvas) {
         const canvas = await html2canvas(cardRef.current, {
@@ -161,7 +175,6 @@ export function StyleReportCard({
         link.href = canvas.toDataURL("image/png");
         link.click();
       } else {
-        // Fallback: copy text
         handleCopy();
       }
     } catch (err) {
@@ -174,11 +187,17 @@ export function StyleReportCard({
 
   // ── Native Share (Web Share API) ──
   const handleNativeShare = useCallback(async () => {
+    const text = generateShareText({
+      score,
+      personaLabel: personaStyle.characterName,
+      topics,
+      takeaways,
+    });
     if (navigator.share) {
       try {
         await navigator.share({
           title: `OnPoint Style Report — ${score}/10`,
-          text: generateShareText(),
+          text,
           url: window.location.href,
         });
       } catch {
@@ -187,7 +206,16 @@ export function StyleReportCard({
     } else {
       handleCopy();
     }
-  }, [score, generateShareText, handleCopy]);
+  }, [score, persona, topics, takeaways, handleCopy]);
+
+  // ── Escape key handler ──
+  React.useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
 
   return (
     <motion.div
@@ -196,24 +224,28 @@ export function StyleReportCard({
       exit={{ opacity: 0, scale: 0.9 }}
       className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Style Report — ${getScoreTier(score)}`}
     >
       <motion.div
         ref={cardRef}
         initial={{ y: 20 }}
         animate={{ y: 0 }}
-        className="relative w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl"
+        className="relative w-full max-w-sm max-h-[90vh] rounded-3xl overflow-hidden shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)",
+          background:
+            "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)",
         }}
       >
         {/* Gradient Accent Border */}
         <div
-          className={`absolute inset-0 rounded-3xl bg-gradient-to-br ${personaStyle.gradient} opacity-20 blur-xl`}
+          className={`absolute inset-0 rounded-3xl bg-gradient-to-br ${personaStyle.gradient} opacity-20 blur-xl pointer-events-none`}
         />
 
-        {/* Content */}
-        <div className="relative z-10 p-6 space-y-5">
+        {/* Scrollable Content */}
+        <div className="relative z-10 overflow-y-auto no-scrollbar p-6 space-y-5">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -224,14 +256,18 @@ export function StyleReportCard({
               </div>
               <div>
                 <h3 className="text-white font-bold text-sm">Style Report</h3>
-                <p className={`${personaStyle.accent} text-[10px] font-mono uppercase tracking-widest`}>
-                  {personaStyle.label}
+                <p
+                  className={`${personaStyle.accent} text-[10px] font-mono uppercase tracking-widest`}
+                >
+                  {personaStyle.characterName}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-1">
               <Sparkles className="w-4 h-4 text-amber-400" />
-              <span className="text-[10px] text-amber-400 font-bold">OnPoint</span>
+              <span className="text-[10px] text-amber-400 font-bold">
+                OnPoint
+              </span>
             </div>
           </div>
 
@@ -266,7 +302,9 @@ export function StyleReportCard({
               >
                 {score}
               </motion.div>
-              <div className={`absolute -right-6 bottom-3 text-xl font-bold ${personaStyle.accent}`}>
+              <div
+                className={`absolute -right-6 bottom-3 text-xl font-bold ${personaStyle.accent}`}
+              >
                 /10
               </div>
             </div>
@@ -277,7 +315,7 @@ export function StyleReportCard({
               className="mt-3 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 inline-block"
             >
               <span className="text-[10px] font-bold text-white uppercase tracking-widest">
-                {getScoreRating(score)} Persona
+                {getScoreTier(score)}
               </span>
             </motion.div>
           </div>
@@ -301,12 +339,129 @@ export function StyleReportCard({
             </div>
           )}
 
-          {/* Key Takeaway */}
+          {/* Key Takeaways — Progressive Disclosure */}
           {takeaways.length > 0 && (
-            <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-              <p className="text-sm text-white/90 leading-relaxed italic">
-                "{takeaways[0]}"
-              </p>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">
+                  Stylist Feedback
+                </p>
+                {hasMoreTakeaways && (
+                  <button
+                    onClick={() => setShowAllTakeaways(!showAllTakeaways)}
+                    className="text-[10px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
+                  >
+                    {showAllTakeaways ? (
+                      <>
+                        Show less <ChevronUp className="w-3 h-3" />
+                      </>
+                    ) : (
+                      <>
+                        +{takeaways.length - 2} more{" "}
+                        <ChevronDown className="w-3 h-3" />
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                {visibleTakeaways.map((takeaway, i) => {
+                  const feedbackItem = fullFeedback.find(
+                    (f) => f.text === takeaway,
+                  );
+                  const typeConfig = feedbackItem
+                    ? FEEDBACK_TYPE_CONFIG[feedbackItem.type]
+                    : null;
+                  const TypeIcon = typeConfig?.icon || Lightbulb;
+
+                  return (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="bg-white/5 rounded-xl p-3 border border-white/10 flex gap-2.5 items-start"
+                    >
+                      <TypeIcon
+                        className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${typeConfig?.color || "text-indigo-400"}`}
+                      />
+                      <p className="text-xs text-white/80 leading-relaxed">
+                        {takeaway}
+                      </p>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Full Session Feedback — Expandable */}
+          {fullFeedback.length > 0 && (
+            <div className="space-y-3">
+              <button
+                onClick={() => setShowFullFeedback(!showFullFeedback)}
+                className="w-full flex items-center justify-between text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <FileText className="w-3 h-3 text-white/40" />
+                  <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">
+                    Full Session Log ({fullFeedback.length} entries)
+                  </p>
+                </div>
+                {showFullFeedback ? (
+                  <ChevronUp className="w-3.5 h-3.5 text-white/40" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5 text-white/40" />
+                )}
+              </button>
+
+              <AnimatePresence>
+                {showFullFeedback && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="space-y-1.5 max-h-60 overflow-y-auto no-scrollbar pr-1">
+                      {fullFeedback.map((feedback, i) => {
+                        const config = FEEDBACK_TYPE_CONFIG[feedback.type];
+                        const Icon = config.icon;
+                        return (
+                          <div
+                            key={i}
+                            className="flex gap-2 items-start p-2 rounded-lg bg-white/[0.03] border border-white/5"
+                          >
+                            <Icon
+                              className={`w-3 h-3 mt-0.5 shrink-0 ${config.color}`}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[10px] text-white/60 leading-snug">
+                                {feedback.text}
+                              </p>
+                            </div>
+                            <span
+                              className={`text-[8px] ${config.color} uppercase tracking-wider shrink-0 mt-0.5`}
+                            >
+                              {config.label}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <button
+                      onClick={handleDownloadFeedback}
+                      className="w-full mt-2 text-center text-[10px] text-indigo-400 hover:text-indigo-300 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-indigo-500/5 hover:bg-indigo-500/10 transition-colors"
+                    >
+                      <Download className="w-3 h-3" />
+                      Download Full Feedback
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
 
@@ -323,7 +478,7 @@ export function StyleReportCard({
           {/* QR / Link Hint */}
           <div className="text-center">
             <p className="text-[9px] text-white/30 font-mono">
-              onpoint.style • {new Date().toLocaleDateString()}
+              onpoint.style &bull; {new Date().toLocaleDateString()}
             </p>
           </div>
 
@@ -344,10 +499,15 @@ export function StyleReportCard({
                 variant="ghost"
                 size="sm"
                 onClick={handleShareFarcaster}
+                disabled={isSharingFarcaster}
                 className="text-white/60 hover:text-white hover:bg-white/5 rounded-xl text-[10px] flex flex-col gap-1 py-3"
               >
-                <ExternalLink className="w-3.5 h-3.5" />
-                Warpcast
+                {isSharingFarcaster ? (
+                  <Sparkles className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <ExternalLink className="w-3.5 h-3.5" />
+                )}
+                {isSharingFarcaster ? "Uploading…" : "Farcaster"}
               </Button>
               <Button
                 variant="ghost"
@@ -398,7 +558,7 @@ export function StyleReportCard({
           {/* Close */}
           <button
             onClick={onClose}
-            className="w-full text-center text-[10px] text-white/30 hover:text-white/60 transition-colors pt-2"
+            className="w-full text-center text-[10px] text-white/30 hover:text-white/60 transition-colors pt-2 pb-1"
           >
             Close
           </button>

@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { AIProvider, AnalysisInput, CritiqueResponse, DesignGeneration, StylistPersona, StylistResponse, VirtualTryOnAnalysis } from "./base-provider";
+import { AIProvider, AnalysisInput, CritiqueResponse, DesignGeneration, StylistPersona, StylistResponse, VirtualTryOnAnalysis, UserStyleContext } from "./base-provider";
 
 export class OpenAIProvider implements AIProvider {
   name = "OpenAI";
@@ -69,7 +69,7 @@ export class OpenAIProvider implements AIProvider {
     };
   }
 
-  async chatWithStylist(message: string, persona: StylistPersona): Promise<StylistResponse> {
+  async chatWithStylist(message: string, persona: StylistPersona, context?: UserStyleContext): Promise<StylistResponse> {
     const getPersonaPrompt = (persona: StylistPersona): string => {
       const prompts: Record<StylistPersona, string> = {
         luxury: "You are a luxury fashion stylist with expertise in high-end designer pieces, couture, and sophisticated styling. You work with premium brands and focus on timeless elegance, quality craftsmanship, and refined aesthetics. Your recommendations emphasize investment pieces and classic luxury styling.",
@@ -82,10 +82,18 @@ export class OpenAIProvider implements AIProvider {
       return prompts[persona];
     };
 
+    const contextStr = context ? `
+[USER IDENTITY CONTEXT]
+Style Level: ${Math.floor((context.xp || 0) / 100) + 1}
+Achievements: ${context.badges?.join(', ') || 'none'}
+Celo Native: ${context.isCeloUser ? 'Yes' : 'No'}
+
+Tailor your tone to their level. ${Math.floor((context.xp || 0) / 100) + 1 > 5 ? 'Be sophisticated.' : 'Be educational.'}` : '';
+
     const messages = [
       {
         role: "system" as const,
-        content: getPersonaPrompt(persona)
+        content: getPersonaPrompt(persona) + contextStr
       },
       {
         role: "user" as const,
@@ -191,6 +199,12 @@ export class OpenAIProvider implements AIProvider {
   }
 
   private buildAnalysisPrompt(input: AnalysisInput): string {
+    const contextStr = input.context ? `
+[USER CONTEXT]
+Style Level: ${Math.floor((input.context.xp || 0) / 100) + 1}
+Achievements: ${input.context.badges?.join(', ') || 'none'}
+Celo User: ${input.context.isCeloUser ? 'Yes' : 'No'}` : '';
+
     return `Analyze this outfit and provide:
     1. Overall rating (1-10) with explanation
     2. 3-4 specific strengths
@@ -198,6 +212,7 @@ export class OpenAIProvider implements AIProvider {
     4. Style notes
     5. Confidence level
     
+    ${contextStr}
     ${input.description ? `Description: ${input.description}` : ''}`;
   }
 }

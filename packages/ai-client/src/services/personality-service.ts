@@ -1,4 +1,4 @@
-import { StylistPersona } from '../providers/base-provider';
+import { StylistPersona, UserStyleContext } from '../providers/base-provider';
 
 export type CritiqueMode = 'roast' | 'flatter' | 'real';
 
@@ -115,15 +115,36 @@ Be authentic and relatable, like advice from a trusted friend who knows fashion.
     async generateCritique(
         imageBase64: string,
         persona: StylistPersona,
-        mode: CritiqueMode = 'real'
+        mode: CritiqueMode = 'real',
+        userContext?: UserStyleContext
     ): Promise<string> {
         const personaConfig = this.personas[persona];
         const modeConfig = this.critiqueModes[mode];
 
-        // Enhance the prompt with mode-specific instructions
+        // ── Identity-Based Personalization ──
+        let contextInjection = '';
+        if (userContext) {
+            const level = userContext.xp ? Math.floor(userContext.xp / 100) + 1 : 1;
+            const badgeList = userContext.badges?.join(', ') || 'none';
+            
+            contextInjection = `
+USER CONTEXT:
+- Style Level: ${level}
+- Achievements: ${badgeList}
+- Farcaster FID: ${userContext.fid || 'Not linked'}
+- Celo Native: ${userContext.isCeloUser ? 'Yes' : 'No'}
+
+ADJUSTMENT: 
+${level > 5 ? 'The user is a highly experienced fashionista. Use professional terminology and be more nuanced.' : 'The user is beginning their fashion journey. Be encouraging and focus on fundamentals.'}
+${userContext.badges?.includes('style-elite') ? 'Acknowledge their "Style Elite" status with a brief nod to their past successes.' : ''}
+${userContext.isCeloUser ? 'Since they are a Celo user, you may occasionally mention digital ownership or "Proof of Style" if it fits the critique.' : ''}
+`;
+        }
+
+        // Enhance the prompt with mode-specific instructions and user context
         const enhancedConfig = {
             ...personaConfig,
-            prompt: `${personaConfig.prompt}\n\n${modeConfig.promptModifier}`,
+            prompt: `${personaConfig.prompt}\n\n${modeConfig.promptModifier}\n\n${contextInjection}`,
             temperature: Math.max(0.1, Math.min(1.0, personaConfig.temperature + modeConfig.temperatureAdjustment))
         };
 

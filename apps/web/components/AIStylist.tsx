@@ -1,10 +1,14 @@
 "use client";
 
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { MessageCircle, User, Globe, Calendar, Sun, Cloud, Users, MapPin, Clock } from "lucide-react";
 import { useAIStylist } from "@repo/ai-client";
 import type { StylistPersona, StyleSuggestion } from "@repo/ai-client";
 import { Button } from "@repo/ui/button";
+import { useAccount, useChainId } from "wagmi";
+import { MissionService } from "../lib/services/mission-service";
+import { celo, celoAlfajores } from "../config/chains";
+import { useMiniApp } from "@neynar/react";
 
 import { StylistSelection } from "./AIStylist/StylistSelection";
 import { ContextCollector } from "./AIStylist/ContextCollector";
@@ -112,6 +116,22 @@ const contextFields = [
 ];
 
 export function AIStylist() {
+  const { address } = useAccount();
+  const chainId = useChainId();
+  const { context: miniAppContext } = useMiniApp();
+  
+  // Memoized user style context for AI personalization
+  const userStyleContext = useMemo(() => {
+    if (!address) return undefined;
+    
+    return {
+      xp: MissionService.getUserXp(address),
+      badges: MissionService.getUserBadges(address),
+      fid: miniAppContext?.user?.fid,
+      isCeloUser: chainId === celo.id || chainId === celoAlfajores.id
+    };
+  }, [address, chainId, miniAppContext]);
+
   const [selectedPersona, setSelectedPersona] =
     useState<StylistPersona>("miranda");
   const [message, setMessage] = useState("");
@@ -176,7 +196,7 @@ export function AIStylist() {
     setMessage("");
 
     try {
-      const response = await chatWithStylist(userMessage);
+      const response = await chatWithStylist(userMessage, userStyleContext);
       if (response) {
         // Update the last assistant message with recommendations and tips
         setMessages((prev) => {
@@ -395,9 +415,9 @@ export function AIStylist() {
       setContextStep('chat');
 
       // Send context to stylist to begin conversation
-      chatWithStylist(contextSummary);
+      chatWithStylist(contextSummary, userStyleContext);
     }
-  }, [validateContext, contextData, setMessages, setContextStep, chatWithStylist]);
+  }, [validateContext, contextData, setMessages, setContextStep, chatWithStylist, userStyleContext]);
 
   const handleSkipContext = useCallback(() => {
     setContextStep('chat');
