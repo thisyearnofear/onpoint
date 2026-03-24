@@ -321,11 +321,35 @@ const COMMISSIONS = {
 
 ---
 
+## Phase 5: Agent Web-Agency ✅ IMPLEMENTED
+
+### 5.1 Cloud Motor Cortex ✅
+
+**New Package:** `packages/agent-web-bridge` (Python FastAPI)
+
+Leverages **Browser Use Cloud (V3)** to perform autonomous fashion research when the internal catalog is insufficient.
+
+- **Stealth Browsing**: Automated CAPTCHA solving and residential proxies for high-fidelity extraction.
+- **Structured Data**: Extracts `ItemData` (Price, URL, Source) using Pydantic V2 models.
+- **Real-time Live View**: Surfaces a `liveUrl` allowing users to watch the agent navigate in real-time.
+
+### 5.2 Collaborative Commerce ✅
+
+**File:** `apps/web/app/api/agent/purchase/route.ts`
+
+- Handshakes between Next.js and the Python Bridge.
+- Updates existing suggestions with real-world results.
+- Maintains the $5 autonomy threshold for web searches ($0.10/action).
+
+---
+
 ## Success Criteria
 
 - [x] Agent can receive tips (via WDK agent wallet — `/api/agent/tip`)
 - [x] Agent can autonomously execute purchases (via `/api/agent/purchase`)
 - [x] Agent can mint NFTs on behalf of users (via `/api/agent/mint`)
+- [x] Agent can discover external products on the web (Agent Web-Bridge)
+- [x] User can observe agent browsing in real-time (Watch Live UI)
 - [ ] Agent can tip other agents (not yet implemented)
 - [x] Users can see agent approval requests (AgentApprovalModal)
 - [x] Shopping cart with agent recommendations (CartDrawer + product catalog)

@@ -31,6 +31,7 @@ onpoint-monorepo/
 │   ├── shared-types/             # TypeScript type definitions
 │   ├── blockchain-client/        # Web3 interaction layer
 │   ├── ai-client/                # AI service abstractions
+│   ├── agent-web-bridge/         # ⭐ Python Web-Bridge (Browser Use Cloud)
 │   ├── ipfs-client/              # IPFS/Filecoin integration
 │   └── worldcoin-auth/           # Worldcoin SDK wrapper
 ├── contracts/                    # Solidity smart contracts
@@ -51,11 +52,11 @@ onpoint-monorepo/
          │                 │                    │
          └─────────────────┼────────────────────┘
                            │
-┌──────────────────────────┴───────────────────────────────────┐
+┌─────────────────────────────────────────────────────────────┐
 │                     Service Layer                             │
 ├──────────────┬──────────────┬──────────────┬─────────────────┤
-│   AI APIs    │  IPFS/Filecoin│  ZetaChain  │  Worldcoin SDK  │
-│ (GPT-4V)     │   (Storage)   │   (NFTs)    │   (Identity)    │
+│   AI APIs    │  IPFS/Filecoin│  Browser Use │  Worldcoin SDK  │
+│ (GPT-4V/BU)  │   (Storage)   │  (Web-Agent) │   (Identity)    │
 └──────────────┴──────────────┴──────────────┴─────────────────┘
                            │
 ┌──────────────────────────┴───────────────────────────────────┐
@@ -96,6 +97,14 @@ onpoint-monorepo/
                     │   (FastAPI) │
                     └─────────────┘
 ```
+| Route                      | Method | Purpose                            |
+| -------------------------- | ------ | ---------------------------------- |
+| `/api/agent/mint`          | POST   | Mint NFT on behalf of user         |
+| `/api/agent/tip-agent`     | POST   | Agent-to-agent tipping             |
+| `/api/agent/purchase`      | POST   | Execute purchase / Web Search      |
+| `/api/agent/discovery`     | GET    | Discover agents by type            |
+| `/api/agent/approval`      | POST   | Request/approve actions            |
+| `/v1/agent/search` (Bridge)| POST   | Autonomous web search (Python)     |
 
 ---
 
@@ -319,6 +328,28 @@ Enhanced Design Studio Integration
 - Personality-based AI stylist critiques
 - Virtual try-on with IDM-VTON model
 - Cross-platform AI service abstraction
+
+---
+
+## Phase 5: Agent Web-Agency ✅ IMPLEMENTED
+
+### 5.1 Cloud Motor Cortex ✅
+
+**New Package:** `packages/agent-web-bridge` (Python FastAPI)
+
+Leverages **Browser Use Cloud (V3)** to perform autonomous fashion research when the internal catalog is insufficient.
+
+- **Stealth Browsing**: Automated CAPTCHA solving and residential proxies for high-fidelity extraction.
+- **Structured Data**: Extracts `ItemData` (Price, URL, Source) using Pydantic V2 models.
+- **Real-time Live View**: Surfaces a `liveUrl` allowing users to watch the agent navigate in real-time.
+
+### 5.2 Collaborative Commerce ✅
+
+**File:** `apps/web/app/api/agent/purchase/route.ts`
+
+- Handshakes between Next.js and the Python Bridge.
+- Updates existing suggestions with real-world results.
+- Maintains the $5 autonomy threshold for web searches ($0.10/action).
 
 ---
 

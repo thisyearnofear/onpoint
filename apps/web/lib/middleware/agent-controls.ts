@@ -36,7 +36,9 @@ export type ActionType =
   | "purchase"
   | "mint"
   | "premium"
-  | "agent_to_agent";
+  | "agent_to_agent"
+  | "external_search"
+  | "external_purchase";
 
 export interface SpendingLimit {
   agentId: string;
@@ -156,6 +158,18 @@ const DEFAULT_LIMITS: Record<
     dailyLimit: parseEther("50"), // 50 cUSD/day
     perActionLimit: parseEther("5"), // 5 cUSD per tip
     requiresApproval: false,
+  },
+  external_search: {
+    actionType: "external_search",
+    dailyLimit: parseEther("10"), // 10 cUSD equivalent for API costs
+    perActionLimit: parseEther("0.1"), // 0.1 cUSD per search
+    requiresApproval: false,
+  },
+  external_purchase: {
+    actionType: "external_purchase",
+    dailyLimit: parseEther("1000"), // 1000 cUSD/day
+    perActionLimit: parseEther("200"), // 200 cUSD per purchase
+    requiresApproval: true,
   },
 };
 
@@ -398,6 +412,7 @@ export function isBelowAutonomyThreshold(
  * Create a suggestion for an action (can be quick-accepted if below threshold)
  */
 export function createSuggestion(params: {
+  id?: string;
   agentId: string;
   actionType: ActionType;
   amount: string;
@@ -406,7 +421,7 @@ export function createSuggestion(params: {
   metadata?: Record<string, unknown>;
   expiresInMinutes?: number;
 }): AgentSuggestion {
-  const id = `suggestion_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const id = params.id || `suggestion_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const expiresIn = params.expiresInMinutes || 10; // 10 minutes
 
   // Parse the amount to check if it's auto-approvable
@@ -793,6 +808,52 @@ export function suggestAction(params: {
   };
 }
 
+/**
+ * Dispatch an action to the external Agent Web-Bridge (Python)
+ */
+export async function dispatchExternalAction(
+  userId: string,
+  action: {
+    type: "search" | "purchase" | "action";
+    payload: Record<string, unknown>;
+  },
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  const bridgeUrl = process.env.EXTERNAL_AGENT_URL;
+
+  if (!bridgeUrl) {
+    return {
+      success: false,
+      error: "EXTERNAL_AGENT_URL not configured. Web-Bridge is disabled.",
+    };
+  }
+
+  try {
+    const response = await fetch(`${bridgeUrl}/v1/agent/${action.type}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userId,
+        ...action.payload,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Bridge returned error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return { success: true, data };
+  } catch (err) {
+    console.error("External action dispatch failed:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Unknown bridge error",
+    };
+  }
+}
+
 // ============================================
 // Helper Functions
 // ============================================
@@ -850,6 +911,6 @@ export const AgentControls = {
   rejectRequest,
   getPendingApprovals,
 
-  // Validation (already exported above)
-  // validateAction,
+  // External Actions
+  dispatchExternalAction,
 };

@@ -42,7 +42,8 @@ export interface MissionRequirement {
     | "spending-limit-set"
     | "catalog-browse"
     | "persona-used"
-    | "share-count";
+    | "share-count"
+    | "external-search-count";
   target?: string; // e.g., persona ID, category
   threshold?: number;
 }
@@ -176,6 +177,18 @@ const MISSIONS: Mission[] = [
     icon: "Share2",
     reward: { type: "xp", value: 50 },
     requirements: [{ type: "share-count", threshold: 1 }],
+    maxProgress: 1,
+  },
+
+  // Web Agent Missions
+  {
+    id: "web-explorer",
+    title: "Internet Pioneer",
+    description: "Have your agent find a matching item on the global web",
+    category: "explorer",
+    icon: "Globe",
+    reward: { type: "badge", value: "web-pioneer" },
+    requirements: [{ type: "external-search-count", threshold: 1 }],
     maxProgress: 1,
   },
 ];

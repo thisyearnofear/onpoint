@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+pydantic
+browser-use-sdk
+python-dotenv

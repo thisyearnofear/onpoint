@@ -46,8 +46,11 @@ const PRODUCTS: Record<
 
 // Request validation
 const PurchaseRequestSchema = z.object({
-  productId: z.string(),
-  quantity: z.number().min(1).max(10),
+  productId: z.string().optional(),
+  actionType: z.string().optional(),
+  query: z.string().optional(),
+  suggestionId: z.string().optional(),
+  quantity: z.number().min(1).max(10).default(1),
   chain: z.enum(["celo", "celoSepolia", "base"]).default("celo"),
   agentId: z.string().default("onpoint-stylist"),
   approvalId: z.string().optional(),
@@ -95,9 +98,60 @@ export async function POST(
       );
     }
 
-    const { productId, quantity, chain, agentId, approvalId } = parsed.data;
+    const { productId, actionType, query, suggestionId, quantity, chain, agentId, approvalId } = parsed.data;
 
     await AgentControls.initStore(agentId);
+
+    // --- CASE 1: External Search (Phase 2 Bridge Integration) ---
+    if (actionType === "external_search" && query && suggestionId) {
+      console.log(`[Purchase API] Dispatching external search: "${query}"`);
+      
+      const result = await AgentControls.dispatchExternalAction("default", {
+        type: "search",
+        payload: { query }
+      });
+
+      if (result.success && result.data?.items?.length > 0) {
+        const item = result.data.items[0]; // Take top result
+        
+        // Update the original suggestion with the real data
+        const suggestion = AgentControls.getSuggestion(suggestionId);
+        if (suggestion) {
+          suggestion.description = `Found on web: ${item.name}`;
+          suggestion.amount = `$${item.price} cUSD`;
+          // @ts-ignore
+          suggestion.source = item.source;
+          // @ts-ignore
+          suggestion.externalUrl = item.url;
+          // @ts-ignore
+          suggestion.isSearching = false;
+          // @ts-ignore
+          suggestion.liveUrl = result.data.live_url;
+          
+          // Re-persist the updated suggestion
+          // @ts-ignore - access to internal suggestion store requires extending the middleware export
+          AgentControls.createSuggestion(suggestion); 
+        }
+
+        return NextResponse.json(
+          { success: true },
+          { status: 200, headers: corsHeaders(origin) }
+        );
+      }
+
+      return NextResponse.json(
+        { success: false, error: "Web-Bridge returned no results" },
+        { status: 204, headers: corsHeaders(origin) }
+      );
+    }
+
+    // --- CASE 2: Internal Product Purchase (Existing Logic) ---
+    if (!productId) {
+      return NextResponse.json(
+        { success: false, error: "productId is required for internal purchases" },
+        { status: 400, headers: corsHeaders(origin) }
+      );
+    }
 
     // Get product from catalog
     const product = PRODUCTS[productId.toLowerCase()];

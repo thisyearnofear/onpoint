@@ -613,15 +613,52 @@ export function useLiveSession() {
     );
     if (!matchedType) return;
 
-    const [, itemType] = matchedType;
+    const [keyword, itemType] = matchedType;
     if (!canCreateSuggestion(itemType)) return;
 
-    const contextSnippet = reasoning[0]?.slice(0, 80) || "analyzing your look";
-    createSuggestion({
-      actionType: "purchase" as ActionType,
-      amount: "< 5 cUSD",
-      description: `I noticed: "${contextSnippet}" — this ${itemType} could complete the look`,
-    }).catch(() => {});
+    // Check if we have a match in internal catalog
+    const internalMatch = CANVAS_ITEMS.find(
+      (item) =>
+        latest.includes(item.name.toLowerCase()) ||
+        latest.includes(item.category.toLowerCase()),
+    );
+
+    if (internalMatch) {
+      const contextSnippet = reasoning[0]?.slice(0, 80) || "analyzing your look";
+      createSuggestion({
+        actionType: "purchase" as ActionType,
+        amount: `$${internalMatch.price} cUSD`,
+        description: `Matching internal catalog: "${internalMatch.name}" — ${internalMatch.description}`,
+      }).catch(() => {});
+    } else {
+      // No internal match? Trigger the Web Agent!
+      console.log(`[WebAgent] No internal match for ${itemType}. Triggering web discovery...`);
+      
+      const contextSnippet = reasoning[0]?.slice(0, 80) || "analyzing your look";
+      
+      // 1. Create a "Searching" suggestion first
+      createSuggestion({
+        actionType: "external_search" as ActionType,
+        amount: "Searching Web...",
+        description: `I observed: "${contextSnippet}". Browsing live stores for ${itemType}...`,
+        // @ts-ignore - added to interface in previous steps
+        isSearching: true, 
+      }).then(async (data) => {
+        const suggestionId = data.suggestion.id;
+        
+        // 2. Dispatch to the bridge
+        const result = await fetch("/api/agent/purchase", {
+          method: "POST", 
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: sessionUserIdRef.current,
+            actionType: "external_search",
+            query: latest,
+            suggestionId, // To update the status later
+          })
+        });
+      }).catch(() => {});
+    }
   }, [reasoning, isConnected, createSuggestion, canCreateSuggestion]);
 
   // ── Personalized recommendations fetch ──

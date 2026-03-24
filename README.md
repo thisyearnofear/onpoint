@@ -84,7 +84,17 @@ Time-bounded UI for agent-to-user proposals. Smart gating prevents spam.
 
 ### 5. Style Memory + Recommendations (`getRecommendedItems`)
 
-Tracks user interaction preferences and scores product recommendations.
+- **Style Memory**: 90-day persistence of user preferences in Redis
+- `getRecommendedItems`: Scores products by category fit (+10), price (+5), and rating
+
+### 6. Agent Web-Agency (`agent-web-bridge`)
+
+Autonomous web browsing for style discovery. When the internal catalog lacks a match, the agent ventures into the open web via **Browser Use Cloud**.
+
+- **Cloud Motor Cortex**: Uses BU Agent API (v3) with `bu-max` model for professional extraction
+- **Live Monitoring**: Surfaces `live_url` in UI for real-time observation of agent browsing
+- **Marketplace Whitelist**: Prioritizes FARFETCH, SSENSE, Zara, and ASOS for high-fidelity data
+- **Bridge Architecture**: Isolated Python FastAPI microservice for browser automation
 
 ```typescript
 // Track interactions
@@ -146,10 +156,9 @@ The modules above power a complete agent loop:
 │                                          ↓                   │
 │                                    💰 Commission Split       │
 │                                    (85/10/3/2 onchain)       │
-│                                          ↓                   │
-│                                    🔐 Tether WDK Wallet     │
-│                                    (self-custodial, multi-   │
-│                                     chain agent treasury)    │
+│       ↓                ↓                      ↓              │
+│  🌐 Web Bridge ←  No Match Found  ←  🔐 Tether WDK Wallet     │
+│  (Browser Use)    (Market Search)     (agent treasury)       │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -221,6 +230,7 @@ onpoint/
 │       └── wagmi.ts                        ← Wallet configuration (RainbowKit)
 │
 ├── packages/
+│   ├── agent-web-bridge/           ← ⭐ Python Web-Bridge (Browser Use Cloud)
 │   ├── shared-types/
 │   │   └── src/
 │   │       ├── fashion-data.ts             ← Product catalog + getRecommendedItems

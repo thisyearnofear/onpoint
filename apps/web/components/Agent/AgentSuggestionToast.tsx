@@ -11,6 +11,9 @@ import {
   Coins,
   ShoppingBag,
   AlertCircle,
+  Globe,
+  Search,
+  Eye,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import type { ActionType } from "../../lib/middleware/agent-controls";
@@ -33,6 +36,11 @@ export interface AgentSuggestion {
     fit?: "relaxed" | "fitted" | "loose" | "regular";
     style?: string[];
   };
+  // Web agent extensions
+  isSearching?: boolean;
+  externalUrl?: string;
+  source?: string;
+  liveUrl?: string;
 }
 
 interface AgentSuggestionToastProps {
@@ -42,20 +50,24 @@ interface AgentSuggestionToastProps {
   onDismiss: () => void;
 }
 
-const ACTION_ICONS: Record<ActionType, React.ElementType> = {
-  purchase: ShoppingBag,
-  mint: Sparkles,
-  tip: Coins,
-  premium: Zap,
-  agent_to_agent: Coins,
-};
-
 const ACTION_LABELS: Record<ActionType, string> = {
   purchase: "Buy Now",
   mint: "Mint NFT",
   tip: "Send Tip",
   premium: "Go Premium",
   agent_to_agent: "Transfer",
+  external_search: "Exploring Web",
+  external_purchase: "External Shop",
+};
+
+const ACTION_ICONS: Record<ActionType, React.ElementType> = {
+  purchase: ShoppingBag,
+  mint: Sparkles,
+  tip: Coins,
+  premium: Zap,
+  agent_to_agent: Coins,
+  external_search: Search,
+  external_purchase: Globe,
 };
 
 export function AgentSuggestionToast({
@@ -173,11 +185,43 @@ export function AgentSuggestionToast({
               <p className="text-white text-sm font-medium truncate">
                 {suggestion.description}
               </p>
-              <p className="text-amber-400 font-bold mt-1">
-                {suggestion.amount}
-              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-amber-400 font-bold uppercase tracking-tighter">
+                  {suggestion.amount}
+                </p>
+                {suggestion.source && (
+                  <span className="text-[10px] text-slate-500 bg-white/5 px-1.5 py-0.5 rounded border border-white/5">
+                    at {suggestion.source}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
+
+          {/* Web Search Progress */}
+          {suggestion.isSearching && (
+            <div className="mt-3 p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/10 flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="w-8 h-8 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin" />
+                  <Globe className="w-3.5 h-3.5 text-indigo-400 absolute inset-0 m-auto" />
+                </div>
+                <p className="text-xs text-indigo-300 font-medium animate-pulse">
+                  Agent is browsing live marketplaces...
+                </p>
+              </div>
+              
+              {suggestion.liveUrl && (
+                <button
+                  onClick={() => window.open(suggestion.liveUrl, "_blank")}
+                  className="w-full py-2 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg flex items-center justify-center gap-2 text-[10px] text-indigo-400 font-bold border border-indigo-500/20 transition-all uppercase tracking-wider"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  Watch Agent Live
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Reasoning - why the AI recommends this */}
           {suggestion.reasoning && (
@@ -205,11 +249,16 @@ export function AgentSuggestionToast({
             className="flex-1 h-10 border-white/10 text-slate-300 hover:bg-white/10 text-sm"
           >
             <X className="w-4 h-4 mr-1" />
-            Skip
+            {suggestion.actionType === "external_search" ? "Cancel Search" : "Skip"}
           </Button>
           <Button
-            onClick={handleAccept}
-            disabled={isProcessing}
+            onClick={() => {
+              if (suggestion.externalUrl) {
+                window.open(suggestion.externalUrl, "_blank");
+              }
+              handleAccept();
+            }}
+            disabled={isProcessing || suggestion.isSearching}
             className="flex-1 h-10 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-sm"
           >
             {isProcessing ? (
