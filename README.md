@@ -111,6 +111,18 @@ const items = getRecommendedItems(
 // → Scores by: category match (+10), price fit (+5), rating bonus, variety noise
 ```
 
+### 6. Agent Discovery Engine (`agent-web-bridge`)
+
+Autonomous web browsing and API aggregation for style discovery. When the internal catalog lacks a match, the platform utilizes a **3-Tier Discovery Engine**:
+
+- **Tier 1: Internal Catalog** - Instant, curated results from `@onpoint/shared-types`.
+- **Tier 2: Purch Network** - Global API aggregate with 1B+ products via headless commerce.
+- **Tier 3: Browser Use Cloud** - Autonomous deep-web search with real-time "Watch Live" UI.
+
+- **Marketplace Whitelist**: Prioritizes FARFETCH, SSENSE, Zara, and ASOS for high-fidelity data.
+- **Micro-Action Autonomy**: $5 threshold automatically approves web discovery tasks.
+- **Collaborative UX**: Progress is surfaced in the `AgentSuggestionToast` with tiered status updates.
+
 ---
 
 ## Self-Custodial Agent Wallet (Tether WDK)

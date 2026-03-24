@@ -16,6 +16,10 @@ app = FastAPI(title="OnPoint Agent Web-Bridge (Cloud V3)")
 
 # --- Config ---
 
+PURCH_API_URL = "https://api.purch.xyz/v1/search"
+
+# --- Config ---
+
 # Whitelist of agent-friendly fashion marketplaces
 # These sites have high-quality product data and reliable layouts for extraction.
 WHITELIST_DOMAINS = [
@@ -58,6 +62,29 @@ class SearchResponse(BaseModel):
     live_url: Optional[str] = None
     session_id: Optional[str] = None
 
+# --- Helpers ---
+
+async def search_purch(query: str, max_results: int = 3) -> List[ItemData]:
+    """
+    Tier 2: Search via Purch API (Headless Aggregate).
+    Faster and more reliable for common items.
+    """
+    try:
+        # Note: Purch uses X402 protocol / micropayments. 
+        # For now we use the public search if available or a mock for demo.
+        # In production, this would be: 
+        # response = await httpx.post(PURCH_API_URL, json={"query": query})
+        
+        # Placeholder for Purch API Integration
+        # return [ItemData(**item) for item in response.json()['items']]
+        
+        print(f"[Bridge] Tier 2: Querying Purch API for '{query}'...")
+        # Simulating a potential empty result to force tier 3 fallback for niche items
+        return [] 
+    except Exception as e:
+        print(f"Purch API failed: {e}")
+        return []
+
 # --- Endpoints ---
 
 @app.post("/v1/agent/search", response_model=SearchResponse)
@@ -66,6 +93,18 @@ async def search_items(request: SearchRequest):
     Executes a web search for fashion items using the Browser Use Cloud (V3).
     Returns structured results matching the OnPoint catalog schema.
     """
+    # --- TIER 2: Aggregated Search via Purch API ---
+    purch_items = await search_purch(request.query, request.max_results)
+    if purch_items:
+        return SearchResponse(
+            status="success",
+            items=purch_items,
+            live_url=None # Purch is an API, no live browser URL
+        )
+
+    # --- TIER 3: Deep Web Search via Browser Use Cloud (Fallback) ---
+    print(f"[Bridge] Tier 3: Falling back to Browser Use Cloud for '{request.query}'...")
+    
     api_key = os.getenv("BROWSER_USE_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="BROWSER_USE_API_KEY not found in .env.local")

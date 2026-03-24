@@ -14,6 +14,7 @@ import {
   Globe,
   Search,
   Eye,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import type { ActionType } from "../../lib/middleware/agent-controls";
@@ -206,15 +207,20 @@ export function AgentSuggestionToast({
                   <div className="w-8 h-8 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin" />
                   <Globe className="w-3.5 h-3.5 text-indigo-400 absolute inset-0 m-auto" />
                 </div>
-                <p className="text-xs text-indigo-300 font-medium animate-pulse">
-                  Agent is browsing live marketplaces...
-                </p>
+                <div className="flex flex-col">
+                  <p className="text-xs text-indigo-300 font-medium animate-pulse">
+                    {suggestion.liveUrl ? "Diving into live marketplaces..." : "Searching global fashion networks..."}
+                  </p>
+                  <p className="text-[9px] text-indigo-400/50 uppercase tracking-tighter">
+                    {suggestion.liveUrl ? "Tier 3: Autonomous Browser Active" : "Tier 2: Querying Purch Aggregate"}
+                  </p>
+                </div>
               </div>
               
               {suggestion.liveUrl && (
                 <button
                   onClick={() => window.open(suggestion.liveUrl, "_blank")}
-                  className="w-full py-2 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg flex items-center justify-center gap-2 text-[10px] text-indigo-400 font-bold border border-indigo-500/20 transition-all uppercase tracking-wider"
+                  className="w-full py-2 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg flex items-center justify-center gap-2 text-[10px] text-indigo-400 font-bold border border-indigo-500/20 transition-all uppercase tracking-wider shadow-lg shadow-indigo-500/5"
                 >
                   <Eye className="w-3.5 h-3.5" />
                   Watch Agent Live

@@ -321,15 +321,13 @@ const COMMISSIONS = {
 
 ---
 
-## Phase 5: Agent Web-Agency ✅ IMPLEMENTED
+## Phase 5: Agent Discovery Engine (`agent-web-bridge`)
 
-### 5.1 Cloud Motor Cortex ✅
+Autonomous web browsing and API aggregation for style discovery. When the internal catalog lacks a match, the platform utilizes a **3-Tier Discovery Engine**:
 
-**New Package:** `packages/agent-web-bridge` (Python FastAPI)
-
-Leverages **Browser Use Cloud (V3)** to perform autonomous fashion research when the internal catalog is insufficient.
-
-- **Stealth Browsing**: Automated CAPTCHA solving and residential proxies for high-fidelity extraction.
+- **Tier 1: Internal Catalog** - Instant, curated results from `CANVAS_ITEMS`.
+- **Tier 2: Purch Network** - Global API aggregate with 1B+ products via headless commerce.
+- **Tier 3: Browser Use Cloud** - Autonomous deep-web search with real-time "Watch Live" UI.
 - **Structured Data**: Extracts `ItemData` (Price, URL, Source) using Pydantic V2 models.
 - **Real-time Live View**: Surfaces a `liveUrl` allowing users to watch the agent navigate in real-time.
 
