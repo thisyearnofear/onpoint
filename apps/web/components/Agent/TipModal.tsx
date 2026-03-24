@@ -17,6 +17,7 @@ import {
 } from "wagmi";
 import { parseEther, type Address } from "viem";
 import { celo } from "viem/chains";
+import { AGENT_WALLET } from "../../config/chains";
 
 interface TipSheetProps {
   isOpen: boolean;
@@ -89,10 +90,9 @@ function getTipConfig(score?: number) {
 }
 
 /**
- * Default agent wallet (same as PLATFORM_WALLET from chains config).
+ * Default agent wallet (from chains config).
  */
-const DEFAULT_AGENT_ADDRESS =
-  "0x05f012C12123D69E8324A251ae7D15A92C4549c1" as Address;
+const DEFAULT_AGENT_ADDRESS = AGENT_WALLET;
 
 /**
  * TipSheet - Bottom sheet for post-session tipping

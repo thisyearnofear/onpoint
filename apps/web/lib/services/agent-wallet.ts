@@ -100,12 +100,25 @@ interface TransactionResult {
 // Fallback: resolve from env var
 // ============================================
 
+function deriveAddressFromKey(privateKey: string): string | null {
+  try {
+    const { privateKeyToAccount } = require("viem/accounts");
+    const pk = privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`;
+    const account = privateKeyToAccount(pk as `0x${string}`);
+    return account.address;
+  } catch {
+    return null;
+  }
+}
+
 function getFallbackAddresses(): Record<string, string> {
+  // Prefer explicit AGENT_WALLET_ADDRESS, then derive from AGENT_PRIVATE_KEY
   const addr =
     process.env.AGENT_WALLET_ADDRESS ||
-    // If AGENT_PRIVATE_KEY is set, derive address from it in production
-    // For demo/hackathon, use a known address for display
-    "0x05f012C12123D69E8324A251ae7D15A92C4549c1";
+    (process.env.AGENT_PRIVATE_KEY
+      ? deriveAddressFromKey(process.env.AGENT_PRIVATE_KEY)
+      : null) ||
+    "0xC9A025Fb607b455308bCb6f35a0F484f016C776b";
   return {
     celo: addr,
     base: addr,

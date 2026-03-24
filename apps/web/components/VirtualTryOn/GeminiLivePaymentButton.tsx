@@ -18,10 +18,10 @@ import {
   AlertCircle,
   CreditCard,
 } from "lucide-react";
-import { celo, celoSepolia } from "../../config/chains";
+import { celo, celoSepolia, AGENT_WALLET } from "../../config/chains";
 
 // OnPoint's receiving wallet for Gemini Live payments
-const RECIPIENT_ADDRESS = "0xdb65806c994C3f55079a6136a8E0886CbB2B64B1";
+const RECIPIENT_ADDRESS = AGENT_WALLET;
 
 interface GeminiLivePaymentButtonProps {
   onSuccess: (sessionToken: string) => void;

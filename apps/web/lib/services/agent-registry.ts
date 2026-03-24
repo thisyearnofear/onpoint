@@ -79,7 +79,7 @@ const ONPOINT_AGENT: AgentIdentity = {
   name: "OnPoint AI Stylist",
   walletAddress:
     process.env.AGENT_WALLET_ADDRESS ||
-    "0x2C4FAa0Bbb141344829978B1E697b29756795991",
+    "0xC9A025Fb607b455308bCb6f35a0F484f016C776b",
   registryAddress: AGENT_REGISTRY_ADDRESS,
   registrationTxHash:
     "0x04034211a79a65c701d1362359dace27b4f5f0588b515bb344c2331f77f1e555",

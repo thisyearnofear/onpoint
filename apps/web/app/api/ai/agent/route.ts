@@ -337,7 +337,7 @@ Return ONLY valid JSON, no other text.`,
         metadata: {
           styleTitle: args.style_title,
           reason: args.reason,
-          contract: "0xdb65806c994C3f55079a6136a8E0886CbB2B64B1",
+          contract: "0x8e0a3BcF07Ec8133408A3837DD2DCe398A42f576",
           chain: "celo",
           royaltySplit: args.royalty_split || "85/10/3/2",
           suggestionId: suggestion.suggestion?.id,
@@ -349,7 +349,7 @@ Return ONLY valid JSON, no other text.`,
         executed: true,
         suggestion_id: suggestion.suggestion?.id,
         auto_executed: suggestion.autoExecuted,
-        contract: "0xdb65806c994C3f55079a6136a8E0886CbB2B64B1",
+        contract: "0x8e0a3BcF07Ec8133408A3837DD2DCe398A42f576",
         chain: "celo",
         royalty_split: args.royalty_split || "85/10/3/2",
         style_title: args.style_title,
@@ -523,7 +523,7 @@ ${catalogSummary}
 
 ## Blockchain Context
 - Chain: Celo (EVM L2, low-cost transactions)
-- NFT Contract: 0xdb65806c994C3f55079a6136a8E0886CbB2B64B1
+- NFT Contract: 0x8e0a3BcF07Ec8133408A3837DD2DCe398A42f576
 - Currency: cUSD (Celo Dollar stablecoin)
 - Commission Split: 85% creator / 10% platform / 3% affiliate / 2% agent
 - Agent Wallet: Self-custodial via Tether WDK
@@ -682,7 +682,7 @@ async function runAgentLoop(
         autoTriggered: true,
         score: styleScore,
         reason: "Score >= 8 threshold met",
-        contract: "0xdb65806c994C3f55079a6136a8E0886CbB2B64B1",
+        contract: "0x8e0a3BcF07Ec8133408A3837DD2DCe398A42f576",
         chain: "celo",
         suggestionId: mintSuggestion.suggestion?.id,
       },

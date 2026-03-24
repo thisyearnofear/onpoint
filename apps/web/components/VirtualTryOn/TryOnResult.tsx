@@ -152,10 +152,14 @@ export function TryOnResult({
   }, [structuredTips]);
 
   const handleShare = async () => {
-    const shareText = `Just tried on this amazing look with BeOnPoint! 🔥 #BeOnPoint #Fashion #AI`;
+    // Include capture image via IPFS embed
+    const imageUrl = `data:image/webp;base64,${image}`;
+    const shareText = description
+      ? `Just tried on this look with BeOnPoint! ${description} 🔥 #BeOnPoint #Fashion #AI`
+      : `Just tried on this amazing look with BeOnPoint! 🔥 #BeOnPoint #Fashion #AI`;
 
     const success = await SocialUtils.shareContent(
-      { text: shareText },
+      { text: shareText, imageDataUrl: imageUrl },
       context,
     );
 

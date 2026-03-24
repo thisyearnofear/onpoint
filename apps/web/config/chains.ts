@@ -17,13 +17,23 @@ export type ChainName =
 // Platform Wallets
 // ============================================
 
-/** Platform fee wallet - receives 15% of NFT sales */
-export const PLATFORM_WALLET =
-  "0x05f012C12123D69E8324A251ae7D15A92C4549c1" as Address;
-
-/** Agent wallet for AI Stylist operations */
+/**
+ * Agent wallet — signs all agent-initiated transactions (mint, tips, purchases).
+ * Also receives platform fees (15% of NFT sales).
+ *
+ * Private key lives in AGENT_PRIVATE_KEY env var (server-side only).
+ * This address is derived from that key. To rotate, generate a new keypair
+ * and update both this address and AGENT_PRIVATE_KEY in .env.local.
+ */
 export const AGENT_WALLET =
-  "0x05f012C12123D69E8324A251ae7D15A92C4549c1" as Address;
+  "0xC9A025Fb607b455308bCb6f35a0F484f016C776b" as Address;
+
+/** @deprecated Platform fee wallet — now routed to AGENT_WALLET */
+export const PLATFORM_WALLET = AGENT_WALLET;
+
+// OnPointNFT contract — deployed 2026-03-24, owned by AGENT_WALLET
+const ONPOINT_NFT_MAINNET =
+  "0x8e0a3BcF07Ec8133408A3837DD2DCe398A42f576" as Address;
 
 export const base = {
   id: 8453,
@@ -80,7 +90,7 @@ export const celo = {
       address: "0x765DE8164458C172EE097029dfb482Ff182ad001",
     },
     OnPointNFT: {
-      address: "0xdb65806c994C3f55079a6136a8E0886CbB2B64B1",
+      address: "0x8e0a3BcF07Ec8133408A3837DD2DCe398A42f576",
     },
   },
   testnet: false,
@@ -205,7 +215,7 @@ export const TOKEN_ADDRESSES = {
 } as const;
 
 export const NFT_CONTRACTS = {
-  celo: "0xdb65806c994C3f55079a6136a8E0886CbB2B64B1" as Address,
+  celo: "0x8e0a3BcF07Ec8133408A3837DD2DCe398A42f576" as Address,
   celoSepolia: null, // Redeploy OnPointNFT on Sepolia and update
   base: null,
   ethereum: null,

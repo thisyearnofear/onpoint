@@ -7,6 +7,7 @@ import {
   rateLimitHeaders,
   getClientId,
 } from "../../../../lib/utils/rate-limit";
+import { AGENT_WALLET, NFT_CONTRACTS } from "../../../../config/chains";
 
 type AIProvider = "venice" | "gemini";
 
@@ -133,7 +134,7 @@ export async function POST(request: NextRequest) {
               },
             ],
       celoContracts: {
-        nft: "0xdb65806c994C3f55079a6136a8E0886CbB2B64B1",
+        nft: NFT_CONTRACTS.celo,
         cUSD: "0x765DE8164458C172EE097029dfb482Ff182ad001",
       },
     };
@@ -261,7 +262,7 @@ export async function POST(request: NextRequest) {
             paymentInfo: {
               currency: "CELO",
               amount: "0.5",
-              recipient: "0xdb65806c994C3f55079a6136a8E0886CbB2B64B1",
+              recipient: AGENT_WALLET,
             },
           },
           { status: 402, headers: corsHeaders(origin) },

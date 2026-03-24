@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { corsHeaders } from "../_utils/http";
 import { createPublicClient, http, formatEther } from "viem";
-import { celo, celoSepolia } from "../../../../config/chains";
+import { celo, celoSepolia, AGENT_WALLET } from "../../../../config/chains";
 import {
   rateLimit,
   RateLimits,
@@ -12,7 +12,7 @@ import { createSessionToken } from "../../../../lib/utils/session-token";
 import type { SessionTokenPayload } from "../../../../lib/utils/session-token";
 
 // Payment recipient address (OnPoint's wallet)
-const RECIPIENT_ADDRESS = "0xdb65806c994C3f55079a6136a8E0886CbB2B64B1";
+const RECIPIENT_ADDRESS = AGENT_WALLET;
 
 // Minimum payment amount in CELO (0.4 CELO to account for slight variations)
 const MIN_PAYMENT_CELO = 0.4;
