@@ -1,0 +1,7 @@
+# Blocked packages - Security Risk
+# These packages have been associated with security vulnerabilities
+# or malicious code injection. Do not install.
+
+# litellm - compromised with litellm_init.pth malware (2026-03-24)
+# Contains base64-encoded credential exfiltration code
+litellm

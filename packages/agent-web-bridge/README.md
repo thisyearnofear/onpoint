@@ -20,6 +20,10 @@ The bridge implements a high-performance tiered search to balance speed, cost, a
 
 1. **Install Dependencies**:
    ```bash
+   # Recommended: Use the safe install wrapper (checks security blocklist)
+   ./scripts/safe-pip-install.sh -r requirements.txt
+
+   # Or direct pip install
    pip install -r requirements.txt
    ```
 
@@ -30,6 +34,31 @@ The bridge implements a high-performance tiered search to balance speed, cost, a
    ```bash
    python main.py
    ```
+
+## Security
+
+### Blocked Packages
+
+This project maintains a security blocklist (`.pip-blocklist.txt`) of packages known to contain malicious code.
+
+**Currently Blocked:**
+- `litellm` - Compromised with credential exfiltration malware (2026-03-24)
+
+### Security Audit
+
+Run the security audit after any dependency changes:
+
+```bash
+python security_audit.py
+```
+
+### Safe Installation
+
+Always use the safe install wrapper to prevent blocked packages:
+
+```bash
+./scripts/safe-pip-install.sh <package-name>
+```
 
 ## API
 

@@ -1,5 +1,14 @@
-fastapi
-uvicorn
-pydantic
-browser-use-sdk
-python-dotenv
+# OnPoint Agent Web-Bridge Dependencies
+# All versions are pinned for security and reproducibility
+# Run 'pip install --upgrade -r requirements.txt' to update
+
+# Core framework
+fastapi==0.135.2
+uvicorn[standard]==0.42.0
+pydantic==2.12.5
+
+# Browser automation (transitive deps include httpx, anyio, etc.)
+browser-use-sdk==3.3.1
+
+# Environment variables
+python-dotenv==1.2.2
