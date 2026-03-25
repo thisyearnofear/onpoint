@@ -97,6 +97,11 @@ export interface AgentSuggestion {
   createdAt: number;
   expiresAt: number;
   autoApprovable: boolean; // True if below autonomy threshold
+  // External purchase metadata (for web bridge integration)
+  source?: string; // Domain (e.g., "farfetch.com")
+  externalUrl?: string; // Product page URL
+  liveUrl?: string; // Browser session URL (Browser Use Cloud)
+  isSearching?: boolean; // Loading state for async external actions
 }
 
 // ============================================

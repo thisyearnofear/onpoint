@@ -6,6 +6,7 @@ from browser_use_sdk.v3 import AsyncBrowserUse
 import os
 from dotenv import load_dotenv
 import asyncio
+from purch_client import PurchClient, PurchProduct
 
 # Load the environment variables from the web app's .env.local
 # This is where the USER specified BROWSER_USE_API_KEY is located.
@@ -68,22 +69,38 @@ async def search_purch(query: str, max_results: int = 3) -> List[ItemData]:
     """
     Tier 2: Search via Purch API (Headless Aggregate).
     Faster and more reliable for common items.
+    Returns [] if no results found (triggers Tier 3 fallback).
     """
+    client = PurchClient(api_key=os.getenv("PURCH_API_KEY"))
+    
     try:
-        # Note: Purch uses X402 protocol / micropayments. 
-        # For now we use the public search if available or a mock for demo.
-        # In production, this would be: 
-        # response = await httpx.post(PURCH_API_URL, json={"query": query})
-        
-        # Placeholder for Purch API Integration
-        # return [ItemData(**item) for item in response.json()['items']]
-        
         print(f"[Bridge] Tier 2: Querying Purch API for '{query}'...")
-        # Simulating a potential empty result to force tier 3 fallback for niche items
-        return [] 
+        products = await client.search(query, max_results)
+        
+        if not products:
+            print("[Bridge] Tier 2: No results from Purch")
+            return []
+        
+        # Map to ItemData (your existing schema)
+        print(f"[Bridge] Tier 2: Found {len(products)} products from Purch")
+        return [
+            ItemData(
+                source=p.source,
+                name=p.title,
+                price=p.price,
+                currency="USD",
+                url=p.source_url or f"https://purch.xyz/product/{p.asin}",
+                image_url=p.image_url
+            )
+            for p in products
+        ]
+    
     except Exception as e:
-        print(f"Purch API failed: {e}")
-        return []
+        print(f"[Bridge] Tier 2: Purch API failed: {e}")
+        return []  # Fallback to Tier 3
+    
+    finally:
+        await client.close()
 
 # --- Endpoints ---
 

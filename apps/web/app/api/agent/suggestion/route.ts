@@ -5,6 +5,9 @@
  * Supports autonomous execution for amounts below threshold.
  *
  * For the Tether Hackathon Galactica - Agent Wallets Track
+ *
+ * Authentication: Required for all operations
+ * Rate Limiting: 60 req/min (free), 500 req/min (premium)
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -15,6 +18,7 @@ import {
   type ActionType,
 } from "../../../../lib/middleware/agent-controls";
 import { corsHeaders } from "../../ai/_utils/http";
+import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 
 // Request schemas
 const CreateSuggestionSchema = z.object({
@@ -30,147 +34,165 @@ const UpdateSuggestionSchema = z.object({
   action: z.enum(["accept", "reject"]),
 });
 
-// GET - List suggestions
+// GET - List suggestions (requires auth)
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const origin = request.headers.get("origin") ?? undefined;
-  const url = new URL(request.url);
-  const id = url.searchParams.get("id");
-  const agentId = url.searchParams.get("agentId") || "onpoint-stylist";
-
-  await AgentControls.initStore(agentId);
-
-  try {
-    if (id) {
-      const suggestion = AgentControls.getSuggestion(id);
-
-      if (!suggestion) {
-        return NextResponse.json(
-          { error: "Suggestion not found" },
-          { status: 404, headers: corsHeaders(origin) },
-        );
-      }
-
-      return NextResponse.json(
-        { suggestion },
-        { status: 200, headers: corsHeaders(origin) },
-      );
-    } else {
-      const pendingSuggestions = AgentControls.getPendingSuggestions(agentId);
-
-      return NextResponse.json(
-        { suggestions: pendingSuggestions },
-        { status: 200, headers: corsHeaders(origin) },
-      );
-    }
-  } catch (error) {
-    console.error("Suggestion GET error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500, headers: corsHeaders(origin) },
-    );
-  }
-}
-
-// POST - Create suggestion
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  const origin = request.headers.get("origin") ?? undefined;
-
-  try {
-    const body = await request.json();
-    const parsed = CreateSuggestionSchema.safeParse(body);
-
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.message },
-        { status: 400, headers: corsHeaders(origin) },
-      );
-    }
-
-    const { actionType, amount, description, recipient, agentId } = parsed.data;
+  return requireAuthWithRateLimit(async (req, ctx) => {
+    const origin = req.headers.get("origin") ?? undefined;
+    const url = new URL(req.url);
+    const id = url.searchParams.get("id");
+    // Use authenticated user's ID for agentId if not specified
+    const agentId = url.searchParams.get("agentId") || ctx.agentId;
 
     await AgentControls.initStore(agentId);
 
-    // Use suggestAction which handles autonomy threshold
-    const result = AgentControls.suggestAction({
-      agentId,
-      actionType: actionType as ActionType,
-      amount,
-      description,
-      recipient,
-    });
+    try {
+      if (id) {
+        const suggestion = AgentControls.getSuggestion(id);
 
-    return NextResponse.json(
-      {
-        suggestion: result.suggestion,
-        autoExecuted: result.autoExecuted,
-        message: result.autoExecuted
-          ? "Action auto-approved (below autonomy threshold)"
-          : "Suggestion created - awaiting user approval",
-      },
-      { status: 201, headers: corsHeaders(origin) },
-    );
-  } catch (error) {
-    console.error("Suggestion POST error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500, headers: corsHeaders(origin) },
-    );
-  }
+        if (!suggestion) {
+          return NextResponse.json(
+            { error: "Suggestion not found" },
+            { status: 404, headers: corsHeaders(origin) },
+          );
+        }
+
+        // Verify user owns this suggestion
+        if (suggestion.agentId !== agentId) {
+          return NextResponse.json(
+            { error: "Access denied" },
+            { status: 403, headers: corsHeaders(origin) },
+          );
+        }
+
+        return NextResponse.json(
+          { suggestion },
+          { status: 200, headers: corsHeaders(origin) },
+        );
+      } else {
+        const pendingSuggestions = AgentControls.getPendingSuggestions(agentId);
+
+        return NextResponse.json(
+          { suggestions: pendingSuggestions },
+          { status: 200, headers: corsHeaders(origin) },
+        );
+      }
+    } catch (error) {
+      console.error("Suggestion GET error:", error);
+      return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500, headers: corsHeaders(origin) },
+      );
+    }
+  })(request);
 }
 
-// PATCH - Accept or reject suggestion
-export async function PATCH(request: NextRequest): Promise<NextResponse> {
-  const origin = request.headers.get("origin") ?? undefined;
+// POST - Create suggestion (requires auth)
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  return requireAuthWithRateLimit(async (req, ctx) => {
+    const origin = req.headers.get("origin") ?? undefined;
 
-  try {
-    const body = await request.json();
-    const parsed = UpdateSuggestionSchema.safeParse(body);
+    try {
+      const body = await req.json();
+      const parsed = CreateSuggestionSchema.safeParse(body);
 
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.message },
-        { status: 400, headers: corsHeaders(origin) },
-      );
-    }
-
-    const { id, action } = parsed.data;
-
-    // Ensure store is hydrated (load suggestion if not in memory)
-    if (!AgentControls.getSuggestion(id)) {
-      const stored = await loadSuggestionFromStore(id);
-      if (stored) {
-        await AgentControls.initStore(stored.agentId);
+      if (!parsed.success) {
+        return NextResponse.json(
+          { error: parsed.error.message },
+          { status: 400, headers: corsHeaders(origin) },
+        );
       }
-    }
 
-    let success: boolean;
+      const { actionType, amount, description, recipient, agentId } = parsed.data;
 
-    if (action === "accept") {
-      success = AgentControls.acceptSuggestion(id);
-    } else {
-      success = AgentControls.rejectSuggestion(id);
-    }
+      // Use authenticated agentId if not provided
+      const effectiveAgentId = agentId || ctx.agentId;
 
-    if (!success) {
+      await AgentControls.initStore(effectiveAgentId);
+
+      // Use suggestAction which handles autonomy threshold
+      const result = AgentControls.suggestAction({
+        agentId: effectiveAgentId,
+        actionType: actionType as ActionType,
+        amount,
+        description,
+        recipient,
+      });
+
       return NextResponse.json(
-        { error: "Failed to update suggestion" },
-        { status: 400, headers: corsHeaders(origin) },
+        {
+          suggestion: result.suggestion,
+          autoExecuted: result.autoExecuted,
+          message: result.autoExecuted
+            ? "Action auto-approved (below autonomy threshold)"
+            : "Suggestion created - awaiting user approval",
+        },
+        { status: 201, headers: corsHeaders(origin) },
+      );
+    } catch (error) {
+      console.error("Suggestion POST error:", error);
+      return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500, headers: corsHeaders(origin) },
       );
     }
+  })(request);
+}
 
-    const updatedSuggestion = AgentControls.getSuggestion(id);
+// PATCH - Accept or reject suggestion (requires auth)
+export async function PATCH(request: NextRequest): Promise<NextResponse> {
+  return requireAuthWithRateLimit(async (req, ctx) => {
+    const origin = req.headers.get("origin") ?? undefined;
 
-    return NextResponse.json(
-      { suggestion: updatedSuggestion },
-      { status: 200, headers: corsHeaders(origin) },
-    );
-  } catch (error) {
-    console.error("Suggestion PATCH error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500, headers: corsHeaders(origin) },
-    );
-  }
+    try {
+      const body = await req.json();
+      const parsed = UpdateSuggestionSchema.safeParse(body);
+
+      if (!parsed.success) {
+        return NextResponse.json(
+          { error: parsed.error.message },
+          { status: 400, headers: corsHeaders(origin) },
+        );
+      }
+
+      const { id, action } = parsed.data;
+
+      // Ensure store is hydrated (load suggestion if not in memory)
+      if (!AgentControls.getSuggestion(id)) {
+        const stored = await loadSuggestionFromStore(id);
+        if (stored) {
+          await AgentControls.initStore(stored.agentId);
+        }
+      }
+
+      let success: boolean;
+
+      if (action === "accept") {
+        success = AgentControls.acceptSuggestion(id);
+      } else {
+        success = AgentControls.rejectSuggestion(id);
+      }
+
+      if (!success) {
+        return NextResponse.json(
+          { error: "Failed to update suggestion" },
+          { status: 400, headers: corsHeaders(origin) },
+        );
+      }
+
+      const updatedSuggestion = AgentControls.getSuggestion(id);
+
+      return NextResponse.json(
+        { suggestion: updatedSuggestion },
+        { status: 200, headers: corsHeaders(origin) },
+      );
+    } catch (error) {
+      console.error("Suggestion PATCH error:", error);
+      return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500, headers: corsHeaders(origin) },
+      );
+    }
+  })(request);
 }
 
 // OPTIONS - CORS preflight

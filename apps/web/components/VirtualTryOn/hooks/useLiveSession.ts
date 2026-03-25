@@ -641,7 +641,6 @@ export function useLiveSession() {
         actionType: "external_search" as ActionType,
         amount: "Searching Web...",
         description: `I observed: "${contextSnippet}". Browsing live stores for ${itemType}...`,
-        // @ts-ignore - added to interface in previous steps
         isSearching: true, 
       }).then(async (data) => {
         const suggestionId = data.suggestion.id;

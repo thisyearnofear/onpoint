@@ -20,6 +20,7 @@ import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import { corsHeaders } from "../../ai/_utils/http";
 import { PLATFORM_WALLET, getExplorerUrl } from "../../../../config/chains";
 import { getAgentWallet } from "../../../../lib/services/agent-wallet";
+import { requireAuthWithRateLimit, type AgentAuthContext } from "../../../../middleware/agent-auth";
 
 // Product catalog - maps CANVAS_ITEMS to purchase-ready format
 const PRODUCTS: Record<
@@ -119,17 +120,12 @@ export async function POST(
         if (suggestion) {
           suggestion.description = `Found on web: ${item.name}`;
           suggestion.amount = `$${item.price} cUSD`;
-          // @ts-ignore
           suggestion.source = item.source;
-          // @ts-ignore
           suggestion.externalUrl = item.url;
-          // @ts-ignore
           suggestion.isSearching = false;
-          // @ts-ignore
           suggestion.liveUrl = result.data.live_url;
           
           // Re-persist the updated suggestion
-          // @ts-ignore - access to internal suggestion store requires extending the middleware export
           AgentControls.createSuggestion(suggestion); 
         }
 
@@ -309,7 +305,7 @@ export async function POST(
   }
 }
 
-// GET endpoint to list available products
+// GET endpoint to list available products - public (no auth needed for catalog browsing)
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const origin = request.headers.get("origin") ?? undefined;
   const url = new URL(request.url);

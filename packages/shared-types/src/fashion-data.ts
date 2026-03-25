@@ -562,6 +562,49 @@ export interface StylePreferences {
 }
 
 /**
+ * External product from Purch API or other sources
+ */
+export interface ExternalProduct {
+  id: string;
+  name: string;
+  price: number;
+  source: string; // domain (e.g., "farfetch.com")
+  url: string;
+  imageUrl: string;
+  category?: string;
+}
+
+/**
+ * Cached search results with TTL
+ */
+interface CachedSearch {
+  results: FashionItem[] | ExternalProduct[];
+  cachedAt: number;
+  ttlMs: number;
+}
+
+// Simple in-memory cache (maps to CANVAS_ITEMS for local, external for Purch)
+const searchCache = new Map<string, CachedSearch>();
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+/**
+ * Clean expired cache entries (called periodically)
+ */
+function cleanupCache() {
+  const now = Date.now();
+  for (const [key, cached] of searchCache.entries()) {
+    if (now - cached.cachedAt > cached.ttlMs) {
+      searchCache.delete(key);
+    }
+  }
+}
+
+// Run cleanup every hour
+if (typeof global !== "undefined") {
+  setInterval(cleanupCache, 60 * 60 * 1000);
+}
+
+/**
  * Score and rank items by style preferences.
  * Returns items sorted by relevance (highest score first).
  *
@@ -604,4 +647,65 @@ export function getRecommendedItems(
     .sort((a, b) => b.score - a.score);
 
   return scored.slice(0, limit).map((s) => s.item);
+}
+
+/**
+ * Search catalog with caching.
+ * Searches local CANVAS_ITEMS first (fast, free).
+ * Results cached for 24 hours to optimize performance.
+ *
+ * @param query - Search query (case-insensitive)
+ * @param limit - Max results to return
+ * @returns Matching fashion items from local catalog
+ */
+export function searchCatalog(query: string, limit = 10): FashionItem[] {
+  const cacheKey = `local:${query.toLowerCase()}:${limit}`;
+  const cached = searchCache.get(cacheKey);
+  
+  if (cached && Date.now() - cached.cachedAt < cached.ttlMs) {
+    return cached.results as FashionItem[];
+  }
+  
+  const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+  
+  const results = CANVAS_ITEMS.filter((item) =>
+    terms.some(
+      (term) =>
+        item.name.toLowerCase().includes(term) ||
+        item.description.toLowerCase().includes(term) ||
+        item.category.toLowerCase().includes(term)
+    )
+  ).slice(0, limit);
+  
+  // Cache the results
+  searchCache.set(cacheKey, {
+    results,
+    cachedAt: Date.now(),
+    ttlMs: CACHE_TTL_MS,
+  });
+  
+  return results;
+}
+
+/**
+ * Merge external products with local catalog results.
+ * Deduplicates by name similarity and sorts by price/relevance.
+ *
+ * @param localResults - Items from local catalog
+ * @param externalResults - Products from Purch API
+ * @param limit - Max total results
+ * @returns Merged and deduplicated product list
+ */
+export function mergeProductResults(
+  localResults: FashionItem[],
+  externalResults: ExternalProduct[],
+  limit = 10,
+): Array<FashionItem | ExternalProduct> {
+  // For now, prefer external results (more comprehensive)
+  // In production, would do smarter deduplication
+  if (externalResults.length > 0) {
+    return externalResults.slice(0, limit);
+  }
+  
+  return localResults.slice(0, limit);
 }

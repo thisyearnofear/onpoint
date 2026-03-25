@@ -10,11 +10,15 @@
  * the agent's confirmed address for the specified chain.
  *
  * For Tether Hackathon Galactica - Tipping Bot Track
+ *
+ * Authentication: Required (tip tracking)
+ * Rate Limiting: 60 req/min (free), 500 req/min (premium)
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { corsHeaders } from "../../ai/_utils/http";
 import { getAgentWallet } from "../../../../lib/services/agent-wallet";
+import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 
 interface TipRequest {
   fromAddress: string;
@@ -61,58 +65,59 @@ async function resolveAgentAddress(chain: string): Promise<string> {
 }
 
 export async function POST(request: NextRequest) {
-  const origin = request.headers.get("origin") || "*";
+  return requireAuthWithRateLimit(async (req, ctx) => {
+    const origin = req.headers.get("origin") || "*";
 
-  try {
-    const body: TipRequest = await request.json();
-    const { fromAddress, amount, chain, token, message } = body;
+    try {
+      const body: TipRequest = await req.json();
+      const { fromAddress, amount, chain, token, message } = body;
 
-    // Validate request
-    if (!fromAddress || !amount || !chain) {
-      return NextResponse.json(
-        {
-          error: "Missing required fields: fromAddress, amount, chain",
-        },
-        { status: 400, headers: corsHeaders(origin) },
-      );
-    }
+      // Validate request
+      if (!fromAddress || !amount || !chain) {
+        return NextResponse.json(
+          {
+            error: "Missing required fields: fromAddress, amount, chain",
+          },
+          { status: 400, headers: corsHeaders(origin) },
+        );
+      }
 
-    // Validate from address
-    if (!fromAddress.startsWith("0x") || fromAddress.length !== 42) {
-      return NextResponse.json(
-        { error: "Invalid fromAddress format" },
-        { status: 400, headers: corsHeaders(origin) },
-      );
-    }
+      // Validate from address
+      if (!fromAddress.startsWith("0x") || fromAddress.length !== 42) {
+        return NextResponse.json(
+          { error: "Invalid fromAddress format" },
+          { status: 400, headers: corsHeaders(origin) },
+        );
+      }
 
-    // Validate amount is positive
-    const amountNum = parseFloat(amount);
-    if (isNaN(amountNum) || amountNum <= 0) {
-      return NextResponse.json(
-        { error: "Amount must be a positive number" },
-        { status: 400, headers: corsHeaders(origin) },
-      );
-    }
+      // Validate amount is positive
+      const amountNum = parseFloat(amount);
+      if (isNaN(amountNum) || amountNum <= 0) {
+        return NextResponse.json(
+          { error: "Amount must be a positive number" },
+          { status: 400, headers: corsHeaders(origin) },
+        );
+      }
 
-    // Resolve agent's WDK wallet address for this chain
-    const agentAddress = await resolveAgentAddress(chain);
-    if (!agentAddress) {
-      return NextResponse.json(
-        { error: "Agent wallet not available. WDK initialization failed." },
-        { status: 503, headers: corsHeaders(origin) },
-      );
-    }
+      // Resolve agent's WDK wallet address for this chain
+      const agentAddress = await resolveAgentAddress(chain);
+      if (!agentAddress) {
+        return NextResponse.json(
+          { error: "Agent wallet not available. WDK initialization failed." },
+          { status: 503, headers: corsHeaders(origin) },
+        );
+      }
 
-    const tipId = `tip_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const tipToken = token || (chain === "celo" ? "cUSD" : "USDT");
+      const tipId = `tip_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const tipToken = token || (chain === "celo" ? "cUSD" : "USDT");
 
-    // Record the tip in the ledger
-    // The actual token transfer happens client-side via wagmi/viem.
-    // The server confirms the agent wallet is ready to receive.
-    const tip = {
-      id: tipId,
-      from: fromAddress,
-      to: agentAddress,
+      // Record the tip in the ledger
+      // The actual token transfer happens client-side via wagmi/viem.
+      // The server confirms the agent wallet is ready to receive.
+      const tip = {
+        id: tipId,
+        from: fromAddress,
+        to: agentAddress,
       amount,
       chain,
       token: tipToken,
@@ -154,34 +159,36 @@ export async function POST(request: NextRequest) {
       { status: 500, headers: corsHeaders(origin) },
     );
   }
+  })(request);
 }
 
 export async function GET(request: NextRequest) {
-  const origin = request.headers.get("origin") || "*";
+  return requireAuthWithRateLimit(async (req, ctx) => {
+    const origin = req.headers.get("origin") || "*";
 
-  try {
-    // Resolve agent WDK addresses for display
-    const wallet = await getAgentWallet();
-    const addresses = await wallet.getAddresses();
+    try {
+      // Resolve agent WDK addresses for display
+      const wallet = await getAgentWallet();
+      const addresses = await wallet.getAddresses();
 
-    // Return tip statistics + agent wallet addresses
-    const totalTips = tipLedger.reduce(
-      (sum, tip) => sum + parseFloat(tip.amount),
-      0,
-    );
-    const tipCount = tipLedger.length;
+      // Return tip statistics + agent wallet addresses
+      const totalTips = tipLedger.reduce(
+        (sum, tip) => sum + parseFloat(tip.amount),
+        0,
+      );
+      const tipCount = tipLedger.length;
 
-    return NextResponse.json(
-      {
-        agent: {
-          name: "OnPoint AI Stylist",
-          addresses,
-          supportedChains: Object.keys(addresses),
+      return NextResponse.json(
+        {
+          agent: {
+            name: "OnPoint AI Stylist",
+            addresses,
+            supportedChains: Object.keys(addresses),
+          },
+          totalTips: totalTips.toString(),
+          tipCount,
+          recentTips: tipLedger.slice(-10).reverse(),
         },
-        totalTips: totalTips.toString(),
-        tipCount,
-        recentTips: tipLedger.slice(-10).reverse(),
-      },
       { headers: corsHeaders(origin) },
     );
   } catch (error) {
@@ -191,6 +198,7 @@ export async function GET(request: NextRequest) {
       { status: 500, headers: corsHeaders(origin) },
     );
   }
+  })(request);
 }
 
 export async function OPTIONS(request: NextRequest) {
