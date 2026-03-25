@@ -11,9 +11,8 @@ module.exports = {
   apps: [
     {
       name: 'onpoint-api',
-      cwd: '/opt/onpoint/apps/api',
-      script: 'node',
-      args: 'server.js',
+      cwd: '/opt/onpoint/api',
+      script: 'server.js',
       instances: 2, // Use both CPU cores
       exec_mode: 'cluster',
       autorestart: true,
@@ -34,8 +33,8 @@ module.exports = {
     },
     {
       name: 'onpoint-bridge',
-      cwd: '/opt/onpoint/packages/agent-web-bridge',
-      script: '/opt/onpoint/packages/agent-web-bridge/venv/bin/python',
+      cwd: '/opt/onpoint-agent-bridge',
+      script: '/opt/onpoint-agent-bridge/venv/bin/python',
       args: 'main.py',
       instances: 1,
       exec_mode: 'fork',
