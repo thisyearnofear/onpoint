@@ -13,6 +13,7 @@ import {
   Clock,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
+import { fetchAgentApi } from "../../lib/utils/agent-api";
 
 export type ActionType =
   | "tip"
@@ -234,7 +235,7 @@ export function useAgentApproval() {
     recipient?: string;
   }): Promise<string | null> => {
     // Call the approval API
-    const response = await fetch("/api/agent/approval", {
+    const response = await fetchAgentApi("/api/agent/approval", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(params),
@@ -254,7 +255,7 @@ export function useAgentApproval() {
     // Poll for approval status
     return new Promise((resolve) => {
       const pollInterval = setInterval(async () => {
-        const statusResponse = await fetch(
+        const statusResponse = await fetchAgentApi(
           `/api/agent/approval?id=${request.id}`,
         );
         if (statusResponse.ok) {
@@ -290,7 +291,7 @@ export function useAgentApproval() {
   };
 
   const approveRequest = async (requestId: string) => {
-    const response = await fetch("/api/agent/approval", {
+    const response = await fetchAgentApi("/api/agent/approval", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: requestId, action: "approve" }),
@@ -302,7 +303,7 @@ export function useAgentApproval() {
   };
 
   const rejectRequest = async (requestId: string) => {
-    const response = await fetch("/api/agent/approval", {
+    const response = await fetchAgentApi("/api/agent/approval", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: requestId, action: "reject" }),

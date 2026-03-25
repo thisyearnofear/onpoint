@@ -18,6 +18,7 @@ import {
 import { parseEther, type Address } from "viem";
 import { celo } from "viem/chains";
 import { AGENT_WALLET } from "../../config/chains";
+import { fetchAgentApi } from "../../lib/utils/agent-api";
 
 interface TipSheetProps {
   isOpen: boolean;
@@ -135,7 +136,7 @@ export function TipSheet({
     if (isConfirmed && hash && sentAmount && connectedAddress) {
       setTxHash(hash);
       // Fire-and-forget: record the confirmed tip on the server
-      fetch("/api/agent/tip", {
+      fetchAgentApi("/api/agent/tip", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

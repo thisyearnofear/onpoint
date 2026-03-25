@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import type { ActionType } from "../../lib/middleware/agent-controls";
+import { fetchAgentApi } from "../../lib/utils/agent-api";
 
 export interface AgentSuggestion {
   id: string;
@@ -294,7 +295,7 @@ export function useAgentSuggestions(agentId: string = "onpoint-stylist") {
   useEffect(() => {
     const pollSuggestions = async () => {
       try {
-        const response = await fetch(
+        const response = await fetchAgentApi(
           `/api/agent/suggestion?agentId=${agentId}`,
         );
         if (response.ok) {
@@ -325,7 +326,7 @@ export function useAgentSuggestions(agentId: string = "onpoint-stylist") {
   }, [agentId, currentSuggestion]);
 
   const acceptSuggestion = async (id: string) => {
-    const response = await fetch("/api/agent/suggestion", {
+    const response = await fetchAgentApi("/api/agent/suggestion", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, action: "accept" }),
@@ -337,7 +338,7 @@ export function useAgentSuggestions(agentId: string = "onpoint-stylist") {
   };
 
   const rejectSuggestion = async (id: string) => {
-    const response = await fetch("/api/agent/suggestion", {
+    const response = await fetchAgentApi("/api/agent/suggestion", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, action: "reject" }),
@@ -354,7 +355,7 @@ export function useAgentSuggestions(agentId: string = "onpoint-stylist") {
     description: string;
     recipient?: string;
   }) => {
-    const response = await fetch("/api/agent/suggestion", {
+    const response = await fetchAgentApi("/api/agent/suggestion", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...params, agentId }),
