@@ -285,6 +285,26 @@ Without affiliate/agent refs, their share rolls to platform (not lost to roundin
 
 30-second cooldown between suggestions, item-type dedup, 15-second warmup. Prevents the AI from spamming the user with toasts during live sessions. The AI is powerful — the UX must constrain it.
 
+### 7. Verifiable Agent Logs (Hackathon Frontier)
+
+Every agent decision is cryptographically signed and stored on IPFS/Filecoin, providing a tamper-proof audit trail for autonomous actions.
+
+- **Agent Signing**: Self-custodial signing via Tether WDK wallet
+- **Decentralized Storage**: Signed logs persisted to IPFS via Lighthouse (Filecoin)
+- **Verifiable UI**: One-click "View on IPFS" receipts for every agent suggestion
+
+---
+
+## Hackathons
+
+### [Tether Hackathon Galactica: WDK Edition 1](https://dorahacks.io/hackathon/hackathon-galactica-wdk-2026-01/detail)
+**Track: Agent Wallets (WDK/Openclaw Integration)**
+Self-custodial agent wallets, spending limits, and commission splits.
+
+### [PL Genesis: Frontiers of Collaboration](https://pl-genesis-frontiers-of-collaboration-hackathon.devspot.app/)
+**Track: AI & Autonomous Infrastructure**
+Verifiable agent decision logs, cryptographic signing, and decentralized storage (IPFS/Filecoin).
+
 ---
 
 ## Quick Start

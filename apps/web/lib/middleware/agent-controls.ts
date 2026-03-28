@@ -25,7 +25,7 @@ import {
 } from "./agent-store";
 
 // Re-export for API routes that need direct store access
-export { loadSuggestionFromStore };
+export { loadSuggestionFromStore, persistSuggestion };
 
 // ============================================
 // Types
@@ -102,6 +102,9 @@ export interface AgentSuggestion {
   externalUrl?: string; // Product page URL
   liveUrl?: string; // Browser session URL (Browser Use Cloud)
   isSearching?: boolean; // Loading state for async external actions
+  // Verifiable Agent Logs (Hackathon - Frontiers of Collaboration)
+  verifiableLogCid?: string; // IPFS CID of the signed action log
+  signature?: string; // Agent signature of the action log
 }
 
 // ============================================

@@ -270,6 +270,43 @@ export class AgentWalletService {
     };
   }
 
+  /**
+   * Sign a message with the agent's wallet
+   */
+  async signMessage(message: string): Promise<string> {
+    if (!this.initialized) await this.initialize();
+
+    try {
+      // 1. Try WDK account signing if available
+      if (this.usingWdk && this.wdk) {
+        const account = await this.wdk.getAccount("celo", 0);
+        if (account.signMessage) {
+          return await account.signMessage(message);
+        }
+      }
+
+      // 2. Fallback: use viem with seed phrase
+      if (this.seedPhrase) {
+        const { mnemonicToAccount } = require("viem/accounts");
+        const account = mnemonicToAccount(this.seedPhrase);
+        return await account.signMessage({ message });
+      }
+
+      // 3. Last fallback: use AGENT_PRIVATE_KEY
+      const pk = process.env.AGENT_PRIVATE_KEY;
+      if (pk) {
+        const { privateKeyToAccount } = require("viem/accounts");
+        const account = privateKeyToAccount(pk.startsWith("0x") ? pk : `0x${pk}`);
+        return await account.signMessage({ message });
+      }
+    } catch (err) {
+      console.error("[AgentWallet] Signing failed:", err);
+      throw err;
+    }
+
+    throw new Error("No way to sign message - WDK signMessage unavailable and no seed phrase / private key");
+  }
+
   getSeedPhrase(): string {
     return this.seedPhrase;
   }

@@ -13,6 +13,8 @@ import {
   Sparkles,
   Coins,
   Zap,
+  Search,
+  Globe,
 } from "lucide-react";
 import type { ActionType } from "../../lib/middleware/agent-controls";
 import type { AgentSuggestion } from "./AgentSuggestionToast";
@@ -27,6 +29,8 @@ const ACTION_ICONS: Record<ActionType, React.ElementType> = {
   tip: Coins,
   premium: Zap,
   agent_to_agent: Coins,
+  external_search: Search,
+  external_purchase: Globe,
 };
 
 const STATUS_CONFIG: Record<

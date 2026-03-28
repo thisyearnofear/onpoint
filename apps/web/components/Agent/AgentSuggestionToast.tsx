@@ -43,6 +43,9 @@ export interface AgentSuggestion {
   externalUrl?: string;
   source?: string;
   liveUrl?: string;
+  // Verifiable Agent Logs (Hackathon Frontier)
+  verifiableLogCid?: string;
+  signature?: string;
 }
 
 interface AgentSuggestionToastProps {
@@ -238,6 +241,22 @@ export function AgentSuggestionToast({
             </div>
           )}
 
+          {/* Verifiable Agent Receipt (Hackathon Frontier) */}
+          {suggestion.verifiableLogCid && (
+            <div className="mt-3 flex items-center justify-between px-3 py-1.5 bg-indigo-500/10 rounded-lg border border-indigo-500/20">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+                <span className="text-[10px] text-indigo-300 font-bold uppercase tracking-wider">Verifiable Receipt</span>
+              </div>
+              <button 
+                onClick={() => window.open(`https://gateway.lighthouse.storage/ipfs/${suggestion.verifiableLogCid}`, "_blank")}
+                className="text-[10px] text-indigo-400 hover:text-indigo-300 underline font-medium"
+              >
+                View on IPFS
+              </button>
+            </div>
+          )}
+
           {/* Auto-approve badge */}
           {suggestion.autoApprovable && (
             <div className="mt-3 flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/10 rounded-lg px-3 py-2">
@@ -354,6 +373,8 @@ export function useAgentSuggestions(agentId: string = "onpoint-stylist") {
     amount: string;
     description: string;
     recipient?: string;
+    isSearching?: boolean;
+    liveUrl?: string;
   }) => {
     const response = await fetchAgentApi("/api/agent/suggestion", {
       method: "POST",

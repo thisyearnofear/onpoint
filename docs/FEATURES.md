@@ -43,6 +43,23 @@
 | NFT Minting            | ✅  | ✅     | ✅       | Complete |
 | Worldcoin Verification | -   | ✅     | ✅       | Complete |
 | Style Challenges       | -   | -      | ✅       | Complete |
+| Verifiable Agent Logs  | ✅  | -      | -        | Complete |
+
+## Verifiable Agent Logs (PL Genesis Hackathon)
+
+Autonomous agent decisions can be opaque. OnPoint solves this by providing **signed, decentralized audit trails** for every action.
+
+### Capabilities
+
+- **Cryptographic Attestation**: Every recommendation and action is signed by the agent's self-custodial Tether WDK wallet.
+- **Decentralized Audit Trail**: Signed receipts are stored on IPFS/Filecoin via Lighthouse.
+- **Transparency UI**: "View on IPFS" links surfaced directly in the Agent Suggestion Toast.
+- **ERC-8004 Inspiration**: Follows the pattern of "Agents with Receipts" for verifiable intelligence.
+
+### Implementation
+
+- `VerifiableAgentService`: Generates, signs, and uploads decision logs.
+- `AgentRegistry`: Unified system for recording and verifying receipts across the platform.
 
 ## AI Stylist with Personality-Based Critiques
 

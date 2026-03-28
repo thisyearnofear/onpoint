@@ -12,7 +12,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { rateLimit, RateLimits, getClientId } from "./utils/rate-limit";
+import { rateLimit, RateLimits, getClientId } from "../lib/utils/rate-limit";
 
 // ============================================
 // Types
@@ -140,7 +140,7 @@ export function requirePermission(permission: AgentPermission) {
       context: AgentAuthContext
     ) => Promise<NextResponse>
   ) {
-    return requireAgentAuth(async (request, context) => {
+    return (request: NextRequest) => requireAgentAuth(async (req, context) => {
       if (!context.permissions.includes(permission)) {
         return NextResponse.json(
           { 
@@ -150,7 +150,7 @@ export function requirePermission(permission: AgentPermission) {
           { status: 403 }
         );
       }
-      return handler(request, context);
+      return handler(req, context);
     })(request);
   };
 }
@@ -192,8 +192,8 @@ export function requireAuthWithRateLimit<T extends NextResponse>(
     context: AgentAuthContext
   ) => Promise<T>,
 ): (request: NextRequest) => Promise<T> {
-  return requireAgentAuth(async (request, context) => {
-    const rateLimitResult = await applyTieredRateLimit(request, context);
+  return (request: NextRequest) => requireAgentAuth(async (req, context) => {
+    const rateLimitResult = await applyTieredRateLimit(req, context);
     
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
@@ -213,7 +213,7 @@ export function requireAuthWithRateLimit<T extends NextResponse>(
       ) as T;
     }
     
-    return handler(request, context);
+    return handler(req, context);
   })(request);
 }
 

@@ -97,6 +97,20 @@ onpoint-monorepo/
                     │   (FastAPI) │
                     └─────────────┘
 ```
+
+### 1.5 Verifiable Agent Service (Frontier)
+
+OnPoint provides **verifiable agency** through decentralized infrastructure, ensuring every agent decision is transparent and tamper-proof.
+
+- **Identity**: ERC-8004 agent ID #35962 (Base).
+- **Signing**: Cryptographic attestation via Tether WDK wallet.
+- **Persistence**: Filecoin-backed logs stored on IPFS via Lighthouse.
+- **Verification**: Publicly auditable JSON receipts with embedded signatures.
+
+```
+[Agent Action] → [Sign with WDK] → [Upload to IPFS/Filecoin] → [Surface Receipt]
+```
+
 | Route                      | Method | Purpose                            |
 | -------------------------- | ------ | ---------------------------------- |
 | `/api/agent/mint`          | POST   | Mint NFT on behalf of user         |

@@ -15,18 +15,22 @@ import { z } from "zod";
 import {
   AgentControls,
   loadSuggestionFromStore,
+  persistSuggestion,
   type ActionType,
 } from "../../../../lib/middleware/agent-controls";
 import { corsHeaders } from "../../ai/_utils/http";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
+import { VerifiableAgentService } from "../../../../lib/services/verifiable-agent-service";
 
 // Request schemas
 const CreateSuggestionSchema = z.object({
-  actionType: z.enum(["tip", "purchase", "mint", "premium", "agent_to_agent"]),
+  actionType: z.enum(["tip", "purchase", "mint", "premium", "agent_to_agent", "external_search"]),
   amount: z.string().min(1),
   description: z.string().min(1),
   recipient: z.string().optional(),
   agentId: z.string().default("onpoint-stylist"),
+  isSearching: z.boolean().optional(),
+  liveUrl: z.string().optional(),
 });
 
 const UpdateSuggestionSchema = z.object({
@@ -102,7 +106,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         );
       }
 
-      const { actionType, amount, description, recipient, agentId } = parsed.data;
+      const { actionType, amount, description, recipient, agentId, isSearching, liveUrl } = parsed.data;
 
       // Use authenticated agentId if not provided
       const effectiveAgentId = agentId || ctx.agentId;
@@ -116,7 +120,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         amount,
         description,
         recipient,
+        metadata: {
+          isSearching,
+          liveUrl,
+        }
       });
+
+      // HACKATHON: Create Verifiable Agent Log (IPFS/Filecoin)
+      // Provides transparent, tamper-proof audit trails for agent decisions.
+      try {
+        const { cid, signature } = await VerifiableAgentService.createVerifiableLog(
+          result.suggestion,
+          ctx.userId
+        );
+        
+        // Update suggestion with verifiability info
+        result.suggestion.verifiableLogCid = cid;
+        result.suggestion.signature = signature;
+        
+        // Re-persist the updated suggestion
+        await persistSuggestion(result.suggestion);
+        console.log(`[SuggestionAPI] Verifiable log attached: ${cid}`);
+      } catch (err) {
+        console.error("[SuggestionAPI] Failed to create verifiable log:", err);
+        // Continue anyway - don't block the user if IPFS is down
+      }
 
       return NextResponse.json(
         {

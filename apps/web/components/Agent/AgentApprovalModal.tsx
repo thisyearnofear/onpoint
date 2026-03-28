@@ -11,16 +11,12 @@ import {
   ShoppingBag,
   Sparkles,
   Clock,
+  Search,
+  Globe,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { fetchAgentApi } from "../../lib/utils/agent-api";
-
-export type ActionType =
-  | "tip"
-  | "purchase"
-  | "mint"
-  | "premium"
-  | "agent_to_agent";
+import type { ActionType } from "../../lib/middleware/agent-controls";
 
 export interface ApprovalRequest {
   id: string;
@@ -52,6 +48,8 @@ const ACTION_ICONS: Record<ActionType, React.ElementType> = {
   tip: Coins,
   premium: Shield,
   agent_to_agent: Coins,
+  external_search: Search,
+  external_purchase: Globe,
 };
 
 const ACTION_LABELS: Record<ActionType, string> = {
@@ -60,6 +58,8 @@ const ACTION_LABELS: Record<ActionType, string> = {
   tip: "Tip Request",
   premium: "Premium Service",
   agent_to_agent: "Agent Transfer",
+  external_search: "Web Search",
+  external_purchase: "External Shop",
 };
 
 export function AgentApprovalModal({

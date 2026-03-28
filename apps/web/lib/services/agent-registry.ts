@@ -47,6 +47,10 @@ export interface AgentReceipt {
   blockNumber?: number;
   /** Chain where transaction occurred */
   chain?: string;
+  /** Verifiable log CID (IPFS/Filecoin) - Hackathon Frontier Feature */
+  verifiableLogCid?: string;
+  /** Agent signature of the receipt data */
+  signature?: string;
 }
 
 export interface AgentIdentity {
@@ -204,7 +208,37 @@ export async function recordReceipt(params: {
 
   receiptStore.set(receipt.id, receipt);
 
-  // Optionally record on-chain
+  // HACKATHON: Create Verifiable Agent Log (IPFS/Filecoin - Frontiers of Collaboration)
+  // This provides a tamper-proof audit trail of agent decisions, signed by the agent wallet.
+  try {
+    const { uploadToIPFS } = await import("@repo/ipfs-client");
+    const { getAgentWallet } = await import("./agent-wallet");
+    
+    // 1. Prepare log data (copy of receipt before CID/signature)
+    const logData = JSON.stringify(receipt);
+    
+    // 2. Sign the log data using the agent's self-custodial wallet
+    const wallet = await getAgentWallet();
+    const signature = await wallet.signMessage(logData);
+    receipt.signature = signature;
+    
+    // 3. Upload full signed receipt to IPFS (Filecoin-backed)
+    const signedReceipt = { ...receipt, signature };
+    const uploadResult = await uploadToIPFS(
+      JSON.stringify(signedReceipt, null, 2),
+      `agent-receipt-${receipt.id}.json`
+    );
+    
+    receipt.verifiableLogCid = uploadResult.cid;
+    receiptStore.set(receipt.id, receipt); // Update with verifiability info
+    
+    console.log(`[AgentRegistry] Verifiable log created: ${uploadResult.cid}`);
+  } catch (err) {
+    console.error("[AgentRegistry] Failed to create verifiable log:", err);
+    // Continue - don't fail the action if IPFS/Signing is down
+  }
+
+  // Optionally record on-chain (Celo memo)
   if (params.onChain && !params.txHash) {
     const chainTxHash = await recordReceiptOnChain(receipt);
     if (chainTxHash) {
