@@ -6,7 +6,7 @@ from browser_use_sdk.v3 import AsyncBrowserUse
 import os
 from dotenv import load_dotenv
 import asyncio
-from purch_client import PurchClient, PurchProduct
+from purch_client import PurchClient, PurchProduct, PurchSearchResult
 
 # Load the environment variables from the web app's .env.local
 # This is where the USER specified BROWSER_USE_API_KEY is located.
@@ -62,42 +62,35 @@ class SearchResponse(BaseModel):
     items: List[ItemData]
     live_url: Optional[str] = None
     session_id: Optional[str] = None
+    reply: Optional[str] = None
 
 # --- Helpers ---
 
-async def search_purch(query: str, max_results: int = 3) -> List[ItemData]:
+async def search_purch(query: str, max_results: int = 3) -> PurchSearchResult:
     """
     Tier 2: Search via Purch API (Headless Aggregate).
     Faster and more reliable for common items.
-    Returns [] if no results found (triggers Tier 3 fallback).
+    Returns PurchSearchResult with reply context (triggers Tier 3 fallback if empty).
     """
     client = PurchClient(api_key=os.getenv("PURCH_API_KEY"))
     
     try:
         print(f"[Bridge] Tier 2: Querying Purch API for '{query}'...")
-        products = await client.search(query, max_results)
+        result = await client.search_full(query, max_results)
         
-        if not products:
+        if not result.products:
             print("[Bridge] Tier 2: No results from Purch")
-            return []
+            return PurchSearchResult(reply="", products=[])
         
-        # Map to ItemData (your existing schema)
-        print(f"[Bridge] Tier 2: Found {len(products)} products from Purch")
-        return [
-            ItemData(
-                source=p.source,
-                name=p.title,
-                price=p.price,
-                currency="USD",
-                url=p.source_url or f"https://purch.xyz/product/{p.asin}",
-                image_url=p.image_url
-            )
-            for p in products
-        ]
+        print(f"[Bridge] Tier 2: Found {len(result.products)} products from Purch")
+        if result.reply:
+            print(f"[Bridge] Tier 2 Reply: {result.reply}")
+        
+        return result
     
     except Exception as e:
         print(f"[Bridge] Tier 2: Purch API failed: {e}")
-        return []  # Fallback to Tier 3
+        return PurchSearchResult(reply="", products=[])
     
     finally:
         await client.close()
@@ -111,12 +104,24 @@ async def search_items(request: SearchRequest):
     Returns structured results matching the OnPoint catalog schema.
     """
     # --- TIER 2: Aggregated Search via Purch API ---
-    purch_items = await search_purch(request.query, request.max_results)
-    if purch_items:
+    purch_result = await search_purch(request.query, request.max_results)
+    if purch_result.products:
+        purch_items = [
+            ItemData(
+                source=p.source,
+                name=p.title,
+                price=p.price,
+                currency="USD",
+                url=p.source_url or f"https://purch.xyz/product/{p.asin}",
+                image_url=p.image_url
+            )
+            for p in purch_result.products
+        ]
         return SearchResponse(
             status="success",
             items=purch_items,
-            live_url=None # Purch is an API, no live browser URL
+            live_url=None,
+            reply=purch_result.reply or None,
         )
 
     # --- TIER 3: Deep Web Search via Browser Use Cloud (Fallback) ---

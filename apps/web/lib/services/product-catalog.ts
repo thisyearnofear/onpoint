@@ -1,13 +1,13 @@
 /**
  * Product Catalog Service
- * 
+ *
  * Unified interface for product discovery across local and external sources.
  * Follows existing patterns from agent-store.ts for Redis integration.
- * 
+ *
  * Tiers:
  * 1. Local catalog (CANVAS_ITEMS) - Fast, free, limited selection
  * 2. Purch API - Comprehensive (1B+ products), costs ~$0.01-0.10 per search
- * 
+ *
  * Caching: 24-hour TTL to minimize API costs while keeping results fresh.
  */
 
@@ -17,6 +17,55 @@ import {
   searchCatalog as searchLocalCatalog,
   mergeProductResults,
 } from "@onpoint/shared-types";
+
+/**
+ * Infer product category from item name and search query.
+ */
+function inferCategory(name: string, query: string): string {
+  const text = `${name} ${query}`.toLowerCase();
+  const categoryMap: Array<[string[], string]> = [
+    [["jacket", "coat", "blazer", "parka", "puffer"], "Jackets"],
+    [["dress", "gown", "midi", "maxi", "mini dress"], "Dresses"],
+    [["shirt", "blouse", "top", "tee", "t-shirt", "polo", "henley"], "Tops"],
+    [["pants", "trouser", "jeans", "denim", "chino", "cargo"], "Bottoms"],
+    [["skirt", "mini skirt", "pleated"], "Skirts"],
+    [
+      ["shoe", "sneaker", "boot", "heel", "sandal", "loafer", "flat", "oxford"],
+      "Shoes",
+    ],
+    [
+      ["bag", "purse", "tote", "clutch", "backpack", "crossbody", "satchel"],
+      "Bags",
+    ],
+    [
+      [
+        "watch",
+        "jewelry",
+        "necklace",
+        "bracelet",
+        "ring",
+        "earring",
+        "pendant",
+      ],
+      "Accessories",
+    ],
+    [
+      ["sweater", "cardigan", "hoodie", "sweatshirt", "knit", "pullover"],
+      "Knitwear",
+    ],
+    [["shorts", "bermuda"], "Shorts"],
+    [["suit", "tuxedo"], "Suits"],
+    [["swimwear", "bikini", "swimsuit"], "Swimwear"],
+    [["sunglasses", "hat", "scarf", "belt", "glove"], "Accessories"],
+  ];
+
+  for (const [keywords, category] of categoryMap) {
+    if (keywords.some((kw) => text.includes(kw))) {
+      return category;
+    }
+  }
+  return "Other";
+}
 
 // ============================================
 // Redis Integration (follows agent-store.ts pattern)
@@ -45,10 +94,10 @@ async function cacheGet<T>(key: string): Promise<T | null> {
       headers: { Authorization: `Bearer ${config.token}` },
     });
     if (!res.ok) return null;
-    
+
     const data: { result: string | null } = await res.json();
     if (data.result === null) return null;
-    
+
     return JSON.parse(data.result) as T;
   } catch {
     return null;
@@ -124,7 +173,7 @@ class ProductCatalogService {
 
     // Tier 1: Search local catalog (fast, free)
     const localResults = searchLocalCatalog(query, limit);
-    
+
     if (localResults.length > 0) {
       // Cache and return local results
       await this.cacheResult(query, limit, localResults);
@@ -137,7 +186,7 @@ class ProductCatalogService {
 
     // Tier 2: Search external (Purch API via bridge)
     const externalResults = await this.searchExternal(query, limit);
-    
+
     if (externalResults.length > 0) {
       // For now, return external as-is (they're already typed)
       await this.cacheResult(query, limit, externalResults);
@@ -170,7 +219,8 @@ class ProductCatalogService {
   getByCategory(category: string, limit = 20): FashionItem[] {
     const { CANVAS_ITEMS } = require("@onpoint/shared-types");
     return CANVAS_ITEMS.filter(
-      (item: FashionItem) => item.category.toLowerCase() === category.toLowerCase()
+      (item: FashionItem) =>
+        item.category.toLowerCase() === category.toLowerCase(),
     ).slice(0, limit);
   }
 
@@ -182,7 +232,9 @@ class ProductCatalogService {
     limit: number,
   ): Promise<ExternalProduct[]> {
     if (!this.bridgeUrl) {
-      console.log("[Catalog] No bridge URL configured, skipping external search");
+      console.log(
+        "[Catalog] No bridge URL configured, skipping external search",
+      );
       return [];
     }
 
@@ -205,7 +257,7 @@ class ProductCatalogService {
       }
 
       const data = await response.json();
-      
+
       // Map bridge response to ExternalProduct format
       return (data.items || []).map((item: any) => ({
         id: `ext_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -214,7 +266,7 @@ class ProductCatalogService {
         source: item.source || "external",
         url: item.url,
         imageUrl: item.image_url,
-        category: "Unknown", // Could infer from query or add to bridge response
+        category: inferCategory(item.name, query),
       }));
     } catch (error) {
       console.error("[Catalog] External search failed:", error);
@@ -230,15 +282,18 @@ class ProductCatalogService {
     limit: number,
   ): Promise<Array<FashionItem | ExternalProduct> | null> {
     const cacheKey = this.getCacheKey(query, limit);
-    const cached = await cacheGet<CacheEntry<Array<FashionItem | ExternalProduct>>>(cacheKey);
-    
+    const cached =
+      await cacheGet<CacheEntry<Array<FashionItem | ExternalProduct>>>(
+        cacheKey,
+      );
+
     if (!cached) return null;
-    
+
     // Check if expired
     if (Date.now() - cached.cachedAt > cached.ttlMs) {
       return null;
     }
-    
+
     console.log(`[Catalog] Cache hit for "${query}"`);
     return cached.data;
   }
@@ -257,7 +312,7 @@ class ProductCatalogService {
       cachedAt: Date.now(),
       ttlMs: CACHE_TTL_MS,
     };
-    
+
     await cacheSet(cacheKey, entry);
     console.log(`[Catalog] Cached ${results.length} results for "${query}"`);
   }

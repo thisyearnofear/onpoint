@@ -8,6 +8,7 @@ Run with: pytest test_purch_client.py -v
 import pytest
 import asyncio
 from unittest.mock import AsyncMock, patch, MagicMock
+import httpx
 from purch_client import PurchClient, PurchProduct
 
 
@@ -184,14 +185,80 @@ class TestPurchClient:
 
     @pytest.mark.asyncio
     async def test_sign_payment_with_wallet_key(self, client):
-        """Test payment signing with wallet key present"""
-        client.wallet_key = "0x1234567890abcdef"
+        """Test payment signing with wallet key produces valid base64 payload"""
+        import json
+        import base64
+        
+        # Use a valid Ethereum private key (test key, not real funds)
+        client.wallet_key = "0x4c0883a69102937d6231471b5dbb6204fe512961708279f9d6b80b8a32771700"
+        challenge = {
+            "amount": "0.01",
+            "payTo": "0x1234567890123456789012345678901234567890",
+            "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",  # USDC on Base Sepolia
+            "network": "base",
+            "resource": "test-resource",
+            "x402Version": 2,
+            "scheme": "exact",
+        }
+        
+        payment_header = await client._sign_payment(challenge)
+        
+        # Should NOT be demo mode when wallet key is valid
+        assert payment_header != "DEMO_PAYMENT_HEADER"
+        
+        # Should be valid base64-encoded JSON
+        decoded = json.loads(base64.b64decode(payment_header))
+        assert decoded["x402Version"] == 2
+        assert decoded["network"] == "base"
+        assert decoded["scheme"] == "exact"
+        assert "payload" in decoded
+        assert "signature" in decoded["payload"]
+        assert decoded["payload"]["signature"].startswith("0x")
+        assert "authorization" in decoded["payload"]
+        assert decoded["payload"]["authorization"]["to"] == "0x1234567890123456789012345678901234567890"
+
+    @pytest.mark.asyncio
+    async def test_sign_payment_fallback_on_error(self, client):
+        """Test payment signing falls back to demo on signing errors"""
+        # Use an invalid private key
+        client.wallet_key = "invalid_key"
         challenge = {"amount": "0.01", "currency": "USDC"}
         
         payment_header = await client._sign_payment(challenge)
         
-        assert payment_header.startswith("DEMO_SIGNED_PAYMENT_")
-        assert "0.01" in payment_header
+        # Should gracefully fall back to demo mode
+        assert payment_header == "DEMO_PAYMENT_HEADER"
+
+    @pytest.mark.asyncio
+    async def test_search_full_returns_reply(self, client, mock_product_data):
+        """Test search_full returns reply field from API response"""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = mock_product_data
+        
+        with patch.object(client.client, 'post', new_callable=AsyncMock) as mock_post:
+            mock_post.return_value = mock_response
+            
+            result = await client.search_full("leather jacket", max_results=3)
+            
+            assert result.reply == "Found 3 products"
+            assert len(result.products) == 2
+
+    @pytest.mark.asyncio
+    async def test_search_backward_compat(self, client, mock_product_data):
+        """Test search() still returns List[PurchProduct] for backward compat"""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = mock_product_data
+        
+        with patch.object(client.client, 'post', new_callable=AsyncMock) as mock_post:
+            mock_post.return_value = mock_response
+            
+            products = await client.search("leather jacket")
+            
+            assert isinstance(products, list)
+            assert len(products) == 2
+            assert isinstance(products[0], PurchProduct)
 
     @pytest.mark.asyncio
     async def test_close(self, client):
@@ -207,6 +274,117 @@ class TestPurchClient:
             async with client:
                 pass
             mock_close.assert_called_once()
+
+
+    @pytest.mark.asyncio
+    async def test_buy_success(self, client):
+        """Test successful purchase flow (200 response)"""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "orderId": "ORD-12345",
+            "totalPrice": "129.99",
+            "status": "confirmed"
+        }
+        
+        shipping = {"line1": "123 Main St", "city": "NYC", "state": "NY", "zip": "10001", "country": "US"}
+        
+        with patch.object(client.client, 'post', new_callable=AsyncMock) as mock_post:
+            mock_post.return_value = mock_response
+            
+            result = await client.buy(
+                asin="B08XYZ123",
+                email="test@example.com",
+                shipping_address=shipping,
+                quantity=1
+            )
+            
+            assert result["orderId"] == "ORD-12345"
+            assert result["totalPrice"] == "129.99"
+            assert result["status"] == "confirmed"
+            
+            mock_post.assert_called_once_with(
+                "/x402/buy",
+                json={
+                    "asin": "B08XYZ123",
+                    "email": "test@example.com",
+                    "shippingAddress": shipping,
+                    "quantity": 1,
+                }
+            )
+
+    @pytest.mark.asyncio
+    async def test_buy_with_402_payment(self, client):
+        """Test buy flow with x402 payment challenge"""
+        mock_402 = MagicMock()
+        mock_402.status_code = 402
+        mock_402.json.return_value = {"amount": "0.05", "currency": "USDC"}
+        
+        mock_200 = MagicMock()
+        mock_200.status_code = 200
+        mock_200.json.return_value = {
+            "orderId": "ORD-67890",
+            "totalPrice": "89.50",
+            "status": "confirmed"
+        }
+        
+        shipping = {"line1": "456 Oak Ave", "city": "LA", "state": "CA", "zip": "90001", "country": "US"}
+        
+        with patch.object(client.client, 'post', new_callable=AsyncMock) as mock_post:
+            mock_post.side_effect = [mock_402, mock_200]
+            
+            result = await client.buy(
+                asin="B09ABC456",
+                email="buyer@example.com",
+                shipping_address=shipping,
+                quantity=2
+            )
+            
+            assert result["orderId"] == "ORD-67890"
+            assert mock_post.call_count == 2
+            
+            # Verify payment header was included in retry
+            second_call = mock_post.call_args_list[1]
+            assert "X-PAYMENT" in second_call[1]["headers"]
+
+    @pytest.mark.asyncio
+    async def test_buy_http_error(self, client):
+        """Test buy raises on HTTP errors"""
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+        mock_response.text = "Internal Server Error"
+        mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
+            "Server error", request=MagicMock(), response=mock_response
+        )
+        
+        shipping = {"line1": "789 Elm St", "city": "SF", "state": "CA", "zip": "94102", "country": "US"}
+        
+        with patch.object(client.client, 'post', new_callable=AsyncMock) as mock_post:
+            mock_post.return_value = mock_response
+            
+            with pytest.raises(httpx.HTTPStatusError):
+                await client.buy(
+                    asin="B08XYZ123",
+                    email="test@example.com",
+                    shipping_address=shipping
+                )
+
+    @pytest.mark.asyncio
+    async def test_buy_default_quantity(self, client):
+        """Test buy defaults to quantity=1"""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"orderId": "ORD-001", "status": "confirmed"}
+        
+        shipping = {"line1": "1 St", "city": "X", "state": "Y", "zip": "00000", "country": "US"}
+        
+        with patch.object(client.client, 'post', new_callable=AsyncMock) as mock_post:
+            mock_post.return_value = mock_response
+            
+            await client.buy(asin="B08XYZ", email="a@b.com", shipping_address=shipping)
+            
+            call_payload = mock_post.call_args[1]["json"]
+            assert call_payload["quantity"] == 1
 
 
 class TestPurchProduct:

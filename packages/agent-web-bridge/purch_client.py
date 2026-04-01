@@ -9,10 +9,16 @@ x402 Protocol: https://www.x402.org/
 """
 
 import os
-from dataclasses import dataclass
+import json
+import base64
+import time
+import secrets
+from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
 from urllib.parse import urlparse
 import httpx
+from eth_account import Account
+from eth_account.messages import encode_typed_data
 
 
 @dataclass
@@ -24,6 +30,13 @@ class PurchProduct:
     image_url: str
     source: str  # Domain (e.g., "farfetch.com")
     source_url: Optional[str] = None  # Full product URL if available
+
+
+@dataclass
+class PurchSearchResult:
+    """Full search result including reply context and products"""
+    reply: str
+    products: List[PurchProduct]
 
 
 class PurchClient:
@@ -75,6 +88,24 @@ class PurchClient:
         Returns:
             List of PurchProduct objects matching the query
         """
+        result = await self.search_full(query, max_results)
+        return result.products
+    
+    async def search_full(
+        self, 
+        query: str, 
+        max_results: int = 3
+    ) -> PurchSearchResult:
+        """
+        Search for products with full response including Purch's reply context.
+        
+        Args:
+            query: Natural language search query
+            max_results: Maximum number of results to return
+            
+        Returns:
+            PurchSearchResult with reply text and products
+        """
         payload = {
             "message": query,
             "max_results": max_results
@@ -85,28 +116,24 @@ class PurchClient:
             response = await self.client.post("/x402/shop", json=payload)
             
             if response.status_code == 200:
-                # No payment required (demo mode or cached)
                 data = response.json()
-                return self._parse_products(data)
+                return self._parse_result(data)
             
             elif response.status_code == 402:
-                # Payment required - handle x402 flow
                 print(f"[Purch] 402 Payment Required - processing challenge")
                 challenge = response.json()
                 
                 payment_header = await self._sign_payment(challenge)
                 
-                # Retry with payment header
                 response = await self.client.post(
                     "/x402/shop",
                     json=payload,
                     headers={"X-PAYMENT": payment_header}
                 )
                 response.raise_for_status()
-                return self._parse_products(response.json())
+                return self._parse_result(response.json())
             
             else:
-                # Other error
                 response.raise_for_status()
                 
         except httpx.HTTPStatusError as e:
@@ -118,6 +145,22 @@ class PurchClient:
         except Exception as e:
             print(f"[Purch] Unexpected error: {e}")
             raise
+        
+        return PurchSearchResult(reply="", products=[])
+    
+    def _parse_result(self, data: Dict[str, Any]) -> PurchSearchResult:
+        """
+        Parse full API response into PurchSearchResult with reply context.
+        
+        Args:
+            data: Raw JSON response from Purch API
+            
+        Returns:
+            PurchSearchResult with reply text and products
+        """
+        reply = data.get("reply", "")
+        products = self._parse_products(data)
+        return PurchSearchResult(reply=reply, products=products)
     
     def _parse_products(self, data: Dict[str, Any]) -> List[PurchProduct]:
         """
@@ -162,37 +205,166 @@ class PurchClient:
             return "purch.xyz"
         
         try:
-            parsed = urlparse(url)
-            return parsed.netloc or "purch.xyz"
+            # urlparse needs // prefix for schemeless URLs like "ssense.com/path"
+            parsed = urlparse(url if "://" in url else f"//{url}")
+            domain = parsed.netloc
+            # Validate it looks like a domain (has a dot and valid chars)
+            if domain and "." in domain and not domain.startswith("."):
+                return domain
+            return "purch.xyz"
         except Exception:
             return "purch.xyz"
     
     async def _sign_payment(self, challenge: Dict[str, Any]) -> str:
         """
-        Sign x402 payment challenge.
-        
-        For hackathon: Returns demo payment header.
-        For production: Integrates with Tether WDK or similar wallet.
-        
+        Sign x402 payment challenge using EIP-3009 transferWithAuthorization.
+
+        If PURCH_WALLET_PRIVATE_KEY is set, signs the challenge with the wallet
+        using the standard x402 "exact" scheme on EVM (EIP-3009).
+        Otherwise, returns a demo payment header for testing.
+
         Args:
-            challenge: Payment challenge from 402 response
-            
+            challenge: Payment challenge from 402 response containing
+                       x402Version, scheme, network, resource, accepted, etc.
+
         Returns:
-            X-PAYMENT header value
+            Base64-encoded X-PAYMENT header value
         """
-        # TODO: Implement proper x402 signing with wallet integration
-        # For now, return demo mode header
-        
-        if self.wallet_key:
-            # Production: would sign challenge with wallet
-            # This is a placeholder - actual implementation depends on wallet SDK
-            print("[Purch] Wallet key present - would sign payment (not implemented)")
-            # Placeholder signature
-            return f"DEMO_SIGNED_PAYMENT_{challenge.get('amount', 'unknown')}"
-        else:
-            # Demo mode: use mock payment header
+        if not self.wallet_key:
             print("[Purch] No wallet key - using demo payment mode")
             return "DEMO_PAYMENT_HEADER"
+
+        try:
+            account = Account.from_key(self.wallet_key)
+            now = int(time.time())
+
+            # Extract top-level fields
+            x402_version = challenge.get("x402Version", 2)
+            resource = challenge.get("resource", "")
+
+            # Payment requirements — support both nested (accepted) and flat formats
+            accepted = challenge.get("accepted", challenge)
+            scheme = accepted.get("scheme", "exact")
+            network = accepted.get("network", "base")
+            amount = accepted.get("amount", "0")
+            asset = accepted.get("asset", "")
+            pay_to = accepted.get("payTo", "")
+            max_timeout = accepted.get("maxTimeoutSeconds", 300)
+            extra = accepted.get("extra", {})
+
+            # Token details (USDC defaults)
+            token_name = extra.get("name", "USDC")
+            token_version = extra.get("version", "2")
+            chain_id = self._network_to_chain_id(network)
+
+            # Compute time window for the authorization
+            valid_after = str(challenge.get("validAfter", now - 60))
+            valid_before = str(challenge.get("validBefore", now + max_timeout))
+
+            # Convert amount to integer (handle both decimal strings like "0.01"
+            # and raw integer strings like "10000")
+            raw_amount = str(amount)
+            if "." in raw_amount:
+                # Decimal amount — convert to USDC's 6-decimal denomination
+                amount_int = int(float(raw_amount) * 1_000_000)
+            else:
+                amount_int = int(raw_amount)
+
+            # Generate a cryptographically random nonce
+            nonce = "0x" + secrets.token_hex(32)
+
+            # --- EIP-3009: transferWithAuthorization ---
+            # Domain: bound to the specific USDC token contract on the target chain
+            typed_data = {
+                "types": {
+                    "EIP712Domain": [
+                        {"name": "name", "type": "string"},
+                        {"name": "version", "type": "string"},
+                        {"name": "chainId", "type": "uint256"},
+                        {"name": "verifyingContract", "type": "address"},
+                    ],
+                    "TransferWithAuthorization": [
+                        {"name": "from", "type": "address"},
+                        {"name": "to", "type": "address"},
+                        {"name": "value", "type": "uint256"},
+                        {"name": "validAfter", "type": "uint256"},
+                        {"name": "validBefore", "type": "uint256"},
+                        {"name": "nonce", "type": "bytes32"},
+                    ],
+                },
+                "primaryType": "TransferWithAuthorization",
+                "domain": {
+                    "name": token_name,
+                    "version": token_version,
+                    "chainId": chain_id,
+                    "verifyingContract": asset,
+                },
+                "message": {
+                    "from": account.address,
+                    "to": pay_to,
+                    "value": amount_int,
+                    "validAfter": int(valid_after),
+                    "validBefore": int(valid_before),
+                    "nonce": nonce,
+                },
+            }
+
+            # Sign the EIP-712 typed data
+            signable = encode_typed_data(full_message=typed_data)
+            signed = account.sign_message(signable)
+            signature_hex = "0x" + signed.signature.hex()
+
+            # Build x402 v2 PaymentPayload for the "exact" / EIP-3009 scheme
+            payment_payload = {
+                "x402Version": x402_version,
+                "scheme": scheme,
+                "network": network,
+                "payload": {
+                    "signature": signature_hex,
+                    "authorization": {
+                        "from": account.address,
+                        "to": pay_to,
+                        "value": str(amount),
+                        "validAfter": valid_after,
+                        "validBefore": valid_before,
+                        "nonce": nonce,
+                    },
+                },
+            }
+
+            # Base64-encode for the X-PAYMENT header
+            payment_header = base64.b64encode(
+                json.dumps(payment_payload).encode()
+            ).decode()
+
+            print(f"[Purch] Signed EIP-3009 payment with wallet {account.address[:10]}...")
+            return payment_header
+
+        except Exception as e:
+            print(f"[Purch] Wallet signing failed: {e}, falling back to demo mode")
+            return "DEMO_PAYMENT_HEADER"
+    
+    def _network_to_chain_id(self, network: str) -> int:
+        """Map network name or EIP-155 identifier to chain ID.
+
+        Supports both plain names ("base") and EIP-155 format ("eip155:8453").
+        """
+        if ":" in network:
+            try:
+                return int(network.split(":")[-1])
+            except ValueError:
+                pass
+
+        chain_ids = {
+            "base": 8453,
+            "base-sepolia": 84532,
+            "ethereum": 1,
+            "mainnet": 1,
+            "polygon": 137,
+            "optimism": 10,
+            "arbitrum": 42161,
+        }
+        return chain_ids.get(network.lower(), 8453)
     
     async def buy(
         self,
