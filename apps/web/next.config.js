@@ -38,6 +38,22 @@ const nextConfig = {
       '@react-native-async-storage/async-storage': false,
     };
 
+    // Handle native binary modules that can't be parsed by webpack
+    config.module = config.module || {};
+    config.module.rules = config.module.rules || [];
+    config.module.rules.push({
+      test: /\.node$/,
+      use: 'node-loader',
+    });
+
+    // Exclude @open-wallet-standard from server bundle (it has native deps)
+    if (isServer) {
+      config.externals = config.externals || [];
+      if (Array.isArray(config.externals)) {
+        config.externals.push('@open-wallet-standard/core');
+      }
+    }
+
     return config;
   },
   async headers() {
