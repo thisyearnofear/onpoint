@@ -237,11 +237,9 @@ export function TacticalDashboard() {
                 </div>
                 <ChevronRight className="w-4 h-4 text-muted-foreground group-open:rotate-90 transition-transform" />
               </summary>
-              <div className="px-4 pb-4">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <CommandCenter />
-                  <MissionsPanel userId="user-default" />
-                </div>
+              <div className="px-4 pb-4 space-y-4">
+                <CommandCenter />
+                <MissionsPanel userId="user-default" compact />
               </div>
             </details>
           </motion.div>
