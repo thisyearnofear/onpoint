@@ -44,38 +44,37 @@ export function TacticalDashboard() {
   const navItems = [
     {
       id: "dashboard",
-      label: "HOME",
+      label: "Home",
       icon: LayoutDashboard,
       color: "text-foreground",
     },
     {
-      id: "design",
-      label: "DESIGN STUDIO",
-      icon: Palette,
-      color: "text-indigo-400",
-    },
-    {
       id: "try-on",
-      label: "VIRTUAL TRY-ON",
+      label: "Virtual Try-On",
       icon: Camera,
       color: "text-accent",
     },
     {
-      id: "live-ar",
-      label: "LIVE AR",
-      icon: Video,
-      color: "text-emerald-400",
-      badge: "NEW",
-    },
-    {
       id: "stylist",
-      label: "AI STYLIST",
+      label: "AI Stylist",
       icon: MessageCircle,
       color: "text-primary",
     },
     {
+      id: "live-ar",
+      label: "Live AR",
+      icon: Video,
+      color: "text-emerald-400",
+    },
+    {
+      id: "design",
+      label: "My Looks",
+      icon: Palette,
+      color: "text-indigo-400",
+    },
+    {
       id: "social",
-      label: "COMMUNITY FEED",
+      label: "Community",
       icon: Users,
       color: "text-blue-400",
     },
@@ -93,7 +92,7 @@ export function TacticalDashboard() {
           >
             <div className="space-y-2">
               <h2 className="text-3xl font-bold text-foreground tracking-tighter">
-                Command Center
+                Your Style Dashboard
               </h2>
               <p className="text-muted-foreground text-sm max-w-2xl leading-relaxed">
                 Find outfits that actually work for your body, style, and
@@ -106,53 +105,38 @@ export function TacticalDashboard() {
             <motion.div
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-900/50 via-teal-900/30 to-cyan-900/50 border border-emerald-500/20 p-6 md:p-8"
+              className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/20 via-primary/10 to-accent/20 border border-primary/20 p-6 md:p-8"
             >
-              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 blur-3xl rounded-full -mr-32 -mt-32" />
-              <div className="absolute bottom-0 left-0 w-48 h-48 bg-cyan-500/10 blur-3xl rounded-full -ml-24 -mb-24" />
+              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 blur-3xl rounded-full -mr-32 -mt-32" />
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-accent/10 blur-3xl rounded-full -ml-24 -mb-24" />
 
               <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-6">
                 <div className="flex-1 space-y-3">
                   <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-500/20 text-emerald-400 rounded-full uppercase tracking-wider animate-pulse">
-                      ● LIVE
-                    </span>
-                    <span className="text-emerald-400/60 text-[10px] uppercase tracking-wider">
-                      New Feature
+                    <span className="px-2 py-0.5 text-[10px] font-bold bg-primary/20 text-primary rounded-full uppercase tracking-wider animate-pulse">
+                      ✨ New
                     </span>
                   </div>
-                  <h3 className="text-2xl font-black text-white tracking-tight">
-                    Real-Time AI Stylist
+                  <h3 className="text-2xl font-black text-foreground tracking-tight">
+                    AI-Powered Virtual Try-On
                   </h3>
-                  <p className="text-slate-300 text-sm max-w-md">
-                    Experience live fashion coaching powered by AI. Get instant
-                    feedback on your outfit using your camera — like having a
-                    personal stylist in your pocket.
+                  <p className="text-muted-foreground text-sm max-w-md">
+                    See how any outfit looks on you before you buy. Upload a photo and get instant 
+                    AI analysis of how clothes suit your body type and style.
                   </p>
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    <span className="px-3 py-1 text-[10px] font-medium bg-white/5 rounded-full text-slate-300 border border-white/10">
-                      Free with Venice AI
-                    </span>
-                    <span className="px-3 py-1 text-[10px] font-medium bg-white/5 rounded-full text-slate-300 border border-white/10">
-                      Premium Gemini Live
-                    </span>
-                    <span className="px-3 py-1 text-[10px] font-medium bg-white/5 rounded-full text-slate-300 border border-white/10">
-                      Celo NFT Minting
-                    </span>
-                  </div>
                 </div>
                 <Button
-                  onClick={() => setMode("live-ar")}
-                  className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold py-4 px-8 rounded-2xl shadow-lg shadow-emerald-500/25 flex items-center gap-3"
+                  onClick={() => setMode("try-on")}
+                  className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white font-bold py-4 px-8 rounded-2xl shadow-lg shadow-primary/25 flex items-center gap-3"
                 >
-                  <Video className="w-5 h-5" />
-                  <span>Start Live AR Session</span>
+                  <Camera className="w-5 h-5" />
+                  <span>Try It Now</span>
                 </Button>
               </div>
             </motion.div>
 
-            {/* Agent Wallet — Prominent placement for WDK visibility */}
-            <AgentActionCard variant="banner" />
+            {/* Agent features - hidden behind progressive disclosure, not prominent */}
+            {/* <AgentActionCard variant="banner" /> */}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <AgentStatus showActions={true} />
@@ -351,14 +335,9 @@ export function TacticalDashboard() {
                 <item.icon
                   className={`w-4 h-4 ${mode === item.id ? item.color : ""}`}
                 />
-                <span className="text-[10px] font-bold uppercase tracking-widest">
+                <span className="text-sm font-medium">
                   {item.label}
                 </span>
-                {item.badge && (
-                  <span className="px-1.5 py-0.5 text-[8px] font-bold bg-emerald-500/20 text-emerald-400 rounded-full animate-pulse">
-                    {item.badge}
-                  </span>
-                )}
               </button>
             ))}
           </div>
