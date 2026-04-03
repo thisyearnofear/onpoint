@@ -1,13 +1,13 @@
 /**
  * Agent Authentication Middleware
- * 
+ *
  * Lightweight authentication for agent API routes.
  * Follows the same pattern as rate-limit.ts (auto-selects based on config).
- * 
+ *
  * Modes:
  * - Development: API key = userId (no validation)
  * - Production: Validates against Redis user store
- * 
+ *
  * For production use, integrate with SIWE (Sign-In With Ethereum) or JWT.
  */
 
@@ -60,24 +60,26 @@ const PREMIUM_TIER_PERMISSIONS: AgentPermission[] = [
 // Auth Extraction
 // ============================================
 
-async function extractAuth(request: NextRequest): Promise<AgentAuthContext | null> {
-  const origin = request.headers.get("origin");
-  
+export async function extractAuth(
+  request: NextRequest,
+): Promise<AgentAuthContext | null> {
+  const url = new URL(request.url);
+
   // Try to get API key from Authorization header
   const authHeader = request.headers.get("Authorization");
   const apiKey = authHeader?.replace("Bearer ", "");
-  
-  // Fallback to query param (for development)
-  const url = new URL(request.url);
-  const userId = apiKey || url.searchParams.get("userId");
-  
+
+  // In development only, allow ?userId= query param for local testing
+  const isDev = process.env.NODE_ENV !== "production";
+  const userId = apiKey || (isDev ? url.searchParams.get("userId") : null);
+
   if (!userId) {
     return null;
   }
-  
+
   // Determine tier (in production, would check subscription status)
   const isPremium = process.env.PREMIUM_USERS?.split(",").includes(userId);
-  
+
   return {
     userId,
     agentId: url.searchParams.get("agentId") || "onpoint-stylist",
@@ -93,7 +95,7 @@ async function extractAuth(request: NextRequest): Promise<AgentAuthContext | nul
 /**
  * Wrap agent route handlers with authentication.
  * Injects auth context into the handler.
- * 
+ *
  * @example
  * export async function POST(request: NextRequest) {
  *   return requireAgentAuth(async (req, ctx) => {
@@ -103,21 +105,21 @@ async function extractAuth(request: NextRequest): Promise<AgentAuthContext | nul
  * }
  */
 export function requireAgentAuth<T extends NextResponse>(
-  handler: (
-    request: NextRequest,
-    context: AgentAuthContext
-  ) => Promise<T>,
+  handler: (request: NextRequest, context: AgentAuthContext) => Promise<T>,
 ): (request: NextRequest) => Promise<T> {
   return async (request: NextRequest): Promise<T> => {
     const auth = await extractAuth(request);
-    
+
     if (!auth) {
       return NextResponse.json(
-        { error: "Authentication required. Provide userId via Bearer token or query param." },
-        { status: 401 }
+        {
+          error:
+            "Authentication required. Provide a Bearer token in the Authorization header.",
+        },
+        { status: 401 },
       ) as T;
     }
-    
+
     return handler(request, auth);
   };
 }
@@ -125,7 +127,7 @@ export function requireAgentAuth<T extends NextResponse>(
 /**
  * Require specific permission for an action.
  * Combines auth + permission check.
- * 
+ *
  * @example
  * export async function POST(request: NextRequest) {
  *   return requirePermission("execute_purchase")(async (req, ctx) => {
@@ -134,24 +136,25 @@ export function requireAgentAuth<T extends NextResponse>(
  * }
  */
 export function requirePermission(permission: AgentPermission) {
-  return function(
+  return function (
     handler: (
       request: NextRequest,
-      context: AgentAuthContext
-    ) => Promise<NextResponse>
+      context: AgentAuthContext,
+    ) => Promise<NextResponse>,
   ) {
-    return (request: NextRequest) => requireAgentAuth(async (req, context) => {
-      if (!context.permissions.includes(permission)) {
-        return NextResponse.json(
-          { 
-            error: `Permission denied: ${permission}`,
-            hint: "Upgrade to premium tier for access"
-          },
-          { status: 403 }
-        );
-      }
-      return handler(req, context);
-    })(request);
+    return (request: NextRequest) =>
+      requireAgentAuth(async (req, context) => {
+        if (!context.permissions.includes(permission)) {
+          return NextResponse.json(
+            {
+              error: `Permission denied: ${permission}`,
+              hint: "Upgrade to premium tier for access",
+            },
+            { status: 403 },
+          );
+        }
+        return handler(req, context);
+      })(request);
   };
 }
 
@@ -168,13 +171,14 @@ export async function applyTieredRateLimit(
   context: AgentAuthContext,
 ): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
   const clientId = getClientId(request) || context.userId;
-  
-  const config = context.tier === "premium"
-    ? { ...RateLimits.general, maxRequests: 500 } // Premium: 500/min
-    : { ...RateLimits.general, maxRequests: 60 };  // Free: 60/min
-  
+
+  const config =
+    context.tier === "premium"
+      ? { ...RateLimits.general, maxRequests: 500 } // Premium: 500/min
+      : { ...RateLimits.general, maxRequests: 60 }; // Free: 60/min
+
   const result = await rateLimit(`agent:${clientId}`, config);
-  
+
   return {
     allowed: result.allowed,
     remaining: result.remaining,
@@ -187,34 +191,36 @@ export async function applyTieredRateLimit(
  * Returns 429 if rate limited before executing handler.
  */
 export function requireAuthWithRateLimit<T extends NextResponse>(
-  handler: (
-    request: NextRequest,
-    context: AgentAuthContext
-  ) => Promise<T>,
+  handler: (request: NextRequest, context: AgentAuthContext) => Promise<T>,
 ): (request: NextRequest) => Promise<T> {
-  return (request: NextRequest) => requireAgentAuth(async (req, context) => {
-    const rateLimitResult = await applyTieredRateLimit(req, context);
-    
-    if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        { 
-          error: "Rate limit exceeded",
-          retryAfter: Math.ceil((rateLimitResult.resetAt - Date.now()) / 1000),
-          remaining: rateLimitResult.remaining,
-        },
-        { 
-          status: 429,
-          headers: {
-            "X-RateLimit-Limit": context.tier === "premium" ? "500" : "60",
-            "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
-            "X-RateLimit-Reset": Math.ceil(rateLimitResult.resetAt / 1000).toString(),
-          }
-        }
-      ) as T;
-    }
-    
-    return handler(req, context);
-  })(request);
+  return (request: NextRequest) =>
+    requireAgentAuth(async (req, context) => {
+      const rateLimitResult = await applyTieredRateLimit(req, context);
+
+      if (!rateLimitResult.allowed) {
+        return NextResponse.json(
+          {
+            error: "Rate limit exceeded",
+            retryAfter: Math.ceil(
+              (rateLimitResult.resetAt - Date.now()) / 1000,
+            ),
+            remaining: rateLimitResult.remaining,
+          },
+          {
+            status: 429,
+            headers: {
+              "X-RateLimit-Limit": context.tier === "premium" ? "500" : "60",
+              "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+              "X-RateLimit-Reset": Math.ceil(
+                rateLimitResult.resetAt / 1000,
+              ).toString(),
+            },
+          },
+        ) as T;
+      }
+
+      return handler(req, context);
+    })(request);
 }
 
 // ============================================

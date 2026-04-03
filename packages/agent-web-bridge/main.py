@@ -1,9 +1,14 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import uvicorn
 from browser_use_sdk.v3 import AsyncBrowserUse
 import os
+import time
+import logging
+from collections import defaultdict
 from dotenv import load_dotenv
 import asyncio
 from purch_client import PurchClient, PurchProduct, PurchSearchResult
@@ -13,16 +18,79 @@ from purch_client import PurchClient, PurchProduct, PurchSearchResult
 env_path = os.path.join(os.path.dirname(__file__), "../../apps/web/.env.local")
 load_dotenv(dotenv_path=env_path)
 
+logger = logging.getLogger("bridge")
+
 app = FastAPI(title="OnPoint Agent Web-Bridge (Cloud V3)")
 
 # --- Config ---
 
 PURCH_API_URL = "https://api.purch.xyz/v1/search"
+BRIDGE_API_KEY = os.getenv("BRIDGE_API_KEY", "")
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
 
-# --- Config ---
+# --- CORS ---
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["POST", "GET", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
+)
+
+# --- Auth ---
+
+api_key_header = APIKeyHeader(name="Authorization", auto_error=False)
+
+
+async def verify_api_key(authorization: Optional[str] = Depends(api_key_header)):
+    """Validate the Bearer token against BRIDGE_API_KEY."""
+    if not BRIDGE_API_KEY:
+        # No key configured = open access (dev mode only)
+        if ENVIRONMENT == "production":
+            logger.error("BRIDGE_API_KEY not set in production — denying all requests")
+            raise HTTPException(status_code=500, detail="Server misconfigured: no API key")
+        return True
+
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Missing Authorization header")
+
+    token = authorization.removeprefix("Bearer ").strip()
+    if token != BRIDGE_API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid API key")
+
+    return True
+
+
+# --- Rate Limiting (in-memory, per-IP, fixed window) ---
+
+_rate_limit_store: Dict[str, Dict[str, Any]] = defaultdict(lambda: {"count": 0, "reset_at": 0})
+RATE_LIMIT_WINDOW = 60  # seconds
+RATE_LIMIT_MAX = 30  # requests per window
+
+
+async def rate_limit(request: Request):
+    """Simple per-IP rate limiting."""
+    client_ip = request.client.host if request.client else "unknown"
+    now = time.time()
+    entry = _rate_limit_store[client_ip]
+
+    if now > entry["reset_at"]:
+        entry["count"] = 0
+        entry["reset_at"] = now + RATE_LIMIT_WINDOW
+
+    entry["count"] += 1
+    if entry["count"] > RATE_LIMIT_MAX:
+        retry_after = int(entry["reset_at"] - now)
+        raise HTTPException(
+            status_code=429,
+            detail="Rate limit exceeded",
+            headers={"Retry-After": str(retry_after)},
+        )
+
 
 # Whitelist of agent-friendly fashion marketplaces
-# These sites have high-quality product data and reliable layouts for extraction.
 WHITELIST_DOMAINS = [
     "farfetch.com",
     "ssense.com",
@@ -35,6 +103,7 @@ WHITELIST_DOMAINS = [
 
 # --- Models ---
 
+
 class ItemData(BaseModel):
     source: str
     name: str
@@ -43,19 +112,23 @@ class ItemData(BaseModel):
     url: str
     image_url: Optional[str] = None
 
+
 class SearchResults(BaseModel):
     items: List[ItemData]
+
 
 class StylePrefs(BaseModel):
     colors: List[str] = []
     categories: List[str] = []
     price_range: Dict[str, float] = {"min": 0, "max": 500}
 
+
 class SearchRequest(BaseModel):
     userId: str
     query: str
     style_prefs: Optional[StylePrefs] = None
     max_results: int = 3
+
 
 class SearchResponse(BaseModel):
     status: str
@@ -64,7 +137,9 @@ class SearchResponse(BaseModel):
     session_id: Optional[str] = None
     reply: Optional[str] = None
 
+
 # --- Helpers ---
+
 
 async def search_purch(query: str, max_results: int = 3) -> PurchSearchResult:
     """
@@ -73,32 +148,38 @@ async def search_purch(query: str, max_results: int = 3) -> PurchSearchResult:
     Returns PurchSearchResult with reply context (triggers Tier 3 fallback if empty).
     """
     client = PurchClient(api_key=os.getenv("PURCH_API_KEY"))
-    
+
     try:
-        print(f"[Bridge] Tier 2: Querying Purch API for '{query}'...")
+        logger.info(f"Tier 2: Querying Purch API for '{query}'...")
         result = await client.search_full(query, max_results)
-        
+
         if not result.products:
-            print("[Bridge] Tier 2: No results from Purch")
+            logger.info("Tier 2: No results from Purch")
             return PurchSearchResult(reply="", products=[])
-        
-        print(f"[Bridge] Tier 2: Found {len(result.products)} products from Purch")
+
+        logger.info(f"Tier 2: Found {len(result.products)} products from Purch")
         if result.reply:
-            print(f"[Bridge] Tier 2 Reply: {result.reply}")
-        
+            logger.info(f"Tier 2 Reply: {result.reply}")
+
         return result
-    
+
     except Exception as e:
-        print(f"[Bridge] Tier 2: Purch API failed: {e}")
+        logger.error(f"Tier 2: Purch API failed: {e}")
         return PurchSearchResult(reply="", products=[])
-    
+
     finally:
         await client.close()
 
+
 # --- Endpoints ---
 
+
 @app.post("/v1/agent/search", response_model=SearchResponse)
-async def search_items(request: SearchRequest):
+async def search_items(
+    request: SearchRequest,
+    _auth: bool = Depends(verify_api_key),
+    _rl: bool = Depends(rate_limit),
+):
     """
     Executes a web search for fashion items using the Browser Use Cloud (V3).
     Returns structured results matching the OnPoint catalog schema.
@@ -125,16 +206,14 @@ async def search_items(request: SearchRequest):
         )
 
     # --- TIER 3: Deep Web Search via Browser Use Cloud (Fallback) ---
-    print(f"[Bridge] Tier 3: Falling back to Browser Use Cloud for '{request.query}'...")
-    
+    logger.info(f"Tier 3: Falling back to Browser Use Cloud for '{request.query}'...")
+
     api_key = os.getenv("BROWSER_USE_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="BROWSER_USE_API_KEY not found in .env.local")
+        raise HTTPException(status_code=500, detail="BROWSER_USE_API_KEY not configured")
 
-    # Initialize the Cloud Client
     client = AsyncBrowserUse(api_key=api_key)
 
-    # Detailed prompt for high-fidelity extraction
     whitelist_str = ", ".join(WHITELIST_DOMAINS)
     task_description = (
         f"Search for fashion items matching: '{request.query}'. "
@@ -146,15 +225,12 @@ async def search_items(request: SearchRequest):
     )
 
     try:
-        # Using BU Agent API v3 (Experimental) for structured output
-        # It handles all the browser orchestration, stealth, and proxies in the cloud.
         result = await client.run(
             task_description,
             output_schema=SearchResults,
-            model="bu-max" # Use bu-max for more accurate extraction on complex fashion sites
+            model="bu-max"
         )
 
-        # result.output is already typed to SearchResults Pydantic model
         return SearchResponse(
             status="success",
             items=result.output.items,
@@ -163,12 +239,16 @@ async def search_items(request: SearchRequest):
         )
 
     except Exception as e:
-        print(f"Browser Use Cloud failed: {e}")
+        logger.error(f"Browser Use Cloud failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
 
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    host = os.getenv("HOST", "127.0.0.1")
+    port = int(os.getenv("PORT", "8000"))
+    uvicorn.run(app, host=host, port=port)

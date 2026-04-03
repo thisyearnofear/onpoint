@@ -9,6 +9,7 @@
  */
 
 import { parseEther, formatEther } from "viem";
+import { logger } from "../utils/logger";
 import {
   loadSpendingLimits,
   persistSpendingLimits,
@@ -240,7 +241,11 @@ export async function initStore(agentId: string): Promise<void> {
       hydrateApprovals(agentId, pendingApprovals),
     ]);
   } catch (err) {
-    console.error(`Redis hydration failed for ${agentId}:`, err);
+    logger.error(
+      "Redis hydration failed",
+      { component: "agent-controls", agentId },
+      err,
+    );
     // Continue with in-memory state
   }
 }
@@ -287,7 +292,9 @@ export function initializeAgentLimits(
   }
 
   spendingLimits.set(agentId, limits);
-  persistSpendingLimits(agentId, limits).catch(() => {});
+  persistSpendingLimits(agentId, limits).catch((err) =>
+    logger.error("Persist failed", { component: "agent-controls" }, err),
+  );
   return limits;
 }
 
@@ -355,7 +362,9 @@ export function recordSpending(
 
   if (limit) {
     limit.spentToday += amount;
-    persistSpendingLimits(agentId, limits).catch(() => {});
+    persistSpendingLimits(agentId, limits).catch((err) =>
+      logger.error("Persist failed", { component: "agent-controls" }, err),
+    );
   }
 }
 
@@ -391,7 +400,9 @@ export function getRemainingLimit(
  */
 export function setAutonomyThreshold(agentId: string, threshold: bigint): void {
   autonomyThresholds.set(agentId, threshold);
-  persistAutonomyThreshold(agentId, threshold).catch(() => {});
+  persistAutonomyThreshold(agentId, threshold).catch((err) =>
+    logger.error("Persist failed", { component: "agent-controls" }, err),
+  );
 }
 
 /**
@@ -429,7 +440,9 @@ export function createSuggestion(params: {
   metadata?: Record<string, unknown>;
   expiresInMinutes?: number;
 }): AgentSuggestion {
-  const id = params.id || `suggestion_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const id =
+    params.id ||
+    `suggestion_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const expiresIn = params.expiresInMinutes || 10; // 10 minutes
 
   // Parse the amount to check if it's auto-approvable
@@ -451,7 +464,9 @@ export function createSuggestion(params: {
   };
 
   pendingSuggestions.set(id, suggestion);
-  persistSuggestion(suggestion).catch(() => {});
+  persistSuggestion(suggestion).catch((err) =>
+    logger.error("Persist failed", { component: "agent-controls" }, err),
+  );
   return suggestion;
 }
 
@@ -487,7 +502,9 @@ export function acceptSuggestion(id: string): boolean {
   }
 
   suggestion.status = "accepted";
-  persistSuggestion(suggestion).catch(() => {});
+  persistSuggestion(suggestion).catch((err) =>
+    logger.error("Persist failed", { component: "agent-controls" }, err),
+  );
   return true;
 }
 
@@ -502,7 +519,9 @@ export function rejectSuggestion(id: string): boolean {
   }
 
   suggestion.status = "rejected";
-  persistSuggestion(suggestion).catch(() => {});
+  persistSuggestion(suggestion).catch((err) =>
+    logger.error("Persist failed", { component: "agent-controls" }, err),
+  );
   return true;
 }
 
@@ -517,7 +536,9 @@ export function markSuggestionExecuted(id: string): boolean {
   }
 
   suggestion.status = "executed";
-  persistSuggestion(suggestion).catch(() => {});
+  persistSuggestion(suggestion).catch((err) =>
+    logger.error("Persist failed", { component: "agent-controls" }, err),
+  );
   return true;
 }
 
@@ -576,7 +597,9 @@ export function updateStylePreferences(
   prefs.lastUpdated = Date.now();
 
   stylePreferences.set(userId, prefs);
-  persistStylePreferences(prefs).catch(() => {});
+  persistStylePreferences(prefs).catch((err) =>
+    logger.error("Persist failed", { component: "agent-controls" }, err),
+  );
   return prefs;
 }
 
@@ -629,7 +652,9 @@ export function createApprovalRequest(params: {
   };
 
   pendingApprovals.set(id, request);
-  persistApproval(request).catch(() => {});
+  persistApproval(request).catch((err) =>
+    logger.error("Persist failed", { component: "agent-controls" }, err),
+  );
   return request;
 }
 
@@ -666,7 +691,9 @@ export function approveRequest(id: string, userSignature?: string): boolean {
 
   request.status = "approved";
   request.userSignature = userSignature;
-  persistApproval(request).catch(() => {});
+  persistApproval(request).catch((err) =>
+    logger.error("Persist failed", { component: "agent-controls" }, err),
+  );
   return true;
 }
 
@@ -681,7 +708,9 @@ export function rejectRequest(id: string): boolean {
   }
 
   request.status = "rejected";
-  persistApproval(request).catch(() => {});
+  persistApproval(request).catch((err) =>
+    logger.error("Persist failed", { component: "agent-controls" }, err),
+  );
   return true;
 }
 
@@ -854,7 +883,11 @@ export async function dispatchExternalAction(
     const data = await response.json();
     return { success: true, data };
   } catch (err) {
-    console.error("External action dispatch failed:", err);
+    logger.error(
+      "External action dispatch failed",
+      { component: "agent-controls" },
+      err,
+    );
     return {
       success: false,
       error: err instanceof Error ? err.message : "Unknown bridge error",

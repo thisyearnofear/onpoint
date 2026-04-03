@@ -65,7 +65,7 @@ async function resolveAgentAddress(chain: string): Promise<string> {
 }
 
 export async function POST(request: NextRequest) {
-  return requireAuthWithRateLimit(async (req, ctx) => {
+  return requireAuthWithRateLimit(async (req, _ctx) => {
     const origin = req.headers.get("origin") || "*";
 
     try {
@@ -118,52 +118,55 @@ export async function POST(request: NextRequest) {
         id: tipId,
         from: fromAddress,
         to: agentAddress,
-      amount,
-      chain,
-      token: tipToken,
-      timestamp: Date.now(),
-      message,
-      status: "pending" as const,
-    };
+        amount,
+        chain,
+        token: tipToken,
+        timestamp: Date.now(),
+        message,
+        status: "pending" as const,
+      };
 
-    tipLedger.push(tip);
+      tipLedger.push(tip);
 
-    console.log(`[AgentTip] Tip recorded: ${amount} ${tipToken} on ${chain}`, {
-      from: fromAddress.slice(0, 6) + "..." + fromAddress.slice(-4),
-      to: agentAddress.slice(0, 6) + "..." + agentAddress.slice(-4),
-      message,
-    });
-
-    return NextResponse.json(
-      {
-        success: true,
-        tip: {
-          id: tipId,
-          amount,
-          token: tipToken,
-          chain,
-          toAddress: agentAddress,
-          status: "pending",
-          timestamp: tip.timestamp,
+      console.log(
+        `[AgentTip] Tip recorded: ${amount} ${tipToken} on ${chain}`,
+        {
+          from: fromAddress.slice(0, 6) + "..." + fromAddress.slice(-4),
+          to: agentAddress.slice(0, 6) + "..." + agentAddress.slice(-4),
+          message,
         },
-        agentResponse: message
-          ? `Thank you for the ${amount} ${tipToken} tip! Your message: "${message}" I'll keep styling!`
-          : `Thank you for the ${amount} ${tipToken} tip! Your support helps me keep styling!`,
-      },
-      { headers: corsHeaders(origin) },
-    );
-  } catch (error) {
-    console.error("Tip processing error:", error);
-    return NextResponse.json(
-      { error: "Failed to process tip" },
-      { status: 500, headers: corsHeaders(origin) },
-    );
-  }
+      );
+
+      return NextResponse.json(
+        {
+          success: true,
+          tip: {
+            id: tipId,
+            amount,
+            token: tipToken,
+            chain,
+            toAddress: agentAddress,
+            status: "pending",
+            timestamp: tip.timestamp,
+          },
+          agentResponse: message
+            ? `Thank you for the ${amount} ${tipToken} tip! Your message: "${message}" I'll keep styling!`
+            : `Thank you for the ${amount} ${tipToken} tip! Your support helps me keep styling!`,
+        },
+        { headers: corsHeaders(origin) },
+      );
+    } catch (error) {
+      console.error("Tip processing error:", error);
+      return NextResponse.json(
+        { error: "Failed to process tip" },
+        { status: 500, headers: corsHeaders(origin) },
+      );
+    }
   })(request);
 }
 
 export async function GET(request: NextRequest) {
-  return requireAuthWithRateLimit(async (req, ctx) => {
+  return requireAuthWithRateLimit(async (req, _ctx) => {
     const origin = req.headers.get("origin") || "*";
 
     try {
@@ -189,15 +192,15 @@ export async function GET(request: NextRequest) {
           tipCount,
           recentTips: tipLedger.slice(-10).reverse(),
         },
-      { headers: corsHeaders(origin) },
-    );
-  } catch (error) {
-    console.error("Tip GET error:", error);
-    return NextResponse.json(
-      { error: "Failed to get tip info" },
-      { status: 500, headers: corsHeaders(origin) },
-    );
-  }
+        { headers: corsHeaders(origin) },
+      );
+    } catch (error) {
+      console.error("Tip GET error:", error);
+      return NextResponse.json(
+        { error: "Failed to get tip info" },
+        { status: 500, headers: corsHeaders(origin) },
+      );
+    }
   })(request);
 }
 

@@ -240,7 +240,7 @@ export function useLiveSession() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ category, price: 100 }),
-        }).catch(() => {});
+        }).catch(console.error);
       }
 
       // Get contextual prompt from StyleContextStore for cross-feature continuity
@@ -250,7 +250,7 @@ export function useLiveSession() {
             console.log("Style context loaded:", prompt);
           }
         })
-        .catch(() => {});
+        .catch(console.error);
     }
     if (!isConnected) {
       sessionStartTimeRef.current = 0;
@@ -518,7 +518,7 @@ export function useLiveSession() {
           score: sessionSummary?.score,
           timestamp: Date.now(),
         },
-      }).catch(() => {});
+      }).catch(console.error);
     }
   }, [reasoning, selectedPersona, sessionSummary]);
 
@@ -526,7 +526,7 @@ export function useLiveSession() {
   useEffect(() => {
     if (liveAiResponse?.trim() && isVoiceEnabled && selectedPersona) {
       PersonaVoice.speakAsPersona(liveAiResponse, selectedPersona).catch(
-        () => {},
+        console.error,
       );
     }
   }, [liveAiResponse, isVoiceEnabled, selectedPersona]);
@@ -582,7 +582,7 @@ export function useLiveSession() {
         actionType: "mint" as ActionType,
         amount: "0.5 cUSD",
         description: `Style Score is Elite (${sessionSummary.score}/10). Mint this Proof of Style to Celo?`,
-      }).catch(() => {});
+      }).catch(console.error);
     }
   }, [sessionSummary, isConnected, createSuggestion]);
 
@@ -624,39 +624,45 @@ export function useLiveSession() {
     );
 
     if (internalMatch) {
-      const contextSnippet = reasoning[0]?.slice(0, 80) || "analyzing your look";
+      const contextSnippet =
+        reasoning[0]?.slice(0, 80) || "analyzing your look";
       createSuggestion({
         actionType: "purchase" as ActionType,
         amount: `$${internalMatch.price} cUSD`,
         description: `Matching internal catalog: "${internalMatch.name}" — ${internalMatch.description}`,
-      }).catch(() => {});
+      }).catch(console.error);
     } else {
       // No internal match? Trigger the Web Agent!
-      console.log(`[WebAgent] No internal match for ${itemType}. Triggering web discovery...`);
-      
-      const contextSnippet = reasoning[0]?.slice(0, 80) || "analyzing your look";
-      
+      console.log(
+        `[WebAgent] No internal match for ${itemType}. Triggering web discovery...`,
+      );
+
+      const contextSnippet =
+        reasoning[0]?.slice(0, 80) || "analyzing your look";
+
       // 1. Create a "Searching" suggestion first
       createSuggestion({
         actionType: "external_search" as ActionType,
         amount: "Searching Web...",
         description: `I observed: "${contextSnippet}". Browsing live stores for ${itemType}...`,
-        isSearching: true, 
-      }).then(async (data) => {
-        const suggestionId = data.suggestion.id;
-        
-        // 2. Dispatch to the bridge
-        const result = await fetch("/api/agent/purchase", {
-          method: "POST", 
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId: sessionUserIdRef.current,
-            actionType: "external_search",
-            query: latest,
-            suggestionId, // To update the status later
-          })
-        });
-      }).catch(() => {});
+        isSearching: true,
+      })
+        .then(async (data) => {
+          const suggestionId = data.suggestion.id;
+
+          // 2. Dispatch to the bridge
+          const result = await fetch("/api/agent/purchase", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId: sessionUserIdRef.current,
+              actionType: "external_search",
+              query: latest,
+              suggestionId, // To update the status later
+            }),
+          });
+        })
+        .catch(console.error);
     }
   }, [reasoning, isConnected, createSuggestion, canCreateSuggestion]);
 
@@ -681,9 +687,9 @@ export function useLiveSession() {
           actionType: "purchase" as ActionType,
           amount: `$${rec.price} cUSD`,
           description: `Based on your ${cat} preference: ${rec.name} — ${rec.description}`,
-        }).catch(() => {});
+        }).catch(console.error);
       })
-      .catch(() => {});
+      .catch(console.error);
   }, [isConnected, createSuggestion, canCreateSuggestion]);
 
   // ── Capture logic ──

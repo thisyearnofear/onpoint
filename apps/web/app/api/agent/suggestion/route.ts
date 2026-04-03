@@ -24,7 +24,14 @@ import { VerifiableAgentService } from "../../../../lib/services/verifiable-agen
 
 // Request schemas
 const CreateSuggestionSchema = z.object({
-  actionType: z.enum(["tip", "purchase", "mint", "premium", "agent_to_agent", "external_search"]),
+  actionType: z.enum([
+    "tip",
+    "purchase",
+    "mint",
+    "premium",
+    "agent_to_agent",
+    "external_search",
+  ]),
   amount: z.string().min(1),
   description: z.string().min(1),
   recipient: z.string().optional(),
@@ -106,7 +113,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         );
       }
 
-      const { actionType, amount, description, recipient, agentId, isSearching, liveUrl } = parsed.data;
+      const {
+        actionType,
+        amount,
+        description,
+        recipient,
+        agentId,
+        isSearching,
+        liveUrl,
+      } = parsed.data;
 
       // Use authenticated agentId if not provided
       const effectiveAgentId = agentId || ctx.agentId;
@@ -123,21 +138,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         metadata: {
           isSearching,
           liveUrl,
-        }
+        },
       });
 
       // HACKATHON: Create Verifiable Agent Log (IPFS/Filecoin)
       // Provides transparent, tamper-proof audit trails for agent decisions.
       try {
-        const { cid, signature } = await VerifiableAgentService.createVerifiableLog(
-          result.suggestion,
-          ctx.userId
-        );
-        
+        const { cid, signature } =
+          await VerifiableAgentService.createVerifiableLog(
+            result.suggestion,
+            ctx.userId,
+          );
+
         // Update suggestion with verifiability info
         result.suggestion.verifiableLogCid = cid;
         result.suggestion.signature = signature;
-        
+
         // Re-persist the updated suggestion
         await persistSuggestion(result.suggestion);
         console.log(`[SuggestionAPI] Verifiable log attached: ${cid}`);
@@ -168,7 +184,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
 // PATCH - Accept or reject suggestion (requires auth)
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
-  return requireAuthWithRateLimit(async (req, ctx) => {
+  return requireAuthWithRateLimit(async (req, _ctx) => {
     const origin = req.headers.get("origin") ?? undefined;
 
     try {

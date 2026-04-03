@@ -7,6 +7,7 @@ import {
   getOnChainReceipts,
   getReceipt,
 } from "../../../../lib/services/agent-registry";
+import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 
 /**
  * GET /api/agent/receipts
@@ -19,70 +20,72 @@ import {
  *   - offset: pagination offset
  */
 export async function GET(request: NextRequest) {
-  const origin = request.headers.get("origin") || "*";
-  const url = new URL(request.url);
+  return requireAuthWithRateLimit(async (req, _ctx) => {
+    const origin = req.headers.get("origin") || "*";
+    const url = new URL(req.url);
 
-  try {
-    const sessionId = url.searchParams.get("sessionId");
-    const onchain = url.searchParams.get("onchain") === "true";
-    const limit = parseInt(url.searchParams.get("limit") || "50", 10);
-    const offset = parseInt(url.searchParams.get("offset") || "0", 10);
-    const receiptId = url.searchParams.get("id");
+    try {
+      const sessionId = url.searchParams.get("sessionId");
+      const onchain = url.searchParams.get("onchain") === "true";
+      const limit = parseInt(url.searchParams.get("limit") || "50", 10);
+      const offset = parseInt(url.searchParams.get("offset") || "0", 10);
+      const receiptId = url.searchParams.get("id");
 
-    // Get agent identity
-    const identity = getAgentIdentity();
+      // Get agent identity
+      const identity = getAgentIdentity();
 
-    // Get specific receipt by ID
-    if (receiptId) {
-      const receipt = getReceipt(receiptId);
-      if (!receipt) {
+      // Get specific receipt by ID
+      if (receiptId) {
+        const receipt = getReceipt(receiptId);
+        if (!receipt) {
+          return NextResponse.json(
+            { error: "Receipt not found" },
+            { status: 404, headers: corsHeaders(origin) },
+          );
+        }
         return NextResponse.json(
-          { error: "Receipt not found" },
-          { status: 404, headers: corsHeaders(origin) },
+          { identity, receipt },
+          { headers: corsHeaders(origin) },
         );
       }
+
+      // Get receipts
+      let receipts;
+      let total;
+
+      if (sessionId) {
+        receipts = getSessionReceipts(sessionId);
+        total = receipts.length;
+      } else if (onchain) {
+        receipts = getOnChainReceipts();
+        total = receipts.length;
+      } else {
+        const result = getAllReceipts({ limit, offset });
+        receipts = result.receipts;
+        total = result.total;
+      }
+
       return NextResponse.json(
-        { identity, receipt },
+        {
+          identity,
+          receipts,
+          pagination: {
+            total,
+            limit,
+            offset,
+            hasMore: offset + receipts.length < total,
+          },
+        },
         { headers: corsHeaders(origin) },
       );
+    } catch (error) {
+      console.error("[ReceiptsAPI] Error:", error);
+      return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500, headers: corsHeaders(origin) },
+      );
     }
-
-    // Get receipts
-    let receipts;
-    let total;
-
-    if (sessionId) {
-      receipts = getSessionReceipts(sessionId);
-      total = receipts.length;
-    } else if (onchain) {
-      receipts = getOnChainReceipts();
-      total = receipts.length;
-    } else {
-      const result = getAllReceipts({ limit, offset });
-      receipts = result.receipts;
-      total = result.total;
-    }
-
-    return NextResponse.json(
-      {
-        identity,
-        receipts,
-        pagination: {
-          total,
-          limit,
-          offset,
-          hasMore: offset + receipts.length < total,
-        },
-      },
-      { headers: corsHeaders(origin) },
-    );
-  } catch (error) {
-    console.error("[ReceiptsAPI] Error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500, headers: corsHeaders(origin) },
-    );
-  }
+  })(request);
 }
 
 export async function OPTIONS(request: NextRequest) {

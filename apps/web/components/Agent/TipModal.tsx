@@ -146,7 +146,7 @@ export function TipSheet({
           fromAddress: connectedAddress,
           txHash: hash,
         }),
-      }).catch(() => {});
+      }).catch(console.error);
     }
   }, [isConfirmed, hash, sentAmount, connectedAddress]);
 

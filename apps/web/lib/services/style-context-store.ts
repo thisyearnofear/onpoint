@@ -10,6 +10,7 @@
  * with in-memory fallback (PERFORMANT).
  */
 
+import { logger } from "../utils/logger";
 import type { StylePreference } from "../middleware/agent-controls";
 import {
   getStylePreferences,
@@ -25,7 +26,11 @@ import {
 export interface StyleContextEntry {
   id: string;
   source: "virtual-try-on" | "live-ar" | "chat" | "catalog";
-  type: "outfit-analysis" | "recommendation" | "preference-update" | "session-goal";
+  type:
+    | "outfit-analysis"
+    | "recommendation"
+    | "preference-update"
+    | "session-goal";
   content: string;
   metadata: {
     category?: string;
@@ -57,7 +62,9 @@ const contextStore: Map<string, UnifiedStyleContext> = new Map();
  * Get unified style context for a user.
  * Merges preferences from agent-controls with recent analyses.
  */
-export async function getUnifiedContext(userId: string): Promise<UnifiedStyleContext> {
+export async function getUnifiedContext(
+  userId: string,
+): Promise<UnifiedStyleContext> {
   if (contextStore.has(userId)) {
     return contextStore.get(userId)!;
   }
@@ -123,7 +130,13 @@ export async function recordStyleAnalysis(
 
   // Persist
   contextStore.set(userId, context);
-  persistStylePreferences(context.preferences).catch(() => {});
+  persistStylePreferences(context.preferences).catch((err) =>
+    logger.error(
+      "Style context persist failed",
+      { component: "style-context" },
+      err,
+    ),
+  );
 }
 
 /**

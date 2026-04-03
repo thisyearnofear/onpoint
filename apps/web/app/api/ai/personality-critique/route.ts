@@ -1,40 +1,52 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { generateText } from '../_utils/providers';
-import { corsHeaders } from '../_utils/http';
+import { NextRequest, NextResponse } from "next/server";
+import { generateText } from "../_utils/providers";
+import { corsHeaders } from "../_utils/http";
+import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 
 export async function POST(request: NextRequest) {
+  return requireAuthWithRateLimit(async (req, _ctx) => {
     try {
-        const { imageBase64, persona, mode, config, provider = 'auto', userContext } = await request.json();
-        const origin = request.headers.get('origin') || '*';
+      const {
+        imageBase64,
+        persona,
+        mode,
+        config,
+        provider = "auto",
+        userContext,
+      } = await req.json();
+      const origin = req.headers.get("origin") || "*";
 
-        if (!imageBase64 || !persona || !config) {
-            return NextResponse.json({
-                error: 'Image data, persona, and config are required'
-            }, {
-                status: 400,
-                headers: corsHeaders(origin)
-            });
-        }
+      if (!imageBase64 || !persona || !config) {
+        return NextResponse.json(
+          {
+            error: "Image data, persona, and config are required",
+          },
+          {
+            status: 400,
+            headers: corsHeaders(origin),
+          },
+        );
+      }
 
-        // ── Identity-Based Personalization ──
-        let contextInjection = '';
-        if (userContext) {
-            const level = userContext.xp ? Math.floor(userContext.xp / 100) + 1 : 1;
-            const badgeList = userContext.badges?.join(', ') || 'none';
-            
-            contextInjection = `
+      // ── Identity-Based Personalization ──
+      let contextInjection = "";
+      if (userContext) {
+        const level = userContext.xp ? Math.floor(userContext.xp / 100) + 1 : 1;
+        const badgeList = userContext.badges?.join(", ") || "none";
+
+        contextInjection = `
 [USER IDENTITY CONTEXT]
 - Style Level: ${level}
 - Achievements: ${badgeList}
-- Celo Native: ${userContext.isCeloUser ? 'Yes' : 'No'}
+- Celo Native: ${userContext.isCeloUser ? "Yes" : "No"}
 
-Tailor your critique tone to their level. ${level > 5 ? 'Be sophisticated and technical.' : 'Be encouraging and educational.'}
-${userContext.isCeloUser ? 'They are part of the Celo fashion community.' : ''}
+Tailor your critique tone to their level. ${level > 5 ? "Be sophisticated and technical." : "Be encouraging and educational."}
+${userContext.isCeloUser ? "They are part of the Celo fashion community." : ""}
 `;
-        }
+      }
 
-        // Create the enhanced prompt for personality-based critique
-        const enhancedPrompt = `${config.prompt}
+      // Create the enhanced prompt for personality-based critique
+      const enhancedPrompt = `${config.prompt}
 
 ${contextInjection}
 
@@ -49,38 +61,45 @@ Consider:
 
 Keep your response engaging and true to your character while being genuinely helpful.`;
 
-        // For now, we'll use text-based analysis since image analysis requires special handling
-        // In a production environment, you'd process the actual image
-        const { text, usedProvider } = await generateText({
-            prompt: enhancedPrompt,
-            provider,
-            preferGemini: false,
-            preferOpenAI: true,
-            geminiModel: 'gemini-3.1-flash-lite-preview',
-            openaiModel: config.model || 'gpt-4o-mini',
-            openaiOptions: {
-                max_tokens: config.maxTokens || 400,
-                temperature: config.temperature || 0.7
-            },
-        });
+      // For now, we'll use text-based analysis since image analysis requires special handling
+      // In a production environment, you'd process the actual image
+      const { text, usedProvider } = await generateText({
+        prompt: enhancedPrompt,
+        provider,
+        preferGemini: false,
+        preferOpenAI: true,
+        geminiModel: "gemini-3.1-flash-lite-preview",
+        openaiModel: config.model || "gpt-4o-mini",
+        openaiOptions: {
+          max_tokens: config.maxTokens || 400,
+          temperature: config.temperature || 0.7,
+        },
+      });
 
-        return NextResponse.json({
-            critique: text || 'Unable to generate critique at this time.',
-            persona,
-            mode,
-            provider: provider === 'auto' ? usedProvider : provider
-        }, { headers: corsHeaders(origin) });
+      return NextResponse.json(
+        {
+          critique: text || "Unable to generate critique at this time.",
+          persona,
+          mode,
+          provider: provider === "auto" ? usedProvider : provider,
+        },
+        { headers: corsHeaders(origin) },
+      );
     } catch (error) {
-        console.error('AI personality critique error:', error);
-        return NextResponse.json({
-            error: 'Failed to generate personality critique'
-        }, {
-            status: 500
-        });
+      console.error("AI personality critique error:", error);
+      return NextResponse.json(
+        {
+          error: "Failed to generate personality critique",
+        },
+        {
+          status: 500,
+        },
+      );
     }
+  })(request);
 }
 
 export async function OPTIONS(request: NextRequest) {
-    const origin = request.headers.get('origin') || '*';
-    return new NextResponse(null, { status: 204, headers: corsHeaders(origin) });
+  const origin = request.headers.get("origin") || "*";
+  return new NextResponse(null, { status: 204, headers: corsHeaders(origin) });
 }

@@ -18,6 +18,7 @@ import {
   recordReceipt,
   type AgentAction,
 } from "../../../../lib/services/agent-registry";
+import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 
 // In-memory audit log (production would use Redis)
 const auditLog: Array<{
@@ -42,128 +43,132 @@ function hashImage(imageBase64: string): string {
 }
 
 export async function POST(request: NextRequest) {
-  const origin = request.headers.get("origin") || "*";
+  return requireAuthWithRateLimit(async (req, _ctx) => {
+    const origin = req.headers.get("origin") || "*";
 
-  try {
-    const body = await request.json();
-    const { sessionId, imageBase64, action = "analyze_outfit" } = body;
+    try {
+      const body = await req.json();
+      const { sessionId, imageBase64, action = "analyze_outfit" } = body;
 
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: "sessionId is required" },
-        { status: 400, headers: corsHeaders(origin) },
-      );
-    }
+      if (!sessionId) {
+        return NextResponse.json(
+          { error: "sessionId is required" },
+          { status: 400, headers: corsHeaders(origin) },
+        );
+      }
 
-    const imageHash = imageBase64 ? hashImage(imageBase64) : "none";
-    const imageSize = imageBase64 ? imageBase64.length : 0;
-    const now = Date.now();
+      const imageHash = imageBase64 ? hashImage(imageBase64) : "none";
+      const imageSize = imageBase64 ? imageBase64.length : 0;
+      const now = Date.now();
 
-    // Create audit entry
-    const entry = {
-      id: `audit_${now}_${Math.random().toString(36).substr(2, 9)}`,
-      sessionId,
-      imageHash,
-      imageSize,
-      processedAt: now,
-      provider: "venice-ai",
-      retentionPolicy: "zero-retention",
-      dataDeleted: true,
-      deletedAt: now, // Venice AI never stores — deleted immediately
-      action,
-    };
-
-    auditLog.push(entry);
-
-    // Record as ERC-8004 receipt (on-chain for verifiable privacy proof)
-    await recordReceipt({
-      action: "privacy_audit" as AgentAction,
-      sessionId,
-      metadata: {
+      // Create audit entry
+      const entry = {
+        id: `audit_${now}_${Math.random().toString(36).substr(2, 9)}`,
+        sessionId,
         imageHash,
         imageSize,
+        processedAt: now,
         provider: "venice-ai",
         retentionPolicy: "zero-retention",
-      },
-    });
+        dataDeleted: true,
+        deletedAt: now, // Venice AI never stores — deleted immediately
+        action,
+      };
 
-    console.log(
-      `[PrivacyAudit] Session ${sessionId}: processed ${imageSize}B image, hash=${imageHash.slice(0, 12)}..., deleted immediately`,
-    );
+      auditLog.push(entry);
 
-    return NextResponse.json(
-      {
-        success: true,
-        audit: {
-          id: entry.id,
-          sessionId,
-          imageHash: `${imageHash.slice(0, 8)}...${imageHash.slice(-8)}`,
-          imageSize: `${(imageSize / 1024).toFixed(1)}KB`,
-          processedAt: new Date(now).toISOString(),
+      // Record as ERC-8004 receipt (on-chain for verifiable privacy proof)
+      await recordReceipt({
+        action: "privacy_audit" as AgentAction,
+        sessionId,
+        metadata: {
+          imageHash,
+          imageSize,
           provider: "venice-ai",
           retentionPolicy: "zero-retention",
-          dataDeleted: true,
-          deletedAt: new Date(now).toISOString(),
-          proof: {
-            description:
-              "Image was hashed for audit purposes only. Venice AI processes images in-memory with zero data retention. No image data is stored at any point.",
-            hashAlgorithm: "SHA-256",
-            hashOnly: true,
-            originalContentPreserved: false,
+        },
+      });
+
+      console.log(
+        `[PrivacyAudit] Session ${sessionId}: processed ${imageSize}B image, hash=${imageHash.slice(0, 12)}..., deleted immediately`,
+      );
+
+      return NextResponse.json(
+        {
+          success: true,
+          audit: {
+            id: entry.id,
+            sessionId,
+            imageHash: `${imageHash.slice(0, 8)}...${imageHash.slice(-8)}`,
+            imageSize: `${(imageSize / 1024).toFixed(1)}KB`,
+            processedAt: new Date(now).toISOString(),
+            provider: "venice-ai",
+            retentionPolicy: "zero-retention",
+            dataDeleted: true,
+            deletedAt: new Date(now).toISOString(),
+            proof: {
+              description:
+                "Image was hashed for audit purposes only. Venice AI processes images in-memory with zero data retention. No image data is stored at any point.",
+              hashAlgorithm: "SHA-256",
+              hashOnly: true,
+              originalContentPreserved: false,
+            },
           },
         },
-      },
-      { headers: corsHeaders(origin) },
-    );
-  } catch (error) {
-    console.error("Privacy audit error:", error);
-    return NextResponse.json(
-      { error: "Failed to create audit entry" },
-      { status: 500, headers: corsHeaders(origin) },
-    );
-  }
+        { headers: corsHeaders(origin) },
+      );
+    } catch (error) {
+      console.error("Privacy audit error:", error);
+      return NextResponse.json(
+        { error: "Failed to create audit entry" },
+        { status: 500, headers: corsHeaders(origin) },
+      );
+    }
+  })(request);
 }
 
 export async function GET(request: NextRequest) {
-  const origin = request.headers.get("origin") || "*";
+  return requireAuthWithRateLimit(async (req, _ctx) => {
+    const origin = req.headers.get("origin") || "*";
 
-  const url = new URL(request.url);
-  const sessionId = url.searchParams.get("sessionId");
+    const url = new URL(req.url);
+    const sessionId = url.searchParams.get("sessionId");
 
-  if (sessionId) {
-    const entries = auditLog.filter((e) => e.sessionId === sessionId);
+    if (sessionId) {
+      const entries = auditLog.filter((e) => e.sessionId === sessionId);
+      return NextResponse.json(
+        {
+          sessionId,
+          totalAuditEntries: entries.length,
+          entries: entries.map((e) => ({
+            id: e.id,
+            imageHash: `${e.imageHash.slice(0, 8)}...${e.imageHash.slice(-8)}`,
+            processedAt: new Date(e.processedAt).toISOString(),
+            provider: e.provider,
+            retentionPolicy: e.retentionPolicy,
+            dataDeleted: e.dataDeleted,
+          })),
+        },
+        { headers: corsHeaders(origin) },
+      );
+    }
+
+    // Summary
     return NextResponse.json(
       {
-        sessionId,
-        totalAuditEntries: entries.length,
-        entries: entries.map((e) => ({
-          id: e.id,
-          imageHash: `${e.imageHash.slice(0, 8)}...${e.imageHash.slice(-8)}`,
+        totalSessions: new Set(auditLog.map((e) => e.sessionId)).size,
+        totalAuditEntries: auditLog.length,
+        provider: "venice-ai",
+        retentionPolicy: "zero-retention",
+        recentEntries: auditLog.slice(-10).map((e) => ({
+          sessionId: e.sessionId,
+          imageHash: `${e.imageHash.slice(0, 8)}...`,
           processedAt: new Date(e.processedAt).toISOString(),
-          provider: e.provider,
-          retentionPolicy: e.retentionPolicy,
-          dataDeleted: e.dataDeleted,
         })),
       },
       { headers: corsHeaders(origin) },
     );
-  }
-
-  // Summary
-  return NextResponse.json(
-    {
-      totalSessions: new Set(auditLog.map((e) => e.sessionId)).size,
-      totalAuditEntries: auditLog.length,
-      provider: "venice-ai",
-      retentionPolicy: "zero-retention",
-      recentEntries: auditLog.slice(-10).map((e) => ({
-        sessionId: e.sessionId,
-        imageHash: `${e.imageHash.slice(0, 8)}...`,
-        processedAt: new Date(e.processedAt).toISOString(),
-      })),
-    },
-    { headers: corsHeaders(origin) },
-  );
+  })(request);
 }
 
 export async function OPTIONS(request: NextRequest) {

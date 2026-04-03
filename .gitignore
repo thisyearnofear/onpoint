@@ -43,8 +43,17 @@ yarn-error.log*
 # pnpm-lock.yaml removed to allow deterministic cloud builds
 .blackboxcli/
 scripts/
+
+# Secrets (note: .synthesis-credentials is still tracked in git history —
+# rotate the key and run: git rm --cached .synthesis-credentials)
 .synthesis-credentials
-.synthesis-credentials
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
 
 # Deployment (server-specific configs)
 deploy/*.conf

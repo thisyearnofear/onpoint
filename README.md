@@ -125,30 +125,27 @@ Autonomous web browsing and API aggregation for style discovery. When the intern
 
 ---
 
-## Self-Custodial Agent Wallet (Tether WDK)
+## Self-Custodial Agent Wallet (Tether WDK + OWS)
 
-The agent operates its own self-custodial wallet via [Tether WDK](https://docs.wallet.tether.io), supporting multiple chains out of the box:
+The agent operates its own self-custodial wallet via [Tether WDK](https://docs.wallet.tether.io), with [Open Wallet Standard](https://openwallet.sh) layered on top for policy-gated signing and x402 payment compatibility:
 
 ```typescript
 // lib/services/agent-wallet.ts
 import WDK from "@tetherto/wdk";
-import WalletManagerEvm from "@tetherto/wdk-wallet-evm";
+import { importWalletPrivateKey, signMessage } from "@open-wallet-standard/core";
 
-// Agent wallet supports multiple chains
-const SUPPORTED_CHAINS = {
-  celo: { name: "Celo", provider: "https://forno.celo.org" },
-  base: { name: "Base", provider: "https://mainnet.base.org" },
-  ethereum: { name: "Ethereum", provider: "https://eth.drpc.org" },
-  polygon: { name: "Polygon", provider: "https://polygon-rpc.com" },
-};
+// WDK: multi-chain treasury (Celo, Base, Ethereum, Polygon)
+// OWS: policy-gated signing + x402/MPP payment rails
 ```
 
-| Capability           | Implementation                             |
-| -------------------- | ------------------------------------------ |
-| **Multi-Chain**      | Celo, Base, Ethereum, Polygon via WDK      |
-| **Receive Tips**     | Users tip agent in cUSD/USDT via WDK       |
-| **Execute Payments** | Agent charges CELO for premium Gemini Live |
-| **Mint NFTs**        | Agent proposes + mints style NFTs on Celo  |
+| Capability              | Implementation                                       |
+| ----------------------- | ---------------------------------------------------- |
+| **Multi-Chain**         | Celo, Base, Ethereum, Polygon via WDK                |
+| **Receive Tips**        | Users tip agent in cUSD/USDT via WDK                 |
+| **Execute Payments**    | Agent charges CELO for premium Gemini Live           |
+| **Mint NFTs**           | Agent proposes + mints style NFTs on Celo            |
+| **OWS Policy Signing**  | Policy-gated signing via `@open-wallet-standard/core`|
+| **x402 Payments**       | HTTP 402 payment rails on checkout endpoint          |
 
 ---
 
@@ -297,6 +294,10 @@ Every agent decision is cryptographically signed and stored on IPFS/Filecoin, pr
 
 ## Hackathons
 
+### [OWS Hackathon — Build with the Open Wallet Standard](https://openwallet.sh)
+**Track: Agentic Storefronts & Real-World Commerce + Agent Spend Governance**
+x402 payment rails on checkout, OWS policy-gated signing, HTTP 402 auto-pay flow.
+
 ### [Tether Hackathon Galactica: WDK Edition 1](https://dorahacks.io/hackathon/hackathon-galactica-wdk-2026-01/detail)
 **Track: Agent Wallets (WDK/Openclaw Integration)**
 Self-custodial agent wallets, spending limits, and commission splits.
@@ -343,6 +344,9 @@ NEYNAR_API_KEY=          # Farcaster mini-app
 # Wallet
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=
 AGENT_PRIVATE_KEY=       # Agent wallet for cUSD/USDT transfers (demo mode if unset)
+
+# OWS vault path (optional — defaults to /tmp/.ows/wallets)
+OWS_VAULT_PATH=
 ```
 
 ---

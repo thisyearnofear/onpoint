@@ -20,7 +20,11 @@ import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import { corsHeaders } from "../../ai/_utils/http";
 import { PLATFORM_WALLET, getExplorerUrl } from "../../../../config/chains";
 import { getAgentWallet } from "../../../../lib/services/agent-wallet";
-import { requireAuthWithRateLimit, type AgentAuthContext } from "../../../../middleware/agent-auth";
+import {
+  requireAuthWithRateLimit,
+  type AgentAuthContext,
+} from "../../../../middleware/agent-auth";
+import { logger } from "../../../../lib/utils/logger";
 
 // Product catalog - maps CANVAS_ITEMS to purchase-ready format
 const PRODUCTS: Record<
@@ -99,22 +103,34 @@ export async function POST(
       );
     }
 
-    const { productId, actionType, query, suggestionId, quantity, chain, agentId, approvalId } = parsed.data;
+    const {
+      productId,
+      actionType,
+      query,
+      suggestionId,
+      quantity,
+      chain,
+      agentId,
+      approvalId,
+    } = parsed.data;
 
     await AgentControls.initStore(agentId);
 
     // --- CASE 1: External Search (Phase 2 Bridge Integration) ---
     if (actionType === "external_search" && query && suggestionId) {
-      console.log(`[Purchase API] Dispatching external search: "${query}"`);
-      
+      logger.info("Dispatching external search", {
+        component: "purchase",
+        query,
+      });
+
       const result = await AgentControls.dispatchExternalAction("default", {
         type: "search",
-        payload: { query }
+        payload: { query },
       });
 
       if (result.success && result.data?.items?.length > 0) {
         const item = result.data.items[0]; // Take top result
-        
+
         // Update the original suggestion with the real data
         const suggestion = AgentControls.getSuggestion(suggestionId);
         if (suggestion) {
@@ -124,28 +140,31 @@ export async function POST(
           suggestion.externalUrl = item.url;
           suggestion.isSearching = false;
           suggestion.liveUrl = result.data.live_url;
-          
+
           // Re-persist the updated suggestion
-          AgentControls.createSuggestion(suggestion); 
+          AgentControls.createSuggestion(suggestion);
         }
 
         return NextResponse.json(
           { success: true },
-          { status: 200, headers: corsHeaders(origin) }
+          { status: 200, headers: corsHeaders(origin) },
         );
       }
 
       return NextResponse.json(
         { success: false, error: "Web-Bridge returned no results" },
-        { status: 204, headers: corsHeaders(origin) }
+        { status: 204, headers: corsHeaders(origin) },
       );
     }
 
     // --- CASE 2: Internal Product Purchase (Existing Logic) ---
     if (!productId) {
       return NextResponse.json(
-        { success: false, error: "productId is required for internal purchases" },
-        { status: 400, headers: corsHeaders(origin) }
+        {
+          success: false,
+          error: "productId is required for internal purchases",
+        },
+        { status: 400, headers: corsHeaders(origin) },
       );
     }
 
@@ -231,12 +250,14 @@ export async function POST(
         Object.values(addresses)[0] ??
         null;
       if (agentWdkAddress) {
-        console.log(
-          `[Purchase API] WDK agent address (${chain}): ${agentWdkAddress}`,
-        );
+        logger.info("WDK agent address resolved", {
+          component: "purchase",
+          chain,
+          agentWdkAddress,
+        });
       }
     } catch (wdkErr) {
-      console.warn("[Purchase API] WDK not available:", wdkErr);
+      logger.warn("WDK not available", { component: "purchase" }, wdkErr);
     }
 
     // Get agent private key from environment
@@ -246,7 +267,9 @@ export async function POST(
 
     if (!agentPrivateKey) {
       // Production: signing required for real on-chain receipts
-      console.error("[Purchase API] AGENT_PRIVATE_KEY not configured");
+      logger.error("AGENT_PRIVATE_KEY not configured", {
+        component: "purchase",
+      });
 
       return NextResponse.json(
         {
@@ -297,7 +320,7 @@ export async function POST(
       { status: 200, headers: corsHeaders(origin) },
     );
   } catch (error) {
-    console.error("Purchase API error:", error);
+    logger.apiError("/api/agent/purchase", "Purchase API error", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500, headers: corsHeaders(origin) },

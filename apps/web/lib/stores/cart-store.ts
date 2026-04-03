@@ -8,6 +8,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { FashionItem } from "@onpoint/shared-types";
+import { logger } from "../utils/logger";
 
 export interface CartItem {
   product: FashionItem;
@@ -64,7 +65,9 @@ export const useCartStore = create<CartState>()(
             category: product.category,
             price: product.price,
           }),
-        }).catch(() => {});
+        }).catch((err) =>
+          logger.error("Cart persist failed", { component: "cart" }, err),
+        );
       },
 
       removeItem: (productId) => {

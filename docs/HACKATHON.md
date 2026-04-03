@@ -4,6 +4,21 @@
 
 ## 🏆 Hackathon Submissions
 
+### OWS Hackathon — Build with the Open Wallet Standard (April 3, 2026) — **Active**
+
+> $50,000 in prizes. Submissions close midnight EST April 3.
+
+| Track                                          | Prize   | Alignment                                                    |
+| ---------------------------------------------- | ------- | ------------------------------------------------------------ |
+| **Agentic Storefronts & Real-World Commerce**  | $3,000  | AI personal shopper with budget + taste profile, x402 checkout |
+| **Agent Spend Governance & Identity**          | $3,000  | `agent-controls.ts` spending limits, approval workflows, OWS policy signing |
+
+**Key integrations added:**
+- **x402 payment rails** — `/api/agent/checkout` returns HTTP 402 with payment requirements; any OWS/x402-compatible agent wallet auto-pays and retries
+- **OWS wallet** (`@open-wallet-standard/core`) — policy-gated signing alongside WDK, shared key material, `/api/agent/wallet` exposes OWS accounts
+
+---
+
 ### Synthesis (March 2026) — **Active**
 
 > AI agents and humans build and judge side by side. 28+ partners. $100,000+ in bounties.
@@ -74,14 +89,16 @@ const SUPPORTED_CHAINS = {
 };
 ```
 
-### Agent Capabilities via WDK
+### Agent Capabilities via WDK + OWS
 
-| Capability           | Implementation                             | Hackathon Track  |
-| -------------------- | ------------------------------------------ | ---------------- |
-| **Receive Tips**     | Users tip agent in cUSD/USDT via WDK       | Tipping Bot ✅   |
-| **Execute Payments** | Agent charges CELO for premium Gemini Live | Agent Wallets ✅ |
-| **Mint NFTs**        | Agent proposes + mints style NFTs          | Agent Wallets ✅ |
-| **Multi-Chain**      | Celo, Base, Ethereum, Polygon support      | Agent Wallets ✅ |
+| Capability              | Implementation                                  | Hackathon Track       |
+| ----------------------- | ----------------------------------------------- | --------------------- |
+| **Receive Tips**        | Users tip agent in cUSD/USDT via WDK            | Tipping Bot ✅        |
+| **Execute Payments**    | Agent charges CELO for premium Gemini Live      | Agent Wallets ✅      |
+| **Mint NFTs**           | Agent proposes + mints style NFTs               | Agent Wallets ✅      |
+| **Multi-Chain**         | Celo, Base, Ethereum, Polygon support           | Agent Wallets ✅      |
+| **OWS Policy Signing**  | Policy-gated signing via `@open-wallet-standard/core` | OWS Track ✅    |
+| **x402 Checkout**       | HTTP 402 payment requirements on `/api/agent/checkout` | OWS Track ✅  |
 
 ### Agent Wallet API Endpoints
 
@@ -93,12 +110,26 @@ GET /api/agent/wallet
 {
   "agent": {
     "name": "OnPoint AI Stylist",
-    "capabilities": ["multi_chain_wallet", "receive_tips", "execute_payments", "nft_minting"]
+    "capabilities": ["multi_chain_wallet", "receive_tips", "execute_payments", "nft_minting", "ows_policy_signing", "x402_payments"]
   },
   "wallets": [...],
   "addresses": { "celo": "0x...", "base": "0x..." },
-  "supportedChains": ["Celo", "Base", "Ethereum", "Polygon"]
+  "supportedChains": ["Celo", "Base", "Ethereum", "Polygon"],
+  "ows": {
+    "available": true,
+    "wallet": "onpoint-agent",
+    "accounts": [{ "chainId": "eip155:1", "address": "0x..." }, ...]
+  }
 }
+
+# x402 checkout — no payment header → 402 with requirements
+POST /api/agent/checkout
+# → 402 { "x402Version": 1, "accepts": [{ "scheme": "exact", "network": "base-sepolia", ... }] }
+
+# x402 checkout — with X-PAYMENT header → executes + settles
+POST /api/agent/checkout
+X-PAYMENT: <base64-encoded-payment-payload>
+# → 200 { "success": true, "order": { ... } }
 ```
 
 ---

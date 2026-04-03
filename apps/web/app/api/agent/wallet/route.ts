@@ -12,40 +12,58 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { corsHeaders } from "../../ai/_utils/http";
-import { getAgentWalletInfo } from "../../../../lib/services/agent-wallet";
+import {
+  getAgentWalletInfo,
+  getOWSWalletInfo,
+} from "../../../../lib/services/agent-wallet";
+import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 
 export async function GET(request: NextRequest) {
-  const origin = request.headers.get("origin") || "*";
+  return requireAuthWithRateLimit(async (req, _ctx) => {
+    const origin = req.headers.get("origin") || "*";
 
-  try {
-    const walletInfo = await getAgentWalletInfo();
+    try {
+      const [walletInfo, owsInfo] = await Promise.all([
+        getAgentWalletInfo(),
+        getOWSWalletInfo(),
+      ]);
 
-    return NextResponse.json(
-      {
-        agent: {
-          name: "OnPoint AI Stylist",
-          description:
-            "Autonomous fashion styling agent with self-custodial wallet",
-          capabilities: [
-            "multi_chain_wallet",
-            "receive_tips",
-            "execute_payments",
-            "nft_minting",
-          ],
+      return NextResponse.json(
+        {
+          agent: {
+            name: "OnPoint AI Stylist",
+            description:
+              "Autonomous fashion styling agent with self-custodial wallet",
+            capabilities: [
+              "multi_chain_wallet",
+              "receive_tips",
+              "execute_payments",
+              "nft_minting",
+              "ows_policy_signing",
+              "x402_payments",
+            ],
+          },
+          wallets: walletInfo.walletInfo,
+          addresses: walletInfo.addresses,
+          supportedChains: ["Celo", "Base", "Ethereum", "Polygon"],
+          ows: owsInfo
+            ? {
+                available: true,
+                wallet: owsInfo.name,
+                accounts: owsInfo.accounts,
+              }
+            : { available: false },
         },
-        wallets: walletInfo.walletInfo,
-        addresses: walletInfo.addresses,
-        supportedChains: ["Celo", "Base", "Ethereum", "Polygon"],
-      },
-      { headers: corsHeaders(origin) },
-    );
-  } catch (error) {
-    console.error("Agent wallet error:", error);
-    return NextResponse.json(
-      { error: "Failed to get agent wallet info" },
-      { status: 500, headers: corsHeaders(origin) },
-    );
-  }
+        { headers: corsHeaders(origin) },
+      );
+    } catch (error) {
+      console.error("Agent wallet error:", error);
+      return NextResponse.json(
+        { error: "Failed to get agent wallet info" },
+        { status: 500, headers: corsHeaders(origin) },
+      );
+    }
+  })(request);
 }
 
 export async function OPTIONS(request: NextRequest) {

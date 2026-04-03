@@ -22,14 +22,13 @@ const ALLOWED_ORIGINS = [
 ];
 
 /**
- * Check if an origin is allowed
+ * Check if an origin is allowed.
+ * In production, only explicitly listed origins are permitted.
  */
 function isAllowedOrigin(origin: string): boolean {
   return (
     ALLOWED_ORIGINS.includes(origin) ||
-    // Allow all Vercel preview deployments
-    origin.endsWith(".vercel.app") ||
-    // Allow environment-specific origins
+    // Allow environment-specific origin
     process.env.NEXT_PUBLIC_APP_URL === origin
   );
 }

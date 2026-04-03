@@ -20,6 +20,8 @@ import {
   type AgentAction,
 } from "../../../../lib/services/agent-registry";
 import { getAgentWallet } from "../../../../lib/services/agent-wallet";
+import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
+import { logger } from "../../../../lib/utils/logger";
 import { createPublicClient, http, formatEther } from "viem";
 import { celo, base, mainnet, polygon } from "viem/chains";
 import { RPC_URLS } from "../../../../config/chains";
@@ -263,7 +265,11 @@ Return ONLY valid JSON, no other text.`,
           const parsed = JSON.parse(jsonMatch[1].trim());
           result = { executed: true, analyzed: true, ...parsed };
         } catch (err) {
-          console.error("[analyze_outfit] Venice AI error:", err);
+          logger.error(
+            "Venice AI error in analyze_outfit",
+            { component: "ai-agent", tool: "analyze_outfit" },
+            err,
+          );
           // Fall through to args-based response
           result = { executed: true, analyzed: false, ...args };
         }
@@ -386,7 +392,11 @@ Return ONLY valid JSON, no other text.`,
         });
         nativeBalance = formatEther(balance);
       } catch (err) {
-        console.warn("[check_wallet_balance] Balance query failed:", err);
+        logger.warn(
+          "Balance query failed",
+          { component: "ai-agent", tool: "check_wallet_balance", chain },
+          err,
+        );
       }
 
       // Record ERC-8004 receipt
@@ -827,84 +837,90 @@ function buildFallbackTrace(
 // ============================================
 
 export async function GET(request: NextRequest) {
-  const origin = request.headers.get("origin") || "*";
-  const url = new URL(request.url);
-  const goal = url.searchParams.get("goal") || "daily";
+  return requireAuthWithRateLimit(async (req, _ctx) => {
+    const origin = req.headers.get("origin") || "*";
+    const url = new URL(req.url);
+    const goal = url.searchParams.get("goal") || "daily";
 
-  const trace = await runAgentLoop(
-    goal,
-    "Start a new styling session and analyze style context.",
-  );
-  return jsonCors(trace, 200, origin);
+    const trace = await runAgentLoop(
+      goal,
+      "Start a new styling session and analyze style context.",
+    );
+    return jsonCors(trace, 200, origin);
+  })(request);
 }
 
 export async function POST(request: NextRequest) {
-  const origin = request.headers.get("origin") || "*";
-  const clientId = getClientId(request);
+  return requireAuthWithRateLimit(async (req, _ctx) => {
+    const origin = req.headers.get("origin") || "*";
+    const clientId = getClientId(req);
 
-  try {
-    // Rate limit agent requests
-    const rateLimitResult = await rateLimit(
-      `agent:${clientId}`,
-      RateLimits.veniceFree,
-    );
+    try {
+      // Rate limit agent requests
+      const rateLimitResult = await rateLimit(
+        `agent:${clientId}`,
+        RateLimits.veniceFree,
+      );
 
-    if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        {
-          error:
-            "Rate limit reached. Please wait before sending more requests.",
-          retryAfter: Math.ceil((rateLimitResult.resetAt - Date.now()) / 1000),
-        },
-        {
-          status: 429,
-          headers: {
-            ...corsHeaders(origin),
-            ...rateLimitHeaders(rateLimitResult),
+      if (!rateLimitResult.allowed) {
+        return NextResponse.json(
+          {
+            error:
+              "Rate limit reached. Please wait before sending more requests.",
+            retryAfter: Math.ceil(
+              (rateLimitResult.resetAt - Date.now()) / 1000,
+            ),
           },
-        },
-      );
-    }
+          {
+            status: 429,
+            headers: {
+              ...corsHeaders(origin),
+              ...rateLimitHeaders(rateLimitResult),
+            },
+          },
+        );
+      }
 
-    const rawBody = await request.json().catch(() => ({}));
+      const rawBody = await req.json().catch(() => ({}));
 
-    // Validate with zod
-    const validationResult = AgentRequestSchema.safeParse(rawBody);
-    if (!validationResult.success) {
-      return NextResponse.json(
+      // Validate with zod
+      const validationResult = AgentRequestSchema.safeParse(rawBody);
+      if (!validationResult.success) {
+        return NextResponse.json(
+          {
+            error: "Invalid request",
+            details: validationResult.error.issues.map((e) => ({
+              path: e.path.join("."),
+              message: e.message,
+            })),
+          },
+          { status: 400, headers: corsHeaders(origin) },
+        );
+      }
+
+      const { goal, message, imageBase64, sessionReasonings, agentId } =
+        validationResult.data;
+
+      const userMessage =
+        message ||
+        (sessionReasonings?.length
+          ? `Session observations so far: ${sessionReasonings.join(". ")}. Based on these observations, analyze the outfit and decide what actions to take.`
+          : "Analyze the user outfit and take appropriate actions.");
+
+      const trace = await runAgentLoop(goal, userMessage, imageBase64, agentId);
+      return jsonCors(trace, 200, origin);
+    } catch (err) {
+      logger.apiError("/api/ai/agent", "Agent execution failed", err);
+      return jsonCors(
         {
-          error: "Invalid request",
-          details: validationResult.error.issues.map((e) => ({
-            path: e.path.join("."),
-            message: e.message,
-          })),
+          error: "Agent execution failed",
+          detail: err instanceof Error ? err.message : "Unknown error",
         },
-        { status: 400, headers: corsHeaders(origin) },
+        500,
+        origin,
       );
     }
-
-    const { goal, message, imageBase64, sessionReasonings, agentId } =
-      validationResult.data;
-
-    const userMessage =
-      message ||
-      (sessionReasonings?.length
-        ? `Session observations so far: ${sessionReasonings.join(". ")}. Based on these observations, analyze the outfit and decide what actions to take.`
-        : "Analyze the user outfit and take appropriate actions.");
-
-    const trace = await runAgentLoop(goal, userMessage, imageBase64, agentId);
-    return jsonCors(trace, 200, origin);
-  } catch (err) {
-    console.error("[AgentRoute] Error:", err);
-    return jsonCors(
-      {
-        error: "Agent execution failed",
-        detail: err instanceof Error ? err.message : "Unknown error",
-      },
-      500,
-      origin,
-    );
-  }
+  })(request);
 }
 
 export async function OPTIONS(request: NextRequest) {

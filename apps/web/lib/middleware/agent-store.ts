@@ -18,6 +18,7 @@ import type {
 
 import type { CommissionRecord } from "../utils/commissions";
 import type { UserMissionState } from "../services/mission-service";
+import { logger } from "../utils/logger";
 
 // ============================================
 // Redis Key Schema
@@ -81,7 +82,7 @@ async function redisSet(key: string, value: unknown): Promise<void> {
       body: JSON.stringify({ value: JSON.stringify(value) }),
     });
   } catch (err) {
-    console.error(`Redis SET ${key} failed:`, err);
+    logger.error("Redis SET failed", { component: "agent-store", key }, err);
   }
 }
 
@@ -103,7 +104,11 @@ async function redisSetEx(
       body: JSON.stringify({ value: JSON.stringify(value), ex: ttlSeconds }),
     });
   } catch (err) {
-    console.error(`Redis SET ${key} failed:`, err);
+    logger.error(
+      "Redis SET (TTL) failed",
+      { component: "agent-store", key },
+      err,
+    );
   }
 }
 
@@ -117,7 +122,7 @@ async function redisDel(key: string): Promise<void> {
       headers: { Authorization: `Bearer ${config.token}` },
     });
   } catch (err) {
-    console.error(`Redis DEL ${key} failed:`, err);
+    logger.error("Redis DEL failed", { component: "agent-store", key }, err);
   }
 }
 

@@ -144,9 +144,11 @@ export interface SearchResult {
 
 class ProductCatalogService {
   private readonly bridgeUrl: string | null;
+  private readonly bridgeApiKey: string | null;
 
   constructor() {
     this.bridgeUrl = process.env.EXTERNAL_AGENT_URL || null;
+    this.bridgeApiKey = process.env.BRIDGE_API_KEY || null;
   }
 
   /**
@@ -239,9 +241,16 @@ class ProductCatalogService {
     }
 
     try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (this.bridgeApiKey) {
+        headers["Authorization"] = `Bearer ${this.bridgeApiKey}`;
+      }
+
       const response = await fetch(`${this.bridgeUrl}/v1/agent/search`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           userId: "catalog-service",
           query,

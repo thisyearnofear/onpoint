@@ -10,6 +10,7 @@ import {
 } from "../../../../lib/utils/rate-limit";
 import { createSessionToken } from "../../../../lib/utils/session-token";
 import type { SessionTokenPayload } from "../../../../lib/utils/session-token";
+import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 
 // Payment recipient address (OnPoint's wallet)
 const RECIPIENT_ADDRESS = AGENT_WALLET;
@@ -83,115 +84,117 @@ async function verifyTransaction(
 }
 
 export async function POST(request: NextRequest) {
-  const origin = request.headers.get("origin") || "*";
-  const clientId = getClientId(request);
+  return requireAuthWithRateLimit(async (req, _ctx) => {
+    const origin = req.headers.get("origin") || "*";
+    const clientId = getClientId(req);
 
-  try {
-    // Apply rate limiting for payment verification
-    const verifyLimit = await rateLimit(clientId, RateLimits.paymentVerify);
-    if (!verifyLimit.allowed) {
-      return NextResponse.json(
-        {
-          error:
-            "Too many verification attempts. Please wait before trying again.",
-          retryAfter: Math.ceil((verifyLimit.resetAt - Date.now()) / 1000),
-        },
-        {
-          status: 429,
-          headers: {
-            ...corsHeaders(origin),
-            ...rateLimitHeaders(verifyLimit),
-            "Retry-After": Math.ceil(
-              (verifyLimit.resetAt - Date.now()) / 1000,
-            ).toString(),
+    try {
+      // Apply rate limiting for payment verification
+      const verifyLimit = await rateLimit(clientId, RateLimits.paymentVerify);
+      if (!verifyLimit.allowed) {
+        return NextResponse.json(
+          {
+            error:
+              "Too many verification attempts. Please wait before trying again.",
+            retryAfter: Math.ceil((verifyLimit.resetAt - Date.now()) / 1000),
           },
-        },
+          {
+            status: 429,
+            headers: {
+              ...corsHeaders(origin),
+              ...rateLimitHeaders(verifyLimit),
+              "Retry-After": Math.ceil(
+                (verifyLimit.resetAt - Date.now()) / 1000,
+              ).toString(),
+            },
+          },
+        );
+      }
+
+      const body: VerifyPaymentRequest = await req.json();
+      const {
+        transactionHash,
+        chainId = celoSepolia.id,
+        expectedAmount = MIN_PAYMENT_CELO.toString(),
+        walletAddress,
+      } = body;
+
+      // Validate request
+      if (!transactionHash || !transactionHash.startsWith("0x")) {
+        return NextResponse.json(
+          { error: "Invalid transaction hash" },
+          { status: 400, headers: corsHeaders(origin) },
+        );
+      }
+
+      console.log("Verifying CELO payment...", { transactionHash, chainId });
+
+      // Verify the transaction on-chain
+      const verification = await verifyTransaction(
+        transactionHash,
+        chainId,
+        expectedAmount,
       );
-    }
 
-    const body: VerifyPaymentRequest = await request.json();
-    const {
-      transactionHash,
-      chainId = celoSepolia.id,
-      expectedAmount = MIN_PAYMENT_CELO.toString(),
-      walletAddress,
-    } = body;
+      if (!verification.valid) {
+        return NextResponse.json(
+          { error: "Payment verification failed" },
+          { status: 400, headers: corsHeaders(origin) },
+        );
+      }
 
-    // Validate request
-    if (!transactionHash || !transactionHash.startsWith("0x")) {
-      return NextResponse.json(
-        { error: "Invalid transaction hash" },
-        { status: 400, headers: corsHeaders(origin) },
-      );
-    }
+      // Verify wallet address matches transaction sender
+      if (
+        walletAddress &&
+        walletAddress.toLowerCase() !== verification.from.toLowerCase()
+      ) {
+        return NextResponse.json(
+          { error: "Wallet address does not match transaction sender" },
+          { status: 400, headers: corsHeaders(origin) },
+        );
+      }
 
-    console.log("Verifying CELO payment...", { transactionHash, chainId });
+      // Create session token
+      const now = Date.now();
+      const tokenPayload: SessionTokenPayload = {
+        sub: verification.from.toLowerCase(),
+        iat: now,
+        exp: now + TOKEN_EXPIRY_MS,
+        provider: "gemini",
+        txHash: transactionHash,
+        amount: verification.amount,
+      };
 
-    // Verify the transaction on-chain
-    const verification = await verifyTransaction(
-      transactionHash,
-      chainId,
-      expectedAmount,
-    );
+      const sessionToken = createSessionToken(tokenPayload);
 
-    if (!verification.valid) {
-      return NextResponse.json(
-        { error: "Payment verification failed" },
-        { status: 400, headers: corsHeaders(origin) },
-      );
-    }
-
-    // Verify wallet address matches transaction sender
-    if (
-      walletAddress &&
-      walletAddress.toLowerCase() !== verification.from.toLowerCase()
-    ) {
-      return NextResponse.json(
-        { error: "Wallet address does not match transaction sender" },
-        { status: 400, headers: corsHeaders(origin) },
-      );
-    }
-
-    // Create session token
-    const now = Date.now();
-    const tokenPayload: SessionTokenPayload = {
-      sub: verification.from.toLowerCase(),
-      iat: now,
-      exp: now + TOKEN_EXPIRY_MS,
-      provider: "gemini",
-      txHash: transactionHash,
-      amount: verification.amount,
-    };
-
-    const sessionToken = createSessionToken(tokenPayload);
-
-    console.log("Payment verified successfully!", {
-      wallet: verification.from,
-      amount: verification.amount,
-      tokenExpiry: new Date(tokenPayload.exp).toISOString(),
-    });
-
-    return NextResponse.json(
-      {
-        success: true,
-        token: sessionToken,
-        expiresIn: TOKEN_EXPIRY_MS,
+      console.log("Payment verified successfully!", {
         wallet: verification.from,
         amount: verification.amount,
-      },
-      { headers: corsHeaders(origin) },
-    );
-  } catch (error: unknown) {
-    console.error("Payment verification error:", error);
+        tokenExpiry: new Date(tokenPayload.exp).toISOString(),
+      });
 
-    const errorMessage =
-      error instanceof Error ? error.message : "Payment verification failed";
+      return NextResponse.json(
+        {
+          success: true,
+          token: sessionToken,
+          expiresIn: TOKEN_EXPIRY_MS,
+          wallet: verification.from,
+          amount: verification.amount,
+        },
+        { headers: corsHeaders(origin) },
+      );
+    } catch (error: unknown) {
+      console.error("Payment verification error:", error);
 
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500, headers: corsHeaders(origin) },
-    );
-  }
+      const errorMessage =
+        error instanceof Error ? error.message : "Payment verification failed";
+
+      return NextResponse.json(
+        { error: errorMessage },
+        { status: 500, headers: corsHeaders(origin) },
+      );
+    }
+  })(request);
 }
 
 export async function OPTIONS(request: NextRequest) {

@@ -1,14 +1,17 @@
 /**
- * WDK Wallet Service for AI Agent
+ * Agent Wallet Service
  *
- * This service enables the AI Stylist agent to operate as an autonomous
- * economic agent with self-custodial wallet capabilities.
+ * Dual-standard wallet layer:
+ * - Tether WDK: self-custodial multi-chain wallet (Tether Hackathon track)
+ * - Open Wallet Standard (OWS): policy-gated signing, x402 compatibility (OWS Hackathon track)
+ *
+ * OWS is loaded lazily alongside WDK. Both share the same underlying key material
+ * (imported from AGENT_PRIVATE_KEY). OWS adds policy-gated signing and API key
+ * delegation on top of the existing WDK wallet.
  *
  * WDK uses bare-node-runtime which may not be available in all environments.
  * When WDK native addons are unavailable, falls back to AGENT_WALLET_ADDRESS
  * env var for address resolution.
- *
- * For the Tether Hackathon Galactica - Agent Wallets Track
  */
 
 import { celo, base, mainnet, polygon } from "viem/chains";
@@ -359,4 +362,114 @@ export async function getAgentWalletInfo() {
     walletInfo: await wallet.getWalletInfo(),
     wdkAvailable: wallet.isWdkAvailable(),
   };
+}
+
+// ============================================
+// OWS (Open Wallet Standard) Integration
+// ============================================
+
+let owsModule: typeof import("@open-wallet-standard/core") | null = null;
+let owsAvailable = false;
+
+async function loadOWS() {
+  if (owsModule !== null) return;
+  try {
+    owsModule = await import("@open-wallet-standard/core");
+    owsAvailable = true;
+  } catch {
+    owsAvailable = false;
+  }
+}
+
+const OWS_WALLET_NAME = "onpoint-agent";
+// Use a temp dir so it works in serverless/read-only environments
+const OWS_VAULT_PATH =
+  process.env.OWS_VAULT_PATH ?? "/tmp/.ows/wallets";
+
+/**
+ * Ensure the OWS wallet exists, importing from AGENT_PRIVATE_KEY if needed.
+ * Returns the wallet name on success, null if OWS is unavailable.
+ */
+export async function ensureOWSWallet(): Promise<string | null> {
+  await loadOWS();
+  if (!owsAvailable || !owsModule) return null;
+
+  const { listWallets, importWalletPrivateKey } = owsModule;
+
+  try {
+    const existing = listWallets(OWS_VAULT_PATH);
+    if (existing.some((w) => w.name === OWS_WALLET_NAME)) {
+      return OWS_WALLET_NAME;
+    }
+
+    const privateKey = process.env.AGENT_PRIVATE_KEY;
+    if (!privateKey) return null;
+
+    const hex = privateKey.startsWith("0x") ? privateKey.slice(2) : privateKey;
+    importWalletPrivateKey(
+      OWS_WALLET_NAME,
+      hex,
+      undefined, // no passphrase
+      OWS_VAULT_PATH,
+      "evm",
+    );
+    return OWS_WALLET_NAME;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Sign a message with the OWS wallet (EVM).
+ * Falls back to WDK signMessage if OWS is unavailable.
+ */
+export async function owsSignMessage(message: string): Promise<string | null> {
+  const walletName = await ensureOWSWallet();
+  if (!walletName || !owsModule) {
+    // Fallback to WDK
+    try {
+      const wdk = await getAgentWallet();
+      return await wdk.signMessage(message);
+    } catch {
+      return null;
+    }
+  }
+  try {
+    const result = owsModule.signMessage(
+      walletName,
+      "evm",
+      message,
+      undefined,
+      "utf8",
+      undefined,
+      OWS_VAULT_PATH,
+    );
+    return result.signature;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get OWS wallet info (addresses across all chains).
+ * Returns null if OWS is unavailable.
+ */
+export async function getOWSWalletInfo(): Promise<{
+  name: string;
+  accounts: Array<{ chainId: string; address: string }>;
+} | null> {
+  const walletName = await ensureOWSWallet();
+  if (!walletName || !owsModule) return null;
+  try {
+    const wallet = owsModule.getWallet(walletName, OWS_VAULT_PATH);
+    return {
+      name: wallet.name,
+      accounts: wallet.accounts.map((a) => ({
+        chainId: a.chainId,
+        address: a.address,
+      })),
+    };
+  } catch {
+    return null;
+  }
 }

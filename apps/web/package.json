@@ -21,6 +21,7 @@
     "@neynar/nodejs-sdk": "3.34.0",
     "@neynar/react": "1.2.20",
     "@onpoint/shared-types": "workspace:*",
+    "@open-wallet-standard/core": "1.2.4",
     "@pigment-css/react": "0.0.30",
     "@rainbow-me/rainbowkit": "^2.2.9",
     "@repo/ai-client": "workspace:*",
@@ -51,6 +52,7 @@
     "tailwindcss-animate": "1.0.7",
     "viem": "^2.0.0",
     "wagmi": "^2.0.0",
+    "x402": "1.1.0",
     "zustand": "5.0.12"
   },
   "devDependencies": {

@@ -15,13 +15,15 @@ import {
 } from "../agent-auth";
 
 // Mock rate limiting
-vi.mock("../utils/rate-limit", () => ({
-  rateLimit: vi.fn(() => Promise.resolve({
-    allowed: true,
-    remaining: 59,
-    resetAt: Date.now() + 60000,
-    limit: 60,
-  })),
+vi.mock("../../lib/utils/rate-limit", () => ({
+  rateLimit: vi.fn(() =>
+    Promise.resolve({
+      allowed: true,
+      remaining: 59,
+      resetAt: Date.now() + 60000,
+      limit: 60,
+    }),
+  ),
   RateLimits: {
     general: {
       maxRequests: 100,
@@ -53,7 +55,7 @@ describe("Authentication", () => {
 
     it("extracts userId from query param", async () => {
       const request = new NextRequest(
-        "http://localhost/api/test?userId=query-user"
+        "http://localhost/api/test?userId=query-user",
       );
 
       const auth = await extractAuth(request);
@@ -80,7 +82,7 @@ describe("Authentication", () => {
 
     it("uses custom agentId from query", async () => {
       const request = new NextRequest(
-        "http://localhost/api/test?userId=user1&agentId=custom-agent"
+        "http://localhost/api/test?userId=user1&agentId=custom-agent",
       );
 
       const auth = await extractAuth(request);
@@ -112,12 +114,16 @@ describe("Authentication", () => {
 
   describe("requireAgentAuth", () => {
     it("passes auth context to handler", async () => {
-      const handler = vi.fn(async (_req: NextRequest, ctx: AgentAuthContext) => {
-        return new Response(JSON.stringify({ userId: ctx.userId }));
-      });
+      const handler = vi.fn(
+        async (_req: NextRequest, ctx: AgentAuthContext) => {
+          return new Response(JSON.stringify({ userId: ctx.userId }));
+        },
+      );
 
       const wrappedHandler = requireAgentAuth(handler);
-      const request = new NextRequest("http://localhost/api/test?userId=test123");
+      const request = new NextRequest(
+        "http://localhost/api/test?userId=test123",
+      );
 
       await wrappedHandler(request);
 
@@ -160,9 +166,11 @@ describe("Authentication", () => {
       });
 
       const wrappedHandler = requirePermission("execute_purchase")(handler);
-      
+
       // Free tier user doesn't have execute_purchase
-      const request = new NextRequest("http://localhost/api/test?userId=freeuser");
+      const request = new NextRequest(
+        "http://localhost/api/test?userId=freeuser",
+      );
 
       const response = await wrappedHandler(request);
 
@@ -187,7 +195,9 @@ describe("Authentication", () => {
 
     it("returns 429 when rate limited", async () => {
       // Mock rate limit exceeded
-      vi.mocked(await import("../utils/rate-limit")).rateLimit.mockResolvedValueOnce({
+      vi.mocked(
+        await import("../../lib/utils/rate-limit"),
+      ).rateLimit.mockResolvedValueOnce({
         allowed: false,
         remaining: 0,
         resetAt: Date.now() + 60000,
@@ -262,7 +272,9 @@ describe("Utility Functions", () => {
 
 describe("Permission Tiers", () => {
   it("free tier has basic permissions", async () => {
-    const request = new NextRequest("http://localhost/api/test?userId=freetier");
+    const request = new NextRequest(
+      "http://localhost/api/test?userId=freetier",
+    );
     const { extractAuth } = await import("../agent-auth");
     const auth = await extractAuth(request);
 
@@ -274,7 +286,9 @@ describe("Permission Tiers", () => {
   it("premium tier has all permissions", async () => {
     vi.stubEnv("PREMIUM_USERS", "premiumuser");
 
-    const request = new NextRequest("http://localhost/api/test?userId=premiumuser");
+    const request = new NextRequest(
+      "http://localhost/api/test?userId=premiumuser",
+    );
     const { extractAuth } = await import("../agent-auth");
     const auth = await extractAuth(request);
 

@@ -36,16 +36,26 @@ interface RateLimitResult {
 
 const memoryStore = new Map<string, RateLimitEntry>();
 
-// Cleanup expired entries periodically
+// Cleanup expired entries periodically (only in long-running processes, not serverless)
 const CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of memoryStore.entries()) {
-    if (entry.resetAt < now) {
-      memoryStore.delete(key);
+let cleanupTimer: ReturnType<typeof setInterval> | undefined;
+
+function ensureCleanupTimer() {
+  if (!cleanupTimer && typeof setInterval !== "undefined") {
+    cleanupTimer = setInterval(() => {
+      const now = Date.now();
+      for (const [key, entry] of memoryStore.entries()) {
+        if (entry.resetAt < now) {
+          memoryStore.delete(key);
+        }
+      }
+    }, CLEANUP_INTERVAL);
+    // Allow the process to exit even if the timer is active
+    if (typeof cleanupTimer === "object" && "unref" in cleanupTimer) {
+      cleanupTimer.unref();
     }
   }
-}, CLEANUP_INTERVAL);
+}
 
 function memoryRateLimit(
   key: string,
@@ -54,6 +64,8 @@ function memoryRateLimit(
   const { maxRequests, windowMs, prefix = "rl" } = config;
   const fullKey = `${prefix}:${key}`;
   const now = Date.now();
+
+  ensureCleanupTimer();
 
   let entry = memoryStore.get(fullKey);
 
@@ -145,6 +157,10 @@ async function upstashRateLimit(
 /**
  * Check and update rate limit for a given key
  * Uses Redis in production, in-memory in development
+ *
+ * In production, if Redis is configured but unreachable, the function
+ * returns { allowed: false } rather than silently falling back to the
+ * broken in-memory store (which resets on every serverless cold start).
  */
 export async function rateLimit(
   key: string,
@@ -159,9 +175,18 @@ export async function rateLimit(
     try {
       return await upstashRateLimit(key, config);
     } catch (error) {
-      console.error("Redis rate limit failed, falling back to memory:", error);
-      // Fall back to in-memory if Redis fails
-      return memoryRateLimit(key, config);
+      console.error(
+        "[RateLimit] Redis unavailable in production — denying request:",
+        error,
+      );
+      // Do NOT fall back to in-memory in production — it is broken in serverless
+      // and silently disables all rate limiting. Deny the request instead.
+      return {
+        allowed: false,
+        remaining: 0,
+        resetAt: Date.now() + config.windowMs,
+        limit: config.maxRequests,
+      };
     }
   }
 
