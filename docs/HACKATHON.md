@@ -8,12 +8,32 @@
 
 > $50,000 in prizes. Submissions close midnight EST April 3.
 
-| Track                                          | Prize   | Alignment                                                    |
-| ---------------------------------------------- | ------- | ------------------------------------------------------------ |
-| **Agentic Storefronts & Real-World Commerce**  | $3,000  | AI personal shopper with budget + taste profile, x402 checkout |
-| **Agent Spend Governance & Identity**          | $3,000  | `agent-controls.ts` spending limits, approval workflows, OWS policy signing |
+| Track                                         | Prize  | Alignment                                                                                |
+| --------------------------------------------- | ------ | ---------------------------------------------------------------------------------------- |
+| **Agentic Storefronts & Real-World Commerce** | $3,000 | AI personal shopper with budget + taste profile, x402 checkout                           |
+| **Agent Spend Governance & Identity**         | $3,000 | Reputation-based spend limits ($5→$500→$5000/day), policy enforcement, dead man's switch |
+
+## 🛡️ Track 2: Spend Governance - Featured
+
+Our agent implements **dynamic spend limits based on reputation**:
+
+```typescript
+// lib/services/agent-reputation.ts
+const REPUTATION_CONFIG = {
+  newAgentLimit: $5,           // Just created
+  establishedLimit: $500,     // 10+ txns, $100+ volume, 90%+ success
+  premiumLimit: $5,000,        // 10+ txns, $1,000+ volume
+};
+
+// lib/services/spend-policy.ts
+const { allowed, tx } = await enforceSpendPolicy("0xAgent", 50.00);
+if (!allowed) throw new Error(tx.error); // SPEND_LIMIT_EXCEEDED
+```
+
+**Documentation:** [OWS-SPEND-POLICY.md](./OWS-SPEND-POLICY.md)
 
 **Key integrations added:**
+
 - **x402 payment rails** — `/api/agent/checkout` returns HTTP 402 with payment requirements; any OWS/x402-compatible agent wallet auto-pays and retries
 - **OWS wallet** (`@open-wallet-standard/core`) — policy-gated signing alongside WDK, shared key material, `/api/agent/wallet` exposes OWS accounts
 
@@ -91,14 +111,14 @@ const SUPPORTED_CHAINS = {
 
 ### Agent Capabilities via WDK + OWS
 
-| Capability              | Implementation                                  | Hackathon Track       |
-| ----------------------- | ----------------------------------------------- | --------------------- |
-| **Receive Tips**        | Users tip agent in cUSD/USDT via WDK            | Tipping Bot ✅        |
-| **Execute Payments**    | Agent charges CELO for premium Gemini Live      | Agent Wallets ✅      |
-| **Mint NFTs**           | Agent proposes + mints style NFTs               | Agent Wallets ✅      |
-| **Multi-Chain**         | Celo, Base, Ethereum, Polygon support           | Agent Wallets ✅      |
-| **OWS Policy Signing**  | Policy-gated signing via `@open-wallet-standard/core` | OWS Track ✅    |
-| **x402 Checkout**       | HTTP 402 payment requirements on `/api/agent/checkout` | OWS Track ✅  |
+| Capability             | Implementation                                         | Hackathon Track  |
+| ---------------------- | ------------------------------------------------------ | ---------------- |
+| **Receive Tips**       | Users tip agent in cUSD/USDT via WDK                   | Tipping Bot ✅   |
+| **Execute Payments**   | Agent charges CELO for premium Gemini Live             | Agent Wallets ✅ |
+| **Mint NFTs**          | Agent proposes + mints style NFTs                      | Agent Wallets ✅ |
+| **Multi-Chain**        | Celo, Base, Ethereum, Polygon support                  | Agent Wallets ✅ |
+| **OWS Policy Signing** | Policy-gated signing via `@open-wallet-standard/core`  | OWS Track ✅     |
+| **x402 Checkout**      | HTTP 402 payment requirements on `/api/agent/checkout` | OWS Track ✅     |
 
 ### Agent Wallet API Endpoints
 
