@@ -2,7 +2,16 @@
 
 import React, { useRef } from "react";
 import Image from "next/image";
-import { Palette, ChevronDown, Sparkles, ArrowRight, Check, Camera, MessageCircle, Users } from "lucide-react";
+import {
+  Palette,
+  ChevronDown,
+  Sparkles,
+  ArrowRight,
+  Check,
+  Camera,
+  MessageCircle,
+  Users,
+} from "lucide-react";
 import { EnhancedConnectButton } from "../components/chains";
 import { FarcasterSignInButton } from "../components/FarcasterSignInButton";
 import { TacticalDashboard } from "../components/Dashboard/TacticalDashboard";
@@ -31,9 +40,9 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               className="text-muted-foreground hidden md:flex"
               onClick={scrollToDashboard}
             >
@@ -66,7 +75,7 @@ export default function Home() {
 
 /**
  * HeroSection - Marketing-focused landing hero with visual demo
- * 
+ *
  * Key principles:
  * - Lead with the problem and solution
  * - Show visual proof using existing assets
@@ -96,20 +105,23 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
               {/* Headline */}
               <h1 className="text-4xl md:text-5xl font-black tracking-tighter leading-tight">
                 Never wonder
-                <span className="block text-primary"> "does this suit me?"</span>
+                <span className="block text-primary">
+                  {" "}
+                  "does this suit me?"
+                </span>
                 again.
               </h1>
 
               {/* Subheadline */}
               <p className="text-lg text-muted-foreground leading-relaxed max-w-lg">
-                Get personalized outfit recommendations tailored to your body, style, and budget. 
-                See how clothes look on you before you buy.
+                Get personalized outfit recommendations tailored to your body,
+                style, and budget. See how clothes look on you before you buy.
               </p>
 
               {/* Primary CTAs */}
               <div className="flex flex-col sm:flex-row items-center lg:items-start gap-3">
-                <Button 
-                  size="lg" 
+                <Button
+                  size="lg"
                   onClick={onGetStarted}
                   className="bg-primary hover:bg-primary/90 text-white font-bold px-8 py-6 rounded-full text-lg shadow-lg shadow-primary/25"
                 >
@@ -117,9 +129,9 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
                   Try Virtual Fitting
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="lg" 
+                <Button
+                  variant="outline"
+                  size="lg"
                   onClick={onGetStarted}
                   className="font-bold px-8 py-6 rounded-full text-lg"
                 >
@@ -145,63 +157,54 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
               </div>
             </div>
 
-            {/* Right: Visual Demo */}
+            {/* Right: Visual Demo - Using real fashion photos */}
             <div className="relative">
               <div className="relative rounded-2xl overflow-hidden border border-border/60 bg-card/50 shadow-2xl shadow-primary/10">
-                {/* Demo Label */}
                 <div className="absolute top-4 left-4 z-10 px-3 py-1 rounded-full bg-background/90 backdrop-blur text-xs font-bold text-foreground shadow-sm">
                   AI Try-On Demo
                 </div>
-                
-                {/* Product Showcase - Using existing assets */}
-                <div className="grid grid-cols-2 gap-2 p-4">
-                  <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted">
+
+                <div className="grid grid-cols-2 gap-1">
+                  <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-muted">
                     <Image
-                      src="/assets/1Product.png"
-                      alt="Fashion item preview"
+                      src="/lungelo-hadebe-jLQOH52e1TM-unsplash.jpg"
+                      alt="Fashion look 1"
                       fill
                       className="object-cover"
                       sizes="(max-width: 768px) 50vw, 25vw"
                     />
                   </div>
-                  <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted">
+                  <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-muted">
                     <Image
-                      src="/assets/2Product.png"
-                      alt="Fashion item preview"
+                      src="/natalia-blauth-rWsRIMIHpgI-unsplash.jpg"
+                      alt="Fashion look 2"
                       fill
                       className="object-cover"
                       sizes="(max-width: 768px) 50vw, 25vw"
                     />
                   </div>
-                  <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-muted">
+                  <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-muted">
                     <Image
-                      src="/assets/3Product.png"
-                      alt="Fashion item preview"
+                      src="/ray-rui-arqurcIkvCc-unsplash.jpg"
+                      alt="Fashion look 3"
                       fill
                       className="object-cover"
                       sizes="(max-width: 768px) 50vw, 25vw"
                     />
                   </div>
-                  <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
+                  <button
+                    onClick={onGetStarted}
+                    className="relative aspect-[3/4] rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center hover:from-primary/30 hover:to-accent/30 transition-colors"
+                  >
                     <div className="text-center p-4">
                       <Camera className="w-8 h-8 text-primary mx-auto mb-2" />
-                      <p className="text-xs text-muted-foreground">Upload your photo to see how any outfit looks on you</p>
+                      <p className="text-xs text-muted-foreground font-medium">
+                        Your turn
+                      </p>
                     </div>
-                  </div>
-                </div>
-
-                {/* Bottom CTA Bar */}
-                <div className="border-t border-border/60 p-3 bg-muted/30">
-                  <button 
-                    onClick={onGetStarted}
-                    className="w-full py-2.5 rounded-lg bg-primary text-white font-semibold text-sm hover:bg-primary/90 transition-colors"
-                  >
-                    Try On These Styles
                   </button>
                 </div>
               </div>
-
-              {/* Floating badge */}
               <div className="absolute -bottom-2 -right-2 md:bottom-4 md:-right-4 px-3 py-1.5 rounded-full bg-emerald-500 text-white text-xs font-bold shadow-lg">
                 ✓ AI Verified
               </div>
@@ -216,17 +219,17 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
                 <ChevronDown className="w-4 h-4 group-open:rotate-180 transition-transform" />
               </summary>
               <div className="mt-8 grid md:grid-cols-3 gap-6 text-left max-w-4xl mx-auto">
-                <FeatureCard 
+                <FeatureCard
                   icon={<Camera className="w-6 h-6" />}
                   title="Virtual Try-On"
                   description="Upload any photo and see how outfits look on you using AI. No physical items needed."
                 />
-                <FeatureCard 
+                <FeatureCard
                   icon={<MessageCircle className="w-6 h-6" />}
                   title="AI Stylist"
                   description="Tell us your occasion, budget, and style preferences. Get personalized recommendations in seconds."
                 />
-                <FeatureCard 
+                <FeatureCard
                   icon={<Users className="w-6 h-6" />}
                   title="Community Style"
                   description="See what others are wearing, share your looks, and get inspired by the community."
@@ -240,7 +243,15 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
   );
 }
 
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+function FeatureCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
   return (
     <div className="p-6 rounded-2xl bg-card/50 border border-border hover:border-border/80 transition-colors">
       <div className="text-primary mb-3">{icon}</div>
