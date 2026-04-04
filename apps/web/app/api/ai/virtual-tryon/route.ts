@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateText } from "../_utils/providers";
 import { corsHeaders } from "../_utils/http";
-import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 
 function extractMeasurement(text: string, bodyPart: string): string | null {
   const sizeWords = ["small", "medium", "large", "extra small", "extra large"];
@@ -222,110 +221,108 @@ function parseVirtualTryOnResponse(
 }
 
 export async function POST(request: NextRequest) {
-  return requireAuthWithRateLimit(async (req, _ctx) => {
-    try {
-      const { type, data, provider = "auto", model } = await req.json();
-      const origin = req.headers.get("origin") || "*";
+  try {
+    const { type, data, provider = "auto", model } = await request.json();
+    const origin = request.headers.get("origin") || "*";
 
-      if (!type)
-        return NextResponse.json(
-          { error: "Analysis type is required" },
-          { status: 400, headers: corsHeaders(origin) },
-        );
-
-      let enhancedPrompt = "";
-      if (type === "body-analysis") {
-        enhancedPrompt = `As a fashion fit specialist, analyze this body profile: "${data.description || "Standard body measurements"}". Keep it practical and focused on measurements and fit.`;
-      } else if (type === "outfit-fit") {
-        enhancedPrompt = `As a fashion stylist, analyze how these outfit items would work together: "${data.items?.map((item: any) => `${item.name}: ${item.description || item.type || ""}`).join(", ")}". Provide actionable styling advice.`;
-      } else if (type === "enhancement") {
-        enhancedPrompt = `As a virtual styling consultant, enhance this outfit combination: "${data.items?.map((item: any) => `${item.name}: ${item.description || ""}`).join(", ")}".`;
-      } else {
-        enhancedPrompt = `As a fashion consultant, provide analysis for: ${type}`;
-      }
-
-      if (type === "generate-outfit-image") {
-        const veniceApiKey = process.env.VENICE_API_KEY;
-        if (!veniceApiKey)
-          return NextResponse.json(
-            { error: "Venice API key not configured" },
-            { status: 500, headers: corsHeaders(origin) },
-          );
-
-        const personDescription = data.personDescription || "";
-        const outfitDescription = data.items
-          ?.map((item: any) => `${item.name}: ${item.description || ""}`)
-          .join(", ");
-
-        const veniceResponse = await fetch(
-          "https://api.venice.ai/api/v1/image/generate",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${veniceApiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "venice-sd35",
-              prompt: `Create a high-quality fashion photograph. ${personDescription ? `Person: ${personDescription}. ` : ""}Wearing: ${outfitDescription}. Full-body portrait, professional photography.`,
-              width: 512,
-              height: 768,
-              format: "webp",
-            }),
-          },
-        );
-
-        if (!veniceResponse.ok)
-          throw new Error(`Venice API error: ${veniceResponse.status}`);
-        const veniceData = await veniceResponse.json();
-
-        let personalizedTips: string[] = [];
-        let structuredTips: any[] = [];
-        if (personDescription) {
-          const tipsResponse = await generateText({
-            prompt: `Styling tips for: ${personDescription} wearing ${outfitDescription}. Return JSON: [{"text": "...", "action": {...}}]`,
-            provider,
-            geminiModel: "gemini-1.5-flash", // Reverting to real model for production reliability
-            openaiModel: "gpt-4o-mini",
-          });
-          const parsed = extractStructuredStylingTips(tipsResponse.text || "");
-          personalizedTips = parsed.textTips;
-          structuredTips = parsed.structuredTips;
-        }
-
-        return NextResponse.json(
-          {
-            generatedImage: veniceData.images[0],
-            enhancedOutfit: data.items || [],
-            stylingTips: personalizedTips.length
-              ? personalizedTips
-              : ["Layer up", "Accessorize", "Check fit", "Color harmony"],
-            structuredTips,
-            type,
-          },
-          { headers: corsHeaders(origin) },
-        );
-      }
-
-      const modelChoice = model as "pro" | "flash" | "flash-lite" | undefined;
-      const { text, usedProvider } = await generateText({
-        prompt: enhancedPrompt,
-        provider,
-        geminiModel:
-          modelChoice === "pro" ? "gemini-1.5-pro" : "gemini-1.5-flash",
-        openaiModel: modelChoice === "pro" ? "gpt-4o" : "gpt-4o-mini",
-      });
-
-      const analysisData = parseVirtualTryOnResponse(text || "", type, data);
+    if (!type)
       return NextResponse.json(
-        { ...analysisData, provider: usedProvider, type },
+        { error: "Analysis type is required" },
+        { status: 400, headers: corsHeaders(origin) },
+      );
+
+    let enhancedPrompt = "";
+    if (type === "body-analysis") {
+      enhancedPrompt = `As a fashion fit specialist, analyze this body profile: "${data.description || "Standard body measurements"}". Keep it practical and focused on measurements and fit.`;
+    } else if (type === "outfit-fit") {
+      enhancedPrompt = `As a fashion stylist, analyze how these outfit items would work together: "${data.items?.map((item: any) => `${item.name}: ${item.description || item.type || ""}`).join(", ")}". Provide actionable styling advice.`;
+    } else if (type === "enhancement") {
+      enhancedPrompt = `As a virtual styling consultant, enhance this outfit combination: "${data.items?.map((item: any) => `${item.name}: ${item.description || ""}`).join(", ")}".`;
+    } else {
+      enhancedPrompt = `As a fashion consultant, provide analysis for: ${type}`;
+    }
+
+    if (type === "generate-outfit-image") {
+      const veniceApiKey = process.env.VENICE_API_KEY;
+      if (!veniceApiKey)
+        return NextResponse.json(
+          { error: "Venice API key not configured" },
+          { status: 500, headers: corsHeaders(origin) },
+        );
+
+      const personDescription = data.personDescription || "";
+      const outfitDescription = data.items
+        ?.map((item: any) => `${item.name}: ${item.description || ""}`)
+        .join(", ");
+
+      const veniceResponse = await fetch(
+        "https://api.venice.ai/api/v1/image/generate",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${veniceApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "venice-sd35",
+            prompt: `Create a high-quality fashion photograph. ${personDescription ? `Person: ${personDescription}. ` : ""}Wearing: ${outfitDescription}. Full-body portrait, professional photography.`,
+            width: 512,
+            height: 768,
+            format: "webp",
+          }),
+        },
+      );
+
+      if (!veniceResponse.ok)
+        throw new Error(`Venice API error: ${veniceResponse.status}`);
+      const veniceData = await veniceResponse.json();
+
+      let personalizedTips: string[] = [];
+      let structuredTips: any[] = [];
+      if (personDescription) {
+        const tipsResponse = await generateText({
+          prompt: `Styling tips for: ${personDescription} wearing ${outfitDescription}. Return JSON: [{"text": "...", "action": {...}}]`,
+          provider,
+          geminiModel: "gemini-1.5-flash", // Reverting to real model for production reliability
+          openaiModel: "gpt-4o-mini",
+        });
+        const parsed = extractStructuredStylingTips(tipsResponse.text || "");
+        personalizedTips = parsed.textTips;
+        structuredTips = parsed.structuredTips;
+      }
+
+      return NextResponse.json(
+        {
+          generatedImage: veniceData.images[0],
+          enhancedOutfit: data.items || [],
+          stylingTips: personalizedTips.length
+            ? personalizedTips
+            : ["Layer up", "Accessorize", "Check fit", "Color harmony"],
+          structuredTips,
+          type,
+        },
         { headers: corsHeaders(origin) },
       );
-    } catch (error) {
-      console.error("AI virtual try-on error:", error);
-      return NextResponse.json({ error: "Failed" }, { status: 500 });
     }
-  })(request);
+
+    const modelChoice = model as "pro" | "flash" | "flash-lite" | undefined;
+    const { text, usedProvider } = await generateText({
+      prompt: enhancedPrompt,
+      provider,
+      geminiModel:
+        modelChoice === "pro" ? "gemini-1.5-pro" : "gemini-1.5-flash",
+      openaiModel: modelChoice === "pro" ? "gpt-4o" : "gpt-4o-mini",
+    });
+
+    const analysisData = parseVirtualTryOnResponse(text || "", type, data);
+    return NextResponse.json(
+      { ...analysisData, provider: usedProvider, type },
+      { headers: corsHeaders(origin) },
+    );
+  } catch (error) {
+    console.error("AI virtual try-on error:", error);
+    return NextResponse.json({ error: "Failed" }, { status: 500 });
+  }
 }
 
 export async function OPTIONS(request: NextRequest) {
