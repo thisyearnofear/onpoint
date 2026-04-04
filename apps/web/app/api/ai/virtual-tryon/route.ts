@@ -283,8 +283,8 @@ export async function POST(request: NextRequest) {
         const tipsResponse = await generateText({
           prompt: `Styling tips for: ${personDescription} wearing ${outfitDescription}. Return JSON: [{"text": "...", "action": {...}}]`,
           provider,
-          geminiModel: "gemini-1.5-flash", // Reverting to real model for production reliability
-          openaiModel: "gpt-4o-mini",
+          geminiModel: "gemini-3.1-flash-lite-preview",
+          openaiModel: "gpt-4o",
         });
         const parsed = extractStructuredStylingTips(tipsResponse.text || "");
         personalizedTips = parsed.textTips;
@@ -310,7 +310,7 @@ export async function POST(request: NextRequest) {
       prompt: enhancedPrompt,
       provider,
       geminiModel:
-        modelChoice === "pro" ? "gemini-1.5-pro" : "gemini-1.5-flash",
+        modelChoice === "pro" ? "gemini-3.1-pro" : "gemini-3.1-flash-lite-preview",
       openaiModel: modelChoice === "pro" ? "gpt-4o" : "gpt-4o-mini",
     });
 
@@ -319,9 +319,19 @@ export async function POST(request: NextRequest) {
       { ...analysisData, provider: usedProvider, type },
       { headers: corsHeaders(origin) },
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error("AI virtual try-on error:", error);
-    return NextResponse.json({ error: "Failed" }, { status: 500 });
+    const origin = request.headers.get("origin") || "*";
+    return NextResponse.json(
+      { 
+        error: error.message || "Failed to process virtual try-on",
+        details: error.stack && process.env.NODE_ENV === "development" ? error.stack : undefined
+      }, 
+      { 
+        status: error.status || 500, 
+        headers: corsHeaders(origin) 
+      }
+    );
   }
 }
 

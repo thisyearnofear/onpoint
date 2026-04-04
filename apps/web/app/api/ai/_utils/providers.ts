@@ -53,8 +53,9 @@ interface GenerateTextOptions {
   provider: ProviderChoice;
   preferGemini?: boolean;
   preferOpenAI?: boolean;
-  geminiModel?: string; // default: 'gemini-1.5-flash'
-  openaiModel?: string; // default: 'gpt-3.5-turbo'
+  veniceModel?: string; // default: 'llama-3.1-70b'
+  geminiModel?: string; // default: 'gemini-3.1-flash-lite-preview'
+  openaiModel?: string; // default: 'gpt-4o'
   openaiOptions?: {
     max_tokens?: number;
     temperature?: number;
@@ -66,25 +67,33 @@ export async function generateText({
   provider,
   preferGemini = false,
   preferOpenAI = false,
+  veniceModel = "llama-3.1-70b",
   geminiModel = "gemini-3.1-flash-lite-preview",
-  openaiModel = "gpt-3.5-turbo",
+  openaiModel = "gpt-4o",
   openaiOptions = {},
 }: GenerateTextOptions): Promise<{
   text: string;
-  usedProvider: "gemini" | "openai";
+  usedProvider: "venice" | "gemini" | "openai";
 }> {
+  const hasVenice = veniceAvailable();
   const hasGemini = geminiAvailable();
   const hasOpenAI = openaiAvailable();
 
+  console.log(`[generateText] provider=${provider}, hasVenice=${hasVenice}, hasGemini=${hasGemini}, hasOpenAI=${hasOpenAI}`);
+
   // Determine provider
-  let selected: "gemini" | "openai" | null = null;
-  if (provider === "gemini") {
+  let selected: "venice" | "gemini" | "openai" | null = null;
+  if (provider === "venice") {
+    selected = hasVenice ? "venice" : null;
+  } else if (provider === "gemini") {
     selected = hasGemini ? "gemini" : null;
   } else if (provider === "openai") {
     selected = hasOpenAI ? "openai" : null;
   } else {
-    // auto
-    if (preferGemini && hasGemini) {
+    // auto: Prioritize Venice, then fallbacks
+    if (hasVenice) {
+      selected = "venice";
+    } else if (preferGemini && hasGemini) {
       selected = "gemini";
     } else if (preferOpenAI && hasOpenAI) {
       selected = "openai";
@@ -98,26 +107,45 @@ export async function generateText({
   }
 
   if (!selected) {
+    console.error("[generateText] No AI provider available. Check your environment variables.");
     throw new Error(
-      "No AI provider available. Please configure GEMINI_API_KEY or OPENAI_API_KEY in environment variables.",
+      "No AI provider available. Please configure VENICE_API_KEY, GEMINI_API_KEY or OPENAI_API_KEY in environment variables.",
     );
   }
 
-  if (selected === "gemini") {
-    const model = geminiClient!.getGenerativeModel({ model: geminiModel });
-    const response = await model.generateContent(prompt);
-    const textResult = response.response.text();
-    return { text: textResult ?? "", usedProvider: "gemini" };
-  }
+  try {
+    if (selected === "venice") {
+      console.log(`[generateText] Using Venice with model: ${veniceModel}`);
+      const response = await veniceClient!.chat.completions.create({
+        model: veniceModel,
+        messages: [{ role: "user", content: prompt }],
+        ...openaiOptions,
+      });
+      const veniceResult = response.choices[0]?.message?.content ?? "";
+      return { text: veniceResult, usedProvider: "venice" };
+    }
 
-  // OpenAI
-  const response = await openaiClient!.chat.completions.create({
-    model: openaiModel,
-    messages: [{ role: "user", content: prompt }],
-    ...openaiOptions,
-  });
-  const openaiResult = response.choices[0]?.message?.content ?? "";
-  return { text: openaiResult, usedProvider: "openai" };
+    if (selected === "gemini") {
+      console.log(`[generateText] Using Gemini with model: ${geminiModel}`);
+      const model = geminiClient!.getGenerativeModel({ model: geminiModel });
+      const response = await model.generateContent(prompt);
+      const textResult = response.response.text();
+      return { text: textResult ?? "", usedProvider: "gemini" };
+    }
+
+    // OpenAI
+    console.log(`[generateText] Using OpenAI with model: ${openaiModel}`);
+    const response = await openaiClient!.chat.completions.create({
+      model: openaiModel,
+      messages: [{ role: "user", content: prompt }],
+      ...openaiOptions,
+    });
+    const openaiResult = response.choices[0]?.message?.content ?? "";
+    return { text: openaiResult, usedProvider: "openai" };
+  } catch (err: any) {
+    console.error(`[generateText] Error with ${selected}:`, err.message || err);
+    throw err;
+  }
 }
 
 // Helpers to resolve model choices per provider
