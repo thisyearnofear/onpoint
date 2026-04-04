@@ -151,7 +151,7 @@ function HeroView({ onContinue }: { onContinue: () => void }) {
                 <div className="grid grid-cols-2 gap-1 p-2">
                   <div className="relative aspect-[3/4] rounded-lg overflow-hidden">
                     <Image
-                      src="/lungelo-hadebe-jLQOH52e1TM-unsplash.jpg"
+                      src="/assets/1Product.png"
                       alt="Look 1"
                       fill
                       className="object-cover"
@@ -160,7 +160,7 @@ function HeroView({ onContinue }: { onContinue: () => void }) {
                   </div>
                   <div className="relative aspect-[3/4] rounded-lg overflow-hidden">
                     <Image
-                      src="/natalia-blauth-rWsRIMIHpgI-unsplash.jpg"
+                      src="/assets/2Product.png"
                       alt="Look 2"
                       fill
                       className="object-cover"
