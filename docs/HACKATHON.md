@@ -32,6 +32,50 @@ if (!allowed) throw new Error(tx.error); // SPEND_LIMIT_EXCEEDED
 
 **Documentation:** [OWS-SPEND-POLICY.md](./OWS-SPEND-POLICY.md)
 
+---
+
+## 🛒 Track 1: Agentic Storefront - Enhanced
+
+Full autonomous storefront with policy-controlled purchases:
+
+```bash
+# Browse products
+GET /api/agent/storefront
+
+# Checkout with policy enforcement
+POST /api/agent/storefront
+{ "action": "checkout", "items": [...], "walletAddress": "0x..." }
+# → Returns 402 if spend limit exceeded
+```
+
+**Features:**
+
+- Dynamic pricing (surge during peak hours)
+- Policy-gated checkout (blocks if over daily limit)
+- x402 payment ready
+
+---
+
+## 💰 Track 3: Pay-Per-Call APIs - Enhanced
+
+Monetized AI services via x402 micropayments:
+
+| Service    | Price |
+| ---------- | ----- |
+| /analyze   | $0.01 |
+| /style     | $0.02 |
+| /recommend | $0.03 |
+| /generate  | $0.05 |
+
+```bash
+# Call with payment
+POST /api/ai/monetize
+x402: {"paid": true}
+{ "service": "recommend", "prompt": "casual summer" }
+```
+
+**All three tracks working together!**
+
 **Key integrations added:**
 
 - **x402 payment rails** — `/api/agent/checkout` returns HTTP 402 with payment requirements; any OWS/x402-compatible agent wallet auto-pays and retries
