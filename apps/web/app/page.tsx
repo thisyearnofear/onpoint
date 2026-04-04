@@ -172,6 +172,7 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
                       fill
                       className="object-cover"
                       sizes="(max-width: 768px) 50vw, 25vw"
+                      unoptimized
                     />
                   </div>
                   <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-muted">
@@ -181,6 +182,7 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
                       fill
                       className="object-cover"
                       sizes="(max-width: 768px) 50vw, 25vw"
+                      unoptimized
                     />
                   </div>
                   <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-muted">
@@ -190,6 +192,7 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
                       fill
                       className="object-cover"
                       sizes="(max-width: 768px) 50vw, 25vw"
+                      unoptimized
                     />
                   </div>
                   <button
