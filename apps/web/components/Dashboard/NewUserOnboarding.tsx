@@ -3,15 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Sparkles,
-  Video,
-  Wallet,
-  Users,
-  ChevronRight,
   ChevronLeft,
   X,
-  Palette,
-  Zap,
   ShieldCheck,
   Camera,
   MessageCircle,
@@ -29,7 +22,7 @@ interface OnboardingStep {
 
 /**
  * NewUserOnboarding - Redesigned with progressive disclosure principles
- * 
+ *
  * Key improvements:
  * - Focus on benefits first, features second
  * - Use simple, non-technical language
@@ -38,32 +31,19 @@ interface OnboardingStep {
  */
 const STEPS: OnboardingStep[] = [
   {
-    title: "Your Personal AI Stylist",
-    description: "Get outfit recommendations tailored to your style, body type, and budget.",
-    icon: Palette,
-    color: "text-primary",
-    benefit: "Never buy clothes that don't look good on you",
-  },
-  {
-    title: "See How It Looks",
-    description: "Upload a photo and virtually try on any outfit before you buy.",
+    title: "See How It Fits",
+    description:
+      "Upload a photo and virtually try on any outfit before you buy.",
     icon: Camera,
     color: "text-accent",
     benefit: "Make confident decisions without leaving home",
   },
   {
-    title: "Live Style Coaching",
-    description: "Get real-time feedback on your outfit using your camera.",
-    icon: Video,
-    color: "text-emerald-400",
-    benefit: "Like having a stylist in your pocket",
-  },
-  {
-    title: "Earn Rewards",
-    description: "Share your looks and earn points toward premium features.",
-    icon: Zap,
-    color: "text-amber-400",
-    benefit: "Get rewarded for great style",
+    title: "Get Style Help",
+    description: "Tell us your occasion and budget. We'll suggest what works.",
+    icon: MessageCircle,
+    color: "text-primary",
+    benefit: "Never buy clothes that don't look good on you",
   },
 ];
 
@@ -138,9 +118,7 @@ export function NewUserOnboarding() {
                   <div
                     key={i}
                     className={`h-1.5 rounded-full transition-all duration-300 ${
-                      currentStep >= i 
-                        ? "w-8 bg-primary" 
-                        : "w-2 bg-muted"
+                      currentStep >= i ? "w-8 bg-primary" : "w-2 bg-muted"
                     }`}
                   />
                 ))}
@@ -148,7 +126,9 @@ export function NewUserOnboarding() {
 
               {/* Icon */}
               <div className="flex justify-center">
-                <div className={`w-24 h-24 rounded-3xl bg-muted/50 border border-border flex items-center justify-center`}>
+                <div
+                  className={`w-24 h-24 rounded-3xl bg-muted/50 border border-border flex items-center justify-center`}
+                >
                   <Icon className={`w-12 h-12 ${step.color}`} />
                 </div>
               </div>

@@ -7,33 +7,19 @@ import {
   Camera,
   MessageCircle,
   LayoutDashboard,
-  Users,
   ChevronRight,
   CheckCircle2,
   Target,
   Clock,
-  Zap,
-  Video,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
-import { ErrorBoundary } from "../ui/ErrorBoundary";
-import { logger } from "../../lib/utils/logger";
-import { CommandCenter } from "./CommandCenter";
 import { DesignStudio } from "../DesignStudio";
 import { VirtualTryOn } from "../VirtualTryOn";
 import { AIStylist } from "../AIStylist";
-import { SocialFeed } from "../SocialFeed";
-import { LiveStylistView } from "../VirtualTryOn/LiveStylistView";
 import { MissionsPanel } from "../Agent/MissionsPanel";
 import { NewUserOnboarding } from "./NewUserOnboarding";
 
-type AppMode =
-  | "dashboard"
-  | "design"
-  | "try-on"
-  | "stylist"
-  | "social"
-  | "live-ar";
+type AppMode = "dashboard" | "design" | "try-on" | "stylist";
 
 export function TacticalDashboard() {
   const [mode, setMode] = useState<AppMode>("dashboard");
@@ -47,33 +33,21 @@ export function TacticalDashboard() {
     },
     {
       id: "try-on",
-      label: "Virtual Try-On",
+      label: "Try On",
       icon: Camera,
       color: "text-accent",
     },
     {
       id: "stylist",
-      label: "AI Stylist",
+      label: "Stylist",
       icon: MessageCircle,
       color: "text-primary",
-    },
-    {
-      id: "live-ar",
-      label: "Live AR",
-      icon: Video,
-      color: "text-emerald-400",
     },
     {
       id: "design",
       label: "My Looks",
       icon: Palette,
       color: "text-indigo-400",
-    },
-    {
-      id: "social",
-      label: "Community",
-      icon: Users,
-      color: "text-blue-400",
     },
   ];
 
@@ -149,15 +123,6 @@ export function TacticalDashboard() {
                 <Palette className="w-5 h-5" />
                 <span className="text-sm">My Looks</span>
               </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => setMode("social")}
-                className="h-auto py-4 flex flex-col items-center gap-2"
-              >
-                <Users className="w-5 h-5" />
-                <span className="text-sm">Community</span>
-              </Button>
             </div>
 
             {/* Progressive Disclosure - Collapsible Sections */}
@@ -226,48 +191,16 @@ export function TacticalDashboard() {
               </div>
             </details>
 
-            {/* Secondary - Hidden by default */}
-            <details className="group rounded-2xl border border-border bg-card/40 overflow-hidden">
-              <summary className="cursor-pointer p-4 flex items-center justify-between hover:bg-muted/30 transition-colors list-none">
-                <div className="flex items-center gap-2 text-foreground">
-                  <Zap className="w-4 h-4 text-amber-400" />
-                  <span className="text-sm font-bold uppercase tracking-wider">
-                    Tools & Progress
-                  </span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground group-open:rotate-90 transition-transform" />
-              </summary>
-              <div className="px-4 pb-4 space-y-4">
-                <CommandCenter />
-                <MissionsPanel userId="user-default" compact />
-              </div>
-            </details>
+            {/* Progress - Simple compact view */}
+            <MissionsPanel userId="user-default" compact />
           </motion.div>
         );
       case "design":
         return <DesignStudio />;
       case "try-on":
         return <VirtualTryOn />;
-      case "live-ar":
-        return (
-          <div className="h-[calc(100vh-12rem)]">
-            <ErrorBoundary
-              onError={(error: Error) => {
-                logger.error(
-                  "LiveStylistView crashed",
-                  { component: "LiveStylistView" },
-                  error,
-                );
-              }}
-            >
-              <LiveStylistView onBack={() => setMode("dashboard")} />
-            </ErrorBoundary>
-          </div>
-        );
       case "stylist":
         return <AIStylist />;
-      case "social":
-        return <SocialFeed />;
     }
   };
 
