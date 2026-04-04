@@ -12,6 +12,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { verifyMessage } from "viem";
 import { rateLimit, RateLimits, getClientId } from "../lib/utils/rate-limit";
 
 // ============================================
@@ -60,12 +61,53 @@ const PREMIUM_TIER_PERMISSIONS: AgentPermission[] = [
 // Auth Extraction
 // ============================================
 
+/**
+ * Verify a SIWE-style signature for authentication
+ */
+async function verifySignature(
+  address: string,
+  signature: string,
+  message: string,
+): Promise<boolean> {
+  try {
+    return await verifyMessage({
+      address: address as `0x${string}`,
+      message,
+      signature: signature as `0x${string}`,
+    });
+  } catch (err) {
+    console.error("[AgentAuth] Signature verification failed:", err);
+    return false;
+  }
+}
+
 export async function extractAuth(
   request: NextRequest,
 ): Promise<AgentAuthContext | null> {
   const url = new URL(request.url);
 
-  // Try to get API key from Authorization header
+  // 1. Check for SIWE-style signature (Production Tier)
+  const signature = request.headers.get("X-Agent-Signature");
+  const address = request.headers.get("X-Agent-Address");
+  const message = request.headers.get("X-Agent-Message");
+
+  if (signature && address && message) {
+    const isValid = await verifySignature(address, signature, message);
+    if (isValid) {
+      // In production, check subscription from DB
+      const isPremium = process.env.PREMIUM_USERS?.split(",").includes(address);
+      return {
+        userId: address,
+        agentId: url.searchParams.get("agentId") || "onpoint-stylist",
+        permissions: isPremium
+          ? PREMIUM_TIER_PERMISSIONS
+          : FREE_TIER_PERMISSIONS,
+        tier: isPremium ? "premium" : "free",
+      };
+    }
+  }
+
+  // 2. Check for API key (Legacy/Service Tier)
   const authHeader = request.headers.get("Authorization");
   const apiKey = authHeader?.replace("Bearer ", "");
 

@@ -42,7 +42,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // Use authenticated user's agentId
     const agentId = url.searchParams.get("agentId") || ctx.agentId;
 
-    await AgentControls.initStore(agentId);
+    await AgentControls.initStore(agentId, ctx.userId);
 
     try {
       if (id) {
@@ -108,11 +108,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       // Use authenticated agentId
       const effectiveAgentId = agentId || ctx.agentId;
 
-      await AgentControls.initStore(effectiveAgentId);
+      await AgentControls.initStore(effectiveAgentId, ctx.userId);
 
       // Create the approval request using AgentControls
       const approvalRequest = AgentControls.createApprovalRequest({
         agentId: effectiveAgentId,
+        userId: ctx.userId,
         actionType: actionType as ActionType,
         amount,
         description,
@@ -152,14 +153,14 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 
       const { id, action } = parsed.data;
 
-      await AgentControls.initStore(ctx.agentId);
+      await AgentControls.initStore(ctx.agentId, ctx.userId);
 
       let success: boolean;
 
       if (action === "approve") {
-        success = AgentControls.approveRequest(id);
+        success = AgentControls.approveRequest(id, ctx.userId);
       } else {
-        success = AgentControls.rejectRequest(id);
+        success = AgentControls.rejectRequest(id, ctx.userId);
       }
 
       if (!success) {

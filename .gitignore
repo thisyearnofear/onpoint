@@ -36,8 +36,13 @@ yarn-error.log*
 .DS_Store
 *.pem
 
-# Qoder
+# AI Assistant Tools (local-only, not shared)
 .qoder/
+.junie/
+.zencoder/
+.zenflow/
+.qodo/
+.qwen/
 
 # pnpm
 # pnpm-lock.yaml removed to allow deterministic cloud builds

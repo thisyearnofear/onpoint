@@ -191,59 +191,69 @@ const DEFAULT_AUTONOMY_THRESHOLD = parseEther("5"); // 5 cUSD
 
 // ============================================
 // In-Memory Store (backed by Redis in production)
+// Keys use composite format: `${agentId}:${userId}` for per-user isolation
 // ============================================
 
-// Spending limits per agent
+// Spending limits per agent:user
 const spendingLimits: Map<string, SpendingLimit[]> = new Map();
 
-// Autonomy thresholds per agent
+// Autonomy thresholds per agent:user
 const autonomyThresholds: Map<string, bigint> = new Map();
 
-// Pending suggestions for quick-accept
+// Pending suggestions for quick-accept (keyed by suggestion id)
 const pendingSuggestions: Map<string, AgentSuggestion> = new Map();
 
 // Style preferences per user
 const stylePreferences: Map<string, StylePreference> = new Map();
 
-// Pending approvals
+// Pending approvals (keyed by approval id)
 const pendingApprovals: Map<string, ApprovalRequest> = new Map();
 
-// Track which agents have been hydrated from Redis
-const hydratedAgents: Set<string> = new Set();
+// Track which agent:user pairs have been hydrated from Redis
+const hydratedKeys: Set<string> = new Set();
+
+/** Composite key for per-user isolation */
+function storeKey(agentId: string, userId: string): string {
+  return `${agentId}:${userId}`;
+}
 
 /**
  * Initialize the store by loading persisted state from Redis.
  * Call once at the start of each API request.
- * Safe to call multiple times — only hydrates once per agent per process.
+ * Safe to call multiple times — only hydrates once per agent:user per process.
  */
-export async function initStore(agentId: string): Promise<void> {
-  if (hydratedAgents.has(agentId)) return;
-  hydratedAgents.add(agentId);
+export async function initStore(
+  agentId: string,
+  userId: string,
+): Promise<void> {
+  const key = storeKey(agentId, userId);
+  if (hydratedKeys.has(key)) return;
+  hydratedKeys.add(key);
 
   if (!isRedisConfigured()) return;
 
   try {
     // Load spending limits
-    const limits = await loadSpendingLimits(agentId);
+    const limits = await loadSpendingLimits(agentId, userId);
     if (limits) {
-      spendingLimits.set(agentId, limits);
+      spendingLimits.set(key, limits);
     }
 
     // Load autonomy threshold
-    const threshold = await loadAutonomyThreshold(agentId);
+    const threshold = await loadAutonomyThreshold(agentId, userId);
     if (threshold !== null) {
-      autonomyThresholds.set(agentId, threshold);
+      autonomyThresholds.set(key, threshold);
     }
 
     // Hydrate suggestions and approvals
     await Promise.all([
-      hydrateSuggestions(agentId, pendingSuggestions),
-      hydrateApprovals(agentId, pendingApprovals),
+      hydrateSuggestions(agentId, userId, pendingSuggestions),
+      hydrateApprovals(agentId, userId, pendingApprovals),
     ]);
   } catch (err) {
     logger.error(
       "Redis hydration failed",
-      { component: "agent-controls", agentId },
+      { component: "agent-controls", agentId, userId },
       err,
     );
     // Continue with in-memory state
@@ -255,10 +265,11 @@ export async function initStore(agentId: string): Promise<void> {
 // ============================================
 
 /**
- * Initialize spending limits for an agent
+ * Initialize spending limits for an agent:user pair
  */
 export function initializeAgentLimits(
   agentId: string,
+  userId: string,
   config?: Partial<AgentControlsConfig>,
 ): SpendingLimit[] {
   const limits: SpendingLimit[] = [];
@@ -291,18 +302,23 @@ export function initializeAgentLimits(
     if (mintLimit) mintLimit.dailyLimit = config.dailyMintLimit;
   }
 
-  spendingLimits.set(agentId, limits);
-  persistSpendingLimits(agentId, limits).catch((err) =>
+  const key = storeKey(agentId, userId);
+  spendingLimits.set(key, limits);
+  persistSpendingLimits(agentId, userId, limits).catch((err) =>
     logger.error("Persist failed", { component: "agent-controls" }, err),
   );
   return limits;
 }
 
 /**
- * Get spending limits for an agent
+ * Get spending limits for an agent:user pair
  */
-export function getAgentLimits(agentId: string): SpendingLimit[] {
-  return spendingLimits.get(agentId) || initializeAgentLimits(agentId);
+export function getAgentLimits(
+  agentId: string,
+  userId: string,
+): SpendingLimit[] {
+  const key = storeKey(agentId, userId);
+  return spendingLimits.get(key) || initializeAgentLimits(agentId, userId);
 }
 
 /**
@@ -310,10 +326,11 @@ export function getAgentLimits(agentId: string): SpendingLimit[] {
  */
 export function checkSpendingLimit(
   agentId: string,
+  userId: string,
   actionType: ActionType,
   amount: bigint,
 ): { allowed: boolean; reason?: string; limit?: SpendingLimit } {
-  const limits = getAgentLimits(agentId);
+  const limits = getAgentLimits(agentId, userId);
   const limit = limits.find((l) => l.actionType === actionType);
 
   if (!limit) {
@@ -354,15 +371,16 @@ export function checkSpendingLimit(
  */
 export function recordSpending(
   agentId: string,
+  userId: string,
   actionType: ActionType,
   amount: bigint,
 ): void {
-  const limits = getAgentLimits(agentId);
+  const limits = getAgentLimits(agentId, userId);
   const limit = limits.find((l) => l.actionType === actionType);
 
   if (limit) {
     limit.spentToday += amount;
-    persistSpendingLimits(agentId, limits).catch((err) =>
+    persistSpendingLimits(agentId, userId, limits).catch((err) =>
       logger.error("Persist failed", { component: "agent-controls" }, err),
     );
   }
@@ -373,9 +391,10 @@ export function recordSpending(
  */
 export function getRemainingLimit(
   agentId: string,
+  userId: string,
   actionType: ActionType,
 ): { daily: bigint; remaining: bigint; perAction: bigint } {
-  const limits = getAgentLimits(agentId);
+  const limits = getAgentLimits(agentId, userId);
   const limit = limits.find((l) => l.actionType === actionType);
 
   if (!limit) {
@@ -395,21 +414,27 @@ export function getRemainingLimit(
 // ============================================
 
 /**
- * Set autonomy threshold for an agent
+ * Set autonomy threshold for an agent:user pair
  * Actions below this amount auto-approve without user interaction
  */
-export function setAutonomyThreshold(agentId: string, threshold: bigint): void {
-  autonomyThresholds.set(agentId, threshold);
-  persistAutonomyThreshold(agentId, threshold).catch((err) =>
+export function setAutonomyThreshold(
+  agentId: string,
+  userId: string,
+  threshold: bigint,
+): void {
+  const key = storeKey(agentId, userId);
+  autonomyThresholds.set(key, threshold);
+  persistAutonomyThreshold(agentId, userId, threshold).catch((err) =>
     logger.error("Persist failed", { component: "agent-controls" }, err),
   );
 }
 
 /**
- * Get autonomy threshold for an agent
+ * Get autonomy threshold for an agent:user pair
  */
-export function getAutonomyThreshold(agentId: string): bigint {
-  return autonomyThresholds.get(agentId) || DEFAULT_AUTONOMY_THRESHOLD;
+export function getAutonomyThreshold(agentId: string, userId: string): bigint {
+  const key = storeKey(agentId, userId);
+  return autonomyThresholds.get(key) || DEFAULT_AUTONOMY_THRESHOLD;
 }
 
 /**
@@ -417,9 +442,10 @@ export function getAutonomyThreshold(agentId: string): bigint {
  */
 export function isBelowAutonomyThreshold(
   agentId: string,
+  userId: string,
   amount: bigint,
 ): boolean {
-  const threshold = getAutonomyThreshold(agentId);
+  const threshold = getAutonomyThreshold(agentId, userId);
   return amount <= threshold;
 }
 
@@ -433,6 +459,7 @@ export function isBelowAutonomyThreshold(
 export function createSuggestion(params: {
   id?: string;
   agentId: string;
+  userId: string;
   actionType: ActionType;
   amount: string;
   description: string;
@@ -447,7 +474,11 @@ export function createSuggestion(params: {
 
   // Parse the amount to check if it's auto-approvable
   const amountWei = parseAmount(params.amount);
-  const autoApprovable = isBelowAutonomyThreshold(params.agentId, amountWei);
+  const autoApprovable = isBelowAutonomyThreshold(
+    params.agentId,
+    params.userId,
+    amountWei,
+  );
 
   const suggestion: AgentSuggestion = {
     id,
@@ -464,7 +495,7 @@ export function createSuggestion(params: {
   };
 
   pendingSuggestions.set(id, suggestion);
-  persistSuggestion(suggestion).catch((err) =>
+  persistSuggestion(suggestion, params.userId).catch((err) =>
     logger.error("Persist failed", { component: "agent-controls" }, err),
   );
   return suggestion;
@@ -489,7 +520,7 @@ export function getSuggestion(id: string): AgentSuggestion | null {
 /**
  * Accept a suggestion (user quick-accept)
  */
-export function acceptSuggestion(id: string): boolean {
+export function acceptSuggestion(id: string, userId: string): boolean {
   const suggestion = pendingSuggestions.get(id);
 
   if (!suggestion || suggestion.status !== "pending") {
@@ -502,7 +533,7 @@ export function acceptSuggestion(id: string): boolean {
   }
 
   suggestion.status = "accepted";
-  persistSuggestion(suggestion).catch((err) =>
+  persistSuggestion(suggestion, userId).catch((err) =>
     logger.error("Persist failed", { component: "agent-controls" }, err),
   );
   return true;
@@ -511,7 +542,7 @@ export function acceptSuggestion(id: string): boolean {
 /**
  * Reject a suggestion
  */
-export function rejectSuggestion(id: string): boolean {
+export function rejectSuggestion(id: string, userId: string): boolean {
   const suggestion = pendingSuggestions.get(id);
 
   if (!suggestion || suggestion.status !== "pending") {
@@ -519,7 +550,7 @@ export function rejectSuggestion(id: string): boolean {
   }
 
   suggestion.status = "rejected";
-  persistSuggestion(suggestion).catch((err) =>
+  persistSuggestion(suggestion, userId).catch((err) =>
     logger.error("Persist failed", { component: "agent-controls" }, err),
   );
   return true;
@@ -528,7 +559,7 @@ export function rejectSuggestion(id: string): boolean {
 /**
  * Mark suggestion as executed
  */
-export function markSuggestionExecuted(id: string): boolean {
+export function markSuggestionExecuted(id: string, userId: string): boolean {
   const suggestion = pendingSuggestions.get(id);
 
   if (!suggestion || suggestion.status !== "accepted") {
@@ -536,7 +567,7 @@ export function markSuggestionExecuted(id: string): boolean {
   }
 
   suggestion.status = "executed";
-  persistSuggestion(suggestion).catch((err) =>
+  persistSuggestion(suggestion, userId).catch((err) =>
     logger.error("Persist failed", { component: "agent-controls" }, err),
   );
   return true;
@@ -628,6 +659,7 @@ export function trackStyleInteraction(
  */
 export function createApprovalRequest(params: {
   agentId: string;
+  userId: string;
   actionType: ActionType;
   amount: string;
   description: string;
@@ -652,7 +684,7 @@ export function createApprovalRequest(params: {
   };
 
   pendingApprovals.set(id, request);
-  persistApproval(request).catch((err) =>
+  persistApproval(request, params.userId).catch((err) =>
     logger.error("Persist failed", { component: "agent-controls" }, err),
   );
   return request;
@@ -677,7 +709,11 @@ export function getApprovalRequest(id: string): ApprovalRequest | null {
 /**
  * Approve a pending request
  */
-export function approveRequest(id: string, userSignature?: string): boolean {
+export function approveRequest(
+  id: string,
+  userId: string,
+  userSignature?: string,
+): boolean {
   const request = pendingApprovals.get(id);
 
   if (!request || request.status !== "pending") {
@@ -691,7 +727,7 @@ export function approveRequest(id: string, userSignature?: string): boolean {
 
   request.status = "approved";
   request.userSignature = userSignature;
-  persistApproval(request).catch((err) =>
+  persistApproval(request, userId).catch((err) =>
     logger.error("Persist failed", { component: "agent-controls" }, err),
   );
   return true;
@@ -700,7 +736,7 @@ export function approveRequest(id: string, userSignature?: string): boolean {
 /**
  * Reject a pending request
  */
-export function rejectRequest(id: string): boolean {
+export function rejectRequest(id: string, userId: string): boolean {
   const request = pendingApprovals.get(id);
 
   if (!request || request.status !== "pending") {
@@ -708,7 +744,7 @@ export function rejectRequest(id: string): boolean {
   }
 
   request.status = "rejected";
-  persistApproval(request).catch((err) =>
+  persistApproval(request, userId).catch((err) =>
     logger.error("Persist failed", { component: "agent-controls" }, err),
   );
   return true;
@@ -738,6 +774,7 @@ export function getPendingApprovals(agentId: string): ApprovalRequest[] {
  */
 export function validateAction(params: {
   agentId: string;
+  userId: string;
   actionType: ActionType;
   amount: bigint;
   amountFormatted: string;
@@ -753,6 +790,7 @@ export function validateAction(params: {
 } {
   const {
     agentId,
+    userId,
     actionType,
     amount,
     amountFormatted,
@@ -761,7 +799,7 @@ export function validateAction(params: {
   } = params;
 
   // Check spending limit
-  const limitCheck = checkSpendingLimit(agentId, actionType, amount);
+  const limitCheck = checkSpendingLimit(agentId, userId, actionType, amount);
 
   if (!limitCheck.allowed) {
     return {
@@ -786,7 +824,7 @@ export function validateAction(params: {
   }
 
   // Action requires approval - check autonomy threshold
-  if (isBelowAutonomyThreshold(agentId, amount)) {
+  if (isBelowAutonomyThreshold(agentId, userId, amount)) {
     // Auto-approve via autonomy threshold
     return {
       allowed: true,
@@ -799,6 +837,7 @@ export function validateAction(params: {
   // Above threshold - create approval request
   const approvalRequest = createApprovalRequest({
     agentId,
+    userId,
     actionType,
     amount: amountFormatted,
     description,
@@ -820,6 +859,7 @@ export function validateAction(params: {
  */
 export function suggestAction(params: {
   agentId: string;
+  userId: string;
   actionType: ActionType;
   amount: string;
   description: string;

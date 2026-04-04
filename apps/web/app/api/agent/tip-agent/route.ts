@@ -70,7 +70,7 @@ async function resolveAgentAddress(chain: string): Promise<string> {
 }
 
 export async function POST(request: NextRequest) {
-  return requireAuthWithRateLimit(async (req, _ctx) => {
+  return requireAuthWithRateLimit(async (req, ctx) => {
     const origin = req.headers.get("origin") || "*";
 
     try {
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Initialize spending controls for the tipping agent
-      await AgentControls.initStore(fromAgentId);
+      await AgentControls.initStore(fromAgentId, ctx.userId);
 
       // Resolve recipient agent's wallet address for validation
       const recipientAddress = await resolveAgentAddress(chain);
@@ -117,6 +117,7 @@ export async function POST(request: NextRequest) {
       // Validate against spending limits (agent-to-agent uses "tip" action type)
       const validation = AgentControls.validateAction({
         agentId: fromAgentId,
+        userId: ctx.userId,
         actionType: "tip" as ActionType,
         amount: amountWei,
         amountFormatted: `${amount} ${token || "cUSD"}`,
@@ -193,7 +194,12 @@ export async function POST(request: NextRequest) {
       agentTipLedger.push(tipRecord);
 
       // Record spending for the tipping agent
-      AgentControls.recordSpending(fromAgentId, "tip" as ActionType, amountWei);
+      AgentControls.recordSpending(
+        fromAgentId,
+        ctx.userId,
+        "tip" as ActionType,
+        amountWei,
+      );
 
       console.log(
         `[AgentToAgent] ${fromAgentId} → ${toAgentId}: ${amount} ${tipToken} on ${chain}`,

@@ -1,388 +1,146 @@
-# OnPoint — Agent Economy Platform powered by Tether WDK
+# OnPoint — AI-Powered Personal Styling Agent
 
-> **Reusable middleware for AI agents with economic agency: spending controls, commission splits, state persistence, and suggestion UX. Self-custodial multi-chain wallets via Tether WDK. Proof-of-concept: an autonomous AI stylist that perceives, reasons, shops, and pays onchain.**
+> **An autonomous AI agent that sees what you're wearing, understands your style, and helps you shop — with built-in spending controls, transparent decision-making, and self-custodial payments.**
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-indigo)](https://onpoint-web-647723858538.us-central1.run.app)
-[![Tether WDK](https://img.shields.io/badge/Wallet-Tether%20WDK-0EA5E9)](https://docs.wallet.tether.io)
 [![Multi-Chain](https://img.shields.io/badge/Chains-Celo%20%7C%20Base%20%7C%20Ethereum%20%7C%20Polygon-22C55E)]()
-[![Hackathon](https://img.shields.io/badge/Hackathon-Tether%20Galactica%20WDK%20Edition-purple)](https://dorahacks.io/hackathon/hackathon-galactica-wdk-2026-01/detail)
-[![Free Tier](https://img.shields.io/badge/Free-Venice%20AI-brightgreen)](https://venice.ai)
+[![Open Source](https://img.shields.io/badge/License-MIT-blue)]()
 
 ---
 
 ## The Problem
 
-Every agent that touches money onchain needs the same things: spending limits, approval workflows, commission splits, state persistence, and UI for user-agent interactions. Today, every team builds these from scratch — or skips them entirely and ships agents with no guardrails.
+Online fashion shoppers face three unsolved problems:
 
-## What We Built
+1. **Decision paralysis** — Endless scrolling with no personalized guidance
+2. **No real-time feedback** — Can't get a second opinion while trying things on
+3. **Opaque AI recommendations** — No visibility into why an AI suggests what it does
 
-Five production-ready modules that any agent builder can drop in, powered by a self-custodial agent wallet via Tether WDK:
+Personal stylists solve these but cost $150–500/hour and aren't available on demand.
 
-### 1. Agent Controls Middleware (`agent-controls.ts`)
+## What OnPoint Does
 
-Spending limits, autonomy thresholds, and approval workflows. Any agent that sends cUSD/USDT, mints NFTs, or tips other agents needs this.
+OnPoint is an **AI styling agent** you can interact with in real time. Point your camera at an outfit, get instant styling feedback, discover products that match your taste, and shop — all with full transparency into the agent's decisions and spending limits.
 
-```typescript
-// Validate any agent action against spending limits
-const result = AgentControls.validateAction({
-  agentId: "onpoint-stylist",
-  actionType: "purchase",
-  amount: parseEther("3"),
-  recipient: "0x...",
-});
-// result.autoApproved === true (under $5 threshold)
-// result.requiresApproval === true (over threshold → creates approval request)
-```
+### Core Capabilities
 
-- **Autonomy threshold**: actions under configurable amount auto-execute
-- **Per-action limits**: daily spend caps per action type
-- **Approval workflow**: creates pending requests that users accept/reject via toast UI
-- **11 mutation functions** with fire-and-forget Redis persistence
+| Capability | Description |
+|------------|-------------|
+| **Live AR Styling** | Real-time video analysis with AI feedback — like a FaceTime call with a fashion consultant |
+| **Smart Recommendations** | Personalized product suggestions scored by style fit, price, and quality |
+| **Agent Shopping** | When the internal catalog doesn't have a match, the agent browses the open web for you |
+| **Transparent Decisions** | Every suggestion comes with a visible reasoning trail — see exactly why the agent recommends something |
+| **Spending Controls** | Configurable autonomy thresholds: small actions auto-execute, large ones require your approval |
+| **Style Memory** | Learns your preferences over time across sessions for increasingly personalized advice |
 
-### 2. Commission Split Architecture (`commissions.ts`)
-
-Four-tier revenue distribution for any transaction. Plug-and-play for marketplace agents.
-
-```typescript
-const split = calculateSplit(totalWei, sellerAddress, {
-  affiliateAddress: "0x...",
-  agentAddress: "0x...",
-});
-// → [{ label: "seller", 85% }, { label: "platform", 10% },
-//    { label: "affiliate", 3% }, { label: "agent", 2% }]
-```
-
-- Unallocated shares roll to platform (no affiliate → platform gets 13%)
-- Commission records persisted to Redis with 90-day TTL
-- No dust loss on small amounts (uses platform as remainder recipient)
-
-### 3. State Persistence Layer (`agent-store.ts`)
-
-Redis-backed storage with in-memory fallback. Zero-config: works without Redis, persists when Redis is configured.
-
-| Key Schema              | Content             | TTL            |
-| ----------------------- | ------------------- | -------------- |
-| `agent:limits:{id}`     | Spending limits     | Permanent      |
-| `agent:suggestion:{id}` | Suggestion records  | expiresAt + 1h |
-| `agent:approval:{id}`   | Approval requests   | expiresAt + 1h |
-| `agent:style:{userId}`  | User preferences    | Permanent      |
-| `agent:commission:{id}` | Transaction records | 90 days        |
-
-- Uses Upstash Redis REST API (same pattern as rate-limiting — no SDK dependency)
-- BigInt serialization handled (spending limits store wei as strings)
-- `initStore()` hydration on first API call per request
-
-### 4. Suggestion Toast System (`AgentSuggestionToast.tsx`)
-
-Time-bounded UI for agent-to-user proposals. Smart gating prevents spam.
-
-- **10-second countdown** with auto-dismiss
-- **Auto-approve badge** for sub-threshold actions
-- **Smart gating**: 30s cooldown, item-type dedup, 15s session warmup
-- Accept/reject flows through to API with status tracking
-- `useAgentSuggestions` hook: polls API, manages current suggestion state
-
-### 5. Style Memory + Recommendations (`getRecommendedItems`)
-
-- **Style Memory**: 90-day persistence of user preferences in Redis
-- `getRecommendedItems`: Scores products by category fit (+10), price (+5), and rating
-
-### 6. Agent Web-Agency (`agent-web-bridge`)
-
-Autonomous web browsing for style discovery. When the internal catalog lacks a match, the agent ventures into the open web via **Browser Use Cloud**.
-
-- **Cloud Motor Cortex**: Uses BU Agent API (v3) with `bu-max` model for professional extraction
-- **Live Monitoring**: Surfaces `live_url` in UI for real-time observation of agent browsing
-- **Marketplace Whitelist**: Prioritizes FARFETCH, SSENSE, Zara, and ASOS for high-fidelity data
-- **Bridge Architecture**: Isolated Python FastAPI microservice for browser automation
-
-```typescript
-// Track interactions
-AgentControls.trackStyleInteraction(userId, { category: "shirts", price: 129 });
-
-// Get personalized recommendations
-const items = getRecommendedItems(
-  {
-    categories: ["shirts", "outerwear"],
-    priceRange: { min: 50, max: 200 },
-  },
-  3,
-);
-// → Scores by: category match (+10), price fit (+5), rating bonus, variety noise
-```
-
-### 6. Agent Discovery Engine (`agent-web-bridge`)
-
-Autonomous web browsing and API aggregation for style discovery. When the internal catalog lacks a match, the platform utilizes a **3-Tier Discovery Engine**:
-
-- **Tier 1: Internal Catalog** - Instant, curated results from `@onpoint/shared-types`.
-- **Tier 2: Purch Network** - Global API aggregate with 1B+ products via headless commerce.
-- **Tier 3: Browser Use Cloud** - Autonomous deep-web search with real-time "Watch Live" UI.
-
-- **Marketplace Whitelist**: Prioritizes FARFETCH, SSENSE, Zara, and ASOS for high-fidelity data.
-- **Micro-Action Autonomy**: $5 threshold automatically approves web discovery tasks.
-- **Collaborative UX**: Progress is surfaced in the `AgentSuggestionToast` with tiered status updates.
-
----
-
-## Self-Custodial Agent Wallet (Tether WDK + OWS)
-
-The agent operates its own self-custodial wallet via [Tether WDK](https://docs.wallet.tether.io), with [Open Wallet Standard](https://openwallet.sh) layered on top for policy-gated signing and x402 payment compatibility:
-
-```typescript
-// lib/services/agent-wallet.ts
-import WDK from "@tetherto/wdk";
-import { importWalletPrivateKey, signMessage } from "@open-wallet-standard/core";
-
-// WDK: multi-chain treasury (Celo, Base, Ethereum, Polygon)
-// OWS: policy-gated signing + x402/MPP payment rails
-```
-
-| Capability              | Implementation                                       |
-| ----------------------- | ---------------------------------------------------- |
-| **Multi-Chain**         | Celo, Base, Ethereum, Polygon via WDK                |
-| **Receive Tips**        | Users tip agent in cUSD/USDT via WDK                 |
-| **Execute Payments**    | Agent charges CELO for premium Gemini Live           |
-| **Mint NFTs**           | Agent proposes + mints style NFTs on Celo            |
-| **OWS Policy Signing**  | Policy-gated signing via `@open-wallet-standard/core`|
-| **x402 Payments**       | HTTP 402 payment rails on checkout endpoint          |
-
----
-
-## Proof of Concept: AI Stylist Agent
-
-The modules above power a complete agent loop:
+### How It Works
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │                    PERCEIVE → REASON → ACT                    │
 │                                                              │
-│  📷 Camera     →  🧠 Venice/Gemini  →  💡 Suggestion Toast  │
-│  (live video)     (AI analysis)        (auto-approve < $5)   │
+│  📷 Camera     →  🧠 AI Analysis    →  💡 Style Suggestions │
+│  (live video)     (vision + style)     (with reasoning)      │
 │       ↓                ↓                      ↓              │
-│  Style Memory  ←  Track prefs    →   🛒 Cart + Checkout     │
-│  (personalize)    (categories)        (cUSD/USDT onchain)    │
-│                                          ↓                   │
-│                                    💰 Commission Split       │
-│                                    (85/10/3/2 onchain)       │
-│       ↓                ↓                      ↓              │
-│  🌐 Web Bridge ←  No Match Found  ←  🔐 Tether WDK Wallet     │
-│  (Browser Use)    (Market Search)     (agent treasury)       │
+│  Style Memory  ←  Learn prefs    →   🛒 Discover & Shop     │
+│  (personalize)    (categories)        (catalog + web)        │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-### Live Styling Session
+## Key Features
 
-- **Venice AI** (free, 1-min session): polling-based vision analysis at 3s intervals
-- **Gemini Live** (paid, 0.5 CELO): real-time WebSocket streaming with audio
-- Session timer + capture limits with shareable ending card
-- Coaching badges overlay real-time AI observations
+### Live AR Stylist Session
+- **Free tier** — AI vision analysis with adaptive polling (no payment needed)
+- **Premium tier** — Real-time voice + video streaming with interruptible conversations
+- **Session controls** — Timer, capture limits, shareable ending card with style score
+- **Coaching badges** — Real-time AI observations overlaid on your camera feed
 
-### Shopping + Payment
+### Smart Shopping
+- Curated product catalog across 6 categories with real fashion photography
+- Personalized scoring: category fit (+10), price range (+5), rating bonus
+- Cart with localStorage persistence and one-click checkout
+- Commission splits ensure fair revenue distribution across sellers, platform, and agents
 
-- 24 products across 6 categories with real fashion photography
-- Zustand cart store with localStorage persistence
-- Checkout API executes cUSD/USDT transfers with commission splits
-- Agent approval modal for over-threshold transactions
+### Agent Web Discovery
+When the internal catalog lacks a match, the agent autonomously searches the web:
+- **3-tier discovery**: Internal catalog → API aggregation → Autonomous browsing
+- **Live monitoring**: Watch the agent browse in real time via the UI
+- **Whitelist prioritization**: FARFETCH, SSENSE, Zara, ASOS for quality data
 
-### Social
+### Transparent Agent Decisions
+Every agent action is verifiable:
+- **Spending limits** — Configurable autonomy threshold ($5 auto, above requires approval)
+- **Suggestion toast** — Time-bounded proposals with accept/reject flows
+- **Audit trail** — Cryptographically signed decision logs stored on decentralized storage
 
-- Shareable session ending card with style score, insights, and topic badges
-- Warpcast integration for Farcaster sharing
-- Runs as a Farcaster mini-app
-
----
-
-## Architecture
-
-```
-onpoint/
-├── apps/web/
-│   ├── app/api/agent/
-│   │   ├── wallet/         ← WDK agent wallet info (addresses, balances)
-│   │   ├── suggestion/     ← Suggestion CRUD (create, accept, reject)
-│   │   ├── approval/       ← Approval workflow API
-│   │   ├── checkout/       ← Cart checkout with commission splits
-│   │   ├── mint/           ← NFT minting on Celo
-│   │   ├── purchase/       ← Agent-driven purchases
-│   │   ├── tip/            ← Agent tipping (WDK wallet receive)
-│   │   └── style/          ← Style tracking + recommendations
-│   ├── components/
-│   │   ├── Agent/
-│   │   │   ├── AgentSuggestionToast.tsx    ← Toast UI + useAgentSuggestions hook
-│   │   │   ├── AgentApprovalModal.tsx      ← Approval UI + useAgentApproval hook
-│   │   │   ├── TipModal.tsx                ← Tipping UI (WDK wallet)
-│   │   │   ├── SuggestionHistoryPanel.tsx  ← Session history
-│   │   │   └── AgentStatus.tsx             ← Agent state display
-│   │   ├── Shop/
-│   │   │   ├── CartDrawer.tsx              ← Slide-out cart
-│   │   │   ├── CartButton.tsx              ← Cart icon with badge
-│   │   │   └── CheckoutModal.tsx           ← Checkout + payment UI
-│   │   └── VirtualTryOn/
-│   │       ├── LiveStylistView.tsx         ← Main agent UI (~850 lines)
-│   │       ├── SessionEndingCard.tsx       ← Shareable ending card
-│   │       └── hooks/useLiveSession.ts     ← Session state hook (695 lines)
-│   ├── lib/
-│   │   ├── middleware/
-│   │   │   ├── agent-controls.ts           ← ⭐ Spending limits, approvals
-│   │   │   └── agent-store.ts              ← ⭐ Redis persistence layer
-│   │   ├── services/
-│   │   │   └── agent-wallet.ts             ← ⭐ Tether WDK wallet service
-│   │   ├── utils/
-│   │   │   ├── commissions.ts              ← ⭐ Revenue split calculator
-│   │   │   ├── erc20.ts                    ← cUSD/USDT transfer utility
-│   │   │   └── logger.ts                   ← Structured logging
-│   │   └── stores/
-│   │       └── cart-store.ts               ← Zustand cart state
-│   └── config/
-│       ├── chains.ts                       ← Multi-chain config (Celo, Base, ETH, Polygon)
-│       └── wagmi.ts                        ← Wallet configuration (RainbowKit)
-│
-├── packages/
-│   ├── agent-web-bridge/           ← ⭐ Python Web-Bridge (Browser Use Cloud)
-│   ├── shared-types/
-│   │   └── src/
-│   │       ├── fashion-data.ts             ← Product catalog + getRecommendedItems
-│   │       └── fashion-category.ts         ← Category enum
-│   └── ai-client/
-│       └── src/
-│           ├── use-venice-live.ts           ← Venice AI hook (with session timer)
-│           ├── use-gemini-live.ts           ← Gemini Live hook
-│           └── providers/                   ← AI provider implementations
-│
-├── openclaw/
-│   └── AGENT_SOUL.md                       ← Agent persona + behavior spec
-├── agent-economy-plan.md                    ← Architecture vision doc
-└── README.md
-```
-
-⭐ = Reusable infrastructure module
+### Social & Sharing
+- Share style sessions and "proof of style" snapshots to social feeds
+- Tip the AI stylist for great advice
+- Cross-platform identity and reward tracking
 
 ---
 
-## Key Design Decisions
+## For Developers
 
-### Autonomy Threshold ($5)
+OnPoint is built as a **monorepo** with reusable middleware that any agent builder can integrate:
 
-Small actions auto-execute without interrupting the user. Large actions require explicit approval. This creates the right UX: frictionless for trivial decisions, safe for meaningful ones.
+- **Agent Controls** — Spending limits, approval workflows, autonomy thresholds
+- **Commission Splits** — Four-tier revenue distribution for marketplace transactions
+- **State Persistence** — Redis-backed storage with in-memory fallback
+- **Suggestion UX** — Time-bounded agent-to-user proposal system
+- **Style Memory** — Persistent user preference tracking with recommendations
+- **Agent Web-Agency** — Autonomous web browsing microservice
 
-### WDK for Agent Treasury
-
-The agent wallet uses Tether WDK's seed phrase to derive accounts across chains. This means a single mnemonic controls the agent's treasury on Celo, Base, Ethereum, and Polygon — self-custodial and portable.
-
-### Write-Through Cache Pattern
-
-Maps serve as synchronous read cache. Every mutation persists to Redis fire-and-forget. `initStore()` hydrates on first API call. No blocking on network calls, graceful fallback when Redis is unavailable.
-
-### Commission Roll-Up
-
-Without affiliate/agent refs, their share rolls to platform (not lost to rounding). This means the platform always gets a minimum of 10% + any unallocated shares, ensuring no value leaks.
-
-### Session Gating
-
-30-second cooldown between suggestions, item-type dedup, 15-second warmup. Prevents the AI from spamming the user with toasts during live sessions. The AI is powerful — the UX must constrain it.
-
-### 7. Verifiable Agent Logs (Hackathon Frontier)
-
-Every agent decision is cryptographically signed and stored on IPFS/Filecoin, providing a tamper-proof audit trail for autonomous actions.
-
-- **Agent Signing**: Self-custodial signing via Tether WDK wallet
-- **Decentralized Storage**: Signed logs persisted to IPFS via Lighthouse (Filecoin)
-- **Verifiable UI**: One-click "View on IPFS" receipts for every agent suggestion
-
----
-
-## Hackathons
-
-### [OWS Hackathon — Build with the Open Wallet Standard](https://openwallet.sh)
-**Track: Agentic Storefronts & Real-World Commerce + Agent Spend Governance**
-x402 payment rails on checkout, OWS policy-gated signing, HTTP 402 auto-pay flow.
-
-### [Tether Hackathon Galactica: WDK Edition 1](https://dorahacks.io/hackathon/hackathon-galactica-wdk-2026-01/detail)
-**Track: Agent Wallets (WDK/Openclaw Integration)**
-Self-custodial agent wallets, spending limits, and commission splits.
-
-### [PL Genesis: Frontiers of Collaboration](https://pl-genesis-frontiers-of-collaboration-hackathon.devspot.app/)
-**Track: AI & Autonomous Infrastructure**
-Verifiable agent decision logs, cryptographic signing, and decentralized storage (IPFS/Filecoin).
+Each module is designed to be dropped into any agent-based application.
 
 ---
 
 ## Quick Start
 
 ```bash
-# Clone and setup
 git clone https://github.com/thisyearnofear/onpoint.git
 cd onpoint
 pnpm install
-
-# Copy env vars
 cp .env.example .env.local
-
-# Start development
 pnpm dev
 # → Web app: http://localhost:3000
 ```
 
-### Environment Variables
-
-```bash
-# AI
-VERTEX_API_KEY=          # Gemini Live sessions
-GEMINI_API_KEY=          # Fallback for static AI routes
-
-# Agent Persistence (optional — works without Redis)
-UPSTASH_REDIS_REST_URL=
-UPSTASH_REDIS_REST_TOKEN=
-
-# Storage
-LIGHTHOUSE_API_KEY=      # Filecoin/IPFS storage
-
-# Social
-NEYNAR_API_KEY=          # Farcaster mini-app
-
-# Wallet
-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=
-AGENT_PRIVATE_KEY=       # Agent wallet for cUSD/USDT transfers (demo mode if unset)
-
-# OWS vault path (optional — defaults to /tmp/.ows/wallets)
-OWS_VAULT_PATH=
-```
+See [Getting Started](docs/GETTING_STARTED.md) for full setup instructions.
 
 ---
 
-## API Reference
+## Documentation
 
-| Endpoint                | Method         | Description                                 |
-| ----------------------- | -------------- | ------------------------------------------- |
-| `/api/agent/wallet`     | GET            | Agent WDK wallet info (addresses, balances) |
-| `/api/agent/suggestion` | GET/POST/PATCH | Suggestion CRUD                             |
-| `/api/agent/approval`   | GET/POST/PATCH | Approval workflow                           |
-| `/api/agent/tip`        | POST           | Tip the agent (WDK wallet receive)          |
-| `/api/agent/checkout`   | POST           | Cart checkout with commission splits        |
-| `/api/agent/mint`       | POST           | NFT minting on Celo                         |
-| `/api/agent/purchase`   | POST           | Agent-driven purchases                      |
-| `/api/agent/style`      | GET/POST       | Style tracking + recommendations            |
+| Doc | What's Inside |
+|-----|--------------|
+| [Getting Started](docs/GETTING_STARTED.md) | Setup, environment variables, deployment |
+| [Architecture](docs/ARCHITECTURE.md) | System design, monorepo structure, data flow |
+| [Features](docs/FEATURES.md) | Detailed feature specifications |
+| [Roadmap](docs/ROADMAP.md) | Development progress and future plans |
 
 ---
 
-## On-Chain
+## Tech Stack
 
-| Network      | Contract    | Address                                      |
-| ------------ | ----------- | -------------------------------------------- |
-| Celo Mainnet | OnPoint NFT | `0xdb65806c994C3f55079a6136a8E0886CbB2B64B1` |
-| Celo Mainnet | cUSD        | `0x765DE8164458C172EE097029dfb482Ff182ad001` |
-| Multi-chain  | USDT        | See `config/chains.ts` for addresses         |
+- **Frontend**: Next.js, React, TypeScript, Tailwind CSS, Zustand
+- **AI**: Venice AI, Google Gemini Live, OpenAI GPT-4V
+- **Blockchain**: Celo, Base, Ethereum, Polygon (via WDK + RainbowKit)
+- **Storage**: IPFS/Filecoin (Lighthouse), Redis (Upstash)
+- **Social**: Farcaster, Memory Protocol
+- **Agent Bridge**: Python FastAPI + Browser Use Cloud
+- **Deployment**: Google Cloud Run, Vercel
 
 ---
 
-## Hackathon
+## Hackathons
 
-**[Tether Hackathon Galactica: WDK Edition 1](https://dorahacks.io/hackathon/hackathon-galactica-wdk-2026-01/detail)**
+OnPoint has been developed across multiple hackathons:
 
-**Track: Agent Wallets (WDK/Openclaw Integration)**
-
-The agent-controls middleware, commission splits, state persistence, suggestion UX, and style memory system are designed as drop-in modules. The AI stylist agent is the proof-of-concept that validates them working together — with Tether WDK providing the self-custodial multi-chain agent wallet.
+- **OWS Hackathon** — Agentic Storefronts + Spend Governance
+- **Tether Galactica WDK** — Agent Wallets
+- **Protocol Labs Genesis** — Verifiable Agent Logs
+- **Synthesis** — Best Agent on Celo, Private Agents, Agents With Receipts
 
 ---
 
@@ -390,7 +148,6 @@ The agent-controls middleware, commission splits, state persistence, suggestion 
 
 - **[Live Demo](https://onpoint-web-647723858538.us-central1.run.app)**
 - [GitHub](https://github.com/thisyearnofear/onpoint)
-- [WDK Docs](https://docs.wallet.tether.io)
 
 ## License
 

@@ -72,7 +72,7 @@ interface MintResponse {
 export async function POST(
   request: NextRequest,
 ): Promise<NextResponse<MintResponse>> {
-  return requireAuthWithRateLimit(async (req, _ctx) => {
+  return requireAuthWithRateLimit(async (req, ctx) => {
     const origin = req.headers.get("origin") ?? undefined;
 
     try {
@@ -97,7 +97,7 @@ export async function POST(
         approvalId,
       } = parsed.data;
 
-      await AgentControls.initStore(agentId);
+      await AgentControls.initStore(agentId, ctx.userId);
 
       // Check if NFT contract exists on this chain
       const nftContract = NFT_CONTRACTS[chain];
@@ -115,6 +115,7 @@ export async function POST(
       // Validate against spending limits
       const validation = AgentControls.validateAction({
         agentId,
+        userId: ctx.userId,
         actionType: "mint" as ActionType,
         amount: estimatedGasWei,
         amountFormatted: "~0.01 CELO (gas)",
@@ -242,6 +243,7 @@ export async function POST(
       // Record the spending
       AgentControls.recordSpending(
         agentId,
+        ctx.userId,
         "mint" as ActionType,
         estimatedGasWei,
       );

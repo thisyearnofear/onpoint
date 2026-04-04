@@ -213,6 +213,7 @@ async function executeToolCall(
   name: string,
   args: Record<string, unknown>,
   agentId: string,
+  userId: string,
   sessionId: string,
   imageBase64?: string,
 ): Promise<Record<string, unknown>> {
@@ -327,9 +328,10 @@ Return ONLY valid JSON, no other text.`,
     }
 
     case "propose_mint_nft": {
-      await AgentControls.initStore(agentId);
+      await AgentControls.initStore(agentId, ctx.userId);
       const suggestion = AgentControls.suggestAction({
         agentId,
+        userId: ctx.userId,
         actionType: "mint" as ActionType,
         amount: "0.01",
         description: `Mint Style NFT: "${args.style_title}" — ${args.reason}`,
@@ -417,7 +419,7 @@ Return ONLY valid JSON, no other text.`,
     }
 
     case "track_style_preference": {
-      await AgentControls.initStore(agentId);
+      await AgentControls.initStore(agentId, ctx.userId);
       AgentControls.trackStyleInteraction("session-user", {
         category: args.category as string,
         price: 50,
@@ -553,6 +555,7 @@ ${catalogSummary}
 async function runAgentLoop(
   goal: string,
   userMessage: string,
+  userId: string,
   imageBase64?: string,
   agentId: string = "onpoint-stylist",
 ): Promise<AgentTrace> {
@@ -704,12 +707,13 @@ async function runAgentLoop(
 
   // If score >= 7, suggest a small tip to the stylist
   if (styleScore !== null && styleScore >= 7) {
-    await AgentControls.initStore(agentId);
+    await AgentControls.initStore(agentId, userId);
     const tipAmount =
       styleScore >= 9 ? "0.5" : styleScore >= 8 ? "0.25" : "0.1";
 
     const tipSuggestion = AgentControls.suggestAction({
       agentId,
+      userId,
       actionType: "tip" as ActionType,
       amount: tipAmount,
       description: `Tip your stylist for a ${styleScore}/10 analysis`,
@@ -837,7 +841,7 @@ function buildFallbackTrace(
 // ============================================
 
 export async function GET(request: NextRequest) {
-  return requireAuthWithRateLimit(async (req, _ctx) => {
+  return requireAuthWithRateLimit(async (req, ctx) => {
     const origin = req.headers.get("origin") || "*";
     const url = new URL(req.url);
     const goal = url.searchParams.get("goal") || "daily";
@@ -845,13 +849,14 @@ export async function GET(request: NextRequest) {
     const trace = await runAgentLoop(
       goal,
       "Start a new styling session and analyze style context.",
+      ctx.userId,
     );
     return jsonCors(trace, 200, origin);
   })(request);
 }
 
 export async function POST(request: NextRequest) {
-  return requireAuthWithRateLimit(async (req, _ctx) => {
+  return requireAuthWithRateLimit(async (req, ctx) => {
     const origin = req.headers.get("origin") || "*";
     const clientId = getClientId(req);
 
@@ -907,7 +912,7 @@ export async function POST(request: NextRequest) {
           ? `Session observations so far: ${sessionReasonings.join(". ")}. Based on these observations, analyze the outfit and decide what actions to take.`
           : "Analyze the user outfit and take appropriate actions.");
 
-      const trace = await runAgentLoop(goal, userMessage, imageBase64, agentId);
+      const trace = await runAgentLoop(goal, userMessage, ctx.userId, imageBase64, agentId);
       return jsonCors(trace, 200, origin);
     } catch (err) {
       logger.apiError("/api/ai/agent", "Agent execution failed", err);

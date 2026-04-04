@@ -25,12 +25,16 @@ import { logger } from "../utils/logger";
 // ============================================
 
 const KEYS = {
-  spendingLimits: (agentId: string) => `agent:limits:${agentId}`,
-  autonomyThreshold: (agentId: string) => `agent:autonomy:${agentId}`,
+  spendingLimits: (agentId: string, userId: string) =>
+    `agent:limits:${agentId}:${userId}`,
+  autonomyThreshold: (agentId: string, userId: string) =>
+    `agent:autonomy:${agentId}:${userId}`,
   suggestion: (id: string) => `agent:suggestion:${id}`,
-  suggestionIndex: (agentId: string) => `agent:suggestions:${agentId}`,
+  suggestionIndex: (agentId: string, userId: string) =>
+    `agent:suggestions:${agentId}:${userId}`,
   approval: (id: string) => `agent:approval:${id}`,
-  approvalIndex: (agentId: string) => `agent:approvals:${agentId}`,
+  approvalIndex: (agentId: string, userId: string) =>
+    `agent:approvals:${agentId}:${userId}`,
   stylePrefs: (userId: string) => `agent:style:${userId}`,
   commission: (id: string) => `agent:commission:${id}`,
   commissionIndex: () => `agent:commissions`,
@@ -203,9 +207,10 @@ function deserializeSpendingLimit(
 
 export async function loadSpendingLimits(
   agentId: string,
+  userId: string,
 ): Promise<SpendingLimit[] | null> {
   const data = await redisGet<Record<string, unknown>[]>(
-    KEYS.spendingLimits(agentId),
+    KEYS.spendingLimits(agentId, userId),
   );
   if (!data) return null;
   return data.map(deserializeSpendingLimit);
@@ -213,10 +218,11 @@ export async function loadSpendingLimits(
 
 export async function persistSpendingLimits(
   agentId: string,
+  userId: string,
   limits: SpendingLimit[],
 ): Promise<void> {
   const serialized = limits.map(serializeSpendingLimit);
-  await redisSet(KEYS.spendingLimits(agentId), serialized);
+  await redisSet(KEYS.spendingLimits(agentId, userId), serialized);
 }
 
 // ============================================
@@ -225,17 +231,19 @@ export async function persistSpendingLimits(
 
 export async function loadAutonomyThreshold(
   agentId: string,
+  userId: string,
 ): Promise<bigint | null> {
-  const data = await redisGet<string>(KEYS.autonomyThreshold(agentId));
+  const data = await redisGet<string>(KEYS.autonomyThreshold(agentId, userId));
   if (data === null) return null;
   return BigInt(data);
 }
 
 export async function persistAutonomyThreshold(
   agentId: string,
+  userId: string,
   threshold: bigint,
 ): Promise<void> {
-  await redisSet(KEYS.autonomyThreshold(agentId), threshold.toString());
+  await redisSet(KEYS.autonomyThreshold(agentId, userId), threshold.toString());
 }
 
 // ============================================
@@ -244,13 +252,14 @@ export async function persistAutonomyThreshold(
 
 export async function persistSuggestion(
   suggestion: AgentSuggestion,
+  userId: string,
 ): Promise<void> {
   const ttlSeconds = Math.ceil(
     (suggestion.expiresAt - Date.now()) / 1000 + 3600, // expire + 1h buffer
   );
   await Promise.all([
     redisSetEx(KEYS.suggestion(suggestion.id), suggestion, ttlSeconds),
-    redisSadd(KEYS.suggestionIndex(suggestion.agentId), suggestion.id),
+    redisSadd(KEYS.suggestionIndex(suggestion.agentId, userId), suggestion.id),
   ]);
 }
 
@@ -260,8 +269,11 @@ export async function loadSuggestion(
   return redisGet<AgentSuggestion>(KEYS.suggestion(id));
 }
 
-export async function loadSuggestionIds(agentId: string): Promise<string[]> {
-  return redisSmembers(KEYS.suggestionIndex(agentId));
+export async function loadSuggestionIds(
+  agentId: string,
+  userId: string,
+): Promise<string[]> {
+  return redisSmembers(KEYS.suggestionIndex(agentId, userId));
 }
 
 // ============================================
@@ -270,11 +282,12 @@ export async function loadSuggestionIds(agentId: string): Promise<string[]> {
 
 export async function persistApproval(
   approval: ApprovalRequest,
+  userId: string,
 ): Promise<void> {
   const ttlSeconds = Math.ceil((approval.expiresAt - Date.now()) / 1000 + 3600);
   await Promise.all([
     redisSetEx(KEYS.approval(approval.id), approval, ttlSeconds),
-    redisSadd(KEYS.approvalIndex(approval.agentId), approval.id),
+    redisSadd(KEYS.approvalIndex(approval.agentId, userId), approval.id),
   ]);
 }
 
@@ -284,8 +297,11 @@ export async function loadApproval(
   return redisGet<ApprovalRequest>(KEYS.approval(id));
 }
 
-export async function loadApprovalIds(agentId: string): Promise<string[]> {
-  return redisSmembers(KEYS.approvalIndex(agentId));
+export async function loadApprovalIds(
+  agentId: string,
+  userId: string,
+): Promise<string[]> {
+  return redisSmembers(KEYS.approvalIndex(agentId, userId));
 }
 
 // ============================================
@@ -349,9 +365,10 @@ export async function loadMissionState(
 
 export async function hydrateSuggestions(
   agentId: string,
+  userId: string,
   target: Map<string, AgentSuggestion>,
 ): Promise<void> {
-  const ids = await loadSuggestionIds(agentId);
+  const ids = await loadSuggestionIds(agentId, userId);
   const results = await Promise.all(ids.map(loadSuggestion));
   for (const suggestion of results) {
     if (suggestion) {
@@ -369,9 +386,10 @@ export async function hydrateSuggestions(
 
 export async function hydrateApprovals(
   agentId: string,
+  userId: string,
   target: Map<string, ApprovalRequest>,
 ): Promise<void> {
-  const ids = await loadApprovalIds(agentId);
+  const ids = await loadApprovalIds(agentId, userId);
   const results = await Promise.all(ids.map(loadApproval));
   for (const approval of results) {
     if (approval) {

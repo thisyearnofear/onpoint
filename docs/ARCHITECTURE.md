@@ -1,479 +1,132 @@
-# OnPoint Platform Architecture
+# Architecture
 
-**Version:** 1.0
-**Last Updated:** March 16, 2026
-**Status:** Production-Ready Specification
+## System Overview
 
-## Table of Contents
-
-1. [System Architecture](#system-architecture)
-2. [Technology Stack](#technology-stack)
-3. [Web3 & Blockchain Integration](#web3--blockchain-integration)
-4. [AI & Machine Learning](#ai--machine-learning)
-5. [Data Architecture](#data-architecture)
-6. [Security & Privacy](#security--privacy)
-7. [Deployment & Operations](#deployment--operations)
-
----
-
-## System Architecture
-
-### 1.1 Monorepo Structure
-
-```
-onpoint-monorepo/
-├── apps/
-│   ├── web/                      # Next.js 14.4+ Web Application
-│   ├── mobile/                   # React Native Mobile App
-│   └── worldcoin-mini/           # Worldcoin Mini App
-├── packages/
-│   ├── shared-ui/                # Shared UI components
-│   ├── shared-types/             # TypeScript type definitions
-│   ├── blockchain-client/        # Web3 interaction layer
-│   ├── ai-client/                # AI service abstractions
-│   ├── agent-web-bridge/         # ⭐ Python Web-Bridge (Browser Use Cloud)
-│   ├── ipfs-client/              # IPFS/Filecoin integration
-│   └── worldcoin-auth/           # Worldcoin SDK wrapper
-├── contracts/                    # Solidity smart contracts
-├── scripts/                      # Build & deployment scripts
-├── docs/                         # Documentation
-└── tools/                        # Development tooling
-```
-
-### 1.2 High-Level Architecture Diagram
+OnPoint is a monorepo containing a Next.js web app, AI provider abstractions, and a Python microservice for autonomous web browsing.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        Client Layer                          │
 ├─────────────────┬──────────────────┬────────────────────────┤
-│   Web App       │   Mobile App     │  Worldcoin Mini App    │
-│  (Next.js 14.4+)│  (React Native)  │  (Lightweight Widget)  │
+│   Web App       │   Chrome Ext     │   Farcaster Mini App   │
+│  (Next.js 14)   │  (Built-in AI)   │   (SDK Widget)         │
 └────────┬────────┴────────┬─────────┴──────────┬─────────────┘
          │                 │                    │
          └─────────────────┼────────────────────┘
                            │
-┌─────────────────────────────────────────────────────────────┐
+┌──────────────────────────┴───────────────────────────────────┐
 │                     Service Layer                             │
 ├──────────────┬──────────────┬──────────────┬─────────────────┤
-│   AI APIs    │  IPFS/Filecoin│  Browser Use │  Worldcoin SDK  │
-│ (GPT-4V/BU)  │   (Storage)   │  (Web-Agent) │   (Identity)    │
+│   AI Providers│  Agent Bridge│  Wallet Svc  │  Storage Svc    │
+│ (Venice/     │ (Python      │ (WDK +      │ (Redis +        │
+│  Gemini/OpenAI)│ FastAPI)    │  OWS)       │  IPFS)          │
 └──────────────┴──────────────┴──────────────┴─────────────────┘
                            │
 ┌──────────────────────────┴───────────────────────────────────┐
 │                    Infrastructure Layer                       │
 ├──────────────┬──────────────┬──────────────┬─────────────────┤
-│   Vercel     │  Cloudflare  │   IPFS      │   Blockchain     │
-│   (Web)      │    (CDN)     │  Gateways   │   (ZetaChain)    │
+│   Cloud Run  │   Vercel     │   Blockchains│   IPFS/Filecoin │
+│   (API)      │   (Static)   │  (Celo/Base) │   (Lighthouse)  │
 └──────────────┴──────────────┴──────────────┴─────────────────┘
 ```
 
-### 1.3 Data Flow Architecture
+## Monorepo Structure
 
-**User Action → Client Processing → Service Integration → Blockchain/Storage → UI Update**
+| Package | Purpose |
+|---------|---------|
+| `apps/web` | Next.js application — UI, API routes, agent loop |
+| `apps/chrome-extension` | Chrome Built-in AI fashion assistant |
+| `packages/shared-types` | TypeScript types (fashion data, categories) |
+| `packages/shared-ui` | Reusable UI components |
+| `packages/ai-client` | AI provider abstraction layer + React hooks |
+| `packages/agent-web-bridge` | Python FastAPI browser automation service |
 
-1. **User Interaction**: User uploads image or creates collage
-2. **Client Processing**: Local validation, IndexedDB caching
-3. **AI Processing**: GPT-4V multimodal analysis and generation
-4. **IPFS Storage**: Metadata and assets pinned to IPFS/Filecoin
-5. **Blockchain Transaction**: NFT minted on ZetaChain with IPFS reference
-6. **State Synchronization**: Cross-platform sync via blockchain events
-7. **UI Update**: Real-time updates across all connected devices
+## Data Flow
 
-### 1.4 Modular AI Service Architecture
+1. **User uploads image/camera** → Client validation
+2. **AI processing** → Provider abstraction routes to Venice/Gemini/OpenAI
+3. **Style scoring** → Sentiment-weighted analysis (1-10 scale)
+4. **Suggestion generation** → AgentSuggestionToast displays proposals
+5. **User action** → Accept/reject flows through API
+6. **State persistence** → Redis storage with in-memory fallback
+7. **Web discovery** (if no catalog match) → Python bridge browses external sites
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    AI Service Layer                          │
-├─────────────────┬──────────────┬──────────────┬─────────────┤
-│  Tagging        │  Critique    │  Generation  │  Sourcing   │
-│  Service        │  Service     │  Service     │  Service    │
-│  (CLIP/GPT-4V)  │  (GPT-4V)    │  (DALL-E 3)  │  (GPT-4V)   │
-└─────────────────┴──────────────┴──────────────┴─────────────┘
-         │                │              │              │
-         └────────────────┴──────────────┴──────────────┘
-                           │
-                    ┌──────┴──────┐
-                    │   Backend   │
-                    │   (FastAPI) │
-                    └─────────────┘
-```
-
-### 1.5 Verifiable Agent Service (Frontier)
-
-OnPoint provides **verifiable agency** through decentralized infrastructure, ensuring every agent decision is transparent and tamper-proof.
-
-- **Identity**: ERC-8004 agent ID #35962 (Base).
-- **Signing**: Cryptographic attestation via Tether WDK wallet.
-- **Persistence**: Filecoin-backed logs stored on IPFS via Lighthouse.
-- **Verification**: Publicly auditable JSON receipts with embedded signatures.
+## Agent Loop Architecture
 
 ```
-[Agent Action] → [Sign with WDK] → [Upload to IPFS/Filecoin] → [Surface Receipt]
+┌──────────────────────────────────────────────────────────────┐
+│                    PERCEIVE → REASON → ACT                    │
+│                                                              │
+│  📷 Camera     →  🧠 AI Provider    →  💡 Suggestion Toast  │
+│  (live video)     (vision analysis)    (auto-approve < $5)   │
+│       ↓                ↓                      ↓              │
+│  Style Memory  ←  Track prefs    →   🛒 Cart + Checkout     │
+│  (personalize)    (categories)        (onchain payment)      │
+│                                          ↓                   │
+│                                    💰 Commission Split       │
+│                                    (seller/platform/agent)   │
+│       ↓                ↓                      ↓              │
+│  🌐 Web Bridge ←  No Match Found  ←  🔐 Agent Wallet        │
+│  (Browser Use)    (Market Search)     (multi-chain)          │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-| Route                      | Method | Purpose                            |
-| -------------------------- | ------ | ---------------------------------- |
-| `/api/agent/mint`          | POST   | Mint NFT on behalf of user         |
-| `/api/agent/tip-agent`     | POST   | Agent-to-agent tipping             |
-| `/api/agent/purchase`      | POST   | Execute purchase / Web Search      |
-| `/api/agent/discovery`     | GET    | Discover agents by type            |
-| `/api/agent/approval`      | POST   | Request/approve actions            |
-| `/v1/agent/search` (Bridge)| POST   | Autonomous web search (Python)     |
+## Reusable Middleware Modules
 
----
+These modules live in `apps/web/lib/` and are designed to be extracted into any agent project:
 
-## Frontend Data & Components Architecture
+| Module | File | Purpose |
+|--------|------|---------|
+| **Agent Controls** | `middleware/agent-controls.ts` | Spending limits, autonomy thresholds, approval workflows |
+| **State Persistence** | `middleware/agent-store.ts` | Redis-backed storage with write-through cache |
+| **Commission Splits** | `utils/commissions.ts` | Four-tier revenue distribution calculator |
+| **Suggestion Toast** | `components/Agent/AgentSuggestionToast.tsx` | Time-bounded agent-to-user proposals |
+| **Style Memory** | `fashion-data.ts` (getRecommendedItems) | Preference tracking + personalized scoring |
+| **Agent Wallet** | `services/agent-wallet.ts` | Multi-chain self-custodial wallet service |
 
-### 1.5 Fashion Data & View Transitions Pattern
+## AI Provider Abstraction
 
-**Centralized Data Layer** (single source of truth):
-- `CANVAS_ITEMS` array in `packages/shared-types/src/fashion-data.ts`
-- `FashionItem` interface with engagement metrics (tryOnCount, mintCount, averageRating)
-- `FashionCategory` enum (Shirts, Pants, Shoes, Accessories, Outerwear, Dresses)
-- Query functions: `getFashionItemBySlug()`, `getFashionItemsByCategory()`, `getCanvasItemsByCategory()`
+All AI providers implement a unified interface:
 
-**Component Hierarchy**:
-- `CardEnhanced` - Premium product card with like/share buttons, trending badges, quick preview
-- `ShopGrid` - Responsive grid with sorting (trending/rating/price), category filtering, metrics display
-- `EngagementBadge` - Social proof display (Trending/Viral/Popular/New) with animated counters
-- `TransitionLink` + `TransitionDetail` - Smooth page morphing animations
-- `useViewTransition()` hook - Wraps navigation in View Transitions API
-- `useEngagementMetrics()` hook - Tracks likes, shares, try-ons (localStorage persisted)
-
-**Animations**:
-- 9 keyframe animations (scale-pulse, shimmer, bounce-in-up, float, glow, card-tilt, swipe-in-left, gradient-shift, count-up)
-- GPU-accelerated (transform, opacity only)
-- Respects `prefers-reduced-motion` for accessibility
-
-**Result**: Premium, engaging UI that drives +40-80% engagement lift through social proof, micro-interactions, and friction reduction.
-
----
-
-## Technology Stack
-
-### 2.1 Web Application Stack
-
-- **Framework**: Next.js 14.4+ with React 18.x and TypeScript 5.3+
-- **Styling**: Tailwind CSS 4.x with Headless UI components
-- **State Management**: Zustand with React Hook Form and Zod validation
-- **Animations**: View Transitions API for smooth page transitions
-
-### 2.2 Mobile Application Stack
-
-- **Framework**: React Native 0.73+ with TypeScript 5.3+
-- **Navigation**: React Navigation with NativeWind styling
-- **Components**: React Native Paper with Zustand state management
-- **AR**: React Native Vision Camera for try-on features
-
-### 2.3 Worldcoin Mini App Stack
-
-- **Framework**: React Native/Web with Worldcoin JS SDK
-- **Identity**: World ID Widget for biometric verification
-
-### 2.4 Web3 & Blockchain Stack
-
-- **Wallet**: RainbowKit with Wagmi hooks and Viem client
-- **Contracts**: Solidity 0.8.20+ with Hardhat development
-- **Network**: ZetaChain (primary) with Celo Alfajores for testing
-
-### 2.5 AI & Machine Learning Stack
-
-- **AI Models**: OpenAI GPT-4V, DALL-E 3, CLIP for image analysis
-- **Processing**: LangChain for critique workflows, ONNX/TensorFlow Lite for local inference
-
-### 2.6 Storage & Data Stack
-
-- **Client Storage**: IndexedDB (web), MMKV (mobile)
-- **Distributed**: IPFS/Filecoin with Pinata pinning
-- **Database**: MongoDB Atlas for vector search and metadata
-
-### 2.7 Development & Testing Stack
-
-- **Package Manager**: pnpm with Turborepo for monorepo
-- **Testing**: Vitest (web), Jest (mobile), Playwright (E2E)
-- **Code Quality**: ESLint, Prettier, TypeScript
-
-### 2.8 Deployment & Infrastructure
-
-- **Web**: Vercel with Cloudflare CDN
-- **Mobile**: App Store/Play Store distribution
-- **CI/CD**: GitHub Actions with Sentry monitoring
-
----
-
-## Web3 & Blockchain Integration
-
-### 3.1 Why ZetaChain
-
-- Native cross-chain interoperability
-- Low transaction fees
-- Fast finality (5-7 seconds)
-- EVM compatibility
-- Built-in omnichain messaging
-- Native Bitcoin and other chain support
-
-### 3.2 Smart Contract Architecture
-
-**OnPointNFT (ERC-721A)**: Individual fashion items/designs
-- Efficient batch minting
-- IPFS metadata storage
-- Item attribute tracking
-
-**OnPointCollage (ERC-721A)**: Style collages and mood boards
-- Composition metadata
-- Creator attribution
-- Royalty support
-
-**OnPointCritique (ERC-721)**: AI critique reports
-- Critique metadata
-- Shareable reports
-- Verifiable AI analysis
-
-**TokenBoundAccount (ERC-6551)**: Accounts owned by NFTs
-- Composable NFT functionality
-- NFT-to-NFT interactions
-- Programmable ownership
-
-**StylistEscrow**: Programmable payment escrow
-- Milestone-based releases
-- Dispute resolution
-- Fractional payments
-
-### 3.3 Wallet Connection Flow
-
-1. User clicks "Connect Wallet" button
-2. RainbowKit modal displays available wallets
-3. User selects wallet and approves connection
-4. Wagmi hooks manage connection state
-5. ZetaChain network automatically configured
-6. User address displayed in UI
-
-### 3.4 NFT Minting Flow
-
-1. User prepares content (item, collage, critique)
-2. Content uploaded to IPFS via Pinata
-3. IPFS hash returned (e.g., `ipfs://QmX...`)
-4. Smart contract interaction via Viem
-5. Transaction submitted to ZetaChain
-6. UI displays pending state with transaction hash
-7. On confirmation, NFT displayed in user's collection
-8. Metadata indexed for cross-platform sync
-
-### 3.5 IPFS Integration
-
-**Upload Process**:
-- File uploaded to Pinata API
-- IPFS hash returned
-- Metadata stored with pinning service
-- Hash referenced in smart contract
-
-**Retrieval Process**:
-- Token URI points to IPFS hash
-- Gateway resolves content
-- Metadata cached locally
-- Cross-platform sync via blockchain events
-
-### 3.6 0xSplits Integration for Royalties
-
-**Why 0xSplits**:
-- Zero protocol fees, runs at gas cost
-- Unstoppable contracts, no maintenance required
-- Battle-tested by major platforms
-- Multichain support (Base, Optimism, Celo, Lisk)
-
-**Implementation**:
-- Create splits for each NFT mint (85% creator, 10% platform, 5% stylist)
-- Set split address as royalty recipient in OnPointNFT contract
-- Automated distribution via 0xSplits protocol
-
----
-
-## AI & Machine Learning
-
-### 4.1 AI Integration Overview
-
-### 4.2 African Differentiation Layer
-
-**Current Implementation (Lightweight)**:
-- Pattern Recognition Service: African pattern library with cultural metadata
-- Cultural Context Engine: AI prompt enhancement with African inspiration  
-- Regional Style Database: 5 core African textile patterns with authenticity
-
-**Future AI Training Architecture**:
-```
-African Fashion Dataset (15K+ images)
-    ↓
-Cloud GPU Training (AWS SageMaker/Google Vertex AI)
-    ↓
-African-Specific AI Models
-    ↓
-┌─────────────┬─────────────┬─────────────┐
-│Image Classification │ Similarity Search │ Trend Prediction │
-└─────────────┴─────────────┴─────────────┘
-    ↓
-Enhanced Design Studio Integration
+```typescript
+interface AIProvider {
+  name: string;
+  analyzeOutfit(input): Promise<CritiqueResponse>;
+  generateDesign(prompt): Promise<DesignGeneration>;
+  connectLiveSession?(): Promise<LiveSession>; // streaming providers
+}
 ```
 
-**Training Pipeline**:
-1. Data Preparation: Clean and normalize African fashion images
-2. Cloud GPU Training: Leverage platforms with efficient GPU access
-3. Model Optimization: Fine-tune for African fashion specificity
-4. Deployment: Integrate via API endpoints for performance
+| Provider | Tier | Capabilities |
+|----------|------|-------------|
+| Venice AI | Free | Vision analysis via polling (`mistral-31-24b`) |
+| Gemini Live | Premium | Real-time WebSocket audio + video streaming |
+| OpenAI/Replicate | Fallback | Static analysis, design generation |
 
-**Expected Outputs**:
-- African style classification (Ankara, Kente, Adire, Bogolan, Shweshwe)
-- Pattern recognition and extraction
-- Cultural trend analysis for African markets
-- Personalized African fashion recommendations
+## Agent Web-Agency (Python Bridge)
 
-**Performance Considerations**:
-- Use cloud GPUs to handle large dataset processing efficiently
-- Implement progressive loading for dataset integration
-- Cache frequently accessed African style data
-- Monitor performance impact before full integration
+When the internal catalog lacks a match, the agent uses a 3-tier discovery engine:
 
-**Primary AI Services**:
-- OpenAI GPT-4V for multimodal analysis and critiques
-- CLIP for efficient local image tagging
-- LangChain for structured critique workflows
-- MongoDB Atlas Vector Search for recommendations
+- **Tier 1**: Internal catalog (instant, curated)
+- **Tier 2**: Purch API aggregation (1B+ products via headless commerce)
+- **Tier 3**: Browser Use Cloud (autonomous deep-web browsing)
 
-**Key Features**:
-- Personality-based AI stylist critiques
-- Virtual try-on with IDM-VTON model
-- Cross-platform AI service abstraction
+The bridge is an isolated Python FastAPI service using Browser Use Cloud V3 with structured data extraction via Pydantic models.
 
----
+## Blockchain Integration
 
-## Phase 5: Agent Web-Agency ✅ IMPLEMENTED
+| Network | Use |
+|---------|-----|
+| Celo | Primary — low fees, cUSD stablecoin, mobile-first |
+| Base | Secondary — Coinbase ecosystem |
+| Ethereum | Multi-chain support |
+| Polygon | Multi-chain support |
 
-### 5.1 Cloud Motor Cortex ✅
+**Smart contracts**: NFT minting (ERC-721A), commission splits (0xSplits), agent tipping (cUSD/USDT transfers).
 
-**New Package:** `packages/agent-web-bridge` (Python FastAPI)
+## Security Model
 
-Leverages **Browser Use Cloud (V3)** to perform autonomous fashion research when the internal catalog is insufficient.
-
-- **Stealth Browsing**: Automated CAPTCHA solving and residential proxies for high-fidelity extraction.
-- **Structured Data**: Extracts `ItemData` (Price, URL, Source) using Pydantic V2 models.
-- **Real-time Live View**: Surfaces a `liveUrl` allowing users to watch the agent navigate in real-time.
-
-### 5.2 Collaborative Commerce ✅
-
-**File:** `apps/web/app/api/agent/purchase/route.ts`
-
-- Handshakes between Next.js and the Python Bridge.
-- Updates existing suggestions with real-world results.
-- Maintains the $5 autonomy threshold for web searches ($0.10/action).
-
----
-
-## Data Architecture
-
-### 5.1 Client-Side Storage
-
-**IndexedDB (Web)**:
-- Closet items cache
-- Draft collages
-- User preferences
-- Offline access
-
-**MMKV (Mobile)**:
-- Fast key-value storage
-- Encrypted sensitive data
-- Sync queue for pending actions
-
-### 5.2 Server-Side Storage
-
-**IPFS/Filecoin**:
-- Immutable content storage
-- Decentralized redundancy
-- Long-term archival
-- Content addressing
-
-**MongoDB Atlas**:
-- User profiles
-- Booking history
-- Vector embeddings
-- Analytics data
-
-### 5.3 Blockchain Storage
-
-**ZetaChain**:
-- NFT ownership records
-- Transaction history
-- Smart contract state
-- Cross-platform events
-
-### 5.4 Data Synchronization
-
-**Event-Driven Architecture**:
-- Listen to blockchain events
-- Trigger local updates
-- Background sync with exponential backoff
-- Conflict resolution (last-write-wins)
-
-## Social Integration & Memory Protocol
-
-### 6.1 Memory Protocol Architecture
-
-**Core Components**:
-- **Identity Graphs**: Cross-platform user discovery (Farcaster, Twitter, etc.)
-- **Social Activity Tracking**: Record try-ons, mints, reactions for rewards
-- **Reward System**: Earn $MEM tokens for social interactions
-
-**Data Flow**:
-1. User connects wallet → Fetch identity graph from Memory API
-2. User performs action → Record social activity
-3. Display social content → Enrich with cross-platform data
-4. Distribute rewards → Weekly Merkle Tree claims
-
-**Privacy & Security**:
-- Public data indexed automatically
-- Private data requires explicit consent
-- Zero-knowledge proofs for verification
-- Users curate their own identity graphs
-
----
-
-## Security & Privacy
-
-### 6.1 Authentication & Identity
-
-- **Web**: Wallet-based with RainbowKit
-- **Mobile/Mini App**: Worldcoin World ID with zero-knowledge proofs
-- **Biometric**: Secure enclave with nullifier hashes for anonymity
-
-### 6.2 Data Protection
-
-- End-to-end encryption for sensitive data
-- IPFS decentralized storage with user-controlled deletion
-- GDPR compliance and privacy-first approach
-
-### 6.3 Smart Contract Security
-
-- OpenZeppelin libraries with formal verification
-- Comprehensive testing (unit, integration, fuzzing)
-- Access controls and reentrancy guards
-
-### 6.4 API Security
-
-- Rate limiting and input validation with Zod
-- File type verification and size limits
-
----
-
-## Deployment & Operations
-
-### 7.1 Platform Deployment
-
-- **Web**: Vercel with Cloudflare CDN and automatic GitHub deployments
-- **Mobile**: App Store/Play Store with TestFlight beta testing
-- **Smart Contracts**: ZetaChain testnet (Alfajores) to mainnet with multi-sig controls
-
-### 7.2 Monitoring & CI/CD
-
-- **Monitoring**: Sentry for errors, Vercel Analytics for performance
-- **CI/CD**: GitHub Actions with automated testing and deployments
-- **Security**: Blue-green deployments with rollback procedures
-
----
+- **Autonomy threshold**: Actions under $5 auto-execute; above requires user approval
+- **Policy-gated signing**: OWS layer enforces spend limits before any transaction
+- **Verifiable logs**: Agent decisions cryptographically signed and stored on IPFS/Filecoin
+- **Zero data retention**: Venice AI provider doesn't store user data

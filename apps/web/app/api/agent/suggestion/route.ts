@@ -54,7 +54,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // Use authenticated user's ID for agentId if not specified
     const agentId = url.searchParams.get("agentId") || ctx.agentId;
 
-    await AgentControls.initStore(agentId);
+    await AgentControls.initStore(agentId, ctx.userId);
 
     try {
       if (id) {
@@ -126,11 +126,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       // Use authenticated agentId if not provided
       const effectiveAgentId = agentId || ctx.agentId;
 
-      await AgentControls.initStore(effectiveAgentId);
+      await AgentControls.initStore(effectiveAgentId, ctx.userId);
 
       // Use suggestAction which handles autonomy threshold
       const result = AgentControls.suggestAction({
         agentId: effectiveAgentId,
+        userId: ctx.userId,
         actionType: actionType as ActionType,
         amount,
         description,
@@ -155,7 +156,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         result.suggestion.signature = signature;
 
         // Re-persist the updated suggestion
-        await persistSuggestion(result.suggestion);
+        await persistSuggestion(result.suggestion, ctx.userId);
         console.log(`[SuggestionAPI] Verifiable log attached: ${cid}`);
       } catch (err) {
         console.error("[SuggestionAPI] Failed to create verifiable log:", err);
@@ -184,7 +185,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
 // PATCH - Accept or reject suggestion (requires auth)
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
-  return requireAuthWithRateLimit(async (req, _ctx) => {
+  return requireAuthWithRateLimit(async (req, ctx) => {
     const origin = req.headers.get("origin") ?? undefined;
 
     try {
@@ -204,16 +205,16 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       if (!AgentControls.getSuggestion(id)) {
         const stored = await loadSuggestionFromStore(id);
         if (stored) {
-          await AgentControls.initStore(stored.agentId);
+          await AgentControls.initStore(stored.agentId, ctx.userId);
         }
       }
 
       let success: boolean;
 
       if (action === "accept") {
-        success = AgentControls.acceptSuggestion(id);
+        success = AgentControls.acceptSuggestion(id, ctx.userId);
       } else {
-        success = AgentControls.rejectSuggestion(id);
+        success = AgentControls.rejectSuggestion(id, ctx.userId);
       }
 
       if (!success) {

@@ -52,7 +52,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       // Use authenticated user ID if userId matches default
       const effectiveUserId = userId === "default" ? ctx.userId : userId;
 
-      await AgentControls.initStore("onpoint-stylist");
+      await AgentControls.initStore("onpoint-stylist", effectiveUserId);
       AgentControls.trackStyleInteraction(effectiveUserId, { category, price });
 
       // Seed style preferences based on session goal for first-time users
@@ -113,7 +113,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const excludeIds = excludeParam ? excludeParam.split(",") : [];
 
     try {
-      await AgentControls.initStore("onpoint-stylist");
+      await AgentControls.initStore("onpoint-stylist", userId);
 
       const prefs = AgentControls.getStylePreferences(userId);
 

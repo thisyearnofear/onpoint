@@ -1,181 +1,178 @@
-# OnPoint Platform Features
+# Features
 
-**Version:** 1.0
-**Last Updated:** March 16, 2026
-**Status:** Feature Specification
+## Live AR Stylist
 
-## Enhanced Catalog UI (Nov 2025)
+Real-time AI styling sessions — like a FaceTime call with a fashion consultant.
 
-**Premium shopping experience with social proof and engagement mechanics**:
+### Free Tier (Venice AI)
+- Vision analysis via `mistral-31-24b` model
+- Adaptive polling: 2s (high motion) → 5s (low motion)
+- No payment required — uses OnPoint's API key
+- Rate limit: 60 requests/minute
 
-### Components
+### Premium Tier (Gemini Live)
+- Real-time bidirectional WebSocket streaming
+- Full audio input/output — talk and be interrupted naturally
+- Instant video frame analysis (1fps canvas capture)
+- Tactical HUD with Agent Reasoning Terminal
+- **Cost**: 0.5 CELO per session OR Bring Your Own Key (BYOK)
 
-- **CardEnhanced** - Product cards with like/share buttons, trending badges, ratings, quick preview
-- **ShopGrid** - Smart grid with sorting (trending/rating/price), category filters, engagement metrics
-- **EngagementBadge** - Social proof display (Trending/Viral/Popular/New) with animated counters
-
-### Features
-
-- Real-time engagement metrics (try-on counts, mint counts, ratings)
-- One-click like/share social actions
-- Trending item indicators (animated pulse when >50 try-ons)
-- Quick preview modal (no page load required)
-- View Transitions API for smooth list → detail morphing
-- 9 micro-animation effects (entrance, hover, count-up, etc.)
-- Mobile-optimized with touch-friendly interactions
-- Accessible (WCAG AA, respects prefers-reduced-motion)
-
-**Expected Impact**: +40-80% engagement lift, +50-80% share volume, +30-50% time-on-page
+### Session Features
+- **Timer + limits** — Configurable session duration
+- **Ending card** — Shareable summary with style score and topic badges
+- **Coaching badges** — Real-time AI observations overlaid on camera
+- **Snapshot capture** — One-tap frame with AR HUD + critique embedded
 
 ---
 
-## Core Features Overview
+## AI Stylist Personalities
 
-### Feature Matrix
+Asynchronous text-based critiques from 6 distinct personalities:
 
-| Feature                | Web | Mobile | Mini App | Status   |
-| ---------------------- | --- | ------ | -------- | -------- |
-| AI Stylist (Standard)  | ✅  | ✅     | ✅       | Complete |
-| AI Stylist (Live AR)   | ✅  | ✅     | ✅       | Complete |
-| Virtual Try-On         | ✅  | ✅     | -        | Complete |
-| Design Studio          | ✅  | ✅     | -        | Complete |
-| Digital Closet         | ✅  | ✅     | ✅       | Complete |
-| NFT Minting            | ✅  | ✅     | ✅       | Complete |
-| Worldcoin Verification | -   | ✅     | ✅       | Complete |
-| Style Challenges       | -   | -      | ✅       | Complete |
-| Verifiable Agent Logs  | ✅  | -      | -        | Complete |
+| Persona | Style |
+|---------|-------|
+| Anna Karenina | Russian aristocratic, 19th-century high society |
+| Artful Dodger | Street-smart youth, urban style, sneakerhead |
+| Mowgli | Natural coexistence, ecological balance |
+| Edina Monsoon | Avant-garde fashion victim |
+| Miranda Priestly | Impossibly high runway standards |
+| John Shaft | 1970s cool sophistication |
 
-## Verifiable Agent Logs (PL Genesis Hackathon)
+**Capabilities**: Upload photos, context-aware conversations, style suggestions, cross-component integration.
 
-Autonomous agent decisions can be opaque. OnPoint solves this by providing **signed, decentralized audit trails** for every action.
+---
 
-### Capabilities
+## Smart Shopping
 
-- **Cryptographic Attestation**: Every recommendation and action is signed by the agent's self-custodial Tether WDK wallet.
-- **Decentralized Audit Trail**: Signed receipts are stored on IPFS/Filecoin via Lighthouse.
-- **Transparency UI**: "View on IPFS" links surfaced directly in the Agent Suggestion Toast.
-- **ERC-8004 Inspiration**: Follows the pattern of "Agents with Receipts" for verifiable intelligence.
+### Product Catalog
+- 24+ products across 6 categories with real fashion photography
+- Categories: Shirts, Pants, Shoes, Accessories, Outerwear, Dresses
+- Engagement metrics: try-on count, mint count, average rating
 
-### Implementation
+### Personalized Recommendations
+Products scored by:
+- **Category fit** (+10 points for matching user preferences)
+- **Price range** (+5 points for fitting budget)
+- **Rating bonus** (higher-rated items score better)
+- **Variety noise** (prevents filter bubbles)
 
-- `VerifiableAgentService`: Generates, signs, and uploads decision logs.
-- `AgentRegistry`: Unified system for recording and verifying receipts across the platform.
+### Cart & Checkout
+- Zustand store with localStorage persistence
+- Commission splits: 85% seller / 10% platform / 3% affiliate / 2% agent
+- Unallocated shares roll to platform (no value loss)
+- On-chain cUSD/USDT payments with transaction verification
 
-## AI Stylist with Personality-Based Critiques
+---
 
-The AI Stylist module offers optionality between a standard asynchronous text interaction and a real-time, uninterrupted voice-and-vision experience.
+## Agent Web Discovery
 
-### Standard Mode (Text-Based)
+When the internal catalog doesn't have a match, the agent browses the open web:
 
-Users can receive asynchronous fashion critiques from six distinct AI personalities using OpenAI/Replicate models:
+### 3-Tier Discovery Engine
+| Tier | Source | Speed | Coverage |
+|------|--------|-------|----------|
+| 1 | Internal catalog | Instant | Curated |
+| 2 | Purch API aggregation | Fast | 1B+ products |
+| 3 | Browser Use Cloud | Variable | Open web |
 
-1. **Anna Karenina** - Russian aristocratic fashion with refined 19th-century high society style
-2. **Artful Dodger** - Street-smart youth with gritty urban style and sneakerhead expertise
-3. **Mowgli** - Jungle survivor representing coexistence with animals and ecological balance
-4. **Edina Monsoon** - Absolutely Fabulous fashion victim with avant-garde style
-5. **Miranda Priestly** - Runway editor with impossibly high standards
-6. **John Shaft** - Cool 1970s sophistication with an edge
+### Live Monitoring
+- `live_url` surfaced in UI for real-time observation
+- Progress updates via AgentSuggestionToast
+- Marketplace whitelist: FARFETCH, SSENSE, Zara, ASOS
 
-### Key Capabilities
+### Autonomy
+- $5 micro-action threshold auto-approves web discovery tasks (~$0.10/action)
+- Isolated Python microservice for browser automation
 
-- Upload images or take photos for analysis
-- Receive personality-based styling advice
-- Context-aware conversations
-- Style suggestion generation
-- Cross-component integration for enhanced user experience
+---
 
-### Live AR Stylist Mode (Dual-Provider Architecture)
+## Spending Controls & Transparency
 
-A next-generation styling experience with two tiers:
+### Autonomy Threshold
+- **Under $5**: Auto-execute without interrupting the user
+- **Over $5**: Creates approval request → user accepts/rejects via toast
 
-#### Venice AI (Free Tier)
+### Suggestion Toast System
+- 10-second countdown with auto-dismiss
+- Auto-approve badge for sub-threshold actions
+- Smart gating: 30s cooldown, item-type dedup, 15s session warmup
+- `useAgentSuggestions` hook: polls API, manages current suggestion state
 
-- **AI-Powered Analysis**: Uses Venice AI's vision models (`mistral-31-24b`) for outfit analysis
-- **Adaptive Polling**: Frame capture rate adjusts based on user motion (2-5 seconds)
-- **Free Access**: No payment required - uses OnPoint's API key
-- **Rate Limit**: 60 sessions per minute
+### Verifiable Agent Logs
+- Every agent decision cryptographically signed (Tether WDK wallet)
+- Signed receipts stored on IPFS/Filecoin via Lighthouse
+- "View on IPFS" links in the UI for full auditability
+- Follows ERC-8004 "Agents with Receipts" pattern
 
-#### Gemini Live (Premium Tier)
+---
 
-Powered by the **Google GenAI SDK** and the Gemini Live API:
+## Style Memory
 
-- **Real-Time Vision**: Agent naturally "sees" the clothes the user holds up to the camera.
-- **Interruptible Audio**: Users can talk and be interrupted in real-time, perfectly simulating a FaceTime call with a fashion consultant.
-- **Multimodal Context**: Seamless transitions between audio instructions and visual outfit analysis.
-- **Premium Tactical HUD**: Animated scanning grid, corner brackets, and **Agent Reasoning Terminal** for high-end sci-fi aesthetic.
-- **Haptic Delight**: Tactical physical feedback when taking snapshots or receiving critiques.
-- **Pricing**: 0.5 CELO per session OR Bring Your Own Key (BYOK)
-- **Payment**: Integrated with Celo blockchain for seamless crypto payments
+- **90-day persistence** of user preferences in Redis
+- Tracks categories, price ranges, interaction patterns
+- `getRecommendedItems` scores products against stored preferences
+- In-memory fallback when Redis is unavailable
+- Write-through cache: synchronous reads, fire-and-forget writes
 
-### Payment & Session Tokens
+---
 
-- **CELO Integration**: Users can pay for Gemini Live access using CELO cryptocurrency
-- **Server-Side Verification**: Transactions verified on-chain before granting access
-- **JWT Session Tokens**: 24-hour tokens issued after payment verification
-- **BYOK Alternative**: Users can provide their own Gemini API key to skip payment
+## Social & Sharing
 
-### Social Loop & Ownership Proof
+### Farcaster Integration
+- Runs as a Farcaster mini-app
+- Direct casting via `sdk.actions.composeCast`
+- "Proof of Style" snapshots shared to feed
 
-- **Snapshot Capture**: One-tap frame capture with AR HUD overlays and AI critique text embedded.
-- **Native Farcaster Sharing**: Direct integration with `sdk.actions.composeCast` to share "Proof of Style" directly to the feed.
-- **Agentic Tipping (Celo)**: Users can tip their AI Stylist in **cUSD** directly from the session. Supports Celo Mainnet and Alfajores with automatic network switching.
+### Agentic Tipping
+- Tip the AI stylist in cUSD directly from sessions
+- Supports Celo Mainnet and Alfajores
+- Automatic network switching
+- Agent responds with personalized thank you
 
-## Virtual Try-On Experience
+### Memory Protocol
+- Cross-platform identity (Farcaster, Twitter)
+- Social activity tracking: try-ons, mints, reactions
+- $MEM token rewards for engagement
 
-Advanced virtual try-on functionality using IDM-VTON model via Replicate API:
+---
 
-- Upload garment and human images
-- AI-powered fitting and visualization
+## Virtual Try-On
+
+- IDM-VTON model via Replicate API
+- Upload garment + human images for AI-powered fitting
 - Body-inclusive visualizations
 - Performance optimizations with caching
-- Camera integration with image capture
-- Animated UI components with Framer Motion
-- Responsive design for all screen sizes
+- Animated UI with Framer Motion
 
-## Computer Vision & Fashion Analysis
+---
 
-Using GPT-4o-mini via Replicate API for detailed analysis:
+## Enhanced Catalog UI
 
-- Outfit rating (1-10 scale)
-- Strengths and improvement suggestions
-- Style notes and recommendations
-- Personalized styling advice
+### Components
+- **CardEnhanced** — Product cards with like/share, trending badges, ratings, quick preview
+- **ShopGrid** — Responsive grid with sorting (trending/rating/price), category filtering
+- **EngagementBadge** — Social proof (Trending/Viral/Popular/New) with animated counters
 
-## Design Studio
+### Animations
+- 9 GPU-accelerated keyframes (scale-pulse, shimmer, bounce-in-up, float, glow, card-tilt, swipe-in-left, gradient-shift, count-up)
+- View Transitions API for smooth list → detail morphing
+- Respects `prefers-reduced-motion` for accessibility
 
-AI-powered design generation capabilities:
+**Expected impact**: +40-80% engagement lift, +50-80% share volume
 
-- Text-to-image generation
-- Style variation creation
-- Design refinement tools
-- Export functionality
+---
 
-## Digital Closet Management
+## Feature Matrix
 
-NFT-based digital wardrobe management:
-
-- AI-powered automatic tagging
-- Metadata management
-- Collection organization
-- Cross-platform sync
-
-## Social Features & Memory Protocol Integration
-
-Enhanced social aspects with Memory Protocol API:
-
-- **Reward Tracking**: Earn $MEM tokens when users interact with content
-- **Social Activity Tracking**: Track and reward social actions like try-ons, mints, and reactions
-- **Cross-Platform Discovery**: Find users across different platforms (Farcaster, Twitter, etc.)
-- **Wallet Linking**: Connect wallet addresses to Farcaster identities for rewards
-- **Identity Graphs**: Comprehensive social data including follower counts and verified status
-- **Social Activity Tracking**: Record try-ons, reactions, and NFT mints for rewards
-
-## Worldcoin Mini App Features
-
-Community-driven fashion platform:
-
-- Quick stylist matching
-- Style challenges with voting
-- Exclusive NFT drops
-- Leaderboard and reputation system
-- Worldcoin World ID verification for unique accounts
+| Feature | Web | Chrome Ext | Mini App | Status |
+|---------|-----|-----------|----------|--------|
+| AI Stylist (Text) | ✅ | ✅ | ✅ | Complete |
+| Live AR Stylist | ✅ | - | - | Complete |
+| Virtual Try-On | ✅ | ✅ | - | Complete |
+| Smart Recommendations | ✅ | ✅ | ✅ | Complete |
+| Agent Web Discovery | ✅ | - | - | Complete |
+| Spending Controls | ✅ | ✅ | ✅ | Complete |
+| Style Memory | ✅ | ✅ | ✅ | Complete |
+| NFT Minting | ✅ | - | ✅ | Complete |
+| Social Sharing | ✅ | ✅ | ✅ | Complete |
+| Agentic Tipping | ✅ | - | - | Complete |

@@ -107,7 +107,7 @@ interface CheckoutResponse {
 export async function POST(
   request: NextRequest,
 ): Promise<NextResponse<CheckoutResponse>> {
-  return requireAuthWithRateLimit(async (req, _ctx) => {
+  return requireAuthWithRateLimit(async (req, ctx) => {
     const origin = req.headers.get("origin") ?? undefined;
 
     try {
@@ -124,7 +124,7 @@ export async function POST(
       const { items, chain, agentId, affiliateId, referringAgentId } =
         parsed.data;
 
-      await AgentControls.initStore(agentId);
+      await AgentControls.initStore(agentId, ctx.userId);
 
       // Validate all items and compute totals
       const resolvedItems: Array<{
@@ -203,7 +203,11 @@ export async function POST(
       if (!paymentHeader) {
         // No payment header — return 402 so x402 clients can pay and retry
         return NextResponse.json(
-          { success: false, x402Version: 1, accepts: [requirements] } as unknown as CheckoutResponse,
+          {
+            success: false,
+            x402Version: 1,
+            accepts: [requirements],
+          } as unknown as CheckoutResponse,
           {
             status: 402,
             headers: {
@@ -222,7 +226,10 @@ export async function POST(
         const verifyResult = await verify(paymentPayload, requirements);
         if (!verifyResult.isValid) {
           return NextResponse.json(
-            { success: false, error: `Payment invalid: ${verifyResult.invalidReason}` },
+            {
+              success: false,
+              error: `Payment invalid: ${verifyResult.invalidReason}`,
+            },
             { status: 402, headers: corsHeaders(origin) },
           );
         }
@@ -238,6 +245,7 @@ export async function POST(
       // Validate against spending limits
       const validation = AgentControls.validateAction({
         agentId,
+        userId: ctx.userId,
         actionType: "purchase" as ActionType,
         amount: totalWei,
         amountFormatted: totalFormatted,
@@ -345,7 +353,12 @@ export async function POST(
       }
 
       // Record spending
-      AgentControls.recordSpending(agentId, "purchase" as ActionType, totalWei);
+      AgentControls.recordSpending(
+        agentId,
+        ctx.userId,
+        "purchase" as ActionType,
+        totalWei,
+      );
 
       // Settle x402 payment on-chain (fire-and-forget — tx already confirmed above)
       try {
@@ -354,7 +367,11 @@ export async function POST(
         );
         await settle(paymentPayload, requirements);
       } catch (settleErr) {
-        logger.warn("x402 settle failed (non-fatal)", { component: "checkout" }, settleErr);
+        logger.warn(
+          "x402 settle failed (non-fatal)",
+          { component: "checkout" },
+          settleErr,
+        );
       }
 
       // Track commission record
