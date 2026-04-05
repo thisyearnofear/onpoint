@@ -35,6 +35,44 @@ const veniceClient = veniceKey
   : null;
 
 // ---------------------------------------------------------------------------
+// generateVisionAnalysis – uses Venice vision model for image analysis
+// ---------------------------------------------------------------------------
+
+async function generateVisionAnalysis({
+  prompt,
+  imageBase64,
+  veniceModel = 'qwen3-vl-235b-a22b',
+}) {
+  if (!veniceClient) {
+    throw new Error('Venice API key required for vision analysis');
+  }
+
+  try {
+    const response = await veniceClient.chat.completions.create({
+      model: veniceModel,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            {
+              type: 'image_url',
+              image_url: {
+                url: imageBase64, // Venice accepts base64 data URIs
+              },
+            },
+          ],
+        },
+      ],
+    });
+    return { text: response.choices[0]?.message?.content ?? '', usedProvider: 'venice-vision' };
+  } catch (err) {
+    console.error('[generateVisionAnalysis] venice vision failed:', err.message || err);
+    throw err;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // generateText – tries Venice → Gemini → OpenAI based on availability
 // ---------------------------------------------------------------------------
 
@@ -305,6 +343,99 @@ router.post('/', async (req, res) => {
 
     if (!type) {
       return res.status(400).json({ error: 'Analysis type is required' });
+    }
+
+    // -- analyze-person (Venice vision API for photo analysis) --
+    if (type === 'analyze-person' && data && data.photoData) {
+      if (!veniceClient) {
+        return res.status(500).json({ error: 'Venice API key required for vision analysis' });
+      }
+
+      const prompt = `Analyze this person's appearance for fashion styling purposes. Describe:
+1. Body type and proportions (height estimate, build, body shape)
+2. Skin tone and undertones
+3. Hair color and style
+4. Current outfit style and colors
+5. Notable features that would affect clothing recommendations
+
+Provide a detailed but concise description suitable for AI fashion styling.`;
+
+      try {
+        const { text } = await generateVisionAnalysis({
+          prompt,
+          imageBase64: data.photoData,
+        });
+        return res.json({ description: text, type: 'analyze-person' });
+      } catch (error) {
+        console.error('Vision analysis error:', error);
+        return res.status(500).json({ error: 'Failed to analyze person from photo' });
+      }
+    }
+
+    // -- body-analysis with photo (Venice vision API) --
+    if (type === 'body-analysis' && data && data.photoData) {
+      if (!veniceClient) {
+        return res.status(500).json({ error: 'Venice API key required for vision analysis' });
+      }
+
+      const prompt = `As a professional fashion fit specialist, analyze this person's body measurements and proportions from the photo. Provide:
+
+1. Body Type: (e.g., athletic, average, slim, curvy, plus-size)
+2. Measurements (estimate relative sizes):
+   - Shoulders: (small/medium/large/extra large)
+   - Chest: (small/medium/large/extra large)
+   - Waist: (small/medium/large/extra large)
+   - Hips: (small/medium/large/extra large)
+3. Fit Recommendations: Specific advice for clothing fit based on body proportions
+4. Style Adjustments: How to balance proportions and flatter the figure
+
+Be specific and practical. Focus on actionable fashion advice.`;
+
+      try {
+        const { text } = await generateVisionAnalysis({
+          prompt,
+          imageBase64: data.photoData,
+        });
+        const analysisData = parseVirtualTryOnResponse(text, 'body-analysis', data);
+        return res.json({ ...analysisData, provider: 'venice-vision', type });
+      } catch (error) {
+        console.error('Vision body analysis error:', error);
+        return res.status(500).json({ error: 'Failed to analyze body from photo' });
+      }
+    }
+
+    // -- outfit-fit with photo (Venice vision API) --
+    if (type === 'outfit-fit' && data && data.photoData) {
+      if (!veniceClient) {
+        return res.status(500).json({ error: 'Venice API key required for vision analysis' });
+      }
+
+      const outfitDescription = data.items
+        ? data.items.map((item) => `${item.name}: ${item.description || item.type || ''}`).join(', ')
+        : '';
+
+      const prompt = `As a fashion stylist, analyze how these outfit items would look on this person: ${outfitDescription}
+
+Based on the person's body type, coloring, and current style visible in the photo, provide:
+1. How well each piece would fit
+2. Color compatibility with their skin tone and features
+3. Style cohesion and overall look
+4. Specific styling tips to make the outfit work better
+5. Accessories or adjustments to enhance the look
+
+Be specific and actionable.`;
+
+      try {
+        const { text } = await generateVisionAnalysis({
+          prompt,
+          imageBase64: data.photoData,
+        });
+        const analysisData = parseVirtualTryOnResponse(text, 'outfit-fit', data);
+        return res.json({ ...analysisData, provider: 'venice-vision', type });
+      } catch (error) {
+        console.error('Vision outfit analysis error:', error);
+        return res.status(500).json({ error: 'Failed to analyze outfit fit from photo' });
+      }
     }
 
     // -- generate-outfit-image (Venice image API) --

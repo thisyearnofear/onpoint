@@ -1,62 +1,69 @@
 /**
  * AI Analyze Person Route
  *
- * Uses Gemini vision to analyze a person from a base64 photo.
- * Returns a text description of the person.
+ * Uses Venice Vision API to analyze a person's appearance from a photo
+ * for fashion styling purposes.
  */
 
 const express = require('express');
 const router = express.Router();
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const OpenAI = require('openai');
 
-const geminiKey =
-  process.env.GEMINI_API_KEY &&
-  process.env.GEMINI_API_KEY !== 'your_gemini_api_key_here'
-    ? process.env.GEMINI_API_KEY
-    : null;
-
-const geminiClient = geminiKey ? new GoogleGenerativeAI(geminiKey) : null;
+const VENICE_BASE_URL = 'https://api.venice.ai/api/v1';
+const veniceKey = process.env.VENICE_API_KEY || null;
+const veniceClient = veniceKey
+  ? new OpenAI({ apiKey: veniceKey, baseURL: VENICE_BASE_URL })
+  : null;
 
 router.post('/', async (req, res) => {
   try {
     const { photoData } = req.body;
 
     if (!photoData) {
-      return res.status(400).json({ error: 'photoData is required' });
+      return res.status(400).json({ error: 'Photo data is required' });
     }
 
-    if (!geminiClient) {
-      return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
+    if (!veniceClient) {
+      return res.status(500).json({ error: 'Venice API key not configured' });
     }
 
-    // Strip data URL prefix (e.g. "data:image/jpeg;base64,") if present
-    let base64Data = photoData;
-    let mimeType = 'image/jpeg';
-    const dataUrlMatch = photoData.match(/^data:(image\/\w+);base64,/);
-    if (dataUrlMatch) {
-      mimeType = dataUrlMatch[1];
-      base64Data = photoData.replace(/^data:image\/\w+;base64,/, '');
-    }
+    const prompt = `Analyze this person's appearance for fashion styling purposes. Describe:
+1. Body type and proportions (height estimate, build, body shape)
+2. Skin tone and undertones
+3. Hair color and style
+4. Current outfit style and colors
+5. Notable features that would affect clothing recommendations
 
-    const model = geminiClient.getGenerativeModel({ model: 'gemini-3.1-flash-lite-preview' });
-    const response = await model.generateContent([
-      {
-        text: 'Describe this person in detail for fashion styling purposes. Include their apparent body type, build, skin tone, hair color/style, and any visible features relevant to clothing recommendations. Be respectful and objective.',
-      },
-      {
-        inlineData: {
-          data: base64Data,
-          mimeType,
+Provide a detailed but concise description suitable for AI fashion styling.`;
+
+    const response = await veniceClient.chat.completions.create({
+      model: 'qwen3-vl-235b-a22b',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            {
+              type: 'image_url',
+              image_url: {
+                url: photoData,
+              },
+            },
+          ],
         },
-      },
-    ]);
+      ],
+    });
 
-    const description = response.response.text() ?? '';
-    return res.json({ description });
+    const description = response.choices[0]?.message?.content ?? '';
+
+    return res.json({
+      description,
+      type: 'analyze-person',
+    });
   } catch (error) {
-    console.error('AI analyze person error:', error);
+    console.error('Person analysis error:', error);
     return res.status(error.status || 500).json({
-      error: error.message || 'Failed to analyze person',
+      error: error.message || 'Failed to analyze person from photo',
       details: error.stack && process.env.NODE_ENV === 'development' ? error.stack : undefined,
     });
   }

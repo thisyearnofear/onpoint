@@ -140,7 +140,14 @@ export const useVirtualTryOn = () => {
       setError(null);
 
       try {
-        // Direct API call without caching to avoid import issues
+        // Convert image to base64 for vision analysis
+        const photoData = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(imageFile);
+        });
+
         const description = imageFile.name.includes('body-scan')
           ? 'Body scan analysis for virtual try-on measurements'
           : 'Photo analysis for virtual try-on fitting';
@@ -150,7 +157,11 @@ export const useVirtualTryOn = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'body-analysis',
-            data: { description, fileName: imageFile.name }
+            data: { 
+              description, 
+              fileName: imageFile.name,
+              photoData // Send base64 image data for vision analysis
+            }
           })
         });
 
