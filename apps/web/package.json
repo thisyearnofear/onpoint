@@ -29,7 +29,7 @@
     "@repo/ipfs-client": "workspace:*",
     "@repo/shared-ui": "workspace:*",
     "@repo/ui": "workspace:*",
-    "@tailwindcss/postcss": "4.1.16",
+    "@tailwindcss/postcss": "4.2.2",
     "@tailwindcss/typography": "0.5.19",
     "@tanstack/react-query": "^5.0.0",
     "@tetherto/wdk": "1.0.0-beta.6",
