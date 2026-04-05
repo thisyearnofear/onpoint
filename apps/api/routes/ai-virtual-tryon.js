@@ -148,6 +148,62 @@ async function generateText({
 // ---------------------------------------------------------------------------
 // Text-parsing helpers (ported as-is from the Next.js route)
 // ---------------------------------------------------------------------------
+// Text-parsing helpers for structured vision responses
+// ---------------------------------------------------------------------------
+
+function extractSection(text, startMarker, endMarker) {
+  const startIdx = text.indexOf(startMarker);
+  if (startIdx === -1) return [];
+  
+  const contentStart = startIdx + startMarker.length;
+  const endIdx = endMarker ? text.indexOf(endMarker, contentStart) : text.length;
+  const section = text.substring(contentStart, endIdx === -1 ? text.length : endIdx).trim();
+  
+  // Split into bullet points or lines
+  const lines = section.split('\n')
+    .map(line => line.replace(/^[-•*]\s*/, '').trim())
+    .filter(line => line.length > 15 && !line.match(/^(CURRENT|BODY|FIT|STYLE|PERSONALIZATION)/));
+  
+  return lines.length > 0 ? lines : [section];
+}
+
+function extractBodyType(text) {
+  const match = text.match(/Body Type:\s*([^\n]+)/i);
+  if (match) {
+    const type = match[1].toLowerCase().trim();
+    if (type.includes('athletic')) return 'athletic';
+    if (type.includes('slim')) return 'slim';
+    if (type.includes('curvy')) return 'curvy';
+    if (type.includes('plus')) return 'plus-size';
+    return 'average';
+  }
+  return 'average';
+}
+
+function extractMeasurementsStructured(text) {
+  const measurements = {
+    shoulders: 'medium',
+    chest: 'medium',
+    waist: 'medium',
+    hips: 'medium'
+  };
+  
+  const shouldersMatch = text.match(/Shoulders:\s*(small|medium|large)/i);
+  const chestMatch = text.match(/Chest:\s*(small|medium|large)/i);
+  const waistMatch = text.match(/Waist:\s*(small|medium|large)/i);
+  const hipsMatch = text.match(/Hips:\s*(small|medium|large)/i);
+  
+  if (shouldersMatch) measurements.shoulders = shouldersMatch[1].toLowerCase();
+  if (chestMatch) measurements.chest = chestMatch[1].toLowerCase();
+  if (waistMatch) measurements.waist = waistMatch[1].toLowerCase();
+  if (hipsMatch) measurements.hips = hipsMatch[1].toLowerCase();
+  
+  return measurements;
+}
+
+// ---------------------------------------------------------------------------
+// Legacy parsing helpers (kept for backward compatibility)
+// ---------------------------------------------------------------------------
 
 function extractMeasurement(text, bodyPart) {
   const sizeWords = ['small', 'medium', 'large', 'extra small', 'extra large'];
@@ -351,14 +407,30 @@ router.post('/', async (req, res) => {
         return res.status(500).json({ error: 'Venice API key required for vision analysis' });
       }
 
-      const prompt = `Analyze this person's appearance for fashion styling purposes. Describe:
-1. Body type and proportions (height estimate, build, body shape)
-2. Skin tone and undertones
-3. Hair color and style
-4. Current outfit style and colors
-5. Notable features that would affect clothing recommendations
+      const prompt = `Analyze this person's appearance for fashion styling. Be SPECIFIC about what you see:
 
-Provide a detailed but concise description suitable for AI fashion styling.`;
+WHAT THEY'RE WEARING NOW:
+- Describe each clothing item in detail (color, style, fit, condition)
+- Note any accessories, shoes, or styling details
+
+PHYSICAL FEATURES:
+- Body type and build (be specific, not generic)
+- Height estimate and proportions
+- Skin tone (warm/cool/neutral undertones, specific shade)
+- Hair (color, length, texture, style)
+- Face shape and features that affect styling
+
+STYLE ASSESSMENT:
+- Current style category (e.g., casual, preppy, streetwear, minimalist)
+- What's working in their current look
+- What could be improved
+
+PERSONALIZED STYLING NOTES:
+- Best colors for their specific skin tone and hair
+- Ideal silhouettes for their body type
+- Style recommendations that match their vibe
+
+Be detailed and specific. This will be used to generate highly personalized outfit recommendations.`;
 
       try {
         const { text } = await generateVisionAnalysis({
@@ -378,26 +450,54 @@ Provide a detailed but concise description suitable for AI fashion styling.`;
         return res.status(500).json({ error: 'Venice API key required for vision analysis' });
       }
 
-      const prompt = `As a professional fashion fit specialist, analyze this person's body measurements and proportions from the photo. Provide:
+      const prompt = `You are an expert fashion stylist analyzing this photo. Provide a structured analysis in the following format:
 
-1. Body Type: (e.g., athletic, average, slim, curvy, plus-size)
-2. Measurements (estimate relative sizes):
-   - Shoulders: (small/medium/large/extra large)
-   - Chest: (small/medium/large/extra large)
-   - Waist: (small/medium/large/extra large)
-   - Hips: (small/medium/large/extra large)
-3. Fit Recommendations: Specific advice for clothing fit based on body proportions
-4. Style Adjustments: How to balance proportions and flatter the figure
+CURRENT LOOK:
+[Describe what they're wearing now - specific items, colors, fit, style]
 
-Be specific and practical. Focus on actionable fashion advice.`;
+BODY ANALYSIS:
+Body Type: [athletic/slim/average/curvy/plus-size - be specific]
+Shoulders: [small/medium/large]
+Chest: [small/medium/large]
+Waist: [small/medium/large]
+Hips: [small/medium/large]
+Key Proportions: [What stands out about their build]
+
+FIT RECOMMENDATIONS:
+[3-4 specific recommendations about sizing, fit, and tailoring for their body type]
+- Focus on: What sizes to look for, how clothes should fit their proportions, tailoring needs
+
+STYLE RECOMMENDATIONS:
+[3-4 specific style suggestions based on their coloring, current style, and body type]
+- Focus on: Colors that suit them, style categories, specific pieces, what to avoid
+
+PERSONALIZATION:
+[2-3 highly specific tips based on what you see in THIS photo - reference their actual outfit, hair, coloring]
+
+Be SPECIFIC and ACTIONABLE. Reference what you actually see.`;
 
       try {
         const { text } = await generateVisionAnalysis({
           prompt,
           imageBase64: data.photoData,
         });
-        const analysisData = parseVirtualTryOnResponse(text, 'body-analysis', data);
-        return res.json({ ...analysisData, provider: 'venice-vision', type });
+        
+        // Parse structured response
+        const sections = {
+          currentLook: extractSection(text, 'CURRENT LOOK:', 'BODY ANALYSIS:'),
+          bodyType: extractBodyType(text),
+          measurements: extractMeasurementsStructured(text),
+          fitRecommendations: extractSection(text, 'FIT RECOMMENDATIONS:', 'STYLE RECOMMENDATIONS:'),
+          styleRecommendations: extractSection(text, 'STYLE RECOMMENDATIONS:', 'PERSONALIZATION:'),
+          personalization: extractSection(text, 'PERSONALIZATION:', null),
+        };
+        
+        return res.json({ 
+          ...sections,
+          provider: 'venice-vision', 
+          type,
+          rawAnalysis: text 
+        });
       } catch (error) {
         console.error('Vision body analysis error:', error);
         return res.status(500).json({ error: 'Failed to analyze body from photo' });
@@ -414,16 +514,24 @@ Be specific and practical. Focus on actionable fashion advice.`;
         ? data.items.map((item) => `${item.name}: ${item.description || item.type || ''}`).join(', ')
         : '';
 
-      const prompt = `As a fashion stylist, analyze how these outfit items would look on this person: ${outfitDescription}
+      const prompt = `You are a personal stylist. Look at this person in the photo and analyze how these outfit items would work for them: ${outfitDescription}
 
-Based on the person's body type, coloring, and current style visible in the photo, provide:
-1. How well each piece would fit
-2. Color compatibility with their skin tone and features
-3. Style cohesion and overall look
-4. Specific styling tips to make the outfit work better
-5. Accessories or adjustments to enhance the look
+WHAT YOU SEE IN THE PHOTO:
+- Describe their current outfit, body type, coloring, and style
 
-Be specific and actionable.`;
+OUTFIT ANALYSIS:
+- How would each proposed item fit their specific body type?
+- Which colors would complement their actual skin tone and hair color?
+- Does the style match their vibe or would it be a departure?
+- What specific adjustments would make these items work better for them?
+
+PERSONALIZED STYLING:
+- Specific tips for wearing these items based on their proportions
+- Accessories that would complete the look for their style
+- Colors from the outfit that work best with their coloring
+- Any items that might not work and why
+
+Be SPECIFIC. Reference what you see in the photo. Give actionable, personalized advice.`;
 
       try {
         const { text } = await generateVisionAnalysis({

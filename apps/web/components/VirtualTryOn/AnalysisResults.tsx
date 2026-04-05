@@ -36,6 +36,23 @@ export function AnalysisResults({
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
+        {/* Current Look (if available) */}
+        {(analysis as any).currentLook && (analysis as any).currentLook.length > 0 && (
+          <div className="border rounded-lg p-3 bg-blue-50/50 dark:bg-blue-950/20">
+            <h4 className="font-medium text-sm mb-2 flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
+              <Shirt className="h-3.5 w-3.5" />
+              What You're Wearing
+            </h4>
+            <div className="space-y-1.5">
+              {(analysis as any).currentLook.slice(0, 2).map((item: string, index: number) => (
+                <div key={index} className="text-xs leading-relaxed text-muted-foreground">
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Compact Body Profile */}
         <div className="border rounded-lg p-3 bg-muted/20">
           <div className="flex items-center justify-between mb-2">
@@ -58,61 +75,83 @@ export function AnalysisResults({
         </div>
 
         {/* Compact Fit Recommendations */}
-        <div className="border rounded-lg p-3 bg-accent/5">
-          <h4 className="font-medium text-sm mb-2 flex items-center gap-1.5 text-accent">
+        <div className="border rounded-lg p-3 bg-green-50/50 dark:bg-green-950/20">
+          <h4 className="font-medium text-sm mb-2 flex items-center gap-1.5 text-green-600 dark:text-green-400">
             <CheckCircle className="h-3.5 w-3.5" />
-            Fit Recommendations
+            Fit & Sizing
           </h4>
+          <p className="text-[10px] text-muted-foreground mb-2 italic">How clothes should fit your proportions</p>
           <div className="space-y-1.5">
-            {analysis.fitRecommendations.slice(0, 2).map((rec, index) => (
+            {((analysis as any).fitRecommendations || analysis.fitRecommendations).slice(0, 2).map((rec: string, index: number) => (
               <div key={index} className="text-xs leading-relaxed text-muted-foreground flex items-start gap-2">
-                <span className="text-accent font-bold text-xs mt-0.5">•</span>
+                <span className="text-green-600 dark:text-green-400 font-bold text-xs mt-0.5">•</span>
                 <span>{rec}</span>
               </div>
             ))}
-            {analysis.fitRecommendations.length > 2 && (
+            {((analysis as any).fitRecommendations || analysis.fitRecommendations).length > 2 && (
               <button
                 onClick={() => setExpandedSection(expandedSection === 'fit' ? null : 'fit')}
-                className="text-xs text-accent hover:underline mt-1"
+                className="text-xs text-green-600 dark:text-green-400 hover:underline mt-1"
               >
-                {expandedSection === 'fit' ? 'Show less' : `+${analysis.fitRecommendations.length - 2} more`}
+                {expandedSection === 'fit' ? 'Show less' : `+${((analysis as any).fitRecommendations || analysis.fitRecommendations).length - 2} more`}
               </button>
             )}
-            {expandedSection === 'fit' && analysis.fitRecommendations.slice(2).map((rec, index) => (
+            {expandedSection === 'fit' && ((analysis as any).fitRecommendations || analysis.fitRecommendations).slice(2).map((rec: string, index: number) => (
               <div key={index + 2} className="text-xs leading-relaxed text-muted-foreground flex items-start gap-2">
-                <span className="text-accent font-bold text-xs mt-0.5">•</span>
+                <span className="text-green-600 dark:text-green-400 font-bold text-xs mt-0.5">•</span>
                 <span>{rec}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Compact Style Tips */}
-        {analysis.styleAdjustments.length > 0 && (
-          <div className="border rounded-lg p-3 bg-primary/5">
-            <h4 className="font-medium text-sm mb-2 flex items-center gap-1.5 text-primary">
+        {/* Compact Style Recommendations */}
+        {(((analysis as any).styleRecommendations && (analysis as any).styleRecommendations.length > 0) || 
+          (analysis.styleAdjustments && analysis.styleAdjustments.length > 0)) && (
+          <div className="border rounded-lg p-3 bg-purple-50/50 dark:bg-purple-950/20">
+            <h4 className="font-medium text-sm mb-2 flex items-center gap-1.5 text-purple-600 dark:text-purple-400">
               <Sparkles className="h-3.5 w-3.5" />
-              Style Tips
+              Style & Colors
             </h4>
+            <p className="text-[10px] text-muted-foreground mb-2 italic">What styles and colors suit you best</p>
             <div className="space-y-1.5">
-              {analysis.styleAdjustments.slice(0, 2).map((adjustment, index) => (
+              {((analysis as any).styleRecommendations || analysis.styleAdjustments).slice(0, 2).map((adjustment: string, index: number) => (
                 <div key={index} className="text-xs leading-relaxed text-muted-foreground flex items-start gap-2">
-                  <span className="text-primary font-bold text-xs mt-0.5">•</span>
+                  <span className="text-purple-600 dark:text-purple-400 font-bold text-xs mt-0.5">•</span>
                   <span>{adjustment}</span>
                 </div>
               ))}
-              {analysis.styleAdjustments.length > 2 && (
+              {((analysis as any).styleRecommendations || analysis.styleAdjustments).length > 2 && (
                 <button
                   onClick={() => setExpandedSection(expandedSection === 'style' ? null : 'style')}
-                  className="text-xs text-primary hover:underline mt-1"
+                  className="text-xs text-purple-600 dark:text-purple-400 hover:underline mt-1"
                 >
-                  {expandedSection === 'style' ? 'Show less' : `+${analysis.styleAdjustments.length - 2} more`}
+                  {expandedSection === 'style' ? 'Show less' : `+${((analysis as any).styleRecommendations || analysis.styleAdjustments).length - 2} more`}
                 </button>
               )}
-              {expandedSection === 'style' && analysis.styleAdjustments.slice(2).map((adjustment, index) => (
+              {expandedSection === 'style' && ((analysis as any).styleRecommendations || analysis.styleAdjustments).slice(2).map((adjustment: string, index: number) => (
                 <div key={index + 2} className="text-xs leading-relaxed text-muted-foreground flex items-start gap-2">
-                  <span className="text-primary font-bold text-xs mt-0.5">•</span>
+                  <span className="text-purple-600 dark:text-purple-400 font-bold text-xs mt-0.5">•</span>
                   <span>{adjustment}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Personalization (if available) */}
+        {(analysis as any).personalization && (analysis as any).personalization.length > 0 && (
+          <div className="border rounded-lg p-3 bg-amber-50/50 dark:bg-amber-950/20">
+            <h4 className="font-medium text-sm mb-2 flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+              <Sparkles className="h-3.5 w-3.5" />
+              Just For You
+            </h4>
+            <p className="text-[10px] text-muted-foreground mb-2 italic">Based on your specific look</p>
+            <div className="space-y-1.5">
+              {(analysis as any).personalization.map((tip: string, index: number) => (
+                <div key={index} className="text-xs leading-relaxed text-muted-foreground flex items-start gap-2">
+                  <span className="text-amber-600 dark:text-amber-400 font-bold text-xs mt-0.5">✨</span>
+                  <span>{tip}</span>
                 </div>
               ))}
             </div>

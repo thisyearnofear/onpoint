@@ -14,15 +14,8 @@ const Redis = require('ioredis');
 
 // Initialize Express
 const app = express();
-app.use(cors({
-  origin: [
-    'https://beonpoint.netlify.app',
-    'https://onpoint-web-647723858538.us-central1.run.app',
-    'http://localhost:3000',
-    'http://localhost:3001',
-  ]
-}));
-app.use(express.json({ limit: '10mb' }));
+// CORS is handled by nginx proxy, don't add headers here to avoid duplicates
+app.use(express.json({ limit: '50mb' }));
 
 // Initialize Redis (use existing localhost instance)
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
