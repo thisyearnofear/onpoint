@@ -14,8 +14,19 @@ export default function ShopPage() {
   const [selectedItem, setSelectedItem] = useState<FashionItem | null>(null);
   const [likedItems, setLikedItems] = useState<Set<string>>(new Set());
   const [showCheckout, setShowCheckout] = useState(false);
+  const [stylistAnalysis, setStylistAnalysis] = useState<any>(null);
   const addItem = useCartStore((s) => s.addItem);
   const openCart = useCartStore((s) => s.openCart);
+
+  // Load stylist analysis from sessionStorage
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem('stylistAnalysis');
+      if (stored) {
+        setStylistAnalysis(JSON.parse(stored));
+      }
+    }
+  }, []);
 
   const handleItemClick = (item: FashionItem) => {
     setSelectedItem(item);
@@ -61,6 +72,44 @@ export default function ShopPage() {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
+        {/* AI Stylist Recommendations Banner */}
+        {stylistAnalysis && (
+          <div className="mb-8 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center shrink-0">
+                <ShoppingBag className="w-6 h-6 text-indigo-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                  Your AI Stylist's Recommendations
+                </h3>
+                <p className="text-sm text-gray-600 mb-3">
+                  Based on your {stylistAnalysis.bodyType} body type, here's what would look great on you:
+                </p>
+                {stylistAnalysis.styleRecommendations && stylistAnalysis.styleRecommendations.length > 0 && (
+                  <div className="space-y-2">
+                    {stylistAnalysis.styleRecommendations.slice(0, 2).map((rec: string, i: number) => (
+                      <div key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                        <span className="text-indigo-500 font-bold">✓</span>
+                        <span>{rec}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <button
+                  onClick={() => {
+                    sessionStorage.removeItem('stylistAnalysis');
+                    setStylistAnalysis(null);
+                  }}
+                  className="mt-4 text-xs text-gray-500 hover:text-gray-700"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Featured Metrics */}
         <div className="mb-12 grid grid-cols-1 md:grid-cols-2 gap-6">
           <EngagementBadge

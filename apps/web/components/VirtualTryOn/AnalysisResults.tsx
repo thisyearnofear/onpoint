@@ -4,23 +4,19 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { Button } from "@repo/ui/button";
 import { Badge } from "@repo/ui/badge";
-import { Sparkles, User, CheckCircle, Shirt, MessageCircle, Eye } from "lucide-react";
+import { Sparkles, User, CheckCircle, MessageCircle, Wallet, Shirt } from "lucide-react";
 import type { VirtualTryOnAnalysis } from "@repo/ai-client";
 
 interface AnalysisResultsProps {
   analysis: VirtualTryOnAnalysis;
-  onAnalyzePerson?: () => void;
   onCritiqueModeSelection?: () => void;
-  onFashionAnalysis?: () => void;
-  isAnalyzingPerson?: boolean;
+  onShopRecommendations?: () => void;
 }
 
 export function AnalysisResults({
   analysis,
-  onAnalyzePerson,
   onCritiqueModeSelection,
-  onFashionAnalysis,
-  isAnalyzingPerson = false
+  onShopRecommendations,
 }: AnalysisResultsProps) {
   const [expandedSection, setExpandedSection] = React.useState<string | null>(null);
 
@@ -160,20 +156,8 @@ export function AnalysisResults({
 
         {/* Action Buttons */}
         <div className="pt-2 border-t border-border/50">
-          <p className="text-xs text-muted-foreground mb-3 text-center">Choose your next experience</p>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            {onAnalyzePerson && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onAnalyzePerson}
-                disabled={isAnalyzingPerson}
-                className="flex flex-col items-center gap-1 h-auto py-3 text-xs"
-              >
-                <Sparkles className="h-4 w-4" />
-                <span>{isAnalyzingPerson ? 'Analyzing...' : 'Analyze Person'}</span>
-              </Button>
-            )}
+          <p className="text-xs text-muted-foreground mb-3 text-center">What's next?</p>
+          <div className="grid grid-cols-2 gap-2">
             {onCritiqueModeSelection && (
               <Button
                 variant="outline"
@@ -182,20 +166,28 @@ export function AnalysisResults({
                 className="flex flex-col items-center gap-1 h-auto py-3 text-xs"
               >
                 <MessageCircle className="h-4 w-4" />
-                <span>AI Critique</span>
+                <span>Get Critique</span>
               </Button>
             )}
-            {onFashionAnalysis && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onFashionAnalysis}
-                className="flex flex-col items-center gap-1 h-auto py-3 text-xs"
-              >
-                <Eye className="h-4 w-4" />
-                <span>Fashion Analysis</span>
-              </Button>
-            )}
+            <Button
+              variant="default"
+              size="sm"
+              onClick={onShopRecommendations || (() => {
+                if (typeof window !== 'undefined') {
+                  sessionStorage.setItem('stylistAnalysis', JSON.stringify({
+                    bodyType: analysis.bodyType,
+                    measurements: analysis.measurements,
+                    styleRecommendations: (analysis as any).styleRecommendations || analysis.styleAdjustments,
+                    personalization: (analysis as any).personalization,
+                  }));
+                  window.location.href = '/shop';
+                }
+              })}
+              className="flex flex-col items-center gap-1 h-auto py-3 text-xs bg-gradient-to-r from-primary to-accent hover:opacity-90"
+            >
+              <Wallet className="h-4 w-4" />
+              <span>Let Agent Shop</span>
+            </Button>
           </div>
         </div>
       </CardContent>
