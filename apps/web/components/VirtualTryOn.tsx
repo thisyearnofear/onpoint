@@ -10,6 +10,7 @@ import { useReplicateVirtualTryOn } from "@repo/ai-client";
 import type { VirtualTryOnAnalysis, StylistPersona, CritiqueMode } from "@repo/ai-client";
 
 import { useSocialActivities } from "../lib/hooks/useMemoryAPI";
+import { getAgentApiUrl } from "../lib/utils/agent-api";
 
 import {
   PhotoUpload,
@@ -133,7 +134,7 @@ const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('
     } else {
       // For body scan without photo, generate analysis based on scan data
       try {
-        const response = await fetch('/api/ai/virtual-tryon', {
+        const response = await fetch(getAgentApiUrl('/api/ai/virtual-tryon'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -170,7 +171,7 @@ const [selectedCritiqueMode, setSelectedCritiqueMode] = useState<CritiqueMode>('
         reader.readAsDataURL(selectedPhoto);
       });
 
-      const response = await fetch('/api/ai/analyze-person', {
+      const response = await fetch(getAgentApiUrl('/api/ai/analyze-person'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ photoData })

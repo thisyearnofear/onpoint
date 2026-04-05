@@ -24,6 +24,16 @@ import {
   hydrateApprovals,
   isRedisConfigured,
 } from "./agent-store";
+import { canSpendFromEscrow, deductFromEscrow } from "../services/escrow-service";
+import {
+  checkAgentHealth,
+  recordHeartbeat,
+  isAgentFrozen,
+  analyzeTransactionPattern,
+  updateAnomalyScore,
+  requiresMultiSig,
+  createMultiSigRequirement,
+} from "../services/fraud-detection";
 
 // Re-export for API routes that need direct store access
 export { loadSuggestionFromStore, persistSuggestion };
@@ -221,18 +231,26 @@ function storeKey(agentId: string, userId: string): string {
  * Initialize the store by loading persisted state from Redis.
  * Call once at the start of each API request.
  * Safe to call multiple times — only hydrates once per agent:user per process.
+ * Phase 6.4: Also records heartbeat for Dead Man's Switch
  */
 export async function initStore(
   agentId: string,
   userId: string,
 ): Promise<void> {
   const key = storeKey(agentId, userId);
-  if (hydratedKeys.has(key)) return;
+  if (hydratedKeys.has(key)) {
+    // Still record heartbeat even if already hydrated
+    await recordHeartbeat(agentId, userId).catch(() => {});
+    return;
+  }
   hydratedKeys.add(key);
 
   if (!isRedisConfigured()) return;
 
   try {
+    // Record heartbeat (Dead Man's Switch)
+    await recordHeartbeat(agentId, userId);
+
     // Load spending limits
     const limits = await loadSpendingLimits(agentId, userId);
     if (limits) {
@@ -383,6 +401,32 @@ export function recordSpending(
     persistSpendingLimits(agentId, userId, limits).catch((err) =>
       logger.error("Persist failed", { component: "agent-controls" }, err),
     );
+  }
+}
+
+/**
+ * Record that spending occurred
+ * Phase 6.2: Also deducts from user's escrow balance
+ */
+export async function recordSpendingWithEscrow(
+  agentId: string,
+  userId: string,
+  actionType: ActionType,
+  amount: bigint,
+): Promise<void> {
+  // Record in spending limits
+  recordSpending(agentId, userId, actionType, amount);
+
+  // Deduct from escrow
+  try {
+    await deductFromEscrow(userId, agentId, amount);
+  } catch (err) {
+    logger.error(
+      "Escrow deduction failed",
+      { component: "agent-controls", userId, agentId, amount: amount.toString() },
+      err,
+    );
+    // Don't throw - spending limit was already recorded
   }
 }
 
@@ -771,6 +815,7 @@ export function getPendingApprovals(agentId: string): ApprovalRequest[] {
  * Validate if an action can proceed
  * Returns the result including whether approval is needed
  * Now supports autonomy threshold - small amounts auto-approve
+ * Phase 6.2: Integrated with escrow system for user-funded spending
  */
 export function validateAction(params: {
   agentId: string;
@@ -787,6 +832,7 @@ export function validateAction(params: {
   approvalRequest?: ApprovalRequest;
   reason?: string;
   limit?: SpendingLimit;
+  escrowCheck?: boolean; // True if escrow was checked
 } {
   const {
     agentId,
@@ -850,6 +896,151 @@ export function validateAction(params: {
     autoApproved: false,
     approvalRequest,
     limit,
+  };
+}
+
+/**
+ * Validate action with escrow check (async version)
+ * Phase 6.2: Ensures user has sufficient escrow balance before allowing action
+ * Phase 6.4: Adds fraud detection, multi-sig requirements, and agent freeze checks
+ */
+export async function validateActionWithEscrow(params: {
+  agentId: string;
+  userId: string;
+  actionType: ActionType;
+  amount: bigint;
+  amountFormatted: string;
+  description: string;
+  recipient?: string;
+}): Promise<{
+  allowed: boolean;
+  requiresApproval: boolean;
+  requiresMultiSig: boolean;
+  autoApproved: boolean;
+  approvalRequest?: ApprovalRequest;
+  multiSigTxId?: string;
+  reason?: string;
+  limit?: SpendingLimit;
+  escrowCheck: boolean;
+  fraudCheck: boolean;
+  anomalyScore?: number;
+  flags?: string[];
+}> {
+  const { agentId, userId, amount, recipient } = params;
+
+  // Phase 6.4: Check if agent is frozen
+  const frozenCheck = await isAgentFrozen(agentId, userId);
+  if (frozenCheck.frozen) {
+    return {
+      allowed: false,
+      requiresApproval: false,
+      requiresMultiSig: false,
+      autoApproved: false,
+      reason: `Agent is frozen: ${frozenCheck.reason}`,
+      escrowCheck: false,
+      fraudCheck: true,
+    };
+  }
+
+  // Phase 6.4: Check agent health
+  const health = await checkAgentHealth(agentId, userId);
+  if (health.status === "frozen") {
+    return {
+      allowed: false,
+      requiresApproval: false,
+      requiresMultiSig: false,
+      autoApproved: false,
+      reason: "Agent health check failed - frozen",
+      escrowCheck: false,
+      fraudCheck: true,
+    };
+  }
+
+  // First check standard limits
+  const standardCheck = validateAction(params);
+
+  // If not allowed by standard checks, return immediately
+  if (!standardCheck.allowed && !standardCheck.requiresApproval) {
+    return { ...standardCheck, escrowCheck: false, fraudCheck: false, requiresMultiSig: false };
+  }
+
+  // Check escrow balance
+  const escrowCheck = await canSpendFromEscrow(userId, agentId, amount);
+
+  if (!escrowCheck.allowed) {
+    return {
+      allowed: false,
+      requiresApproval: false,
+      requiresMultiSig: false,
+      autoApproved: false,
+      reason: `Escrow check failed: ${escrowCheck.reason}`,
+      escrowCheck: true,
+      fraudCheck: false,
+    };
+  }
+
+  // Phase 6.4: Analyze transaction pattern for fraud
+  const fraudAnalysis = await analyzeTransactionPattern(
+    userId,
+    agentId,
+    amount,
+    recipient || "unknown",
+  );
+
+  // Update anomaly score if flags detected
+  if (fraudAnalysis.flags.length > 0) {
+    await updateAnomalyScore(agentId, userId, fraudAnalysis.anomalyScore);
+  }
+
+  // If anomaly score too high, block transaction
+  if (fraudAnalysis.anomalyScore >= 50) {
+    return {
+      allowed: false,
+      requiresApproval: false,
+      requiresMultiSig: false,
+      autoApproved: false,
+      reason: `Transaction blocked due to suspicious pattern (score: ${fraudAnalysis.anomalyScore})`,
+      escrowCheck: true,
+      fraudCheck: true,
+      anomalyScore: fraudAnalysis.anomalyScore,
+      flags: fraudAnalysis.flags,
+    };
+  }
+
+  // Phase 6.4: Check if multi-sig required
+  const needsMultiSig = requiresMultiSig(amount);
+
+  if (needsMultiSig) {
+    const multiSigReq = await createMultiSigRequirement(
+      userId,
+      agentId,
+      amount,
+      recipient || "unknown",
+      params.description,
+    );
+
+    return {
+      allowed: false,
+      requiresApproval: true,
+      requiresMultiSig: true,
+      autoApproved: false,
+      multiSigTxId: multiSigReq.transactionId,
+      reason: `Multi-signature required for transactions over $500`,
+      escrowCheck: true,
+      fraudCheck: true,
+      anomalyScore: fraudAnalysis.anomalyScore,
+      flags: fraudAnalysis.flags,
+    };
+  }
+
+  // All checks passed
+  return {
+    ...standardCheck,
+    requiresMultiSig: false,
+    escrowCheck: true,
+    fraudCheck: true,
+    anomalyScore: fraudAnalysis.anomalyScore,
+    flags: fraudAnalysis.flags,
   };
 }
 
@@ -961,6 +1152,7 @@ export const AgentControls = {
   getAgentLimits,
   checkSpendingLimit,
   recordSpending,
+  recordSpendingWithEscrow, // Phase 6.2: Escrow-aware spending
   getRemainingLimit,
 
   // Autonomy
@@ -983,6 +1175,7 @@ export const AgentControls = {
 
   // Validation
   validateAction,
+  validateActionWithEscrow, // Phase 6.2: Escrow-aware validation
   suggestAction,
 
   // Approvals

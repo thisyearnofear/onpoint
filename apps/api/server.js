@@ -14,8 +14,15 @@ const Redis = require('ioredis');
 
 // Initialize Express
 const app = express();
-app.use(cors({ origin: 'https://onpoint-web-647723858538.us-central1.run.app' })); // Allow Vercel frontend
-app.use(express.json());
+app.use(cors({
+  origin: [
+    'https://beonpoint.netlify.app',
+    'https://onpoint-web-647723858538.us-central1.run.app',
+    'http://localhost:3000',
+    'http://localhost:3001',
+  ]
+}));
+app.use(express.json({ limit: '10mb' }));
 
 // Initialize Redis (use existing localhost instance)
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
@@ -37,6 +44,9 @@ app.get('/health', async (req, res) => {
   }
 });
 
+// Start server
+const PORT = process.env.PORT || 48751;
+
 // Simple API status endpoint
 app.get('/api/status', (req, res) => {
   res.json({ 
@@ -46,6 +56,10 @@ app.get('/api/status', (req, res) => {
     port: PORT
   });
 });
+
+// AI routes
+app.use('/api/ai/virtual-tryon', require('./routes/ai-virtual-tryon'));
+app.use('/api/ai/analyze-person', require('./routes/ai-analyze-person'));
 
 // Catch-all for agent routes (return 200 OK)
 app.use('/api/agent/:route', (req, res) => {
@@ -67,8 +81,6 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-// Start server
-const PORT = process.env.PORT || 48751;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 OnPoint API running on port ${PORT}`);
   console.log(`   Health: http://localhost:${PORT}/health`);

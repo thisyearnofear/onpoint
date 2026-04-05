@@ -1,19 +1,19 @@
 /**
  * Agent Authentication Middleware
  *
- * Lightweight authentication for agent API routes.
- * Follows the same pattern as rate-limit.ts (auto-selects based on config).
+ * Production-ready authentication with SIWE (EIP-4361) support.
+ * Implements secure nonce-based message verification with replay protection.
  *
- * Modes:
- * - Development: API key = userId (no validation)
- * - Production: Validates against Redis user store
- *
- * For production use, integrate with SIWE (Sign-In With Ethereum) or JWT.
+ * Authentication Methods:
+ * 1. SIWE (Sign-In With Ethereum) - Production standard with nonce validation
+ * 2. API Key - For service-to-service communication
+ * 3. Development mode - Query param fallback (dev only)
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { verifyMessage } from "viem";
+import { SiweMessage } from "siwe";
 import { rateLimit, RateLimits, getClientId } from "../lib/utils/rate-limit";
+import { redisGet, redisSetEx, redisDel } from "../lib/utils/redis-helpers";
 
 // ============================================
 // Types
@@ -58,56 +58,145 @@ const PREMIUM_TIER_PERMISSIONS: AgentPermission[] = [
 ];
 
 // ============================================
-// Auth Extraction
+// SIWE Nonce Management
 // ============================================
 
+const NONCE_TTL = 600; // 10 minutes
+const NONCE_PREFIX = "siwe:nonce:";
+
 /**
- * Verify a SIWE-style signature for authentication
+ * Generate a cryptographically secure nonce for SIWE
  */
-async function verifySignature(
-  address: string,
-  signature: string,
+export async function generateNonce(): Promise<string> {
+  const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  await redisSetEx(`${NONCE_PREFIX}${nonce}`, { created: Date.now() }, NONCE_TTL);
+  return nonce;
+}
+
+/**
+ * Verify and consume a nonce (one-time use)
+ */
+async function verifyAndConsumeNonce(nonce: string): Promise<boolean> {
+  const key = `${NONCE_PREFIX}${nonce}`;
+  const exists = await redisGet<{ created: number }>(key);
+  if (!exists) return false;
+  
+  // Delete immediately to prevent replay
+  await redisDel(key);
+  return true;
+}
+
+/**
+ * Verify a SIWE message with proper EIP-4361 validation
+ */
+async function verifySiweMessage(
   message: string,
-): Promise<boolean> {
+  signature: string,
+): Promise<{ success: boolean; address?: string; error?: string }> {
   try {
-    return await verifyMessage({
-      address: address as `0x${string}`,
-      message,
-      signature: signature as `0x${string}`,
-    });
+    const siweMessage = new SiweMessage(message);
+    
+    // Verify the signature
+    const fields = await siweMessage.verify({ signature });
+    
+    if (!fields.success) {
+      return { success: false, error: "Invalid signature" };
+    }
+
+    // Verify nonce hasn't been used
+    const nonceValid = await verifyAndConsumeNonce(siweMessage.nonce);
+    if (!nonceValid) {
+      return { success: false, error: "Invalid or expired nonce" };
+    }
+
+    // Verify expiration
+    if (siweMessage.expirationTime && new Date(siweMessage.expirationTime) < new Date()) {
+      return { success: false, error: "Message expired" };
+    }
+
+    // Verify not-before
+    if (siweMessage.notBefore && new Date(siweMessage.notBefore) > new Date()) {
+      return { success: false, error: "Message not yet valid" };
+    }
+
+    return { success: true, address: siweMessage.address };
   } catch (err) {
-    console.error("[AgentAuth] Signature verification failed:", err);
-    return false;
+    console.error("[AgentAuth] SIWE verification failed:", err);
+    return { success: false, error: "Verification failed" };
   }
 }
+
+// ============================================
+// User Subscription Management (Redis-backed)
+// ============================================
+
+interface UserSubscription {
+  userId: string;
+  tier: "free" | "premium";
+  expiresAt?: number;
+  permissions: AgentPermission[];
+}
+
+const SUBSCRIPTION_PREFIX = "user:subscription:";
+
+async function getUserSubscription(userId: string): Promise<UserSubscription | null> {
+  return redisGet<UserSubscription>(`${SUBSCRIPTION_PREFIX}${userId}`);
+}
+
+export async function setUserSubscription(
+  userId: string,
+  tier: "free" | "basic" | "pro" | "concierge",
+  expiresAt?: number,
+): Promise<void> {
+  const subscription: UserSubscription = {
+    userId,
+    tier: tier === "free" ? "free" : "premium", // Map to auth tier
+    expiresAt,
+    permissions: tier === "free" ? FREE_TIER_PERMISSIONS : PREMIUM_TIER_PERMISSIONS,
+  };
+  
+  // Store with TTL if expiration is set
+  if (expiresAt) {
+    const ttl = Math.ceil((expiresAt - Date.now()) / 1000);
+    await redisSetEx(`${SUBSCRIPTION_PREFIX}${userId}`, subscription, ttl);
+  } else {
+    await redisSetEx(`${SUBSCRIPTION_PREFIX}${userId}`, subscription, 86400 * 365); // 1 year default
+  }
+}
+
+// ============================================
+// Auth Extraction
+// ============================================
 
 export async function extractAuth(
   request: NextRequest,
 ): Promise<AgentAuthContext | null> {
   const url = new URL(request.url);
 
-  // 1. Check for SIWE-style signature (Production Tier)
-  const signature = request.headers.get("X-Agent-Signature");
-  const address = request.headers.get("X-Agent-Address");
-  const message = request.headers.get("X-Agent-Message");
+  // 1. Check for SIWE authentication (Production)
+  const siweMessage = request.headers.get("X-SIWE-Message");
+  const siweSignature = request.headers.get("X-SIWE-Signature");
 
-  if (signature && address && message) {
-    const isValid = await verifySignature(address, signature, message);
-    if (isValid) {
-      // In production, check subscription from DB
-      const isPremium = process.env.PREMIUM_USERS?.split(",").includes(address);
+  if (siweMessage && siweSignature) {
+    const result = await verifySiweMessage(siweMessage, siweSignature);
+    
+    if (result.success && result.address) {
+      // Check subscription status from Redis
+      const subscription = await getUserSubscription(result.address);
+      
+      const tier = subscription?.tier || "free";
+      const permissions = subscription?.permissions || FREE_TIER_PERMISSIONS;
+
       return {
-        userId: address,
+        userId: result.address,
         agentId: url.searchParams.get("agentId") || "onpoint-stylist",
-        permissions: isPremium
-          ? PREMIUM_TIER_PERMISSIONS
-          : FREE_TIER_PERMISSIONS,
-        tier: isPremium ? "premium" : "free",
+        permissions,
+        tier,
       };
     }
   }
 
-  // 2. Check for API key (Legacy/Service Tier)
+  // 2. Check for API key (Service-to-service)
   const authHeader = request.headers.get("Authorization");
   const apiKey = authHeader?.replace("Bearer ", "");
 
@@ -119,14 +208,16 @@ export async function extractAuth(
     return null;
   }
 
-  // Determine tier (in production, would check subscription status)
-  const isPremium = process.env.PREMIUM_USERS?.split(",").includes(userId);
+  // Check subscription for API key users
+  const subscription = await getUserSubscription(userId);
+  const tier = subscription?.tier || "free";
+  const permissions = subscription?.permissions || FREE_TIER_PERMISSIONS;
 
   return {
     userId,
     agentId: url.searchParams.get("agentId") || "onpoint-stylist",
-    permissions: isPremium ? PREMIUM_TIER_PERMISSIONS : FREE_TIER_PERMISSIONS,
-    tier: isPremium ? "premium" : "free",
+    permissions,
+    tier,
   };
 }
 

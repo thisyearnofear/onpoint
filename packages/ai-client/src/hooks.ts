@@ -5,6 +5,13 @@ import AIClientManager from './ai-client';
 import { ReplicateProvider } from './providers/replicate-provider';
 import { fileToBase64 } from './utils/file-utils';
 
+const AI_API_BASE = process.env.NEXT_PUBLIC_AGENT_API_URL || '';
+
+function getApiUrl(path: string): string {
+  if (!AI_API_BASE) return path;
+  return `${AI_API_BASE.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
+}
+
 // Design Studio Implementation
 export const useDesignStudio = () => {
   const [loading, setLoading] = React.useState(false);
@@ -18,7 +25,7 @@ export const useDesignStudio = () => {
       setError(null);
 
       try {
-        const response = await fetch('/api/ai/design', {
+        const response = await fetch(getApiUrl('/api/ai/design'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt: visionDescription, type: 'design', africanInspiration })
@@ -68,7 +75,7 @@ export const useDesignStudio = () => {
         // Create a refinement prompt
         const fullPrompt = `Original design: ${designToRefine.designPrompt}\nRefinement request: ${refinementPrompt}`;
 
-        const response = await fetch('/api/ai/design', {
+        const response = await fetch(getApiUrl('/api/ai/design'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt: fullPrompt, type: 'refinement' })
@@ -138,7 +145,7 @@ export const useVirtualTryOn = () => {
           ? 'Body scan analysis for virtual try-on measurements'
           : 'Photo analysis for virtual try-on fitting';
 
-        const response = await fetch('/api/ai/virtual-tryon', {
+        const response = await fetch(getApiUrl('/api/ai/virtual-tryon'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -180,7 +187,7 @@ export const useVirtualTryOn = () => {
       setError(null);
 
       try {
-        const response = await fetch('/api/ai/virtual-tryon', {
+        const response = await fetch(getApiUrl('/api/ai/virtual-tryon'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -279,7 +286,7 @@ export const useAIStylist = (persona: StylistPersona = "luxury") => {
       try {
         const suggestionPrompt = `Generate style suggestions for a ${preferences.style} style, for ${preferences.occasion || 'everyday'} occasion with ${preferences.budget || 'flexible'} budget. Provide suggestions in categories with items, descriptions, reasoning, and priority.`;
         // Generate real AI-powered style suggestions
-        const response = await fetch('/api/ai/style-suggestions', {
+        const response = await fetch(getApiUrl('/api/ai/style-suggestions'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -356,7 +363,7 @@ export const useAIColorPalette = () => {
           setError('Request timed out. Please try again.');
         }, 30000); // 30 second timeout
 
-        const response = await fetch('/api/ai/color-palette', {
+        const response = await fetch(getApiUrl('/api/ai/color-palette'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ description, style, season })
@@ -419,7 +426,7 @@ export const useAIStyleSuggestions = () => {
 
       try {
         // Generate real AI-powered style suggestions
-        const response = await fetch('/api/ai/style-suggestions', {
+        const response = await fetch(getApiUrl('/api/ai/style-suggestions'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -477,7 +484,7 @@ export const useAIVirtualTryOnEnhancement = () => {
 
       try {
         // Call the server API for outfit image generation
-        const response = await fetch('/api/ai/virtual-tryon', {
+        const response = await fetch(getApiUrl('/api/ai/virtual-tryon'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

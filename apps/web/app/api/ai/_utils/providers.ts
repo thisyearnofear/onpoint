@@ -53,7 +53,7 @@ interface GenerateTextOptions {
   provider: ProviderChoice;
   preferGemini?: boolean;
   preferOpenAI?: boolean;
-  veniceModel?: string; // default: 'llama-3.1-70b'
+  veniceModel?: string; // default: 'llama-3.3-70b'
   geminiModel?: string; // default: 'gemini-3.1-flash-lite-preview'
   openaiModel?: string; // default: 'gpt-4o'
   openaiOptions?: {
@@ -67,7 +67,7 @@ export async function generateText({
   provider,
   preferGemini = false,
   preferOpenAI = false,
-  veniceModel = "llama-3.1-70b",
+  veniceModel = "llama-3.3-70b",
   geminiModel = "gemini-3.1-flash-lite-preview",
   openaiModel = "gpt-4o",
   openaiOptions = {},

@@ -328,10 +328,10 @@ Return ONLY valid JSON, no other text.`,
     }
 
     case "propose_mint_nft": {
-      await AgentControls.initStore(agentId, ctx.userId);
+      await AgentControls.initStore(agentId, userId);
       const suggestion = AgentControls.suggestAction({
         agentId,
-        userId: ctx.userId,
+        userId,
         actionType: "mint" as ActionType,
         amount: "0.01",
         description: `Mint Style NFT: "${args.style_title}" — ${args.reason}`,
@@ -419,7 +419,7 @@ Return ONLY valid JSON, no other text.`,
     }
 
     case "track_style_preference": {
-      await AgentControls.initStore(agentId, ctx.userId);
+      await AgentControls.initStore(agentId, userId);
       AgentControls.trackStyleInteraction("session-user", {
         category: args.category as string,
         price: 50,
@@ -632,6 +632,7 @@ async function runAgentLoop(
         fn.name,
         args,
         agentId,
+        userId,
         sessionId,
         imageBase64,
       );
@@ -679,9 +680,10 @@ async function runAgentLoop(
 
   // If score >= 8 but agent didn't propose mint, auto-propose
   if (styleScore !== null && styleScore >= 8 && !mintProposed) {
-    await AgentControls.initStore(agentId);
+    await AgentControls.initStore(agentId, userId);
     const mintSuggestion = AgentControls.suggestAction({
       agentId,
+      userId,
       actionType: "mint" as ActionType,
       amount: "0.01",
       description: `Auto-mint: Style score ${styleScore}/10 — exceptional look detected`,
