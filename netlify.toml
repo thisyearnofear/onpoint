@@ -2,6 +2,7 @@
   base = "apps/web"
   command = "cd ../.. && pnpm install && pnpm build --filter=web"
   publish = ".next"
+  ignore = "git log -1 --pretty=%an | grep -q 'dependabot'"
 
 [build.environment]
   NODE_VERSION = "20.19.0"
