@@ -23,6 +23,16 @@
   }
 }
 
+/* Shimmer effect for AI vision preview */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 /* Fallback for browsers without View Transitions support */
 @media (prefers-reduced-motion: no-preference) {
   ::view-transition-old(root) {
@@ -150,5 +160,9 @@
     backdrop-filter: blur(16px);
     background: hsl(var(--background) / 0.75);
     border: 1px solid hsl(var(--border) / 0.4);
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s infinite;
   }
 }

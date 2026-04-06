@@ -121,10 +121,10 @@ export function VirtualTryOn() {
             <Sparkles className="h-10 w-10 text-white" />
           </div>
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            AI Stylist
+            Virtual Try-On
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed">
-            It sees. It judges. It shops. Upload a photo for personalized fashion analysis and let your AI agent shop for you.
+            Upload your photo. Get AI fit analysis. Choose a stylist persona for personalized critique. Let your agent shop.
           </p>
         </div>
 
@@ -231,9 +231,9 @@ export function VirtualTryOn() {
                         </p>
                         
                         {/* Free Personas */}
-                        <div className="mb-4">
+                        <div className="mb-6">
                           <p className="text-xs font-medium text-muted-foreground mb-3">FREE STYLISTS</p>
-                          <div className="grid grid-cols-3 gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             {FREE_PERSONAS.map((persona) => (
                               <PersonalityCard
                                 key={persona}
@@ -248,9 +248,16 @@ export function VirtualTryOn() {
                         </div>
 
                         {/* Premium Personas */}
-                        <div>
-                          <p className="text-xs font-medium text-muted-foreground mb-3">PREMIUM STYLISTS</p>
-                          <div className="grid grid-cols-3 gap-3">
+                        <div className="mb-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <p className="text-xs font-medium text-muted-foreground">PREMIUM STYLISTS</p>
+                            {!hasPremium && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent/20 text-accent font-bold">
+                                Upgrade to unlock
+                              </span>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             {PREMIUM_PERSONAS.map((persona) => (
                               <PersonalityCard
                                 key={persona}

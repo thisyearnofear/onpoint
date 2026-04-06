@@ -105,17 +105,14 @@ function HeroView({ onContinue }: { onContinue: () => void }) {
               </div>
 
               <h1 className="text-4xl md:text-5xl font-black tracking-tighter leading-tight">
-                Never wonder
+                Your AI stylist
                 <span className="block text-primary">
-                  {" "}
-                  "does this suit me?"
+                  sees, judges, shops.
                 </span>
-                again.
               </h1>
 
               <p className="text-lg text-muted-foreground leading-relaxed max-w-lg">
-                Get personalized outfit recommendations tailored to your body,
-                style, and budget. See how clothes look on you before you buy.
+                Upload a photo. Get personalized fit analysis. Let your AI agent shop for you with its own wallet ($5-$5K limits).
               </p>
 
               <div className="flex flex-col sm:flex-row items-center lg:items-start gap-3">
@@ -137,35 +134,63 @@ function HeroView({ onContinue }: { onContinue: () => void }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-emerald-500" />
-                  <span>No signup required</span>
+                  <span>AI agent with wallet</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-500" />
+                  <span>4.7★ avg fit accuracy</span>
                 </div>
               </div>
             </div>
 
             {/* Right: Visual */}
             <div className="relative hidden lg:block">
-              <div className="relative rounded-2xl overflow-hidden border border-border/60 bg-card/50 shadow-2xl">
-                <div className="absolute top-4 left-4 z-10 px-3 py-1 rounded-full bg-background/90 text-xs font-bold shadow-sm">
-                  Preview
+              <div className="relative rounded-2xl overflow-hidden border border-border/60 bg-gradient-to-br from-primary/5 to-accent/5 shadow-2xl p-6">
+                <div className="absolute top-4 left-4 z-10 px-3 py-1 rounded-full bg-primary/90 text-white text-xs font-bold shadow-sm flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" />
+                  AI Vision
                 </div>
-                <div className="grid grid-cols-2 gap-1 p-2">
-                  <div className="relative aspect-[3/4] rounded-lg overflow-hidden">
+                
+                {/* Before/After Split */}
+                <div className="space-y-3">
+                  <div className="relative aspect-[4/3] rounded-lg overflow-hidden border border-border">
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
                     <Image
                       src="/assets/1Product.png"
-                      alt="Look 1"
+                      alt="AI analyzing your photo"
                       fill
-                      className="object-cover"
+                      className="object-cover opacity-90"
                       unoptimized
                     />
+                    <div className="absolute bottom-2 left-2 px-2 py-1 rounded bg-background/90 text-[10px] font-bold">
+                      1. Upload Photo
+                    </div>
                   </div>
-                  <div className="relative aspect-[3/4] rounded-lg overflow-hidden">
-                    <Image
-                      src="/assets/2Product.png"
-                      alt="Look 2"
-                      fill
-                      className="object-cover"
-                      unoptimized
-                    />
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="relative aspect-square rounded-lg overflow-hidden border border-primary/20 bg-primary/5">
+                      <div className="p-3 space-y-1">
+                        <div className="text-[10px] font-bold text-primary">FIT ANALYSIS</div>
+                        <div className="text-[9px] text-muted-foreground">Athletic build</div>
+                        <div className="text-[9px] text-muted-foreground">Broad shoulders</div>
+                        <div className="text-[9px] text-muted-foreground">Slim waist</div>
+                      </div>
+                      <div className="absolute bottom-2 left-2 px-2 py-1 rounded bg-primary/90 text-white text-[10px] font-bold">
+                        2. AI Judges
+                      </div>
+                    </div>
+                    <div className="relative aspect-square rounded-lg overflow-hidden border border-accent/20">
+                      <Image
+                        src="/assets/2Product.png"
+                        alt="AI recommended outfit"
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                      <div className="absolute bottom-2 left-2 px-2 py-1 rounded bg-accent/90 text-white text-[10px] font-bold">
+                        3. Agent Shops
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

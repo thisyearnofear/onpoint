@@ -61,7 +61,7 @@ export function TacticalDashboard() {
             exit={{ opacity: 0, y: -20 }}
             className="space-y-6"
           >
-            {/* Live AR Hero Banner - Only essential visible */}
+            {/* Primary CTA - Virtual Try-On */}
             <motion.div
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -73,15 +73,15 @@ export function TacticalDashboard() {
               <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-6">
                 <div className="flex-1 space-y-3">
                   <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 text-[10px] font-bold bg-primary/20 text-primary rounded-full uppercase tracking-wider animate-pulse">
-                      ✨ New
+                    <span className="px-2 py-0.5 text-[10px] font-bold bg-primary/20 text-primary rounded-full uppercase tracking-wider">
+                      ✨ Start Here
                     </span>
                   </div>
                   <h3 className="text-2xl font-black text-foreground tracking-tight">
-                    AI-Powered Virtual Try-On
+                    Upload a Photo, Get Your Look
                   </h3>
                   <p className="text-muted-foreground text-sm max-w-md">
-                    See how any outfit looks on you before you buy.
+                    AI analyzes your fit, recommends styles, and shops for you with its wallet.
                   </p>
                 </div>
                 <Button
@@ -89,22 +89,13 @@ export function TacticalDashboard() {
                   className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white font-bold py-4 px-8 rounded-2xl shadow-lg shadow-primary/25 flex items-center gap-3"
                 >
                   <Camera className="w-5 h-5" />
-                  <span>Try It Now</span>
+                  <span>Start Try-On</span>
                 </Button>
               </div>
             </motion.div>
 
-            {/* Quick Nav - Primary Actions */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => setMode("try-on")}
-                className="h-auto py-4 flex flex-col items-center gap-2"
-              >
-                <Camera className="w-5 h-5" />
-                <span className="text-sm">Try On</span>
-              </Button>
+            {/* Secondary Actions */}
+            <div className="grid grid-cols-2 gap-3">
               <Button
                 variant="outline"
                 size="lg"
@@ -112,7 +103,7 @@ export function TacticalDashboard() {
                 className="h-auto py-4 flex flex-col items-center gap-2"
               >
                 <MessageCircle className="w-5 h-5" />
-                <span className="text-sm">Stylist</span>
+                <span className="text-sm">Chat with Stylist</span>
               </Button>
               <Button
                 variant="outline"
@@ -121,7 +112,7 @@ export function TacticalDashboard() {
                 className="h-auto py-4 flex flex-col items-center gap-2"
               >
                 <Palette className="w-5 h-5" />
-                <span className="text-sm">My Looks</span>
+                <span className="text-sm">My Saved Looks</span>
               </Button>
             </div>
 
