@@ -18,8 +18,9 @@ import { VirtualTryOn } from "../VirtualTryOn";
 import { AIStylist } from "../AIStylist";
 import { MissionsPanel } from "../Agent/MissionsPanel";
 import { NewUserOnboarding } from "./NewUserOnboarding";
+import { ConnectedAccounts } from "../ConnectedAccounts";
 
-type AppMode = "dashboard" | "design" | "try-on" | "stylist";
+type AppMode = "dashboard" | "design" | "try-on" | "stylist" | "settings";
 
 export function TacticalDashboard() {
   const [mode, setMode] = useState<AppMode>("dashboard");
@@ -48,6 +49,12 @@ export function TacticalDashboard() {
       label: "My Looks",
       icon: Palette,
       color: "text-indigo-400",
+    },
+    {
+      id: "settings",
+      label: "Settings",
+      icon: Target,
+      color: "text-muted-foreground",
     },
   ];
 
@@ -192,6 +199,23 @@ export function TacticalDashboard() {
         return <VirtualTryOn />;
       case "stylist":
         return <AIStylist />;
+      case "settings":
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="space-y-6"
+          >
+            <div>
+              <h2 className="text-2xl font-bold mb-2">Settings</h2>
+              <p className="text-muted-foreground">
+                Manage your connected accounts and agent permissions
+              </p>
+            </div>
+            <ConnectedAccounts />
+          </motion.div>
+        );
     }
   };
 

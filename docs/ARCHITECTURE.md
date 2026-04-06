@@ -9,24 +9,24 @@ OnPoint is a monorepo containing a Next.js web app, AI provider abstractions, an
 │                        Client Layer                          │
 ├─────────────────┬──────────────────┬────────────────────────┤
 │   Web App       │   Chrome Ext     │   Farcaster Mini App   │
-│  (Next.js 14)   │  (Built-in AI)   │   (SDK Widget)         │
+│  (Next.js 15)   │  (Built-in AI)   │   (SDK Widget)         │
 └────────┬────────┴────────┬─────────┴──────────┬─────────────┘
-         │                 │                    │
-         └─────────────────┼────────────────────┘
-                           │
+          │                 │                    │
+          └─────────────────┼────────────────────┘
+                            │
 ┌──────────────────────────┴───────────────────────────────────┐
 │                     Service Layer                             │
 ├──────────────┬──────────────┬──────────────┬─────────────────┤
-│   AI Providers│  Agent Bridge│  Wallet Svc  │  Storage Svc    │
-│ (Venice/     │ (Python      │ (WDK +      │ (Redis +        │
-│  Gemini/OpenAI)│ FastAPI)    │  OWS)       │  IPFS)          │
+│   AI Providers│  Agent Bridge│  Wallet Svc  │  Auth0 Identity │
+│ (Venice/     │ (Python      │ (WDK +      │ (Token Vault)   │
+│  Gemini/OpenAI)│ FastAPI)    │  OWS)       │                 │
 └──────────────┴──────────────┴──────────────┴─────────────────┘
-                           │
+                            │
 ┌──────────────────────────┴───────────────────────────────────┐
 │                    Infrastructure Layer                       │
 ├──────────────┬──────────────┬──────────────┬─────────────────┤
-│   Cloud Run  │   Vercel     │   Blockchains│   IPFS/Filecoin │
-│   (API)      │   (Static)   │  (Celo/Base) │   (Lighthouse)  │
+│   Netlify    │   Auth0      │   Blockchains│   IPFS/Filecoin │
+│   (Hosting)  │  (Identity)  │  (Celo/Base) │   (Lighthouse)  │
 └──────────────┴──────────────┴──────────────┴─────────────────┘
 ```
 

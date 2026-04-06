@@ -23,32 +23,42 @@ Copy `.env.example` to `.env.local` and configure:
 
 ### Required
 
-| Variable | Purpose |
-|----------|---------|
-| `GEMINI_API_KEY` | Static AI routes (fallback) |
+| Variable                               | Purpose                        |
+| -------------------------------------- | ------------------------------ |
+| `GEMINI_API_KEY`                       | Static AI routes (fallback)    |
 | `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | Wallet connection (RainbowKit) |
 
 ### AI Providers
 
-| Variable | Purpose |
-|----------|---------|
-| `VENICE_API_KEY` | Free-tier vision analysis |
+| Variable         | Purpose                             |
+| ---------------- | ----------------------------------- |
+| `VENICE_API_KEY` | Free-tier vision analysis           |
 | `VERTEX_API_KEY` | Gemini Live sessions (Google Cloud) |
 
 ### Agent Infrastructure
 
-| Variable | Purpose |
-|----------|---------|
-| `UPSTASH_REDIS_REST_URL` | Agent state persistence (optional — works without) |
-| `UPSTASH_REDIS_REST_TOKEN` | Redis auth token |
-| `LIGHTHOUSE_API_KEY` | IPFS/Filecoin decentralized storage |
-| `AGENT_PRIVATE_KEY` | Agent wallet for demo transactions |
+| Variable                   | Purpose                                            |
+| -------------------------- | -------------------------------------------------- |
+| `UPSTASH_REDIS_REST_URL`   | Agent state persistence (optional — works without) |
+| `UPSTASH_REDIS_REST_TOKEN` | Redis auth token                                   |
+| `LIGHTHOUSE_API_KEY`       | IPFS/Filecoin decentralized storage                |
+| `AGENT_PRIVATE_KEY`        | Agent wallet for demo transactions                 |
 
 ### Social & Integrations
 
-| Variable | Purpose |
-|----------|---------|
+| Variable         | Purpose                        |
+| ---------------- | ------------------------------ |
 | `NEYNAR_API_KEY` | Farcaster mini-app integration |
+
+### Auth0 (Token Vault for AI Agents)
+
+| Variable              | Purpose                                                                          |
+| --------------------- | -------------------------------------------------------------------------------- |
+| `AUTH0_DOMAIN`        | Your Auth0 tenant (e.g., `dev-xxx.uk.auth0.com`)                                 |
+| `AUTH0_CLIENT_ID`     | Application client ID from Auth0 dashboard                                       |
+| `AUTH0_CLIENT_SECRET` | Application client secret (server-only)                                          |
+| `AUTH0_SECRET`        | 64-char secret for session encryption (`openssl rand -hex 32`)                   |
+| `APP_BASE_URL`        | Your app URL (`http://localhost:3000` dev, `https://beonpoint.netlify.app` prod) |
 
 ## Project Structure
 
@@ -80,7 +90,21 @@ pnpm format       # Prettier formatting
 
 ## Deployment
 
-### Google Cloud Run (Primary)
+### Netlify (Primary)
+
+The web app deploys automatically via GitHub integration:
+
+1. Connect repository in Netlify dashboard
+2. Set build command: `pnpm build`
+3. Set publish directory: `apps/web/.next`
+4. Configure environment variables in Netlify UI:
+   - `AUTH0_DOMAIN` (public)
+   - `AUTH0_CLIENT_ID` (public)
+   - `APP_BASE_URL` (public)
+   - `AUTH0_CLIENT_SECRET` (server-only - mark as secret)
+   - `AUTH0_SECRET` (server-only - mark as secret)
+
+### Google Cloud Run (Alternative)
 
 The web app deploys as a containerized Next.js standalone build:
 
