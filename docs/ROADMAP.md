@@ -91,7 +91,55 @@ The core "sees → judges → shops" flow is live at https://beonpoint.netlify.a
 - Agent wallet usage patterns
 - Conversion funnel optimization
 
-### Next Priorities (Q2 2026)
+### Phase 9: Auth0 for AI Agents — Token Vault Integration 🎯
+> **Hackathon**: [Authorized to Act](https://authorizedtoact.devpost.com/) — $10,000 prize pool
+
+OnPoint is evolving from a vision-AI stylist to a fully autonomous shopping agent. To do this safely, we are integrating **Auth0's Token Vault**. This ensures that while the agent "acts" on behalf of the user (browsing catalogs, adding to carts, checking out), it never directly touches sensitive third-party credentials or OAuth tokens.
+
+#### The Rationale: Why OnPoint + Token Vault?
+- **Delegated Authority**: OnPoint's agent needs to access private user data on third-party fashion sites (order history, sizing, loyalty points) and perform actions (purchase). Token Vault provides the secure bridge for this delegation.
+- **Credential Isolation**: By using Token Vault, the AI agent (which may be subject to prompt injection or model hallucinations) is never in possession of the raw access tokens. It only receives a "blind" capability to call specific APIs.
+- **Trust-Based Commerce**: For users to trust an agent with their credit card or shopping accounts, there must be a visible, revocable, and fine-grained permission layer. Auth0 provides this out-of-the-box.
+
+#### Full Implementation Plan
+
+**1. Secure Identity & Scoped Authorization (Auth0 Login)**
+- [ ] Implement Auth0 login flow as the primary entry point for agentic features.
+- [ ] Define granular scopes for agent actions: `shopping:read` (catalog), `shopping:write` (cart), `shopping:purchase` (checkout).
+- [ ] Map Auth0 User IDs to OnPoint's existing SIWE-based wallet identities.
+
+**2. Token Vault Integration for Third-Party APIs**
+- [ ] Set up Auth0 Token Vault to store OAuth tokens for major retailers (e.g., FARFETCH, SSENSE, Zara).
+- [ ] Implement the "Agent-Mediated API Call" pattern:
+    - Agent requests an action (e.g., "Add to cart on Zara").
+    - Backend fetches the scoped token from Auth0 Token Vault.
+    - Backend executes the request on behalf of the agent.
+    - Token is never exposed to the AI model or frontend.
+
+**3. Intent-Based User Consent & UX**
+- [ ] Build a "Permission Dashboard" where users can see which retailers the agent is authorized to access.
+- [ ] Implement a "Just-in-Time" consent flow: if the agent suggests a product from a new retailer, the UI triggers an Auth0-backed consent screen.
+- [ ] Add visual indicators in the Agent Terminal showing when a secure Token Vault call is being made.
+
+**4. Step-Up Authentication for High-Stake Actions**
+- [ ] Trigger Auth0 Step-Up Authentication (MFA/Biometric) for any transaction exceeding $50 or for "One-Click Buy" requests.
+- [ ] Integrate with existing multi-sig and "Dead Man's Switch" fraud prevention logic.
+
+#### Judging Criteria Alignment Table
+
+| Criteria | OnPoint Implementation Strategy |
+|----------|-------------------------------|
+| **Use of Technology** | **Core Integration**: Using Auth0 Token Vault to manage 3rd-party fashion API tokens (Zara, SSENSE). Agent calls APIs via the Vault, ensuring credential isolation. |
+| **Project Use Case** | **Agentic Commerce**: A real-world use case where an AI agent acts as a personal shopper, navigating the web and checking out using delegated authority. |
+| **Usability & UX** | **Transparent Control**: A dedicated "Agent Permissions" UI allows users to grant, view, and revoke access to specific stores with one click, powered by Auth0 Consent. |
+| **Creativity & Innovation** | **Agent-Led Shopping**: Combining Venice Vision AI (style analysis) with Auth0 (secure execution) to create the first "Trustless Personal Shopper" that can't "steal" your tokens. |
+
+---
+
+### Phase 10: Multi-Chain Expansion 🚧
+- Base ecosystem integration
+- Polygon support
+- Cross-chain transaction aggregation
 
 #### Immediate (Next 2 Weeks)
 - [ ] A/B test hero tagline variations

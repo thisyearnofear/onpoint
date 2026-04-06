@@ -7,11 +7,13 @@
  * Authentication Methods:
  * 1. SIWE (Sign-In With Ethereum) - Production standard with nonce validation
  * 2. API Key - For service-to-service communication
- * 3. Development mode - Query param fallback (dev only)
+ * 3. Auth0 - Secure identity for agentic commerce and Token Vault access
+ * 4. Development mode - Query param fallback (dev only)
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { SiweMessage } from "siwe";
+import { auth0 } from "../lib/auth0";
 import { rateLimit, RateLimits, getClientId } from "../lib/utils/rate-limit";
 import { redisGet, redisSetEx, redisDel } from "../lib/utils/redis-helpers";
 
@@ -20,14 +22,18 @@ import { redisGet, redisSetEx, redisDel } from "../lib/utils/redis-helpers";
 // ============================================
 
 export interface AgentAuthContext {
-  /** User identifier (wallet address or API key) */
+  /** User identifier (wallet address, API key, or Auth0 ID) */
   userId: string;
+  /** Auth0 specific ID (if logged in via Auth0) */
+  auth0Id?: string;
   /** Agent identifier */
   agentId: string;
   /** Permission flags */
   permissions: AgentPermission[];
   /** Rate limit tier */
   tier: "free" | "premium";
+  /** Scoped access tokens (blind handles) */
+  scopes?: string[];
 }
 
 export type AgentPermission =
@@ -37,7 +43,10 @@ export type AgentPermission =
   | "execute_purchase"
   | "view_receipts"
   | "search_catalog"
-  | "external_search";
+  | "external_search"
+  | "shopping:read"
+  | "shopping:write"
+  | "shopping:purchase";
 
 // ============================================
 // Default Permissions by Tier
@@ -48,6 +57,7 @@ const FREE_TIER_PERMISSIONS: AgentPermission[] = [
   "accept_suggestion",
   "reject_suggestion",
   "search_catalog",
+  "shopping:read",
 ];
 
 const PREMIUM_TIER_PERMISSIONS: AgentPermission[] = [
@@ -55,6 +65,8 @@ const PREMIUM_TIER_PERMISSIONS: AgentPermission[] = [
   "execute_purchase",
   "external_search",
   "view_receipts",
+  "shopping:write",
+  "shopping:purchase",
 ];
 
 // ============================================
@@ -69,7 +81,11 @@ const NONCE_PREFIX = "siwe:nonce:";
  */
 export async function generateNonce(): Promise<string> {
   const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
-  await redisSetEx(`${NONCE_PREFIX}${nonce}`, { created: Date.now() }, NONCE_TTL);
+  await redisSetEx(
+    `${NONCE_PREFIX}${nonce}`,
+    { created: Date.now() },
+    NONCE_TTL,
+  );
   return nonce;
 }
 
@@ -80,7 +96,7 @@ async function verifyAndConsumeNonce(nonce: string): Promise<boolean> {
   const key = `${NONCE_PREFIX}${nonce}`;
   const exists = await redisGet<{ created: number }>(key);
   if (!exists) return false;
-  
+
   // Delete immediately to prevent replay
   await redisDel(key);
   return true;
@@ -95,10 +111,10 @@ async function verifySiweMessage(
 ): Promise<{ success: boolean; address?: string; error?: string }> {
   try {
     const siweMessage = new SiweMessage(message);
-    
+
     // Verify the signature
     const fields = await siweMessage.verify({ signature });
-    
+
     if (!fields.success) {
       return { success: false, error: "Invalid signature" };
     }
@@ -110,7 +126,10 @@ async function verifySiweMessage(
     }
 
     // Verify expiration
-    if (siweMessage.expirationTime && new Date(siweMessage.expirationTime) < new Date()) {
+    if (
+      siweMessage.expirationTime &&
+      new Date(siweMessage.expirationTime) < new Date()
+    ) {
       return { success: false, error: "Message expired" };
     }
 
@@ -138,8 +157,35 @@ interface UserSubscription {
 }
 
 const SUBSCRIPTION_PREFIX = "user:subscription:";
+const AUTH0_TO_WALLET_PREFIX = "user:auth0-wallet:";
 
-async function getUserSubscription(userId: string): Promise<UserSubscription | null> {
+/**
+ * Link an Auth0 user ID to a wallet address.
+ */
+export async function linkAuth0ToWallet(
+  auth0Id: string,
+  walletAddress: string,
+): Promise<void> {
+  await redisSetEx(
+    `${AUTH0_TO_WALLET_PREFIX}${auth0Id}`,
+    { walletAddress },
+    86400 * 365,
+  );
+}
+
+/**
+ * Get the wallet address linked to an Auth0 ID.
+ */
+async function getWalletByAuth0(auth0Id: string): Promise<string | null> {
+  const result = await redisGet<{ walletAddress: string }>(
+    `${AUTH0_TO_WALLET_PREFIX}${auth0Id}`,
+  );
+  return result?.walletAddress || null;
+}
+
+async function getUserSubscription(
+  userId: string,
+): Promise<UserSubscription | null> {
   return redisGet<UserSubscription>(`${SUBSCRIPTION_PREFIX}${userId}`);
 }
 
@@ -152,15 +198,20 @@ export async function setUserSubscription(
     userId,
     tier: tier === "free" ? "free" : "premium", // Map to auth tier
     expiresAt,
-    permissions: tier === "free" ? FREE_TIER_PERMISSIONS : PREMIUM_TIER_PERMISSIONS,
+    permissions:
+      tier === "free" ? FREE_TIER_PERMISSIONS : PREMIUM_TIER_PERMISSIONS,
   };
-  
+
   // Store with TTL if expiration is set
   if (expiresAt) {
     const ttl = Math.ceil((expiresAt - Date.now()) / 1000);
     await redisSetEx(`${SUBSCRIPTION_PREFIX}${userId}`, subscription, ttl);
   } else {
-    await redisSetEx(`${SUBSCRIPTION_PREFIX}${userId}`, subscription, 86400 * 365); // 1 year default
+    await redisSetEx(
+      `${SUBSCRIPTION_PREFIX}${userId}`,
+      subscription,
+      86400 * 365,
+    ); // 1 year default
   }
 }
 
@@ -179,11 +230,11 @@ export async function extractAuth(
 
   if (siweMessage && siweSignature) {
     const result = await verifySiweMessage(siweMessage, siweSignature);
-    
+
     if (result.success && result.address) {
       // Check subscription status from Redis
       const subscription = await getUserSubscription(result.address);
-      
+
       const tier = subscription?.tier || "free";
       const permissions = subscription?.permissions || FREE_TIER_PERMISSIONS;
 
@@ -196,7 +247,35 @@ export async function extractAuth(
     }
   }
 
-  // 2. Check for API key (Service-to-service)
+  // 2. Check for Auth0 session (New)
+  try {
+    const session = await auth0.getSession();
+    if (session?.user) {
+      const auth0Id = session.user.sub;
+      // Try to find linked wallet
+      const linkedWallet = await getWalletByAuth0(auth0Id);
+
+      // Use wallet address if linked, otherwise use Auth0 ID
+      const userId = linkedWallet || auth0Id;
+      const subscription = await getUserSubscription(userId);
+
+      const tier = subscription?.tier || "free";
+      const permissions = subscription?.permissions || FREE_TIER_PERMISSIONS;
+
+      return {
+        userId,
+        auth0Id,
+        agentId: url.searchParams.get("agentId") || "onpoint-stylist",
+        permissions,
+        tier,
+        scopes: session.tokenSet.scope?.split(" ") || [],
+      };
+    }
+  } catch (err) {
+    // Ignore session errors in non-Auth0 routes
+  }
+
+  // 3. Check for API key (Service-to-service)
   const authHeader = request.headers.get("Authorization");
   const apiKey = authHeader?.replace("Bearer ", "");
 

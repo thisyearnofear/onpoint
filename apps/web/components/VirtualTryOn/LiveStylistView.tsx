@@ -27,6 +27,7 @@ import { MintLookButton } from "./MintLookButton";
 import { GeminiLivePaymentButton } from "./GeminiLivePaymentButton";
 import { AgentStatus } from "../Agent/AgentStatus";
 import { AgentActionCard } from "../Agent/AgentActionCard";
+import { AgentPermissionDashboard } from "../Agent/AgentPermissionDashboard";
 import { TipSheet } from "../Agent/TipModal";
 import { AgentApprovalModal } from "../Agent/AgentApprovalModal";
 import { AgentSuggestionToast } from "../Agent/AgentSuggestionToast";
@@ -374,6 +375,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               score={sessionSummary?.score}
               onMintClick={selectedCapture ? () => {} : undefined}
             />
+            <AgentPermissionDashboard />
           </div>
 
           <TipSheet

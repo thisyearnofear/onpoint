@@ -32,14 +32,14 @@ OnPoint is a monorepo containing a Next.js web app, AI provider abstractions, an
 
 ## Monorepo Structure
 
-| Package | Purpose |
-|---------|---------|
-| `apps/web` | Next.js application — UI, API routes, agent loop |
-| `apps/chrome-extension` | Chrome Built-in AI fashion assistant |
-| `packages/shared-types` | TypeScript types (fashion data, categories) |
-| `packages/shared-ui` | Reusable UI components |
-| `packages/ai-client` | AI provider abstraction layer + React hooks |
-| `packages/agent-web-bridge` | Python FastAPI browser automation service |
+| Package                     | Purpose                                          |
+| --------------------------- | ------------------------------------------------ |
+| `apps/web`                  | Next.js application — UI, API routes, agent loop |
+| `apps/chrome-extension`     | Chrome Built-in AI fashion assistant             |
+| `packages/shared-types`     | TypeScript types (fashion data, categories)      |
+| `packages/shared-ui`        | Reusable UI components                           |
+| `packages/ai-client`        | AI provider abstraction layer + React hooks      |
+| `packages/agent-web-bridge` | Python FastAPI browser automation service        |
 
 ## Data Flow
 
@@ -75,14 +75,14 @@ OnPoint is a monorepo containing a Next.js web app, AI provider abstractions, an
 
 These modules live in `apps/web/lib/` and are designed to be extracted into any agent project:
 
-| Module | File | Purpose |
-|--------|------|---------|
-| **Agent Controls** | `middleware/agent-controls.ts` | Spending limits, autonomy thresholds, approval workflows |
-| **State Persistence** | `middleware/agent-store.ts` | Redis-backed storage with write-through cache |
-| **Commission Splits** | `utils/commissions.ts` | Four-tier revenue distribution calculator |
-| **Suggestion Toast** | `components/Agent/AgentSuggestionToast.tsx` | Time-bounded agent-to-user proposals |
-| **Style Memory** | `fashion-data.ts` (getRecommendedItems) | Preference tracking + personalized scoring |
-| **Agent Wallet** | `services/agent-wallet.ts` | Multi-chain self-custodial wallet service |
+| Module                | File                                        | Purpose                                                  |
+| --------------------- | ------------------------------------------- | -------------------------------------------------------- |
+| **Agent Controls**    | `middleware/agent-controls.ts`              | Spending limits, autonomy thresholds, approval workflows |
+| **State Persistence** | `middleware/agent-store.ts`                 | Redis-backed storage with write-through cache            |
+| **Commission Splits** | `utils/commissions.ts`                      | Four-tier revenue distribution calculator                |
+| **Suggestion Toast**  | `components/Agent/AgentSuggestionToast.tsx` | Time-bounded agent-to-user proposals                     |
+| **Style Memory**      | `fashion-data.ts` (getRecommendedItems)     | Preference tracking + personalized scoring               |
+| **Agent Wallet**      | `services/agent-wallet.ts`                  | Multi-chain self-custodial wallet service                |
 
 ## AI Provider Abstraction
 
@@ -97,11 +97,11 @@ interface AIProvider {
 }
 ```
 
-| Provider | Tier | Capabilities |
-|----------|------|-------------|
-| Venice AI | Free | Vision analysis via polling (`mistral-31-24b`) |
-| Gemini Live | Premium | Real-time WebSocket audio + video streaming |
-| OpenAI/Replicate | Fallback | Static analysis, design generation |
+| Provider         | Tier     | Capabilities                                   |
+| ---------------- | -------- | ---------------------------------------------- |
+| Venice AI        | Free     | Vision analysis via polling (`mistral-31-24b`) |
+| Gemini Live      | Premium  | Real-time WebSocket audio + video streaming    |
+| OpenAI/Replicate | Fallback | Static analysis, design generation             |
 
 ## Agent Web-Agency (Python Bridge)
 
@@ -115,12 +115,12 @@ The bridge is an isolated Python FastAPI service using Browser Use Cloud V3 with
 
 ## Blockchain Integration
 
-| Network | Use |
-|---------|-----|
-| Celo | Primary — low fees, cUSD stablecoin, mobile-first |
-| Base | Secondary — Coinbase ecosystem |
-| Ethereum | Multi-chain support |
-| Polygon | Multi-chain support |
+| Network  | Use                                               |
+| -------- | ------------------------------------------------- |
+| Celo     | Primary — low fees, cUSD stablecoin, mobile-first |
+| Base     | Secondary — Coinbase ecosystem                    |
+| Ethereum | Multi-chain support                               |
+| Polygon  | Multi-chain support                               |
 
 **Smart contracts**: NFT minting (ERC-721A), commission splits (0xSplits), agent tipping (cUSD/USDT transfers).
 
@@ -130,3 +130,4 @@ The bridge is an isolated Python FastAPI service using Browser Use Cloud V3 with
 - **Policy-gated signing**: OWS layer enforces spend limits before any transaction
 - **Verifiable logs**: Agent decisions cryptographically signed and stored on IPFS/Filecoin
 - **Zero data retention**: Venice AI provider doesn't store user data
+- **Auth0 Token Vault**: Secure credential delegation for AI agent shopping actions

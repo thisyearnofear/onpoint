@@ -17,16 +17,19 @@ if (typeof window === "undefined") {
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
-import { RainbowKitProvider, darkTheme, lightTheme } from "@rainbow-me/rainbowkit";
+import {
+  RainbowKitProvider,
+  darkTheme,
+  lightTheme,
+} from "@rainbow-me/rainbowkit";
 import { config } from "../config/wagmi";
 import { AIProviderContext } from "@repo/ai-client";
 import { sdk } from "@farcaster/miniapp-sdk";
 import { useEffect, useState } from "react";
 import { MiniAppProvider, useMiniApp } from "@neynar/react";
+import { Auth0Provider } from "@auth0/nextjs-auth0/client";
 
 const queryClient = new QueryClient();
-
-
 
 function MiniAppReady() {
   const { isSDKLoaded } = useMiniApp();
@@ -50,12 +53,17 @@ function useResolvedTheme() {
 
   useEffect(() => {
     const resolve = () => {
-      setTheme(document.documentElement.classList.contains("dark") ? "dark" : "light");
+      setTheme(
+        document.documentElement.classList.contains("dark") ? "dark" : "light",
+      );
     };
 
     resolve();
     const observer = new MutationObserver(resolve);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
 
     return () => observer.disconnect();
   }, []);
@@ -67,24 +75,26 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const theme = useResolvedTheme();
 
   return (
-    <MiniAppProvider analyticsEnabled={true}>
-      <WagmiProvider config={config}>
-        <QueryClientProvider client={queryClient}>
-          <RainbowKitProvider
-            theme={(theme === "dark" ? darkTheme : lightTheme)({
-              accentColor: "#7c3aed",
-              accentColorForeground: "white",
-              borderRadius: "medium",
-              fontStack: "system",
-            })}
-          >
-            <AIProviderContext>
-              <MiniAppReady />
-              {children}
-            </AIProviderContext>
-          </RainbowKitProvider>
-        </QueryClientProvider>
-      </WagmiProvider>
-    </MiniAppProvider>
+    <Auth0Provider>
+      <MiniAppProvider analyticsEnabled={true}>
+        <WagmiProvider config={config}>
+          <QueryClientProvider client={queryClient}>
+            <RainbowKitProvider
+              theme={(theme === "dark" ? darkTheme : lightTheme)({
+                accentColor: "#7c3aed",
+                accentColorForeground: "white",
+                borderRadius: "medium",
+                fontStack: "system",
+              })}
+            >
+              <AIProviderContext>
+                <MiniAppReady />
+                {children}
+              </AIProviderContext>
+            </RainbowKitProvider>
+          </QueryClientProvider>
+        </WagmiProvider>
+      </MiniAppProvider>
+    </Auth0Provider>
   );
 }
