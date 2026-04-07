@@ -1,10 +1,10 @@
 /**
  * OnPoint API Server
  * 
- * Lightweight Express server for agent routes.
+ * Consolidated backend for all AI and agent routes.
  * Runs on Hetzner VPS via PM2.
  * 
- * Ports: 48751 (API), 48752 (Bridge) - exotic to avoid conflicts
+ * Ports: 48751 (API), 48752 (Bridge)
  */
 
 require('dotenv').config();
@@ -27,6 +27,8 @@ app.get('/health', async (req, res) => {
     res.json({ 
       status: 'healthy',
       redis: 'connected',
+      venice: !!process.env.VENICE_API_KEY,
+      gemini: !!process.env.GOOGLE_GEMINI_API_KEY,
       timestamp: Date.now()
     });
   } catch (error) {
@@ -44,17 +46,20 @@ const PORT = process.env.PORT || 48751;
 app.get('/api/status', (req, res) => {
   res.json({ 
     service: 'onpoint-api',
-    version: '1.0.0',
+    version: '2.0.0',
     status: 'running',
-    port: PORT
+    port: PORT,
+    features: ['venice-vision', 'gemini-live', 'virtual-tryon']
   });
 });
 
-// AI routes
+// AI routes - consolidated
 app.use('/api/ai/virtual-tryon', require('./routes/ai-virtual-tryon'));
 app.use('/api/ai/analyze-person', require('./routes/ai-analyze-person'));
+app.use('/api/ai/venice-analyze', require('./routes/ai-venice-analyze'));
+app.use('/api/ai/live-session', require('./routes/ai-live-session'));
 
-// Catch-all for agent routes (return 200 OK)
+// Agent routes (placeholder for future migration)
 app.use('/api/agent/:route', (req, res) => {
   res.json({ 
     status: 'ok', 
@@ -77,6 +82,7 @@ app.use((err, req, res, next) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 OnPoint API running on port ${PORT}`);
   console.log(`   Health: http://localhost:${PORT}/health`);
+  console.log(`   Features: Venice Vision, Gemini Live, Virtual Try-On`);
 });
 
 module.exports = app;

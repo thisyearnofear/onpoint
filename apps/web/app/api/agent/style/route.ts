@@ -31,41 +31,40 @@ const GetRecommendationsSchema = z.object({
   excludeIds: z.array(z.string()).default([]),
 });
 
-// POST - Track a style interaction (requires auth)
+// POST - Track a style interaction (auth optional for anonymous tracking)
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  return requireAuthWithRateLimit(async (req, ctx) => {
-    const origin = req.headers.get("origin") ?? undefined;
+  const origin = request.headers.get("origin") ?? undefined;
 
-    try {
-      const body = await req.json();
-      const parsed = TrackInteractionSchema.safeParse(body);
+  try {
+    const body = await request.json();
+    const parsed = TrackInteractionSchema.safeParse(body);
 
-      if (!parsed.success) {
-        return NextResponse.json(
-          { error: parsed.error.message },
-          { status: 400, headers: corsHeaders(origin) },
-        );
-      }
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.message },
+        { status: 400, headers: corsHeaders(origin) },
+      );
+    }
 
-      const { userId, category, price, sessionGoal } = parsed.data;
+    const { userId, category, price, sessionGoal } = parsed.data;
 
-      // Use authenticated user ID if userId matches default
-      const effectiveUserId = userId === "default" ? ctx.userId : userId;
+    // Use provided userId or default for anonymous sessions
+    const effectiveUserId = userId || "anonymous";
 
-      await AgentControls.initStore("onpoint-stylist", effectiveUserId);
-      AgentControls.trackStyleInteraction(effectiveUserId, { category, price });
+    await AgentControls.initStore("onpoint-stylist", effectiveUserId);
+    AgentControls.trackStyleInteraction(effectiveUserId, { category, price });
 
-      // Seed style preferences based on session goal for first-time users
-      if (sessionGoal) {
-        const prefs = AgentControls.getStylePreferences(effectiveUserId);
-        // If no existing preferences, seed based on session goal
-        if (prefs.categories.length === 0 && prefs.colors.length === 0) {
-          const goalSeeds: Record<
-            string,
-            { categories: string[]; colors: string[] }
-          > = {
-            event: {
-              categories: ["dress", "jacket", "accessory"],
+    // Seed style preferences based on session goal for first-time users
+    if (sessionGoal) {
+      const prefs = AgentControls.getStylePreferences(effectiveUserId);
+      // If no existing preferences, seed based on session goal
+      if (prefs.categories.length === 0 && prefs.colors.length === 0) {
+        const goalSeeds: Record<
+          string,
+          { categories: string[]; colors: string[] }
+        > = {
+          event: {
+            categories: ["dress", "jacket", "accessory"],
             colors: ["black", "navy", "burgundy", "gold"],
           },
           daily: {
@@ -79,7 +78,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         };
         const seed = goalSeeds[sessionGoal];
         if (seed) {
-          AgentControls.trackStyleInteraction(userId, {
+          AgentControls.trackStyleInteraction(effectiveUserId, {
             category: seed.categories[0]!,
             price: 50,
           });
@@ -98,7 +97,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       { status: 500, headers: corsHeaders(origin) },
     );
   }
-  })(request);
 }
 
 // GET - Get personalized recommendations (requires auth)

@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
       // Strip data URL prefix if present
       const base64Image = image.replace(/^data:image\/\w+;base64,/, "");
 
-      // Call Venice AI
+      // Call Venice AI with vision-capable model
       const response = await fetch(`${VENICE_API_URL}/chat/completions`, {
         method: "POST",
         headers: {
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "mistral-31-24b",
+          model: "qwen3-vl-235b-a22b", // Vision-capable model
           messages: [
             {
               role: "system",

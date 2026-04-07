@@ -103,8 +103,9 @@ export class VeniceLiveProvider {
           base64Image = `data:image/jpeg;base64,${Buffer.from(buffer).toString("base64")}`;
         }
 
-        // Call our backend proxy
-        const response = await fetch("/api/ai/venice-analyze", {
+        // Call backend API (consolidated through Hetzner)
+        const apiBase = process.env.NEXT_PUBLIC_AGENT_API_URL || '';
+        const response = await fetch(`${apiBase}/api/ai/venice-analyze`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

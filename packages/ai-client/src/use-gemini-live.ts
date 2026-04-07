@@ -35,8 +35,9 @@ export function useGeminiLive() {
         videoRef.current.srcObject = stream;
       }
       
-      // Fetch provisioned config
-      const response = await fetch('/api/ai/live-session', {
+      // Fetch provisioned config from backend
+      const apiBase = process.env.NEXT_PUBLIC_AGENT_API_URL || '';
+      const response = await fetch(`${apiBase}/api/ai/live-session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
