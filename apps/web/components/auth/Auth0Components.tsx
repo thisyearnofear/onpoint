@@ -1,4 +1,3 @@
-// Auth0 UI Components for OnPoint
 "use client";
 
 import { useUser } from "@auth0/nextjs-auth0/client";

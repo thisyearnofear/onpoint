@@ -6,7 +6,7 @@
  * without ever seeing the user's Google credentials.
  */
 
-import { TokenVaultService, TokenVaultError } from "../services/token-vault";
+import { executeSecureRequest, TokenVaultError } from "../services/token-vault";
 import type { AgentAuthContext } from "../../middleware/agent-auth";
 
 export interface CalendarEvent {
@@ -30,7 +30,7 @@ export class CalendarTool {
     try {
       console.log(`[CalendarTool] Scheduling event: ${event.summary}`);
 
-      const result = await TokenVaultService.executeSecureRequest(auth, {
+      const result = await executeSecureRequest(auth, {
         connection: 'google-oauth2',
         scopes: ['https://www.googleapis.com/auth/calendar.events'],
         endpoint: 'https://www.googleapis.com/calendar/v3/calendars/primary/events',
@@ -58,7 +58,7 @@ export class CalendarTool {
 
       return {
         success: true,
-        eventId: result.data?.id,
+        eventId: (result.data as any)?.id,
       };
     } catch (error: any) {
       console.error('[CalendarTool] Failed to schedule event:', error);
@@ -107,7 +107,7 @@ export class CalendarTool {
         maxResults: '10'
       });
 
-      const result = await TokenVaultService.executeSecureRequest(auth, {
+      const result = await executeSecureRequest(auth, {
         connection: 'google-oauth2',
         scopes: ['https://www.googleapis.com/auth/calendar.readonly'],
         endpoint: `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params.toString()}`,
@@ -116,7 +116,7 @@ export class CalendarTool {
 
       return {
         success: true,
-        events: result.data?.items || []
+        events: (result.data as any)?.items || []
       };
     } catch (error: any) {
       console.error('[CalendarTool] Failed to get events:', error);
@@ -151,14 +151,14 @@ export class CalendarTool {
         singleEvents: 'true'
       });
 
-      const result = await TokenVaultService.executeSecureRequest(auth, {
+      const result = await executeSecureRequest(auth, {
         connection: 'google-oauth2',
         scopes: ['https://www.googleapis.com/auth/calendar.readonly'],
         endpoint: `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params.toString()}`,
         method: 'GET'
       });
 
-      const events = result.data?.items || [];
+      const events = (result.data as any)?.items || [];
       
       return {
         available: events.length === 0,
