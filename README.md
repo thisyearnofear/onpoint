@@ -78,15 +78,16 @@ Every agent action is verifiable:
 
 ### Secure Token Vault Integration
 Agent accesses external services without exposing credentials:
-- **Connected Accounts** — Users authorize access via OAuth (Google, Slack, GitHub, etc.)
+- **Connected Accounts** — Users authorize access via OAuth (Shop, Klarna, PayPal, Amazon, Google, Discord)
 - **Token Vault** — Auth0 securely stores and manages provider tokens
 - **On-Demand Exchange** — Agent requests scoped tokens only when needed (RFC 8693)
 - **User Control** — View connected accounts, revoke access anytime
 - **Example Use Cases**:
+  - Access Shop/Amazon purchase history for style recommendations
+  - Use Klarna wishlists to suggest items user already wants
   - Schedule try-on appointments in Google Calendar
-  - Share outfit recommendations to Slack
-  - Save style configs to GitHub
-  - Create fashion journal entries in Notion
+  - Share outfit recommendations to Discord fashion communities
+  - Analyze Gmail receipts for shopping patterns
 
 ### Social & Sharing
 - Share style sessions and "proof of style" snapshots to social feeds

@@ -9,12 +9,12 @@ import { auth0 } from "../auth0";
 import { AgentAuthContext } from "../../middleware/agent-auth";
 
 export type SupportedProvider =
+  | "custom-shop"
+  | "custom-klarna"
+  | "paypal"
+  | "amazon"
   | "google-oauth2"
-  | "github"
-  | "slack"
-  | "windowslive"
-  | "notion"
-  | "custom-shopping";
+  | "discord";
 
 export interface TokenVaultRequest {
   connection: SupportedProvider;

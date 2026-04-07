@@ -5,20 +5,20 @@ import { auth0 } from "../../../../lib/auth0";
  * GET /api/auth/connect
  * 
  * Initiates OAuth flow to connect external accounts for Token Vault.
- * Uses Auth0 SDK's authorize endpoint with connection parameter.
+ * Uses Auth0 SDK v4 authorize endpoint with connection parameter.
  */
 export async function GET(request: NextRequest) {
   try {
     const session = await auth0.getSession();
 
     if (!session?.user) {
-      return NextResponse.redirect(new URL('/api/auth/login', request.url));
+      return NextResponse.redirect(new URL('/auth/login', request.url));
     }
 
     const { searchParams } = new URL(request.url);
     const connection = searchParams.get('connection');
     const scope = searchParams.get('scope');
-    const redirectUri = searchParams.get('redirect_uri') || `${process.env.AUTH0_BASE_URL}/api/auth/callback`;
+    const redirectUri = searchParams.get('redirect_uri') || `${process.env.AUTH0_BASE_URL}/auth/callback`;
 
     if (!connection) {
       return NextResponse.json(
@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Build Auth0 authorize URL with connection parameter
     const params = new URLSearchParams({
       connection,
       redirect_uri: redirectUri,
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
       ...(scope && { scope })
     });
 
-    const authUrl = `${process.env.AUTH0_ISSUER_BASE_URL}/authorize?${params.toString()}`;
+    const authUrl = `https://${process.env.AUTH0_DOMAIN}/authorize?${params.toString()}`;
     
     return NextResponse.redirect(authUrl);
   } catch (error: any) {

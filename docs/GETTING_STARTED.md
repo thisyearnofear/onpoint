@@ -58,7 +58,34 @@ Copy `.env.example` to `.env.local` and configure:
 | `AUTH0_CLIENT_ID`     | Application client ID from Auth0 dashboard                                       |
 | `AUTH0_CLIENT_SECRET` | Application client secret (server-only)                                          |
 | `AUTH0_SECRET`        | 64-char secret for session encryption (`openssl rand -hex 32`)                   |
-| `APP_BASE_URL`        | Your app URL (`http://localhost:3000` dev, `https://beonpoint.netlify.app` prod) |
+| `AUTH0_BASE_URL`      | Your app URL (`http://localhost:3000` dev, `https://beonpoint.netlify.app` prod) |
+| `APP_BASE_URL`        | Same as AUTH0_BASE_URL (legacy compatibility)                                    |
+| `AUTH0_MANAGEMENT_API_TOKEN` | Optional - for revoking connections (create M2M app with `read:users`, `update:users`) |
+
+#### Auth0 Tenant Setup
+
+1. **Create Auth0 Account** at https://auth0.com
+2. **Create Regular Web Application**:
+   - Go to Applications → Create Application
+   - Choose "Regular Web Applications"
+   - Name it "OnPoint AI Agent"
+3. **Configure Application Settings**:
+   - Allowed Callback URLs: `http://localhost:3000/auth/callback`, `https://yourdomain.com/auth/callback`
+   - Allowed Logout URLs: `http://localhost:3000`, `https://yourdomain.com`
+   - Allowed Web Origins: `http://localhost:3000`, `https://yourdomain.com`
+4. **Enable Social Connections** (Authentication → Social):
+   - ✅ Google OAuth2 (for Calendar integration) — Add scopes: `https://www.googleapis.com/auth/calendar.events`
+   - ✅ GitHub (for config storage) — Add scopes: `repo`, `gist`
+   - ✅ Slack (for sharing) — Add scopes: `chat:write`, `channels:read`
+   - ✅ Microsoft (for Outlook/OneDrive) — Add scopes: `Calendars.ReadWrite`, `Files.Read`
+   - For each connection, enable it for your application
+5. **Optional: Management API** (for connection revocation):
+   - Go to Applications → APIs → Auth0 Management API
+   - Create Machine-to-Machine Application
+   - Grant permissions: `read:users`, `update:users`, `delete:user_identities`
+   - Copy the token to `AUTH0_MANAGEMENT_API_TOKEN`
+
+**Note**: Auth0 SDK v4 uses `/auth/*` routes (not `/api/auth/*`). The middleware in `apps/web/middleware.ts` handles all authentication automatically.
 
 ## Project Structure
 

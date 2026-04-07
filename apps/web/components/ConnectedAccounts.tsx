@@ -19,9 +19,37 @@ const PROVIDER_CONFIG: Record<SupportedProvider, {
   defaultScopes: string[];
   color: string;
 }> = {
+  'custom-shop': {
+    name: 'Shop',
+    description: 'Shopify shopping history & preferences',
+    icon: '🛍️',
+    defaultScopes: ['openid', 'profile', 'email'],
+    color: 'from-indigo-500 to-indigo-600'
+  },
+  'custom-klarna': {
+    name: 'Klarna',
+    description: 'Payment history & wishlists',
+    icon: '💳',
+    defaultScopes: ['openid', 'profile'],
+    color: 'from-pink-500 to-pink-600'
+  },
+  'paypal': {
+    name: 'PayPal',
+    description: 'Payment & transaction history',
+    icon: '💰',
+    defaultScopes: ['openid', 'profile', 'email'],
+    color: 'from-blue-600 to-blue-700'
+  },
+  'amazon': {
+    name: 'Amazon',
+    description: 'Shopping history & wishlists',
+    icon: '📦',
+    defaultScopes: ['profile', 'postal_code'],
+    color: 'from-orange-500 to-orange-600'
+  },
   'google-oauth2': {
     name: 'Google',
-    description: 'Calendar, Gmail, Drive access',
+    description: 'Calendar & Gmail for receipts',
     icon: '📅',
     defaultScopes: [
       'https://www.googleapis.com/auth/calendar.events',
@@ -29,40 +57,12 @@ const PROVIDER_CONFIG: Record<SupportedProvider, {
     ],
     color: 'from-blue-500 to-blue-600'
   },
-  'github': {
-    name: 'GitHub',
-    description: 'Save style configs and preferences',
-    icon: '🐙',
-    defaultScopes: ['repo', 'gist'],
-    color: 'from-gray-700 to-gray-800'
-  },
-  'slack': {
-    name: 'Slack',
-    description: 'Share outfit recommendations',
+  'discord': {
+    name: 'Discord',
+    description: 'Share with fashion communities',
     icon: '💬',
-    defaultScopes: ['chat:write', 'channels:read'],
-    color: 'from-purple-500 to-purple-600'
-  },
-  'notion': {
-    name: 'Notion',
-    description: 'Fashion journal and notes',
-    icon: '📝',
-    defaultScopes: ['pages:write'],
-    color: 'from-gray-600 to-gray-700'
-  },
-  'windowslive': {
-    name: 'Microsoft',
-    description: 'Outlook, OneDrive access',
-    icon: '🪟',
-    defaultScopes: ['Calendars.ReadWrite', 'Files.Read'],
-    color: 'from-blue-600 to-blue-700'
-  },
-  'custom-shopping': {
-    name: 'Shopping APIs',
-    description: 'Zara, SSENSE, Farfetch',
-    icon: '🛍️',
-    defaultScopes: ['shopping:read', 'shopping:write'],
-    color: 'from-pink-500 to-pink-600'
+    defaultScopes: ['identify', 'email'],
+    color: 'from-indigo-600 to-indigo-700'
   }
 };
 
