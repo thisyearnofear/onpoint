@@ -6,7 +6,6 @@ import {
   rateLimitHeaders,
   getClientId,
 } from "../../../../lib/utils/rate-limit";
-import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 
 const VENICE_API_URL = "https://api.venice.ai/api/v1";
 
@@ -39,11 +38,10 @@ const PROMPTS_BY_GOAL: Record<string, string[]> = {
 const sessionFrameCount = new Map<string, number>();
 
 export async function POST(request: NextRequest) {
-  return requireAuthWithRateLimit(async (req, _ctx) => {
-    const origin = req.headers.get("origin") || "*";
-    const clientId = getClientId(req);
+  const origin = request.headers.get("origin") || "*";
+  const clientId = getClientId(request);
 
-    try {
+  try {
       // Rate limit Venice analysis
       const rateLimitResult = await rateLimit(
         `venice-analyze:${clientId}`,
@@ -69,7 +67,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const body: VeniceAnalyzeRequest = await req.json();
+      const body: VeniceAnalyzeRequest = await request.json();
       const { image, goal, systemInstruction } = body;
 
       if (!image || !goal) {
@@ -168,7 +166,6 @@ export async function POST(request: NextRequest) {
         { status: 500, headers: corsHeaders(origin) },
       );
     }
-  })(request);
 }
 
 export async function OPTIONS(request: NextRequest) {
