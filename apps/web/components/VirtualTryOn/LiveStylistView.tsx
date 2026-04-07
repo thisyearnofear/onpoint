@@ -60,6 +60,19 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   const [showInstructions, setShowInstructions] = React.useState(true);
   const [showStyleReport, setShowStyleReport] = React.useState(false);
 
+  // Stop camera when leaving the view
+  const handleBack = React.useCallback(() => {
+    session.stopSession();
+    onBack();
+  }, [session.stopSession, onBack]);
+
+  // Cleanup on unmount — ensure camera stops if component is removed
+  React.useEffect(() => {
+    return () => {
+      session.stopSession();
+    };
+  }, []);
+
   // Mobile detection — hide non-essential HUD elements on small screens
   const [isMobile, setIsMobile] = React.useState(false);
   React.useEffect(() => {
@@ -172,7 +185,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           <Button
             variant="ghost"
             className="text-white bg-white/5 hover:bg-white/10 rounded-full"
-            onClick={onBack}
+            onClick={handleBack}
           >
             Done
           </Button>
@@ -494,7 +507,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
         <Button
           variant="ghost"
           className="text-slate-500 hover:text-white"
-          onClick={onBack}
+          onClick={handleBack}
         >
           Back to Wardrobe
         </Button>
