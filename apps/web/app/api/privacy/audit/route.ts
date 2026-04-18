@@ -19,10 +19,16 @@ import {
   type AgentAction,
 } from "../../../../lib/services/agent-registry";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
+import { logger } from "../../../../lib/utils/logger";
+import {
+  readPersistentState,
+  writePersistentState,
+} from "../../../../lib/utils/persistent-state";
 export { OPTIONS } from "../../ai/_utils/http";
 
-// In-memory audit log (production would use Redis)
-const auditLog: Array<{
+const AUDIT_LOG_KEY = "privacy:audit-log:v1";
+
+type AuditEntry = {
   id: string;
   sessionId: string;
   imageHash: string;
@@ -33,7 +39,15 @@ const auditLog: Array<{
   dataDeleted: boolean;
   deletedAt: number;
   action: string;
-}> = [];
+};
+
+async function getAuditLog(): Promise<AuditEntry[]> {
+  return readPersistentState(AUDIT_LOG_KEY, () => []);
+}
+
+async function saveAuditLog(entries: AuditEntry[]): Promise<void> {
+  await writePersistentState(AUDIT_LOG_KEY, entries);
+}
 
 /**
  * Create a privacy-preserving hash of the image.
@@ -64,7 +78,7 @@ export async function POST(request: NextRequest) {
 
       // Create audit entry
       const entry = {
-        id: `audit_${now}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `audit_${now}_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`,
         sessionId,
         imageHash,
         imageSize,
@@ -76,7 +90,9 @@ export async function POST(request: NextRequest) {
         action,
       };
 
+      const auditLog = await getAuditLog();
       auditLog.push(entry);
+      await saveAuditLog(auditLog);
 
       // Record as ERC-8004 receipt (on-chain for verifiable privacy proof)
       await recordReceipt({
@@ -90,9 +106,12 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      console.log(
-        `[PrivacyAudit] Session ${sessionId}: processed ${imageSize}B image, hash=${imageHash.slice(0, 12)}..., deleted immediately`,
-      );
+      logger.info("Recorded privacy audit event", {
+        component: "privacy-audit",
+        sessionId,
+        imageSize,
+        imageHashPrefix: imageHash.slice(0, 12),
+      });
 
       return NextResponse.json(
         {
@@ -119,7 +138,7 @@ export async function POST(request: NextRequest) {
         { headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("Privacy audit error:", error);
+      logger.error("Privacy audit failed", { component: "privacy-audit" }, error);
       return NextResponse.json(
         { error: "Failed to create audit entry" },
         { status: 500, headers: corsHeaders(origin) },
@@ -134,6 +153,7 @@ export async function GET(request: NextRequest) {
 
     const url = new URL(req.url);
     const sessionId = url.searchParams.get("sessionId");
+    const auditLog = await getAuditLog();
 
     if (sessionId) {
       const entries = auditLog.filter((e) => e.sessionId === sessionId);
@@ -171,4 +191,3 @@ export async function GET(request: NextRequest) {
     );
   })(request);
 }
-

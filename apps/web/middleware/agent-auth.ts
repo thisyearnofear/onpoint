@@ -80,7 +80,7 @@ const NONCE_PREFIX = "siwe:nonce:";
  * Generate a cryptographically secure nonce for SIWE
  */
 export async function generateNonce(): Promise<string> {
-  const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  const nonce = crypto.randomUUID().replace(/-/g, "");
   await redisSetEx(
     `${NONCE_PREFIX}${nonce}`,
     { created: Date.now() },
@@ -449,10 +449,9 @@ export function isPremiumUser(userId: string): boolean {
 }
 
 /**
- * Generate a simple API key for a user.
- * In production, use proper crypto and store hashed keys.
+ * Generate an API key for a user using cryptographically secure randomness.
  */
 export function generateApiKey(userId: string): string {
-  const random = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  const random = crypto.randomUUID().replace(/-/g, "");
   return `sk_${userId}_${random}`;
 }

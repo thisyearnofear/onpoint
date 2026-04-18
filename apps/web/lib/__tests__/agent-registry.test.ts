@@ -64,13 +64,13 @@ describe("Agent Registry (ERC-8004)", () => {
         sessionId,
       });
 
-      const receipts = getSessionReceipts(sessionId);
+      const receipts = await getSessionReceipts(sessionId);
       expect(receipts.length).toBeGreaterThanOrEqual(2);
       expect(receipts.every((r) => r.sessionId === sessionId)).toBe(true);
     });
 
-    it("returns empty array for non-existent session", () => {
-      const receipts = getSessionReceipts("non-existent-xyz-123");
+    it("returns empty array for non-existent session", async () => {
+      const receipts = await getSessionReceipts("non-existent-xyz-123");
       expect(receipts).toEqual([]);
     });
   });
@@ -83,20 +83,20 @@ describe("Agent Registry (ERC-8004)", () => {
         metadata: { title: "Test" },
       });
 
-      const found = getReceipt(created.id);
+      const found = await getReceipt(created.id);
       expect(found).toBeDefined();
       expect(found?.id).toBe(created.id);
     });
 
-    it("returns undefined for non-existent ID", () => {
-      const found = getReceipt("receipt_nonexistent_xyz");
+    it("returns undefined for non-existent ID", async () => {
+      const found = await getReceipt("receipt_nonexistent_xyz");
       expect(found).toBeUndefined();
     });
   });
 
   describe("getAgentIdentity", () => {
-    it("returns OnPoint agent identity", () => {
-      const identity = getAgentIdentity();
+    it("returns OnPoint agent identity", async () => {
+      const identity = await getAgentIdentity();
       expect(identity.agentId).toBe(35962);
       expect(identity.name).toBe("OnPoint AI Stylist");
       expect(identity.walletAddress).toMatch(/^0x[a-fA-F0-9]{40}$/);
@@ -104,8 +104,8 @@ describe("Agent Registry (ERC-8004)", () => {
   });
 
   describe("getAllReceipts", () => {
-    it("returns paginated results", () => {
-      const result = getAllReceipts({ limit: 5, offset: 0 });
+    it("returns paginated results", async () => {
+      const result = await getAllReceipts({ limit: 5, offset: 0 });
       expect(result).toHaveProperty("receipts");
       expect(result).toHaveProperty("total");
     });

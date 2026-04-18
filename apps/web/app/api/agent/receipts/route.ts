@@ -8,6 +8,7 @@ import {
   getReceipt,
 } from "../../../../lib/services/agent-registry";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
+import { logger } from "../../../../lib/utils/logger";
 export { OPTIONS } from "../../ai/_utils/http";
 
 /**
@@ -33,11 +34,11 @@ export async function GET(request: NextRequest) {
       const receiptId = url.searchParams.get("id");
 
       // Get agent identity
-      const identity = getAgentIdentity();
+      const identity = await getAgentIdentity();
 
       // Get specific receipt by ID
       if (receiptId) {
-        const receipt = getReceipt(receiptId);
+        const receipt = await getReceipt(receiptId);
         if (!receipt) {
           return NextResponse.json(
             { error: "Receipt not found" },
@@ -55,13 +56,13 @@ export async function GET(request: NextRequest) {
       let total;
 
       if (sessionId) {
-        receipts = getSessionReceipts(sessionId);
+        receipts = await getSessionReceipts(sessionId);
         total = receipts.length;
       } else if (onchain) {
-        receipts = getOnChainReceipts();
+        receipts = await getOnChainReceipts();
         total = receipts.length;
       } else {
-        const result = getAllReceipts({ limit, offset });
+        const result = await getAllReceipts({ limit, offset });
         receipts = result.receipts;
         total = result.total;
       }
@@ -80,7 +81,7 @@ export async function GET(request: NextRequest) {
         { headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("[ReceiptsAPI] Error:", error);
+      logger.error("Failed to load receipts", { component: "receipts-api" }, error);
       return NextResponse.json(
         { error: "Internal server error" },
         { status: 500, headers: corsHeaders(origin) },
@@ -88,4 +89,3 @@ export async function GET(request: NextRequest) {
     }
   })(request);
 }
-

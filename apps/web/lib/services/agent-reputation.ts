@@ -16,6 +16,7 @@
  */
 
 import { Redis } from "@upstash/redis";
+import { logger } from "../utils/logger";
 
 export interface AgentReputation {
   walletAddress: string;
@@ -54,7 +55,15 @@ function getRedisClient(): Redis | null {
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
   if (!url || !token || url.includes("your-") || token.includes("your-")) {
-    console.warn("⚠️ Upstash Redis not configured - using in-memory fallback");
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production",
+      );
+    }
+
+    logger.warn("Upstash Redis not configured; using in-memory fallback", {
+      component: "agent-reputation",
+    });
     return null;
   }
 

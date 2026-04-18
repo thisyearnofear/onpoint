@@ -12,6 +12,7 @@
  */
 
 import {
+  CANVAS_ITEMS,
   FashionItem,
   ExternalProduct,
   searchCatalog as searchLocalCatalog,
@@ -173,7 +174,6 @@ class ProductCatalogService {
    * Get product by ID (local catalog only for now)
    */
   getById(id: string): FashionItem | undefined {
-    const { CANVAS_ITEMS } = require("@onpoint/shared-types");
     return CANVAS_ITEMS.find((item: FashionItem) => item.id === id);
   }
 
@@ -181,7 +181,6 @@ class ProductCatalogService {
    * Get products by category (local catalog)
    */
   getByCategory(category: string, limit = 20): FashionItem[] {
-    const { CANVAS_ITEMS } = require("@onpoint/shared-types");
     return CANVAS_ITEMS.filter(
       (item: FashionItem) =>
         item.category.toLowerCase() === category.toLowerCase(),

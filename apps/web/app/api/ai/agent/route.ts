@@ -747,7 +747,7 @@ async function runAgentLoop(
   const reasoning = lastAssistant?.content || "";
 
   // Get ERC-8004 receipts for this session
-  const receipts = getSessionReceipts(sessionId).map((r) => ({
+  const receipts = (await getSessionReceipts(sessionId)).map((r) => ({
     id: r.id,
     action: r.action,
     timestamp: r.timestamp,
@@ -930,4 +930,3 @@ export async function POST(request: NextRequest) {
     }
   })(request);
 }
-

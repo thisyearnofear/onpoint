@@ -19,6 +19,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { corsHeaders } from "../../ai/_utils/http";
 import { getAgentWallet } from "../../../../lib/services/agent-wallet";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
+import { logger } from "../../../../lib/utils/logger";
+import {
+  readPersistentState,
+  writePersistentState,
+} from "../../../../lib/utils/persistent-state";
 export { OPTIONS } from "../../ai/_utils/http";
 
 interface TipRequest {
@@ -29,8 +34,9 @@ interface TipRequest {
   message?: string;
 }
 
-// In-memory tip ledger (production would use Redis/DB)
-const tipLedger: Array<{
+const TIP_LEDGER_KEY = "agent:tip-ledger:v1";
+
+type TipLedgerEntry = {
   id: string;
   from: string;
   to: string;
@@ -41,7 +47,15 @@ const tipLedger: Array<{
   message?: string;
   txHash?: string;
   status: "pending" | "confirmed" | "failed";
-}> = [];
+};
+
+async function getTipLedger(): Promise<TipLedgerEntry[]> {
+  return readPersistentState(TIP_LEDGER_KEY, () => []);
+}
+
+async function saveTipLedger(entries: TipLedgerEntry[]): Promise<void> {
+  await writePersistentState(TIP_LEDGER_KEY, entries);
+}
 
 /**
  * Resolve the agent's WDK wallet address for a given chain.
@@ -60,7 +74,11 @@ async function resolveAgentAddress(chain: string): Promise<string> {
       ""
     );
   } catch (err) {
-    console.error("[AgentTip] Failed to resolve WDK agent address:", err);
+    logger.error(
+      "Failed to resolve WDK agent address",
+      { component: "agent-tip", chain },
+      err,
+    );
     return "";
   }
 }
@@ -109,7 +127,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const tipId = `tip_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const tipId = `tip_${Date.now()}_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
       const tipToken = token || (chain === "celo" ? "cUSD" : "USDT");
 
       // Record the tip in the ledger
@@ -127,16 +145,19 @@ export async function POST(request: NextRequest) {
         status: "pending" as const,
       };
 
+      const tipLedger = await getTipLedger();
       tipLedger.push(tip);
+      await saveTipLedger(tipLedger);
 
-      console.log(
-        `[AgentTip] Tip recorded: ${amount} ${tipToken} on ${chain}`,
-        {
-          from: fromAddress.slice(0, 6) + "..." + fromAddress.slice(-4),
-          to: agentAddress.slice(0, 6) + "..." + agentAddress.slice(-4),
-          message,
-        },
-      );
+      logger.info("Recorded agent tip", {
+        component: "agent-tip",
+        amount,
+        token: tipToken,
+        chain,
+        from: fromAddress.slice(0, 6) + "..." + fromAddress.slice(-4),
+        to: agentAddress.slice(0, 6) + "..." + agentAddress.slice(-4),
+        message,
+      });
 
       return NextResponse.json(
         {
@@ -157,7 +178,7 @@ export async function POST(request: NextRequest) {
         { headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("Tip processing error:", error);
+      logger.error("Tip processing failed", { component: "agent-tip" }, error);
       return NextResponse.json(
         { error: "Failed to process tip" },
         { status: 500, headers: corsHeaders(origin) },
@@ -171,6 +192,7 @@ export async function GET(request: NextRequest) {
     const origin = req.headers.get("origin") || "*";
 
     try {
+      const tipLedger = await getTipLedger();
       // Resolve agent WDK addresses for display
       const wallet = await getAgentWallet();
       const addresses = await wallet.getAddresses();
@@ -196,7 +218,7 @@ export async function GET(request: NextRequest) {
         { headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("Tip GET error:", error);
+      logger.error("Failed to load tip stats", { component: "agent-tip" }, error);
       return NextResponse.json(
         { error: "Failed to get tip info" },
         { status: 500, headers: corsHeaders(origin) },
@@ -204,4 +226,3 @@ export async function GET(request: NextRequest) {
     }
   })(request);
 }
-

@@ -21,6 +21,11 @@ import {
   type ActionType,
 } from "../../../../lib/middleware/agent-controls";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
+import { logger } from "../../../../lib/utils/logger";
+import {
+  readPersistentState,
+  writePersistentState,
+} from "../../../../lib/utils/persistent-state";
 export { OPTIONS } from "../../ai/_utils/http";
 
 interface AgentTipRequest {
@@ -32,8 +37,9 @@ interface AgentTipRequest {
   message?: string;
 }
 
-// In-memory agent-to-agent tip ledger
-const agentTipLedger: Array<{
+const AGENT_TIP_LEDGER_KEY = "agent:tip-ledger:a2a:v1";
+
+type AgentTipLedgerEntry = {
   id: string;
   fromAgentId: string;
   toAgentId: string;
@@ -45,7 +51,15 @@ const agentTipLedger: Array<{
   timestamp: number;
   message?: string;
   status: "pending" | "confirmed" | "failed";
-}> = [];
+};
+
+async function getAgentTipLedger(): Promise<AgentTipLedgerEntry[]> {
+  return readPersistentState(AGENT_TIP_LEDGER_KEY, () => []);
+}
+
+async function saveAgentTipLedger(entries: AgentTipLedgerEntry[]): Promise<void> {
+  await writePersistentState(AGENT_TIP_LEDGER_KEY, entries);
+}
 
 /**
  * Resolve agent WDK address for a given chain.
@@ -65,7 +79,11 @@ async function resolveAgentAddress(chain: string): Promise<string> {
       ""
     );
   } catch (err) {
-    console.error("[AgentToAgent] Failed to resolve WDK address:", err);
+    logger.error(
+      "Failed to resolve WDK address",
+      { component: "agent-tip-agent", chain },
+      err,
+    );
     return "";
   }
 }
@@ -174,7 +192,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const tipId = `a2a_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const tipId = `a2a_${Date.now()}_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
       const tipToken = token || (chain === "celo" ? "cUSD" : "USDT");
 
       // Record the agent-to-agent tip
@@ -192,7 +210,9 @@ export async function POST(request: NextRequest) {
         status: "pending" as const,
       };
 
+      const agentTipLedger = await getAgentTipLedger();
       agentTipLedger.push(tipRecord);
+      await saveAgentTipLedger(agentTipLedger);
 
       // Record spending for the tipping agent
       AgentControls.recordSpending(
@@ -202,13 +222,16 @@ export async function POST(request: NextRequest) {
         amountWei,
       );
 
-      console.log(
-        `[AgentToAgent] ${fromAgentId} → ${toAgentId}: ${amount} ${tipToken} on ${chain}`,
-        {
-          from: fromAddress.slice(0, 6) + "..." + fromAddress.slice(-4),
-          to: toAddress.slice(0, 6) + "..." + toAddress.slice(-4),
-        },
-      );
+      logger.info("Recorded agent-to-agent tip", {
+        component: "agent-tip-agent",
+        fromAgentId,
+        toAgentId,
+        amount,
+        token: tipToken,
+        chain,
+        from: fromAddress.slice(0, 6) + "..." + fromAddress.slice(-4),
+        to: toAddress.slice(0, 6) + "..." + toAddress.slice(-4),
+      });
 
       return NextResponse.json(
         {
@@ -232,7 +255,11 @@ export async function POST(request: NextRequest) {
         { headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("Agent-to-agent tip error:", error);
+      logger.error(
+        "Agent-to-agent tip failed",
+        { component: "agent-tip-agent" },
+        error,
+      );
       return NextResponse.json(
         { error: "Failed to process agent tip" },
         { status: 500, headers: corsHeaders(origin) },
@@ -246,6 +273,7 @@ export async function GET(request: NextRequest) {
     const origin = req.headers.get("origin") || "*";
 
     try {
+      const agentTipLedger = await getAgentTipLedger();
       const wallet = await getAgentWallet();
       const addresses = await wallet.getAddresses();
 
@@ -265,7 +293,11 @@ export async function GET(request: NextRequest) {
         { headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("Agent-to-agent GET error:", error);
+      logger.error(
+        "Failed to load agent tip stats",
+        { component: "agent-tip-agent" },
+        error,
+      );
       return NextResponse.json(
         { error: "Failed to get agent tip info" },
         { status: 500, headers: corsHeaders(origin) },
@@ -273,4 +305,3 @@ export async function GET(request: NextRequest) {
     }
   })(request);
 }
-

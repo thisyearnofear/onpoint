@@ -4,6 +4,24 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+
+const { redisGetMock, auth0GetSessionMock } = vi.hoisted(() => ({
+  redisGetMock: vi.fn(async () => null),
+  auth0GetSessionMock: vi.fn(async () => null),
+}));
+
+vi.mock("../../lib/auth0", () => ({
+  auth0: {
+    getSession: auth0GetSessionMock,
+  },
+}));
+
+vi.mock("../../lib/utils/redis-helpers", () => ({
+  redisGet: redisGetMock,
+  redisSetEx: vi.fn(async () => undefined),
+  redisDel: vi.fn(async () => undefined),
+}));
+
 import {
   requireAgentAuth,
   requirePermission,
@@ -37,6 +55,9 @@ vi.mock("../../lib/utils/rate-limit", () => ({
 describe("Authentication", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
+    redisGetMock.mockResolvedValue(null);
+    auth0GetSessionMock.mockResolvedValue(null);
   });
 
   describe("extractAuth", () => {
@@ -98,8 +119,29 @@ describe("Authentication", () => {
       expect(auth?.tier).toBe("free");
     });
 
-    it("assigns premium tier for premium users", async () => {
-      vi.stubEnv("PREMIUM_USERS", "user1,user2");
+    it("assigns premium tier for subscribed users", async () => {
+      redisGetMock.mockImplementation(async (key: string) => {
+        if (key === "user:subscription:user1") {
+          return {
+            userId: "user1",
+            tier: "premium",
+            permissions: [
+              "create_suggestion",
+              "accept_suggestion",
+              "reject_suggestion",
+              "search_catalog",
+              "shopping:read",
+              "execute_purchase",
+              "external_search",
+              "view_receipts",
+              "shopping:write",
+              "shopping:purchase",
+            ],
+          };
+        }
+
+        return null;
+      });
 
       const request = new NextRequest("http://localhost/api/test?userId=user1");
 
@@ -107,8 +149,6 @@ describe("Authentication", () => {
 
       expect(auth?.tier).toBe("premium");
       expect(auth?.permissions).toContain("execute_purchase");
-
-      vi.unstubAllEnvs();
     });
   });
 
@@ -257,15 +297,10 @@ describe("Utility Functions", () => {
       expect(key1).not.toBe(key2);
     });
 
-    it("includes timestamp in key", () => {
-      const before = Date.now();
+    it("uses a secure random suffix", () => {
       const apiKey = generateApiKey("user1");
-      const after = Date.now();
 
-      // Key should contain timestamp (in base36)
-      const timestamp = parseInt(apiKey.split("_").pop()!, 36);
-      expect(timestamp).toBeGreaterThanOrEqual(before);
-      expect(timestamp).toBeLessThanOrEqual(after + 1000); // Allow some margin
+      expect(apiKey.split("_").pop()).toMatch(/^[a-f0-9]{32}$/);
     });
   });
 });
@@ -284,7 +319,28 @@ describe("Permission Tiers", () => {
   });
 
   it("premium tier has all permissions", async () => {
-    vi.stubEnv("PREMIUM_USERS", "premiumuser");
+    redisGetMock.mockImplementation(async (key: string) => {
+      if (key === "user:subscription:premiumuser") {
+        return {
+          userId: "premiumuser",
+          tier: "premium",
+          permissions: [
+            "create_suggestion",
+            "accept_suggestion",
+            "reject_suggestion",
+            "search_catalog",
+            "shopping:read",
+            "execute_purchase",
+            "external_search",
+            "view_receipts",
+            "shopping:write",
+            "shopping:purchase",
+          ],
+        };
+      }
+
+      return null;
+    });
 
     const request = new NextRequest(
       "http://localhost/api/test?userId=premiumuser",
@@ -296,7 +352,5 @@ describe("Permission Tiers", () => {
     expect(auth?.permissions).toContain("execute_purchase");
     expect(auth?.permissions).toContain("external_search");
     expect(auth?.permissions).toContain("view_receipts");
-
-    vi.unstubAllEnvs();
   });
 });

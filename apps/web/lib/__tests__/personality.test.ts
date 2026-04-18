@@ -11,7 +11,7 @@ describe("PersonalityService", () => {
   it("returns correct persona prompt", () => {
     const prompt = personalityService.getPersonaPrompt("luxury");
     expect(prompt).toContain("luxury fashion expert");
-    expect(prompt).toContain("sophistication");
+    expect(prompt).toContain("investment piece logic");
   });
 
   it("returns empty string for unknown persona", () => {

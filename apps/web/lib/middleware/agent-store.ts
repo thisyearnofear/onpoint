@@ -27,8 +27,9 @@ import {
   redisSadd,
   redisSmembers,
   redisSrem,
-  isRedisConfigured,
 } from "../utils/redis-helpers";
+
+export { isRedisConfigured } from "../utils/redis-helpers";
 
 // ============================================
 // Redis Key Schema
@@ -276,12 +277,4 @@ export async function hydrateApprovals(
       target.set(approval.id, approval);
     }
   }
-}
-
-// ============================================
-// Utility
-// ============================================
-
-export function isRedisConfigured(): boolean {
-  return !!getRedisConfig();
 }

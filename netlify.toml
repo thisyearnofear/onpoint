@@ -8,11 +8,6 @@
   NODE_VERSION = "20.19.0"
   NPM_FLAGS = "--version"
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
 [context.production]
   command = "cd ../.. && pnpm install && pnpm build --filter=web"
 

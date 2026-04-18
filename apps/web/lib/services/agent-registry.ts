@@ -2,13 +2,19 @@
  * Agent Registry Service — ERC-8004 Compliance
  *
  * Records verifiable receipts for agent actions.
- * In-memory store + optional on-chain receipt via Celo memo transaction.
+ * Redis-backed store + optional on-chain receipt via Celo memo transaction.
  *
  * Each receipt includes: agent identity, action type, timestamp,
  * metadata, and optional on-chain transaction hash.
  *
  * ERC-8004: https://eips.ethereum.org/EIPS/eip-8004
  */
+
+import { logger } from "../utils/logger";
+import {
+  readPersistentState,
+  writePersistentState,
+} from "../utils/persistent-state";
 
 // ============================================
 // Types
@@ -91,16 +97,33 @@ const ONPOINT_AGENT: AgentIdentity = {
   registeredAt: "2026-03-23T07:11:35.978Z",
 };
 
-// ============================================
-// In-Memory Receipt Store
-// ============================================
-
-const receiptStore = new Map<string, AgentReceipt>();
+const RECEIPTS_KEY = "agent:receipts:v1";
 
 function generateReceiptId(): string {
   const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substring(2, 8);
+  const random = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
   return `receipt_${timestamp}_${random}`;
+}
+
+async function loadReceipts(): Promise<AgentReceipt[]> {
+  return readPersistentState(RECEIPTS_KEY, () => []);
+}
+
+async function saveReceipts(receipts: AgentReceipt[]): Promise<void> {
+  await writePersistentState(RECEIPTS_KEY, receipts);
+}
+
+async function upsertReceipt(receipt: AgentReceipt): Promise<void> {
+  const receipts = await loadReceipts();
+  const existingIndex = receipts.findIndex((entry) => entry.id === receipt.id);
+
+  if (existingIndex >= 0) {
+    receipts[existingIndex] = receipt;
+  } else {
+    receipts.push(receipt);
+  }
+
+  await saveReceipts(receipts);
 }
 
 // ============================================
@@ -119,9 +142,10 @@ async function recordReceiptOnChain(
 ): Promise<string | undefined> {
   const privateKey = process.env.AGENT_PRIVATE_KEY as `0x${string}` | undefined;
   if (!privateKey) {
-    console.log(
-      "[AgentRegistry] No AGENT_PRIVATE_KEY — skipping on-chain receipt",
-    );
+    logger.info("Skipping on-chain receipt; AGENT_PRIVATE_KEY missing", {
+      component: "agent-registry",
+      receiptId: receipt.id,
+    });
     return undefined;
   }
 
@@ -155,12 +179,20 @@ async function recordReceiptOnChain(
       data: `0x${Buffer.from(receiptData).toString("hex")}`,
     });
 
-    console.log(`[AgentRegistry] On-chain receipt: ${hash}`);
+    logger.info("Recorded on-chain receipt", {
+      component: "agent-registry",
+      receiptId: receipt.id,
+      txHash: hash,
+    });
     return hash;
   } catch (err: any) {
-    console.error(
-      "[AgentRegistry] On-chain receipt failed:",
-      err?.message || err,
+    logger.error(
+      "Failed to record on-chain receipt",
+      {
+        component: "agent-registry",
+        receiptId: receipt.id,
+      },
+      err,
     );
     return undefined;
   }
@@ -173,10 +205,11 @@ async function recordReceiptOnChain(
 /**
  * Get the OnPoint agent's ERC-8004 identity
  */
-export function getAgentIdentity(): AgentIdentity {
+export async function getAgentIdentity(): Promise<AgentIdentity> {
+  const receipts = await loadReceipts();
   return {
     ...ONPOINT_AGENT,
-    receiptCount: receiptStore.size,
+    receiptCount: receipts.length,
   };
 }
 
@@ -206,35 +239,46 @@ export async function recordReceipt(params: {
     chain: params.chain,
   };
 
-  receiptStore.set(receipt.id, receipt);
+  await upsertReceipt(receipt);
 
   // HACKATHON: Create Verifiable Agent Log (IPFS/Filecoin - Frontiers of Collaboration)
   // This provides a tamper-proof audit trail of agent decisions, signed by the agent wallet.
   try {
     const { uploadToIPFS } = await import("@repo/ipfs-client");
     const { getAgentWallet } = await import("./agent-wallet");
-    
+
     // 1. Prepare log data (copy of receipt before CID/signature)
     const logData = JSON.stringify(receipt);
-    
+
     // 2. Sign the log data using the agent's self-custodial wallet
     const wallet = await getAgentWallet();
     const signature = await wallet.signMessage(logData);
     receipt.signature = signature;
-    
+
     // 3. Upload full signed receipt to IPFS (Filecoin-backed)
     const signedReceipt = { ...receipt, signature };
     const uploadResult = await uploadToIPFS(
       JSON.stringify(signedReceipt, null, 2),
-      `agent-receipt-${receipt.id}.json`
+      `agent-receipt-${receipt.id}.json`,
     );
-    
+
     receipt.verifiableLogCid = uploadResult.cid;
-    receiptStore.set(receipt.id, receipt); // Update with verifiability info
-    
-    console.log(`[AgentRegistry] Verifiable log created: ${uploadResult.cid}`);
+    await upsertReceipt(receipt);
+
+    logger.info("Created verifiable receipt log", {
+      component: "agent-registry",
+      receiptId: receipt.id,
+      cid: uploadResult.cid,
+    });
   } catch (err) {
-    console.error("[AgentRegistry] Failed to create verifiable log:", err);
+    logger.warn(
+      "Failed to create verifiable receipt log",
+      {
+        component: "agent-registry",
+        receiptId: receipt.id,
+      },
+      err,
+    );
     // Continue - don't fail the action if IPFS/Signing is down
   }
 
@@ -244,13 +288,17 @@ export async function recordReceipt(params: {
     if (chainTxHash) {
       receipt.txHash = chainTxHash;
       receipt.chain = "celo";
-      receiptStore.set(receipt.id, receipt);
+      await upsertReceipt(receipt);
     }
   }
 
-  console.log(
-    `[AgentRegistry] Receipt: ${receipt.id} | ${receipt.action} | Agent #${receipt.agentId}${receipt.txHash ? ` | tx: ${receipt.txHash}` : ""}`,
-  );
+  logger.info("Recorded agent receipt", {
+    component: "agent-registry",
+    receiptId: receipt.id,
+    action: receipt.action,
+    agentId: String(receipt.agentId),
+    txHash: receipt.txHash,
+  });
 
   return receipt;
 }
@@ -258,8 +306,11 @@ export async function recordReceipt(params: {
 /**
  * Get all receipts for a session
  */
-export function getSessionReceipts(sessionId: string): AgentReceipt[] {
-  return Array.from(receiptStore.values())
+export async function getSessionReceipts(
+  sessionId: string,
+): Promise<AgentReceipt[]> {
+  const receipts = await loadReceipts();
+  return receipts
     .filter((r) => r.sessionId === sessionId)
     .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 }
@@ -267,12 +318,12 @@ export function getSessionReceipts(sessionId: string): AgentReceipt[] {
 /**
  * Get all receipts (paginated)
  */
-export function getAllReceipts(options?: {
+export async function getAllReceipts(options?: {
   limit?: number;
   offset?: number;
   action?: AgentAction;
-}): { receipts: AgentReceipt[]; total: number } {
-  let receipts = Array.from(receiptStore.values());
+}): Promise<{ receipts: AgentReceipt[]; total: number }> {
+  let receipts = await loadReceipts();
 
   if (options?.action) {
     receipts = receipts.filter((r) => r.action === options.action);
@@ -293,15 +344,17 @@ export function getAllReceipts(options?: {
 /**
  * Get receipt by ID
  */
-export function getReceipt(id: string): AgentReceipt | undefined {
-  return receiptStore.get(id);
+export async function getReceipt(id: string): Promise<AgentReceipt | undefined> {
+  const receipts = await loadReceipts();
+  return receipts.find((receipt) => receipt.id === id);
 }
 
 /**
  * Get receipts with on-chain verification (have txHash)
  */
-export function getOnChainReceipts(): AgentReceipt[] {
-  return Array.from(receiptStore.values())
+export async function getOnChainReceipts(): Promise<AgentReceipt[]> {
+  const receipts = await loadReceipts();
+  return receipts
     .filter((r) => r.txHash)
     .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 }
@@ -344,22 +397,3 @@ export function generateReceiptVerifiableData(receipt: AgentReceipt): {
     },
   };
 }
-
-// ============================================
-// Seed with initial registration receipt
-// ============================================
-
-recordReceipt({
-  action: "analyze_outfit", // placeholder for registration
-  sessionId: "registration",
-  metadata: {
-    type: "agent_registered",
-    agentId: 35962,
-    name: "OnPoint AI Stylist",
-    registry: "ERC-8004",
-    chain: "base",
-    hackathon: "synthesis-2026",
-  },
-  txHash: "0x04034211a79a65c701d1362359dace27b4f5f0588b515bb344c2331f77f1e555",
-  chain: "base",
-});

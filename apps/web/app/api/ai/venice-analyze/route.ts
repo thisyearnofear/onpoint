@@ -6,6 +6,8 @@ import {
   rateLimitHeaders,
   getClientId,
 } from "../../../../lib/utils/rate-limit";
+import { logger } from "../../../../lib/utils/logger";
+import { redisGet, redisSetEx } from "../../../../lib/utils/redis-helpers";
 export { OPTIONS } from "../_utils/http";
 
 const VENICE_API_URL = "https://api.venice.ai/api/v1";
@@ -35,8 +37,8 @@ const PROMPTS_BY_GOAL: Record<string, string[]> = {
   ],
 };
 
-// Track frame count per session for prompt rotation
-const sessionFrameCount = new Map<string, number>();
+const frameCountKey = (clientId: string) =>
+  `venice:frame-count:${encodeURIComponent(clientId)}`;
 
 export async function POST(request: NextRequest) {
   const origin = request.headers.get("origin") || "*";
@@ -88,8 +90,9 @@ export async function POST(request: NextRequest) {
 
       // Get prompt for goal
       const prompts = PROMPTS_BY_GOAL[goal] ?? PROMPTS_BY_GOAL.daily ?? [];
-      const frameCount = (sessionFrameCount.get(clientId) ?? 0) + 1;
-      sessionFrameCount.set(clientId, frameCount);
+      const frameCount =
+        ((await redisGet<number>(frameCountKey(clientId))) ?? 0) + 1;
+      await redisSetEx(frameCountKey(clientId), frameCount, 3600);
       const prompt =
         prompts[(frameCount - 1) % prompts.length] ??
         prompts[0] ??
@@ -137,7 +140,11 @@ export async function POST(request: NextRequest) {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Venice API error:", response.status, errorText);
+        logger.error("Venice API request failed", {
+          component: "venice-analyze",
+          status: response.status,
+          errorText,
+        });
         return NextResponse.json(
           { error: "Venice AI analysis failed" },
           { status: 502, headers: corsHeaders(origin) },
@@ -161,11 +168,10 @@ export async function POST(request: NextRequest) {
         },
       );
     } catch (error) {
-      console.error("Venice analyze error:", error);
+      logger.error("Venice analyze failed", { component: "venice-analyze" }, error);
       return NextResponse.json(
         { error: "Internal server error" },
         { status: 500, headers: corsHeaders(origin) },
       );
     }
 }
-
