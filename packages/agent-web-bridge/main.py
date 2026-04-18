@@ -12,6 +12,7 @@ from collections import defaultdict
 from dotenv import load_dotenv
 import asyncio
 from purch_client import PurchClient, PurchProduct, PurchSearchResult
+from tinyfish_client import TinyFishClient, TinyFishResult
 
 # Load the environment variables from the web app's .env.local
 # This is where the USER specified BROWSER_USE_API_KEY is located.
@@ -142,11 +143,7 @@ class SearchResponse(BaseModel):
 
 
 async def search_purch(query: str, max_results: int = 3) -> PurchSearchResult:
-    """
-    Tier 2: Search via Purch API (Headless Aggregate).
-    Faster and more reliable for common items.
-    Returns PurchSearchResult with reply context (triggers Tier 3 fallback if empty).
-    """
+    """Tier 2: Search via Purch API (Headless Aggregate)."""
     client = PurchClient(api_key=os.getenv("PURCH_API_KEY"))
 
     try:
@@ -158,9 +155,6 @@ async def search_purch(query: str, max_results: int = 3) -> PurchSearchResult:
             return PurchSearchResult(reply="", products=[])
 
         logger.info(f"Tier 2: Found {len(result.products)} products from Purch")
-        if result.reply:
-            logger.info(f"Tier 2 Reply: {result.reply}")
-
         return result
 
     except Exception as e:
@@ -169,6 +163,21 @@ async def search_purch(query: str, max_results: int = 3) -> PurchSearchResult:
 
     finally:
         await client.close()
+
+
+def _tinyfish_to_items(result: TinyFishResult) -> List[ItemData]:
+    """Convert TinyFish products to bridge ItemData format."""
+    return [
+        ItemData(
+            source=p.source,
+            name=p.name,
+            price=p.price,
+            currency=p.currency,
+            url=p.url,
+            image_url=p.image_url,
+        )
+        for p in result.products
+    ]
 
 
 # --- Endpoints ---
@@ -181,66 +190,91 @@ async def search_items(
     _rl: bool = Depends(rate_limit),
 ):
     """
-    Executes a web search for fashion items using the Browser Use Cloud (V3).
-    Returns structured results matching the OnPoint catalog schema.
+    Multi-tier fashion product search with redundant providers.
+
+    Tier 2:   Purch API (fast aggregate)
+    Tier 2.5: TinyFish Search + Fetch (structured web extraction)
+    Tier 3:   Browser Use Cloud || TinyFish Agent (deep browsing, whichever is available)
     """
-    # --- TIER 2: Aggregated Search via Purch API ---
-    purch_result = await search_purch(request.query, request.max_results)
+    query = request.query
+    max_results = request.max_results
+
+    # --- TIER 2: Purch API ---
+    purch_result = await search_purch(query, max_results)
     if purch_result.products:
-        purch_items = [
-            ItemData(
-                source=p.source,
-                name=p.title,
-                price=p.price,
-                currency="USD",
-                url=p.source_url or f"https://purch.xyz/product/{p.asin}",
-                image_url=p.image_url
-            )
-            for p in purch_result.products
-        ]
         return SearchResponse(
             status="success",
-            items=purch_items,
-            live_url=None,
+            items=[
+                ItemData(
+                    source=p.source,
+                    name=p.title,
+                    price=p.price,
+                    currency="USD",
+                    url=p.source_url or f"https://purch.xyz/product/{p.asin}",
+                    image_url=p.image_url,
+                )
+                for p in purch_result.products
+            ],
             reply=purch_result.reply or None,
         )
 
-    # --- TIER 3: Deep Web Search via Browser Use Cloud (Fallback) ---
-    logger.info(f"Tier 3: Falling back to Browser Use Cloud for '{request.query}'...")
+    # --- TIER 2.5: TinyFish Search + Fetch (fast, no browser needed) ---
+    tf = TinyFishClient()
+    if tf.available:
+        tf_result = await tf.search_and_fetch(query, max_results)
+        await tf.close()
+        if tf_result.products:
+            return SearchResponse(
+                status="success",
+                items=_tinyfish_to_items(tf_result),
+            )
 
-    api_key = os.getenv("BROWSER_USE_API_KEY")
-    if not api_key:
-        raise HTTPException(status_code=500, detail="BROWSER_USE_API_KEY not configured")
+    # --- TIER 3: Deep browsing — try Browser Use first, fall back to TinyFish Agent ---
+    logger.info(f"Tier 3: Deep browsing for '{query}'...")
 
-    client = AsyncBrowserUse(api_key=api_key)
+    bu_api_key = os.getenv("BROWSER_USE_API_KEY")
+    if bu_api_key:
+        try:
+            client = AsyncBrowserUse(api_key=bu_api_key)
+            whitelist_str = ", ".join(WHITELIST_DOMAINS)
+            task_description = (
+                f"Search for fashion items matching: '{query}'. "
+                f"Extracted result MUST include at most {max_results} items. "
+                f"PRIORITIZE results from the following trusted marketplaces: {whitelist_str}. "
+                "For each item, ensure you capture the source site name, full product name, current price as a number, "
+                "the full URL, and a representative product image URL if available. "
+                "If metadata is missing, attempt to navigate to the product detail page to extract it."
+            )
+            result = await client.run(
+                task_description,
+                output_schema=SearchResults,
+                model="bu-max",
+            )
+            return SearchResponse(
+                status="success",
+                items=result.output.items,
+                live_url=result.live_url,
+                session_id=str(result.id),
+            )
+        except Exception as e:
+            logger.error(f"Tier 3 Browser Use failed: {e}")
 
-    whitelist_str = ", ".join(WHITELIST_DOMAINS)
-    task_description = (
-        f"Search for fashion items matching: '{request.query}'. "
-        f"Extracted result MUST include at most {request.max_results} items. "
-        f"PRIORITIZE results from the following trusted marketplaces: {whitelist_str}. "
-        "For each item, ensure you capture the source site name, full product name, current price as a number, "
-        "the full URL, and a representative product image URL if available. "
-        "If metadata is missing, attempt to navigate to the product detail page to extract it."
+    # Tier 3 fallback: TinyFish Agent (redundancy for Browser Use)
+    tf = TinyFishClient()
+    if tf.available:
+        tf_result = await tf.agent_browse(query, max_results)
+        await tf.close()
+        if tf_result.products:
+            return SearchResponse(
+                status="success",
+                items=_tinyfish_to_items(tf_result),
+                live_url=tf_result.live_url,
+            )
+
+    raise HTTPException(
+        status_code=503,
+        detail="All search providers exhausted. Configure BROWSER_USE_API_KEY or TINYFISH_API_KEY.",
     )
-
-    try:
-        result = await client.run(
-            task_description,
-            output_schema=SearchResults,
-            model="bu-max"
-        )
-
-        return SearchResponse(
-            status="success",
-            items=result.output.items,
-            live_url=result.live_url,
-            session_id=str(result.id)
-        )
-
-    except Exception as e:
-        logger.error(f"Browser Use Cloud failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/health")

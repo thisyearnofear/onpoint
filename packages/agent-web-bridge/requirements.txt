@@ -13,6 +13,9 @@ httpx==0.27.0
 # Browser automation (transitive deps include httpx, anyio, etc.)
 browser-use-sdk==3.3.1
 
+# TinyFish Web Agent API (Search, Fetch, Agent)
+# Uses httpx (already pinned above)
+
 # Environment variables
 python-dotenv==1.2.2
 

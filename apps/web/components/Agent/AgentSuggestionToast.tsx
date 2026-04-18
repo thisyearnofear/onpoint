@@ -216,7 +216,7 @@ export function AgentSuggestionToast({
                     {suggestion.liveUrl ? "Diving into live marketplaces..." : "Searching global fashion networks..."}
                   </p>
                   <p className="text-[9px] text-indigo-400/50 uppercase tracking-tighter">
-                    {suggestion.liveUrl ? "Tier 3: Autonomous Browser Active" : "Tier 2: Querying Purch Aggregate"}
+                    {suggestion.liveUrl ? "Deep Web Search Active" : "Scanning Product Networks"}
                   </p>
                 </div>
               </div>
