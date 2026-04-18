@@ -809,9 +809,16 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                         <span className={`text-${personaStyling.text}`}>
                           &gt;
                         </span>
-                        <span className="text-slate-300 animate-in fade-in slide-in-from-left-2 truncate">
-                          {reasoning[0] || "Awaiting visual telemetry…"}
-                        </span>
+                        {reasoning[0] ? (
+                          <span className="text-slate-300 animate-in fade-in slide-in-from-left-2 truncate">
+                            {reasoning[0]}
+                          </span>
+                        ) : (
+                          <span className="text-slate-500 flex items-center gap-2">
+                            <span className="inline-block w-2 h-2 rounded-full bg-slate-500 animate-pulse" />
+                            Awaiting visual telemetry…
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>

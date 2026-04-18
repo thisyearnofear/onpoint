@@ -2,7 +2,7 @@ export interface LiveSession {
   connect: () => Promise<void>;
   disconnect: () => void;
   sendAudio: (audioData: ArrayBuffer) => void;
-  sendImage: (imageData: string | Blob) => void;
+  sendImage: (imageData: string | Blob, framePixels?: Uint8ClampedArray) => void;
   
   // Real-time Event System
   on: (event: 'transcript' | 'response' | 'reasoning' | 'error' | 'connected' | 'disconnected' | 'protocol', callback: (data: any) => void) => void;

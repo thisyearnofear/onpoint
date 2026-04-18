@@ -93,6 +93,16 @@ export async function POST(request: NextRequest) {
       const frameCount =
         ((await redisGet<number>(frameCountKey(clientId))) ?? 0) + 1;
       await redisSetEx(frameCountKey(clientId), frameCount, 3600);
+
+      // Server-side capture limit for free tier (3 analyzed frames per session)
+      const MAX_FREE_FRAMES = 30; // ~10 minutes at 3s polling
+      if (frameCount > MAX_FREE_FRAMES) {
+        return NextResponse.json(
+          { error: "Session frame limit reached", frameCount },
+          { status: 429, headers: corsHeaders(origin) },
+        );
+      }
+
       const prompt =
         prompts[(frameCount - 1) % prompts.length] ??
         prompts[0] ??

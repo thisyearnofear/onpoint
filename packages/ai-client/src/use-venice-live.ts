@@ -135,8 +135,9 @@ export function useVeniceLive() {
             canvas.width = videoRef.current.videoWidth;
             canvas.height = videoRef.current.videoHeight;
             ctx.drawImage(videoRef.current, 0, 0);
+            const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
             const base64Image = canvas.toDataURL("image/jpeg", 0.7);
-            sessionRef.current.sendImage(base64Image);
+            sessionRef.current.sendImage(base64Image, pixels);
           }
         }, 3000); // Poll every 3 seconds for Venice
       } catch (err: unknown) {

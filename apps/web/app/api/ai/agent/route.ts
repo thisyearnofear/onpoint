@@ -196,6 +196,29 @@ const agentTools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "search_catalog",
+      description:
+        "Search the OnPoint product catalog by category or keyword. Call this BEFORE recommend_product to find matching items.",
+      parameters: {
+        type: "object",
+        properties: {
+          category: {
+            type: "string",
+            description:
+              "Product category to search (tops, bottoms, outerwear, accessories, shoes, bags)",
+          },
+          query: {
+            type: "string",
+            description: "Optional keyword to filter results",
+          },
+        },
+        required: ["category"],
+      },
+    },
+  },
 ];
 
 // ============================================
@@ -445,6 +468,32 @@ Return ONLY valid JSON, no other text.`,
       };
     }
 
+    case "search_catalog": {
+      const category = (args.category as string) || "";
+      const query = (args.query as string) || "";
+      const results = productCatalog.filter((p) => {
+        const matchCat =
+          !category ||
+          p.category.toLowerCase().includes(category.toLowerCase());
+        const matchQuery =
+          !query ||
+          p.name.toLowerCase().includes(query.toLowerCase()) ||
+          (p.description || "").toLowerCase().includes(query.toLowerCase());
+        return matchCat && matchQuery;
+      });
+
+      return {
+        executed: true,
+        results: results.slice(0, 6).map((p) => ({
+          slug: p.slug,
+          name: p.name,
+          price: p.price,
+          category: p.category,
+        })),
+        total: results.length,
+      };
+    }
+
     default:
       return { executed: false, error: `Unknown tool: ${name}` };
   }
@@ -513,11 +562,6 @@ function buildSystemPrompt(goal: string): string {
 
   const goalContext = goalDescriptions[goal] || goalDescriptions.daily;
 
-  const catalogSummary = productCatalog
-    .slice(0, 12)
-    .map((p) => `- ${p.slug}: ${p.name} ($${p.price}, ${p.category})`)
-    .join("\n");
-
   return `You are the OnPoint AI Fashion Agent — an autonomous blockchain-native stylist with economic agency on Celo.
 
 ## Your Mission
@@ -527,12 +571,9 @@ ${goalContext}
 You are an AUTONOMOUS agent. You must use your tools to take real actions:
 1. ALWAYS call analyze_outfit first to assess the look
 2. If the score >= 8, call propose_mint_nft to propose capturing it on-chain as a Style NFT on Celo
-3. Based on what you see is missing, call recommend_product to suggest complementary items from the catalog
+3. Call search_catalog to find products that fill gaps in the outfit, then recommend_product with the results
 4. Call track_style_preference to remember the user's style for future sessions
 5. Call check_wallet_balance if a transaction is involved
-
-## Product Catalog (use exact slugs for recommend_product)
-${catalogSummary}
 
 ## Blockchain Context
 - Chain: Celo (EVM L2, low-cost transactions)

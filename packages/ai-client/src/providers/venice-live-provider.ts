@@ -124,23 +124,24 @@ export class VeniceLiveProvider {
         const analysis = data.analysis as string;
 
         if (analysis) {
-          // Parse analysis into reasoning chunks
+          // Emit full response immediately
+          emit("response", analysis);
+
+          // Parse into reasoning chunks with staggered delivery
           const chunks = analysis
             .split(/[.!?]+/)
             .filter((s: string) => s.trim().length > 5);
 
-          // Emit each chunk with delay to simulate "live" feeling
+          // Emit chunks with variable delay based on length (feels more natural)
           for (let i = 0; i < Math.min(chunks.length, 3); i++) {
             const chunk = chunks[i]?.trim();
             if (chunk) {
+              const delay = i === 0 ? 0 : 300 + chunk.length * 8;
               setTimeout(() => {
                 emit("reasoning", chunk);
-              }, i * 800);
+              }, delay);
             }
           }
-
-          // Emit full response
-          emit("response", analysis);
 
           // Emit protocol events at milestones
           if (self.frameCount === 1) {
@@ -213,13 +214,25 @@ export class VeniceLiveProvider {
         // Venice doesn't support audio - silently ignore
       },
 
-      sendImage: async (imageData: string | Blob) => {
+      sendImage: async (
+        imageData: string | Blob,
+        framePixels?: Uint8ClampedArray,
+      ) => {
         if (!self.isConnected) return;
+
+        // Run motion detection when pixel data is provided
+        if (framePixels) {
+          self.detectMotion(framePixels);
+        }
+
+        // Skip analysis when scene is nearly static
+        if (self.frameCount > 1 && self.motionLevel < 5) {
+          return;
+        }
 
         self.frameCount++;
         emit("reasoning", `Analyzing frame ${self.frameCount}...`);
 
-        // Analyze the frame
         await analyzeFrame(imageData);
       },
 

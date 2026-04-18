@@ -229,12 +229,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           config: {
-            apiKey: veniceApiKey,
-            baseURL: "https://api.venice.ai/api/v1",
-            model: "mistral-31-24b", // Vision-capable model
+            baseURL: "/api/ai/venice-analyze",
+            model: "mistral-31-24b",
             systemInstruction: systemInstruction,
             provider: "venice",
             pollingIntervalMs: 3000,
+            maxCaptures: 3,
           },
           agentManifest,
           rateLimit: {
