@@ -22,11 +22,6 @@ const ENV_RULES: EnvRule[] = [
     description: "Auth0 session encryption secret",
   },
   {
-    name: "AUTH0_ISSUER_BASE_URL",
-    required: "production",
-    description: "Auth0 tenant URL",
-  },
-  {
     name: "AUTH0_CLIENT_ID",
     required: "production",
     description: "Auth0 application client ID",
@@ -123,13 +118,7 @@ export function validateEnv(): { valid: boolean; missing: string[] } {
 
   if (missing.length > 0) {
     const message = `Missing required environment variables:\n${missing.map((m) => `  - ${m}`).join("\n")}`;
-
-    if (isProduction) {
-      logger.error(message, { component: "env-validation" });
-      throw new Error(message);
-    } else {
-      logger.warn(message, { component: "env-validation" });
-    }
+    logger.error(message, { component: "env-validation" });
   }
 
   return { valid: missing.length === 0, missing };

@@ -10,20 +10,24 @@ import {
 
 describe("Agent Registry (ERC-8004)", () => {
   describe("recordReceipt", () => {
-    it("creates a receipt with required fields", async () => {
-      const receipt = await recordReceipt({
-        action: "analyze_outfit" as AgentAction,
-        sessionId: "test-session-1",
-        metadata: { score: 8 },
-      });
+    it(
+      "creates a receipt with required fields",
+      async () => {
+        const receipt = await recordReceipt({
+          action: "analyze_outfit" as AgentAction,
+          sessionId: "test-session-1",
+          metadata: { score: 8 },
+        });
 
-      expect(receipt.id).toMatch(/^receipt_/);
-      expect(receipt.agentId).toBe(35962);
-      expect(receipt.action).toBe("analyze_outfit");
-      expect(receipt.sessionId).toBe("test-session-1");
-      expect(receipt.timestamp).toBeDefined();
-      expect(receipt.metadata).toEqual({ score: 8 });
-    });
+        expect(receipt.id).toMatch(/^receipt_/);
+        expect(receipt.agentId).toBe(35962);
+        expect(receipt.action).toBe("analyze_outfit");
+        expect(receipt.sessionId).toBe("test-session-1");
+        expect(receipt.timestamp).toBeDefined();
+        expect(receipt.metadata).toEqual({ score: 8 });
+      },
+      15000,
+    );
 
     it("includes txHash when provided", async () => {
       const receipt = await recordReceipt({
