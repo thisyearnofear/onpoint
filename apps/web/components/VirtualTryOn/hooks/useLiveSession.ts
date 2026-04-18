@@ -183,6 +183,7 @@ export function useLiveSession() {
     reasoning,
     agentEvents,
   } = activeProvider;
+  const isAnalyzing = isVenice ? (venice as any).isAnalyzing ?? false : false;
 
   // Venice session timer (undefined for Gemini — no limit)
   const sessionTimeRemaining = isVenice
@@ -852,6 +853,7 @@ export function useLiveSession() {
     sessionEndedManually,
     isConnected,
     isInitializing,
+    isAnalyzing,
     error,
     videoRef,
     startSession,

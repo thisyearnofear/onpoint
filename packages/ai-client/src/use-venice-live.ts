@@ -8,6 +8,7 @@ const VENICE_WARNING_THRESHOLD = 30; // warn at 30s remaining
 export function useVeniceLive() {
   const [isConnected, setIsConnected] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<string>("");
   const [aiResponse, setAiResponse] = useState<string>("");
@@ -92,6 +93,7 @@ export function useVeniceLive() {
         );
         session.on("error", (err) => setError(err as string));
         session.on("disconnected", () => setIsConnected(false));
+        session.on("analyzing", (val) => setIsAnalyzing(val as boolean));
 
         await session.connect();
         sessionRef.current = session;
@@ -181,6 +183,7 @@ export function useVeniceLive() {
   return {
     isConnected,
     isInitializing,
+    isAnalyzing,
     error,
     transcript,
     aiResponse,

@@ -97,6 +97,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     sessionEndedManually,
     isConnected,
     isInitializing,
+    isAnalyzing,
     error,
     videoRef,
     startSession,
@@ -809,7 +810,11 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                         <span className={`text-${personaStyling.text}`}>
                           &gt;
                         </span>
-                        {reasoning[0] ? (
+                        {isAnalyzing && !reasoning[0] ? (
+                          <span className="flex items-center gap-2 w-full">
+                            <span className="h-3 rounded bg-slate-700 animate-pulse w-3/4" />
+                          </span>
+                        ) : reasoning[0] ? (
                           <span className="text-slate-300 animate-in fade-in slide-in-from-left-2 truncate">
                             {reasoning[0]}
                           </span>
@@ -1028,7 +1033,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
         {/* Neural HUD Overlay — Simplified on Mobile */}
         {isConnected && (
           <div
-            className={`absolute ${isMobile ? "inset-2" : "inset-4"} border-2 border-white/5 rounded-[1.5rem] sm:rounded-[2rem] pointer-events-none overflow-hidden`}
+            className={`absolute ${isMobile ? "inset-2" : "inset-4"} border-2 ${isAnalyzing ? "border-indigo-500/20" : "border-white/5"} rounded-[1.5rem] sm:rounded-[2rem] pointer-events-none overflow-hidden transition-colors duration-500`}
           >
             <div
               className={`absolute inset-0 bg-gradient-to-b from-transparent to-black/20 ${positionStatus === "good" ? "opacity-20" : "opacity-0"}`}

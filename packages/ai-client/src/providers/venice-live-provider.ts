@@ -94,6 +94,8 @@ export class VeniceLiveProvider {
 
     const analyzeFrame = async (imageData: string | Blob): Promise<void> => {
       try {
+        emit("analyzing", true);
+
         // Convert to base64 if needed
         let base64Image: string;
         if (typeof imageData === "string") {
@@ -117,7 +119,15 @@ export class VeniceLiveProvider {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || "Analysis failed");
+          const errorMsg = errorData.error || "Analysis failed";
+
+          // Recoverable errors: rate limit or frame limit — don't kill session
+          if (response.status === 429) {
+            emit("reasoning", "Pausing analysis — rate limit reached.");
+            return;
+          }
+
+          throw new Error(errorMsg);
         }
 
         const data = await response.json();
@@ -179,11 +189,12 @@ export class VeniceLiveProvider {
           }
         }
       } catch (error) {
-        console.error("[VeniceLiveProvider] Analysis error:", error);
-        emit(
-          "error",
-          error instanceof Error ? error.message : "Analysis failed",
-        );
+        // Emit a non-fatal reasoning message instead of killing the session
+        const msg =
+          error instanceof Error ? error.message : "Analysis failed";
+        emit("reasoning", `⚠ ${msg} — retrying next frame…`);
+      } finally {
+        emit("analyzing", false);
       }
     };
 

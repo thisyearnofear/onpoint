@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "qwen3-vl-235b-a22b", // Vision-capable model
+          model: "mistral-31-24b", // Lighter vision model for polling
           messages: [
             {
               role: "system",
