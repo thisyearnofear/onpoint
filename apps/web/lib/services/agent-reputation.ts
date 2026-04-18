@@ -55,12 +55,6 @@ function getRedisClient(): Redis | null {
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
   if (!url || !token || url.includes("your-") || token.includes("your-")) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error(
-        "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production",
-      );
-    }
-
     logger.warn("Upstash Redis not configured; using in-memory fallback", {
       component: "agent-reputation",
     });
