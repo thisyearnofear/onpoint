@@ -28,6 +28,8 @@ export class VeniceLiveProvider {
   private frameCount = 0;
   private previousFrameData: Uint8ClampedArray | null = null;
   private motionLevel = 0;
+  private lastAnalysis: string | null = null;
+  private consecutiveErrors = 0;
 
   constructor(config: VeniceLiveConfig = {}) {
     this.config = {
@@ -134,6 +136,9 @@ export class VeniceLiveProvider {
         const analysis = data.analysis as string;
 
         if (analysis) {
+          self.lastAnalysis = analysis;
+          self.consecutiveErrors = 0;
+
           // Emit full response immediately
           emit("response", analysis);
 
@@ -189,10 +194,17 @@ export class VeniceLiveProvider {
           }
         }
       } catch (error) {
-        // Emit a non-fatal reasoning message instead of killing the session
+        self.consecutiveErrors++;
         const msg =
           error instanceof Error ? error.message : "Analysis failed";
-        emit("reasoning", `⚠ ${msg} — retrying next frame…`);
+
+        if (self.lastAnalysis && self.consecutiveErrors <= 3) {
+          // Show cached analysis while service recovers
+          emit("reasoning", `⚠ Connection issue — showing last analysis`);
+          emit("response", self.lastAnalysis);
+        } else {
+          emit("reasoning", `⚠ ${msg} — retrying next frame…`);
+        }
       } finally {
         emit("analyzing", false);
       }

@@ -600,6 +600,7 @@ async function runAgentLoop(
   userId: string,
   imageBase64?: string,
   agentId: string = "onpoint-stylist",
+  onStep?: (event: { type: string; data: unknown }) => void,
 ): Promise<AgentTrace> {
   const sessionId = `agent_${Date.now().toString(36)}`;
   const steps: AgentStep[] = [];
@@ -680,14 +681,17 @@ async function runAgentLoop(
       );
       const duration = Date.now() - startTime;
 
-      steps.push({
+      const step = {
         step: steps.length + 1,
         tool: fn.name,
         input: args,
         output: result,
         durationMs: duration,
         chain: (result.chain as string) || undefined,
-      });
+      };
+
+      steps.push(step);
+      onStep?.({ type: "tool_result", data: step });
 
       actionsTaken.push(fn.name);
 
@@ -955,6 +959,49 @@ export async function POST(request: NextRequest) {
         (sessionReasonings?.length
           ? `Session observations so far: ${sessionReasonings.join(". ")}. Based on these observations, analyze the outfit and decide what actions to take.`
           : "Analyze the user outfit and take appropriate actions.");
+
+      // SSE streaming mode: stream tool steps as they execute
+      const wantsStream = new URL(req.url).searchParams.get("stream") === "true";
+
+      if (wantsStream) {
+        const encoder = new TextEncoder();
+        const stream = new ReadableStream({
+          async start(controller) {
+            const send = (event: string, data: unknown) => {
+              controller.enqueue(
+                encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`),
+              );
+            };
+
+            try {
+              const trace = await runAgentLoop(
+                goal,
+                userMessage,
+                ctx.userId,
+                imageBase64,
+                agentId,
+                ({ type, data }) => send(type, data),
+              );
+              send("done", trace);
+            } catch (err) {
+              send("error", {
+                error: err instanceof Error ? err.message : "Agent failed",
+              });
+            } finally {
+              controller.close();
+            }
+          },
+        });
+
+        return new NextResponse(stream, {
+          headers: {
+            ...corsHeaders(origin),
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+          },
+        });
+      }
 
       const trace = await runAgentLoop(goal, userMessage, ctx.userId, imageBase64, agentId);
       return jsonCors(trace, 200, origin);
