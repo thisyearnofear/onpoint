@@ -19,6 +19,8 @@ import { AIStylist } from "../AIStylist";
 import { MissionsPanel } from "../Agent/MissionsPanel";
 import { NewUserOnboarding } from "./NewUserOnboarding";
 import { ConnectedAccounts } from "../ConnectedAccounts";
+import { EnhancedConnectButton } from "../EnhancedConnectButton";
+import { FarcasterSignInButton } from "../FarcasterSignInButton";
 
 type AppMode = "dashboard" | "design" | "try-on" | "stylist" | "settings";
 
@@ -210,9 +212,32 @@ export function TacticalDashboard() {
             <div>
               <h2 className="text-2xl font-bold mb-2">Settings</h2>
               <p className="text-muted-foreground">
-                Manage your connected accounts and agent permissions
+                Manage your accounts and preferences
               </p>
             </div>
+
+            {/* Wallet & Social — progressive disclosure */}
+            <details className="group rounded-2xl border border-border bg-card/40 overflow-hidden" open>
+              <summary className="cursor-pointer p-4 flex items-center justify-between hover:bg-muted/30 transition-colors list-none">
+                <div className="flex items-center gap-2 text-foreground">
+                  <Target className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-bold uppercase tracking-wider">
+                    Wallet & Social
+                  </span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground group-open:rotate-90 transition-transform" />
+              </summary>
+              <div className="px-4 pb-4 space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Connect a wallet to unlock purchases, tipping, and saving looks on-chain.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <EnhancedConnectButton />
+                  <FarcasterSignInButton />
+                </div>
+              </div>
+            </details>
+
             <ConnectedAccounts />
           </motion.div>
         );

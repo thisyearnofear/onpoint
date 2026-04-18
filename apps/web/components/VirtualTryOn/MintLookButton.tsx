@@ -100,14 +100,14 @@ export function MintLookButton({
       const msg = writeError.message || "";
       if (msg.includes("User rejected")) {
         setMintError({
-          title: "Transaction Cancelled",
-          message: "You rejected the transaction in your wallet.",
+          title: "Cancelled",
+          message: "You cancelled the save.",
         });
       } else {
         setMintError({
-          title: "Minting Failed",
+          title: "Save Failed",
           message:
-            "The transaction could not be completed. Make sure you are on Celo and have enough CELO for gas.",
+            "Could not save your look. Please check your connection and try again.",
           hint: msg.slice(0, 200),
         });
       }
@@ -119,7 +119,7 @@ export function MintLookButton({
     if (!isConnected || !address) {
       setMintError({
         title: "Wallet Not Connected",
-        message: "Please connect your wallet first to mint.",
+        message: "Connect a wallet in Settings to save looks permanently.",
       });
       return;
     }
@@ -197,15 +197,13 @@ export function MintLookButton({
         });
       } else if (msg.includes("not configured")) {
         setMintError({
-          title: "Wrong Network",
-          message: msg,
-          hint: "Switch to Celo or Celo Sepolia to mint.",
+          title: "Network Issue",
+          message: "Please switch networks in Settings to save your look.",
         });
       } else {
         setMintError({
-          title: "Minting Failed",
-          message:
-            "Something went wrong. Make sure you are on Celo and have enough CELO for gas.",
+          title: "Save Failed",
+          message: "Something went wrong. Please try again.",
           hint: msg,
         });
       }
@@ -289,7 +287,7 @@ export function MintLookButton({
                 : "Preparing your Proof of Style…"}
             </p>
             <p className="text-slate-400 text-[10px]">
-              Uploading metadata, then minting on Celo
+              Saving your look…
             </p>
           </div>
         </motion.div>
@@ -307,8 +305,8 @@ export function MintLookButton({
           <ImageIcon className="w-6 h-6 text-white/80" />
         )}
         {isMinting || isWritePending
-          ? "Minting on Celo…"
-          : "Mint as NFT (85% Royalty)"}
+          ? "Saving your look…"
+          : "Save Look Forever"}
       </Button>
     </div>
   );

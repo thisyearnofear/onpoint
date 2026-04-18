@@ -489,8 +489,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                     </span>
                   </div>
                   <p className="text-xs text-slate-400 mt-1">
-                    Real-time bidirectional streaming. True live video + audio
-                    analysis. Requires CELO or BYOK.
+                    Real-time voice + video styling with live conversation.
                   </p>
                 </div>
               </div>
@@ -499,8 +498,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
           <div className="w-full bg-slate-900/50 rounded-xl p-4 border border-white/5">
             <p className="text-[10px] text-slate-500 text-center">
-              Venice AI uses our API key (free). Gemini Live requires payment
-              via CELO or your own API key.
+              Free tier uses AI vision polling. Premium adds real-time voice conversation.
             </p>
           </div>
         </div>
@@ -950,8 +948,8 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                   error.toLowerCase().includes("rate limit") && (
                     <div className="p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
                       <p className="text-indigo-300 text-xs">
-                        Upgrade to <strong>Gemini Live</strong> for unlimited
-                        sessions (0.5 CELO)
+                        Upgrade to <strong>Premium</strong> for unlimited
+                        sessions
                       </p>
                       <Button
                         variant="ghost"
@@ -962,7 +960,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                           setSessionGoal(null);
                         }}
                       >
-                        Switch to Gemini Live →
+                        Switch to Premium →
                       </Button>
                     </div>
                   )}

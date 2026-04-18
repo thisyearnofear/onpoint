@@ -87,7 +87,7 @@ export function GeminiLivePaymentButton({
     }
 
     setPaymentStatus("pending");
-    setStatusMessage("Confirm transaction in your wallet...");
+    setStatusMessage("Confirm payment in your app...");
 
     try {
       // Send CELO payment
@@ -171,7 +171,7 @@ export function GeminiLivePaymentButton({
       setStatusMessage("Transaction submitted...");
     } else if (isConfirming) {
       setPaymentStatus("confirming");
-      setStatusMessage("Confirming on blockchain...");
+      setStatusMessage("Confirming payment...");
     } else if (isSuccess && hash) {
       // Verify the payment with our backend
       verifyPayment(hash);
@@ -225,7 +225,7 @@ export function GeminiLivePaymentButton({
       <div className="flex flex-col items-center gap-3 p-4 bg-slate-900/50 rounded-2xl border border-white/5">
         <AlertCircle className="w-8 h-8 text-amber-400" />
         <p className="text-slate-400 text-sm text-center">
-          Connect your wallet to unlock Gemini Live
+          Connect a wallet in Settings to unlock Premium voice styling
         </p>
       </div>
     );
@@ -240,7 +240,7 @@ export function GeminiLivePaymentButton({
       >
         <CreditCard className="w-5 h-5" />
         <span className="font-bold">
-          Switch to Celo to Pay {PAYMENT_AMOUNT} CELO
+          Switch network to unlock Premium
         </span>
       </Button>
     );
@@ -252,11 +252,10 @@ export function GeminiLivePaymentButton({
       <div className="flex flex-col items-center gap-3 p-4 bg-rose-500/10 rounded-2xl border border-rose-500/20">
         <AlertCircle className="w-8 h-8 text-rose-400" />
         <p className="text-rose-300 text-sm text-center">
-          Insufficient CELO balance
+          Insufficient balance for Premium
         </p>
         <p className="text-rose-400/60 text-xs text-center">
-          You need at least {PAYMENT_AMOUNT} CELO. Current:{" "}
-          {balanceData ? formatEther(balanceData.value) : "0"} CELO
+          You need approximately $0.30 to unlock Premium voice styling.
         </p>
       </div>
     );
@@ -278,7 +277,7 @@ export function GeminiLivePaymentButton({
           <>
             <Sparkles className="w-5 h-5" />
             <span className="font-bold">
-              Unlock Gemini Live — {PAYMENT_AMOUNT} CELO
+              Unlock Premium Voice Styling — ~$0.30
             </span>
           </>
         )}
@@ -303,9 +302,7 @@ export function GeminiLivePaymentButton({
       )}
 
       <p className="text-[10px] text-slate-500 text-center">
-        {isTestnet
-          ? "Testnet — using Celo Sepolia"
-          : "Mainnet — real CELO will be charged"}
+        One-time payment for this session
       </p>
     </div>
   );

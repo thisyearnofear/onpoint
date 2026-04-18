@@ -10,12 +10,10 @@ import {
   Camera,
   MessageCircle,
 } from "lucide-react";
-import { EnhancedConnectButton } from "../components/chains";
-import { FarcasterSignInButton } from "../components/FarcasterSignInButton";
-import { TacticalDashboard } from "../components/Dashboard/TacticalDashboard";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { Button } from "@repo/ui/button";
-import { LayoutDashboard, Users } from "lucide-react";
+import { TacticalDashboard } from "../components/Dashboard/TacticalDashboard";
+import { LayoutDashboard } from "lucide-react";
 
 type View = "hero" | "dashboard";
 
@@ -67,8 +65,6 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-2">
-            <FarcasterSignInButton />
-            <EnhancedConnectButton />
             <ThemeToggle />
           </div>
         </div>

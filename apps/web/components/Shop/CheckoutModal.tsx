@@ -192,10 +192,7 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                   <div className="px-6 py-3 border-t border-white/10 flex items-center justify-between">
                     <span className="text-sm text-slate-400">Total</span>
                     <span className="text-2xl font-black text-white">
-                      ${total.toFixed(2)}{" "}
-                      <span className="text-sm font-normal text-slate-400">
-                        cUSD
-                      </span>
+                      ${total.toFixed(2)}
                     </span>
                   </div>
 
@@ -204,17 +201,14 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                     <div className="flex items-center gap-2">
                       <Shield className="w-4 h-4 text-indigo-400" />
                       <span className="text-xs font-medium text-indigo-300">
-                        Secured by Celo Blockchain
+                        Secure checkout
                       </span>
                     </div>
                     <div className="flex items-start gap-2">
                       <Wallet className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                       <div className="text-[10px] text-slate-400 leading-relaxed">
-                        <span className="text-white font-medium">
-                          Agent Wallet:{" "}
-                        </span>
-                        Your AI stylist has a wallet that holds funds for
-                        purchases. Purchases under{" "}
+                        Your AI stylist handles payment automatically.
+                        Purchases under{" "}
                         <span className="text-amber-400 font-bold">
                           $5 auto-approve
                         </span>
@@ -252,12 +246,12 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                           Processing...
                         </>
                       ) : (
-                        `Pay ${total.toFixed(2)} cUSD`
+                        `Pay $${total.toFixed(2)}`
                       )}
                     </Button>
                     <p className="text-[10px] text-slate-500 text-center flex items-center justify-center gap-1">
                       <Shield className="w-3 h-3" />
-                      Agent pays on your behalf via Celo
+                      Secure payment via your AI stylist
                     </p>
                   </div>
                 </>
