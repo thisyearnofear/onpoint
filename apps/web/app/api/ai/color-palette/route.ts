@@ -3,6 +3,7 @@ import { generateText } from "../_utils/providers";
 import { corsHeaders } from "../_utils/http";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 export { OPTIONS } from "../_utils/http";
+import { logger } from "../../../../lib/utils/logger";
 
 export async function POST(request: NextRequest) {
   return requireAuthWithRateLimit(async (req, _ctx) => {
@@ -68,7 +69,7 @@ Use 5-6 complementary colors. Be concise.`;
           throw new Error("No JSON found in response");
         }
       } catch (parseError) {
-        console.error("JSON parse error:", parseError);
+        logger.error("JSON parse error", { component: "color-palette" }, parseError);
         // Fallback to old parsing method
         paletteData = parseColorPaletteResponse(
           result || "",
@@ -86,7 +87,7 @@ Use 5-6 complementary colors. Be concise.`;
         { headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("AI color palette error:", error);
+      logger.error("AI color palette error", { component: "color-palette" }, error);
       return NextResponse.json(
         { error: "Failed to generate color palette" },
         { status: 500 },

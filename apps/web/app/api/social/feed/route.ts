@@ -5,6 +5,7 @@ import {
   RateLimits,
   getClientId,
 } from "../../../../lib/utils/rate-limit";
+import { logger } from "../../../../lib/utils/logger";
 
 export async function GET(request: NextRequest) {
   const rl = await rateLimit(getClientId(request), RateLimits.general);
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ casts });
   } catch (error) {
-    console.error("Social feed API error:", error);
+    logger.error("Social feed API error", { component: "feed" }, error);
     return NextResponse.json(
       { error: "Failed to fetch feed" },
       { status: 500 },

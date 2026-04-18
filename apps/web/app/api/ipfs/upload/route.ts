@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { uploadToIPFS } from "@repo/ipfs-client";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
+import { logger } from "../../../../lib/utils/logger";
 
 export async function POST(request: NextRequest) {
   return requireAuthWithRateLimit(async (req, _ctx) => {
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json(result);
     } catch (error) {
-      console.error("IPFS Upload API error:", error);
+      logger.error("IPFS Upload API error", { component: "upload" }, error);
       return NextResponse.json(
         { error: "Failed to upload to IPFS" },
         { status: 500 },

@@ -17,6 +17,7 @@ import { productCatalog } from "../../../../lib/services/product-catalog";
 import { corsHeaders } from "../../ai/_utils/http";
 import { requireAuthWithRateLimit, requirePermission } from "../../../../middleware/agent-auth";
 export { OPTIONS } from "../../ai/_utils/http";
+import { logger } from "../../../../lib/utils/logger";
 
 // Request schema
 const SearchRequestSchema = z.object({
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       { status: 200, headers: corsHeaders(origin) }
     );
   } catch (error) {
-    console.error("Catalog search error:", error);
+    logger.error("Catalog search error", { component: "catalog" }, error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500, headers: corsHeaders(origin) }
@@ -115,7 +116,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         { status: 200, headers: corsHeaders(origin) }
       );
     } catch (error) {
-      console.error("Catalog search error:", error);
+      logger.error("Catalog search error", { component: "catalog" }, error);
       return NextResponse.json(
         { error: "Internal server error" },
         { status: 500, headers: corsHeaders(origin) }

@@ -8,6 +8,7 @@ import {
   rateLimitHeaders,
   getClientId,
 } from "../../../../lib/utils/rate-limit";
+import { logger } from "../../../../lib/utils/logger";
 import { createSessionToken } from "../../../../lib/utils/session-token";
 import type { SessionTokenPayload } from "../../../../lib/utils/session-token";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
@@ -128,7 +129,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      console.log("Verifying CELO payment...", { transactionHash, chainId });
+      logger.info("Verifying CELO payment...", { component: "verify-payment", ...{ transactionHash, chainId } });
 
       // Verify the transaction on-chain
       const verification = await verifyTransaction(
@@ -168,11 +169,11 @@ export async function POST(request: NextRequest) {
 
       const sessionToken = createSessionToken(tokenPayload);
 
-      console.log("Payment verified successfully!", {
+      logger.info("Payment verified successfully!", { component: "verify-payment", ...{
         wallet: verification.from,
         amount: verification.amount,
         tokenExpiry: new Date(tokenPayload.exp).toISOString(),
-      });
+      } });
 
       return NextResponse.json(
         {
@@ -185,7 +186,7 @@ export async function POST(request: NextRequest) {
         { headers: corsHeaders(origin) },
       );
     } catch (error: unknown) {
-      console.error("Payment verification error:", error);
+      logger.error("Payment verification error", { component: "verify-payment" }, error);
 
       const errorMessage =
         error instanceof Error ? error.message : "Payment verification failed";

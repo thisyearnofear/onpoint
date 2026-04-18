@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth0 } from "../../../../lib/auth0";
+import { logger } from "../../../../lib/utils/logger";
+import { rateLimit, RateLimits, getClientId } from "../../../../lib/utils/rate-limit";
 
 /**
  * GET /api/auth/connect
@@ -8,6 +10,10 @@ import { auth0 } from "../../../../lib/auth0";
  * Uses Auth0 SDK v4 authorize endpoint with connection parameter.
  */
 export async function GET(request: NextRequest) {
+  const rl = await rateLimit(getClientId(request), RateLimits.general);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+  }
   try {
     const session = await auth0.getSession();
 
@@ -41,7 +47,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.redirect(authUrl);
   } catch (error: any) {
-    console.error("[Connect] Error:", error);
+    logger.error("Error", { component: "connect" }, error);
     return NextResponse.json(
       { error: "Failed to initiate connection", details: error.message },
       { status: 500 }

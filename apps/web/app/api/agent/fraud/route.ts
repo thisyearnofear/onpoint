@@ -15,6 +15,7 @@ import {
   getMultiSigRequirement,
   addMultiSigSignature,
 } from "../../../../lib/services/fraud-detection";
+import { logger } from "../../../../lib/utils/logger";
 import { corsHeaders } from "../../ai/_utils/http";
 
 const FreezeSchema = z.object({
@@ -82,7 +83,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         { status: 400, headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("Fraud check error:", error);
+      logger.error("Fraud check error", { component: "fraud" }, error);
       return NextResponse.json(
         { error: "Failed to check fraud status" },
         { status: 500, headers: corsHeaders(origin) },
@@ -186,7 +187,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         { status: 400, headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("Fraud control error:", error);
+      logger.error("Fraud control error", { component: "fraud" }, error);
       return NextResponse.json(
         { error: error instanceof Error ? error.message : "Operation failed" },
         { status: 500, headers: corsHeaders(origin) },

@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MissionService } from "../../../../lib/services/mission-service";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
+import { logger } from "../../../../lib/utils/logger";
 
 // GET /api/agent/missions — Get all missions and user progress
 export async function GET(req: NextRequest) {
@@ -36,7 +37,7 @@ export async function GET(req: NextRequest) {
         },
       });
     } catch (error) {
-      console.error("Missions GET error:", error);
+      logger.error("Missions GET error", { component: "missions" }, error);
       return NextResponse.json(
         { success: false, error: "Failed to fetch missions" },
         { status: 500 },
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
         message: `Mission progress updated for event: ${eventType}`,
       });
     } catch (error) {
-      console.error("Missions POST error:", error);
+      logger.error("Missions POST error", { component: "missions" }, error);
       return NextResponse.json(
         { success: false, error: "Failed to update mission progress" },
         { status: 500 },
@@ -119,7 +120,7 @@ export async function PUT(req: NextRequest) {
         message: "Mission reward claimed successfully",
       });
     } catch (error) {
-      console.error("Missions PUT error:", error);
+      logger.error("Missions PUT error", { component: "missions" }, error);
       return NextResponse.json(
         { success: false, error: "Failed to claim mission reward" },
         { status: 500 },

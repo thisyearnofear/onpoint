@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { extractAuth } from "../../../../middleware/agent-auth";
 import { CalendarTool } from "../../../../lib/agent-tools/calendar-tool";
 import type { CalendarEvent } from "../../../../lib/agent-tools/calendar-tool";
+import { logger } from "../../../../lib/utils/logger";
+import { rateLimit, RateLimits, getClientId } from "../../../../lib/utils/rate-limit";
 
 /**
  * POST /api/agent/schedule-event
@@ -24,6 +26,10 @@ import type { CalendarEvent } from "../../../../lib/agent-tools/calendar-tool";
  * - location: Optional location
  */
 export async function POST(request: NextRequest) {
+  const rl = await rateLimit(getClientId(request), RateLimits.general);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+  }
   try {
     // 1. Authenticate the agent
     const auth = await extractAuth(request);
@@ -80,7 +86,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error("[ScheduleEvent] Error:", error);
+    logger.error("Error", { component: "schedule-event" }, error);
     return NextResponse.json(
       { error: "Failed to schedule event", details: error.message },
       { status: 500 },
@@ -94,6 +100,10 @@ export async function POST(request: NextRequest) {
  * Get upcoming events to check availability.
  */
 export async function GET(request: NextRequest) {
+  const rl = await rateLimit(getClientId(request), RateLimits.general);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+  }
   try {
     const auth = await extractAuth(request);
 
@@ -122,7 +132,7 @@ export async function GET(request: NextRequest) {
       daysAhead,
     });
   } catch (error: any) {
-    console.error("[GetEvents] Error:", error);
+    logger.error("Error", { component: "schedule-event" }, error);
     return NextResponse.json(
       { error: "Failed to get events", details: error.message },
       { status: 500 },

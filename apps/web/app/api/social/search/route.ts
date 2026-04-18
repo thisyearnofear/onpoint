@@ -5,6 +5,7 @@ import {
   RateLimits,
   getClientId,
 } from "../../../../lib/utils/rate-limit";
+import { logger } from "../../../../lib/utils/logger";
 
 export async function GET(request: NextRequest) {
   const rl = await rateLimit(getClientId(request), RateLimits.general);
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ users });
   } catch (error) {
-    console.error("User search API error:", error);
+    logger.error("User search API error", { component: "search" }, error);
     return NextResponse.json(
       { error: "Failed to search users" },
       { status: 500 },

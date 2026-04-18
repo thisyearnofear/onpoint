@@ -3,6 +3,7 @@ import { generateText } from "../_utils/providers";
 import { corsHeaders } from "../_utils/http";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 export { OPTIONS } from "../_utils/http";
+import { logger } from "../../../../lib/utils/logger";
 
 export async function POST(request: NextRequest) {
   return requireAuthWithRateLimit(async (req, _ctx) => {
@@ -90,7 +91,7 @@ Provide 3-5 categories with 2-3 items each.`;
         { headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("AI style suggestions error:", error);
+      logger.error("AI style suggestions error", { component: "style-suggestions" }, error);
       return NextResponse.json(
         { error: "Failed to generate style suggestions" },
         { status: 500 },

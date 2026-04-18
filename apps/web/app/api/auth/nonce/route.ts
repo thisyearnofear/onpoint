@@ -9,11 +9,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateNonce } from "../../../../middleware/agent-auth";
 import { corsHeaders } from "../../ai/_utils/http";
 import { logger } from "../../../../lib/utils/logger";
+import { rateLimit, RateLimits, getClientId } from "../../../../lib/utils/rate-limit";
 
 export { OPTIONS } from "../../ai/_utils/http";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const origin = request.headers.get("origin") ?? undefined;
+  const rl = await rateLimit(getClientId(request), RateLimits.general);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429, headers: corsHeaders(origin) });
+  }
 
   try {
     const nonce = await generateNonce();

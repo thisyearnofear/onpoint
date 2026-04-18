@@ -15,6 +15,7 @@ import {
   getRecommendedItems,
   type StylePreferences,
 } from "@onpoint/shared-types";
+import { logger } from "../../../../lib/utils/logger";
 import { corsHeaders } from "../../ai/_utils/http";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 export { OPTIONS } from "../../ai/_utils/http";
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       { status: 200, headers: corsHeaders(origin) },
     );
   } catch (error) {
-    console.error("Style track error:", error);
+    logger.error("Style track error", { component: "style" }, error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500, headers: corsHeaders(origin) },
@@ -140,7 +141,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         { status: 200, headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("Style recommend error:", error);
+      logger.error("Style recommend error", { component: "style" }, error);
       return NextResponse.json(
         { error: "Internal server error" },
         { status: 500, headers: corsHeaders(origin) },

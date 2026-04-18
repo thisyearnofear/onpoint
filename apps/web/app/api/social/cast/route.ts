@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { NeynarSocialUtils } from "../../../../lib/utils/neynar";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
+import { logger } from "../../../../lib/utils/logger";
 
 export async function POST(request: NextRequest) {
   return requireAuthWithRateLimit(async (req, _ctx) => {
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({ cast });
     } catch (error) {
-      console.error("Cast publish API error:", error);
+      logger.error("Cast publish API error", { component: "cast" }, error);
       return NextResponse.json(
         { error: "Failed to publish cast" },
         { status: 500 },

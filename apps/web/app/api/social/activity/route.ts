@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SocialActivity } from "@onpoint/shared-types";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
+import { logger } from "../../../../lib/utils/logger";
 
 // This is a mock implementation - replace with your actual database
 const activities: SocialActivity[] = [];
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
         message: "Social activity recorded successfully",
       });
     } catch (error) {
-      console.error("Error recording social activity:", error);
+      logger.error("Error recording social activity", { component: "activity" }, error);
       return NextResponse.json(
         { success: false, error: "Failed to record activity" },
         { status: 500 },
@@ -77,7 +78,7 @@ export async function GET(request: NextRequest) {
         total: filteredActivities.length,
       });
     } catch (error) {
-      console.error("Error fetching social activities:", error);
+      logger.error("Error fetching social activities", { component: "activity" }, error);
       return NextResponse.json(
         { success: false, error: "Failed to fetch activities" },
         { status: 500 },

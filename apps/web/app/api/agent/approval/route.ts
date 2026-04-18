@@ -16,6 +16,7 @@ import {
   AgentControls,
   type ActionType,
 } from "../../../../lib/middleware/agent-controls";
+import { logger } from "../../../../lib/utils/logger";
 import { corsHeaders } from "../../ai/_utils/http";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 export { OPTIONS } from "../../ai/_utils/http";
@@ -79,7 +80,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         );
       }
     } catch (error) {
-      console.error("Approval GET error:", error);
+      logger.error("Approval GET error", { component: "approval" }, error);
       return NextResponse.json(
         { error: "Internal server error" },
         { status: 500, headers: corsHeaders(origin) },
@@ -127,7 +128,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         { status: 201, headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("Approval POST error:", error);
+      logger.error("Approval POST error", { component: "approval" }, error);
       return NextResponse.json(
         { error: "Internal server error" },
         { status: 500, headers: corsHeaders(origin) },
@@ -178,7 +179,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
         { status: 200, headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("Approval PATCH error:", error);
+      logger.error("Approval PATCH error", { component: "approval" }, error);
       return NextResponse.json(
         { error: "Internal server error" },
         { status: 500, headers: corsHeaders(origin) },

@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import OpenAI from "openai";
+import { logger } from "../../../../lib/utils/logger";
 
 export type ProviderChoice = "auto" | "gemini" | "openai" | "venice";
 
@@ -79,7 +80,7 @@ export async function generateText({
   const hasGemini = geminiAvailable();
   const hasOpenAI = openaiAvailable();
 
-  console.log(`[generateText] provider=${provider}, hasVenice=${hasVenice}, hasGemini=${hasGemini}, hasOpenAI=${hasOpenAI}`);
+  logger.debug("generateText resolving provider", { component: "ai-providers", provider, hasVenice, hasGemini, hasOpenAI });
 
   // Determine provider
   let selected: "venice" | "gemini" | "openai" | null = null;
@@ -107,7 +108,7 @@ export async function generateText({
   }
 
   if (!selected) {
-    console.error("[generateText] No AI provider available. Check your environment variables.");
+    logger.error("No AI provider available. Check your environment variables.", { component: "ai-providers" });
     throw new Error(
       "No AI provider available. Please configure VENICE_API_KEY, GEMINI_API_KEY or OPENAI_API_KEY in environment variables.",
     );
@@ -115,7 +116,7 @@ export async function generateText({
 
   try {
     if (selected === "venice") {
-      console.log(`[generateText] Using Venice with model: ${veniceModel}`);
+      logger.debug("Using Venice", { component: "ai-providers", model: veniceModel });
       const response = await veniceClient!.chat.completions.create({
         model: veniceModel,
         messages: [{ role: "user", content: prompt }],
@@ -126,7 +127,7 @@ export async function generateText({
     }
 
     if (selected === "gemini") {
-      console.log(`[generateText] Using Gemini with model: ${geminiModel}`);
+      logger.debug("Using Gemini", { component: "ai-providers", model: geminiModel });
       const model = geminiClient!.getGenerativeModel({ model: geminiModel });
       const response = await model.generateContent(prompt);
       const textResult = response.response.text();
@@ -134,7 +135,7 @@ export async function generateText({
     }
 
     // OpenAI
-    console.log(`[generateText] Using OpenAI with model: ${openaiModel}`);
+    logger.debug("Using OpenAI", { component: "ai-providers", model: openaiModel });
     const response = await openaiClient!.chat.completions.create({
       model: openaiModel,
       messages: [{ role: "user", content: prompt }],
@@ -143,7 +144,7 @@ export async function generateText({
     const openaiResult = response.choices[0]?.message?.content ?? "";
     return { text: openaiResult, usedProvider: "openai" };
   } catch (err: any) {
-    console.error(`[generateText] Error with ${selected}:`, err.message || err);
+    logger.error(`generateText failed with ${selected}`, { component: "ai-providers", provider: selected }, err);
     throw err;
   }
 }

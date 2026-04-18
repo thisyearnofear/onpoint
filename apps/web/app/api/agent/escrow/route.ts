@@ -16,6 +16,7 @@ import {
   updateAllowance,
   withdrawFromEscrow,
 } from "../../../../lib/services/escrow-service";
+import { logger } from "../../../../lib/utils/logger";
 import { corsHeaders } from "../../ai/_utils/http";
 
 const DepositSchema = z.object({
@@ -71,7 +72,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         { status: 200, headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("Escrow balance check error:", error);
+      logger.error("Escrow balance check error", { component: "escrow" }, error);
       return NextResponse.json(
         { error: "Failed to check escrow balance" },
         { status: 500, headers: corsHeaders(origin) },
@@ -178,7 +179,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         { status: 400, headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("Escrow operation error:", error);
+      logger.error("Escrow operation error", { component: "escrow" }, error);
       return NextResponse.json(
         { error: error instanceof Error ? error.message : "Operation failed" },
         { status: 500, headers: corsHeaders(origin) },

@@ -16,6 +16,7 @@ import {
   getAgentWalletInfo,
   getOWSWalletInfo,
 } from "../../../../lib/services/agent-wallet";
+import { logger } from "../../../../lib/utils/logger";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 export { OPTIONS } from "../../ai/_utils/http";
 
@@ -58,7 +59,7 @@ export async function GET(request: NextRequest) {
         { headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("Agent wallet error:", error);
+      logger.error("Agent wallet error", { component: "wallet" }, error);
       return NextResponse.json(
         { error: "Failed to get agent wallet info" },
         { status: 500, headers: corsHeaders(origin) },

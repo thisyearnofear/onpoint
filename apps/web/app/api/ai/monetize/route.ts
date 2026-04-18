@@ -14,6 +14,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { corsHeaders } from "../_utils/http";
 import { generateText } from "../_utils/providers";
+import { logger } from "../../../../lib/utils/logger";
+import { rateLimit, RateLimits, getClientId } from "../../../../lib/utils/rate-limit";
 export { OPTIONS } from "../_utils/http";
 
 // Pricing per endpoint (in USDC cents)
@@ -63,6 +65,10 @@ async function extractPayment(
 // GET - Service info
 export async function GET(request: NextRequest) {
   const origin = request.headers.get("origin") || "*";
+  const rl = await rateLimit(getClientId(request), RateLimits.general);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429, headers: corsHeaders(origin) });
+  }
   const url = new URL(request.url);
   const service = url.searchParams.get("service");
   const action = url.searchParams.get("action");
@@ -109,6 +115,10 @@ export async function GET(request: NextRequest) {
 // POST - Execute paid AI service
 export async function POST(request: NextRequest) {
   const origin = request.headers.get("origin") || "*";
+  const rl = await rateLimit(getClientId(request), RateLimits.general);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429, headers: corsHeaders(origin) });
+  }
 
   try {
     const { service, prompt, model, image } = await request.json();
@@ -208,7 +218,7 @@ export async function POST(request: NextRequest) {
       { headers: corsHeaders(origin) },
     );
   } catch (error) {
-    console.error("Pay-per-call error:", error);
+    logger.error("Pay-per-call error", { component: "monetize" }, error);
     return NextResponse.json(
       { error: "Service unavailable" },
       { status: 500, headers: corsHeaders(origin) },

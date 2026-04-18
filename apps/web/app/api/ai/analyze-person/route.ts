@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { corsHeaders } from "../_utils/http";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 export { OPTIONS } from "../_utils/http";
+import { logger } from "../../../../lib/utils/logger";
 
 export async function POST(request: NextRequest) {
   return requireAuthWithRateLimit(async (req, _ctx) => {
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      console.log("Analyzing person appearance...");
+      logger.info("Analyzing person appearance...", { component: "analyze-person" });
 
       const visionResponse = await fetch(
         "https://api.venice.ai/api/v1/chat/completions",
@@ -60,11 +61,11 @@ export async function POST(request: NextRequest) {
 
       if (!visionResponse.ok) {
         const errorText = await visionResponse.text();
-        console.error(
-          "Vision analysis failed:",
-          visionResponse.status,
+        logger.error("Vision analysis failed", {
+          component: "analyze-person",
+          status: visionResponse.status,
           errorText,
-        );
+        });
         return NextResponse.json(
           { error: "Failed to analyze person" },
           { status: 500, headers: corsHeaders(origin) },
@@ -74,10 +75,7 @@ export async function POST(request: NextRequest) {
       const visionData = await visionResponse.json();
       const description = visionData.choices?.[0]?.message?.content || "";
 
-      console.log(
-        "Person analysis complete:",
-        description.substring(0, 100) + "...",
-      );
+      logger.info("Person analysis complete", { component: "analyze-person" });
 
       return NextResponse.json(
         {
@@ -86,7 +84,7 @@ export async function POST(request: NextRequest) {
         { headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("Person analysis error:", error);
+      logger.error("Person analysis error", { component: "analyze-person" }, error);
       return NextResponse.json(
         { error: "Failed to analyze person" },
         { status: 500 },

@@ -5,6 +5,7 @@ import {
   RateLimits,
   getClientId,
 } from "../../../../../lib/utils/rate-limit";
+import { logger } from "../../../../../lib/utils/logger";
 
 export async function GET(
   request: NextRequest,
@@ -48,7 +49,7 @@ export async function GET(
 
     return NextResponse.json({ user });
   } catch (error) {
-    console.error("User API error:", error);
+    logger.error("User API error", { component: "[fid]" }, error);
     return NextResponse.json(
       { error: "Failed to fetch user" },
       { status: 500 },

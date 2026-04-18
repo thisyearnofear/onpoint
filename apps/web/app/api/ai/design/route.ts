@@ -5,6 +5,7 @@ import {
   getRandomAfricanPattern,
   AFRICAN_PATTERNS,
 } from "@onpoint/shared-types";
+import { logger } from "../../../../lib/utils/logger";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 export { OPTIONS } from "../_utils/http";
 
@@ -119,7 +120,7 @@ Provide specific improvements and reasoning.`;
         { headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("AI design error:", error);
+      logger.error("AI design error", { component: "design" }, error);
       return NextResponse.json(
         { error: "Failed to generate design" },
         { status: 500 },

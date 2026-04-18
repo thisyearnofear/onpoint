@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth0 } from "../../../../lib/auth0";
 import type { SupportedProvider } from "../../../../lib/services/token-vault";
 import { logger } from "../../../../lib/utils/logger";
+import { rateLimit, RateLimits, getClientId } from "../../../../lib/utils/rate-limit";
 
 /**
  * GET /api/auth/connected-accounts
@@ -9,7 +10,11 @@ import { logger } from "../../../../lib/utils/logger";
  * Returns list of connected external accounts for Token Vault.
  * Checks Auth0 user identities to determine which providers are linked.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rl = await rateLimit(getClientId(request), RateLimits.general);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+  }
   try {
     const session = await auth0.getSession();
 

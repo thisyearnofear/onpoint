@@ -18,6 +18,7 @@ import {
   persistSuggestion,
   type ActionType,
 } from "../../../../lib/middleware/agent-controls";
+import { logger } from "../../../../lib/utils/logger";
 import { corsHeaders } from "../../ai/_utils/http";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 import { VerifiableAgentService } from "../../../../lib/services/verifiable-agent-service";
@@ -89,7 +90,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         );
       }
     } catch (error) {
-      console.error("Suggestion GET error:", error);
+      logger.error("Suggestion GET error", { component: "suggestion" }, error);
       return NextResponse.json(
         { error: "Internal server error" },
         { status: 500, headers: corsHeaders(origin) },
@@ -158,9 +159,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
         // Re-persist the updated suggestion
         await persistSuggestion(result.suggestion, ctx.userId);
-        console.log(`[SuggestionAPI] Verifiable log attached: ${cid}`);
+        logger.info("Verifiable log attached", { component: "suggestion", cid });
       } catch (err) {
-        console.error("[SuggestionAPI] Failed to create verifiable log:", err);
+        logger.error("Failed to create verifiable log", { component: "suggestion" }, err);
         // Continue anyway - don't block the user if IPFS is down
       }
 
@@ -175,7 +176,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         { status: 201, headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("Suggestion POST error:", error);
+      logger.error("Suggestion POST error", { component: "suggestion" }, error);
       return NextResponse.json(
         { error: "Internal server error" },
         { status: 500, headers: corsHeaders(origin) },
@@ -232,7 +233,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
         { status: 200, headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("Suggestion PATCH error:", error);
+      logger.error("Suggestion PATCH error", { component: "suggestion" }, error);
       return NextResponse.json(
         { error: "Internal server error" },
         { status: 500, headers: corsHeaders(origin) },

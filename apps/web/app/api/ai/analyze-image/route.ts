@@ -3,6 +3,7 @@ import { corsHeaders } from "../_utils/http";
 import { generateVision } from "../_utils/providers";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 export { OPTIONS } from "../_utils/http";
+import { logger } from "../../../../lib/utils/logger";
 
 export async function POST(request: NextRequest) {
   return requireAuthWithRateLimit(async (req, _ctx) => {
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
         { headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("AI image analysis error:", error);
+      logger.error("AI image analysis error", { component: "analyze-image" }, error);
       return NextResponse.json(
         { error: "Failed to analyze image with AI" },
         { status: 500 },

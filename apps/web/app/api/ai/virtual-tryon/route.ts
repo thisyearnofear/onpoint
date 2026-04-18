@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateText } from "../_utils/providers";
 import { corsHeaders } from "../_utils/http";
+import { logger } from "../../../../lib/utils/logger";
+import { rateLimit, RateLimits, getClientId } from "../../../../lib/utils/rate-limit";
 
 export { OPTIONS } from "../_utils/http";
 
@@ -223,9 +225,13 @@ function parseVirtualTryOnResponse(
 }
 
 export async function POST(request: NextRequest) {
+  const origin = request.headers.get("origin") || "*";
+  const rl = await rateLimit(getClientId(request), RateLimits.general);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429, headers: corsHeaders(origin) });
+  }
   try {
     const { type, data, provider = "auto", model } = await request.json();
-    const origin = request.headers.get("origin") || "*";
 
     if (!type)
       return NextResponse.json(
@@ -322,7 +328,7 @@ export async function POST(request: NextRequest) {
       { headers: corsHeaders(origin) },
     );
   } catch (error: any) {
-    console.error("AI virtual try-on error:", error);
+    logger.error("AI virtual try-on error", { component: "virtual-tryon" }, error);
     const origin = request.headers.get("origin") || "*";
     return NextResponse.json(
       { 

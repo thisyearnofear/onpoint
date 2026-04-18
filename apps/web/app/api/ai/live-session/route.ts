@@ -7,6 +7,7 @@ import {
   rateLimitHeaders,
   getClientId,
 } from "../../../../lib/utils/rate-limit";
+import { logger } from "../../../../lib/utils/logger";
 import { AGENT_WALLET, NFT_CONTRACTS } from "../../../../config/chains";
 import { extractAuth } from "../../../../middleware/agent-auth";
 export { OPTIONS } from "../_utils/http";
@@ -219,11 +220,11 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      console.log("Provisioning Venice Live AR Session (Free)...", {
+      logger.info("Provisioning Venice Live AR Session (Free)...", { component: "live-session", ...{
         goal,
         clientId,
         userId,
-      });
+      } });
 
       return NextResponse.json(
         {
@@ -261,10 +262,10 @@ export async function POST(request: NextRequest) {
         if (tokenPayload && tokenPayload.provider === "gemini") {
           isValidToken = true;
           walletAddress = tokenPayload.sub;
-          console.log("Valid session token found for Gemini Live", {
+          logger.info("Valid session token found for Gemini Live", { component: "live-session", ...{
             wallet: tokenPayload.sub,
             expiresAt: new Date(tokenPayload.exp).toISOString(),
-          });
+          } });
         }
       }
 
@@ -340,12 +341,12 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      console.log("Provisioning Gemini Live AR Session (Premium)...", {
+      logger.info("Provisioning Gemini Live AR Session (Premium)...", { component: "live-session", ...{
         goal,
         usingByok: Boolean(byok),
         usingToken: isValidToken,
         userId,
-      });
+      } });
 
       return NextResponse.json(
         {
@@ -376,7 +377,7 @@ export async function POST(request: NextRequest) {
       { status: 400, headers: corsHeaders(origin) },
     );
   } catch (error) {
-    console.error("Live Session provisioning error:", error);
+    logger.error("Live Session provisioning error", { component: "live-session" }, error);
     return NextResponse.json(
       { error: "Failed to provision session" },
       { status: 500, headers: corsHeaders(origin) },

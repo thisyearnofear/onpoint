@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth0 } from "../../../../lib/auth0";
+import { logger } from "../../../../lib/utils/logger";
+import { rateLimit, RateLimits, getClientId } from "../../../../lib/utils/rate-limit";
 
 /**
  * POST /api/auth/revoke-connection
@@ -8,6 +10,10 @@ import { auth0 } from "../../../../lib/auth0";
  * Requires Auth0 Management API access.
  */
 export async function POST(request: NextRequest) {
+  const rl = await rateLimit(getClientId(request), RateLimits.general);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+  }
   try {
     const session = await auth0.getSession();
 
@@ -44,7 +50,7 @@ export async function POST(request: NextRequest) {
     const managementToken = process.env.AUTH0_MANAGEMENT_API_TOKEN;
     
     if (!managementToken) {
-      console.warn("[Revoke] AUTH0_MANAGEMENT_API_TOKEN not configured");
+      logger.warn("AUTH0_MANAGEMENT_API_TOKEN not configured", { component: "revoke-connection" });
       return NextResponse.json(
         { error: "Management API not configured. Please set AUTH0_MANAGEMENT_API_TOKEN." },
         { status: 500 }
@@ -64,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const error = await response.text();
-      console.error("[Revoke] Management API error:", error);
+      logger.error("Management API error", { component: "revoke-connection" }, error);
       return NextResponse.json(
         { error: "Failed to revoke connection", details: error },
         { status: response.status }
@@ -76,7 +82,7 @@ export async function POST(request: NextRequest) {
       message: `Successfully revoked ${connection}` 
     });
   } catch (error: any) {
-    console.error("[Revoke] Error:", error);
+    logger.error("Error", { component: "revoke-connection" }, error);
     return NextResponse.json(
       { error: "Failed to revoke connection", details: error.message },
       { status: 500 }

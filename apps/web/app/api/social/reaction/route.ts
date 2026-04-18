@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { NeynarSocialUtils } from "../../../../lib/utils/neynar";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
+import { logger } from "../../../../lib/utils/logger";
 
 export async function POST(request: NextRequest) {
   return requireAuthWithRateLimit(async (req, _ctx) => {
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
       );
       return NextResponse.json({ ok: true, result });
     } catch (error) {
-      console.error("Reaction API error:", error);
+      logger.error("Reaction API error", { component: "reaction" }, error);
       return NextResponse.json(
         { error: "Failed to publish reaction" },
         { status: 500 },

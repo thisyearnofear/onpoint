@@ -11,6 +11,8 @@ import {
   checkSpendPolicy,
   enforceSpendPolicy,
 } from "../../../../lib/services/spend-policy";
+import { logger } from "../../../../lib/utils/logger";
+import { rateLimit, RateLimits, getClientId } from "../../../../lib/utils/rate-limit";
 import { agentReputation } from "../../../../lib/services/agent-reputation";
 export { OPTIONS } from "../../ai/_utils/http";
 
@@ -82,6 +84,10 @@ function calculateDynamicPrice(basePrice: number, demand: number = 1): number {
 // GET - Browse catalog
 export async function GET(request: NextRequest) {
   const origin = request.headers.get("origin") || "*";
+  const rl = await rateLimit(getClientId(request), RateLimits.general);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429, headers: corsHeaders(origin) });
+  }
   const url = new URL(request.url);
   const category = url.searchParams.get("category");
   const search = url.searchParams.get("q");
@@ -127,6 +133,10 @@ export async function GET(request: NextRequest) {
 // POST - Add to cart / checkout
 export async function POST(request: NextRequest) {
   const origin = request.headers.get("origin") || "*";
+  const rl = await rateLimit(getClientId(request), RateLimits.general);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429, headers: corsHeaders(origin) });
+  }
 
   try {
     const body = await request.json();
@@ -208,7 +218,7 @@ export async function POST(request: NextRequest) {
       { status: 400, headers: corsHeaders(origin) },
     );
   } catch (error) {
-    console.error("Storefront error:", error);
+    logger.error("Storefront error", { component: "storefront" }, error);
     return NextResponse.json(
       { error: "Internal error" },
       { status: 500, headers: corsHeaders(origin) },

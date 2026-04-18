@@ -11,6 +11,7 @@ import {
   requireAuthWithRateLimit,
   setUserSubscription,
 } from "../../../../middleware/agent-auth";
+import { logger } from "../../../../lib/utils/logger";
 import {
   getUserSubscription,
   startTrial,
@@ -91,7 +92,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         { status: 200, headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("Subscription check error:", error);
+      logger.error("Subscription check error", { component: "subscription" }, error);
       return NextResponse.json(
         { error: "Failed to check subscription" },
         { status: 500, headers: corsHeaders(origin) },
@@ -231,7 +232,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         { status: 400, headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("Subscription operation error:", error);
+      logger.error("Subscription operation error", { component: "subscription" }, error);
       return NextResponse.json(
         { error: error instanceof Error ? error.message : "Operation failed" },
         { status: 500, headers: corsHeaders(origin) },

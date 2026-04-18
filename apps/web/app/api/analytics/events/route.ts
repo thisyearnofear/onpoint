@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { corsHeaders } from "../../ai/_utils/http";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 export { OPTIONS } from "../../ai/_utils/http";
+import { logger } from "../../../../lib/utils/logger";
 
 interface AnalyticsEvent {
   event: string;
@@ -41,12 +42,12 @@ export async function POST(request: NextRequest) {
 
       // For now, just log them
       for (const event of events) {
-        console.log("[Analytics Event]", {
+        logger.info("[Analytics Event]", { component: "events", ...{
           event: event.event,
           sessionId: event.sessionId?.slice(0, 8) + "...", // Truncate for privacy
           timestamp: new Date(event.timestamp).toISOString(),
           properties: event.properties,
-        });
+        } });
       }
 
       // Aggregate metrics for key events
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
         { headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("Analytics ingestion error:", error);
+      logger.error("Analytics ingestion error", { component: "events" }, error);
       return NextResponse.json(
         { error: "Failed to process analytics events" },
         { status: 500, headers: corsHeaders(origin) },

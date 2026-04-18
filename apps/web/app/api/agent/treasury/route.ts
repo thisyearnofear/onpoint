@@ -16,6 +16,7 @@ import {
   payForCompute,
   autoFundTreasury,
 } from "../../../../lib/services/treasury-service";
+import { logger } from "../../../../lib/utils/logger";
 import { corsHeaders } from "../../ai/_utils/http";
 
 const AddRevenueSchema = z.object({
@@ -100,7 +101,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         { status: 200, headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("Treasury check error:", error);
+      logger.error("Treasury check error", { component: "treasury" }, error);
       return NextResponse.json(
         { error: "Failed to check treasury" },
         { status: 500, headers: corsHeaders(origin) },
@@ -229,7 +230,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         { status: 400, headers: corsHeaders(origin) },
       );
     } catch (error) {
-      console.error("Treasury operation error:", error);
+      logger.error("Treasury operation error", { component: "treasury" }, error);
       return NextResponse.json(
         { error: error instanceof Error ? error.message : "Operation failed" },
         { status: 500, headers: corsHeaders(origin) },

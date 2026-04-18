@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { logger } from "../../../lib/utils/logger";
 
 export async function POST(req: Request) {
   try {
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
     const body = JSON.parse(bodyText);
     // Basic routing by event type if provided
     const eventType = body?.type || body?.event || 'unknown';
-    console.log('Webhook received', { eventType, payloadSize: bodyText.length });
+    logger.info("Webhook received", { component: "webhook", eventType, payloadSize: bodyText.length });
 
     // TODO: persist events to storage and surface in UI
 

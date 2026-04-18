@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { uploadToIPFS } from "@repo/ipfs-client";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
+import { logger } from "../../../../lib/utils/logger";
 
 export async function POST(request: NextRequest) {
   return requireAuthWithRateLimit(async (req, _ctx) => {
@@ -23,10 +24,11 @@ export async function POST(request: NextRequest) {
       let ipfsData = null;
       try {
         ipfsData = await uploadToIPFS(buffer, image.name);
-        console.log("Lighthouse upload success:", ipfsData.cid);
+        logger.info("Lighthouse upload success", { component: "upload", cid: ipfsData.cid });
       } catch (err) {
-        console.error(
-          "Lighthouse upload failed, continuing with Neynar only:",
+        logger.warn(
+          "Lighthouse upload failed, continuing with Neynar only",
+          { component: "upload" },
           err,
         );
       }
@@ -50,7 +52,7 @@ export async function POST(request: NextRequest) {
 
       if (!neynarRes.ok) {
         const errorText = await neynarRes.text();
-        console.error("Neynar upload failed:", errorText);
+        logger.error("Neynar upload failed", { component: "upload" }, errorText);
         throw new Error(`Neynar upload failed: ${neynarRes.status}`);
       }
 
@@ -63,7 +65,7 @@ export async function POST(request: NextRequest) {
         ipfsCid: ipfsData?.cid,
       });
     } catch (error) {
-      console.error("Upload API error:", error);
+      logger.error("Upload API error", { component: "upload" }, error);
       return NextResponse.json(
         { error: "Failed to upload image" },
         { status: 500 },

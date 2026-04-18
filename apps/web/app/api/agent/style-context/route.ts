@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { StyleContextStore } from "../../../../lib/services/style-context-store";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
+import { logger } from "../../../../lib/utils/logger";
 
 // GET /api/agent/style-context — Get unified context
 export async function GET(req: NextRequest) {
@@ -35,7 +36,7 @@ export async function GET(req: NextRequest) {
         },
       });
     } catch (error) {
-      console.error("Style context GET error:", error);
+      logger.error("Style context GET error", { component: "style-context" }, error);
       return NextResponse.json(
         { success: false, error: "Failed to fetch style context" },
         { status: 500 },
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
         message: "Style analysis recorded",
       });
     } catch (error) {
-      console.error("Style context POST error:", error);
+      logger.error("Style context POST error", { component: "style-context" }, error);
       return NextResponse.json(
         { success: false, error: "Failed to record style analysis" },
         { status: 500 },
@@ -103,7 +104,7 @@ export async function PUT(req: NextRequest) {
         message: "Session goal recorded",
       });
     } catch (error) {
-      console.error("Style context PUT error:", error);
+      logger.error("Style context PUT error", { component: "style-context" }, error);
       return NextResponse.json(
         { success: false, error: "Failed to record session goal" },
         { status: 500 },

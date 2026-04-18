@@ -155,7 +155,7 @@ export async function POST(
 
         return NextResponse.json(
           { success: false, error: "Web-Bridge returned no results" },
-          { status: 204, headers: corsHeaders(origin) },
+          { status: 404, headers: corsHeaders(origin) },
         );
       }
 
