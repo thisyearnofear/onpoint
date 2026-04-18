@@ -9,6 +9,7 @@ import {
 } from "../../../../lib/utils/rate-limit";
 import { AGENT_WALLET, NFT_CONTRACTS } from "../../../../config/chains";
 import { extractAuth } from "../../../../middleware/agent-auth";
+export { OPTIONS } from "../_utils/http";
 
 type AIProvider = "venice" | "gemini";
 
@@ -383,7 +384,3 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function OPTIONS(request: NextRequest) {
-  const origin = request.headers.get("origin") || "*";
-  return new NextResponse(null, { status: 204, headers: corsHeaders(origin) });
-}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateText } from "../_utils/providers";
 import { corsHeaders } from "../_utils/http";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
+export { OPTIONS } from "../_utils/http";
 
 export async function POST(request: NextRequest) {
   return requireAuthWithRateLimit(async (req, _ctx) => {
@@ -169,7 +170,3 @@ function parseStyleSuggestionsFromText(text: string) {
   return suggestions;
 }
 
-export async function OPTIONS(request: NextRequest) {
-  const origin = request.headers.get("origin") || "*";
-  return new NextResponse(null, { status: 204, headers: corsHeaders(origin) });
-}

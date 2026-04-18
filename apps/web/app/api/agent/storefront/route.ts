@@ -12,6 +12,7 @@ import {
   enforceSpendPolicy,
 } from "../../../../lib/services/spend-policy";
 import { agentReputation } from "../../../../lib/services/agent-reputation";
+export { OPTIONS } from "../../ai/_utils/http";
 
 export interface Product {
   id: string;
@@ -215,7 +216,3 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function OPTIONS(request: NextRequest) {
-  const origin = request.headers.get("origin") || "*";
-  return new NextResponse(null, { status: 204, headers: corsHeaders(origin) });
-}

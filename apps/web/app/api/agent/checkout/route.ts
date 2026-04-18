@@ -41,6 +41,7 @@ import {
   getPaymentHeader,
 } from "../../../../lib/utils/x402";
 import { verify, settle } from "x402/verify";
+export { OPTIONS } from "../../ai/_utils/http";
 
 // Build product lookup from catalog
 const PRODUCT_MAP = Object.fromEntries(
@@ -413,10 +414,3 @@ export async function POST(
   })(request);
 }
 
-// OPTIONS - CORS preflight
-export async function OPTIONS(request: NextRequest): Promise<NextResponse> {
-  return new NextResponse(null, {
-    status: 200,
-    headers: corsHeaders(request.headers.get("origin") ?? undefined),
-  });
-}

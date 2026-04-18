@@ -24,6 +24,7 @@ const DepositSchema = z.object({
   chainId: z.number().default(42220), // Celo mainnet
   agentId: z.string().default("onpoint-stylist"),
 });
+export { OPTIONS } from "../../ai/_utils/http";
 
 const UpdateAllowanceSchema = z.object({
   allowance: z.string().min(1),
@@ -186,9 +187,3 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   })(request);
 }
 
-export async function OPTIONS(request: NextRequest): Promise<NextResponse> {
-  return new NextResponse(null, {
-    status: 200,
-    headers: corsHeaders(request.headers.get("origin") ?? undefined),
-  });
-}

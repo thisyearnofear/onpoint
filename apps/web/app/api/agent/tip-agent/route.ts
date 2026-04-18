@@ -21,6 +21,7 @@ import {
   type ActionType,
 } from "../../../../lib/middleware/agent-controls";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
+export { OPTIONS } from "../../ai/_utils/http";
 
 interface AgentTipRequest {
   fromAgentId: string;
@@ -273,7 +274,3 @@ export async function GET(request: NextRequest) {
   })(request);
 }
 
-export async function OPTIONS(request: NextRequest) {
-  const origin = request.headers.get("origin") || "*";
-  return new NextResponse(null, { status: 204, headers: corsHeaders(origin) });
-}

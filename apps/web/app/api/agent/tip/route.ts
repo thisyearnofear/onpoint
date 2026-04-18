@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { corsHeaders } from "../../ai/_utils/http";
 import { getAgentWallet } from "../../../../lib/services/agent-wallet";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
+export { OPTIONS } from "../../ai/_utils/http";
 
 interface TipRequest {
   fromAddress: string;
@@ -204,7 +205,3 @@ export async function GET(request: NextRequest) {
   })(request);
 }
 
-export async function OPTIONS(request: NextRequest) {
-  const origin = request.headers.get("origin") || "*";
-  return new NextResponse(null, { status: 204, headers: corsHeaders(origin) });
-}

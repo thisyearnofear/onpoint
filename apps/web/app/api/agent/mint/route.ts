@@ -34,6 +34,7 @@ import { getAgentWallet } from "../../../../lib/services/agent-wallet";
 import { mintNFTWithSplit, createSplitsClient } from "@repo/blockchain-client";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 import { logger } from "../../../../lib/utils/logger";
+export { OPTIONS } from "../../ai/_utils/http";
 
 // Request validation
 const MintRequestSchema = z.object({
@@ -275,9 +276,3 @@ export async function POST(
 }
 
 // Handle OPTIONS for CORS preflight
-export async function OPTIONS(request: NextRequest): Promise<NextResponse> {
-  return new NextResponse(null, {
-    status: 200,
-    headers: corsHeaders(request.headers.get("origin") ?? undefined),
-  });
-}

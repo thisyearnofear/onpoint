@@ -6,6 +6,7 @@ import {
   AFRICAN_PATTERNS,
 } from "@onpoint/shared-types";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
+export { OPTIONS } from "../_utils/http";
 
 export async function POST(request: NextRequest) {
   return requireAuthWithRateLimit(async (req, _ctx) => {
@@ -127,10 +128,6 @@ Provide specific improvements and reasoning.`;
   })(request);
 }
 
-export async function OPTIONS(request: NextRequest) {
-  const origin = request.headers.get("origin") || "*";
-  return new NextResponse(null, { status: 204, headers: corsHeaders(origin) });
-}
 
 function parseDesignResponse(aiResponse: string, originalPrompt: string) {
   // Extract structured data from AI response

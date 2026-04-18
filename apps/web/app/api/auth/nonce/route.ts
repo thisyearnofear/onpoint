@@ -9,6 +9,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateNonce } from "../../../../middleware/agent-auth";
 import { corsHeaders } from "../../ai/_utils/http";
 
+export { OPTIONS } from "../../ai/_utils/http";
+
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const origin = request.headers.get("origin") ?? undefined;
 
@@ -28,9 +30,3 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-export async function OPTIONS(request: NextRequest): Promise<NextResponse> {
-  return new NextResponse(null, {
-    status: 200,
-    headers: corsHeaders(request.headers.get("origin") ?? undefined),
-  });
-}

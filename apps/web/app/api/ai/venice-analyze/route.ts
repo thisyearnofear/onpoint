@@ -6,6 +6,7 @@ import {
   rateLimitHeaders,
   getClientId,
 } from "../../../../lib/utils/rate-limit";
+export { OPTIONS } from "../_utils/http";
 
 const VENICE_API_URL = "https://api.venice.ai/api/v1";
 
@@ -168,7 +169,3 @@ export async function POST(request: NextRequest) {
     }
 }
 
-export async function OPTIONS(request: NextRequest) {
-  const origin = request.headers.get("origin") || "*";
-  return new NextResponse(null, { status: 204, headers: corsHeaders(origin) });
-}

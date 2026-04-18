@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { corsHeaders } from "../_utils/http";
 import { generateText } from "../_utils/providers";
+export { OPTIONS } from "../_utils/http";
 
 // Pricing per endpoint (in USDC cents)
 const PRICING: Record<string, number> = {
@@ -225,7 +226,3 @@ async function getTopServices(): Promise<{ service: string; calls: number }[]> {
   ];
 }
 
-export async function OPTIONS(request: NextRequest) {
-  const origin = request.headers.get("origin") || "*";
-  return new NextResponse(null, { status: 204, headers: corsHeaders(origin) });
-}

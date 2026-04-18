@@ -67,3 +67,9 @@ export function jsonCors(data: unknown, status: number = 200, origin?: string) {
     headers: corsHeaders(origin),
   });
 }
+
+/** Shared OPTIONS preflight handler — use as `export { OPTIONS } from '.../_utils/http'` */
+export async function OPTIONS(request: Request) {
+  const origin = request.headers.get("origin") || "*";
+  return new NextResponse(null, { status: 204, headers: corsHeaders(origin) });
+}

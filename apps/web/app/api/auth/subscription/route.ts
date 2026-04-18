@@ -28,6 +28,7 @@ import { corsHeaders } from "../../ai/_utils/http";
 const StartTrialSchema = z.object({
   durationDays: z.number().min(1).max(30).default(14),
 });
+export { OPTIONS } from "../../ai/_utils/http";
 
 const UpgradeSchema = z.object({
   tier: z.enum(["basic", "pro", "concierge"]),
@@ -239,9 +240,3 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   })(request);
 }
 
-export async function OPTIONS(request: NextRequest): Promise<NextResponse> {
-  return new NextResponse(null, {
-    status: 200,
-    headers: corsHeaders(request.headers.get("origin") ?? undefined),
-  });
-}

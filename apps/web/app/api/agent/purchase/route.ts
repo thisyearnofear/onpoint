@@ -22,6 +22,7 @@ import { PLATFORM_WALLET, getExplorerUrl } from "../../../../config/chains";
 import { getAgentWallet } from "../../../../lib/services/agent-wallet";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 import { logger } from "../../../../lib/utils/logger";
+export { OPTIONS } from "../../ai/_utils/http";
 
 // Product catalog - maps CANVAS_ITEMS to purchase-ready format
 const PRODUCTS: Record<
@@ -351,9 +352,3 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 }
 
 // Handle OPTIONS for CORS preflight
-export async function OPTIONS(request: NextRequest): Promise<NextResponse> {
-  return new NextResponse(null, {
-    status: 200,
-    headers: corsHeaders(request.headers.get("origin") ?? undefined),
-  });
-}

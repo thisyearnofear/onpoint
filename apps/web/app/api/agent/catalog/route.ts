@@ -16,6 +16,7 @@ import { z } from "zod";
 import { productCatalog } from "../../../../lib/services/product-catalog";
 import { corsHeaders } from "../../ai/_utils/http";
 import { requireAuthWithRateLimit, requirePermission } from "../../../../middleware/agent-auth";
+export { OPTIONS } from "../../ai/_utils/http";
 
 // Request schema
 const SearchRequestSchema = z.object({
@@ -123,10 +124,3 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   })(request);
 }
 
-// OPTIONS - CORS preflight
-export async function OPTIONS(request: NextRequest): Promise<NextResponse> {
-  return new NextResponse(null, {
-    status: 200,
-    headers: corsHeaders(request.headers.get("origin") ?? undefined),
-  });
-}

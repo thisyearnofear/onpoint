@@ -11,6 +11,7 @@ import {
 import { createSessionToken } from "../../../../lib/utils/session-token";
 import type { SessionTokenPayload } from "../../../../lib/utils/session-token";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
+export { OPTIONS } from "../_utils/http";
 
 // Payment recipient address (OnPoint's wallet)
 const RECIPIENT_ADDRESS = AGENT_WALLET;
@@ -197,7 +198,3 @@ export async function POST(request: NextRequest) {
   })(request);
 }
 
-export async function OPTIONS(request: NextRequest) {
-  const origin = request.headers.get("origin") || "*";
-  return new NextResponse(null, { status: 204, headers: corsHeaders(origin) });
-}

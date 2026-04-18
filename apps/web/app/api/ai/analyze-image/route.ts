@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { corsHeaders } from "../_utils/http";
 import { generateVision } from "../_utils/providers";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
+export { OPTIONS } from "../_utils/http";
 
 export async function POST(request: NextRequest) {
   return requireAuthWithRateLimit(async (req, _ctx) => {
@@ -69,7 +70,3 @@ export async function POST(request: NextRequest) {
   })(request);
 }
 
-export async function OPTIONS(request: NextRequest) {
-  const origin = request.headers.get("origin") || "*";
-  return new NextResponse(null, { status: 204, headers: corsHeaders(origin) });
-}

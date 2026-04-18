@@ -25,6 +25,7 @@ const AddRevenueSchema = z.object({
   from: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
   txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/).optional(),
 });
+export { OPTIONS } from "../../ai/_utils/http";
 
 const RecordExpenseSchema = z.object({
   agentId: z.string().default("onpoint-stylist"),
@@ -237,9 +238,3 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   })(request);
 }
 
-export async function OPTIONS(request: NextRequest): Promise<NextResponse> {
-  return new NextResponse(null, {
-    status: 200,
-    headers: corsHeaders(request.headers.get("origin") ?? undefined),
-  });
-}

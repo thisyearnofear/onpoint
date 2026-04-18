@@ -25,6 +25,7 @@ import { logger } from "../../../../lib/utils/logger";
 import { createPublicClient, http, formatEther } from "viem";
 import { celo, base, mainnet, polygon } from "viem/chains";
 import { RPC_URLS } from "../../../../config/chains";
+export { OPTIONS } from "../_utils/http";
 
 /**
  * OnPoint Autonomous AI Agent
@@ -930,7 +931,3 @@ export async function POST(request: NextRequest) {
   })(request);
 }
 
-export async function OPTIONS(request: NextRequest) {
-  const origin = request.headers.get("origin") || "*";
-  return new Response(null, { status: 204, headers: corsHeaders(origin) });
-}

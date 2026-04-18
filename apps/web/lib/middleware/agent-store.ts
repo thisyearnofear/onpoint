@@ -19,6 +19,16 @@ import type {
 import type { CommissionRecord } from "../utils/commissions";
 import type { UserMissionState } from "../services/mission-service";
 import { logger } from "../utils/logger";
+import {
+  redisGet,
+  redisSet,
+  redisSetEx,
+  redisDel,
+  redisSadd,
+  redisSmembers,
+  redisSrem,
+  isRedisConfigured,
+} from "../utils/redis-helpers";
 
 // ============================================
 // Redis Key Schema
@@ -40,139 +50,6 @@ const KEYS = {
   commissionIndex: () => `agent:commissions`,
   missionState: (userId: string) => `agent:missions:${userId}`,
 };
-
-// ============================================
-// Upstash REST Helpers
-// ============================================
-
-interface UpstashResult<T = unknown> {
-  result: T;
-}
-
-function getRedisConfig() {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  return url && token ? { url, token } : null;
-}
-
-async function redisGet<T>(key: string): Promise<T | null> {
-  const config = getRedisConfig();
-  if (!config) return null;
-
-  try {
-    const res = await fetch(`${config.url}/get/${key}`, {
-      headers: { Authorization: `Bearer ${config.token}` },
-    });
-    if (!res.ok) return null;
-    const data: UpstashResult<string | null> = await res.json();
-    if (data.result === null) return null;
-    return JSON.parse(data.result) as T;
-  } catch {
-    return null;
-  }
-}
-
-async function redisSet(key: string, value: unknown): Promise<void> {
-  const config = getRedisConfig();
-  if (!config) return;
-
-  try {
-    await fetch(`${config.url}/set/${key}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${config.token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ value: JSON.stringify(value) }),
-    });
-  } catch (err) {
-    logger.error("Redis SET failed", { component: "agent-store", key }, err);
-  }
-}
-
-async function redisSetEx(
-  key: string,
-  value: unknown,
-  ttlSeconds: number,
-): Promise<void> {
-  const config = getRedisConfig();
-  if (!config) return;
-
-  try {
-    await fetch(`${config.url}/set/${key}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${config.token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ value: JSON.stringify(value), ex: ttlSeconds }),
-    });
-  } catch (err) {
-    logger.error(
-      "Redis SET (TTL) failed",
-      { component: "agent-store", key },
-      err,
-    );
-  }
-}
-
-async function redisDel(key: string): Promise<void> {
-  const config = getRedisConfig();
-  if (!config) return;
-
-  try {
-    await fetch(`${config.url}/del/${key}`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${config.token}` },
-    });
-  } catch (err) {
-    logger.error("Redis DEL failed", { component: "agent-store", key }, err);
-  }
-}
-
-async function redisSadd(key: string, member: string): Promise<void> {
-  const config = getRedisConfig();
-  if (!config) return;
-
-  try {
-    await fetch(`${config.url}/sadd/${key}/${member}`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${config.token}` },
-    });
-  } catch {
-    // Best effort
-  }
-}
-
-async function redisSmembers(key: string): Promise<string[]> {
-  const config = getRedisConfig();
-  if (!config) return [];
-
-  try {
-    const res = await fetch(`${config.url}/smembers/${key}`, {
-      headers: { Authorization: `Bearer ${config.token}` },
-    });
-    if (!res.ok) return [];
-    const data: UpstashResult<string[]> = await res.json();
-    return data.result || [];
-  } catch {
-    return [];
-  }
-}
-
-async function redisSrem(key: string, member: string): Promise<void> {
-  const config = getRedisConfig();
-  if (!config) return;
-
-  try {
-    await fetch(`${config.url}/srem/${key}/${member}`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${config.token}` },
-    });
-  } catch {
-    // Best effort
-  }
-}
 
 // ============================================
 // Serialization helpers (bigint → string)

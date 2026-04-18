@@ -17,6 +17,11 @@ import {
   searchCatalog as searchLocalCatalog,
   mergeProductResults,
 } from "@onpoint/shared-types";
+import {
+  redisGet,
+  redisSet,
+  isRedisConfigured,
+} from "../utils/redis-helpers";
 
 /**
  * Infer product category from item name and search query.
@@ -68,7 +73,7 @@ function inferCategory(name: string, query: string): string {
 }
 
 // ============================================
-// Redis Integration (follows agent-store.ts pattern)
+// Cache helpers (uses shared Redis)
 // ============================================
 
 interface CacheEntry<T> {
@@ -78,49 +83,6 @@ interface CacheEntry<T> {
 }
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-
-function getRedisConfig() {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  return url && token ? { url, token } : null;
-}
-
-async function cacheGet<T>(key: string): Promise<T | null> {
-  const config = getRedisConfig();
-  if (!config) return null;
-
-  try {
-    const res = await fetch(`${config.url}/get/${key}`, {
-      headers: { Authorization: `Bearer ${config.token}` },
-    });
-    if (!res.ok) return null;
-
-    const data: { result: string | null } = await res.json();
-    if (data.result === null) return null;
-
-    return JSON.parse(data.result) as T;
-  } catch {
-    return null;
-  }
-}
-
-async function cacheSet(key: string, value: unknown): Promise<void> {
-  const config = getRedisConfig();
-  if (!config) return;
-
-  try {
-    await fetch(`${config.url}/set/${key}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${config.token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ value: JSON.stringify(value) }),
-    });
-  } catch (err) {
-    console.error(`[Catalog] Redis SET ${key} failed:`, err);
-  }
-}
 
 // ============================================
 // Catalog Service
@@ -292,7 +254,7 @@ class ProductCatalogService {
   ): Promise<Array<FashionItem | ExternalProduct> | null> {
     const cacheKey = this.getCacheKey(query, limit);
     const cached =
-      await cacheGet<CacheEntry<Array<FashionItem | ExternalProduct>>>(
+      await redisGet<CacheEntry<Array<FashionItem | ExternalProduct>>>(
         cacheKey,
       );
 
@@ -322,7 +284,7 @@ class ProductCatalogService {
       ttlMs: CACHE_TTL_MS,
     };
 
-    await cacheSet(cacheKey, entry);
+    await redisSet(cacheKey, entry);
     console.log(`[Catalog] Cached ${results.length} results for "${query}"`);
   }
 

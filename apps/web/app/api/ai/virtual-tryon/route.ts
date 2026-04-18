@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateText } from "../_utils/providers";
 import { corsHeaders } from "../_utils/http";
 
+export { OPTIONS } from "../_utils/http";
+
 function extractMeasurement(text: string, bodyPart: string): string | null {
   const sizeWords = ["small", "medium", "large", "extra small", "extra large"];
   const regex = new RegExp(`${bodyPart}[:\\s]*([^\\n]*?)(?=\\n|$)`, "i");
@@ -335,7 +337,3 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function OPTIONS(request: NextRequest) {
-  const origin = request.headers.get("origin") || "*";
-  return new NextResponse(null, { status: 204, headers: corsHeaders(origin) });
-}

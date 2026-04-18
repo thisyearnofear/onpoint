@@ -17,6 +17,7 @@ import {
   getOWSWalletInfo,
 } from "../../../../lib/services/agent-wallet";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
+export { OPTIONS } from "../../ai/_utils/http";
 
 export async function GET(request: NextRequest) {
   return requireAuthWithRateLimit(async (req, _ctx) => {
@@ -66,7 +67,3 @@ export async function GET(request: NextRequest) {
   })(request);
 }
 
-export async function OPTIONS(request: NextRequest) {
-  const origin = request.headers.get("origin") || "*";
-  return new NextResponse(null, { status: 204, headers: corsHeaders(origin) });
-}

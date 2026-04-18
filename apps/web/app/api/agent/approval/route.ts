@@ -18,6 +18,7 @@ import {
 } from "../../../../lib/middleware/agent-controls";
 import { corsHeaders } from "../../ai/_utils/http";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
+export { OPTIONS } from "../../ai/_utils/http";
 
 // Request schemas
 const CreateApprovalSchema = z.object({
@@ -186,10 +187,3 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
   })(request);
 }
 
-// OPTIONS - CORS preflight
-export async function OPTIONS(request: NextRequest): Promise<NextResponse> {
-  return new NextResponse(null, {
-    status: 200,
-    headers: corsHeaders(request.headers.get("origin") ?? undefined),
-  });
-}

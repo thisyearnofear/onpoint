@@ -21,6 +21,7 @@ const FreezeSchema = z.object({
   agentId: z.string(),
   reason: z.string().min(1),
 });
+export { OPTIONS } from "../../ai/_utils/http";
 
 const UnfreezeSchema = z.object({
   agentId: z.string(),
@@ -194,9 +195,3 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   })(request);
 }
 
-export async function OPTIONS(request: NextRequest): Promise<NextResponse> {
-  return new NextResponse(null, {
-    status: 200,
-    headers: corsHeaders(request.headers.get("origin") ?? undefined),
-  });
-}

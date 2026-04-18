@@ -86,6 +86,50 @@ export async function redisDel(key: string): Promise<void> {
   }
 }
 
+export async function redisSadd(key: string, member: string): Promise<void> {
+  const config = getRedisConfig();
+  if (!config) return;
+
+  try {
+    await fetch(`${config.url}/sadd/${key}/${member}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${config.token}` },
+    });
+  } catch {
+    // Silent fail
+  }
+}
+
+export async function redisSmembers(key: string): Promise<string[]> {
+  const config = getRedisConfig();
+  if (!config) return [];
+
+  try {
+    const res = await fetch(`${config.url}/smembers/${key}`, {
+      headers: { Authorization: `Bearer ${config.token}` },
+    });
+    if (!res.ok) return [];
+    const data: UpstashResult<string[]> = await res.json();
+    return data.result || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function redisSrem(key: string, member: string): Promise<void> {
+  const config = getRedisConfig();
+  if (!config) return;
+
+  try {
+    await fetch(`${config.url}/srem/${key}/${member}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${config.token}` },
+    });
+  } catch {
+    // Silent fail
+  }
+}
+
 export function isRedisConfigured(): boolean {
   return !!getRedisConfig();
 }

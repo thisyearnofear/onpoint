@@ -19,6 +19,7 @@ import {
   type AgentAction,
 } from "../../../../lib/services/agent-registry";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
+export { OPTIONS } from "../../ai/_utils/http";
 
 // In-memory audit log (production would use Redis)
 const auditLog: Array<{
@@ -171,7 +172,3 @@ export async function GET(request: NextRequest) {
   })(request);
 }
 
-export async function OPTIONS(request: NextRequest) {
-  const origin = request.headers.get("origin") || "*";
-  return new NextResponse(null, { status: 204, headers: corsHeaders(origin) });
-}
