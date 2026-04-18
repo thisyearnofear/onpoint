@@ -219,13 +219,46 @@ export function GeminiLivePaymentButton({
     );
   }
 
-  // Not connected state
+  // Not connected state — offer Stripe as primary, wallet as secondary
   if (!isConnected) {
     return (
       <div className="flex flex-col items-center gap-3 p-4 bg-slate-900/50 rounded-2xl border border-white/5">
-        <AlertCircle className="w-8 h-8 text-amber-400" />
-        <p className="text-slate-400 text-sm text-center">
-          Connect a wallet in Settings to unlock Premium voice styling
+        <Sparkles className="w-8 h-8 text-indigo-400" />
+        <p className="text-white text-sm text-center font-medium">
+          Unlock Premium Voice Styling
+        </p>
+        <p className="text-slate-400 text-xs text-center">
+          Real-time voice conversation with your AI stylist
+        </p>
+        <Button
+          onClick={async () => {
+            try {
+              setPaymentStatus("pending");
+              setStatusMessage("Redirecting to checkout...");
+              const res = await fetch("/api/stripe/checkout", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ type: "premium_session" }),
+              });
+              const data = await res.json();
+              if (data.url) {
+                window.location.href = data.url;
+              } else {
+                setPaymentStatus("error");
+                setStatusMessage(data.error || "Checkout unavailable");
+              }
+            } catch {
+              setPaymentStatus("error");
+              setStatusMessage("Could not start checkout");
+            }
+          }}
+          className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-2xl py-4"
+        >
+          <CreditCard className="w-5 h-5 mr-2" />
+          <span className="font-bold">Pay with Card — $0.30</span>
+        </Button>
+        <p className="text-[10px] text-slate-600 text-center">
+          Or connect a wallet in Settings to pay with crypto
         </p>
       </div>
     );

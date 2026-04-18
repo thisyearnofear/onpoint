@@ -14,12 +14,12 @@ const TOKEN_SECRET =
   "dev-secret-change-in-production";
 
 export interface SessionTokenPayload {
-  sub: string; // wallet address
+  sub: string; // wallet address or email
   iat: number; // issued at
   exp: number; // expires at
   provider: "gemini";
-  txHash: string;
-  amount: string;
+  txHash?: string;
+  amount?: string;
 }
 
 /**

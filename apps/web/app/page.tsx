@@ -11,6 +11,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { Auth0HeaderButton } from "../components/auth/Auth0Components";
 import { Button } from "@repo/ui/button";
 import { TacticalDashboard } from "../components/Dashboard/TacticalDashboard";
 import { LayoutDashboard } from "lucide-react";
@@ -65,6 +66,7 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Auth0HeaderButton />
             <ThemeToggle />
           </div>
         </div>

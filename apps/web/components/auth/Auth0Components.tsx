@@ -1,27 +1,67 @@
 "use client";
 
 import { useUser } from "@auth0/nextjs-auth0/client";
+import { Button } from "@repo/ui/button";
+import { LogIn, LogOut, User } from "lucide-react";
 
 export function Auth0LoginButton() {
   return (
-    <a
-      href="/auth/login"
-      className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+    <Button
+      variant="outline"
+      size="sm"
+      className="rounded-full"
+      asChild
     >
-      Sign in with Auth0
-    </a>
+      <a href="/auth/login">
+        <LogIn className="w-4 h-4 mr-1.5" />
+        Sign In
+      </a>
+    </Button>
   );
 }
 
 export function Auth0LogoutButton() {
   return (
-    <a
-      href="/auth/logout"
-      className="inline-flex items-center justify-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
-    >
-      Sign out
-    </a>
+    <Button variant="ghost" size="sm" className="rounded-full" asChild>
+      <a href="/auth/logout">
+        <LogOut className="w-4 h-4 mr-1.5" />
+        Sign Out
+      </a>
+    </Button>
   );
+}
+
+/** Compact header button — shows avatar when signed in, Sign In when not */
+export function Auth0HeaderButton() {
+  const { user, isLoading } = useUser();
+
+  if (isLoading) return null;
+
+  if (user) {
+    return (
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="sm" className="rounded-full gap-2" asChild>
+          <a href="/auth/logout">
+            {user.picture ? (
+              <img
+                src={user.picture}
+                alt=""
+                className="w-5 h-5 rounded-full"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <User className="w-4 h-4" />
+            )}
+            <span className="hidden sm:inline text-sm">
+              {user.name || user.email}
+            </span>
+          </a>
+        </Button>
+      </div>
+    );
+  }
+
+  return <Auth0LoginButton />;
 }
 
 export function Auth0Profile() {
