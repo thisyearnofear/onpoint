@@ -74,7 +74,7 @@ function log(
       error ?? "",
     );
   } else {
-    // In production, emit structured JSON
+    // In production, emit structured JSON + Sentry for errors
     const method =
       level === "error"
         ? console.error
@@ -82,6 +82,24 @@ function log(
           ? console.warn
           : console.log;
     method(formatEntry(entry));
+  }
+
+  // Report errors to Sentry (lazy import to avoid bundling when unused)
+  if (level === "error" && typeof window === "undefined") {
+    import("@sentry/nextjs")
+      .then((Sentry) => {
+        if (error instanceof Error) {
+          Sentry.captureException(error, {
+            tags: { component: context.component as string },
+          });
+        } else {
+          Sentry.captureMessage(message, {
+            level: "error",
+            tags: { component: context.component as string },
+          });
+        }
+      })
+      .catch(() => {});
   }
 }
 

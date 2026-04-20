@@ -107,8 +107,10 @@ export class VeniceLiveProvider {
           base64Image = `data:image/jpeg;base64,${Buffer.from(buffer).toString("base64")}`;
         }
 
-        // Call backend API (consolidated through Hetzner)
-        const apiBase = process.env.NEXT_PUBLIC_AGENT_API_URL || '';
+        // Call the Next.js API route (single source of truth)
+        // Falls back to external API URL if configured (e.g. Hetzner proxy)
+        const apiBase =
+          typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_AGENT_API_URL || "");
         const response = await fetch(`${apiBase}/api/ai/venice-analyze`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },

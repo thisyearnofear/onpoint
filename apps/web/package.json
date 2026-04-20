@@ -30,6 +30,7 @@
     "@repo/ipfs-client": "workspace:*",
     "@repo/shared-ui": "workspace:*",
     "@repo/ui": "workspace:*",
+    "@sentry/nextjs": "10.49.0",
     "@stripe/stripe-js": "9.2.0",
     "@tailwindcss/postcss": "4.1.16",
     "@tailwindcss/typography": "0.5.19",
