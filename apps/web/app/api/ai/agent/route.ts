@@ -954,6 +954,11 @@ export async function POST(request: NextRequest) {
       const { goal, message, imageBase64, sessionReasonings, agentId } =
         validationResult.data;
 
+      // Proxy to Hetzner for the heavy agent loop (avoids serverless timeouts)
+      const { proxyToHetzner } = await import("../_utils/proxy");
+      const proxied = await proxyToHetzner(request, "/api/ai/agent");
+      if (proxied) return proxied;
+
       const userMessage =
         message ||
         (sessionReasonings?.length

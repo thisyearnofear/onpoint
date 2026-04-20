@@ -8,6 +8,11 @@ import { logger } from "../../../../lib/utils/logger";
 export async function POST(request: NextRequest) {
   return requireAuthWithRateLimit(async (req, _ctx) => {
     try {
+      // Proxy to Hetzner for vision analysis (avoids serverless timeouts)
+      const { proxyToHetzner } = await import("../_utils/proxy");
+      const proxied = await proxyToHetzner(request, "/api/ai/analyze-image");
+      if (proxied) return proxied;
+
       const {
         imageUrl,
         imageBase64,

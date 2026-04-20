@@ -230,6 +230,12 @@ export async function POST(request: NextRequest) {
   if (!rl.allowed) {
     return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429, headers: corsHeaders(origin) });
   }
+
+  // Proxy to Hetzner for heavy AI work (avoids serverless timeouts)
+  const { proxyToHetzner } = await import("../_utils/proxy");
+  const proxied = await proxyToHetzner(request, "/api/ai/virtual-tryon");
+  if (proxied) return proxied;
+
   try {
     const { type, data, provider = "auto", model } = await request.json();
 
