@@ -511,15 +511,14 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <h3 className="font-bold text-white group-hover:text-emerald-300 transition-colors">
-                      Venice AI
+                      Quick Style Check
                     </h3>
                     <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-500/20 text-emerald-400 rounded-full uppercase">
-                      Free
+                      Free · 60s
                     </span>
                   </div>
                   <p className="text-xs text-slate-400 mt-1">
-                    AI-powered style analysis using vision models. Frame-based
-                    polling (3s interval).
+                    Point your camera, get instant AI feedback on your outfit.
                   </p>
                 </div>
               </div>
@@ -539,14 +538,14 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <h3 className="font-bold text-white group-hover:text-indigo-300 transition-colors">
-                      Gemini Live
+                      Voice Styling
                     </h3>
                     <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-500/20 text-amber-400 rounded-full">
                       Premium
                     </span>
                   </div>
                   <p className="text-xs text-slate-400 mt-1">
-                    Real-time voice + video styling with live conversation.
+                    Talk to your AI stylist in real time with voice + video.
                   </p>
                 </div>
               </div>
@@ -555,7 +554,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
           <div className="w-full bg-slate-900/50 rounded-xl p-4 border border-white/5">
             <p className="text-[10px] text-slate-500 text-center">
-              Free tier uses AI vision polling. Premium adds real-time voice conversation.
+              Free session gives you 60 seconds of AI analysis. Upgrade for unlimited voice styling.
             </p>
           </div>
         </div>
