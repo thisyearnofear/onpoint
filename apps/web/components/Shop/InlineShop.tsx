@@ -11,6 +11,7 @@ import { useCartStore } from "../../lib/stores/cart-store";
 import { CheckoutModal } from "./CheckoutModal";
 import { CartDrawer, CartButton } from "./CartDrawer";
 import { fetchAgentApi } from "../../lib/utils/agent-api";
+import { Product3DCard } from "./Product3DCard";
 
 interface InlineShopProps {
   onTryOn?: () => void;
@@ -114,34 +115,15 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {recommended.map(({ item, reason }) => (
-              <button
+              <Product3DCard
                 key={item.id}
+                imageUrl={item.modelSrc || item.cover}
+                name={item.name}
+                price={item.price}
+                badge="AI Pick"
+                reason={reason}
                 onClick={() => addItem(item)}
-                className="group relative rounded-xl overflow-hidden border border-primary/20 bg-card hover:border-primary/40 transition-all text-left"
-              >
-                {item.modelSrc && (
-                  <div className="aspect-square bg-muted">
-                    <img
-                      src={item.modelSrc}
-                      alt={item.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                    />
-                  </div>
-                )}
-                <div className="p-2 space-y-1">
-                  <p className="text-xs font-medium truncate">{item.name}</p>
-                  <p className="text-[10px] text-muted-foreground line-clamp-2 leading-tight">
-                    💡 {reason}
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-primary">${item.price}</span>
-                    <ShoppingBag className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-colors" />
-                  </div>
-                </div>
-                <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-full bg-primary/90 text-white text-[8px] font-bold">
-                  AI Pick
-                </div>
-              </button>
+              />
             ))}
           </div>
         </div>
