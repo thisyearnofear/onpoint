@@ -241,7 +241,33 @@ export async function POST(request: NextRequest) {
 
     let enhancedPrompt = "";
     if (type === "body-analysis") {
-      enhancedPrompt = `As a fashion fit specialist, analyze this body profile: "${data.description || "Standard body measurements"}". Keep it practical and focused on measurements and fit.`;
+      // If photo data is provided, use vision analysis
+      if (data.photoData) {
+        try {
+          const { generateVision } = await import("../_utils/providers");
+          const { text: visionText } = await generateVision({
+            prompt:
+              "Analyze this person for fashion styling. Return a JSON object with: bodyType (string), measurements (object with shoulders/chest/waist/hips as size descriptions), fitRecommendations (string array of 3-4 tips), styleAdjustments (string array of 3-4 suggestions). Return ONLY valid JSON.",
+            imageBase64: data.photoData.replace(/^data:image\/\w+;base64,/, ""),
+          });
+
+          // Try to parse JSON from vision response
+          const jsonMatch = visionText.match(/```json?\s*([\s\S]*?)```/) || [null, visionText];
+          try {
+            const parsed = JSON.parse(jsonMatch[1]!.trim());
+            return NextResponse.json(
+              { ...parsed, provider: "gemini", type },
+              { headers: corsHeaders(origin) },
+            );
+          } catch {
+            // Fall through to text-based analysis
+          }
+        } catch {
+          // Vision not available, fall through to text-based
+        }
+      }
+
+      enhancedPrompt = `As a fashion fit specialist, analyze this body profile: "${data.description || "Standard body measurements"}". Return JSON with: bodyType, measurements (shoulders/chest/waist/hips), fitRecommendations (array), styleAdjustments (array). Return ONLY valid JSON.`;
     } else if (type === "outfit-fit") {
       enhancedPrompt = `As a fashion stylist, analyze how these outfit items would work together: "${data.items?.map((item: any) => `${item.name}: ${item.description || item.type || ""}`).join(", ")}". Provide actionable styling advice.`;
     } else if (type === "enhancement") {
