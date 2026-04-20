@@ -1,6 +1,7 @@
 "use client";
 
 import { useUser } from "@auth0/nextjs-auth0/client";
+import { useEffect } from "react";
 import { Button } from "@repo/ui/button";
 import { LogIn, LogOut, User } from "lucide-react";
 
@@ -34,6 +35,20 @@ export function Auth0LogoutButton() {
 /** Compact header button — shows avatar when signed in, Sign In when not */
 export function Auth0HeaderButton() {
   const { user, isLoading } = useUser();
+
+  // Identify user in PostHog when signed in
+  useEffect(() => {
+    if (user?.sub) {
+      import("posthog-js").then((ph) => {
+        if (ph.default.__loaded) {
+          ph.default.identify(user.sub!, {
+            email: user.email,
+            name: user.name,
+          });
+        }
+      }).catch(() => {});
+    }
+  }, [user?.sub]);
 
   if (isLoading) return null;
 

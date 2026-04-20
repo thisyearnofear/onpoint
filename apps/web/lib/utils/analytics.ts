@@ -44,6 +44,24 @@ function generateSessionId(): string {
   return id;
 }
 
+import posthog from "posthog-js";
+
+// Initialize PostHog (no-op if key not set)
+if (
+  typeof window !== "undefined" &&
+  process.env.NEXT_PUBLIC_POSTHOG_KEY &&
+  !posthog.__loaded
+) {
+  posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
+    api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
+    capture_pageview: true,
+    persistence: "localStorage",
+    loaded: (ph) => {
+      if (process.env.NODE_ENV === "development") ph.debug();
+    },
+  });
+}
+
 /**
  * Track an analytics event
  */
@@ -60,12 +78,15 @@ export function trackEvent(
 
   eventBuffer.push(analyticsEvent);
 
-  // Log to console in development
+  // Send to PostHog
+  if (typeof window !== "undefined" && posthog.__loaded) {
+    posthog.capture(event, properties);
+  }
+
   if (process.env.NODE_ENV === "development") {
     console.log("[Analytics]", event, properties);
   }
 
-  // Flush if buffer is full
   if (eventBuffer.length >= MAX_BUFFER_SIZE) {
     flushEvents();
   }

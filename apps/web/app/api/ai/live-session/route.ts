@@ -296,22 +296,21 @@ export async function POST(request: NextRequest) {
       const geminiApiKey =
         byok || process.env.VERTEX_API_KEY || process.env.GEMINI_API_KEY;
 
-      // If no BYOK, no valid token, and no server key, require payment
+      // If no BYOK and no valid token, check for free trial eligibility
       if (!geminiApiKey && !byok && !isValidToken) {
         return NextResponse.json(
           {
-            error: "Gemini Live requires payment or your own API key.",
+            error: "Premium voice styling requires payment or your own API key.",
             byokRequired: true,
             paymentRequired: true,
-            paymentInfo: {
-              currency: "CELO",
-              amount: "0.5",
-              recipient: AGENT_WALLET,
-            },
           },
           { status: 402, headers: corsHeaders(origin) },
         );
       }
+
+      // Free trial: if user hasn't paid but server has a key, grant 30s session
+      const isFreeTrialEligible = !byok && !isValidToken && geminiApiKey;
+      const sessionDuration = isFreeTrialEligible ? 30 : undefined; // 30s free, unlimited for paid
 
       // If user has BYOK, use their key; otherwise use server key
       if (!geminiApiKey && !byok && isValidToken) {
@@ -325,6 +324,7 @@ export async function POST(request: NextRequest) {
               systemInstruction: systemInstruction,
               provider: "gemini",
               paidAccess: true,
+              ...(sessionDuration && { sessionDurationSeconds: sessionDuration }),
             },
             agentManifest,
             rateLimit: {
@@ -356,6 +356,7 @@ export async function POST(request: NextRequest) {
             model: "models/gemini-2.0-flash-live-001",
             systemInstruction: systemInstruction,
             provider: "gemini",
+            ...(sessionDuration && { sessionDurationSeconds: sessionDuration, freeTrial: true }),
           },
           agentManifest,
           rateLimit: {
