@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   Target,
   Clock,
+  ShoppingBag,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { DesignStudio } from "../DesignStudio";
@@ -21,11 +22,22 @@ import { NewUserOnboarding } from "./NewUserOnboarding";
 import { ConnectedAccounts } from "../ConnectedAccounts";
 import { EnhancedConnectButton } from "../EnhancedConnectButton";
 import { FarcasterSignInButton } from "../FarcasterSignInButton";
+import { InlineShop } from "../Shop/InlineShop";
 
-type AppMode = "dashboard" | "design" | "try-on" | "stylist" | "settings";
+type AppMode = "dashboard" | "design" | "try-on" | "stylist" | "shop" | "settings";
 
 export function TacticalDashboard() {
   const [mode, setMode] = useState<AppMode>("dashboard");
+
+  // Listen for cross-component navigation (e.g. from session summary → shop)
+  React.useEffect(() => {
+    const handler = (e: Event) => {
+      const target = (e as CustomEvent).detail as AppMode;
+      if (target) setMode(target);
+    };
+    window.addEventListener("onpoint:navigate", handler);
+    return () => window.removeEventListener("onpoint:navigate", handler);
+  }, []);
 
   const navItems = [
     {
@@ -45,6 +57,12 @@ export function TacticalDashboard() {
       label: "Stylist",
       icon: MessageCircle,
       color: "text-primary",
+    },
+    {
+      id: "shop",
+      label: "Shop",
+      icon: ShoppingBag,
+      color: "text-amber-400",
     },
     {
       id: "design",
@@ -201,6 +219,8 @@ export function TacticalDashboard() {
         return <VirtualTryOn />;
       case "stylist":
         return <AIStylist />;
+      case "shop":
+        return <InlineShop onTryOn={() => setMode("try-on")} />;
       case "settings":
         return (
           <motion.div

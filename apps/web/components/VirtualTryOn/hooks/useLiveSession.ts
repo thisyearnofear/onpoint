@@ -581,7 +581,7 @@ export function useLiveSession() {
       mintSuggestionCreatedRef.current = true;
       createSuggestion({
         actionType: "mint" as ActionType,
-        amount: "0.5 cUSD",
+        amount: "~$0.50",
         description: `Style Score is Elite (${sessionSummary.score}/10). Mint this Proof of Style to Celo?`,
       }).catch(console.error);
     }
@@ -629,7 +629,7 @@ export function useLiveSession() {
         reasoning[0]?.slice(0, 80) || "analyzing your look";
       createSuggestion({
         actionType: "purchase" as ActionType,
-        amount: `$${internalMatch.price} cUSD`,
+        amount: `$${internalMatch.price}`,
         description: `Matching internal catalog: "${internalMatch.name}" — ${internalMatch.description}`,
       }).catch(console.error);
     } else {
@@ -686,7 +686,7 @@ export function useLiveSession() {
         const cat = data.preferences?.categories?.[0] || rec.category;
         createSuggestion({
           actionType: "purchase" as ActionType,
-          amount: `$${rec.price} cUSD`,
+          amount: `$${rec.price}`,
           description: `Based on your ${cat} preference: ${rec.name} — ${rec.description}`,
         }).catch(console.error);
       })

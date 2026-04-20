@@ -342,6 +342,29 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               View Style Report
             </Button>
 
+            {/* Shop CTA — save analysis to sessionStorage and navigate */}
+            <Button
+              variant="outline"
+              className="w-full rounded-full py-5 text-sm font-bold gap-2 border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+              onClick={() => {
+                if (typeof window !== "undefined" && sessionSummary) {
+                  sessionStorage.setItem(
+                    "stylistAnalysis",
+                    JSON.stringify({
+                      bodyType: "analyzed",
+                      styleRecommendations: sessionSummary.takeaways,
+                    }),
+                  );
+                }
+                handleBack();
+                // Navigate to shop tab — dispatch custom event
+                window.dispatchEvent(new CustomEvent("onpoint:navigate", { detail: "shop" }));
+              }}
+            >
+              <ShoppingBag className="w-4 h-4" />
+              Shop Recommended Items
+            </Button>
+
             {selectedCapture && (
               <MintLookButton
                 imageUrl={selectedCapture.image}

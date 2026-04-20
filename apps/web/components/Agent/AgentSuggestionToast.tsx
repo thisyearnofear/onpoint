@@ -56,13 +56,13 @@ interface AgentSuggestionToastProps {
 }
 
 const ACTION_LABELS: Record<ActionType, string> = {
-  purchase: "Buy Now",
-  mint: "Mint NFT",
+  purchase: "Add to Cart",
+  mint: "Save Look",
   tip: "Send Tip",
   premium: "Go Premium",
   agent_to_agent: "Transfer",
   external_search: "Exploring Web",
-  external_purchase: "External Shop",
+  external_purchase: "View Item",
 };
 
 const ACTION_ICONS: Record<ActionType, React.ElementType> = {
