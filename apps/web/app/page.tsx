@@ -110,7 +110,7 @@ function HeroView({ onContinue }: { onContinue: () => void }) {
               </h1>
 
               <p className="text-lg text-muted-foreground leading-relaxed max-w-lg">
-                Upload a photo. Get personalized fit analysis. Let your AI agent shop for you with its own wallet ($5-$5K limits).
+                Point your camera at an outfit. Get instant AI feedback. Discover what works for your body and style.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center lg:items-start gap-3">
@@ -120,7 +120,7 @@ function HeroView({ onContinue }: { onContinue: () => void }) {
                   className="bg-primary hover:bg-primary/90 text-white font-bold px-8 py-6 rounded-full text-lg shadow-lg shadow-primary/25"
                 >
                   <Camera className="w-5 h-5 mr-2" />
-                  Start Trying Looks
+                  Try It Free
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </div>
@@ -128,20 +128,39 @@ function HeroView({ onContinue }: { onContinue: () => void }) {
               <div className="flex flex-wrap justify-center lg:justify-start gap-4 pt-2 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-emerald-500" />
-                  <span>Free to start</span>
+                  <span>No sign-up needed</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-emerald-500" />
-                  <span>AI agent with wallet</span>
+                  <span>Works on any phone</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-emerald-500" />
-                  <span>4.7★ avg fit accuracy</span>
+                  <span>30s to your first result</span>
+                </div>
+              </div>
+
+              {/* Sample AI output — mobile preview */}
+              <div className="lg:hidden mt-4 rounded-2xl border border-primary/20 bg-card/50 p-4 space-y-3">
+                <div className="flex items-center gap-2 text-xs text-primary font-bold uppercase tracking-wider">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Sample AI Analysis
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-3xl font-black text-primary">8/10</div>
+                  <div className="flex-1 text-xs text-muted-foreground leading-relaxed">
+                    &ldquo;Strong color coordination. The oversized silhouette works well with your frame. Consider a structured bag to balance the proportions.&rdquo;
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-medium">✓ Color Harmony</span>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-medium">✓ Fit</span>
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-[10px] font-medium">↑ Accessories</span>
                 </div>
               </div>
             </div>
 
-            {/* Right: Visual */}
+            {/* Right: Visual — desktop only */}
             <div className="relative hidden lg:block">
               <div className="relative rounded-2xl overflow-hidden border border-border/60 bg-gradient-to-br from-primary/5 to-accent/5 shadow-2xl p-6">
                 <div className="absolute top-4 left-4 z-10 px-3 py-1 rounded-full bg-primary/90 text-white text-xs font-bold shadow-sm flex items-center gap-1">
@@ -203,7 +222,7 @@ function HeroView({ onContinue }: { onContinue: () => void }) {
           onClick={onContinue}
           className="w-full bg-primary text-white font-bold py-4 rounded-full shadow-lg"
         >
-          Get Started
+          Try It Free — Point Your Camera
         </Button>
       </div>
     </div>

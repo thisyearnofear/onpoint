@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from "react";
 import { Button } from "@repo/ui/button";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Upload, Camera } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useVirtualTryOn } from "@repo/ai-client";
 import { useReplicateVirtualTryOn } from "@repo/ai-client";
@@ -15,7 +15,6 @@ import {
   PhotoUpload,
   AnalysisResults,
   PhotoPreview,
-  WelcomeCard,
   PersonalityCard,
   CritiqueResult,
   LiveStylistView,
@@ -28,7 +27,7 @@ export function VirtualTryOn() {
   const [showPersonalitySelection, setShowPersonalitySelection] = useState(false);
   const [selectedPersona, setSelectedPersona] = useState<StylistPersona | null>(null);
   const [critiqueResult, setCritiqueResult] = useState<{ persona: StylistPersona; critique: string } | null>(null);
-  const [showLiveStylist, setShowLiveStylist] = useState(false);
+  const [showLiveStylist, setShowLiveStylist] = useState(true); // Default to live AR
   const [hasPremium] = useState(false); // TODO: Connect to subscription system
 
   // Hooks
@@ -114,31 +113,31 @@ export function VirtualTryOn() {
   const canShowPersonaSelection = Boolean(analysis && showPersonalitySelection && !critiqueResult);
 
   return (
-    <section className="py-20">
+    <section className="py-4">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <Sparkles className="h-10 w-10 text-white" />
-          </div>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Virtual Try-On
-          </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed">
-            Upload your photo. Get AI fit analysis. Choose a stylist persona for personalized critique. Let your agent shop.
-          </p>
-        </div>
-
         <div className="max-w-6xl mx-auto">
-          {/* Live Stylist Toggle */}
-          <div className="flex justify-end mb-6">
-            <Button
-              variant={showLiveStylist ? "default" : "outline"}
-              onClick={() => setShowLiveStylist(!showLiveStylist)}
-              className="flex items-center gap-2 shadow-sm"
-            >
-              <Sparkles className="w-4 h-4 text-primary" />
-              {showLiveStylist ? "Exit Live AR Stylist" : "Try Live AR Stylist (Premium)"}
-            </Button>
+          {/* Compact mode toggle */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Button
+                variant={showLiveStylist ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowLiveStylist(true)}
+                className="rounded-full text-xs"
+              >
+                <Camera className="w-3.5 h-3.5 mr-1" />
+                Live Camera
+              </Button>
+              <Button
+                variant={!showLiveStylist ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowLiveStylist(false)}
+                className="rounded-full text-xs"
+              >
+                <Upload className="w-3.5 h-3.5 mr-1" />
+                Upload Photo
+              </Button>
+            </div>
           </div>
 
           <AnimatePresence mode="wait">
@@ -318,8 +317,7 @@ export function VirtualTryOn() {
                     )}
                   </AnimatePresence>
 
-                  {/* Welcome Message */}
-                  <WelcomeCard hasInput={hasInput} loading={loading} />
+                  {/* Welcome Message removed — upload area is self-explanatory */}
                 </div>
               </motion.div>
             )}

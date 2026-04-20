@@ -794,6 +794,11 @@ export function useLiveSession() {
     );
     setShowSummary(true);
 
+    // Mark first session done so returning users see dashboard
+    if (typeof window !== "undefined") {
+      localStorage.setItem("onpoint-first-session-done", "true");
+    }
+
     // Send style report email (fire-and-forget)
     if (sessionSummary?.score && sessionSummary.takeaways.length > 0) {
       fetch("/api/auth/style-report-email", {

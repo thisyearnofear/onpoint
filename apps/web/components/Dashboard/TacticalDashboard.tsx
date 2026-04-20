@@ -18,7 +18,6 @@ import { DesignStudio } from "../DesignStudio";
 import { VirtualTryOn } from "../VirtualTryOn";
 import { AIStylist } from "../AIStylist";
 import { MissionsPanel } from "../Agent/MissionsPanel";
-import { NewUserOnboarding } from "./NewUserOnboarding";
 import { ConnectedAccounts } from "../ConnectedAccounts";
 import { EnhancedConnectButton } from "../EnhancedConnectButton";
 import { FarcasterSignInButton } from "../FarcasterSignInButton";
@@ -28,7 +27,13 @@ import { AgentActivityFeed } from "../Agent/AgentActivityFeed";
 type AppMode = "dashboard" | "design" | "try-on" | "stylist" | "shop" | "settings";
 
 export function TacticalDashboard() {
-  const [mode, setMode] = useState<AppMode>("dashboard");
+  // New users go straight to try-on. Returning users see dashboard.
+  const [mode, setMode] = useState<AppMode>(() => {
+    if (typeof window !== "undefined" && !localStorage.getItem("onpoint-first-session-done")) {
+      return "try-on";
+    }
+    return "dashboard";
+  });
 
   // Listen for cross-component navigation (e.g. from session summary → shop)
   React.useEffect(() => {
@@ -270,7 +275,6 @@ export function TacticalDashboard() {
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)] bg-background">
-      <NewUserOnboarding />
       {/* Dynamic Header/Mode Switcher */}
       <div className="sticky top-16 z-40 bg-background/80 backdrop-blur-md border-b border-border/60 px-2 md:px-0">
         <div className="container mx-auto">
