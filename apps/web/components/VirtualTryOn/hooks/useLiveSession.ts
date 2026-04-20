@@ -794,6 +794,18 @@ export function useLiveSession() {
     );
     setShowSummary(true);
 
+    // Send style report email (fire-and-forget)
+    if (sessionSummary?.score && sessionSummary.takeaways.length > 0) {
+      fetch("/api/auth/style-report-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          score: sessionSummary.score,
+          takeaways: sessionSummary.takeaways,
+        }),
+      }).catch(() => {});
+    }
+
     // Track session completion for missions
     try {
       const userId = sessionUserIdRef.current;
