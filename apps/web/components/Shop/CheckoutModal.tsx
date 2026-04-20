@@ -121,38 +121,36 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
 
                   <div>
                     <h2 className="text-2xl font-black text-white">
-                      Order Confirmed
+                      Order Confirmed!
                     </h2>
                     <p className="text-slate-400 text-sm mt-2">
-                      Your purchase has been processed on {result.order?.chain}
+                      Your AI stylist processed your purchase
                     </p>
                   </div>
 
                   {result.order && (
-                    <div className="bg-white/5 rounded-xl p-4 text-left space-y-2">
+                    <div className="bg-white/5 rounded-xl p-4 text-left space-y-3">
                       <div className="flex justify-between text-xs text-slate-400">
-                        <span>Order ID</span>
+                        <span>Order</span>
                         <span className="font-mono text-slate-300">
-                          {result.order.id}
+                          {result.order.id.slice(0, 20)}…
                         </span>
                       </div>
-                      <div className="flex justify-between text-xs text-slate-400">
-                        <span>Total</span>
+                      {result.order.items?.map((item, i) => (
+                        <div key={i} className="flex justify-between text-xs">
+                          <span className="text-slate-300">
+                            {item.quantity}× {item.name}
+                          </span>
+                          <span className="text-white font-medium">
+                            ${item.subtotal.toFixed(2)}
+                          </span>
+                        </div>
+                      ))}
+                      <div className="border-t border-white/10 pt-2 flex justify-between text-sm">
+                        <span className="text-slate-400">Total</span>
                         <span className="font-bold text-white">
                           {result.order.totalAmount}
                         </span>
-                      </div>
-                      <div className="flex justify-between text-xs text-slate-400">
-                        <span>Transaction</span>
-                        <a
-                          href={result.order.explorerUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
-                        >
-                          View
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
                       </div>
                     </div>
                   )}
@@ -161,7 +159,7 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                     onClick={handleClose}
                     className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-full py-6 font-bold"
                   >
-                    Done
+                    Continue Shopping
                   </Button>
                 </div>
               ) : (

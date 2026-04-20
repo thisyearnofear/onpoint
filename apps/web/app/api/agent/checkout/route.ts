@@ -36,6 +36,7 @@ import {
 import { getAgentWallet } from "../../../../lib/services/agent-wallet";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 import { logger } from "../../../../lib/utils/logger";
+import { saveOrder } from "../../../../lib/services/order-service";
 import {
   buildPaymentRequirements,
   getPaymentHeader,
@@ -381,6 +382,26 @@ export async function POST(
         agentId: referringAgentId,
       });
       await persistCommission(commissionRecord);
+
+      // Persist order for history
+      await saveOrder({
+        id: orderId,
+        userId: ctx.userId,
+        items: resolvedItems.map((i) => ({
+          productId: i.productId,
+          name: i.name,
+          quantity: i.quantity,
+          unitPrice: i.unitPrice,
+          subtotal: i.subtotal,
+        })),
+        totalAmount: totalAmount,
+        currency: "USD",
+        status: "confirmed",
+        txHash: txHashes[0],
+        chain,
+        explorerUrl: getExplorerUrl(chain, txHashes[0] ?? "0x"),
+        createdAt: Date.now(),
+      });
 
       return NextResponse.json(
         {

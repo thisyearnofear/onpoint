@@ -127,6 +127,54 @@ export const CANVAS_ITEMS: FashionItem[] = [
     updatedAt: new Date(),
     averageRating: 4.6,
   },
+  {
+    id: "26",
+    slug: "pleated-wide-trouser",
+    name: "Pleated Wide Trouser",
+    description: "High-waisted pleated trouser in soft wool blend",
+    price: 165,
+    category: FC.Pants,
+    cover:
+      "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&h=500&fit=crop",
+    productSrc:
+      "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&h=500&fit=crop",
+    modelSize: "30",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    averageRating: 4.5,
+  },
+  {
+    id: "27",
+    slug: "relaxed-linen-pant",
+    name: "Relaxed Linen Pant",
+    description: "Breathable linen with drawstring waist for warm days",
+    price: 95,
+    category: FC.Pants,
+    cover:
+      "https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=400&h=500&fit=crop",
+    productSrc:
+      "https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=400&h=500&fit=crop",
+    modelSize: "32",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    averageRating: 4.4,
+  },
+  {
+    id: "28",
+    slug: "straight-leg-chino",
+    name: "Straight Leg Chino",
+    description: "Versatile cotton chino in a clean straight cut",
+    price: 85,
+    category: FC.Pants,
+    cover:
+      "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=400&h=500&fit=crop",
+    productSrc:
+      "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=400&h=500&fit=crop",
+    modelSize: "31",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    averageRating: 4.7,
+  },
 
   // ── Shoes ──
   {
@@ -250,6 +298,57 @@ export const CANVAS_ITEMS: FashionItem[] = [
     createdAt: new Date(),
     updatedAt: new Date(),
     averageRating: 4.9,
+  },
+  {
+    id: "29",
+    slug: "slip-maxi-dress",
+    name: "Satin Slip Maxi",
+    description: "Elegant satin slip dress with cowl neckline",
+    price: 195,
+    category: FC.Dresses,
+    cover:
+      "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=400&h=500&fit=crop",
+    productSrc:
+      "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=400&h=500&fit=crop",
+    modelSize: "M",
+    modelHeight: "5'7\"",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    averageRating: 4.8,
+  },
+  {
+    id: "30",
+    slug: "shirt-dress-cotton",
+    name: "Cotton Shirt Dress",
+    description: "Relaxed button-front shirt dress in organic cotton",
+    price: 125,
+    category: FC.Dresses,
+    cover:
+      "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=400&h=500&fit=crop",
+    productSrc:
+      "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=400&h=500&fit=crop",
+    modelSize: "S",
+    modelHeight: "5'5\"",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    averageRating: 4.6,
+  },
+  {
+    id: "31",
+    slug: "knit-bodycon-mini",
+    name: "Knit Bodycon Mini",
+    description: "Ribbed knit mini dress with figure-hugging fit",
+    price: 89,
+    category: FC.Dresses,
+    cover:
+      "https://images.unsplash.com/photo-1612336307429-8a898d10e223?w=400&h=500&fit=crop",
+    productSrc:
+      "https://images.unsplash.com/photo-1612336307429-8a898d10e223?w=400&h=500&fit=crop",
+    modelSize: "XS",
+    modelHeight: "5'4\"",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    averageRating: 4.5,
   },
 
   // ── Additional Products for Expanded Catalog ──

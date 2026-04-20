@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount, useChainId } from "wagmi";
+import { useUser } from "@auth0/nextjs-auth0/client";
 import {
   getChainName,
   getChainColor,
@@ -26,6 +28,20 @@ export function EnhancedConnectButton({
   const { address } = useAccount();
   const chainId = useChainId();
   const { context } = useMiniApp();
+  const { user } = useUser();
+  const linkedRef = useRef(false);
+
+  // Auto-link Auth0 identity to wallet when both are present
+  useEffect(() => {
+    if (address && user?.sub && !linkedRef.current) {
+      linkedRef.current = true;
+      fetch("/api/auth/link-wallet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ walletAddress: address }),
+      }).catch(() => {});
+    }
+  }, [address, user?.sub]);
 
   const currentChainName = getChainName(chainId);
   const chainColor = getChainColor(chainId);
