@@ -37,6 +37,7 @@ import { CheckoutModal } from "../Shop/CheckoutModal";
 import { SessionEndingCard } from "./SessionEndingCard";
 import { StyleReportCard } from "./StyleReportCard";
 import { useCartStore } from "../../lib/stores/cart-store";
+import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import { trackProviderSelected } from "../../lib/utils/analytics";
 import { useLiveSession, GOAL_OPTIONS } from "./hooks/useLiveSession";
 import { PersonalityCard } from "./PersonalityCard";
@@ -55,6 +56,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   const { isConnected: isWalletConnected } = useAccount();
   const cartItemCount = useCartStore((s) => s.itemCount());
   const openCart = useCartStore((s) => s.openCart);
+  const addItemToCart = useCartStore((s) => s.addItem);
   const [showTipModal, setShowTipModal] = React.useState(false);
   const [showCheckout, setShowCheckout] = React.useState(false);
   const [showInstructions, setShowInstructions] = React.useState(true);
@@ -357,13 +359,45 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                   );
                 }
                 handleBack();
-                // Navigate to shop tab — dispatch custom event
                 window.dispatchEvent(new CustomEvent("onpoint:navigate", { detail: "shop" }));
               }}
             >
               <ShoppingBag className="w-4 h-4" />
               Shop Recommended Items
             </Button>
+
+            {/* Inline product picks from session */}
+            {sessionSummary && (() => {
+              const keywords = sessionSummary.takeaways.join(" ").toLowerCase();
+              const picks = CANVAS_ITEMS.filter((item) => {
+                const text = `${item.name} ${item.description} ${item.category}`.toLowerCase();
+                return keywords.split(/\s+/).some((w: string) => w.length > 3 && text.includes(w));
+              }).slice(0, 3);
+              if (picks.length === 0) return null;
+              return (
+                <div className="grid grid-cols-3 gap-2">
+                  {picks.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        addItemToCart(item);
+                      }}
+                      className="group rounded-xl overflow-hidden border border-white/10 bg-white/5 hover:border-amber-500/30 transition-all text-left"
+                    >
+                      {item.modelSrc && (
+                        <div className="aspect-square bg-slate-800">
+                          <img src={item.modelSrc} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                        </div>
+                      )}
+                      <div className="p-1.5">
+                        <p className="text-[10px] text-white font-medium truncate">{item.name}</p>
+                        <p className="text-[10px] font-bold text-amber-400">${item.price}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
 
             {selectedCapture && (
               <MintLookButton
@@ -458,7 +492,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               LIVE STYLIST
             </h1>
             <p className="text-slate-400 text-sm">
-              Choose your AI provider to begin the styling session.
+              Point your camera at your outfit for instant AI feedback
             </p>
           </div>
 

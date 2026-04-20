@@ -230,19 +230,37 @@ export function ChatInterface({
             <Separator />
           </div>
         ) : (
-          <div className="text-center py-8">
-            <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <h3 className="text-lg font-semibold mb-2">
-              Ready to Style?
+          <div className="text-center py-6">
+            <MessageCircle className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+            <h3 className="text-lg font-semibold mb-1">
+              What are you styling for?
             </h3>
-            <p className="text-muted-foreground mb-4 text-sm max-w-md mx-auto">
-              Start a conversation with your selected stylist to get
-              personalized fashion advice.
+            <p className="text-muted-foreground mb-4 text-xs">
+              Tap a suggestion or type your own
             </p>
-            <Button onClick={startConversation} disabled={loading} size="sm">
-              <MessageCircle className="h-4 w-4 mr-2" />
-              Start Conversation
-            </Button>
+            <div className="flex flex-wrap justify-center gap-2 max-w-sm mx-auto">
+              {[
+                "Date night outfit",
+                "Work meeting look",
+                "Casual weekend",
+                "What goes with jeans?",
+              ].map((prompt) => (
+                <Button
+                  key={prompt}
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full text-xs"
+                  disabled={loading}
+                  onClick={() => {
+                    startConversation();
+                    // Small delay to let conversation initialize
+                    setTimeout(() => handleGuidedPromptSelect(prompt), 100);
+                  }}
+                >
+                  {prompt}
+                </Button>
+              ))}
+            </div>
           </div>
         )}
 
