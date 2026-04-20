@@ -23,6 +23,7 @@ import { ConnectedAccounts } from "../ConnectedAccounts";
 import { EnhancedConnectButton } from "../EnhancedConnectButton";
 import { FarcasterSignInButton } from "../FarcasterSignInButton";
 import { InlineShop } from "../Shop/InlineShop";
+import { AgentActivityFeed } from "../Agent/AgentActivityFeed";
 
 type AppMode = "dashboard" | "design" | "try-on" | "stylist" | "shop" | "settings";
 
@@ -142,6 +143,9 @@ export function TacticalDashboard() {
                 <span className="text-sm">My Saved Looks</span>
               </Button>
             </div>
+
+            {/* Agent Activity — persistent across sessions */}
+            <AgentActivityFeed onShop={() => setMode("shop")} />
 
             {/* Progressive Disclosure - Collapsible Sections */}
             <details

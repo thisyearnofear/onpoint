@@ -16,20 +16,30 @@ interface InlineShopProps {
 }
 
 /** Get AI-recommended items based on session history stored in sessionStorage */
-function getRecommendedItems(): FashionItem[] {
+function getRecommendedItems(): { item: FashionItem; reason: string }[] {
   if (typeof window === "undefined") return [];
   try {
     const stored = sessionStorage.getItem("stylistAnalysis");
     if (!stored) return [];
     const analysis = JSON.parse(stored);
-    const recs = analysis.styleRecommendations || analysis.styleAdjustments || [];
+    const recs: string[] = analysis.styleRecommendations || analysis.styleAdjustments || [];
     const keywords = recs.join(" ").toLowerCase();
 
-    // Score items by keyword match
     return CANVAS_ITEMS.filter((item) => {
       const text = `${item.name} ${item.description} ${item.category}`.toLowerCase();
       return keywords.split(/\s+/).some((w: string) => w.length > 3 && text.includes(w));
-    }).slice(0, 4);
+    }).slice(0, 4).map((item) => {
+      // Find the recommendation that matched this item
+      const matchedRec = recs.find((r) => {
+        const rLower = r.toLowerCase();
+        return rLower.includes(item.category.toLowerCase()) ||
+          rLower.includes(item.name.toLowerCase().split(" ")[0] || "");
+      });
+      return {
+        item,
+        reason: matchedRec || `Complements your ${item.category} style`,
+      };
+    });
   } catch {
     return [];
   }
@@ -37,7 +47,7 @@ function getRecommendedItems(): FashionItem[] {
 
 export function InlineShop({ onTryOn }: InlineShopProps) {
   const [showCheckout, setShowCheckout] = useState(false);
-  const [recommended, setRecommended] = useState<FashionItem[]>([]);
+  const [recommended, setRecommended] = useState<{ item: FashionItem; reason: string }[]>([]);
   const addItem = useCartStore((s) => s.addItem);
 
   useEffect(() => {
@@ -72,11 +82,11 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
             </h3>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {recommended.map((item) => (
+            {recommended.map(({ item, reason }) => (
               <button
                 key={item.id}
                 onClick={() => addItem(item)}
-                className="group relative rounded-xl overflow-hidden border border-primary/20 bg-card hover:border-primary/40 transition-all"
+                className="group relative rounded-xl overflow-hidden border border-primary/20 bg-card hover:border-primary/40 transition-all text-left"
               >
                 {item.modelSrc && (
                   <div className="aspect-square bg-muted">
@@ -87,9 +97,12 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
                     />
                   </div>
                 )}
-                <div className="p-2">
+                <div className="p-2 space-y-1">
                   <p className="text-xs font-medium truncate">{item.name}</p>
-                  <div className="flex items-center justify-between mt-1">
+                  <p className="text-[10px] text-muted-foreground line-clamp-2 leading-tight">
+                    💡 {reason}
+                  </p>
+                  <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-primary">${item.price}</span>
                     <ShoppingBag className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-colors" />
                   </div>
@@ -121,11 +134,32 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
       {/* Full Catalog */}
       <ShopGrid
         items={CANVAS_ITEMS}
-        onItemClick={(item) => addItem(item)}
+        onItemClick={(item) => {
+          // Add to cart on click
+          addItem(item);
+        }}
         showFilters
         showStats
         enableMobileCarousel
       />
+
+      {/* Try On CTA — floating, shown when any item is in cart */}
+      {onTryOn && (
+        <div className="rounded-2xl border border-dashed border-primary/20 p-4 text-center bg-primary/5">
+          <p className="text-sm text-muted-foreground mb-2">
+            Want to see how these look on you?
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onTryOn}
+            className="rounded-full border-primary/30 text-primary"
+          >
+            <Camera className="w-4 h-4 mr-1.5" />
+            Try On with AI
+          </Button>
+        </div>
+      )}
 
       <CartDrawer onCheckout={() => setShowCheckout(true)} />
       <CheckoutModal isOpen={showCheckout} onClose={() => setShowCheckout(false)} />

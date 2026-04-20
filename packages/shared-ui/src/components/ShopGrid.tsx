@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useRef } from 'react';
 import type { FashionItem } from '@onpoint/shared-types';
 import { CardEnhanced } from './CardEnhanced';
-import { LayoutGrid, LayoutList, Zap, Star } from 'lucide-react';
+import { LayoutGrid, LayoutList, Zap, Star, Search } from 'lucide-react';
 
 /**
  * Smart Shop Grid Component
@@ -44,6 +44,7 @@ export const ShopGrid: React.FC<ShopGridProps> = ({
   const [sortBy, setSortBy] = useState<SortOption>('trending');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const carouselRef = useRef<HTMLDivElement>(null);
   const [isMobileCarousel, setIsMobileCarousel] = useState(false);
 
@@ -54,6 +55,16 @@ export const ShopGrid: React.FC<ShopGridProps> = ({
 
   const sortedAndFiltered = useMemo(() => {
     let result = items || [];
+
+    // Search
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(item =>
+        item?.name?.toLowerCase().includes(q) ||
+        item?.description?.toLowerCase().includes(q) ||
+        item?.category?.toLowerCase().includes(q)
+      );
+    }
 
     // Filter by category
     if (selectedCategory) {
@@ -82,7 +93,7 @@ export const ShopGrid: React.FC<ShopGridProps> = ({
     }
 
     return result;
-  }, [items, sortBy, selectedCategory]);
+  }, [items, sortBy, selectedCategory, searchQuery]);
 
   const totalEngagement = useMemo(
     () => (items || []).reduce((sum, item) => sum + (item?.tryOnCount || 0), 0),
@@ -127,6 +138,18 @@ export const ShopGrid: React.FC<ShopGridProps> = ({
       {/* Controls */}
       {showFilters && (
         <div className="mb-8 space-y-4">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search by name, style, or category…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm placeholder:text-gray-400 focus:border-primary focus:outline-none transition-colors"
+            />
+          </div>
+
           {/* View Mode Toggle & Sort */}
           <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
             {/* View Mode */}
