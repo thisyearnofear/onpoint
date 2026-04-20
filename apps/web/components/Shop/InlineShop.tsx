@@ -5,11 +5,12 @@ import { motion } from "framer-motion";
 import { ShopGrid } from "@repo/shared-ui";
 import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import type { FashionItem } from "@onpoint/shared-types";
-import { ShoppingBag, Sparkles, Camera } from "lucide-react";
+import { ShoppingBag, Sparkles, Camera, Globe } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { useCartStore } from "../../lib/stores/cart-store";
 import { CheckoutModal } from "./CheckoutModal";
 import { CartDrawer, CartButton } from "./CartDrawer";
+import { fetchAgentApi } from "../../lib/utils/agent-api";
 
 interface InlineShopProps {
   onTryOn?: () => void;
@@ -45,13 +46,43 @@ function getRecommendedItems(): { item: FashionItem; reason: string }[] {
   }
 }
 
+interface ExternalFind {
+  description: string;
+  amount: string;
+  source?: string;
+  externalUrl?: string;
+}
+
 export function InlineShop({ onTryOn }: InlineShopProps) {
   const [showCheckout, setShowCheckout] = useState(false);
   const [recommended, setRecommended] = useState<{ item: FashionItem; reason: string }[]>([]);
+  const [externalFinds, setExternalFinds] = useState<ExternalFind[]>([]);
   const addItem = useCartStore((s) => s.addItem);
 
   useEffect(() => {
     setRecommended(getRecommendedItems());
+
+    // Fetch accepted external search results from agent suggestions
+    fetchAgentApi("/api/agent/suggestion?agentId=onpoint-stylist")
+      .then((res) => (res.ok ? res.json() : { suggestions: [] }))
+      .then((data) => {
+        const externals = (data.suggestions || [])
+          .filter(
+            (s: any) =>
+              s.actionType === "external_search" &&
+              s.status === "accepted" &&
+              s.externalUrl,
+          )
+          .slice(0, 4)
+          .map((s: any) => ({
+            description: s.description,
+            amount: s.amount,
+            source: s.source,
+            externalUrl: s.externalUrl,
+          }));
+        setExternalFinds(externals);
+      })
+      .catch(() => {});
   }, []);
 
   return (
@@ -128,6 +159,47 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
               Start Try-On
             </Button>
           )}
+        </div>
+      )}
+
+      {/* Found Online — products discovered by the web agent */}
+      {externalFinds.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Globe className="w-4 h-4 text-accent" />
+            <h3 className="text-sm font-bold uppercase tracking-wider text-accent">
+              Found Online by Your Agent
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {externalFinds.map((find, i) => (
+              <a
+                key={i}
+                href={find.externalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-start gap-3 p-3 rounded-xl border border-accent/20 bg-card hover:border-accent/40 transition-all"
+              >
+                <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
+                  <Globe className="w-5 h-5 text-accent" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium line-clamp-2">{find.description}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs font-bold text-accent">{find.amount}</span>
+                    {find.source && (
+                      <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                        {find.source}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <span className="text-[10px] text-muted-foreground group-hover:text-accent transition-colors shrink-0">
+                  Visit →
+                </span>
+              </a>
+            ))}
+          </div>
         </div>
       )}
 

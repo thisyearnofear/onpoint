@@ -36,7 +36,7 @@ export function Auth0LogoutButton() {
 export function Auth0HeaderButton() {
   const { user, isLoading } = useUser();
 
-  // Identify user in PostHog when signed in
+  // Identify user in PostHog + send welcome email on first sign-in
   useEffect(() => {
     if (user?.sub) {
       import("posthog-js").then((ph) => {
@@ -47,6 +47,9 @@ export function Auth0HeaderButton() {
           });
         }
       }).catch(() => {});
+
+      // Fire-and-forget welcome email (idempotent)
+      fetch("/api/auth/welcome", { method: "POST" }).catch(() => {});
     }
   }, [user?.sub]);
 
