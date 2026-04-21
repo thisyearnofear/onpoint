@@ -56,43 +56,24 @@ async function customEnsAvatarResolver(name: string) {
   }
 }
 
-// Global fetch interceptor to redirect eth.merkle.io requests to ensdata.net
+// Block eth.merkle.io entirely — wagmi now uses explicit RPC URLs so this
+// should never be called, but intercept as a safety net and return empty.
 if (typeof window !== "undefined") {
   const originalFetch = window.fetch;
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-    let url: string;
+    const url =
+      typeof input === "string"
+        ? input
+        : input instanceof URL
+          ? input.href
+          : input.url;
 
-    if (typeof input === "string") {
-      url = input;
-    } else if (input instanceof URL) {
-      url = input.href;
-    } else {
-      url = input.url;
-    }
-
-    // Intercept eth.merkle.io requests and redirect to ensdata.net
     if (url.includes("eth.merkle.io")) {
-      try {
-        // Extract ENS name from the URL
-        const urlObj = new URL(url);
-        const ensName = urlObj.pathname.replace("/", "");
-
-        if (ensName) {
-          // Redirect to ensdata.net
-          const ensdataUrl = `https://ensdata.net/${ensName}`;
-          console.log(`Redirecting ENS request from ${url} to ${ensdataUrl}`);
-
-          return originalFetch(ensdataUrl, {
-            ...init,
-            headers: {
-              ...init?.headers,
-              Accept: "application/json",
-            },
-          });
-        }
-      } catch (error) {
-        console.warn("Failed to redirect ENS request:", error);
-      }
+      // Return an empty successful response instead of hitting the CORS-blocked endpoint
+      return new Response(JSON.stringify(null), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     return originalFetch(input, init);
@@ -116,9 +97,9 @@ export const config = getDefaultConfig({
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
   chains: allConfiguredChains as any,
   transports: {
-    [mainnet.id]: http(),
-    [base.id]: http(),
-    [arbitrum.id]: http(),
+    [mainnet.id]: http("https://cloudflare-eth.com"),
+    [base.id]: http("https://mainnet.base.org"),
+    [arbitrum.id]: http("https://arb1.arbitrum.io/rpc"),
     [celo.id]: http(),
     [celoSepolia.id]: http(
       "https://celo-sepolia.g.alchemy.com/v2/W73tCsyRsW9JfV4orIbr7",

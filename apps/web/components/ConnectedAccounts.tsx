@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@repo/ui/button";
 import { Check, ExternalLink, Lock, Unlock, AlertCircle } from "lucide-react";
+import { useUser } from "@auth0/nextjs-auth0/client";
 import type { SupportedProvider } from "../lib/services/token-vault";
 
 interface ConnectedAccount {
@@ -67,14 +68,17 @@ const PROVIDER_CONFIG: Record<SupportedProvider, {
 };
 
 export function ConnectedAccounts() {
+  const { user, isLoading: authLoading } = useUser();
   const [accounts, setAccounts] = useState<ConnectedAccount[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [connecting, setConnecting] = useState<SupportedProvider | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadConnectedAccounts();
-  }, []);
+    if (user) {
+      loadConnectedAccounts();
+    }
+  }, [user]);
 
   const loadConnectedAccounts = async () => {
     try {
@@ -82,6 +86,8 @@ export function ConnectedAccounts() {
       const response = await fetch('/api/auth/connected-accounts');
       
       if (!response.ok) {
+        // Silently ignore auth errors — user may not be signed in
+        if (response.status === 401) return;
         throw new Error('Failed to load connected accounts');
       }
       
@@ -137,6 +143,19 @@ export function ConnectedAccounts() {
       setError(err.message);
     }
   };
+
+  if (authLoading) return null;
+
+  if (!user) {
+    return (
+      <div className="space-y-2">
+        <h3 className="text-xl font-bold text-foreground">Connected Accounts</h3>
+        <p className="text-sm text-muted-foreground">
+          <a href="/auth/login" className="underline underline-offset-2">Sign in</a> to connect external accounts and let your AI agent act on your behalf.
+        </p>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
