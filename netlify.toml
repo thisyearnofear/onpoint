@@ -8,6 +8,8 @@
   NODE_VERSION = "20.19.0"
   NPM_FLAGS = "--version"
   NODE_OPTIONS = "--max-old-space-size=4096"
+  SENTRY_SUPPRESS_GLOBAL_ERROR_HANDLER_FILE_WARNING = "1"
+  TURBO_TELEMETRY_DISABLED = "1"
 
 [context.production]
   command = "cd ../.. && pnpm install && pnpm build --filter=web"

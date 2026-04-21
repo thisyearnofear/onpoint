@@ -21,10 +21,22 @@ import { MissionsPanel } from "../Agent/MissionsPanel";
 import { ConnectedAccounts } from "../ConnectedAccounts";
 import { EnhancedConnectButton } from "../EnhancedConnectButton";
 import { FarcasterSignInButton } from "../FarcasterSignInButton";
+import { useUser } from "@auth0/nextjs-auth0/client";
 import { InlineShop } from "../Shop/InlineShop";
 import { AgentActivityFeed } from "../Agent/AgentActivityFeed";
 
 type AppMode = "dashboard" | "design" | "try-on" | "stylist" | "shop" | "settings";
+
+function AuthAccountCTA() {
+  const { user, isLoading } = useUser();
+  if (isLoading || user) return null;
+  return (
+    <p className="text-xs text-muted-foreground">
+      <a href="/auth/login" className="underline underline-offset-2 text-primary">Sign in</a>
+      {" "}to save looks, track orders, and connect external accounts.
+    </p>
+  );
+}
 
 export function TacticalDashboard() {
   // New users go straight to try-on. Returning users see dashboard.
@@ -259,11 +271,13 @@ export function TacticalDashboard() {
               <div className="px-4 pb-4 space-y-3">
                 <p className="text-xs text-muted-foreground">
                   Connect a wallet to unlock purchases, tipping, and saving looks on-chain.
+                  Your wallet and your app account are separate — connect both for the full experience.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <EnhancedConnectButton />
                   <FarcasterSignInButton />
                 </div>
+                <AuthAccountCTA />
               </div>
             </details>
 
