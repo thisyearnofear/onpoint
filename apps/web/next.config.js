@@ -58,6 +58,19 @@ const nextConfig = {
 
     return config;
   },
+  async rewrites() {
+    const hetzner = process.env.NEXT_PUBLIC_AGENT_API_URL;
+    if (!hetzner) return [];
+    return [
+      // Routes fully implemented on Hetzner — files deleted from Next.js
+      { source: '/api/ai/virtual-tryon', destination: `${hetzner}/api/ai/virtual-tryon` },
+      { source: '/api/ai/analyze-person', destination: `${hetzner}/api/ai/analyze-person` },
+      { source: '/api/ai/venice-analyze', destination: `${hetzner}/api/ai/venice-analyze` },
+      { source: '/api/ai/live-session', destination: `${hetzner}/api/ai/live-session` },
+      { source: '/api/ai/agent', destination: `${hetzner}/api/ai/agent` },
+      { source: '/api/agent/catalog', destination: `${hetzner}/api/agent/catalog` },
+    ];
+  },
   async headers() {
     const headers = [];
     const tokens = [];
@@ -78,6 +91,9 @@ const nextConfig = {
 
 export default withSentryConfig(nextConfig, {
   silent: true,
-  disableServerWebpackPlugin: !process.env.NEXT_PUBLIC_SENTRY_DSN,
-  disableClientWebpackPlugin: !process.env.NEXT_PUBLIC_SENTRY_DSN,
+  disableServerWebpackPlugin: true,
+  disableClientWebpackPlugin: true,
+  widenClientFileUpload: false,
+  hideSourceMaps: true,
+  automaticVercelMonitors: false,
 });
