@@ -18,7 +18,7 @@
     "@google/genai": "1.45.0",
     "@onpoint/shared-types": "workspace:*",
     "framer-motion": "^12.4.5",
-    "react": "^19.1.0",
+    "react": "^19.2.5",
     "replicate": "^1.1.0",
     "zod": "^3.23.8"
   }
