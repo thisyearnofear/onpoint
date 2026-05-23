@@ -11,23 +11,15 @@ import Stripe from "stripe";
 import { logger } from "../../../../lib/utils/logger";
 import { createSessionToken } from "../../../../lib/utils/session-token";
 import { redisSetEx } from "../../../../lib/utils/redis-helpers";
-import { type SubscriptionTier } from "../../../../lib/services/subscription-service";
+import {
+  setStripeCustomerMapping,
+  syncSubscriptionFromStripe,
+} from "../../../../lib/services/subscription-service";
 
 function getStripe(): Stripe | null {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) return null;
   return new Stripe(key);
-}
-
-/**
- * Map Stripe price IDs to OnPoint subscription tiers
- */
-function mapPriceToTier(priceId: string): SubscriptionTier | null {
-  const env = process.env;
-  if (priceId === env.STRIPE_PREMIUM_PRICE_ID) return "pro";
-  if (priceId === env.STRIPE_BASIC_PRICE_ID) return "basic";
-  if (priceId === env.STRIPE_CONCIERGE_PRICE_ID) return "concierge";
-  return null;
 }
 
 export async function POST(request: NextRequest) {
@@ -77,9 +69,45 @@ export async function POST(request: NextRequest) {
         86400, // 24h
       );
 
-      logger.info("Stripe payment completed", {
+      // Store Stripe customer → OnPoint user mapping for lifecycle event sync
+      const userId: string | undefined = session.client_reference_id
+        || session.metadata?.userId
+        || undefined;
+
+      if (userId && session.customer) {
+        const customerId = typeof session.customer === "string"
+          ? session.customer
+          : session.customer.id;
+        await setStripeCustomerMapping(customerId, userId);
+
+        // If this is a subscription (mode: "subscription"), sync immediately
+        if (session.mode === "subscription" && session.subscription) {
+          const subscriptionId = typeof session.subscription === "string"
+            ? session.subscription
+            : session.subscription.id;
+
+          // Fetch full subscription from Stripe API for complete data
+          try {
+            const stripe = getStripe();
+            if (stripe) {
+              const fullSub = await stripe.subscriptions.retrieve(subscriptionId);
+              await syncSubscriptionFromStripe(fullSub, { forcedUserId: userId });
+            }
+          } catch (fetchErr) {
+            logger.warn("Failed to fetch subscription for sync", {
+              component: "stripe-webhook",
+              subscriptionId,
+            });
+          }
+        }
+      }
+
+      logger.info("Checkout completed", {
         component: "stripe-webhook",
         sessionId: session.id,
+        customerId: session.customer,
+        userId,
+        mode: session.mode,
         amount: session.amount_total,
       });
       break;
@@ -91,44 +119,38 @@ export async function POST(request: NextRequest) {
     case "customer.subscription.created": {
       const subscription = event.data.object as Stripe.Subscription;
       const customerId = subscription.customer as string;
-      const priceId = subscription.items.data[0]?.price?.id;
-      const tier = priceId ? mapPriceToTier(priceId) : null;
 
-      if (!tier) {
-        logger.warn("Unknown subscription price ID", {
-          component: "stripe-webhook",
-          priceId,
-          subscriptionId: subscription.id,
-        });
-        break;
-      }
+      const synced = await syncSubscriptionFromStripe(subscription);
 
-      logger.info("Subscription created", {
+      logger.info("Subscription created" + (synced ? " — synced to Redis" : " — mapping not found"), {
         component: "stripe-webhook",
         subscriptionId: subscription.id,
         customerId,
-        tier,
+        tier: synced?.tier,
         status: subscription.status,
+        userId: synced?.userId,
       });
       break;
     }
 
     // ============================================
-    // Subscription Updated — tier change, renewal, or status change
+    // Subscription Updated — tier change, renewal, status change, or
+    // cancel_at_period_end flag flipped by Stripe customer portal
     // ============================================
     case "customer.subscription.updated": {
       const subscription = event.data.object as Stripe.Subscription;
       const customerId = subscription.customer as string;
-      const priceId = subscription.items.data[0]?.price?.id;
-      const tier = priceId ? mapPriceToTier(priceId) : null;
 
-      logger.info("Subscription updated", {
+      const synced = await syncSubscriptionFromStripe(subscription);
+
+      logger.info("Subscription updated" + (synced ? " — synced to Redis" : " — mapping not found"), {
         component: "stripe-webhook",
         subscriptionId: subscription.id,
         customerId,
-        tier,
+        tier: synced?.tier,
         status: subscription.status,
         cancelAtPeriodEnd: subscription.cancel_at_period_end,
+        userId: synced?.userId,
       });
 
       // If subscription was past_due and is now active, renewal succeeded
@@ -148,27 +170,46 @@ export async function POST(request: NextRequest) {
       const subscription = event.data.object as Stripe.Subscription;
       const customerId = subscription.customer as string;
 
-      logger.info("Subscription deleted", {
+      const synced = await syncSubscriptionFromStripe(subscription);
+
+      logger.info("Subscription deleted" + (synced ? " — synced to Redis" : " — mapping not found"), {
         component: "stripe-webhook",
         subscriptionId: subscription.id,
         customerId,
+        tier: synced?.tier,
+        userId: synced?.userId,
       });
       break;
     }
 
     // ============================================
     // Invoice Payment Succeeded — recurring payment successful
+    // Try to sync the related subscription so period dates update
     // ============================================
     case "invoice.payment_succeeded": {
       const invoice = event.data.object as Stripe.Invoice & { subscription: string };
       const subscriptionId = invoice.subscription;
       const customerId = invoice.customer as string;
 
+      // Fetch the subscription to sync updated period dates
+      let syncedUserId: string | undefined;
+      try {
+        const stripe = getStripe();
+        if (stripe && subscriptionId) {
+          const fullSub = await stripe.subscriptions.retrieve(subscriptionId);
+          const synced = await syncSubscriptionFromStripe(fullSub);
+          syncedUserId = synced?.userId;
+        }
+      } catch {
+        // Fallback: subscription might already be synced by a parallel event
+      }
+
       logger.info("Invoice payment succeeded", {
         component: "stripe-webhook",
         invoiceId: invoice.id,
         subscriptionId,
         customerId,
+        userId: syncedUserId,
         amountPaid: invoice.amount_paid,
       });
       break;
@@ -194,9 +235,16 @@ export async function POST(request: NextRequest) {
           : null,
       });
 
-      // If multiple failures, should downgrade to free tier
-      if (invoice.attempt_count >= 3) {
-        logger.warn("Multiple payment failures — marking subscription past_due", {
+      // If multiple failures, mark subscription past_due in Redis
+      if (invoice.attempt_count >= 3 && subscriptionId) {
+        try {
+          const fullSub = await stripe.subscriptions.retrieve(subscriptionId);
+          await syncSubscriptionFromStripe(fullSub);
+        } catch {
+          // Best-effort sync
+        }
+
+        logger.warn("Multiple payment failures — synced past_due to Redis", {
           component: "stripe-webhook",
           subscriptionId,
           customerId,
@@ -212,13 +260,20 @@ export async function POST(request: NextRequest) {
       const sub = event.data.object as unknown as Record<string, unknown>;
       const subscriptionId = sub.id as string;
       const customerId = sub.customer as string;
-      const currentPeriodEnd = sub.current_period_end as number;
+      const currentPeriodEnd = sub.current_period_end as number | undefined;
 
-      logger.warn("Subscription past due", {
+      // Use the raw object for sync — syncSubscriptionFromStripe handles shape
+      const synced = await syncSubscriptionFromStripe(sub as unknown as Stripe.Subscription);
+
+      logger.warn("Subscription past due" + (synced ? " — synced to Redis" : " — mapping not found"), {
         component: "stripe-webhook",
         subscriptionId,
         customerId,
-        currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000).toISOString() : null,
+        userId: synced?.userId,
+        tier: synced?.tier,
+        currentPeriodEnd: currentPeriodEnd
+          ? new Date(currentPeriodEnd * 1000).toISOString()
+          : null,
       });
       break;
     }
@@ -230,12 +285,15 @@ export async function POST(request: NextRequest) {
       const sub = event.data.object as unknown as Record<string, unknown>;
       const subscriptionId = sub.id as string;
       const customerId = sub.customer as string;
-      const trialEnd = sub.trial_end as number | null;
+      const trialEnd = sub.trial_end as number | undefined;
 
-      logger.info("Trial will end", {
+      const synced = await syncSubscriptionFromStripe(sub as unknown as Stripe.Subscription);
+
+      logger.info("Trial will end" + (synced ? " — synced to Redis" : " — mapping not found"), {
         component: "stripe-webhook",
         subscriptionId,
         customerId,
+        userId: synced?.userId,
         trialEnd: trialEnd ? new Date(trialEnd * 1000).toISOString() : null,
       });
       break;

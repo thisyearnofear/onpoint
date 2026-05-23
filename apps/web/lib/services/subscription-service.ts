@@ -7,7 +7,9 @@
 
 import { parseEther } from "viem";
 import { redisGet, redisSetEx, redisSet, redisDel } from "../utils/redis-helpers";
+import { setUserSubscription } from "../../middleware/agent-auth";
 import type { AgentPermission } from "../../middleware/agent-auth";
+import type Stripe from "stripe";
 
 // ============================================
 // Types
@@ -367,6 +369,148 @@ export async function checkUsageLimits(
   }
 
   return { exceeded: false };
+}
+
+// ============================================
+// Stripe ↔ OnPoint Subscription Sync
+// ============================================
+
+/**
+ * Redis key for Stripe customer-to-user mapping
+ */
+const STRIPE_CUSTOMER_KEY = (customerId: string) => `stripe:customer:${customerId}`;
+
+/**
+ * Map Stripe price IDs to OnPoint subscription tiers
+ */
+export function mapPriceToTier(priceId: string | undefined | null): SubscriptionTier | null {
+  const env = process.env;
+  if (!priceId) return null;
+  if (priceId === env.STRIPE_PREMIUM_PRICE_ID) return "pro";
+  if (priceId === env.STRIPE_BASIC_PRICE_ID) return "basic";
+  if (priceId === env.STRIPE_CONCIERGE_PRICE_ID) return "concierge";
+  return null;
+}
+
+/**
+ * Store mapping from Stripe customer ID to OnPoint user ID.
+ * Called on checkout.session.completed so subsequent subscription
+ * lifecycle events can look up the user.
+ */
+export async function setStripeCustomerMapping(
+  stripeCustomerId: string,
+  userId: string,
+): Promise<void> {
+  await redisSetEx(
+    STRIPE_CUSTOMER_KEY(stripeCustomerId),
+    { userId },
+    86400 * 365, // 1 year
+  );
+}
+
+/**
+ * Look up OnPoint user ID from Stripe customer ID.
+ */
+export async function getUserIdByStripeCustomerId(
+  customerId: string,
+): Promise<string | null> {
+  const mapping = await redisGet<{ userId: string }>(
+    STRIPE_CUSTOMER_KEY(customerId),
+  );
+  return mapping?.userId || null;
+}
+
+/**
+ * Sync a Stripe subscription into Redis as an OnPoint UserSubscription.
+ * Handles both subscription-slice events (customer.subscription.*) and
+ * invoice events that carry a subscription reference.
+ *
+ * Also updates the auth-tier subscription so middleware permissions stay in sync.
+ */
+export async function syncSubscriptionFromStripe(
+  stripeSubscription: Stripe.Subscription | { id: string; status: string; customer: string },
+  options?: {
+    forcedUserId?: string;
+    forcedTier?: SubscriptionTier;
+  },
+): Promise<UserSubscription | null> {
+  const customerId = typeof stripeSubscription.customer === "string"
+    ? stripeSubscription.customer
+    : stripeSubscription.customer?.id;
+  if (!customerId) return null;
+
+  // Resolve userId — either forced or via customer mapping
+  const userId = options?.forcedUserId || (await getUserIdByStripeCustomerId(customerId));
+  if (!userId) return null;
+
+  // Resolve tier
+  const tier = options?.forcedTier
+    || (() => {
+        if ("items" in stripeSubscription && stripeSubscription.items?.data?.[0]?.price?.id) {
+          return mapPriceToTier(stripeSubscription.items.data[0].price.id);
+        }
+        return null;
+      })();
+
+  if (!tier) {
+    // If we can't determine tier, don't wipe the existing subscription
+    const existing = await getUserSubscription(userId);
+    if (!existing) return null;
+
+    // Keep existing tier, just update status and dates
+    const updated: UserSubscription = {
+      ...existing,
+      status: stripeSubscription.status as UserSubscription["status"],
+      currentPeriodStart: "current_period_start" in stripeSubscription && typeof stripeSubscription.current_period_start === "number"
+        ? stripeSubscription.current_period_start * 1000
+        : existing.currentPeriodStart,
+      currentPeriodEnd: "current_period_end" in stripeSubscription && typeof stripeSubscription.current_period_end === "number"
+        ? stripeSubscription.current_period_end * 1000
+        : existing.currentPeriodEnd,
+      cancelAtPeriodEnd: "cancel_at_period_end" in stripeSubscription
+        ? stripeSubscription.cancel_at_period_end
+        : existing.cancelAtPeriodEnd,
+      stripeSubscriptionId: stripeSubscription.id,
+      paymentMethod: "stripe",
+    };
+    await setSubscription(updated);
+    return updated;
+  }
+
+  // Map Stripe status (including "incomplete", "incomplete_expired") to OnPoint status
+  const statusMap: Record<string, UserSubscription["status"]> = {
+    active: "active",
+    past_due: "past_due",
+    canceled: "canceled",
+    unpaid: "past_due",
+    trialing: "trialing",
+    incomplete: "past_due",
+    incomplete_expired: "canceled",
+  };
+
+  const subscription: UserSubscription = {
+    userId,
+    tier,
+    status: statusMap[stripeSubscription.status] || "past_due",
+    currentPeriodStart: "current_period_start" in stripeSubscription && typeof stripeSubscription.current_period_start === "number"
+      ? stripeSubscription.current_period_start * 1000
+      : Date.now(),
+    currentPeriodEnd: "current_period_end" in stripeSubscription && typeof stripeSubscription.current_period_end === "number"
+      ? stripeSubscription.current_period_end * 1000
+      : Date.now() + 30 * 24 * 60 * 60 * 1000,
+    cancelAtPeriodEnd: "cancel_at_period_end" in stripeSubscription
+      ? stripeSubscription.cancel_at_period_end
+      : false,
+    paymentMethod: "stripe",
+    stripeSubscriptionId: stripeSubscription.id,
+  };
+
+  await setSubscription(subscription);
+
+  // Also update the auth-tier subscription (used by middleware)
+  await setUserSubscription(userId, tier, subscription.currentPeriodEnd);
+
+  return subscription;
 }
 
 // ============================================
