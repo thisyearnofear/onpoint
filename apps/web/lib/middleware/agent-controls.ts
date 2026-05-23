@@ -129,6 +129,11 @@ export interface StylePreference {
   brands: string[];
   priceRange: { min: number; max: number };
   lastUpdated: number;
+
+  // Onboarding preferences
+  bodyType?: "slim" | "athletic" | "average" | "plus" | "petite" | "tall";
+  styleAesthetics?: string[];
+  budgetTier?: "budget-friendly" | "moderate" | "premium" | "luxury";
 }
 
 export interface StyleRecommendation {

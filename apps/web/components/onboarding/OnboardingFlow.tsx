@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import { Button } from "@repo/ui/button";
 import {
   Card,
@@ -8,7 +8,6 @@ import {
   CardTitle,
 } from "@repo/ui/card";
 import { Progress } from "@repo/ui/progress";
-import { Badge } from "@repo/ui/badge";
 import {
   Camera,
   Sparkles,
@@ -19,7 +18,14 @@ import {
   ArrowLeft,
   X,
   Star,
+  Heart,
+  Palette,
+  DollarSign,
+  Crown,
+  Gem,
 } from "lucide-react";
+
+// ── Types ──
 
 interface OnboardingStep {
   id: string;
@@ -42,6 +48,216 @@ interface OnboardingFlowProps {
   };
 }
 
+// ── Preference Options ──
+
+const BODY_TYPES = [
+  { value: "slim", label: "Slim", icon: "🧘", description: "Narrow frame, lean build" },
+  { value: "athletic", label: "Athletic", icon: "💪", description: "Muscular, well-defined" },
+  { value: "average", label: "Average", icon: "🧑", description: "Balanced proportions" },
+  { value: "plus", label: "Plus", icon: "💎", description: "Fuller figure, curves" },
+  { value: "petite", label: "Petite", icon: "🌸", description: "Shorter stature" },
+  { value: "tall", label: "Tall", icon: "🦒", description: "Above average height" },
+] as const;
+
+const STYLE_AESTHETICS = [
+  { value: "streetwear", label: "Streetwear", emoji: "🧢", color: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300" },
+  { value: "casual", label: "Casual", emoji: "👕", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
+  { value: "formal", label: "Formal", emoji: "👔", color: "bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-300" },
+  { value: "vintage", label: "Vintage", emoji: "📻", color: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300" },
+  { value: "sporty", label: "Sporty", emoji: "⚡", color: "bg-lime-100 text-lime-800 dark:bg-lime-900/30 dark:text-lime-300" },
+  { value: "boho", label: "Boho", emoji: "🌸", color: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300" },
+  { value: "minimalist", label: "Minimalist", emoji: "◻️", color: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200" },
+  { value: "edgy", label: "Edgy", emoji: "🖤", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300" },
+  { value: "preppy", label: "Preppy", emoji: "🎀", color: "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300" },
+  { value: "avant-garde", label: "Avant-Garde", emoji: "🎭", color: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300" },
+] as const;
+
+const BUDGET_TIERS = [
+  { value: "budget-friendly", label: "Budget-Friendly", icon: <DollarSign className="w-5 h-5" />, range: "Under $50", color: "border-green-300 bg-green-50 dark:border-green-800 dark:bg-green-950/30" },
+  { value: "moderate", label: "Moderate", icon: <Wallet className="w-5 h-5" />, range: "$50 – $150", color: "border-blue-300 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30" },
+  { value: "premium", label: "Premium", icon: <Crown className="w-5 h-5" />, range: "$150 – $500", color: "border-purple-300 bg-purple-50 dark:border-purple-800 dark:bg-purple-950/30" },
+  { value: "luxury", label: "Luxury", icon: <Gem className="w-5 h-5" />, range: "$500+", color: "border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30" },
+] as const;
+
+// ── Preference Step Sub-Components ──
+
+function BodyTypeSelector({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+        <User className="w-4 h-4 text-primary" />
+        What's your body type?
+      </h4>
+      <div className="grid grid-cols-3 gap-2">
+        {BODY_TYPES.map((bt) => (
+          <button
+            key={bt.value}
+            type="button"
+            onClick={() => onChange(bt.value)}
+            className={`
+              flex flex-col items-center gap-1 p-3 rounded-xl border-2 text-center transition-all duration-200
+              ${value === bt.value
+                ? "border-primary bg-primary/5 shadow-sm scale-[1.02]"
+                : "border-border bg-card hover:border-primary/40 hover:bg-muted/50"
+              }
+            `}
+          >
+            <span className="text-lg leading-none">{bt.icon}</span>
+            <span className="text-xs font-semibold">{bt.label}</span>
+            <span className="text-[10px] text-muted-foreground leading-tight">
+              {bt.description}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AestheticsSelector({
+  value,
+  onChange,
+}: {
+  value: string[];
+  onChange: (v: string[]) => void;
+}) {
+  const toggle = (aesthetic: string) => {
+    if (value.includes(aesthetic)) {
+      onChange(value.filter((v) => v !== aesthetic));
+    } else {
+      onChange([...value, aesthetic]);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+        <Palette className="w-4 h-4 text-primary" />
+        Pick your style aesthetics
+      </h4>
+      <div className="flex flex-wrap gap-2">
+        {STYLE_AESTHETICS.map((a) => {
+          const selected = value.includes(a.value);
+          return (
+            <button
+              key={a.value}
+              type="button"
+              onClick={() => toggle(a.value)}
+              className={`
+                inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
+                transition-all duration-200 border
+                ${selected
+                  ? `${a.color} border-transparent shadow-sm scale-105`
+                  : "bg-card text-muted-foreground border-border hover:border-primary/30 hover:text-foreground"
+                }
+              `}
+            >
+              <span className="text-sm">{a.emoji}</span>
+              {a.label}
+            </button>
+          );
+        })}
+      </div>
+      {value.length === 0 && (
+        <p className="text-xs text-muted-foreground italic">
+          Select as many as you like — you can always adjust later
+        </p>
+      )}
+      {value.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {value.length} selected
+        </p>
+      )}
+    </div>
+  );
+}
+
+function BudgetSelector({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+        <DollarSign className="w-4 h-4 text-primary" />
+        What's your budget range?
+      </h4>
+      <div className="grid grid-cols-2 gap-2">
+        {BUDGET_TIERS.map((bt) => (
+          <button
+            key={bt.value}
+            type="button"
+            onClick={() => onChange(bt.value)}
+            className={`
+              flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all duration-200
+              ${value === bt.value
+                ? `${bt.color} border-primary shadow-sm scale-[1.02]`
+                : "border-border bg-card hover:border-primary/40 hover:bg-muted/50"
+              }
+            `}
+          >
+            <div className={`p-2 rounded-lg ${
+              value === bt.value
+                ? "bg-primary/10 text-primary"
+                : "bg-muted text-muted-foreground"
+            }`}>
+              {bt.icon}
+            </div>
+            <div>
+              <div className="text-sm font-semibold">{bt.label}</div>
+              <div className="text-xs text-muted-foreground">{bt.range}</div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Welcome Step (existing) ──
+
+function WelcomeContent() {
+  return (
+    <div className="space-y-4 text-center">
+      <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto">
+        <Sparkles className="w-8 h-8 text-white" />
+      </div>
+      <div>
+        <h3 className="text-lg font-semibold mb-2">AI-Powered Fashion</h3>
+        <p className="text-muted-foreground">
+          Discover your perfect style with virtual try-on, personalized
+          recommendations, and expert AI styling guidance.
+        </p>
+      </div>
+      <div className="grid grid-cols-3 gap-4 mt-6">
+        <div className="text-center">
+          <Camera className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+          <p className="text-sm font-medium">Virtual Try-On</p>
+        </div>
+        <div className="text-center">
+          <Sparkles className="w-8 h-8 text-purple-500 mx-auto mb-2" />
+          <p className="text-sm font-medium">AI Styling</p>
+        </div>
+        <div className="text-center">
+          <Heart className="w-8 h-8 text-red-500 mx-auto mb-2" />
+          <p className="text-sm font-medium">Personal Style</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Component ──
+
 export function OnboardingFlow({
   isOpen,
   onClose,
@@ -49,7 +265,25 @@ export function OnboardingFlow({
   userProgress = {},
 }: OnboardingFlowProps) {
   const [currentStep, setCurrentStep] = useState(0);
-  const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
+
+  // Preference state
+  const [selectedBodyType, setSelectedBodyType] = useState<string | null>(null);
+  const [selectedAesthetics, setSelectedAesthetics] = useState<string[]>([]);
+  const [selectedBudget, setSelectedBudget] = useState<string | null>(null);
+
+  const savePreferences = useCallback(() => {
+    const prefs = {
+      bodyType: selectedBodyType,
+      styleAesthetics: selectedAesthetics,
+      budgetTier: selectedBudget,
+      savedAt: Date.now(),
+    };
+    try {
+      localStorage.setItem("onpoint-style-preferences", JSON.stringify(prefs));
+    } catch {
+      // localStorage may be unavailable
+    }
+  }, [selectedBodyType, selectedAesthetics, selectedBudget]);
 
   const steps: OnboardingStep[] = [
     {
@@ -57,32 +291,20 @@ export function OnboardingFlow({
       title: "Welcome to OnPoint",
       description: "Your AI-powered fashion stylist awaits",
       icon: <Sparkles className="w-6 h-6 text-purple-500" />,
+      content: <WelcomeContent />,
+    },
+    {
+      id: "preferences",
+      title: "Tell Us About Your Style",
+      description: "Help us personalize your experience",
+      icon: <Palette className="w-6 h-6 text-pink-500" />,
       content: (
-        <div className="space-y-4 text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto">
-            <Sparkles className="w-8 h-8 text-white" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold mb-2">AI-Powered Fashion</h3>
-            <p className="text-muted-foreground">
-              Discover your perfect style with virtual try-on, personalized
-              recommendations, and expert AI styling guidance.
-            </p>
-          </div>
-          <div className="grid grid-cols-3 gap-4 mt-6">
-            <div className="text-center">
-              <Camera className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-              <p className="text-sm font-medium">Virtual Try-On</p>
-            </div>
-            <div className="text-center">
-              <Sparkles className="w-8 h-8 text-purple-500 mx-auto mb-2" />
-              <p className="text-sm font-medium">AI Styling</p>
-            </div>
-            <div className="text-center">
-              <Star className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
-              <p className="text-sm font-medium">Personal Style</p>
-            </div>
-          </div>
+        <div className="space-y-6 overflow-y-auto max-h-[50vh] pr-1">
+          <BodyTypeSelector value={selectedBodyType} onChange={setSelectedBodyType} />
+          <div className="border-t border-border" />
+          <AestheticsSelector value={selectedAesthetics} onChange={setSelectedAesthetics} />
+          <div className="border-t border-border" />
+          <BudgetSelector value={selectedBudget} onChange={setSelectedBudget} />
         </div>
       ),
     },
@@ -201,12 +423,6 @@ export function OnboardingFlow({
     },
   ];
 
-  useEffect(() => {
-    if (userProgress.hasWallet) completedSteps.add("wallet");
-    if (userProgress.hasAuth0) completedSteps.add("account");
-    if (userProgress.hasTriedAR) completedSteps.add("virtual-tryon");
-  }, [userProgress]);
-
   if (!isOpen) return null;
 
   const currentStepData = steps[currentStep];
@@ -214,6 +430,9 @@ export function OnboardingFlow({
   const isLastStep = currentStep === steps.length - 1;
 
   const handleNext = () => {
+    if (currentStepData?.id === "preferences") {
+      savePreferences();
+    }
     if (isLastStep) {
       onComplete();
       onClose();
