@@ -17,7 +17,7 @@ const veniceClient = veniceKey
 
 router.post('/', async (req, res) => {
   try {
-    const { photoData } = req.body;
+    const { photoData, stylePreferences } = req.body;
 
     if (!photoData) {
       return res.status(400).json({ error: 'Photo data is required' });
@@ -27,12 +27,20 @@ router.post('/', async (req, res) => {
       return res.status(500).json({ error: 'Venice API key not configured' });
     }
 
+    const prefContext = stylePreferences 
+      ? `\nUser Preferences to consider:
+- Aesthetics: ${stylePreferences.styleAesthetics?.join(', ') || 'Not specified'}
+- Budget Tier: ${stylePreferences.budgetTier || 'Not specified'}
+- Body Type: ${stylePreferences.bodyType || 'Not specified'}
+Tailor your recommendations to align with these preferences.`
+      : '';
+
     const prompt = `Analyze this person's appearance for fashion styling purposes. Describe:
 1. Body type and proportions (height estimate, build, body shape)
 2. Skin tone and undertones
 3. Hair color and style
 4. Current outfit style and colors
-5. Notable features that would affect clothing recommendations
+5. Notable features that would affect clothing recommendations${prefContext}
 
 Provide a detailed but concise description suitable for AI fashion styling.`;
 
