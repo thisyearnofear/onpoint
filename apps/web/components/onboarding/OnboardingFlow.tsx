@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState } from "react";
 import { Button } from "@repo/ui/button";
 import {
   Card,
@@ -24,6 +24,7 @@ import {
   Crown,
   Gem,
 } from "lucide-react";
+import { useUserPreferences } from "../../hooks/useUserPreferences";
 
 // ── Types ──
 
@@ -265,25 +266,12 @@ export function OnboardingFlow({
   userProgress = {},
 }: OnboardingFlowProps) {
   const [currentStep, setCurrentStep] = useState(0);
+  const { updatePreferences } = useUserPreferences();
 
   // Preference state
   const [selectedBodyType, setSelectedBodyType] = useState<string | null>(null);
   const [selectedAesthetics, setSelectedAesthetics] = useState<string[]>([]);
   const [selectedBudget, setSelectedBudget] = useState<string | null>(null);
-
-  const savePreferences = useCallback(() => {
-    const prefs = {
-      bodyType: selectedBodyType,
-      styleAesthetics: selectedAesthetics,
-      budgetTier: selectedBudget,
-      savedAt: Date.now(),
-    };
-    try {
-      localStorage.setItem("onpoint-style-preferences", JSON.stringify(prefs));
-    } catch {
-      // localStorage may be unavailable
-    }
-  }, [selectedBodyType, selectedAesthetics, selectedBudget]);
 
   const steps: OnboardingStep[] = [
     {
@@ -431,7 +419,11 @@ export function OnboardingFlow({
 
   const handleNext = () => {
     if (currentStepData?.id === "preferences") {
-      savePreferences();
+      updatePreferences({
+        bodyType: selectedBodyType as any,
+        styleAesthetics: selectedAesthetics,
+        budgetTier: selectedBudget as any,
+      });
     }
     if (isLastStep) {
       onComplete();
