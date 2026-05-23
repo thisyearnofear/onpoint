@@ -47,14 +47,15 @@ export function TacticalDashboard() {
     return "dashboard";
   });
 
-  // Listen for cross-component navigation (e.g. from session summary → shop)
+  // Listen for URL tab param (e.g. from Connected Accounts nav link on another page)
   React.useEffect(() => {
-    const handler = (e: Event) => {
-      const target = (e as CustomEvent).detail as AppMode;
-      if (target) setMode(target);
-    };
-    window.addEventListener("onpoint:navigate", handler);
-    return () => window.removeEventListener("onpoint:navigate", handler);
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab") as AppMode | null;
+    if (tab && navItems.some(n => n.id === tab)) {
+      setMode(tab);
+      // Clean the URL so bookmarking doesn't persist a transient tab
+      window.history.replaceState(null, "", window.location.pathname);
+    }
   }, []);
 
   const navItems = [
@@ -296,7 +297,15 @@ export function TacticalDashboard() {
             {navItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => setMode(item.id as AppMode)}
+                onClick={() => {
+                  setMode(item.id as AppMode);
+                  // Push the tab to URL so cross-page nav works via the listener above
+                  if (typeof window !== "undefined") {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set("tab", item.id);
+                    window.history.replaceState(null, "", url.toString());
+                  }
+                }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all whitespace-nowrap ${
                   mode === item.id
                     ? "bg-muted text-foreground ring-1 ring-border"
