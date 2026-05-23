@@ -10,6 +10,7 @@ export default defineConfig({
       "middleware/**/*.test.{ts,tsx}",
       "app/**/*.test.{ts,tsx}",
       "components/**/*.test.{ts,tsx}",
+      "hooks/**/*.test.{ts,tsx}",
     ],
     testTimeout: 15000,
     environment: "jsdom",
