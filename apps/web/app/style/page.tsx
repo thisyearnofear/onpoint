@@ -3,17 +3,19 @@
 import React from 'react';
 import { Palette, Sparkles, ArrowLeft, Shirt, Wand2 } from 'lucide-react';
 import { Button } from '@repo/ui/button';
-import { EnhancedConnectButton, ChainStatusIndicator } from '../../components/chains';
+import { EnhancedConnectButton, ChainStatusIndicator } from '@/components/chains';
 import { Input } from '@repo/ui/input';
 import InteractiveStylingCanvas from '@repo/shared-ui/components/InteractiveStylingCanvas';
 import { useAIColorPalette, useAIStyleSuggestions, useAIVirtualTryOnEnhancement } from '@repo/ai-client';
 import Link from 'next/link';
+import { useToast } from '@/components/toast';
 
 export default function StylePage() {
   const { palette, loading: paletteLoading, error: paletteError, generatePalette, clearError } = useAIColorPalette();
   const { suggestions } = useAIStyleSuggestions();
   const { enhancement, loading: enhancementLoading, enhanceTryOn } = useAIVirtualTryOnEnhancement();
 
+  const { toast } = useToast();
   const [palettePrompt, setPalettePrompt] = React.useState('Fashion outfit with streetwear elements');
   const [selectedCanvasColor, setSelectedCanvasColor] = React.useState<string | undefined>();
 
@@ -42,12 +44,12 @@ export default function StylePage() {
   ];
 
   const handleGenerateVariations = () => {
-    alert('Generate variations with AI - feature implementation in progress!');
+    toast('Generate variations with AI - feature coming soon!', 'info');
   };
 
   const handleColorPalette = async () => {
     if (!palettePrompt.trim()) {
-      alert('Please enter a description for your color palette');
+      toast('Please enter a description for your color palette', 'warning');
       return;
     }
     await generatePalette(palettePrompt);
@@ -321,8 +323,7 @@ export default function StylePage() {
           <InteractiveStylingCanvas
             selectedColor={selectedCanvasColor}
             onColorApplied={(elementId, color) => {
-              console.log(`Applied ${color} to element ${elementId}`);
-              // Could add toast notification here
+              toast(`Applied ${color} to element ${elementId}`, "success");
             }}
           />
         </div>

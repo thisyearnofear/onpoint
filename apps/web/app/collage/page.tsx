@@ -23,6 +23,7 @@ import {
 import Link from "next/link";
 import { MobileNavigation } from "@/components/mobile-navigation";
 import { EnhancedConnectButton } from "@/components/EnhancedConnectButton";
+import { useToast } from "@/components/toast";
 // import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCenter, PointerSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core';
 // import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 // import { useSortable } from '@dnd-kit/sortable';
@@ -88,6 +89,7 @@ export default function CollagePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [exportLoading, setExportLoading] = useState(false);
+  const { toast } = useToast();
   const [usageCount, setUsageCount] = useState({
     generations: 0,
     critiques: 0,
@@ -166,7 +168,7 @@ export default function CollagePage() {
 
   const handleGetCritique = async () => {
     if (canvasItems.length === 0) {
-      alert("Please add some items to your collage first!");
+      toast("Please add some items to your collage first!", "warning");
       return;
     }
     setLoading(true);
@@ -176,7 +178,7 @@ export default function CollagePage() {
       setUsageCount((prev) => ({ ...prev, critiques: prev.critiques + 1 }));
     } catch (error) {
       console.error("Failed to get critique:", error);
-      alert("Failed to get AI critique. Please try again.");
+      toast("Failed to get AI critique. Please try again.", "error");
     } finally {
       setLoading(false);
     }
@@ -184,7 +186,7 @@ export default function CollagePage() {
 
   const handleGenerateGarment = async () => {
     if (canvasItems.length === 0) {
-      alert("Please add some items to your collage first!");
+      toast("Please add some items to your collage first!", "warning");
       return;
     }
     setLoading(true);
@@ -194,14 +196,14 @@ export default function CollagePage() {
       setUsageCount((prev) => ({ ...prev, generations: prev.generations + 1 }));
     } catch (error) {
       console.error("Failed to generate clothing:", error);
-      alert("Failed to generate clothing design. Please try again.");
+      toast("Failed to generate clothing design. Please try again.", "error");
     } finally {
       setLoading(false);
     }
   };
 
   const handleSave = () => {
-    alert("Collage saved locally!");
+    toast("Collage saved locally!", "success");
   };
 
   const handleAddToCanvas = (item: CollageItem) => {
@@ -221,7 +223,7 @@ export default function CollagePage() {
 
   const handleExport = async () => {
     if (canvasItems.length === 0) {
-      alert("Please add some items to your collage first!");
+      toast("Please add some items to your collage first!", "warning");
       return;
     }
     setExportLoading(true);
@@ -242,7 +244,7 @@ export default function CollagePage() {
       }
     } catch (error) {
       console.error("Export failed:", error);
-      alert("Failed to export collage. Please try again.");
+      toast("Failed to export collage. Please try again.", "error");
     } finally {
       setExportLoading(false);
     }
@@ -260,15 +262,15 @@ export default function CollagePage() {
       });
     } else {
       navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
-      alert(
-        "Share link copied to clipboard! Share your creation with friends.",
+      toast(
+        "Share link copied to clipboard! Share your creation with friends.", "success",
       );
     }
   };
 
   const handleGetSuggestions = async () => {
     if (canvasItems.length === 0) {
-      alert("Please add some items to your collage first!");
+      toast("Please add some items to your collage first!", "warning");
       return;
     }
     setSuggestionsLoading(true);
@@ -287,7 +289,7 @@ export default function CollagePage() {
       setUsageCount((prev) => ({ ...prev, suggestions: prev.suggestions + 1 }));
     } catch (error) {
       console.error("Failed to get suggestions:", error);
-      alert("Failed to get style suggestions. Please try again.");
+      toast("Failed to get style suggestions. Please try again.", "error");
     } finally {
       setSuggestionsLoading(false);
     }

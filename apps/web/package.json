@@ -67,11 +67,15 @@
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.2",
     "@types/node": "^22.15.3",
     "@types/react": "19.1.0",
     "@types/react-dom": "19.1.1",
+    "@vitejs/plugin-react": "6.0.2",
     "dotenv": "17.4.0",
     "eslint": "^9.34.0",
+    "jsdom": "29.1.1",
     "typescript": "5.9.2",
     "vitest": "4.1.0"
   }

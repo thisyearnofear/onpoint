@@ -8,8 +8,10 @@ import { Badge } from "@repo/ui/badge";
 import { Sparkles, RefreshCw, Save, Wand2, Leaf } from "lucide-react";
 import { useDesignStudio } from "@repo/ai-client";
 import type { DesignGeneration } from "@repo/ai-client";
+import { useToast } from "@/components/toast";
 
 export function DesignStudio() {
+  const { toast } = useToast();
   const [visionInput, setVisionInput] = useState("");
   const [refinementInput, setRefinementInput] = useState("");
   const [selectedDesign, setSelectedDesign] = useState<string | null>(null);
@@ -211,8 +213,7 @@ export function DesignStudio() {
                   size="sm"
                   disabled={!selectedDesign}
                   onClick={() => {
-                    // TODO: Implement save to lookbook
-                    alert("Save to Lookbook feature coming soon!");
+                    toast("Save to Lookbook feature coming soon!", "info");
                   }}
                   className="bg-primary/10 text-primary hover:bg-primary/20"
                 >

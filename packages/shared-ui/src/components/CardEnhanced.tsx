@@ -81,11 +81,11 @@ export const CardEnhanced = React.forwardRef<HTMLDivElement, CardEnhancedProps>(
         ref={ref}
         onClick={onClick}
         className={`
-          @container group relative bg-white rounded-xl overflow-hidden
+          @container group relative bg-card rounded-xl overflow-hidden
           shadow-md hover:shadow-2xl
           transition-all duration-300 ease-out
           cursor-pointer
-          border border-gray-100 hover:border-gray-200
+          border border-border hover:border-border
           ${isBasicVariant ? 'rounded-lg shadow-sm hover:shadow-lg' : ''}
           ${className}
         `}
@@ -97,7 +97,7 @@ export const CardEnhanced = React.forwardRef<HTMLDivElement, CardEnhancedProps>(
         data-variant={variant}
       >
         {/* Image Container with Overlay */}
-        <div className="relative overflow-hidden bg-gray-100 aspect-square">
+        <div className="relative overflow-hidden bg-muted aspect-square">
           {/* Trending Badge - only show in enhanced variant */}
           {isTrending && !isBasicVariant && (
             <div className="absolute top-3 left-3 z-20 flex items-center gap-1 bg-red-500/90 text-white px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm animate-pulse">
@@ -138,10 +138,10 @@ export const CardEnhanced = React.forwardRef<HTMLDivElement, CardEnhancedProps>(
                   font-medium text-sm transition-all duration-200
                   flex items-center justify-center gap-2
                   min-h-[44px] @xs:min-h-auto
-                  ${isLiked 
-                    ? 'bg-red-500/90 text-white' 
-                    : 'bg-white/90 text-gray-900 hover:bg-white active:bg-gray-100'
-                  }
+                    ${isLiked 
+                      ? 'bg-red-500/90 text-white' 
+                      : 'bg-card/90 text-foreground hover:bg-card active:bg-muted'
+                    }
                 `}
                 aria-label={isLiked ? 'Unlike' : 'Like'}
               >
@@ -150,9 +150,9 @@ export const CardEnhanced = React.forwardRef<HTMLDivElement, CardEnhancedProps>(
               </button>
               <button
                 onClick={handleShare}
-                className="
+                  className="
                   flex-1 py-2.5 px-3 rounded-lg backdrop-blur-md
-                  bg-white/90 text-gray-900 hover:bg-white active:bg-gray-100
+                  bg-card/90 text-foreground hover:bg-card active:bg-muted
                   font-medium text-sm transition-all duration-200
                   flex items-center justify-center gap-2
                   min-h-[44px] @xs:min-h-auto
@@ -185,7 +185,7 @@ export const CardEnhanced = React.forwardRef<HTMLDivElement, CardEnhancedProps>(
         <div className={`${isBasicVariant ? 'p-4 space-y-2' : 'p-4 space-y-3'}`}>
           {/* Title - container-query responsive */}
           <h3
-            className="font-semibold truncate text-gray-900 group-hover:text-primary transition-colors
+            className="font-semibold truncate text-foreground group-hover:text-primary transition-colors
               @xs:text-sm @sm:text-base"
             style={{
               viewTransitionName: titleTransition,
@@ -196,35 +196,35 @@ export const CardEnhanced = React.forwardRef<HTMLDivElement, CardEnhancedProps>(
           </h3>
 
           {/* Category */}
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             {item.category}
           </p>
 
           {/* Stats Row - only in enhanced variant */}
           {showStats && !isBasicVariant && (
-            <div className="flex items-center justify-between pt-1 text-xs text-gray-600">
+            <div className="flex items-center justify-between pt-1 text-xs text-muted-foreground">
               <div className="flex items-center gap-3">
                 {item.tryOnCount && (
                   <div className="flex items-center gap-1">
-                    <span className="text-gray-400">👁️</span>
+                    <span className="text-muted-foreground">👁️</span>
                     <span>{item.tryOnCount.toLocaleString()}</span>
                   </div>
                 )}
                 {item.mintCount && (
                   <div className="flex items-center gap-1">
-                    <span className="text-gray-400">✨</span>
+                    <span className="text-muted-foreground">✨</span>
                     <span>{item.mintCount}</span>
                   </div>
                 )}
               </div>
-              <div className="text-gray-400">•</div>
+              <div className="text-muted-foreground">•</div>
             </div>
           )}
 
           {/* Footer: Price & Action */}
-          <div className={`${isBasicVariant ? 'flex items-center justify-between pt-2 border-t border-gray-100' : 'flex items-center justify-between pt-2 border-t border-gray-100'}`}>
+          <div className={`${isBasicVariant ? 'flex items-center justify-between pt-2 border-t border-border' : 'flex items-center justify-between pt-2 border-t border-border'}`}>
             <span
-              className={`font-bold text-gray-900 ${isBasicVariant ? 'text-base' : 'text-lg'}`}
+              className={`font-bold text-foreground ${isBasicVariant ? 'text-base' : 'text-lg'}`}
               style={{
                 viewTransitionName: priceTransition,
                 contain: 'layout style paint',

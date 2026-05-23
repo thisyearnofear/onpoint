@@ -94,6 +94,12 @@ Agent accesses external services without exposing credentials:
 - Tip the AI stylist for great advice
 - Cross-platform identity and reward tracking
 
+### Design System & Testing
+- **Full dark mode support**: All shared-ui components themified with CSS variables — toggle between light/dark at `/style-guide`
+- **Toast notification system**: Accessible, portal-based toast context replacing intrusive alerts
+- **Interactive styling canvas**: Fully type-safe Tailwind CSS implementation with performant drag-and-drop
+- **Test infrastructure**: Vitest configured with React plugin — first unit tests passing
+
 ---
 
 ## For Developers

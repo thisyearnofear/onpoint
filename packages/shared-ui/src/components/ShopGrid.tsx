@@ -112,22 +112,22 @@ export const ShopGrid: React.FC<ShopGridProps> = ({
       {/* Header Stats */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-1">Fashion Catalog</h2>
-          <p className="text-sm text-gray-600">{sortedAndFiltered.length} items</p>
+          <h2 className="text-2xl font-bold text-foreground mb-1">Fashion Catalog</h2>
+          <p className="text-sm text-muted-foreground">{sortedAndFiltered.length} items</p>
         </div>
 
         {/* Engagement Stats */}
         <div className="flex gap-6">
           <div className="text-center">
             <div className="text-2xl font-bold text-primary">{totalEngagement.toLocaleString()}</div>
-            <div className="text-xs text-gray-600 flex items-center gap-1">
+            <div className="text-xs text-muted-foreground flex items-center gap-1">
               <Zap className="h-3 w-3" />
               Try-ons
             </div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-accent">{avgRating}★</div>
-            <div className="text-xs text-gray-600 flex items-center gap-1">
+            <div className="text-xs text-muted-foreground flex items-center gap-1">
               <Star className="h-3 w-3" />
               Avg Rating
             </div>
@@ -140,13 +140,13 @@ export const ShopGrid: React.FC<ShopGridProps> = ({
         <div className="mb-8 space-y-4">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <input
               type="text"
               placeholder="Search by name, style, or category…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm placeholder:text-gray-400 focus:border-primary focus:outline-none transition-colors"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-card text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors"
             />
           </div>
 
@@ -158,8 +158,8 @@ export const ShopGrid: React.FC<ShopGridProps> = ({
                 onClick={() => setViewMode('grid')}
                 className={`p-2.5 rounded-lg transition-all ${
                   viewMode === 'grid'
-                    ? 'bg-primary text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
                 }`}
                 title="Grid view"
               >
@@ -169,8 +169,8 @@ export const ShopGrid: React.FC<ShopGridProps> = ({
                 onClick={() => setViewMode('list')}
                 className={`p-2.5 rounded-lg transition-all ${
                   viewMode === 'list'
-                    ? 'bg-primary text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
                 }`}
                 title="List view"
               >
@@ -182,7 +182,7 @@ export const ShopGrid: React.FC<ShopGridProps> = ({
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium hover:border-primary focus:border-primary focus:outline-none transition-colors"
+              className="px-4 py-2 rounded-lg border border-border bg-card text-sm font-medium hover:border-primary focus:border-primary focus:outline-none transition-colors"
             >
               <option value="trending">🔥 Trending</option>
               <option value="rating">⭐ Highest Rated</option>
@@ -195,24 +195,24 @@ export const ShopGrid: React.FC<ShopGridProps> = ({
           {/* Category Filter */}
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => setSelectedCategory(null)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                selectedCategory === null
-                  ? 'bg-primary text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              All
-            </button>
-            {categories.map(category => (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all capitalize ${
-                  selectedCategory === category
-                    ? 'bg-primary text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                onClick={() => setSelectedCategory(null)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  selectedCategory === null
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
                 }`}
+              >
+                All
+              </button>
+              {categories.map(category => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all capitalize ${
+                    selectedCategory === category
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
               >
                 {category}
               </button>
@@ -231,8 +231,8 @@ export const ShopGrid: React.FC<ShopGridProps> = ({
             md:overflow-visible md:snap-none
             -mx-4 px-4
             [&::-webkit-scrollbar]:h-1.5
-            [&::-webkit-scrollbar-track]:bg-gray-100
-            [&::-webkit-scrollbar-thumb]:bg-gray-400
+            [&::-webkit-scrollbar-track]:bg-muted
+            [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30
             [&::-webkit-scrollbar-thumb]:rounded-full
           "
         >
@@ -300,8 +300,8 @@ export const ShopGrid: React.FC<ShopGridProps> = ({
       {sortedAndFiltered.length === 0 && (
         <div className="text-center py-16">
           <div className="text-6xl mb-4">👗</div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No items found</h3>
-          <p className="text-gray-600">Try adjusting your filters</p>
+          <h3 className="text-lg font-semibold text-foreground mb-2">No items found</h3>
+          <p className="text-muted-foreground">Try adjusting your filters</p>
         </div>
       )}
     </div>

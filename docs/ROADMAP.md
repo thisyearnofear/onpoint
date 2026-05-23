@@ -260,3 +260,13 @@ OnPoint is evolving from a vision-AI stylist to a fully autonomous shopping agen
 - Reduced technical debt by removing bloat features
 - Improved code organization and separation of concerns
 - Enhanced documentation (FLOW_REDESIGN.md, CONSOLIDATION_COMPLETE.md)
+
+### Design System & Testing Foundation 🎯
+- **Dark Mode Complete**: All shared-ui components themified (CardEnhanced, EngagementBadge, ShopGrid) — hardcoded grays replaced with CSS variables
+- **Toast Notification System**: Custom toast context replacing 13 alert() calls across 3 pages, with `role="alert"`, `aria-live="polite"`, `createPortal` for accessibility
+- **InteractiveStylingCanvas Rewrite**: Migrated from styled-components to Tailwind CSS, fixed drag handler feedback loop (useRefs + stable useEffect), full TypeScript safety
+- **EngagementBadge Theming**: Gradient colors moved to CSS custom properties (`--badge-*`) with proper dark mode fallbacks — no more hardcoded hex values
+- **Style Guide Page**: New `/style-guide` route rendering all shared-ui components with live theme toggle for light/dark mode verification
+- **Test Infrastructure**: Vitest configured with `@vitejs/plugin-react`, jsdom environment, first unit tests (toast system) passing — 6 tests covering context API, rendering, edge cases
+- **Dependency Cleanup**: Removed styled-components dependency and compiler option from Next.js config
+- **Type Safety Fixes**: Fixed OWS native module compatibility, all implicit `any` types resolved, TS strict mode compliance

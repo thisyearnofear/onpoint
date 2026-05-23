@@ -368,7 +368,7 @@ export async function getAgentWalletInfo() {
 // OWS (Open Wallet Standard) Integration
 // ============================================
 
-let owsModule: typeof import("@open-wallet-standard/core") | null = null;
+let owsModule: any = null;
 let owsAvailable = false;
 
 async function loadOWS() {
@@ -398,7 +398,7 @@ export async function ensureOWSWallet(): Promise<string | null> {
 
   try {
     const existing = listWallets(OWS_VAULT_PATH);
-    if (existing.some((w) => w.name === OWS_WALLET_NAME)) {
+    if (existing.some((w: { name: string }) => w.name === OWS_WALLET_NAME)) {
       return OWS_WALLET_NAME;
     }
 
@@ -464,7 +464,7 @@ export async function getOWSWalletInfo(): Promise<{
     const wallet = owsModule.getWallet(walletName, OWS_VAULT_PATH);
     return {
       name: wallet.name,
-      accounts: wallet.accounts.map((a) => ({
+      accounts: wallet.accounts.map((a: { chainId: string; address: string }) => ({
         chainId: a.chainId,
         address: a.address,
       })),

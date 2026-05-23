@@ -28,6 +28,7 @@ import { sdk } from "@farcaster/miniapp-sdk";
 import { useEffect, useState } from "react";
 import { MiniAppProvider, useMiniApp } from "@neynar/react";
 import { Auth0Provider } from "@auth0/nextjs-auth0/client";
+import { Toaster } from "@/components/toast";
 
 const queryClient = new QueryClient();
 
@@ -89,7 +90,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
             >
               <AIProviderContext>
                 <MiniAppReady />
-                {children}
+                <Toaster>
+                  {children}
+                </Toaster>
               </AIProviderContext>
             </RainbowKitProvider>
           </QueryClientProvider>

@@ -3,9 +3,6 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig = {
   output: 'standalone',
-  compiler: {
-    styledComponents: true,
-  },
   transpilePackages: [
     '@repo/ipfs-client',
     '@onpoint/shared-types',

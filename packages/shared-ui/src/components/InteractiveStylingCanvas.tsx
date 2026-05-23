@@ -1,176 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
-import styled from 'styled-components';
-
-// Styled components for the CSS
-const Container = styled.div`
-  position: relative;
-  width: 100%;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  max-width: none;
-  background-size: 15px 15px;
-  padding: 20px;
-`;
-
-const ShirtsContainer = styled.div`
-  position: relative;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-`;
-
-const CenterImage = styled.img`
-  position: absolute;
-  max-width: 35%;
-  height: auto;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 10;
-  opacity: 1;
-  transition: opacity 0.3s ease-in-out;
-  pointer-events: none;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  -webkit-user-drag: none;
-`;
-
-const Shirt = styled.img.withConfig({
-  shouldForwardProp: (prop) => !['isGrabbed', 'isDraggingRight', 'isDraggingLeft'].includes(prop),
-})<{ isGrabbed?: boolean; isDraggingRight?: boolean; isDraggingLeft?: boolean }>`
-  position: absolute;
-  max-width: 9.8%;
-  height: auto;
-  transition: transform 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  transform-origin: center center;
-  will-change: transform;
-  cursor: grab;
-  z-index: 20;
-
-  ${({ isGrabbed }) => isGrabbed && `
-    transform: scale(1.05);
-    filter: drop-shadow(0 5px 10px rgba(0,0,0,0.15));
-    z-index: 1000;
-  `}
-
-  ${({ isDraggingRight }) => isDraggingRight && `
-    transform: perspective(500px) rotateY(-15deg) rotateX(5deg) scale(0.92, 0.98) skew(-5deg, 2deg);
-    filter: drop-shadow(5px 5px 15px rgba(0,0,0,0.2));
-    z-index: 1000;
-  `}
-
-  ${({ isDraggingLeft }) => isDraggingLeft && `
-    transform: perspective(500px) rotateY(15deg) rotateX(5deg) scale(0.92, 0.98) skew(5deg, -2deg);
-    filter: drop-shadow(-5px 5px 15px rgba(0,0,0,0.2));
-    z-index: 1000;
-  `}
-`;
-
-const InfoTooltip = styled.span.withConfig({
-  shouldForwardProp: (prop) => prop !== 'tooltipVisible',
-})<{ tooltipVisible?: boolean }>`
-  position: absolute;
-  top: 25%;
-  left: 55%;
-  transform: translate(-50%, -50%);
-  width: 18px;
-  height: 18px;
-  color: rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(0, 0, 0, 0.6);
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 11px;
-  font-weight: bold;
-  cursor: help;
-  z-index: 15;
-  transition: border-color 0.2s ease, color 0.2s ease;
-  font-family: sans-serif;
-
-  &:hover {
-    color: rgba(0, 0, 0, 0.9);
-    border-color: rgba(0, 0, 0, 0.9);
-  }
-
-  &::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    bottom: 120%;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 5px 10px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-family: "Source Code Pro", monospace;
-    white-space: nowrap;
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-    z-index: 20;
-  }
-
-  ${({ tooltipVisible }) => tooltipVisible && `
-    &::after {
-      opacity: 1;
-      visibility: visible;
-    }
-  `}
-`;
-
-// Responsive styles
-const ResponsiveContainer = styled(Container)`
-  @media (max-width: 767px) {
-    padding-top: 120px;
-    padding-bottom: 5vh;
-  }
-`;
-
-const ResponsiveShirt = styled(Shirt)`
-  @media (max-width: 767px) {
-    max-width: 21%;
-    transition: transform 0.2s ease-out;
-    z-index: 20;
-  }
-`;
-
-const ResponsiveCenterImage = styled(CenterImage)`
-  @media (max-width: 767px) {
-    max-width: 80%;
-    top: 45%;
-    left: 50%;
-    z-index: 10;
-  }
-  @media (max-width: 429px) {
-    max-width: 90%;
-    top: 45%;
-    left: 50%;
-    z-index: 10;
-  }
-`;
-
-const ResponsiveInfoTooltip = styled(InfoTooltip)`
-  @media (max-width: 767px) {
-    top: 25%;
-    left: 65%;
-  }
-
-  @media (max-width: 429px) {
-    top: 25%;
-    left: 65%;
-  }
-`;
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 
 interface ShirtData {
   id: string;
@@ -181,429 +11,380 @@ interface ShirtData {
   position: { top: string; left: string };
 }
 
+interface ShirtState {
+  top: string;
+  left: string;
+  isGrabbed: boolean;
+  isDraggingRight: boolean;
+  isDraggingLeft: boolean;
+}
+
 interface InteractiveStylingCanvasProps {
   selectedColor?: string;
   onColorApplied?: (elementId: string, color: string) => void;
 }
 
-// Helper function to convert hex color to hue rotation for CSS filter
 const getHueRotation = (hexColor: string): string => {
-  // Convert hex to RGB
   const r = parseInt(hexColor.slice(1, 3), 16);
   const g = parseInt(hexColor.slice(3, 5), 16);
   const b = parseInt(hexColor.slice(5, 7), 16);
-
-  // Convert RGB to HSL to get hue
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
+  if (max === min) return '0deg';
+  const d = max - min;
   let h = 0;
-
-  if (max === min) {
-    h = 0; // achromatic
-  } else {
-    const d = max - min;
-    switch (max) {
-      case r: h = ((g - b) / d + (g < b ? 6 : 0)); break;
-      case g: h = (b - r) / d + 2; break;
-      case b: h = (r - g) / d + 4; break;
-    }
-    h /= 6;
+  switch (max) {
+    case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+    case g: h = ((b - r) / d + 2) / 6; break;
+    case b: h = ((r - g) / d + 4) / 6; break;
   }
-
   return `${Math.round(h * 360)}deg`;
 };
 
-const InteractiveStylingCanvas: React.FC<InteractiveStylingCanvasProps> = ({
-  selectedColor,
-  onColorApplied
-}) => {
-  const shirtsContainerRef = useRef<HTMLDivElement>(null);
-  const centerImageRef = useRef<HTMLImageElement>(null);
-  const infoTooltipRef = useRef<HTMLSpanElement>(null);
+const STORAGE_KEY = 'onpoint-collage';
 
-  // State for element colors
-  const [elementColors, setElementColors] = useState<Record<string, string>>({});
+const shirtsData: ShirtData[] = [
+  { id: '1', productSrc: '/assets/1Product.png', modelSrc: '/assets/1Model.png', shirtName: 'Ratphex-T', modelSize: 'L', position: { top: '20%', left: '15%' } },
+  { id: '2', productSrc: '/assets/2Product.png', modelSrc: '/assets/2Model.png', shirtName: 'RatwardScissor-T', modelSize: 'XL', position: { top: '45%', left: '80%' } },
+  { id: '3', productSrc: '/assets/3Product.png', modelSrc: '/assets/3Model.png', shirtName: 'AnimalCollective-T', modelSize: 'S', position: { top: '70%', left: '15%' } },
+];
 
-  // Track drag state to prevent click when dragging
-  const isDraggingRef = useRef(false);
+const defaultShirtStates: Record<string, ShirtState> = {
+  '1': { top: '20%', left: '15%', isGrabbed: false, isDraggingRight: false, isDraggingLeft: false },
+  '2': { top: '45%', left: '80%', isGrabbed: false, isDraggingRight: false, isDraggingLeft: false },
+  '3': { top: '70%', left: '15%', isGrabbed: false, isDraggingRight: false, isDraggingLeft: false },
+};
 
-  // Handle color application to elements
-  const handleElementClick = (shirtId: string) => {
-    if (selectedColor && !isDraggingRef.current) {
-      setElementColors(prev => ({
-        ...prev,
-        [shirtId]: selectedColor
-      }));
-      onColorApplied?.(shirtId, selectedColor);
-    }
-  };
+function updateState(
+  prev: Record<string, ShirtState>,
+  id: string,
+  patch: Partial<ShirtState>,
+): Record<string, ShirtState> {
+  return { ...prev, [id]: { ...prev[id]!, ...patch } };
+}
 
+function InteractiveStylingCanvas({ selectedColor, onColorApplied }: InteractiveStylingCanvasProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const centerRef = useRef<HTMLImageElement>(null);
   const [centerImageSrc, setCenterImageSrc] = useState('/assets/1Model.png');
   const [tooltipVisible, setTooltipVisible] = useState(false);
-  const [shirtStates, setShirtStates] = useState<any>({
-    '1': { isGrabbed: false, isDraggingRight: false, isDraggingLeft: false, left: '15%', top: '20%' },
-    '2': { isGrabbed: false, isDraggingRight: false, isDraggingLeft: false, left: '80%', top: '45%' },
-    '3': { isGrabbed: false, isDraggingRight: false, isDraggingLeft: false, left: '15%', top: '70%' },
-  });
-  const pendingImageSrcRef = useRef<string | null>(null);
+  const [elementColors, setElementColors] = useState<Record<string, string>>({});
+  const [shirtStates, setShirtStates] = useState<Record<string, ShirtState>>(defaultShirtStates);
 
-  const shirtsData: ShirtData[] = [
-    { id: '1', productSrc: '/assets/1Product.png', modelSrc: '/assets/1Model.png', shirtName: 'Ratphex-T', modelSize: 'L', position: { top: '20%', left: '15%' } },
-    { id: '2', productSrc: '/assets/2Product.png', modelSrc: '/assets/2Model.png', shirtName: 'RatwardScissor-T', modelSize: 'XL', position: { top: '45%', left: '80%' } },
-    { id: '3', productSrc: '/assets/3Product.png', modelSrc: '/assets/3Model.png', shirtName: 'AnimalCollective-T', modelSize: 'S', position: { top: '70%', left: '15%' } },
-  ];
+  // Stable refs for drag state to avoid useEffect feedback loops
+  const isDraggingRef = useRef(false);
+  const activeShirtRef = useRef<HTMLElement | null>(null);
+  const isMovingRef = useRef(false);
+  const isHoveringCenterRef = useRef(false);
+  const lastPositionRef = useRef({ x: 0, y: 0 });
+  const currentPositionRef = useRef({ x: 0, y: 0 });
+  const initialPosRef = useRef({ left: '', top: '' });
+  const originalCenterSrcRef = useRef('');
+  // Mirror state into refs so stable event handlers always read latest values
+  const shirtStatesRef = useRef(shirtStates);
+  shirtStatesRef.current = shirtStates;
+  const centerImageSrcRef = useRef(centerImageSrc);
+  centerImageSrcRef.current = centerImageSrc;
 
-  // Persistence: Load from localStorage on mount
+  // Load persisted state on mount
   useEffect(() => {
-    // Only run in browser environment
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const saved = localStorage.getItem('onpoint-collage');
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const { centerImageSrc: savedSrc, shirtStates: savedStates } = JSON.parse(saved);
-        setCenterImageSrc(savedSrc || '/assets/1Model.png');
-        setShirtStates(savedStates || {
-          '1': { isGrabbed: false, isDraggingRight: false, isDraggingLeft: false, left: '15%', top: '20%' },
-          '2': { isGrabbed: false, isDraggingRight: false, isDraggingLeft: false, left: '80%', top: '45%' },
-          '3': { isGrabbed: false, isDraggingRight: false, isDraggingLeft: false, left: '15%', top: '70%' },
-        });
+        if (savedSrc) setCenterImageSrc(savedSrc);
+        if (savedStates) setShirtStates(savedStates);
       }
-    }
+    } catch { /* ignore corrupt data */ }
   }, []);
 
-  // Persistence: Save to localStorage on changes
+  // Persist state on change
   useEffect(() => {
-    // Only run in browser environment
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const data = { centerImageSrc, shirtStates };
-      localStorage.setItem('onpoint-collage', JSON.stringify(data));
-    }
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ centerImageSrc, shirtStates }));
+    } catch { /* ignore quota errors */ }
   }, [centerImageSrc, shirtStates]);
 
+  // Preload images
   useEffect(() => {
-    const preloadImages = (imageArray: string[], callback: () => void) => {
-      let loadedCount = 0;
-      const totalImages = imageArray.length;
-      if (totalImages === 0) {
-        callback();
-        return;
-      }
-      imageArray.forEach((path) => {
-        const img = new Image();
-        img.onload = () => {
-          loadedCount++;
-          if (loadedCount === totalImages) callback();
-        };
-        img.onerror = () => {
-          loadedCount++;
-          if (loadedCount === totalImages) callback();
-        };
-        img.src = path;
-      });
-    };
-
-    const imagePaths = shirtsData.flatMap(shirt => [shirt.productSrc, shirt.modelSrc, shirt.modelSrc.replace('Model.png', 'ModelHover.png')]);
-    preloadImages(imagePaths, () => {
-      // Remove loading if any
-    });
-
-    // Drag and drop logic adapted to React
-    let activeShirt: HTMLElement | null = null;
-    let initialShirtPos = { left: '', top: '' };
-    let initialTouchPos = { x: 0, y: 0 };
-    let currentPos = { x: 0, y: 0 };
-    let lastX = 0;
-    let lastY = 0;
-    let isMoving = false;
-    let moveTimeout: NodeJS.Timeout;
-    let originalCenterImageSrc = centerImageSrc;
-    let isHoveringCenterImage = false;
-
-    const handleStart = (e: MouseEvent | TouchEvent, shirtId: string | number) => {
-      e.preventDefault();
-      // Only run in browser environment
-      if (typeof window === 'undefined' || !window.document) return;
-      activeShirt = document.getElementById(`shirt-${shirtId}`);
-      if (!activeShirt || !centerImageRef.current) return;
-
-      const shirtState = shirtStates[shirtId as keyof typeof shirtStates];
-      initialShirtPos.left = shirtState.left;
-      initialShirtPos.top = shirtState.top;
-
-      originalCenterImageSrc = centerImageSrc;
-      isHoveringCenterImage = false;
-
-      // Only run in browser environment
-      if (typeof window === 'undefined' || !window.getComputedStyle) return;
-      const computedStyle = window.getComputedStyle(activeShirt);
-      currentPos.x = parseInt(computedStyle.left) || 0;
-      currentPos.y = parseInt(computedStyle.top) || 0;
-
-      if (e.type === 'mousedown') {
-        const mouseE = e as MouseEvent;
-        lastX = mouseE.clientX;
-        lastY = mouseE.clientY;
-        initialTouchPos.x = mouseE.clientX;
-        initialTouchPos.y = mouseE.clientY;
-        // Only run in browser environment
-        if (typeof window !== 'undefined' && window.document) {
-          document.addEventListener('mousemove', handleMove);
-          document.addEventListener('mouseup', handleEnd);
-        }
-      } else if (e.type === 'touchstart') {
-        const touchE = e as TouchEvent;
-        const touch = touchE.touches[0];
-        if (touch) {
-          lastX = touch.clientX;
-          lastY = touch.clientY;
-          initialTouchPos.x = touch.clientX;
-          initialTouchPos.y = touch.clientY;
-        }
-        // Only run in browser environment
-        if (typeof window !== 'undefined' && window.document) {
-          document.addEventListener('touchmove', handleMove, { passive: false });
-          document.addEventListener('touchend', handleEnd);
-          document.addEventListener('touchcancel', handleEnd);
-        }
-      }
-
-      activeShirt.style.cursor = 'grabbing';
-      activeShirt.style.zIndex = '1000';
-      setShirtStates((prev: any) => ({ ...prev, [shirtId]: { ...prev[shirtId], isGrabbed: true, isDraggingRight: false, isDraggingLeft: false } }));
-      };
-
-    const handleMove = (e: MouseEvent | TouchEvent) => {
-      if (!activeShirt || !centerImageRef.current) return;
-      e.preventDefault();
-
-      const shirtIdMoving = activeShirt.id.split('-')[1];
-
-      let clientX = 0, clientY = 0;
-      if (e.type === 'mousemove') {
-        clientX = (e as MouseEvent).clientX;
-        clientY = (e as MouseEvent).clientY;
-      } else {
-        const touch = (e as TouchEvent).touches[0];
-        if (touch) {
-          clientX = touch.clientX;
-          clientY = touch.clientY;
-        }
-      }
-
-      const deltaX = clientX - lastX;
-      const deltaY = clientY - lastY;
-      currentPos.x += deltaX;
-      currentPos.y += deltaY;
-      activeShirt.style.left = `${currentPos.x}px`;
-      activeShirt.style.top = `${currentPos.y}px`;
-
-      const shirtRect = activeShirt.getBoundingClientRect();
-      const centerImageRect = centerImageRef.current.getBoundingClientRect();
-      const shirtCenterX = shirtRect.left + shirtRect.width / 2;
-      const shirtCenterY = shirtRect.top + shirtRect.height / 2;
-      const centerImageCenterX = centerImageRect.left + centerImageRect.width / 2;
-      const centerImageCenterY = centerImageRect.top + centerImageRect.height / 2;
-
-      const collision = Math.abs(shirtCenterX - centerImageCenterX) < centerImageRect.width * 0.4 &&
-                       Math.abs(shirtCenterY - centerImageCenterY) < centerImageRect.height * 0.4;
-
-      if (collision && !isHoveringCenterImage) {
-        const hoverSrc = originalCenterImageSrc.replace('Model.png', 'ModelHover.png');
-        setCenterImageSrc(hoverSrc);
-        isHoveringCenterImage = true;
-      } else if (!collision && isHoveringCenterImage) {
-        setCenterImageSrc(originalCenterImageSrc);
-        isHoveringCenterImage = false;
-      }
-      const isMovingNow = Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2;
-      if (isMovingNow && !isMoving) {
-        isDraggingRef.current = true;
-        setShirtStates((prev: any) => ({ ...prev, [shirtIdMoving as string]: { ...prev[shirtIdMoving as string], isGrabbed: false, isDraggingRight: deltaX > 0, isDraggingLeft: deltaX < 0 } }));
-        isMoving = true;
-      } else if (isMoving && deltaX !== 0) {
-        setShirtStates((prev: any) => ({ ...prev, [shirtIdMoving as string]: { ...prev[shirtIdMoving as string], isDraggingRight: deltaX > 0, isDraggingLeft: deltaX < 0 } }));
-      }
-
-      lastX = clientX;
-      lastY = clientY;
-
-      if (moveTimeout) clearTimeout(moveTimeout);
-      moveTimeout = setTimeout(() => {
-        if (isMoving) {
-          setShirtStates((prev: any) => ({ ...prev, [shirtIdMoving as string]: { ...prev[shirtIdMoving as string], isGrabbed: true, isDraggingRight: false, isDraggingLeft: false } }));
-          isMoving = false;
-        }
-      }, 50);
-      };
-
-    const handleEnd = (e: MouseEvent | TouchEvent) => {
-      if (!activeShirt || !centerImageRef.current) return;
-
-      const shirtRect = activeShirt.getBoundingClientRect();
-      const centerImageRect = centerImageRef.current.getBoundingClientRect();
-      const shirtCenterX = shirtRect.left + shirtRect.width / 2;
-      const shirtCenterY = shirtRect.top + shirtRect.height / 2;
-
-      const centerImageCenterX = centerImageRect.left + centerImageRect.width / 2;
-      const centerImageCenterY = centerImageRect.top + centerImageRect.height / 2;
-
-      const collision = Math.abs(shirtCenterX - centerImageCenterX) < centerImageRect.width * 0.4 &&
-                       Math.abs(shirtCenterY - centerImageCenterY) < centerImageRect.height * 0.4;
-
-      if (collision) {
-        const shirtId = activeShirt.id.split('-')[1];
-        const shirt = shirtsData.find(s => s.id === shirtId);
-        if (shirt) {
-          pendingImageSrcRef.current = shirt.modelSrc;
-          // Use setTimeout to avoid React state update during render
-          setTimeout(() => {
-            if (pendingImageSrcRef.current) {
-              setCenterImageSrc(pendingImageSrcRef.current);
-              originalCenterImageSrc = pendingImageSrcRef.current;
-              pendingImageSrcRef.current = null;
-            }
-          }, 0);
-        }
-        activeShirt.style.left = initialShirtPos.left;
-        activeShirt.style.top = initialShirtPos.top;
-        currentPos.x = parseInt(initialShirtPos.left) || 0;
-        currentPos.y = parseInt(initialShirtPos.top) || 0;
-      } else {
-        activeShirt.style.left = initialShirtPos.left;
-        activeShirt.style.top = initialShirtPos.top;
-        currentPos.x = parseInt(initialShirtPos.left) || 0;
-        currentPos.y = parseInt(initialShirtPos.top) || 0;
-        if (isHoveringCenterImage) {
-          setCenterImageSrc(originalCenterImageSrc);
-        }
-      }
-
-      activeShirt.style.cursor = 'grab';
-      activeShirt.style.zIndex = '';
-      const shirtIdEnd = activeShirt!.id.split('-')[1];
-      setShirtStates((prev: any) => ({ ...prev, [shirtIdEnd as string]: { ...prev[shirtIdEnd as string], isGrabbed: false, isDraggingRight: false, isDraggingLeft: false } }));
-
-      if (moveTimeout) clearTimeout(moveTimeout);
-      // Reset drag state after a short delay to allow click events
-      setTimeout(() => {
-        isDraggingRef.current = false;
-      }, 100);
-      // Only run in browser environment
-      if (typeof window !== 'undefined' && window.document) {
-        document.removeEventListener('mousemove', handleMove);
-        document.removeEventListener('mouseup', handleEnd);
-        document.removeEventListener('touchmove', handleMove);
-        document.removeEventListener('touchend', handleEnd);
-        document.removeEventListener('touchcancel', handleEnd);
-      }
-      isHoveringCenterImage = false;
-      activeShirt = null;
-      };
-
-          shirtsData.forEach(shirt => {
-            // Only run in browser environment
-            if (typeof window !== 'undefined' && window.document) {
-              const shirtEl = document.getElementById(`shirt-${shirt.id}`);
-              if (shirtEl) {
-                const startHandler = (e: MouseEvent | TouchEvent) => handleStart(e, shirt.id);
-                shirtEl.addEventListener('mousedown', startHandler);
-                shirtEl.addEventListener('touchstart', startHandler, { passive: false });
-              }
-            }
-          });
-    const handleResize = () => {
-      // Only run in browser environment
-      if (typeof window !== 'undefined' && window.document) {
-        // Don't reset positions on resize - let them stay where they are
-        // This prevents the shirts from jumping to center and then back
-      }
-    };
-
-    // Only run in browser environment
-    if (typeof window !== 'undefined' && window.addEventListener) {
-      window.addEventListener('resize', handleResize);
+    const paths = shirtsData.flatMap(s => [s.productSrc, s.modelSrc, s.modelSrc.replace('Model.png', 'ModelHover.png')]);
+    let loaded = 0;
+    for (const src of paths) {
+      const img = new Image();
+      img.onload = img.onerror = () => { loaded++; };
+      img.src = src;
     }
-
-    return () => {
-      // Only run in browser environment
-      if (typeof window !== 'undefined' && window.document) {
-        shirtsData.forEach(shirt => {
-          const shirtEl = document.getElementById(`shirt-${shirt.id}`);
-          if (shirtEl) {
-            shirtEl.removeEventListener('mousedown', (e) => handleStart(e, shirt.id));
-            shirtEl.removeEventListener('touchstart', (e) => handleStart(e, shirt.id));
-          }
-        });
-        window.removeEventListener('resize', handleResize);
-        document.removeEventListener('mousemove', handleMove);
-        document.removeEventListener('mouseup', handleEnd);
-        document.removeEventListener('touchmove', handleMove);
-        document.removeEventListener('touchend', handleEnd);
-      }
-    };
   }, []);
 
-  const handleTooltipClick = () => {
-    setTooltipVisible(!tooltipVisible);
-  };
-
-  const handleDocumentClick = (e: MouseEvent) => {
-    if (infoTooltipRef.current && !infoTooltipRef.current.contains(e.target as Node) && tooltipVisible) {
-      setTooltipVisible(false);
+  const handleColorClick = useCallback((shirtId: string) => {
+    if (selectedColor && !isDraggingRef.current) {
+      setElementColors(prev => ({ ...prev, [shirtId]: selectedColor }));
+      onColorApplied?.(shirtId, selectedColor);
     }
-  };
+  }, [selectedColor, onColorApplied]);
 
+  // Stable drag logic — all mutable state uses refs to avoid re-creating listeners
   useEffect(() => {
-    // Only run in browser environment
-    if (typeof window !== 'undefined' && window.document) {
-      document.addEventListener('click', handleDocumentClick);
-      return () => document.removeEventListener('click', handleDocumentClick);
+    const container = containerRef.current;
+    const centerImg = centerRef.current;
+    if (!container || !centerImg) return;
+
+    let moveTimer: ReturnType<typeof setTimeout>;
+
+    const getShirtId = (el: HTMLElement) => el.dataset.shirtId;
+
+    const handleStart = (e: MouseEvent | TouchEvent) => {
+      e.preventDefault();
+      const target = e.currentTarget as HTMLElement;
+      const shirtId = getShirtId(target);
+      if (!shirtId) return;
+
+      activeShirtRef.current = target;
+      const state = shirtStatesRef.current[shirtId]!;
+      initialPosRef.current = { left: state.left, top: state.top };
+      originalCenterSrcRef.current = centerImageSrcRef.current;
+      isHoveringCenterRef.current = false;
+
+      const rect = target.getBoundingClientRect();
+      currentPositionRef.current = { x: rect.left, y: rect.top };
+
+      if ('touches' in e) {
+        const touch = e.touches[0];
+        if (!touch) return;
+        lastPositionRef.current = { x: touch.clientX, y: touch.clientY };
+      } else {
+        lastPositionRef.current = { x: e.clientX, y: e.clientY };
+      }
+
+      target.style.cursor = 'grabbing';
+      target.style.zIndex = '1000';
+      setShirtStates(prev => updateState(prev, shirtId, { isGrabbed: true, isDraggingRight: false, isDraggingLeft: false }));
+    };
+
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      const active = activeShirtRef.current;
+      if (!active) return;
+      e.preventDefault();
+
+      let clientX: number, clientY: number;
+      if ('touches' in e) {
+        const touch = e.touches[0];
+        if (!touch) return;
+        clientX = touch.clientX;
+        clientY = touch.clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
+
+      const last = lastPositionRef.current;
+      const dx = clientX - last.x;
+      const dy = clientY - last.y;
+      const pos = currentPositionRef.current;
+      pos.x += dx;
+      pos.y += dy;
+      active.style.left = `${pos.x}px`;
+      active.style.top = `${pos.y}px`;
+
+      const shirtRect = active.getBoundingClientRect();
+      const shirtCenterX = shirtRect.left + shirtRect.width / 2;
+      const shirtCenterY = shirtRect.top + shirtRect.height / 2;
+      const centerRect = centerImg.getBoundingClientRect();
+      const centerCenterX = centerRect.left + centerRect.width / 2;
+      const centerCenterY = centerRect.top + centerRect.height / 2;
+
+      const collides = Math.abs(shirtCenterX - centerCenterX) < centerRect.width * 0.4 &&
+        Math.abs(shirtCenterY - centerCenterY) < centerRect.height * 0.4;
+
+      if (collides && !isHoveringCenterRef.current) {
+        setCenterImageSrc(originalCenterSrcRef.current.replace('Model.png', 'ModelHover.png'));
+        isHoveringCenterRef.current = true;
+      } else if (!collides && isHoveringCenterRef.current) {
+        setCenterImageSrc(originalCenterSrcRef.current);
+        isHoveringCenterRef.current = false;
+      }
+
+      const shirtId = getShirtId(active);
+      if (!shirtId) return;
+
+      const isMovingNow = Math.abs(dx) > 2 || Math.abs(dy) > 2;
+      if (isMovingNow && !isMovingRef.current) {
+        isDraggingRef.current = true;
+        setShirtStates(prev => updateState(prev, shirtId, { isGrabbed: false, isDraggingRight: dx > 0, isDraggingLeft: dx < 0 }));
+        isMovingRef.current = true;
+      } else if (isMovingRef.current && dx !== 0) {
+        setShirtStates(prev => updateState(prev, shirtId, { isDraggingRight: dx > 0, isDraggingLeft: dx < 0 }));
+      }
+
+      lastPositionRef.current = { x: clientX, y: clientY };
+
+      clearTimeout(moveTimer);
+      moveTimer = setTimeout(() => {
+        if (isMovingRef.current) {
+          setShirtStates(prev => updateState(prev, shirtId, { isGrabbed: true, isDraggingRight: false, isDraggingLeft: false }));
+          isMovingRef.current = false;
+        }
+      }, 50);
+    };
+
+    const handleEnd = () => {
+      const active = activeShirtRef.current;
+      if (!active) return;
+      const shirtId = getShirtId(active);
+      if (!shirtId) return;
+
+      const shirtRect = active.getBoundingClientRect();
+      const shirtCenterX = shirtRect.left + shirtRect.width / 2;
+      const shirtCenterY = shirtRect.top + shirtRect.height / 2;
+      const centerRect = centerImg.getBoundingClientRect();
+      const centerCenterX = centerRect.left + centerRect.width / 2;
+      const centerCenterY = centerRect.top + centerRect.height / 2;
+
+      const collides = Math.abs(shirtCenterX - centerCenterX) < centerRect.width * 0.4 &&
+        Math.abs(shirtCenterY - centerCenterY) < centerRect.height * 0.4;
+
+      if (collides) {
+        const shirt = shirtsData.find(s => s.id === shirtId);
+        if (shirt) {
+          setCenterImageSrc(shirt.modelSrc);
+        }
+        resetPosition(active);
+      } else {
+        resetPosition(active);
+        if (isHoveringCenterRef.current) {
+          setCenterImageSrc(originalCenterSrcRef.current);
+        }
+      }
+
+      active.style.cursor = 'grab';
+      active.style.zIndex = '';
+      setShirtStates(prev => updateState(prev, shirtId, { isGrabbed: false, isDraggingRight: false, isDraggingLeft: false }));
+
+      clearTimeout(moveTimer);
+      setTimeout(() => { isDraggingRef.current = false; }, 100);
+      isHoveringCenterRef.current = false;
+      activeShirtRef.current = null;
+    };
+
+    const resetPosition = (el: HTMLElement) => {
+      el.style.left = initialPosRef.current.left;
+      el.style.top = initialPosRef.current.top;
+    };
+
+    const shirts = shirtsData.map(s => document.getElementById(`shirt-${s.id}`)).filter(Boolean) as HTMLElement[];
+    for (const el of shirts) {
+      el.addEventListener('mousedown', handleStart);
+      el.addEventListener('touchstart', handleStart, { passive: false });
     }
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchmove', handleMove, { passive: false });
+    document.addEventListener('touchend', handleEnd);
+    document.addEventListener('touchcancel', handleEnd);
+
+    return () => {
+      for (const el of shirts) {
+        el.removeEventListener('mousedown', handleStart);
+        el.removeEventListener('touchstart', handleStart);
+      }
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('mouseup', handleEnd);
+      document.removeEventListener('touchmove', handleMove);
+      document.removeEventListener('touchend', handleEnd);
+      document.removeEventListener('touchcancel', handleEnd);
+      clearTimeout(moveTimer);
+    };
+  }, []); // stable: all mutable state read via refs
+
+  // Close tooltip on outside click
+  useEffect(() => {
+    if (!tooltipVisible) return;
+    const handler = (e: MouseEvent) => {
+      const btn = document.getElementById('info-tooltip');
+      if (btn && !btn.contains(e.target as Node)) {
+        setTooltipVisible(false);
+      }
+    };
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
   }, [tooltipVisible]);
 
   return (
-    <ResponsiveContainer>
-      <ShirtsContainer ref={shirtsContainerRef}>
+    <div className="relative w-full h-screen flex flex-col items-center p-5 max-w-none">
+      <div ref={containerRef} className="relative w-full h-full flex justify-center items-center">
         {shirtsData.map(shirt => {
-        const state = shirtStates[shirt.id];
-        const appliedColor = elementColors[shirt.id];
-        const canApplyColor = selectedColor && !state?.isGrabbed;
-        return (
-        <ResponsiveShirt
-        key={shirt.id}
-        id={`shirt-${shirt.id}`}
-        src={shirt.productSrc}
-        alt={shirt.shirtName}
-          data-mouse-src={shirt.modelSrc}
-        data-shirt-name={shirt.shirtName}
-        data-model-size={shirt.modelSize}
-        className={`shirt transition-all duration-200 ${canApplyColor ? 'cursor-pointer hover:scale-105' : ''}`}
-        isGrabbed={state?.isGrabbed}
-        isDraggingRight={state?.isDraggingRight}
-        isDraggingLeft={state?.isDraggingLeft}
-        style={{
-        top: state?.top,
-        left: state?.left,
-        filter: appliedColor ? `hue-rotate(${getHueRotation(appliedColor)}) saturate(3) brightness(1.2)` : undefined,
-        transition: 'filter 0.3s ease-in-out'
-        }}
-        onClick={canApplyColor ? () => handleElementClick(shirt.id) : undefined}
-        title={canApplyColor ? `Click to apply ${selectedColor}` : undefined}
-        />
-        );
+          const state = shirtStates[shirt.id]!;
+          const color = elementColors[shirt.id];
+          const canApply = !!selectedColor && !state.isGrabbed;
+          return (
+            <img
+              key={shirt.id}
+              id={`shirt-${shirt.id}`}
+              data-shirt-id={shirt.id}
+              src={shirt.productSrc}
+              alt={shirt.shirtName}
+              onClick={canApply ? () => handleColorClick(shirt.id) : undefined}
+              title={canApply ? `Click to apply ${selectedColor}` : undefined}
+              className={`
+                absolute max-w-[9.8%] h-auto cursor-grab z-20 select-none
+                md:max-w-[9.8%]
+                max-md:max-w-[21%]
+                transition-transform duration-200 ease-out
+                ${state.isGrabbed ? 'scale-105 drop-shadow-[0_5px_10px_rgba(0,0,0,0.15)] z-[1000]' : ''}
+                ${state.isDraggingRight ? '[transform:perspective(500px)_rotateY(-15deg)_rotateX(5deg)_scale(0.92,0.98)_skew(-5deg,2deg)] drop-shadow-[5px_5px_15px_rgba(0,0,0,0.2)] z-[1000]' : ''}
+                ${state.isDraggingLeft ? '[transform:perspective(500px)_rotateY(15deg)_rotateX(5deg)_scale(0.92,0.98)_skew(5deg,-2deg)] drop-shadow-[-5px_5px_15px_rgba(0,0,0,0.2)] z-[1000]' : ''}
+                ${canApply ? 'cursor-pointer hover:scale-105' : ''}
+              `}
+              style={{
+                top: state.top,
+                left: state.left,
+                filter: color ? `hue-rotate(${getHueRotation(color)}) saturate(3) brightness(1.2)` : undefined,
+                transition: 'filter 0.3s ease-in-out, transform 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+              }}
+              draggable={false}
+            />
+          );
         })}
-        <ResponsiveCenterImage ref={centerImageRef} id="centerImage" src={centerImageSrc} alt="Model wearing Product" />
-        <ResponsiveInfoTooltip
-          ref={infoTooltipRef}
+        <img
+          ref={centerRef}
+          id="centerImage"
+          src={centerImageSrc}
+          alt="Model wearing Product"
+          className="absolute max-w-[35%] h-auto top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 opacity-100 pointer-events-none select-none transition-opacity duration-300 ease-in-out max-md:max-w-[80%] max-md:top-[45%]"
+          draggable={false}
+        />
+        <button
           id="info-tooltip"
-          data-tooltip='Model is 5ft 4" and wears size S'
-          tooltipVisible={tooltipVisible}
-          onClick={handleTooltipClick}
+          onClick={() => setTooltipVisible(v => !v)}
+          className={`
+            absolute top-[25%] left-[55%] -translate-x-1/2 -translate-y-1/2
+            w-[18px] h-[18px] rounded-full
+            border border-foreground/60 text-foreground/60
+            flex items-center justify-center text-[11px] font-bold
+            cursor-help z-[15] font-sans
+            hover:border-foreground hover:text-foreground
+            transition-colors duration-200
+            max-md:top-[25%] max-md:left-[65%]
+          `}
         >
           ?
-        </ResponsiveInfoTooltip>
-      </ShirtsContainer>
-    </ResponsiveContainer>
+          <span
+            data-tooltip-visible={tooltipVisible}
+            className={`
+              absolute bottom-full left-1/2 -translate-x-1/2 mb-1
+              whitespace-nowrap bg-black/80 text-white
+              px-2.5 py-1 rounded text-xs font-mono
+              pointer-events-none z-20
+              transition-opacity duration-300
+              ${tooltipVisible ? 'opacity-100 visible' : 'opacity-0 invisible'}
+            `}
+          >
+            Model is 5ft 4" and wears size S
+          </span>
+        </button>
+      </div>
+    </div>
   );
-};
+}
 
 export default InteractiveStylingCanvas;

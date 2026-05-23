@@ -160,6 +160,7 @@ The UI uses **9 GPU-accelerated keyframe animations** defined in global CSS:
 - `apps/web/app/page.tsx` - Home page
 - `apps/web/app/shop/page.tsx` - Product catalog with ShopGrid
 - `apps/web/app/style/page.tsx` - Interactive styling canvas
+- `apps/web/app/style-guide/page.tsx` - Design system style guide with theme toggle
 - `apps/web/app/collage/page.tsx` - AI collage creator
 - `apps/web/app/layout.tsx` - Root layout with Web3 providers
 
@@ -177,14 +178,32 @@ The UI uses **9 GPU-accelerated keyframe animations** defined in global CSS:
 
 ## Testing Notes
 
-⚠️ **There is no formal test suite yet.** Testing is primarily manual through:
+✅ **Vitest is now configured** for unit tests in the web app:
+- First test suite: `apps/web/components/__tests__/toast.test.tsx` (6 tests for toast context API)
+- Configuration: jsdom environment, `@vitejs/plugin-react` for JSX transform, globals enabled
+- Config file: `apps/web/vitest.config.ts`
+- Run all tests: `cd apps/web && npx vitest run`
+- Run specific tests: `cd apps/web && npx vitest run components/__tests__/toast.test.tsx`
+
+### Manual Testing
 - Running `pnpm dev` and testing features in browser
 - Type checking with `pnpm check-types`
 - Linting with `pnpm lint`
 
-When adding tests in the future:
-- Documentation mentions Vitest (web), Jest (mobile), Playwright (E2E)
-- But these are not currently configured
+### Planned Test Expansion
+- Add component unit tests for shared-ui components
+- Add E2E tests for critical flows (Playwright)
+
+## Style Guide
+
+A **design system style guide** is available at the `/style-guide` route:
+- Renders all shared-ui components (CardEnhanced, EngagementBadge, ShopGrid, TransitionLink)
+- UI primitives (Button, Badge)
+- Live theme toggle to switch between light/dark mode
+- CSS variable swatches for all theme colors
+- Animation previews (bounce-in-up, float, scale-pulse, swipe-in-left)
+- Glass effect, gradient, and shadow utility previews
+- Useful for verifying dark mode compatibility across components
 
 ## Important Development Notes
 
