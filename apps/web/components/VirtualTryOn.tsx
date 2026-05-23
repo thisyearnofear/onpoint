@@ -10,6 +10,7 @@ import type { StylistPersona } from "@repo/ai-client";
 
 import { getAgentApiUrl } from "../lib/utils/agent-api";
 import { FREE_PERSONAS, PREMIUM_PERSONAS, isPersonaUnlocked } from "../lib/utils/persona-config";
+import { usePremiumStatus } from "../hooks/use-premium-status";
 
 import {
   PhotoUpload,
@@ -28,7 +29,7 @@ export function VirtualTryOn() {
   const [selectedPersona, setSelectedPersona] = useState<StylistPersona | null>(null);
   const [critiqueResult, setCritiqueResult] = useState<{ persona: StylistPersona; critique: string } | null>(null);
   const [showLiveStylist, setShowLiveStylist] = useState(true); // Default to live AR
-  const [hasPremium] = useState(false); // TODO: Connect to subscription system
+  const { isPremium, loading: premiumLoading } = usePremiumStatus();
 
   // Hooks
   const {
@@ -63,7 +64,7 @@ export function VirtualTryOn() {
   }, [analyzePhoto, selectedPhoto]);
 
   const handlePersonaSelect = useCallback(async (persona: StylistPersona) => {
-    if (!selectedPhoto || !isPersonaUnlocked(persona, hasPremium)) return;
+    if (!selectedPhoto || !isPersonaUnlocked(persona, isPremium)) return;
     
     setSelectedPersona(persona);
     setShowPersonalitySelection(false);
@@ -76,7 +77,7 @@ export function VirtualTryOn() {
     } catch (err) {
       console.error("Error getting persona critique:", err);
     }
-  }, [selectedPhoto, getPersonalityCritique, hasPremium]);
+  }, [selectedPhoto, getPersonalityCritique, isPremium]);
 
   const handleShopRecommendations = useCallback(() => {
     if (!analysis) return;
@@ -250,7 +251,7 @@ export function VirtualTryOn() {
                         <div className="mb-4">
                           <div className="flex items-center justify-between mb-3">
                             <p className="text-xs font-medium text-muted-foreground">PREMIUM STYLISTS</p>
-                            {!hasPremium && (
+                            {!isPremium && (
                               <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent/20 text-accent font-bold">
                                 Upgrade to unlock
                               </span>
@@ -264,13 +265,26 @@ export function VirtualTryOn() {
                                 isSelected={selectedPersona === persona}
                                 onSelect={handlePersonaSelect}
                                 disabled={loading || critiqueLoading}
-                                isLocked={!hasPremium}
+                                isLocked={!isPremium}
                               />
                             ))}
                           </div>
                         </div>
 
-                        <div className="flex justify-center mt-6">
+                        {!isPremium && !premiumLoading && (
+                          <div className="mt-4 p-3 rounded-lg bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
+                            <p className="text-xs text-muted-foreground mb-2">
+                              Unlock premium stylists and unlimited critiques with OnPoint Premium.
+                            </p>
+                            <a
+                              href="/pricing"
+                              className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                            >
+                              Upgrade now <span aria-hidden="true">→</span>
+                            </a>
+                          </div>
+                        )}
+                        <div className="flex justify-center mt-4">
                           <Button
                             variant="outline"
                             onClick={() => setShowPersonalitySelection(false)}

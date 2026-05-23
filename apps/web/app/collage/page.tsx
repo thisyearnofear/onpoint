@@ -24,10 +24,8 @@ import Link from "next/link";
 import { MobileNavigation } from "@/components/mobile-navigation";
 import { EnhancedConnectButton } from "@/components/EnhancedConnectButton";
 import { useToast } from "@/components/toast";
-// import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCenter, PointerSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core';
-// import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-// import { useSortable } from '@dnd-kit/sortable';
-// import { CSS } from '@dnd-kit/utilities';
+import { DndContext, DragOverlay, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 import html2canvas from "html2canvas";
 
 interface CollageItem {
@@ -53,27 +51,155 @@ function DraggableLibraryItem({
   item: CollageItem;
   onAdd: (item: CollageItem) => void;
 }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `library-${item.id}`,
+    data: { type: 'library', item },
+  });
+
+  const style = transform ? {
+    transform: CSS.Translate.toString(transform),
+    zIndex: 50,
+  } : undefined;
+
   return (
-    <div className="relative group border-2 border-dashed border-muted-foreground/20 hover:border-primary/30 transition-colors rounded-lg p-4 flex flex-col items-center justify-center min-h-[120px]">
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      className={`relative group border-2 border-dashed border-muted-foreground/20 hover:border-primary/30 transition-colors rounded-lg p-4 flex flex-col items-center justify-center min-h-[120px] cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-50 ring-2 ring-primary' : ''}`}
+    >
       <div className="relative w-full h-32">
         <Image
           src={item.imageUrl || "/assets/placeholder.png"}
           alt={item.name || "Fashion inspiration"}
           fill
           sizes="320px"
-          className="object-contain rounded"
+          className="object-contain rounded pointer-events-none"
           loading="lazy"
+          draggable={false}
         />
       </div>
       <div className="absolute bottom-2 left-2 right-2 bg-black/50 text-white text-xs p-1 rounded truncate">
         {item.name}
       </div>
       <button
-        onClick={() => onAdd(item)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onAdd(item);
+        }}
         className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center text-sm opacity-0 group-hover:opacity-100 transition-opacity"
       >
         +
       </button>
+    </div>
+  );
+}
+
+// Droppable Canvas with Draggable Items
+function DroppableCanvas({
+  items,
+  onRemoveItem,
+  isEmpty,
+}: {
+  items: CanvasItem[];
+  onRemoveItem: (id: string) => void;
+  isEmpty: boolean;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: 'collage-canvas' });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`elegant-shadow border-0 rounded-lg bg-card p-6 mb-8 relative min-h-[500px] overflow-hidden transition-all ${
+        isOver ? 'ring-2 ring-primary bg-primary/5' : ''
+      }`}
+    >
+      {isEmpty ? (
+        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground pointer-events-none">
+          <div className="text-center">
+            <Plus className="h-16 w-16 mx-auto mb-4 opacity-50" />
+            <p className="text-lg">
+              Drag items from the library or click + to start your collage
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Drop items here to begin building your look
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="absolute inset-0">
+          {items.map((item) => (
+            <CanvasDraggableItem
+              key={item.id}
+              item={item}
+              onRemove={onRemoveItem}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Draggable item on the canvas
+function CanvasDraggableItem({
+  item,
+  onRemove,
+}: {
+  item: CanvasItem;
+  onRemove: (id: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `canvas-${item.id}`,
+    data: { type: 'canvas', item },
+  });
+
+  const style: React.CSSProperties = {
+    position: 'absolute',
+    left: item.x,
+    top: item.y,
+    transform: transform ? CSS.Translate.toString(transform) : undefined,
+    zIndex: isDragging ? 100 : 10,
+    transition: isDragging ? 'none' : 'box-shadow 0.2s ease',
+    cursor: isDragging ? 'grabbing' : 'grab',
+    touchAction: 'none',
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className={`group absolute rounded-lg overflow-hidden shadow-md ${
+        isDragging
+          ? 'shadow-2xl ring-2 ring-primary scale-105'
+          : 'hover:shadow-xl hover:ring-1 hover:ring-border'
+      } transition-shadow`}
+    >
+      <div className="relative w-32 h-40">
+        <Image
+          src={item.imageUrl || "/assets/placeholder.png"}
+          alt={item.name}
+          fill
+          sizes="128px"
+          className="object-cover pointer-events-none"
+          draggable={false}
+        />
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+          <p className="text-white text-xs font-medium truncate">{item.name}</p>
+        </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(item.id);
+          }}
+          className="absolute top-1 right-1 w-6 h-6 bg-destructive/80 text-destructive-foreground rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
+          aria-label={`Remove ${item.name}`}
+        >
+          ×
+        </button>
+      </div>
     </div>
   );
 }
@@ -84,6 +210,8 @@ export default function CollagePage() {
     useState<ClothingGenerationResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [canvasItems, setCanvasItems] = useState<CanvasItem[]>([]);
+  const [activeDragItem, setActiveDragItem] = useState<CollageItem | null>(null);
+  const [dragSource, setDragSource] = useState<'library' | 'canvas' | null>(null);
   const [suggestions, setSuggestions] = useState<string[] | null>(null);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -95,6 +223,59 @@ export default function CollagePage() {
     critiques: 0,
     suggestions: 0,
   });
+
+  // DnD sensors — require 5px drag threshold to avoid accidental drags
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const data = event.active.data.current;
+    if (data?.type === 'library') {
+      setActiveDragItem(data.item as CollageItem);
+      setDragSource('library');
+    } else if (data?.type === 'canvas') {
+      setActiveDragItem(data.item as CollageItem);
+      setDragSource('canvas');
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    const data = active.data.current;
+
+    // Dragging library item onto canvas
+    if (data?.type === 'library' && over?.id === 'collage-canvas') {
+      const item = data.item as CollageItem;
+      if (!canvasItems.find((ci) => ci.id === item.id)) {
+        const newItem: CanvasItem = {
+          ...item,
+          x: Math.random() * 200 + 50,
+          y: Math.random() * 200 + 50,
+          scale: 1,
+          rotation: 0,
+        };
+        setCanvasItems((prev) => [...prev, newItem]);
+        setSuggestions(null);
+      }
+    }
+
+    // Repositioning canvas item
+    if (data?.type === 'canvas') {
+      const delta = event.delta;
+      const canvasItem = data.item as CanvasItem;
+      setCanvasItems((prev) =>
+        prev.map((ci) =>
+          ci.id === canvasItem.id
+            ? { ...ci, x: Math.max(0, ci.x + delta.x), y: Math.max(0, ci.y + delta.y) }
+            : ci
+        )
+      );
+    }
+
+    setActiveDragItem(null);
+    setDragSource(null);
+  };
 
   // Fashion library items
   const fashionLibrary = useMemo<CollageItem[]>(
@@ -316,7 +497,13 @@ export default function CollagePage() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 flex gap-8">
+      <main className="container mx-auto px-4 py-8">
+        <DndContext
+          sensors={sensors}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+        <div className="flex gap-8">
         {/* Sidebar - Fashion Library */}
         <aside className="w-80 flex-shrink-0">
           <div className="sticky top-24">
@@ -617,21 +804,12 @@ export default function CollagePage() {
             </div>
           )}
 
-          {/* Collage Canvas */}
-          <div className="elegant-shadow border-0 rounded-lg bg-card p-6 mb-8 relative min-h-[500px] overflow-hidden">
-            <div className="absolute inset-0">
-              {canvasItems.length === 0 && (
-                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                  <div className="text-center">
-                    <Plus className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg">
-                      Click + on items from the library to start your collage
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          {/* Collage Canvas with Drop Zone */}
+          <DroppableCanvas
+            items={canvasItems}
+            onRemoveItem={(id) => setCanvasItems((prev) => prev.filter((ci) => ci.id !== id))}
+            isEmpty={canvasItems.length === 0}
+          />
 
           {/* Next Steps */}
           <div className="text-center">
@@ -665,6 +843,28 @@ export default function CollagePage() {
             </div>
           </div>
         </div>
+        </div>
+          {/* Drag Overlay for visual feedback */}
+          <DragOverlay className="z-[999]">
+          {activeDragItem ? (
+            <div className="rounded-lg overflow-hidden shadow-2xl ring-2 ring-primary scale-105 bg-card w-32 h-40">
+              <div className="relative w-full h-full">
+                <Image
+                  src={activeDragItem.imageUrl || "/assets/placeholder.png"}
+                  alt={activeDragItem.name}
+                  fill
+                  sizes="128px"
+                  className="object-cover"
+                  draggable={false}
+                />
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                  <p className="text-white text-xs font-medium truncate">{activeDragItem.name}</p>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </DragOverlay>
+        </DndContext>
       </main>
     </div>
   );

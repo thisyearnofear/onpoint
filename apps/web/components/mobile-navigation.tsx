@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Menu, X, Palette, Sparkles, Users } from 'lucide-react';
+import { Menu, X, Palette, Sparkles, Users, Settings } from 'lucide-react';
 import { Button } from '@repo/ui/button';
 import Link from 'next/link';
 import { EnhancedConnectButton } from './EnhancedConnectButton';
@@ -74,6 +74,18 @@ export function MobileNavigation({ showBackButton = false }: MobileNavigationPro
                   Social
                 </Link>
               </Button>
+
+              <div className="border-t border-border pt-4 mt-2">
+                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2 px-3">
+                  Accounts
+                </p>
+                <Button asChild variant="ghost" className="justify-start text-muted-foreground hover:text-foreground">
+                  <Link href="/" onClick={() => { setIsOpen(false); window.dispatchEvent(new CustomEvent('onpoint:navigate', { detail: 'settings' })); }}>
+                    <Settings className="h-4 w-4 mr-2" />
+                    Connected Accounts
+                  </Link>
+                </Button>
+              </div>
             </nav>
 
             <div className="p-4 border-t">

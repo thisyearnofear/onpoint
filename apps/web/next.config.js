@@ -3,6 +3,8 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig = {
   output: 'standalone',
+  // Externalize packages that Turbopack can't bundle (e.g. native ESM-only modules)
+  serverExternalPackages: ['@open-wallet-standard/core'],
   transpilePackages: [
     '@repo/ipfs-client',
     '@onpoint/shared-types',
@@ -39,21 +41,14 @@ const nextConfig = {
       '@react-native-async-storage/async-storage': false,
     };
 
-    // Handle native binary modules that can't be parsed by webpack
+    // Remove webpack externals for OWS (now handled by serverExternalPackages above)
+    // and handle native binary modules that can't be parsed by webpack
     config.module = config.module || {};
     config.module.rules = config.module.rules || [];
     config.module.rules.push({
       test: /\.node$/,
       use: 'node-loader',
     });
-
-    // Exclude @open-wallet-standard from server bundle (it has native deps)
-    if (isServer) {
-      config.externals = config.externals || [];
-      if (Array.isArray(config.externals)) {
-        config.externals.push('@open-wallet-standard/core');
-      }
-    }
 
     return config;
   },
