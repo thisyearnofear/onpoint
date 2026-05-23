@@ -161,17 +161,20 @@ The UI uses **9 GPU-accelerated keyframe animations** defined in global CSS:
 - `apps/web/app/shop/page.tsx` - Product catalog with ShopGrid
 - `apps/web/app/style/page.tsx` - Interactive styling canvas
 - `apps/web/app/style-guide/page.tsx` - Design system style guide with theme toggle
-- `apps/web/app/collage/page.tsx` - AI collage creator
+- `apps/web/app/collage/page.tsx` - AI collage creator with full dnd-kit drag-and-drop (library items dragged onto canvas, canvas items repositioned by dragging)
 - `apps/web/app/layout.tsx` - Root layout with Web3 providers
 
 ### Configuration
 - `apps/web/config/wagmi.ts` - Web3 wallet configuration
 - `turbo.json` - Turborepo pipeline configuration
-- `next.config.js` - Next.js configuration (styled-components, image optimization, Origin Trials)
+- `next.config.js` - Next.js configuration (serverExternalPackages for Turbopack compat, image optimization, Origin Trials)
 
 ### AI Integration
 - `packages/ai-client/src/providers/replicate-provider.ts` - Virtual try-on and vision analysis
 - `packages/ai-client/src/services/personality-service.ts` - Personality-based fashion critiques
+
+### Hooks
+- `apps/web/hooks/use-premium-status.ts` - Premium subscription status hook calling `/api/auth/subscription` with stale-state resilience
 
 ### Blockchain
 - `packages/blockchain-client/src/index.ts` - 0xSplits integration and NFT minting

@@ -270,3 +270,9 @@ OnPoint is evolving from a vision-AI stylist to a fully autonomous shopping agen
 - **Test Infrastructure**: Vitest configured with `@vitejs/plugin-react`, jsdom environment, first unit tests (toast system) passing — 6 tests covering context API, rendering, edge cases
 - **Dependency Cleanup**: Removed styled-components dependency and compiler option from Next.js config
 - **Type Safety Fixes**: Fixed OWS native module compatibility, all implicit `any` types resolved, TS strict mode compliance
+
+### Premium Gating, Collage DnD & Connected Accounts 🎯
+- **Premium Status Hook**: New `usePremiumStatus()` hook calling `/api/auth/subscription` replaces hardcoded `hasPremium = false` — premium gating now reflects real subscription state with upgrade CTAs
+- **Collage Drag-and-Drop**: Full dnd-kit integration with `DraggableLibraryItem`, `DroppableCanvas`, `CanvasDraggableItem` — library items drag onto canvas, canvas items reposition by dragging with 5px activation threshold
+- **Connected Accounts Nav**: Quick-access "Connected Accounts" link in mobile navigation dispatches `onpoint:navigate('settings')` custom event to open TacticalDashboard settings tab
+- **Netlify Build Fix**: Moved `serverExternalPackages` from inside `experimental` to top-level `next.config.js` — fixes Turbopack `non-ecmascript placeable asset` error for `@open-wallet-standard/core`
