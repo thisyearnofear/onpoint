@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Palette, Sparkles, ArrowLeft, Shirt, Wand2 } from 'lucide-react';
+import { Palette, Sparkles, ArrowLeft, Shirt, Wand2, RefreshCw } from 'lucide-react';
 import { Button } from '@repo/ui/button';
 import { EnhancedConnectButton, ChainStatusIndicator } from '@/components/chains';
 import { Input } from '@repo/ui/input';
@@ -12,12 +12,17 @@ import { useToast } from '@/components/toast';
 
 export default function StylePage() {
   const { palette, loading: paletteLoading, error: paletteError, generatePalette, clearError } = useAIColorPalette();
-  const { suggestions } = useAIStyleSuggestions();
   const { enhancement, loading: enhancementLoading, enhanceTryOn } = useAIVirtualTryOnEnhancement();
 
   const { toast } = useToast();
+  const { suggestions, loading: suggestionsLoading, error: suggestionsError, generateSuggestions } = useAIStyleSuggestions();
   const [palettePrompt, setPalettePrompt] = React.useState('Fashion outfit with streetwear elements');
   const [selectedCanvasColor, setSelectedCanvasColor] = React.useState<string | undefined>();
+  const [suggestionsPrefs, setSuggestionsPrefs] = React.useState({
+    style: 'luxury' as const,
+    occasion: 'everyday',
+    budget: 'flexible',
+  });
 
   const palettePresets = [
     'Fashion outfit with streetwear elements',
@@ -43,8 +48,15 @@ export default function StylePage() {
     }
   ];
 
-  const handleGenerateVariations = () => {
-    toast('Generate variations with AI - feature coming soon!', 'info');
+  const handleGenerateVariations = async () => {
+    await generateSuggestions({
+      style: suggestionsPrefs.style,
+      occasion: suggestionsPrefs.occasion || undefined,
+      budget: suggestionsPrefs.budget || undefined,
+    });
+    if (!suggestionsError) {
+      toast('AI style suggestions generated!', 'success');
+    }
   };
 
   const handleColorPalette = async () => {
@@ -106,13 +118,17 @@ export default function StylePage() {
         {/* Action Buttons */}
         <div className="flex flex-wrap justify-center gap-4 mb-8">
         <Button
-        onClick={handleGenerateVariations}
-        variant="outline"
-        className="flex items-center gap-2"
-        disabled={false}
+          onClick={handleGenerateVariations}
+          variant="outline"
+          className="flex items-center gap-2"
+          disabled={suggestionsLoading}
         >
-        <Sparkles className="h-4 w-4" />
-        Generate Variations
+          {suggestionsLoading ? (
+            <RefreshCw className="h-4 w-4 animate-spin" />
+          ) : (
+            <Sparkles className="h-4 w-4" />
+          )}
+          {suggestionsLoading ? 'Generating...' : 'Generate Style Suggestions'}
         </Button>
 
         {/* Color Palette Input and Button */}

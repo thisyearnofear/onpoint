@@ -12,6 +12,7 @@ import {
   Target,
   Clock,
   ShoppingBag,
+  ShieldAlert,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { DesignStudio } from "../DesignStudio";
@@ -24,6 +25,7 @@ import { FarcasterSignInButton } from "../FarcasterSignInButton";
 import { useUser } from "@auth0/nextjs-auth0/client";
 import { InlineShop } from "../Shop/InlineShop";
 import { AgentActivityFeed } from "../Agent/AgentActivityFeed";
+import { FraudMonitor } from "../FraudMonitor";
 
 type AppMode = "dashboard" | "design" | "try-on" | "stylist" | "shop" | "settings";
 
@@ -283,6 +285,26 @@ export function TacticalDashboard() {
             </details>
 
             <ConnectedAccounts />
+
+            {/* Fraud Monitoring Dashboard */}
+            <details className="group rounded-2xl border border-border bg-card/40 overflow-hidden">
+              <summary className="cursor-pointer p-4 flex items-center justify-between hover:bg-muted/30 transition-colors list-none">
+                <div className="flex items-center gap-2 text-foreground">
+                  <ShieldAlert className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-bold uppercase tracking-wider">
+                    Agent Security & Monitoring
+                  </span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground group-open:rotate-90 transition-transform" />
+              </summary>
+              <div className="px-4 pb-4">
+                <p className="text-xs text-muted-foreground mb-3">
+                  Real-time monitoring for autonomous agent spending. Tracks anomalies,
+                  heartbeat health, and suspicious patterns.
+                </p>
+                <FraudMonitor />
+              </div>
+            </details>
           </motion.div>
         );
     }
