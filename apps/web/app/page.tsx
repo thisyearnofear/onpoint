@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { Auth0HeaderButton } from "../components/auth/Auth0Components";
+import { NotificationBell } from "../components/NotificationBell";
 import { Button } from "@repo/ui/button";
 import { TacticalDashboard } from "../components/Dashboard/TacticalDashboard";
 import { LayoutDashboard } from "lucide-react";
@@ -65,7 +66,8 @@ export default function Home() {
             </nav>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <NotificationBell />
             <Auth0HeaderButton />
             <ThemeToggle />
           </div>

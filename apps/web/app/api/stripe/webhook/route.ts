@@ -14,6 +14,9 @@ import { redisSetEx } from "../../../../lib/utils/redis-helpers";
 import {
   setStripeCustomerMapping,
   syncSubscriptionFromStripe,
+  getUserIdByStripeCustomerId,
+  pushNotification,
+  buildSubscriptionNotification,
 } from "../../../../lib/services/subscription-service";
 
 function getStripe(): Stripe | null {
@@ -153,12 +156,30 @@ export async function POST(request: NextRequest) {
         userId: synced?.userId,
       });
 
-      // If subscription was past_due and is now active, renewal succeeded
-      if (subscription.status === "active") {
-        logger.info("Subscription renewed successfully", {
+      // Notify on renewal (past_due → active)
+      if (synced?.userId && subscription.status === "active") {
+        await pushNotification(
+          synced.userId,
+          buildSubscriptionNotification("subscription_renewed", { tier: synced.tier }),
+        );
+        logger.info("Subscription renewed — notification pushed", {
           component: "stripe-webhook",
           subscriptionId: subscription.id,
         });
+      }
+
+      // Notify on upgrade (tier changed)
+      if (synced?.userId && subscription.status === "active" && subscription.cancel_at_period_end === false) {
+        // Check if previous items had a different price
+        const previousItems = subscription.items.data.filter(
+          (item) => item.price?.id !== subscription.items.data[0]?.price?.id && item.price?.id,
+        );
+        if (previousItems.length > 0) {
+          await pushNotification(
+            synced.userId,
+            buildSubscriptionNotification("subscription_upgraded", { tier: synced.tier }),
+          );
+        }
       }
       break;
     }
@@ -172,7 +193,14 @@ export async function POST(request: NextRequest) {
 
       const synced = await syncSubscriptionFromStripe(subscription);
 
-      logger.info("Subscription deleted" + (synced ? " — synced to Redis" : " — mapping not found"), {
+      if (synced?.userId) {
+        await pushNotification(
+          synced.userId,
+          buildSubscriptionNotification("subscription_canceled"),
+        );
+      }
+
+      logger.info("Subscription deleted" + (synced ? " — notification pushed" : " — mapping not found"), {
         component: "stripe-webhook",
         subscriptionId: subscription.id,
         customerId,
@@ -193,15 +221,28 @@ export async function POST(request: NextRequest) {
 
       // Fetch the subscription to sync updated period dates
       let syncedUserId: string | undefined;
+      let syncedTier: string | undefined;
       try {
         const stripe = getStripe();
         if (stripe && subscriptionId) {
           const fullSub = await stripe.subscriptions.retrieve(subscriptionId);
           const synced = await syncSubscriptionFromStripe(fullSub);
           syncedUserId = synced?.userId;
+          syncedTier = synced?.tier;
         }
       } catch {
         // Fallback: subscription might already be synced by a parallel event
+      }
+
+      // Push notification
+      if (syncedUserId) {
+        await pushNotification(
+          syncedUserId,
+          buildSubscriptionNotification("payment_succeeded", {
+            tier: syncedTier,
+            amount: invoice.amount_paid ? invoice.amount_paid / 100 : undefined,
+          }),
+        );
       }
 
       logger.info("Invoice payment succeeded", {
@@ -223,11 +264,31 @@ export async function POST(request: NextRequest) {
       const subscriptionId = invoice.subscription;
       const customerId = invoice.customer as string;
 
-      logger.error("Invoice payment failed", {
+      // Find user for notification
+      let failingUserId: string | undefined;
+      try {
+        failingUserId = (await getUserIdByStripeCustomerId(customerId)) || undefined;
+      } catch {
+        // Best-effort
+      }
+
+      // Push payment failure notification
+      if (failingUserId) {
+        await pushNotification(
+          failingUserId,
+          buildSubscriptionNotification("payment_failed", {
+            tier: undefined,
+            attemptCount: invoice.attempt_count,
+          }),
+        );
+      }
+
+      logger.error("Invoice payment failed" + (failingUserId ? " — notification pushed" : ""), {
         component: "stripe-webhook",
         invoiceId: invoice.id,
         subscriptionId,
         customerId,
+        userId: failingUserId,
         failureMessage: invoice.last_finalization_error?.message,
         attemptCount: invoice.attempt_count,
         nextAttempt: invoice.next_payment_attempt
@@ -242,6 +303,14 @@ export async function POST(request: NextRequest) {
           await syncSubscriptionFromStripe(fullSub);
         } catch {
           // Best-effort sync
+        }
+
+        // Also push past_due notification
+        if (failingUserId) {
+          await pushNotification(
+            failingUserId,
+            buildSubscriptionNotification("subscription_past_due"),
+          );
         }
 
         logger.warn("Multiple payment failures — synced past_due to Redis", {
@@ -265,7 +334,14 @@ export async function POST(request: NextRequest) {
       // Use the raw object for sync — syncSubscriptionFromStripe handles shape
       const synced = await syncSubscriptionFromStripe(sub as unknown as Stripe.Subscription);
 
-      logger.warn("Subscription past due" + (synced ? " — synced to Redis" : " — mapping not found"), {
+      if (synced?.userId) {
+        await pushNotification(
+          synced.userId,
+          buildSubscriptionNotification("subscription_past_due"),
+        );
+      }
+
+      logger.warn("Subscription past due" + (synced ? " — notification pushed" : " — mapping not found"), {
         component: "stripe-webhook",
         subscriptionId,
         customerId,
@@ -289,7 +365,15 @@ export async function POST(request: NextRequest) {
 
       const synced = await syncSubscriptionFromStripe(sub as unknown as Stripe.Subscription);
 
-      logger.info("Trial will end" + (synced ? " — synced to Redis" : " — mapping not found"), {
+      if (synced?.userId && trialEnd) {
+        const daysRemaining = Math.max(1, Math.ceil((trialEnd * 1000 - Date.now()) / 86400000));
+        await pushNotification(
+          synced.userId,
+          buildSubscriptionNotification("trial_ending", { daysRemaining }),
+        );
+      }
+
+      logger.info("Trial will end" + (synced ? " — notification pushed" : " — mapping not found"), {
         component: "stripe-webhook",
         subscriptionId,
         customerId,

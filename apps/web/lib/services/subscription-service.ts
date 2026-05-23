@@ -536,6 +536,184 @@ export async function syncSubscriptionFromStripe(
 }
 
 // ============================================
+// In-App Notifications
+// ============================================
+
+const NOTIFICATIONS_KEY = (userId: string) => `notifications:${userId}`;
+
+export type NotificationType =
+  | "trial_ending"
+  | "payment_succeeded"
+  | "payment_failed"
+  | "subscription_past_due"
+  | "subscription_canceled"
+  | "subscription_renewed"
+  | "subscription_upgraded"
+  | "usage_limit_reached";
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  timestamp: number;
+  read: boolean;
+  /** Optional action URL the user can click through to */
+  actionUrl?: string;
+}
+
+/**
+ * Push an in-app notification for a user.
+ * Stored in a Redis list (newest-first) with a max of 50 notifications.
+ */
+export async function pushNotification(
+  userId: string,
+  notification: Omit<Notification, "id" | "timestamp" | "read">,
+): Promise<void> {
+  const full: Notification = {
+    ...notification,
+    id: `notif_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    timestamp: Date.now(),
+    read: false,
+  };
+
+  const key = NOTIFICATIONS_KEY(userId);
+
+  // Get existing notifications
+  const existing = await redisGet<Notification[]>(key) || [];
+
+  // Prepend new notification
+  const updated = [full, ...existing].slice(0, 50);
+
+  // Store with 90-day TTL
+  await redisSetEx(key, updated, 90 * 86400);
+}
+
+/**
+ * Get notifications for a user, sorted newest-first.
+ */
+export async function getNotifications(userId: string): Promise<Notification[]> {
+  const notifications = await redisGet<Notification[]>(NOTIFICATIONS_KEY(userId));
+  return notifications || [];
+}
+
+/**
+ * Get unread notification count.
+ */
+export async function getUnreadCount(userId: string): Promise<number> {
+  const notifications = await getNotifications(userId);
+  return notifications.filter((n) => !n.read).length;
+}
+
+/**
+ * Mark a single notification as read.
+ */
+export async function markNotificationRead(
+  userId: string,
+  notificationId: string,
+): Promise<void> {
+  const key = NOTIFICATIONS_KEY(userId);
+  const notifications = await redisGet<Notification[]>(key);
+  if (!notifications) return;
+
+  const updated = notifications.map((n) =>
+    n.id === notificationId ? { ...n, read: true } : n,
+  );
+  await redisSetEx(key, updated, 90 * 86400);
+}
+
+/**
+ * Mark all notifications as read for a user.
+ */
+export async function markAllNotificationsRead(userId: string): Promise<void> {
+  const key = NOTIFICATIONS_KEY(userId);
+  const notifications = await redisGet<Notification[]>(key);
+  if (!notifications) return;
+
+  const updated = notifications.map((n) => ({ ...n, read: true }));
+  await redisSetEx(key, updated, 90 * 86400);
+}
+
+/**
+ * Helper to build standard subscription event notifications.
+ */
+export function buildSubscriptionNotification(
+  type: NotificationType,
+  details?: {
+    tier?: string;
+    daysRemaining?: number;
+    amount?: number;
+    attemptCount?: number;
+  },
+): Omit<Notification, "id" | "timestamp" | "read"> {
+  switch (type) {
+    case "trial_ending":
+      return {
+        type,
+        title: "Trial Ending Soon",
+        message: `Your Pro trial ${details?.daysRemaining ? `ends in ${details.daysRemaining} days` : "is ending soon"}. Subscribe to keep your premium features.`,
+        actionUrl: "/account/subscription",
+      };
+    case "payment_succeeded":
+      return {
+        type,
+        title: "Payment Successful",
+        message: `Your ${details?.tier || "subscription"} payment of $${(details?.amount || 0).toFixed(2)} was processed successfully.`,
+        actionUrl: "/account/subscription",
+      };
+    case "payment_failed":
+      return {
+        type,
+        title: "Payment Failed",
+        message: `Your ${details?.tier || "subscription"} payment failed${details?.attemptCount ? ` (attempt ${details.attemptCount})` : ""}. Update your payment method to avoid service interruption.`,
+        actionUrl: "/account/subscription",
+      };
+    case "subscription_past_due":
+      return {
+        type,
+        title: "Subscription Past Due",
+        message: "Your subscription is past due. Please update your payment method to restore access.",
+        actionUrl: "/account/subscription",
+      };
+    case "subscription_canceled":
+      return {
+        type,
+        title: "Subscription Canceled",
+        message: "Your subscription has been canceled. You'll lose access at the end of your billing period.",
+        actionUrl: "/account/subscription",
+      };
+    case "subscription_renewed":
+      return {
+        type,
+        title: "Subscription Renewed",
+        message: `Your ${details?.tier || "plan"} has been renewed successfully.`,
+        actionUrl: "/account/subscription",
+      };
+    case "subscription_upgraded":
+      return {
+        type,
+        title: "Plan Upgraded",
+        message: `You've been upgraded to ${details?.tier || "a new plan"}! Enjoy your enhanced features.`,
+        actionUrl: "/account/subscription",
+      };
+    case "usage_limit_reached":
+      return {
+        type,
+        title: "Usage Limit Reached",
+        message: "You've reached your daily usage limit. Upgrade your plan for higher limits.",
+        actionUrl: "/account/subscription",
+      };
+    default:
+      return {
+        type,
+        title: "Subscription Update",
+        message: "There's an update to your subscription.",
+        actionUrl: "/account/subscription",
+      };
+  }
+}
+
+// ============================================
 // Subscription Helpers
 // ============================================
 
