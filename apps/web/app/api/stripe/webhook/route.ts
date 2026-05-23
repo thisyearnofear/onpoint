@@ -18,6 +18,40 @@ import {
   pushNotification,
   buildSubscriptionNotification,
 } from "../../../../lib/services/subscription-service";
+import { sendSubscriptionEmail } from "../../../../lib/services/email";
+
+// ============================================
+// Server-side PostHog tracking (no client-side dependency)
+// ============================================
+
+async function trackEvent(
+  event: string,
+  distinctId: string,
+  properties: Record<string, unknown> = {},
+) {
+  const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+  const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
+  if (!posthogKey) return;
+
+  try {
+    await fetch(`${posthogHost}/capture/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        api_key: posthogKey,
+        event,
+        distinct_id: distinctId,
+        properties: {
+          ...properties,
+          source: "stripe_webhook",
+          $current_url: "https://api.onpoint.style/stripe/webhook",
+        },
+      }),
+    });
+  } catch {
+    // Best-effort analytics
+  }
+}
 
 function getStripe(): Stripe | null {
   const key = process.env.STRIPE_SECRET_KEY;
@@ -162,6 +196,7 @@ export async function POST(request: NextRequest) {
           synced.userId,
           buildSubscriptionNotification("subscription_renewed", { tier: synced.tier }),
         );
+        await trackEvent("subscription_renewed", synced.userId, { tier: synced.tier });
         logger.info("Subscription renewed — notification pushed", {
           component: "stripe-webhook",
           subscriptionId: subscription.id,
@@ -170,7 +205,6 @@ export async function POST(request: NextRequest) {
 
       // Notify on upgrade (tier changed)
       if (synced?.userId && subscription.status === "active" && subscription.cancel_at_period_end === false) {
-        // Check if previous items had a different price
         const previousItems = subscription.items.data.filter(
           (item) => item.price?.id !== subscription.items.data[0]?.price?.id && item.price?.id,
         );
@@ -179,6 +213,7 @@ export async function POST(request: NextRequest) {
             synced.userId,
             buildSubscriptionNotification("subscription_upgraded", { tier: synced.tier }),
           );
+          await trackEvent("subscription_upgraded", synced.userId, { tier: synced.tier });
         }
       }
       break;
@@ -198,6 +233,7 @@ export async function POST(request: NextRequest) {
           synced.userId,
           buildSubscriptionNotification("subscription_canceled"),
         );
+        await trackEvent("subscription_canceled", synced.userId, { tier: synced.tier });
       }
 
       logger.info("Subscription deleted" + (synced ? " — notification pushed" : " — mapping not found"), {
@@ -234,7 +270,7 @@ export async function POST(request: NextRequest) {
         // Fallback: subscription might already be synced by a parallel event
       }
 
-      // Push notification
+      // Push notification + email + analytics
       if (syncedUserId) {
         await pushNotification(
           syncedUserId,
@@ -243,6 +279,20 @@ export async function POST(request: NextRequest) {
             amount: invoice.amount_paid ? invoice.amount_paid / 100 : undefined,
           }),
         );
+
+        // Send email if we have the customer email from the invoice
+        if (invoice.customer_email) {
+          await sendSubscriptionEmail(
+            invoice.customer_email,
+            "payment_succeeded",
+            { tier: syncedTier, amount: invoice.amount_paid ? invoice.amount_paid / 100 : undefined },
+          );
+        }
+
+        await trackEvent("subscription_payment_succeeded", syncedUserId, {
+          tier: syncedTier,
+          amount: invoice.amount_paid,
+        });
       }
 
       logger.info("Invoice payment succeeded", {
@@ -272,7 +322,7 @@ export async function POST(request: NextRequest) {
         // Best-effort
       }
 
-      // Push payment failure notification
+      // Push payment failure notification + email + analytics
       if (failingUserId) {
         await pushNotification(
           failingUserId,
@@ -281,6 +331,20 @@ export async function POST(request: NextRequest) {
             attemptCount: invoice.attempt_count,
           }),
         );
+
+        // Send email if we have the customer email from the invoice
+        if (invoice.customer_email) {
+          await sendSubscriptionEmail(
+            invoice.customer_email,
+            "payment_failed",
+            { attemptCount: invoice.attempt_count },
+          );
+        }
+
+        await trackEvent("subscription_payment_failed", failingUserId, {
+          attemptCount: invoice.attempt_count,
+          failureMessage: invoice.last_finalization_error?.message,
+        });
       }
 
       logger.error("Invoice payment failed" + (failingUserId ? " — notification pushed" : ""), {
@@ -339,6 +403,7 @@ export async function POST(request: NextRequest) {
           synced.userId,
           buildSubscriptionNotification("subscription_past_due"),
         );
+        await trackEvent("subscription_past_due", synced.userId, { tier: synced.tier });
       }
 
       logger.warn("Subscription past due" + (synced ? " — notification pushed" : " — mapping not found"), {
@@ -371,6 +436,7 @@ export async function POST(request: NextRequest) {
           synced.userId,
           buildSubscriptionNotification("trial_ending", { daysRemaining }),
         );
+        await trackEvent("subscription_trial_ending", synced.userId, { daysRemaining });
       }
 
       logger.info("Trial will end" + (synced ? " — notification pushed" : " — mapping not found"), {

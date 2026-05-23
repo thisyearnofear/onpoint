@@ -38,6 +38,59 @@ async function send({ to, subject, html }: SendParams): Promise<boolean> {
 
 const APP_URL = process.env.AUTH0_BASE_URL || process.env.APP_BASE_URL || "https://onpoint.style";
 
+export async function sendSubscriptionEmail(
+  email: string,
+  event: "trial_ending" | "payment_succeeded" | "payment_failed" | "subscription_canceled" | "subscription_renewed" | "subscription_upgraded" | "subscription_past_due",
+  details?: { tier?: string; amount?: number; daysRemaining?: number; attemptCount?: number },
+): Promise<boolean> {
+  const subjects: Record<string, string> = {
+    trial_ending: "Your OnPoint trial is ending soon",
+    payment_succeeded: "Payment successful — OnPoint subscription",
+    payment_failed: "Payment failed — update your billing info",
+    subscription_canceled: "OnPoint subscription canceled",
+    subscription_renewed: "Your OnPoint subscription has renewed",
+    subscription_upgraded: "You've been upgraded! 🎉",
+    subscription_past_due: "OnPoint subscription past due",
+  };
+
+  const bodies: Record<string, string> = {
+    trial_ending: details?.daysRemaining
+      ? `Your Pro trial ends in ${details.daysRemaining} days. Subscribe now to keep your premium features.`
+      : "Your Pro trial is ending soon. Subscribe to keep your premium features.",
+    payment_succeeded: `Your ${details?.tier || "subscription"} payment of $${(details?.amount || 0).toFixed(2)} was processed successfully.`,
+    payment_failed: `Your ${details?.tier || "subscription"} payment failed${details?.attemptCount ? ` (attempt ${details.attemptCount})` : ""}. Update your payment method to avoid losing access.`,
+    subscription_canceled: "Your subscription has been canceled. You'll lose access at the end of your billing period.",
+    subscription_renewed: `Your ${details?.tier || "plan"} has been renewed successfully.`,
+    subscription_upgraded: `You've been upgraded to ${details?.tier || "a new plan"}! Enjoy your enhanced features.`,
+    subscription_past_due: "Your subscription is past due. Please update your payment method to restore access.",
+  };
+
+  const actionTexts: Record<string, string> = {
+    trial_ending: "Manage Subscription →",
+    payment_succeeded: "View Details →",
+    payment_failed: "Update Payment Method →",
+    subscription_canceled: "Reactivate →",
+    subscription_renewed: "View Subscription →",
+    subscription_upgraded: "Explore New Features →",
+    subscription_past_due: "Update Payment →",
+  };
+
+  const subject = subjects[event]!;
+  const body = bodies[event]!;
+  const actionText = actionTexts[event]!;
+
+  const html = `
+    <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 16px;">
+      <h1 style="font-size: 20px; font-weight: 800; margin-bottom: 12px;">${subject}</h1>
+      <p style="color: #64748b; line-height: 1.6; margin-bottom: 24px;">${body}</p>
+      <a href="${APP_URL}/account/subscription" style="display: inline-block; padding: 12px 24px; background: #6366f1; color: white; text-decoration: none; border-radius: 999px; font-weight: 700;">${actionText}</a>
+      <p style="color: #94a3b8; font-size: 12px; margin-top: 32px;">OnPoint — AI-powered personal styling</p>
+    </div>
+  `;
+
+  return send({ to: email, subject, html });
+}
+
 export async function sendWelcomeEmail(email: string, name?: string): Promise<boolean> {
   return send({
     to: email,

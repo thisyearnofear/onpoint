@@ -28,6 +28,7 @@ import { useUser } from "@auth0/nextjs-auth0/client";
 import { InlineShop } from "../Shop/InlineShop";
 import { AgentActivityFeed } from "../Agent/AgentActivityFeed";
 import { FraudMonitor } from "../FraudMonitor";
+import { NewUserOnboarding } from "./NewUserOnboarding";
 
 type AppMode = "dashboard" | "design" | "try-on" | "stylist" | "shop" | "settings";
 
@@ -44,6 +45,7 @@ function AuthAccountCTA() {
 
 export function TacticalDashboard() {
   // New users go straight to try-on. Returning users see dashboard.
+  // NewUserOnboarding is a modal overlay that shows on first visit
   const [mode, setMode] = useState<AppMode>(() => {
     if (typeof window !== "undefined" && !localStorage.getItem("onpoint-first-session-done")) {
       return "try-on";
@@ -337,7 +339,9 @@ export function TacticalDashboard() {
   };
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-4rem)] bg-background">
+    <>
+      <NewUserOnboarding />
+      <div className="flex flex-col min-h-[calc(100vh-4rem)] bg-background">
       {/* Dynamic Header/Mode Switcher */}
       <div className="sticky top-16 z-40 bg-background/80 backdrop-blur-md border-b border-border/60 px-2 md:px-0">
         <div className="container mx-auto">
@@ -374,5 +378,6 @@ export function TacticalDashboard() {
         <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
       </main>
     </div>
+    </>
   );
 }

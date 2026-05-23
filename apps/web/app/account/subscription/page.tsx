@@ -305,14 +305,18 @@ export default function AccountSubscriptionPage() {
     fetchData();
   }, []);
 
-  // Fetch order history
+  // Fetch order/receipt history
   useEffect(() => {
     async function fetchOrders() {
       try {
-        // Try the orders API — falls back gracefully
         const res = await fetch("/api/agent/receipts?limit=10");
         if (res.ok) {
-          // Uses receipts as payment history
+          const data = await res.json();
+          // Handle both array and { receipts: [] } response shapes
+          const items = Array.isArray(data) ? data : data.receipts || [];
+          if (items.length > 0) {
+            setOrders(items);
+          }
         }
       } catch {
         // Silently fail — orders are non-critical

@@ -13,6 +13,7 @@ import {
 import { ThemeToggle } from "../components/ThemeToggle";
 import { Auth0HeaderButton } from "../components/auth/Auth0Components";
 import { NotificationBell } from "../components/NotificationBell";
+import { AgentWalletBadge } from "../components/AgentWalletBadge";
 import { Button } from "@repo/ui/button";
 import { TacticalDashboard } from "../components/Dashboard/TacticalDashboard";
 import { LayoutDashboard } from "lucide-react";
@@ -68,6 +69,7 @@ export default function Home() {
 
           <div className="flex items-center gap-1">
             <NotificationBell />
+            <AgentWalletBadge />
             <Auth0HeaderButton />
             <ThemeToggle />
           </div>
@@ -262,6 +264,7 @@ function MobileNav({
           <Sparkles className="w-5 h-5" />
           <span className="text-[10px]">Home</span>
         </button>
+        <NotificationBell direction="up" />
         <button
           onClick={() => onNavigate("dashboard")}
           className={`flex flex-col items-center gap-1 p-2 ${
