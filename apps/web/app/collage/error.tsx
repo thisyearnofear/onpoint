@@ -1,12 +1,8 @@
 "use client";
 
-export default function CollageError({
-  _error,
-  reset,
-}: {
-  _error: Error & { digest?: string };
-  reset: () => void;
-}) {
+import type { ErrorInfo } from "next/error";
+
+export default function CollageError({ unstable_retry }: ErrorInfo) {
   return (
     <div
       style={{
@@ -26,7 +22,7 @@ export default function CollageError({
         Unable to load the collage tool. Please try again.
       </p>
       <button
-        onClick={reset}
+        onClick={() => unstable_retry()}
         style={{
           padding: "0.5rem 1rem",
           borderRadius: "8px",

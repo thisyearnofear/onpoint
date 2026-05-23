@@ -1,12 +1,8 @@
 "use client";
 
-export default function RootError({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
+import type { ErrorInfo } from "next/error";
+
+export default function RootError({ error, unstable_retry }: ErrorInfo) {
   return (
     <div
       style={{
@@ -26,7 +22,7 @@ export default function RootError({
         {error.message || "An unexpected error occurred."}
       </p>
       <button
-        onClick={reset}
+        onClick={() => unstable_retry()}
         style={{
           padding: "0.75rem 1.5rem",
           borderRadius: "8px",

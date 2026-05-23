@@ -21,6 +21,8 @@ const nextConfig = {
   },
   experimental: {
     optimizeCss: true,
+    prefetchInlining: true,
+    appNewScrollHandler: true,
   },
   // Add a webpack configuration to polyfill indexedDB in server environments
   webpack: (config, { isServer }) => {
