@@ -9,6 +9,9 @@
     "baseUrl": ".",
     "paths": {
       "@/components/*": ["components/*"],
+      "@/hooks/*": ["hooks/*"],
+      "@/lib/*": ["lib/*"],
+      "@/app/*": ["app/*"],
       "@onpoint/shared-types": ["../../packages/shared-types/src/index.ts"]
     }
   },
