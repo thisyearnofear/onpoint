@@ -376,9 +376,10 @@ export async function checkUsageLimits(
 // ============================================
 
 /**
- * Redis key for Stripe customer-to-user mapping
+ * Redis keys for Stripe customer-to-user and user-to-customer mappings
  */
 const STRIPE_CUSTOMER_KEY = (customerId: string) => `stripe:customer:${customerId}`;
+const USER_STRIPE_KEY = (userId: string) => `stripe:user:${userId}`;
 
 /**
  * Map Stripe price IDs to OnPoint subscription tiers
@@ -393,18 +394,26 @@ export function mapPriceToTier(priceId: string | undefined | null): Subscription
 }
 
 /**
- * Store mapping from Stripe customer ID to OnPoint user ID.
+ * Store bidirectional mapping between Stripe customer ID and OnPoint user ID.
  * Called on checkout.session.completed so subsequent subscription
- * lifecycle events can look up the user.
+ * lifecycle events can look up the user, and the customer portal
+ * API can look up the Stripe customer from the authenticated user.
  */
 export async function setStripeCustomerMapping(
   stripeCustomerId: string,
   userId: string,
 ): Promise<void> {
+  // customer → user (for webhook lifecycle events)
   await redisSetEx(
     STRIPE_CUSTOMER_KEY(stripeCustomerId),
     { userId },
     86400 * 365, // 1 year
+  );
+  // user → customer (for portal session creation)
+  await redisSetEx(
+    USER_STRIPE_KEY(userId),
+    { customerId: stripeCustomerId },
+    86400 * 365,
   );
 }
 
@@ -418,6 +427,19 @@ export async function getUserIdByStripeCustomerId(
     STRIPE_CUSTOMER_KEY(customerId),
   );
   return mapping?.userId || null;
+}
+
+/**
+ * Look up Stripe customer ID from OnPoint user ID.
+ * Used by the Customer Portal API to create a billing portal session.
+ */
+export async function getStripeCustomerIdByUserId(
+  userId: string,
+): Promise<string | null> {
+  const mapping = await redisGet<{ customerId: string }>(
+    USER_STRIPE_KEY(userId),
+  );
+  return mapping?.customerId || null;
 }
 
 /**

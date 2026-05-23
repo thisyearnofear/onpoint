@@ -282,6 +282,7 @@ export default function AccountSubscriptionPage() {
   const [loading, setLoading] = useState(true);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"plan" | "usage" | "history">("plan");
@@ -454,6 +455,27 @@ export default function AccountSubscriptionPage() {
       setError(err instanceof Error ? err.message : "Checkout failed");
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  // ============================================
+  // Stripe Customer Portal
+  // ============================================
+
+  const handleOpenBillingPortal = async () => {
+    setPortalLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/stripe/portal", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.hint || "Failed to open billing portal");
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not open billing portal");
+    } finally {
+      setPortalLoading(false);
     }
   };
 
@@ -1153,17 +1175,49 @@ export default function AccountSubscriptionPage() {
           )}
         </AnimatePresence>
 
-        {/* Billing Footer */}
-        <div className="mt-12 pt-6 border-t border-border flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <CreditCard className="w-4 h-4" />
-            <span>Secure payments via Stripe</span>
-            <Wallet className="w-4 h-4 ml-2" />
-            <span>Crypto payments via Celo</span>
+        {/* Billing & Payment Methods Section */}
+        <div className="mt-12 pt-6 border-t border-border">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <CreditCard className="w-4 h-4" />
+              <span>Secure payments via Stripe</span>
+              <Wallet className="w-4 h-4 ml-2" />
+              <span>Crypto payments via Celo</span>
+            </div>
+            <Link href="/pricing" className="text-xs text-primary hover:underline">
+              View full pricing details
+            </Link>
           </div>
-          <Link href="/pricing" className="text-xs text-primary hover:underline">
-            View full pricing details
-          </Link>
+
+          {/* Stripe Customer Portal */}
+          <div className="mt-4 p-5 rounded-xl border border-border bg-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <CreditCard className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold">Billing & Payment Methods</h4>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Manage your payment methods, update billing info, view invoices,
+                  and change your subscription plan directly via Stripe.
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={handleOpenBillingPortal}
+              disabled={portalLoading}
+              variant="default"
+              size="sm"
+              className="shrink-0 bg-gradient-to-r from-primary to-accent text-white font-semibold"
+            >
+              {portalLoading ? (
+                <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+              ) : (
+                <CreditCard className="w-4 h-4 mr-1.5" />
+              )}
+              Manage Billing
+            </Button>
+          </div>
         </div>
       </main>
     </div>
