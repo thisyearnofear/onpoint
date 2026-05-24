@@ -5,13 +5,14 @@ import { OnboardingFlow } from "../OnboardingFlow";
 
 // Mock useUserPreferences hook
 const mockUpdatePreferences = vi.fn();
+const mockUpdateWithSync = vi.fn();
 
 vi.mock("../../../hooks/useUserPreferences", () => ({
   useUserPreferences: () => ({
     preferences: null,
     loading: false,
     updatePreferences: mockUpdatePreferences,
-    updatePreference: vi.fn(),
+    updatePreferencesWithSync: mockUpdateWithSync,
   }),
 }));
 
@@ -144,11 +145,11 @@ describe("OnboardingFlow", () => {
   });
 
   it("persists preferences when moving to next step from preferences", () => {
-    mockUpdatePreferences.mockClear();
+    mockUpdateWithSync.mockClear();
     renderFlow();
     fireEvent.click(screen.getByText("Next"));
     fireEvent.click(screen.getByText("Next"));
-    expect(mockUpdatePreferences).toHaveBeenCalledOnce();
+    expect(mockUpdateWithSync).toHaveBeenCalledOnce();
   });
 
   it("calls onComplete and onClose when finishing on last step", () => {

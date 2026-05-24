@@ -266,7 +266,7 @@ export function OnboardingFlow({
   userProgress = {},
 }: OnboardingFlowProps) {
   const [currentStep, setCurrentStep] = useState(0);
-  const { updatePreferences } = useUserPreferences();
+  const { updatePreferencesWithSync } = useUserPreferences();
 
   // Preference state
   const [selectedBodyType, setSelectedBodyType] = useState<string | null>(null);
@@ -419,7 +419,7 @@ export function OnboardingFlow({
 
   const handleNext = () => {
     if (currentStepData?.id === "preferences") {
-      updatePreferences({
+      updatePreferencesWithSync({
         bodyType: selectedBodyType as any,
         styleAesthetics: selectedAesthetics,
         budgetTier: selectedBudget as any,

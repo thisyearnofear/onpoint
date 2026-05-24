@@ -3,6 +3,7 @@
  * 
  * Real-time video frame analysis for Live AR sessions.
  * Uses Venice qwen3-vl-235b-a22b model for vision.
+ * Enforces per-session frame rate limits.
  */
 
 const express = require('express');
@@ -15,6 +16,31 @@ const veniceClient = process.env.VENICE_API_KEY
       baseURL: 'https://api.venice.ai/api/v1',
     })
   : null;
+
+// Redis-backed frame rate enforcement
+let redis = null;
+function getRedis() {
+  if (!redis) {
+    redis = require('ioredis')(
+      process.env.REDIS_URL || 'redis://localhost:6379',
+    );
+  }
+  return redis;
+}
+
+const FRAME_LIMITS = { max: 20, windowSecs: 60 };
+
+async function checkFrameRate(clientIp) {
+  const r = getRedis();
+  const key = `venice-frames:${clientIp}`;
+  const count = await r.incr(key);
+  await r.expire(key, FRAME_LIMITS.windowSecs);
+
+  if (count > FRAME_LIMITS.max) {
+    return { allowed: false, count: FRAME_LIMITS.max };
+  }
+  return { allowed: true, count };
+}
 
 // Goal-aware prompt templates
 const PROMPTS_BY_GOAL = {
@@ -48,6 +74,16 @@ router.post('/', async (req, res) => {
 
     if (!veniceClient) {
       return res.status(503).json({ error: 'Venice AI is temporarily unavailable' });
+    }
+
+    // Enforce per-IP frame rate limit
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+    const frameCheck = await checkFrameRate(clientIp);
+    if (!frameCheck.allowed) {
+      return res.status(429).json({
+        error: 'Frame rate limit exceeded',
+        retryAfter: FRAME_LIMITS.windowSecs,
+      });
     }
 
     // Get prompt for goal with rotation

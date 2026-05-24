@@ -15,7 +15,13 @@ const Redis = require('ioredis');
 // Initialize Express
 const app = express();
 // CORS is handled by nginx proxy, don't add headers here to avoid duplicates
-app.use(express.json({ limit: '50mb' }));
+
+// Per-route body parsing with size limits.
+// Health + status routes: 1KB (GET only, but safety-net)
+// AI routes (images/base64): 10MB
+// No global parser — each route group controls its own memory ceiling.
+const json1k = express.json({ limit: '1kb' });
+const json10mb = express.json({ limit: '10mb' });
 
 // Initialize Redis (use existing localhost instance)
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
@@ -29,8 +35,8 @@ const veniceBurstLimit = createRateLimiter(redis, 'veniceBurst');
 const liveSessionRateLimit = createRateLimiter(redis, 'liveSession');
 const apiKeyAuth = createApiKeyAuth();
 
-// Health check endpoint
-app.get('/health', async (req, res) => {
+// Health check endpoint (1KB body limit — no payloads needed)
+app.get('/health', json1k, async (req, res) => {
   try {
     await redis.ping();
     res.json({ 
@@ -62,11 +68,11 @@ app.get('/api/status', (req, res) => {
   });
 });
 
-// AI routes - consolidated (with rate limiting + API key auth)
-app.use('/api/ai/virtual-tryon', apiKeyAuth, veniceRateLimit, veniceBurstLimit, require('./routes/ai-virtual-tryon'));
-app.use('/api/ai/analyze-person', apiKeyAuth, veniceRateLimit, veniceBurstLimit, require('./routes/ai-analyze-person'));
-app.use('/api/ai/venice-analyze', apiKeyAuth, veniceRateLimit, veniceBurstLimit, require('./routes/ai-venice-analyze'));
-app.use('/api/ai/live-session', apiKeyAuth, liveSessionRateLimit, require('./routes/ai-live-session'));
+// AI routes - consolidated (with body size limits + rate limiting + API key auth)
+app.use('/api/ai/virtual-tryon', json10mb, apiKeyAuth, veniceRateLimit, veniceBurstLimit, require('./routes/ai-virtual-tryon'));
+app.use('/api/ai/analyze-person', json10mb, apiKeyAuth, veniceRateLimit, veniceBurstLimit, require('./routes/ai-analyze-person'));
+app.use('/api/ai/venice-analyze', json10mb, apiKeyAuth, veniceRateLimit, veniceBurstLimit, require('./routes/ai-venice-analyze'));
+app.use('/api/ai/live-session', json1k, apiKeyAuth, liveSessionRateLimit, require('./routes/ai-live-session'));
 
 // Agent routes (placeholder for future migration)
 app.use('/api/agent/:route', (req, res) => {
