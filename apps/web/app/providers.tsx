@@ -29,6 +29,7 @@ import { useEffect, useState } from "react";
 import { MiniAppProvider, useMiniApp } from "@neynar/react";
 import { Auth0Provider } from "@auth0/nextjs-auth0/client";
 import { Toaster } from "@/components/toast";
+import { StyleProvider } from "@/lib/context/StyleContext";
 
 const queryClient = new QueryClient();
 
@@ -89,10 +90,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
               })}
             >
               <AIProviderContext>
+                <StyleProvider>
                 <MiniAppReady />
                 <Toaster>
                   {children}
                 </Toaster>
+                </StyleProvider>
               </AIProviderContext>
             </RainbowKitProvider>
           </QueryClientProvider>

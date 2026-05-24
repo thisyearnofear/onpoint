@@ -5,11 +5,8 @@ import AIClientManager from './ai-client';
 import { ReplicateProvider } from './providers/replicate-provider';
 import { fileToBase64 } from './utils/file-utils';
 
-const AI_API_BASE = process.env.NEXT_PUBLIC_AGENT_API_URL || '';
-
 function getApiUrl(path: string): string {
-  if (!AI_API_BASE) return path;
-  return `${AI_API_BASE.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
+  return path;
 }
 
 // Design Studio Implementation
@@ -135,7 +132,7 @@ export const useVirtualTryOn = () => {
   // Cache functionality removed to resolve import issues - functionality works without caching
 
   const analyzePhoto = React.useCallback(
-    async (imageFile: File): Promise<VirtualTryOnAnalysis | null> => {
+    async (imageFile: File, stylePreferences?: any): Promise<VirtualTryOnAnalysis | null> => {
       setLoading(true);
       setError(null);
 
@@ -161,7 +158,8 @@ export const useVirtualTryOn = () => {
               description, 
               fileName: imageFile.name,
               photoData // Send base64 image data for vision analysis
-            }
+            },
+            stylePreferences // Send user style preferences for personalization
           })
         });
 
@@ -193,7 +191,7 @@ export const useVirtualTryOn = () => {
   );
 
   const enhanceTryOn = React.useCallback(
-    async (outfitItems: Array<{ name: string, type?: string, description?: string }>): Promise<boolean> => {
+    async (outfitItems: Array<{ name: string, type?: string, description?: string }>, stylePreferences?: any): Promise<boolean> => {
       setLoading(true);
       setError(null);
 
@@ -203,7 +201,8 @@ export const useVirtualTryOn = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'enhancement',
-            data: { items: outfitItems }
+            data: { items: outfitItems },
+            stylePreferences
           })
         });
 
@@ -489,7 +488,7 @@ export const useAIVirtualTryOnEnhancement = () => {
   const aiClient = useAIClient();
 
   const enhanceTryOn = React.useCallback(
-    async (outfitItems: Array<{ name: string, description: string }>, photoData?: string, personDescription?: string): Promise<boolean> => {
+    async (outfitItems: Array<{ name: string, description: string }>, photoData?: string, personDescription?: string, stylePreferences?: any): Promise<boolean> => {
       setLoading(true);
       setError(null);
 
@@ -504,7 +503,8 @@ export const useAIVirtualTryOnEnhancement = () => {
               items: outfitItems,
               photoData: photoData,
               personDescription: personDescription
-            }
+            },
+            stylePreferences
           })
         });
 

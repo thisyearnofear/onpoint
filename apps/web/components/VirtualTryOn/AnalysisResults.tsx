@@ -11,14 +11,43 @@ interface AnalysisResultsProps {
   analysis: VirtualTryOnAnalysis;
   onCritiqueModeSelection?: () => void;
   onShopRecommendations?: () => void;
+  preferences?: any;
 }
 
 export function AnalysisResults({
   analysis,
   onCritiqueModeSelection,
   onShopRecommendations,
+  preferences,
 }: AnalysisResultsProps) {
   const [expandedSection, setExpandedSection] = React.useState<string | null>(null);
+  const [showLoading, setShowLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => setShowLoading(false), 600);
+    return () => clearTimeout(timer);
+  }, [analysis]);
+
+  if (showLoading) {
+    return (
+      <Card className="elegant-shadow border-primary/20">
+        <CardContent className="flex flex-col items-center justify-center py-12 space-y-4">
+          <div className="relative">
+            <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+            <Sparkles className="h-5 w-5 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+          </div>
+          <p className="text-sm font-medium text-muted-foreground">Analyzing your style...</p>
+          <p className="text-xs text-muted-foreground/60">Our AI is studying your photo</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const hasPreferences = preferences && (
+    (preferences.styleAesthetics?.length > 0) ||
+    preferences.budgetTier ||
+    preferences.bodyType
+  );
 
   return (
     <Card className="elegant-shadow border-primary/20">
@@ -32,6 +61,26 @@ export function AnalysisResults({
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
+        {/* Personalization Context Banner */}
+        {hasPreferences && (
+          <div className="border rounded-lg p-3 bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5">
+            <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+              <span>Based on your interest in</span>
+              {preferences.styleAesthetics?.map((a: string, i: number) => (
+                <span key={a} className="font-medium text-primary">
+                  {a}{i < (preferences.styleAesthetics?.length || 0) - 1 ? ',' : ''}
+                </span>
+              ))}
+              {preferences.budgetTier && (
+                <>
+                  <span className="text-muted-foreground">with a</span>
+                  <span className="font-medium text-accent">{preferences.budgetTier.replace('-', ' ')}</span>
+                  <span className="text-muted-foreground">budget</span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
         {/* Current Look (if available) */}
         {(analysis as any).currentLook && (analysis as any).currentLook.length > 0 && (
           <div className="border rounded-lg p-3 bg-blue-50/50 dark:bg-blue-950/20">

@@ -20,6 +20,15 @@ app.use(express.json({ limit: '50mb' }));
 // Initialize Redis (use existing localhost instance)
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 
+// Middleware
+const { createRateLimiter } = require('./middleware/rate-limit');
+const { createApiKeyAuth } = require('./middleware/api-key-auth');
+
+const veniceRateLimit = createRateLimiter(redis, 'veniceFree');
+const veniceBurstLimit = createRateLimiter(redis, 'veniceBurst');
+const liveSessionRateLimit = createRateLimiter(redis, 'liveSession');
+const apiKeyAuth = createApiKeyAuth();
+
 // Health check endpoint
 app.get('/health', async (req, res) => {
   try {
@@ -53,11 +62,11 @@ app.get('/api/status', (req, res) => {
   });
 });
 
-// AI routes - consolidated
-app.use('/api/ai/virtual-tryon', require('./routes/ai-virtual-tryon'));
-app.use('/api/ai/analyze-person', require('./routes/ai-analyze-person'));
-app.use('/api/ai/venice-analyze', require('./routes/ai-venice-analyze'));
-app.use('/api/ai/live-session', require('./routes/ai-live-session'));
+// AI routes - consolidated (with rate limiting + API key auth)
+app.use('/api/ai/virtual-tryon', apiKeyAuth, veniceRateLimit, veniceBurstLimit, require('./routes/ai-virtual-tryon'));
+app.use('/api/ai/analyze-person', apiKeyAuth, veniceRateLimit, veniceBurstLimit, require('./routes/ai-analyze-person'));
+app.use('/api/ai/venice-analyze', apiKeyAuth, veniceRateLimit, veniceBurstLimit, require('./routes/ai-venice-analyze'));
+app.use('/api/ai/live-session', apiKeyAuth, liveSessionRateLimit, require('./routes/ai-live-session'));
 
 // Agent routes (placeholder for future migration)
 app.use('/api/agent/:route', (req, res) => {

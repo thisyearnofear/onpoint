@@ -9,6 +9,7 @@ import { ArrowLeft, ShoppingBag } from "lucide-react";
 import { CartDrawer, CartButton } from "../../components/Shop/CartDrawer";
 import { CheckoutModal } from "../../components/Shop/CheckoutModal";
 import { useCartStore } from "../../lib/stores/cart-store";
+import { useStyleContext } from "@/lib/context/StyleContext";
 
 export default function ShopPage() {
   const [selectedItem, setSelectedItem] = useState<FashionItem | null>(null);
@@ -17,6 +18,7 @@ export default function ShopPage() {
   const [stylistAnalysis, setStylistAnalysis] = useState<any>(null);
   const addItem = useCartStore((s) => s.addItem);
   const openCart = useCartStore((s) => s.openCart);
+  const { dominantAesthetic, budgetLabel } = useStyleContext();
 
   // Load stylist analysis from sessionStorage
   React.useEffect(() => {
@@ -72,6 +74,25 @@ export default function ShopPage() {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
+        {/* Personalization Context Banner */}
+        {(dominantAesthetic || budgetLabel) && (
+          <div className="mb-6 px-4 py-3 rounded-xl bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 border border-primary/10">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>🎯</span>
+              {dominantAesthetic && (
+                <span>
+                  Highlighting <span className="font-semibold text-foreground capitalize">{dominantAesthetic}</span> styles
+                </span>
+              )}
+              {budgetLabel && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-accent/10 text-accent">
+                  {budgetLabel.replace("-", " ")}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* AI Stylist Recommendations Banner */}
         {stylistAnalysis && (
           <div className="mb-8 bg-gradient-to-r from-primary/10 to-accent/10 border-2 border-primary/30 rounded-2xl p-6 shadow-lg">

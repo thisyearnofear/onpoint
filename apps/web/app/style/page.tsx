@@ -9,10 +9,12 @@ import InteractiveStylingCanvas from '@repo/shared-ui/components/InteractiveStyl
 import { useAIColorPalette, useAIStyleSuggestions, useAIVirtualTryOnEnhancement } from '@repo/ai-client';
 import Link from 'next/link';
 import { useToast } from '@/components/toast';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
 
 export default function StylePage() {
   const { palette, loading: paletteLoading, error: paletteError, generatePalette, clearError } = useAIColorPalette();
   const { enhancement, loading: enhancementLoading, enhanceTryOn } = useAIVirtualTryOnEnhancement();
+  const { preferences } = useUserPreferences();
 
   const { toast } = useToast();
   const { suggestions, loading: suggestionsLoading, error: suggestionsError, generateSuggestions } = useAIStyleSuggestions();
@@ -69,7 +71,7 @@ export default function StylePage() {
 
   const handleAIEnhance = async () => {
     
-    await enhanceTryOn(mockOutfitItems);
+    await enhanceTryOn(mockOutfitItems, undefined, undefined, preferences);
   };
 
   return (

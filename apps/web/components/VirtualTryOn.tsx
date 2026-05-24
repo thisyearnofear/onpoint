@@ -11,6 +11,7 @@ import type { StylistPersona } from "@repo/ai-client";
 import { getAgentApiUrl } from "../lib/utils/agent-api";
 import { FREE_PERSONAS, PREMIUM_PERSONAS, isPersonaUnlocked } from "../lib/utils/persona-config";
 import { usePremiumStatus } from "../hooks/use-premium-status";
+import { useUserPreferences } from "../hooks/useUserPreferences";
 
 import {
   PhotoUpload,
@@ -30,6 +31,7 @@ export function VirtualTryOn() {
   const [critiqueResult, setCritiqueResult] = useState<{ persona: StylistPersona; critique: string } | null>(null);
   const [showLiveStylist, setShowLiveStylist] = useState(true); // Default to live AR
   const { isPremium, loading: premiumLoading } = usePremiumStatus();
+  const { preferences } = useUserPreferences();
 
   // Hooks
   const {
@@ -54,14 +56,14 @@ export function VirtualTryOn() {
     setPreviewUrl(url);
     
     // Auto-analyze on upload
-    await analyzePhoto(file);
-  }, [analyzePhoto]);
+    await analyzePhoto(file, preferences);
+  }, [analyzePhoto, preferences]);
 
   const handleReanalyze = useCallback(async () => {
     if (selectedPhoto) {
-      await analyzePhoto(selectedPhoto);
+      await analyzePhoto(selectedPhoto, preferences);
     }
-  }, [analyzePhoto, selectedPhoto]);
+  }, [analyzePhoto, selectedPhoto, preferences]);
 
   const handlePersonaSelect = useCallback(async (persona: StylistPersona) => {
     if (!selectedPhoto || !isPersonaUnlocked(persona, isPremium)) return;
@@ -175,7 +177,7 @@ export function VirtualTryOn() {
                       analysis={analysis}
                       onReset={handleReset}
                       onReanalyze={handleReanalyze}
-                      onAnalyze={() => selectedPhoto && analyzePhoto(selectedPhoto)}
+                      onAnalyze={() => selectedPhoto && analyzePhoto(selectedPhoto, preferences)}
                     />
                   )}
                 </div>
@@ -210,6 +212,7 @@ export function VirtualTryOn() {
                           analysis={analysis!}
                           onCritiqueModeSelection={() => setShowPersonalitySelection(true)}
                           onShopRecommendations={handleShopRecommendations}
+                          preferences={preferences}
                         />
                       </motion.div>
                     )}

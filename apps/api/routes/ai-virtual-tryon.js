@@ -395,11 +395,19 @@ function parseVirtualTryOnResponse(aiResponse, type, originalData) {
 
 router.post('/', async (req, res) => {
   try {
-    const { type, data, provider = 'auto', model } = req.body;
+    const { type, data, provider = 'auto', model, stylePreferences } = req.body;
 
     if (!type) {
       return res.status(400).json({ error: 'Analysis type is required' });
     }
+
+    const prefContext = stylePreferences 
+      ? `\n\nUSER PREFERENCES TO CONSIDER:
+- Favored Aesthetics: ${stylePreferences.styleAesthetics?.join(', ') || 'Not specified'}
+- Budget Level: ${stylePreferences.budgetTier || 'Not specified'}
+- Self-identified Body Type: ${stylePreferences.bodyType || 'Not specified'}
+Tailor your recommendations and analysis to align with these personal preferences.`
+      : '';
 
     // -- analyze-person (Venice vision API for photo analysis) --
     if (type === 'analyze-person' && data && data.photoData) {
@@ -428,7 +436,7 @@ STYLE ASSESSMENT:
 PERSONALIZED STYLING NOTES:
 - Best colors for their specific skin tone and hair
 - Ideal silhouettes for their body type
-- Style recommendations that match their vibe
+- Style recommendations that match their vibe${prefContext}
 
 Be detailed and specific. This will be used to generate highly personalized outfit recommendations.`;
 
@@ -472,7 +480,7 @@ STYLE RECOMMENDATIONS:
 - Focus on: Colors that suit them, style categories, specific pieces, what to avoid
 
 PERSONALIZATION:
-[2-3 highly specific tips based on what you see in THIS photo - reference their actual outfit, hair, coloring]
+[2-3 highly specific tips based on what you see in THIS photo - reference their actual outfit, hair, coloring]${prefContext}
 
 Be SPECIFIC and ACTIONABLE. Reference what you actually see.`;
 
@@ -529,7 +537,7 @@ PERSONALIZED STYLING:
 - Specific tips for wearing these items based on their proportions
 - Accessories that would complete the look for their style
 - Colors from the outfit that work best with their coloring
-- Any items that might not work and why
+- Any items that might not work and why${prefContext}
 
 Be SPECIFIC. Reference what you see in the photo. Give actionable, personalized advice.`;
 
