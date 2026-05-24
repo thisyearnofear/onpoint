@@ -7,6 +7,7 @@
 
 const express = require('express');
 const router = express.Router();
+const logger = require('../lib/logger');
 
 // ── Redis-backed session tracking (prevent abuse) ──
 // Each router instance shares the app-level Redis via req.app
@@ -188,9 +189,11 @@ router.post('/', async (req, res) => {
 
     return res.status(400).json({ error: 'Invalid provider. Use "venice" or "gemini".' });
   } catch (error) {
-    console.error('Live session error:', error);
+    logger.sessionError('provision', 'Live session provisioning failed', error, {
+      provider: req.body?.provider,
+      clientIp,
+    });
     res.status(500).json({ error: 'Failed to provision session' });
-  }
 });
 
 // ── Session heartbeat (client calls periodically) ──

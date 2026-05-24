@@ -1,7 +1,7 @@
 import { proxyToHetzner } from "@/lib/utils/proxy-to-hetzner";
 
 export async function POST(request: Request) {
-  return proxyToHetzner(request, "/api/ai/analyze-person");
+  return proxyToHetzner(request, "/api/ai/analyze-person", "veniceBurst");
 }
 
 export async function OPTIONS() {

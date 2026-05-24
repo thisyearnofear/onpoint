@@ -9,6 +9,7 @@
 const express = require('express');
 const router = express.Router();
 const OpenAI = require('openai');
+const logger = require('../lib/logger');
 
 const veniceClient = process.env.VENICE_API_KEY
   ? new OpenAI({
@@ -134,7 +135,10 @@ router.post('/', async (req, res) => {
       provider: 'venice',
     });
   } catch (error) {
-    console.error('Venice analyze error:', error);
+    logger.veniceError('analyze-frame', 'Venice vision analysis failed', error, {
+      goal: req.body?.goal,
+      clientIp: req.ip,
+    });
     res.status(502).json({ error: 'Venice AI analysis failed' });
   }
 });

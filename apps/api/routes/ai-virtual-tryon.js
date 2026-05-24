@@ -9,6 +9,48 @@ const express = require('express');
 const router = express.Router();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const OpenAI = require('openai');
+const crypto = require('crypto');
+const logger = require('../lib/logger');
+
+// ── Caching: fingerprint photo data to avoid redundant Venice API calls ──
+let redis = null;
+function getRedis() {
+  if (!redis) {
+    redis = require('ioredis')(
+      process.env.REDIS_URL || 'redis://localhost:6379',
+    );
+  }
+  return redis;
+}
+
+const CACHE_TTL = 30 * 60; // 30 minutes
+
+function photoFingerprint(photoData) {
+  // Hash first 1KB + last 1KB + file size — fast, collision-resistant enough
+  const front = photoData.slice(0, 1024);
+  const back = photoData.length > 1024 ? photoData.slice(-1024) : '';
+  return crypto.createHash('sha256').update(`${photoData.length}|${front}|${back}`).digest('hex');
+}
+
+async function getCachedAnalysis(fingerprint, type) {
+  const r = getRedis();
+  const key = `cache:analysis:${type}:${fingerprint}`;
+  const cached = await r.get(key);
+  if (cached) {
+    try {
+      return JSON.parse(cached);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+async function setCachedAnalysis(fingerprint, type, data) {
+  const r = getRedis();
+  const key = `cache:analysis:${type}:${fingerprint}`;
+  await r.set(key, JSON.stringify(data), 'EX', CACHE_TTL);
+}
 
 // ---------------------------------------------------------------------------
 // Provider setup (inline, mirrors _utils/providers.ts)
@@ -67,7 +109,7 @@ async function generateVisionAnalysis({
     });
     return { text: response.choices[0]?.message?.content ?? '', usedProvider: 'venice-vision' };
   } catch (err) {
-    console.error('[generateVisionAnalysis] venice vision failed:', err.message || err);
+    logger.veniceError('vision-analysis', 'Venice vision generation failed', err);
     throw err;
   }
 }
@@ -137,7 +179,7 @@ async function generateText({
         return { text: response.choices[0]?.message?.content ?? '', usedProvider: 'openai' };
       }
     } catch (err) {
-      console.error(`[generateText] ${prov} failed:`, err.message || err);
+      logger.warn(`Text generation fallback`, { component: 'virtual-tryon', provider: prov }, err);
       // continue to next provider
     }
   }
@@ -440,14 +482,25 @@ PERSONALIZED STYLING NOTES:
 
 Be detailed and specific. This will be used to generate highly personalized outfit recommendations.`;
 
+      // Cache check: same photo → skip Venice API
+      const fingerprint = photoFingerprint(data.photoData);
+      const cached = await getCachedAnalysis(fingerprint, 'analyze-person');
+      if (cached) {
+        return res.json({ ...cached, cached: true });
+      }
+
       try {
         const { text } = await generateVisionAnalysis({
           prompt,
           imageBase64: data.photoData,
         });
-        return res.json({ description: text, type: 'analyze-person' });
+        const result = { description: text, type: 'analyze-person' };
+        await setCachedAnalysis(fingerprint, 'analyze-person', result);
+        return res.json(result);
       } catch (error) {
-        console.error('Vision analysis error:', error);
+        logger.tryonError('analyze-person', 'Photo analysis failed', error, {
+          fileName: data?.fileName,
+        });
         return res.status(500).json({ error: 'Failed to analyze person from photo' });
       }
     }
@@ -484,6 +537,18 @@ PERSONALIZATION:
 
 Be SPECIFIC and ACTIONABLE. Reference what you actually see.`;
 
+      // Cache check: same photo + same analysis type = skip Venice API
+      const fingerprint = photoFingerprint(data.photoData);
+      const cached = await getCachedAnalysis(fingerprint, 'body-analysis');
+      if (cached) {
+        return res.json({
+          ...cached,
+          provider: 'venice-vision',
+          type,
+          cached: true,
+        });
+      }
+
       try {
         const { text } = await generateVisionAnalysis({
           prompt,
@@ -500,6 +565,8 @@ Be SPECIFIC and ACTIONABLE. Reference what you actually see.`;
           personalization: extractSection(text, 'PERSONALIZATION:', null),
         };
         
+        await setCachedAnalysis(fingerprint, 'body-analysis', sections);
+
         return res.json({ 
           ...sections,
           provider: 'venice-vision', 
@@ -507,7 +574,9 @@ Be SPECIFIC and ACTIONABLE. Reference what you actually see.`;
           rawAnalysis: text 
         });
       } catch (error) {
-        console.error('Vision body analysis error:', error);
+        logger.tryonError('body-analysis', 'Body analysis from photo failed', error, {
+          fileName: data?.fileName,
+        });
         return res.status(500).json({ error: 'Failed to analyze body from photo' });
       }
     }
@@ -549,8 +618,8 @@ Be SPECIFIC. Reference what you see in the photo. Give actionable, personalized 
         const analysisData = parseVirtualTryOnResponse(text, 'outfit-fit', data);
         return res.json({ ...analysisData, provider: 'venice-vision', type });
       } catch (error) {
-        console.error('Vision outfit analysis error:', error);
-        return res.status(500).json({ error: 'Failed to analyze outfit fit from photo' });
+        logger.tryonError('outfit-analysis', 'Outfit fit analysis failed', error);
+        return res.status(500).json({ error: 'Failed to analyze outfit fit' });
       }
     }
 
@@ -634,7 +703,8 @@ Be SPECIFIC. Reference what you see in the photo. Give actionable, personalized 
     const analysisData = parseVirtualTryOnResponse(text || '', type, data);
     return res.json({ ...analysisData, provider: usedProvider, type });
   } catch (error) {
-    console.error('AI virtual try-on error:', error);
+    logger.tryonError(type, 'Virtual try-on request failed', error);
+    return res.status(500).json({ error: 'AI analysis failed' });
     return res.status(error.status || 500).json({
       error: error.message || 'Failed to process virtual try-on',
       details: error.stack && process.env.NODE_ENV === 'development' ? error.stack : undefined,
