@@ -61,6 +61,8 @@ export default function RootLayout({
 })();`,
           }}
         />
+        {/* Talent App project verification for Proof of Ship */}
+        <meta name="talentapp:project_verification" content="9ab8365123e2b2e45a707fb428501d3926a635b801d5921735e29fe97c149af1862bfc4c2c9bbb2121c2230dd9d81aae9fd8eeecab6b2221cb535567329e0591" />
         {/* Farcaster Mini App embed for discovery in casts */}
         <meta name="fc:miniapp" content={JSON.stringify(embed)} />
         {/* Backward compatibility with legacy Frames */}

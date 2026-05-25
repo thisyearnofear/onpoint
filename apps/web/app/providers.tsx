@@ -30,6 +30,7 @@ import { MiniAppProvider, useMiniApp } from "@neynar/react";
 import { Auth0Provider } from "@auth0/nextjs-auth0/client";
 import { Toaster } from "@/components/toast";
 import { StyleProvider } from "@/lib/context/StyleContext";
+import { MiniPayProvider } from "@/components/MiniPayProvider";
 
 const queryClient = new QueryClient();
 
@@ -81,23 +82,25 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <MiniAppProvider analyticsEnabled={true}>
         <WagmiProvider config={config}>
           <QueryClientProvider client={queryClient}>
-            <RainbowKitProvider
-              theme={(theme === "dark" ? darkTheme : lightTheme)({
-                accentColor: "#7c3aed",
-                accentColorForeground: "white",
-                borderRadius: "medium",
-                fontStack: "system",
-              })}
-            >
-              <AIProviderContext>
-                <StyleProvider>
-                <MiniAppReady />
-                <Toaster>
-                  {children}
-                </Toaster>
-                </StyleProvider>
-              </AIProviderContext>
-            </RainbowKitProvider>
+            <MiniPayProvider>
+              <RainbowKitProvider
+                theme={(theme === "dark" ? darkTheme : lightTheme)({
+                  accentColor: "#7c3aed",
+                  accentColorForeground: "white",
+                  borderRadius: "medium",
+                  fontStack: "system",
+                })}
+              >
+                <AIProviderContext>
+                  <StyleProvider>
+                  <MiniAppReady />
+                  <Toaster>
+                    {children}
+                  </Toaster>
+                  </StyleProvider>
+                </AIProviderContext>
+              </RainbowKitProvider>
+            </MiniPayProvider>
           </QueryClientProvider>
         </WagmiProvider>
       </MiniAppProvider>

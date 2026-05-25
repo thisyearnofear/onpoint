@@ -14,6 +14,7 @@ import { ChevronDown, Wallet, Trophy, AlertCircle, Star } from "lucide-react";
 import { MissionService } from "../lib/services/mission-service";
 import { useMiniApp } from "@neynar/react";
 import { celo, celoSepolia } from "../config/chains";
+import { useMiniPay } from "../lib/hooks/useMiniPay";
 
 /**
  * Enhanced ConnectButton with chain visibility and Mission Progress
@@ -29,6 +30,7 @@ export function EnhancedConnectButton({
   const chainId = useChainId();
   const { context } = useMiniApp();
   const { user } = useUser();
+  const { isMiniPay } = useMiniPay();
   const linkedRef = useRef(false);
 
   // Auto-link Auth0 identity to wallet when both are present
@@ -71,6 +73,11 @@ export function EnhancedConnectButton({
         }) => {
           const ready = mounted;
           const connected = ready && account && chain;
+
+          // Hide connect button when in MiniPay (auto-connected)
+          if (isMiniPay && !connected) {
+            return null;
+          }
 
           return (
             <div className="flex items-center gap-2">
