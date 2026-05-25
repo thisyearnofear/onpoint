@@ -18,7 +18,7 @@ export function useMiniPay() {
     // Check if we're in MiniPay environment
     const checkMiniPay = () => {
       if (typeof window !== "undefined" && window.ethereum) {
-        const isMiniPayEnv = window.ethereum.isMiniPay === true;
+        const isMiniPayEnv = (window.ethereum as any).isMiniPay === true;
         setIsMiniPay(isMiniPayEnv);
         return isMiniPayEnv;
       }
@@ -46,18 +46,4 @@ export function useMiniPay() {
     isMiniPay,
     isConnecting,
   };
-}
-
-/**
- * Type declaration for window.ethereum with MiniPay properties
- */
-declare global {
-  interface Window {
-    ethereum?: {
-      isMiniPay?: boolean;
-      request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
-      on: (event: string, callback: (...args: unknown[]) => void) => void;
-      removeListener: (event: string, callback: (...args: unknown[]) => void) => void;
-    };
-  }
 }

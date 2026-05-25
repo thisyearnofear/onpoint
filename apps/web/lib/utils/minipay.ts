@@ -9,7 +9,7 @@
 export function isMiniPayEnvironment(): boolean {
   return (
     typeof window !== "undefined" &&
-    window.ethereum?.isMiniPay === true
+    (window.ethereum as any)?.isMiniPay === true
   );
 }
 
@@ -23,7 +23,7 @@ export async function getMiniPayAddress(): Promise<string | null> {
   }
 
   try {
-    const accounts = await window.ethereum.request({
+    const accounts = await (window.ethereum as any).request({
       method: "eth_requestAccounts",
       params: [],
     });
@@ -75,7 +75,7 @@ export async function sendMiniPayTransaction({
     transaction.feeCurrency = feeCurrency;
   }
 
-  const hash = await window.ethereum.request({
+  const hash = await (window.ethereum as any).request({
     method: "eth_sendTransaction",
     params: [transaction],
   });
