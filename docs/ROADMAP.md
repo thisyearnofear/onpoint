@@ -91,6 +91,31 @@ The core "sees → judges → shops" flow is live at https://beonpoint.netlify.a
 - Agent wallet usage patterns
 - Conversion funnel optimization
 
+### Phase 0 (ADR 0001): Deploy Pipeline 🚀 ✅
+> Deploy pipeline to make Hetzner the agent's home base. See [ADR 0001](./adr/0001-backend-first-autonomy.md).
+
+- [x] **`scripts/deploy-api.sh`** — build → rsync → symlink flip → PM2 reload → health check → auto-rollback
+- [x] **`scripts/rollback-api.sh`** — interactive release picker with auto-revert on failure
+- [x] **`scripts/setup-secrets.sh`** — secure hidden-input secret loader (SSH pipe, never local)
+- [x] **`shared/api/.env`** — single source of truth for secrets, symlinked into each release
+- [x] **`pnpm deploy:api`** — convenience npm script
+- [x] **`pm2 save && pm2 startup`** — process lineup survives reboot
+- [x] **`.github/workflows/deploy-api.yml`** — auto-deploy on master pushes (needs GH Secrets)
+- [x] **Live deploy verified** — release 20260526-130237 passing health checks
+
+### Phase 3 (ADR 0001): Port Agent Routes to Hetzner 🚀 ✅
+> All 16 stateful agent endpoints migrated from Vercel Next.js route handlers to Hetzner Express.
+> Backed by `@repo/agent-core` (CJS via tsup). See [ADR 0001](./adr/0001-backend-first-autonomy.md).
+
+- [x] **16 routes ported** — dashboard, wallet, identity, suggestion, approval, style, tip, tip-agent, fraud, mint, purchase, checkout, escrow, treasury, missions, schedule-event
+- [x] **`@repo/agent-core`** — workspace package with CJS build (tsup) for Express compatibility
+- [x] **`@repo/blockchain-client`** + **`@onpoint/shared-types`** — CJS builds for Express
+- [x] **`forwarded-user.js` middleware** — extracts Vercel auth context from forwarded headers
+- [x] **Deploy scripts updated** — `pnpm deploy --legacy` replaces `npm install --production` for workspace dep resolution
+- [x] **Sentry integration** — optional, conditional on SENTRY_DSN
+- [x] **Agent proxy catch-all** — simplified, falls back to Vercel only for unmatched routes
+- [x] **Server verified** — 94 middleware layers load cleanly
+
 ### Autonomous Agent Infrastructure ✅
 > **Hackathon**: Celo Proof of Ship Season 2 — AI Agent Track
 

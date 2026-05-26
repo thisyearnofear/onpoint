@@ -194,6 +194,7 @@ router.post('/', async (req, res) => {
       clientIp,
     });
     res.status(500).json({ error: 'Failed to provision session' });
+  }
 });
 
 // ── Session heartbeat (client calls periodically) ──

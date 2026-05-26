@@ -1,432 +1,262 @@
-# OnPoint Deployment Guide - Hetzner VPS
+# OnPoint Deployment Guide — Hetzner VPS
+
+> **Progress:** Phase 0 (Deploy Pipeline) — ✅ Complete 2026-05-26
+> See [ADR 0001](../docs/adr/0001-backend-first-autonomy.md) for architecture rationale.
 
 ## Overview
 
-This guide covers deploying OnPoint API routes to your existing Hetzner VPS using PM2 and git-based deployment.
+OnPoint API runs on a shared Hetzner VPS (38 GB disk). We **build locally, rsync**
+only what's needed — no `git pull` on the server, no pnpm on the server.
 
 **Architecture:**
-- **Frontend:** Vercel (Next.js app)
-- **Backend API:** Hetzner VPS (Express server on port 48751)
-- **Bridge:** Hetzner VPS (Python FastAPI on port 48752)
-- **Cache:** Existing Redis on localhost:6379
+- **Frontend:** Vercel (Next.js app) — presentation + identity
+- **Backend API:** Hetzner VPS via PM2 (Express on port 48751)
+- **Bridge:** Python FastAPI on port 48752 (Browser-Use / Purch)
+- **Cache:** Redis on localhost:6379 (shared instance)
+- **Future worker:** `onpoint-worker` (Phase 1)
+- **Future signer:** `onpoint-signer` on 127.0.0.1:48753 (Phase 4)
+
+**Deploy strategy (ADR 0001):**
+- `npm install --production` locally → `rsync` → symlink flip → `pm2 reload`
+- Secrets live at `/opt/onpoint/shared/api/.env`, symlinked into each release
+- No secrets ever travel over rsync or git
 
 ---
 
 ## Prerequisites
 
-Your Hetzner VPS should have:
-- ✅ Ubuntu 24.04
-- ✅ Node.js v22+ (`node --version`)
-- ✅ Python 3.10+ with venv
-- ✅ PM2 installed globally (`pm2 --version`)
-- ✅ Redis running on localhost:6379
-- ✅ Git installed
+| Tool      | Version   | Notes                          |
+|-----------|-----------|--------------------------------|
+| Node.js   | >=20.19.0 | Use nvm (`nvm use`)            |
+| pnpm      | 10.10.0+  | Corepack (`corepack enable`)   |
+| SSH       | any       | `~/.ssh/config` with snel-bot  |
 
 ---
 
-## Initial Setup (One-Time, ~30 minutes)
+## First-Time Server Setup
 
-### Step 1: Clone Repository on VPS
-
-```bash
-ssh deploy@snel-bot
-
-# Create directory
-sudo mkdir -p /opt/onpoint
-sudo chown deploy:deploy /opt/onpoint
-cd /opt/onpoint
-
-# Clone repository
-git clone https://github.com/thisyearnofear/onpoint.git .
-```
-
-### Step 2: Set Up Environment Variables
+### Step 1: Ensure shared environment exists
 
 ```bash
-# API environment
-cd /opt/onpoint/apps/api
-cp .env.example .env.production
+ssh snel-bot
+mkdir -p /opt/onpoint/shared/api
 
-# Edit with your values
-nano .env.production
-```
-
-**`.env.production` contents:**
-```env
+# Populate with production secrets
+# Use the setup-secrets script for secure hidden-input prompting
+# Or copy manually:
+cat > /opt/onpoint/shared/api/.env << 'EOF'
+NODE_ENV=production
+PORT=48751
 REDIS_URL=redis://localhost:6379
 BRIDGE_URL=http://localhost:48752
-PORT=48751
-NODE_ENV=production
-PREMIUM_USERS=your-user-id-here
+VENICE_API_KEY=your-key-here
+SERVICE_API_KEY=your-key-here
+AGENT_WALLET_ADDRESS=0x...
+PREMIUM_USERS=
+VERCEL_DOMAIN=https://onpoint.vercel.app
+EOF
+
+chmod 600 /opt/onpoint/shared/api/.env
 ```
+
+### Step 2: Ensure PM2 is installed and running
 
 ```bash
-# Bridge environment
-cd /opt/onpoint/packages/agent-web-bridge
-cp .env.example .env
+npm install -g pm2
 
-# Edit with your API keys
-nano .env
-```
-
-**`.env` contents:**
-```env
-BROWSER_USE_API_KEY=bu_Uj2qzxJDVOByle9EG1rnMMHsTdOYXC-M7R1MGg-vjz8
-PURCH_API_URL=https://api.purch.xyz
-HOST=0.0.0.0
-PORT=48752
-```
-
-### Step 3: Install Dependencies
-
-```bash
-# API dependencies
-cd /opt/onpoint/apps/api
-npm install --production
-
-# Bridge dependencies
-cd /opt/onpoint/packages/agent-web-bridge
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-deactivate
-```
-
-### Step 4: Start Services with PM2
-
-```bash
 cd /opt/onpoint
-
-# Start both services
 pm2 start deploy/ecosystem.config.js
-
-# Save PM2 configuration (auto-restart on reboot)
 pm2 save
-
-# Set PM2 to startup on boot
-pm2 startup
-# Copy the command it outputs and run it
+pm2 startup   # survives reboot (already done)
 ```
 
-### Step 5: Verify Deployment
+### Step 3: Verify
 
 ```bash
-# Check status
-pm2 list
-
-# Should show:
-# ┌────┬─────────────────┬──────────┬─────────┬──────────┐
-# │ id │ name            │ status   │ cpu     │ mem      │
-# ├────┼─────────────────┼──────────┼─────────┼──────────┤
-# │ 20 │ onpoint-api     │ online   │ 0%      │ 150mb    │
-# │ 21 │ onpoint-bridge  │ online   │ 0%      │ 80mb     │
-# └────┴─────────────────┴──────────┴─────────┴──────────┘
-
-# Test health endpoint
 curl http://localhost:48751/health
-
-# Expected response:
-# {"status":"healthy","redis":"connected","timestamp":...}
-
-# Test catalog search
-curl "http://localhost:48751/api/agent/catalog?query=jacket&limit=3"
-
-# Test bridge health
-curl http://localhost:48752/health
-```
-
-### Step 6: Update Vercel App
-
-Update your Next.js app's environment variable:
-
-```bash
-# In your local dev environment
-cd apps/web
-cp .env.local .env.local.backup
-
-# Edit .env.local
-EXTERNAL_AGENT_URL=https://api.yourdomain.com
-# OR if using direct IP:
-EXTERNAL_AGENT_URL=http://your-hetzner-ip:48751
-
-# Commit and push to trigger Vercel deploy
-git add .env.local
-git commit -m "chore: point to production API"
-git push
+# {"status":"healthy","redis":"connected","version":"2.1.0",...}
 ```
 
 ---
 
-## Routine Deployment (Every Time You Want to Update)
+## Routine Deployment
 
-### Option A: Automated Script (Recommended)
+**Always run from your local machine:**
 
 ```bash
-ssh deploy@snel-bot
-cd /opt/onpoint
-./deploy/deploy.sh
+# Basic deploy
+./scripts/deploy-api.sh
+
+# Preview (dry run)
+./scripts/deploy-api.sh --dry-run
+
+# Via npm script
+pnpm deploy:api
 ```
 
-That's it! The script will:
-1. Pull latest changes
-2. Install dependencies
-3. Restart PM2 processes
-4. Show status
+The script does:
 
-### Option B: Manual Steps
+```
+ 1. npm install --production  —— local build (87MB)
+ 2. Size check                —— fail >200 MB, warn >100 MB
+ 3. rsync --delete            —— to /opt/onpoint/releases/api/<timestamp>/
+ 4. .env symlink              —— shared/api/.env → releases/api/…/.env
+ 5. Symlink flip              —— apps/api → releases/api/<timestamp>/
+ 6. pm2 reload                —— zero-downtime reload
+ 7. Health check              —— curl /health, retry up to 6× (18s)
+ 8. Auto-rollback on failure  —— flips back, reloads, verifies
+ 9. Prune old releases        —— keep last 3
+10. Disk summary              —— show usage
+```
 
-```bash
-ssh deploy@snel-bot
+### Deploy output example
 
-cd /opt/onpoint
+```
+🚀 Deploying @onpoint/api — release 20260526-130237
+📦 Building production bundle...
+📏 Checking build size: 87MB (limit: 200MB, warn: 100MB)
+📁 Preparing remote release directory...
+📤 Syncing build to remote...
+🔗 Creating .env symlink: shared/api/.env → releases/api/20260526-130237/.env
+🔗 Flipping symlink: apps/api → releases/api/20260526-130237/
+🔄 Reloading PM2 process: onpoint-api
+🏥 Running health check...
+   ✅ Health check passed (attempt 1/6)
+🧹 Pruning old releases (keeping 3)
+   Removed: 20260524-091200
+💾 Remote disk status
+   Used: 25G / 38G (69%)
 
-# Pull changes
-git pull origin master
-
-# Restart services
-pm2 restart onpoint-api
-pm2 restart onpoint-bridge
-
-# Monitor logs
-pm2 logs --lines 50
+✅ Deploy complete! Release: 20260526-130237
 ```
 
 ---
 
-## Monitoring & Maintenance
+## Utility Scripts
 
-### Real-Time Monitoring
+| Script | Purpose |
+|--------|---------|
+| `scripts/deploy-api.sh` | Full deploy pipeline (build → deploy → health check) |
+| `scripts/rollback-api.sh` | List releases, pick one, flip symlink, auto-revert on failure |
+| `scripts/setup-secrets.sh` | Hidden-input prompt for API keys, writes to server via SSH pipe |
 
-```bash
-# CPU/Memory monitoring
-pm2 monit
-
-# View all logs
-pm2 logs
-
-# Filter by service
-pm2 logs onpoint-api
-pm2 logs onpoint-bridge
-```
-
-### Health Checks
+### Rollback
 
 ```bash
-# API health
-curl http://localhost:48751/health
+# Interactive (pick from list)
+./scripts/rollback-api.sh
 
-# Bridge health
-curl http://localhost:48752/health
-
-# Redis connection
-redis-cli ping
-# Should return: PONG
+# List releases only
+./scripts/rollback-api.sh --list
 ```
 
-### Log Rotation
-
-PM2-logrotate is already installed. Configure in `~/.pm2/module_conf.json`:
-
-```json
-{
-  "max_size": "10M",
-  "retain": "7",
-  "compress": true
-}
-```
-
-### Backup Strategy
+### Setup secrets
 
 ```bash
-# Backup environment files
-tar -czf onpoint-env-backup-$(date +%Y%m%d).tar.gz \
-  /opt/onpoint/apps/api/.env.production \
-  /opt/onpoint/packages/agent-web-bridge/.env
-
-# Store securely (e.g., AWS S3, Backblaze)
+./scripts/setup-secrets.sh
 ```
+
+Prompts for each key with hidden terminal input. Nothing stored locally —
+values go directly to the server over SSH. See below for required keys.
+
+---
+
+## GitHub Actions Auto-Deploy
+
+A workflow file exists at `.github/workflows/deploy-api.yml`. To enable:
+
+1. Generate a deploy SSH key:
+   ```bash
+   ssh-keygen -t ed25519 -f ~/.ssh/onpoint-deploy
+   ssh-copy-id -i ~/.ssh/onpoint-deploy.pub deploy@snel-bot
+   ```
+
+2. Configure these secrets in GitHub:
+   - `DEPLOY_SSH_KEY` — contents of `~/.ssh/onpoint-deploy` (private key)
+   - `DEPLOY_SSH_HOST` — hostname/IP of snel-bot
+   - `DEPLOY_SSH_KNOWN_HOSTS` — output of `ssh-keyscan <host>`
+
+3. Manual deploys still work via `pnpm deploy:api` or `./scripts/deploy-api.sh`
+
+When enabled, pushes to `master` that touch `apps/api/`, `packages/`, or
+`scripts/deploy-api.sh` will auto-deploy.
+
+---
+
+## Server Cleanup (One-Time)
+
+Ran at setup to reclaim ~1 GB:
+
+| Action                              | Reclaimed |
+|-------------------------------------|-----------|
+| `rm -rf /opt/onpoint-agent-bridge`  | ~35 MB    |
+| `sudo journalctl --vacuum-time=7d`  | ~637 MB   |
+| `pm2 flush`                         | varies    |
+| `sudo apt-get clean`                | minor     |
+| **Total**                           | **~1 GB** |
+
+Consider adding a weekly cron:
+
+```bash
+0 3 * * 0 sudo journalctl --vacuum-time=7d && sudo apt-get clean -y
+```
+
+---
+
+## Disk Budget
+
+| Threshold  | Action                  |
+|------------|-------------------------|
+| >100 MB    | Warning in deploy log   |
+| >200 MB    | Deploy fails            |
+| >20% grow  | Alert (future GH Action)|
+
+We keep the last **3 releases**. At ~87 MB each that's ~261 MB budgeted for
+release history. Old releases are pruned automatically on each deploy.
+
+---
+
+## Security
+
+- **`.env*` files are excluded from rsync** — secrets never leave the server
+- **`shared/api/.env`** is the single source of truth for secrets
+- **`setup-secrets.sh`** writes secrets directly over SSH — never stored locally
+- **No git pull on deploy** — builds are deterministic from local lockfile
+- **No pnpm on the server** — the deploy bundle is self-contained
+- **`pm2 save + startup`** ensures process lineup survives reboot
+- **`chmod 600`** on shared `.env` restricts access to the deploy user
 
 ---
 
 ## Troubleshooting
 
-### Service Won't Start
+### PM2 won't start
 
 ```bash
-# Check PM2 logs
-pm2 logs onpoint-api --err
-
-# Common issues:
-# 1. Port already in use
-lsof -i :48751
-
-# 2. Missing dependencies
-cd /opt/onpoint/apps/api && npm install
-
-# 3. Environment variables missing
-cat /opt/onpoint/apps/api/.env.production
+ssh snel-bot
+cd /opt/onpoint
+pm2 logs onpoint-api --err --lines 50
 ```
 
-### High Memory Usage
+### Symlink broken
 
 ```bash
-# Monitor memory
-pm2 monit
+ssh snel-bot
+ls -la /opt/onpoint/apps/api   # check where it points
+readlink /opt/onpoint/apps/api # resolve target
+```
 
-# If >400MB, reduce instances
-# Edit deploy/ecosystem.config.js:
-#   instances: 1  # Change from 2 to 1
+### Rollback needed
 
+```bash
+./scripts/rollback-api.sh
+```
+
+Or manually:
+```bash
+ssh snel-bot
+cd /opt/onpoint
+ls -1t releases/api/ | head -5
+ln -sfn /opt/onpoint/releases/api/<previous-ts> /opt/onpoint/apps/api
 pm2 reload onpoint-api
 ```
-
-### Redis Connection Issues
-
-```bash
-# Check Redis is running
-redis-cli ping
-
-# If not responding:
-sudo systemctl status redis
-sudo systemctl restart redis
-
-# Verify connection string in .env.production
-REDIS_URL=redis://localhost:6379
-```
-
-### Rollback to Previous Version
-
-```bash
-cd /opt/onpoint
-
-# Find previous good commit
-git log --oneline -10
-
-# Checkout that commit
-git checkout abc1234
-
-# Restart services
-pm2 restart all
-
-# Deploy as normal when ready
-git checkout master
-./deploy/deploy.sh
-```
-
----
-
-## Security Best Practices
-
-### 1. Firewall Configuration
-
-```bash
-# Allow only necessary ports
-sudo ufw allow 22/tcp      # SSH
-sudo ufw allow 80/tcp      # HTTP (for SSL termination)
-sudo ufw allow 443/tcp     # HTTPS
-sudo ufw deny 48751        # API - internal only
-sudo ufw deny 48752        # Bridge - internal only
-sudo ufw enable
-```
-
-### 2. Environment Variable Security
-
-```bash
-# Restrict access to .env files
-chmod 600 /opt/onpoint/apps/api/.env.production
-chmod 600 /opt/onpoint/packages/agent-web-bridge/.env
-chown deploy:deploy /opt/onpoint/apps/api/.env.production
-```
-
-### 3. Regular Updates
-
-```bash
-# Weekly security updates
-sudo apt update && sudo apt upgrade -y
-
-# Monthly dependency updates
-cd /opt/onpoint/apps/api && npm update
-cd /opt/onpoint/packages/agent-web-bridge && pip install --upgrade -r requirements.txt
-```
-
-### 4. Monitoring Suspicious Activity
-
-```bash
-# Check failed login attempts
-sudo grep "Failed password" /var/log/auth.log | tail -20
-
-# Monitor PM2 for crashes
-pm2 logs --err | grep -i "error\|exception"
-```
-
----
-
-## Performance Optimization
-
-### Enable Gzip Compression
-
-Add to your reverse proxy (Nginx/Caddy):
-
-```nginx
-gzip on;
-gzip_types application/json text/plain;
-gzip_min_length 1000;
-```
-
-### Cache Static Responses
-
-In your Express app, add Redis caching:
-
-```javascript
-// Example: cache catalog searches for 1 hour
-const cached = await redis.get(`catalog:${query}`);
-if (cached) return JSON.parse(cached);
-
-// ...fetch results...
-
-await redis.setex(`catalog:${query}`, 3600, JSON.stringify(results));
-```
-
-### Database Optimization (Future)
-
-When you add PostgreSQL:
-- Run on same VPS (localhost = fast)
-- Use connection pooling
-- Add indexes on frequently queried columns
-
----
-
-## Cost Breakdown
-
-| Resource | Current | After Migration | Savings |
-|----------|---------|-----------------|---------|
-| Vercel (API routes) | ~$20/mo | $0 | $20/mo |
-| Upstash Redis | ~$10/mo | $0 (use existing) | $10/mo |
-| Cloud Run (Bridge) | ~$5-30/mo | $0 | $5-30/mo |
-| Hetzner VPS | Already owned | Already owned | $0 |
-| **Total** | **$35-60/mo** | **$0** | **$35-60/mo** |
-
-**Annual savings: $420-720**
-
----
-
-## Next Steps
-
-1. ✅ Review this guide
-2. ✅ Run initial setup (30 min)
-3. ✅ Test with small traffic (10-100 requests)
-4. ✅ Monitor for 24 hours
-5. ✅ Switch production traffic
-6. ✅ Celebrate! 🎉
-
----
-
-## Support
-
-If you encounter issues:
-1. Check logs: `pm2 logs`
-2. Review troubleshooting section above
-3. Check server resources: `htop`, `df -h`, `free -h`
-4. Verify Redis: `redis-cli ping`
-
-**Emergency rollback:** Just update `EXTERNAL_AGENT_URL` in Vercel back to old URL.

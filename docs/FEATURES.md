@@ -219,6 +219,13 @@ When the internal catalog doesn't have a match, the agent browses the open web:
 - **Gas monitoring**: Alerts when CELO balance drops below 0.5 (warn) or 0.01 (critical)
 - **Self-management dashboard**: `GET /api/agent/dashboard` — public transparency for judges
 
+## Phase 3 Architecture: All Agent Routes on Hetzner
+
+All 16 ported agent routes run directly on Hetzner Express, backed by `@repo/agent-core`:
+- **Auth**: `SERVICE_API_KEY` on stateful endpoints; public GET for dashboard/identity/catalog
+- **User context**: Forwarded from Vercel via `x-forwarded-user` header, validated by service key
+- **Deploy**: `pnpm deploy --legacy` resolves workspace dependencies (`workspace:*` protocol)
+
 ## Feature Matrix
 
 | Feature                  | Web | Chrome Ext | Mini App | Status   |

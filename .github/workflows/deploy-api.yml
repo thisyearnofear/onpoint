@@ -1,0 +1,86 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'apps/api/**'
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/deploy-api.yml'
+      - 'scripts/deploy-api.sh'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Preview the deploy without applying changes'
+        type: boolean
+        default: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.repository == 'thisyearnofear/onpoint'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate secrets
+        run: |
+          MISSING=""
+          if [[ -z "${{ secrets.DEPLOY_SSH_HOST }}" ]]; then
+            echo "::error::DEPLOY_SSH_HOST not set"
+            MISSING="1"
+          fi
+          if [[ -z "${{ secrets.DEPLOY_SSH_KEY }}" ]]; then
+            echo "::error::DEPLOY_SSH_KEY not set"
+            MISSING="1"
+          fi
+          if [[ -z "${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}" ]]; then
+            echo "::error::DEPLOY_SSH_KNOWN_HOSTS not set — get it with: ssh-keyscan <host>"
+            MISSING="1"
+          fi
+          if [[ -n "$MISSING" ]]; then
+            echo "Configure these in: https://github.com/$(echo ${{ github.repository }} | cut -d/ -f1-2)/settings/secrets/actions"
+            exit 1
+          fi
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          cat > ~/.ssh/id_ed25519 << 'SSHKEY'
+${{ secrets.DEPLOY_SSH_KEY }}
+SSHKEY
+          chmod 600 ~/.ssh/id_ed25519
+          cat > ~/.ssh/known_hosts << 'KNOWNHOSTS'
+${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}
+KNOWNHOSTS
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Test SSH connection
+        run: |
+          ssh -o ConnectTimeout=10 "${{ secrets.DEPLOY_SSH_HOST }}" "echo ok" || {
+            echo "::error::Cannot SSH to DEPLOY_SSH_HOST — check the SSH key and host"
+            exit 1
+          }
+
+      - name: Deploy API
+        env:
+          ONPOINT_SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+        run: |
+          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
+            bash scripts/deploy-api.sh --dry-run
+          else
+            bash scripts/deploy-api.sh
+          fi
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::Deploy failed — check the logs above for details."
+          echo "To rollback from your local machine: bash scripts/rollback-api.sh"
+          echo "To rollback via SSH directly: ssh \"\$ONPOINT_SSH_HOST\" ls -lt /opt/onpoint/releases/api/"

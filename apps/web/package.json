@@ -25,6 +25,7 @@
     "@open-wallet-standard/core": "1.2.4",
     "@pigment-css/react": "0.0.30",
     "@rainbow-me/rainbowkit": "^2.2.9",
+    "@repo/agent-core": "workspace:*",
     "@repo/ai-client": "workspace:*",
     "@repo/blockchain-client": "workspace:*",
     "@repo/ipfs-client": "workspace:*",
