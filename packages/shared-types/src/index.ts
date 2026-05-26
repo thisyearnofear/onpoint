@@ -27,6 +27,9 @@ export { MemoryAPIClient, MemoryUtils } from './memory-client';
 // Re-export fashion category enum
 export { FashionCategory } from './fashion-category';
 
+// Re-export wallet adapter
+export * from './wallet-adapter';
+
 // Re-export fashion data and utilities
 export * from './fashion-data';
 

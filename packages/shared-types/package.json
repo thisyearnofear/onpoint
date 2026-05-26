@@ -20,5 +20,8 @@
     "@repo/typescript-config": "workspace:*",
     "tsup": "8.5.1",
     "typescript": "5.9.2"
+  },
+  "dependencies": {
+    "viem": "^2.21.0"
   }
 }

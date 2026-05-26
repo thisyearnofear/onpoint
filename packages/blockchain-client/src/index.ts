@@ -7,6 +7,12 @@ import {
   type Chain,
 } from "viem";
 import { SplitsClient } from "@0xsplits/splits-sdk";
+import { type WalletAdapter } from "@onpoint/shared-types";
+
+export { type WalletAdapter, type WalletAdapterType } from "@onpoint/shared-types";
+export { createWalletAdapter } from './factory';
+export { StandardWalletAdapter } from './adapters/standard-adapter';
+export { MiniPayAdapter } from './adapters/minipay-adapter';
 
 export interface NetworkConfig {
   chainId: number;
@@ -38,24 +44,29 @@ export interface CreateSplitParams {
   controller?: Address; // defaults to 0x0 (immutable)
 }
 
-// Initialize 0xSplits client
+// Initialize 0xSplits client.
+// Accepts a WalletAdapter so that all transactions (including split creation)
+// are routed through the adapter's sendTransaction (preserving feeCurrency
+// injection for MiniPay).
 export function createSplitsClient(
   chainId: number,
   publicClient: PublicClient,
-  walletClient?: WalletClient,
+  walletAdapterOrClient?: WalletAdapter | WalletClient,
 ): SplitsClient {
-  // Extract the chain from the public client
-  const chain = publicClient.chain;
+  let walletClientForSplits: WalletClient | undefined;
 
-  // Create a new public client with the chain explicitly set if it's missing
-  const clientWithChain = chain
-    ? publicClient
-    : { ...publicClient, chain: undefined };
+  if (walletAdapterOrClient && 'wrapForSdk' in walletAdapterOrClient) {
+    // It's a WalletAdapter — wrap it so sendTransaction is routed through the adapter
+    walletClientForSplits = walletAdapterOrClient.wrapForSdk();
+  } else {
+    // Legacy path: raw WalletClient passed directly
+    walletClientForSplits = walletAdapterOrClient as WalletClient | undefined;
+  }
 
   return new SplitsClient({
     chainId,
     publicClient: publicClient as any,
-    walletClient: walletClient as any,
+    walletClient: walletClientForSplits as any,
   });
 }
 
@@ -100,15 +111,16 @@ const ONPOINT_NFT_ABI = [
 
 // Mint NFT with 0xSplits royalty integration
 export async function mintNFTWithSplit(
-  walletClient: WalletClient,
+  walletAdapter: WalletAdapter,
   publicClient: PublicClient,
   contractAddress: Address,
   metadataUri: string,
   splitParams: CreateSplitParams,
   splitsClient: SplitsClient,
+  royaltyBps: number = 500,
 ): Promise<MintResult> {
   try {
-    const [account] = await walletClient.getAddresses();
+    const account = await walletAdapter.getAddress();
     if (!account) throw new Error("No account connected");
 
     // 1. Create split for royalty distribution
@@ -117,16 +129,16 @@ export async function mintNFTWithSplit(
 
     console.log("Split created at:", splitAddress, "tx:", splitTxHash);
 
-    // 2. Mint NFT using the split address for royalties (default 500 bps = 5%)
+    // 2. Mint NFT using the split address for royalties
     const { request } = await publicClient.simulateContract({
       account,
       address: contractAddress,
       abi: ONPOINT_NFT_ABI,
       functionName: "mintWithRoyalty",
-      args: [account, metadataUri, splitAddress, BigInt(500)],
+      args: [account, metadataUri, splitAddress, BigInt(royaltyBps)],
     });
 
-    const hash = await walletClient.writeContract(request);
+    const hash = await walletAdapter.sendTransaction(request as any);
 
     // Wait for transaction
     const receipt = await publicClient.waitForTransactionReceipt({ hash });

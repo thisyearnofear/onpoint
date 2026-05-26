@@ -31,7 +31,7 @@ import {
   type ChainName,
 } from "../../../../config/chains";
 import { getAgentWallet } from "../../../../lib/services/agent-wallet";
-import { mintNFTWithSplit, createSplitsClient } from "@repo/blockchain-client";
+import { mintNFTWithSplit, createSplitsClient, StandardWalletAdapter } from "@repo/blockchain-client";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 import { recordReceipt } from "../../../../lib/services/agent-registry";
 import { logger } from "../../../../lib/utils/logger";
@@ -222,14 +222,16 @@ export async function POST(
         transport: http(rpcUrl),
       });
 
+      const walletAdapter = new StandardWalletAdapter(walletClient as any);
+
       const splitsClient = createSplitsClient(
         chainConfig.id,
         publicClient as any,
-        walletClient as any,
+        walletAdapter,
       );
 
       const result = await mintNFTWithSplit(
-        walletClient as any,
+        walletAdapter,
         publicClient as any,
         nftContract as Address,
         metadataUri,
@@ -240,8 +242,8 @@ export async function POST(
           ],
         },
         splitsClient,
+        royaltyBps,
       );
-
       // Record the spending
       AgentControls.recordSpending(
         agentId,
