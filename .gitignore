@@ -43,6 +43,11 @@ yarn-error.log*
 .zenflow/
 .qodo/
 .qwen/
+.commandcode/
+.cursor/
+.copilot/
+.aider/
+.claude/
 
 # pnpm
 # pnpm-lock.yaml removed to allow deterministic cloud builds
