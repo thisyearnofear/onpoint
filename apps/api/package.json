@@ -9,8 +9,8 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
-    "@repo/agent-core": "workspace:*",
     "@onpoint/shared-types": "workspace:*",
+    "@repo/agent-core": "workspace:*",
     "@repo/blockchain-client": "workspace:*",
     "@sentry/node": "^9.12.0",
     "cors": "^2.8.5",
@@ -22,6 +22,8 @@
     "viem": "^2.21.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "nodemon": "^3.0.2",
+    "supertest": "7.2.2",
+    "vitest": "4.1.0"
   }
 }
