@@ -25,7 +25,6 @@
   "dependencies": {
     "@onpoint/shared-types": "workspace:*",
     "@0xsplits/splits-sdk": "^4.1.3",
-    "viem": "^2.21.0",
-    "wagmi": "^2.14.0"
+    "viem": "^2.21.0"
   }
 }
