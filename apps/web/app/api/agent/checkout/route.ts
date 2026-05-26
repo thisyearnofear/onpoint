@@ -37,6 +37,7 @@ import { getAgentWallet } from "../../../../lib/services/agent-wallet";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 import { logger } from "../../../../lib/utils/logger";
 import { saveOrder } from "../../../../lib/services/order-service";
+import { recordReceipt } from "../../../../lib/services/agent-registry";
 import {
   buildPaymentRequirements,
   getPaymentHeader,
@@ -382,6 +383,35 @@ export async function POST(
         agentId: referringAgentId,
       });
       await persistCommission(commissionRecord);
+
+      // Record verifiable agent receipt onchain
+      try {
+        await recordReceipt({
+          action: "propose_mint_nft",
+          sessionId: orderId,
+          metadata: {
+            items: resolvedItems.map((i) => ({
+              productId: i.productId,
+              name: i.name,
+              quantity: i.quantity,
+              subtotal: i.subtotal,
+            })),
+            totalAmount,
+            commissions: split.recipients.map((r) => ({
+              label: r.label,
+              percentBps: r.percentBps,
+              amount: r.amount.toString(),
+              address: r.address,
+            })),
+            chain,
+          },
+          txHash: txHashes[0] ?? undefined,
+          chain,
+          onChain: true,
+        });
+      } catch (receiptErr) {
+        logger.warn("Failed to record checkout receipt", { component: "checkout" }, receiptErr);
+      }
 
       // Persist order for history
       await saveOrder({

@@ -60,11 +60,14 @@ OnPoint is a monorepo containing a Next.js web app, AI provider abstractions, an
 │  📷 Camera     →  🧠 AI Provider    →  💡 Suggestion Toast  │
 │  (live video)     (vision analysis)    (auto-approve < $5)   │
 │       ↓                ↓                      ↓              │
-│  Style Memory  ←  Track prefs    →   🛒 Cart + Checkout     │
-│  (personalize)    (categories)        (onchain payment)      │
+│  Style Memory  ←  Track prefs    →   ⚡ Autonomous Exec    │
+│  (personalize)    (categories)        (sign + broadcast)     │
 │                                          ↓                   │
-│                                    💰 Commission Split       │
-│                                    (seller/platform/agent)   │
+│                                    🛒 Cart + Checkout        │
+│                                    (onchain payment)         │
+│                                          ↓                   │
+│                                    � Verifiable Receipt     │
+│                                    (IPFS + Celo memo tx)     │
 │       ↓                ↓                      ↓              │
 │  🌐 Web Bridge ←  No Match Found  ←  🔐 Agent Wallet        │
 │  (Browser Use)    (Market Search)     (multi-chain)          │
@@ -75,14 +78,18 @@ OnPoint is a monorepo containing a Next.js web app, AI provider abstractions, an
 
 These modules live in `apps/web/lib/` and are designed to be extracted into any agent project:
 
-| Module                | File                                        | Purpose                                                  |
-| --------------------- | ------------------------------------------- | -------------------------------------------------------- |
-| **Agent Controls**    | `middleware/agent-controls.ts`              | Spending limits, autonomy thresholds, approval workflows |
-| **State Persistence** | `middleware/agent-store.ts`                 | Redis-backed storage with write-through cache            |
-| **Commission Splits** | `utils/commissions.ts`                      | Four-tier revenue distribution calculator                |
-| **Suggestion Toast**  | `components/Agent/AgentSuggestionToast.tsx` | Time-bounded agent-to-user proposals                     |
-| **Style Memory**      | `fashion-data.ts` (getRecommendedItems)     | Preference tracking + personalized scoring               |
-| **Agent Wallet**      | `services/agent-wallet.ts`                  | Multi-chain self-custodial wallet service                |
+| Module                      | File                                        | Purpose                                                  |
+| --------------------------- | ------------------------------------------- | -------------------------------------------------------- |
+| **Agent Controls**          | `middleware/agent-controls.ts`            | Spending limits, autonomy thresholds, approval workflows |
+| **Autonomous Executor**     | `services/autonomous-executor.ts`          | Signs and broadcasts accepted suggestions onchain      |
+| **State Persistence**       | `middleware/agent-store.ts`                 | Redis-backed storage with write-through cache            |
+| **Commission Splits**       | `utils/commissions.ts`                      | Four-tier revenue distribution calculator                |
+| **Suggestion Toast**        | `components/Agent/AgentSuggestionToast.tsx` | Time-bounded agent-to-user proposals                     |
+| **Style Memory**            | `fashion-data.ts` (getRecommendedItems)     | Preference tracking + personalized scoring               |
+| **Agent Wallet**            | `services/agent-wallet.ts`                  | Multi-chain self-custodial wallet service (WDK + OWS)  |
+| **Self Protocol**           | `services/self-protocol.ts`                 | Self Agent ID registration and verification            |
+| **Heartbeat Loop**          | `api/agent/heartbeat/route.ts`            | Proactive gas monitoring, fraud checks, receipt logging  |
+| **Agent Dashboard**         | `api/agent/dashboard/route.ts`            | Public transparency endpoint for judges                  |
 
 ## AI Provider Abstraction
 
@@ -126,8 +133,11 @@ The bridge is an isolated Python FastAPI service using Browser Use Cloud V3 with
 
 ## Security Model
 
-- **Autonomy threshold**: Actions under $5 auto-execute; above requires user approval
+- **Autonomy threshold**: Actions under $5 cUSD auto-execute via `autonomous-executor.ts`; above requires user approval
+- **Autonomous execution flow**: Accepted suggestion → `executeSuggestion()` → agent wallet signs → onchain broadcast → verifiable receipt
 - **Policy-gated signing**: OWS layer enforces spend limits before any transaction
-- **Verifiable logs**: Agent decisions cryptographically signed and stored on IPFS/Filecoin
+- **Fraud detection**: Dead Man's Switch heartbeat, velocity checks, anomaly scoring, multi-sig for >$500
+- **Verifiable logs**: Every autonomous action signed by agent wallet, stored on IPFS/Filecoin, with optional Celo memo tx
+- **Self Protocol identity**: Agent registered with Self Agent ID for Proof of Humanity compliance
 - **Zero data retention**: Venice AI provider doesn't store user data
 - **Auth0 Token Vault**: Secure credential delegation for AI agent shopping actions

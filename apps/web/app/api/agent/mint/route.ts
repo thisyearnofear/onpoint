@@ -33,6 +33,7 @@ import {
 import { getAgentWallet } from "../../../../lib/services/agent-wallet";
 import { mintNFTWithSplit, createSplitsClient } from "@repo/blockchain-client";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
+import { recordReceipt } from "../../../../lib/services/agent-registry";
 import { logger } from "../../../../lib/utils/logger";
 export { OPTIONS } from "../../ai/_utils/http";
 
@@ -248,6 +249,26 @@ export async function POST(
         "mint" as ActionType,
         estimatedGasWei,
       );
+
+      // Record verifiable agent receipt onchain
+      try {
+        await recordReceipt({
+          action: "mint_nft",
+          sessionId: `mint_${Date.now()}`,
+          metadata: {
+            userAddress,
+            tokenId: result.tokenId,
+            chain,
+            splitAddress: result.splitAddress,
+            royaltyRecipient: royaltyAddr,
+          },
+          txHash: result.transactionHash,
+          chain,
+          onChain: true,
+        });
+      } catch (receiptErr) {
+        logger.warn("Failed to record mint receipt", { component: "mint" }, receiptErr);
+      }
 
       return NextResponse.json(
         {

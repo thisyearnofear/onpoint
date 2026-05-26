@@ -91,6 +91,28 @@ The core "sees → judges → shops" flow is live at https://beonpoint.netlify.a
 - Agent wallet usage patterns
 - Conversion funnel optimization
 
+### Autonomous Agent Infrastructure ✅
+> **Hackathon**: Celo Proof of Ship Season 2 — AI Agent Track
+
+OnPoint now executes agent suggestions **autonomously onchain** with full verifiable receipts.
+
+#### Completed
+- [x] **Self Protocol Integration** — Agent registered with Self Agent ID (`onpoint-agent-35962`)
+  - `lib/services/self-protocol.ts` — registration + verification
+  - `GET /api/agent/identity` — unified ERC-8004 + Self identity
+- [x] **Autonomous Execution Engine** — Suggestions execute onchain without manual steps
+  - `lib/services/autonomous-executor.ts` — `executeSuggestion()` signs + broadcasts
+  - Auto-executes below-threshold suggestions immediately
+  - Manual-accepted suggestions trigger onchain execution via PATCH
+  - Supports `mint`, `purchase`, `tip` with full receipt logging
+- [x] **Agent Heartbeat Loop** — Self-monitoring endpoint
+  - `POST /api/agent/heartbeat` — gas checks, fraud heartbeat, proactive tasks
+  - `GET /api/agent/heartbeat` — public health status
+- [x] **Agent Dashboard** — Public transparency for judges
+  - `GET /api/agent/dashboard` — wallet health, receipt count, compliance flags
+- [x] **Verifiable Receipts in All Flows** — Mint, purchase, checkout all record receipts
+  - Signed by agent wallet, uploaded to IPFS, optional Celo memo tx
+
 ### Phase 9: Auth0 for AI Agents — Token Vault Integration 🎯
 > **Hackathon**: [Authorized to Act](https://authorizedtoact.devpost.com/) — $10,000 prize pool
 

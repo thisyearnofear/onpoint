@@ -93,6 +93,7 @@ When the internal catalog doesn't have a match, the agent browses the open web:
 
 - $5 micro-action threshold auto-approves web discovery tasks (~$0.10/action)
 - Isolated Python microservice for browser automation
+- **Autonomous execution**: Below-threshold suggestions execute onchain immediately without user interaction
 
 ---
 
@@ -100,8 +101,16 @@ When the internal catalog doesn't have a match, the agent browses the open web:
 
 ### Autonomy Threshold
 
-- **Under $5**: Auto-execute without interrupting the user
-- **Over $5**: Creates approval request → user accepts/rejects via toast
+- **Under $5 cUSD**: Auto-execute onchain via `autonomous-executor.ts` without interrupting the user
+- **Over $5 cUSD**: Creates approval request → user accepts/rejects via toast → onchain execution on accept
+- Configurable per `agentId:userId` via `AgentControls.setAutonomyThreshold()`
+
+### Autonomous Execution Engine
+
+- `executeSuggestion()` resolves agent wallet, signs transaction, broadcasts to Celo mainnet
+- Supports `mint`, `purchase`, `tip` actions with full onchain receipts
+- Records spending via `AgentControls.recordSpending()`
+- Falls back gracefully if `AGENT_PRIVATE_KEY` is not configured
 
 ### Suggestion Toast System
 
@@ -109,12 +118,14 @@ When the internal catalog doesn't have a match, the agent browses the open web:
 - Auto-approve badge for sub-threshold actions
 - Smart gating: 30s cooldown, item-type dedup, 15s session warmup
 - `useAgentSuggestions` hook: polls API, manages current suggestion state
+- Displays execution result (txHash, explorer link) after onchain broadcast
 
 ### Verifiable Agent Logs
 
-- Every agent decision cryptographically signed (Tether WDK wallet)
-- Signed receipts stored on IPFS/Filecoin via Lighthouse
-- "View on IPFS" links in the UI for full auditability
+- Every autonomous action cryptographically signed by the agent's self-custodial wallet
+- Signed receipts stored on **IPFS/Filecoin** via Lighthouse with CID in UI
+- **Onchain receipts**: Optional Celo memo transaction encodes receipt JSON for tamper-proof audit trail
+- **Public dashboard**: `GET /api/agent/dashboard` exposes all receipts for judges
 - Follows ERC-8004 "Agents with Receipts" pattern
 
 ---
@@ -194,17 +205,34 @@ When the internal catalog doesn't have a match, the agent browses the open web:
 
 ---
 
+## Self Protocol Identity
+
+- **Self Agent ID**: `onpoint-agent-35962` registered via `lib/services/self-protocol.ts`
+- **ERC-8004 Agent ID**: `35962` on Base registry
+- **Unified identity endpoint**: `GET /api/agent/identity` returns both registrations + compliance flags
+- Mock registration fallback for demo environments (no Self API key required)
+
+## Agent Heartbeat & Self-Management
+
+- **Heartbeat endpoint**: `POST /api/agent/heartbeat` — agent monitors its own gas, fraud status, and proactive tasks
+- **Dead Man's Switch**: Records heartbeat every 5 min; freezes agent after 15 min of silence
+- **Gas monitoring**: Alerts when CELO balance drops below 0.5 (warn) or 0.01 (critical)
+- **Self-management dashboard**: `GET /api/agent/dashboard` — public transparency for judges
+
 ## Feature Matrix
 
-| Feature               | Web | Chrome Ext | Mini App | Status   |
-| --------------------- | --- | ---------- | -------- | -------- |
-| AI Stylist (Text)     | ✅  | ✅         | ✅       | Complete |
-| Live AR Stylist       | ✅  | -          | -        | Complete |
-| Virtual Try-On        | ✅  | ✅         | -        | Complete |
-| Smart Recommendations | ✅  | ✅         | ✅       | Complete |
-| Agent Web Discovery   | ✅  | -          | -        | Complete |
-| Spending Controls     | ✅  | ✅         | ✅       | Complete |
-| Style Memory          | ✅  | ✅         | ✅       | Complete |
-| NFT Minting           | ✅  | -          | ✅       | Complete |
-| Social Sharing        | ✅  | ✅         | ✅       | Complete |
-| Agentic Tipping       | ✅  | -          | -        | Complete |
+| Feature                  | Web | Chrome Ext | Mini App | Status   |
+| ------------------------ | --- | ---------- | -------- | -------- |
+| AI Stylist (Text)        | ✅  | ✅         | ✅       | Complete |
+| Live AR Stylist          | ✅  | -          | -        | Complete |
+| Virtual Try-On           | ✅  | ✅         | -        | Complete |
+| Smart Recommendations    | ✅  | ✅         | ✅       | Complete |
+| Agent Web Discovery      | ✅  | -          | -        | Complete |
+| **Autonomous Execution** | ✅  | -          | -        | Complete |
+| **Self Protocol ID**     | ✅  | -          | -        | Complete |
+| **Agent Heartbeat**      | ✅  | -          | -        | Complete |
+| Spending Controls        | ✅  | ✅         | ✅       | Complete |
+| Style Memory             | ✅  | ✅         | ✅       | Complete |
+| NFT Minting              | ✅  | -          | ✅       | Complete |
+| Social Sharing           | ✅  | ✅         | ✅       | Complete |
+| Agentic Tipping          | ✅  | -          | -        | Complete |

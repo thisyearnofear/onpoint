@@ -22,6 +22,7 @@ import { logger } from "../../../../lib/utils/logger";
 import { corsHeaders } from "../../ai/_utils/http";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 import { VerifiableAgentService } from "../../../../lib/services/verifiable-agent-service";
+import { executeSuggestion } from "../../../../lib/services/autonomous-executor";
 export { OPTIONS } from "../../ai/_utils/http";
 
 // Request schemas
@@ -165,12 +166,59 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         // Continue anyway - don't block the user if IPFS is down
       }
 
+      // AUTONOMOUS EXECUTION: if auto-approved, execute immediately
+      let executionResult: Awaited<ReturnType<typeof executeSuggestion>> | undefined;
+      if (result.autoExecuted && result.suggestion.actionType !== "external_search") {
+        logger.info("Auto-executing suggestion", {
+          component: "suggestion",
+          suggestionId: result.suggestion.id,
+          actionType: result.suggestion.actionType,
+        });
+
+        executionResult = await executeSuggestion({
+          agentId: result.suggestion.agentId,
+          userId: ctx.userId,
+          userAddress: ctx.userId || result.suggestion.recipient || "",
+          actionType: result.suggestion.actionType,
+          amount: result.suggestion.amount,
+          description: result.suggestion.description,
+          recipient: result.suggestion.recipient,
+          metadata: result.suggestion.metadata,
+          suggestionId: result.suggestion.id,
+        });
+
+        if (executionResult.success) {
+          AgentControls.markSuggestionExecuted(result.suggestion.id, ctx.userId);
+          logger.info("Auto-execution succeeded", {
+            component: "suggestion",
+            suggestionId: result.suggestion.id,
+            txHash: executionResult.txHash,
+          });
+        } else {
+          logger.error("Auto-execution failed", {
+            component: "suggestion",
+            suggestionId: result.suggestion.id,
+            error: executionResult.error,
+          });
+        }
+      }
+
       return NextResponse.json(
         {
           suggestion: result.suggestion,
           autoExecuted: result.autoExecuted,
+          executed: executionResult
+            ? {
+                success: executionResult.success,
+                txHash: executionResult.txHash,
+                explorerUrl: executionResult.explorerUrl,
+                error: executionResult.error,
+              }
+            : undefined,
           message: result.autoExecuted
-            ? "Action auto-approved (below autonomy threshold)"
+            ? executionResult?.success
+              ? "Action auto-approved and executed onchain"
+              : "Action auto-approved but execution failed"
             : "Suggestion created - awaiting user approval",
         },
         { status: 201, headers: corsHeaders(origin) },
@@ -212,9 +260,49 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       }
 
       let success: boolean;
+      let executionResult: Awaited<ReturnType<typeof executeSuggestion>> | undefined;
 
       if (action === "accept") {
         success = AgentControls.acceptSuggestion(id, ctx.userId);
+
+        // AUTONOMOUS EXECUTION: if accepted, execute the action onchain
+        if (success) {
+          const suggestion = AgentControls.getSuggestion(id);
+          if (suggestion && suggestion.actionType !== "external_search") {
+            logger.info("Autonomous execution starting", {
+              component: "suggestion",
+              suggestionId: id,
+              actionType: suggestion.actionType,
+            });
+
+            executionResult = await executeSuggestion({
+              agentId: suggestion.agentId,
+              userId: ctx.userId,
+              userAddress: ctx.userId || suggestion.recipient || "",
+              actionType: suggestion.actionType,
+              amount: suggestion.amount,
+              description: suggestion.description,
+              recipient: suggestion.recipient,
+              metadata: suggestion.metadata,
+              suggestionId: id,
+            });
+
+            if (executionResult.success) {
+              AgentControls.markSuggestionExecuted(id, ctx.userId);
+              logger.info("Autonomous execution succeeded", {
+                component: "suggestion",
+                suggestionId: id,
+                txHash: executionResult.txHash,
+              });
+            } else {
+              logger.error("Autonomous execution failed", {
+                component: "suggestion",
+                suggestionId: id,
+                error: executionResult.error,
+              });
+            }
+          }
+        }
       } else {
         success = AgentControls.rejectSuggestion(id, ctx.userId);
       }
@@ -229,7 +317,17 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       const updatedSuggestion = AgentControls.getSuggestion(id);
 
       return NextResponse.json(
-        { suggestion: updatedSuggestion },
+        {
+          suggestion: updatedSuggestion,
+          executed: executionResult
+            ? {
+                success: executionResult.success,
+                txHash: executionResult.txHash,
+                explorerUrl: executionResult.explorerUrl,
+                error: executionResult.error,
+              }
+            : undefined,
+        },
         { status: 200, headers: corsHeaders(origin) },
       );
     } catch (error) {

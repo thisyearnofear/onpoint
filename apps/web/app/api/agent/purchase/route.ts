@@ -20,6 +20,7 @@ import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import { corsHeaders } from "../../ai/_utils/http";
 import { PLATFORM_WALLET, getExplorerUrl } from "../../../../config/chains";
 import { getAgentWallet } from "../../../../lib/services/agent-wallet";
+import { recordReceipt } from "../../../../lib/services/agent-registry";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 import { logger } from "../../../../lib/utils/logger";
 export { OPTIONS } from "../../ai/_utils/http";
@@ -304,6 +305,27 @@ export async function POST(
 
       // Generate purchase ID
       const purchaseId = `purchase_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+      // Record verifiable agent receipt onchain
+      try {
+        await recordReceipt({
+          action: "propose_mint_nft",
+          sessionId: purchaseId,
+          metadata: {
+            productId: product.id,
+            productName: product.name,
+            quantity,
+            totalAmount: transferResult.amount,
+            recipient: product.seller,
+            chain,
+          },
+          txHash: transferResult.hash,
+          chain,
+          onChain: true,
+        });
+      } catch (receiptErr) {
+        logger.warn("Failed to record purchase receipt", { component: "purchase" }, receiptErr);
+      }
 
       // Return success
       return NextResponse.json(
