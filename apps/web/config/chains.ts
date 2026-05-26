@@ -26,7 +26,7 @@ export type ChainName =
  * and update both this address and AGENT_PRIVATE_KEY in .env.local.
  */
 export const AGENT_WALLET =
-  "0xC9A025Fb607b455308bCb6f35a0F484f016C776b" as Address;
+  "0x5b33E63440e95289207120B94da78CE22F9D24fB" as Address;
 
 /** @deprecated Platform fee wallet — now routed to AGENT_WALLET */
 export const PLATFORM_WALLET = AGENT_WALLET;

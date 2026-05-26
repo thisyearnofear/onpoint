@@ -85,16 +85,16 @@ const AGENT_REGISTRY_ADDRESS = "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432";
 
 /** Our agent's identity */
 const ONPOINT_AGENT: AgentIdentity = {
-  agentId: 35962,
+  agentId: 9177,
   name: "OnPoint AI Stylist",
   walletAddress:
     process.env.AGENT_WALLET_ADDRESS ||
-    "0xC9A025Fb607b455308bCb6f35a0F484f016C776b",
+    "0x5b33E63440e95289207120B94da78CE22F9D24fB",
   registryAddress: AGENT_REGISTRY_ADDRESS,
   registrationTxHash:
-    "0x04034211a79a65c701d1362359dace27b4f5f0588b515bb344c2331f77f1e555",
+    "0x536940e8b9167776a7e2951c9f427ee0a519736f4470cf10065e127b0d14abe3",
   receiptCount: 0,
-  registeredAt: "2026-03-23T07:11:35.978Z",
+  registeredAt: "2026-05-25T23:57:00.000Z",
 };
 
 const RECEIPTS_KEY = "agent:receipts:v1";

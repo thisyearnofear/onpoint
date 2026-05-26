@@ -83,25 +83,44 @@ The AI Agent prize pool ($1,000 USDT) requires separate application:
 
 For the AI Agent track, ensure your project demonstrates:
 
-1. **Agent Autonomy**
-   - AI makes decisions independently
-   - Has configurable autonomy thresholds
-   - Small actions auto-execute, large ones require approval
+### 1. Agent Autonomy
+- AI makes decisions independently via `AgentControls.suggestAction()`
+- **Configurable autonomy thresholds** — default $5 cUSD, user-adjustable per `agentId:userId`
+- **Auto-execution** — suggestions below threshold execute onchain immediately via `autonomous-executor.ts`
+- **Manual execution** — accepted suggestions trigger `executeSuggestion()` which signs and broadcasts via the agent's self-custodial wallet
+- Supported autonomous actions: `mint`, `purchase`, `tip`
 
-2. **Onchain Integration**
-   - Wallet with onchain transactions
-   - Smart contract interactions
-   - Fee abstraction support (MiniPay)
+### 2. Onchain Integration
+- **Agent wallet**: Self-custodial multi-chain wallet (Tether WDK + OWS fallback) at `0xC9A025Fb607b455308bCb6f35a0F484f016C776b`
+- **Smart contracts**: OnPointNFT (`0x8e0a3BcF07Ec8133408A3837DD2DCe398A42f576`) with ERC-721A + ERC-2981 royalties
+- **Fee abstraction**: MiniPay hook with cUSD/USDT fee currency support
+- **Commission splits**: 0xSplits integration for 4-tier revenue distribution
 
-3. **Transparency**
-   - Visible reasoning trail for decisions
-   - Audit trail of agent actions
-   - User can see why agent made each suggestion
+### 3. Transparency & Verifiable Receipts
+- Every autonomous action creates a **verifiable receipt** signed by the agent wallet
+- Receipts uploaded to **IPFS/Filecoin** (Lighthouse) with CID displayed in UI
+- **Onchain receipts**: Celo memo transactions encode receipt JSON for tamper-proof audit trail
+- **Public dashboard**: `GET /api/agent/dashboard` exposes all agent activity for judges
 
-4. **Use Cases for MiniPay**
-   - "Pay as you go" access to AI services
-   - Alternative to subscriptions
-   - Real utility for MiniPay users
+### 4. Self Protocol Identity
+- **ERC-8004 Agent ID**: `35962` registered on Base at `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`
+- **Self Agent ID**: `onpoint-agent-35962` (integrated via `lib/services/self-protocol.ts`)
+- **Unified identity endpoint**: `GET /api/agent/identity` returns both registrations
+
+### 5. Use Cases for MiniPay
+- "Pay as you go" access to AI services — session pricing in cUSD
+- Alternative to subscriptions — per-action pricing with spending limits
+- Real utility for MiniPay users — fashion styling with autonomous shopping
+
+### Key Endpoints for Judges
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/agent/identity` | ERC-8004 + Self Protocol registration proof |
+| `GET /api/agent/dashboard` | Wallet health, receipt count, compliance flags |
+| `POST /api/agent/heartbeat` | Agent self-monitoring (gas, fraud, proactive tasks) |
+| `POST /api/agent/suggestion` | Creates suggestions; auto-executes if below threshold |
+| `PATCH /api/agent/suggestion` | Accept/reject; triggers onchain execution on accept |
 
 ## After Registration
 

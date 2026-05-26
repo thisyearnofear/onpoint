@@ -1,0 +1,41 @@
+{
+  "type": "Agent",
+  "name": "OnPoint AI Stylist",
+  "description": "Autonomous AI fashion stylist with spending controls, transparent reasoning, and self-custodial payments. Provides real-time style analysis, personalized recommendations, and autonomous shopping with full user control.",
+  "image": "https://beonpoint.netlify.app/assets/1Product.png",
+  "endpoints": [
+    {
+      "type": "a2a",
+      "url": "https://beonpoint.netlify.app/.well-known/agent.json"
+    },
+    {
+      "type": "wallet",
+      "address": "0xC9A025Fb607b455308bCb6f35a0F484f016C776b",
+      "chainId": 42220
+    }
+  ],
+  "capabilities": [
+    "style_analysis",
+    "product_recommendation",
+    "autonomous_purchase",
+    "nft_minting",
+    "spending_controls",
+    "transparent_reasoning"
+  ],
+  "supportedTrust": [
+    "reputation",
+    "validation"
+  ],
+  "registrations": [
+    {
+      "agentRegistry": "erc-8004",
+      "agentId": "9177",
+      "chain": "celo",
+      "chainId": 42220,
+      "registryAddress": "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+      "transactionHash": "0x536940e8b9167776a7e2951c9f427ee0a519736f4470cf10065e127b0d14abe3",
+      "registeredAt": "2026-05-26T00:02:24.828Z"
+    }
+  ],
+  "createdAt": "2026-05-26T00:02:02.182Z"
+}

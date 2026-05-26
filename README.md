@@ -4,7 +4,21 @@
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-indigo)](https://onpoint-web-647723858538.us-central1.run.app)
 [![Multi-Chain](https://img.shields.io/badge/Chains-Celo%20%7C%20Base%20%7C%20Ethereum%20%7C%20Polygon-22C55E)]()
+[![ERC-8004](https://img.shields.io/badge/ERC--8004-Registered-blue)](https://8004scan.io/agents/celo/9177)
 [![Open Source](https://img.shields.io/badge/License-MIT-blue)]()
+
+---
+
+## Agent Identity
+
+| Identifier | Value |
+|------------|-------|
+| **ERC-8004 Agent ID** | [9177](https://8004scan.io/agents/celo/9177) |
+| **Self Agent ID** | `onpoint-agent-9177` |
+| **Agent Wallet (Celo)** | [`0x5b33E63440e95289207120B94da78CE22F9D24fB`](https://celoscan.io/address/0x5b33E63440e95289207120B94da78CE22F9D24fB) |
+| **Identity Registry** | [`0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`](https://celoscan.io/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432) |
+| **Registration TX** | [`0x536940e8b9167776...`](https://celoscan.io/tx/0x536940e8b9167776a7e2951c9f427ee0a519736f4470cf10065e127b0d14abe3) |
+| **NFT Contract** | [`0x8e0a3BcF07Ec8133408A3837DD2DCe398A42f576`](https://celoscan.io/address/0x8e0a3BcF07Ec8133408A3837DD2DCe398A42f576) |
 
 ---
 
