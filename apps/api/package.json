@@ -14,6 +14,7 @@
     "@repo/agent-core": "workspace:*",
     "@repo/blockchain-client": "workspace:*",
     "@repo/db": "workspace:*",
+    "@repo/messaging-bridge": "workspace:*",
     "@repo/storage": "workspace:*",
     "@sentry/node": "^9.12.0",
     "cors": "^2.8.5",
