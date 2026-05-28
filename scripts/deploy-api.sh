@@ -239,9 +239,12 @@ if [[ "$DRY_RUN" == false ]]; then
   #
   #    Use a persistent npm cache to avoid re-downloading every deploy.
   #    --prefer-offline uses cached packages when available.
+  #    Copy .npmrc from project root so npm uses workspace config.
   rm -rf "$ISOLATED_DIR"
   mkdir -p "$ISOLATED_DIR" "$NPM_CACHE_DIR"
   cp -R "$BUILD_DIR/." "$ISOLATED_DIR/"
+  if [ -f .npmrc ]; then cp .npmrc "$ISOLATED_DIR/.npmrc"; fi
+  echo 'legacy-peer-deps=true' >> "$ISOLATED_DIR/.npmrc"
   cd "$ISOLATED_DIR"
   npm install --omit=dev --ignore-scripts --prefer-offline --cache "$NPM_CACHE_DIR" --no-audit --no-fund 2>&1
   cd - > /dev/null
