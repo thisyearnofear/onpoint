@@ -65,5 +65,33 @@ module.exports = {
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       merge_logs: true,
     },
+    {
+      name: 'onpoint-agent-server',
+      cwd: '/opt/onpoint',
+      script: 'apps/api/agent-server.js', // Meta webhook + Spectrum-ts agent (Phase 11)
+      instances: 1,
+      exec_mode: 'fork',
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '200M',
+      env: {
+        NODE_ENV: 'production',
+        AGENT_PORT: 48753,
+        STORE_URL: 'https://onpoint.famile.xyz',
+        NEON_DATABASE_URL: '',           // Set in shared/.env
+        WA_ACCESS_TOKEN: '',             // Set in shared/.env
+        WA_PHONE_NUMBER_ID: '',          // Set in shared/.env
+        WA_APP_SECRET: '',               // Set in shared/.env
+        R2_ACCOUNT_ID: '',               // Set in shared/.env
+        R2_ACCESS_KEY_ID: '',            // Set in shared/.env
+        R2_SECRET_ACCESS_KEY: '',        // Set in shared/.env
+        R2_BUCKET_NAME: '',              // Set in shared/.env
+        SERVICE_API_KEY: '',             // Must match onpoint-api's value
+      },
+      error_file: '/var/log/pm2/onpoint-agent-server-error.log',
+      out_file: '/var/log/pm2/onpoint-agent-server-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      merge_logs: true,
+    },
   ]
 };
