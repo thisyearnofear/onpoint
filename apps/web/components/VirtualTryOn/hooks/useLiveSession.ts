@@ -22,6 +22,8 @@ import type { ActionType } from "../../../lib/middleware/agent-controls";
 import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import { MissionService } from "../../../lib/services/mission-service";
 import { StyleContextStore } from "../../../lib/services/style-context-store";
+import { useAnalysisHistory } from "../../../lib/stores/analysis-history-store";
+import { compressToThumbnail } from "../../PolaroidGallery";
 
 // ── Types ──
 
@@ -214,6 +216,7 @@ export function useLiveSession() {
   } = useAgentApproval();
 
   const addItemToCart = useCartStore((s) => s.addItem);
+  const addHistorySession = useAnalysisHistory((s) => s.addSession);
 
   // ── Refs ──
   const mintSuggestionCreatedRef = useRef(false);
@@ -827,6 +830,31 @@ export function useLiveSession() {
       }
     } catch (err) {
       console.error("Mission tracking error:", err);
+    }
+
+    // Persist session to analysis history for the PolaroidGallery
+    if (sessionSummary && sessionSummary.takeaways.length > 0) {
+      // Compress cover image to thumbnail for storage efficiency
+      let coverImage: string | null = null;
+      if (captures.length > 0) {
+        try {
+          coverImage = await compressToThumbnail(captures[0]!.image);
+        } catch {
+          coverImage = captures[0]!.image;
+        }
+      }
+
+      addHistorySession({
+        score: sessionSummary.score,
+        sessionGoal: sessionGoal ?? null,
+        persona: selectedPersona ?? null,
+        headline: sessionSummary.takeaways[0] || "Style analysis",
+        takeaways: sessionSummary.takeaways,
+        topics: sessionSummary.topics,
+        coverImage,
+        extraImages: [], // Skip storing extra images to conserve localStorage
+        recommendations: sessionSummary.recommendations || [],
+      });
     }
 
     stopSession();

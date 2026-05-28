@@ -14,7 +14,11 @@ import {
   ShoppingBag,
   ShieldAlert,
   Crown,
+  User,
+  Image as ImageIcon,
 } from "lucide-react";
+import { NotificationBell } from "../NotificationBell";
+import { PolaroidGallery } from "../PolaroidGallery";
 import Link from "next/link";
 import { Button } from "@repo/ui/button";
 import { DesignStudio } from "../DesignStudio";
@@ -30,7 +34,7 @@ import { AgentActivityFeed } from "../Agent/AgentActivityFeed";
 import { FraudMonitor } from "../FraudMonitor";
 import { NewUserOnboarding } from "./NewUserOnboarding";
 
-type AppMode = "dashboard" | "design" | "try-on" | "stylist" | "shop" | "settings";
+type AppMode = "dashboard" | "my-looks" | "try-on" | "stylist" | "shop" | "profile" | "design";
 
 function AuthAccountCTA() {
   const { user, isLoading } = useUser();
@@ -43,7 +47,11 @@ function AuthAccountCTA() {
   );
 }
 
-export function TacticalDashboard() {
+interface TacticalDashboardProps {
+  onBack?: () => void;
+}
+
+export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
   // New users go straight to try-on. Returning users see dashboard.
   // NewUserOnboarding is a modal overlay that shows on first visit
   const [mode, setMode] = useState<AppMode>(() => {
@@ -57,50 +65,32 @@ export function TacticalDashboard() {
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab") as AppMode | null;
-    if (tab && navItems.some(n => n.id === tab)) {
+    if (tab && ALL_MODES.includes(tab)) {
       setMode(tab);
       // Clean the URL so bookmarking doesn't persist a transient tab
       window.history.replaceState(null, "", window.location.pathname);
     }
   }, []);
 
-  const navItems = [
-    {
-      id: "dashboard",
-      label: "Home",
-      icon: LayoutDashboard,
-      color: "text-foreground",
-    },
-    {
-      id: "try-on",
-      label: "Try On",
-      icon: Camera,
-      color: "text-accent",
-    },
-    {
-      id: "stylist",
-      label: "Stylist",
-      icon: MessageCircle,
-      color: "text-primary",
-    },
-    {
-      id: "shop",
-      label: "Shop",
-      icon: ShoppingBag,
-      color: "text-amber-400",
-    },
-    {
-      id: "design",
-      label: "My Looks",
-      icon: Palette,
-      color: "text-indigo-400",
-    },
-    {
-      id: "settings",
-      label: "Settings",
-      icon: Target,
-      color: "text-muted-foreground",
-    },
+  // All valid modes (for URL param validation)
+  const ALL_MODES: AppMode[] = ["dashboard", "my-looks", "try-on", "stylist", "shop", "profile", "design"];
+
+  // Desktop top-bar: full set of tabs
+  const desktopNavItems = [
+    { id: "dashboard" as AppMode, label: "Home", icon: LayoutDashboard, color: "text-foreground" },
+    { id: "try-on" as AppMode, label: "Try On", icon: Camera, color: "text-accent" },
+    { id: "stylist" as AppMode, label: "Stylist", icon: MessageCircle, color: "text-primary" },
+    { id: "shop" as AppMode, label: "Shop", icon: ShoppingBag, color: "text-amber-400" },
+    { id: "my-looks" as AppMode, label: "My Looks", icon: Palette, color: "text-indigo-400" },
+    { id: "profile" as AppMode, label: "Profile", icon: Target, color: "text-muted-foreground" },
+  ];
+
+  // Mobile bottom nav: 4 core destinations
+  const bottomNavItems = [
+    { id: "dashboard" as AppMode, label: "Home", icon: LayoutDashboard },
+    { id: "my-looks" as AppMode, label: "My Looks", icon: ImageIcon },
+    // Try On is rendered as the elevated center button (not in this array)
+    { id: "profile" as AppMode, label: "Profile", icon: User },
   ];
 
   const renderContent = () => {
@@ -113,6 +103,25 @@ export function TacticalDashboard() {
             exit={{ opacity: 0, y: -20 }}
             className="space-y-6"
           >
+            {/* Quick Actions — horizontal scroll on mobile */}
+            <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+              {[
+                { label: "Try On", icon: Camera, mode: "try-on" as AppMode, color: "bg-accent/10 text-accent border-accent/20" },
+                { label: "Stylist", icon: MessageCircle, mode: "stylist" as AppMode, color: "bg-primary/10 text-primary border-primary/20" },
+                { label: "Shop", icon: ShoppingBag, mode: "shop" as AppMode, color: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
+                { label: "My Looks", icon: Palette, mode: "my-looks" as AppMode, color: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" },
+              ].map((action) => (
+                <button
+                  key={action.mode}
+                  onClick={() => setMode(action.mode)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-medium whitespace-nowrap transition-all active:scale-95 ${action.color}`}
+                >
+                  <action.icon className="w-4 h-4" />
+                  {action.label}
+                </button>
+              ))}
+            </div>
+
             {/* Primary CTA - Virtual Try-On */}
             <motion.div
               initial={{ opacity: 0, scale: 0.98 }}
@@ -145,28 +154,6 @@ export function TacticalDashboard() {
                 </Button>
               </div>
             </motion.div>
-
-            {/* Secondary Actions */}
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => setMode("stylist")}
-                className="h-auto py-4 flex flex-col items-center gap-2"
-              >
-                <MessageCircle className="w-5 h-5" />
-                <span className="text-sm">Chat with Stylist</span>
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => setMode("design")}
-                className="h-auto py-4 flex flex-col items-center gap-2"
-              >
-                <Palette className="w-5 h-5" />
-                <span className="text-sm">My Saved Looks</span>
-              </Button>
-            </div>
 
             {/* Agent Activity — persistent across sessions */}
             <AgentActivityFeed onShop={() => setMode("shop")} />
@@ -241,15 +228,44 @@ export function TacticalDashboard() {
             <MissionsPanel userId="user-default" compact />
           </motion.div>
         );
+      case "my-looks":
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <PolaroidGallery
+              onNavigateToTryOn={() => setMode("try-on")}
+              onNavigateToDesign={() => setMode("design")}
+            />
+          </motion.div>
+        );
       case "design":
-        return <DesignStudio />;
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <div className="mb-4">
+              <button
+                onClick={() => setMode("my-looks")}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                &larr; Back to My Looks
+              </button>
+            </div>
+            <DesignStudio />
+          </motion.div>
+        );
       case "try-on":
         return <VirtualTryOn />;
       case "stylist":
         return <AIStylist />;
       case "shop":
         return <InlineShop onTryOn={() => setMode("try-on")} />;
-      case "settings":
+      case "profile":
         return (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -338,45 +354,104 @@ export function TacticalDashboard() {
     }
   };
 
+  const navigateTo = (id: AppMode) => {
+    setMode(id);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", id);
+      window.history.replaceState(null, "", url.toString());
+    }
+  };
+
   return (
     <>
       <NewUserOnboarding />
-      <div className="flex flex-col min-h-[calc(100vh-4rem)] bg-background">
-      {/* Dynamic Header/Mode Switcher */}
-      <div className="sticky top-16 z-40 bg-background/80 backdrop-blur-md border-b border-border/60 px-2 md:px-0">
-        <div className="container mx-auto">
-          <div className="flex items-center justify-between overflow-x-auto no-scrollbar py-3 gap-2">
-            {navItems.map((item) => (
+      <div className="flex flex-col min-h-screen bg-background">
+
+      {/* ── Desktop top tab bar (hidden on mobile) ── */}
+      <div className="hidden md:block sticky top-16 z-40 bg-background/80 backdrop-blur-md border-b border-border/60">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center gap-1 py-3 overflow-x-auto no-scrollbar">
+            {desktopNavItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => {
-                  setMode(item.id as AppMode);
-                  // Push the tab to URL so cross-page nav works via the listener above
-                  if (typeof window !== "undefined") {
-                    const url = new URL(window.location.href);
-                    url.searchParams.set("tab", item.id);
-                    window.history.replaceState(null, "", url.toString());
-                  }
-                }}
+                onClick={() => navigateTo(item.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all whitespace-nowrap ${
                   mode === item.id
                     ? "bg-muted text-foreground ring-1 ring-border"
                     : "text-muted-foreground hover:text-foreground/80"
                 }`}
               >
-                <item.icon
-                  className={`w-4 h-4 ${mode === item.id ? item.color : ""}`}
-                />
+                <item.icon className={`w-4 h-4 ${mode === item.id ? item.color : ""}`} />
                 <span className="text-sm font-medium">{item.label}</span>
               </button>
             ))}
+            <div className="ml-auto flex items-center gap-1">
+              <NotificationBell />
+            </div>
           </div>
         </div>
       </div>
 
-      <main className="flex-1 container mx-auto px-4 py-8">
+      {/* ── Main content ── */}
+      <main className="flex-1 container mx-auto px-4 py-6 pb-24 md:py-8 md:pb-8">
         <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
       </main>
+
+      {/* ── Mobile bottom nav (hidden on desktop) ── */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-background/95 backdrop-blur-xl border-t border-border" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+        <div className="flex items-end justify-around h-16 max-w-lg mx-auto">
+          {/* Home */}
+          <button
+            onClick={() => navigateTo("dashboard")}
+            className={`flex flex-col items-center gap-0.5 pt-2 pb-1 px-3 transition-colors ${
+              mode === "dashboard" ? "text-primary" : "text-muted-foreground"
+            }`}
+          >
+            <LayoutDashboard className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Home</span>
+          </button>
+
+          {/* My Looks */}
+          <button
+            onClick={() => navigateTo("my-looks")}
+            className={`flex flex-col items-center gap-0.5 pt-2 pb-1 px-3 transition-colors ${
+              mode === "my-looks" ? "text-primary" : "text-muted-foreground"
+            }`}
+          >
+            <ImageIcon className="w-5 h-5" />
+            <span className="text-[10px] font-medium">My Looks</span>
+          </button>
+
+          {/* Try On — elevated center button */}
+          <div className="flex flex-col items-center -mt-5">
+            <button
+              onClick={() => navigateTo("try-on")}
+              className={`flex items-center justify-center w-14 h-14 rounded-full shadow-lg transition-all ${
+                mode === "try-on"
+                  ? "bg-accent text-white shadow-accent/30 scale-95"
+                  : "bg-primary text-white shadow-primary/25 hover:shadow-primary/40"
+              }`}
+            >
+              <Camera className="w-6 h-6" />
+            </button>
+            <span className={`text-[10px] font-medium mt-0.5 ${mode === "try-on" ? "text-accent" : "text-muted-foreground"}`}>
+              Try On
+            </span>
+          </div>
+
+          {/* Profile */}
+          <button
+            onClick={() => navigateTo("profile")}
+            className={`flex flex-col items-center gap-0.5 pt-2 pb-1 px-3 transition-colors ${
+              mode === "profile" ? "text-primary" : "text-muted-foreground"
+            }`}
+          >
+            <User className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Profile</span>
+          </button>
+        </div>
+      </nav>
     </div>
     </>
   );

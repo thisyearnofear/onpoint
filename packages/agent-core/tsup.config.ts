@@ -20,6 +20,9 @@ export default defineConfig({
   external: [
     "viem",
     "@upstash/redis",
+    "@lighthouse-web3/sdk",
+    "@lighthouse-web3/kavach",
+    "bls-eth-wasm",
   ],
   tsconfig: "tsconfig.json",
   target: "node20",

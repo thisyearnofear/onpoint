@@ -8,7 +8,6 @@ import {
   ArrowRight,
   Check,
   Camera,
-  MessageCircle,
 } from "lucide-react";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { Auth0HeaderButton } from "../components/auth/Auth0Components";
@@ -22,19 +21,18 @@ type View = "hero" | "dashboard";
 
 export default function Home() {
   const [view, setView] = useState<View>("hero");
-  const [isFirstVisit, setIsFirstVisit] = useState(true);
 
   useEffect(() => {
     const seen = localStorage.getItem("onpoint-has-visited");
-    if (seen) {
-      setIsFirstVisit(false);
+    // On mobile, skip the hero and go straight to dashboard.
+    // The bottom nav and NewUserOnboarding handle the first-time experience.
+    if (window.innerWidth < 768 || seen) {
       setView("dashboard");
     }
   }, []);
 
   const handleContinue = () => {
     localStorage.setItem("onpoint-has-visited", "true");
-    setIsFirstVisit(false);
     setView("dashboard");
   };
 
@@ -82,13 +80,6 @@ export default function Home() {
       ) : (
         <DashboardView onBack={() => setView("hero")} />
       )}
-
-      {/* Mobile Bottom Nav */}
-      <MobileNav
-        currentView={view}
-        onNavigate={setView}
-        visible={view === "dashboard"}
-      />
     </div>
   );
 }
@@ -235,48 +226,10 @@ function HeroView({ onContinue }: { onContinue: () => void }) {
 
 function DashboardView({ onBack }: { onBack: () => void }) {
   return (
-    <div className="pb-24 md:pb-0">
-      <TacticalDashboard />
+    <div>
+      <TacticalDashboard onBack={onBack} />
     </div>
   );
 }
 
-function MobileNav({
-  currentView,
-  onNavigate,
-  visible,
-}: {
-  currentView: View;
-  onNavigate: (view: View) => void;
-  visible: boolean;
-}) {
-  if (!visible) return null;
 
-  return (
-    <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t border-border md:hidden z-50">
-      <div className="flex items-center justify-around h-16">
-        <button
-          onClick={() => onNavigate("hero")}
-          className={`flex flex-col items-center gap-1 p-2 ${
-            currentView === "hero" ? "text-primary" : "text-muted-foreground"
-          }`}
-        >
-          <Sparkles className="w-5 h-5" />
-          <span className="text-[10px]">Home</span>
-        </button>
-        <NotificationBell direction="up" />
-        <button
-          onClick={() => onNavigate("dashboard")}
-          className={`flex flex-col items-center gap-1 p-2 ${
-            currentView === "dashboard"
-              ? "text-primary"
-              : "text-muted-foreground"
-          }`}
-        >
-          <LayoutDashboard className="w-5 h-5" />
-          <span className="text-[10px]">App</span>
-        </button>
-      </div>
-    </div>
-  );
-}

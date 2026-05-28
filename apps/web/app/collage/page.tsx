@@ -21,7 +21,7 @@ import {
   type ClothingGenerationResponse,
 } from "@repo/ai-client";
 import Link from "next/link";
-import { MobileNavigation } from "@/components/mobile-navigation";
+import { NotificationBell } from "@/components/NotificationBell";
 import { EnhancedConnectButton } from "@/components/EnhancedConnectButton";
 import { useToast } from "@/components/toast";
 import { DndContext, DragOverlay, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
@@ -480,18 +480,16 @@ export default function CollagePage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="glass-effect sticky top-0 z-50 w-full border-b">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Palette className="h-8 w-8 text-primary" />
-              <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                OnPoint Collage Creator
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <MobileNavigation showBackButton={true} />
+        <div className="container flex h-14 items-center justify-between px-4">
+          <Link href="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+            <Palette className="h-5 w-5 text-primary" />
+            <span className="text-sm font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              BeOnPoint
+            </span>
+            <span className="text-xs text-muted-foreground hidden sm:inline">&middot; Collage Creator</span>
+          </Link>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
             <EnhancedConnectButton className="hidden md:block" />
           </div>
         </div>
