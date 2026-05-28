@@ -11,6 +11,70 @@
       "import": "./src/index.ts",
       "require": "./dist/index.cjs",
       "default": "./dist/index.cjs"
+    },
+    "./agent-api": {
+      "types": "./src/agent-api.ts",
+      "import": "./src/agent-api.ts"
+    },
+    "./agent-controls": {
+      "types": "./src/agent-controls.ts",
+      "import": "./src/agent-controls.ts"
+    },
+    "./agent-registry": {
+      "types": "./src/agent-registry.ts",
+      "import": "./src/agent-registry.ts"
+    },
+    "./agent-reputation": {
+      "types": "./src/agent-reputation.ts",
+      "import": "./src/agent-reputation.ts"
+    },
+    "./agent-store": {
+      "types": "./src/agent-store.ts",
+      "import": "./src/agent-store.ts"
+    },
+    "./agent-wallet": {
+      "types": "./src/agent-wallet.ts",
+      "import": "./src/agent-wallet.ts"
+    },
+    "./autonomous-executor": {
+      "types": "./src/autonomous-executor.ts",
+      "import": "./src/autonomous-executor.ts"
+    },
+    "./chains": {
+      "types": "./src/chains.ts",
+      "import": "./src/chains.ts"
+    },
+    "./commissions": {
+      "types": "./src/commissions.ts",
+      "import": "./src/commissions.ts"
+    },
+    "./erc20": {
+      "types": "./src/erc20.ts",
+      "import": "./src/erc20.ts"
+    },
+    "./escrow-service": {
+      "types": "./src/escrow-service.ts",
+      "import": "./src/escrow-service.ts"
+    },
+    "./fraud-detection": {
+      "types": "./src/fraud-detection.ts",
+      "import": "./src/fraud-detection.ts"
+    },
+    "./logger": {
+      "types": "./src/logger.ts",
+      "import": "./src/logger.ts"
+    },
+    "./persistent-state": {
+      "types": "./src/persistent-state.ts",
+      "import": "./src/persistent-state.ts"
+    },
+    "./redis-helpers": {
+      "types": "./src/redis-helpers.ts",
+      "import": "./src/redis-helpers.ts"
+    },
+    "./verifiable-agent-service": {
+      "types": "./src/verifiable-agent-service.ts",
+      "import": "./src/verifiable-agent-service.ts"
     }
   },
   "scripts": {

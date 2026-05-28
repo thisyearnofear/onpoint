@@ -29,7 +29,7 @@ import {
   getNFTContract,
   supportsCUSD,
   supportsNFTMinting,
-} from "@repo/agent-core";
+} from "@repo/agent-core/chains";
 
 export {
   type ChainName,
