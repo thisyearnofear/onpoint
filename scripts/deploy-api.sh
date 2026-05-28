@@ -104,7 +104,7 @@ info "🔨 Building workspace packages (CJS)..."
 if [[ "$DRY_RUN" == false ]]; then
   # Build all workspace packages in parallel
   pids=()
-  for pkg in @repo/agent-core @onpoint/shared-types @repo/blockchain-client @repo/db @repo/storage; do
+  for pkg in @repo/agent-core @onpoint/shared-types @repo/blockchain-client @repo/db @repo/storage @repo/messaging-bridge; do
     echo "   Building ${pkg}..."
     pnpm --filter "${pkg}" build &
     pids+=($!)
@@ -179,6 +179,11 @@ if [[ "$DRY_RUN" == false ]]; then
     cp -R packages/ipfs-client/src "$BUILD_DIR/lib/ipfs-client/"
   fi
 
+  # messaging-bridge (agent-server dependency)
+  mkdir -p "$BUILD_DIR/lib/messaging-bridge"
+  cp packages/messaging-bridge/package.json "$BUILD_DIR/lib/messaging-bridge/"
+  cp -R packages/messaging-bridge/dist "$BUILD_DIR/lib/messaging-bridge/"
+
   # 3. Rewrite workspace:* → file:./lib/... in all package.json files
   #    Also copy @repo/ipfs-client if agent-core depends on it
   node -e "
@@ -209,6 +214,7 @@ if [[ "$DRY_RUN" == false ]]; then
       '@repo/ipfs-client': 'file:./lib/ipfs-client',
       '@repo/db': 'file:./lib/db',
       '@repo/storage': 'file:./lib/storage',
+      '@repo/messaging-bridge': 'file:./lib/messaging-bridge',
     };
 
     rewriteDeps('$BUILD_DIR/package.json', map);
@@ -218,11 +224,12 @@ if [[ "$DRY_RUN" == false ]]; then
     rewriteDeps('$BUILD_DIR/lib/ipfs-client/package.json', map);
     rewriteDeps('$BUILD_DIR/lib/db/package.json', map);
     rewriteDeps('$BUILD_DIR/lib/storage/package.json', map);
+    rewriteDeps('$BUILD_DIR/lib/messaging-bridge/package.json', map);
 
     // Strip only devDependencies and scripts from lib/ packages
     // Keep dependencies and peerDependencies so npm resolves their
     // transitive deps (e.g., @lighthouse/web3 -> bls-eth-wasm)
-    for (const dir of ['agent-core','shared-types','blockchain-client','ipfs-client','db','storage']) {
+    for (const dir of ['agent-core','shared-types','blockchain-client','ipfs-client','db','storage','messaging-bridge']) {
       const pkgPath = '$BUILD_DIR/lib/' + dir + '/package.json';
       if (!fs.existsSync(pkgPath)) continue;
       const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
