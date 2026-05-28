@@ -34,6 +34,8 @@ SIZE_FAIL_MB=300
 HEALTH_URL="http://localhost:48751/health"
 HEALTH_RETRIES=6
 HEALTH_DELAY=3
+NPM_CACHE_DIR="/tmp/onpoint-npm-cache"
+ISOLATED_DIR="/tmp/onpoint-isolated-build"
 
 TS=$(date +%Y%m%d-%H%M%S)
 RELEASE_DIR="releases/api/$TS"
@@ -100,12 +102,26 @@ fi
 info "🔨 Building workspace packages (CJS)..."
 
 if [[ "$DRY_RUN" == false ]]; then
+  # Build all workspace packages in parallel
+  pids=()
   for pkg in @repo/agent-core @onpoint/shared-types @repo/blockchain-client @repo/db @repo/storage; do
     echo "   Building ${pkg}..."
-    pnpm --filter "${pkg}" build || {
-      fail "✗ Failed to build ${pkg}"
-    }
+    pnpm --filter "${pkg}" build &
+    pids+=($!)
   done
+
+  # Wait for all builds and check for failures
+  failed=false
+  for pid in "${pids[@]}"; do
+    wait "$pid" || { failed=true; break; }
+  done
+
+  if [[ "$failed" == true ]]; then
+    # Kill remaining background pids
+    for pid in "${pids[@]}"; do kill "$pid" 2>/dev/null; done
+    fail "✗ One or more workspace packages failed to build"
+  fi
+
   echo "   All workspace packages built successfully"
 fi
 
@@ -219,13 +235,17 @@ if [[ "$DRY_RUN" == false ]]; then
   # 4. Install production deps in an ISOLATED temp dir.
   #    Running npm inside the monorepo causes it to walk up, find the root
   #    package.json, follow pnpm symlinks, and MUTATE source files.
-  #    Running in /tmp prevents this.
-  ISOLATED_DIR=$(mktemp -d)
+  #    Running outside the monorepo prevents this.
+  #
+  #    Use a persistent npm cache to avoid re-downloading every deploy.
+  #    --prefer-offline uses cached packages when available.
+  rm -rf "$ISOLATED_DIR"
+  mkdir -p "$ISOLATED_DIR" "$NPM_CACHE_DIR"
   cp -R "$BUILD_DIR/." "$ISOLATED_DIR/"
   cd "$ISOLATED_DIR"
-  npm install --omit=dev --ignore-scripts 2>&1
+  npm install --omit=dev --ignore-scripts --prefer-offline --cache "$NPM_CACHE_DIR" --no-audit --no-fund 2>&1
   cd - > /dev/null
-  # Copy resolved node_modules back
+  # Copy resolved node_modules back (sources are 88KB; node_modules is the bulk)
   rm -rf "$BUILD_DIR/node_modules"
   cp -R "$ISOLATED_DIR/node_modules" "$BUILD_DIR/"
   rm -rf "$ISOLATED_DIR"
@@ -233,7 +253,7 @@ if [[ "$DRY_RUN" == false ]]; then
   echo "   Deploy bundle created at ${BUILD_DIR}"
 fi
 
-# ── Step 3: Size budget check ───────────────────────────────────────
+# ── Step 3: Size budget check (after npm install — catches full node_modules) ──
 info "📏 Checking build size..."
 if [[ -d "$BUILD_DIR" ]]; then
   SIZE_KB=$(du -sk "$BUILD_DIR" 2>/dev/null | cut -f1)
@@ -251,11 +271,11 @@ else
   echo "   (skipped — dry run or build directory missing)"
 fi
 
-# ── Step 3: Ensure remote release directory exists ──────────────────
+# ── Step 4: Ensure remote release directory exists ──────────────────
 info "📁 Preparing remote release directory..."
 [[ "$DRY_RUN" == false ]] && ssh "$SSH_HOST" "mkdir -p ${REMOTE_BASE}/releases/api"
 
-# ── Step 4: rsync build to remote timestamped release dir ───────────
+# ── Step 5: rsync build to remote timestamped release dir ───────────
 info "📤 Syncing build to remote..."
 RSYNC_CMD="rsync -avz --delete \
   --exclude '.git' \
@@ -276,11 +296,11 @@ else
   echo "   (skipped — build directory missing)"
 fi
 
-# ── Step 4.5: Symlink shared/env into release ─────────────────────
+# ── Step 5.5: Symlink shared/env into release ─────────────────────
 info "🔗 Symlinking shared/api/.env into release..."
 [[ "$DRY_RUN" == false ]] && ssh "$SSH_HOST" "ln -sf ${REMOTE_BASE}/shared/api/.env ${REMOTE_RELEASE}/.env"
 
-# ── Step 4.6: Sync deploy config (ecosystem.config.js) ─────────────
+# ── Step 5.6: Sync deploy config (ecosystem.config.js) ─────────────
 # The PM2 ecosystem config lives outside the release tree at
 # /opt/onpoint/deploy/ecosystem.config.js. Sync it on every deploy
 # so changes to worker definitions, env vars, etc. are applied.
@@ -290,7 +310,7 @@ if [[ "$DRY_RUN" == false ]]; then
   rsync deploy/ecosystem.config.js "${SSH_HOST}:${REMOTE_BASE}/deploy/ecosystem.config.js"
 fi
 
-# ── Step 5: Atomic symlink flip ─────────────────────────────────────
+# ── Step 6: Atomic symlink flip ─────────────────────────────────────
 info "🔗 Flipping symlink: apps/api → ${RELEASE_DIR}"
 
 if [[ "$DRY_RUN" == false ]]; then
@@ -317,7 +337,7 @@ fi
 
 cmd "ssh ${SSH_HOST} \"ln -sfn ${REMOTE_RELEASE} ${REMOTE_CURRENT}\""
 
-# ── Step 6: PM2 reload (zero-downtime) ──────────────────────────────
+# ── Step 7: PM2 reload (zero-downtime) ──────────────────────────────
 info "🔄 Reloading PM2 process: onpoint-api"
 cmd "ssh ${SSH_HOST} \"cd ${REMOTE_BASE} && pm2 reload onpoint-api\""
 
@@ -338,7 +358,7 @@ if [[ "$DRY_RUN" == false ]]; then
   }
 fi
 
-# ── Step 7: Health check with automatic rollback ────────────────────
+# ── Step 8: Health check with automatic rollback ────────────────────
 info "🏥 Running health check..."
 
 if [[ "$DRY_RUN" == false ]]; then
@@ -390,7 +410,7 @@ if [[ "$DRY_RUN" == false ]]; then
   fi
 fi
 
-# ── Step 8: Start/reload onpoint-worker ──────────────────────────
+# ── Step 9: Start/reload onpoint-worker ──────────────────────────
 # Use startOrGracefulReload so it works on first deploy (process doesn't
 # exist yet → starts) and subsequent deploys (process exists → reloads).
 info "🔄 Starting/reloading PM2 process: onpoint-worker"
@@ -402,7 +422,7 @@ if [[ "$DRY_RUN" == false ]]; then
   }
 fi
 
-# ── Step 8.5: Start/reload onpoint-agent-server ──────────────────────
+# ── Step 9.5: Start/reload onpoint-agent-server ──────────────────────
 # Same pattern as the worker — startOrGracefulReload handles first-deploy
 # (process doesn't exist yet → starts) and subsequent deploys (reloads).
 info "🔄 Starting/reloading PM2 process: onpoint-agent-server"
@@ -414,14 +434,14 @@ if [[ "$DRY_RUN" == false ]]; then
   }
 fi
 
-# ── Step 9: Cleanup old backup (if this was first-deploy transition) ─
+# ── Step 10: Cleanup old backup (if this was first-deploy transition) ─
 if [[ "$DRY_RUN" == false && "${HAS_BAK:-false}" == true ]]; then
   info "🧹 Removing backup of original apps/api directory"
   ssh "$SSH_HOST" "rm -rf ${REMOTE_CURRENT}.bak"
   echo "   Removed: ${REMOTE_CURRENT}.bak"
 fi
 
-# ── Step 10: Prune old releases ─────────────────────────────────────
+# ── Step 11: Prune old releases ─────────────────────────────────────
 info "🧹 Pruning old releases (keeping ${KEEP_RELEASES})"
 cmd "ssh ${SSH_HOST} \"cd ${REMOTE_BASE} && prune inactive releases while preserving apps/api target\""
 
@@ -444,7 +464,7 @@ if [[ "$DRY_RUN" == false ]]; then
   fi
 fi
 
-# ── Step 11: Final disk usage check with growth threshold ───────────
+# ── Step 12: Final disk usage check with growth threshold ───────────
 info "💾 Remote disk status"
 if [[ "$DRY_RUN" == false ]]; then
   # Show disk usage
