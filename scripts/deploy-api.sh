@@ -402,6 +402,18 @@ if [[ "$DRY_RUN" == false ]]; then
   }
 fi
 
+# ── Step 8.5: Start/reload onpoint-agent-server ──────────────────────
+# Same pattern as the worker — startOrGracefulReload handles first-deploy
+# (process doesn't exist yet → starts) and subsequent deploys (reloads).
+info "🔄 Starting/reloading PM2 process: onpoint-agent-server"
+cmd "ssh ${SSH_HOST} \"cd ${REMOTE_BASE} && pm2 startOrGracefulReload deploy/ecosystem.config.js --only onpoint-agent-server\""
+
+if [[ "$DRY_RUN" == false ]]; then
+  ssh "$SSH_HOST" "cd ${REMOTE_BASE} && pm2 startOrGracefulReload deploy/ecosystem.config.js --only onpoint-agent-server" || {
+    warn "⚠️  Agent server start/reload failed — API deploy succeeded"
+  }
+fi
+
 # ── Step 9: Cleanup old backup (if this was first-deploy transition) ─
 if [[ "$DRY_RUN" == false && "${HAS_BAK:-false}" == true ]]; then
   info "🧹 Removing backup of original apps/api directory"
