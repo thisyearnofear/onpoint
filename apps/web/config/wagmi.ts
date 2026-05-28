@@ -94,7 +94,7 @@ const customStorage =
 
 export const config = getDefaultConfig({
   appName: "OnPoint",
-  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
+  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "7aa79bf6d66752925a728eada5ce0762",
   chains: allConfiguredChains as any,
   transports: {
     [mainnet.id]: http("https://cloudflare-eth.com"),
