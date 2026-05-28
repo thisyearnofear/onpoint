@@ -1,0 +1,351 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import type { CSSProperties } from "react";
+import {
+  ArrowLeft,
+  ExternalLink,
+  MapPin,
+  MessageCircle,
+  PackageSearch,
+  ShieldCheck,
+  ShoppingBag,
+} from "lucide-react";
+
+export const dynamic = "force-dynamic";
+
+type SizeOption = {
+  size: string;
+  stock: number;
+  price: number;
+};
+
+type CuratorStorefront = {
+  curator: {
+    slug: string;
+    name: string;
+    type: "human" | "ai";
+    verticals: string[];
+    channels?: {
+      whatsapp?: string;
+      telegram?: string;
+      instagram?: string;
+    };
+    brand?: {
+      logo?: string;
+      colors?: {
+        primary?: string;
+        accent?: string;
+      };
+      shareCopy?: string;
+      location?: {
+        city: string;
+        landmark?: string;
+      };
+    };
+    commerce?: {
+      checkout?: "whatsapp" | "shopify" | "stripe";
+      checkoutUrl?: string;
+      whatsappTemplate?: string;
+      revShare?: number;
+    };
+  };
+  listings: Array<{
+    id: string;
+    sizes: SizeOption[];
+    imageUrl: string | null;
+    checkoutUrl: string | null;
+    kit: {
+      club: string;
+      season: string;
+      kitType: string;
+      crestUrl: string | null;
+    };
+  }>;
+  meta: {
+    listingCount: number;
+    checkout: string;
+  };
+};
+
+function getApiBase() {
+  return (
+    process.env.NEXT_PUBLIC_AGENT_API_URL ||
+    process.env.AGENT_API_URL ||
+    "http://localhost:48751"
+  ).replace(/\/$/, "");
+}
+
+async function loadStorefront(slug: string): Promise<CuratorStorefront | null> {
+  const res = await fetch(
+    `${getApiBase()}/api/curator/${encodeURIComponent(slug)}/storefront`,
+    {
+      cache: "no-store",
+    },
+  );
+
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    throw new Error(`Failed to load storefront: ${res.status}`);
+  }
+
+  return res.json();
+}
+
+function formatKitType(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function formatMoney(value: number) {
+  return new Intl.NumberFormat("en-KE", {
+    style: "currency",
+    currency: "KES",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function getLowestPrice(sizes: SizeOption[]) {
+  const prices = sizes
+    .map((item) => Number(item.price))
+    .filter((price) => Number.isFinite(price) && price > 0);
+  return prices.length ? Math.min(...prices) : null;
+}
+
+function getTotalStock(sizes: SizeOption[]) {
+  return sizes.reduce((total, item) => total + Number(item.stock || 0), 0);
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const storefront = await loadStorefront(slug).catch(() => null);
+
+  if (!storefront) {
+    return {
+      title: "Curator not found | OnPoint",
+    };
+  }
+
+  return {
+    title: `${storefront.curator.name} | OnPoint`,
+    description: `Shop ${storefront.curator.name}'s live OnPoint storefront.`,
+  };
+}
+
+export default async function CuratorStorefrontPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const storefront = await loadStorefront(slug);
+
+  if (!storefront) {
+    notFound();
+  }
+
+  const { curator, listings, meta } = storefront;
+  const primary = curator.brand?.colors?.primary || "#111827";
+  const accent = curator.brand?.colors?.accent || "#e94560";
+  const location = curator.brand?.location;
+
+  return (
+    <main
+      className="min-h-screen bg-background text-foreground"
+      style={
+        {
+          "--curator-primary": primary,
+          "--curator-accent": accent,
+        } as CSSProperties
+      }
+    >
+      <header className="border-b border-border bg-background/95 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            OnPoint
+          </Link>
+          <div className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Curator storefront
+          </div>
+        </div>
+      </header>
+
+      <section className="border-b border-border">
+        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 md:grid-cols-[1fr_360px] md:py-14">
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center gap-2">
+              {curator.verticals.map((vertical) => (
+                <span
+                  key={vertical}
+                  className="rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium capitalize text-muted-foreground"
+                >
+                  {vertical.replaceAll("-", " ")}
+                </span>
+              ))}
+            </div>
+
+            <div className="space-y-4">
+              <h1 className="max-w-3xl text-4xl font-black tracking-tight md:text-6xl">
+                {curator.name}
+              </h1>
+              <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
+                Live pieces selected by {curator.name}. Pick a kit, choose a
+                size, then complete the order directly on WhatsApp.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+              {location?.city && (
+                <span className="inline-flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  {location.city}
+                  {location.landmark ? `, ${location.landmark}` : ""}
+                </span>
+              )}
+              <span className="inline-flex items-center gap-2">
+                <ShoppingBag className="h-4 w-4" />
+                {meta.listingCount} live listings
+              </span>
+              {curator.channels?.whatsapp && (
+                <span className="inline-flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4" />
+                  WhatsApp checkout
+                </span>
+              )}
+            </div>
+          </div>
+
+          <aside className="rounded-lg border border-border bg-card p-5 shadow-sm">
+            <div className="space-y-4">
+              <div
+                className="flex h-16 w-16 items-center justify-center rounded-lg text-2xl font-black text-white"
+                style={{ background: "var(--curator-primary)" }}
+              >
+                {curator.name.slice(0, 1).toUpperCase()}
+              </div>
+              <div>
+                <h2 className="text-lg font-bold">How ordering works</h2>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Every item opens a prefilled WhatsApp message with the kit,
+                  size, and price. Stock stays with the curator.
+                </p>
+              </div>
+              {curator.channels?.whatsapp && (
+                <a
+                  href={`https://wa.me/${curator.channels.whatsapp.replace(/^\+/, "")}`}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                  style={{ background: "var(--curator-accent)" }}
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Message {curator.name}
+                </a>
+              )}
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 py-10">
+        {listings.length === 0 ? (
+          <div className="flex min-h-[280px] flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card p-8 text-center">
+            <PackageSearch className="h-10 w-10 text-muted-foreground" />
+            <h2 className="mt-4 text-xl font-bold">No live listings yet</h2>
+            <p className="mt-2 max-w-md text-sm text-muted-foreground">
+              This curator has a storefront, but inventory has not been added
+              yet. Check back after the next stock update.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {listings.map((listing) => {
+              const lowestPrice = getLowestPrice(listing.sizes);
+              const stock = getTotalStock(listing.sizes);
+
+              return (
+                <article
+                  key={listing.id}
+                  className="overflow-hidden rounded-lg border border-border bg-card shadow-sm"
+                >
+                  <div className="relative aspect-[4/3] bg-muted">
+                    {listing.imageUrl ? (
+                      <img
+                        src={listing.imageUrl}
+                        alt={`${listing.kit.club} ${listing.kit.kitType} kit`}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                        Image pending
+                      </div>
+                    )}
+                    <div className="absolute left-3 top-3 rounded-full bg-background/90 px-3 py-1 text-xs font-bold shadow-sm">
+                      {formatKitType(listing.kit.kitType)}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 p-4">
+                    <div>
+                      <h2 className="text-lg font-bold">
+                        {listing.kit.club}
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        {listing.kit.season} season
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">From</span>
+                      <span className="font-bold">
+                        {lowestPrice ? formatMoney(lowestPrice) : "Ask"}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {listing.sizes.map((size) => (
+                        <span
+                          key={`${listing.id}-${size.size}`}
+                          className="rounded-md border border-border px-2 py-1 text-xs"
+                        >
+                          {size.size} · {size.stock}
+                        </span>
+                      ))}
+                    </div>
+
+                    {listing.checkoutUrl ? (
+                      <a
+                        href={listing.checkoutUrl}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                        style={{ background: "var(--curator-primary)" }}
+                      >
+                        Buy on WhatsApp
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    ) : (
+                      <button
+                        disabled
+                        className="w-full rounded-md bg-muted px-4 py-3 text-sm font-bold text-muted-foreground"
+                      >
+                        Checkout unavailable
+                      </button>
+                    )}
+
+                    <p className="text-xs text-muted-foreground">
+                      {stock > 0 ? `${stock} in stock` : "Confirm stock before paying"}
+                    </p>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}

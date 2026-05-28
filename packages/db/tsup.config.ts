@@ -6,6 +6,6 @@ export default defineConfig({
   outDir: "dist",
   sourcemap: true,
   clean: true,
-  bundle: false,
+  bundle: true,
   noExternal: [],
 });

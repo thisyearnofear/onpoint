@@ -219,6 +219,13 @@ app.use('/api/agent/missions', json1k, serviceKeyAuth, require('./routes/agent-m
 // Schedule-Event — service-key + forwarded user (calendar integration)
 app.use('/api/agent/schedule-event', json1k, serviceKeyAuth, require('./routes/agent-schedule-event'));
 
+
+// ── Curator Routes (public, rate-limited) ───────────────────────
+// Self-serve curator onboarding (ADR 0002). No API key needed.
+
+app.use('/api/curator/apply', json1k, generalRateLimit, require('./routes/curator-apply'));
+app.use('/api/curator', json1k, generalRateLimit, require('./routes/curator-storefront'));
+
 // ── Status Dashboard ────────────────────────────────────────────
 
 app.use('/api/status', json1k, require('./routes/status-dashboard'));

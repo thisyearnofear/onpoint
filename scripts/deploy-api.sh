@@ -96,12 +96,11 @@ if ! ssh -o ConnectTimeout=5 "$SSH_HOST" "echo ok" &>/dev/null; then
 fi
 
 # ── Step 1: Build workspace packages (CJS output for Node.js) ───────
-# The API depends on workspace packages (@repo/agent-core, @onpoint/shared-types,
-# @repo/blockchain-client). These must be built to CJS before deployment.
+# The API depends on workspace packages. These must be built to CJS before deployment.
 info "🔨 Building workspace packages (CJS)..."
 
 if [[ "$DRY_RUN" == false ]]; then
-  for pkg in @repo/agent-core @onpoint/shared-types @repo/blockchain-client; do
+  for pkg in @repo/agent-core @onpoint/shared-types @repo/blockchain-client @repo/db @repo/storage; do
     echo "   Building ${pkg}..."
     pnpm --filter "${pkg}" build || {
       fail "✗ Failed to build ${pkg}"
@@ -124,8 +123,12 @@ if [[ "$DRY_RUN" == false ]]; then
   rm -rf "$BUILD_DIR"
   mkdir -p "$BUILD_DIR/lib"
 
-  # 1. Copy API source
-  cp -R apps/api/* "$BUILD_DIR/"
+  # 1. Copy API source. Exclude local installs and secrets from the bundle.
+  rsync -a \
+    --exclude 'node_modules' \
+    --exclude '.env*' \
+    --exclude '*.log' \
+    apps/api/ "$BUILD_DIR/"
 
   # 2. Copy built workspace packages (dist only) into lib/
   # agent-core
@@ -142,6 +145,16 @@ if [[ "$DRY_RUN" == false ]]; then
   mkdir -p "$BUILD_DIR/lib/blockchain-client"
   cp packages/blockchain-client/package.json "$BUILD_DIR/lib/blockchain-client/"
   cp -R packages/blockchain-client/dist "$BUILD_DIR/lib/blockchain-client/"
+
+  # db
+  mkdir -p "$BUILD_DIR/lib/db"
+  cp packages/db/package.json "$BUILD_DIR/lib/db/"
+  cp -R packages/db/dist "$BUILD_DIR/lib/db/"
+
+  # storage
+  mkdir -p "$BUILD_DIR/lib/storage"
+  cp packages/storage/package.json "$BUILD_DIR/lib/storage/"
+  cp -R packages/storage/dist "$BUILD_DIR/lib/storage/"
 
   # ipfs-client (agent-core dependency — TS-only, no build step)
   if [ -d packages/ipfs-client ]; then
@@ -178,6 +191,8 @@ if [[ "$DRY_RUN" == false ]]; then
       '@onpoint/shared-types': 'file:./lib/shared-types',
       '@repo/blockchain-client': 'file:./lib/blockchain-client',
       '@repo/ipfs-client': 'file:./lib/ipfs-client',
+      '@repo/db': 'file:./lib/db',
+      '@repo/storage': 'file:./lib/storage',
     };
 
     rewriteDeps('$BUILD_DIR/package.json', map);
@@ -185,11 +200,13 @@ if [[ "$DRY_RUN" == false ]]; then
     rewriteDeps('$BUILD_DIR/lib/shared-types/package.json', map);
     rewriteDeps('$BUILD_DIR/lib/blockchain-client/package.json', map);
     rewriteDeps('$BUILD_DIR/lib/ipfs-client/package.json', map);
+    rewriteDeps('$BUILD_DIR/lib/db/package.json', map);
+    rewriteDeps('$BUILD_DIR/lib/storage/package.json', map);
 
     // Strip only devDependencies and scripts from lib/ packages
     // Keep dependencies and peerDependencies so npm resolves their
     // transitive deps (e.g., @lighthouse/web3 -> bls-eth-wasm)
-    for (const dir of ['agent-core','shared-types','blockchain-client','ipfs-client']) {
+    for (const dir of ['agent-core','shared-types','blockchain-client','ipfs-client','db','storage']) {
       const pkgPath = '$BUILD_DIR/lib/' + dir + '/package.json';
       if (!fs.existsSync(pkgPath)) continue;
       const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
