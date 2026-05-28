@@ -1,6 +1,7 @@
 # OnPoint — A Curator-First Styling Platform
 
 > **Stylists hand their customers a branded try-on → polaroid → share → buy loop. AI personas join the conversation as cross-vertical sidekicks. One engine, two kinds of curator (human + AI), zero new feature surface — just composition of what's already shipped.**
+> The first live Curator storefront slice is `/s/[slug]`, backed by Neon listings and WhatsApp buy links.
 
 > 📐 See [ADR 0002 — Curator Primitive](./docs/adr/0002-curator-primitive.md) for the organizing decision, and [ROADMAP Phase 11](./docs/ROADMAP.md) for the 12-week sequence.
 
@@ -207,7 +208,7 @@ See [Getting Started](docs/GETTING_STARTED.md) for full setup instructions.
 - **Storage**: IPFS/Filecoin (Lighthouse), Redis (Upstash)
 - **Social**: Farcaster, Memory Protocol
 - **Agent Bridge**: Python FastAPI + Browser Use Cloud
-- **Deployment**: Hetzner VPS (API), Netlify (Frontend)
+- **Deployment**: Hetzner VPS (API), Vercel (Frontend)
 
 ---
 

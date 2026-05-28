@@ -111,7 +111,7 @@ The core "sees → judges → shops" flow is live at https://beonpoint.netlify.a
 - [x] **`@repo/agent-core`** — workspace package with CJS build (tsup) for Express compatibility
 - [x] **`@repo/blockchain-client`** + **`@onpoint/shared-types`** — CJS builds for Express
 - [x] **`forwarded-user.js` middleware** — extracts Vercel auth context from forwarded headers
-- [x] **Deploy scripts updated** — `pnpm deploy --legacy` replaces `npm install --production` for workspace dep resolution
+- [x] **Deploy scripts updated** — `scripts/deploy-api.sh` now builds workspace deps, bundles `@repo/db` + `@repo/storage`, and deploys via isolated `npm install --omit=dev`
 - [x] **Sentry integration** — optional, conditional on SENTRY_DSN
 - [x] **Agent proxy catch-all** — simplified, falls back to Vercel only for unmatched routes
 - [x] **Server verified** — 94 middleware layers load cleanly
@@ -238,28 +238,28 @@ Inventory is **not** in the Curator object — it lives in Neon (`listings` join
 #### Concrete deliverables (Wks 1–2)
 
 **Infrastructure (Hetzner)**
-- [ ] Neon project provisioned; secrets loaded onto Hetzner via `scripts/setup-secrets.sh` (per ADR 0001)
-- [ ] Cloudflare R2 bucket + Images access; secrets onto Hetzner same path
-- [ ] `packages/db/` — Drizzle schema + migrations for `curators`, `kit_skus`, `listings`, `orders`, `sessions`
-- [ ] `packages/storage/` — R2 helpers: `put(key, bytes)`, `signedReadUrl(key)`, `transformUrl(key, opts)`
+- [x] Neon project provisioned; secrets loaded onto Hetzner via `scripts/setup-secrets.sh` (per ADR 0001)
+- [x] Cloudflare R2 bucket + Images access; secrets onto Hetzner same path
+- [x] `packages/db/` — Drizzle schema + migrations for `curators`, `kit_skus`, `listings`, `orders`, `sessions`
+- [x] `packages/storage/` — R2 helpers: `put(key, bytes)`, `signedReadUrl(key)`, `transformUrl(key, opts)`
 
 **Schema + seeds**
-- [ ] `packages/shared-types/curator.ts` — single `Curator` type (see above)
-- [ ] PL kit backbone seed: 20 clubs × 2024/25 × {home, away, third} with official image keys in R2
-- [ ] `apps/web/lib/utils/persona-config.ts` → emits `Curator` objects with `type: "ai"`
+- [x] `packages/shared-types/curator.ts` — single `Curator` type (see above)
+- [x] PL kit backbone seed: 20 clubs × 2024/25 × {home, away, third} with official image keys in R2
+- [x] `apps/web/lib/utils/persona-config.ts` → emits `Curator` objects with `type: "ai"`
 - [ ] Wanja seeded into `curators` table from her onboarding call (top 10 SKUs as `listings`)
 
 **Chat-ops admin (Hetzner)**
 - [ ] Twilio number provisioned and registered with Meta's WhatsApp Business Cloud API as the agent's WhatsApp line
-- [ ] `packages/messaging-bridge/` — Spectrum-ts wrapper, providers: WhatsApp Business, terminal (for dev)
-- [ ] `apps/api/agent-server` — Spectrum-ts agent server under PM2, using `@repo/agent-core` for tools
-- [ ] 5 commands implemented: `+ <club> <type> <size> <price> <qty>`, `-`, `stock`, `link`, `help`
-- [ ] WhatsApp ingest tool: download Meta media → R2 put → insert `listings` row (synchronous within webhook window)
+- [x] `packages/messaging-bridge/` — Spectrum-ts wrapper, providers: WhatsApp Business, terminal (for dev)
+- [x] `apps/api/routes/agent-whatsapp.js` + `apps/api/lib/whatsapp-ingest.js` — Spectrum-ts-facing WhatsApp ingest pipeline under PM2, using `@repo/agent-core` and `@repo/storage`
+- [x] 5 commands implemented: `+ <club> <type> <size> <price> <qty>`, `-`, `stock`, `link`, `help`
+- [x] WhatsApp ingest tool: download Meta media → R2 put → insert `listings` row (synchronous within webhook window)
 - [ ] Meta Business verification started + outbound message templates submitted for approval
 
 **Customer surface**
-- [ ] `apps/web/app/s/[slug]/page.tsx` — reads Curator + listings from Hetzner API; renders branded storefront
-- [ ] `/s/wanja` live with "Buy on WhatsApp" deep links (`wa.me/{phone}?text={prefill}`) — no try-on, no AI sidekick yet
+- [x] `apps/web/app/s/[slug]/page.tsx` — reads Curator + listings from Hetzner API; renders branded storefront
+- [x] `/s/wanja` live with "Buy on WhatsApp" deep links (`wa.me/{phone}?text={prefill}`) — first storefront slice is live
 
 **Relocation (consolidation per Core Principles)**
 - [ ] `apps/web/app/api/agent/storefront/route.ts` — delete global `CATALOG`, scope reads by Curator slug

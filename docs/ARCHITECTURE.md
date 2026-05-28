@@ -32,7 +32,7 @@ The product is organized as three composable layers (see [ADR 0002](./adr/0002-c
 │                        Client Layer                          │
 ├─────────────────┬──────────────────┬────────────────────────┤
 │   Web App       │   Chrome Ext     │   Farcaster Mini App   │
-│  (Next.js 15)   │  (Built-in AI)   │   (SDK Widget)         │
+│  (Next.js 16)   │  (Built-in AI)   │   (SDK Widget)         │
 └────────┬────────┴────────┬─────────┴──────────┬─────────────┘
           │                 │                    │
           └─────────────────┼────────────────────┘
@@ -71,6 +71,10 @@ The product is organized as three composable layers (see [ADR 0002](./adr/0002-c
 | `packages/db`               | Drizzle schema + migrations for Neon (ADR 0003)  |
 | `packages/storage`          | Cloudflare R2 helpers (put, signed URLs, transforms) |
 | `packages/messaging-bridge` | Spectrum-ts wrapper — WhatsApp / Telegram / iMessage providers for the Hetzner agent |
+| `apps/api/routes/curator-apply.js` | Public curator onboarding endpoint |
+| `apps/api/routes/curator-storefront.js` | Public curator storefront read endpoint |
+| `apps/api/lib/whatsapp-ingest.js` | WhatsApp media -> R2 -> Neon ingest pipeline |
+| `apps/web/app/s/[slug]/page.tsx` | Branded curator storefront UI |
 
 ## Data Flow
 
@@ -90,9 +94,10 @@ The product is organized as three composable layers (see [ADR 0002](./adr/0002-c
 4. **Polaroid + share asset** → `PolaroidGallery` + `SessionEndingCard` render with Curator's `brand.frameTemplate`; output persisted to R2 under `/curators/{slug}/polaroids/`
 5. **(Optional) AI second opinion** → AI Curator persona renders alongside, recommendations scoped to host Curator's catalog
 6. **Buy** → off-ramp via `commerce.checkout`. For `whatsapp`: `wa.me/{phone}?text={prefilled SKU}` deep link. For `shopify`/`stripe`: external checkout URL. For AI-initiated purchases across Curators, the agent layer (autonomous executor + Lighthouse receipts) records attribution + revshare.
+7. **Current implementation** → `/s/[slug]` is live in the web app and consumes `GET /api/curator/:slug/storefront`; the first production slice is WhatsApp-first checkout for live listings.
 
 ### Curator chat-ops admin (Wanja path) — Phase 11
-1. **Curator texts agent** → Spectrum-ts WhatsApp provider → Hetzner `apps/api/agent-server` (PM2)
+1. **Curator texts agent** → Spectrum-ts WhatsApp provider → Hetzner `apps/api/routes/agent-whatsapp.js` + `apps/api/lib/whatsapp-ingest.js` (PM2)
 2. **Command parsed** → e.g. `+ arsenal home M 2500 4` resolves to `kit_skus.id = arsenal-2425-home`
 3. **Media ingest (if photo attached)** → download from Meta API → upload to R2 (`/curators/{slug}/listings/{id}/{n}.jpg`) **within webhook window** (Meta URLs expire ~30 days)
 4. **Persist** → insert/update Neon `listings` row; R2 keys (not URLs) stored

@@ -86,7 +86,7 @@ Treat **Hetzner as the agent's home** and **Vercel as the presentation + identit
 ## Migration Plan (5 phases, ship incrementally)
 
 ### Phase 0 — Unblock the pipeline ✅ Complete 2026-05-26
-- ✅ **`scripts/deploy-api.sh`** — rsync-based deploy with `npm install --production`, size check, symlink flip, PM2 reload, health check, auto-rollback, release pruning.
+- ✅ **`scripts/deploy-api.sh`** — rsync-based deploy with workspace package builds, isolated `npm install --omit=dev`, size check, symlink flip, PM2 reload, health check, auto-rollback, and release pruning.
 - ✅ **`scripts/rollback-api.sh`** — interactive release picker with auto-revert on health check failure.
 - ✅ **`scripts/setup-secrets.sh`** — secure hidden-input secret loader (SSH pipe, never stored locally).
 - ✅ **`shared/api/.env`** — single source of truth for secrets, symlinked into each release on deploy.
@@ -121,7 +121,7 @@ All 16 agent routes ported from Vercel to Hetzner Express (no proxy fallback nee
 - ✅ Forwarded user context middleware for Vercel→Hetzner auth flow
 - ✅ `SERVICE_API_KEY` on all stateful endpoints; public GET for read-only
 - ✅ Sentry integration (optional, conditional on SENTRY_DSN)
-- ✅ Deploy scripts updated: `pnpm deploy --legacy` resolves workspace deps
+- ✅ Deploy scripts updated: `scripts/deploy-api.sh` builds workspace deps, bundles `@repo/db` + `@repo/storage`, and deploys via isolated `npm install --omit=dev`
 
 Vercel keeps:
 - `/api/stripe/webhook` (low-latency to Stripe edges)

@@ -5,13 +5,14 @@
 ## Curator Storefronts (`/s/[slug]`) — Phase 11
 
 A branded surface a Curator hands to their customers. Composes existing components (`VirtualTryOn`, `PolaroidGallery`, `SessionEndingCard`, `collage`) against one Curator's catalog and brand kit. No new feature surface — pure recomposition.
+Implemented in `apps/web/app/s/[slug]/page.tsx`, backed by `apps/api/routes/curator-storefront.js`.
 
 ### What a Curator gets
 - `/s/{slug}` route with their logo, colors, voice, and catalog
 - Customer try-on scoped to their inventory
 - Branded polaroid frame + share templates (IG story, polaroid, fit-check card)
 - Optional "second opinion" from AI Curators (Miranda, Edina, Tan…)
-- Off-ramp checkout to their existing Shopify / WhatsApp / Stripe — no crypto required for end customers
+- Off-ramp checkout to their existing Shopify / WhatsApp / Stripe — the first pass uses WhatsApp deep links from live listings
 
 ### Two Curator types, one schema
 | Type | Source | Example | Catalog |
@@ -248,7 +249,7 @@ When the internal catalog doesn't have a match, the agent browses the open web:
 All 16 ported agent routes run directly on Hetzner Express, backed by `@repo/agent-core`:
 - **Auth**: `SERVICE_API_KEY` on stateful endpoints; public GET for dashboard/identity/catalog
 - **User context**: Forwarded from Vercel via `x-forwarded-user` header, validated by service key
-- **Deploy**: `pnpm deploy --legacy` resolves workspace dependencies (`workspace:*` protocol)
+- **Deploy**: `scripts/deploy-api.sh` builds workspace deps, bundles `@repo/db` + `@repo/storage`, and deploys via isolated `npm install --omit=dev`
 
 ## Feature Matrix
 

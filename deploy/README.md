@@ -17,7 +17,7 @@ only what's needed — no `git pull` on the server, no pnpm on the server.
 - **Future signer:** `onpoint-signer` on 127.0.0.1:48753 (Phase 4)
 
 **Deploy strategy (ADR 0001):**
-- `npm install --production` locally → `rsync` → symlink flip → `pm2 reload`
+- `pnpm` builds the workspace packages locally → isolated `npm install --omit=dev` bundle → `rsync` → symlink flip → `pm2 reload`
 - Secrets live at `/opt/onpoint/shared/api/.env`, symlinked into each release
 - No secrets ever travel over rsync or git
 
@@ -97,16 +97,16 @@ pnpm deploy:api
 The script does:
 
 ```
- 1. npm install --production  —— local build (87MB)
- 2. Size check                —— fail >200 MB, warn >100 MB
- 3. rsync --delete            —— to /opt/onpoint/releases/api/<timestamp>/
- 4. .env symlink              —— shared/api/.env → releases/api/…/.env
- 5. Symlink flip              —— apps/api → releases/api/<timestamp>/
- 6. pm2 reload                —— zero-downtime reload
- 7. Health check              —— curl /health, retry up to 6× (18s)
- 8. Auto-rollback on failure  —— flips back, reloads, verifies
- 9. Prune old releases        —— keep last 3
-10. Disk summary              —— show usage
+ 1. Build workspace deps       —— @repo/agent-core, @onpoint/shared-types, @repo/blockchain-client, @repo/db, @repo/storage
+ 2. Size check                 —— fail >200 MB, warn >100 MB
+ 3. rsync --delete             —— to /opt/onpoint/releases/api/<timestamp>/
+ 4. .env symlink               —— shared/api/.env → releases/api/…/.env
+ 5. Symlink flip               —— apps/api → releases/api/<timestamp>/
+ 6. pm2 reload                 —— zero-downtime reload
+ 7. Health check               —— curl /health, retry up to 6× (18s)
+ 8. Auto-rollback on failure   —— flips back, reloads, verifies
+ 9. Prune inactive releases    —— keep last 3, preserve active target
+10. Disk summary               —— show usage
 ```
 
 ### Deploy output example
@@ -136,7 +136,7 @@ The script does:
 
 | Script | Purpose |
 |--------|---------|
-| `scripts/deploy-api.sh` | Full deploy pipeline (build → deploy → health check) |
+| `scripts/deploy-api.sh` | Full deploy pipeline (build workspace packages → deploy → health check → prune inactive releases) |
 | `scripts/rollback-api.sh` | List releases, pick one, flip symlink, auto-revert on failure |
 | `scripts/setup-secrets.sh` | Hidden-input prompt for API keys, writes to server via SSH pipe |
 

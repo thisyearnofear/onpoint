@@ -117,14 +117,14 @@ pnpm format       # Prettier formatting
 
 ## Deployment
 
-### Netlify (Primary)
+### Vercel or Netlify (Frontend)
 
-The web app deploys automatically via GitHub integration:
+The Next.js app can deploy via your preferred frontend host:
 
-1. Connect repository in Netlify dashboard
+1. Connect repository in your frontend host dashboard
 2. Set build command: `pnpm build`
-3. Set publish directory: `apps/web/.next`
-4. Configure environment variables in Netlify UI:
+3. Set output directory: `apps/web/.next`
+4. Configure environment variables in the host UI:
    - `AUTH0_DOMAIN` (public)
    - `AUTH0_CLIENT_ID` (public)
    - `APP_BASE_URL` (public)
@@ -143,9 +143,9 @@ gcloud run deploy onpoint \
   --set-env-vars VERTEX_API_KEY=...,GEMINI_API_KEY=...
 ```
 
-### Vercel (Alternative)
+### Frontend Caveat
 
-Push to main branch — automatic deployment via GitHub integration.
+The frontend expects `NEXT_PUBLIC_AGENT_API_URL` to point at the Hetzner API when curator storefronts, agent routes, or AI proxy calls need live backend data.
 
 ### Hetzner VPS (Self-Hosted)
 
