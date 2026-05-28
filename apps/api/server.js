@@ -219,6 +219,11 @@ app.use('/api/agent/missions', json1k, serviceKeyAuth, require('./routes/agent-m
 // Schedule-Event — service-key + forwarded user (calendar integration)
 app.use('/api/agent/schedule-event', json1k, serviceKeyAuth, require('./routes/agent-schedule-event'));
 
+// ── WhatsApp Ingest (service-to-service) ──────────────────────────
+// Internal tool for the Spectrum-ts agent server. Wraps the
+// Meta download → R2 upload → Neon listing pipeline.
+
+app.use('/api/agent/whatsapp', json1k, serviceKeyAuth, generalRateLimit, require('./routes/agent-whatsapp'));
 
 // ── Curator Routes (public, rate-limited) ───────────────────────
 // Self-serve curator onboarding (ADR 0002). No API key needed.
