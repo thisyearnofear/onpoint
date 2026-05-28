@@ -250,6 +250,7 @@ Inventory is **not** in the Curator object — it lives in Neon (`listings` join
 - [ ] Wanja seeded into `curators` table from her onboarding call (top 10 SKUs as `listings`)
 
 **Chat-ops admin (Hetzner)**
+- [ ] Twilio number provisioned and registered with Meta's WhatsApp Business Cloud API as the agent's WhatsApp line
 - [ ] `packages/messaging-bridge/` — Spectrum-ts wrapper, providers: WhatsApp Business, terminal (for dev)
 - [ ] `apps/api/agent-server` — Spectrum-ts agent server under PM2, using `@repo/agent-core` for tools
 - [ ] 5 commands implemented: `+ <club> <type> <size> <price> <qty>`, `-`, `stock`, `link`, `help`

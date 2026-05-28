@@ -86,6 +86,8 @@ Both [`persona-config.ts`](../../apps/web/lib/utils/persona-config.ts) entries a
 
 A sole-trader Curator should never see a CMS. Her admin surface is **a conversation** with the OnPoint agent on the channel she already uses (WhatsApp first, via [Spectrum-ts](https://photon.codes/docs/spectrum-ts/introduction); Telegram + iMessage as additional providers under the same agent loop).
 
+> **Number provisioning**: The agent's WhatsApp number is provisioned through Twilio (a virtual SMS-capable number, ~$1–2/mo). This number is then registered with Meta's WhatsApp Business Cloud API as the business line. Spectrum-ts connects to this registered number using Meta-provided credentials (`accessToken`, `phoneNumberId`, `appSecret`). The Curator (Wanja) never touches any of this — she texts our agent's number from her personal WhatsApp, same as texting anyone.
+
 Minimum command set for v1 (Wanja):
 
 | Command | Effect |

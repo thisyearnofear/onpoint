@@ -111,6 +111,9 @@ export interface Critique {
   critic?: EnhancedUserProfile;
 }
 
+// Re-export Curator types (ADR 0002)
+export * from './curator';
+
 // Legacy types - kept for backward compatibility
 export interface Item {
   id: string;
