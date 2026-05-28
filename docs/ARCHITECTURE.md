@@ -4,6 +4,29 @@
 
 OnPoint is a monorepo containing a Next.js web app, AI provider abstractions, and a Python microservice for autonomous web browsing.
 
+The product is organized as three composable layers (see [ADR 0002](./adr/0002-curator-primitive.md)):
+
+```diagram
+╭──────────────────────────────────────────────────────────────╮
+│  LAYER 3 — The Loop   (consumer surface)                     │
+│  Try-on → Polaroid → Share → Buy → Memory → Re-engage        │
+│  Rendered on /s/[slug] by composing shipped components       │
+╰────────────────────────────┬─────────────────────────────────╯
+                             ▲
+╭────────────────────────────┴─────────────────────────────────╮
+│  LAYER 2 — The Cast   (Curators: humans + AI personas)       │
+│  Single schema in @onpoint/shared-types · Curator            │
+│  human  → apps/web/config/curators/*.json                    │
+│  ai     → apps/web/lib/utils/persona-config.ts               │
+╰────────────────────────────┬─────────────────────────────────╯
+                             ▲
+╭────────────────────────────┴─────────────────────────────────╮
+│  LAYER 1 — The Engine                                        │
+│  AI providers · try-on · persistence · payments ·            │
+│  agent receipts (now: cross-Curator attribution)             │
+╰──────────────────────────────────────────────────────────────╯
+```
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        Client Layer                          │
@@ -25,8 +48,13 @@ OnPoint is a monorepo containing a Next.js web app, AI provider abstractions, an
 ┌──────────────────────────┴───────────────────────────────────┐
 │                    Infrastructure Layer                       │
 ├──────────────┬──────────────┬──────────────┬─────────────────┤
-│   Netlify    │   Auth0      │   Blockchains│   IPFS/Filecoin │
-│   (Hosting)  │  (Identity)  │  (Celo/Base) │   (Lighthouse)  │
+│   Hetzner    │   Netlify    │   Auth0      │   Blockchains   │
+│ (Agent home, │  (Presentation)│ (Identity) │  (Celo/Base)    │
+│  ADR 0001)   │              │              │                 │
+├──────────────┼──────────────┼──────────────┼─────────────────┤
+│   Neon       │   Cloudflare │   Upstash    │   Lighthouse    │
+│  (Postgres,  │   R2 + Images│   Redis      │   IPFS/Filecoin │
+│   ADR 0003)  │   (Bytes)    │   (Cache)    │  (Verifiable)   │
 └──────────────┴──────────────┴──────────────┴─────────────────┘
 ```
 
@@ -40,9 +68,13 @@ OnPoint is a monorepo containing a Next.js web app, AI provider abstractions, an
 | `packages/shared-ui`        | Reusable UI components                           |
 | `packages/ai-client`        | AI provider abstraction layer + React hooks      |
 | `packages/agent-web-bridge` | Python FastAPI browser automation service        |
+| `packages/db`               | Drizzle schema + migrations for Neon (ADR 0003)  |
+| `packages/storage`          | Cloudflare R2 helpers (put, signed URLs, transforms) |
+| `packages/messaging-bridge` | Spectrum-ts wrapper — WhatsApp / Telegram / iMessage providers for the Hetzner agent |
 
 ## Data Flow
 
+### Consumer dashboard (`/`)
 1. **User uploads image/camera** → Client validation
 2. **AI processing** → Provider abstraction routes to Venice/Gemini/OpenAI
 3. **Style scoring** → Sentiment-weighted analysis (1-10 scale)
@@ -50,6 +82,22 @@ OnPoint is a monorepo containing a Next.js web app, AI provider abstractions, an
 5. **User action** → Accept/reject flows through API
 6. **State persistence** → Redis storage with in-memory fallback
 7. **Web discovery** (if no catalog match) → Python bridge browses external sites
+
+### Curator storefront (`/s/[slug]`) — Phase 11
+1. **Curator + listings loaded** → Hetzner API reads from Neon (`curators` + `listings` joined to `kit_skus`); R2 image URLs constructed via `packages/storage`
+2. **Customer lands on branded page** → Curator's logo (if set), colors, voice, inventory scoped
+3. **Try-on against Curator catalog** → reuses `VirtualTryOn`, no global product load
+4. **Polaroid + share asset** → `PolaroidGallery` + `SessionEndingCard` render with Curator's `brand.frameTemplate`; output persisted to R2 under `/curators/{slug}/polaroids/`
+5. **(Optional) AI second opinion** → AI Curator persona renders alongside, recommendations scoped to host Curator's catalog
+6. **Buy** → off-ramp via `commerce.checkout`. For `whatsapp`: `wa.me/{phone}?text={prefilled SKU}` deep link. For `shopify`/`stripe`: external checkout URL. For AI-initiated purchases across Curators, the agent layer (autonomous executor + Lighthouse receipts) records attribution + revshare.
+
+### Curator chat-ops admin (Wanja path) — Phase 11
+1. **Curator texts agent** → Spectrum-ts WhatsApp provider → Hetzner `apps/api/agent-server` (PM2)
+2. **Command parsed** → e.g. `+ arsenal home M 2500 4` resolves to `kit_skus.id = arsenal-2425-home`
+3. **Media ingest (if photo attached)** → download from Meta API → upload to R2 (`/curators/{slug}/listings/{id}/{n}.jpg`) **within webhook window** (Meta URLs expire ~30 days)
+4. **Persist** → insert/update Neon `listings` row; R2 keys (not URLs) stored
+5. **Agent reply** → confirmation with `/s/{slug}/{listing-id}` short URL to share with her customer
+6. **Customer storefront reflects change immediately** → Hetzner API serves fresh reads; Vercel/Netlify never writes
 
 ## Agent Loop Architecture
 
@@ -80,6 +128,9 @@ These modules live in `apps/web/lib/` and are designed to be extracted into any 
 
 | Module                      | File                                        | Purpose                                                  |
 | --------------------------- | ------------------------------------------- | -------------------------------------------------------- |
+| **Curator Schema**          | `packages/shared-types/curator.ts`          | Single primitive for human merchants + AI personas (ADR 0002) |
+| **Curator Loader**          | `apps/web/config/curators/*.json` + `lib/utils/persona-config.ts` | Source of truth for `type: "human"` and `type: "ai"` Curators |
+| **Storefront Route**        | `apps/web/app/s/[slug]/page.tsx`            | Composes shipped components against one Curator         |
 | **Agent Controls**          | `middleware/agent-controls.ts`            | Spending limits, autonomy thresholds, approval workflows |
 | **Autonomous Executor**     | `services/autonomous-executor.ts`          | Signs and broadcasts accepted suggestions onchain      |
 | **State Persistence**       | `middleware/agent-store.ts`                 | Redis-backed storage with write-through cache            |

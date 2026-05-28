@@ -183,10 +183,100 @@ OnPoint is evolving from a vision-AI stylist to a fully autonomous shopping agen
 
 ---
 
-### Phase 10: Multi-Chain Expansion 🚧
+### Phase 10: Multi-Chain Expansion 🅿️ Deferred
+> Moved to Post-MVP. Does not serve the Curator loop (ADR 0002). Revisit when cross-chain volume is evidenced by Curator demand.
+
 - Base ecosystem integration
 - Polygon support
 - Cross-chain transaction aggregation
+
+---
+
+### Phase 11: Curator Primitive & Stylist Storefronts 🎯 Current
+> **ADRs**: [0002 — Curator Primitive](./adr/0002-curator-primitive.md), [0003 — Storage Strategy](./adr/0003-storage-strategy.md)
+> **North star**: Wanja — a sole-trader Premier League jersey reseller — manages her storefront purely by texting our agent on WhatsApp. Her customers land on `/s/wanja`, try-on, get a polaroid, share, and tap "Buy on WhatsApp." AI Curator personas (Miranda, Edina…) join the conversation as optional sidekicks.
+
+Reframes OnPoint from "consumer AI stylist" to "curator-first styling platform" with **chat-ops admin** for sole traders. Human Curators bring catalogs + audiences; AI Curators act as cross-vertical sidekicks. Both share one `Curator` schema. No new try-on / gallery / share components — `/s/[slug]` composes shipped ones. Backend on Hetzner (per [ADR 0001](./adr/0001-backend-first-autonomy.md)) owns the agent, Spectrum-ts messaging, Neon writes, and R2 ingest; Vercel/Netlify is read-only presentation.
+
+#### Alignment with Core Principles
+- **ENHANCEMENT FIRST**: `/s/[slug]` reuses `VirtualTryOn`, `PolaroidGallery`, `SessionEndingCard`, `collage`. No new feature surface.
+- **AGGRESSIVE CONSOLIDATION**: `persona-config.ts` + implicit merchant concept collapse into one `Curator` schema. Global `CATALOG` in `storefront/route.ts` is deleted.
+- **PREVENT BLOAT**: New work must be requested by a named Curator with a named customer-of-theirs lined up to use it.
+- **DRY**: One Curator schema feeds storefront, persona picker, share branding, revshare attribution.
+- **CLEAN**: Layer 1 (engine) / Layer 2 (Curators) / Layer 3 (loop) — agent/web3 surface moves behind `/lab`.
+
+#### Sequencing (12 weeks)
+
+| Weeks | Goal | Build | Defer |
+|---|---|---|---|
+| **1–2** | Wanja's chat-ops admin + bare storefront live on Hetzner | Curator schema (`packages/shared-types`); Neon + R2 provisioned, secrets on Hetzner via `setup-secrets.sh`; PL kit backbone (20 clubs × current season × 3 kit types); Spectrum-ts WhatsApp agent under PM2 with 5 commands; `/s/wanja` reading from Neon, "Buy on WhatsApp" deep links | Try-on, AI sidekick, multi-Curator, additional channels |
+| **3–4** | Layer try-on + one great share asset | `VirtualTryOn` accepts Curator-scoped catalog (no global `CATALOG`); polaroid template with Curator name watermark; remove auto-analyze for unauth visitors | IG-story + fit-check templates (until polaroid data justifies more) |
+| **5–6** | AI as sidekick on `/s/wanja` | Wire 1–2 AI Curators from `persona-config.ts` as optional "second opinion"; AI recommendations scoped to Wanja's catalog | Cross-Curator catalog jumps |
+| **7–8** | 4 more Curators across verticals | Concierge onboarding: sneakers, Ankara tailor, hair/barber, vintage. WhatsApp + Telegram via Spectrum-ts. Reuse PL-style backbone pattern per vertical | Self-serve Curator signup, public directory |
+| **9–10** | Cross-Curator graph | AI Curators recommend across union of human Curator catalogs with attribution + revshare via existing agent receipts (Lighthouse) | Public Curator marketplace |
+| **11–12** | Measure & price | Share → visit → try-on → purchase funnel per Curator; A/B SaaS vs revshare vs AI-session split; per-Curator R2 storage cost report | New verticals not validated by data |
+
+#### Schema (lives in `packages/shared-types`)
+
+```ts
+interface Curator {
+  slug: string;
+  name: string;
+  type: "human" | "ai";
+  avatar?: string;
+  voice?: string;                  // prompt seed for AI; bio for human
+  verticals: string[];
+  collaborators?: string[];
+  channels?: { whatsapp?; telegram?; instagram? };   // chat-ops admin lives here
+  brand?: { logo?; colors?; frameTemplate?; shareCopy?; location? };  // all optional for sole traders
+  commerce?: { checkout: "whatsapp"|"shopify"|"stripe"; checkoutUrl?; whatsappTemplate?; revShare? };
+}
+```
+
+Inventory is **not** in the Curator object — it lives in Neon (`listings` joined to `kit_skus`), per [ADR 0003](./adr/0003-storage-strategy.md).
+
+#### Concrete deliverables (Wks 1–2)
+
+**Infrastructure (Hetzner)**
+- [ ] Neon project provisioned; secrets loaded onto Hetzner via `scripts/setup-secrets.sh` (per ADR 0001)
+- [ ] Cloudflare R2 bucket + Images access; secrets onto Hetzner same path
+- [ ] `packages/db/` — Drizzle schema + migrations for `curators`, `kit_skus`, `listings`, `orders`, `sessions`
+- [ ] `packages/storage/` — R2 helpers: `put(key, bytes)`, `signedReadUrl(key)`, `transformUrl(key, opts)`
+
+**Schema + seeds**
+- [ ] `packages/shared-types/curator.ts` — single `Curator` type (see above)
+- [ ] PL kit backbone seed: 20 clubs × 2024/25 × {home, away, third} with official image keys in R2
+- [ ] `apps/web/lib/utils/persona-config.ts` → emits `Curator` objects with `type: "ai"`
+- [ ] Wanja seeded into `curators` table from her onboarding call (top 10 SKUs as `listings`)
+
+**Chat-ops admin (Hetzner)**
+- [ ] `packages/messaging-bridge/` — Spectrum-ts wrapper, providers: WhatsApp Business, terminal (for dev)
+- [ ] `apps/api/agent-server` — Spectrum-ts agent server under PM2, using `@repo/agent-core` for tools
+- [ ] 5 commands implemented: `+ <club> <type> <size> <price> <qty>`, `-`, `stock`, `link`, `help`
+- [ ] WhatsApp ingest tool: download Meta media → R2 put → insert `listings` row (synchronous within webhook window)
+- [ ] Meta Business verification started + outbound message templates submitted for approval
+
+**Customer surface**
+- [ ] `apps/web/app/s/[slug]/page.tsx` — reads Curator + listings from Hetzner API; renders branded storefront
+- [ ] `/s/wanja` live with "Buy on WhatsApp" deep links (`wa.me/{phone}?text={prefill}`) — no try-on, no AI sidekick yet
+
+**Relocation (consolidation per Core Principles)**
+- [ ] `apps/web/app/api/agent/storefront/route.ts` — delete global `CATALOG`, scope reads by Curator slug
+- [ ] `apps/web/app/lab/page.tsx` — new home for existing agent/web3 surface (`TacticalDashboard` agent/wallet/fraud/missions tabs move behind here, no new code)
+
+#### Out of scope for Phase 11
+- New AI models or training
+- Public Curator directory / marketplace UI (need ≥10 Curators first)
+- Crypto-native checkout for end customers (off-ramp to Curator's existing Shopify/WhatsApp/Stripe)
+- Removal of the agent / ERC-8004 / Token Vault stack (relocated, not deleted)
+
+#### Success criteria (decided before measurement)
+- ≥3 of 5 onboarded Curators see >20% share → visit rate on customer-generated polaroids
+- ≥15% try-on → purchase conversion on at least one Curator
+- ≥1 cross-Curator attributed purchase (AI recommends item from Curator B inside Curator A's storefront)
+- Zero new top-level features added that weren't requested by a named Curator
+
+---
 
 #### Immediate (Next 2 Weeks)
 - [ ] A/B test hero tagline variations
@@ -224,10 +314,12 @@ OnPoint is evolving from a vision-AI stylist to a fully autonomous shopping agen
 - [ ] Implement proper loading states for all async operations
 
 ### Creator Economy
-- Stylist directory and profiles
-- Creator storefronts with custom revenue splits
-- Collaborative design workflows
-- Community-driven curation with rewards
+> Subsumed by Phase 11 (Curator Primitive). What remains here is post-MVP work that only makes sense after ≥10 Curators ship.
+
+- Public Curator directory (deferred until Phase 11 success criteria met)
+- Self-serve Curator signup + Stripe Connect onboarding
+- Collaborative design workflows (Curator-to-Curator drops)
+- Community-driven curation with rewards (powered by existing Memory Protocol)
 
 ### African Differentiation
 - African pattern library with cultural metadata
@@ -261,6 +353,10 @@ OnPoint is evolving from a vision-AI stylist to a fully autonomous shopping agen
 | Hero → Try-On conversion | > 40% | 📊 New metric |
 | Persona selection rate | > 70% | 📊 New metric |
 | Agent wallet checkout | > 15% | 📊 New metric |
+| **Curator storefront: share → visit** | > 20% | 📊 Phase 11 |
+| **Curator storefront: try-on → purchase** | > 15% | 📊 Phase 11 |
+| **Cross-Curator attributed purchases** | ≥ 1/week | 📊 Phase 11 |
+| **Onboarded Curators (live storefronts)** | ≥ 5 in 90 days | 📊 Phase 11 |
 
 ---
 

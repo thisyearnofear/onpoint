@@ -1,6 +1,8 @@
-# OnPoint — AI-Powered Personal Styling Agent
+# OnPoint — A Curator-First Styling Platform
 
-> **An autonomous AI agent that sees what you're wearing, understands your style, and helps you shop — with built-in spending controls, transparent decision-making, and self-custodial payments.**
+> **Stylists hand their customers a branded try-on → polaroid → share → buy loop. AI personas join the conversation as cross-vertical sidekicks. One engine, two kinds of curator (human + AI), zero new feature surface — just composition of what's already shipped.**
+
+> 📐 See [ADR 0002 — Curator Primitive](./docs/adr/0002-curator-primitive.md) for the organizing decision, and [ROADMAP Phase 11](./docs/ROADMAP.md) for the 12-week sequence.
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-indigo)](https://onpoint-web-647723858538.us-central1.run.app)
 [![Multi-Chain](https://img.shields.io/badge/Chains-Celo%20%7C%20Base%20%7C%20Ethereum%20%7C%20Polygon-22C55E)]()

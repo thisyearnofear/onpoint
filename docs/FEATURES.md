@@ -1,5 +1,29 @@
 # Features
 
+> **Organizing primitive**: every styling voice in OnPoint — human merchant or AI persona — is a `Curator` (see [ADR 0002](./adr/0002-curator-primitive.md)). Features below are composed against one Curator at a time on `/s/[slug]`, or against the full Curator set on the consumer dashboard.
+
+## Curator Storefronts (`/s/[slug]`) — Phase 11
+
+A branded surface a Curator hands to their customers. Composes existing components (`VirtualTryOn`, `PolaroidGallery`, `SessionEndingCard`, `collage`) against one Curator's catalog and brand kit. No new feature surface — pure recomposition.
+
+### What a Curator gets
+- `/s/{slug}` route with their logo, colors, voice, and catalog
+- Customer try-on scoped to their inventory
+- Branded polaroid frame + share templates (IG story, polaroid, fit-check card)
+- Optional "second opinion" from AI Curators (Miranda, Edina, Tan…)
+- Off-ramp checkout to their existing Shopify / WhatsApp / Stripe — no crypto required for end customers
+
+### Two Curator types, one schema
+| Type | Source | Example | Catalog |
+|------|--------|---------|---------|
+| `human` | `apps/web/config/curators/*.json` | Mo (football jerseys) | Their inventory |
+| `ai`    | `lib/utils/persona-config.ts` (re-emitted as `Curator`) | Miranda Priestly | Union of host Curator's catalog |
+
+### Coexistence
+On `/s/mo` (a human Curator's storefront), AI Curators appear as optional voices: same try-on, three takes on the result. On AI Curator surfaces, human Curators' catalogs are the recommendation pool. The agent layer (autonomous executor, ERC-8004 receipts, Token Vault) becomes the attribution + AI-purchase infrastructure for cross-Curator transactions.
+
+---
+
 ## Live AR Stylist
 
 Real-time AI styling sessions — like a FaceTime call with a fashion consultant.
@@ -28,20 +52,20 @@ Real-time AI styling sessions — like a FaceTime call with a fashion consultant
 
 ---
 
-## AI Stylist Personalities
+## AI Curators (Stylist Personas)
 
-Asynchronous text-based critiques from 6 distinct personalities:
+The six personas below are **AI Curators** under the unified schema. They are loaded from `lib/utils/persona-config.ts` and re-emitted as `Curator` objects with `type: "ai"`, so they can be slotted into any human Curator's storefront as a "second opinion" voice.
 
-| Persona          | Style                                           |
-| ---------------- | ----------------------------------------------- |
-| Anna Karenina    | Russian aristocratic, 19th-century high society |
-| Artful Dodger    | Street-smart youth, urban style, sneakerhead    |
-| Mowgli           | Natural coexistence, ecological balance         |
-| Edina Monsoon    | Avant-garde fashion victim                      |
-| Miranda Priestly | Impossibly high runway standards                |
-| John Shaft       | 1970s cool sophistication                       |
+| Persona          | Style                                           | Default verticals |
+| ---------------- | ----------------------------------------------- | ----------------- |
+| Anna Karenina    | Russian aristocratic, 19th-century high society | formal, occasion  |
+| Artful Dodger    | Street-smart youth, urban style, sneakerhead    | streetwear, sneakers |
+| Mowgli           | Natural coexistence, ecological balance         | sustainable, outdoor |
+| Edina Monsoon    | Avant-garde fashion victim                      | high-fashion, experimental |
+| Miranda Priestly | Impossibly high runway standards                | runway, luxury |
+| John Shaft       | 1970s cool sophistication                       | retro, tailoring |
 
-**Capabilities**: Upload photos, context-aware conversations, style suggestions, cross-component integration.
+**Capabilities**: Upload photos, context-aware conversations, style suggestions, cross-component integration. When mounted inside `/s/[slug]`, an AI Curator's recommendations are scoped to the host Curator's catalog (the union model — see [ADR 0002](./adr/0002-curator-primitive.md#open-questions)).
 
 ---
 
