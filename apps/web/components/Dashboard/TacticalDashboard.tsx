@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Palette,
@@ -83,74 +83,68 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
     { id: "settings" as AppMode, label: "Settings", icon: User },
   ];
 
-  const renderContent = () => {
-    switch (mode) {
-      case "dashboard":
-        return <HomePanel onNavigate={(mode) => setMode(mode as AppMode)} />;
-      case "my-looks":
-        return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+  // Route map — each mode maps to its content factory
+  const contentMap: Record<AppMode, () => ReactNode> = {
+    dashboard: () => <HomePanel onNavigate={(m) => setMode(m as AppMode)} />,
+    "my-looks": () => (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+      >
+        <PolaroidGallery
+          onNavigateToTryOn={() => setMode("try-on")}
+          onNavigateToDesign={() => setMode("design")}
+        />
+      </motion.div>
+    ),
+    "design": () => (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+      >
+        <div className="mb-4">
+          <button
+            onClick={() => setMode("my-looks")}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            <PolaroidGallery
-              onNavigateToTryOn={() => setMode("try-on")}
-              onNavigateToDesign={() => setMode("design")}
-            />
-          </motion.div>
-        );
-      case "design":
-        return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-          >
-            <div className="mb-4">
-              <button
-                onClick={() => setMode("my-looks")}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                &larr; Back to My Looks
-              </button>
-            </div>
-            <DesignStudio />
-          </motion.div>
-        );
-      case "try-on":
-        return (
-          <div>
-            {deepLinkContext?.from && (
-              <div className="mb-4 flex items-center gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3">
-                <Camera className="w-4 h-4 text-accent shrink-0" />
-                <p className="text-xs text-accent">
-                  Styling from{" "}
-                  <span className="font-bold">{deepLinkContext.from}</span>
-                  's storefront
-                  {deepLinkContext.item && (
-                    <> — item <span className="font-mono">{deepLinkContext.item}</span></>
-                  )}
-                </p>
-                <button
-                  onClick={() => setDeepLinkContext(null)}
-                  className="ml-auto text-[10px] text-accent/60 hover:text-accent"
-                >
-                  Dismiss
-                </button>
-              </div>
-            )}
-            <VirtualTryOn />
+            &larr; Back to My Looks
+          </button>
+        </div>
+        <DesignStudio />
+      </motion.div>
+    ),
+    "try-on": () => (
+      <div>
+        {deepLinkContext?.from && (
+          <div className="mb-4 flex items-center gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3">
+            <Camera className="w-4 h-4 text-accent shrink-0" />
+            <p className="text-xs text-accent">
+              Styling from{" "}
+              <span className="font-bold">{deepLinkContext.from}</span>
+              's storefront
+              {deepLinkContext.item && (
+                <> — item <span className="font-mono">{deepLinkContext.item}</span></>
+              )}
+            </p>
+            <button
+              onClick={() => setDeepLinkContext(null)}
+              className="ml-auto text-[10px] text-accent/60 hover:text-accent"
+            >
+              Dismiss
+            </button>
           </div>
-        );
-      case "stylist":
-        return <AIStylist />;
-      case "shop":
-        return <InlineShop onTryOn={() => setMode("try-on")} />;
-      case "settings":
-        return <SettingsPanel />;
-    }
+        )}
+        <VirtualTryOn />
+      </div>
+    ),
+    stylist: () => <AIStylist />,
+    shop: () => <InlineShop onTryOn={() => setMode("try-on")} />,
+    settings: () => <SettingsPanel />,
   };
+
+  const renderContent = () => contentMap[mode]();
 
   const navigateTo = (id: AppMode) => {
     setMode(id);
