@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
+import Link from "next/link";
 import Image from "next/image";
 import {
   Palette,
@@ -8,37 +9,17 @@ import {
   ArrowRight,
   Check,
   Camera,
+  FlaskConical,
 } from "lucide-react";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { Auth0HeaderButton } from "../components/auth/Auth0Components";
 import { NotificationBell } from "../components/NotificationBell";
-import { AgentWalletBadge } from "../components/AgentWalletBadge";
 import { Button } from "@repo/ui/button";
-import { TacticalDashboard } from "../components/Dashboard/TacticalDashboard";
-import { LayoutDashboard } from "lucide-react";
-
-type View = "hero" | "dashboard";
 
 export default function Home() {
-  const [view, setView] = useState<View>("hero");
-
-  useEffect(() => {
-    const seen = localStorage.getItem("onpoint-has-visited");
-    // On mobile, skip the hero and go straight to dashboard.
-    // The bottom nav and NewUserOnboarding handle the first-time experience.
-    if (window.innerWidth < 768 || seen) {
-      setView("dashboard");
-    }
-  }, []);
-
-  const handleContinue = () => {
-    localStorage.setItem("onpoint-has-visited", "true");
-    setView("dashboard");
-  };
-
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30">
-      {/* Desktop Header - sticky */}
+      {/* Desktop Header */}
       <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/95 backdrop-blur-xl hidden md:block">
         <div className="container flex h-14 items-center justify-between px-4">
           <div className="flex items-center gap-6">
@@ -50,41 +31,29 @@ export default function Home() {
                 BeOnPoint
               </span>
             </div>
-
-            {/* Desktop Nav */}
-            <nav className="flex items-center gap-1">
-              <Button
-                variant={view === "dashboard" ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => setView("dashboard")}
-                className="rounded-full"
-              >
-                <LayoutDashboard className="w-4 h-4 mr-1.5" />
-                Start
-              </Button>
-            </nav>
           </div>
 
           <div className="flex items-center gap-1">
+            <Link
+              href="/lab"
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-full hover:bg-muted/50"
+            >
+              <FlaskConical className="w-4 h-4" />
+              Lab
+            </Link>
             <NotificationBell />
-            <AgentWalletBadge />
             <Auth0HeaderButton />
             <ThemeToggle />
           </div>
         </div>
       </header>
 
-      {/* Content */}
-      {view === "hero" ? (
-        <HeroView onContinue={handleContinue} />
-      ) : (
-        <DashboardView onBack={() => setView("hero")} />
-      )}
+      <HeroView />
     </div>
   );
 }
 
-function HeroView({ onContinue }: { onContinue: () => void }) {
+function HeroView() {
   return (
     <div className="min-h-screen">
       <div className="relative container mx-auto px-4 py-12 md:py-20 lg:py-24">
@@ -109,15 +78,14 @@ function HeroView({ onContinue }: { onContinue: () => void }) {
               </p>
 
               <div className="flex flex-col sm:flex-row items-center lg:items-start gap-3">
-                <Button
-                  size="lg"
-                  onClick={onContinue}
-                  className="bg-primary hover:bg-primary/90 text-white font-bold px-8 py-6 rounded-full text-lg shadow-lg shadow-primary/25"
+                <Link
+                  href="/lab"
+                  className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white font-bold px-8 py-6 rounded-full text-lg shadow-lg shadow-primary/25 transition-all"
                 >
-                  <Camera className="w-5 h-5 mr-2" />
+                  <Camera className="w-5 h-5" />
                   Try It Free
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
               </div>
 
               <div className="flex flex-wrap justify-center lg:justify-start gap-4 pt-2 text-sm text-muted-foreground">
@@ -163,7 +131,6 @@ function HeroView({ onContinue }: { onContinue: () => void }) {
                   AI Vision
                 </div>
                 
-                {/* Before/After Split */}
                 <div className="space-y-3">
                   <div className="relative aspect-[4/3] rounded-lg overflow-hidden border border-border">
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
@@ -213,23 +180,16 @@ function HeroView({ onContinue }: { onContinue: () => void }) {
 
       {/* Mobile Continue Button */}
       <div className="fixed bottom-20 left-4 right-4 md:hidden z-40">
-        <Button
-          onClick={onContinue}
-          className="w-full bg-primary text-white font-bold py-4 rounded-full shadow-lg"
+        <Link
+          href="/lab"
+          className="block w-full bg-primary text-white font-bold py-4 rounded-full shadow-lg text-center"
         >
           Try It Free — Point Your Camera
-        </Button>
+        </Link>
       </div>
     </div>
   );
 }
 
-function DashboardView({ onBack }: { onBack: () => void }) {
-  return (
-    <div>
-      <TacticalDashboard onBack={onBack} />
-    </div>
-  );
-}
 
 

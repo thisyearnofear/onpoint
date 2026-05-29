@@ -142,6 +142,56 @@ export function trackPaymentFailed(
   trackEvent("payment_failed", properties);
 }
 
+/** ── Curator Funnel Events ── */
+
+/**
+ * Track a curator storefront page view
+ */
+export function trackCuratorPageView(properties: {
+  curatorSlug: string;
+  curatorName: string;
+  listingCount: number;
+  referrer?: string;
+}): void {
+  trackEvent("curator_page_view", properties);
+}
+
+/**
+ * Track a try-on initiation from a curator storefront
+ */
+export function trackCuratorTryOn(properties: {
+  curatorSlug: string;
+  listingId: string;
+  club: string;
+  kitType: string;
+}): void {
+  trackEvent("curator_try_on", properties);
+}
+
+/**
+ * Track a buy button click on a curator storefront
+ */
+export function trackCuratorBuyClick(properties: {
+  curatorSlug: string;
+  listingId: string;
+  club: string;
+  kitType: string;
+  price: number | null;
+  checkoutType: string;
+}): void {
+  trackEvent("curator_buy_click", properties);
+}
+
+/**
+ * Track a share action on a curator storefront
+ */
+export function trackCuratorShare(properties: {
+  curatorSlug: string;
+  method: "whatsapp" | "farcaster" | "copy";
+}): void {
+  trackEvent("curator_share", properties);
+}
+
 /**
  * Track error event
  */

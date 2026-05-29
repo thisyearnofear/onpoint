@@ -3,31 +3,18 @@
 import React from "react";
 import { motion } from "framer-motion";
 import {
-  Target,
   ChevronRight,
   Crown,
   ShieldAlert,
+  Target,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { EnhancedConnectButton } from "../EnhancedConnectButton";
 import { FarcasterSignInButton } from "../FarcasterSignInButton";
 import { ConnectedAccounts } from "../ConnectedAccounts";
 import { FraudMonitor } from "../FraudMonitor";
-import { useUser } from "@auth0/nextjs-auth0/client";
+import { AuthAccountCTA } from "./AuthAccountCTA";
 import Link from "next/link";
-
-function AuthAccountCTA() {
-  const { user, isLoading } = useUser();
-  if (isLoading || user) return null;
-  return (
-    <p className="text-xs text-muted-foreground">
-      <a href="/auth/login" className="underline underline-offset-2 text-primary">
-        Sign in
-      </a>{" "}
-      to save looks, track orders, and connect external accounts.
-    </p>
-  );
-}
 
 export function SettingsPanel() {
   return (

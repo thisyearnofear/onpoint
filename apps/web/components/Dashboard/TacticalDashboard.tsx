@@ -14,9 +14,9 @@ import {
 } from "lucide-react";
 import { NotificationBell } from "../NotificationBell";
 
-import { VirtualTryOn } from "../VirtualTryOn";
-import { AIStylist } from "../AIStylist";
-import { InlineShop } from "../Shop/InlineShop";
+import { TryOnPanel } from "./TryOnPanel";
+import { StylistPanel } from "./StylistPanel";
+import { ShopPanel } from "./ShopPanel";
 import { NewUserOnboarding } from "./NewUserOnboarding";
 import { HomePanel } from "./HomePanel";
 import { MyLooksPanel } from "./MyLooksPanel";
@@ -88,32 +88,13 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
     dashboard: () => <HomePanel onNavigate={(m) => setMode(m as AppMode)} />,
     "my-looks": () => <MyLooksPanel onNavigate={(m) => setMode(m as AppMode)} />,
     "design": () => <DesignPanel onNavigate={(m) => setMode(m as AppMode)} />,
-    "try-on": () => (
-      <div>
-        {deepLinkContext?.from && (
-          <div className="mb-4 flex items-center gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3">
-            <Camera className="w-4 h-4 text-accent shrink-0" />
-            <p className="text-xs text-accent">
-              Styling from{" "}
-              <span className="font-bold">{deepLinkContext.from}</span>
-              's storefront
-              {deepLinkContext.item && (
-                <> — item <span className="font-mono">{deepLinkContext.item}</span></>
-              )}
-            </p>
-            <button
-              onClick={() => setDeepLinkContext(null)}
-              className="ml-auto text-[10px] text-accent/60 hover:text-accent"
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
-        <VirtualTryOn />
-      </div>
-    ),
-    stylist: () => <AIStylist />,
-    shop: () => <InlineShop onTryOn={() => setMode("try-on")} />,
+    "try-on": () => <TryOnPanel
+      deepLinkFrom={deepLinkContext?.from}
+      deepLinkItem={deepLinkContext?.item}
+      onDismissDeepLink={() => setDeepLinkContext(null)}
+    />,
+    stylist: () => <StylistPanel />,
+    shop: () => <ShopPanel onTryOn={() => setMode("try-on")} />,
     settings: () => <SettingsPanel />,
   };
 

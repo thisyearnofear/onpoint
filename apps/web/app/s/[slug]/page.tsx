@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   ShoppingBag,
 } from "lucide-react";
+import { CuratorTracker } from "../../../components/CuratorTracker";
 
 export const dynamic = "force-dynamic";
 
@@ -149,19 +150,35 @@ export default async function CuratorStorefrontPage({
 
   const { curator, listings, meta } = storefront;
   const primary = curator.brand?.colors?.primary || "#111827";
-  const accent = curator.brand?.colors?.accent || "#e94560";
+  const acc = curator.brand?.colors?.accent || "#e94560";
+
+  // Build listings summary for analytics (slim, no image data)
+  const trackerListings = listings.map((l) => ({
+    id: l.id,
+    club: l.kit.club,
+    kitType: l.kit.kitType,
+    lowestPrice: getLowestPrice(l.sizes),
+    checkoutType: meta.checkout,
+  }));
   const location = curator.brand?.location;
 
   return (
-    <main
-      className="min-h-screen bg-background text-foreground"
-      style={
-        {
-          "--curator-primary": primary,
-          "--curator-accent": accent,
-        } as CSSProperties
-      }
-    >
+    <>
+      <CuratorTracker
+        slug={slug}
+        name={curator.name}
+        listingCount={listings.length}
+        listings={trackerListings}
+      />
+      <main
+        className="min-h-screen bg-background text-foreground"
+        style={
+          {
+            "--curator-primary": primary,
+            "--curator-accent": acc,
+          } as CSSProperties
+        }
+      >
       <header className="border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
           <Link
@@ -322,6 +339,8 @@ export default async function CuratorStorefrontPage({
                     <div className="flex gap-2">
                       <a
                         href={`/?tab=try-on&from=${encodeURIComponent(slug)}&item=${encodeURIComponent(listing.id)}`}
+                        data-analytics-tryon
+                        data-listing-id={listing.id}
                         className="inline-flex flex-1 items-center justify-center gap-2 rounded-md border border-border px-4 py-3 text-sm font-bold transition-colors hover:bg-muted"
                       >
                         <Camera className="h-4 w-4" />
@@ -330,6 +349,8 @@ export default async function CuratorStorefrontPage({
                       {listing.checkoutUrl ? (
                         <a
                           href={listing.checkoutUrl}
+                          data-analytics-buy
+                          data-listing-id={listing.id}
                           className="inline-flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
                           style={{ background: "var(--curator-primary)" }}
                         >
@@ -357,5 +378,6 @@ export default async function CuratorStorefrontPage({
         )}
       </section>
     </main>
+    </>
   );
 }

@@ -3,14 +3,14 @@
 import React from "react";
 import { motion } from "framer-motion";
 import {
-  Palette,
   Camera,
-  MessageCircle,
-  ShoppingBag,
-  ChevronRight,
   CheckCircle2,
-  Target,
+  ChevronRight,
   Clock,
+  MessageCircle,
+  Palette,
+  ShoppingBag,
+  Target,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { AgentActivityFeed } from "../Agent/AgentActivityFeed";
