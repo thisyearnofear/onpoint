@@ -9,7 +9,7 @@ import {
   Palette,
   Calendar,
   Store,
-  Edit3,
+
   CheckCircle2,
   AlertCircle,
 } from "lucide-react";
@@ -46,18 +46,10 @@ interface CuratorDetail {
   listingCount: number;
 }
 
-function getApiBase() {
-  return (
-    process.env.NEXT_PUBLIC_AGENT_API_URL ||
-    process.env.AGENT_API_URL ||
-    "http://localhost:48751"
-  ).replace(/\/$/, "");
-}
-
 async function getCurator(slug: string): Promise<CuratorDetail | null> {
   try {
     const res = await fetch(
-      `${getApiBase()}/api/admin/curators/${encodeURIComponent(slug)}`,
+      `/api/admin/proxy/curators/${encodeURIComponent(slug)}`,
       { cache: "no-store" },
     );
     if (res.status === 404) return null;
@@ -113,18 +105,17 @@ export default async function CuratorDetailPage({
 
       {/* Header card */}
       <div className="overflow-hidden rounded-xl border border-border">
-        <div className="flex h-2" style={{ background: `linear-gradient(90deg, ${primary}, ${accent})` }} />
-        <div className="p-6">
+        <div className="flex h-2" style={{ background: `linear-gradient(90deg, ${primary}, ${accent})` }} />        <div className="p-4 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 min-w-0 max-w-full">
               <div
-                className="flex h-16 w-16 items-center justify-center rounded-2xl text-2xl font-black text-white shadow-lg"
+                className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-2xl font-black text-white shadow-lg"
                 style={{ background: primary }}
               >
                 {curator.name.charAt(0).toUpperCase()}
               </div>
-              <div>
-                <h1 className="text-2xl font-black tracking-tight">{curator.name}</h1>
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight truncate">{curator.name}</h1>
                 <p className="text-sm text-muted-foreground">@{curator.slug}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   {curator.verticals?.map((v) => (
@@ -139,7 +130,7 @@ export default async function CuratorDetailPage({
               </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex w-full sm:w-auto gap-2">
               <a
                 href={getStorefrontUrl(curator.slug)}
                 target="_blank"
@@ -150,14 +141,13 @@ export default async function CuratorDetailPage({
                 Storefront
                 <ExternalLink className="h-3.5 w-3.5" />
               </a>
-              <button
-                disabled
-                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white opacity-50 cursor-not-allowed"
-                title="Edit coming soon"
+              <Link
+                href={`/admin/curators/${curator.slug}/listings`}
+                className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
               >
-                <Edit3 className="h-4 w-4" />
-                Edit
-              </button>
+                <ShoppingBag className="h-4 w-4" />
+                Listings
+              </Link>
             </div>
           </div>
         </div>
@@ -213,7 +203,7 @@ export default async function CuratorDetailPage({
       {/* Details sections */}
       <div className="grid gap-6 md:grid-cols-2">
         {/* Channels */}
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
           <h2 className="flex items-center gap-2 font-bold">
             <MessageCircle className="h-4 w-4 text-emerald-500" />
             Channels
@@ -251,7 +241,7 @@ export default async function CuratorDetailPage({
         </div>
 
         {/* Commerce */}
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
           <h2 className="flex items-center gap-2 font-bold">
             <ShoppingBag className="h-4 w-4 text-primary" />
             Commerce
@@ -275,32 +265,32 @@ export default async function CuratorDetailPage({
         </div>
 
         {/* Brand */}
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
           <h2 className="flex items-center gap-2 font-bold">
             <Palette className="h-4 w-4 text-violet-500" />
             Brand
           </h2>
           <div className="mt-4 space-y-3 text-sm">
-            <div className="flex items-center gap-3">
-              <span className="text-muted-foreground">Primary</span>
-              <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-muted-foreground shrink-0">Primary</span>
+              <div className="flex items-center gap-2 min-w-0">
                 <div
-                  className="h-5 w-5 rounded-md border border-border"
+                  className="h-5 w-5 shrink-0 rounded-md border border-border"
                   style={{ background: primary }}
                 />
-                <code className="rounded bg-muted px-2 py-0.5 text-xs font-mono">
+                <code className="truncate max-w-[140px] rounded bg-muted px-2 py-0.5 text-xs font-mono">
                   {primary}
                 </code>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-muted-foreground">Accent</span>
-              <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-muted-foreground shrink-0">Accent</span>
+              <div className="flex items-center gap-2 min-w-0">
                 <div
-                  className="h-5 w-5 rounded-md border border-border"
+                  className="h-5 w-5 shrink-0 rounded-md border border-border"
                   style={{ background: accent }}
                 />
-                <code className="rounded bg-muted px-2 py-0.5 text-xs font-mono">
+                <code className="truncate max-w-[140px] rounded bg-muted px-2 py-0.5 text-xs font-mono">
                   {accent}
                 </code>
               </div>
@@ -320,7 +310,7 @@ export default async function CuratorDetailPage({
         </div>
 
         {/* Storefront link */}
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
           <h2 className="flex items-center gap-2 font-bold">
             <Globe className="h-4 w-4 text-sky-500" />
             Storefront

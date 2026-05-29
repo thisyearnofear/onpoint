@@ -13,7 +13,8 @@ const express = require('express');
 const { neon } = require('@neondatabase/serverless');
 const { drizzle } = require('drizzle-orm/neon-http');
 const { eq, desc, count, sql } = require('drizzle-orm');
-const { curators, listings } = require('@repo/db');
+const { curators, listings, kitSkus } = require('@repo/db');
+const { upload, keyFor, remove } = require('@repo/storage');
 const logger = require('../lib/logger');
 
 const router = express.Router();
@@ -197,4 +198,330 @@ router.delete('/:slug', async (req, res) => {
   }
 });
 
+// ── GET /:slug/listings — list all listings for a curator ─────
+
+router.get('/:slug/listings', async (req, res) => {
+  const slug = String(req.params.slug || '').toLowerCase();
+
+  if (!isValidSlug(slug)) {
+    return res.status(400).json({ error: 'Invalid curator slug' });
+  }
+
+  let db;
+  try {
+    db = getDb();
+  } catch (err) {
+    logger.error('NEON_DATABASE_URL not configured', { component: 'curator-admin' });
+    return res.status(503).json({ error: 'Database not configured' });
+  }
+
+  try {
+    const rows = await db
+      .select({
+        listing: listings,
+        kit: kitSkus,
+      })
+      .from(listings)
+      .innerJoin(kitSkus, eq(listings.skuId, kitSkus.id))
+      .where(eq(listings.curatorSlug, slug))
+      .orderBy(desc(listings.updatedAt));
+
+    res.json({
+      slug,
+      listings: rows.map(({ listing, kit }) => ({
+        ...listing,
+        kit: {
+          id: kit.id,
+          club: kit.club,
+          season: kit.season,
+          kitType: kit.kitType,
+        },
+      })),
+      total: rows.length,
+    });
+  } catch (err) {
+    logger.error('Failed to list curator listings', { component: 'curator-admin', slug }, err);
+    res.status(500).json({ error: 'Failed to list listings' });
+  }
+});
+
+// ── GET /:slug/listings/:id — get single listing ──────────────
+
+router.get('/:slug/listings/:id', async (req, res) => {
+  const slug = String(req.params.slug || '').toLowerCase();
+  const id = String(req.params.id || '');
+
+  if (!isValidSlug(slug)) {
+    return res.status(400).json({ error: 'Invalid curator slug' });
+  }
+  if (!id || id.length < 8) {
+    return res.status(400).json({ error: 'Invalid listing ID' });
+  }
+
+  let db;
+  try {
+    db = getDb();
+  } catch (err) {
+    logger.error('NEON_DATABASE_URL not configured', { component: 'curator-admin' });
+    return res.status(503).json({ error: 'Database not configured' });
+  }
+
+  try {
+    const [row] = await db
+      .select({
+        listing: listings,
+        kit: kitSkus,
+      })
+      .from(listings)
+      .innerJoin(kitSkus, eq(listings.skuId, kitSkus.id))
+      .where(eq(listings.id, id))
+      .limit(1);
+
+    if (!row) {
+      return res.status(404).json({ error: 'Listing not found' });
+    }
+
+    const { listing, kit } = row;
+
+    res.json({
+      listing: {
+        ...listing,
+        kit: {
+          id: kit.id,
+          club: kit.club,
+          season: kit.season,
+          kitType: kit.kitType,
+        },
+      },
+    });
+  } catch (err) {
+    logger.error('Failed to get listing', { component: 'curator-admin', slug, listingId: id }, err);
+    res.status(500).json({ error: 'Failed to get listing' });
+  }
+});
+
+// ── PUT /:slug/listings/:id — update a listing ────────────────
+
+router.put('/:slug/listings/:id', async (req, res) => {
+  const slug = String(req.params.slug || '').toLowerCase();
+  const id = String(req.params.id || '');
+
+  if (!isValidSlug(slug)) {
+    return res.status(400).json({ error: 'Invalid curator slug' });
+  }
+  if (!id || id.length < 8) {
+    return res.status(400).json({ error: 'Invalid listing ID' });
+  }
+
+  let db;
+  try {
+    db = getDb();
+  } catch (err) {
+    logger.error('NEON_DATABASE_URL not configured', { component: 'curator-admin' });
+    return res.status(503).json({ error: 'Database not configured' });
+  }
+
+  const { status, sizes, photoKeys } = req.body;
+
+  try {
+    const updateData = {};
+    if (status) updateData.status = status;
+    if (sizes) updateData.sizes = sizes;
+    if (photoKeys) updateData.photoKeys = photoKeys;
+    updateData.updatedAt = new Date().toISOString();
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    const [updated] = await db
+      .update(listings)
+      .set(updateData)
+      .where(eq(listings.id, id))
+      .returning();
+
+    if (!updated) {
+      return res.status(404).json({ error: 'Listing not found' });
+    }
+
+    logger.info('Listing updated', { component: 'curator-admin', slug, listingId: id, status });
+    res.json({ listing: updated });
+  } catch (err) {
+    logger.error('Failed to update listing', { component: 'curator-admin', slug, listingId: id }, err);
+    res.status(500).json({ error: 'Failed to update listing' });
+  }
+});
+
+// ── POST /:slug/listings/:id/photos — upload photo to R2 ─────
+
+router.post('/:slug/listings/:id/photos', async (req, res) => {
+  const slug = String(req.params.slug || '').toLowerCase();
+  const id = String(req.params.id || '');
+
+  if (!isValidSlug(slug)) {
+    return res.status(400).json({ error: 'Invalid curator slug' });
+  }
+  if (!id || id.length < 8) {
+    return res.status(400).json({ error: 'Invalid listing ID' });
+  }
+
+  const { photo: base64Photo } = req.body;
+  if (!base64Photo || typeof base64Photo !== 'string') {
+    return res.status(400).json({ error: 'photo (base64 string) is required' });
+  }
+
+  let db;
+  try {
+    db = getDb();
+  } catch (err) {
+    logger.error('NEON_DATABASE_URL not configured', { component: 'curator-admin' });
+    return res.status(503).json({ error: 'Database not configured' });
+  }
+
+  try {
+    // Parse base64: "data:image/jpeg;base64,/9j/4AAQ..." or raw base64
+    const match = base64Photo.match(/^data:(image\/[a-z0-9+.-]+);base64,(.+)$/);
+    let buffer, contentType;
+
+    if (match) {
+      contentType = match[1];
+      buffer = Buffer.from(match[2], 'base64');
+    } else {
+      // Assume JPEG if no data URI prefix
+      contentType = 'image/jpeg';
+      buffer = Buffer.from(base64Photo, 'base64');
+    }
+
+    // Reject images larger than 10MB
+    const MAX_BYTES = 10 * 1024 * 1024;
+    if (buffer.length > MAX_BYTES) {
+      return res.status(400).json({
+        error: `Image too large: ${(buffer.length / 1024 / 1024).toFixed(1)}MB. Maximum is 10MB.`,
+      });
+    }
+
+    // Get current listing to determine the photo index for the key
+    const [current] = await db
+      .select()
+      .from(listings)
+      .where(eq(listings.id, id))
+      .limit(1);
+
+    if (!current) {
+      return res.status(404).json({ error: 'Listing not found' });
+    }
+
+    const nextIndex = (current.photoKeys?.length || 0) + 1;
+    const r2Key = keyFor.listingPhoto(slug, id, nextIndex);
+
+    await upload(r2Key, buffer, contentType);
+
+    // Append the new key and update the listing
+    const updatedPhotoKeys = [...(current.photoKeys || []), r2Key];
+
+    const [updated] = await db
+      .update(listings)
+      .set({
+        photoKeys: updatedPhotoKeys,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(listings.id, id))
+      .returning();
+
+    logger.info('Listing photo uploaded', {
+      component: 'curator-admin',
+      slug,
+      listingId: id,
+      r2Key,
+      bytes: buffer.length,
+    });
+
+    res.json({ listing: updated, r2Key });
+  } catch (err) {
+    logger.error('Failed to upload photo', { component: 'curator-admin', slug, listingId: id }, err);
+    res.status(500).json({ error: `Failed to upload photo: ${err.message}` });
+  }
+});
+
+// ── DELETE /:slug/listings/:id/photos — delete a photo ──────
+
+router.delete('/:slug/listings/:id/photos', async (req, res) => {
+  const slug = String(req.params.slug || '').toLowerCase();
+  const id = String(req.params.id || '');
+
+  if (!isValidSlug(slug)) {
+    return res.status(400).json({ error: 'Invalid curator slug' });
+  }
+  if (!id || id.length < 8) {
+    return res.status(400).json({ error: 'Invalid listing ID' });
+  }
+
+  const { photoKey } = req.body;
+  if (!photoKey || typeof photoKey !== 'string') {
+    return res.status(400).json({ error: 'photoKey (string) is required' });
+  }
+
+  let db;
+  try {
+    db = getDb();
+  } catch (err) {
+    logger.error('NEON_DATABASE_URL not configured', { component: 'curator-admin' });
+    return res.status(503).json({ error: 'Database not configured' });
+  }
+
+  try {
+    // Get current listing to read existing photoKeys
+    const [current] = await db
+      .select()
+      .from(listings)
+      .where(eq(listings.id, id))
+      .limit(1);
+
+    if (!current) {
+      return res.status(404).json({ error: 'Listing not found' });
+    }
+
+    const currentKeys = current.photoKeys || [];
+    if (!currentKeys.includes(photoKey)) {
+      return res.status(404).json({ error: 'Photo key not found on this listing' });
+    }
+
+    // Delete from R2 (ignore if already gone)
+    try {
+      await remove(photoKey);
+    } catch (r2Err) {
+      logger.warn('R2 delete failed (continuing)', {
+        component: 'curator-admin',
+        photoKey,
+        error: r2Err.message,
+      });
+    }
+
+    // Remove key from array and update listing
+    const updatedPhotoKeys = currentKeys.filter((k) => k !== photoKey);
+
+    const [updated] = await db
+      .update(listings)
+      .set({
+        photoKeys: updatedPhotoKeys,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(listings.id, id))
+      .returning();
+
+    logger.info('Listing photo deleted', {
+      component: 'curator-admin',
+      slug,
+      listingId: id,
+      photoKey,
+    });
+
+    res.json({ listing: updated });
+  } catch (err) {
+    logger.error('Failed to delete photo', { component: 'curator-admin', slug, listingId: id }, err);
+    res.status(500).json({ error: `Failed to delete photo: ${err.message}` });
+  }
+});
+
 module.exports = router;
+

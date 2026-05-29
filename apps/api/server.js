@@ -233,7 +233,7 @@ app.use('/api/curator', json1k, generalRateLimit, require('./routes/curator-stor
 
 // ── Admin Routes (service-to-service: SERVICE_API_KEY auth) ─────
 
-app.use('/api/admin/curators', json1k, serviceKeyAuth, generalRateLimit, require('./routes/curator-admin'));
+app.use('/api/admin/curators', json10mb, serviceKeyAuth, generalRateLimit, require('./routes/curator-admin'));
 
 // ── Status Dashboard ────────────────────────────────────────────
 

@@ -6,17 +6,9 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-function getApiBase() {
-  return (
-    process.env.NEXT_PUBLIC_AGENT_API_URL ||
-    process.env.AGENT_API_URL ||
-    "http://localhost:48751"
-  ).replace(/\/$/, "");
-}
-
 async function getCuratorCount(): Promise<{ total: number; withListings: number }> {
   try {
-    const res = await fetch(`${getApiBase()}/api/admin/curators`, {
+    const res = await fetch("/api/admin/proxy/curators", {
       cache: "no-store",
     });
     if (!res.ok) return { total: 0, withListings: 0 };
@@ -44,36 +36,36 @@ export default async function AdminDashboardPage() {
 
       {/* Stats grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
               <Store className="h-5 w-5 text-primary" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-2xl font-black">{stats.total}</p>
               <p className="text-xs text-muted-foreground">Total curators</p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10">
               <TrendingUp className="h-5 w-5 text-emerald-500" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-2xl font-black">{stats.withListings}</p>
               <p className="text-xs text-muted-foreground">With live listings</p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-500/10">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-500/10">
               <Users className="h-5 w-5 text-violet-500" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-2xl font-black">{stats.total > 0 ? Math.round((stats.withListings / stats.total) * 100) : 0}%</p>
               <p className="text-xs text-muted-foreground">With inventory</p>
             </div>

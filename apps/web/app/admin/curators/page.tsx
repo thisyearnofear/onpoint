@@ -24,17 +24,9 @@ interface ListResponse {
   total: number;
 }
 
-function getApiBase() {
-  return (
-    process.env.NEXT_PUBLIC_AGENT_API_URL ||
-    process.env.AGENT_API_URL ||
-    "http://localhost:48751"
-  ).replace(/\/$/, "");
-}
-
 async function getCurators(): Promise<ListResponse> {
   try {
-    const res = await fetch(`${getApiBase()}/api/admin/curators`, {
+    const res = await fetch("/api/admin/proxy/curators", {
       cache: "no-store",
     });
     if (!res.ok) return { curators: [], total: 0 };
