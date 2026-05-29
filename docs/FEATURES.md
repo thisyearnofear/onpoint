@@ -100,13 +100,16 @@ Products scored by:
 
 When the internal catalog doesn't have a match, the agent browses the open web:
 
-### 3-Tier Discovery Engine
+### 4-Tier Discovery Engine
 
-| Tier | Source                | Speed    | Coverage     |
-| ---- | --------------------- | -------- | ------------ |
-| 1    | Internal catalog      | Instant  | Curated      |
-| 2    | Purch API aggregation | Fast     | 1B+ products |
-| 3    | Browser Use Cloud     | Variable | Open web     |
+| Tier | Source                                 | Speed    | Coverage       |
+| ---- | -------------------------------------- | -------- | -------------- |
+| 1    | Internal catalog                       | Instant  | Curated        |
+| 2    | Purch API aggregation                  | Fast     | 1B+ products   |
+| 2.5  | TinyFish + Bright Data SERP (parallel) | Fast     | Structured web |
+| 3    | Browser Use Cloud                      | Variable | Open web       |
+
+**Bright Data integration** ([ADR 0004](./adr/0004-brightdata-web-intelligence.md)): Structured Google Shopping search via SERP API + product page extraction via Web Unlocker. Runs in parallel with TinyFish at Tier 2.5 — first non-empty result wins. Gated by `BRIGHTDATA_API_KEY` env var; silent skip if unset.
 
 ### Live Monitoring
 

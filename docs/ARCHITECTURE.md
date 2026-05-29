@@ -168,10 +168,11 @@ interface AIProvider {
 
 ## Agent Web-Agency (Python Bridge)
 
-When the internal catalog lacks a match, the agent uses a 3-tier discovery engine:
+When the internal catalog lacks a match, the agent uses a 4-tier discovery engine:
 
 - **Tier 1**: Internal catalog (instant, curated)
 - **Tier 2**: Purch API aggregation (1B+ products via headless commerce)
+- **Tier 2.5**: TinyFish + Bright Data SERP (parallel, structured web search)
 - **Tier 3**: Browser Use Cloud (autonomous deep-web browsing)
 
 The bridge is an isolated Python FastAPI service using Browser Use Cloud V3 with structured data extraction via Pydantic models.

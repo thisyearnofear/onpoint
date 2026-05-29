@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 import asyncio
 from purch_client import PurchClient, PurchProduct, PurchSearchResult
 from tinyfish_client import TinyFishClient, TinyFishResult
+from brightdata_client import BrightDataClient, BrightDataResult
 
 # Load the environment variables from the web app's .env.local
 # This is where the USER specified BROWSER_USE_API_KEY is located.
@@ -180,6 +181,21 @@ def _tinyfish_to_items(result: TinyFishResult) -> List[ItemData]:
     ]
 
 
+def _brightdata_to_items(result: BrightDataResult) -> List[ItemData]:
+    """Convert BrightData products to bridge ItemData format."""
+    return [
+        ItemData(
+            source=p.source,
+            name=p.name,
+            price=p.price,
+            currency=p.currency,
+            url=p.url,
+            image_url=p.image_url,
+        )
+        for p in result.products
+    ]
+
+
 # --- Endpoints ---
 
 
@@ -193,8 +209,8 @@ async def search_items(
     Multi-tier fashion product search with redundant providers.
 
     Tier 2:   Purch API (fast aggregate)
-    Tier 2.5: TinyFish Search + Fetch (structured web extraction)
-    Tier 3:   Browser Use Cloud || TinyFish Agent (deep browsing, whichever is available)
+    Tier 2.5: TinyFish + Bright Data SERP (parallel, first-result-wins)
+    Tier 3:   Browser Use Cloud || TinyFish Agent (deep browsing fallback)
     """
     query = request.query
     max_results = request.max_results
@@ -218,16 +234,50 @@ async def search_items(
             reply=purch_result.reply or None,
         )
 
-    # --- TIER 2.5: TinyFish Search + Fetch (fast, no browser needed) ---
+    # --- TIER 2.5: TinyFish + Bright Data in parallel (fast, structured) ---
     tf = TinyFishClient()
-    if tf.available:
-        tf_result = await tf.search_and_fetch(query, max_results)
+    bd = BrightDataClient()
+
+    async def _try_tinyfish() -> Optional[TinyFishResult]:
+        if not tf.available:
+            return None
+        result = await tf.search_and_fetch(query, max_results)
+        return result if result.products else None
+
+    async def _try_brightdata() -> Optional[BrightDataResult]:
+        if not bd.available:
+            return None
+        result = await bd.search_products(query, max_results)
+        return result if result.products else None
+
+    try:
+        results = await asyncio.gather(
+            _try_tinyfish(),
+            _try_brightdata(),
+            return_exceptions=True,
+        )
+
+        # First non-empty, non-exception result wins
+        for result in results:
+            if isinstance(result, Exception):
+                logger.warning(f"Tier 2.5 provider failed: {result}")
+                continue
+            if result is None:
+                continue
+
+            if isinstance(result, TinyFishResult):
+                return SearchResponse(
+                    status="success",
+                    items=_tinyfish_to_items(result),
+                )
+            elif isinstance(result, BrightDataResult):
+                return SearchResponse(
+                    status="success",
+                    items=_brightdata_to_items(result),
+                )
+    finally:
         await tf.close()
-        if tf_result.products:
-            return SearchResponse(
-                status="success",
-                items=_tinyfish_to_items(tf_result),
-            )
+        await bd.close()
 
     # --- TIER 3: Deep browsing — try Browser Use first, fall back to TinyFish Agent ---
     logger.info(f"Tier 3: Deep browsing for '{query}'...")

@@ -279,6 +279,47 @@ Inventory is **not** in the Curator object — it lives in Neon (`listings` join
 
 ---
 
+### Phase 12: Bright Data Web Intelligence 🎯
+> **ADR**: [0004 — Bright Data Web Intelligence](./adr/0004-brightdata-web-intelligence.md)
+> **Hackathon**: [Web Data UNLOCKED](https://lablab.ai/ai-hackathons/brightdata-ai-agents-web-data-hackathon) — Bright Data AI Agents + Web Data
+
+Integrate Bright Data's production-grade web data infrastructure into the agent-web-bridge tier chain. Adds structured SERP search and site-specific scrapers as a Tier 2.5 provider alongside TinyFish, improving reliability and reducing cost for product discovery.
+
+#### Alignment with Core Principles
+- **ENHANCEMENT FIRST**: Enhances existing tier chain in `main.py` — no new endpoints or surfaces
+- **AGGRESSIVE CONSOLIDATION**: If Bright Data proves reliable, it can replace TinyFish (3 providers → 2)
+- **PREVENT BLOAT**: One new client file (~150 lines), one import, one env var
+- **DRY**: Same dataclass + async client pattern as `tinyfish_client.py`
+- **CLEAN**: Behind a clean interface; bridge doesn't know which provider answered
+- **MODULAR**: Self-contained `brightdata_client.py`, independently testable
+- **PERFORMANT**: SERP API returns structured data in <1s, no browser overhead
+- **ORGANIZED**: Lives in `packages/agent-web-bridge/` alongside existing clients
+
+#### Deliverables
+
+**Client module**
+- [ ] `packages/agent-web-bridge/brightdata_client.py` — Async client wrapping SERP API + Web Scraper API
+- [ ] Same `BrightDataResult` → `ItemData` mapping as TinyFish
+- [ ] Gated by `BRIGHTDATA_API_KEY` env var (silent skip if unset)
+
+**Tier chain integration**
+- [ ] Wire into `main.py` Tier 2.5 with `asyncio.gather` alongside TinyFish
+- [ ] First non-empty result wins; if both empty, fall through to Tier 3
+- [ ] No changes to `product-catalog.ts` (bridge contract unchanged)
+
+**Testing & docs**
+- [ ] `test_brightdata_client.py` — Unit tests following `test_purch_client.py` pattern
+- [ ] `.env.example` updated with `BRIGHTDATA_API_KEY`
+- [ ] `FEATURES.md` updated with Bright Data in Agent Web Discovery section
+
+#### Success criteria
+- Bright Data SERP API returns structured product results for fashion queries
+- Tier 2.5 latency ≤ 2s (parallel with TinyFish, not sequential)
+- Graceful degradation: system works identically when `BRIGHTDATA_API_KEY` is unset
+- Hackathon submission: project demonstrates Bright Data integration on at least one track
+
+---
+
 #### Immediate (Next 2 Weeks)
 - [ ] A/B test hero tagline variations
 - [ ] Add real-time "X people trying on now" counter
@@ -414,6 +455,14 @@ Inventory is **not** in the Curator object — it lives in Neon (`listings` join
 - **Test Infrastructure**: Vitest configured with `@vitejs/plugin-react`, jsdom environment, first unit tests (toast system) passing — 6 tests covering context API, rendering, edge cases
 - **Dependency Cleanup**: Removed styled-components dependency and compiler option from Next.js config
 - **Type Safety Fixes**: Fixed OWS native module compatibility, all implicit `any` types resolved, TS strict mode compliance
+
+### Bright Data Web Intelligence 🎯
+- **ADR 0004**: Decision record for Bright Data integration — optional provider behind env-var gate, zero lock-in
+- **`brightdata_client.py`**: Async client wrapping SERP API (structured Google Shopping search) + Web Unlocker (product page extraction)
+- **Parallel Tier 2.5**: TinyFish + Bright Data run via `asyncio.gather`; first non-empty result wins
+- **4-tier discovery engine**: Internal catalog → Purch API → TinyFish + Bright Data (parallel) → Browser Use Cloud
+- **Cost reduction**: SERP API at ~$0.001-0.01/request vs Browser Use Cloud at ~$0.10-0.50/session
+- **Docs updated**: ROADMAP Phase 12, FEATURES.md, ARCHITECTURE.md, .env.example, README
 
 ### Premium Gating, Collage DnD & Connected Accounts 🎯
 - **Premium Status Hook**: New `usePremiumStatus()` hook calling `/api/auth/subscription` replaces hardcoded `hasPremium = false` — premium gating now reflects real subscription state with upgrade CTAs

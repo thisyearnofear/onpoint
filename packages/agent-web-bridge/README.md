@@ -5,6 +5,7 @@ Python FastAPI bridge for AI agent-powered fashion search and purchases.
 ## Features
 
 - **Tier 2**: Purch API integration (1B+ products, ~$0.01-0.10 per search)
+- **Tier 2.5**: TinyFish Search+Fetch + Bright Data SERP API (parallel, first-result-wins)
 - **Tier 3**: Browser Use Cloud fallback (any website, ~$0.10-0.50 per session)
 - **x402 Protocol**: Cryptographic micropayments via USDC on Solana/Base
 - **Security**: Pip blocklist, audit script, credential protection
@@ -128,13 +129,15 @@ Agent-Web-Bridge Security Audit
 
 1. **Tier 1**: Local catalog (`CANVAS_ITEMS`) - Fast, free, limited
 2. **Tier 2**: Purch API - Comprehensive (1B+ products), costs ~$0.01-0.10
-3. **Tier 3**: Browser Use Cloud - Any website, costs ~$0.10-0.50
+3. **Tier 2.5**: TinyFish + Bright Data (parallel) - Structured web search, costs ~$0.001-0.01
+4. **Tier 3**: Browser Use Cloud - Any website, costs ~$0.10-0.50
 
 ### Flow
 
 ```
 User Query → Local Catalog (cache) 
            → Purch API (if local empty)
+           → TinyFish + Bright Data (parallel, first wins)
            → Browser Use Cloud (fallback)
 ```
 
