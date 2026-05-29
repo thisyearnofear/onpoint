@@ -93,6 +93,7 @@ export function AgentSuggestionToast({
 }: AgentSuggestionToastProps) {
   const [timeLeft, setTimeLeft] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [searchFailed, setSearchFailed] = useState(false);
 
   const Icon = ACTION_ICONS[suggestion.actionType] || Sparkles;
   const actionLabel = ACTION_LABELS[suggestion.actionType] || "Execute";
@@ -109,12 +110,16 @@ export function AgentSuggestionToast({
     return () => clearInterval(interval);
   }, [suggestion.expiresAt]);
 
-  // Auto-dismiss when expired
+  // Auto-dismiss when expired, or show error if search timed out
   useEffect(() => {
     if (timeLeft === 0 && suggestion.status === "pending") {
-      onDismiss();
+      if (suggestion.isSearching && !suggestion.products?.length) {
+        setSearchFailed(true);
+      } else {
+        onDismiss();
+      }
     }
-  }, [timeLeft, suggestion.status, onDismiss]);
+  }, [timeLeft, suggestion.status, suggestion.isSearching, suggestion.products, onDismiss]);
 
   const secondsLeft = Math.floor(timeLeft / 1000);
 
@@ -214,7 +219,7 @@ export function AgentSuggestionToast({
           </div>
 
           {/* Web Search Progress */}
-          {suggestion.isSearching && (
+          {suggestion.isSearching && !searchFailed && (
             <div className="mt-3 p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/10 flex flex-col gap-3">
               <div className="flex items-center gap-3">
                 <div className="relative">
@@ -240,6 +245,21 @@ export function AgentSuggestionToast({
                   Watch Agent Live
                 </button>
               )}
+            </div>
+          )}
+
+          {/* Search failed state */}
+          {searchFailed && (
+            <div className="mt-3 p-3 rounded-xl bg-red-500/5 border border-red-500/10">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-400" />
+                <p className="text-xs text-red-300 font-medium">
+                  Couldn't find results this time
+                </p>
+              </div>
+              <p className="text-[10px] text-red-400/60 mt-1">
+                Try refining your search or check back later.
+              </p>
             </div>
           )}
 

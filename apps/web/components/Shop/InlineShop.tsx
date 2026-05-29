@@ -108,33 +108,78 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
         <CartButton />
       </div>
 
-      {/* AI Recommendations — only shown when session data exists */}
-      {recommended.length > 0 && (
+      {/* AI Picks — unified section: web results first, then catalog matches */}
+      {(externalFinds.length > 0 || recommended.length > 0) && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-primary" />
             <h3 className="text-sm font-bold uppercase tracking-wider text-primary">
-              Recommended for You
+              Your AI Picks
             </h3>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {recommended.map(({ item, reason }) => (
-              <Product3DCard
-                key={item.id}
-                imageUrl={item.modelSrc || item.cover}
-                name={item.name}
-                price={item.price}
-                badge="AI Pick"
-                reason={reason}
-                onClick={() => addItem(item)}
-              />
-            ))}
-          </div>
+
+          {/* Web-discovered products (real prices, multiple retailers) */}
+          {externalFinds.length > 0 && (
+            <div className="space-y-4">
+              {externalFinds.map((find, i) => (
+                find.products && find.products.length > 0 ? (
+                  <RichProductGroup
+                    key={i}
+                    title={find.description}
+                    products={find.products}
+                  />
+                ) : (
+                  <a
+                    key={i}
+                    href={find.externalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex items-start gap-3 p-3 rounded-xl border border-primary/10 bg-card hover:border-primary/20 transition-all"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Globe className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium line-clamp-2">{find.description}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs font-bold text-primary">{find.amount}</span>
+                        {find.source && (
+                          <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                            {find.source}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground group-hover:text-primary transition-colors shrink-0">
+                      Visit →
+                    </span>
+                  </a>
+                )
+              ))}
+            </div>
+          )}
+
+          {/* Catalog matches from session analysis */}
+          {recommended.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {recommended.map(({ item, reason }) => (
+                <Product3DCard
+                  key={item.id}
+                  imageUrl={item.modelSrc || item.cover}
+                  name={item.name}
+                  price={item.price}
+                  badge="AI Pick"
+                  reason={reason}
+                  onClick={() => addItem(item)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* No recommendations — nudge to try on */}
-      {recommended.length === 0 && (
+      {/* No picks yet — nudge to try on */}
+      {externalFinds.length === 0 && recommended.length === 0 && (
         <div className="rounded-2xl border border-dashed border-border p-6 text-center space-y-3">
           <Camera className="w-8 h-8 text-muted-foreground mx-auto" />
           <p className="text-sm text-muted-foreground">
@@ -145,55 +190,6 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
               Start Try-On
             </Button>
           )}
-        </div>
-      )}
-
-      {/* Found Online — products discovered by the web agent */}
-      {externalFinds.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Globe className="w-4 h-4 text-accent" />
-            <h3 className="text-sm font-bold uppercase tracking-wider text-accent">
-              Found Online by Your Agent
-            </h3>
-          </div>
-          <div className="space-y-4">
-            {externalFinds.map((find, i) => (
-              find.products && find.products.length > 0 ? (
-                <RichProductGroup
-                  key={i}
-                  title={find.description}
-                  products={find.products}
-                />
-              ) : (
-                <a
-                  key={i}
-                  href={find.externalUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex items-start gap-3 p-3 rounded-xl border border-accent/20 bg-card hover:border-accent/40 transition-all"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
-                    <Globe className="w-5 h-5 text-accent" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium line-clamp-2">{find.description}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs font-bold text-accent">{find.amount}</span>
-                      {find.source && (
-                        <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                          {find.source}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <span className="text-[10px] text-muted-foreground group-hover:text-accent transition-colors shrink-0">
-                    Visit →
-                  </span>
-                </a>
-              )
-            ))}
-          </div>
         </div>
       )}
 
