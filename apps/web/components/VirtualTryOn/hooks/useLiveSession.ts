@@ -386,20 +386,42 @@ export function useLiveSession() {
 
     const takeaways = prioritized.slice(0, 5).map((f) => f.text);
 
-    // Pick 3 product recommendations (deterministic per session via content hash)
-    const seed = allText.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-    const shuffled = [...CANVAS_ITEMS]
-      .map((item, i) => ({
-        item,
-        sort: (seed * (i + 1) * 2654435761) % CANVAS_ITEMS.length,
-      }))
-      .sort((a, b) => a.sort - b.sort)
-      .map((x) => x.item);
-    const recommendations = shuffled.slice(0, 3).map((p) => ({
-      name: p.name,
-      price: p.price,
-      category: p.category,
-    }));
+    // Pick product recommendations: prefer real web search results, fall back to catalog
+    const webProducts = suggestions
+      .filter(
+        (s) =>
+          s.actionType === "external_search" &&
+          s.products &&
+          s.products.length > 0,
+      )
+      .flatMap((s) => s.products!)
+      .slice(0, 3);
+
+    const recommendations =
+      webProducts.length > 0
+        ? webProducts.map((p) => ({
+            name: p.name,
+            price: p.price,
+            category: p.source,
+          }))
+        : (() => {
+            // Deterministic shuffle from CANVAS_ITEMS as fallback
+            const seed = allText
+              .split("")
+              .reduce((acc, c) => acc + c.charCodeAt(0), 0);
+            const shuffled = [...CANVAS_ITEMS]
+              .map((item, i) => ({
+                item,
+                sort: (seed * (i + 1) * 2654435761) % CANVAS_ITEMS.length,
+              }))
+              .sort((a, b) => a.sort - b.sort)
+              .map((x) => x.item);
+            return shuffled.slice(0, 3).map((p) => ({
+              name: p.name,
+              price: p.price,
+              category: p.category,
+            }));
+          })();
 
     return {
       score,
@@ -408,7 +430,7 @@ export function useLiveSession() {
       fullFeedback,
       recommendations,
     };
-  }, [reasoning, finalAdvice, sessionGoal]);
+  }, [reasoning, finalAdvice, sessionGoal, suggestions]);
 
   // ── Position detection ──
   const positionStatus = useMemo(() => {

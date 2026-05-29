@@ -258,7 +258,9 @@ export function SessionEndingCard({
                           {product.name}
                         </p>
                         <p className="text-[10px] text-slate-500">
-                          {product.category}
+                          {product.category.includes(".")
+                            ? `Found at ${product.category}`
+                            : product.category}
                         </p>
                       </div>
                     </div>

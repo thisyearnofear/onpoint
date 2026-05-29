@@ -464,6 +464,14 @@ Integrate Bright Data's production-grade web data infrastructure into the agent-
 - **Cost reduction**: SERP API at ~$0.001-0.01/request vs Browser Use Cloud at ~$0.10-0.50/session
 - **Docs updated**: ROADMAP Phase 12, FEATURES.md, ARCHITECTURE.md, .env.example, README
 
+### Rich Product Discovery UX 🎯
+- **RichProductCard + RichProductGroup**: New components for displaying external products with images, prices, sources, and "Best Price" badges — replaces text-only "Found Online" cards
+- **Multi-retailer price comparison**: Bridge results now surface multiple retailers per query with price sorting and lowest-price highlighting
+- **AgentSuggestionToast upgrade**: Shows structured product cards with images when web search returns results, replacing plain text price/source
+- **InlineShop "Found Online" upgrade**: Rich product cards with images replace the old globe-icon text cards
+- **SessionEndingCard with real products**: Session summary now prefers actual web search results over random catalog items for recommendations
+- **Full pipeline**: Bridge returns `products[]` array → suggestion carries all items → toast and shop render rich cards → session ending card uses real finds
+
 ### Premium Gating, Collage DnD & Connected Accounts 🎯
 - **Premium Status Hook**: New `usePremiumStatus()` hook calling `/api/auth/subscription` replaces hardcoded `hasPremium = false` — premium gating now reflects real subscription state with upgrade CTAs
 - **Collage Drag-and-Drop**: Full dnd-kit integration with `DraggableLibraryItem`, `DroppableCanvas`, `CanvasDraggableItem` — library items drag onto canvas, canvas items reposition by dragging with 5px activation threshold

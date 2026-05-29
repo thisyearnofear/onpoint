@@ -129,17 +129,27 @@ export async function POST(
         });
 
         if (result.success && result.data?.items?.length > 0) {
-          const item = result.data.items[0]; // Take top result
+          const items = result.data.items;
+          const topItem = items[0];
 
-          // Update the original suggestion with the real data
+          // Update the original suggestion with all results
           const suggestion = AgentControls.getSuggestion(suggestionId);
           if (suggestion) {
-            suggestion.description = `Found on web: ${item.name}`;
-            suggestion.amount = `$${item.price} cUSD`;
-            suggestion.source = item.source;
-            suggestion.externalUrl = item.url;
+            suggestion.description = `Found ${items.length} result${items.length > 1 ? "s" : ""}: ${topItem.name}`;
+            suggestion.amount = `$${topItem.price} cUSD`;
+            suggestion.source = topItem.source;
+            suggestion.externalUrl = topItem.url;
             suggestion.isSearching = false;
             suggestion.liveUrl = result.data.live_url;
+            // Attach all products for rich display
+            suggestion.products = items.map((item: any) => ({
+              name: item.name,
+              price: item.price,
+              source: item.source,
+              url: item.url,
+              image_url: item.image_url,
+              currency: item.currency,
+            }));
 
             // Re-persist the updated suggestion
             AgentControls.createSuggestion({

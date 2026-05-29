@@ -19,6 +19,7 @@ import {
 import { Button } from "@repo/ui/button";
 import type { ActionType } from "../../lib/middleware/agent-controls";
 import { fetchAgentApi } from "../../lib/utils/agent-api";
+import { RichProductGroup } from "../Shop/RichProductCard";
 
 export interface AgentSuggestion {
   id: string;
@@ -43,6 +44,15 @@ export interface AgentSuggestion {
   externalUrl?: string;
   source?: string;
   liveUrl?: string;
+  // Rich product results from web search
+  products?: Array<{
+    name: string;
+    price: number;
+    source: string;
+    url: string;
+    image_url?: string;
+    currency?: string;
+  }>;
   // Verifiable Agent Logs (Hackathon Frontier)
   verifiableLogCid?: string;
   signature?: string;
@@ -233,6 +243,16 @@ export function AgentSuggestionToast({
             </div>
           )}
 
+          {/* Rich product results from web search */}
+          {suggestion.products && suggestion.products.length > 0 && !suggestion.isSearching && (
+            <div className="mt-3">
+              <RichProductGroup
+                title={suggestion.description}
+                products={suggestion.products}
+              />
+            </div>
+          )}
+
           {/* Reasoning - why the AI recommends this */}
           {suggestion.reasoning && (
             <div className="mt-3 flex items-start gap-2 text-xs text-slate-400 bg-slate-800/50 rounded-lg px-3 py-2">
@@ -279,7 +299,10 @@ export function AgentSuggestionToast({
           </Button>
           <Button
             onClick={() => {
-              if (suggestion.externalUrl) {
+              if (suggestion.products && suggestion.products.length > 0) {
+                // Open the best-priced result
+                window.open(suggestion.products[0].url, "_blank");
+              } else if (suggestion.externalUrl) {
                 window.open(suggestion.externalUrl, "_blank");
               }
               handleAccept();
@@ -292,7 +315,9 @@ export function AgentSuggestionToast({
             ) : (
               <Check className="w-4 h-4 mr-1" />
             )}
-            {actionLabel}
+            {suggestion.products && suggestion.products.length > 1
+              ? `Shop Best Price`
+              : actionLabel}
           </Button>
         </div>
       </div>
