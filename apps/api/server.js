@@ -231,6 +231,10 @@ app.use('/api/agent/whatsapp', json1k, serviceKeyAuth, generalRateLimit, require
 app.use('/api/curator/apply', json1k, generalRateLimit, require('./routes/curator-apply'));
 app.use('/api/curator', json1k, generalRateLimit, require('./routes/curator-storefront'));
 
+// ── Admin Routes (service-to-service: SERVICE_API_KEY auth) ─────
+
+app.use('/api/admin/curators', json1k, serviceKeyAuth, generalRateLimit, require('./routes/curator-admin'));
+
 // ── Status Dashboard ────────────────────────────────────────────
 
 app.use('/api/status', json1k, require('./routes/status-dashboard'));
