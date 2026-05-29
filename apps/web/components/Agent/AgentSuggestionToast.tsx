@@ -301,7 +301,7 @@ export function AgentSuggestionToast({
             onClick={() => {
               if (suggestion.products && suggestion.products.length > 0) {
                 // Open the best-priced result
-                window.open(suggestion.products[0].url, "_blank");
+                window.open(suggestion.products[0]?.url, "_blank");
               } else if (suggestion.externalUrl) {
                 window.open(suggestion.externalUrl, "_blank");
               }

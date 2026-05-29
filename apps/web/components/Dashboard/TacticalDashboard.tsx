@@ -61,12 +61,24 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
     return "dashboard";
   });
 
-  // Listen for URL tab param (e.g. from Connected Accounts nav link on another page)
+  // Deep-link context from storefront or external pages
+  const [deepLinkContext, setDeepLinkContext] = React.useState<{
+    from?: string;
+    item?: string;
+  } | null>(null);
+
+  // Listen for URL tab param (e.g. from Connected Accounts nav link or storefront)
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab") as AppMode | null;
+    const from = params.get("from") || undefined;
+    const item = params.get("item") || undefined;
+
     if (tab && ALL_MODES.includes(tab)) {
       setMode(tab);
+      if (from || item) {
+        setDeepLinkContext({ from, item });
+      }
       // Clean the URL so bookmarking doesn't persist a transient tab
       window.history.replaceState(null, "", window.location.pathname);
     }
@@ -260,7 +272,30 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
           </motion.div>
         );
       case "try-on":
-        return <VirtualTryOn />;
+        return (
+          <div>
+            {deepLinkContext?.from && (
+              <div className="mb-4 flex items-center gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3">
+                <Camera className="w-4 h-4 text-accent shrink-0" />
+                <p className="text-xs text-accent">
+                  Styling from{" "}
+                  <span className="font-bold">{deepLinkContext.from}</span>
+                  's storefront
+                  {deepLinkContext.item && (
+                    <> — item <span className="font-mono">{deepLinkContext.item}</span></>
+                  )}
+                </p>
+                <button
+                  onClick={() => setDeepLinkContext(null)}
+                  className="ml-auto text-[10px] text-accent/60 hover:text-accent"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+            <VirtualTryOn />
+          </div>
+        );
       case "stylist":
         return <AIStylist />;
       case "shop":

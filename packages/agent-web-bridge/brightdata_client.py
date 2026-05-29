@@ -33,7 +33,8 @@ FASHION_DOMAINS = {
 
 
 @dataclass
-class BrightDataProduct:
+class ProductResult:
+    """Unified product result — matches ProductResult in @onpoint/shared-types."""
     name: str
     price: float
     source: str
@@ -44,7 +45,7 @@ class BrightDataProduct:
 
 @dataclass
 class BrightDataResult:
-    products: List[BrightDataProduct] = field(default_factory=list)
+    products: List[ProductResult] = field(default_factory=list)
     live_url: Optional[str] = None
 
 
@@ -193,7 +194,7 @@ class BrightDataClient:
                 image_url = item.get("thumbnail", item.get("image", ""))
 
                 products.append(
-                    BrightDataProduct(
+                    ProductResult(
                         name=name,
                         price=price,
                         source=source,
@@ -241,7 +242,7 @@ class BrightDataClient:
                 # Only include if it looks like a product (has price or is from fashion domain)
                 if price > 0 or source in FASHION_DOMAINS:
                     products.append(
-                        BrightDataProduct(
+                        ProductResult(
                             name=title,
                             price=price,
                             source=source,
@@ -258,7 +259,7 @@ class BrightDataClient:
 
         return products
 
-    def _extract_from_html(self, html: str, url: str) -> Optional[BrightDataProduct]:
+    def _extract_from_html(self, html: str, url: str) -> Optional[ProductResult]:
         """Best-effort product extraction from raw HTML."""
         title_match = re.search(r"<title[^>]*>(.*?)</title>", html, re.IGNORECASE | re.DOTALL)
         title = title_match.group(1).strip() if title_match else ""
@@ -268,7 +269,7 @@ class BrightDataClient:
         price = self._parse_price(html[:5000])
         source = self._extract_domain(url)
 
-        return BrightDataProduct(
+        return ProductResult(
             name=title,
             price=price,
             source=source,

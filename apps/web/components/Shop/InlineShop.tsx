@@ -13,7 +13,7 @@ import { CartDrawer, CartButton } from "./CartDrawer";
 import { fetchAgentApi } from "../../lib/utils/agent-api";
 import { Product3DCard } from "./Product3DCard";
 import { RichProductCard, RichProductGroup } from "./RichProductCard";
-import type { ExternalProduct } from "./RichProductCard";
+import type { ProductResult } from "@onpoint/shared-types";
 
 interface InlineShopProps {
   onTryOn?: () => void;
@@ -54,7 +54,7 @@ interface ExternalFind {
   amount: string;
   source?: string;
   externalUrl?: string;
-  products?: ExternalProduct[];
+  products?: ProductResult[];
 }
 
 export function InlineShop({ onTryOn }: InlineShopProps) {

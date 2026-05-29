@@ -674,6 +674,20 @@ export interface ExternalProduct {
 }
 
 /**
+ * Unified product result from any source (bridge, catalog, web search).
+ * Single source of truth for product data flowing through the system.
+ * Used by: bridge clients, suggestion system, toast, shop, session ending card.
+ */
+export interface ProductResult {
+  name: string;
+  price: number;
+  source: string;   // domain or provider name
+  url: string;
+  image_url?: string;
+  currency?: string;
+}
+
+/**
  * Cached search results with TTL
  */
 interface CachedSearch {

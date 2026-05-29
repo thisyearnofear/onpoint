@@ -2,18 +2,10 @@
 
 import React, { useRef, useState } from "react";
 import { ExternalLink, Star, TrendingDown } from "lucide-react";
-
-export interface ExternalProduct {
-  name: string;
-  price: number;
-  source: string;
-  url: string;
-  image_url?: string;
-  currency?: string;
-}
+import type { ProductResult } from "@onpoint/shared-types";
 
 interface RichProductCardProps {
-  product: ExternalProduct;
+  product: ProductResult;
   badge?: string;
   lowestPrice?: number;
   onClick?: () => void;
@@ -136,7 +128,7 @@ export function RichProductGroup({
   products,
 }: {
   title: string;
-  products: ExternalProduct[];
+  products: ProductResult[];
 }) {
   if (products.length === 0) return null;
 

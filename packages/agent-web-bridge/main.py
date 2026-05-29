@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 import asyncio
 from purch_client import PurchClient, PurchProduct, PurchSearchResult
 from tinyfish_client import TinyFishClient, TinyFishResult
-from brightdata_client import BrightDataClient, BrightDataResult
+from brightdata_client import BrightDataClient, BrightDataResult, ProductResult
 
 # Load the environment variables from the web app's .env.local
 # This is where the USER specified BROWSER_USE_API_KEY is located.

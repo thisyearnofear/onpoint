@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { CSSProperties } from "react";
 import {
   ArrowLeft,
+  Camera,
   ExternalLink,
   MapPin,
   MessageCircle,
@@ -318,23 +319,32 @@ export default async function CuratorStorefrontPage({
                       ))}
                     </div>
 
-                    {listing.checkoutUrl ? (
+                    <div className="flex gap-2">
                       <a
-                        href={listing.checkoutUrl}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
-                        style={{ background: "var(--curator-primary)" }}
+                        href={`/?tab=try-on&from=${encodeURIComponent(slug)}&item=${encodeURIComponent(listing.id)}`}
+                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-md border border-border px-4 py-3 text-sm font-bold transition-colors hover:bg-muted"
                       >
-                        Buy on WhatsApp
-                        <ExternalLink className="h-4 w-4" />
+                        <Camera className="h-4 w-4" />
+                        Try On
                       </a>
-                    ) : (
-                      <button
-                        disabled
-                        className="w-full rounded-md bg-muted px-4 py-3 text-sm font-bold text-muted-foreground"
-                      >
-                        Checkout unavailable
-                      </button>
-                    )}
+                      {listing.checkoutUrl ? (
+                        <a
+                          href={listing.checkoutUrl}
+                          className="inline-flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                          style={{ background: "var(--curator-primary)" }}
+                        >
+                          Buy
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      ) : (
+                        <button
+                          disabled
+                          className="flex-1 rounded-md bg-muted px-4 py-3 text-sm font-bold text-muted-foreground"
+                        >
+                          Unavailable
+                        </button>
+                      )}
+                    </div>
 
                     <p className="text-xs text-muted-foreground">
                       {stock > 0 ? `${stock} in stock` : "Confirm stock before paying"}
