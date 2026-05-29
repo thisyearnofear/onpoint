@@ -85,7 +85,7 @@ export function SessionEndingCard({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-xl"
+      className="absolute inset-0 z-[60] flex items-center justify-center bg-background/80 backdrop-blur-xl"
     >
       <motion.div
         initial={{ scale: 0.85, y: 40, opacity: 0 }}
@@ -125,8 +125,8 @@ export function SessionEndingCard({
           </div>
         </div>
 
-        {/* Card body — dark */}
-        <div className="bg-slate-950 p-6 space-y-5 overflow-y-auto no-scrollbar">
+        {/* Card body */}
+        <div className="bg-card p-6 space-y-5 overflow-y-auto no-scrollbar">
           {/* Topics analyzed */}
           {summary.topics.length > 0 && (
             <motion.div
@@ -134,7 +134,7 @@ export function SessionEndingCard({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
             >
-              <p className="text-[9px] text-slate-600 uppercase tracking-widest mb-2.5 font-bold">
+              <p className="text-[9px] text-muted-foreground/60 uppercase tracking-widest mb-2.5 font-bold">
                 Analyzed
               </p>
               <div className="flex flex-wrap gap-2">
@@ -143,10 +143,10 @@ export function SessionEndingCard({
                   return (
                     <div
                       key={i}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/5"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-muted/30 border border-border/50"
                     >
-                      <Icon className="w-3 h-3 text-indigo-400" />
-                      <span className="text-[10px] text-slate-300 font-medium">
+                      <Icon className="w-3 h-3 text-primary/70" />
+                      <span className="text-[10px] text-foreground/70 font-medium">
                         {topic}
                       </span>
                     </div>
@@ -162,18 +162,18 @@ export function SessionEndingCard({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7 }}
-              className="bg-indigo-500/5 border border-indigo-500/10 rounded-2xl p-4 space-y-3"
+              className="bg-primary/5 border border-primary/10 rounded-2xl p-4 space-y-3"
             >
-              <p className="text-[9px] text-indigo-400/60 uppercase tracking-widest font-bold">
+              <p className="text-[9px] text-primary/60 uppercase tracking-widest font-bold">
                 Key Insights
               </p>
               {summary.takeaways.slice(0, 3).map((takeaway, i) => (
-                <p key={i} className="text-sm text-slate-200 leading-relaxed">
+                <p key={i} className="text-sm text-foreground/80 leading-relaxed">
                   &ldquo;{takeaway}&rdquo;
                 </p>
               ))}
               {summary.takeaways.length > 3 && (
-                <p className="text-[10px] text-slate-500">
+                <p className="text-[10px] text-muted-foreground">
                   +{summary.takeaways.length - 3} more in full report
                 </p>
               )}
@@ -188,7 +188,7 @@ export function SessionEndingCard({
               transition={{ delay: 0.8 }}
               className="flex items-center gap-3"
             >
-              <div className="w-12 h-16 rounded-lg overflow-hidden border border-white/10">
+              <div className="w-12 h-16 rounded-lg overflow-hidden border border-border">
                 <img
                   src={captures[0]!.image}
                   alt="Style capture"
@@ -196,11 +196,11 @@ export function SessionEndingCard({
                 />
               </div>
               <div>
-                <p className="text-xs text-white font-medium">
+                <p className="text-xs text-foreground font-medium">
                   {captures.length} capture{captures.length !== 1 ? "s" : ""}{" "}
                   saved
                 </p>
-                <p className="text-[10px] text-slate-500">
+                <p className="text-[10px] text-muted-foreground">
                   {captures[0]!.comment.slice(0, 50)}…
                 </p>
               </div>
@@ -242,22 +242,22 @@ export function SessionEndingCard({
               transition={{ delay: 0.88 }}
               className="space-y-2"
             >
-              <p className="text-[9px] text-slate-600 uppercase tracking-widest font-bold">
+              <p className="text-[9px] text-muted-foreground/60 uppercase tracking-widest font-bold">
                 Recommended For You
               </p>
               <div className="space-y-2">
                 {recommendedProducts.slice(0, 3).map((product, i) => (
                   <div
                     key={i}
-                    className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5"
+                    className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50"
                   >
                     <div className="flex items-center gap-2">
-                      <ShoppingBag className="w-4 h-4 text-indigo-400" />
+                      <ShoppingBag className="w-4 h-4 text-primary/70" />
                       <div>
-                        <p className="text-xs text-white font-medium">
+                        <p className="text-xs text-foreground font-medium">
                           {product.name}
                         </p>
-                        <p className="text-[10px] text-slate-500">
+                        <p className="text-[10px] text-muted-foreground">
                           {product.category.includes(".")
                             ? `Found at ${product.category}`
                             : product.category}
@@ -289,7 +289,7 @@ export function SessionEndingCard({
             <Button
               onClick={shareToFarcaster}
               disabled={isSharing}
-              className="w-full bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-full py-5 text-sm font-bold gap-2"
+              className="w-full bg-muted/30 hover:bg-muted/50 text-foreground border border-border rounded-full py-5 text-sm font-bold gap-2"
             >
               {isSharing ? (
                 <Sparkles className="w-4 h-4 animate-spin" />
@@ -306,9 +306,9 @@ export function SessionEndingCard({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.0 }}
-              className="space-y-2.5 pt-2 border-t border-white/5"
+              className="space-y-2.5 pt-2 border-t border-border/50"
             >
-              <p className="text-[9px] text-slate-600 uppercase tracking-widest font-bold">
+              <p className="text-[9px] text-muted-foreground/60 uppercase tracking-widest font-bold">
                 Unlock More
               </p>
 
@@ -342,18 +342,18 @@ export function SessionEndingCard({
           >
             <button
               onClick={onViewSummary}
-              className="w-full text-center text-[10px] text-slate-600 hover:text-slate-400 transition-colors py-1"
+              className="w-full text-center text-[10px] text-muted-foreground/60 hover:text-foreground/60 transition-colors py-1"
             >
               View Full Summary →
             </button>
           </motion.div>
 
           {/* Branding footer */}
-          <div className="flex items-center justify-center gap-1.5 pt-3 border-t border-white/5">
-            <Sparkles className="w-3 h-3 text-indigo-500/40" />
-            <span className="text-[9px] text-slate-700 font-medium">
+          <div className="flex items-center justify-center gap-1.5 pt-3 border-t border-border/50">
+            <Sparkles className="w-3 h-3 text-primary/40" />
+            <span className="text-[9px] text-muted-foreground/60 font-medium">
               Styled by{" "}
-              <span className="text-indigo-500/50 font-bold italic">
+              <span className="text-primary/50 font-bold italic">
                 OnPoint
               </span>{" "}
               AI

@@ -144,19 +144,19 @@ export function AgentSuggestionToast({
       exit={{ opacity: 0, y: 20, scale: 0.95 }}
       className="fixed bottom-24 sm:bottom-6 left-1/2 -translate-x-1/2 z-[80] w-[calc(100%-2rem)] max-w-sm"
     >
-      <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+      <div className="bg-background/95 backdrop-blur-xl rounded-2xl border border-border shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="px-4 py-3 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 border-b border-white/10">
+        <div className="px-4 py-3 bg-gradient-to-r from-primary/10 to-accent/10 border-b border-border">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-purple-500/30 flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-purple-400" />
             </div>
             <div className="flex-1">
-              <p className="text-white text-sm font-medium">
+              <p className="text-foreground text-sm font-medium">
                 AI Stylist Suggests
               </p>
             </div>
-            <div className="flex items-center gap-1 text-xs text-slate-400">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Clock className="w-3 h-3" />
               <span>{secondsLeft}s</span>
             </div>
@@ -167,8 +167,8 @@ export function AgentSuggestionToast({
         <div className="p-4">
           {/* Observed features - what the AI noticed */}
           {suggestion.observedFeatures && (
-            <div className="mb-3 p-2.5 rounded-xl bg-white/5 border border-white/5">
-              <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1.5">
+            <div className="mb-3 p-2.5 rounded-xl bg-muted/30 border border-border/50">
+              <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider mb-1.5">
                 I noticed you're wearing
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -198,11 +198,11 @@ export function AgentSuggestionToast({
           )}
 
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
-              <Icon className="w-5 h-5 text-slate-300" />
+            <div className="w-10 h-10 rounded-xl bg-muted/30 flex items-center justify-center shrink-0">
+              <Icon className="w-5 h-5 text-foreground/70" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-white text-sm font-medium truncate">
+              <p className="text-foreground text-sm font-medium truncate">
                 {suggestion.description}
               </p>
               <div className="flex items-center gap-2 mt-1">
@@ -210,7 +210,7 @@ export function AgentSuggestionToast({
                   {suggestion.amount}
                 </p>
                 {suggestion.source && (
-                  <span className="text-[10px] text-slate-500 bg-white/5 px-1.5 py-0.5 rounded border border-white/5">
+                  <span className="text-[10px] text-muted-foreground/70 bg-muted/30 px-1.5 py-0.5 rounded border border-border/50">
                     at {suggestion.source}
                   </span>
                 )}
@@ -275,7 +275,7 @@ export function AgentSuggestionToast({
 
           {/* Reasoning - why the AI recommends this */}
           {suggestion.reasoning && (
-            <div className="mt-3 flex items-start gap-2 text-xs text-slate-400 bg-slate-800/50 rounded-lg px-3 py-2">
+            <div className="mt-3 flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
               <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0 mt-0.5" />
               <p>{suggestion.reasoning}</p>
             </div>

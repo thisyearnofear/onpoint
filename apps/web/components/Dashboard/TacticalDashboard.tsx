@@ -12,40 +12,24 @@ import {
   Target,
   Clock,
   ShoppingBag,
-  ShieldAlert,
-  Crown,
   User,
   Image as ImageIcon,
 } from "lucide-react";
 import { NotificationBell } from "../NotificationBell";
 import { PolaroidGallery } from "../PolaroidGallery";
-import Link from "next/link";
+
 import { Button } from "@repo/ui/button";
 import { DesignStudio } from "../DesignStudio";
 import { VirtualTryOn } from "../VirtualTryOn";
 import { AIStylist } from "../AIStylist";
 import { MissionsPanel } from "../Agent/MissionsPanel";
-import { ConnectedAccounts } from "../ConnectedAccounts";
-import { EnhancedConnectButton } from "../EnhancedConnectButton";
-import { FarcasterSignInButton } from "../FarcasterSignInButton";
-import { useUser } from "@auth0/nextjs-auth0/client";
 import { InlineShop } from "../Shop/InlineShop";
 import { AgentActivityFeed } from "../Agent/AgentActivityFeed";
 import { FraudMonitor } from "../FraudMonitor";
 import { NewUserOnboarding } from "./NewUserOnboarding";
+import { SettingsPanel } from "./SettingsPanel";
 
-type AppMode = "dashboard" | "my-looks" | "try-on" | "stylist" | "shop" | "profile" | "design";
-
-function AuthAccountCTA() {
-  const { user, isLoading } = useUser();
-  if (isLoading || user) return null;
-  return (
-    <p className="text-xs text-muted-foreground">
-      <a href="/auth/login" className="underline underline-offset-2 text-primary">Sign in</a>
-      {" "}to save looks, track orders, and connect external accounts.
-    </p>
-  );
-}
+type AppMode = "dashboard" | "my-looks" | "try-on" | "stylist" | "shop" | "settings" | "design";
 
 interface TacticalDashboardProps {
   onBack?: () => void;
@@ -85,7 +69,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
   }, []);
 
   // All valid modes (for URL param validation)
-  const ALL_MODES: AppMode[] = ["dashboard", "my-looks", "try-on", "stylist", "shop", "profile", "design"];
+  const ALL_MODES: AppMode[] = ["dashboard", "my-looks", "try-on", "stylist", "shop", "settings", "design"];
 
   // Desktop top-bar: full set of tabs
   const desktopNavItems = [
@@ -94,7 +78,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
     { id: "stylist" as AppMode, label: "Stylist", icon: MessageCircle, color: "text-primary" },
     { id: "shop" as AppMode, label: "Shop", icon: ShoppingBag, color: "text-amber-400" },
     { id: "my-looks" as AppMode, label: "My Looks", icon: Palette, color: "text-indigo-400" },
-    { id: "profile" as AppMode, label: "Profile", icon: Target, color: "text-muted-foreground" },
+    { id: "settings" as AppMode, label: "Settings", icon: Target, color: "text-muted-foreground" },
   ];
 
   // Mobile bottom nav: 4 core destinations
@@ -102,7 +86,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
     { id: "dashboard" as AppMode, label: "Home", icon: LayoutDashboard },
     { id: "my-looks" as AppMode, label: "My Looks", icon: ImageIcon },
     // Try On is rendered as the elevated center button (not in this array)
-    { id: "profile" as AppMode, label: "Profile", icon: User },
+    { id: "settings" as AppMode, label: "Settings", icon: User },
   ];
 
   const renderContent = () => {
@@ -300,92 +284,8 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
         return <AIStylist />;
       case "shop":
         return <InlineShop onTryOn={() => setMode("try-on")} />;
-      case "profile":
-        return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="space-y-6"
-          >
-            <div>
-              <h2 className="text-2xl font-bold mb-2">Settings</h2>
-              <p className="text-muted-foreground">
-                Manage your accounts and preferences
-              </p>
-            </div>
-
-            {/* Wallet & Social — progressive disclosure */}
-            <details className="group rounded-2xl border border-border bg-card/40 overflow-hidden" open>
-              <summary className="cursor-pointer p-4 flex items-center justify-between hover:bg-muted/30 transition-colors list-none">
-                <div className="flex items-center gap-2 text-foreground">
-                  <Target className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-bold uppercase tracking-wider">
-                    Wallet & Social
-                  </span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground group-open:rotate-90 transition-transform" />
-              </summary>
-              <div className="px-4 pb-4 space-y-3">
-                <p className="text-xs text-muted-foreground">
-                  Connect a wallet to unlock purchases, tipping, and saving looks on-chain.
-                  Your wallet and your app account are separate — connect both for the full experience.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <EnhancedConnectButton />
-                  <FarcasterSignInButton />
-                </div>
-                <AuthAccountCTA />
-              </div>
-            </details>
-
-            <ConnectedAccounts />
-
-            {/* Subscription Management */}
-            <details className="group rounded-2xl border border-border bg-card/40 overflow-hidden" open>
-              <summary className="cursor-pointer p-4 flex items-center justify-between hover:bg-muted/30 transition-colors list-none">
-                <div className="flex items-center gap-2 text-foreground">
-                  <Crown className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-bold uppercase tracking-wider">
-                    Subscription
-                  </span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground group-open:rotate-90 transition-transform" />
-              </summary>
-              <div className="px-4 pb-4">
-                <p className="text-xs text-muted-foreground mb-3">
-                  View your current plan, track usage, compare tiers, and manage billing.
-                </p>
-                <Link href="/account/subscription">
-                  <Button variant="outline" size="sm" className="w-full">
-                    <Crown className="w-3.5 h-3.5 mr-2" />
-                    Manage Subscription
-                  </Button>
-                </Link>
-              </div>
-            </details>
-
-            {/* Fraud Monitoring Dashboard */}
-            <details className="group rounded-2xl border border-border bg-card/40 overflow-hidden">
-              <summary className="cursor-pointer p-4 flex items-center justify-between hover:bg-muted/30 transition-colors list-none">
-                <div className="flex items-center gap-2 text-foreground">
-                  <ShieldAlert className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-bold uppercase tracking-wider">
-                    Agent Security & Monitoring
-                  </span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground group-open:rotate-90 transition-transform" />
-              </summary>
-              <div className="px-4 pb-4">
-                <p className="text-xs text-muted-foreground mb-3">
-                  Real-time monitoring for autonomous agent spending. Tracks anomalies,
-                  heartbeat health, and suspicious patterns.
-                </p>
-                <FraudMonitor />
-              </div>
-            </details>
-          </motion.div>
-        );
+      case "settings":
+        return <SettingsPanel />;
     }
   };
 
@@ -475,15 +375,15 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
             </span>
           </div>
 
-          {/* Profile */}
+          {/* Settings */}
           <button
-            onClick={() => navigateTo("profile")}
+            onClick={() => navigateTo("settings")}
             className={`flex flex-col items-center gap-0.5 pt-2 pb-1 px-3 transition-colors ${
-              mode === "profile" ? "text-primary" : "text-muted-foreground"
+              mode === "settings" ? "text-primary" : "text-muted-foreground"
             }`}
           >
             <User className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Profile</span>
+            <span className="text-[10px] font-medium">Settings</span>
           </button>
         </div>
       </nav>

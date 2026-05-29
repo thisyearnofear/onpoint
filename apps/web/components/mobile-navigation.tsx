@@ -80,7 +80,7 @@ export function MobileNavigation({ showBackButton = false }: MobileNavigationPro
                   Accounts
                 </p>
                 <Button asChild variant="ghost" className="justify-start text-muted-foreground hover:text-foreground">
-                  <Link href="/?tab=profile" onClick={() => setIsOpen(false)}>
+                  <Link href="/?tab=settings" onClick={() => setIsOpen(false)}>
                     <Settings className="h-4 w-4 mr-2" />
                     Connected Accounts
                   </Link>

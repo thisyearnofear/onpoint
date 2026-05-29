@@ -66,9 +66,9 @@ export function AgentWalletBadge() {
       onClick={() => {
         // Navigate to settings tab via URL parameter
         const url = new URL(window.location.href);
-        url.searchParams.set("tab", "profile");
+        url.searchParams.set("tab", "settings");
         window.history.pushState(null, "", url.toString());
-        window.dispatchEvent(new CustomEvent("onpoint:navigate", { detail: "profile" }));
+        window.dispatchEvent(new CustomEvent("onpoint:navigate", { detail: "settings" }));
       }}
       className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-muted/50 border border-border text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
       title={`Agent wallet — ${primary.chain}: ${primary.address.slice(0, 6)}...${primary.address.slice(-4)}`}
