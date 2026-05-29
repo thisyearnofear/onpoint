@@ -77,6 +77,35 @@ router.post('/', async (req, res) => {
       }).catch(() => ({ success: false }));
 
       if (result.success && result.data?.items?.length > 0) {
+        const items = result.data.items;
+        const topItem = items[0];
+
+        // Update the original suggestion with all results
+        const suggestion = agentCore.AgentControls.getSuggestion(suggestionId);
+        if (suggestion) {
+          suggestion.description = `Found ${items.length} result${items.length > 1 ? 's' : ''}: ${topItem.name}`;
+          suggestion.amount = `$${topItem.price} cUSD`;
+          suggestion.source = topItem.source;
+          suggestion.externalUrl = topItem.url;
+          suggestion.isSearching = false;
+          suggestion.liveUrl = result.data.live_url;
+          // Attach all products for rich display
+          suggestion.products = items.map((item) => ({
+            name: item.name,
+            price: item.price,
+            source: item.source,
+            url: item.url,
+            image_url: item.image_url,
+            currency: item.currency,
+          }));
+
+          // Re-persist the updated suggestion
+          agentCore.AgentControls.createSuggestion({
+            ...suggestion,
+            userId,
+          });
+        }
+
         return res.json({ success: true });
       }
 

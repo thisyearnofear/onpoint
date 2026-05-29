@@ -110,6 +110,14 @@ export interface AgentSuggestion {
   externalUrl?: string;
   liveUrl?: string;
   isSearching?: boolean;
+  products?: Array<{
+    name: string;
+    price: number;
+    source: string;
+    url: string;
+    image_url?: string;
+    currency?: string;
+  }>;
   verifiableLogCid?: string;
   signature?: string;
 }
