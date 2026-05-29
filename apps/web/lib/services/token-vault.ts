@@ -119,12 +119,14 @@ export function getConnectionAuthUrl(
   connection: SupportedProvider,
   scopes: string[],
 ): string {
-  const baseUrl = process.env.APP_BASE_URL || "http://localhost:3000";
   const params = new URLSearchParams({
     connection,
-    scope: scopes.join(" "),
+    returnTo: "/",
   });
-  return `/api/auth/login?${params.toString()}&returnTo=/settings/connections`;
+  for (const scope of scopes) {
+    params.append("scopes", scope);
+  }
+  return `/api/auth/connect?${params.toString()}`;
 }
 
 /**

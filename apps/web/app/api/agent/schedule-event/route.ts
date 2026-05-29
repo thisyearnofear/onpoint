@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
           error: result.error,
           requiresConnection: result.error?.includes("connect"),
           connectionUrl:
-            "/api/auth/connect?connection=google-oauth2&scope=https://www.googleapis.com/auth/calendar.events",
+            "/api/auth/connect?connection=google-oauth2&scopes=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcalendar.events",
         },
         { status: 403 },
       );

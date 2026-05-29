@@ -107,11 +107,14 @@ export function ConnectedAccounts() {
       setError(null);
       
       const config = PROVIDER_CONFIG[connection];
-      const scopes = config.defaultScopes.join(' ');
-      
-      // Redirect to Auth0 OAuth flow
-      const redirectUri = `${window.location.origin}/api/auth/callback`;
-      const authUrl = `/api/auth/connect?connection=${connection}&scope=${encodeURIComponent(scopes)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+      const params = new URLSearchParams({
+        connection,
+        returnTo: "/",
+      });
+      for (const scope of config.defaultScopes) {
+        params.append("scopes", scope);
+      }
+      const authUrl = `/api/auth/connect?${params.toString()}`;
       
       window.location.href = authUrl;
     } catch (err: any) {

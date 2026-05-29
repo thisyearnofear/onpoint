@@ -25,8 +25,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get user's linked identities from Auth0
-    const identities = session.user.identities || [];
+    const connectionTokenSets = session.connectionTokenSets || [];
 
     const supportedProviders: SupportedProvider[] = [
       "google-oauth2",
@@ -38,13 +37,15 @@ export async function GET(request: NextRequest) {
     ];
 
     const accounts = supportedProviders.map((provider) => {
-      const identity = identities.find((id: any) => id.connection === provider);
+      const tokenSet = connectionTokenSets.find(
+        (token) => token.connection === provider,
+      );
 
       return {
         connection: provider,
-        connected: !!identity,
-        scopes: identity?.scopes || [],
-        connectedAt: identity?.connectedAt || null,
+        connected: !!tokenSet,
+        scopes: tokenSet?.scope?.split(" ").filter(Boolean) || [],
+        connectedAt: null,
       };
     });
 

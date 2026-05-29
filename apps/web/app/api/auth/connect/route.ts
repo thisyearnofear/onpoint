@@ -6,8 +6,8 @@ import { rateLimit, RateLimits, getClientId } from "../../../../lib/utils/rate-l
 /**
  * GET /api/auth/connect
  * 
- * Initiates OAuth flow to connect external accounts for Token Vault.
- * Uses Auth0 SDK v4 authorize endpoint with connection parameter.
+ * Compatibility wrapper for the Auth0 SDK v4 connected-account route.
+ * The SDK owns /auth/connect and creates the Token Vault ticket/session state.
  */
 export async function GET(request: NextRequest) {
   const rl = await rateLimit(getClientId(request), RateLimits.general);
@@ -23,8 +23,10 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const connection = searchParams.get('connection');
-    const scope = searchParams.get('scope');
-    const redirectUri = searchParams.get('redirect_uri') || `${process.env.AUTH0_BASE_URL}/auth/callback`;
+    const scopes = [
+      ...searchParams.getAll("scopes"),
+      ...(searchParams.get("scope")?.split(/\s+/).filter(Boolean) ?? []),
+    ];
 
     if (!connection) {
       return NextResponse.json(
@@ -33,19 +35,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Build Auth0 authorize URL with connection parameter
-    const params = new URLSearchParams({
-      connection,
-      redirect_uri: redirectUri,
-      prompt: 'consent',
-      response_type: 'code',
-      client_id: process.env.AUTH0_CLIENT_ID!,
-      ...(scope && { scope })
-    });
+    const connectUrl = new URL('/auth/connect', request.url);
+    connectUrl.searchParams.set('connection', connection);
+    connectUrl.searchParams.set('returnTo', searchParams.get('returnTo') || '/');
+    for (const scope of scopes) {
+      connectUrl.searchParams.append('scopes', scope);
+    }
 
-    const authUrl = `https://${process.env.AUTH0_DOMAIN}/authorize?${params.toString()}`;
-    
-    return NextResponse.redirect(authUrl);
+    return NextResponse.redirect(connectUrl);
   } catch (error: any) {
     logger.error("Error", { component: "connect" }, error);
     return NextResponse.json(
