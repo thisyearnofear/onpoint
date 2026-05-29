@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, type ReactNode } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import {
   Palette,
   Camera,
@@ -13,14 +13,14 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import { NotificationBell } from "../NotificationBell";
-import { PolaroidGallery } from "../PolaroidGallery";
 
-import { DesignStudio } from "../DesignStudio";
 import { VirtualTryOn } from "../VirtualTryOn";
 import { AIStylist } from "../AIStylist";
 import { InlineShop } from "../Shop/InlineShop";
 import { NewUserOnboarding } from "./NewUserOnboarding";
 import { HomePanel } from "./HomePanel";
+import { MyLooksPanel } from "./MyLooksPanel";
+import { DesignPanel } from "./DesignPanel";
 import { SettingsPanel } from "./SettingsPanel";
 
 type AppMode = "dashboard" | "my-looks" | "try-on" | "stylist" | "shop" | "settings" | "design";
@@ -86,35 +86,8 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
   // Route map — each mode maps to its content factory
   const contentMap: Record<AppMode, () => ReactNode> = {
     dashboard: () => <HomePanel onNavigate={(m) => setMode(m as AppMode)} />,
-    "my-looks": () => (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-      >
-        <PolaroidGallery
-          onNavigateToTryOn={() => setMode("try-on")}
-          onNavigateToDesign={() => setMode("design")}
-        />
-      </motion.div>
-    ),
-    "design": () => (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-      >
-        <div className="mb-4">
-          <button
-            onClick={() => setMode("my-looks")}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            &larr; Back to My Looks
-          </button>
-        </div>
-        <DesignStudio />
-      </motion.div>
-    ),
+    "my-looks": () => <MyLooksPanel onNavigate={(m) => setMode(m as AppMode)} />,
+    "design": () => <DesignPanel onNavigate={(m) => setMode(m as AppMode)} />,
     "try-on": () => (
       <div>
         {deepLinkContext?.from && (
