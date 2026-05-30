@@ -116,7 +116,7 @@ function BreakdownCard({
     );
   }
 
-  const maxValue = entries[0][1];
+  const maxValue = entries[0]![1];
 
   return (
     <div className="rounded-xl border border-border bg-card p-4">
