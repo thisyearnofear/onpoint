@@ -279,20 +279,20 @@ Inventory is **not** in the Curator object — it lives in Neon (`listings` join
 
 ---
 
-### Phase 12: Bright Data Web Intelligence 🎯
+### Phase 12: Bright Data Retail Intelligence 🎯
 > **ADR**: [0004 — Bright Data Web Intelligence](./adr/0004-brightdata-web-intelligence.md)
 > **Hackathon**: [Web Data UNLOCKED](https://lablab.ai/ai-hackathons/brightdata-ai-agents-web-data-hackathon) — Bright Data AI Agents + Web Data
 
-Integrate Bright Data's production-grade web data infrastructure into the agent-web-bridge tier chain. Adds structured SERP search and site-specific scrapers as a Tier 2.5 provider alongside TinyFish, improving reliability and reducing cost for product discovery.
+Integrate Bright Data's production-grade web data infrastructure into the existing agent-web-bridge tier chain, then use the same discovery event for two outputs: shopper recommendations and Curator-facing retail GTM intelligence. The consumer product stays intact; the commercial wedge becomes live product-gap, competitor-price, availability, and campaign-action signals for stylists, boutiques, and retail teams.
 
 #### Alignment with Core Principles
-- **ENHANCEMENT FIRST**: Enhances existing tier chain in `main.py` — no new endpoints or surfaces
+- **ENHANCEMENT FIRST**: Enhances existing product discovery and Curator surfaces before adding new ones
 - **AGGRESSIVE CONSOLIDATION**: If Bright Data proves reliable, it can replace TinyFish (3 providers → 2)
-- **PREVENT BLOAT**: One new client file (~150 lines), one import, one env var
-- **DRY**: Same dataclass + async client pattern as `tinyfish_client.py`
-- **CLEAN**: Behind a clean interface; bridge doesn't know which provider answered
-- **MODULAR**: Self-contained `brightdata_client.py`, independently testable
-- **PERFORMANT**: SERP API returns structured data in <1s, no browser overhead
+- **PREVENT BLOAT**: Reuse the search event for recommendations and intelligence; avoid a second app
+- **DRY**: Define shared market-signal shape once and map provider outputs into it
+- **CLEAN**: Keep live web access in the bridge; keep Curator UX in the web app
+- **MODULAR**: Bright Data client and signal derivation are independently testable
+- **PERFORMANT**: SERP API returns structured data without browser startup; cache repeated queries
 - **ORGANIZED**: Lives in `packages/agent-web-bridge/` alongside existing clients
 
 #### Deliverables
@@ -302,21 +302,28 @@ Integrate Bright Data's production-grade web data infrastructure into the agent-
 - [ ] Same `BrightDataResult` → `ItemData` mapping as TinyFish
 - [ ] Gated by `BRIGHTDATA_API_KEY` env var (silent skip if unset)
 
+**Market signals**
+- [ ] Shared `MarketSignal` type for product gaps, competitor prices, availability, trends, and recommended actions
+- [ ] Bright Data results emit both shopper-facing products and Curator-facing signals
+- [ ] Deterministic demo fixture for judging when live providers are unavailable
+
 **Tier chain integration**
 - [ ] Wire into `main.py` Tier 2.5 with `asyncio.gather` alongside TinyFish
 - [ ] First non-empty result wins; if both empty, fall through to Tier 3
-- [ ] No changes to `product-catalog.ts` (bridge contract unchanged)
+- [ ] Preserve existing product-catalog behavior while adding an optional signal-aware path
 
 **Testing & docs**
 - [ ] `test_brightdata_client.py` — Unit tests following `test_purch_client.py` pattern
+- [ ] Signal tests cover product-gap and competitor-price derivation
 - [ ] `.env.example` updated with `BRIGHTDATA_API_KEY`
-- [ ] `FEATURES.md` updated with Bright Data in Agent Web Discovery section
+- [ ] `FEATURES.md` updated with Bright Data and retail GTM intelligence sections
 
 #### Success criteria
 - Bright Data SERP API returns structured product results for fashion queries
+- Each relevant search can produce at least one actionable market signal
 - Tier 2.5 latency ≤ 2s (parallel with TinyFish, not sequential)
 - Graceful degradation: system works identically when `BRIGHTDATA_API_KEY` is unset
-- Hackathon submission: project demonstrates Bright Data integration on at least one track
+- Hackathon submission: project is positioned in GTM Intelligence with fashion retail as the vertical
 
 ---
 

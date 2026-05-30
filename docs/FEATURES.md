@@ -111,6 +111,20 @@ When the internal catalog doesn't have a match, the agent browses the open web:
 
 **Bright Data integration** ([ADR 0004](./adr/0004-brightdata-web-intelligence.md)): Structured Google Shopping search via SERP API + product page extraction via Web Unlocker. Runs in parallel with TinyFish at Tier 2.5 — first non-empty result wins. Gated by `BRIGHTDATA_API_KEY` env var; silent skip if unset.
 
+### Retail GTM Intelligence
+
+The same web-discovery event also creates Curator-facing intelligence. A shopper still gets a recommendation; the Curator gets evidence about what the market is offering and what their own catalog is missing.
+
+Initial signal types:
+
+- **Product gap** — User intent the Curator catalog could not satisfy
+- **Competitor price** — Live price range for comparable products across retailers
+- **Retailer availability** — Where matching items are currently discoverable
+- **Trend match** — Repeated shopper intent that maps to a style, occasion, or category
+- **Recommended action** — A merchandising or campaign suggestion backed by live web evidence
+
+This keeps OnPoint consumer-first while giving stylists, boutiques, and retail GTM teams a commercial feedback loop from every styling session.
+
 ### Live Monitoring
 
 - `live_url` surfaced in UI for real-time observation

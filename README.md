@@ -1,6 +1,6 @@
-# OnPoint — A Curator-First Styling Platform
+# OnPoint — A Curator-First Styling + Retail Intelligence Platform
 
-> **Stylists hand their customers a branded try-on → polaroid → share → buy loop. AI personas join the conversation as cross-vertical sidekicks. One engine, two kinds of curator (human + AI), zero new feature surface — just composition of what's already shipped.**
+> **Stylists hand their customers a branded try-on → polaroid → share → buy loop. Each session also creates live retail intelligence: product gaps, competitor prices, demand signals, and next-best GTM actions. One engine, two value surfaces — consumer styling and curator/retailer intelligence.**
 > The first live Curator storefront slice is `/s/[slug]`, backed by Neon listings and WhatsApp buy links.
 
 > 📐 See [ADR 0002 — Curator Primitive](./docs/adr/0002-curator-primitive.md) for the organizing decision, and [ROADMAP Phase 11](./docs/ROADMAP.md) for the 12-week sequence.
@@ -27,7 +27,9 @@
 
 ## The Problem
 
-Online fashion shoppers face three unsolved problems:
+Online fashion has two linked problems: shoppers cannot decide what to buy, and retailers cannot see what shoppers wanted but failed to find.
+
+For shoppers:
 
 1. **Decision paralysis** — Endless scrolling with no personalized guidance
 2. **No real-time feedback** — Can't get a second opinion while trying things on
@@ -35,9 +37,17 @@ Online fashion shoppers face three unsolved problems:
 
 Personal stylists solve these but cost $150–500/hour and aren't available on demand.
 
+For curators and retailers:
+
+1. **Missing demand signals** — Store analytics show what sold, not what customers searched for and abandoned
+2. **Manual market research** — Competitor pricing, availability, and trend checks are slow and stale
+3. **Weak GTM feedback loops** — Styling sessions, content, inventory, and campaigns rarely inform each other
+
 ## What OnPoint Does
 
 OnPoint is an **AI styling agent** you can interact with in real time. Point your camera at an outfit, get instant styling feedback, discover products that match your taste, and shop — all with full transparency into the agent's decisions and spending limits.
+
+For curators and retailers, the same flow becomes a **live-web GTM intelligence loop**. When the catalog lacks a match, OnPoint searches the open web, compares market options, and turns shopper intent into structured signals: product gaps, competitor price ranges, retailer availability, and recommended merchandising or campaign actions.
 
 **Built with Auth0 Token Vault** — Your AI agent securely accesses external services (Google Calendar, Slack, GitHub) on your behalf without ever seeing your credentials. OAuth tokens are stored in Auth0's Token Vault and exchanged on-demand using RFC 8693 Token Exchange.
 
@@ -48,6 +58,7 @@ OnPoint is an **AI styling agent** you can interact with in real time. Point you
 | **Live AR Styling** | Real-time video analysis with AI feedback — like a FaceTime call with a fashion consultant |
 | **Smart Recommendations** | Personalized product suggestions scored by style fit, price, and quality |
 | **Agent Shopping** | When the internal catalog doesn't have a match, the agent browses the open web for you |
+| **Retail GTM Intelligence** | Shopper intent becomes product-gap, pricing, availability, and campaign signals for Curators |
 | **Secure Token Vault** | Agent accesses external APIs (Calendar, Slack, etc.) via Auth0 Token Vault — no exposed credentials |
 | **Transparent Decisions** | Every suggestion comes with a visible reasoning trail — see exactly why the agent recommends something |
 | **Spending Controls** | Configurable autonomy thresholds: small actions auto-execute, large ones require your approval |
@@ -216,6 +227,7 @@ See [Getting Started](docs/GETTING_STARTED.md) for full setup instructions.
 
 OnPoint has been developed across multiple hackathons:
 
+- **Web Data UNLOCKED** — Bright Data-powered live web intelligence for retail GTM signals
 - **Auth0 Authorized to Act** — Token Vault for secure agent API access
 - **OWS Hackathon** — Agentic Storefronts + Spend Governance
 - **Tether Galactica WDK** — Agent Wallets
