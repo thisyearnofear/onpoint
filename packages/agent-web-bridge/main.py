@@ -16,10 +16,13 @@ from tinyfish_client import TinyFishClient, TinyFishResult
 from brightdata_client import BrightDataClient, BrightDataResult
 from demo_fixtures import demo_market_intel_result
 
-# Load the environment variables from the web app's .env.local
-# This is where the USER specified BROWSER_USE_API_KEY is located.
-env_path = os.path.join(os.path.dirname(__file__), "../../apps/web/.env.local")
-load_dotenv(dotenv_path=env_path)
+bridge_env_path = os.path.join(os.path.dirname(__file__), ".env")
+web_env_path = os.path.join(os.path.dirname(__file__), "../../apps/web/.env.local")
+
+# Production bridge secrets live beside the Python service. The web .env.local
+# fallback preserves the existing local development setup.
+load_dotenv(dotenv_path=bridge_env_path)
+load_dotenv(dotenv_path=web_env_path)
 
 logger = logging.getLogger("bridge")
 
