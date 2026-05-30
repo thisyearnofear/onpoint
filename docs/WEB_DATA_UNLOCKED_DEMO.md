@@ -56,6 +56,36 @@ Recommended demo queries:
 - `red loafers`
 - `linen summer dress`
 
+## Live Bright Data Verification
+
+Before recording or submitting, run one live check with `DEMO_MARKET_INTEL` unset and `BRIGHTDATA_API_KEY` configured:
+
+```bash
+cd packages/agent-web-bridge
+BRIGHTDATA_API_KEY=<key> ./venv/bin/python - <<'PY'
+import asyncio
+from brightdata_client import BrightDataClient
+
+async def main():
+    client = BrightDataClient()
+    result = await client.search_products("black cropped blazer", max_results=3)
+    await client.close()
+    print({
+        "products": len(result.products),
+        "signals": [signal.type for signal in result.signals],
+        "sources": [product.source for product in result.products],
+    })
+
+asyncio.run(main())
+PY
+```
+
+Expected proof:
+
+- `products` is greater than `0`
+- `signals` includes `competitor_price` and `retailer_availability`
+- `sources` includes live retailer domains
+
 ## Proof Points
 
 - Bright Data integration lives in `packages/agent-web-bridge/brightdata_client.py`.
