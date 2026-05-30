@@ -22,7 +22,7 @@ export interface MarketSignal {
 
 export interface MarketPartnerIntegration {
   id: string;
-  partner: "cognee" | "triggerware";
+  partner: "aimlapi" | "cognee" | "triggerware";
   label: string;
   status: "sent" | "ready" | "skipped" | "failed";
   summary: string;

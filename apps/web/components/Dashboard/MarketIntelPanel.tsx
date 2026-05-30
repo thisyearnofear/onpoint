@@ -206,7 +206,7 @@ export function MarketIntelPanel() {
             Search shopper intent and see the product gaps, competitor prices, and actions OnPoint can hand to a Curator.
           </p>
           <p className="mt-2 text-xs font-medium text-muted-foreground">
-            Live web evidence via Bright Data SERP + Web Unlocker, with Cognee memory and TriggerWare workflows.
+            Live web evidence via Bright Data SERP + Web Unlocker, with AI/ML API briefs, Cognee memory, and TriggerWare workflows.
           </p>
         </div>
 

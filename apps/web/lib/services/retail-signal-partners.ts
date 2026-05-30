@@ -28,6 +28,8 @@ interface PartnerResult {
 }
 
 const MEMORY_TTL_SECONDS = 60 * 60 * 24 * 30;
+const AIML_API_BASE_URL = process.env.AIML_API_BASE_URL || "https://api.aimlapi.com/v1";
+const AIML_API_MODEL = process.env.AIML_API_MODEL || "gpt-4o-mini";
 
 function memoryKey(query: string) {
   const normalized = query.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -60,6 +62,43 @@ function buildSignalSummary(snapshot: RetailSignalSnapshot) {
     retailerCount: uniqueRetailers(snapshot.products, snapshot.signals).length,
     action: action || "Review shopper intent and comparable products.",
   };
+}
+
+function fallbackMerchantBrief(snapshot: RetailSignalSnapshot, memory: RetailSignalMemory) {
+  const summary = buildSignalSummary(snapshot);
+  const topProduct = snapshot.products[0];
+  const priceContext = summary.priceRange ? ` The comparable price range is ${summary.priceRange}.` : "";
+  const productContext = topProduct
+    ? ` Top comparable product: ${topProduct.name} from ${topProduct.source}.`
+    : "";
+
+  return {
+    title: `Merchant brief for ${snapshot.query}`,
+    summary: `${summary.gapCount || "No"} product gap signal${summary.gapCount === 1 ? "" : "s"} found for ${snapshot.query}.${priceContext}${productContext}`,
+    recommendedCopy: `Feature or source ${snapshot.query} while shopper intent is active.`,
+    urgency: summary.gapCount > 0 || memory.repeatedIntentCount > 1 ? "high" : "medium",
+  };
+}
+
+function parseBriefJson(text: string) {
+  const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+  try {
+    return JSON.parse(cleaned) as {
+      title?: string;
+      summary?: string;
+      recommendedCopy?: string;
+      urgency?: string;
+    };
+  } catch {
+    const start = cleaned.indexOf("{");
+    const end = cleaned.lastIndexOf("}");
+    if (start === -1 || end <= start) return null;
+    try {
+      return JSON.parse(cleaned.slice(start, end + 1));
+    } catch {
+      return null;
+    }
+  }
 }
 
 async function updateLocalMemory(snapshot: RetailSignalSnapshot): Promise<RetailSignalMemory> {
@@ -238,6 +277,101 @@ async function triggerMerchandisingWorkflow(
   }
 }
 
+async function generateAimlMerchantBrief(
+  snapshot: RetailSignalSnapshot,
+  memory: RetailSignalMemory,
+): Promise<MarketPartnerIntegration> {
+  const createdAt = new Date().toISOString();
+  const apiKey = process.env.AIML_API_KEY || process.env.AIMLAPI_API_KEY;
+  const fallbackBrief = fallbackMerchantBrief(snapshot, memory);
+
+  if (!apiKey) {
+    return {
+      id: `aimlapi-ready-${Date.now()}`,
+      partner: "aimlapi",
+      label: "AI/ML API Brief",
+      status: "ready",
+      summary: "Merchant intelligence brief prepared",
+      evidence: `${fallbackBrief.summary} Add AIML_API_KEY to generate the brief through AI/ML API.`,
+      createdAt,
+    };
+  }
+
+  const prompt = `Return only valid JSON for a retail merchant brief.
+
+Schema:
+{
+  "title": "short title",
+  "summary": "2 sentence business summary",
+  "recommendedCopy": "one concise curator or campaign action",
+  "urgency": "low|medium|high"
+}
+
+Shopper intent: ${snapshot.query}
+Memory: ${JSON.stringify(memory)}
+Products: ${JSON.stringify(snapshot.products.slice(0, 4))}
+Signals: ${JSON.stringify(snapshot.signals.slice(0, 8))}
+
+Focus on GTM value: demand, gap, price positioning, competitor availability, and the next merchant action.`;
+
+  try {
+    const response = await fetch(`${AIML_API_BASE_URL}/chat/completions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: AIML_API_MODEL,
+        messages: [
+          {
+            role: "system",
+            content: "You transform live retail web evidence into concise, action-oriented GTM intelligence.",
+          },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.2,
+        max_tokens: 350,
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!response.ok) {
+      throw new Error(`AI/ML API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || "";
+    const parsed = parseBriefJson(content) || fallbackBrief;
+
+    return {
+      id: `aimlapi-sent-${Date.now()}`,
+      partner: "aimlapi",
+      label: "AI/ML API Brief",
+      status: "sent",
+      summary: parsed.title || fallbackBrief.title,
+      evidence: [
+        parsed.summary || fallbackBrief.summary,
+        parsed.recommendedCopy ? `Action: ${parsed.recommendedCopy}` : null,
+        parsed.urgency ? `Urgency: ${parsed.urgency}` : null,
+      ].filter(Boolean).join(" "),
+      externalId: data.id,
+      createdAt,
+    };
+  } catch (error) {
+    logger.warn("AI/ML API merchant brief failed", { component: "market-intel" }, error);
+    return {
+      id: `aimlapi-failed-${Date.now()}`,
+      partner: "aimlapi",
+      label: "AI/ML API Brief",
+      status: "failed",
+      summary: "Merchant brief fallback used",
+      evidence: `${fallbackBrief.summary} ${error instanceof Error ? error.message : "Unknown AI/ML API error"}`,
+      createdAt,
+    };
+  }
+}
+
 export async function processRetailSignalPartners(
   query: string,
   products: ExternalProduct[],
@@ -252,6 +386,7 @@ export async function processRetailSignalPartners(
 
   const memory = await updateLocalMemory(snapshot);
   const partnerIntegrations = await Promise.all([
+    generateAimlMerchantBrief(snapshot, memory),
     sendCogneeMemory(snapshot, memory),
     triggerMerchandisingWorkflow(snapshot),
   ]);
