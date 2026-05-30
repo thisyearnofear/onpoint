@@ -150,6 +150,12 @@ export async function POST(
               image_url: item.image_url,
               currency: item.currency,
             }));
+            suggestion.metadata = {
+              ...(suggestion.metadata || {}),
+              marketSignals: Array.isArray(result.data.signals)
+                ? result.data.signals
+                : [],
+            };
 
             // Re-persist the updated suggestion
             AgentControls.createSuggestion({

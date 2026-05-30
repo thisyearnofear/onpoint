@@ -298,25 +298,25 @@ Integrate Bright Data's production-grade web data infrastructure into the existi
 #### Deliverables
 
 **Client module**
-- [ ] `packages/agent-web-bridge/brightdata_client.py` — Async client wrapping SERP API + Web Scraper API
-- [ ] Same `BrightDataResult` → `ItemData` mapping as TinyFish
-- [ ] Gated by `BRIGHTDATA_API_KEY` env var (silent skip if unset)
+- [x] `packages/agent-web-bridge/brightdata_client.py` — Async client wrapping SERP API + Web Scraper API
+- [x] Same `BrightDataResult` → `ItemData` mapping as TinyFish
+- [x] Gated by `BRIGHTDATA_API_KEY` env var (silent skip if unset)
 
 **Market signals**
-- [ ] Shared `MarketSignal` type for product gaps, competitor prices, availability, trends, and recommended actions
-- [ ] Bright Data results emit both shopper-facing products and Curator-facing signals
-- [ ] Deterministic demo fixture for judging when live providers are unavailable
+- [x] Shared `MarketSignal` type for product gaps, competitor prices, availability, trends, and recommended actions
+- [x] Bright Data results emit both shopper-facing products and Curator-facing signals
+- [x] Deterministic demo fixture for judging when live providers are unavailable
 
 **Tier chain integration**
-- [ ] Wire into `main.py` Tier 2.5 with `asyncio.gather` alongside TinyFish
-- [ ] First non-empty result wins; if both empty, fall through to Tier 3
-- [ ] Preserve existing product-catalog behavior while adding an optional signal-aware path
+- [x] Wire into `main.py` Tier 2.5 with `asyncio.gather` alongside TinyFish
+- [x] First non-empty result wins; if both empty, fall through to Tier 3
+- [x] Preserve existing product-catalog behavior while adding an optional signal-aware path
 
 **Testing & docs**
-- [ ] `test_brightdata_client.py` — Unit tests following `test_purch_client.py` pattern
-- [ ] Signal tests cover product-gap and competitor-price derivation
-- [ ] `.env.example` updated with `BRIGHTDATA_API_KEY`
-- [ ] `FEATURES.md` updated with Bright Data and retail GTM intelligence sections
+- [x] `test_brightdata_client.py` — Unit tests following `test_purch_client.py` pattern
+- [x] Signal tests cover product-gap and competitor-price derivation
+- [x] `.env.example` updated with `BRIGHTDATA_API_KEY`
+- [x] `FEATURES.md` updated with Bright Data and retail GTM intelligence sections
 
 #### Success criteria
 - Bright Data SERP API returns structured product results for fashion queries

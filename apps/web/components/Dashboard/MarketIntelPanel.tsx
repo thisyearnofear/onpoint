@@ -9,9 +9,14 @@ import {
   Radar,
   Search,
   Sparkles,
+  Store,
   TrendingUp,
 } from "lucide-react";
 import type { ExternalProduct, MarketSignal } from "@onpoint/shared-types";
+import {
+  loadMarketIntelSnapshot,
+  saveMarketIntelSnapshot,
+} from "../../lib/utils/market-intelligence-storage";
 
 const DEFAULT_QUERY = "black cropped blazer";
 const QUICK_QUERIES = ["black cropped blazer", "red loafers", "linen summer dress"];
@@ -42,6 +47,12 @@ function compactPrice(value?: number, currency = "USD") {
   return `${currency} ${Math.round(value)}`;
 }
 
+function priceRange(signals: MarketSignal[]) {
+  const priceSignal = signals.find((signal) => signal.type === "competitor_price");
+  if (!priceSignal?.title) return "—";
+  return priceSignal.title.replace(/^Comparable price range:\s*/i, "");
+}
+
 export function MarketIntelPanel() {
   const [query, setQuery] = React.useState(DEFAULT_QUERY);
   const [activeQuery, setActiveQuery] = React.useState(DEFAULT_QUERY);
@@ -70,6 +81,11 @@ export function MarketIntelPanel() {
       }
 
       setResult(data);
+      saveMarketIntelSnapshot({
+        query: cleanQuery,
+        products: data.products || [],
+        signals: data.signals || [],
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Search failed");
       setResult(null);
@@ -79,12 +95,51 @@ export function MarketIntelPanel() {
   }, []);
 
   React.useEffect(() => {
+    const stored = loadMarketIntelSnapshot();
+    if (stored) {
+      setQuery(stored.query);
+      setActiveQuery(stored.query);
+      setResult({
+        products: stored.products,
+        signals: stored.signals,
+      });
+      return;
+    }
+
     runSearch(DEFAULT_QUERY);
   }, [runSearch]);
 
   const signals = result?.signals ?? [];
   const products = result?.products ?? [];
   const primaryAction = signals.find((signal) => signal.type === "recommended_action");
+  const productGapCount = signals.filter((signal) => signal.type === "product_gap").length;
+  const retailerCount = new Set(
+    signals
+      .filter((signal) => signal.type === "retailer_availability")
+      .map((signal) => signal.source),
+  ).size;
+  const summaryCards = [
+    {
+      label: "Product Gaps",
+      value: productGapCount,
+      icon: Radar,
+    },
+    {
+      label: "Price Range",
+      value: priceRange(signals),
+      icon: TrendingUp,
+    },
+    {
+      label: "Retailers Found",
+      value: retailerCount,
+      icon: Store,
+    },
+    {
+      label: "Next Action",
+      value: primaryAction ? "Ready" : "Pending",
+      icon: Sparkles,
+    },
+  ];
 
   return (
     <motion.div
@@ -104,6 +159,9 @@ export function MarketIntelPanel() {
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
             Search shopper intent and see the product gaps, competitor prices, and actions OnPoint can hand to a Curator.
+          </p>
+          <p className="mt-2 text-xs font-medium text-muted-foreground">
+            Live web evidence via Bright Data SERP + Web Unlocker.
           </p>
         </div>
 
@@ -153,6 +211,18 @@ export function MarketIntelPanel() {
           {error}
         </div>
       )}
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {summaryCards.map((card) => (
+          <div key={card.label} className="rounded-xl border border-border bg-card p-4">
+            <div className="mb-2 flex items-center gap-2 text-muted-foreground">
+              <card.icon className="h-4 w-4 text-primary" />
+              <span className="text-[11px] font-bold uppercase tracking-wider">{card.label}</span>
+            </div>
+            <p className="truncate text-lg font-black text-foreground">{card.value}</p>
+          </div>
+        ))}
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_0.9fr]">
         <section className="rounded-xl border border-border bg-card p-4">

@@ -14,10 +14,15 @@ import { fetchAgentApi } from "../../lib/utils/agent-api";
 import { Product3DCard } from "./Product3DCard";
 import { RichProductCard, RichProductGroup } from "./RichProductCard";
 import type { ProductResult } from "@onpoint/shared-types";
+import type { MarketSignal } from "@onpoint/shared-types";
 import {
   fashionItemToTryOnSelection,
   setPendingTryOnSelection,
 } from "../../lib/utils/try-on-selection";
+import {
+  productResultToExternalProduct,
+  saveMarketIntelSnapshot,
+} from "../../lib/utils/market-intelligence-storage";
 
 interface InlineShopProps {
   onTryOn?: (item?: FashionItem) => void;
@@ -59,6 +64,10 @@ interface ExternalFind {
   source?: string;
   externalUrl?: string;
   products?: ProductResult[];
+  marketSignals?: MarketSignal[];
+  metadata?: {
+    marketSignals?: MarketSignal[];
+  };
 }
 
 export function InlineShop({ onTryOn }: InlineShopProps) {
@@ -88,11 +97,28 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
             source: s.source,
             externalUrl: s.externalUrl,
             products: s.products,
+            marketSignals: s.marketSignals || s.metadata?.marketSignals,
           }));
         setExternalFinds(externals);
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    const find = externalFinds.find(
+      (item) => item.products?.length && item.marketSignals?.length,
+    );
+    if (!find?.products || !find.marketSignals) return;
+
+    const query = find.marketSignals[0]?.query || find.description;
+    saveMarketIntelSnapshot({
+      query,
+      products: find.products.map((product, index) =>
+        productResultToExternalProduct(product, index, query),
+      ),
+      signals: find.marketSignals,
+    });
+  }, [externalFinds]);
 
   return (
     <motion.div
