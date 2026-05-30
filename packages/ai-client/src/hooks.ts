@@ -165,7 +165,12 @@ export const useVirtualTryOn = () => {
         });
 
         if (!response.ok) {
-          throw new Error(`Virtual try-on API error: ${response.status}`);
+          const payload = await response.json().catch(() => null);
+          const detail =
+            payload?.error === 'Invalid API key'
+              ? 'AI proxy key mismatch. Netlify VENICE_API_KEY must match Hetzner.'
+              : payload?.error || `Virtual try-on API error: ${response.status}`;
+          throw new Error(detail);
         }
 
         const analysisData = await response.json();

@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from "react";
 import { Button } from "@repo/ui/button";
-import { Upload, Camera } from "lucide-react";
+import { Upload, Camera, Sparkles } from "lucide-react";
 import dynamic from "next/dynamic";
 // framer-motion removed — using CSS transitions instead
 import { useVirtualTryOn } from "@repo/ai-client";
@@ -432,13 +432,34 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
                         </div>
                       )}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium">
-                        {analysis ? "Analysis complete" : loading ? "Analyzing your photo…" : "Photo uploaded"}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {analysis?.bodyType ? `Body type: ${analysis.bodyType}` : "Preparing AI analysis…"}
-                      </p>
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <div>
+                        <p className="text-xs font-medium">
+                          {analysis
+                            ? "Analysis complete"
+                            : loading
+                              ? "Reading silhouette, color, and fit cues"
+                              : "Photo ready"}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {analysis?.bodyType
+                            ? `Body type: ${analysis.bodyType}`
+                            : loading
+                              ? "This usually takes a few seconds."
+                              : "Analysis will start automatically."}
+                        </p>
+                      </div>
+                      {loading && (
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-1.5 text-[10px] text-primary">
+                            <Sparkles className="h-3 w-3" />
+                            <span>Building your fit profile</span>
+                          </div>
+                          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                            <div className="h-full w-2/3 rounded-full bg-primary/70 animate-pulse" />
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <button
                       onClick={handleReset}
@@ -450,7 +471,10 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
                   {/* Error Display */}
                   {error && (
                     <div className="border border-destructive rounded-lg p-4 bg-destructive/10">
-                      <p className="text-destructive text-sm">{error}</p>
+                      <p className="text-sm font-medium text-destructive">
+                        Analysis paused
+                      </p>
+                      <p className="mt-1 text-xs text-destructive/90">{error}</p>
                       <Button
                         variant="outline"
                         size="sm"

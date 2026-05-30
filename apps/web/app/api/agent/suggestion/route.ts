@@ -18,6 +18,10 @@ async function proxySuggestion(request: NextRequest): Promise<NextResponse> {
   }
 
   if (!SERVICE_KEY) {
+    if (request.method === "GET") {
+      return NextResponse.json({ suggestions: [] });
+    }
+
     return NextResponse.json(
       { error: "SERVICE_API_KEY not configured" },
       { status: 500 },
