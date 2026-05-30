@@ -1,4 +1,10 @@
-import type { ExternalProduct, MarketSignal, ProductResult } from "@onpoint/shared-types";
+import type {
+  ExternalProduct,
+  MarketPartnerIntegration,
+  MarketSignal,
+  ProductResult,
+  RetailSignalMemory,
+} from "@onpoint/shared-types";
 
 export const MARKET_INTEL_STORAGE_KEY = "onpoint:last-market-intel";
 
@@ -6,6 +12,8 @@ export interface StoredMarketIntel {
   query: string;
   products: ExternalProduct[];
   signals: MarketSignal[];
+  partnerIntegrations?: MarketPartnerIntegration[];
+  memory?: RetailSignalMemory;
   updatedAt: string;
 }
 

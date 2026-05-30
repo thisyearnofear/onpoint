@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { productCatalog } from "../../../../lib/services/product-catalog";
+import { processRetailSignalPartners } from "../../../../lib/services/retail-signal-partners";
 
 const SearchSchema = z.object({
   query: z.string().trim().min(2).max(120),
@@ -23,8 +24,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       parsed.data.query,
       parsed.data.limit,
     );
+    const partnerResult = await processRetailSignalPartners(
+      parsed.data.query,
+      result.products,
+      result.signals,
+    );
 
-    return NextResponse.json(result);
+    return NextResponse.json({
+      ...result,
+      ...partnerResult,
+    });
   } catch (error) {
     console.error("[MarketIntel] Search failed", error);
     return NextResponse.json(

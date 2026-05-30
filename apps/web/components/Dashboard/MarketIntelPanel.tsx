@@ -4,6 +4,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import {
   BarChart3,
+  BrainCircuit,
   Clock,
   ExternalLink,
   Loader2,
@@ -12,8 +13,14 @@ import {
   Sparkles,
   Store,
   TrendingUp,
+  Workflow,
 } from "lucide-react";
-import type { ExternalProduct, MarketSignal } from "@onpoint/shared-types";
+import type {
+  ExternalProduct,
+  MarketPartnerIntegration,
+  MarketSignal,
+  RetailSignalMemory,
+} from "@onpoint/shared-types";
 import {
   loadMarketIntelSnapshot,
   saveMarketIntelSnapshot,
@@ -42,6 +49,8 @@ const signalStyles: Record<string, string> = {
 interface MarketIntelResponse {
   products: ExternalProduct[];
   signals: MarketSignal[];
+  partnerIntegrations?: MarketPartnerIntegration[];
+  memory?: RetailSignalMemory;
 }
 
 function compactPrice(value?: number, currency = "USD") {
@@ -73,6 +82,13 @@ function formatTimestamp(value?: string) {
     return "now";
   }
 }
+
+const partnerStatusStyles: Record<string, string> = {
+  sent: "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+  ready: "border-sky-500/20 bg-sky-500/10 text-sky-300",
+  skipped: "border-border bg-muted text-muted-foreground",
+  failed: "border-amber-500/20 bg-amber-500/10 text-amber-300",
+};
 
 export function MarketIntelPanel() {
   const [query, setQuery] = React.useState(DEFAULT_QUERY);
@@ -107,6 +123,8 @@ export function MarketIntelPanel() {
         query: cleanQuery,
         products: data.products || [],
         signals: data.signals || [],
+        partnerIntegrations: data.partnerIntegrations || [],
+        memory: data.memory,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Search failed");
@@ -125,6 +143,8 @@ export function MarketIntelPanel() {
       setResult({
         products: stored.products,
         signals: stored.signals,
+        partnerIntegrations: stored.partnerIntegrations || [],
+        memory: stored.memory,
       });
       return;
     }
@@ -134,6 +154,8 @@ export function MarketIntelPanel() {
 
   const signals = result?.signals ?? [];
   const products = result?.products ?? [];
+  const partnerIntegrations = result?.partnerIntegrations ?? [];
+  const memory = result?.memory;
   const primaryAction = signals.find((signal) => signal.type === "recommended_action");
   const productGapCount = signals.filter((signal) => signal.type === "product_gap").length;
   const retailerCount = new Set(
@@ -184,7 +206,7 @@ export function MarketIntelPanel() {
             Search shopper intent and see the product gaps, competitor prices, and actions OnPoint can hand to a Curator.
           </p>
           <p className="mt-2 text-xs font-medium text-muted-foreground">
-            Live web evidence via Bright Data SERP + Web Unlocker.
+            Live web evidence via Bright Data SERP + Web Unlocker, with Cognee memory and TriggerWare workflows.
           </p>
         </div>
 
@@ -315,6 +337,66 @@ export function MarketIntelPanel() {
             <p className="text-sm text-foreground">
               {primaryAction?.action ?? "Run a search to generate a Curator-facing merchandising action."}
             </p>
+          </div>
+
+          <div className="rounded-xl border border-border bg-card p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <BrainCircuit className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-bold uppercase tracking-wider">Agent Memory</h3>
+              </div>
+              {memory && (
+                <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">
+                  {memory.repeatedIntentCount}x intent
+                </span>
+              )}
+            </div>
+            {memory ? (
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <p>
+                  Cognee-ready memory for <span className="font-semibold text-foreground">{memory.query}</span>
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-lg border border-border bg-background/40 p-2">
+                    <p className="text-[10px] font-bold uppercase tracking-wider">Known Gaps</p>
+                    <p className="mt-1 text-sm font-black text-foreground">{memory.knownGapCount}</p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-background/40 p-2">
+                    <p className="text-[10px] font-bold uppercase tracking-wider">Retailers</p>
+                    <p className="mt-1 text-sm font-black text-foreground">{memory.rememberedRetailers.length}</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Run a search to create retail signal memory.</p>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-border bg-card p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Workflow className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-bold uppercase tracking-wider">Partner Actions</h3>
+              </div>
+              <span className="text-xs text-muted-foreground">{partnerIntegrations.length}</span>
+            </div>
+            <div className="space-y-2">
+              {partnerIntegrations.map((integration) => (
+                <div key={integration.id} className="rounded-lg border border-border bg-background/40 p-3">
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-semibold text-foreground">{integration.label}</span>
+                    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${partnerStatusStyles[integration.status] ?? partnerStatusStyles.ready}`}>
+                      {integration.status}
+                    </span>
+                  </div>
+                  <p className="text-xs font-medium text-foreground">{integration.summary}</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">{integration.evidence}</p>
+                </div>
+              ))}
+              {!loading && partnerIntegrations.length === 0 && (
+                <p className="text-sm text-muted-foreground">No partner action generated yet.</p>
+              )}
+            </div>
           </div>
 
           <div className="rounded-xl border border-border bg-card p-4">

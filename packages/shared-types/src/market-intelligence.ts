@@ -20,7 +20,28 @@ export interface MarketSignal {
   createdAt: string;
 }
 
+export interface MarketPartnerIntegration {
+  id: string;
+  partner: "cognee" | "triggerware";
+  label: string;
+  status: "sent" | "ready" | "skipped" | "failed";
+  summary: string;
+  evidence: string;
+  externalId?: string;
+  createdAt: string;
+}
+
+export interface RetailSignalMemory {
+  query: string;
+  repeatedIntentCount: number;
+  knownGapCount: number;
+  rememberedRetailers: string[];
+  lastSeenAt: string;
+}
+
 export interface ProductSearchWithSignals<TProduct> {
   products: TProduct[];
   signals: MarketSignal[];
+  partnerIntegrations?: MarketPartnerIntegration[];
+  memory?: RetailSignalMemory;
 }
