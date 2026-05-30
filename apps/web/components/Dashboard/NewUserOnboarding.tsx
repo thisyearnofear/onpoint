@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+// framer-motion removed — using CSS transitions instead
 import {
   ChevronLeft,
   X,
@@ -90,11 +90,7 @@ export function NewUserOnboarding() {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="relative max-w-md w-full bg-background border border-border rounded-[2.5rem] overflow-hidden shadow-2xl"
-      >
+      <div className="animate-fade-in relative max-w-md w-full bg-background border border-border rounded-[2.5rem] overflow-hidden shadow-2xl">
         <button
           onClick={handleSkip}
           className="absolute top-6 right-6 p-2 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground transition-colors z-10"
@@ -103,15 +99,7 @@ export function NewUserOnboarding() {
         </button>
 
         <div className="p-8 md:p-10">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentStep}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-8"
-            >
+          <div key={currentStep} className="animate-bounce-in-up space-y-8">
               {/* Step indicator */}
               <div className="flex items-center justify-center gap-2">
                 {STEPS.map((_, i) => (
@@ -171,8 +159,7 @@ export function NewUserOnboarding() {
                   I'll explore on my own
                 </button>
               )}
-            </motion.div>
-          </AnimatePresence>
+            </div>
 
           {/* Back button */}
           {currentStep > 0 && (
@@ -184,7 +171,7 @@ export function NewUserOnboarding() {
             </button>
           )}
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

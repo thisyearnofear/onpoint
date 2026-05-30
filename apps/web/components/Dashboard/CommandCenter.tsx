@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+// framer-motion removed — using CSS transitions instead
 import { 
   ShieldCheck, 
   Activity, 
@@ -93,17 +93,9 @@ export function CommandCenter() {
           </div>
           <div className="p-4 flex items-center gap-3">
              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-             <AnimatePresence mode="wait">
-               <motion.p 
-                 key={reasoningText}
-                 initial={{ opacity: 0, x: -10 }}
-                 animate={{ opacity: 1, x: 0 }}
-                 exit={{ opacity: 0, x: 10 }}
-                 className="text-xs font-mono text-primary/80"
-               >
-                 {reasoningText}
-               </motion.p>
-             </AnimatePresence>
+             <p key={reasoningText} className="animate-swipe-in-left text-xs font-mono text-primary/80">
+               {reasoningText}
+             </p>
           </div>
         </CardContent>
       </Card>

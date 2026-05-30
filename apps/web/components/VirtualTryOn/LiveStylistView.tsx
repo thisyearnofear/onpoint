@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import dynamic from "next/dynamic";
 import { Button } from "@repo/ui/button";
 import {
   Mic,
@@ -23,29 +24,35 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAccount } from "wagmi";
-import { MintLookButton } from "./MintLookButton";
 import { GeminiLivePaymentButton } from "./GeminiLivePaymentButton";
-import { AgentStatus } from "../Agent/AgentStatus";
-import { AgentActionCard } from "../Agent/AgentActionCard";
-import { AgentPermissionDashboard } from "../Agent/AgentPermissionDashboard";
 import { TipSheet } from "../Agent/TipModal";
 import { AgentApprovalModal } from "../Agent/AgentApprovalModal";
 import { AgentSuggestionToast } from "../Agent/AgentSuggestionToast";
-import { SuggestionHistoryPanel } from "../Agent/SuggestionHistoryPanel";
-import { CartDrawer, CartButton } from "../Shop/CartDrawer";
+import { CartDrawer } from "../Shop/CartDrawer";
 import { CheckoutModal } from "../Shop/CheckoutModal";
 import { SessionEndingCard } from "./SessionEndingCard";
-import { StyleReportCard } from "./StyleReportCard";
 import { useCartStore } from "../../lib/stores/cart-store";
-import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import { trackProviderSelected } from "../../lib/utils/analytics";
 import { useLiveSession, GOAL_OPTIONS } from "./hooks/useLiveSession";
 import { PersonalityCard } from "./PersonalityCard";
-import type { StylistPersona } from "@repo/ai-client";
-import { getScoreTier, generateShareText } from "../../lib/utils/score-utils";
 import { getPersonaConfig, ALL_PERSONAS } from "../../lib/utils/persona-config";
-import { SocialUtils } from "../../lib/utils/social";
-import { AnimatedScore } from "./AnimatedScore";
+
+const SessionSummaryScreen = dynamic(
+  () => import("./SessionSummaryScreen").then((m) => ({ default: m.SessionSummaryScreen })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-full min-h-[400px] bg-slate-950">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+          <p className="text-xs text-slate-500 font-mono tracking-wider">
+            Preparing summary…
+          </p>
+        </div>
+      </div>
+    ),
+  },
+);
 
 interface LiveStylistViewProps {
   onBack: () => void;
@@ -56,7 +63,6 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   const { isConnected: isWalletConnected } = useAccount();
   const cartItemCount = useCartStore((s) => s.itemCount());
   const openCart = useCartStore((s) => s.openCart);
-  const addItemToCart = useCartStore((s) => s.addItem);
   const [showTipModal, setShowTipModal] = React.useState(false);
   const [showCheckout, setShowCheckout] = React.useState(false);
   const [showInstructions, setShowInstructions] = React.useState(true);
@@ -158,369 +164,31 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
   const PersonaIcon = personaStyling.icon;
 
-  // ── Session Summary Screen ──
+    // ── Session Summary Screen (lazy-loaded) ──
   if (showSummary && sessionSummary) {
     return (
-      <div className="flex flex-col h-full bg-slate-950 overflow-y-auto pb-20">
-        {/* Header */}
-        <div
-          className={`p-6 flex items-center justify-between border-b border-${personaStyling.color}/20 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50`}
-        >
-          <div className="flex items-center gap-3">
-            <div
-              className={`w-10 h-10 rounded-full bg-${personaStyling.color}/20 flex items-center justify-center border border-${personaStyling.color}/30 shadow-[0_0_15px_rgba(99,102,241,0.2)]`}
-            >
-              <PersonaIcon
-                className={`w-5 h-5 text-${personaStyling.accent}`}
-              />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-white tracking-tight">
-                Session Summary
-              </h1>
-              <p
-                className={`text-[10px] text-${personaStyling.text}/60 uppercase tracking-widest font-mono`}
-              >
-                Proof of Style Verified
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            className="text-white bg-white/5 hover:bg-white/10 rounded-full"
-            onClick={handleBack}
-          >
-            Done
-          </Button>
-        </div>
-
-        <div className="p-6 space-y-6">
-          {/* Style Score Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`relative overflow-hidden rounded-3xl bg-gradient-to-br from-${personaStyling.color} to-slate-900 p-6 sm:p-8 shadow-2xl shadow-${personaStyling.color}/20`}
-          >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-3xl rounded-full -mr-16 -mt-16" />
-            <div className="relative z-10">
-              <div className="flex items-center gap-6">
-                {/* Score — compact with animation */}
-                <div className="flex flex-col items-center shrink-0">
-                  <AnimatedScore
-                    score={sessionSummary.score}
-                    delay={0.2}
-                    size="md"
-                  />
-                  <p className="mt-2 text-[9px] uppercase tracking-widest text-white/50">
-                    {Math.round(sessionSummary.scoreConfidence * 100)}%
-                    {" "}
-                    {sessionSummary.scoreSource === "model"
-                      ? "AI confidence"
-                      : "derived confidence"}
-                  </p>
-                </div>
-
-                {/* Adjacent takeaway */}
-                {sessionSummary.takeaways.length > 0 && (
-                  <div className="flex-1 min-w-0 border-l border-white/10 pl-5">
-                    <p
-                      className={`text-[9px] text-${personaStyling.text}/60 uppercase tracking-widest mb-1.5 font-bold`}
-                    >
-                      Top Insight
-                    </p>
-                    <p className="text-sm text-white/90 leading-relaxed line-clamp-3">
-                      &ldquo;{sessionSummary.takeaways[0]}&rdquo;
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Key Takeaways */}
-          <div className="space-y-4">
-            <h2 className="text-white/40 text-[10px] font-bold uppercase tracking-widest px-1 flex items-center gap-2">
-              <Sparkles className="w-3 h-3" />
-              AI Stylist Insights
-            </h2>
-            {sessionSummary.takeaways.length > 0 ? (
-              <div className="grid grid-cols-1 gap-3">
-                {sessionSummary.takeaways.map((takeaway, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    className={`bg-slate-900/80 border border-${personaStyling.color}/20 p-4 rounded-2xl flex gap-3 items-start`}
-                  >
-                    <div
-                      className={`w-6 h-6 rounded-lg bg-${personaStyling.color}/10 flex items-center justify-center shrink-0 mt-0.5`}
-                    >
-                      <CheckCircle
-                        className={`w-3.5 h-3.5 text-${personaStyling.accent}`}
-                      />
-                    </div>
-                    <p className="text-sm text-slate-300 leading-snug">
-                      {takeaway}
-                    </p>
-                  </motion.div>
-                ))}
-              </div>
-            ) : (
-              <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-6 text-center">
-                <p className="text-sm text-slate-500">
-                  No specific insights captured this session.
-                </p>
-                <p className="text-[10px] text-slate-600 mt-1">
-                  Try a longer session for deeper analysis.
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Analyzed Topics */}
-          {sessionSummary.topics.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-white/40 text-[10px] font-bold uppercase tracking-widest px-1">
-                Style Analysis Focus
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {sessionSummary.topics.map((topic, i) => (
-                  <div
-                    key={i}
-                    className={`px-3 py-2 rounded-xl bg-${personaStyling.color}/5 border border-${personaStyling.color}/10 flex items-center gap-2`}
-                  >
-                    <div
-                      className={`w-1.5 h-1.5 rounded-full bg-${personaStyling.color}/40`}
-                    />
-                    <span
-                      className={`text-xs text-${personaStyling.accent}/80`}
-                    >
-                      {topic}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Score Evidence */}
-          {sessionSummary.scoreEvidence.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="space-y-3"
-            >
-              <h2 className="text-white/40 text-[10px] font-bold uppercase tracking-widest px-1 flex items-center gap-2">
-                <Eye className="w-3 h-3" />
-                Score Evidence
-              </h2>
-              <div className="space-y-2">
-                {sessionSummary.scoreEvidence.map((evidence, i) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-2.5 px-3 py-2 rounded-xl bg-slate-900/60 border border-white/5"
-                  >
-                    <div className="w-1 h-1 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-                    <span className="text-xs text-slate-400 leading-relaxed">
-                      {evidence}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <p className="text-[9px] text-slate-600 px-1">
-                {sessionSummary.scoreSource === "model"
-                  ? "Evidence extracted from AI analysis"
-                  : "Derived from session sentiment"}
-                {" · "}
-                {Math.round(sessionSummary.scoreConfidence * 100)}% confidence
-              </p>
-            </motion.div>
-          )}
-
-          {/* Photo Gallery */}
-          {hasCaptures && (
-            <div className="space-y-4">
-              <h2 className="text-white/40 text-[10px] font-bold uppercase tracking-widest px-1">
-                Proof of Style Artifacts
-              </h2>
-              <div className="flex gap-4 overflow-x-auto pb-4 -mx-6 px-6 no-scrollbar">
-                {captures.map((cap, i) => (
-                  <motion.div
-                    key={i}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setSelectedCaptureIndex(i)}
-                    className={`relative w-40 h-56 rounded-2xl overflow-hidden shrink-0 transition-all border-2 ${
-                      selectedCaptureIndex === i
-                        ? "border-primary shadow-[0_0_20px_rgba(var(--primary),0.3)]"
-                        : "border-white/5 grayscale-[0.8] opacity-60"
-                    }`}
-                  >
-                    <img
-                      src={cap.image}
-                      alt={`Style capture ${i + 1} of ${captures.length}`}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-3">
-                      <p className="text-[10px] text-white/50 font-mono">
-                        0x{cap.image.slice(22, 28)}
-                      </p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex flex-col gap-3 pt-4">
-            <SuggestionHistoryPanel suggestions={suggestions} />
-
-            {/* Style Report Card Button */}
-            <Button
-              className={`w-full bg-gradient-to-r from-${personaStyling.color} to-${personaStyling.accent} hover:opacity-90 text-white rounded-full py-5 text-sm font-bold shadow-lg shadow-${personaStyling.color}/20 gap-2`}
-              onClick={() => setShowStyleReport(true)}
-            >
-              <Sparkles className="w-4 h-4" />
-              View Style Report
-            </Button>
-
-            {/* Shop CTA — save analysis to sessionStorage and navigate */}
-            <Button
-              variant="outline"
-              className="w-full rounded-full py-5 text-sm font-bold gap-2 border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
-              onClick={() => {
-                if (typeof window !== "undefined" && sessionSummary) {
-                  sessionStorage.setItem(
-                    "stylistAnalysis",
-                    JSON.stringify({
-                      bodyType: "analyzed",
-                      styleRecommendations: sessionSummary.takeaways,
-                    }),
-                  );
-                }
-                handleBack();
-                window.dispatchEvent(new CustomEvent("onpoint:navigate", { detail: "shop" }));
-              }}
-            >
-              <ShoppingBag className="w-4 h-4" />
-              Shop Recommended Items
-            </Button>
-
-            {/* Inline product picks from session */}
-            {sessionSummary && (() => {
-              const keywords = sessionSummary.takeaways.join(" ").toLowerCase();
-              const picks = CANVAS_ITEMS.filter((item) => {
-                const text = `${item.name} ${item.description} ${item.category}`.toLowerCase();
-                return keywords.split(/\s+/).some((w: string) => w.length > 3 && text.includes(w));
-              }).slice(0, 3);
-              if (picks.length === 0) return null;
-              return (
-                <div className="grid grid-cols-3 gap-2">
-                  {picks.map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => {
-                        addItemToCart(item);
-                      }}
-                      className="group rounded-xl overflow-hidden border border-white/10 bg-white/5 hover:border-amber-500/30 transition-all text-left"
-                    >
-                      {item.modelSrc && (
-                        <div className="aspect-square bg-slate-800">
-                          <img src={item.modelSrc} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                        </div>
-                      )}
-                      <div className="p-1.5">
-                        <p className="text-[10px] text-white font-medium truncate">{item.name}</p>
-                        <p className="text-[10px] font-bold text-amber-400">${item.price}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              );
-            })()}
-
-            {selectedCapture && (
-              <MintLookButton
-                imageUrl={selectedCapture.image}
-                ipfsCid=""
-                aiCritique={finalAdvice}
-                onUpload={async () => {
-                  const res = await fetch("/api/ipfs/upload", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      data: selectedCapture.image,
-                      name: "outfit.jpg",
-                    }),
-                  });
-                  return res.json();
-                }}
-              />
-            )}
-            <Button
-              className="w-full bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-full py-6 text-lg font-bold gap-2"
-              onClick={async () => {
-                if (!selectedCapture || !sessionSummary) return;
-                const text = generateShareText({
-                  score: sessionSummary.score,
-                  personaLabel: personaStyling.label,
-                  topics: sessionSummary.topics,
-                  takeaways: sessionSummary.takeaways,
-                  sessionGoal: sessionGoal || undefined,
-                });
-                await SocialUtils.shareContent({
-                  text,
-                  imageDataUrl: selectedCapture.image,
-                });
-              }}
-            >
-              Share to Farcaster
-            </Button>
-
-            <AgentStatus
-              compact
-              showActions
-              onTipClick={() => setShowTipModal(true)}
-            />
-            <AgentActionCard
-              score={sessionSummary?.score}
-              onMintClick={selectedCapture ? () => {} : undefined}
-            />
-            <AgentPermissionDashboard />
-          </div>
-
-          <TipSheet
-            isOpen={showTipModal}
-            onClose={() => setShowTipModal(false)}
-            score={sessionSummary?.score}
-          />
-          <AgentApprovalModal
-            isOpen={isApprovalModalOpen}
-            onClose={() => setIsApprovalModalOpen(false)}
-            onApprove={approveRequest}
-            onReject={rejectRequest}
-            request={currentApproval}
-          />
-
-          {/* Style Report Card Modal */}
-          <AnimatePresence>
-            {showStyleReport && sessionSummary && (
-              <StyleReportCard
-                score={sessionSummary.score}
-                persona={(selectedPersona as StylistPersona) || "luxury"}
-                takeaways={sessionSummary.takeaways}
-                topics={sessionSummary.topics}
-                fullFeedback={sessionSummary.fullFeedback}
-                captureImage={selectedCapture?.image}
-                sessionGoal={sessionGoal || undefined}
-                onClose={() => setShowStyleReport(false)}
-              />
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
+      <SessionSummaryScreen
+        sessionSummary={sessionSummary}
+        personaStyling={personaStyling}
+        selectedPersona={selectedPersona}
+        onBack={handleBack}
+        hasCaptures={hasCaptures}
+        captures={captures}
+        selectedCaptureIndex={selectedCaptureIndex}
+        onSelectCapture={(i) => i !== null && setSelectedCaptureIndex(i)}
+        selectedCapture={selectedCapture ?? null}
+        suggestions={suggestions}
+        finalAdvice={finalAdvice}
+        sessionGoal={sessionGoal}
+        isApprovalModalOpen={isApprovalModalOpen}
+        currentApproval={currentApproval}
+        onApprove={() => approveRequest("")}
+        onReject={() => rejectRequest("")}
+        showStyleReport={showStyleReport}
+        onSetShowStyleReport={setShowStyleReport}
+        showTipModal={showTipModal}
+        onSetShowTipModal={setShowTipModal}
+      />
     );
   }
 

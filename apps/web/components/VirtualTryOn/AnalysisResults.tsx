@@ -6,6 +6,7 @@ import { Button } from "@repo/ui/button";
 import { Badge } from "@repo/ui/badge";
 import { Sparkles, User, CheckCircle, MessageCircle, Wallet, Shirt } from "lucide-react";
 import type { VirtualTryOnAnalysis } from "@repo/ai-client";
+import { AnalysisSkeleton } from "./AnalysisSkeleton";
 
 interface AnalysisResultsProps {
   analysis: VirtualTryOnAnalysis;
@@ -29,18 +30,7 @@ export function AnalysisResults({
   }, [analysis]);
 
   if (showLoading) {
-    return (
-      <Card className="elegant-shadow border-primary/20">
-        <CardContent className="flex flex-col items-center justify-center py-12 space-y-4">
-          <div className="relative">
-            <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-            <Sparkles className="h-5 w-5 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-          </div>
-          <p className="text-sm font-medium text-muted-foreground">Analyzing your style...</p>
-          <p className="text-xs text-muted-foreground/60">Our AI is studying your photo</p>
-        </CardContent>
-      </Card>
-    );
+    return <AnalysisSkeleton staggered showActions />;
   }
 
   const hasPreferences = preferences && (

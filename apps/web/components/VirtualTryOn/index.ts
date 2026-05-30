@@ -16,3 +16,5 @@ export type { TryOnStage } from './ProgressRail';
 export { LookVersionHistory } from './LookVersionHistory';
 export type { LookVersion } from './LookVersionHistory';
 export { CompareView } from './CompareView';
+export { AnalysisSkeleton } from './AnalysisSkeleton';
+export { GarmentPicker } from './GarmentPicker';

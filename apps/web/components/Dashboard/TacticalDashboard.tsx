@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, type ReactNode } from "react";
-import { AnimatePresence } from "framer-motion";
+// framer-motion removed — using CSS transitions instead
 import {
   Palette,
   Camera,
@@ -155,7 +155,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
 
       {/* ── Main content ── */}
       <main className="flex-1 container mx-auto px-4 py-6 pb-24 md:py-8 md:pb-8">
-        <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
+        <div className="animate-fade-in">{renderContent()}</div>
       </main>
 
       {/* ── Mobile bottom nav (hidden on desktop) ── */}

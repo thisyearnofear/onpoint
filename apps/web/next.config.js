@@ -19,7 +19,6 @@ const nextConfig = {
     formats: ['image/webp'],
   },
   experimental: {
-    optimizeCss: true,
     prefetchInlining: true,
     appNewScrollHandler: true,
   },

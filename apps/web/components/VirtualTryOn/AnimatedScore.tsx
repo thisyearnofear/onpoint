@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+// framer-motion removed — using CSS transitions instead
 import { getScoreConfig } from "../../lib/utils/score-utils";
 
 interface AnimatedScoreProps {
@@ -87,16 +87,9 @@ export function AnimatedScore({
 
   return (
     <div className="flex flex-col items-center">
-      <motion.div
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{
-          type: "spring",
-          damping: 12,
-          stiffness: 120,
-          delay,
-        }}
-        className="relative mb-3"
+      <div
+        className="animate-count-up relative mb-3"
+        style={{ animationDelay: `${delay}s` }}
       >
         <span
           className={`${sizeClasses[size]} font-black text-white leading-none tracking-tighter tabular-nums drop-shadow-lg`}
@@ -112,21 +105,19 @@ export function AnimatedScore({
             /10
           </span>
         )}
-      </motion.div>
+      </div>
 
       {displayTier && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: delay + 0.4 }}
-          className={`px-4 py-1 rounded-full ${tierBgClass} border backdrop-blur-sm`}
+        <div
+          className={`animate-fade-in px-4 py-1 rounded-full ${tierBgClass} border backdrop-blur-sm`}
+          style={{ animationDelay: `${delay + 0.4}s` }}
         >
           <span
             className={`text-[10px] font-bold ${tierTextClass} uppercase tracking-[0.15em]`}
           >
             {displayTier}
           </span>
-        </motion.div>
+        </div>
       )}
     </div>
   );
