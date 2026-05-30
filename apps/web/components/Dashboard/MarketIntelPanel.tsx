@@ -4,6 +4,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import {
   BarChart3,
+  Clock,
   ExternalLink,
   Loader2,
   Radar,
@@ -16,6 +17,7 @@ import type { ExternalProduct, MarketSignal } from "@onpoint/shared-types";
 import {
   loadMarketIntelSnapshot,
   saveMarketIntelSnapshot,
+  type StoredMarketIntel,
 } from "../../lib/utils/market-intelligence-storage";
 
 const DEFAULT_QUERY = "black cropped blazer";
@@ -53,10 +55,30 @@ function priceRange(signals: MarketSignal[]) {
   return priceSignal.title.replace(/^Comparable price range:\s*/i, "");
 }
 
+function provenanceLabel(signal: MarketSignal) {
+  if (signal.type === "competitor_price") return "Bright Data SERP · Google Shopping";
+  if (signal.type === "retailer_availability") return `Bright Data · ${signal.source}`;
+  if (signal.type === "product_gap") return "OnPoint catalog fallback";
+  return signal.source.replace(/_/g, " ");
+}
+
+function formatTimestamp(value?: string) {
+  if (!value) return "now";
+  try {
+    return new Intl.DateTimeFormat("en", {
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date(value));
+  } catch {
+    return "now";
+  }
+}
+
 export function MarketIntelPanel() {
   const [query, setQuery] = React.useState(DEFAULT_QUERY);
   const [activeQuery, setActiveQuery] = React.useState(DEFAULT_QUERY);
   const [result, setResult] = React.useState<MarketIntelResponse | null>(null);
+  const [shopperSnapshot, setShopperSnapshot] = React.useState<StoredMarketIntel | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -97,6 +119,7 @@ export function MarketIntelPanel() {
   React.useEffect(() => {
     const stored = loadMarketIntelSnapshot();
     if (stored) {
+      setShopperSnapshot(stored);
       setQuery(stored.query);
       setActiveQuery(stored.query);
       setResult({
@@ -187,6 +210,19 @@ export function MarketIntelPanel() {
         </div>
       </div>
 
+      {shopperSnapshot && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <span className="font-medium text-foreground">Using latest shopper intent:</span>
+          <span className="rounded-full bg-background px-2 py-1 text-xs font-semibold text-primary">
+            {shopperSnapshot.query}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            captured {formatTimestamp(shopperSnapshot.updatedAt)}
+          </span>
+        </div>
+      )}
+
       <div className="flex gap-2 overflow-x-auto no-scrollbar">
         {QUICK_QUERIES.map((item) => (
           <button
@@ -249,8 +285,15 @@ export function MarketIntelPanel() {
                     <span className="text-[11px] text-muted-foreground">
                       {Math.round(signal.confidence * 100)}% confidence
                     </span>
+                    <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      {formatTimestamp(signal.createdAt)}
+                    </span>
                   </div>
                   <h4 className="text-sm font-semibold text-foreground">{signal.title}</h4>
+                  <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-primary">
+                    {provenanceLabel(signal)}
+                  </p>
                   <p className="mt-1 text-xs leading-5 text-muted-foreground">{signal.evidence}</p>
                   <p className="mt-2 text-xs font-medium text-foreground">{signal.action}</p>
                 </article>

@@ -1,5 +1,19 @@
 # Web Data UNLOCKED Demo
 
+## Submission Copy
+
+**Project title:** OnPoint Retail Intelligence Agent
+
+**Short description:** A consumer AI styling agent that turns shopper intent into Bright Data-powered retail GTM intelligence.
+
+**Long description:** OnPoint helps shoppers decide what to wear and buy through AI styling, product discovery, and transparent recommendations. When a Curator's catalog cannot satisfy shopper intent, OnPoint falls through to live web discovery using Bright Data. The shopper gets comparable products and prices; the Curator gets structured GTM signals: product gaps, competitor price ranges, retailer availability, and recommended merchandising actions. This creates a dual-purpose loop where every styling session improves the consumer experience and produces actionable market intelligence for stylists, boutiques, creator sellers, and retail teams.
+
+**Track:** GTM Intelligence
+
+**Category tags:** AI agents, retail intelligence, ecommerce, web data, product discovery, fashion tech, Bright Data, SERP API, Web Unlocker
+
+**Tech stack:** Next.js, React, TypeScript, Python FastAPI, Bright Data SERP API, Bright Data Web Unlocker, Redis-compatible caching, Vitest, Pytest
+
 ## Positioning
 
 OnPoint is a consumer styling agent that also creates retail GTM intelligence. A shopper gets product recommendations; the Curator gets live market signals about product gaps, competitor pricing, retailer availability, and the next merchandising action.
@@ -48,3 +62,21 @@ Recommended demo queries:
 - Demo fixtures live in `packages/agent-web-bridge/demo_fixtures.py`.
 - The shopper-to-intel surface lives in `apps/web/components/Dashboard/MarketIntelPanel.tsx`.
 - The web API bridge is `apps/web/app/api/market-intelligence/search/route.ts`.
+
+## Judging Criteria Mapping
+
+**Application of technology:** Bright Data sits inside the existing agent web bridge as a Tier 2.5 provider. SERP results become product recommendations and market signals through one normalized response shape.
+
+**Presentation:** The demo shows one shopper intent becoming two outputs: consumer recommendations and Curator-facing GTM intelligence.
+
+**Business value:** Retailers and Curators get live demand and competitor context before deciding what to stock, promote, source, or campaign around.
+
+**Originality:** OnPoint uses consumer styling as the demand-capture wedge, then converts those sessions into structured market intelligence instead of treating shopping recommendations as a one-off consumer interaction.
+
+## 90-Second Script
+
+1. "OnPoint starts as a consumer styling agent. The shopper asks for a look or missing item."
+2. "If the Curator catalog cannot satisfy that intent, the agent searches the live web through Bright Data."
+3. "The shopper sees comparable products with real retailers and prices."
+4. "The same event creates GTM intelligence: product gap, competitor price range, retailer availability, and a recommended merchandising action."
+5. "This lets a boutique, stylist, or creator seller act on real shopper demand instead of stale analytics."
