@@ -4,15 +4,19 @@
 
 **Project title:** OnPoint Retail Intelligence Agent
 
-**Short description:** A consumer AI styling agent that turns shopper intent into Bright Data-powered retail GTM intelligence.
+**Short description:** An AI stylist and retail intelligence agent that turns shopper intent, try-on feedback, and live web signals into personalized outfit guidance plus GTM insights on product gaps, pricing, and competitor availability.
 
-**Long description:** OnPoint helps shoppers decide what to wear and buy through AI styling, product discovery, and transparent recommendations. When a Curator's catalog cannot satisfy shopper intent, OnPoint falls through to live web discovery using Bright Data. The shopper gets comparable products and prices; the Curator gets structured GTM signals: product gaps, competitor price ranges, retailer availability, and recommended merchandising actions. This creates a dual-purpose loop where every styling session improves the consumer experience and produces actionable market intelligence for stylists, boutiques, creator sellers, and retail teams.
+**Long description:** OnPoint is a dual-purpose AI fashion agent for shoppers and retail teams. For consumers, it acts as a personal stylist: users can upload a photo, explore outfit ideas, receive fit and style guidance, and discover looks matched to their preferences. For retail and creator-led commerce teams, OnPoint turns those same shopper intents into market intelligence.
+
+Using Bright Data-powered live web access, OnPoint monitors real-time search and shopping signals to identify product gaps, competitor pricing, retailer availability, and merchandising opportunities. If a shopper searches for something missing from the catalog, OnPoint can surface comparable products across the web, estimate price ranges, and recommend the next action for a curator or merchant.
+
+The result is a consumer-facing styling experience with an enterprise GTM intelligence layer underneath: better recommendations for shoppers, faster product decisions for sellers, and live evidence for teams that need to react to fashion demand as it emerges.
 
 **Track:** GTM Intelligence
 
-**Category tags:** AI agents, retail intelligence, ecommerce, web data, product discovery, fashion tech, Bright Data, SERP API, Web Unlocker
+**Category tags:** AI agents, retail intelligence, ecommerce, web data, product discovery, fashion tech, Bright Data, SERP API, Web Unlocker, AI/ML API, Cognee, TriggerWare
 
-**Tech stack:** Next.js, React, TypeScript, Python FastAPI, Bright Data SERP API, Bright Data Web Unlocker, Redis-compatible caching, Vitest, Pytest
+**Tech stack:** Next.js, React, TypeScript, Python FastAPI, Bright Data SERP API, Bright Data Web Unlocker, AI/ML API merchant briefs, Cognee-ready agent memory, TriggerWare workflow events, Redis-compatible caching, Vitest, Pytest
 
 ## Positioning
 
@@ -34,7 +38,11 @@ GTM Intelligence, with fashion retail as the vertical.
    - Competitor price range
    - Retailers found
    - Next action status
-7. End on the action: the Curator can stock, feature, source, or campaign around the missing item.
+7. Show partner actions:
+   - AI/ML API merchant brief
+   - Cognee-ready memory
+   - TriggerWare merchandising workflow
+8. End on the action: the Curator can stock, feature, source, or campaign around the missing item.
 
 ## Reliable Demo Mode
 
@@ -90,12 +98,13 @@ Expected proof:
 
 - Bright Data integration lives in `packages/agent-web-bridge/brightdata_client.py`.
 - Demo fixtures live in `packages/agent-web-bridge/demo_fixtures.py`.
+- Partner enrichment lives in `apps/web/lib/services/retail-signal-partners.ts`.
 - The shopper-to-intel surface lives in `apps/web/components/Dashboard/MarketIntelPanel.tsx`.
 - The web API bridge is `apps/web/app/api/market-intelligence/search/route.ts`.
 
 ## Judging Criteria Mapping
 
-**Application of technology:** Bright Data sits inside the existing agent web bridge as a Tier 2.5 provider. SERP results become product recommendations and market signals through one normalized response shape.
+**Application of technology:** Bright Data sits inside the existing agent web bridge as a Tier 2.5 provider. SERP results become product recommendations and market signals through one normalized response shape. AI/ML API turns those signals into a merchant brief, Cognee stores them as agent memory, and TriggerWare prepares the merchandising workflow.
 
 **Presentation:** The demo shows one shopper intent becoming two outputs: consumer recommendations and Curator-facing GTM intelligence.
 
@@ -109,4 +118,5 @@ Expected proof:
 2. "If the Curator catalog cannot satisfy that intent, the agent searches the live web through Bright Data."
 3. "The shopper sees comparable products with real retailers and prices."
 4. "The same event creates GTM intelligence: product gap, competitor price range, retailer availability, and a recommended merchandising action."
-5. "This lets a boutique, stylist, or creator seller act on real shopper demand instead of stale analytics."
+5. "AI/ML API converts the live evidence into a merchant brief, Cognee gives the agent memory, and TriggerWare turns the signal into an operational workflow."
+6. "This lets a boutique, stylist, or creator seller act on real shopper demand instead of stale analytics."

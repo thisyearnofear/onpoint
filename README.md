@@ -188,7 +188,19 @@ AUTH0_CLIENT_SECRET=<your-client-secret>
 
 # AI Providers
 VENICE_API_KEY=<your-key>
-GOOGLE_GEMINI_API_KEY=<your-key>
+GEMINI_API_KEY=<your-key>
+OPENAI_API_KEY=<your-key>
+
+# Production proxy to Hetzner API
+NEXT_PUBLIC_AGENT_API_URL=https://api.onpoint.famile.xyz
+AGENT_API_URL=https://api.onpoint.famile.xyz
+SERVICE_API_KEY=<match-hetzner-service-key>
+
+# Optional Web Data UNLOCKED partner integrations
+BRIGHTDATA_API_KEY=<your-key>
+AIML_API_KEY=<your-key>
+COGNEE_API_KEY=<your-key>
+TRIGGERWARE_API_KEY=<your-key>
 
 # Redis (optional, falls back to in-memory)
 UPSTASH_REDIS_REST_URL=<your-url>
@@ -213,13 +225,14 @@ See [Getting Started](docs/GETTING_STARTED.md) for full setup instructions.
 ## Tech Stack
 
 - **Frontend**: Next.js, React, TypeScript, Tailwind CSS, Zustand
-- **AI**: Venice AI, Google Gemini Live, OpenAI GPT-4V
+- **AI**: Venice AI, Google Gemini Live, OpenAI, AI/ML API
 - **Auth & Token Vault**: Auth0 for AI Agents (RFC 8693 Token Exchange)
 - **Blockchain**: Celo, Base, Ethereum, Polygon (via WDK + RainbowKit)
 - **Storage**: IPFS/Filecoin (Lighthouse), Redis (Upstash)
 - **Social**: Farcaster, Memory Protocol
-- **Agent Bridge**: Python FastAPI + Browser Use Cloud
-- **Deployment**: Hetzner VPS (API), Vercel (Frontend)
+- **Agent Bridge**: Python FastAPI + Browser Use Cloud + Bright Data
+- **Retail Intelligence**: Bright Data, AI/ML API, Cognee-ready memory, TriggerWare workflow events
+- **Deployment**: Hetzner VPS (API), Netlify (Frontend)
 
 ---
 
@@ -227,7 +240,7 @@ See [Getting Started](docs/GETTING_STARTED.md) for full setup instructions.
 
 OnPoint has been developed across multiple hackathons:
 
-- **Web Data UNLOCKED** — Bright Data-powered live web intelligence for retail GTM signals
+- **Web Data UNLOCKED** — Bright Data-powered live web intelligence, AI/ML API merchant briefs, Cognee memory, and TriggerWare workflows for retail GTM signals
 - **Auth0 Authorized to Act** — Token Vault for secure agent API access
 - **OWS Hackathon** — Agentic Storefronts + Spend Governance
 - **Tether Galactica WDK** — Agent Wallets

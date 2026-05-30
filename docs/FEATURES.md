@@ -125,6 +125,14 @@ Initial signal types:
 
 This keeps OnPoint consumer-first while giving stylists, boutiques, and retail GTM teams a commercial feedback loop from every styling session.
 
+Partner enrichment is layered onto the same normalized market signal response:
+
+- **AI/ML API** — Generates a merchant-ready brief from live products, signals, and memory when `AIML_API_KEY` is set. If unset, the UI shows a deterministic `ready` brief.
+- **Cognee** — Prepares or sends retail signal memory for repeated intent, known gaps, remembered retailers, and last-seen timestamps. If unset, the UI shows `Cognee Memory` as `ready`.
+- **TriggerWare** — Prepares or sends a `retail.product_gap.detected` workflow event for product gaps and recommended actions. If unset, the UI shows `TriggerWare Workflow` as `ready` or `skipped`.
+
+These integrations live in `apps/web/lib/services/retail-signal-partners.ts` and are optional, so missing partner keys do not block Bright Data search or the Intel page.
+
 ### Live Monitoring
 
 - `live_url` surfaced in UI for real-time observation
