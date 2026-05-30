@@ -16,7 +16,8 @@ const logger = require('../lib/logger');
 let redis = null;
 function getRedis() {
   if (!redis) {
-    redis = require('ioredis')(
+    const Redis = require('ioredis');
+    redis = new Redis(
       process.env.REDIS_URL || 'redis://localhost:6379',
     );
   }
@@ -33,23 +34,31 @@ function photoFingerprint(photoData) {
 }
 
 async function getCachedAnalysis(fingerprint, type) {
-  const r = getRedis();
-  const key = `cache:analysis:${type}:${fingerprint}`;
-  const cached = await r.get(key);
-  if (cached) {
-    try {
-      return JSON.parse(cached);
-    } catch {
-      return null;
+  try {
+    const r = getRedis();
+    const key = `cache:analysis:${type}:${fingerprint}`;
+    const cached = await r.get(key);
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch {
+        return null;
+      }
     }
+  } catch (error) {
+    logger.warn('Analysis cache read skipped', { component: 'virtual-tryon' }, error);
   }
   return null;
 }
 
 async function setCachedAnalysis(fingerprint, type, data) {
-  const r = getRedis();
-  const key = `cache:analysis:${type}:${fingerprint}`;
-  await r.set(key, JSON.stringify(data), 'EX', CACHE_TTL);
+  try {
+    const r = getRedis();
+    const key = `cache:analysis:${type}:${fingerprint}`;
+    await r.set(key, JSON.stringify(data), 'EX', CACHE_TTL);
+  } catch (error) {
+    logger.warn('Analysis cache write skipped', { component: 'virtual-tryon' }, error);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -384,6 +393,36 @@ function parseBodyAnalysisResponse(text) {
     styleRecommendations: extractSection(text, 'STYLE RECOMMENDATIONS:', 'PERSONALIZATION:'),
     personalization: extractSection(text, 'PERSONALIZATION:', null),
     rawAnalysis: text,
+  };
+}
+
+function createPhotoAnalysisFallback(error) {
+  return {
+    currentLook: [],
+    bodyType: 'average',
+    measurements: {
+      shoulders: 'medium',
+      chest: 'medium',
+      waist: 'medium',
+      hips: 'medium',
+    },
+    fitRecommendations: [
+      'Use a clear, well-lit full-body photo for more precise fit guidance.',
+      'Choose pieces with adjustable structure while the photo analysis is unavailable.',
+      'Prioritize garments with visible size guidance and flexible return options.',
+    ],
+    styleRecommendations: [
+      'Start with balanced silhouettes until OnPoint can read the uploaded photo.',
+      'Use neutral base layers and add one stronger color or texture accent.',
+      'Compare multiple sizes when the garment is structured or closely fitted.',
+    ],
+    personalization: [
+      'Photo analysis is temporarily using a conservative fallback profile.',
+    ],
+    score: 5,
+    confidence: 0.35,
+    provider: 'photo-analysis-fallback',
+    fallbackReason: error?.message || 'vision_provider_failed',
   };
 }
 
@@ -864,7 +903,10 @@ Be specific and actionable. Reference what you actually see.${prefContext}`;
         logger.tryonError('body-analysis', 'Body analysis from photo failed', error, {
           fileName: data?.fileName,
         });
-        return res.status(500).json({ error: 'Failed to analyze body from photo' });
+        return res.json({
+          ...createPhotoAnalysisFallback(error),
+          type,
+        });
       }
     }
 
@@ -939,8 +981,8 @@ Be SPECIFIC. Reference what you see in the photo. Give actionable, personalized 
     const analysisData = parseVirtualTryOnResponse(text || '', type, data);
     return res.json({ ...analysisData, provider: usedProvider, type });
   } catch (error) {
-    logger.tryonError(type, 'Virtual try-on request failed', error);
-    return res.status(500).json({ error: 'AI analysis failed' });
+    const requestType = req.body?.type || 'unknown';
+    logger.tryonError(requestType, 'Virtual try-on request failed', error);
     return res.status(error.status || 500).json({
       error: error.message || 'Failed to process virtual try-on',
       details: error.stack && process.env.NODE_ENV === 'development' ? error.stack : undefined,
