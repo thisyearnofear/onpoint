@@ -10,18 +10,24 @@
  */
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_AGENT_API_URL || "";
+const SAME_ORIGIN_ENDPOINTS = ["/api/agent/suggestion"];
+
+function shouldUseSameOrigin(endpoint: string): boolean {
+  const path = `/${endpoint.replace(/^\//, "")}`;
+  return SAME_ORIGIN_ENDPOINTS.some((prefix) => path.startsWith(prefix));
+}
 
 /**
  * Build full API URL for agent endpoint
  * If NEXT_PUBLIC_AGENT_API_URL is not set, uses relative path (Vercel)
  */
 export function getAgentApiUrl(endpoint: string): string {
-  if (API_BASE_URL) {
+  if (API_BASE_URL && !shouldUseSameOrigin(endpoint)) {
     const base = API_BASE_URL.replace(/\/$/, "");
     const path = endpoint.replace(/^\//, "");
     return `${base}/${path}`;
   }
-  return `/${endpoint}`;
+  return `/${endpoint.replace(/^\//, "")}`;
 }
 
 /**
@@ -31,6 +37,7 @@ export async function fetchAgentApi(
   endpoint: string,
   options: RequestInit = {},
 ): Promise<Response> {
+  const useSameOrigin = shouldUseSameOrigin(endpoint);
   const url = getAgentApiUrl(endpoint);
 
   const defaultHeaders: HeadersInit = {
@@ -47,7 +54,7 @@ export async function fetchAgentApi(
       ...defaultHeaders,
       ...options.headers,
     },
-    credentials: API_BASE_URL ? "omit" : "same-origin",
+    credentials: API_BASE_URL && !useSameOrigin ? "omit" : "same-origin",
   });
 
   return response;

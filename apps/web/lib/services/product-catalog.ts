@@ -111,10 +111,13 @@ export interface SearchResult {
 class ProductCatalogService {
   private readonly bridgeUrl: string | null;
   private readonly bridgeApiKey: string | null;
+  private readonly agentApiUrl: string | null;
 
   constructor() {
     this.bridgeUrl = process.env.EXTERNAL_AGENT_URL || null;
     this.bridgeApiKey = process.env.BRIDGE_API_KEY || null;
+    this.agentApiUrl =
+      process.env.AGENT_API_URL || process.env.NEXT_PUBLIC_AGENT_API_URL || null;
   }
 
   /**
@@ -212,11 +215,15 @@ class ProductCatalogService {
     query: string,
     limit: number,
   ): Promise<ProductSearchWithSignals<ExternalProduct>> {
-    if (!this.bridgeUrl) {
+    if (!this.bridgeUrl && !this.agentApiUrl) {
       console.log(
-        "[Catalog] No bridge URL configured, skipping external search",
+        "[Catalog] No bridge or agent API URL configured, skipping external search",
       );
       return { products: [], signals: [] };
+    }
+
+    if (!this.bridgeUrl) {
+      return this.searchAgentCatalog(query, limit);
     }
 
     try {
@@ -241,7 +248,7 @@ class ProductCatalogService {
         console.warn(
           `[Catalog] Bridge returned ${response.status}, treating as empty`,
         );
-        return { products: [], signals: [] };
+        return this.searchAgentCatalog(query, limit);
       }
 
       const data = await response.json();
@@ -263,6 +270,51 @@ class ProductCatalogService {
       };
     } catch (error) {
       console.error("[Catalog] External search failed:", error);
+      return this.searchAgentCatalog(query, limit);
+    }
+  }
+
+  private async searchAgentCatalog(
+    query: string,
+    limit: number,
+  ): Promise<ProductSearchWithSignals<ExternalProduct>> {
+    if (!this.agentApiUrl) {
+      return { products: [], signals: [] };
+    }
+
+    try {
+      const url = new URL("/api/agent/catalog", this.agentApiUrl);
+      url.searchParams.set("query", query);
+      url.searchParams.set("limit", String(limit));
+
+      const response = await fetch(url.toString(), {
+        headers: { Accept: "application/json" },
+      });
+
+      if (!response.ok) {
+        console.warn(
+          `[Catalog] Agent catalog returned ${response.status}, treating as empty`,
+        );
+        return { products: [], signals: [] };
+      }
+
+      const data = await response.json();
+      const products = (data.items || []).map((item: any) => ({
+        id: `ext_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        name: item.name,
+        price: item.price,
+        source: item.source || "external",
+        url: item.url,
+        imageUrl: item.image_url || item.imageUrl,
+        category: inferCategory(item.name, query),
+      }));
+
+      return {
+        products,
+        signals: data.marketSignals || data.signals || [],
+      };
+    } catch (error) {
+      console.error("[Catalog] Agent catalog search failed:", error);
       return { products: [], signals: [] };
     }
   }
