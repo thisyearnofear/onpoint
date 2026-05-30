@@ -75,6 +75,8 @@ Copy `.env.example` to `.env.local` and configure:
    - Allowed Web Origins: `http://localhost:3000`, `https://yourdomain.com`
 4. **Enable Social Connections** (Authentication → Social):
    - ✅ Google OAuth2 (for Calendar integration) — Add scopes: `https://www.googleapis.com/auth/calendar.events`
+     - Do not add `https://www.googleapis.com/auth/gmail.readonly` unless Gmail ingestion is implemented and the Google OAuth app has completed restricted-scope verification.
+     - If the Google OAuth consent screen is in Testing mode, add each developer/test Gmail address under Google Cloud Console → APIs & Services → OAuth consent screen → Test users.
    - ✅ GitHub (for config storage) — Add scopes: `repo`, `gist`
    - ✅ Slack (for sharing) — Add scopes: `chat:write`, `channels:read`
    - ✅ Microsoft (for Outlook/OneDrive) — Add scopes: `Calendars.ReadWrite`, `Files.Read`
@@ -86,6 +88,15 @@ Copy `.env.example` to `.env.local` and configure:
    - Copy the token to `AUTH0_MANAGEMENT_API_TOKEN`
 
 **Note**: Auth0 SDK v4 uses `/auth/*` routes (not `/api/auth/*`). The middleware in `apps/web/middleware.ts` handles all authentication automatically.
+
+### Wallet Identity
+
+OnPoint uses Auth0 for account identity and wallet connection only where onchain trust is needed.
+
+- MiniPay: the app detects `window.ethereum.isMiniPay` and auto-connects the injected wallet.
+- Web/mobile browsers: RainbowKit/WalletConnect handles explicit wallet connection.
+- Wallet linking: a connected wallet is not trusted just because an address is present. The user must click "Link Account" and sign a SIWE message; `/api/auth/link-wallet` verifies the signature, domain, and one-time nonce before mapping the wallet to the Auth0 user.
+- Wallet-required moments: checkout with crypto, minting, tips, escrow, agent treasury, token-gated access, and signed agent spending permissions.
 
 ## Project Structure
 

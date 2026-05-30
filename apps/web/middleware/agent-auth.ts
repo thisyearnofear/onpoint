@@ -92,7 +92,7 @@ export async function generateNonce(): Promise<string> {
 /**
  * Verify and consume a nonce (one-time use)
  */
-async function verifyAndConsumeNonce(nonce: string): Promise<boolean> {
+export async function verifyAndConsumeNonce(nonce: string): Promise<boolean> {
   const key = `${NONCE_PREFIX}${nonce}`;
   const exists = await redisGet<{ created: number }>(key);
   if (!exists) return false;

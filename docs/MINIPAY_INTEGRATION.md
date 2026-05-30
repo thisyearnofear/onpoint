@@ -16,6 +16,7 @@ This document explains the MiniPay integration added to OnPoint for Proof of Shi
 ### 3. Enhanced Connect Button Update (`components/EnhancedConnectButton.tsx`)
 - Hides the "Connect Wallet" button when in MiniPay (wallet is auto-connected)
 - Maintains all existing functionality for non-MiniPay environments
+- Keeps account linking explicit: signed-in users must click "Link Account" and sign a SIWE message before the MiniPay wallet is mapped to their Auth0 account
 
 ### 4. MiniPay Utilities (`lib/utils/minipay.ts`)
 - Helper functions for MiniPay-specific transactions
@@ -29,6 +30,7 @@ When a user opens OnPoint inside MiniPay:
 2. The app automatically connects to the MiniPay wallet
 3. The "Connect Wallet" button is hidden (connection is implicit)
 4. All transactions use MiniPay's injected provider
+5. If the user is also signed in with Auth0, wallet/account linking still requires an explicit SIWE signature
 
 ## Testing MiniPay Integration
 
@@ -45,6 +47,7 @@ When a user opens OnPoint inside MiniPay:
 6. Tap "Load Test Page"
 7. Enter your app URL
 8. The app should auto-connect and hide the connect button
+9. Sign in with Auth0, then click "Link Account" and confirm the wallet signature to test account mapping
 
 ## Fee Abstraction
 
@@ -66,6 +69,7 @@ const hash = await sendMiniPayTransaction({
 - Always verify `window.ethereum` exists before accessing
 - MiniPay injects only one address in the accounts array
 - Use viem or wagmi for transactions (ethers.js does not work in MiniPay)
+- Do not trust a raw wallet address submitted by the browser. Server-side account linking must verify the SIWE signature and consume the nonce.
 
 ## Proof of Ship Eligibility
 

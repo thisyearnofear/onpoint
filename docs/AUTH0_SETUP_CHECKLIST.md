@@ -37,7 +37,8 @@ Visit: https://manage.auth0.com/dashboard/us/dev-epemgbox1ty8vjf8/
 - [ ] **Amazon** enabled for your application
   - Required scopes: `profile`, `postal_code`
 - [ ] **Google OAuth2** enabled for your application
-  - Required scopes: `https://www.googleapis.com/auth/calendar.events`, `https://www.googleapis.com/auth/gmail.readonly`
+  - Required scope for scheduling: `https://www.googleapis.com/auth/calendar.events`
+  - Do not request `https://www.googleapis.com/auth/gmail.readonly` unless Gmail receipt ingestion is implemented and the Google OAuth app has completed the required Google verification.
 - [ ] **Discord** enabled for your application
   - Required scopes: `identify`, `email`
 
@@ -51,6 +52,8 @@ Visit: https://manage.auth0.com/dashboard/us/dev-epemgbox1ty8vjf8/
   - `/api/auth/connect` — Initiate OAuth flow
   - `/api/auth/connected-accounts` — List connections
   - `/api/auth/revoke-connection` — Revoke access
+  - `/api/auth/nonce` — Generate one-time SIWE nonce for wallet linking
+  - `/api/auth/link-wallet` — Verify signed SIWE payload and link wallet to Auth0 user
 
 ## 🧪 Testing Steps
 
@@ -68,7 +71,7 @@ Visit: https://manage.auth0.com/dashboard/us/dev-epemgbox1ty8vjf8/
    - Klarna (�) — Payment & wishlists
    - PayPal (�) — Transaction history
    - Amazon (�) — Shopping history
-   - Google (📅) — Calendar & Gmail
+   - Google (📅) — Calendar scheduling
    - Discord (�) — Community sharing
 3. All should show "Connect" button (not connected yet)
 
@@ -83,6 +86,13 @@ Visit: https://manage.auth0.com/dashboard/us/dev-epemgbox1ty8vjf8/
 1. Make a test API call to `/api/agent/schedule-event` (if implemented)
 2. Should successfully exchange token and call Google Calendar API
 3. Check browser console for any errors
+
+### Test 5: Signed Wallet Linking
+1. Sign in with Auth0.
+2. Connect a wallet through MiniPay, RainbowKit, or WalletConnect.
+3. Click "Link Account".
+4. Confirm the SIWE signature in the wallet.
+5. The app should call `/api/auth/link-wallet` with a signed message and signature, not a raw `walletAddress`.
 
 ## 🚨 Common Issues
 
@@ -102,6 +112,15 @@ Visit: https://manage.auth0.com/dashboard/us/dev-epemgbox1ty8vjf8/
 **Cause**: Social connection not enabled in Auth0 dashboard
 **Fix**: Go to Authentication → Social → Enable the connection for your application
 
+### Issue: Google says "Access blocked: auth0.com has not completed the Google verification process"
+**Cause**: Google is blocking the OAuth client before Auth0 redirects back to the app. This usually means the Google OAuth consent screen is still in Testing mode and the signed-in Gmail account is not listed as a test user, or the app is requesting sensitive/restricted Google scopes without completing Google's OAuth app verification.
+**Fix**:
+1. In Google Cloud Console, open the project used by the Auth0 Google social connection.
+2. Go to APIs & Services → OAuth consent screen.
+3. For local/testing use, keep Publishing status as Testing and add the Gmail account you are using, for example `papaandthejimjams@gmail.com`, under Test users.
+4. For production use, complete Google OAuth verification for every requested scope before making the app public.
+5. In Auth0 → Authentication → Social → Google OAuth2, make sure the connection uses your verified Google OAuth client ID/secret, not a placeholder or unrelated test project.
+
 ### Issue: "Unauthorized" when accessing connected accounts
 **Cause**: Not logged in or session expired
 **Fix**: Navigate to `/auth/login` first
@@ -109,6 +128,10 @@ Visit: https://manage.auth0.com/dashboard/us/dev-epemgbox1ty8vjf8/
 ### Issue: Cannot revoke connection
 **Cause**: `AUTH0_MANAGEMENT_API_TOKEN` not set
 **Fix**: Create Machine-to-Machine app in Auth0 with `read:users`, `update:users`, `delete:user_identities` permissions
+
+### Issue: Wallet link returns "Missing signed wallet link payload"
+**Cause**: The client is still using the old address-only payload.
+**Fix**: Fetch `/api/auth/nonce`, build a SIWE message, have the wallet sign it, then POST `{ message, signature }` to `/api/auth/link-wallet`.
 
 ## 📚 Resources
 

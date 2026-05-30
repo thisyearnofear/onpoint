@@ -1,16 +1,24 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useAccount, useChainId } from "wagmi";
+import { useAccount, useChainId, useSignMessage } from "wagmi";
 import { useUser } from "@auth0/nextjs-auth0/client";
+import { SiweMessage } from "siwe";
 import {
   getChainName,
   getChainColor,
   getChainIcon,
 } from "../components/chains";
 import { Button } from "@repo/ui/button";
-import { ChevronDown, Wallet, Trophy, AlertCircle, Star } from "lucide-react";
+import {
+  ChevronDown,
+  Wallet,
+  Trophy,
+  AlertCircle,
+  Star,
+  Link2,
+} from "lucide-react";
 import { MissionService } from "../lib/services/mission-service";
 import { useMiniApp } from "@neynar/react";
 import { celo, celoSepolia } from "../config/chains";
@@ -31,19 +39,56 @@ export function EnhancedConnectButton({
   const { context } = useMiniApp();
   const { user } = useUser();
   const { isMiniPay } = useMiniPay();
-  const linkedRef = useRef(false);
+  const { signMessageAsync } = useSignMessage();
+  const [walletLinked, setWalletLinked] = useState(false);
+  const [linkingWallet, setLinkingWallet] = useState(false);
 
-  // Auto-link Auth0 identity to wallet when both are present
   useEffect(() => {
-    if (address && user?.sub && !linkedRef.current) {
-      linkedRef.current = true;
-      fetch("/api/auth/link-wallet", {
+    setWalletLinked(false);
+  }, [address, user?.sub]);
+
+  const linkWallet = async () => {
+    if (!address || !user?.sub || linkingWallet) return;
+
+    setLinkingWallet(true);
+    try {
+      const nonceResponse = await fetch("/api/auth/nonce");
+      if (!nonceResponse.ok) throw new Error("Failed to create wallet nonce");
+
+      const { nonce } = await nonceResponse.json();
+      const issuedAt = new Date();
+      const expirationTime = new Date(issuedAt.getTime() + 10 * 60 * 1000);
+      const message = new SiweMessage({
+        domain: window.location.host,
+        address,
+        statement: "Link this wallet to your OnPoint account.",
+        uri: window.location.origin,
+        version: "1",
+        chainId,
+        nonce,
+        issuedAt: issuedAt.toISOString(),
+        expirationTime: expirationTime.toISOString(),
+      }).prepareMessage();
+
+      const signature = await signMessageAsync({ message });
+      const linkResponse = await fetch("/api/auth/link-wallet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress: address }),
-      }).catch(() => {});
+        body: JSON.stringify({ message, signature }),
+      });
+
+      if (!linkResponse.ok) {
+        const payload = await linkResponse.json().catch(() => null);
+        throw new Error(payload?.error || "Failed to link wallet");
+      }
+
+      setWalletLinked(true);
+    } catch (error) {
+      console.error("Failed to link wallet:", error);
+    } finally {
+      setLinkingWallet(false);
     }
-  }, [address, user?.sub]);
+  };
 
   const currentChainName = getChainName(chainId);
   const chainColor = getChainColor(chainId);
@@ -126,6 +171,22 @@ export function EnhancedConnectButton({
                       <span>{account.displayName}</span>
                     </div>
                   </Button>
+
+                  {user?.sub && !walletLinked && (
+                    <Button
+                      variant="outline"
+                      onClick={linkWallet}
+                      disabled={linkingWallet}
+                      className="border-primary/20 bg-background/50 hover:bg-primary/10 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Link2 className="h-4 w-4 text-primary" />
+                        <span className="hidden sm:inline">
+                          {linkingWallet ? "Linking" : "Link Account"}
+                        </span>
+                      </div>
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <Button

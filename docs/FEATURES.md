@@ -213,7 +213,7 @@ When the internal catalog doesn't have a match, the agent browses the open web:
 ### Auth0 Integration
 
 - **Identity provider**: Centralized auth via Auth0 for agentic commerce features
-- **Wallet mapping**: Link Auth0 identity to on-chain wallet addresses
+- **Signed wallet mapping**: Link Auth0 identity to on-chain wallet addresses only after the wallet signs a SIWE message with a one-time nonce
 - **Just-in-time consent**: Users authorize specific retailers when needed
 - **Hackathon**: [Authorized to Act](https://authorizedtoact.devpost.com/) — $10,000 prize pool
 

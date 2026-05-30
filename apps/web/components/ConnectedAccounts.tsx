@@ -50,11 +50,10 @@ const PROVIDER_CONFIG: Record<SupportedProvider, {
   },
   'google-oauth2': {
     name: 'Google',
-    description: 'Calendar & Gmail for receipts',
+    description: 'Calendar scheduling',
     icon: '📅',
     defaultScopes: [
-      'https://www.googleapis.com/auth/calendar.events',
-      'https://www.googleapis.com/auth/gmail.readonly'
+      'https://www.googleapis.com/auth/calendar.events'
     ],
     color: 'from-blue-500 to-blue-600'
   },
