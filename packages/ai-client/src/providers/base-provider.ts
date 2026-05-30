@@ -77,6 +77,10 @@ export interface VirtualTryOnAnalysis {
   };
   fitRecommendations: string[];
   styleAdjustments: string[];
+  currentLook?: string[];
+  personalization?: string[];
+  score?: number;
+  confidence?: number;
 }
 
 export interface StylistResponse {

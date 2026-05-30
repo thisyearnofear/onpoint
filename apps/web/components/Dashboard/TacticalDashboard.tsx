@@ -13,6 +13,11 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import { NotificationBell } from "../NotificationBell";
+import type { FashionItem } from "@onpoint/shared-types";
+import {
+  fashionItemToTryOnSelection,
+  setPendingTryOnSelection,
+} from "../../lib/utils/try-on-selection";
 
 import { TryOnPanel } from "./TryOnPanel";
 import { StylistPanel } from "./StylistPanel";
@@ -94,7 +99,16 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
       onDismissDeepLink={() => setDeepLinkContext(null)}
     />,
     stylist: () => <StylistPanel />,
-    shop: () => <ShopPanel onTryOn={() => setMode("try-on")} />,
+    shop: () => (
+      <ShopPanel
+        onTryOn={(item?: FashionItem) => {
+          if (item) {
+            setPendingTryOnSelection(fashionItemToTryOnSelection(item));
+          }
+          setMode("try-on");
+        }}
+      />
+    ),
     settings: () => <SettingsPanel />,
   };
 

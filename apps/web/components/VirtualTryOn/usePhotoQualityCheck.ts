@@ -10,7 +10,7 @@ export interface QualityCheck {
   message: string;
 }
 
-interface QualityCheckResult {
+export interface QualityCheckResult {
   checks: QualityCheck[];
   failCount: number;
   warnCount: number;

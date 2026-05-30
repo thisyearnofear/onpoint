@@ -5,10 +5,10 @@ import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { Camera, Upload, User, Sun, Eye, CheckCircle, AlertTriangle, XCircle, Loader2 } from "lucide-react";
 import { usePhotoQualityCheck } from "./usePhotoQualityCheck";
-import type { QualityCheck } from "./usePhotoQualityCheck";
+import type { QualityCheck, QualityCheckResult } from "./usePhotoQualityCheck";
 
 interface PhotoUploadProps {
-  onPhotoSelect: (file: File) => void;
+  onPhotoSelect: (file: File, qualityResult: QualityCheckResult) => void;
   disabled?: boolean;
 }
 
@@ -23,9 +23,9 @@ export function PhotoUpload({ onPhotoSelect, disabled }: PhotoUploadProps) {
   const { result: qualityResult, checking: qualityChecking, checkPhoto, reset } = usePhotoQualityCheck();
 
   const handleFile = useCallback(
-    (file: File) => {
-      onPhotoSelect(file);
-      checkPhoto(file);
+    async (file: File) => {
+      const qualityResult = await checkPhoto(file);
+      onPhotoSelect(file, qualityResult);
     },
     [onPhotoSelect, checkPhoto],
   );

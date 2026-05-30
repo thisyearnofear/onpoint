@@ -63,6 +63,7 @@ const nextConfig = {
       { source: '/api/ai/live-session', destination: `${hetzner}/api/ai/live-session` },
       { source: '/api/ai/agent', destination: `${hetzner}/api/ai/agent` },
       { source: '/api/agent/catalog', destination: `${hetzner}/api/agent/catalog` },
+      { source: '/api/curator/:slug/storefront', destination: `${hetzner}/api/curator/:slug/storefront` },
     ];
   },
   async headers() {

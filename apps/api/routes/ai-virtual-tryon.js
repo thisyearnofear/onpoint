@@ -57,6 +57,8 @@ async function setCachedAnalysis(fingerprint, type, data) {
 // ---------------------------------------------------------------------------
 
 const VENICE_BASE_URL = 'https://api.venice.ai/api/v1';
+const IDM_VTON_VERSION =
+  '0513734a452173b8173e907e3a59d19a36266e55b48528559432bd21c7d7e985';
 
 const geminiKey =
   process.env.GEMINI_API_KEY &&
@@ -187,6 +189,59 @@ async function generateText({
   throw new Error('All AI providers failed.');
 }
 
+async function runReplicatePrediction({ version, input, timeoutMs = 120000 }) {
+  const token = process.env.REPLICATE_API_TOKEN;
+  if (!token) {
+    throw new Error('REPLICATE_API_TOKEN is not configured');
+  }
+
+  const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Token ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ version, input }),
+  });
+
+  if (!createResponse.ok) {
+    throw new Error(`Replicate prediction create failed: ${createResponse.status}`);
+  }
+
+  let prediction = await createResponse.json();
+  const startedAt = Date.now();
+
+  while (
+    prediction.status !== 'succeeded' &&
+    prediction.status !== 'failed' &&
+    prediction.status !== 'canceled'
+  ) {
+    if (Date.now() - startedAt > timeoutMs) {
+      throw new Error('Replicate prediction timed out');
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const pollResponse = await fetch(prediction.urls.get, {
+      headers: { Authorization: `Token ${token}` },
+    });
+
+    if (!pollResponse.ok) {
+      throw new Error(`Replicate prediction poll failed: ${pollResponse.status}`);
+    }
+
+    prediction = await pollResponse.json();
+  }
+
+  if (prediction.status !== 'succeeded') {
+    throw new Error(`Replicate prediction ${prediction.status}`);
+  }
+
+  const output = prediction.output;
+  if (typeof output === 'string') return output;
+  if (Array.isArray(output) && typeof output[0] === 'string') return output[0];
+  throw new Error('Unexpected Replicate output format');
+}
+
 // ---------------------------------------------------------------------------
 // Text-parsing helpers (ported as-is from the Next.js route)
 // ---------------------------------------------------------------------------
@@ -241,6 +296,95 @@ function extractMeasurementsStructured(text) {
   if (hipsMatch) measurements.hips = hipsMatch[1].toLowerCase();
   
   return measurements;
+}
+
+function parseJsonObject(text) {
+  const cleaned = text
+    .replace(/```json\n?/g, '')
+    .replace(/```\n?/g, '')
+    .trim();
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const start = cleaned.indexOf('{');
+    const end = cleaned.lastIndexOf('}');
+    if (start === -1 || end === -1 || end <= start) return null;
+    try {
+      return JSON.parse(cleaned.slice(start, end + 1));
+    } catch {
+      return null;
+    }
+  }
+}
+
+function asStringArray(value, fallback = []) {
+  if (!Array.isArray(value)) return fallback;
+  const items = value
+    .filter((item) => typeof item === 'string')
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 6);
+  return items.length > 0 ? items : fallback;
+}
+
+function normalizeStructuredBodyAnalysis(parsed, rawText) {
+  if (!parsed || typeof parsed !== 'object') return null;
+
+  const measurements = parsed.measurements || {};
+  return {
+    currentLook: asStringArray(parsed.currentLook),
+    bodyType:
+      typeof parsed.bodyType === 'string' && parsed.bodyType.trim()
+        ? parsed.bodyType.trim().toLowerCase()
+        : 'average',
+    measurements: {
+      shoulders:
+        typeof measurements.shoulders === 'string'
+          ? measurements.shoulders.trim().toLowerCase()
+          : 'medium',
+      chest:
+        typeof measurements.chest === 'string'
+          ? measurements.chest.trim().toLowerCase()
+          : 'medium',
+      waist:
+        typeof measurements.waist === 'string'
+          ? measurements.waist.trim().toLowerCase()
+          : 'medium',
+      hips:
+        typeof measurements.hips === 'string'
+          ? measurements.hips.trim().toLowerCase()
+          : 'medium',
+    },
+    fitRecommendations: asStringArray(parsed.fitRecommendations, [
+      'Use a clearer full-body photo for more precise fit recommendations.',
+    ]),
+    styleRecommendations: asStringArray(parsed.styleRecommendations, [
+      'Try a well-lit full-body photo for more specific style guidance.',
+    ]),
+    personalization: asStringArray(parsed.personalization),
+    score:
+      typeof parsed.score === 'number'
+        ? Math.min(10, Math.max(1, Math.round(parsed.score)))
+        : undefined,
+    confidence:
+      typeof parsed.confidence === 'number'
+        ? Math.min(1, Math.max(0, parsed.confidence > 1 ? parsed.confidence / 100 : parsed.confidence))
+        : undefined,
+    rawAnalysis: rawText,
+  };
+}
+
+function parseBodyAnalysisResponse(text) {
+  return normalizeStructuredBodyAnalysis(parseJsonObject(text), text) || {
+    currentLook: extractSection(text, 'CURRENT LOOK:', 'BODY ANALYSIS:'),
+    bodyType: extractBodyType(text),
+    measurements: extractMeasurementsStructured(text),
+    fitRecommendations: extractSection(text, 'FIT RECOMMENDATIONS:', 'STYLE RECOMMENDATIONS:'),
+    styleRecommendations: extractSection(text, 'STYLE RECOMMENDATIONS:', 'PERSONALIZATION:'),
+    personalization: extractSection(text, 'PERSONALIZATION:', null),
+    rawAnalysis: text,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -431,6 +575,116 @@ function parseVirtualTryOnResponse(aiResponse, type, originalData) {
   return { analysis: aiResponse };
 }
 
+async function buildGeneratedOutfitImageResponse({ data, provider }) {
+  const personDescription = (data && data.personDescription) || '';
+  const humanImage = data && data.photoData;
+  const garmentImage =
+    data && data.items && data.items[0]
+      ? data.items[0].imageUrl || data.items[0].productSrc || data.items[0].cover
+      : null;
+  const outfitDescription = data && data.items
+    ? data.items.map((item) => `${item.name}: ${item.description || ''}`).join(', ')
+    : '';
+
+  if (humanImage && garmentImage && process.env.REPLICATE_API_TOKEN) {
+    try {
+      const generatedImage = await runReplicatePrediction({
+        version: IDM_VTON_VERSION,
+        input: {
+          garm_img: garmentImage,
+          human_img: humanImage,
+          garment_des: outfitDescription || 'fashion garment',
+        },
+      });
+
+      let structuredTips = [];
+      let stylingTips = [
+        'Compare the rendered garment against your original pose to judge proportion and fit.',
+        'Check the shoulder and waist alignment first; those areas reveal the most about fit.',
+        'Use the generated image as direction, then verify fabric and sizing on the product page.',
+      ];
+
+      if (personDescription) {
+        const tipsResponse = await generateText({
+          prompt: `Styling tips for this image-conditioned virtual try-on: ${personDescription} wearing ${outfitDescription}. Return JSON: [{"text": "...", "action": {...}}]`,
+          provider,
+          geminiModel: 'gemini-3.1-flash-lite-preview',
+          openaiModel: 'gpt-4o',
+        });
+        const parsed = extractStructuredStylingTips(tipsResponse.text || '');
+        stylingTips = parsed.textTips;
+        structuredTips = parsed.structuredTips;
+      }
+
+      return {
+        generatedImage,
+        enhancedOutfit: (data && data.items) || [],
+        stylingTips,
+        structuredTips,
+        provider: 'replicate-idm-vton',
+        imageConditioned: true,
+      };
+    } catch (error) {
+      logger.warn('Replicate IDM-VTON failed, falling back to Venice image generation', {
+        component: 'virtual-tryon',
+        error: error.message,
+      });
+    }
+  }
+
+  const veniceApiKey = process.env.VENICE_API_KEY;
+  if (!veniceApiKey) {
+    const error = new Error('Venice API key not configured');
+    error.status = 500;
+    throw error;
+  }
+
+  const veniceResponse = await fetch('https://api.venice.ai/api/v1/image/generate', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${veniceApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'venice-sd35',
+      prompt: `Create a high-quality fashion photograph. ${personDescription ? `Person: ${personDescription}. ` : ''}Wearing: ${outfitDescription}. Full-body portrait, professional photography.`,
+      width: 512,
+      height: 768,
+      format: 'webp',
+    }),
+  });
+
+  if (!veniceResponse.ok) {
+    throw new Error(`Venice API error: ${veniceResponse.status}`);
+  }
+  const veniceData = await veniceResponse.json();
+
+  let personalizedTips = [];
+  let structuredTips = [];
+  if (personDescription) {
+    const tipsResponse = await generateText({
+      prompt: `Styling tips for: ${personDescription} wearing ${outfitDescription}. Return JSON: [{"text": "...", "action": {...}}]`,
+      provider,
+      geminiModel: 'gemini-3.1-flash-lite-preview',
+      openaiModel: 'gpt-4o',
+    });
+    const parsed = extractStructuredStylingTips(tipsResponse.text || '');
+    personalizedTips = parsed.textTips;
+    structuredTips = parsed.structuredTips;
+  }
+
+  return {
+    generatedImage: veniceData.images[0],
+    enhancedOutfit: (data && data.items) || [],
+    stylingTips: personalizedTips.length
+      ? personalizedTips
+      : ['Layer up', 'Accessorize', 'Check fit', 'Color harmony'],
+    structuredTips,
+    provider: 'venice-image',
+    imageConditioned: false,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // POST /
 // ---------------------------------------------------------------------------
@@ -511,31 +765,28 @@ Be detailed and specific. This will be used to generate highly personalized outf
         return res.status(500).json({ error: 'Venice API key required for vision analysis' });
       }
 
-      const prompt = `You are an expert fashion stylist analyzing this photo. Provide a structured analysis in the following format:
+      const prompt = `You are an expert fashion stylist analyzing this photo.
 
-CURRENT LOOK:
-[Describe what they're wearing now - specific items, colors, fit, style]
+Return ONLY valid JSON. Do not include markdown, comments, or prose outside the JSON.
 
-BODY ANALYSIS:
-Body Type: [athletic/slim/average/curvy/plus-size - be specific]
-Shoulders: [small/medium/large]
-Chest: [small/medium/large]
-Waist: [small/medium/large]
-Hips: [small/medium/large]
-Key Proportions: [What stands out about their build]
+Schema:
+{
+  "currentLook": ["specific clothing item, color, fit, styling detail"],
+  "bodyType": "athletic|slim|average|curvy|plus-size",
+  "measurements": {
+    "shoulders": "small|medium|large",
+    "chest": "small|medium|large",
+    "waist": "small|medium|large",
+    "hips": "small|medium|large"
+  },
+  "fitRecommendations": ["3-4 specific fit, sizing, or tailoring recommendations"],
+  "styleRecommendations": ["3-4 specific color, silhouette, styling, or avoid recommendations"],
+  "personalization": ["2-3 highly specific tips referencing this actual photo"],
+  "score": 1-10,
+  "confidence": 0-1
+}
 
-FIT RECOMMENDATIONS:
-[3-4 specific recommendations about sizing, fit, and tailoring for their body type]
-- Focus on: What sizes to look for, how clothes should fit their proportions, tailoring needs
-
-STYLE RECOMMENDATIONS:
-[3-4 specific style suggestions based on their coloring, current style, and body type]
-- Focus on: Colors that suit them, style categories, specific pieces, what to avoid
-
-PERSONALIZATION:
-[2-3 highly specific tips based on what you see in THIS photo - reference their actual outfit, hair, coloring]${prefContext}
-
-Be SPECIFIC and ACTIONABLE. Reference what you actually see.`;
+Be specific and actionable. Reference what you actually see.${prefContext}`;
 
       // Cache check: same photo + same analysis type = skip Venice API
       const fingerprint = photoFingerprint(data.photoData);
@@ -555,15 +806,8 @@ Be SPECIFIC and ACTIONABLE. Reference what you actually see.`;
           imageBase64: data.photoData,
         });
         
-        // Parse structured response
-        const sections = {
-          currentLook: extractSection(text, 'CURRENT LOOK:', 'BODY ANALYSIS:'),
-          bodyType: extractBodyType(text),
-          measurements: extractMeasurementsStructured(text),
-          fitRecommendations: extractSection(text, 'FIT RECOMMENDATIONS:', 'STYLE RECOMMENDATIONS:'),
-          styleRecommendations: extractSection(text, 'STYLE RECOMMENDATIONS:', 'PERSONALIZATION:'),
-          personalization: extractSection(text, 'PERSONALIZATION:', null),
-        };
+        // Prefer strict JSON, fall back to section parsing for provider drift.
+        const sections = parseBodyAnalysisResponse(text);
         
         await setCachedAnalysis(fingerprint, 'body-analysis', sections);
 
@@ -623,61 +867,10 @@ Be SPECIFIC. Reference what you see in the photo. Give actionable, personalized 
       }
     }
 
-    // -- generate-outfit-image (Venice image API) --
+    // -- generate-outfit-image (Replicate image-conditioned try-on, then Venice fallback) --
     if (type === 'generate-outfit-image') {
-      const veniceApiKey = process.env.VENICE_API_KEY;
-      if (!veniceApiKey) {
-        return res.status(500).json({ error: 'Venice API key not configured' });
-      }
-
-      const personDescription = (data && data.personDescription) || '';
-      const outfitDescription = data && data.items
-        ? data.items.map((item) => `${item.name}: ${item.description || ''}`).join(', ')
-        : '';
-
-      const veniceResponse = await fetch('https://api.venice.ai/api/v1/image/generate', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${veniceApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'venice-sd35',
-          prompt: `Create a high-quality fashion photograph. ${personDescription ? `Person: ${personDescription}. ` : ''}Wearing: ${outfitDescription}. Full-body portrait, professional photography.`,
-          width: 512,
-          height: 768,
-          format: 'webp',
-        }),
-      });
-
-      if (!veniceResponse.ok) {
-        throw new Error(`Venice API error: ${veniceResponse.status}`);
-      }
-      const veniceData = await veniceResponse.json();
-
-      let personalizedTips = [];
-      let structuredTips = [];
-      if (personDescription) {
-        const tipsResponse = await generateText({
-          prompt: `Styling tips for: ${personDescription} wearing ${outfitDescription}. Return JSON: [{"text": "...", "action": {...}}]`,
-          provider,
-          geminiModel: 'gemini-3.1-flash-lite-preview',
-          openaiModel: 'gpt-4o',
-        });
-        const parsed = extractStructuredStylingTips(tipsResponse.text || '');
-        personalizedTips = parsed.textTips;
-        structuredTips = parsed.structuredTips;
-      }
-
-      return res.json({
-        generatedImage: veniceData.images[0],
-        enhancedOutfit: (data && data.items) || [],
-        stylingTips: personalizedTips.length
-          ? personalizedTips
-          : ['Layer up', 'Accessorize', 'Check fit', 'Color harmony'],
-        structuredTips,
-        type,
-      });
+      const result = await buildGeneratedOutfitImageResponse({ data, provider });
+      return res.json({ ...result, type });
     }
 
     // -- text-based analysis types --
@@ -713,3 +906,10 @@ Be SPECIFIC. Reference what you see in the photo. Give actionable, personalized 
 });
 
 module.exports = router;
+module.exports.__test = {
+  parseJsonObject,
+  normalizeStructuredBodyAnalysis,
+  parseBodyAnalysisResponse,
+  parseVirtualTryOnResponse,
+  buildGeneratedOutfitImageResponse,
+};

@@ -4,6 +4,7 @@ import { DesignGeneration, VirtualTryOnAnalysis, StylistResponse, CritiqueRespon
 import AIClientManager from './ai-client';
 import { ReplicateProvider } from './providers/replicate-provider';
 import { fileToBase64 } from './utils/file-utils';
+import { normalizeVirtualTryOnAnalysis } from './utils/virtual-tryon-normalize';
 
 function getApiUrl(path: string): string {
   return path;
@@ -168,12 +169,7 @@ export const useVirtualTryOn = () => {
         }
 
         const analysisData = await response.json();
-        const analysis: VirtualTryOnAnalysis = {
-          bodyType: analysisData.bodyType,
-          measurements: analysisData.measurements,
-          fitRecommendations: analysisData.fitRecommendations,
-          styleAdjustments: analysisData.styleAdjustments
-        };
+        const analysis = normalizeVirtualTryOnAnalysis(analysisData);
 
         setAnalysis(analysis);
         return analysis;
@@ -484,11 +480,13 @@ export const useAIVirtualTryOnEnhancement = () => {
     stylingTips: string[];
     structuredTips?: Array<{ text: string; action?: { type: string; label: string; payload: string } }>;
     generatedImage?: string;
+    provider?: string;
+    imageConditioned?: boolean;
   } | null>(null);
   const aiClient = useAIClient();
 
   const enhanceTryOn = React.useCallback(
-    async (outfitItems: Array<{ name: string, description: string }>, photoData?: string, personDescription?: string, stylePreferences?: any): Promise<boolean> => {
+    async (outfitItems: Array<{ name: string, description: string, imageUrl?: string }>, photoData?: string, personDescription?: string, stylePreferences?: any): Promise<boolean> => {
       setLoading(true);
       setError(null);
 
@@ -524,7 +522,9 @@ export const useAIVirtualTryOnEnhancement = () => {
             'Consider the occasion when selecting accessories'
           ],
           structuredTips: result.structuredTips,
-          generatedImage: result.generatedImage
+          generatedImage: result.generatedImage,
+          provider: result.provider,
+          imageConditioned: result.imageConditioned,
         });
 
         return true;
@@ -546,6 +546,7 @@ export const useAIVirtualTryOnEnhancement = () => {
     loading,
     error,
     enhanceTryOn,
+    clearEnhancement: () => setEnhancement(null),
     clearError: () => setError(null),
   };
 };

@@ -39,6 +39,7 @@ interface TryOnResultProps {
         description?: string;
         stylingTips?: string[];
         structuredTips?: StructuredTip[];
+        providerLabel?: string;
         timestamp?: number;
       }
     | string; // Keep backward compatibility
@@ -137,12 +138,18 @@ export function TryOnResult({
 
   // Handle both string and object formats
   const resultData = typeof result === "string" ? { image: result } : result;
-  const { image, description, stylingTips, structuredTips } = resultData as {
+  const { image, description, stylingTips, structuredTips, providerLabel } = resultData as {
     image: string;
     description?: string;
     stylingTips?: string[];
     structuredTips?: StructuredTip[];
+    providerLabel?: string;
   };
+  const imageSrc = image
+    ? image.startsWith("data:") || image.startsWith("http")
+      ? image
+      : `data:image/webp;base64,${image}`
+    : "";
 
   // Merge structured tips into a lookup for fast access when rendering plain tips
   const structuredByTip = React.useMemo(() => {
@@ -153,13 +160,15 @@ export function TryOnResult({
 
   const handleShare = async () => {
     // Include capture image via IPFS embed
-    const imageUrl = `data:image/webp;base64,${image}`;
+    const imageUrl = imageSrc;
     const shareText = description
       ? `Just tried on this look with BeOnPoint! ${description} 🔥 #BeOnPoint #Fashion #AI`
       : `Just tried on this amazing look with BeOnPoint! 🔥 #BeOnPoint #Fashion #AI`;
 
     const success = await SocialUtils.shareContent(
-      { text: shareText, imageDataUrl: imageUrl },
+      imageUrl.startsWith("http")
+        ? { text: shareText, imageUrl }
+        : { text: shareText, imageDataUrl: imageUrl },
       context,
     );
 
@@ -179,6 +188,11 @@ export function TryOnResult({
         <p className="text-sm text-muted-foreground text-center">
           Your personalized virtual try-on visualization
         </p>
+        {providerLabel && (
+          <div className="mx-auto mt-2 inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-medium text-primary">
+            {providerLabel}
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -189,11 +203,7 @@ export function TryOnResult({
               <>
                 <img
                   src={
-                    showOriginal && originalPhotoUrl
-                      ? originalPhotoUrl
-                      : image.startsWith("data:")
-                        ? image
-                        : `data:image/webp;base64,${image}`
+                    showOriginal && originalPhotoUrl ? originalPhotoUrl : imageSrc
                   }
                   alt={
                     showOriginal ? "Original photo" : "Virtual try-on result"
@@ -358,8 +368,8 @@ export function TryOnResult({
 
           {/* AI Model Transparency Label */}
           <div className="text-xs text-gray-500 text-center mt-3 flex items-center justify-center gap-1">
-            <span>🤖</span>
-            <span>Powered by Venice AI (Stable Diffusion)</span>
+            <Sparkles className="h-3 w-3" />
+            <span>{providerLabel || "AI generated visualization"}</span>
           </div>
         </div>
       </CardContent>

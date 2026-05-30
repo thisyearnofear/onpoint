@@ -211,6 +211,13 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                     delay={0.2}
                     size="md"
                   />
+                  <p className="mt-2 text-[9px] uppercase tracking-widest text-white/50">
+                    {Math.round(sessionSummary.scoreConfidence * 100)}%
+                    {" "}
+                    {sessionSummary.scoreSource === "model"
+                      ? "AI confidence"
+                      : "derived confidence"}
+                  </p>
                 </div>
 
                 {/* Adjacent takeaway */}

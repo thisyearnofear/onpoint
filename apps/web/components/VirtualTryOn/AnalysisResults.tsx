@@ -52,10 +52,15 @@ export function AnalysisResults({
   return (
     <Card className="elegant-shadow border-primary/20">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Sparkles className="h-4 w-4 text-primary" />
-          Analysis Results
-        </CardTitle>
+        <div className="flex items-start justify-between gap-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Sparkles className="h-4 w-4 text-primary" />
+            Analysis Results
+          </CardTitle>
+          <Badge variant="outline" className="shrink-0 text-xs border-primary/30 text-primary">
+            Analysis only
+          </Badge>
+        </div>
         <p className="text-xs text-muted-foreground">
           Personalized fit analysis and recommendations
         </p>

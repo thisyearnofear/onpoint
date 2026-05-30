@@ -14,9 +14,13 @@ import { fetchAgentApi } from "../../lib/utils/agent-api";
 import { Product3DCard } from "./Product3DCard";
 import { RichProductCard, RichProductGroup } from "./RichProductCard";
 import type { ProductResult } from "@onpoint/shared-types";
+import {
+  fashionItemToTryOnSelection,
+  setPendingTryOnSelection,
+} from "../../lib/utils/try-on-selection";
 
 interface InlineShopProps {
-  onTryOn?: () => void;
+  onTryOn?: (item?: FashionItem) => void;
 }
 
 /** Get AI-recommended items based on session history stored in sessionStorage */
@@ -170,7 +174,11 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
                   price={item.price}
                   badge="AI Pick"
                   reason={reason}
-                  onClick={() => addItem(item)}
+                  onClick={() => {
+                    setPendingTryOnSelection(fashionItemToTryOnSelection(item));
+                    addItem(item);
+                    onTryOn?.(item);
+                  }}
                 />
               ))}
             </div>
@@ -186,7 +194,7 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
             Try on a look first — your AI stylist will recommend items based on your style.
           </p>
           {onTryOn && (
-            <Button variant="outline" size="sm" onClick={onTryOn} className="rounded-full">
+            <Button variant="outline" size="sm" onClick={() => onTryOn()} className="rounded-full">
               Start Try-On
             </Button>
           )}
@@ -198,6 +206,7 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
         items={CANVAS_ITEMS}
         onItemClick={(item) => {
           // Add to cart on click
+          setPendingTryOnSelection(fashionItemToTryOnSelection(item));
           addItem(item);
         }}
         showFilters
@@ -214,7 +223,7 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={onTryOn}
+            onClick={() => onTryOn()}
             className="rounded-full border-primary/30 text-primary"
           >
             <Camera className="w-4 h-4 mr-1.5" />

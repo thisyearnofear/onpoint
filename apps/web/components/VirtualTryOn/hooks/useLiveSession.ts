@@ -24,6 +24,10 @@ import { MissionService } from "../../../lib/services/mission-service";
 import { StyleContextStore } from "../../../lib/services/style-context-store";
 import { useAnalysisHistory } from "../../../lib/stores/analysis-history-store";
 import { compressToThumbnail } from "../../PolaroidGallery";
+import {
+  buildHeuristicStyleScore,
+  extractStructuredStyleScore,
+} from "../../../lib/utils/style-score";
 
 // ── Types ──
 
@@ -58,6 +62,9 @@ export interface SessionFeedback {
 
 export interface SessionSummary {
   score: number;
+  scoreConfidence: number;
+  scoreSource: "model" | "heuristic";
+  scoreEvidence: string[];
   topics: string[];
   takeaways: string[];
   fullFeedback: SessionFeedback[];
@@ -336,23 +343,14 @@ export function useLiveSession() {
     const suggestionCount = fullFeedback.filter(
       (f) => f.type === "suggestion",
     ).length;
-    const totalClassified = praiseCount + critiqueCount + suggestionCount;
-
-    const isCritique = sessionGoal === "critique";
-    const base = isCritique ? 5 : 7;
-
-    let score: number;
-    if (totalClassified === 0) {
-      score = base;
-    } else {
-      // Suggestions imply the current outfit needs improvement → reduce score
-      // Praise raises score, critiques lower it
-      const praiseRatio = praiseCount / totalClassified;
-      const critiqueRatio =
-        (critiqueCount + suggestionCount * 0.7) / totalClassified;
-      const sentimentBonus = praiseRatio * 3 - critiqueRatio * 2.5;
-      score = Math.min(10, Math.max(1, Math.round(base + sentimentBonus)));
-    }
+    const structuredScore =
+      extractStructuredStyleScore([finalAdvice, ...reasoning]) ??
+      buildHeuristicStyleScore({
+        sessionGoal,
+        praiseCount,
+        critiqueCount,
+        suggestionCount,
+      });
 
     // ── Topic detection ──
     const topics: string[] = [];
@@ -424,7 +422,10 @@ export function useLiveSession() {
           })();
 
     return {
-      score,
+      score: structuredScore.score,
+      scoreConfidence: structuredScore.confidence,
+      scoreSource: structuredScore.source,
+      scoreEvidence: structuredScore.evidence,
       topics: topics.slice(0, 4),
       takeaways,
       fullFeedback,

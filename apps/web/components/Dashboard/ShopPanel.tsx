@@ -3,9 +3,10 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { InlineShop } from "../Shop/InlineShop";
+import type { FashionItem } from "@onpoint/shared-types";
 
 interface ShopPanelProps {
-  onTryOn: () => void;
+  onTryOn: (item?: FashionItem) => void;
 }
 
 export function ShopPanel({ onTryOn }: ShopPanelProps) {
