@@ -33,6 +33,9 @@ export * from './wallet-adapter';
 // Re-export fashion data and utilities
 export * from './fashion-data';
 
+// Re-export market intelligence signal types
+export * from './market-intelligence';
+
 // ============ Fashion Domain Types ============
 
 /**

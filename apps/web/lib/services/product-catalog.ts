@@ -15,6 +15,8 @@ import {
   CANVAS_ITEMS,
   FashionItem,
   ExternalProduct,
+  MarketSignal,
+  ProductSearchWithSignals,
   searchCatalog as searchLocalCatalog,
   mergeProductResults,
 } from "@onpoint/shared-types";
@@ -103,6 +105,7 @@ export interface SearchResult {
   items: Array<FashionItem | ExternalProduct>;
   source: "local" | "external" | "hybrid";
   cached: boolean;
+  signals: MarketSignal[];
 }
 
 class ProductCatalogService {
@@ -132,6 +135,7 @@ class ProductCatalogService {
           items: cached,
           source: "local",
           cached: true,
+          signals: [],
         };
       }
     }
@@ -146,19 +150,21 @@ class ProductCatalogService {
         items: localResults,
         source: "local",
         cached: false,
+        signals: [],
       };
     }
 
     // Tier 2: Search external (Purch API via bridge)
-    const externalResults = await this.searchExternal(query, limit);
+    const externalResult = await this.searchExternalWithSignals(query, limit);
 
-    if (externalResults.length > 0) {
+    if (externalResult.products.length > 0) {
       // For now, return external as-is (they're already typed)
-      await this.cacheResult(query, limit, externalResults);
+      await this.cacheResult(query, limit, externalResult.products);
       return {
-        items: externalResults,
+        items: externalResult.products,
         source: "external",
         cached: false,
+        signals: externalResult.signals,
       };
     }
 
@@ -167,6 +173,7 @@ class ProductCatalogService {
       items: [],
       source: "local",
       cached: false,
+      signals: externalResult.signals,
     };
   }
 
@@ -194,11 +201,22 @@ class ProductCatalogService {
     query: string,
     limit: number,
   ): Promise<ExternalProduct[]> {
+    const result = await this.searchExternalWithSignals(query, limit);
+    return result.products;
+  }
+
+  /**
+   * Search external catalog and preserve bridge market signals.
+   */
+  async searchExternalWithSignals(
+    query: string,
+    limit: number,
+  ): Promise<ProductSearchWithSignals<ExternalProduct>> {
     if (!this.bridgeUrl) {
       console.log(
         "[Catalog] No bridge URL configured, skipping external search",
       );
-      return [];
+      return { products: [], signals: [] };
     }
 
     try {
@@ -223,13 +241,13 @@ class ProductCatalogService {
         console.warn(
           `[Catalog] Bridge returned ${response.status}, treating as empty`,
         );
-        return [];
+        return { products: [], signals: [] };
       }
 
       const data = await response.json();
 
       // Map bridge response to ExternalProduct format
-      return (data.items || []).map((item: any) => ({
+      const products = (data.items || []).map((item: any) => ({
         id: `ext_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
         name: item.name,
         price: item.price,
@@ -238,9 +256,14 @@ class ProductCatalogService {
         imageUrl: item.image_url,
         category: inferCategory(item.name, query),
       }));
+
+      return {
+        products,
+        signals: data.signals || [],
+      };
     } catch (error) {
       console.error("[Catalog] External search failed:", error);
-      return [];
+      return { products: [], signals: [] };
     }
   }
 

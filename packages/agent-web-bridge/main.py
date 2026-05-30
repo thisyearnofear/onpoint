@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 import uvicorn
 from browser_use_sdk.v3 import AsyncBrowserUse
@@ -13,7 +13,8 @@ from dotenv import load_dotenv
 import asyncio
 from purch_client import PurchClient, PurchProduct, PurchSearchResult
 from tinyfish_client import TinyFishClient, TinyFishResult
-from brightdata_client import BrightDataClient, BrightDataResult, ProductResult
+from brightdata_client import BrightDataClient, BrightDataResult
+from demo_fixtures import demo_market_intel_result
 
 # Load the environment variables from the web app's .env.local
 # This is where the USER specified BROWSER_USE_API_KEY is located.
@@ -115,6 +116,21 @@ class ItemData(BaseModel):
     image_url: Optional[str] = None
 
 
+class MarketSignalData(BaseModel):
+    id: str
+    type: str
+    query: str
+    source: str
+    title: str
+    evidence: str
+    action: str
+    confidence: float
+    createdAt: str
+    url: Optional[str] = None
+    price: Optional[float] = None
+    currency: str = "USD"
+
+
 class SearchResults(BaseModel):
     items: List[ItemData]
 
@@ -135,6 +151,7 @@ class SearchRequest(BaseModel):
 class SearchResponse(BaseModel):
     status: str
     items: List[ItemData]
+    signals: List[MarketSignalData] = Field(default_factory=list)
     live_url: Optional[str] = None
     session_id: Optional[str] = None
     reply: Optional[str] = None
@@ -196,6 +213,27 @@ def _brightdata_to_items(result: BrightDataResult) -> List[ItemData]:
     ]
 
 
+def _brightdata_to_signals(result: BrightDataResult) -> List[MarketSignalData]:
+    """Convert BrightData market signals to bridge response format."""
+    return [
+        MarketSignalData(
+            id=s.id,
+            type=s.type,
+            query=s.query,
+            source=s.source,
+            title=s.title,
+            url=s.url,
+            price=s.price,
+            currency=s.currency,
+            confidence=s.confidence,
+            evidence=s.evidence,
+            action=s.action,
+            createdAt=s.created_at,
+        )
+        for s in result.signals
+    ]
+
+
 # --- Endpoints ---
 
 
@@ -214,6 +252,15 @@ async def search_items(
     """
     query = request.query
     max_results = request.max_results
+
+    if os.getenv("DEMO_MARKET_INTEL") == "1":
+        demo_result = demo_market_intel_result(query, max_results)
+        return SearchResponse(
+            status="success",
+            items=_brightdata_to_items(demo_result),
+            signals=_brightdata_to_signals(demo_result),
+            reply="Demo market-intelligence fixture",
+        )
 
     # --- TIER 2: Purch API ---
     purch_result = await search_purch(query, max_results)
@@ -274,6 +321,7 @@ async def search_items(
                 return SearchResponse(
                     status="success",
                     items=_brightdata_to_items(result),
+                    signals=_brightdata_to_signals(result),
                 )
     finally:
         await tf.close()

@@ -15,6 +15,7 @@ import os
 import re
 import logging
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import List, Optional
 from urllib.parse import quote_plus, urlparse
 
@@ -44,8 +45,26 @@ class ProductResult:
 
 
 @dataclass
+class MarketSignal:
+    """Retail intelligence signal derived from live web evidence."""
+    id: str
+    type: str
+    query: str
+    source: str
+    title: str
+    evidence: str
+    action: str
+    confidence: float
+    created_at: str
+    url: Optional[str] = None
+    price: Optional[float] = None
+    currency: str = "USD"
+
+
+@dataclass
 class BrightDataResult:
     products: List[ProductResult] = field(default_factory=list)
+    signals: List[MarketSignal] = field(default_factory=list)
     live_url: Optional[str] = None
 
 
@@ -111,7 +130,10 @@ class BrightDataClient:
 
             if products:
                 logger.info(f"BrightData SERP: {len(products)} products for '{query}'")
-                return BrightDataResult(products=products)
+                return BrightDataResult(
+                    products=products,
+                    signals=self._derive_market_signals(query, products),
+                )
 
             # Fallback: regular Google search
             logger.info("BrightData SERP: No Shopping results, trying regular search")
@@ -131,7 +153,10 @@ class BrightDataClient:
 
             products = self._parse_organic_results(data, max_results)
             logger.info(f"BrightData SERP (organic): {len(products)} products for '{query}'")
-            return BrightDataResult(products=products)
+            return BrightDataResult(
+                products=products,
+                signals=self._derive_market_signals(query, products),
+            )
 
         except Exception as e:
             logger.error(f"BrightData SERP failed: {e}")
@@ -141,7 +166,7 @@ class BrightDataClient:
     # Web Unlocker — page extraction (for product detail pages)
     # ------------------------------------------------------------------
 
-    async def fetch_product_page(self, url: str) -> Optional[BrightDataProduct]:
+    async def fetch_product_page(self, url: str) -> Optional[ProductResult]:
         """Fetch and extract product data from a single page via Web Unlocker."""
         if not self.available:
             return None
@@ -170,9 +195,9 @@ class BrightDataClient:
 
     def _parse_serp_results(
         self, data: dict, max_results: int
-    ) -> List[BrightDataProduct]:
+    ) -> List[ProductResult]:
         """Parse Google Shopping SERP results into products."""
-        products: List[BrightDataProduct] = []
+        products: List[ProductResult] = []
 
         # Shopping results are in "shopping" or "product_results"
         shopping = data.get("shopping", data.get("product_results", []))
@@ -210,9 +235,9 @@ class BrightDataClient:
 
     def _parse_organic_results(
         self, data: dict, max_results: int
-    ) -> List[BrightDataProduct]:
+    ) -> List[ProductResult]:
         """Parse organic Google search results, filtering for product-like pages."""
-        products: List[BrightDataProduct] = []
+        products: List[ProductResult] = []
 
         organic = data.get("organic", [])
         if not isinstance(organic, list):
@@ -276,11 +301,140 @@ class BrightDataClient:
             url=url,
         )
 
+    def _derive_market_signals(
+        self,
+        query: str,
+        products: List[ProductResult],
+    ) -> List[MarketSignal]:
+        """Derive compact GTM signals from product search evidence."""
+        if not products:
+            return [
+                self._signal(
+                    signal_type="product_gap",
+                    query=query,
+                    source="brightdata",
+                    title=f"No live-web matches found for {query}",
+                    evidence="Bright Data returned no comparable products for this query.",
+                    action="Review whether the catalog needs a new listing or broader search terms.",
+                    confidence=0.55,
+                )
+            ]
+
+        signals: List[MarketSignal] = [
+            self._signal(
+                signal_type="product_gap",
+                query=query,
+                source="onpoint_catalog",
+                title=f"Catalog gap detected for {query}",
+                evidence=(
+                    "Internal catalog fallback reached live web discovery; "
+                    f"{len(products)} comparable products were found externally."
+                ),
+                action="Consider adding or promoting a matching Curator listing.",
+                confidence=0.78,
+            )
+        ]
+
+        priced = [p for p in products if p.price > 0]
+        if priced:
+            prices = [p.price for p in priced]
+            low = min(prices)
+            high = max(prices)
+            currency = priced[0].currency or "USD"
+            signals.append(
+                self._signal(
+                    signal_type="competitor_price",
+                    query=query,
+                    source="brightdata_serp",
+                    title=f"Comparable price range: {currency} {low:.2f}-{high:.2f}",
+                    evidence=(
+                        f"{len(priced)} priced comparable products found across "
+                        f"{self._source_count(priced)} retailers."
+                    ),
+                    action="Use this range to price or position the closest Curator listing.",
+                    confidence=self._bounded_confidence(0.62 + 0.08 * len(priced)),
+                    price=low,
+                    currency=currency,
+                )
+            )
+
+        for product in products[:3]:
+            signals.append(
+                self._signal(
+                    signal_type="retailer_availability",
+                    query=query,
+                    source=product.source,
+                    title=product.name,
+                    evidence=(
+                        f"Live comparable item found on {product.source}"
+                        + (f" at {product.currency} {product.price:.2f}." if product.price > 0 else ".")
+                    ),
+                    action="Use as competitive context for recommendations, listings, or campaign copy.",
+                    confidence=0.72 if product.price > 0 else 0.64,
+                    url=product.url,
+                    price=product.price if product.price > 0 else None,
+                    currency=product.currency,
+                )
+            )
+
+        signals.append(
+            self._signal(
+                signal_type="recommended_action",
+                query=query,
+                source="onpoint_agent",
+                title=f"Merchandising action for {query}",
+                evidence=f"Live web discovery found {len(products)} comparable products for shopper intent.",
+                action="Create a Curator-facing recommendation: stock, feature, or source a matching item.",
+                confidence=0.7,
+            )
+        )
+
+        return signals
+
+    def _signal(
+        self,
+        signal_type: str,
+        query: str,
+        source: str,
+        title: str,
+        evidence: str,
+        action: str,
+        confidence: float,
+        url: Optional[str] = None,
+        price: Optional[float] = None,
+        currency: str = "USD",
+    ) -> MarketSignal:
+        created_at = datetime.now(timezone.utc).isoformat()
+        safe_type = re.sub(r"[^a-z0-9]+", "-", signal_type.lower()).strip("-")
+        safe_query = re.sub(r"[^a-z0-9]+", "-", query.lower()).strip("-")[:48] or "query"
+        safe_source = re.sub(r"[^a-z0-9]+", "-", source.lower()).strip("-")[:32] or "source"
+
+        return MarketSignal(
+            id=f"{safe_type}:{safe_query}:{safe_source}",
+            type=signal_type,
+            query=query,
+            source=source,
+            title=title,
+            url=url,
+            price=price,
+            currency=currency,
+            confidence=self._bounded_confidence(confidence),
+            evidence=evidence,
+            action=action,
+            created_at=created_at,
+        )
+
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
 
     _PRICE_RE = re.compile(r"\$\s?([\d,]+(?:\.\d{2})?)")
+
+    def _bounded_confidence(self, confidence: float) -> float:
+        return max(0.0, min(1.0, round(confidence, 2)))
+
+    def _source_count(self, products: List[ProductResult]) -> int:
+        return len({p.source for p in products if p.source})
 
     def _parse_price(self, text: str) -> float:
         """Extract first price from text."""

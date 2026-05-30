@@ -11,6 +11,7 @@ import {
   ShoppingBag,
   User,
   Image as ImageIcon,
+  Radar,
 } from "lucide-react";
 import { NotificationBell } from "../NotificationBell";
 import type { FashionItem } from "@onpoint/shared-types";
@@ -27,8 +28,9 @@ import { HomePanel } from "./HomePanel";
 import { MyLooksPanel } from "./MyLooksPanel";
 import { DesignPanel } from "./DesignPanel";
 import { SettingsPanel } from "./SettingsPanel";
+import { MarketIntelPanel } from "./MarketIntelPanel";
 
-type AppMode = "dashboard" | "my-looks" | "try-on" | "stylist" | "shop" | "settings" | "design";
+type AppMode = "dashboard" | "my-looks" | "try-on" | "stylist" | "shop" | "intel" | "settings" | "design";
 
 interface TacticalDashboardProps {
   onBack?: () => void;
@@ -68,7 +70,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
   }, []);
 
   // All valid modes (for URL param validation)
-  const ALL_MODES: AppMode[] = ["dashboard", "my-looks", "try-on", "stylist", "shop", "settings", "design"];
+  const ALL_MODES: AppMode[] = ["dashboard", "my-looks", "try-on", "stylist", "shop", "intel", "settings", "design"];
 
   // Desktop top-bar: full set of tabs
   const desktopNavItems = [
@@ -76,6 +78,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
     { id: "try-on" as AppMode, label: "Try On", icon: Camera, color: "text-accent" },
     { id: "stylist" as AppMode, label: "Stylist", icon: MessageCircle, color: "text-primary" },
     { id: "shop" as AppMode, label: "Shop", icon: ShoppingBag, color: "text-amber-400" },
+    { id: "intel" as AppMode, label: "Intel", icon: Radar, color: "text-emerald-400" },
     { id: "my-looks" as AppMode, label: "My Looks", icon: Palette, color: "text-indigo-400" },
     { id: "settings" as AppMode, label: "Settings", icon: Target, color: "text-muted-foreground" },
   ];
@@ -99,6 +102,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
       onDismissDeepLink={() => setDeepLinkContext(null)}
     />,
     stylist: () => <StylistPanel />,
+    intel: () => <MarketIntelPanel />,
     shop: () => (
       <ShopPanel
         onTryOn={(item?: FashionItem) => {
