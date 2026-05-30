@@ -180,6 +180,41 @@ export function SessionEndingCard({
             </motion.div>
           )}
 
+          {/* Score Evidence */}
+          {summary.scoreEvidence.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.75 }}
+              className="space-y-2"
+            >
+              <p className="text-[9px] text-muted-foreground/60 uppercase tracking-widest font-bold flex items-center gap-1.5">
+                <Eye className="w-3 h-3" />
+                Score Evidence
+              </p>
+              <div className="space-y-1.5">
+                {summary.scoreEvidence.map((evidence, i) => (
+                  <div
+                    key={i}
+                    className="flex items-start gap-2 px-2.5 py-1.5 rounded-lg bg-muted/20 border border-border/30"
+                  >
+                    <div className="w-1 h-1 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                    <span className="text-[11px] text-foreground/60 leading-relaxed">
+                      {evidence}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[9px] text-muted-foreground/40">
+                {summary.scoreSource === "model"
+                  ? "From AI analysis"
+                  : "Derived from sentiment"}
+                {" · "}
+                {Math.round(summary.scoreConfidence * 100)}% confidence
+              </p>
+            </motion.div>
+          )}
+
           {/* Capture preview */}
           {captures.length > 0 && (
             <motion.div

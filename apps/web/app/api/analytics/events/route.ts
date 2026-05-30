@@ -3,6 +3,7 @@ import { corsHeaders } from "../../ai/_utils/http";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 export { OPTIONS } from "../../ai/_utils/http";
 import { logger } from "../../../../lib/utils/logger";
+import { recordProviderOutcome } from "../../../../lib/utils/analytics-store";
 
 interface AnalyticsEvent {
   event: string;
@@ -50,6 +51,25 @@ export async function POST(request: NextRequest) {
         } });
       }
 
+      // Persist provider outcome aggregations to Redis (best-effort)
+      const outcomeEvents = events.filter(
+        (e) => e.event === "virtual_try_on_provider_outcome",
+      );
+      for (const oe of outcomeEvents) {
+        const p = oe.properties || {};
+        recordProviderOutcome({
+          provider: p.provider as string | undefined,
+          imageConditioned: Boolean(p.imageConditioned),
+          fallbackReason: p.fallbackReason as string | null | undefined || null,
+          latencyMs: p.latencyMs as number | undefined,
+          errorClass: p.errorClass as string | null | undefined || null,
+          garmentSource: p.garmentSource as string | undefined,
+          garmentCategory: p.garmentCategory as string | undefined,
+          hasPersonImage: Boolean(p.hasPersonImage),
+          hasGarmentImage: Boolean(p.hasGarmentImage),
+        });
+      }
+
       // Aggregate metrics for key events
       const metrics = {
         provider_selections: events.filter(
@@ -66,9 +86,7 @@ export async function POST(request: NextRequest) {
         payments_completed: events.filter(
           (e) => e.event === "payment_completed",
         ).length,
-        virtual_try_on_provider_outcomes: events.filter(
-          (e) => e.event === "virtual_try_on_provider_outcome",
-        ).length,
+        virtual_try_on_provider_outcomes: outcomeEvents.length,
         virtual_try_on_provider_errors: events.filter(
           (e) => e.event === "virtual_try_on_provider_error",
         ).length,

@@ -158,9 +158,11 @@ async function upstashRateLimit(
  * Check and update rate limit for a given key
  * Uses Redis in production, in-memory in development
  *
- * In production, if Redis is configured but unreachable, the function
- * returns { allowed: false } rather than silently falling back to the
- * broken in-memory store (which resets on every serverless cold start).
+ * In production, if Redis is configured but unreachable, falls back to
+ * per-process in-memory rate limiting as a best-effort guard. This is
+ * intentionally less strict than the Redis-backed limit (each serverless
+ * cold start resets the counter), but keeping the API available during a
+ * transient Redis outage is better than denying all requests.
  */
 export async function rateLimit(
   key: string,
@@ -176,17 +178,9 @@ export async function rateLimit(
       return await upstashRateLimit(key, config);
     } catch (error) {
       console.error(
-        "[RateLimit] Redis unavailable in production — denying request:",
+        "[RateLimit] Redis unavailable in production — falling back to in-memory:",
         error,
       );
-      // Do NOT fall back to in-memory in production — it is broken in serverless
-      // and silently disables all rate limiting. Deny the request instead.
-      return {
-        allowed: false,
-        remaining: 0,
-        resetAt: Date.now() + config.windowMs,
-        limit: config.maxRequests,
-      };
     }
   }
 
