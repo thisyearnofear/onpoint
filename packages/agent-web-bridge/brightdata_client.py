@@ -215,7 +215,7 @@ class BrightDataClient:
                 )
 
                 url = item.get("link", item.get("url", ""))
-                source = self._extract_domain(url)
+                source = self._extract_result_source(item, url)
                 image_url = item.get("thumbnail", item.get("image", ""))
 
                 products.append(
@@ -447,6 +447,28 @@ class BrightDataClient:
         if match:
             return float(match.group(1).replace(",", ""))
         return 0.0
+
+    def _extract_result_source(self, item: dict, url: str) -> str:
+        """Prefer merchant labels from structured SERP data over Google redirect URLs."""
+        source_fields = (
+            "shop",
+            "merchant",
+            "seller",
+            "store",
+            "source",
+            "domain",
+            "displayed_link",
+        )
+        for key in source_fields:
+            value = item.get(key)
+            if isinstance(value, str) and value.strip():
+                value = value.strip()
+                if value.startswith(("http://", "https://")) or "." in value:
+                    domain = self._extract_domain(value)
+                    if domain != "web":
+                        return domain
+                return value
+        return self._extract_domain(url)
 
     def _extract_domain(self, url: str) -> str:
         """Extract domain from URL."""

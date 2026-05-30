@@ -50,6 +50,25 @@ class TestBrightDataClient:
         assert products[1].price == 149.5
         assert products[1].source == "nordstrom.com"
 
+    def test_parse_serp_results_prefers_shop_source(self, client):
+        response = {
+            "shopping": [
+                {
+                    "title": "Zara Cropped Blazer",
+                    "price": "$79.90",
+                    "shop": "Zara",
+                    "link": "https://www.google.com/search?ibp=oshop&q=Zara+Cropped+Blazer",
+                    "image": "https://example.com/zara.jpg",
+                }
+            ]
+        }
+
+        products = client._parse_serp_results(response, max_results=3)
+
+        assert len(products) == 1
+        assert products[0].source == "Zara"
+        assert products[0].url.startswith("https://www.google.com/search")
+
     def test_derive_market_signals_from_products(self, client):
         products = [
             ProductResult(
