@@ -66,6 +66,12 @@ export async function POST(request: NextRequest) {
         payments_completed: events.filter(
           (e) => e.event === "payment_completed",
         ).length,
+        virtual_try_on_provider_outcomes: events.filter(
+          (e) => e.event === "virtual_try_on_provider_outcome",
+        ).length,
+        virtual_try_on_provider_errors: events.filter(
+          (e) => e.event === "virtual_try_on_provider_error",
+        ).length,
       };
 
       return NextResponse.json(
@@ -85,4 +91,3 @@ export async function POST(request: NextRequest) {
     }
   })(request);
 }
-

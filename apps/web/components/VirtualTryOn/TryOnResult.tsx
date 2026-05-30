@@ -49,6 +49,7 @@ interface TryOnResultProps {
   onVariantFromTip?: (args: { tip: string; payload?: string }) => void;
   /** One-click retry with same settings */
   onRetry?: () => void;
+  onChangeGarment?: () => void;
 }
 
 // Utility function to parse simple markdown bold text
@@ -118,6 +119,7 @@ export function TryOnResult({
   originalPhotoUrl,
   onVariantFromTip,
   onRetry,
+  onChangeGarment,
 }: TryOnResultProps) {
   const { context } = useMiniApp();
   const [copied, setCopied] = useState(false);
@@ -351,14 +353,26 @@ export function TryOnResult({
 
           {/* One-click retry */}
           {onRetry && (
-            <Button
-              variant="ghost"
-              className="w-full text-primary hover:bg-primary/10"
-              onClick={onRetry}
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Regenerate with same settings
-            </Button>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button
+                variant="ghost"
+                className="w-full text-primary hover:bg-primary/10"
+                onClick={onRetry}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Regenerate
+              </Button>
+              {onChangeGarment && (
+                <Button
+                  variant="ghost"
+                  className="w-full text-primary hover:bg-primary/10"
+                  onClick={onChangeGarment}
+                >
+                  <Shirt className="h-4 w-4 mr-2" />
+                  Change garment
+                </Button>
+              )}
+            </div>
           )}
 
           <Button variant="outline" className="w-full">

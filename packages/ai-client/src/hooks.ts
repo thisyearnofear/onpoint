@@ -482,6 +482,9 @@ export const useAIVirtualTryOnEnhancement = () => {
     generatedImage?: string;
     provider?: string;
     imageConditioned?: boolean;
+    fallbackReason?: string | null;
+    latencyMs?: number;
+    errorClass?: string | null;
   } | null>(null);
   const aiClient = useAIClient();
 
@@ -525,6 +528,9 @@ export const useAIVirtualTryOnEnhancement = () => {
           generatedImage: result.generatedImage,
           provider: result.provider,
           imageConditioned: result.imageConditioned,
+          fallbackReason: result.fallbackReason,
+          latencyMs: result.latencyMs,
+          errorClass: result.errorClass,
         });
 
         return true;

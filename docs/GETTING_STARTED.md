@@ -93,8 +93,9 @@ Copy `.env.example` to `.env.local` and configure:
 
 OnPoint uses Auth0 for account identity and wallet connection only where onchain trust is needed.
 
-- MiniPay: the app detects `window.ethereum.isMiniPay` and auto-connects the injected wallet.
-- Web/mobile browsers: RainbowKit/WalletConnect handles explicit wallet connection.
+- MiniPay: the app detects `window.ethereum.isMiniPay` and can behave wallet-aware from the first session because the wallet is the host environment. The wallet may auto-connect, but account linking still remains explicit.
+- Web/mobile browsers: use Auth0 or email/social login first. RainbowKit/WalletConnect should be offered contextually when the user reaches a wallet-required action, not as a blocking login step.
+- Desktop/mobile web3 users: WalletConnect is a contextual linking and signing rail for checkout, ownership, rewards, and spend permissions. It is not the default identity primitive for the whole app.
 - Wallet linking: a connected wallet is not trusted just because an address is present. The user must click "Link Account" and sign a SIWE message; `/api/auth/link-wallet` verifies the signature, domain, and one-time nonce before mapping the wallet to the Auth0 user.
 - Wallet-required moments: checkout with crypto, minting, tips, escrow, agent treasury, token-gated access, and signed agent spending permissions.
 

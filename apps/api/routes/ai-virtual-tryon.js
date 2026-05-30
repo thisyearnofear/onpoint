@@ -576,6 +576,9 @@ function parseVirtualTryOnResponse(aiResponse, type, originalData) {
 }
 
 async function buildGeneratedOutfitImageResponse({ data, provider }) {
+  const startedAt = Date.now();
+  let fallbackReason = null;
+  let errorClass = null;
   const personDescription = (data && data.personDescription) || '';
   const humanImage = data && data.photoData;
   const garmentImage =
@@ -616,26 +619,53 @@ async function buildGeneratedOutfitImageResponse({ data, provider }) {
         structuredTips = parsed.structuredTips;
       }
 
-      return {
+      const result = {
         generatedImage,
         enhancedOutfit: (data && data.items) || [],
         stylingTips,
         structuredTips,
         provider: 'replicate-idm-vton',
         imageConditioned: true,
+        fallbackReason: null,
+        latencyMs: Date.now() - startedAt,
+        errorClass: null,
       };
+      logger.info('Virtual try-on provider outcome', {
+        component: 'virtual-tryon',
+        action: 'generate-outfit-image',
+        provider: result.provider,
+        imageConditioned: result.imageConditioned,
+        fallbackReason: result.fallbackReason,
+        latencyMs: result.latencyMs,
+        errorClass: result.errorClass,
+      });
+      return result;
     } catch (error) {
+      fallbackReason = 'replicate_unavailable';
+      errorClass = error?.name || 'ReplicateError';
       logger.warn('Replicate IDM-VTON failed, falling back to Venice image generation', {
         component: 'virtual-tryon',
         error: error.message,
+        errorClass,
       });
     }
+  } else if (!process.env.REPLICATE_API_TOKEN) {
+    fallbackReason = 'replicate_not_configured';
+  } else {
+    fallbackReason = !humanImage
+      ? 'missing_person_image'
+      : !garmentImage
+        ? 'missing_garment_image'
+        : 'missing_conditioning_input';
   }
 
   const veniceApiKey = process.env.VENICE_API_KEY;
   if (!veniceApiKey) {
     const error = new Error('Venice API key not configured');
     error.status = 500;
+    error.fallbackReason = fallbackReason || 'venice_not_configured';
+    error.errorClass = 'ConfigurationError';
+    error.latencyMs = Date.now() - startedAt;
     throw error;
   }
 
@@ -673,7 +703,7 @@ async function buildGeneratedOutfitImageResponse({ data, provider }) {
     structuredTips = parsed.structuredTips;
   }
 
-  return {
+  const result = {
     generatedImage: veniceData.images[0],
     enhancedOutfit: (data && data.items) || [],
     stylingTips: personalizedTips.length
@@ -682,7 +712,20 @@ async function buildGeneratedOutfitImageResponse({ data, provider }) {
     structuredTips,
     provider: 'venice-image',
     imageConditioned: false,
+    fallbackReason,
+    latencyMs: Date.now() - startedAt,
+    errorClass,
   };
+  logger.info('Virtual try-on provider outcome', {
+    component: 'virtual-tryon',
+    action: 'generate-outfit-image',
+    provider: result.provider,
+    imageConditioned: result.imageConditioned,
+    fallbackReason: result.fallbackReason,
+    latencyMs: result.latencyMs,
+    errorClass: result.errorClass,
+  });
+  return result;
 }
 
 // ---------------------------------------------------------------------------

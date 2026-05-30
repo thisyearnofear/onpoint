@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from "react";
 import { Button } from "@repo/ui/button";
-import { Check, Sparkles, Upload, Camera } from "lucide-react";
+import { Check, Search, Sparkles, Upload, Camera } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useVirtualTryOn } from "@repo/ai-client";
 import { useAIVirtualTryOnEnhancement } from "@repo/ai-client";
@@ -15,6 +15,11 @@ import { usePremiumStatus } from "../hooks/use-premium-status";
 import { useUserPreferences } from "../hooks/useUserPreferences";
 import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import type { TryOnSelection } from "../lib/utils/try-on-selection";
+import {
+  trackTryOnGarmentSelected,
+  trackVirtualTryOnProviderError,
+  trackVirtualTryOnProviderOutcome,
+} from "../lib/utils/analytics";
 
 import {
   PhotoUpload,
@@ -52,6 +57,25 @@ interface VirtualTryOnProps {
   selectedTryOnItem?: TryOnSelection | null;
 }
 
+type SelectableGarment = TryOnSelection & {
+  selectionKey: string;
+};
+
+function formatTryOnPrice(price?: number) {
+  if (!price) return null;
+  return new Intl.NumberFormat("en-KE", {
+    style: "currency",
+    currency: "KES",
+    maximumFractionDigits: 0,
+  }).format(price);
+}
+
+function sourceLabel(source?: string) {
+  if (!source) return "Catalog";
+  if (source.startsWith("storefront:")) return "Storefront";
+  return source.charAt(0).toUpperCase() + source.slice(1);
+}
+
 export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
   // Core state
   const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
@@ -62,7 +86,10 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
   const [showLiveStylist, setShowLiveStylist] = useState(true); // Default to live AR
   const [qualityWarning, setQualityWarning] = useState<string | null>(null);
   const [selectedPhotoData, setSelectedPhotoData] = useState<string | null>(null);
-  const [selectedCatalogItemId, setSelectedCatalogItemId] = useState<string | null>(null);
+  const [selectedGarmentKey, setSelectedGarmentKey] = useState<string | null>(null);
+  const [garmentSearch, setGarmentSearch] = useState("");
+  const [sourceFilter, setSourceFilter] = useState<"all" | "catalog" | "storefront">("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const { isPremium, loading: premiumLoading } = usePremiumStatus();
   const { preferences } = useUserPreferences();
 
@@ -90,6 +117,59 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
     getPersonalityCritique,
     clearError: clearCritiqueError,
   } = useReplicateVirtualTryOn();
+
+  const catalogGarments = React.useMemo<SelectableGarment[]>(
+    () =>
+      CANVAS_ITEMS.map((item) => ({
+        id: item.id,
+        selectionKey: `catalog:${item.id}`,
+        name: item.name,
+        description: item.description,
+        price: item.price,
+        category: item.category,
+        imageUrl: item.productSrc || item.cover,
+        source: "catalog",
+      })),
+    [],
+  );
+  const externalGarment = React.useMemo<SelectableGarment | null>(
+    () =>
+      selectedTryOnItem
+        ? {
+            ...selectedTryOnItem,
+            selectionKey: `external:${selectedTryOnItem.id}`,
+          }
+        : null,
+    [selectedTryOnItem],
+  );
+  const garmentOptions = React.useMemo(
+    () => (externalGarment ? [externalGarment, ...catalogGarments] : catalogGarments),
+    [catalogGarments, externalGarment],
+  );
+  const categoryOptions = React.useMemo(
+    () =>
+      Array.from(
+        new Set(
+          garmentOptions
+            .map((item) => item.category)
+            .filter((value): value is string => Boolean(value)),
+        ),
+      ).sort(),
+    [garmentOptions],
+  );
+
+  React.useEffect(() => {
+    if (!selectedTryOnItem) return;
+    const key = `external:${selectedTryOnItem.id}`;
+    setSelectedGarmentKey(key);
+    trackTryOnGarmentSelected({
+      garmentId: selectedTryOnItem.id,
+      garmentSource: selectedTryOnItem.source,
+      garmentCategory: selectedTryOnItem.category,
+      hasImage: Boolean(selectedTryOnItem.imageUrl),
+      method: "deep_link",
+    });
+  }, [selectedTryOnItem]);
 
   // Handlers
   const handlePhotoSelect = useCallback(async (file: File, qualityResult: QualityCheckResult) => {
@@ -181,21 +261,38 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
     ...(analysis?.fitRecommendations || []),
     ...(analysis?.styleAdjustments || []),
   ].join("\n");
-  const selectedCatalogItem =
-    CANVAS_ITEMS.find((item) => item.id === selectedCatalogItemId) || null;
   const selectedGarment =
-    selectedTryOnItem ||
-    (selectedCatalogItem
-      ? {
-          id: selectedCatalogItem.id,
-          name: selectedCatalogItem.name,
-          description: selectedCatalogItem.description,
-          price: selectedCatalogItem.price,
-          category: selectedCatalogItem.category,
-          imageUrl: selectedCatalogItem.productSrc || selectedCatalogItem.cover,
-          source: "catalog",
+    garmentOptions.find((item) => item.selectionKey === selectedGarmentKey) || null;
+  const filteredGarments = React.useMemo(() => {
+    const query = garmentSearch.trim().toLowerCase();
+    return garmentOptions
+      .filter((item) => {
+        if (sourceFilter === "catalog" && item.source !== "catalog") return false;
+        if (sourceFilter === "storefront" && !item.source?.startsWith("storefront:")) {
+          return false;
         }
-      : null);
+        if (categoryFilter !== "all" && item.category !== categoryFilter) return false;
+        if (!query) return true;
+        return `${item.name} ${item.description} ${item.category || ""}`
+          .toLowerCase()
+          .includes(query);
+      })
+      .slice(0, 12);
+  }, [categoryFilter, garmentOptions, garmentSearch, sourceFilter]);
+  const selectGarment = useCallback(
+    (item: SelectableGarment, method: "carousel" | "change_garment" = "carousel") => {
+      setSelectedGarmentKey(item.selectionKey);
+      clearEnhancement();
+      trackTryOnGarmentSelected({
+        garmentId: item.id,
+        garmentSource: item.source,
+        garmentCategory: item.category,
+        hasImage: Boolean(item.imageUrl),
+        method,
+      });
+    },
+    [clearEnhancement],
+  );
   const tryOnItems = React.useMemo(
     () =>
       selectedGarment
@@ -235,6 +332,47 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
         providerLabel: getProviderLabel(enhancement),
       }
     : null;
+  const outcomeKeyRef = React.useRef<string | null>(null);
+  const errorKeyRef = React.useRef<string | null>(null);
+
+  React.useEffect(() => {
+    if (!enhancement) return;
+    const key = [
+      enhancement.provider,
+      enhancement.imageConditioned,
+      enhancement.fallbackReason,
+      enhancement.latencyMs,
+      enhancement.generatedImage?.slice(0, 32),
+    ].join("|");
+    if (outcomeKeyRef.current === key) return;
+    outcomeKeyRef.current = key;
+    trackVirtualTryOnProviderOutcome({
+      provider: enhancement.provider,
+      imageConditioned: Boolean(enhancement.imageConditioned),
+      fallbackReason: enhancement.fallbackReason,
+      latencyMs: enhancement.latencyMs,
+      errorClass: enhancement.errorClass,
+      garmentSource: selectedGarment?.source,
+      garmentCategory: selectedGarment?.category,
+      hasPersonImage: Boolean(selectedPhotoData),
+      hasGarmentImage: Boolean(selectedGarment?.imageUrl),
+    });
+  }, [enhancement, selectedGarment, selectedPhotoData]);
+
+  React.useEffect(() => {
+    if (!tryOnError) return;
+    const key = `${tryOnError}|${selectedGarment?.id || "none"}`;
+    if (errorKeyRef.current === key) return;
+    errorKeyRef.current = key;
+    trackVirtualTryOnProviderError({
+      errorClass: "ClientTryOnError",
+      fallbackReason: "request_failed",
+      garmentSource: selectedGarment?.source,
+      garmentCategory: selectedGarment?.category,
+      hasPersonImage: Boolean(selectedPhotoData),
+      hasGarmentImage: Boolean(selectedGarment?.imageUrl),
+    });
+  }, [tryOnError, selectedGarment, selectedPhotoData]);
 
   return (
     <section className="py-4">
@@ -381,6 +519,18 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
                           originalPhotoUrl={previewUrl}
                           onBack={clearEnhancement}
                           onRetry={handleGenerateTryOn}
+                          onChangeGarment={() => {
+                            clearEnhancement();
+                            if (selectedGarment) {
+                              trackTryOnGarmentSelected({
+                                garmentId: selectedGarment.id,
+                                garmentSource: selectedGarment.source,
+                                garmentCategory: selectedGarment.category,
+                                hasImage: Boolean(selectedGarment.imageUrl),
+                                method: "change_garment",
+                              });
+                            }
+                          }}
                         />
                       </motion.div>
                     )}
@@ -401,11 +551,45 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
                         <div className="mt-4 rounded-lg border border-primary/20 bg-primary/5 p-3">
                           <div className="flex items-center justify-between gap-3">
                             <p className="text-xs font-semibold text-primary">
-                              {selectedTryOnItem ? "Selected for try-on" : "Choose a garment"}
+                              {selectedGarment ? "Selected for try-on" : "Choose a garment"}
                             </p>
                             <span className="rounded-full border border-primary/20 px-2 py-0.5 text-[10px] font-medium text-primary">
                               {selectedGarment ? "Ready" : "Required"}
                             </span>
+                          </div>
+                          <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_120px_120px]">
+                            <label className="relative block">
+                              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                              <input
+                                value={garmentSearch}
+                                onChange={(event) => setGarmentSearch(event.target.value)}
+                                placeholder="Search garments"
+                                className="h-9 w-full rounded-md border border-border bg-background pl-8 pr-3 text-xs outline-none focus:border-primary"
+                              />
+                            </label>
+                            <select
+                              value={sourceFilter}
+                              onChange={(event) =>
+                                setSourceFilter(event.target.value as "all" | "catalog" | "storefront")
+                              }
+                              className="h-9 rounded-md border border-border bg-background px-2 text-xs outline-none focus:border-primary"
+                            >
+                              <option value="all">All sources</option>
+                              <option value="catalog">Catalog</option>
+                              <option value="storefront">Storefront</option>
+                            </select>
+                            <select
+                              value={categoryFilter}
+                              onChange={(event) => setCategoryFilter(event.target.value)}
+                              className="h-9 rounded-md border border-border bg-background px-2 text-xs outline-none focus:border-primary"
+                            >
+                              <option value="all">All categories</option>
+                              {categoryOptions.map((category) => (
+                                <option key={category} value={category}>
+                                  {category}
+                                </option>
+                              ))}
+                            </select>
                           </div>
                           {selectedGarment ? (
                             <div className="mt-2 flex gap-3">
@@ -423,18 +607,33 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
                                 <p className="text-xs text-muted-foreground line-clamp-2">
                                   {selectedGarment.description}
                                 </p>
+                                <div className="mt-1 flex flex-wrap gap-1.5">
+                                  <span className="rounded-full bg-background px-2 py-0.5 text-[10px] text-muted-foreground">
+                                    {sourceLabel(selectedGarment.source)}
+                                  </span>
+                                  {selectedGarment.category && (
+                                    <span className="rounded-full bg-background px-2 py-0.5 text-[10px] text-muted-foreground">
+                                      {selectedGarment.category}
+                                    </span>
+                                  )}
+                                  {formatTryOnPrice(selectedGarment.price) && (
+                                    <span className="rounded-full bg-background px-2 py-0.5 text-[10px] text-muted-foreground">
+                                      {formatTryOnPrice(selectedGarment.price)}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          ) : (
-                            <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-                              {CANVAS_ITEMS.slice(0, 8).map((item) => {
-                                const imageUrl = item.productSrc || item.cover;
-                                const isSelected = item.id === selectedCatalogItemId;
+                          ) : null}
+                          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                            {filteredGarments.map((item) => {
+                              const isSelected = item.selectionKey === selectedGarmentKey;
+                              const price = formatTryOnPrice(item.price);
                                 return (
                                   <button
-                                    key={item.id}
+                                    key={item.selectionKey}
                                     type="button"
-                                    onClick={() => setSelectedCatalogItemId(item.id)}
+                                    onClick={() => selectGarment(item)}
                                     className={`relative w-28 shrink-0 rounded-lg border bg-background p-2 text-left transition-colors ${
                                       isSelected
                                         ? "border-primary bg-primary/5"
@@ -442,9 +641,9 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
                                     }`}
                                   >
                                     <div className="aspect-square overflow-hidden rounded-md bg-muted">
-                                      {imageUrl ? (
+                                      {item.imageUrl ? (
                                         <img
-                                          src={imageUrl}
+                                          src={item.imageUrl}
                                           alt={item.name}
                                           className="h-full w-full object-cover"
                                         />
@@ -452,6 +651,10 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
                                     </div>
                                     <p className="mt-2 truncate text-xs font-medium">
                                       {item.name}
+                                    </p>
+                                    <p className="truncate text-[10px] text-muted-foreground">
+                                      {sourceLabel(item.source)}
+                                      {price ? ` · ${price}` : ""}
                                     </p>
                                     {isSelected && (
                                       <span className="absolute right-1.5 top-1.5 rounded-full bg-primary p-1 text-primary-foreground">
@@ -461,8 +664,12 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
                                   </button>
                                 );
                               })}
-                            </div>
-                          )}
+                              {filteredGarments.length === 0 && (
+                                <div className="flex h-28 min-w-full items-center justify-center rounded-lg border border-dashed border-border bg-background text-xs text-muted-foreground">
+                                  No garments match those filters
+                                </div>
+                              )}
+                          </div>
                         </div>
                         <div className="mt-4">
                           <Button

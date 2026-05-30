@@ -226,6 +226,44 @@ export function trackResultCompareToggled(properties: {
   trackEvent("result_compare_toggled", properties);
 }
 
+export function trackVirtualTryOnProviderOutcome(properties: {
+  provider?: string;
+  imageConditioned: boolean;
+  fallbackReason?: string | null;
+  latencyMs?: number;
+  errorClass?: string | null;
+  garmentSource?: string;
+  garmentCategory?: string;
+  hasPersonImage: boolean;
+  hasGarmentImage: boolean;
+}): void {
+  trackEvent("virtual_try_on_provider_outcome", properties);
+}
+
+export function trackVirtualTryOnProviderError(properties: {
+  provider?: string;
+  imageConditioned?: boolean;
+  fallbackReason?: string | null;
+  latencyMs?: number;
+  errorClass: string;
+  garmentSource?: string;
+  garmentCategory?: string;
+  hasPersonImage: boolean;
+  hasGarmentImage: boolean;
+}): void {
+  trackEvent("virtual_try_on_provider_error", properties);
+}
+
+export function trackTryOnGarmentSelected(properties: {
+  garmentId: string;
+  garmentSource?: string;
+  garmentCategory?: string;
+  hasImage: boolean;
+  method: "carousel" | "deep_link" | "change_garment";
+}): void {
+  trackEvent("try_on_garment_selected", properties);
+}
+
 /**
  * Flush events to the server
  */

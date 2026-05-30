@@ -108,7 +108,10 @@ PERSONALIZATION:
       generatedImage: 'base64-webp-image',
       provider: 'venice-image',
       imageConditioned: false,
+      fallbackReason: 'replicate_unavailable',
+      errorClass: 'Error',
     });
+    expect(result.latencyMs).toEqual(expect.any(Number));
   });
 
   it('returns Replicate URL output as an image-conditioned try-on', async () => {
@@ -140,6 +143,9 @@ PERSONALIZATION:
       generatedImage: 'https://replicate.delivery/result.webp',
       provider: 'replicate-idm-vton',
       imageConditioned: true,
+      fallbackReason: null,
+      errorClass: null,
     });
+    expect(result.latencyMs).toEqual(expect.any(Number));
   });
 });

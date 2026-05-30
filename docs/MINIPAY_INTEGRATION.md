@@ -32,6 +32,14 @@ When a user opens OnPoint inside MiniPay:
 4. All transactions use MiniPay's injected provider
 5. If the user is also signed in with Auth0, wallet/account linking still requires an explicit SIWE signature
 
+## Product Integration Model
+
+Use wallet integration differently by environment:
+
+- **MiniPay**: treat the wallet as ambient context. It is acceptable for onboarding to be wallet-aware or wallet-first because the app is already running inside a wallet shell. Still require SIWE before mapping the wallet to an Auth0 user or granting durable account privileges.
+- **Normal web**: keep Google/email/Auth0 as the primary account path. Ask for a wallet only when the user reaches checkout, rewards, minting, token-gated access, agent spend authorization, tipping, or escrow.
+- **Desktop/mobile web3**: use WalletConnect as contextual linking. A connected wallet can sign payments and ownership actions, but should not replace the main account unless the user explicitly links it with SIWE.
+
 ## Testing MiniPay Integration
 
 ### Prerequisites
