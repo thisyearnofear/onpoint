@@ -127,37 +127,42 @@ async function sendCogneeMemory(
 ): Promise<MarketPartnerIntegration> {
   const createdAt = new Date().toISOString();
   const summary = buildSignalSummary(snapshot);
-  const cogneeUrl = process.env.COGNEE_INGEST_URL || process.env.COGNEE_API_URL;
+  const cogneeBaseUrl = process.env.COGNEE_API_URL;
   const cogneeKey = process.env.COGNEE_API_KEY;
+  const cogneeTenantId = process.env.COGNEE_TENANT_ID;
 
-  if (!cogneeUrl || !cogneeKey) {
+  if (!cogneeBaseUrl || !cogneeKey || !cogneeTenantId) {
     return {
       id: `cognee-ready-${Date.now()}`,
       partner: "cognee",
       label: "Cognee Memory",
       status: "ready",
       summary: "Retail signal memory prepared",
-      evidence: `${memory.repeatedIntentCount} intent capture${memory.repeatedIntentCount === 1 ? "" : "s"} for ${snapshot.query}; ${memory.rememberedRetailers.length} retailer memories ready for Cognee.`,
+      evidence: `${memory.repeatedIntentCount} intent capture${memory.repeatedIntentCount === 1 ? "" : "s"} for ${snapshot.query}; ${memory.rememberedRetailers.length} retailer memories ready for Cognee. Set COGNEE_API_URL, COGNEE_TENANT_ID, and COGNEE_API_KEY to send live memory.`,
       createdAt,
     };
   }
 
   try {
-    const response = await fetch(cogneeUrl, {
+    const response = await fetch(`${cogneeBaseUrl.replace(/\/$/, "")}/api/v1/add`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${cogneeKey}`,
         "Content-Type": "application/json",
+        "X-Api-Key": cogneeKey,
+        "X-Tenant-Id": cogneeTenantId,
       },
       body: JSON.stringify({
-        source: "onpoint-market-intelligence",
-        type: "retail_signal_memory",
-        query: snapshot.query,
-        products: snapshot.products,
-        signals: snapshot.signals,
-        memory,
-        summary,
-        createdAt: snapshot.createdAt,
+        dataset_name: "onpoint_retail_signals",
+        data: JSON.stringify({
+          source: "onpoint-market-intelligence",
+          type: "retail_signal_memory",
+          query: snapshot.query,
+          products: snapshot.products,
+          signals: snapshot.signals,
+          memory,
+          summary,
+          createdAt: snapshot.createdAt,
+        }),
       }),
       signal: AbortSignal.timeout(8000),
     });
