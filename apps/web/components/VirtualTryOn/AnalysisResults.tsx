@@ -151,6 +151,34 @@ export function AnalysisResults({
     }
   });
 
+  const captureCuratorLead = () => {
+    if (typeof window === "undefined") return;
+    const payload = {
+      curatorSlug,
+      listingId: selectedGarment?.id || null,
+      styleProfile: bodyType,
+      selectedItem: selectedGarment?.name || null,
+      source: "try-on-result",
+      action: "send_curator_brief",
+    };
+    const body = JSON.stringify(payload);
+
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(
+        "/api/curator/leads",
+        new Blob([body], { type: "application/json" }),
+      );
+      return;
+    }
+
+    fetch("/api/curator/leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+      keepalive: true,
+    }).catch(() => undefined);
+  };
+
   return (
     <section className="overflow-hidden rounded-2xl border border-primary/20 bg-card elegant-shadow">
       <div className="grid gap-0 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
@@ -328,6 +356,7 @@ export function AnalysisResults({
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
                   <a
                     href={curatorHref}
+                    onClick={captureCuratorLead}
                     target={curatorHref.startsWith("http") ? "_blank" : undefined}
                     rel={curatorHref.startsWith("http") ? "noopener noreferrer" : undefined}
                     className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"

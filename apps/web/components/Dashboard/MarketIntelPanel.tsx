@@ -10,6 +10,7 @@ import {
   Loader2,
   Radar,
   Search,
+  Send,
   Sparkles,
   Store,
   TrendingUp,
@@ -97,6 +98,7 @@ export function MarketIntelPanel() {
   const [shopperSnapshot, setShopperSnapshot] = React.useState<StoredMarketIntel | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [leadStatus, setLeadStatus] = React.useState<string | null>(null);
 
   const runSearch = React.useCallback(async (nextQuery: string) => {
     const cleanQuery = nextQuery.trim();
@@ -185,6 +187,32 @@ export function MarketIntelPanel() {
       icon: Sparkles,
     },
   ];
+
+  const createCuratorLead = React.useCallback(async (action: string) => {
+    setLeadStatus("Creating curator brief...");
+    try {
+      const response = await fetch("/api/curator/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          curatorSlug: "wanja",
+          listingId: null,
+          styleProfile: null,
+          selectedItem: products[0]?.name || activeQuery,
+          source: "market-intel",
+          marketIntent: activeQuery,
+          action,
+        }),
+      });
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      setLeadStatus("Curator brief captured for Wanja");
+    } catch {
+      setLeadStatus("Could not capture brief, but the signal is still visible");
+    } finally {
+      window.setTimeout(() => setLeadStatus(null), 2500);
+    }
+  }, [activeQuery, products]);
 
   return (
     <motion.div
@@ -337,6 +365,38 @@ export function MarketIntelPanel() {
             <p className="text-sm text-foreground">
               {primaryAction?.action ?? "Run a search to generate a Curator-facing merchandising action."}
             </p>
+            <div className="mt-4 grid gap-2">
+              <button
+                type="button"
+                onClick={() => createCuratorLead("create_curator_sourcing_brief")}
+                disabled={!signals.length}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                <Send className="h-3.5 w-3.5" />
+                Create curator sourcing brief
+              </button>
+              <button
+                type="button"
+                onClick={() => createCuratorLead("notify_wanja_of_demand")}
+                disabled={!signals.length}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-bold transition-colors hover:bg-muted disabled:opacity-50"
+              >
+                <Store className="h-3.5 w-3.5" />
+                Notify Wanja of demand
+              </button>
+              <button
+                type="button"
+                onClick={() => createCuratorLead("catalog_gap_for_wanja")}
+                disabled={!productGapCount}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-bold transition-colors hover:bg-muted disabled:opacity-50"
+              >
+                <Radar className="h-3.5 w-3.5" />
+                Catalog gap for Wanja
+              </button>
+              {leadStatus && (
+                <p className="text-xs font-medium text-muted-foreground">{leadStatus}</p>
+              )}
+            </div>
           </div>
 
           <div className="rounded-xl border border-border bg-card p-4">

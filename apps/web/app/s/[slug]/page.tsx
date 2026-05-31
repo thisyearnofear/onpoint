@@ -10,6 +10,7 @@ import {
   PackageSearch,
   ShieldCheck,
   ShoppingBag,
+  Sparkles,
 } from "lucide-react";
 import { CuratorTracker } from "../../../components/CuratorTracker";
 
@@ -114,6 +115,15 @@ function getLowestPrice(sizes: SizeOption[]) {
 
 function getTotalStock(sizes: SizeOption[]) {
   return sizes.reduce((total, item) => total + Number(item.stock || 0), 0);
+}
+
+function getInitials(value: string) {
+  return value
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
 }
 
 export async function generateMetadata({
@@ -248,10 +258,18 @@ export default async function CuratorStorefrontPage({
           <aside className="rounded-lg border border-border bg-card p-5 shadow-sm">
             <div className="space-y-4">
               <div
-                className="flex h-16 w-16 items-center justify-center rounded-lg text-2xl font-black text-white"
+                className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg text-2xl font-black text-white"
                 style={{ background: "var(--curator-primary)" }}
               >
-                {curator.name.slice(0, 1).toUpperCase()}
+                {curator.brand?.logo ? (
+                  <img
+                    src={curator.brand.logo}
+                    alt={`${curator.name} logo`}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  curator.name.slice(0, 1).toUpperCase()
+                )}
               </div>
               <div>
                 <h2 className="text-lg font-bold">{curator.name}'s role</h2>
@@ -290,6 +308,39 @@ export default async function CuratorStorefrontPage({
               )}
             </div>
           </aside>
+        </div>
+      </section>
+
+      <section className="border-b border-border bg-muted/20">
+        <div className="mx-auto grid max-w-6xl gap-4 px-4 py-6 md:grid-cols-[1fr_1fr_1fr]">
+          <div className="rounded-lg border border-border bg-card p-4">
+            <div className="flex items-center gap-2 text-primary">
+              <Sparkles className="h-4 w-4" />
+              <p className="text-xs font-bold uppercase tracking-wider">{curator.name}'s take</p>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-foreground">
+              Start with fit, then let the club color carry the statement. Send me the
+              OnPoint brief and I will confirm the cleanest size and available stock.
+            </p>
+          </div>
+          <div className="rounded-lg border border-border bg-card p-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Demand loop
+            </p>
+            <p className="mt-3 text-sm leading-6 text-foreground">
+              Every try-on can become a curator lead: selected item, fit profile,
+              shopper intent, and the next action.
+            </p>
+          </div>
+          <div className="rounded-lg border border-border bg-card p-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Live inventory
+            </p>
+            <p className="mt-3 text-sm leading-6 text-foreground">
+              {meta.listingCount} pieces are ready for AI try-on and WhatsApp confirmation.
+              Stock still stays with {curator.name}.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -336,8 +387,22 @@ export default async function CuratorStorefrontPage({
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                        Image pending
+                      <div
+                        className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center text-white"
+                        style={{
+                          background:
+                            "linear-gradient(135deg, var(--curator-primary), var(--curator-accent))",
+                        }}
+                      >
+                        <div className="grid h-16 w-16 place-items-center rounded-full border border-white/25 bg-white/15 text-xl font-black backdrop-blur">
+                          {getInitials(listing.kit.club)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold">{listing.kit.club}</p>
+                          <p className="text-xs text-white/75">
+                            {formatKitType(listing.kit.kitType)} kit
+                          </p>
+                        </div>
                       </div>
                     )}
                     <div className="absolute left-3 top-3 rounded-full bg-background/90 px-3 py-1 text-xs font-bold shadow-sm">
