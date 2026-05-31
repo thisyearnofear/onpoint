@@ -164,6 +164,8 @@ export const useVirtualTryOn = () => {
           const detail =
             payload?.error === 'Invalid API key'
               ? 'AI proxy key mismatch. Netlify VENICE_API_KEY must match Hetzner.'
+              : response.status === 413 || payload?.code === 'PAYLOAD_TOO_LARGE'
+                ? 'That photo is still too large after optimization. Please choose a smaller image or retake it at a lower resolution.'
               : payload?.error || `Virtual try-on API error: ${response.status}`;
           throw new Error(detail);
         }

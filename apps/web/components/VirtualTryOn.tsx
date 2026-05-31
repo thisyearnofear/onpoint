@@ -101,6 +101,7 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
   const [qualityWarning, setQualityWarning] = useState<string | null>(null);
   const [selectedPhotoData, setSelectedPhotoData] = useState<string | null>(null);
   const [selectedGarmentKey, setSelectedGarmentKey] = useState<string | null>(null);
+  const [photoPrepStatus, setPhotoPrepStatus] = useState<"idle" | "optimizing">("idle");
 
   const { isPremium, loading: premiumLoading } = usePremiumStatus();
   const { preferences } = useUserPreferences();
@@ -192,18 +193,35 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
     setSelectedPhoto(file);
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
-    const photoData = await imageFileToDataUrl(file);
-    setSelectedPhotoData(photoData);
+    setPhotoPrepStatus("optimizing");
 
-    if (qualityResult.failCount > 0 || qualityResult.warnCount >= 2) {
-      setQualityWarning("Photo quality may reduce accuracy. You can still analyze it, but a clearer full-body photo will produce better ratings.");
-      return;
+    try {
+      const photoData = await imageFileToDataUrl(file);
+      setSelectedPhotoData(photoData);
+
+      if (qualityResult.failCount > 0 || qualityResult.warnCount >= 2) {
+        setQualityWarning("Photo quality may reduce accuracy. You can still analyze it, but a clearer full-body photo will produce better ratings.");
+        return;
+      }
+
+      setQualityWarning(null);
+      // Auto-analyze on upload
+      await analyzePhoto(file, preferences);
+    } finally {
+      setPhotoPrepStatus("idle");
     }
-
-    setQualityWarning(null);
-    // Auto-analyze on upload
-    await analyzePhoto(file, preferences);
   }, [analyzePhoto, preferences]);
+
+  const handleAnalyzeAnyway = useCallback(async () => {
+    if (!selectedPhoto) return;
+    setPhotoPrepStatus("optimizing");
+    setQualityWarning(null);
+    try {
+      await analyzePhoto(selectedPhoto, preferences);
+    } finally {
+      setPhotoPrepStatus("idle");
+    }
+  }, [analyzePhoto, preferences, selectedPhoto]);
 
   const handlePersonaSelect = useCallback(async (persona: StylistPersona) => {
     if (!selectedPhoto || !isPersonaUnlocked(persona, isPremium)) return;
@@ -244,6 +262,7 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
     setSelectedPersona(null);
     setCritiqueResult(null);
     setQualityWarning(null);
+    setPhotoPrepStatus("idle");
     clearAnalysis();
     clearError();
     clearCritiqueError();
@@ -272,6 +291,8 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
   ].join("\n");
   const selectedGarment =
     garmentOptions.find((item) => item.selectionKey === selectedGarmentKey) || null;
+  const isPreparingPhoto = photoPrepStatus === "optimizing";
+  const isBusy = loading || tryOnLoading || isPreparingPhoto;
   const selectGarment = useCallback(
     (item: SelectableGarment, method: "carousel" | "change_garment" = "carousel") => {
       setSelectedGarmentKey(item.selectionKey);
@@ -418,7 +439,7 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
                         alt="Your photo"
                         className="h-full w-full object-cover"
                       />
-                      {(loading || tryOnLoading) && (
+                      {isBusy && (
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                           <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         </div>
@@ -429,23 +450,27 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
                         <p className="text-xs font-medium">
                           {analysis
                             ? "Analysis complete"
-                            : loading
-                              ? "Reading silhouette, color, and fit cues"
-                              : "Photo ready"}
+                            : isPreparingPhoto
+                              ? "Optimizing photo"
+                              : loading
+                                ? "Reading silhouette, color, and fit cues"
+                                : "Photo ready"}
                         </p>
                         <p className="text-[10px] text-muted-foreground">
                           {analysis?.bodyType
                             ? `Body type: ${analysis.bodyType}`
-                            : loading
-                              ? "This usually takes a few seconds."
-                              : "Analysis will start automatically."}
+                            : isPreparingPhoto
+                              ? "Resizing securely before AI analysis."
+                              : loading
+                                ? "This usually takes a few seconds."
+                                : "Analysis will start automatically."}
                         </p>
                       </div>
-                      {loading && (
+                      {(loading || isPreparingPhoto) && (
                         <div className="space-y-1.5">
                           <div className="flex items-center gap-1.5 text-[10px] text-primary">
                             <Sparkles className="h-3 w-3" />
-                            <span>Building your fit profile</span>
+                            <span>{isPreparingPhoto ? "Preparing upload" : "Building your fit profile"}</span>
                           </div>
                           <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                             <div className="h-full w-2/3 rounded-full bg-primary/70 animate-pulse" />
@@ -500,13 +525,10 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
                       <div className="mt-3 flex gap-2">
                         <Button
                           size="sm"
-                          onClick={() => {
-                            setQualityWarning(null);
-                            analyzePhoto(selectedPhoto, preferences);
-                          }}
-                          disabled={loading}
+                          onClick={handleAnalyzeAnyway}
+                          disabled={loading || isPreparingPhoto}
                         >
-                          Analyze Anyway
+                          {isPreparingPhoto ? "Optimizing..." : "Analyze Anyway"}
                         </Button>
                         <Button variant="outline" size="sm" onClick={handleReset}>
                           Choose Better Photo
