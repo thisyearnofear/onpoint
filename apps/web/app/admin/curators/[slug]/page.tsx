@@ -2,14 +2,20 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
+  Bell,
+  ClipboardList,
+  CreditCard,
+  Eye,
   ExternalLink,
+  MapPin,
   MessageCircle,
   ShoppingBag,
   Globe,
   Palette,
   Calendar,
   Store,
-
+  ToggleLeft,
+  Truck,
   CheckCircle2,
   AlertCircle,
 } from "lucide-react";
@@ -46,6 +52,18 @@ interface CuratorDetail {
   listingCount: number;
 }
 
+interface CuratorLead {
+  id: string;
+  curatorSlug: string;
+  listingId?: string | null;
+  styleProfile?: string | null;
+  selectedItem?: string | null;
+  source?: string | null;
+  marketIntent?: string | null;
+  action?: string | null;
+  createdAt: string;
+}
+
 async function getCurator(slug: string): Promise<CuratorDetail | null> {
   try {
     const res = await fetch(
@@ -61,12 +79,49 @@ async function getCurator(slug: string): Promise<CuratorDetail | null> {
   }
 }
 
+async function getCuratorLeads(slug: string): Promise<CuratorLead[]> {
+  const serviceKey = process.env.SERVICE_API_KEY || "";
+  if (!serviceKey) return [];
+
+  try {
+    const res = await fetch(
+      `/api/curator/leads?curatorSlug=${encodeURIComponent(slug)}`,
+      {
+        cache: "no-store",
+        headers: {
+          "x-service-key": serviceKey,
+        },
+      },
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data.leads) ? data.leads : [];
+  } catch {
+    return [];
+  }
+}
+
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-KE", {
     month: "long",
     day: "numeric",
     year: "numeric",
   });
+}
+
+function formatDateTime(iso?: string) {
+  if (!iso) return "Unknown";
+  return new Date(iso).toLocaleString("en-KE", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function labelize(value?: string | null) {
+  if (!value) return "—";
+  return value.replaceAll("_", " ").replaceAll("-", " ");
 }
 
 function getStorefrontUrl(slug: string) {
@@ -79,7 +134,10 @@ export default async function CuratorDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const curator = await getCurator(slug);
+  const [curator, leads] = await Promise.all([
+    getCurator(slug),
+    getCuratorLeads(slug),
+  ]);
 
   if (!curator) {
     notFound();
@@ -197,6 +255,123 @@ export default async function CuratorDetailPage({
               </p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Recent curator demand */}
+      <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <div>
+            <h2 className="flex items-center gap-2 font-bold">
+              <ClipboardList className="h-4 w-4 text-primary" />
+              Recent demand
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Leads captured when shoppers send style briefs or Intel creates curator actions.
+            </p>
+          </div>
+          <span className="inline-flex w-fit items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground">
+            <Bell className="h-3.5 w-3.5" />
+            {leads.length} lead{leads.length === 1 ? "" : "s"}
+          </span>
+        </div>
+
+        {leads.length > 0 ? (
+          <div className="mt-4 overflow-hidden rounded-lg border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-xs text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2 text-left font-medium">Source</th>
+                  <th className="px-3 py-2 text-left font-medium">Item / intent</th>
+                  <th className="px-3 py-2 text-left font-medium">Profile</th>
+                  <th className="px-3 py-2 text-left font-medium">Action</th>
+                  <th className="px-3 py-2 text-right font-medium">Time</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {leads.slice(0, 8).map((lead) => (
+                  <tr key={lead.id} className="align-top">
+                    <td className="px-3 py-3">
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium capitalize text-primary">
+                        {labelize(lead.source)}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3">
+                      <p className="font-medium">{lead.selectedItem || lead.marketIntent || "Curator brief"}</p>
+                      {lead.listingId && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Listing {lead.listingId.slice(0, 8)}
+                        </p>
+                      )}
+                    </td>
+                    <td className="px-3 py-3 text-muted-foreground">
+                      {lead.styleProfile || "—"}
+                    </td>
+                    <td className="px-3 py-3 capitalize text-muted-foreground">
+                      {labelize(lead.action)}
+                    </td>
+                    <td className="px-3 py-3 text-right text-xs text-muted-foreground">
+                      {formatDateTime(lead.createdAt)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="mt-4 rounded-lg border border-dashed border-border bg-muted/30 p-5 text-sm text-muted-foreground">
+            No demand captured yet. Use the storefront try-on flow or the Intel page curator actions to create the first lead.
+          </div>
+        )}
+      </div>
+
+      {/* Curator operator needs */}
+      <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
+        <div className="flex items-center gap-2">
+          <MessageCircle className="h-4 w-4 text-emerald-500" />
+          <h2 className="font-bold">{curator.name}'s operator needs</h2>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {[
+            {
+              icon: ToggleLeft,
+              title: "Inventory controls",
+              body: "Fast availability toggles, size updates, and plain vs printed options with name and number.",
+            },
+            {
+              icon: CreditCard,
+              title: "Kenya payments",
+              body: "M-Pesa checkout that reflects payment clearly for the curator and shopper.",
+            },
+            {
+              icon: Truck,
+              title: "Delivery handoff",
+              body: "Secure delivery address capture shaped around Bolt Send pickup, recipient, and contact details.",
+            },
+            {
+              icon: Eye,
+              title: "Viewing notifications",
+              body: "Alerts for views, time spent, receipt of items, payments, and high-intent shoppers.",
+            },
+            {
+              icon: ClipboardList,
+              title: "Template replies",
+              body: "Reusable response snippets for sizing, printing, payment, delivery, and stock confirmations.",
+            },
+            {
+              icon: MapPin,
+              title: "Specialist verticals",
+              body: `${curator.name} specializes in sports attire; future curators can own other garment categories.`,
+            },
+          ].map((need) => (
+            <div key={need.title} className="rounded-lg border border-border bg-muted/25 p-3">
+              <div className="flex items-center gap-2">
+                <need.icon className="h-4 w-4 text-primary" />
+                <p className="text-sm font-semibold">{need.title}</p>
+              </div>
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">{need.body}</p>
+            </div>
+          ))}
         </div>
       </div>
 
