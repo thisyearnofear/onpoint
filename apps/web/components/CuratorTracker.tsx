@@ -5,6 +5,7 @@ import {
   trackCuratorPageView,
   trackCuratorTryOn,
   trackCuratorBuyClick,
+  trackCuratorShare,
 } from "../lib/utils/analytics";
 
 interface CuratorTrackerProps {
@@ -39,7 +40,7 @@ export function CuratorTracker({
   );
   listingsRef.current = listings;
 
-  // Track page view once on mount
+  // Track page view once on mount + handle share→visit referral
   useEffect(() => {
     if (trackedRef.current) return;
     trackedRef.current = true;
@@ -50,6 +51,32 @@ export function CuratorTracker({
       listingCount,
       referrer: document.referrer || undefined,
     });
+
+    // Also fire page_view to Redis funnel analytics
+    fetch("/api/curator/analytics/track", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event: "page_view", curatorSlug: slug }),
+    }).catch(() => {});
+
+    // Detect share referral: ?ref=share:<sourceSlug>
+    const params = new URLSearchParams(window.location.search);
+    const refParam = params.get("ref");
+    if (refParam && refParam.startsWith("share:")) {
+      const sourceSlug = refParam.slice(6);
+      if (sourceSlug && sourceSlug !== slug) {
+        // Cross-curator share visit — fire and forget
+        fetch("/api/curator/analytics/track", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            event: "share_visit",
+            shareSourceSlug: sourceSlug,
+            visitorCuratorSlug: slug,
+          }),
+        }).catch(() => {});
+      }
+    }
   }, [slug, name, listingCount]);
 
   // IntersectionObserver for high-intent listing views
@@ -174,6 +201,22 @@ export function CuratorTracker({
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
   }, [slug]);
+
+  // Listen for custom share events from ShareStorefront
+  useEffect(() => {
+    const handleShare = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (!detail?.method || !detail?.curatorSlug) return;
+
+      trackCuratorShare({
+        curatorSlug: detail.curatorSlug,
+        method: detail.method as "whatsapp" | "copy" | "native",
+      });
+    };
+
+    document.addEventListener("curator-share", handleShare);
+    return () => document.removeEventListener("curator-share", handleShare);
+  }, []);
 
   return null;
 }

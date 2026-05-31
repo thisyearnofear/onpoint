@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "../../../../lib/utils/logger";
 import { createLeadNotification } from "../../../../lib/utils/notifications";
+import { recordCuratorLead } from "../../../../lib/utils/curator-analytics-store";
 
 export { OPTIONS } from "../../ai/_utils/http";
 
@@ -164,6 +165,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (persisted) {
       await createLeadNotification(lead);
     }
+
+    // Track lead in curator funnel analytics (best-effort, non-blocking)
+    recordCuratorLead(curatorSlug).catch(() => {});
 
     logger.info("Curator lead captured", {
       component: "curator-leads",

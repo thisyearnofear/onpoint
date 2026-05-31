@@ -2,13 +2,22 @@
 
 import React from "react";
 import { RefreshCw, Sparkles, Palette, Camera, MessageCircle } from "lucide-react";
+import type { StylistPersona } from "@repo/ai-client";
+import { PersonaAvatar, MascotThinking } from "./ui/PersonaAvatar";
 
 interface AILoadingStateProps {
   type: 'design' | 'color' | 'tryon' | 'chat' | 'analysis';
   message?: string;
+  persona?: StylistPersona; // Optional — shows mascot when provided
 }
 
-export function AILoadingState({ type, message }: AILoadingStateProps) {
+export function AILoadingState({ type, message, persona }: AILoadingStateProps) {
+  // If persona is provided, show the mascot-guided loading state
+  if (persona) {
+    return <MascotThinking persona={persona} message={message} />;
+  }
+
+  // Fallback: standard icon-based loading state
   const configs = {
     design: {
       icon: Sparkles,

@@ -187,7 +187,7 @@ export function trackCuratorBuyClick(properties: {
  */
 export function trackCuratorShare(properties: {
   curatorSlug: string;
-  method: "whatsapp" | "farcaster" | "copy";
+  method: "whatsapp" | "farcaster" | "copy" | "native";
 }): void {
   trackEvent("curator_share", properties);
 }

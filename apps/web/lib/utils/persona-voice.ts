@@ -151,10 +151,13 @@ export function createPersonaUtterance(
 /**
  * Speak text with persona-specific voice.
  * Returns a promise that resolves when speech ends.
+ *
+ * Optional `overrides` can override the persona profile's volume or rate.
  */
 export function speakAsPersona(
   text: string,
   persona: string,
+  overrides?: { volume?: number; rate?: number },
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     if (!window.speechSynthesis) {
@@ -166,6 +169,10 @@ export function speakAsPersona(
     window.speechSynthesis.cancel();
 
     const utterance = createPersonaUtterance(text, persona);
+
+    // Apply user overrides on top of persona defaults
+    if (overrides?.volume !== undefined) utterance.volume = overrides.volume;
+    if (overrides?.rate !== undefined) utterance.rate = overrides.rate;
 
     utterance.onend = () => resolve();
     utterance.onerror = (event) => {

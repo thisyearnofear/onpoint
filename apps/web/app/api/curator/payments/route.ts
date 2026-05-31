@@ -4,6 +4,7 @@ import {
   createPaymentNotification,
   readPayments,
 } from "../../../../lib/utils/notifications";
+import { recordCuratorPurchase } from "../../../../lib/utils/curator-analytics-store";
 
 export { OPTIONS } from "../../ai/_utils/http";
 
@@ -152,6 +153,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (persisted) {
       await createPaymentNotification(payment);
     }
+
+    // Track purchase in curator funnel analytics (best-effort, non-blocking)
+    recordCuratorPurchase(curatorSlug).catch(() => {});
 
     logger.info("Curator payment captured", {
       component: "curator-payments",

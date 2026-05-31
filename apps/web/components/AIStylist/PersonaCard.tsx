@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { Card } from "@repo/ui/card";
 import { Button } from "@repo/ui/button";
 import type { StylistPersona } from "@repo/ai-client";
@@ -9,7 +9,10 @@ import {
   Sparkles,
   Star,
   ShoppingBag,
+  Volume2,
+  Square,
 } from "lucide-react";
+import { speakAsPersona, stopSpeaking } from "../../lib/utils/persona-voice";
 
 interface PersonaCardProps {
   persona: StylistPersona;
@@ -25,6 +28,31 @@ export function PersonaCard({
   disabled,
 }: PersonaCardProps) {
   const [showPreview, setShowPreview] = React.useState(false);
+  const [isPlaying, setIsPlaying] = React.useState(false);
+  const mountedRef = useRef(true);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      stopSpeaking();
+    };
+  }, []);
+
+  const toggleVoice = useCallback((e: React.MouseEvent, greeting: string) => {
+    e.stopPropagation();
+    if (isPlaying) {
+      stopSpeaking();
+      setIsPlaying(false);
+    } else {
+      setIsPlaying(true);
+      speakAsPersona(greeting, persona).finally(() => {
+        if (mountedRef.current) {
+          setIsPlaying(false);
+        }
+      });
+    }
+  }, [isPlaying, persona]);
 
   const personaConfig = {
     luxury: {
@@ -137,9 +165,38 @@ export function PersonaCard({
       {showPreview && !disabled && (
         <div className="absolute top-full left-0 right-0 z-50 mt-2 p-4 bg-card border border-border rounded-lg shadow-xl animate-in fade-in-0 zoom-in-95 duration-200">
           <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Icon className={`h-4 w-4 ${config.color}`} />
-              <span className="font-medium text-sm">{config.title}</span>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Icon className={`h-4 w-4 ${config.color}`} />
+                <span className="font-medium text-sm">{config.title}</span>
+              </div>
+              <button
+                onClick={(e) => toggleVoice(e, config.greeting)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all ${
+                  isPlaying
+                    ? `${config.bgColor} ${config.color} ring-1 ${config.ringColor.replace('ring-', 'ring-')}`
+                    : `${config.bgColor} ${config.color} hover:opacity-80`
+                }`}
+                title={isPlaying ? "Stop preview" : "Hear their voice"}
+              >
+                {isPlaying ? (
+                  <>
+                    <Square className="h-3 w-3 fill-current" />
+                    <span className="flex items-center gap-[2px]">
+                      <span className="w-[2px] h-3 bg-current rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
+                      <span className="w-[2px] h-2 bg-current rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
+                      <span className="w-[2px] h-3.5 bg-current rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
+                      <span className="w-[2px] h-2.5 bg-current rounded-full animate-pulse" style={{ animationDelay: '100ms' }} />
+                    </span>
+                    Stop
+                  </>
+                ) : (
+                  <>
+                    <Volume2 className="h-3 w-3" />
+                    Preview voice
+                  </>
+                )}
+              </button>
             </div>
             <p className="text-xs text-muted-foreground italic leading-relaxed">
               &ldquo;{config.greeting}&rdquo;

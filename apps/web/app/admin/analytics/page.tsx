@@ -13,6 +13,13 @@ import {
   ShieldAlert,
   Sparkles,
   TrendingUp,
+  Store,
+  Eye,
+  ShoppingBag,
+  CreditCard,
+  Share2,
+  Users,
+  MousePointerClick,
 } from "lucide-react";
 
 interface ProviderOutcomeReport {
@@ -439,6 +446,273 @@ export default function AnalyticsDashboardPage() {
       <p className="text-[11px] text-muted-foreground">
         Data aggregated in Redis from <code className="rounded bg-muted px-1 py-0.5 font-mono text-[10px]">virtual_try_on_provider_outcome</code> and{" "}
         <code className="rounded bg-muted px-1 py-0.5 font-mono text-[10px]">virtual_try_on_provider_error</code> events. Updates in near-real-time.
+      </p>
+
+      {/* ════════════════════ Curator Funnel Analytics ════════════════════ */}
+      <CuratorFunnelAnalyticsSection />
+    </div>
+  );
+}
+
+// ── Curator Funnel Analytics Section ───────────────────────────────────
+
+interface CuratorFunnelOverview {
+  totalCurators: number;
+  totalPageViews: number;
+  totalTryOns: number;
+  totalShares: number;
+  totalShareVisits: number;
+  totalLeads: number;
+  totalPurchases: number;
+  topCurators: Array<{ slug: string; name: string; pageViews: number; purchases: number }>;
+  last7Days: { date: string; totalViews: number; totalPurchases: number }[];
+}
+
+function CuratorFunnelAnalyticsSection() {
+  const [overview, setOverview] = useState<CuratorFunnelOverview | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  async function fetchFunnel() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/curator/analytics");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      setOverview(data.overview || null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load curator analytics");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchFunnel();
+  }, []);
+
+  // ── Loading ──
+  if (loading && !overview) {
+    return (
+      <div className="mt-8 space-y-4">
+        <div className="border-t border-border pt-6">
+          <h2 className="text-xl font-black tracking-tight">Curator Funnel</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Storefront-to-purchase conversion metrics
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-24 animate-pulse rounded-xl border border-border bg-card" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Error ──
+  if (error && !overview) {
+    return (
+      <div className="mt-8 space-y-4">
+        <div className="border-t border-border pt-6">
+          <h2 className="text-xl font-black tracking-tight">Curator Funnel</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Storefront-to-purchase conversion metrics
+          </p>
+        </div>
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center">
+          <AlertCircle className="mx-auto mb-3 h-6 w-6 text-destructive" />
+          <p className="text-sm font-medium text-destructive">Failed to load curator funnel</p>
+          <p className="mt-1 text-xs text-muted-foreground">{error}</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Analytics requires UPSTASH_REDIS_REST_URL to be configured.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!overview) return null;
+  const ov = overview;
+
+  const funnelRate = (num: number, denom: number): string =>
+    denom > 0 ? `${Math.round((num / denom) * 100)}%` : "—";
+
+  return (
+    <div className="mt-8 space-y-6">
+      {/* Header */}
+      <div className="border-t border-border pt-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-black tracking-tight">Curator Funnel</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Storefront-to-purchase conversion metrics
+            </p>
+          </div>
+          <button
+            onClick={fetchFunnel}
+            disabled={loading}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-muted disabled:opacity-50"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Summary cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          icon={Eye}
+          label="Page views"
+          value={ov.totalPageViews.toLocaleString()}
+          sub={`${ov.totalCurators} curator${ov.totalCurators === 1 ? "" : "s"}`}
+          accent="text-primary"
+        />
+        <StatCard
+          icon={MousePointerClick}
+          label="Try-ons"
+          value={ov.totalTryOns.toLocaleString()}
+          sub={`${funnelRate(ov.totalTryOns, ov.totalPageViews)} of views`}
+          accent="text-violet-500"
+        />
+        <StatCard
+          icon={Share2}
+          label="Shares / visits"
+          value={`${ov.totalShares.toLocaleString()} / ${ov.totalShareVisits.toLocaleString()}`}
+          sub={`Share→visit rate: ${funnelRate(ov.totalShareVisits, ov.totalShares)}`}
+          accent="text-sky-500"
+        />
+        <StatCard
+          icon={ShoppingBag}
+          label="Purchases"
+          value={ov.totalPurchases.toLocaleString()}
+          sub={`${ov.totalLeads.toLocaleString()} leads`}
+          accent="text-emerald-500"
+        />
+      </div>
+
+      {/* Funnel rates + daily chart */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-xl border border-border bg-card p-4">
+          <h3 className="mb-4 text-sm font-semibold">Funnel conversion</h3>
+          <div className="space-y-4">
+            {[
+              { label: "View → Try-on", value: ov.totalTryOns, total: ov.totalPageViews, color: "bg-violet-500" },
+              { label: "Try-on → Purchase", value: ov.totalPurchases, total: ov.totalTryOns, color: "bg-emerald-500" },
+              { label: "View → Purchase", value: ov.totalPurchases, total: ov.totalPageViews, color: "bg-primary" },
+              { label: "Share → Visit", value: ov.totalShareVisits, total: ov.totalShares, color: "bg-sky-500" },
+              { label: "Lead → Purchase", value: ov.totalPurchases, total: ov.totalLeads, color: "bg-amber-500" },
+            ].map((step) => {
+              const pctVal = step.total > 0 ? (step.value / step.total) * 100 : 0;
+              return (
+                <div key={step.label}>
+                  <div className="mb-1 flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">{step.label}</span>
+                    <span className="font-medium tabular-nums">
+                      {step.value.toLocaleString()}{" "}
+                      <span className="text-[11px] text-muted-foreground">
+                        / {step.total.toLocaleString()}
+                      </span>
+                      <span className="ml-1 text-[11px] font-bold">
+                        ({pctVal.toFixed(1)}%)
+                      </span>
+                    </span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${step.color}`}
+                      style={{ width: `${Math.max(pctVal, 2)}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-border bg-card p-4">
+          <h3 className="mb-4 text-sm font-semibold">Last 7 days</h3>
+          {ov.last7Days.length > 0 ? (
+            <div className="flex items-end gap-2" style={{ height: 120 }}>
+              {ov.last7Days.map((day) => {
+                const maxViews = Math.max(...ov.last7Days.map((d) => d.totalViews), 1);
+                const maxPurchases = Math.max(...ov.last7Days.map((d) => d.totalPurchases), 1);
+                const viewH = (day.totalViews / maxViews) * 100;
+                const purchH = (day.totalPurchases / maxPurchases) * 100;
+                const dateLabel = new Date(day.date + "T00:00:00").toLocaleDateString("en-US", {
+                  weekday: "short", month: "numeric", day: "numeric",
+                });
+                return (
+                  <div key={day.date} className="flex flex-1 flex-col items-center gap-1">
+                    <span className="text-[10px] font-medium tabular-nums text-muted-foreground">
+                      {day.totalViews}
+                    </span>
+                    <div className="relative w-full flex-1 flex items-end">
+                      <div
+                        className="w-full rounded-t-md bg-primary/40 transition-all duration-500"
+                        style={{ height: `${Math.max(viewH, 4)}%` }}
+                      />
+                      {day.totalPurchases > 0 && (
+                        <div
+                          className="absolute bottom-0 w-full rounded-t-md bg-emerald-500 transition-all duration-500"
+                          style={{ height: `${Math.max(purchH, 2)}%` }}
+                        />
+                      )}
+                    </div>
+                    <span className="text-[9px] text-muted-foreground">{dateLabel}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground py-8 text-center">No daily data yet</p>
+          )}
+        </div>
+      </div>
+
+      {/* Top curators */}
+      <div className="rounded-xl border border-border bg-card p-4">
+        <h3 className="mb-4 text-sm font-semibold">Top curators by views</h3>
+        {ov.topCurators.length > 0 ? (
+          <div className="space-y-3">
+            {ov.topCurators.map((curator, i) => {
+              const maxPv = Math.max(...ov.topCurators.map((c) => c.pageViews), 1);
+              return (
+                <div key={curator.slug} className="flex items-center gap-3">
+                  <span className="w-5 text-center text-xs font-bold text-muted-foreground">
+                    {i + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium truncate">{curator.name}</span>
+                      <span className="ml-2 shrink-0 text-muted-foreground tabular-nums">
+                        {curator.pageViews.toLocaleString()} views · {curator.purchases} purchases
+                      </span>
+                    </div>
+                    <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-primary transition-all duration-500"
+                        style={{ width: `${(curator.pageViews / maxPv) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground py-4 text-center">No curator activity yet</p>
+        )}
+      </div>
+
+      <p className="text-[11px] text-muted-foreground">
+        Curator funnel data aggregated in Redis from client-side tracking and server events.
+        Updates in near-real-time. Requires UPSTASH_REDIS_REST_URL configuration.
       </p>
     </div>
   );

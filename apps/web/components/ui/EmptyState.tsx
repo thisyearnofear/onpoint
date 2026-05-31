@@ -9,12 +9,12 @@ import {
   MessageCircle,
   Target,
   Palette,
-  Users,
-  Share2,
   ArrowRight,
   RefreshCw,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import type { StylistPersona } from "@repo/ai-client";
+import { PersonaAvatar } from "./PersonaAvatar";
 
 // ── Types ──
 
@@ -44,6 +44,7 @@ interface EmptyStateProps {
   };
   compact?: boolean;
   className?: string;
+  persona?: StylistPersona; // Optional — shows mascot when provided
 }
 
 // ── Variant Configs ──
@@ -122,6 +123,24 @@ const VARIANT_CONFIGS: Record<
   },
 };
 
+const PERSONA_EMPTY_TITLES: Record<string, string> = {
+  miranda: "Nothing to review yet",
+  edina: "Absolutely nothing, darling!",
+  shaft: "Quiet around here. Let's change that.",
+  luxury: "The canvas awaits your vision.",
+  streetwear: "Fresh start. Let's make moves.",
+  sustainable: "An empty page — full of possibility.",
+};
+
+const PERSONA_EMPTY_HINTS: Record<string, string> = {
+  miranda: "I expect results. Let's get started.",
+  edina: "We can't have an empty wardrobe, sweetie!",
+  shaft: "A man's got to have options. Let's build yours.",
+  luxury: "Excellence begins with a single step.",
+  streetwear: "No cap — let's build your rotation.",
+  sustainable: "Every journey begins with one mindful choice.",
+};
+
 // ── Component ──
 
 export function EmptyState({
@@ -133,17 +152,25 @@ export function EmptyState({
   secondaryAction,
   compact = false,
   className = "",
+  persona,
 }: EmptyStateProps) {
   const config = VARIANT_CONFIGS[variant];
   const Icon = icon || config.icon;
-  const displayTitle = title || config.title;
-  const displayDescription = description || config.description;
+  const displayTitle = persona ? (PERSONA_EMPTY_TITLES[persona] || title || config.title) : (title || config.title);
+  const displayDescription = persona ? (PERSONA_EMPTY_HINTS[persona] || description || config.description) : (description || config.description);
 
+  // Compact mode
   if (compact) {
     return (
       <div className={`flex flex-col items-center justify-center py-6 text-center ${className}`}>
-        <Icon className={`w-8 h-8 mb-2 ${config.color} opacity-50`} />
-        <p className="text-sm text-white/50">{displayTitle}</p>
+        {persona ? (
+          <PersonaAvatar persona={persona} size="md" animate="idle" />
+        ) : (
+          <Icon className={`w-8 h-8 mb-2 ${config.color} opacity-50`} />
+        )}
+        <p className={`text-sm mt-2 ${persona ? "text-foreground font-medium" : "text-white/50"}`}>
+          {displayTitle}
+        </p>
         {action && (
           <Button
             variant="ghost"
@@ -159,24 +186,35 @@ export function EmptyState({
     );
   }
 
+  // Full mode with mascot
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className={`flex flex-col items-center justify-center py-12 px-6 text-center ${className}`}
     >
-      {/* Icon */}
-      <motion.div
-        initial={{ scale: 0.8 }}
-        animate={{ scale: 1 }}
-        transition={{ type: "spring", damping: 15 }}
-        className={`w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4`}
-      >
-        <Icon className={`w-8 h-8 ${config.color}`} />
-      </motion.div>
+      {/* Mascot or Icon */}
+      {persona ? (
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", damping: 15 }}
+        >
+          <PersonaAvatar persona={persona} size="xl" animate="wave" showRing />
+        </motion.div>
+      ) : (
+        <motion.div
+          initial={{ scale: 0.8 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", damping: 15 }}
+          className={`w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4`}
+        >
+          <Icon className={`w-8 h-8 ${config.color}`} />
+        </motion.div>
+      )}
 
       {/* Title */}
-      <h3 className="text-lg font-bold text-white mb-2">{displayTitle}</h3>
+      <h3 className="text-lg font-bold text-white mb-2 mt-4">{displayTitle}</h3>
 
       {/* Description */}
       <p className="text-sm text-white/50 max-w-xs leading-relaxed mb-6">
@@ -220,6 +258,7 @@ export function SocialFeedEmpty({ onStartStyling }: { onStartStyling: () => void
   return (
     <EmptyState
       variant="social-feed"
+      persona="miranda"
       action={{ label: "Start Styling", onClick: onStartStyling }}
     />
   );
@@ -229,6 +268,7 @@ export function CartEmpty({ onBrowse }: { onBrowse: () => void }) {
   return (
     <EmptyState
       variant="cart"
+      persona="edina"
       action={{ label: "Browse Catalog", onClick: onBrowse }}
     />
   );
@@ -238,6 +278,7 @@ export function CapturesEmpty({ onStartSession }: { onStartSession: () => void }
   return (
     <EmptyState
       variant="captures"
+      persona="shaft"
       action={{ label: "Start Session", onClick: onStartSession }}
     />
   );
@@ -247,6 +288,7 @@ export function SuggestionsEmpty({ onStartStyling }: { onStartStyling: () => voi
   return (
     <EmptyState
       variant="suggestions"
+      persona="miranda"
       action={{ label: "Start Styling", onClick: onStartStyling }}
     />
   );
@@ -256,6 +298,7 @@ export function MissionsEmpty({ onViewMissions }: { onViewMissions: () => void }
   return (
     <EmptyState
       variant="missions"
+      persona="shaft"
       action={{ label: "View Missions", onClick: onViewMissions }}
     />
   );

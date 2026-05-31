@@ -1,0 +1,38 @@
+{
+  "name": "BeOnPoint - AI Fashion Studio",
+  "short_name": "BeOnPoint",
+  "description": "Your AI stylist sees, judges, shops. Snap a photo, get instant AI feedback, and discover your perfect style.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F0F13",
+  "theme_color": "#E0406D",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/assets/1Product.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/1Product.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["lifestyle", "shopping", "fashion"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Virtual Try-On",
+      "short_name": "Try On",
+      "description": "Try on outfits with AI",
+      "url": "/lab"
+    },
+    {
+      "name": "AI Stylist",
+      "short_name": "Stylist",
+      "description": "Get style advice from AI",
+      "url": "/?tab=stylist"
+    }
+  ]
+}

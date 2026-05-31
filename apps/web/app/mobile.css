@@ -57,6 +57,57 @@ textarea {
   display: block;
 }
 
+/* ============ Adaptive Animation Quality ============ */
+
+/* Detect low-end mobile devices and reduce animation complexity */
+@media (max-width: 480px) {
+  /* Reduce redundant animations on small screens */
+  .animate-float,
+  .animate-scale-pulse,
+  .animate-glow-pulse,
+  .animate-gradient-shift {
+    animation-duration: 3s !important;
+    animation-iteration-count: 2 !important;
+  }
+
+  /* Disable staggered delays on mobile for faster rendering */
+  .animate-stagger-children > * {
+    animation-delay: 0ms !important;
+  }
+
+  /* Shimmer as static gradient on low-end */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-shimmer {
+      animation: none !important;
+      background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
+    }
+  }
+}
+
+/* Detect low-memory/GPU via device memory API (Chrome only) */
+@media (max-width: 768px) {
+  /* Apply reduced-motion-equivalent on devices with <= 4GB RAM where available */
+  @media (prefers-reduced-data: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* JavaScript-based low-end detection: class added by performance script */
+.low-end-device .animate-float,
+.low-end-device .animate-gradient-shift,
+.low-end-device .animate-scale-pulse {
+  animation: none !important;
+}
+
+.low-end-device .animate-shimmer {
+  animation: none !important;
+  background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
+}
+
 /* Reduce motion for mobile users who prefer it */
 @media (prefers-reduced-motion: reduce) {
   * {

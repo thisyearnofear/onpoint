@@ -13,6 +13,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { CuratorTracker } from "../../../components/CuratorTracker";
+import { ShareStorefront } from "../../../components/ShareStorefront";
 import { MpesaPaymentPanel } from "./MpesaPaymentPanel";
 
 export const dynamic = "force-dynamic";
@@ -202,9 +203,16 @@ export default async function CuratorStorefrontPage({
             <ArrowLeft className="h-4 w-4" />
             OnPoint
           </Link>
-          <div className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Curator storefront
+          <div className="flex items-center gap-2">
+            <ShareStorefront
+              curatorSlug={slug}
+              curatorName={curator.name}
+              whatsappNumber={curator.channels?.whatsapp}
+            />
+            <div className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Curator storefront
+            </div>
           </div>
         </div>
       </header>

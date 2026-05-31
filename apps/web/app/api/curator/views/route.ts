@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createViewNotification } from "../../../../lib/utils/notifications";
+import { recordCuratorHighIntentView } from "../../../../lib/utils/curator-analytics-store";
 
 export { OPTIONS } from "../../ai/_utils/http";
 
@@ -39,6 +40,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   try {
     await createViewNotification({ curatorSlug, listingId, club: club || undefined, kitType: kitType || undefined });
+
+    // Track high-intent view in curator funnel analytics (best-effort, non-blocking)
+    recordCuratorHighIntentView(curatorSlug).catch(() => {});
+
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json(

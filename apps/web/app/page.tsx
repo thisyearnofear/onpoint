@@ -16,6 +16,8 @@ import { Auth0HeaderButton } from "../components/auth/Auth0Components";
 import { NotificationBell } from "../components/NotificationBell";
 import { LiveCounter } from "../components/LiveCounter";
 import { Button } from "@repo/ui/button";
+import { PersonaAvatar } from "../components/ui/PersonaAvatar";
+import type { StylistPersona } from "@repo/ai-client";
 
 export default function Home() {
   return (
@@ -54,6 +56,33 @@ export default function Home() {
   );
 }
 
+function PersonaCarousel() {
+  const personas: StylistPersona[] = ["miranda", "edina", "shaft", "luxury", "streetwear", "sustainable"];
+  const personaNames: Record<string, string> = {
+    miranda: "Miranda Priestly",
+    edina: "Edina Monsoon",
+    shaft: "Tan France",
+    luxury: "Anna Wintour",
+    streetwear: "Virgil Abloh",
+    sustainable: "Stella McCartney",
+  };
+  return (
+    <div className="flex flex-wrap justify-center lg:justify-start gap-3 pt-2">
+      {personas.map((p) => (
+        <div
+          key={p}
+          className="group relative flex flex-col items-center gap-1"
+        >
+          <PersonaAvatar persona={p} size="sm" animate="idle" />
+          <span className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+            {personaNames[p]}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function HeroView() {
   return (
     <div className="min-h-screen">
@@ -75,7 +104,7 @@ function HeroView() {
               </h1>
 
               <p className="text-lg text-muted-foreground leading-relaxed max-w-lg">
-                Point your camera at an outfit. Get instant AI feedback. Discover what works for your body and style.
+                Point your camera at an outfit. Get instant AI feedback from a team of personality-driven stylists. Discover what works for your body and style.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center lg:items-start gap-3">
@@ -105,6 +134,15 @@ function HeroView() {
                 <LiveCounter />
               </div>
 
+              {/* Persona Mascot Presence */}
+              <div className="pt-4 border-t border-border/40">
+                <p className="text-xs text-muted-foreground text-center lg:text-left mb-3">
+                  <Sparkles className="w-3 h-3 inline mr-1 text-accent" />
+                  Choose your stylist personality
+                </p>
+                <PersonaCarousel />
+              </div>
+
               {/* Sample AI output — mobile preview */}
               <div className="lg:hidden mt-4 rounded-2xl border border-primary/20 bg-card/50 p-4 space-y-3">
                 <div className="flex items-center gap-2 text-xs text-primary font-bold uppercase tracking-wider">
@@ -128,6 +166,16 @@ function HeroView() {
             {/* Right: Visual — desktop only */}
             <div className="relative hidden lg:block">
               <div className="relative rounded-2xl overflow-hidden border border-border/60 bg-gradient-to-br from-primary/5 to-accent/5 shadow-2xl p-6">
+                {/* Mascot floating badge */}
+                <div className="absolute -top-3 -right-3 z-20 animate-float">
+                  <div className="relative">
+                    <PersonaAvatar persona="edina" size="sm" animate="wave" showRing />
+                    <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-0.5 rounded-full bg-card border border-border text-[9px] font-medium shadow-sm">
+                      &ldquo;Absolutely fabulous!&rdquo;
+                    </div>
+                  </div>
+                </div>
+
                 <div className="absolute top-4 left-4 z-10 px-3 py-1 rounded-full bg-primary/90 text-white text-xs font-bold shadow-sm flex items-center gap-1">
                   <Sparkles className="w-3 h-3" />
                   AI Vision
