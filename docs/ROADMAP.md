@@ -265,9 +265,9 @@ Inventory is **not** in the Curator object — it lives in Neon (`listings` join
 - [x] Curator demand loop: try-on `Send brief` + Intel actions create recent demand records visible in admin
 - [x] Curator reply templates: availability, sizing, printing, payment, delivery, out-of-stock alternatives
 - [x] Sportswear variants: plain/printed, name, number, print fee reflected in admin and storefront
-- [ ] M-Pesa manual payment capture before full Daraja/STK Push
-- [ ] Secure delivery capture shaped for courier handoff (Bolt Send first for Wanja)
-- [ ] Curator notifications for views, time spent, try-ons, leads, payments, receipts, delivery
+- [x] M-Pesa manual payment capture before full Daraja/STK Push
+- [x] Secure delivery capture shaped for courier handoff (Bolt Send first for Wanja)
+- [x] Curator notifications for payments, leads, delivery submissions
 
 **Relocation (consolidation per Core Principles)**
 - [ ] `apps/web/app/api/agent/storefront/route.ts` — delete global `CATALOG`, scope reads by Curator slug

@@ -5,8 +5,8 @@ import {
   Bell,
   ClipboardList,
   CreditCard,
-  Eye,
   ExternalLink,
+  Eye,
   MapPin,
   MessageCircle,
   ShoppingBag,
@@ -20,6 +20,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { CuratorReplyTemplates } from "./CuratorReplyTemplates";
+import { PaymentsTable } from "./PaymentsTable";
+import { NotificationsFeed } from "./NotificationsFeed";
 
 interface CuratorDetail {
   slug: string;
@@ -65,6 +67,38 @@ interface CuratorLead {
   createdAt: string;
 }
 
+interface CuratorPayment {
+  id: string;
+  curatorSlug: string;
+  listingId?: string | null;
+  itemName?: string | null;
+  size?: string | null;
+  amount?: number | null;
+  currency?: string | null;
+  customerPhone?: string | null;
+  mpesaCode?: string | null;
+  status?: string | null;
+  fulfilmentStatus?: string | null;
+  recipientName?: string | null;
+  recipientPhone?: string | null;
+  deliveryAddress?: string | null;
+  deliveryNotes?: string | null;
+  pickupLocation?: string | null;
+  courierMethod?: string | null;
+  createdAt: string;
+}
+
+interface CuratorNotification {
+  id: string;
+  curatorSlug: string;
+  type: string;
+  message: string;
+  relatedId?: string;
+  relatedType?: string;
+  read?: boolean;
+  createdAt: string;
+}
+
 async function getCurator(slug: string): Promise<CuratorDetail | null> {
   try {
     const res = await fetch(
@@ -77,6 +111,50 @@ async function getCurator(slug: string): Promise<CuratorDetail | null> {
     return data.curator;
   } catch {
     return null;
+  }
+}
+
+async function getCuratorPayments(slug: string): Promise<CuratorPayment[]> {
+  const serviceKey = process.env.SERVICE_API_KEY || "";
+  if (!serviceKey) return [];
+
+  try {
+    const res = await fetch(
+      `/api/curator/payments?curatorSlug=${encodeURIComponent(slug)}`,
+      {
+        cache: "no-store",
+        headers: {
+          "x-service-key": serviceKey,
+        },
+      },
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data.payments) ? data.payments : [];
+  } catch {
+    return [];
+  }
+}
+
+async function getCuratorNotifications(slug: string): Promise<CuratorNotification[]> {
+  const serviceKey = process.env.SERVICE_API_KEY || "";
+  if (!serviceKey) return [];
+
+  try {
+    const res = await fetch(
+      `/api/curator/notifications?curatorSlug=${encodeURIComponent(slug)}`,
+      {
+        cache: "no-store",
+        headers: {
+          "x-service-key": serviceKey,
+        },
+      },
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data.notifications) ? data.notifications : [];
+  } catch {
+    return [];
   }
 }
 
@@ -135,9 +213,11 @@ export default async function CuratorDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const [curator, leads] = await Promise.all([
+  const [curator, leads, payments, notifications] = await Promise.all([
     getCurator(slug),
     getCuratorLeads(slug),
+    getCuratorPayments(slug),
+    getCuratorNotifications(slug),
   ]);
 
   if (!curator) {
@@ -257,6 +337,30 @@ export default async function CuratorDetailPage({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Notifications feed */}
+      <NotificationsFeed notifications={notifications} />
+
+      {/* Recent M-Pesa payments */}
+      <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <div>
+            <h2 className="flex items-center gap-2 font-bold">
+              <CreditCard className="h-4 w-4 text-emerald-500" />
+              M-Pesa payments
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Manual payment confirmations submitted from the storefront. Verify against M-Pesa before fulfilment.
+            </p>
+          </div>
+          <span className="inline-flex w-fit items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground">
+            <CreditCard className="h-3.5 w-3.5" />
+            {payments.length} payment{payments.length === 1 ? "" : "s"}
+          </span>
+        </div>
+
+        <PaymentsTable curatorName={curator.name} payments={payments} />
       </div>
 
       {/* Recent curator demand */}
