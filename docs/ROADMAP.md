@@ -198,6 +198,8 @@ OnPoint is evolving from a vision-AI stylist to a fully autonomous shopping agen
 
 Reframes OnPoint from "consumer AI stylist" to "curator-first styling platform" with **chat-ops admin** for sole traders. Human Curators bring catalogs + audiences; AI Curators act as cross-vertical sidekicks. Both share one `Curator` schema. No new try-on / gallery / share components — `/s/[slug]` composes shipped ones. Backend on Hetzner (per [ADR 0001](./adr/0001-backend-first-autonomy.md)) owns the agent, Spectrum-ts messaging, Neon writes, and R2 ingest; Vercel/Netlify is read-only presentation.
 
+Wanja feedback to preserve across all human Curators: make customer inventory selection simple; make admin availability and size updates one-tap; support vertical-specific variants such as plain/printed jerseys with name and number; localize checkout (M-Pesa in Kenya); capture delivery details securely for courier handoff; notify Curators about views, try-ons, payments, receipts, and delivery events; provide reusable response templates so Curators stop copy-pasting from scattered phone notes.
+
 #### Alignment with Core Principles
 - **ENHANCEMENT FIRST**: `/s/[slug]` reuses `VirtualTryOn`, `PolaroidGallery`, `SessionEndingCard`, `collage`. No new feature surface.
 - **AGGRESSIVE CONSOLIDATION**: `persona-config.ts` + implicit merchant concept collapse into one `Curator` schema. Global `CATALOG` in `storefront/route.ts` is deleted.
@@ -260,6 +262,12 @@ Inventory is **not** in the Curator object — it lives in Neon (`listings` join
 **Customer surface**
 - [x] `apps/web/app/s/[slug]/page.tsx` — reads Curator + listings from Hetzner API; renders branded storefront
 - [x] `/s/wanja` live with "Buy on WhatsApp" deep links (`wa.me/{phone}?text={prefill}`) — first storefront slice is live
+- [x] Curator demand loop: try-on `Send brief` + Intel actions create recent demand records visible in admin
+- [x] Curator reply templates: availability, sizing, printing, payment, delivery, out-of-stock alternatives
+- [x] Sportswear variants: plain/printed, name, number, print fee reflected in admin and storefront
+- [ ] M-Pesa manual payment capture before full Daraja/STK Push
+- [ ] Secure delivery capture shaped for courier handoff (Bolt Send first for Wanja)
+- [ ] Curator notifications for views, time spent, try-ons, leads, payments, receipts, delivery
 
 **Relocation (consolidation per Core Principles)**
 - [ ] `apps/web/app/api/agent/storefront/route.ts` — delete global `CATALOG`, scope reads by Curator slug

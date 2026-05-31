@@ -58,7 +58,11 @@ function buildWhatsAppUrl(curator, listing) {
     .replaceAll('{size}', size?.size || '')
     .replaceAll('{price}', size?.price ? String(size.price) : '');
 
-  return `https://wa.me/${phone.replace(/^\+/, '')}?text=${encodeURIComponent(text)}`;
+  const printingNote = size?.printingAvailable
+    ? `\n\nPlain or printed? If printed, please send the name and number. Printing fee: KES ${size.printingPrice || 0}.`
+    : '';
+
+  return `https://wa.me/${phone.replace(/^\+/, '')}?text=${encodeURIComponent(`${text}${printingNote}`)}`;
 }
 
 router.get('/:slug/storefront', async (req, res) => {

@@ -19,6 +19,8 @@ interface SizeEntry {
   size: string;
   stock: number;
   price: number;
+  printingAvailable?: boolean;
+  printingPrice?: number;
 }
 
 interface KitInfo {
@@ -255,16 +257,12 @@ export default function ListingDetailPage({
     setSizes([...sizes, { size: "", stock: 0, price: 0 }]);
   };
 
-  const updateSize = (index: number, field: keyof SizeEntry, value: string | number) => {
+  const updateSize = (index: number, field: keyof SizeEntry, value: string | number | boolean) => {
     setSizes((prev) =>
       prev.map((item, i) =>
         i !== index
           ? item
-          : {
-              size: field === "size" ? (value as string) : item.size,
-              stock: field === "stock" ? (value as number) : item.stock,
-              price: field === "price" ? (value as number) : item.price,
-            },
+          : { ...item, [field]: value },
       ),
     );
   };
@@ -605,6 +603,36 @@ export default function ListingDetailPage({
                         placeholder="4"
                       />
                     </div>
+                    <div className="min-w-[132px] flex-1">
+                      <label className="mb-1 block text-[10px] font-medium text-muted-foreground uppercase">
+                        Printing
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => updateSize(i, "printingAvailable", !s.printingAvailable)}
+                        className={`inline-flex h-9 w-full items-center justify-center rounded-md border px-2 text-xs font-medium transition-colors ${
+                          s.printingAvailable
+                            ? "border-primary/40 bg-primary/10 text-primary"
+                            : "border-border bg-background text-muted-foreground hover:bg-muted"
+                        }`}
+                      >
+                        {s.printingAvailable ? "Plain or printed" : "Plain only"}
+                      </button>
+                    </div>
+                    {s.printingAvailable && (
+                      <div className="w-24 sm:w-28">
+                        <label className="mb-1 block text-[10px] font-medium text-muted-foreground uppercase">
+                          Print fee
+                        </label>
+                        <input
+                          type="number"
+                          value={s.printingPrice || ""}
+                          onChange={(e) => updateSize(i, "printingPrice", parseInt(e.target.value) || 0)}
+                          className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                          placeholder="500"
+                        />
+                      </div>
+                    )}
                     <button
                       onClick={() => removeSize(i)}
                       className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500"

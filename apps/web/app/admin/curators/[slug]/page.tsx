@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   AlertCircle,
 } from "lucide-react";
+import { CuratorReplyTemplates } from "./CuratorReplyTemplates";
 
 interface CuratorDetail {
   slug: string;
@@ -374,6 +375,11 @@ export default async function CuratorDetailPage({
           ))}
         </div>
       </div>
+
+      <CuratorReplyTemplates
+        curatorName={curator.name}
+        verticals={curator.verticals || []}
+      />
 
       {/* Details sections */}
       <div className="grid gap-6 md:grid-cols-2">

@@ -36,6 +36,20 @@ The agent layer (wallets, autonomous executor, ERC-8004, Token Vault) is **not r
 4. **The agent layer becomes infrastructure, not the hero.** It moves behind `/lab` and powers cross-Curator attribution, revshare splits, and AI-initiated purchases.
 5. **No new auth surface for end customers.** A fan buying a jersey on `/s/mo` must not see a wallet prompt or an Auth0 dialog before their first try-on.
 
+### Human Curator operating system
+
+Wanja's first-demo feedback clarified the human side of the primitive: a Curator does not need a prettier CMS; she needs faster commerce operations on the phone she already uses.
+
+Reusable human-Curator capabilities:
+
+- Inventory controls: one-tap availability, sizes, variant stock, vertical-specific options (for Wanja: plain vs printed jersey, name, number).
+- Local checkout: payment profile per Curator; M-Pesa is first-class for Kenya, with manual confirmation before full STK/Daraja integration.
+- Delivery handoff: secure delivery details, pickup contact, courier method (for Wanja: Bolt Send flow).
+- Notifications: views, time spent, try-ons, brief sends, payments, receipts, delivery updates.
+- Template replies: reusable WhatsApp/Spectrum snippets for availability, sizing, printing, payment, delivery, and out-of-stock alternatives.
+
+These are **capabilities**, not Wanja-specific screens. Sportswear, vintage, occasionwear, beauty, footwear, and tailoring can each define their own variant fields and reply templates while sharing the same Curator, listing, lead, and storefront loop.
+
 ## Schema
 
 A single TypeScript type, lives in `packages/shared-types`. The schema is intentionally **mostly optional** so a sole trader like Wanja (no logo, no brand book) onboards without friction; defaults are provided by the storefront renderer.

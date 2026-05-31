@@ -20,6 +20,8 @@ type SizeOption = {
   size: string;
   stock: number;
   price: number;
+  printingAvailable?: boolean;
+  printingPrice?: number;
 };
 
 type CuratorStorefront = {
@@ -434,9 +436,16 @@ export default async function CuratorStorefrontPage({
                           className="rounded-md border border-border px-2 py-1 text-xs"
                         >
                           {size.size} · {size.stock}
+                          {size.printingAvailable ? " · print" : ""}
                         </span>
                       ))}
                     </div>
+
+                    {listing.sizes.some((size) => size.printingAvailable) && (
+                      <p className="rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+                        Plain or printed available. Add name and number in the curator message.
+                      </p>
+                    )}
 
                     <div className="flex gap-2">
                       <a

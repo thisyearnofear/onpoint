@@ -89,7 +89,13 @@ export interface Listing {
   id: string;                     // UUID
   curatorSlug: string;
   skuId: string;                  // references KitSKU.id
-  sizes: Array<{ size: string; stock: number; price: number }>;
+  sizes: Array<{
+    size: string;
+    stock: number;
+    price: number;
+    printingAvailable?: boolean;
+    printingPrice?: number;
+  }>;
   photoKeys: string[];            // R2 keys — override official kit image
   status: "live" | "paused" | "archived";
   createdAt: string;
