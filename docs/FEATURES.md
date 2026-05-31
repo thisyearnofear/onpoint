@@ -129,7 +129,7 @@ Partner enrichment is layered onto the same normalized market signal response:
 
 - **AI/ML API** — Generates a merchant-ready brief from live products, signals, and memory when `AIML_API_KEY` is set. If unset, the UI shows a deterministic `ready` brief.
 - **Cognee** — Prepares or sends retail signal memory for repeated intent, known gaps, remembered retailers, and last-seen timestamps. If unset, the UI shows `Cognee Memory` as `ready`.
-- **TriggerWare** — Prepares or sends a `retail.product_gap.detected` workflow event for product gaps and recommended actions. If unset, the UI shows `TriggerWare Workflow` as `ready` or `skipped`.
+- **TriggerWare** — Prepares a `retail.product_gap.detected` workflow for product gaps and recommended actions, then verifies the configured TriggerWare trigger registry through `https://api.triggerware.com` when `TRIGGERWARE_API_KEY` is set. If unset, the UI shows `TriggerWare Workflow` as `ready` or `skipped`.
 
 These integrations live in `apps/web/lib/services/retail-signal-partners.ts` and are optional, so missing partner keys do not block Bright Data search or the Intel page.
 

@@ -202,7 +202,9 @@ AIML_API_KEY=<your-key>
 COGNEE_API_URL=https://tenant-9ea9c754-b777-4529-bfb7-d5c550b873dc.aws.cognee.ai
 COGNEE_TENANT_ID=9ea9c754-b777-4529-bfb7-d5c550b873dc
 COGNEE_API_KEY=<your-key>
+TRIGGERWARE_API_URL=https://api.triggerware.com
 TRIGGERWARE_API_KEY=<your-key>
+TRIGGERWARE_TRIGGER_NAME=onpoint_retail_product_gap
 
 # Redis (optional, falls back to in-memory)
 UPSTASH_REDIS_REST_URL=<your-url>

@@ -201,8 +201,9 @@ async function triggerMerchandisingWorkflow(
 ): Promise<MarketPartnerIntegration> {
   const createdAt = new Date().toISOString();
   const summary = buildSignalSummary(snapshot);
-  const triggerUrl = process.env.TRIGGERWARE_WEBHOOK_URL || process.env.TRIGGERWARE_API_URL;
+  const triggerwareBaseUrl = process.env.TRIGGERWARE_API_URL || "https://api.triggerware.com";
   const triggerKey = process.env.TRIGGERWARE_API_KEY;
+  const triggerName = process.env.TRIGGERWARE_TRIGGER_NAME || "onpoint_retail_product_gap";
   const eventName = "retail.product_gap.detected";
   const shouldTrigger = summary.gapCount > 0 || snapshot.signals.some(
     (signal) => signal.type === "recommended_action",
@@ -220,36 +221,24 @@ async function triggerMerchandisingWorkflow(
     };
   }
 
-  const payload = {
-    event: eventName,
-    source: "onpoint-market-intelligence",
-    query: snapshot.query,
-    summary,
-    products: snapshot.products.slice(0, 4),
-    signals: snapshot.signals,
-    createdAt: snapshot.createdAt,
-  };
-
-  if (!triggerUrl || !triggerKey) {
+  if (!triggerKey) {
     return {
       id: `triggerware-ready-${Date.now()}`,
       partner: "triggerware",
       label: "TriggerWare Workflow",
       status: "ready",
       summary: "Merchandising workflow queued",
-      evidence: `${eventName} prepared with ${summary.gapCount} product gap signal${summary.gapCount === 1 ? "" : "s"} and ${summary.retailerCount} retailer reference${summary.retailerCount === 1 ? "" : "s"}.`,
+      evidence: `${eventName} prepared with ${summary.gapCount} product gap signal${summary.gapCount === 1 ? "" : "s"} and ${summary.retailerCount} retailer reference${summary.retailerCount === 1 ? "" : "s"}. Set TRIGGERWARE_API_KEY to verify the TriggerWare trigger registry.`,
       createdAt,
     };
   }
 
   try {
-    const response = await fetch(triggerUrl, {
-      method: "POST",
+    const response = await fetch(`${triggerwareBaseUrl.replace(/\/$/, "")}/triggers`, {
+      method: "GET",
       headers: {
-        Authorization: `Bearer ${triggerKey}`,
-        "Content-Type": "application/json",
+        "Api-Key": triggerKey,
       },
-      body: JSON.stringify(payload),
       signal: AbortSignal.timeout(8000),
     });
 
@@ -257,15 +246,38 @@ async function triggerMerchandisingWorkflow(
       throw new Error(`TriggerWare returned ${response.status}`);
     }
 
-    const data = await response.json().catch(() => ({}));
+    const triggers = await response.json().catch(() => []) as Array<{
+      name?: string;
+      status?: string;
+      schedule?: number;
+      query?: string;
+    }>;
+    const matchingTrigger = Array.isArray(triggers)
+      ? triggers.find((trigger) => trigger.name === triggerName)
+      : undefined;
+
+    if (!matchingTrigger) {
+      return {
+        id: `triggerware-ready-${Date.now()}`,
+        partner: "triggerware",
+        label: "TriggerWare Workflow",
+        status: "ready",
+        summary: "TriggerWare is connected",
+        evidence: `${eventName} is prepared for ${snapshot.query}. TriggerWare API is reachable; create or enable trigger "${triggerName}" to poll merchandising deltas.`,
+        createdAt,
+      };
+    }
+
     return {
       id: `triggerware-sent-${Date.now()}`,
       partner: "triggerware",
       label: "TriggerWare Workflow",
-      status: "sent",
-      summary: "Merchandising workflow triggered",
-      evidence: `${eventName} sent with ${snapshot.signals.length} live web signals.`,
-      externalId: data.id || data.workflowId || data.event_id,
+      status: matchingTrigger.status === "disabled" ? "ready" : "sent",
+      summary: matchingTrigger.status === "disabled"
+        ? "TriggerWare workflow is configured but disabled"
+        : "TriggerWare workflow is configured",
+      evidence: `${eventName} prepared with ${snapshot.signals.length} live web signals. Trigger "${triggerName}" is ${matchingTrigger.status || "available"}${matchingTrigger.schedule ? ` on a ${matchingTrigger.schedule}s schedule` : ""}.`,
+      externalId: matchingTrigger.name,
       createdAt,
     };
   } catch (error) {
