@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "../../../../lib/utils/logger";
+import { createLeadNotification } from "../../../../lib/utils/notifications";
 
 export { OPTIONS } from "../../ai/_utils/http";
 
@@ -157,6 +158,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         { component: "curator-leads", curatorSlug },
         error,
       );
+    }
+
+    // Create notification for new lead
+    if (persisted) {
+      await createLeadNotification(lead);
     }
 
     logger.info("Curator lead captured", {

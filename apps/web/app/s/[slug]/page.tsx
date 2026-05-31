@@ -13,6 +13,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { CuratorTracker } from "../../../components/CuratorTracker";
+import { MpesaPaymentPanel } from "./MpesaPaymentPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,7 @@ type CuratorStorefront = {
       checkoutUrl?: string;
       whatsappTemplate?: string;
       revShare?: number;
+      mpesaNumber?: string;
     };
   };
   listings: Array<{
@@ -379,6 +381,7 @@ export default async function CuratorStorefrontPage({
               return (
                 <article
                   key={listing.id}
+                  data-listing-id={listing.id}
                   className="overflow-hidden rounded-lg border border-border bg-card shadow-sm"
                 >
                   <div className="relative aspect-[4/3] bg-muted">
@@ -446,6 +449,15 @@ export default async function CuratorStorefrontPage({
                         Plain or printed available. Add name and number in the curator message.
                       </p>
                     )}
+
+                    <MpesaPaymentPanel
+                      curatorSlug={curator.slug}
+                      curatorName={curator.name}
+                      listingId={listing.id}
+                      itemName={`${listing.kit.club} ${formatKitType(listing.kit.kitType)} kit`}
+                      sizes={listing.sizes}
+                      mpesaNumber={curator.commerce?.mpesaNumber || curator.channels?.whatsapp}
+                    />
 
                     <div className="flex gap-2">
                       <a
