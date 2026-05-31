@@ -14,6 +14,7 @@ import {
 import { ThemeToggle } from "../components/ThemeToggle";
 import { Auth0HeaderButton } from "../components/auth/Auth0Components";
 import { NotificationBell } from "../components/NotificationBell";
+import { LiveCounter } from "../components/LiveCounter";
 import { Button } from "@repo/ui/button";
 
 export default function Home() {
@@ -101,6 +102,7 @@ function HeroView() {
                   <Check className="w-4 h-4 text-emerald-500" />
                   <span>30s to your first result</span>
                 </div>
+                <LiveCounter />
               </div>
 
               {/* Sample AI output — mobile preview */}
