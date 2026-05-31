@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { ShopGrid, EngagementBadge } from "@repo/shared-ui";
 import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import type { FashionItem } from "@onpoint/shared-types";
 import Link from "next/link";
 import { ArrowLeft, ShoppingBag } from "lucide-react";
 import { CartDrawer, CartButton } from "../../components/Shop/CartDrawer";
+import { FlyToCartOverlay, type FlyItem } from "../../components/Shop/FlyToCartOverlay";
 import { CheckoutModal } from "../../components/Shop/CheckoutModal";
 import { useCartStore } from "../../lib/stores/cart-store";
 import { useStyleContext } from "@/lib/context/StyleContext";
@@ -16,8 +17,13 @@ export default function ShopPage() {
   const [likedItems, setLikedItems] = useState<Set<string>>(new Set());
   const [showCheckout, setShowCheckout] = useState(false);
   const [stylistAnalysis, setStylistAnalysis] = useState<any>(null);
+  const [flyingItem, setFlyingItem] = useState<FlyItem | null>(null);
   const addItem = useCartStore((s) => s.addItem);
   const openCart = useCartStore((s) => s.openCart);
+
+  const handleFlyComplete = useCallback(() => {
+    setFlyingItem(null);
+  }, []);
   const { dominantAesthetic, budgetLabel } = useStyleContext();
 
   // Load stylist analysis from sessionStorage
@@ -198,6 +204,7 @@ export default function ShopPage() {
             {selectedItem.modelSrc && (
               <div className="aspect-square rounded-xl overflow-hidden bg-muted">
                 <img
+                  data-fly-image
                   src={selectedItem.modelSrc}
                   alt={selectedItem.name}
                   className="w-full h-full object-cover"
@@ -222,6 +229,16 @@ export default function ShopPage() {
 
             <button
               onClick={() => {
+                const imageEl = document.querySelector('[data-fly-image]');
+                const sourceRect = imageEl?.getBoundingClientRect();
+                const target = document.querySelector('[data-cart-button]')?.getBoundingClientRect();
+                if (sourceRect && target) {
+                  setFlyingItem({
+                    imageUrl: selectedItem.modelSrc || selectedItem.cover,
+                    sourceRect,
+                    targetRect: target,
+                  });
+                }
                 addItem(selectedItem);
                 setSelectedItem(null);
               }}
@@ -233,6 +250,9 @@ export default function ShopPage() {
           </div>
         </div>
       )}
+      {/* Fly-to-cart animation */}
+      <FlyToCartOverlay item={flyingItem} onComplete={handleFlyComplete} />
+
       {/* Cart & Checkout */}
       <CartDrawer onCheckout={() => setShowCheckout(true)} />
       <CheckoutModal

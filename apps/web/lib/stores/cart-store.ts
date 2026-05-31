@@ -18,6 +18,7 @@ export interface CartItem {
 interface CartState {
   items: CartItem[];
   isOpen: boolean;
+  lastAddedItem: FashionItem | null;
 
   // Actions
   addItem: (product: FashionItem, quantity?: number) => void;
@@ -27,6 +28,7 @@ interface CartState {
   openCart: () => void;
   closeCart: () => void;
   toggleCart: () => void;
+  clearLastAddedItem: () => void;
 
   // Computed
   total: () => number;
@@ -39,6 +41,7 @@ export const useCartStore = create<CartState>()(
     (set, get) => ({
       items: [],
       isOpen: false,
+      lastAddedItem: null,
 
       addItem: (product, quantity = 1) => {
         set((state) => {
@@ -52,9 +55,13 @@ export const useCartStore = create<CartState>()(
                   ? { ...item, quantity: item.quantity + quantity }
                   : item,
               ),
+              lastAddedItem: product,
             };
           }
-          return { items: [...state.items, { product, quantity }] };
+          return {
+            items: [...state.items, { product, quantity }],
+            lastAddedItem: product,
+          };
         });
 
         // Track style interaction for recommendations
@@ -73,6 +80,10 @@ export const useCartStore = create<CartState>()(
       removeItem: (productId) => {
         set((state) => ({
           items: state.items.filter((item) => item.product.id !== productId),
+          lastAddedItem:
+            state.lastAddedItem?.id === productId
+              ? null
+              : state.lastAddedItem,
         }));
       },
 
@@ -88,7 +99,8 @@ export const useCartStore = create<CartState>()(
         }));
       },
 
-      clearCart: () => set({ items: [] }),
+      clearCart: () => set({ items: [], lastAddedItem: null }),
+      clearLastAddedItem: () => set({ lastAddedItem: null }),
       openCart: () => set({ isOpen: true }),
       closeCart: () => set({ isOpen: false }),
       toggleCart: () => set((state) => ({ isOpen: !state.isOpen })),
@@ -107,6 +119,7 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: "onpoint-cart",
+      // Only persist items — lastAddedItem is transient UI state
       partialize: (state) => ({ items: state.items }),
     },
   ),

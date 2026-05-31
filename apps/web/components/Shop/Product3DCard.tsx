@@ -13,7 +13,7 @@ interface Product3DCardProps {
   price: number;
   badge?: string;
   reason?: string;
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent) => void;
 }
 
 export function Product3DCard({ imageUrl, name, price, badge, reason, onClick }: Product3DCardProps) {
@@ -37,7 +37,7 @@ export function Product3DCard({ imageUrl, name, price, badge, reason, onClick }:
   return (
     <button
       ref={cardRef}
-      onClick={onClick}
+      onClick={(e) => onClick?.(e)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}

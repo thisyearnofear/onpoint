@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { ShopGrid } from "@repo/shared-ui";
 import { CANVAS_ITEMS } from "@onpoint/shared-types";
@@ -10,6 +10,7 @@ import { Button } from "@repo/ui/button";
 import { useCartStore } from "../../lib/stores/cart-store";
 import { CheckoutModal } from "./CheckoutModal";
 import { CartDrawer, CartButton } from "./CartDrawer";
+import { FlyToCartOverlay, type FlyItem } from "./FlyToCartOverlay";
 import { fetchAgentApi } from "../../lib/utils/agent-api";
 import { Product3DCard } from "./Product3DCard";
 import { RichProductCard, RichProductGroup } from "./RichProductCard";
@@ -74,7 +75,16 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
   const [showCheckout, setShowCheckout] = useState(false);
   const [recommended, setRecommended] = useState<{ item: FashionItem; reason: string }[]>([]);
   const [externalFinds, setExternalFinds] = useState<ExternalFind[]>([]);
+  const [flyingItem, setFlyingItem] = useState<FlyItem | null>(null);
+  const flyCallbackRef = useRef<(() => void) | null>(null);
   const addItem = useCartStore((s) => s.addItem);
+  const openCart = useCartStore((s) => s.openCart);
+
+  const handleFlyComplete = useCallback(() => {
+    flyCallbackRef.current?.();
+    flyCallbackRef.current = null;
+    setFlyingItem(null);
+  }, []);
 
   useEffect(() => {
     setRecommended(getRecommendedItems());
@@ -200,10 +210,26 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
                   price={item.price}
                   badge="AI Pick"
                   reason={reason}
-                  onClick={() => {
-                    setPendingTryOnSelection(fashionItemToTryOnSelection(item));
-                    addItem(item);
-                    onTryOn?.(item);
+                  onClick={(e) => {
+                    const sourceRect = e.currentTarget.getBoundingClientRect();
+                    const target = document.querySelector("[data-cart-button]")?.getBoundingClientRect();
+                    if (target) {
+                      setFlyingItem({
+                        imageUrl: item.modelSrc || item.cover,
+                        sourceRect,
+                        targetRect: target,
+                      });
+                      flyCallbackRef.current = () => {
+                        setPendingTryOnSelection(fashionItemToTryOnSelection(item));
+                        addItem(item);
+                        onTryOn?.(item);
+                      };
+                    } else {
+                      // Fallback: add directly if cart button not found
+                      setPendingTryOnSelection(fashionItemToTryOnSelection(item));
+                      addItem(item);
+                      onTryOn?.(item);
+                    }
                   }}
                 />
               ))}
@@ -231,9 +257,29 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
       <ShopGrid
         items={CANVAS_ITEMS}
         onItemClick={(item) => {
-          // Add to cart on click
-          setPendingTryOnSelection(fashionItemToTryOnSelection(item));
-          addItem(item);
+          // Fly-to-cart from the clicked card
+          const cardEl = document.querySelector(
+            `article[data-transition-item-id="${item.id}"]`,
+          );
+          const sourceRect = cardEl?.getBoundingClientRect();
+          const target = document
+            .querySelector("[data-cart-button]")
+            ?.getBoundingClientRect();
+          if (sourceRect && target) {
+            setFlyingItem({
+              imageUrl: item.modelSrc || item.cover,
+              sourceRect,
+              targetRect: target,
+            });
+            flyCallbackRef.current = () => {
+              setPendingTryOnSelection(fashionItemToTryOnSelection(item));
+              addItem(item);
+            };
+          } else {
+            // Fallback: add directly if card or cart button not found
+            setPendingTryOnSelection(fashionItemToTryOnSelection(item));
+            addItem(item);
+          }
         }}
         showFilters
         showStats
@@ -258,6 +304,7 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
         </div>
       )}
 
+      <FlyToCartOverlay item={flyingItem} onComplete={handleFlyComplete} />
       <CartDrawer onCheckout={() => setShowCheckout(true)} />
       <CheckoutModal isOpen={showCheckout} onClose={() => setShowCheckout(false)} />
     </motion.div>
