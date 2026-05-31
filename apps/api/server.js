@@ -266,6 +266,14 @@ app.use((err, req, res, next) => {
   if (process.env.NODE_ENV === 'development') {
     console.error(err.stack);
   }
+
+  if (err.type === 'entity.too.large' || err.status === 413) {
+    return res.status(413).json({
+      error: 'Uploaded photo is too large. Please choose a smaller image or retake the photo at a lower resolution.',
+      code: 'PAYLOAD_TOO_LARGE',
+    });
+  }
+
   res.status(500).json({
     error: 'Internal server error',
     ...(process.env.NODE_ENV === 'development' ? { detail: err.message } : {}),

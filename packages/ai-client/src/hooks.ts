@@ -3,7 +3,7 @@ import { useAIClient } from './context/AIContext';
 import { DesignGeneration, VirtualTryOnAnalysis, StylistResponse, CritiqueResponse, StylistPersona, StyleSuggestion, UserStyleContext } from './providers/base-provider';
 import AIClientManager from './ai-client';
 import { ReplicateProvider } from './providers/replicate-provider';
-import { fileToBase64 } from './utils/file-utils';
+import { fileToBase64, imageFileToDataUrl } from './utils/file-utils';
 import { normalizeVirtualTryOnAnalysis } from './utils/virtual-tryon-normalize';
 
 function getApiUrl(path: string): string {
@@ -139,12 +139,7 @@ export const useVirtualTryOn = () => {
 
       try {
         // Convert image to base64 for vision analysis
-        const photoData = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(imageFile);
-        });
+        const photoData = await imageFileToDataUrl(imageFile);
 
         const description = imageFile.name.includes('body-scan')
           ? 'Body scan analysis for virtual try-on measurements'

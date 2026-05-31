@@ -8,6 +8,7 @@ import dynamic from "next/dynamic";
 import { useVirtualTryOn } from "@repo/ai-client";
 import { useAIVirtualTryOnEnhancement } from "@repo/ai-client";
 import { useReplicateVirtualTryOn } from "@repo/ai-client";
+import { imageFileToDataUrl } from "@repo/ai-client";
 import type { StylistPersona } from "@repo/ai-client";
 import type { QualityCheckResult } from "./VirtualTryOn/usePhotoQualityCheck";
 
@@ -60,15 +61,6 @@ function getProviderLabel(enhancement?: {
     return "AI generated visualization";
   }
   return "Analysis only";
-}
-
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
 }
 
 interface VirtualTryOnProps {
@@ -200,7 +192,7 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
     setSelectedPhoto(file);
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
-    const photoData = await fileToDataUrl(file);
+    const photoData = await imageFileToDataUrl(file);
     setSelectedPhotoData(photoData);
 
     if (qualityResult.failCount > 0 || qualityResult.warnCount >= 2) {

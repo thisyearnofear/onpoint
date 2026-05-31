@@ -12,4 +12,5 @@ export * from "./use-venice-live";
 export * from "./context/AIContext";
 export * from "./services/personality-service";
 export * from "./utils/cache";
+export * from "./utils/file-utils";
 export { default as AIClientManager } from "./ai-client";
