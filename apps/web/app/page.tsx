@@ -10,6 +10,7 @@ import {
   Check,
   Camera,
   FlaskConical,
+  Store,
 } from "lucide-react";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { Auth0HeaderButton } from "../components/auth/Auth0Components";
@@ -37,6 +38,13 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-1">
+            <Link
+              href="/curator"
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-full hover:bg-muted/50"
+            >
+              <Store className="w-4 h-4" />
+              Curators
+            </Link>
             <Link
               href="/lab"
               className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-full hover:bg-muted/50"
