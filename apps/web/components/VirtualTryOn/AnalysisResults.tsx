@@ -1,28 +1,84 @@
 "use client";
 
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { Button } from "@repo/ui/button";
 import { Badge } from "@repo/ui/badge";
-import { Sparkles, User, CheckCircle, MessageCircle, Wallet, Shirt } from "lucide-react";
-import type { VirtualTryOnAnalysis } from "@repo/ai-client";
+import {
+  CheckCircle,
+  Copy,
+  MessageCircle,
+  Palette,
+  Ruler,
+  Share2,
+  Shirt,
+  Sparkles,
+  User,
+  Wallet,
+} from "lucide-react";
+import type { StylistPersona, VirtualTryOnAnalysis } from "@repo/ai-client";
+import { getPersonaConfig } from "../../lib/utils/persona-config";
 import { AnalysisSkeleton } from "./AnalysisSkeleton";
 
 interface AnalysisResultsProps {
   analysis: VirtualTryOnAnalysis;
+  previewUrl?: string;
   onCritiqueModeSelection?: () => void;
   onShopRecommendations?: () => void;
   preferences?: any;
 }
 
+const SHARE_PERSONAS: StylistPersona[] = [
+  "miranda",
+  "edina",
+  "shaft",
+  "luxury",
+  "streetwear",
+  "sustainable",
+];
+
+function getArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+function selectPersona(analysis: VirtualTryOnAnalysis): StylistPersona {
+  const seed = `${analysis.bodyType || ""}:${getArray((analysis as any).currentLook)[0] || ""}`;
+  const total = seed.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  return SHARE_PERSONAS[total % SHARE_PERSONAS.length] || "miranda";
+}
+
+function buildPersonaQuote(
+  persona: StylistPersona,
+  bodyType: string,
+  styleTip: string,
+) {
+  const conciseTip = styleTip.replace(/\.$/, "");
+  switch (persona) {
+    case "edina":
+      return `Darling, the proportions are doing the work. Keep the drama intentional: ${conciseTip}.`;
+    case "shaft":
+      return `This has presence. Lead with the fit, then let the styling detail sharpen the whole look: ${conciseTip}.`;
+    case "luxury":
+      return `The strongest read is restraint. For a ${bodyType || "balanced"} profile, polish comes from proportion and finish.`;
+    case "streetwear":
+      return `The silhouette is the signal. Push one hero detail and let the rest stay clean: ${conciseTip}.`;
+    case "sustainable":
+      return `A strong wardrobe move is the one you can repeat. Build around fit first, then choose pieces with longevity.`;
+    case "miranda":
+    default:
+      return `The direction is clear: refine the silhouette, protect the proportions, and make the styling choice look deliberate.`;
+  }
+}
+
 export function AnalysisResults({
   analysis,
+  previewUrl,
   onCritiqueModeSelection,
   onShopRecommendations,
   preferences,
 }: AnalysisResultsProps) {
   const [expandedSection, setExpandedSection] = React.useState<string | null>(null);
   const [showLoading, setShowLoading] = React.useState(true);
+  const [copied, setCopied] = React.useState(false);
 
   React.useEffect(() => {
     const timer = setTimeout(() => setShowLoading(false), 600);
@@ -33,208 +89,267 @@ export function AnalysisResults({
     return <AnalysisSkeleton staggered showActions />;
   }
 
+  const currentLook = getArray((analysis as any).currentLook);
+  const fitRecommendations = getArray((analysis as any).fitRecommendations || analysis.fitRecommendations);
+  const styleRecommendations = getArray((analysis as any).styleRecommendations || analysis.styleAdjustments);
+  const personalization = getArray((analysis as any).personalization);
+  const bodyType = analysis.bodyType || preferences?.bodyType || "Personal";
+  const persona = selectPersona(analysis);
+  const personaStyle = getPersonaConfig(persona);
+  const PersonaIcon = personaStyle.icon;
+  const topStyleTip = styleRecommendations[0] || fitRecommendations[0] || "keep the silhouette intentional";
+  const personaQuote = buildPersonaQuote(persona, bodyType, topStyleTip);
+  const shareText = `OnPoint styled my look as ${bodyType}. ${personaStyle.characterName}: "${personaQuote}"`;
   const hasPreferences = preferences && (
     (preferences.styleAesthetics?.length > 0) ||
     preferences.budgetTier ||
     preferences.bodyType
   );
 
-  return (
-    <Card className="elegant-shadow border-primary/20">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Sparkles className="h-4 w-4 text-primary" />
-            Analysis Results
-          </CardTitle>
-          <Badge variant="outline" className="shrink-0 text-xs border-primary/30 text-primary">
-            Analysis only
-          </Badge>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Personalized fit analysis and recommendations
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {/* Personalization Context Banner */}
-        {hasPreferences && (
-          <div className="border rounded-lg p-3 bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5">
-            <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-              <span>Based on your interest in</span>
-              {preferences.styleAesthetics?.map((a: string, i: number) => (
-                <span key={a} className="font-medium text-primary">
-                  {a}{i < (preferences.styleAesthetics?.length || 0) - 1 ? ',' : ''}
-                </span>
-              ))}
-              {preferences.budgetTier && (
-                <>
-                  <span className="text-muted-foreground">with a</span>
-                  <span className="font-medium text-accent">{preferences.budgetTier.replace('-', ' ')}</span>
-                  <span className="text-muted-foreground">budget</span>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-        {/* Current Look (if available) */}
-        {(analysis as any).currentLook && (analysis as any).currentLook.length > 0 && (
-          <div className="border rounded-lg p-3 bg-blue-50/50 dark:bg-blue-950/20">
-            <h4 className="font-medium text-sm mb-2 flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
-              <Shirt className="h-3.5 w-3.5" />
-              What You're Wearing
-            </h4>
-            <div className="space-y-1.5">
-              {(analysis as any).currentLook.slice(0, 2).map((item: string, index: number) => (
-                <div key={index} className="text-xs leading-relaxed text-muted-foreground">
-                  {item}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+  const copyShareText = async () => {
+    if (typeof navigator === "undefined" || !navigator.clipboard) return;
+    await navigator.clipboard.writeText(`${shareText}\n\nbeonpoint.netlify.app`);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  };
 
-        {/* Compact Body Profile */}
-        <div className="border rounded-lg p-3 bg-muted/20">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="font-medium text-sm flex items-center gap-1.5 text-primary">
-              <User className="h-3.5 w-3.5" />
-              Body Profile
-            </h4>
-            <Badge variant="outline" className="text-xs border-primary/30 text-primary">
-              {analysis.bodyType || "Analyzing..."}
+  const shareToX = () => {
+    if (typeof window === "undefined") return;
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${shareText}\n\nbeonpoint.netlify.app`)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const shopRecommendations = onShopRecommendations || (() => {
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("stylistAnalysis", JSON.stringify({
+        bodyType: analysis.bodyType,
+        measurements: analysis.measurements,
+        styleRecommendations,
+        personalization,
+      }));
+      window.location.href = "/shop";
+    }
+  });
+
+  return (
+    <section className="overflow-hidden rounded-2xl border border-primary/20 bg-card elegant-shadow">
+      <div className="grid gap-0 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+        <div className="relative min-h-[420px] bg-muted">
+          {previewUrl ? (
+            <img
+              src={previewUrl}
+              alt="Your analyzed look"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center bg-muted">
+              <User className="h-16 w-16 text-muted-foreground/40" />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+            <Badge className="border-white/20 bg-background/85 text-foreground backdrop-blur">
+              <Sparkles className="mr-1 h-3 w-3 text-primary" />
+              OnPoint Style Report
+            </Badge>
+            <Badge className="border-white/20 bg-background/85 text-foreground backdrop-blur">
+              {bodyType}
             </Badge>
           </div>
-          <div className="flex flex-wrap gap-2 text-xs">
-            {Object.entries(analysis.measurements).slice(0, 4).map(([key, value]) => (
-              <div key={key} className="flex items-center gap-1">
-                <span className="text-muted-foreground capitalize">{key}:</span>
-                <span className="font-medium text-primary">{value || "—"}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Compact Fit Recommendations */}
-        <div className="border rounded-lg p-3 bg-green-50/50 dark:bg-green-950/20">
-          <h4 className="font-medium text-sm mb-2 flex items-center gap-1.5 text-green-600 dark:text-green-400">
-            <CheckCircle className="h-3.5 w-3.5" />
-            Fit & Sizing
-          </h4>
-          <p className="text-[10px] text-muted-foreground mb-2 italic">How clothes should fit your proportions</p>
-          <div className="space-y-1.5">
-            {((analysis as any).fitRecommendations || analysis.fitRecommendations).slice(0, 2).map((rec: string, index: number) => (
-              <div key={index} className="text-xs leading-relaxed text-muted-foreground flex items-start gap-2">
-                <span className="text-green-600 dark:text-green-400 font-bold text-xs mt-0.5">•</span>
-                <span>{rec}</span>
-              </div>
-            ))}
-            {((analysis as any).fitRecommendations || analysis.fitRecommendations).length > 2 && (
-              <button
-                onClick={() => setExpandedSection(expandedSection === 'fit' ? null : 'fit')}
-                className="text-xs text-green-600 dark:text-green-400 hover:underline mt-1"
-              >
-                {expandedSection === 'fit' ? 'Show less' : `+${((analysis as any).fitRecommendations || analysis.fitRecommendations).length - 2} more`}
-              </button>
+          <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
+            <p className="text-xs uppercase tracking-[0.22em] text-white/65">Your photo, styled</p>
+            <h3 className="mt-1 text-2xl font-semibold leading-tight">
+              {currentLook[0] || "A personalized fit profile is ready."}
+            </h3>
+            {currentLook.length > 1 && (
+              <p className="mt-2 max-w-md text-sm leading-relaxed text-white/75">
+                {currentLook[1]}
+              </p>
             )}
-            {expandedSection === 'fit' && ((analysis as any).fitRecommendations || analysis.fitRecommendations).slice(2).map((rec: string, index: number) => (
-              <div key={index + 2} className="text-xs leading-relaxed text-muted-foreground flex items-start gap-2">
-                <span className="text-green-600 dark:text-green-400 font-bold text-xs mt-0.5">•</span>
-                <span>{rec}</span>
-              </div>
-            ))}
           </div>
         </div>
 
-        {/* Compact Style Recommendations */}
-        {(((analysis as any).styleRecommendations && (analysis as any).styleRecommendations.length > 0) || 
-          (analysis.styleAdjustments && analysis.styleAdjustments.length > 0)) && (
-          <div className="border rounded-lg p-3 bg-purple-50/50 dark:bg-purple-950/20">
-            <h4 className="font-medium text-sm mb-2 flex items-center gap-1.5 text-purple-600 dark:text-purple-400">
-              <Sparkles className="h-3.5 w-3.5" />
-              Style & Colors
-            </h4>
-            <p className="text-[10px] text-muted-foreground mb-2 italic">What styles and colors suit you best</p>
-            <div className="space-y-1.5">
-              {((analysis as any).styleRecommendations || analysis.styleAdjustments).slice(0, 2).map((adjustment: string, index: number) => (
-                <div key={index} className="text-xs leading-relaxed text-muted-foreground flex items-start gap-2">
-                  <span className="text-purple-600 dark:text-purple-400 font-bold text-xs mt-0.5">•</span>
-                  <span>{adjustment}</span>
+        <div className="space-y-4 p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">
+                Analysis complete
+              </p>
+              <h3 className="mt-1 text-xl font-semibold">Here is the styling read</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Condensed into the decisions that actually help you dress, shop, and share.
+              </p>
+            </div>
+            <Badge variant="outline" className="shrink-0 border-primary/30 text-primary">
+              Ready
+            </Badge>
+          </div>
+
+          {hasPreferences && (
+            <div className="rounded-xl border border-border bg-muted/25 p-3">
+              <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                <span>Tuned for</span>
+                {preferences.styleAesthetics?.slice(0, 3).map((a: string) => (
+                  <span key={a} className="rounded-full bg-background px-2 py-0.5 font-medium text-foreground">
+                    {a}
+                  </span>
+                ))}
+                {preferences.budgetTier && (
+                  <span className="rounded-full bg-background px-2 py-0.5 font-medium text-foreground">
+                    {preferences.budgetTier.replace("-", " ")}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-border bg-muted/20 p-3">
+              <User className="h-4 w-4 text-primary" />
+              <p className="mt-2 text-[10px] uppercase tracking-wide text-muted-foreground">Profile</p>
+              <p className="text-sm font-semibold">{bodyType}</p>
+            </div>
+            {Object.entries(analysis.measurements).slice(0, 2).map(([key, value]) => (
+              <div key={key} className="rounded-xl border border-border bg-muted/20 p-3">
+                <Ruler className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+                <p className="mt-2 text-[10px] uppercase tracking-wide text-muted-foreground capitalize">
+                  {key}
+                </p>
+                <p className="truncate text-sm font-semibold">{value || "Balanced"}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid gap-3">
+            <InsightCard
+              icon={Shirt}
+              title="Fit move"
+              tone="emerald"
+              items={fitRecommendations}
+              expanded={expandedSection === "fit"}
+              onToggle={() => setExpandedSection(expandedSection === "fit" ? null : "fit")}
+            />
+            <InsightCard
+              icon={Palette}
+              title="Style direction"
+              tone="indigo"
+              items={styleRecommendations}
+              expanded={expandedSection === "style"}
+              onToggle={() => setExpandedSection(expandedSection === "style" ? null : "style")}
+            />
+            {personalization.length > 0 && (
+              <InsightCard
+                icon={Sparkles}
+                title="For you"
+                tone="amber"
+                items={personalization}
+                expanded={expandedSection === "personal"}
+                onToggle={() => setExpandedSection(expandedSection === "personal" ? null : "personal")}
+              />
+            )}
+          </div>
+
+          <div className={`rounded-2xl border p-4 ${personaStyle.border} ${personaStyle.bg}`}>
+            <div className="flex items-start gap-3">
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${personaStyle.gradient} text-white`}>
+                <PersonaIcon className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-semibold">{personaStyle.characterName}</p>
+                  <Badge variant="outline" className="text-[10px]">
+                    Shareable take
+                  </Badge>
                 </div>
-              ))}
-              {((analysis as any).styleRecommendations || analysis.styleAdjustments).length > 2 && (
-                <button
-                  onClick={() => setExpandedSection(expandedSection === 'style' ? null : 'style')}
-                  className="text-xs text-purple-600 dark:text-purple-400 hover:underline mt-1"
-                >
-                  {expandedSection === 'style' ? 'Show less' : `+${((analysis as any).styleRecommendations || analysis.styleAdjustments).length - 2} more`}
-                </button>
-              )}
-              {expandedSection === 'style' && ((analysis as any).styleRecommendations || analysis.styleAdjustments).slice(2).map((adjustment: string, index: number) => (
-                <div key={index + 2} className="text-xs leading-relaxed text-muted-foreground flex items-start gap-2">
-                  <span className="text-purple-600 dark:text-purple-400 font-bold text-xs mt-0.5">•</span>
-                  <span>{adjustment}</span>
+                <p className="mt-2 text-sm leading-relaxed text-foreground">"{personaQuote}"</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={copyShareText} className="h-8 gap-1.5 text-xs">
+                    <Copy className="h-3.5 w-3.5" />
+                    {copied ? "Copied" : "Copy"}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={shareToX} className="h-8 gap-1.5 text-xs">
+                    <Share2 className="h-3.5 w-3.5" />
+                    Post to X
+                  </Button>
                 </div>
-              ))}
+              </div>
             </div>
           </div>
-        )}
 
-        {/* Personalization (if available) */}
-        {(analysis as any).personalization && (analysis as any).personalization.length > 0 && (
-          <div className="border rounded-lg p-3 bg-amber-50/50 dark:bg-amber-950/20">
-            <h4 className="font-medium text-sm mb-2 flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
-              <Sparkles className="h-3.5 w-3.5" />
-              Just For You
-            </h4>
-            <p className="text-[10px] text-muted-foreground mb-2 italic">Based on your specific look</p>
-            <div className="space-y-1.5">
-              {(analysis as any).personalization.map((tip: string, index: number) => (
-                <div key={index} className="text-xs leading-relaxed text-muted-foreground flex items-start gap-2">
-                  <span className="text-amber-600 dark:text-amber-400 font-bold text-xs mt-0.5">✨</span>
-                  <span>{tip}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="pt-2 border-t border-border/50">
-          <p className="text-xs text-muted-foreground mb-3 text-center">What's next?</p>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 border-t border-border/60 pt-4">
             {onCritiqueModeSelection && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={onCritiqueModeSelection}
-                className="flex flex-col items-center gap-1 h-auto py-3 text-xs"
+                className="h-auto gap-2 py-3 text-xs"
               >
                 <MessageCircle className="h-4 w-4" />
-                <span>Get Critique</span>
+                Get critique
               </Button>
             )}
             <Button
               variant="default"
               size="sm"
-              onClick={onShopRecommendations || (() => {
-                if (typeof window !== 'undefined') {
-                  sessionStorage.setItem('stylistAnalysis', JSON.stringify({
-                    bodyType: analysis.bodyType,
-                    measurements: analysis.measurements,
-                    styleRecommendations: (analysis as any).styleRecommendations || analysis.styleAdjustments,
-                    personalization: (analysis as any).personalization,
-                  }));
-                  window.location.href = '/shop';
-                }
-              })}
-              className="flex flex-col items-center gap-1 h-auto py-3 text-xs bg-gradient-to-r from-primary to-accent hover:opacity-90"
+              onClick={shopRecommendations}
+              className="h-auto gap-2 bg-gradient-to-r from-primary to-accent py-3 text-xs hover:opacity-90"
             >
               <Wallet className="h-4 w-4" />
-              <span>Let Agent Shop</span>
+              Let agent shop
             </Button>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </section>
+  );
+}
+
+function InsightCard({
+  icon: Icon,
+  title,
+  tone,
+  items,
+  expanded,
+  onToggle,
+}: {
+  icon: React.ElementType;
+  title: string;
+  tone: "emerald" | "indigo" | "amber";
+  items: string[];
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const colors = {
+    emerald: "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    indigo: "border-indigo-500/25 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
+    amber: "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  };
+  const shown = expanded ? items : items.slice(0, 1);
+  const fallback = title === "Fit move"
+    ? "Keep the strongest line clean and avoid adding bulk where the silhouette already has structure."
+    : "Choose one styling detail to lead, then keep the rest of the look intentional.";
+
+  return (
+    <div className={`rounded-xl border p-3 ${colors[tone]}`}>
+      <div className="flex items-center justify-between gap-3">
+        <h4 className="flex items-center gap-1.5 text-sm font-semibold">
+          <Icon className="h-3.5 w-3.5" />
+          {title}
+        </h4>
+        {items.length > 1 && (
+          <button onClick={onToggle} className="text-[10px] font-medium underline-offset-2 hover:underline">
+            {expanded ? "Less" : `+${items.length - 1}`}
+          </button>
+        )}
+      </div>
+      <div className="mt-2 space-y-2">
+        {(shown.length ? shown : [fallback]).map((item, index) => (
+          <div key={`${title}-${index}`} className="flex items-start gap-2 text-xs leading-relaxed text-foreground/80">
+            <CheckCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-70" />
+            <span>{item}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

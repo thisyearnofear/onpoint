@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from "react";
 import { Button } from "@repo/ui/button";
-import { Upload, Camera, Sparkles } from "lucide-react";
+import { Upload, Camera, CheckCircle2, Palette, Ruler, ShieldCheck, Sparkles, Wand2 } from "lucide-react";
 import dynamic from "next/dynamic";
 // framer-motion removed — using CSS transitions instead
 import { useVirtualTryOn } from "@repo/ai-client";
@@ -26,7 +26,6 @@ import {
 import {
   PhotoUpload,
   AnalysisResults,
-  AnalysisSkeleton,
   GarmentPicker,
   PersonalityCard,
   CritiqueResult,
@@ -61,6 +60,98 @@ function getProviderLabel(enhancement?: {
     return "AI generated visualization";
   }
   return "Analysis only";
+}
+
+const STYLE_SCAN_STEPS = [
+  { label: "Secure resize", detail: "Keeping upload lean", icon: ShieldCheck },
+  { label: "Color read", detail: "Finding palette cues", icon: Palette },
+  { label: "Fit map", detail: "Checking proportion", icon: Ruler },
+  { label: "Stylist brief", detail: "Preparing recommendations", icon: Wand2 },
+];
+
+function StyleScanLoadingCard({
+  previewUrl,
+  isPreparingPhoto,
+}: {
+  previewUrl: string;
+  isPreparingPhoto: boolean;
+}) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-primary/20 bg-card">
+      <div className="grid gap-0 sm:grid-cols-[180px_1fr]">
+        <div className="relative min-h-[220px] overflow-hidden bg-muted">
+          <img
+            src={previewUrl}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/70" />
+          <div className="absolute inset-x-3 top-4 h-px bg-primary/80 shadow-[0_0_22px_rgba(255,255,255,0.75)] animate-pulse" />
+          <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-primary/20 to-transparent animate-pulse" />
+          <div className="absolute bottom-4 left-4 right-4">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-background/85 px-2.5 py-1 text-[10px] font-medium text-foreground backdrop-blur">
+              <Sparkles className="h-3 w-3 text-primary" />
+              OnPoint Style Scan
+            </div>
+          </div>
+        </div>
+        <div className="space-y-4 p-4">
+          <div>
+            <p className="text-sm font-semibold">
+              {isPreparingPhoto ? "Polishing your photo for analysis" : "Building your fit profile"}
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              {isPreparingPhoto
+                ? "We resize the image before sending it so the upload feels fast and stable."
+                : "OnPoint is reading color, silhouette, proportion, and styling cues from your photo."}
+            </p>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            {STYLE_SCAN_STEPS.map((step, index) => {
+              const Icon = step.icon;
+              const active = isPreparingPhoto ? index === 0 : index > 0;
+              return (
+                <div
+                  key={step.label}
+                  className={`flex min-h-14 items-center gap-2 rounded-lg border px-3 py-2 transition-colors ${
+                    active
+                      ? "border-primary/25 bg-primary/10"
+                      : "border-border bg-muted/30"
+                  }`}
+                >
+                  <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
+                    active ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"
+                  }`}>
+                    {active ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-medium">{step.label}</p>
+                    <p className="truncate text-[10px] text-muted-foreground">{step.detail}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-[10px] font-medium text-muted-foreground">
+              <span>{isPreparingPhoto ? "Optimizing upload" : "Personalizing recommendations"}</span>
+              <span>{isPreparingPhoto ? "Step 1/4" : "Step 3/4"}</span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+              <div
+                className={`h-full rounded-full bg-primary transition-all duration-700 ${
+                  isPreparingPhoto ? "w-1/4" : "w-3/4"
+                }`}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 interface VirtualTryOnProps {
@@ -432,7 +523,9 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
                 {selectedPhoto && previewUrl && (
                   <div className="space-y-6">
                   {/* Compact photo thumbnail bar */}
-                  <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+                  <div className={`flex items-center gap-3 rounded-xl border bg-card p-3 transition-colors ${
+                    isBusy ? "border-primary/25 shadow-sm shadow-primary/10" : "border-border"
+                  }`}>
                     <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg">
                       <img
                         src={previewUrl}
@@ -451,18 +544,18 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
                           {analysis
                             ? "Analysis complete"
                             : isPreparingPhoto
-                              ? "Optimizing photo"
+                              ? "Preparing your style scan"
                               : loading
-                                ? "Reading silhouette, color, and fit cues"
+                                ? "OnPoint is styling your profile"
                                 : "Photo ready"}
                         </p>
                         <p className="text-[10px] text-muted-foreground">
                           {analysis?.bodyType
                             ? `Body type: ${analysis.bodyType}`
                             : isPreparingPhoto
-                              ? "Resizing securely before AI analysis."
+                              ? "Secure resize in progress."
                               : loading
-                                ? "This usually takes a few seconds."
+                                ? "Reading silhouette, color, and fit cues."
                                 : "Analysis will start automatically."}
                         </p>
                       </div>
@@ -470,7 +563,7 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
                         <div className="space-y-1.5">
                           <div className="flex items-center gap-1.5 text-[10px] text-primary">
                             <Sparkles className="h-3 w-3" />
-                            <span>{isPreparingPhoto ? "Preparing upload" : "Building your fit profile"}</span>
+                            <span>{isPreparingPhoto ? "Optimizing upload" : "Building your fit profile"}</span>
                           </div>
                           <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                             <div className="h-full w-2/3 rounded-full bg-primary/70 animate-pulse" />
@@ -537,36 +630,9 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
                     </div>
                   )}
 
-                  {/* Skeleton loading while analysis runs */}
-                  {loading && !analysis && !qualityWarning && (
-                    <div className="space-y-4 animate-pulse">
-                      <AnalysisSkeleton showActions={false} />
-
-                      {/* Garment picker skeleton */}
-                      <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="h-3 w-32 rounded bg-muted-foreground/20" />
-                          <div className="h-4 w-10 rounded-full bg-muted-foreground/20" />
-                        </div>
-                        <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_120px_120px]">
-                          <div className="h-9 rounded-md bg-muted-foreground/10" />
-                          <div className="h-9 rounded-md bg-muted-foreground/10" />
-                          <div className="h-9 rounded-md bg-muted-foreground/10" />
-                        </div>
-                        <div className="mt-3 flex gap-2 overflow-hidden">
-                          {[1, 2, 3, 4, 5].map((i) => (
-                            <div key={i} className="w-28 shrink-0">
-                              <div className="aspect-square rounded-lg bg-muted-foreground/10" />
-                              <div className="h-3 w-16 rounded bg-muted-foreground/20 mt-2" />
-                              <div className="h-2 w-12 rounded bg-muted-foreground/20 mt-1" />
-                            </div>
-                          ))}
-                        </div>
-                        <div className="mt-4">
-                          <div className="h-10 w-full rounded-lg bg-muted-foreground/10" />
-                        </div>
-                      </div>
-                    </div>
+                  {/* Branded loading state while photo optimization or analysis runs */}
+                  {(loading || isPreparingPhoto) && !analysis && !qualityWarning && (
+                    <StyleScanLoadingCard previewUrl={previewUrl} isPreparingPhoto={isPreparingPhoto} />
                   )}
 
                   {/* Analysis Results */}
@@ -607,6 +673,7 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
                       <div className="animate-fade-in">
                         <AnalysisResults
                           analysis={analysis!}
+                          previewUrl={previewUrl}
                           onCritiqueModeSelection={() => setShowPersonalitySelection(true)}
                           onShopRecommendations={handleShopRecommendations}
                           preferences={preferences}
