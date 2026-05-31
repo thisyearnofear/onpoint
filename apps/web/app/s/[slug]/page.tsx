@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import {
   ArrowLeft,
   Camera,
-  ExternalLink,
+  Handshake,
   MapPin,
   MessageCircle,
   PackageSearch,
@@ -214,8 +214,9 @@ export default async function CuratorStorefrontPage({
                 {curator.name}
               </h1>
               <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
-                Live pieces selected by {curator.name}. Pick a kit, choose a
-                size, then complete the order directly on WhatsApp.
+                Human curation connected to OnPoint try-on. Pick a piece,
+                test the fit with AI, then send {curator.name} a ready-to-act
+                brief on WhatsApp.
               </p>
             </div>
 
@@ -237,6 +238,10 @@ export default async function CuratorStorefrontPage({
                   WhatsApp checkout
                 </span>
               )}
+              <span className="inline-flex items-center gap-2">
+                <Handshake className="h-4 w-4" />
+                Human style handoff
+              </span>
             </div>
           </div>
 
@@ -249,11 +254,29 @@ export default async function CuratorStorefrontPage({
                 {curator.name.slice(0, 1).toUpperCase()}
               </div>
               <div>
-                <h2 className="text-lg font-bold">How ordering works</h2>
+                <h2 className="text-lg font-bold">{curator.name}'s role</h2>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Every item opens a prefilled WhatsApp message with the kit,
-                  size, and price. Stock stays with the curator.
+                  OnPoint reads the look and prepares the brief. {curator.name}
+                  confirms the item, size, stock, and styling judgment before
+                  the shopper commits.
                 </p>
+              </div>
+              <div className="grid gap-2 text-xs">
+                {[
+                  "Try on any stocked piece",
+                  "Send a fit brief to the curator",
+                  "Confirm size, stock, and delivery",
+                ].map((step, index) => (
+                  <div key={step} className="flex items-center gap-2 rounded-md border border-border bg-muted/30 p-2">
+                    <span
+                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                      style={{ background: "var(--curator-primary)" }}
+                    >
+                      {index + 1}
+                    </span>
+                    <span className="font-medium">{step}</span>
+                  </div>
+                ))}
               </div>
               {curator.channels?.whatsapp && (
                 <a
@@ -271,6 +294,20 @@ export default async function CuratorStorefrontPage({
       </section>
 
       <section className="mx-auto max-w-6xl px-4 py-10">
+        <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Curator edit
+            </p>
+            <h2 className="mt-1 text-2xl font-black tracking-tight">
+              Try the stock, then ask {curator.name}
+            </h2>
+          </div>
+          <p className="max-w-md text-sm leading-6 text-muted-foreground">
+            Each item can start as an AI try-on or go straight to a curator
+            message. The human decision stays visible throughout the flow.
+          </p>
+        </div>
         {listings.length === 0 ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card p-8 text-center">
             <PackageSearch className="h-10 w-10 text-muted-foreground" />
@@ -344,7 +381,7 @@ export default async function CuratorStorefrontPage({
                         className="inline-flex flex-1 items-center justify-center gap-2 rounded-md border border-border px-4 py-3 text-sm font-bold transition-colors hover:bg-muted"
                       >
                         <Camera className="h-4 w-4" />
-                        Try On
+                        Try with AI
                       </a>
                       {listing.checkoutUrl ? (
                         <a
@@ -354,8 +391,8 @@ export default async function CuratorStorefrontPage({
                           className="inline-flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
                           style={{ background: "var(--curator-primary)" }}
                         >
-                          Buy
-                          <ExternalLink className="h-4 w-4" />
+                          Ask {curator.name}
+                          <MessageCircle className="h-4 w-4" />
                         </a>
                       ) : (
                         <button

@@ -674,6 +674,7 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
                         <AnalysisResults
                           analysis={analysis!}
                           previewUrl={previewUrl}
+                          selectedGarment={selectedGarment}
                           onCritiqueModeSelection={() => setShowPersonalitySelection(true)}
                           onShopRecommendations={handleShopRecommendations}
                           preferences={preferences}

@@ -9,19 +9,23 @@ import {
   MessageCircle,
   Palette,
   Ruler,
+  Send,
   Share2,
   Shirt,
   Sparkles,
+  Store,
   User,
   Wallet,
 } from "lucide-react";
 import type { StylistPersona, VirtualTryOnAnalysis } from "@repo/ai-client";
+import type { TryOnSelection } from "../../lib/utils/try-on-selection";
 import { getPersonaConfig } from "../../lib/utils/persona-config";
 import { AnalysisSkeleton } from "./AnalysisSkeleton";
 
 interface AnalysisResultsProps {
   analysis: VirtualTryOnAnalysis;
   previewUrl?: string;
+  selectedGarment?: TryOnSelection | null;
   onCritiqueModeSelection?: () => void;
   onShopRecommendations?: () => void;
   preferences?: any;
@@ -72,6 +76,7 @@ function buildPersonaQuote(
 export function AnalysisResults({
   analysis,
   previewUrl,
+  selectedGarment,
   onCritiqueModeSelection,
   onShopRecommendations,
   preferences,
@@ -100,6 +105,21 @@ export function AnalysisResults({
   const topStyleTip = styleRecommendations[0] || fitRecommendations[0] || "keep the silhouette intentional";
   const personaQuote = buildPersonaQuote(persona, bodyType, topStyleTip);
   const shareText = `OnPoint styled my look as ${bodyType}. ${personaStyle.characterName}: "${personaQuote}"`;
+  const curator = selectedGarment?.curator;
+  const curatorName = curator?.name || "Wanja";
+  const curatorSlug = curator?.slug || "wanja";
+  const curatorWhatsApp = curator?.whatsapp?.replace(/^\+/, "");
+  const storefrontHref = `/s/${encodeURIComponent(curatorSlug)}`;
+  const curatorBrief = [
+    `Hi ${curatorName}, OnPoint prepared a style brief for me.`,
+    selectedGarment?.name ? `Item: ${selectedGarment.name}` : null,
+    `Fit profile: ${bodyType}`,
+    topStyleTip ? `Styling note: ${topStyleTip}` : null,
+    "Can you recommend, source, or confirm the best piece for this look?",
+  ].filter(Boolean).join("\n");
+  const curatorHref = curatorWhatsApp
+    ? `https://wa.me/${curatorWhatsApp}?text=${encodeURIComponent(curatorBrief)}`
+    : storefrontHref;
   const hasPreferences = preferences && (
     (preferences.styleAesthetics?.length > 0) ||
     preferences.budgetTier ||
@@ -271,6 +291,57 @@ export function AnalysisResults({
                     <Share2 className="h-3.5 w-3.5" />
                     Post to X
                   </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-background p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-foreground text-background">
+                <Store className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-semibold">{curatorName}'s handoff</p>
+                  <Badge variant="outline" className="text-[10px]">
+                    Human curator
+                  </Badge>
+                </div>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  OnPoint has turned this scan into a curator-ready brief. Ask {curatorName} to
+                  confirm the fit, recommend a stocked piece, or source the missing item.
+                </p>
+                {selectedGarment?.name && (
+                  <div className="mt-3 rounded-xl border border-border bg-muted/25 p-3">
+                    <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                      Current piece
+                    </p>
+                    <p className="mt-1 text-sm font-semibold">{selectedGarment.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {selectedGarment.source?.startsWith("storefront:")
+                        ? "Curator-stocked item"
+                        : "AI-matched catalog item"}
+                    </p>
+                  </div>
+                )}
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <a
+                    href={curatorHref}
+                    target={curatorHref.startsWith("http") ? "_blank" : undefined}
+                    rel={curatorHref.startsWith("http") ? "noopener noreferrer" : undefined}
+                    className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                  >
+                    <Send className="h-3.5 w-3.5" />
+                    Send brief
+                  </a>
+                  <a
+                    href={storefrontHref}
+                    className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border px-3 text-xs font-semibold transition-colors hover:bg-muted"
+                  >
+                    <Store className="h-3.5 w-3.5" />
+                    Shop edit
+                  </a>
                 </div>
               </div>
             </div>

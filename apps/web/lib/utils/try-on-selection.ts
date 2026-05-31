@@ -11,11 +11,18 @@ export interface TryOnSelection {
   category?: string;
   imageUrl?: string;
   source?: string;
+  checkoutUrl?: string | null;
+  curator?: {
+    slug?: string;
+    name?: string;
+    whatsapp?: string;
+  };
 }
 
 interface StorefrontListing {
   id: string;
   imageUrl?: string | null;
+  checkoutUrl?: string | null;
   sizes?: Array<{ price?: number | string }>;
   kit?: {
     club?: string;
@@ -25,7 +32,13 @@ interface StorefrontListing {
 }
 
 interface StorefrontResponse {
-  curator?: { slug?: string; name?: string };
+  curator?: {
+    slug?: string;
+    name?: string;
+    channels?: {
+      whatsapp?: string;
+    };
+  };
   listings?: StorefrontListing[];
 }
 
@@ -110,6 +123,12 @@ export async function resolveStorefrontTryOnSelection(
     price: lowestListingPrice(listing),
     category: listing.kit?.kitType || "storefront",
     imageUrl: listing.imageUrl || undefined,
+    checkoutUrl: listing.checkoutUrl || null,
+    curator: {
+      slug: storefront.curator?.slug || curatorSlug,
+      name: storefront.curator?.name || curatorSlug,
+      whatsapp: storefront.curator?.channels?.whatsapp,
+    },
     source: `storefront:${storefront.curator?.slug || curatorSlug}`,
   };
 }
