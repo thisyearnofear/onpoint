@@ -3,7 +3,7 @@ import { corsHeaders } from "../../ai/_utils/http";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 export { OPTIONS } from "../../ai/_utils/http";
 import { logger } from "../../../../lib/utils/logger";
-import { recordProviderOutcome } from "../../../../lib/utils/analytics-store";
+import { recordProviderOutcome, recordDeepLinkPersonaSelected, recordDeepLinkPersonaOutcome } from "../../../../lib/utils/analytics-store";
 
 interface AnalyticsEvent {
   event: string;
@@ -67,6 +67,28 @@ export async function POST(request: NextRequest) {
           garmentCategory: p.garmentCategory as string | undefined,
           hasPersonImage: Boolean(p.hasPersonImage),
           hasGarmentImage: Boolean(p.hasGarmentImage),
+        });
+      }
+
+      // Persist deep-link persona events to Redis (best-effort)
+      const dlSelectedEvents = events.filter((e) => e.event === "deep_link_persona_selected");
+      for (const ev of dlSelectedEvents) {
+        const p = ev.properties || {};
+        recordDeepLinkPersonaSelected({
+          persona: p.persona as string,
+          curatorSlug: p.curatorSlug as string | undefined,
+          listingId: p.listingId as string | undefined,
+        });
+      }
+
+      const dlOutcomeEvents = events.filter((e) => e.event === "deep_link_persona_outcome");
+      for (const ev of dlOutcomeEvents) {
+        const p = ev.properties || {};
+        recordDeepLinkPersonaOutcome({
+          persona: p.persona as string,
+          curatorSlug: p.curatorSlug as string | undefined,
+          completed: Boolean(p.completed),
+          durationMs: p.durationMs as number | undefined,
         });
       }
 

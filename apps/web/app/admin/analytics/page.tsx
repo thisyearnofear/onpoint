@@ -24,6 +24,7 @@ import {
   GitBranch,
 } from "lucide-react";
 import { CrossCuratorRecommendationsSection } from "./CrossCuratorRecommendationsSection";
+import { DeepLinkPersonaFunnelSection } from "./DeepLinkPersonaFunnelSection";
 import { Bar } from "../../../components/admin/TrendSparkline";
 
 interface ProviderOutcomeReport {
@@ -440,6 +441,9 @@ export default function AnalyticsDashboardPage() {
         Data aggregated in Redis from <code className="rounded bg-muted px-1 py-0.5 font-mono text-[10px]">virtual_try_on_provider_outcome</code> and{" "}
         <code className="rounded bg-muted px-1 py-0.5 font-mono text-[10px]">virtual_try_on_provider_error</code> events. Updates in near-real-time.
       </p>
+
+      {/* ════════════════════ AI Persona Funnel ════════════════════ */}
+      <DeepLinkPersonaFunnelSection />
 
       {/* ════════════════════ Curator Funnel Analytics ════════════════════ */}
       <CuratorFunnelAnalyticsSection />

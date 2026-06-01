@@ -451,6 +451,16 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
   }, [analysis]);
 
   const handleReset = useCallback(() => {
+    // Track abandoned deep-link persona sessions
+    if (initialPersona && hasAutoSelectedPersona.current && !critiqueResult && deepLinkSelectTimeRef.current) {
+      trackDeepLinkPersonaOutcome({
+        persona: initialPersona,
+        curatorSlug: initialCuratorSlug,
+        completed: false,
+        durationMs: Date.now() - deepLinkSelectTimeRef.current,
+      });
+      deepLinkSelectTimeRef.current = null;
+    }
     setSelectedPhoto(null);
     setPreviewUrl(null);
     setSelectedPhotoData(null);
@@ -468,6 +478,9 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
       URL.revokeObjectURL(previewUrl);
     }
   }, [
+    initialPersona,
+    initialCuratorSlug,
+    critiqueResult,
     clearAnalysis,
     clearError,
     clearCritiqueError,
