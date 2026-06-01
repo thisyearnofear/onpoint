@@ -91,7 +91,7 @@ export function TryOnPanel({ deepLinkFrom, deepLinkItem, deepLinkPersona, onDism
           </button>
         </div>
       )}
-      <VirtualTryOn selectedTryOnItem={selection} initialPersona={deepLinkPersona as StylistPersona | undefined} />
+      <VirtualTryOn selectedTryOnItem={selection} initialPersona={deepLinkPersona as StylistPersona | undefined} initialCuratorSlug={deepLinkFrom} />
     </motion.div>
   );
 }

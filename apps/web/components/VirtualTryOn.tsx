@@ -12,7 +12,7 @@ import { imageFileToDataUrl } from "@repo/ai-client";
 import type { StylistPersona } from "@repo/ai-client";
 import type { QualityCheckResult } from "./VirtualTryOn/usePhotoQualityCheck";
 
-import { FREE_PERSONAS, PREMIUM_PERSONAS, isPersonaUnlocked } from "../lib/utils/persona-config";
+import { FREE_PERSONAS, PREMIUM_PERSONAS, isPersonaUnlocked, getPersonaConfig } from "../lib/utils/persona-config";
 import { usePremiumStatus } from "../hooks/use-premium-status";
 import { useUserPreferences } from "../hooks/useUserPreferences";
 import { CANVAS_ITEMS } from "@onpoint/shared-types";
@@ -158,6 +158,8 @@ interface VirtualTryOnProps {
   selectedTryOnItem?: TryOnSelection | null;
   /** Persona deep-linked from storefront AI second opinion cards. */
   initialPersona?: StylistPersona;
+  /** Curator slug the persona was picked from (for display). */
+  initialCuratorSlug?: string;
 }
 
 type SelectableGarment = TryOnSelection & {
@@ -183,7 +185,52 @@ function getRecommendedCategory(bodyType: string): string {
   return "";
 }
 
-export function VirtualTryOn({ selectedTryOnItem, initialPersona }: VirtualTryOnProps) {
+/**
+ * Banner shown when the user arrives from a storefront AI second-opinion card.
+ * Displays the persona name and the curator that recommended them.
+ */
+function PersonaDeepLinkBanner({
+  persona,
+  curatorSlug,
+}: {
+  persona: StylistPersona;
+  curatorSlug?: string;
+}) {
+  const config = getPersonaConfig(persona);
+  const [dismissed, setDismissed] = React.useState(false);
+  if (dismissed) return null;
+
+  return (
+    <div className="mb-4 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 animate-fade-in">
+      <div
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${config.bg}`}
+      >
+        <Sparkles className={`h-4 w-4 ${config.lightColor}`} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-bold">
+          <span className={config.lightColor}>{config.characterName}</span>
+          {curatorSlug ? (
+            <> picked for you by <span className="font-bold capitalize">{curatorSlug}</span></>
+          ) : (
+            <> pre-selected for your session</>
+          )}
+        </p>
+        <p className="text-[10px] text-muted-foreground">
+          Upload a photo and {config.characterName.split(" ")[0]} will give their take automatically.
+        </p>
+      </div>
+      <button
+        onClick={() => setDismissed(true)}
+        className="shrink-0 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+      >
+        Dismiss
+      </button>
+    </div>
+  );
+}
+
+export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCuratorSlug }: VirtualTryOnProps) {
   // Core state
   const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -523,6 +570,14 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona }: VirtualTryOn
               </Button>
             </div>
           </div>
+
+          {/* Deep-link persona banner */}
+          {initialPersona && (
+            <PersonaDeepLinkBanner
+              persona={initialPersona}
+              curatorSlug={initialCuratorSlug}
+            />
+          )}
 
           {showLiveStylist ? (
             <div className="animate-fade-in">
