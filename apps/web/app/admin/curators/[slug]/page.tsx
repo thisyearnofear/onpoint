@@ -19,6 +19,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { CuratorReplyTemplates } from "./CuratorReplyTemplates";
+import { CrossCuratorSummaryCard } from "./CrossCuratorSummaryCard";
 import { PaymentsTable } from "./PaymentsTable";
 import { NotificationsFeed } from "./NotificationsFeed";
 
@@ -337,6 +338,9 @@ export default async function CuratorDetailPage({
           </div>
         </div>
       </div>
+
+      {/* Cross-curator recommendation stats */}
+      <CrossCuratorSummaryCard slug={slug} />
 
       {/* Notifications feed */}
       <NotificationsFeed notifications={notifications} />
