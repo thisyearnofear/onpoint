@@ -201,7 +201,7 @@ function PersonaDeepLinkBanner({
   if (dismissed) return null;
 
   return (
-    <div className="mb-4 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 animate-fade-in">
+    <div className="mb-4 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 animate-fade-slide-in">
       <div
         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${config.bg}`}
       >
@@ -571,8 +571,8 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
             </div>
           </div>
 
-          {/* Deep-link persona banner */}
-          {initialPersona && (
+          {/* Deep-link persona banner — auto-dismisses when critique arrives */}
+          {initialPersona && !critiqueResult && (
             <PersonaDeepLinkBanner
               persona={initialPersona}
               curatorSlug={initialCuratorSlug}
