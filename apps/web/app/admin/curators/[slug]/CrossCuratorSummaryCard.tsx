@@ -7,9 +7,9 @@ import {
   Link2,
   RefreshCw,
   Sparkles,
-  TrendingDown,
   TrendingUp,
 } from "lucide-react";
+import { Bar, TrendSparkline } from "../../../../components/admin/TrendSparkline";
 
 interface DayPoint {
   date: string;
@@ -29,98 +29,6 @@ interface CrossRecoReport {
 function pct(value: number, total: number): string {
   if (total === 0) return "0%";
   return `${Math.round((value / total) * 100)}%`;
-}
-
-function Bar({
-  value,
-  max,
-  color = "bg-violet-500",
-}: {
-  value: number;
-  max: number;
-  color?: string;
-}) {
-  const p = max > 0 ? (value / max) * 100 : 0;
-  return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-      <div
-        className={`h-full rounded-full transition-all duration-500 ${color}`}
-        style={{ width: `${Math.max(p, 2)}%` }}
-      />
-    </div>
-  );
-}
-
-/** Mini sparkline rendered as an SVG polyline. */
-function Sparkline({
-  data,
-  color = "rgb(139 92 246)", // violet-500
-  height = 32,
-  width = 120,
-}: {
-  data: number[];
-  color?: string;
-  height?: number;
-  width?: number;
-}) {
-  const max = Math.max(...data, 1);
-  const min = Math.min(...data, 0);
-  const range = max - min || 1;
-  const padY = 4;
-  const effectiveH = height - padY * 2;
-
-  const points = data
-    .map((v, i) => {
-      const x = (i / (data.length - 1 || 1)) * width;
-      const y = padY + effectiveH - ((v - min) / range) * effectiveH;
-      return `${x},${y}`;
-    })
-    .join(" ");
-
-  // Area fill path (closes at bottom)
-  const areaPoints = points + ` ${width},${height} 0,${height}`;
-
-  return (
-    <svg
-      width={width}
-      height={height}
-      viewBox={`0 0 ${width} ${height}`}
-      className="shrink-0"
-      aria-hidden="true"
-    >
-      <defs>
-        <linearGradient id={`spark-fill-${color.replace(/[^a-z0-9]/gi, "")}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.2" />
-          <stop offset="100%" stopColor={color} stopOpacity="0.02" />
-        </linearGradient>
-      </defs>
-      <polygon
-        points={areaPoints}
-        fill={`url(#spark-fill-${color.replace(/[^a-z0-9]/gi, "")})`}
-      />
-      <polyline
-        points={points}
-        fill="none"
-        stroke={color}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-/** Short label for a date: "Mon", "Tue", etc. */
-function dayLabel(iso: string): string {
-  return new Date(iso + "T00:00:00").toLocaleDateString("en-KE", {
-    weekday: "short",
-  });
-}
-
-/** Compact date label for 30-day view: "6/1", "6/2", etc. */
-function shortDateLabel(iso: string): string {
-  const d = new Date(iso + "T00:00:00");
-  return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
 export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
@@ -229,23 +137,17 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
 
   const maxTargetClicks = Math.max(...sortedTargets.map(([, c]) => c), 1);
 
-  const [timeRange, setTimeRange] = useState<"7d" | "30d">("7d");
-
-  // Sparkline data based on selected range
-  const clicks30 = (report.last30Days || []).map((d) => d.crossRecoClicks);
-  const dailyClicks = timeRange === "7d"
-    ? report.last7Days.map((d) => d.crossRecoClicks)
-    : clicks30;
-  const totalLast7 = report.last7Days.reduce((a, b) => a + b.crossRecoClicks, 0);
-  const totalLast30 = clicks30.reduce((a, b) => a + b, 0);
-  const activeTotal = timeRange === "7d" ? totalLast7 : totalLast30;
-  const hasSparklineData = dailyClicks.some((v) => v > 0);
-  const activeDates = timeRange === "7d" ? report.last7Days : (report.last30Days || []);
-  const has30 = clicks30.some((v) => v > 0);
+  // Data for TrendSparkline
+  const data7d = report.last7Days.map((d) => d.crossRecoClicks);
+  const data30d = (report.last30Days || []).map((d) => d.crossRecoClicks);
+  const total7d = data7d.reduce((a, b) => a + b, 0);
+  const total30d = data30d.reduce((a, b) => a + b, 0);
+  const has30 = data30d.some((v) => v > 0);
+  const hasSparkline = data7d.some((v) => v > 0) || has30;
 
   // Week-over-week comparison
   const prevWeekClicks = report.previous7DaysCrossRecoClicks || 0;
-  const wowDelta = totalLast7 - prevWeekClicks;
+  const wowDelta = total7d - prevWeekClicks;
   const wowPct = prevWeekClicks > 0 ? Math.round((wowDelta / prevWeekClicks) * 100) : 0;
   const wowDirection = wowDelta > 0 ? "up" : wowDelta < 0 ? "down" : "flat";
 
@@ -268,7 +170,7 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
         </button>
       </div>
 
-      {/* Summary stats + daily sparkline */}
+      {/* Summary stats */}
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <div className="rounded-lg border border-border bg-muted/30 p-3">
           <div className="flex items-center justify-between">
@@ -314,110 +216,28 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
         </div>
       </div>
 
-      {/* Daily sparkline — 7d/30d cross-reco click trend */}
-      {hasSparklineData && (
-        <div className="mt-4 rounded-lg border border-border bg-muted/20 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="text-xs font-semibold text-muted-foreground">
-                  {timeRange === "7d" ? "Last 7 days" : "Last 30 days"} — cross-curator clicks
-                </p>
-                {/* 7d / 30d toggle */}
-                <div className="flex overflow-hidden rounded-md border border-border bg-background">
-                  <button
-                    onClick={() => setTimeRange("7d")}
-                    className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${
-                      timeRange === "7d"
-                        ? "bg-violet-500/15 text-violet-600"
-                        : "text-muted-foreground hover:bg-muted"
-                    }`}
-                  >
-                    7d
-                  </button>
-                  <button
-                    onClick={() => setTimeRange("30d")}
-                    disabled={!has30}
-                    className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${
-                      timeRange === "30d"
-                        ? "bg-violet-500/15 text-violet-600"
-                        : "text-muted-foreground hover:bg-muted disabled:opacity-40"
-                    }`}
-                  >
-                    30d
-                  </button>
-                </div>
-              </div>
-              <div className="mt-0.5 flex items-center gap-2 text-[11px]">
-                <span className="text-muted-foreground">
-                  {activeTotal.toLocaleString()} total clicks{timeRange === "7d" ? " this week" : " this month"}
-                </span>
-                {timeRange === "7d" && (prevWeekClicks > 0 || totalLast7 > 0) && (
-                  <span
-                    className={`inline-flex items-center gap-0.5 font-medium ${
-                      wowDirection === "up"
-                        ? "text-emerald-600"
-                        : wowDirection === "down"
-                          ? "text-red-500"
-                          : "text-muted-foreground"
-                    }`}
-                  >
-                    {wowDirection === "up" ? (
-                      <TrendingUp className="h-3 w-3" />
-                    ) : wowDirection === "down" ? (
-                      <TrendingDown className="h-3 w-3" />
-                    ) : null}
-                    {wowDirection === "flat"
-                      ? "vs prev week"
-                      : prevWeekClicks === 0
-                        ? "new this week"
-                        : `${wowDelta > 0 ? "+" : ""}${wowPct}% vs prev week`}
-                  </span>
-                )}
-              </div>
-            </div>
-            <Sparkline data={dailyClicks} width={timeRange === "30d" ? 200 : 120} />
-          </div>
-          {/* Day labels under the sparkline */}
-          <div className="mt-2 flex justify-between text-[10px] text-muted-foreground/60">
-            {timeRange === "7d"
-              ? report.last7Days.map((d) => (
-                  <span key={d.date} className="tabular-nums">
-                    {dayLabel(d.date)}
-                  </span>
-                ))
-              : (report.last30Days || []).filter((_, i) => i % 5 === 0).map((d) => (
-                  <span key={d.date} className="tabular-nums">
-                    {shortDateLabel(d.date)}
-                  </span>
-                ))
-            }
-          </div>
-          {/* Bar chart underneath for precise values */}
-          <div className="mt-3 flex items-end gap-1" style={{ height: 40 }}>
-            {dailyClicks.map((v, i) => {
-              const maxDay = Math.max(...dailyClicks, 1);
-              const h = (v / maxDay) * 36 + 4;
-              return (
-                <div key={i} className="group relative flex-1">
-                  <div
-                    className="mx-auto w-full max-w-[24px] rounded-t-sm bg-violet-500/80 transition-all duration-300 group-hover:bg-violet-500"
-                    style={{ height: `${h}px` }}
-                  />
-                  {/* Tooltip on hover */}
-                  <div className="pointer-events-none absolute -top-8 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded bg-popover px-2 py-1 text-[10px] font-medium opacity-0 shadow-md transition-opacity group-hover:opacity-100">
-                    {v} click{v === 1 ? "" : "s"}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+      {/* Trend sparkline — 7d/30d */}
+      {hasSparkline && (
+        <TrendSparkline
+          title="cross-curator clicks"
+          data7d={data7d}
+          data30d={data30d}
+          dates7d={report.last7Days.map((d) => d.date)}
+          dates30d={(report.last30Days || []).map((d) => d.date)}
+          total7d={total7d}
+          total30d={total30d}
+          has30Data={has30}
+          wow={{
+            delta: wowDelta,
+            pct: wowPct,
+            direction: wowDirection,
+            prevTotal: prevWeekClicks,
+          }}
+        />
       )}
 
       {/* Breakdowns */}
       <div className="mt-4 grid gap-4 md:grid-cols-2">
-        {/* Clicks sent → targets */}
         {sortedTargets.length > 0 && (
           <div>
             <h3 className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
@@ -442,7 +262,6 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
           </div>
         )}
 
-        {/* Clicks received → sources */}
         {sortedAttributions.length > 0 && (
           <div>
             <h3 className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
