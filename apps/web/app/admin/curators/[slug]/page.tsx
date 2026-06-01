@@ -13,7 +13,6 @@ import {
   Globe,
   Palette,
   Calendar,
-  Store,
   ToggleLeft,
   Truck,
   CheckCircle2,
@@ -276,8 +275,8 @@ export default async function CuratorDetailPage({
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
               >
-                <Store className="h-4 w-4" />
-                Storefront
+                <Eye className="h-4 w-4" />
+                Preview storefront
                 <ExternalLink className="h-3.5 w-3.5" />
               </a>
               <Link
