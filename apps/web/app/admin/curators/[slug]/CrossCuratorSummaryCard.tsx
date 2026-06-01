@@ -10,11 +10,17 @@ import {
   TrendingUp,
 } from "lucide-react";
 
+interface DayPoint {
+  date: string;
+  crossRecoClicks: number;
+}
+
 interface CrossRecoReport {
   crossRecoClicks: number;
   crossRecoClickTargets: Record<string, number>;
   crossCuratorAttributions: Record<string, number>;
   shareVisits: number;
+  last7Days: DayPoint[];
 }
 
 function pct(value: number, total: number): string {
@@ -42,6 +48,72 @@ function Bar({
   );
 }
 
+/** Mini sparkline rendered as an SVG polyline. */
+function Sparkline({
+  data,
+  color = "rgb(139 92 246)", // violet-500
+  height = 32,
+  width = 120,
+}: {
+  data: number[];
+  color?: string;
+  height?: number;
+  width?: number;
+}) {
+  const max = Math.max(...data, 1);
+  const min = Math.min(...data, 0);
+  const range = max - min || 1;
+  const padY = 4;
+  const effectiveH = height - padY * 2;
+
+  const points = data
+    .map((v, i) => {
+      const x = (i / (data.length - 1 || 1)) * width;
+      const y = padY + effectiveH - ((v - min) / range) * effectiveH;
+      return `${x},${y}`;
+    })
+    .join(" ");
+
+  // Area fill path (closes at bottom)
+  const areaPoints = points + ` ${width},${height} 0,${height}`;
+
+  return (
+    <svg
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      className="shrink-0"
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id={`spark-fill-${color.replace(/[^a-z0-9]/gi, "")}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.2" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+      <polygon
+        points={areaPoints}
+        fill={`url(#spark-fill-${color.replace(/[^a-z0-9]/gi, "")})`}
+      />
+      <polyline
+        points={points}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** Short label for a date: "Mon", "Tue", etc. */
+function dayLabel(iso: string): string {
+  return new Date(iso + "T00:00:00").toLocaleDateString("en-KE", {
+    weekday: "short",
+  });
+}
+
 export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
   const [report, setReport] = useState<CrossRecoReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,6 +133,12 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
           crossRecoClickTargets: r.crossRecoClickTargets || {},
           crossCuratorAttributions: r.crossCuratorAttributions || {},
           shareVisits: r.shareVisits || 0,
+          last7Days: Array.isArray(r.last7Days)
+            ? r.last7Days.map((d: Record<string, unknown>) => ({
+                date: d.date as string,
+                crossRecoClicks: (d.crossRecoClicks as number) || 0,
+              }))
+            : [],
         });
       }
     } catch {
@@ -108,7 +186,9 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
           <h2 className="font-bold">Cross-curator recommendations</h2>
         </div>
         <p className="mt-3 text-sm text-muted-foreground">
-          No cross-curator recommendation activity yet. When shoppers see recommendation cards on this storefront and click through, the stats will appear here.
+          No cross-curator recommendation activity yet. When shoppers see
+          recommendation cards on this storefront and click through, the stats
+          will appear here.
         </p>
       </div>
     );
@@ -133,6 +213,11 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
 
   const maxTargetClicks = Math.max(...sortedTargets.map(([, c]) => c), 1);
 
+  // Daily sparkline data
+  const dailyClicks = report.last7Days.map((d) => d.crossRecoClicks);
+  const totalLast7 = dailyClicks.reduce((a, b) => a + b, 0);
+  const hasSparklineData = dailyClicks.some((v) => v > 0);
+
   return (
     <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
@@ -145,12 +230,14 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
           disabled={loading}
           className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-xs font-medium transition-colors hover:bg-muted disabled:opacity-50"
         >
-          <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`h-3 w-3 ${loading ? "animate-spin" : ""}`}
+          />
           Refresh
         </button>
       </div>
 
-      {/* Summary stats */}
+      {/* Summary stats + daily sparkline */}
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <div className="rounded-lg border border-border bg-muted/30 p-3">
           <div className="flex items-center justify-between">
@@ -195,6 +282,50 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
           </p>
         </div>
       </div>
+
+      {/* Daily sparkline — 7-day cross-reco click trend */}
+      {hasSparklineData && (
+        <div className="mt-4 rounded-lg border border-border bg-muted/20 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground">
+                Last 7 days — cross-curator clicks
+              </p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                {totalLast7.toLocaleString()} total clicks this week
+              </p>
+            </div>
+            <Sparkline data={dailyClicks} />
+          </div>
+          {/* Day labels under the sparkline */}
+          <div className="mt-2 flex justify-between text-[10px] text-muted-foreground/60">
+            {report.last7Days.map((d) => (
+              <span key={d.date} className="tabular-nums">
+                {dayLabel(d.date)}
+              </span>
+            ))}
+          </div>
+          {/* Bar chart underneath for precise values */}
+          <div className="mt-3 flex items-end gap-1" style={{ height: 40 }}>
+            {dailyClicks.map((v, i) => {
+              const maxDay = Math.max(...dailyClicks, 1);
+              const h = (v / maxDay) * 36 + 4;
+              return (
+                <div key={i} className="group relative flex-1">
+                  <div
+                    className="mx-auto w-full max-w-[24px] rounded-t-sm bg-violet-500/80 transition-all duration-300 group-hover:bg-violet-500"
+                    style={{ height: `${h}px` }}
+                  />
+                  {/* Tooltip on hover */}
+                  <div className="pointer-events-none absolute -top-8 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded bg-popover px-2 py-1 text-[10px] font-medium opacity-0 shadow-md transition-opacity group-hover:opacity-100">
+                    {v} click{v === 1 ? "" : "s"}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Breakdowns */}
       <div className="mt-4 grid gap-4 md:grid-cols-2">

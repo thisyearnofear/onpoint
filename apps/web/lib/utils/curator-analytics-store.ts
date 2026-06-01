@@ -268,7 +268,7 @@ export interface CuratorAnalyticsReport {
   crossShareVisits: Record<string, number>;
   crossRecoClicks: number;
   crossRecoClickTargets: Record<string, number>; // target curator slug → count
-  last7Days: { date: string; pageViews: number; tryOns: number; purchases: number }[];
+  last7Days: { date: string; pageViews: number; tryOns: number; purchases: number; crossRecoClicks: number }[];
 }
 
 export interface CuratorFunnelOverview {
@@ -330,6 +330,7 @@ export async function getCuratorAnalytics(
       k("daily", d, curatorSlug, "page_views"),
       k("daily", d, curatorSlug, "try_ons"),
       k("daily", d, curatorSlug, "purchases"),
+      k("daily", d, curatorSlug, "cross_reco_clicks"),
     ]),
   ];
 
@@ -366,13 +367,14 @@ export async function getCuratorAnalytics(
   }
 
   // Daily time-series
-  const last7Days: { date: string; pageViews: number; tryOns: number; purchases: number }[] = [];
+  const last7Days: { date: string; pageViews: number; tryOns: number; purchases: number; crossRecoClicks: number }[] = [];
   for (const date of dates) {
     last7Days.push({
       date,
       pageViews: (values[idx++] ?? 0) as number,
       tryOns: (values[idx++] ?? 0) as number,
       purchases: (values[idx++] ?? 0) as number,
+      crossRecoClicks: (values[idx++] ?? 0) as number,
     });
   }
 
