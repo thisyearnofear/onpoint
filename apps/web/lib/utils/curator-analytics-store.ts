@@ -267,6 +267,7 @@ export interface CuratorAnalyticsReport {
   crossCuratorAttributions: Record<string, number>; // other curator slug → count
   crossShareVisits: Record<string, number>;
   crossRecoClicks: number;
+  previous7DaysCrossRecoClicks: number;
   crossRecoClickTargets: Record<string, number>; // target curator slug → count
   last7Days: { date: string; pageViews: number; tryOns: number; purchases: number; crossRecoClicks: number }[];
 }
@@ -306,6 +307,16 @@ export async function getCuratorAnalytics(
     );
   }
 
+  // Previous 7 days (days -13 to -7)
+  const prevDates: string[] = [];
+  for (let i = 13; i >= 7; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    prevDates.push(
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
+    );
+  }
+
   // Scan for cross-curator attribution keys
   const [crossAttrKeys, crossShareKeys, crossRecoKeys] = await Promise.all([
     redisScanKeys(k("cross_attr_purchases", curatorSlug, "*")),
@@ -330,6 +341,10 @@ export async function getCuratorAnalytics(
       k("daily", d, curatorSlug, "page_views"),
       k("daily", d, curatorSlug, "try_ons"),
       k("daily", d, curatorSlug, "purchases"),
+      k("daily", d, curatorSlug, "cross_reco_clicks"),
+    ]),
+    // Previous 7 days for week-over-week comparison
+    ...prevDates.flatMap((d) => [
       k("daily", d, curatorSlug, "cross_reco_clicks"),
     ]),
   ];
@@ -378,6 +393,12 @@ export async function getCuratorAnalytics(
     });
   }
 
+  // Previous 7 days cross-reco clicks total (for week-over-week comparison)
+  let previous7DaysCrossRecoClicks = 0;
+  for (let i = 0; i < prevDates.length; i++) {
+    previous7DaysCrossRecoClicks += (values[idx++] ?? 0) as number;
+  }
+
   // Conversion rates
   const pct = (num: number, denom: number): string => {
     if (denom === 0) return "0%";
@@ -405,6 +426,7 @@ export async function getCuratorAnalytics(
     crossShareVisits,
     crossRecoClicks,
     crossRecoClickTargets,
+    previous7DaysCrossRecoClicks,
     last7Days,
   };
 }

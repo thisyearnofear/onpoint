@@ -7,6 +7,7 @@ import {
   Link2,
   RefreshCw,
   Sparkles,
+  TrendingDown,
   TrendingUp,
 } from "lucide-react";
 
@@ -17,6 +18,7 @@ interface DayPoint {
 
 interface CrossRecoReport {
   crossRecoClicks: number;
+  previous7DaysCrossRecoClicks: number;
   crossRecoClickTargets: Record<string, number>;
   crossCuratorAttributions: Record<string, number>;
   shareVisits: number;
@@ -130,6 +132,7 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
       if (r) {
         setReport({
           crossRecoClicks: r.crossRecoClicks || 0,
+          previous7DaysCrossRecoClicks: r.previous7DaysCrossRecoClicks || 0,
           crossRecoClickTargets: r.crossRecoClickTargets || {},
           crossCuratorAttributions: r.crossCuratorAttributions || {},
           shareVisits: r.shareVisits || 0,
@@ -218,6 +221,12 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
   const totalLast7 = dailyClicks.reduce((a, b) => a + b, 0);
   const hasSparklineData = dailyClicks.some((v) => v > 0);
 
+  // Week-over-week comparison
+  const prevWeekClicks = report.previous7DaysCrossRecoClicks || 0;
+  const wowDelta = totalLast7 - prevWeekClicks;
+  const wowPct = prevWeekClicks > 0 ? Math.round((wowDelta / prevWeekClicks) * 100) : 0;
+  const wowDirection = wowDelta > 0 ? "up" : wowDelta < 0 ? "down" : "flat";
+
   return (
     <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
@@ -291,9 +300,33 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
               <p className="text-xs font-semibold text-muted-foreground">
                 Last 7 days — cross-curator clicks
               </p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
-                {totalLast7.toLocaleString()} total clicks this week
-              </p>
+              <div className="mt-0.5 flex items-center gap-2 text-[11px]">
+                <span className="text-muted-foreground">
+                  {totalLast7.toLocaleString()} total clicks this week
+                </span>
+                {(prevWeekClicks > 0 || totalLast7 > 0) && (
+                  <span
+                    className={`inline-flex items-center gap-0.5 font-medium ${
+                      wowDirection === "up"
+                        ? "text-emerald-600"
+                        : wowDirection === "down"
+                          ? "text-red-500"
+                          : "text-muted-foreground"
+                    }`}
+                  >
+                    {wowDirection === "up" ? (
+                      <TrendingUp className="h-3 w-3" />
+                    ) : wowDirection === "down" ? (
+                      <TrendingDown className="h-3 w-3" />
+                    ) : null}
+                    {wowDirection === "flat"
+                      ? "vs prev week"
+                      : prevWeekClicks === 0
+                        ? "new this week"
+                        : `${wowDelta > 0 ? "+" : ""}${wowPct}% vs prev week`}
+                  </span>
+                )}
+              </div>
             </div>
             <Sparkline data={dailyClicks} />
           </div>

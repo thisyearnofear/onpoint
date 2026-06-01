@@ -8,6 +8,7 @@ import {
   Link2,
   RefreshCw,
   Sparkles,
+  TrendingDown,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -28,6 +29,7 @@ interface CuratorAnalyticsReport {
   purchases: number;
   highIntentViews: number;
   crossRecoClicks: number;
+  previous7DaysCrossRecoClicks: number;
   crossRecoClickTargets: Record<string, number>;
   crossCuratorAttributions: Record<string, number>;
   crossShareVisits: Record<string, number>;
@@ -241,6 +243,15 @@ export function CrossCuratorRecommendationsSection() {
   const hasSparklineData = dailyClicks.some((v) => v > 0);
   const maxDailyClick = Math.max(...dailyClicks, 1);
 
+  // Week-over-week comparison (aggregated across all curators)
+  const totalPrevWeekClicks = reports.reduce<number>(
+    (sum, r) => sum + (r.previous7DaysCrossRecoClicks || 0),
+    0,
+  );
+  const wowDelta = totalLast7Clicks - totalPrevWeekClicks;
+  const wowPct = totalPrevWeekClicks > 0 ? Math.round((wowDelta / totalPrevWeekClicks) * 100) : 0;
+  const wowDirection = wowDelta > 0 ? "up" : wowDelta < 0 ? "down" : "flat";
+
   // Cross-curator flow rate
   const recoClickToVisitRate =
     totalCrossRecoClicks > 0
@@ -414,9 +425,33 @@ export function CrossCuratorRecommendationsSection() {
               <p className="text-xs font-semibold text-muted-foreground">
                 Last 7 days — cross-curator clicks (all curators)
               </p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
-                {totalLast7Clicks.toLocaleString()} total clicks this week
-              </p>
+              <div className="mt-0.5 flex items-center gap-2 text-[11px]">
+                <span className="text-muted-foreground">
+                  {totalLast7Clicks.toLocaleString()} total clicks this week
+                </span>
+                {(totalPrevWeekClicks > 0 || totalLast7Clicks > 0) && (
+                  <span
+                    className={`inline-flex items-center gap-0.5 font-medium ${
+                      wowDirection === "up"
+                        ? "text-emerald-600"
+                        : wowDirection === "down"
+                          ? "text-red-500"
+                          : "text-muted-foreground"
+                    }`}
+                  >
+                    {wowDirection === "up" ? (
+                      <TrendingUp className="h-3 w-3" />
+                    ) : wowDirection === "down" ? (
+                      <TrendingDown className="h-3 w-3" />
+                    ) : null}
+                    {wowDirection === "flat"
+                      ? "vs prev week"
+                      : totalPrevWeekClicks === 0
+                        ? "new this week"
+                        : `${wowDelta > 0 ? "+" : ""}${wowPct}% vs prev week`}
+                  </span>
+                )}
+              </div>
             </div>
             <Sparkline data={dailyClicks} width={160} height={36} />
           </div>
