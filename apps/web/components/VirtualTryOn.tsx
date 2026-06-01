@@ -21,6 +21,8 @@ import {
   trackTryOnGarmentSelected,
   trackVirtualTryOnProviderError,
   trackVirtualTryOnProviderOutcome,
+  trackDeepLinkPersonaSelected,
+  trackDeepLinkPersonaOutcome,
 } from "../lib/utils/analytics";
 
 import {
@@ -401,6 +403,7 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
 
   // Auto-select persona from deep-link after analysis completes
   const hasAutoSelectedPersona = React.useRef(false);
+  const deepLinkSelectTimeRef = React.useRef<number | null>(null);
   React.useEffect(() => {
     if (
       initialPersona &&
@@ -410,9 +413,27 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
       !hasAutoSelectedPersona.current
     ) {
       hasAutoSelectedPersona.current = true;
+      deepLinkSelectTimeRef.current = Date.now();
+      trackDeepLinkPersonaSelected({
+        persona: initialPersona,
+        curatorSlug: initialCuratorSlug,
+        listingId: selectedTryOnItem?.id,
+      });
       handlePersonaSelect(initialPersona);
     }
-  }, [initialPersona, analysis, critiqueResult, selectedPersona, handlePersonaSelect]);
+  }, [initialPersona, analysis, critiqueResult, selectedPersona, handlePersonaSelect, initialCuratorSlug, selectedTryOnItem]);
+
+  // Track deep-link persona outcome when critique completes
+  React.useEffect(() => {
+    if (initialPersona && critiqueResult && deepLinkSelectTimeRef.current) {
+      trackDeepLinkPersonaOutcome({
+        persona: initialPersona,
+        curatorSlug: initialCuratorSlug,
+        completed: true,
+        durationMs: Date.now() - deepLinkSelectTimeRef.current,
+      });
+    }
+  }, [initialPersona, critiqueResult, initialCuratorSlug]);
 
   const handleShopRecommendations = useCallback(() => {
     if (!analysis) return;

@@ -279,6 +279,30 @@ export function trackTryOnGarmentSelected(properties: {
 }
 
 /**
+ * Track when a deep-linked persona from a storefront AI second-opinion
+ * card is auto-selected for a try-on session.
+ */
+export function trackDeepLinkPersonaSelected(properties: {
+  persona: string;
+  curatorSlug?: string;
+  listingId?: string;
+}): void {
+  trackEvent("deep_link_persona_selected", properties);
+}
+
+/**
+ * Track whether a deep-linked persona session completed the critique.
+ */
+export function trackDeepLinkPersonaOutcome(properties: {
+  persona: string;
+  curatorSlug?: string;
+  completed: boolean;
+  durationMs?: number;
+}): void {
+  trackEvent("deep_link_persona_outcome", properties);
+}
+
+/**
  * Flush events to the server
  */
 export async function flushEvents(): Promise<void> {
