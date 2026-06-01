@@ -13,7 +13,6 @@ import {
   ShieldAlert,
   Sparkles,
   TrendingUp,
-  Store,
   Eye,
   ShoppingBag,
   CreditCard,
@@ -25,6 +24,7 @@ import {
   GitBranch,
 } from "lucide-react";
 import { CrossCuratorRecommendationsSection } from "./CrossCuratorRecommendationsSection";
+import { Bar } from "../../../components/admin/TrendSparkline";
 
 interface ProviderOutcomeReport {
   total: number;
@@ -57,18 +57,7 @@ function labelize(key: string): string {
     .replace(/^gemini/i, "Gemini");
 }
 
-// ── Bar component ──
-function Bar({ value, max, color = "bg-primary" }: { value: number; max: number; color?: string }) {
-  const pct = max > 0 ? (value / max) * 100 : 0;
-  return (
-    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-      <div
-        className={`h-full rounded-full transition-all duration-500 ${color}`}
-        style={{ width: `${Math.max(pct, 2)}%` }}
-      />
-    </div>
-  );
-}
+
 
 // ── Stat card ──
 function StatCard({
@@ -144,7 +133,7 @@ function BreakdownCard({
                 </span>
               </span>
             </div>
-            <Bar value={val} max={maxValue} />
+            <Bar value={val} max={maxValue} color="bg-primary" />
           </div>
         ))}
       </div>
@@ -630,12 +619,7 @@ function CuratorFunnelAnalyticsSection() {
                       </span>
                     </span>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ${step.color}`}
-                      style={{ width: `${Math.max(pctVal, 2)}%` }}
-                    />
-                  </div>
+                  <Bar value={step.value} max={step.total} color={step.color} height="h-2" />
                 </div>
               );
             })}
@@ -701,12 +685,7 @@ function CuratorFunnelAnalyticsSection() {
                         {curator.pageViews.toLocaleString()} views · {curator.purchases} purchases
                       </span>
                     </div>
-                    <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-primary transition-all duration-500"
-                        style={{ width: `${(curator.pageViews / maxPv) * 100}%` }}
-                      />
-                    </div>
+                    <Bar value={curator.pageViews} max={maxPv} color="bg-primary" height="h-2" />
                   </div>
                 </div>
               );
