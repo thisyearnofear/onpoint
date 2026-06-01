@@ -213,8 +213,8 @@ Wanja feedback to preserve across all human Curators: make customer inventory se
 |---|---|---|---|
 | **1–2** | Wanja's chat-ops admin + bare storefront live on Hetzner | Curator schema (`packages/shared-types`); Neon + R2 provisioned, secrets on Hetzner via `setup-secrets.sh`; PL kit backbone (20 clubs × current season × 3 kit types); Spectrum-ts WhatsApp agent under PM2 with 5 commands; `/s/wanja` reading from Neon, "Buy on WhatsApp" deep links | Try-on, AI sidekick, multi-Curator, additional channels |
 | **3–4** | Layer try-on + one great share asset | `VirtualTryOn` accepts Curator-scoped catalog (no global `CATALOG`); polaroid template with Curator name watermark; remove auto-analyze for unauth visitors | IG-story + fit-check templates (until polaroid data justifies more) |
-| **5–6** | AI as sidekick on `/s/wanja` | Wire 1–2 AI Curators from `persona-config.ts` as optional "second opinion"; AI recommendations scoped to Wanja's catalog | Cross-Curator catalog jumps |
-| **7–8** | 4 more Curators across verticals | Concierge onboarding: sneakers, Ankara tailor, hair/barber, vintage. WhatsApp + Telegram via Spectrum-ts. Reuse PL-style backbone pattern per vertical | Self-serve Curator signup, public directory |
+| **5–6** | AI as sidekick + self-serve onboarding | Wire AI Curators from `persona-config.ts` as optional "second opinion" on human storefronts; Curator self-serve form at `/curator/onboard` → `POST /api/curator/apply` → Neon row + storefront URL | Cross-Curator catalog jumps, Public Curator directory |
+| **7–8** | 4 more Curators across verticals | Concierge onboarding: sneakers, Ankara tailor, hair/barber, vintage. WhatsApp + Telegram via Spectrum-ts. Reuse PL-style backbone pattern per vertical | Public directory |
 | **9–10** | Cross-Curator graph | AI Curators recommend across union of human Curator catalogs with attribution + revshare via existing agent receipts (Lighthouse) | Public Curator marketplace |
 | **11–12** | Measure & price | Share → visit → try-on → purchase funnel per Curator; A/B SaaS vs revshare vs AI-session split; per-Curator R2 storage cost report | New verticals not validated by data |
 
@@ -249,6 +249,7 @@ Inventory is **not** in the Curator object — it lives in Neon (`listings` join
 - [x] `packages/shared-types/curator.ts` — single `Curator` type (see above)
 - [x] PL kit backbone seed: 20 clubs × 2024/25 × {home, away, third} with official image keys in R2
 - [x] `apps/web/lib/utils/persona-config.ts` → emits `Curator` objects with `type: "ai"`
+- [x] 8 Curator archetypes seeded via `seed-archetypes.ts`: mo (football), amara (ankara), juma (vintage), zara (streetwear), grace (luxury), fatima (tailor), kofi-sneakers, nneka-hair
 - [ ] Wanja seeded into `curators` table from her onboarding call (top 10 SKUs as `listings`)
 
 **Chat-ops admin (Hetzner)**
@@ -261,6 +262,8 @@ Inventory is **not** in the Curator object — it lives in Neon (`listings` join
 
 **Customer surface**
 - [x] `apps/web/app/s/[slug]/page.tsx` — reads Curator + listings from Hetzner API; renders branded storefront
+- [x] `apps/web/components/AICuratorSection.tsx` — AI Curator second opinion voices (Miranda, Edina, Tan) on human storefronts with context-aware takes
+- [x] `apps/web/components/CrossCuratorRecommendations.tsx` — Cross-curator product recommendations with attribution tracking
 - [x] `/s/wanja` live with "Buy on WhatsApp" deep links (`wa.me/{phone}?text={prefill}`) — first storefront slice is live
 - [x] Curator demand loop: try-on `Send brief` + Intel actions create recent demand records visible in admin
 - [x] Curator reply templates: availability, sizing, printing, payment, delivery, out-of-stock alternatives
@@ -271,7 +274,7 @@ Inventory is **not** in the Curator object — it lives in Neon (`listings` join
 
 **Relocation (consolidation per Core Principles)**
 - [ ] `apps/web/app/api/agent/storefront/route.ts` — delete global `CATALOG`, scope reads by Curator slug
-- [ ] `apps/web/app/lab/page.tsx` — new home for existing agent/web3 surface (`TacticalDashboard` agent/wallet/fraud/missions tabs move behind here, no new code)
+- [x] `apps/web/app/lab/page.tsx` — agent/web3 surface relocated behind `/lab` (`TacticalDashboard` agent/wallet/fraud/missions tabs live here, no new code)
 
 #### Out of scope for Phase 11
 - New AI models or training

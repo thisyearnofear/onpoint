@@ -11,14 +11,16 @@ Implemented in `apps/web/app/s/[slug]/page.tsx`, backed by `apps/api/routes/cura
 - `/s/{slug}` route with their logo, colors, voice, and catalog
 - Customer try-on scoped to their inventory
 - Branded polaroid frame + share templates (IG story, polaroid, fit-check card)
-- Optional "second opinion" from AI Curators (Miranda, Edina, Tan…)
+- Optional "second opinion" from AI Curators (Miranda, Edina, Tan…) — context-aware takes based on the host Curator's verticals
 - Off-ramp checkout to their existing Shopify / WhatsApp / Stripe — the first pass uses WhatsApp deep links from live listings
+- Self-serve onboarding at `/curator/onboard` — 30-second form that creates a Neon row + storefront URL
+- Cross-curator recommendations — AI finds complementary items from other Curators' catalogs
 
 ### Two Curator types, one schema
 | Type | Source | Example | Catalog |
 |------|--------|---------|---------|
-| `human` | `apps/web/config/curators/*.json` | Mo (football jerseys) | Their inventory |
-| `ai`    | `lib/utils/persona-config.ts` (re-emitted as `Curator`) | Miranda Priestly | Union of host Curator's catalog |
+| `human` | `apps/web/config/curators/*.json` + Neon | Mo (football), Amara (Ankara), Juma (vintage), Kofi (sneakers), Nneka (hair) | Their inventory |
+| `ai`    | `lib/utils/persona-config.ts` (re-emitted as `Curator`) | Miranda Priestly, Edina Monsoon, Tan France | Union of host Curator's catalog |
 
 ### Coexistence
 On `/s/mo` (a human Curator's storefront), AI Curators appear as optional voices: same try-on, three takes on the result. On AI Curator surfaces, human Curators' catalogs are the recommendation pool. The agent layer (autonomous executor, ERC-8004 receipts, Token Vault) becomes the attribution + AI-purchase infrastructure for cross-Curator transactions.

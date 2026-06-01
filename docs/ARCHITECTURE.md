@@ -75,6 +75,12 @@ The product is organized as three composable layers (see [ADR 0002](./adr/0002-c
 | `apps/api/routes/curator-storefront.js` | Public curator storefront read endpoint |
 | `apps/api/lib/whatsapp-ingest.js` | WhatsApp media -> R2 -> Neon ingest pipeline |
 | `apps/web/app/s/[slug]/page.tsx` | Branded curator storefront UI |
+| `apps/web/components/AICuratorSection.tsx` | AI Curator second opinion voices on human storefronts |
+| `apps/web/components/CrossCuratorRecommendations.tsx` | Cross-curator product recommendations with attribution tracking |
+| `apps/web/app/curator/onboard/page.tsx` | Self-serve Curator onboarding form |
+| `apps/web/app/lab/page.tsx` | Agent/web3 surface (TacticalDashboard) relocated here |
+| `apps/web/app/admin/analytics/CuratorComparisonTable.tsx` | Cross-curator comparison table with sparklines |
+| `apps/web/components/admin/TrendSparkline.tsx` | Shared sparkline, Bar, CSV export, SMA trend components |
 
 ## Data Flow
 

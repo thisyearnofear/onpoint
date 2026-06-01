@@ -1,0 +1,21 @@
+{
+  "slug": "kofi-sneakers",
+  "name": "Kofi",
+  "type": "human",
+  "avatar": "https://api.dicebear.com/9.x/avataaars/svg?seed=Kofi&backgroundColor=3b82f6",
+  "verticals": ["sneakers", "streetwear", "accessories"],
+  "channels": {
+    "whatsapp": "+233240000001",
+    "instagram": "@kofi.sneaks"
+  },
+  "brand": {
+    "colors": { "primary": "#3b82f6", "accent": "#2563eb" },
+    "shareCopy": "Fresh kicks, real talk. Try on this {item_name} and hit me up on WhatsApp. — Kofi 👟",
+    "location": { "city": "Accra", "landmark": "Ghana" }
+  },
+  "commerce": {
+    "checkout": "whatsapp",
+    "whatsappTemplate": "Hi Kofi, I'm interested in the {item_name} — do you have it in {size}?",
+    "revShare": 0.05
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "slug": "nneka-hair",
+  "name": "Nneka",
+  "type": "human",
+  "avatar": "https://api.dicebear.com/9.x/avataaars/svg?seed=Nneka&backgroundColor=ec4899",
+  "verticals": ["hair", "barber", "accessories"],
+  "channels": {
+    "whatsapp": "+234800000001",
+    "instagram": "@nneka.studio"
+  },
+  "brand": {
+    "colors": { "primary": "#ec4899", "accent": "#db2777" },
+    "shareCopy": "Your next look starts here. Try on this {item_name} and send me your brief. — Nneka 💇",
+    "location": { "city": "Lagos", "landmark": "Nigeria" }
+  },
+  "commerce": {
+    "checkout": "whatsapp",
+    "whatsappTemplate": "Hi Nneka, I'd love to book the {item_name} look. My hair type is described in the try-on brief.",
+    "revShare": 0.05
+  }
+}

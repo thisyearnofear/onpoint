@@ -15,6 +15,7 @@ import {
 import { CuratorTracker } from "../../../components/CuratorTracker";
 import { ShareStorefront } from "../../../components/ShareStorefront";
 import { CrossCuratorRecommendations } from "../../../components/CrossCuratorRecommendations";
+import { AICuratorSection } from "../../../components/AICuratorSection";
 import { MpesaPaymentPanel } from "./MpesaPaymentPanel";
 
 export const dynamic = "force-dynamic";
@@ -509,6 +510,18 @@ export default async function CuratorStorefrontPage({
           </div>
         )}
       </section>
+
+      {/* AI Curator second opinions */}
+      {curator.type === "human" && (
+        <section className="border-t border-border bg-muted/10">
+          <div className="mx-auto max-w-6xl px-4 py-10">
+            <AICuratorSection
+              curatorName={curator.name}
+              verticals={curator.verticals}
+            />
+          </div>
+        </section>
+      )}
 
       {/* Cross-curator AI recommendations */}
       <section className="border-t border-border bg-muted/10">
