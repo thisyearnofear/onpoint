@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AlertCircle, Link2, RefreshCw, Sparkles, Users, CheckCircle2, XCircle } from "lucide-react";
-import { Bar } from "../../../components/admin/TrendSparkline";
+import { Bar, Sparkline } from "../../../components/admin/TrendSparkline";
 
 interface DeepLinkPersonaReport {
   totalSelected: number;
@@ -18,6 +18,7 @@ interface DeepLinkPersonaReport {
       completed: number;
       abandoned: number;
       completionRate: string;
+      daily: { date: string; selected: number; completed: number }[];
     }
   >;
   byCurator: Record<string, number>;
@@ -52,6 +53,15 @@ const PERSONA_TEXT_COLORS: Record<string, string> = {
   luxury: "text-amber-500",
   streetwear: "text-blue-500",
   sustainable: "text-emerald-500",
+};
+
+const PERSONA_SVG_COLORS: Record<string, string> = {
+  miranda: "rgb(100 116 139)",
+  edina: "rgb(168 85 247)",
+  shaft: "rgb(249 115 22)",
+  luxury: "rgb(245 158 11)",
+  streetwear: "rgb(59 130 246)",
+  sustainable: "rgb(16 185 129)",
 };
 
 export function DeepLinkPersonaFunnelSection() {
@@ -219,19 +229,26 @@ export function DeepLinkPersonaFunnelSection() {
         </div>
       </div>
 
-      {/* Persona breakdown + Daily chart */}
+      {/* Persona breakdown with sparklines + Daily chart */}
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* By persona */}
+        {/* By persona — with daily sparklines */}
         <div className="rounded-xl border border-border bg-card p-4">
           <h3 className="mb-3 text-sm font-semibold">By persona</h3>
           {personaEntries.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {personaEntries.map(([persona, stats]) => {
                 const color = PERSONA_COLORS[persona] || "bg-primary";
                 const textColor = PERSONA_TEXT_COLORS[persona] || "text-primary";
+                const svgColor = PERSONA_SVG_COLORS[persona] || "rgb(139 92 246)";
+
+                // Build sparkline data from daily series
+                const selectedData = (stats.daily || []).map((d) => d.selected);
+                const completedData = (stats.daily || []).map((d) => d.completed);
+                const hasDailyData = selectedData.some((v) => v > 0);
+
                 return (
-                  <div key={persona}>
-                    <div className="mb-1 flex items-center justify-between text-xs">
+                  <div key={persona} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
                       <span className="flex items-center gap-2">
                         <span className={`inline-block h-2 w-2 rounded-full ${color}`} />
                         <span className={`font-medium ${textColor}`}>
@@ -245,6 +262,8 @@ export function DeepLinkPersonaFunnelSection() {
                         </span>
                       </span>
                     </div>
+
+                    {/* Progress bar */}
                     <div className="relative">
                       <Bar
                         value={stats.selected}
@@ -262,6 +281,31 @@ export function DeepLinkPersonaFunnelSection() {
                         />
                       )}
                     </div>
+
+                    {/* Daily sparkline */}
+                    {hasDailyData && (
+                      <div className="flex items-center gap-2 pt-0.5">
+                        <Sparkline
+                          data={selectedData}
+                          color={svgColor}
+                          width={100}
+                          height={20}
+                          showTrend={selectedData.length >= 3}
+                          trendWindow={3}
+                        />
+                        {completedData.some((v) => v > 0) && (
+                          <Sparkline
+                            data={completedData}
+                            color="rgb(16 185 129)"
+                            width={60}
+                            height={20}
+                          />
+                        )}
+                        <span className="text-[9px] text-muted-foreground">
+                          7d trend
+                        </span>
+                      </div>
+                    )}
                   </div>
                 );
               })}

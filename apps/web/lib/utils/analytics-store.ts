@@ -285,7 +285,13 @@ export interface DeepLinkPersonaReport {
   totalAbandoned: number;
   completionRate: string;
   avgDurationMs: number | null;
-  byPersona: Record<string, { selected: number; completed: number; abandoned: number; completionRate: string }>;
+  byPersona: Record<string, {
+    selected: number;
+    completed: number;
+    abandoned: number;
+    completionRate: string;
+    daily: { date: string; selected: number; completed: number }[];
+  }>;
   byCurator: Record<string, number>;
   last7Days: { date: string; selected: number; completed: number }[];
 }
@@ -312,6 +318,9 @@ export async function getDeepLinkPersonaReport(): Promise<DeepLinkPersonaReport 
     redisScanKeys(`${DL_PREFIX}:outcomes_by_persona:*`),
   ]);
 
+  // Extract persona names for daily per-persona queries
+  const personaNames = personaKeys.map((k) => k.replace(`${DL_PREFIX}:by_persona:`, ""));
+
   const keys = [
     `${DL_PREFIX}:total_selected`,
     `${DL_PREFIX}:total_outcomes`,
@@ -325,6 +334,11 @@ export async function getDeepLinkPersonaReport(): Promise<DeepLinkPersonaReport 
     ...dates.flatMap((d) => [
       `${DL_PREFIX}:daily:${d}:selected`,
       `${DL_PREFIX}:daily:${d}:outcomes`,
+      // Per-persona daily selected + completed
+      ...personaNames.flatMap((p) => [
+        `${DL_PREFIX}:daily:${d}:by_persona:${p}`,
+        `${DL_PREFIX}:daily:${d}:outcomes_by_persona:${p}:completed`,
+      ]),
     ]),
   ];
 
@@ -338,10 +352,10 @@ export async function getDeepLinkPersonaReport(): Promise<DeepLinkPersonaReport 
   const durationSum = (values[idx++] ?? 0) as number;
   const durationCount = (values[idx++] ?? 0) as number;
 
-  const byPersona: Record<string, { selected: number; completed: number; abandoned: number; completionRate: string }> = {};
+  const byPersona: Record<string, { selected: number; completed: number; abandoned: number; completionRate: string; daily: { date: string; selected: number; completed: number }[] }> = {};
   for (const k of personaKeys) {
     const name = k.replace(`${DL_PREFIX}:by_persona:`, "");
-    byPersona[name] = { selected: (values[idx++] ?? 0) as number, completed: 0, abandoned: 0, completionRate: "0%" };
+    byPersona[name] = { selected: (values[idx++] ?? 0) as number, completed: 0, abandoned: 0, completionRate: "0%", daily: [] };
   }
 
   const byCurator: Record<string, number> = {};
@@ -357,24 +371,38 @@ export async function getDeepLinkPersonaReport(): Promise<DeepLinkPersonaReport 
     const persona = rest.slice(0, lastColon);
     const outcome = rest.slice(lastColon + 1);
     if (!byPersona[persona]) {
-      byPersona[persona] = { selected: 0, completed: 0, abandoned: 0, completionRate: "0%" };
+      byPersona[persona] = { selected: 0, completed: 0, abandoned: 0, completionRate: "0%", daily: [] };
     }
     byPersona[persona][outcome as "completed" | "abandoned"] = (values[idx++] ?? 0) as number;
+  }
+
+  // Parse per-persona daily data — keys are date-major, so read date-major
+  const personaDaily: Record<string, { date: string; selected: number; completed: number }[]> = {};
+  for (const p of personaNames) personaDaily[p] = [];
+  const last7Days: { date: string; selected: number; completed: number }[] = [];
+
+  for (const date of dates) {
+    // Read aggregate daily:selected and daily:outcomes first
+    const daySelected = (values[idx++] ?? 0) as number;
+    const dayCompleted = (values[idx++] ?? 0) as number;
+    last7Days.push({ date, selected: daySelected, completed: dayCompleted });
+    // Then per-persona daily values
+    for (const p of personaNames) {
+      personaDaily[p]!.push({
+        date,
+        selected: (values[idx++] ?? 0) as number,
+        completed: (values[idx++] ?? 0) as number,
+      });
+    }
+  }
+  for (const p of personaNames) {
+    if (byPersona[p]) byPersona[p]!.daily = personaDaily[p]!;
   }
 
   // Compute completion rates
   for (const p of Object.values(byPersona)) {
     const total = p.completed + p.abandoned;
     p.completionRate = total > 0 ? `${Math.round((p.completed / total) * 100)}%` : "—";
-  }
-
-  const last7Days: { date: string; selected: number; completed: number }[] = [];
-  for (const date of dates) {
-    last7Days.push({
-      date,
-      selected: (values[idx++] ?? 0) as number,
-      completed: (values[idx++] ?? 0) as number,
-    });
   }
 
   return {
