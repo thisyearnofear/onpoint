@@ -1,0 +1,21 @@
+{
+  "slug": "mo",
+  "name": "Mo",
+  "type": "human",
+  "avatar": "https://api.dicebear.com/9.x/avataaars/svg?seed=Mo\u0026backgroundColor=22c55e",
+  "verticals": ["football", "sportswear", "premier-league"],
+  "channels": {
+    "whatsapp": "+254700000001",
+    "instagram": "@mo.kits"
+  },
+  "brand": {
+    "colors": { "primary": "#22c55e", "accent": "#16a34a" },
+    "shareCopy": "Hit me up on WhatsApp to cop your {club} {kit_type} kit! 🔥 — Mo",
+    "location": { "city": "Nairobi", "landmark": "Kenya" }
+  },
+  "commerce": {
+    "checkout": "whatsapp",
+    "whatsappTemplate": "Hi Mo, I'd like to order the {club} {kit_type} kit in size {size} — KES {price}",
+    "revShare": 0.05
+  }
+}

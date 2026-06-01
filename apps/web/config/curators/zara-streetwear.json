@@ -1,0 +1,21 @@
+{
+  "slug": "zara",
+  "name": "Zara",
+  "type": "human",
+  "avatar": "https://api.dicebear.com/9.x/avataaars/svg?seed=Zara\u0026backgroundColor=a855f7",
+  "verticals": ["streetwear", "sneakers", "retro"],
+  "channels": {
+    "whatsapp": "+254700000002",
+    "instagram": "@zara.sneakers"
+  },
+  "brand": {
+    "colors": { "primary": "#a855f7", "accent": "#7c3aed" },
+    "shareCopy": "Fresh drop just landed — {item_name}. Hit my WhatsApp to secure your pair. — Zara ✨",
+    "location": { "city": "Nairobi", "landmark": "Kenya" }
+  },
+  "commerce": {
+    "checkout": "whatsapp",
+    "whatsappTemplate": "Hey Zara, I'm interested in {item_name} in size {size} — what's available?",
+    "revShare": 0.05
+  }
+}

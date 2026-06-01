@@ -1,0 +1,21 @@
+{
+  "slug": "fatima",
+  "name": "Fatima",
+  "type": "human",
+  "avatar": "https://api.dicebear.com/9.x/avataaars/svg?seed=Fatima\u0026backgroundColor=6366f1",
+  "verticals": ["tailoring", "formal", "occasion"],
+  "channels": {
+    "whatsapp": "+254700000005",
+    "instagram": "@fatima.fits"
+  },
+  "brand": {
+    "colors": { "primary": "#6366f1", "accent": "#4f46e5" },
+    "shareCopy": "Bespoke {item_name} tailored just for you. Try on the fit, send me your measurements. — Fatima ✂️",
+    "location": { "city": "Dar es Salaam", "landmark": "Tanzania" }
+  },
+  "commerce": {
+    "checkout": "whatsapp",
+    "whatsappTemplate": "Hi Fatima, I'd like a bespoke {item_name}. Here are my measurements and style preferences.",
+    "revShare": 0.05
+  }
+}

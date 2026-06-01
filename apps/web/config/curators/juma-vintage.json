@@ -1,0 +1,21 @@
+{
+  "slug": "juma",
+  "name": "Juma",
+  "type": "human",
+  "avatar": "https://api.dicebear.com/9.x/avataaars/svg?seed=Juma\u0026backgroundColor=f97316",
+  "verticals": ["vintage", "thrift", "retro"],
+  "channels": {
+    "whatsapp": "+254700000004",
+    "instagram": "@juma.vintage"
+  },
+  "brand": {
+    "colors": { "primary": "#f97316", "accent": "#d97706" },
+    "shareCopy": "One-of-a-kind find — {item_name}. Try it on and claim it before someone else does. — Juma 📻",
+    "location": { "city": "Nairobi", "landmark": "Kenya" }
+  },
+  "commerce": {
+    "checkout": "whatsapp",
+    "whatsappTemplate": "Hey Juma, I'm eyeing {item_name} — is it still available in {size}?",
+    "revShare": 0.05
+  }
+}

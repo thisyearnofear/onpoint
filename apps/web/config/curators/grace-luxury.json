@@ -1,0 +1,21 @@
+{
+  "slug": "grace",
+  "name": "Grace",
+  "type": "human",
+  "avatar": "https://api.dicebear.com/9.x/avataaars/svg?seed=Grace\u0026backgroundColor=f43f5e",
+  "verticals": ["luxury", "high-fashion", "accessories"],
+  "channels": {
+    "whatsapp": "+254700000006",
+    "instagram": "@grace.luxury"
+  },
+  "brand": {
+    "colors": { "primary": "#f43f5e", "accent": "#e11d48" },
+    "shareCopy": "Curated for you — {item_name}. Discreet consultation on WhatsApp. — Grace 💎",
+    "location": { "city": "Nairobi", "landmark": "Kenya" }
+  },
+  "commerce": {
+    "checkout": "whatsapp",
+    "whatsappTemplate": "Hi Grace, I'm interested in the {item_name}. Could you share more details and condition?",
+    "revShare": 0.05
+  }
+}

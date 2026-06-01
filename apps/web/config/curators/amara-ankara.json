@@ -1,0 +1,21 @@
+{
+  "slug": "amara",
+  "name": "Amara",
+  "type": "human",
+  "avatar": "https://api.dicebear.com/9.x/avataaars/svg?seed=Amara\u0026backgroundColor=eab308",
+  "verticals": ["ankara", "african-print", "occasion"],
+  "channels": {
+    "whatsapp": "+254700000003",
+    "instagram": "@amara.ankara"
+  },
+  "brand": {
+    "colors": { "primary": "#eab308", "accent": "#ca8a04" },
+    "shareCopy": "Custom Ankara made for you! Try on this {item_name} and send me your brief. — Amara 🧵",
+    "location": { "city": "Lagos", "landmark": "Nigeria" }
+  },
+  "commerce": {
+    "checkout": "whatsapp",
+    "whatsappTemplate": "Hi Amara, I'd love a custom {item_name} in this style. My measurements are attached.",
+    "revShare": 0.05
+  }
+}

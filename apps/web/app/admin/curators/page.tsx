@@ -6,6 +6,7 @@ import {
   ShoppingBag,
   Plus,
 } from "lucide-react";
+import ArchetypeAvatarPreview from "../../../components/ArchetypeAvatarPreview";
 
 interface CuratorRow {
   slug: string;
@@ -211,6 +212,10 @@ export default async function CuratorListPage() {
           </table>
         </div>
       )}
+
+      {/* Archetype avatar preview */}
+      <ArchetypeAvatarPreview />
     </div>
   );
 }
+
