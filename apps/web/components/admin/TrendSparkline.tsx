@@ -41,17 +41,36 @@ export function shortDateLabel(iso: string): string {
 
 // ── Sub-components ──
 
-/** Mini sparkline rendered as an SVG polyline. */
+/** Compute a simple moving average with the given window size. */
+function sma(data: number[], window: number): (number | null)[] {
+  const result: (number | null)[] = [];
+  for (let i = 0; i < data.length; i++) {
+    if (i < window - 1) {
+      result.push(null);
+    } else {
+      let sum = 0;
+      for (let j = i - window + 1; j <= i; j++) sum += data[j] ?? 0;
+      result.push(sum / window);
+    }
+  }
+  return result;
+}
+
+/** Mini sparkline rendered as an SVG polyline with optional SMA trend line. */
 export function Sparkline({
   data,
   color = "rgb(139 92 246)",
   height = 36,
   width = 160,
+  showTrend = false,
+  trendWindow = 3,
 }: {
   data: number[];
   color?: string;
   height?: number;
   width?: number;
+  showTrend?: boolean;
+  trendWindow?: number;
 }) {
   const max = Math.max(...data, 1);
   const min = Math.min(...data, 0);
@@ -59,16 +78,35 @@ export function Sparkline({
   const padY = 4;
   const effectiveH = height - padY * 2;
 
+  const toY = (v: number) => padY + effectiveH - ((v - min) / range) * effectiveH;
+
   const points = data
     .map((v, i) => {
       const x = (i / (data.length - 1 || 1)) * width;
-      const y = padY + effectiveH - ((v - min) / range) * effectiveH;
+      const y = toY(v);
       return `${x},${y}`;
     })
     .join(" ");
 
   const areaPoints = points + ` ${width},${height} 0,${height}`;
   const gradientId = `spark-${color.replace(/[^a-z0-9]/gi, "")}-${width}`;
+
+  // SMA trend line
+  const smaData = showTrend ? sma(data, trendWindow) : [];
+  const trendPoints = smaData
+    .map((v, i) => {
+      if (v === null) return null;
+      const x = (i / (data.length - 1 || 1)) * width;
+      const y = toY(v);
+      return `${x},${y}`;
+    })
+    .filter(Boolean)
+    .join(" ");
+
+  // Predicted next-week volume (extrapolate last SMA value)
+  const lastSma = smaData.filter((v): v is number => v !== null);
+  const predicted = lastSma.length > 1 ? lastSma[lastSma.length - 1] : null;
+  const predictedY = predicted !== null && predicted !== undefined ? toY(predicted) : null;
 
   return (
     <svg
@@ -93,6 +131,27 @@ export function Sparkline({
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+      {showTrend && trendPoints && (
+        <polyline
+          points={trendPoints}
+          fill="none"
+          stroke="rgb(251 146 60)"
+          strokeWidth="1.5"
+          strokeDasharray="3 2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity="0.7"
+        />
+      )}
+      {predictedY !== null && predictedY !== undefined && (
+        <circle
+          cx={width}
+          cy={predictedY}
+          r="2.5"
+          fill="rgb(251 146 60)"
+          opacity="0.8"
+        />
+      )}
     </svg>
   );
 }
@@ -217,6 +276,12 @@ export function TrendSparkline({
   const activeDates = timeRange === "7d" ? dates7d : dates30d;
   const activeHasData = activeClicks.some((v) => v > 0);
 
+  // Trend prediction (extrapolate last SMA value as next-week estimate)
+  const trendWindow = timeRange === "7d" ? 3 : 5;
+  const smaData = sma(activeClicks, trendWindow);
+  const validSma = smaData.filter((v): v is number => v !== null);
+  const predicted = validSma.length > 1 ? validSma[validSma.length - 1] : null;
+
   if (!activeHasData) return null;
 
   return (
@@ -274,8 +339,23 @@ export function TrendSparkline({
           data={activeClicks}
           width={timeRange === "30d" ? 200 : 120}
           height={36}
+          showTrend
+          trendWindow={trendWindow}
         />
       </div>
+
+      {/* Trend legend + prediction */}
+      {predicted !== null && (
+        <div className="mt-2 flex items-center gap-3 text-[10px]">
+          <span className="inline-flex items-center gap-1 text-muted-foreground/60">
+            <span className="inline-block h-px w-3 border-t border-dashed border-orange-400" />
+            SMA({trendWindow})
+          </span>
+          <span className="text-orange-500/80 font-medium">
+            ~{Math.round(predicted ?? 0)} clicks/day predicted
+          </span>
+        </div>
+      )}
 
       {/* Day labels */}
       <div className="mt-2 flex justify-between text-[10px] text-muted-foreground/60">
