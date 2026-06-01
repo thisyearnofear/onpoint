@@ -20,7 +20,11 @@ import {
   Share2,
   Users,
   MousePointerClick,
+  ArrowRightLeft,
+  Link2,
+  GitBranch,
 } from "lucide-react";
+import { CrossCuratorRecommendationsSection } from "./CrossCuratorRecommendationsSection";
 
 interface ProviderOutcomeReport {
   total: number;
@@ -450,6 +454,9 @@ export default function AnalyticsDashboardPage() {
 
       {/* ════════════════════ Curator Funnel Analytics ════════════════════ */}
       <CuratorFunnelAnalyticsSection />
+
+      {/* ════════════════════ Cross-Curator Recommendations ════════════════════ */}
+      <CrossCuratorRecommendationsSection />
     </div>
   );
 }
