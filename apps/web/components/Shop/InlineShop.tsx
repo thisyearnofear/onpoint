@@ -6,6 +6,7 @@ import { ShopGrid } from "@repo/shared-ui";
 import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import type { FashionItem } from "@onpoint/shared-types";
 import { ShoppingBag, Sparkles, Camera, Globe } from "lucide-react";
+import { PanelSkeleton } from "../ui/PanelSkeleton";
 import { Button } from "@repo/ui/button";
 import { useCartStore } from "../../lib/stores/cart-store";
 import { CheckoutModal } from "./CheckoutModal";
@@ -79,6 +80,7 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
   const flyCallbackRef = useRef<(() => void) | null>(null);
   const addItem = useCartStore((s) => s.addItem);
   const openCart = useCartStore((s) => s.openCart);
+  const [isLoading, setIsLoading] = useState(true);
 
   const handleFlyComplete = useCallback(() => {
     flyCallbackRef.current?.();
@@ -111,7 +113,8 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
           }));
         setExternalFinds(externals);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
   }, []);
 
   useEffect(() => {
@@ -129,6 +132,18 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
       signals: find.marketSignals,
     });
   }, [externalFinds]);
+
+  if (isLoading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+      >
+        <PanelSkeleton variant="shop" />
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div

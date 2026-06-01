@@ -16,6 +16,7 @@ import {
   TrendingUp,
   Workflow,
 } from "lucide-react";
+import { PanelSkeleton } from "../ui/PanelSkeleton";
 import type {
   ExternalProduct,
   MarketPartnerIntegration,
@@ -298,6 +299,11 @@ export function MarketIntelPanel() {
         </div>
       )}
 
+      {/* Full-page skeleton during initial load; content once loaded */}
+      {loading && !result ? (
+        <PanelSkeleton variant="market-intel" />
+      ) : (
+        <>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {summaryCards.map((card) => (
           <div key={card.label} className="rounded-xl border border-border bg-card p-4">
@@ -492,6 +498,8 @@ export function MarketIntelPanel() {
           </div>
         </aside>
       </div>
+      </>
+      )}
     </motion.div>
   );
 }

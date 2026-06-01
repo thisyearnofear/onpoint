@@ -21,6 +21,7 @@ import type { StylistPersona } from "@repo/ai-client";
 import { PersonaAvatar, MascotWelcome } from "../ui/PersonaAvatar";
 import { getPersonaConfig } from "../../lib/utils/persona-config";
 import { useUserPreferences } from "../../hooks/useUserPreferences";
+import type { StylePreference } from "../../lib/middleware/agent-controls";
 
 // ── Types ──
 
@@ -377,9 +378,9 @@ export function NewUserOnboarding() {
     if (current.id === "budget") {
       // Save all preferences
       updatePreferencesWithSync({
-        bodyType: selectedBodyType as any,
-        styleAesthetics: selectedAesthetics,
-        budgetTier: selectedBudget as any,
+        ...(selectedBodyType ? { bodyType: selectedBodyType as StylePreference['bodyType'] } : {}),
+        ...(selectedAesthetics.length ? { styleAesthetics: selectedAesthetics } : {}),
+        ...(selectedBudget ? { budgetTier: selectedBudget as StylePreference['budgetTier'] } : {}),
       });
     }
 
