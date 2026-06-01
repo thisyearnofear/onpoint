@@ -50,6 +50,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
   const [deepLinkContext, setDeepLinkContext] = React.useState<{
     from?: string;
     item?: string;
+    persona?: string;
   } | null>(null);
 
   // Listen for URL tab param (e.g. from Connected Accounts nav link or storefront)
@@ -58,11 +59,12 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
     const tab = params.get("tab") as AppMode | null;
     const from = params.get("from") || undefined;
     const item = params.get("item") || undefined;
+    const persona = params.get("persona") || undefined;
 
     if (tab && ALL_MODES.includes(tab)) {
       setMode(tab);
-      if (from || item) {
-        setDeepLinkContext({ from, item });
+      if (from || item || persona) {
+        setDeepLinkContext({ from, item, persona });
       }
       // Clean the URL so bookmarking doesn't persist a transient tab
       window.history.replaceState(null, "", window.location.pathname);
@@ -99,6 +101,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
     "try-on": () => <TryOnPanel
       deepLinkFrom={deepLinkContext?.from}
       deepLinkItem={deepLinkContext?.item}
+      deepLinkPersona={deepLinkContext?.persona}
       onDismissDeepLink={() => setDeepLinkContext(null)}
     />,
     stylist: () => <StylistPanel />,

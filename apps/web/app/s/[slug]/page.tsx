@@ -471,7 +471,7 @@ export default async function CuratorStorefrontPage({
 
                     <div className="flex gap-2">
                       <a
-                        href={`/?tab=try-on&from=${encodeURIComponent(slug)}&item=${encodeURIComponent(listing.id)}`}
+                        href={`/lab?tab=try-on&from=${encodeURIComponent(slug)}&item=${encodeURIComponent(listing.id)}`}
                         data-analytics-tryon
                         data-listing-id={listing.id}
                         className="inline-flex flex-1 items-center justify-center gap-2 rounded-md border border-border px-4 py-3 text-sm font-bold transition-colors hover:bg-muted"
@@ -517,7 +517,9 @@ export default async function CuratorStorefrontPage({
           <div className="mx-auto max-w-6xl px-4 py-10">
             <AICuratorSection
               curatorName={curator.name}
+              curatorSlug={slug}
               verticals={curator.verticals}
+              listingId={listings[0]?.id}
             />
           </div>
         </section>

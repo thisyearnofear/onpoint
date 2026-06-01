@@ -4,6 +4,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Camera } from "lucide-react";
 import { VirtualTryOn } from "../VirtualTryOn";
+import type { StylistPersona } from "@repo/ai-client";
 import type { TryOnSelection } from "../../lib/utils/try-on-selection";
 import {
   consumePendingTryOnSelection,
@@ -14,10 +15,11 @@ import {
 interface TryOnPanelProps {
   deepLinkFrom?: string;
   deepLinkItem?: string;
+  deepLinkPersona?: string;
   onDismissDeepLink: () => void;
 }
 
-export function TryOnPanel({ deepLinkFrom, deepLinkItem, onDismissDeepLink }: TryOnPanelProps) {
+export function TryOnPanel({ deepLinkFrom, deepLinkItem, deepLinkPersona, onDismissDeepLink }: TryOnPanelProps) {
   const [selection, setSelection] = React.useState<TryOnSelection | null>(null);
   const [selectionLoading, setSelectionLoading] = React.useState(false);
 
@@ -89,7 +91,7 @@ export function TryOnPanel({ deepLinkFrom, deepLinkItem, onDismissDeepLink }: Tr
           </button>
         </div>
       )}
-      <VirtualTryOn selectedTryOnItem={selection} />
+      <VirtualTryOn selectedTryOnItem={selection} initialPersona={deepLinkPersona as StylistPersona | undefined} />
     </motion.div>
   );
 }

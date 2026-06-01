@@ -156,6 +156,8 @@ function StyleScanLoadingCard({
 
 interface VirtualTryOnProps {
   selectedTryOnItem?: TryOnSelection | null;
+  /** Persona deep-linked from storefront AI second opinion cards. */
+  initialPersona?: StylistPersona;
 }
 
 type SelectableGarment = TryOnSelection & {
@@ -181,7 +183,7 @@ function getRecommendedCategory(bodyType: string): string {
   return "";
 }
 
-export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
+export function VirtualTryOn({ selectedTryOnItem, initialPersona }: VirtualTryOnProps) {
   // Core state
   const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -329,6 +331,21 @@ export function VirtualTryOn({ selectedTryOnItem }: VirtualTryOnProps) {
       console.error("Error getting persona critique:", err);
     }
   }, [selectedPhoto, getPersonalityCritique, isPremium]);
+
+  // Auto-select persona from deep-link after analysis completes
+  const hasAutoSelectedPersona = React.useRef(false);
+  React.useEffect(() => {
+    if (
+      initialPersona &&
+      analysis &&
+      !critiqueResult &&
+      !selectedPersona &&
+      !hasAutoSelectedPersona.current
+    ) {
+      hasAutoSelectedPersona.current = true;
+      handlePersonaSelect(initialPersona);
+    }
+  }, [initialPersona, analysis, critiqueResult, selectedPersona, handlePersonaSelect]);
 
   const handleShopRecommendations = useCallback(() => {
     if (!analysis) return;

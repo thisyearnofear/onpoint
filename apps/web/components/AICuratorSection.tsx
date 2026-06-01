@@ -1,7 +1,7 @@
 /**
  * AICuratorSection — shows AI Curator "second opinion" voices on a human
  * Curator's storefront. Each AI persona gives their take on the catalog,
- * letting shoppers get multiple style perspectives before they buy.
+ * and clicking a card starts a try-on session pre-configured with that voice.
  *
  * Follows ADR 0002: AI Curators appear inside human Curator storefronts
  * as optional "second opinion" voices.
@@ -10,49 +10,58 @@
 "use client";
 
 import React from "react";
-import { Sparkles, MessageCircle } from "lucide-react";
+import { Camera, Sparkles, MessageCircle, ArrowRight } from "lucide-react";
+import type { StylistPersona } from "@repo/ai-client";
 
 interface AICuratorVoice {
-  key: string;
+  /** Maps to StylistPersona key */
+  personaKey: StylistPersona;
   name: string;
   description: string;
   color: string;
   bg: string;
+  ring: string;
   icon: React.ElementType;
   take: string;
 }
 
 interface AICuratorSectionProps {
   curatorName: string;
+  curatorSlug: string;
   verticals: string[];
+  /** First listing ID from the storefront — used as the deep-link item. */
+  listingId?: string;
 }
 
 /** AI persona voices that appear as second opinions on human storefronts. */
 const AI_VOICES: AICuratorVoice[] = [
   {
-    key: "miranda",
+    personaKey: "miranda",
     name: "Miranda Priestly",
     description: "The truth, elegantly delivered.",
     color: "text-slate-500",
     bg: "bg-slate-500/10",
+    ring: "hover:ring-slate-500/30",
     icon: Sparkles,
     take: "The fit is everything. I'd start with silhouette — a clean shoulder line tells me more about quality than any logo. Try it on and let's see if the cut earns its price.",
   },
   {
-    key: "edina",
+    personaKey: "edina",
     name: "Edina Monsoon",
     description: "Darling, let's be brutally honest.",
     color: "text-purple-500",
     bg: "bg-purple-500/10",
+    ring: "hover:ring-purple-500/30",
     icon: Sparkles,
     take: "Oh darling, this is DIVINE. The color story is giving main character energy. But before you commit, try it on — because confidence looks different when you can see yourself.",
   },
   {
-    key: "tan",
+    personaKey: "shaft",
     name: "Tan France",
     description: "You're gorgeous, let's make you shine.",
     color: "text-orange-500",
     bg: "bg-orange-500/10",
+    ring: "hover:ring-orange-500/30",
     icon: MessageCircle,
     take: "I love this pick. The proportions are really flattering for most body types. Try it on so you can see exactly how it sits — I think you'll be pleasantly surprised.",
   },
@@ -68,7 +77,7 @@ function getAIVoiceTake(
 ): string {
   const has = (v: string) => verticals.some((vt) => vt.includes(v));
 
-  if (voice.key === "miranda") {
+  if (voice.personaKey === "miranda") {
     if (has("football") || has("sportswear"))
       return "Sportswear has evolved from pitch to pavement. The question isn't whether it's fashionable — it's whether the construction holds up. Try it on and let's evaluate the tailoring.";
     if (has("ankara") || has("african-print"))
@@ -77,9 +86,11 @@ function getAIVoiceTake(
       return "Vintage is about curation, not nostalgia. Every piece should earn its place. Try this on and tell me — does it feel timeless, or just old?";
     if (has("sneakers") || has("streetwear"))
       return "Sneaker culture has become its own language. The silhouette matters more than the colorway. Try them on — proportion is everything.";
+    if (has("hair") || has("barber"))
+      return "Presentation is a total system — the hair, the fit, the posture. A great haircut needs a great outfit to frame it. Try this on and let's see the full picture.";
   }
 
-  if (voice.key === "edina") {
+  if (voice.personaKey === "edina") {
     if (has("football") || has("sportswear"))
       return "Oh, you're going FULL kit? I love the commitment. Try it on, darling — nothing says 'I have taste' like looking incredible in a football jersey.";
     if (has("ankara") || has("african-print"))
@@ -88,9 +99,11 @@ function getAIVoiceTake(
       return "Vintage finds are like buried treasure — except YOU get to decide if it's gold or just old. Try it on and let's see if it sparkles.";
     if (has("sneakers") || has("streetwear"))
       return "These kicks are giving main character energy. Try them on — I need to see if the vibe matches your ambition.";
+    if (has("hair") || has("barber"))
+      return "A killer look is head-to-toe, darling. The hair is iconic, but the outfit has to match that energy. Try this on — I dare you not to feel fabulous.";
   }
 
-  if (voice.key === "tan") {
+  if (voice.personaKey === "shaft") {
     if (has("football") || has("sportswear"))
       return "Great choice — sportswear is all about comfort meeting style. Try it on and I'll tell you exactly how to style it for different occasions.";
     if (has("ankara") || has("african-print"))
@@ -99,18 +112,36 @@ function getAIVoiceTake(
       return "I love a good vintage find. The key is making it feel intentional, not costume. Try it on and we'll see how to modernize it.";
     if (has("sneakers") || has("streetwear"))
       return "Fresh sneakers can transform an entire outfit. Try these on — I think they'll become your new go-to pair.";
+    if (has("hair") || has("barber"))
+      return "Your hair is already a statement — let's find an outfit that amplifies it. Try this on and I'll show you how to pull the whole look together.";
   }
 
   return voice.take;
 }
 
+function buildTryOnHref(
+  curatorSlug: string,
+  personaKey: StylistPersona,
+  listingId?: string,
+): string {
+  const params = new URLSearchParams({
+    tab: "try-on",
+    persona: personaKey,
+    from: curatorSlug,
+  });
+  if (listingId) params.set("item", listingId);
+  return `/lab?${params.toString()}`;
+}
+
 export function AICuratorSection({
   curatorName,
+  curatorSlug,
   verticals,
+  listingId,
 }: AICuratorSectionProps) {
   return (
     <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-2">
         <Sparkles className="h-4 w-4 text-primary" />
         <h2 className="text-sm font-bold">
           AI Stylist second opinions
@@ -121,37 +152,43 @@ export function AICuratorSection({
       </div>
       <p className="mb-4 text-xs text-muted-foreground">
         Our AI stylists weigh in on {curatorName}&apos;s collection.
-        Each has a different perspective — try on an item and pick the
-        voice that resonates with you.
+        Pick one to start a try-on session with their voice.
       </p>
 
       <div className="grid gap-3 sm:grid-cols-3">
         {AI_VOICES.map((voice) => {
           const Icon = voice.icon;
           const take = getAIVoiceTake(voice, verticals);
+          const href = buildTryOnHref(curatorSlug, voice.personaKey, listingId);
 
           return (
-            <div
-              key={voice.key}
-              className={`rounded-lg border border-border p-3 transition-colors hover:bg-muted/30`}
+            <a
+              key={voice.personaKey}
+              href={href}
+              className={`group relative rounded-lg border border-border p-4 transition-all hover:border-border hover:bg-muted/30 hover:ring-2 ${voice.ring} hover:shadow-md`}
             >
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-3">
                 <div
-                  className={`flex h-7 w-7 items-center justify-center rounded-full ${voice.bg}`}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full ${voice.bg} transition-transform group-hover:scale-110`}
                 >
-                  <Icon className={`h-3.5 w-3.5 ${voice.color}`} />
+                  <Icon className={`h-4 w-4 ${voice.color}`} />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs font-bold">{voice.name}</p>
                   <p className="text-[10px] text-muted-foreground">
                     {voice.description}
                   </p>
                 </div>
               </div>
-              <p className="text-xs leading-relaxed text-muted-foreground italic">
+              <p className="text-xs leading-relaxed text-muted-foreground italic mb-3">
                 &ldquo;{take}&rdquo;
               </p>
-            </div>
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                <Camera className="h-3 w-3" />
+                Try on with {voice.name.split(" ")[0]}
+                <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+              </div>
+            </a>
           );
         })}
       </div>
