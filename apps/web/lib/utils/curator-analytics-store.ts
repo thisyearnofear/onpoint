@@ -227,6 +227,24 @@ export async function recordCuratorHighIntentView(
   await incrementFunnelMetric(curatorSlug, "high_intent_views");
 }
 
+/**
+ * Record a cross-curator recommendation card click.
+ * sourceSlug = curator whose storefront the user is browsing.
+ * targetSlug = curator whose listing was clicked.
+ */
+export async function recordCuratorCrossRecoClick(
+  sourceSlug: string,
+  targetSlug: string,
+): Promise<void> {
+  const today = todayStr();
+  const cmds: string[][] = [
+    ["INCR", k("cross_reco_clicks", sourceSlug)],
+    ["INCR", k("daily", today, sourceSlug, "cross_reco_clicks")],
+    ["INCR", k("cross_reco_click_to", sourceSlug, targetSlug)],
+  ];
+  await redisPipeline(cmds);
+}
+
 // ── Report types ──
 
 export interface CuratorAnalyticsReport {
@@ -248,6 +266,8 @@ export interface CuratorAnalyticsReport {
   };
   crossCuratorAttributions: Record<string, number>; // other curator slug → count
   crossShareVisits: Record<string, number>;
+  crossRecoClicks: number;
+  crossRecoClickTargets: Record<string, number>; // target curator slug → count
   last7Days: { date: string; pageViews: number; tryOns: number; purchases: number }[];
 }
 
@@ -287,9 +307,10 @@ export async function getCuratorAnalytics(
   }
 
   // Scan for cross-curator attribution keys
-  const [crossAttrKeys, crossShareKeys] = await Promise.all([
+  const [crossAttrKeys, crossShareKeys, crossRecoKeys] = await Promise.all([
     redisScanKeys(k("cross_attr_purchases", curatorSlug, "*")),
     redisScanKeys(k("cross_share_visits", curatorSlug, "*")),
+    redisScanKeys(k("cross_reco_click_to", curatorSlug, "*")),
   ]);
 
   const metricKeys = [
@@ -301,8 +322,10 @@ export async function getCuratorAnalytics(
     k("leads", curatorSlug),
     k("purchases", curatorSlug),
     k("high_intent_views", curatorSlug),
+    k("cross_reco_clicks", curatorSlug),
     ...crossAttrKeys,
     ...crossShareKeys,
+    ...crossRecoKeys,
     ...dates.flatMap((d) => [
       k("daily", d, curatorSlug, "page_views"),
       k("daily", d, curatorSlug, "try_ons"),
@@ -321,6 +344,7 @@ export async function getCuratorAnalytics(
   const leads = (values[idx++] ?? 0) as number;
   const purchases = (values[idx++] ?? 0) as number;
   const highIntentViews = (values[idx++] ?? 0) as number;
+  const crossRecoClicks = (values[idx++] ?? 0) as number;
 
   // Parse cross-curator attributions
   const crossCuratorAttributions: Record<string, number> = {};
@@ -333,6 +357,12 @@ export async function getCuratorAnalytics(
   for (const key of crossShareKeys) {
     const otherSlug = key.replace(k("cross_share_visits", curatorSlug), "").replace(/^:/, "");
     crossShareVisits[otherSlug] = (values[idx++] ?? 0) as number;
+  }
+
+  const crossRecoClickTargets: Record<string, number> = {};
+  for (const key of crossRecoKeys) {
+    const otherSlug = key.replace(k("cross_reco_click_to", curatorSlug), "").replace(/^:/, "");
+    crossRecoClickTargets[otherSlug] = (values[idx++] ?? 0) as number;
   }
 
   // Daily time-series
@@ -371,6 +401,8 @@ export async function getCuratorAnalytics(
     },
     crossCuratorAttributions,
     crossShareVisits,
+    crossRecoClicks,
+    crossRecoClickTargets,
     last7Days,
   };
 }

@@ -11,6 +11,7 @@
 import React from "react";
 import Link from "next/link";
 import { Sparkles, ExternalLink } from "lucide-react";
+import { trackCuratorCrossRecommendationClick } from "../lib/utils/analytics";
 
 interface Recommendation {
   listingId: string;
@@ -132,6 +133,26 @@ export function CrossCuratorRecommendations({
           <Link
             key={rec.listingId}
             href={`/s/${rec.curatorSlug}?ref=cross:${sourceCuratorSlug}`}
+            onClick={() => {
+              trackCuratorCrossRecommendationClick({
+                sourceCuratorSlug,
+                targetCuratorSlug: rec.curatorSlug,
+                listingId: rec.listingId,
+                itemTitle: rec.itemTitle,
+                matchReason: rec.matchReason,
+                compatibilityScore: rec.compatibilityScore,
+              });
+              // Fire Redis event for funnel analytics
+              fetch("/api/curator/analytics/track", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  event: "cross_reco_click",
+                  curatorSlug: sourceCuratorSlug,
+                  targetCuratorSlug: rec.curatorSlug,
+                }),
+              }).catch(() => {});
+            }}
             className="group overflow-hidden rounded-lg border border-border bg-card shadow-sm transition-all hover:shadow-md hover:border-primary/30"
           >
             {/* Image or placeholder */}

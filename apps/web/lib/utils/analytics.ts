@@ -193,6 +193,20 @@ export function trackCuratorShare(properties: {
 }
 
 /**
+ * Track a cross-curator recommendation card click
+ */
+export function trackCuratorCrossRecommendationClick(properties: {
+  sourceCuratorSlug: string;
+  targetCuratorSlug: string;
+  listingId: string;
+  itemTitle: string;
+  matchReason: string;
+  compatibilityScore: number;
+}): void {
+  trackEvent("curator_cross_recommendation_click", properties);
+}
+
+/**
  * Track error event
  */
 export function trackError(

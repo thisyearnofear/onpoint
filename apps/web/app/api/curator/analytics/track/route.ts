@@ -9,6 +9,7 @@ import {
   recordCuratorLead,
   recordCuratorPurchase,
   recordCuratorHighIntentView,
+  recordCuratorCrossRecoClick,
 } from "../../../../../lib/utils/curator-analytics-store";
 
 export { OPTIONS } from "../../../ai/_utils/http";
@@ -21,7 +22,8 @@ type TrackEvent =
   | "share_visit"
   | "lead"
   | "purchase"
-  | "high_intent_view";
+  | "high_intent_view"
+  | "cross_reco_click";
 
 interface TrackPayload {
   event: TrackEvent;
@@ -29,6 +31,7 @@ interface TrackPayload {
   shareSourceSlug?: string;
   visitorCuratorSlug?: string;
   attributedCuratorSlug?: string;
+  targetCuratorSlug?: string;
 }
 
 function cleanSlug(value: unknown): string | null {
@@ -118,6 +121,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         const slug = cleanSlug(body.curatorSlug);
         if (slug) {
           await recordCuratorHighIntentView(slug).catch(() => {});
+        }
+        break;
+      }
+      case "cross_reco_click": {
+        const sourceSlug = cleanSlug(body.curatorSlug);
+        const targetSlug = cleanSlug(body.targetCuratorSlug);
+        if (sourceSlug && targetSlug) {
+          await recordCuratorCrossRecoClick(sourceSlug, targetSlug).catch(() => {});
         }
         break;
       }
