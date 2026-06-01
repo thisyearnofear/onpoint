@@ -59,22 +59,26 @@ export function CuratorTracker({
       body: JSON.stringify({ event: "page_view", curatorSlug: slug }),
     }).catch(() => {});
 
-    // Detect share referral: ?ref=share:<sourceSlug>
+    // Detect share or cross-curator referral: ?ref=share:<slug> or ?ref=cross:<slug>
     const params = new URLSearchParams(window.location.search);
     const refParam = params.get("ref");
-    if (refParam && refParam.startsWith("share:")) {
-      const sourceSlug = refParam.slice(6);
-      if (sourceSlug && sourceSlug !== slug) {
-        // Cross-curator share visit — fire and forget
-        fetch("/api/curator/analytics/track", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            event: "share_visit",
-            shareSourceSlug: sourceSlug,
-            visitorCuratorSlug: slug,
-          }),
-        }).catch(() => {});
+    if (refParam) {
+      const isShare = refParam.startsWith("share:");
+      const isCross = refParam.startsWith("cross:");
+      if ((isShare || isCross) && refParam.length > 6) {
+        const sourceSlug = refParam.slice(6);
+        if (sourceSlug && sourceSlug !== slug) {
+          // Cross-curator visit — fire and forget
+          fetch("/api/curator/analytics/track", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              event: "share_visit",
+              shareSourceSlug: sourceSlug,
+              visitorCuratorSlug: slug,
+            }),
+          }).catch(() => {});
+        }
       }
     }
   }, [slug, name, listingCount]);
