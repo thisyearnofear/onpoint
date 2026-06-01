@@ -34,6 +34,7 @@ interface CuratorAnalyticsReport {
   crossCuratorAttributions: Record<string, number>;
   crossShareVisits: Record<string, number>;
   last7Days: DayPoint[];
+  last30Days: DayPoint[];
 }
 
 interface CuratorOverview {
@@ -133,6 +134,12 @@ function dayLabel(iso: string): string {
   return new Date(iso + "T00:00:00").toLocaleDateString("en-KE", {
     weekday: "short",
   });
+}
+
+/** Compact date label for 30-day view: "6/1", "6/2", etc. */
+function shortDateLabel(iso: string): string {
+  const d = new Date(iso + "T00:00:00");
+  return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
 export function CrossCuratorRecommendationsSection() {
@@ -242,6 +249,27 @@ export function CrossCuratorRecommendationsSection() {
   const totalLast7Clicks = dailyClicks.reduce<number>((a, b) => a + b, 0);
   const hasSparklineData = dailyClicks.some((v) => v > 0);
   const maxDailyClick = Math.max(...dailyClicks, 1);
+
+  // Aggregate 30-day cross-reco clicks across all curators
+  const dailyClickMap30: Record<string, number> = {};
+  for (const r of reports) {
+    if (!Array.isArray(r.last30Days)) continue;
+    for (const d of r.last30Days) {
+      dailyClickMap30[d.date] = (dailyClickMap30[d.date] || 0) + ((d as DayPoint).crossRecoClicks || 0);
+    }
+  }
+  const dailyDates30 = Object.keys(dailyClickMap30).sort();
+  const dailyClicks30: number[] = dailyDates30.map((d) => dailyClickMap30[d] || 0);
+  const totalLast30Clicks = dailyClicks30.reduce<number>((a, b) => a + b, 0);
+  const has30Data = dailyClicks30.some((v) => v > 0);
+  const maxDailyClick30 = Math.max(...dailyClicks30, 1);
+
+  const [timeRange, setTimeRange] = useState<"7d" | "30d">("7d");
+  const activeClicks = timeRange === "7d" ? dailyClicks : dailyClicks30;
+  const activeTotal = timeRange === "7d" ? totalLast7Clicks : totalLast30Clicks;
+  const activeMax = timeRange === "7d" ? maxDailyClick : maxDailyClick30;
+  const activeDates = timeRange === "7d" ? dailyDates : dailyDates30;
+  const activeHasData = timeRange === "7d" ? hasSparklineData : has30Data;
 
   // Week-over-week comparison (aggregated across all curators)
   const totalPrevWeekClicks = reports.reduce<number>(
@@ -417,19 +445,44 @@ export function CrossCuratorRecommendationsSection() {
         </div>
       </div>
 
-      {/* Daily sparkline — 7-day cross-reco click trend (aggregated) */}
-      {hasSparklineData && (
+      {/* Daily sparkline — 7d/30d cross-reco click trend (aggregated) */}
+      {activeHasData && (
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-muted-foreground">
-                Last 7 days — cross-curator clicks (all curators)
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-semibold text-muted-foreground">
+                  {timeRange === "7d" ? "Last 7 days" : "Last 30 days"} — cross-curator clicks (all curators)
+                </p>
+                <div className="flex overflow-hidden rounded-md border border-border bg-background">
+                  <button
+                    onClick={() => setTimeRange("7d")}
+                    className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                      timeRange === "7d"
+                        ? "bg-violet-500/15 text-violet-600"
+                        : "text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    7d
+                  </button>
+                  <button
+                    onClick={() => setTimeRange("30d")}
+                    disabled={!has30Data}
+                    className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                      timeRange === "30d"
+                        ? "bg-violet-500/15 text-violet-600"
+                        : "text-muted-foreground hover:bg-muted disabled:opacity-40"
+                    }`}
+                  >
+                    30d
+                  </button>
+                </div>
+              </div>
               <div className="mt-0.5 flex items-center gap-2 text-[11px]">
                 <span className="text-muted-foreground">
-                  {totalLast7Clicks.toLocaleString()} total clicks this week
+                  {activeTotal.toLocaleString()} total clicks{timeRange === "7d" ? " this week" : " this month"}
                 </span>
-                {(totalPrevWeekClicks > 0 || totalLast7Clicks > 0) && (
+                {timeRange === "7d" && (totalPrevWeekClicks > 0 || totalLast7Clicks > 0) && (
                   <span
                     className={`inline-flex items-center gap-0.5 font-medium ${
                       wowDirection === "up"
@@ -453,25 +506,32 @@ export function CrossCuratorRecommendationsSection() {
                 )}
               </div>
             </div>
-            <Sparkline data={dailyClicks} width={160} height={36} />
+            <Sparkline data={activeClicks} width={timeRange === "30d" ? 240 : 160} height={36} />
           </div>
           {/* Day labels */}
           <div className="mt-2 flex justify-between text-[10px] text-muted-foreground/60">
-            {dailyDates.map((d) => (
-              <span key={d} className="tabular-nums">
-                {dayLabel(d)}
-              </span>
-            ))}
+            {timeRange === "7d"
+              ? activeDates.map((d) => (
+                  <span key={d} className="tabular-nums">
+                    {dayLabel(d)}
+                  </span>
+                ))
+              : activeDates.filter((_, i) => i % 5 === 0).map((d) => (
+                  <span key={d} className="tabular-nums">
+                    {shortDateLabel(d)}
+                  </span>
+                ))
+            }
           </div>
           {/* Bar chart for precise daily values */}
-          <div className="mt-3 flex items-end gap-1" style={{ height: 44 }}>
-            {dailyClicks.map((v, i) => {
-              const h = ((v || 0) / maxDailyClick) * 40 + 4;
+          <div className="mt-3 flex items-end gap-px" style={{ height: 44 }}>
+            {activeClicks.map((v, i) => {
+              const h = ((v || 0) / activeMax) * 40 + 4;
               return (
                 <div key={i} className="group relative flex-1">
                   <div
-                    className="mx-auto w-full max-w-[28px] rounded-t-sm bg-violet-500/80 transition-all duration-300 group-hover:bg-violet-500"
-                    style={{ height: `${h}px` }}
+                    className="mx-auto w-full rounded-t-sm bg-violet-500/80 transition-all duration-300 group-hover:bg-violet-500"
+                    style={{ height: `${h}px`, maxWidth: timeRange === "30d" ? 12 : 28 }}
                   />
                   <div className="pointer-events-none absolute -top-8 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded bg-popover px-2 py-1 text-[10px] font-medium opacity-0 shadow-md transition-opacity group-hover:opacity-100">
                     {v || 0} click{(v || 0) === 1 ? "" : "s"}

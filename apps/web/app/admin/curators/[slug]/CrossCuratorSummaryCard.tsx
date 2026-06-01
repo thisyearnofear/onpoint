@@ -23,6 +23,7 @@ interface CrossRecoReport {
   crossCuratorAttributions: Record<string, number>;
   shareVisits: number;
   last7Days: DayPoint[];
+  last30Days: DayPoint[];
 }
 
 function pct(value: number, total: number): string {
@@ -116,6 +117,12 @@ function dayLabel(iso: string): string {
   });
 }
 
+/** Compact date label for 30-day view: "6/1", "6/2", etc. */
+function shortDateLabel(iso: string): string {
+  const d = new Date(iso + "T00:00:00");
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
 export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
   const [report, setReport] = useState<CrossRecoReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -138,6 +145,12 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
           shareVisits: r.shareVisits || 0,
           last7Days: Array.isArray(r.last7Days)
             ? r.last7Days.map((d: Record<string, unknown>) => ({
+                date: d.date as string,
+                crossRecoClicks: (d.crossRecoClicks as number) || 0,
+              }))
+            : [],
+          last30Days: Array.isArray(r.last30Days)
+            ? r.last30Days.map((d: Record<string, unknown>) => ({
                 date: d.date as string,
                 crossRecoClicks: (d.crossRecoClicks as number) || 0,
               }))
@@ -216,10 +229,19 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
 
   const maxTargetClicks = Math.max(...sortedTargets.map(([, c]) => c), 1);
 
-  // Daily sparkline data
-  const dailyClicks = report.last7Days.map((d) => d.crossRecoClicks);
-  const totalLast7 = dailyClicks.reduce((a, b) => a + b, 0);
+  const [timeRange, setTimeRange] = useState<"7d" | "30d">("7d");
+
+  // Sparkline data based on selected range
+  const clicks30 = (report.last30Days || []).map((d) => d.crossRecoClicks);
+  const dailyClicks = timeRange === "7d"
+    ? report.last7Days.map((d) => d.crossRecoClicks)
+    : clicks30;
+  const totalLast7 = report.last7Days.reduce((a, b) => a + b.crossRecoClicks, 0);
+  const totalLast30 = clicks30.reduce((a, b) => a + b, 0);
+  const activeTotal = timeRange === "7d" ? totalLast7 : totalLast30;
   const hasSparklineData = dailyClicks.some((v) => v > 0);
+  const activeDates = timeRange === "7d" ? report.last7Days : (report.last30Days || []);
+  const has30 = clicks30.some((v) => v > 0);
 
   // Week-over-week comparison
   const prevWeekClicks = report.previous7DaysCrossRecoClicks || 0;
@@ -292,19 +314,45 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
         </div>
       </div>
 
-      {/* Daily sparkline — 7-day cross-reco click trend */}
+      {/* Daily sparkline — 7d/30d cross-reco click trend */}
       {hasSparklineData && (
         <div className="mt-4 rounded-lg border border-border bg-muted/20 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-muted-foreground">
-                Last 7 days — cross-curator clicks
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-semibold text-muted-foreground">
+                  {timeRange === "7d" ? "Last 7 days" : "Last 30 days"} — cross-curator clicks
+                </p>
+                {/* 7d / 30d toggle */}
+                <div className="flex overflow-hidden rounded-md border border-border bg-background">
+                  <button
+                    onClick={() => setTimeRange("7d")}
+                    className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                      timeRange === "7d"
+                        ? "bg-violet-500/15 text-violet-600"
+                        : "text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    7d
+                  </button>
+                  <button
+                    onClick={() => setTimeRange("30d")}
+                    disabled={!has30}
+                    className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                      timeRange === "30d"
+                        ? "bg-violet-500/15 text-violet-600"
+                        : "text-muted-foreground hover:bg-muted disabled:opacity-40"
+                    }`}
+                  >
+                    30d
+                  </button>
+                </div>
+              </div>
               <div className="mt-0.5 flex items-center gap-2 text-[11px]">
                 <span className="text-muted-foreground">
-                  {totalLast7.toLocaleString()} total clicks this week
+                  {activeTotal.toLocaleString()} total clicks{timeRange === "7d" ? " this week" : " this month"}
                 </span>
-                {(prevWeekClicks > 0 || totalLast7 > 0) && (
+                {timeRange === "7d" && (prevWeekClicks > 0 || totalLast7 > 0) && (
                   <span
                     className={`inline-flex items-center gap-0.5 font-medium ${
                       wowDirection === "up"
@@ -328,15 +376,22 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
                 )}
               </div>
             </div>
-            <Sparkline data={dailyClicks} />
+            <Sparkline data={dailyClicks} width={timeRange === "30d" ? 200 : 120} />
           </div>
           {/* Day labels under the sparkline */}
           <div className="mt-2 flex justify-between text-[10px] text-muted-foreground/60">
-            {report.last7Days.map((d) => (
-              <span key={d.date} className="tabular-nums">
-                {dayLabel(d.date)}
-              </span>
-            ))}
+            {timeRange === "7d"
+              ? report.last7Days.map((d) => (
+                  <span key={d.date} className="tabular-nums">
+                    {dayLabel(d.date)}
+                  </span>
+                ))
+              : (report.last30Days || []).filter((_, i) => i % 5 === 0).map((d) => (
+                  <span key={d.date} className="tabular-nums">
+                    {shortDateLabel(d.date)}
+                  </span>
+                ))
+            }
           </div>
           {/* Bar chart underneath for precise values */}
           <div className="mt-3 flex items-end gap-1" style={{ height: 40 }}>

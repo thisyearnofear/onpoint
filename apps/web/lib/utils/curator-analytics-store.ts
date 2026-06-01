@@ -270,6 +270,7 @@ export interface CuratorAnalyticsReport {
   previous7DaysCrossRecoClicks: number;
   crossRecoClickTargets: Record<string, number>; // target curator slug → count
   last7Days: { date: string; pageViews: number; tryOns: number; purchases: number; crossRecoClicks: number }[];
+  last30Days: { date: string; crossRecoClicks: number }[];
 }
 
 export interface CuratorFunnelOverview {
@@ -303,6 +304,16 @@ export async function getCuratorAnalytics(
     const d = new Date();
     d.setDate(d.getDate() - i);
     dates.push(
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
+    );
+  }
+
+  // Last 30 days for monthly sparkline (days -29 to 0)
+  const dates30: string[] = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    dates30.push(
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
     );
   }
@@ -345,6 +356,10 @@ export async function getCuratorAnalytics(
     ]),
     // Previous 7 days for week-over-week comparison
     ...prevDates.flatMap((d) => [
+      k("daily", d, curatorSlug, "cross_reco_clicks"),
+    ]),
+    // Last 30 days for monthly sparkline
+    ...dates30.flatMap((d) => [
       k("daily", d, curatorSlug, "cross_reco_clicks"),
     ]),
   ];
@@ -399,6 +414,15 @@ export async function getCuratorAnalytics(
     previous7DaysCrossRecoClicks += (values[idx++] ?? 0) as number;
   }
 
+  // Last 30 days cross-reco clicks
+  const last30Days: { date: string; crossRecoClicks: number }[] = [];
+  for (const date of dates30) {
+    last30Days.push({
+      date,
+      crossRecoClicks: (values[idx++] ?? 0) as number,
+    });
+  }
+
   // Conversion rates
   const pct = (num: number, denom: number): string => {
     if (denom === 0) return "0%";
@@ -428,6 +452,7 @@ export async function getCuratorAnalytics(
     crossRecoClickTargets,
     previous7DaysCrossRecoClicks,
     last7Days,
+    last30Days,
   };
 }
 
