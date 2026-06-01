@@ -35,6 +35,13 @@
 .animate-fade-slide-in {
   animation: fade-slide-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
+@keyframes fade-slide-out {
+  0% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-6px); }
+}
+.animate-fade-slide-out {
+  animation: fade-slide-out 0.3s ease-in forwards;
+}
 @keyframes celebration-bounce {
   0% { opacity: 0; transform: scale(0.8) translateY(20px); }
   50% { transform: scale(1.05) translateY(-4px); }

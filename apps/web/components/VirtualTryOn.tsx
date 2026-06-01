@@ -192,16 +192,36 @@ function getRecommendedCategory(bodyType: string): string {
 function PersonaDeepLinkBanner({
   persona,
   curatorSlug,
+  shouldDismiss,
 }: {
   persona: StylistPersona;
   curatorSlug?: string;
+  shouldDismiss?: boolean;
 }) {
   const config = getPersonaConfig(persona);
-  const [dismissed, setDismissed] = React.useState(false);
-  if (dismissed) return null;
+  const [phase, setPhase] = React.useState<"visible" | "exiting" | "hidden">("visible");
+
+  // When parent signals dismissal (critique arrived), start exit animation
+  React.useEffect(() => {
+    if (shouldDismiss && phase === "visible") {
+      setPhase("exiting");
+    }
+  }, [shouldDismiss, phase]);
+
+  // When exit animation ends, fully unmount
+  const handleAnimationEnd = React.useCallback(() => {
+    if (phase === "exiting") setPhase("hidden");
+  }, [phase]);
+
+  if (phase === "hidden") return null;
 
   return (
-    <div className="mb-4 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 animate-fade-slide-in">
+    <div
+      className={`mb-4 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 ${
+        phase === "exiting" ? "animate-fade-slide-out" : "animate-fade-slide-in"
+      }`}
+      onAnimationEnd={handleAnimationEnd}
+    >
       <div
         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${config.bg}`}
       >
@@ -221,7 +241,7 @@ function PersonaDeepLinkBanner({
         </p>
       </div>
       <button
-        onClick={() => setDismissed(true)}
+        onClick={() => setPhase("exiting")}
         className="shrink-0 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
       >
         Dismiss
@@ -571,11 +591,12 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
             </div>
           </div>
 
-          {/* Deep-link persona banner — auto-dismisses when critique arrives */}
-          {initialPersona && !critiqueResult && (
+          {/* Deep-link persona banner — fades out when critique arrives or user dismisses */}
+          {initialPersona && (
             <PersonaDeepLinkBanner
               persona={initialPersona}
               curatorSlug={initialCuratorSlug}
+              shouldDismiss={Boolean(critiqueResult)}
             />
           )}
 
