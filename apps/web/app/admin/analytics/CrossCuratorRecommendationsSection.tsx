@@ -12,6 +12,11 @@ import {
   Users,
 } from "lucide-react";
 
+interface DayPoint {
+  date: string;
+  crossRecoClicks: number;
+}
+
 interface CuratorAnalyticsReport {
   slug: string;
   pageViews: number;
@@ -26,6 +31,7 @@ interface CuratorAnalyticsReport {
   crossRecoClickTargets: Record<string, number>;
   crossCuratorAttributions: Record<string, number>;
   crossShareVisits: Record<string, number>;
+  last7Days: DayPoint[];
 }
 
 interface CuratorOverview {
@@ -62,6 +68,69 @@ function Bar({
       />
     </div>
   );
+}
+
+/** Mini sparkline rendered as an SVG polyline. */
+function Sparkline({
+  data,
+  color = "rgb(139 92 246)",
+  height = 36,
+  width = 160,
+}: {
+  data: number[];
+  color?: string;
+  height?: number;
+  width?: number;
+}) {
+  const max = Math.max(...data, 1);
+  const min = Math.min(...data, 0);
+  const range = max - min || 1;
+  const padY = 4;
+  const effectiveH = height - padY * 2;
+
+  const points = data
+    .map((v, i) => {
+      const x = (i / (data.length - 1 || 1)) * width;
+      const y = padY + effectiveH - ((v - min) / range) * effectiveH;
+      return `${x},${y}`;
+    })
+    .join(" ");
+
+  const areaPoints = points + ` ${width},${height} 0,${height}`;
+  const gradientId = `spark-${color.replace(/[^a-z0-9]/gi, "")}-${width}`;
+
+  return (
+    <svg
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      className="shrink-0"
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.2" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+      <polygon points={areaPoints} fill={`url(#${gradientId})`} />
+      <polyline
+        points={points}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** Short label for a date: "Mon", "Tue", etc. */
+function dayLabel(iso: string): string {
+  return new Date(iso + "T00:00:00").toLocaleDateString("en-KE", {
+    weekday: "short",
+  });
 }
 
 export function CrossCuratorRecommendationsSection() {
@@ -129,10 +198,10 @@ export function CrossCuratorRecommendationsSection() {
     (sum, r) => sum + (r.shareVisits || 0),
     0,
   );
-  const totalCrossAttrPurchases = reports.reduce(
+  const totalCrossAttrPurchases = reports.reduce<number>(
     (sum, r) =>
       sum +
-      Object.values(r.crossCuratorAttributions || {}).reduce((a, b) => a + b, 0),
+      Object.values(r.crossCuratorAttributions || {}).reduce<number>((a, b) => a + b, 0),
     0,
   );
 
@@ -142,7 +211,7 @@ export function CrossCuratorRecommendationsSection() {
     for (const [slug, count] of Object.entries(
       r.crossRecoClickTargets || {},
     )) {
-      mergedClickTargets[slug] = (mergedClickTargets[slug] || 0) + count;
+      mergedClickTargets[slug] = (mergedClickTargets[slug] || 0) + (count || 0);
     }
   }
 
@@ -153,9 +222,24 @@ export function CrossCuratorRecommendationsSection() {
       r.crossCuratorAttributions || {},
     )) {
       mergedAttributions[slug] =
-        (mergedAttributions[slug] || 0) + count;
+        (mergedAttributions[slug] || 0) + (count || 0);
     }
   }
+
+  // Aggregate daily cross-reco clicks across all curators
+  const dailyClickMap: Record<string, number> = {};
+  for (const r of reports) {
+    if (!Array.isArray(r.last7Days)) continue;
+    for (const d of r.last7Days) {
+      dailyClickMap[d.date] = (dailyClickMap[d.date] || 0) + ((d as DayPoint).crossRecoClicks || 0);
+    }
+  }
+  // Sort by date ascending and build arrays
+  const dailyDates = Object.keys(dailyClickMap).sort();
+  const dailyClicks: number[] = dailyDates.map((d) => dailyClickMap[d] || 0);
+  const totalLast7Clicks = dailyClicks.reduce<number>((a, b) => a + b, 0);
+  const hasSparklineData = dailyClicks.some((v) => v > 0);
+  const maxDailyClick = Math.max(...dailyClicks, 1);
 
   // Cross-curator flow rate
   const recoClickToVisitRate =
@@ -322,6 +406,48 @@ export function CrossCuratorRecommendationsSection() {
         </div>
       </div>
 
+      {/* Daily sparkline — 7-day cross-reco click trend (aggregated) */}
+      {hasSparklineData && (
+        <div className="rounded-xl border border-border bg-card p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground">
+                Last 7 days — cross-curator clicks (all curators)
+              </p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                {totalLast7Clicks.toLocaleString()} total clicks this week
+              </p>
+            </div>
+            <Sparkline data={dailyClicks} width={160} height={36} />
+          </div>
+          {/* Day labels */}
+          <div className="mt-2 flex justify-between text-[10px] text-muted-foreground/60">
+            {dailyDates.map((d) => (
+              <span key={d} className="tabular-nums">
+                {dayLabel(d)}
+              </span>
+            ))}
+          </div>
+          {/* Bar chart for precise daily values */}
+          <div className="mt-3 flex items-end gap-1" style={{ height: 44 }}>
+            {dailyClicks.map((v, i) => {
+              const h = ((v || 0) / maxDailyClick) * 40 + 4;
+              return (
+                <div key={i} className="group relative flex-1">
+                  <div
+                    className="mx-auto w-full max-w-[28px] rounded-t-sm bg-violet-500/80 transition-all duration-300 group-hover:bg-violet-500"
+                    style={{ height: `${h}px` }}
+                  />
+                  <div className="pointer-events-none absolute -top-8 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded bg-popover px-2 py-1 text-[10px] font-medium opacity-0 shadow-md transition-opacity group-hover:opacity-100">
+                    {v || 0} click{(v || 0) === 1 ? "" : "s"}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Per-curator breakdown + Target map */}
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Per-curator cross-reco clicks */}
@@ -374,7 +500,7 @@ export function CrossCuratorRecommendationsSection() {
           {Object.keys(mergedClickTargets).length > 0 ? (
             <div className="space-y-3">
               {Object.entries(mergedClickTargets)
-                .sort(([, a], [, b]) => b - a)
+                .sort(([, a], [, b]) => (b || 0) - (a || 0))
                 .slice(0, 8)
                 .map(([slug, count]) => {
                   const maxCount = Math.max(
