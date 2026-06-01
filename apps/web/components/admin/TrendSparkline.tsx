@@ -56,6 +56,24 @@ function sma(data: number[], window: number): (number | null)[] {
   return result;
 }
 
+/** Compute rolling standard deviation with the given window size. */
+function rollingStd(data: number[], window: number): (number | null)[] {
+  const result: (number | null)[] = [];
+  for (let i = 0; i < data.length; i++) {
+    if (i < window - 1) {
+      result.push(null);
+    } else {
+      let sum = 0;
+      for (let j = i - window + 1; j <= i; j++) sum += data[j] ?? 0;
+      const mean = sum / window;
+      let ssq = 0;
+      for (let j = i - window + 1; j <= i; j++) ssq += ((data[j] ?? 0) - mean) ** 2;
+      result.push(Math.sqrt(ssq / window));
+    }
+  }
+  return result;
+}
+
 /** Mini sparkline rendered as an SVG polyline with optional SMA trend line. */
 export function Sparkline({
   data,
@@ -91,8 +109,11 @@ export function Sparkline({
   const areaPoints = points + ` ${width},${height} 0,${height}`;
   const gradientId = `spark-${color.replace(/[^a-z0-9]/gi, "")}-${width}`;
 
-  // SMA trend line
+  // SMA trend line + confidence band
   const smaData = showTrend ? sma(data, trendWindow) : [];
+  const stdData = showTrend ? rollingStd(data, trendWindow) : [];
+  const bandGap = 1.5; // 1.5σ confidence band
+
   const trendPoints = smaData
     .map((v, i) => {
       if (v === null) return null;
@@ -102,6 +123,25 @@ export function Sparkline({
     })
     .filter(Boolean)
     .join(" ");
+
+  // Confidence band polygon (upper σ boundary forward, lower σ boundary backward)
+  const bandUpper = smaData
+    .map((v, i) => {
+      if (v === null || stdData[i] === null) return null;
+      const x = (i / (data.length - 1 || 1)) * width;
+      const y = toY(v + bandGap * (stdData[i] ?? 0));
+      return `${x},${y}`;
+    });
+  const bandLower = smaData
+    .map((v, i) => {
+      if (v === null || stdData[i] === null) return null;
+      const x = (i / (data.length - 1 || 1)) * width;
+      const y = toY(v - bandGap * (stdData[i] ?? 0));
+      return `${x},${y}`;
+    });
+  const upperPoints = bandUpper.filter(Boolean).join(" ");
+  const lowerReversed = bandLower.filter(Boolean).reverse().join(" ");
+  const bandPoints = upperPoints && lowerReversed ? `${upperPoints} ${lowerReversed}` : "";
 
   // Predicted next-week volume (extrapolate last SMA value)
   const lastSma = smaData.filter((v): v is number => v !== null);
@@ -131,6 +171,13 @@ export function Sparkline({
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+      {showTrend && bandPoints && (
+        <polygon
+          points={bandPoints}
+          fill="rgb(251 146 60)"
+          opacity="0.08"
+        />
+      )}
       {showTrend && trendPoints && (
         <polyline
           points={trendPoints}
@@ -346,10 +393,14 @@ export function TrendSparkline({
 
       {/* Trend legend + prediction */}
       {predicted !== null && (
-        <div className="mt-2 flex items-center gap-3 text-[10px]">
+        <div className="mt-2 flex flex-wrap items-center gap-3 text-[10px]">
           <span className="inline-flex items-center gap-1 text-muted-foreground/60">
             <span className="inline-block h-px w-3 border-t border-dashed border-orange-400" />
             SMA({trendWindow})
+          </span>
+          <span className="inline-flex items-center gap-1 text-muted-foreground/60">
+            <span className="inline-block h-2 w-3 rounded-sm bg-orange-400/20" />
+            ±1.5σ band
           </span>
           <span className="text-orange-500/80 font-medium">
             ~{Math.round(predicted ?? 0)} clicks/day predicted
