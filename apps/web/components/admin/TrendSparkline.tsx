@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { TrendingDown, TrendingUp } from "lucide-react";
+import { Download, TrendingDown, TrendingUp } from "lucide-react";
 
 export interface TrendSparklineProps {
   /** e.g. "cross-curator clicks" */
@@ -158,6 +158,43 @@ function TimeRangeToggle({
   );
 }
 
+/** Export the active date/clicks data as a CSV file download. */
+function ExportCsvButton({
+  dates,
+  clicks,
+  label,
+}: {
+  dates: string[];
+  clicks: number[];
+  label: string;
+}) {
+  function handleExport() {
+    const rows = [
+      ["date", "clicks"],
+      ...dates.map((d, i) => [d, String(clicks[i] || 0)]),
+    ];
+    const csv = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${label.replace(/[^a-z0-9]+/gi, "-").replace(/-+$/, "")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <button
+      onClick={handleExport}
+      className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-muted"
+      title="Download CSV"
+    >
+      <Download className="h-3 w-3" />
+      CSV
+    </button>
+  );
+}
+
 // ── Main composite component ──
 
 export function TrendSparkline({
@@ -196,6 +233,11 @@ export function TrendSparkline({
               active={timeRange}
               has30={has30Data}
               onChange={setTimeRange}
+            />
+            <ExportCsvButton
+              dates={activeDates}
+              clicks={activeClicks}
+              label={`${title}-${timeRange}`}
             />
           </div>
           {/* Total + WoW badge */}
