@@ -12,6 +12,7 @@ import {
   Users,
 } from "lucide-react";
 import { Bar, TrendSparkline } from "../../../components/admin/TrendSparkline";
+import { CuratorComparisonTable } from "./CuratorComparisonTable";
 
 interface DayPoint {
   date: string;
@@ -180,6 +181,14 @@ export function CrossCuratorRecommendationsSection() {
     .sort((a, b) => (b.crossRecoClicks || 0) - (a.crossRecoClicks || 0));
 
   const hasData = clicks7.some((v) => v > 0) || has30;
+
+  // Build curator name map from overview
+  const curatorNames: Record<string, string> = {};
+  if (overview?.topCurators) {
+    for (const c of overview.topCurators) {
+      curatorNames[c.slug] = c.name;
+    }
+  }
 
   // ── Loading ──
   if (loading && reports.length === 0) {
@@ -356,6 +365,14 @@ export function CrossCuratorRecommendationsSection() {
         />
       )}
 
+      {/* Curator comparison table */}
+      {reports.length > 0 && (
+        <CuratorComparisonTable
+          reports={reports}
+          curatorNames={curatorNames}
+        />
+      )}
+
       {/* Per-curator breakdown + Target map */}
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-xl border border-border bg-card p-4">
@@ -460,7 +477,7 @@ export function CrossCuratorRecommendationsSection() {
                   <div>
                     <p className="text-sm font-medium capitalize">{slug}</p>
                     <p className="text-[11px] text-muted-foreground">
-                      attributed purchase{count === 1 ? "" : ""}
+                      attributed purchase{count === 1 ? "" : "s"}
                     </p>
                   </div>
                 </div>
