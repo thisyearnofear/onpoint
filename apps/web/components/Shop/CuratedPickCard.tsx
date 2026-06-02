@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { Globe } from "lucide-react";
+import React, { useState } from "react";
+import { Globe, X, ExternalLink } from "lucide-react";
 import type { CuratedPick, PickProvenance } from "../../lib/utils/curated-picks";
 import type { FashionItem, ExternalProduct } from "@onpoint/shared-types";
 
@@ -47,46 +47,124 @@ export function ExternalPickCard({ pick, position, compact = false }: {
   position: number;
   compact?: boolean;
 }) {
+  const [showModal, setShowModal] = useState(false);
   const ext = pick.item as ExternalProduct;
-  const handleClick = () => trackPickClick(pick, position);
 
   return (
-    <a
-      href={ext.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={handleClick}
-      className={`group flex items-start rounded-xl border border-border bg-card hover:border-primary/20 transition-all ${compact ? "gap-3 p-3" : "gap-4 p-4"}`}
-    >
-      {ext.imageUrl && (
-        <div className={`rounded-lg overflow-hidden bg-muted shrink-0 ${compact ? "w-16 h-16" : "w-20 h-20"}`}>
-          <img
-            src={ext.imageUrl}
-            alt={ext.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-          />
-        </div>
-      )}
-      <div className="flex-1 min-w-0">
-        <p className={`${compact ? "text-xs" : "text-sm"} font-medium text-foreground line-clamp-2`}>{ext.name}</p>
-        <p className={`${compact ? "text-[10px]" : "text-xs"} text-muted-foreground mt-0.5`}>{pick.reason}</p>
-        {pick.provenance?.matchedTakeaway && (
-          <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] bg-primary/5 text-muted-foreground border border-primary/10">
-            Matched: {pick.provenance.matchedTakeaway}
-          </span>
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          trackPickClick(pick, position);
+          setShowModal(true);
+        }}
+        className={`group flex items-start rounded-xl border border-border bg-card hover:border-primary/20 transition-all text-left w-full ${compact ? "gap-3 p-3" : "gap-4 p-4"}`}
+      >
+        {ext.imageUrl && (
+          <div className={`rounded-lg overflow-hidden bg-muted shrink-0 ${compact ? "w-16 h-16" : "w-20 h-20"}`}>
+            <img
+              src={ext.imageUrl}
+              alt={ext.name}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+            />
+          </div>
         )}
-        <div className="flex items-center gap-2 mt-1">
-          <span className={`${compact ? "text-xs" : "text-sm"} font-bold text-primary`}>${ext.price}</span>
-          <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded flex items-center gap-1">
-            <Globe className="w-2.5 h-2.5" />
-            {ext.source}
-          </span>
+        <div className="flex-1 min-w-0">
+          <p className={`${compact ? "text-xs" : "text-sm"} font-medium text-foreground line-clamp-2`}>{ext.name}</p>
+          <p className={`${compact ? "text-[10px]" : "text-xs"} text-muted-foreground mt-0.5`}>{pick.reason}</p>
+          {pick.provenance?.matchedTakeaway && (
+            <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] bg-primary/5 text-muted-foreground border border-primary/10">
+              Matched: {pick.provenance.matchedTakeaway}
+            </span>
+          )}
+          <div className="flex items-center gap-2 mt-1">
+            <span className={`${compact ? "text-xs" : "text-sm"} font-bold text-primary`}>${ext.price}</span>
+            <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded flex items-center gap-1">
+              <Globe className="w-2.5 h-2.5" />
+              {ext.source}
+            </span>
+          </div>
+        </div>
+        <span className="text-[10px] text-muted-foreground group-hover:text-primary transition-colors shrink-0 self-center">
+          View →
+        </span>
+      </button>
+      {showModal && (
+        <ProductDetailModal pick={pick} onClose={() => setShowModal(false)} />
+      )}
+    </>
+  );
+}
+
+function ProductDetailModal({ pick, onClose }: {
+  pick: CuratedPick;
+  onClose: () => void;
+}) {
+  const ext = pick.item as ExternalProduct;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="bg-background border border-border rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3 flex items-center justify-between z-10">
+          <h3 className="text-sm font-bold text-foreground truncate pr-4">{ext.name}</h3>
+          <button onClick={onClose} className="p-1 rounded-full hover:bg-muted transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {ext.imageUrl && (
+          <div className="aspect-square bg-muted">
+            <img src={ext.imageUrl} alt={ext.name} className="w-full h-full object-contain" />
+          </div>
+        )}
+
+        <div className="p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-2xl font-bold text-primary">${ext.price}</span>
+            <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full flex items-center gap-1">
+              <Globe className="w-3 h-3" />
+              {ext.source}
+            </span>
+          </div>
+
+          <p className="text-sm text-muted-foreground">{pick.reason}</p>
+
+          {pick.provenance && (
+            <div className="flex flex-wrap gap-1.5">
+              {pick.provenance.personaLabel && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/10 text-primary">{pick.provenance.personaLabel}</span>
+              )}
+              {pick.provenance.goalLabel && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-accent/10 text-accent">{pick.provenance.goalLabel}</span>
+              )}
+              {pick.provenance.matchedTakeaway && (
+                <span className="px-2 py-0.5 rounded text-[10px] bg-muted text-muted-foreground border border-border">{pick.provenance.matchedTakeaway}</span>
+              )}
+            </div>
+          )}
+
+          <a
+            href={ext.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-primary text-primary-foreground rounded-xl font-medium text-sm hover:bg-primary/90 transition-colors"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Buy from {ext.source}
+          </a>
+
+          <p className="text-[10px] text-center text-muted-foreground">
+            You&apos;ll be redirected to {ext.source} to complete your purchase
+          </p>
         </div>
       </div>
-      <span className="text-[10px] text-muted-foreground group-hover:text-primary transition-colors shrink-0 self-center">
-        Visit →
-      </span>
-    </a>
+    </div>
   );
 }
 
