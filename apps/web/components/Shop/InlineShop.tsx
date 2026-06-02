@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { ShopGrid } from "@repo/shared-ui";
 import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import type { FashionItem } from "@onpoint/shared-types";
-import { Sparkles, Camera, Globe } from "lucide-react";
+import { Sparkles, Camera, Globe, Loader2 } from "lucide-react";
 import { PanelSkeleton } from "../ui/PanelSkeleton";
 import { Button } from "@repo/ui/button";
 import { useCartStore } from "../../lib/stores/cart-store";
@@ -16,6 +16,7 @@ import { fetchAgentApi } from "../../lib/utils/agent-api";
 import { RichProductGroup } from "./RichProductCard";
 import type { ProductResult } from "@onpoint/shared-types";
 import type { MarketSignal } from "@onpoint/shared-types";
+import type { CuratedPick } from "../../lib/utils/curated-picks";
 import {
   fashionItemToTryOnSelection,
   setPendingTryOnSelection,
@@ -49,6 +50,8 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
   const addItem = useCartStore((s) => s.addItem);
   const openCart = useCartStore((s) => s.openCart);
   const [isLoading, setIsLoading] = useState(true);
+  const [curatedPicks, setCuratedPicks] = useState<CuratedPick[]>([]);
+  const [isCurating, setIsCurating] = useState(false);
 
   const handleFlyComplete = useCallback(() => {
     flyCallbackRef.current?.();
@@ -81,6 +84,33 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
       })
       .catch(() => {})
       .finally(() => setIsLoading(false));
+
+    // Fetch curated picks from session curation context
+    if (typeof window !== "undefined") {
+      const stored = sessionStorage.getItem("stylistAnalysis");
+      if (stored) {
+        try {
+          const analysis = JSON.parse(stored);
+          const ctx = analysis.curationContext;
+          if (ctx && ctx.takeaways?.length > 0) {
+            setIsCurating(true);
+            fetch("/api/agent/curated-shop", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(ctx),
+            })
+              .then((res) => (res.ok ? res.json() : null))
+              .then((data) => {
+                if (data?.picks) setCuratedPicks(data.picks);
+              })
+              .catch(() => {})
+              .finally(() => setIsCurating(false));
+          }
+        } catch {
+          // sessionStorage parse failure is non-fatal
+        }
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -129,59 +159,148 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
         <CartButton />
       </div>
 
-      {/* AI Picks — web-discovered products from external search */}
-      {externalFinds.length > 0 && (
+      {/* AI Picks — curated picks + web-discovered products */}
+      {(externalFinds.length > 0 || curatedPicks.length > 0 || isCurating) && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-primary" />
             <h3 className="text-sm font-bold uppercase tracking-wider text-primary">
               Your AI Picks
             </h3>
+            {isCurating && (
+              <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Searching live stores...
+              </span>
+            )}
           </div>
 
-          {/* Web-discovered products (real prices, multiple retailers) */}
-          <div className="space-y-4">
-            {externalFinds.map((find, i) => (
-              find.products && find.products.length > 0 ? (
-                <RichProductGroup
-                  key={i}
-                  title={find.description}
-                  products={find.products}
-                />
-              ) : (
-                <a
-                  key={i}
-                  href={find.externalUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex items-start gap-3 p-3 rounded-xl border border-primary/10 bg-card hover:border-primary/20 transition-all"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <Globe className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium line-clamp-2">{find.description}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs font-bold text-primary">{find.amount}</span>
-                      {find.source && (
-                        <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                          {find.source}
+          {/* Curated picks from session context */}
+          {curatedPicks.length > 0 && (
+            <div className="space-y-4">
+              {curatedPicks.filter((p) => p.source === "external").map((pick, i) => {
+                const ext = pick.item as { name: string; price: number; source: string; url: string; imageUrl: string };
+                return (
+                  <a
+                    key={`ext-${i}`}
+                    href={ext.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex items-start gap-3 p-3 rounded-xl border border-border bg-card hover:border-primary/20 transition-all"
+                  >
+                    {ext.imageUrl && (
+                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted shrink-0">
+                        <img src={ext.imageUrl} alt={ext.name} className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium line-clamp-2 text-foreground">{ext.name}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{pick.reason}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs font-bold text-primary">${ext.price}</span>
+                        <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded flex items-center gap-1">
+                          <Globe className="w-2.5 h-2.5" />
+                          {ext.source}
                         </span>
-                      )}
+                      </div>
                     </div>
+                    <span className="text-[10px] text-muted-foreground group-hover:text-primary transition-colors shrink-0">
+                      Visit →
+                    </span>
+                  </a>
+                );
+              })}
+              {curatedPicks.filter((p) => p.source === "local").length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {curatedPicks.filter((p) => p.source === "local").map((pick) => {
+                    const item = pick.item as FashionItem;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          setPendingTryOnSelection(fashionItemToTryOnSelection(item));
+                          addItem(item);
+                          onTryOn?.(item);
+                        }}
+                        className="group rounded-xl overflow-hidden border border-border bg-card hover:border-primary/20 transition-all text-left"
+                      >
+                        {(item.modelSrc || item.productSrc) && (
+                          <div className="aspect-square bg-muted">
+                            <img src={item.modelSrc || item.productSrc} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                          </div>
+                        )}
+                        <div className="p-1.5">
+                          <p className="text-[10px] text-foreground font-medium truncate">{item.name}</p>
+                          <p className="text-[10px] font-bold text-primary">${item.price}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Loading skeleton for curated picks */}
+          {isCurating && curatedPicks.length === 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="rounded-xl border border-border bg-card overflow-hidden animate-pulse">
+                  <div className="aspect-square bg-muted" />
+                  <div className="p-1.5 space-y-1.5">
+                    <div className="h-2.5 bg-muted rounded w-3/4" />
+                    <div className="h-2.5 bg-muted rounded w-1/2" />
                   </div>
-                  <span className="text-[10px] text-muted-foreground group-hover:text-primary transition-colors shrink-0">
-                    Visit →
-                  </span>
-                </a>
-              )
-            ))}
-          </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Web-discovered products from live session suggestions */}
+          {externalFinds.length > 0 && (
+            <div className="space-y-4">
+              {externalFinds.map((find, i) => (
+                find.products && find.products.length > 0 ? (
+                  <RichProductGroup
+                    key={i}
+                    title={find.description}
+                    products={find.products}
+                  />
+                ) : (
+                  <a
+                    key={i}
+                    href={find.externalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex items-start gap-3 p-3 rounded-xl border border-primary/10 bg-card hover:border-primary/20 transition-all"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Globe className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium line-clamp-2">{find.description}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs font-bold text-primary">{find.amount}</span>
+                        {find.source && (
+                          <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                            {find.source}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground group-hover:text-primary transition-colors shrink-0">
+                      Visit →
+                    </span>
+                  </a>
+                )
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* No picks yet — nudge to try on */}
-      {externalFinds.length === 0 && (
+      {externalFinds.length === 0 && curatedPicks.length === 0 && !isCurating && (
         <div className="rounded-2xl border border-dashed border-border p-6 text-center space-y-3">
           <Camera className="w-8 h-8 text-muted-foreground mx-auto" />
           <p className="text-sm text-muted-foreground">

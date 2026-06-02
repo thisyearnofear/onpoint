@@ -323,6 +323,7 @@ export function SessionSummaryScreen({
               }
               onBack();
               window.dispatchEvent(new CustomEvent("onpoint:navigate", { detail: "shop" }));
+              window.location.href = "/shop";
             }}
           >
             <ShoppingBag className="w-4 h-4" />

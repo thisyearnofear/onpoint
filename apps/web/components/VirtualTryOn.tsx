@@ -437,18 +437,28 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
 
   const handleShopRecommendations = useCallback(() => {
     if (!analysis) return;
-    
-    // Store analysis for shop page
+
     if (typeof window !== 'undefined') {
+      const takeaways = analysis.styleAdjustments || [];
+      const topics = analysis.fitRecommendations.length > 0
+        ? analysis.fitRecommendations.slice(0, 4)
+        : (analysis.personalization || []).slice(0, 4);
+
       sessionStorage.setItem('stylistAnalysis', JSON.stringify({
         bodyType: analysis.bodyType,
         measurements: analysis.measurements,
-        styleRecommendations: (analysis as any).styleRecommendations || analysis.styleAdjustments,
-        personalization: (analysis as any).personalization,
+        styleRecommendations: takeaways,
+        personalization: analysis.personalization,
+        curationContext: {
+          score: analysis.score || 5,
+          takeaways,
+          topics,
+          persona: selectedPersona || undefined,
+        },
       }));
       window.location.href = '/shop';
     }
-  }, [analysis]);
+  }, [analysis, selectedPersona]);
 
   const handleReset = useCallback(() => {
     // Track abandoned deep-link persona sessions

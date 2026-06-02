@@ -8,6 +8,8 @@ import {
   type CuratedPick,
 } from "../../../../lib/utils/curated-picks";
 import type { ExternalProduct } from "@onpoint/shared-types";
+import type { MarketSignal } from "@onpoint/shared-types";
+import { processRetailSignalPartners } from "../../../../lib/services/retail-signal-partners";
 import { corsHeaders } from "../../ai/_utils/http";
 export { OPTIONS } from "../../ai/_utils/http";
 
@@ -103,6 +105,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         ? "external"
         : "local";
     const cached = searchResults.every((r) => r.cached);
+
+    // Fire-and-forget: persist retail signals for competitive intelligence memory
+    for (let i = 0; i < searchResults.length; i++) {
+      const result = searchResults[i];
+      if (!result || result.signals.length === 0) continue;
+      const extProducts = result.items.filter(
+        (item): item is ExternalProduct => "url" in item && "source" in item,
+      );
+      if (extProducts.length > 0) {
+        processRetailSignalPartners(
+          queries[i] || "",
+          extProducts,
+          result.signals as MarketSignal[],
+        ).catch(() => {});
+      }
+    }
 
     return NextResponse.json(
       {
