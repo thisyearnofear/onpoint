@@ -14,6 +14,7 @@ import { CartDrawer, CartButton } from "./CartDrawer";
 import { FlyToCartOverlay, type FlyItem } from "./FlyToCartOverlay";
 import { fetchAgentApi } from "../../lib/utils/agent-api";
 import { RichProductGroup } from "./RichProductCard";
+import { ExternalPickCard, LocalPickCard, ProvenanceBar } from "./CuratedPickCard";
 import type { ProductResult } from "@onpoint/shared-types";
 import type { MarketSignal } from "@onpoint/shared-types";
 import { useCuratedPicksStore } from "../../lib/stores/curated-picks-store";
@@ -48,7 +49,6 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
   const [flyingItem, setFlyingItem] = useState<FlyItem | null>(null);
   const flyCallbackRef = useRef<(() => void) | null>(null);
   const addItem = useCartStore((s) => s.addItem);
-  const openCart = useCartStore((s) => s.openCart);
   const [isLoading, setIsLoading] = useState(true);
   const curatedPicks = useCuratedPicksStore((s) => s.picks);
   const isCurating = useCuratedPicksStore((s) => s.loading);
@@ -166,90 +166,40 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
           </div>
 
           {/* Provenance context bar */}
-          {curatedPicks.length > 0 && curatedPicks[0]?.provenance && (
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {curatedPicks[0].provenance.personaLabel && (
-                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-primary/10 text-primary">
-                  {curatedPicks[0].provenance.personaLabel}
-                </span>
-              )}
-              {curatedPicks[0].provenance.goalLabel && (
-                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-accent/10 text-accent">
-                  {curatedPicks[0].provenance.goalLabel}
-                </span>
-              )}
-            </div>
+          {curatedPicks.length > 0 && (
+            <ProvenanceBar
+              provenance={curatedPicks[0]?.provenance}
+              pickCount={curatedPicks.length}
+              hasExternal={curatedPicks.some((p) => p.source === "external")}
+            />
           )}
 
           {/* Curated picks from session context */}
           {curatedPicks.length > 0 && (
             <div className="space-y-4">
-              {curatedPicks.filter((p) => p.source === "external").map((pick, i) => {
-                const ext = pick.item as { name: string; price: number; source: string; url: string; imageUrl: string };
-                return (
-                  <a
-                    key={`ext-${i}`}
-                    href={ext.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group flex items-start gap-3 p-3 rounded-xl border border-border bg-card hover:border-primary/20 transition-all"
-                  >
-                    {ext.imageUrl && (
-                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted shrink-0">
-                        <img src={ext.imageUrl} alt={ext.name} className="w-full h-full object-cover" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium line-clamp-2 text-foreground">{ext.name}</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">{pick.reason}</p>
-                      {pick.provenance?.matchedTakeaway && (
-                        <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] bg-primary/5 text-muted-foreground border border-primary/10">
-                          {pick.provenance.matchedTakeaway}
-                        </span>
-                      )}
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs font-bold text-primary">${ext.price}</span>
-                        <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded flex items-center gap-1">
-                          <Globe className="w-2.5 h-2.5" />
-                          {ext.source}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="text-[10px] text-muted-foreground group-hover:text-primary transition-colors shrink-0">
-                      Visit →
-                    </span>
-                  </a>
-                );
-              })}
+              {curatedPicks
+                .filter((p) => p.source === "external")
+                .map((pick, i) => (
+                  <ExternalPickCard key={`ext-${i}`} pick={pick} position={i} compact />
+                ))}
               {curatedPicks.filter((p) => p.source === "local").length > 0 && (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {curatedPicks.filter((p) => p.source === "local").map((pick) => {
-                    const item = pick.item as FashionItem;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => {
-                          setPendingTryOnSelection(fashionItemToTryOnSelection(item));
-                          addItem(item);
-                          onTryOn?.(item);
-                        }}
-                        className="group rounded-xl overflow-hidden border border-border bg-card hover:border-primary/20 transition-all text-left"
-                      >
-                        {(item.modelSrc || item.productSrc) && (
-                          <div className="aspect-square bg-muted">
-                            <img src={item.modelSrc || item.productSrc} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                          </div>
-                        )}
-                        <div className="p-1.5">
-                          <p className="text-[10px] text-foreground font-medium truncate">{item.name}</p>
-                          <p className="text-[10px] font-bold text-primary">${item.price}</p>
-                          {pick.provenance?.matchedTakeaway && (
-                            <p className="text-[8px] text-muted-foreground/70 mt-0.5 truncate">via {pick.provenance.matchedTakeaway}</p>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
+                  {curatedPicks
+                    .filter((p) => p.source === "local")
+                    .map((pick) => {
+                      const item = pick.item as FashionItem;
+                      return (
+                        <LocalPickCard
+                          key={item.id}
+                          pick={pick}
+                          onClick={(clickedItem) => {
+                            setPendingTryOnSelection(fashionItemToTryOnSelection(clickedItem));
+                            addItem(clickedItem);
+                            onTryOn?.(clickedItem);
+                          }}
+                        />
+                      );
+                    })}
                 </div>
               )}
             </div>

@@ -5,10 +5,11 @@ import { ShopGrid, EngagementBadge } from "@repo/shared-ui";
 import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import type { FashionItem } from "@onpoint/shared-types";
 import Link from "next/link";
-import { ArrowLeft, ShoppingBag, Sparkles, Globe, Loader2 } from "lucide-react";
+import { ArrowLeft, ShoppingBag, Sparkles, Loader2 } from "lucide-react";
 import { CartDrawer, CartButton } from "../../components/Shop/CartDrawer";
 import { FlyToCartOverlay, type FlyItem } from "../../components/Shop/FlyToCartOverlay";
 import { CheckoutModal } from "../../components/Shop/CheckoutModal";
+import { ExternalPickCard, LocalPickCard, ProvenanceBar } from "../../components/Shop/CuratedPickCard";
 import { useCartStore } from "../../lib/stores/cart-store";
 import { useCuratedPicksStore } from "../../lib/stores/curated-picks-store";
 import { useStyleContext } from "@/lib/context/StyleContext";
@@ -20,10 +21,10 @@ export default function ShopPage() {
   const [stylistAnalysis, setStylistAnalysis] = useState<any>(null);
   const [flyingItem, setFlyingItem] = useState<FlyItem | null>(null);
   const addItem = useCartStore((s) => s.addItem);
-  const openCart = useCartStore((s) => s.openCart);
   const curatedPicks = useCuratedPicksStore((s) => s.picks);
   const isCurating = useCuratedPicksStore((s) => s.loading);
   const fetchPicks = useCuratedPicksStore((s) => s.fetchPicks);
+  const clearPicks = useCuratedPicksStore((s) => s.clear);
 
   const handleFlyComplete = useCallback(() => {
     setFlyingItem(null);
@@ -146,6 +147,7 @@ export default function ShopPage() {
                     onClick={() => {
                       sessionStorage.removeItem('stylistAnalysis');
                       setStylistAnalysis(null);
+                      clearPicks();
                     }}
                     className="ml-auto text-xs text-muted-foreground hover:text-foreground"
                   >
@@ -174,21 +176,13 @@ export default function ShopPage() {
             </div>
 
             {/* Provenance context bar */}
-            {curatedPicks.length > 0 && curatedPicks[0]?.provenance && (
-              <div className="flex items-center gap-2 mb-4 flex-wrap">
-                {curatedPicks[0].provenance.personaLabel && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/10 text-primary">
-                    {curatedPicks[0].provenance.personaLabel}
-                  </span>
-                )}
-                {curatedPicks[0].provenance.goalLabel && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-accent/10 text-accent">
-                    {curatedPicks[0].provenance.goalLabel}
-                  </span>
-                )}
-                <span className="text-[10px] text-muted-foreground">
-                  {curatedPicks.length} picks from {curatedPicks.filter(p => p.source === "external").length > 0 ? "live stores + " : ""}catalog
-                </span>
+            {curatedPicks.length > 0 && (
+              <div className="mb-4">
+                <ProvenanceBar
+                  provenance={curatedPicks[0]?.provenance}
+                  pickCount={curatedPicks.length}
+                  hasExternal={curatedPicks.some((p) => p.source === "external")}
+                />
               </div>
             )}
 
@@ -197,47 +191,9 @@ export default function ShopPage() {
               <div className="space-y-4 mb-6">
                 {curatedPicks
                   .filter((p) => p.source === "external")
-                  .map((pick, i) => {
-                    const ext = pick.item as { name: string; price: number; source: string; url: string; imageUrl: string };
-                    return (
-                      <a
-                        key={i}
-                        href={ext.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group flex items-start gap-4 p-4 rounded-xl border border-border bg-card hover:border-primary/20 transition-all"
-                      >
-                        {ext.imageUrl && (
-                          <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted shrink-0">
-                            <img
-                              src={ext.imageUrl}
-                              alt={ext.name}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                            />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground line-clamp-2">{ext.name}</p>
-                          <p className="text-xs text-muted-foreground mt-1">{pick.reason}</p>
-                          {pick.provenance?.matchedTakeaway && (
-                            <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] bg-primary/5 text-muted-foreground border border-primary/10">
-                              Matched: {pick.provenance.matchedTakeaway}
-                            </span>
-                          )}
-                          <div className="flex items-center gap-2 mt-2">
-                            <span className="text-sm font-bold text-primary">${ext.price}</span>
-                            <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded flex items-center gap-1">
-                              <Globe className="w-2.5 h-2.5" />
-                              {ext.source}
-                            </span>
-                          </div>
-                        </div>
-                        <span className="text-[10px] text-muted-foreground group-hover:text-primary transition-colors shrink-0 self-center">
-                          Visit →
-                        </span>
-                      </a>
-                    );
-                  })}
+                  .map((pick, i) => (
+                    <ExternalPickCard key={i} pick={pick} position={i} />
+                  ))}
               </div>
             )}
 
@@ -249,42 +205,23 @@ export default function ShopPage() {
                   .map((pick) => {
                     const item = pick.item as FashionItem;
                     return (
-                      <button
+                      <LocalPickCard
                         key={item.id}
-                        onClick={() => {
-                          const cardEl = document.querySelector(`[data-pick-id="${item.id}"]`);
+                        pick={pick}
+                        onClick={(clickedItem) => {
+                          const cardEl = document.querySelector(`[data-pick-id="${clickedItem.id}"]`);
                           const sourceRect = cardEl?.getBoundingClientRect();
                           const target = document.querySelector("[data-cart-button]")?.getBoundingClientRect();
                           if (sourceRect && target) {
                             setFlyingItem({
-                              imageUrl: item.modelSrc || item.cover,
+                              imageUrl: clickedItem.modelSrc || clickedItem.cover,
                               sourceRect,
                               targetRect: target,
                             });
                           }
-                          addItem(item);
+                          addItem(clickedItem);
                         }}
-                        data-pick-id={item.id}
-                        className="group rounded-xl overflow-hidden border border-border bg-card hover:border-primary/20 transition-all text-left"
-                      >
-                        {(item.modelSrc || item.productSrc) && (
-                          <div className="aspect-square bg-muted">
-                            <img
-                              src={item.modelSrc || item.productSrc}
-                              alt={item.name}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                            />
-                          </div>
-                        )}
-                        <div className="p-2">
-                          <p className="text-[11px] text-foreground font-medium truncate">{item.name}</p>
-                          <p className="text-[11px] font-bold text-primary">${item.price}</p>
-                          <p className="text-[9px] text-muted-foreground mt-0.5 line-clamp-1">{pick.reason}</p>
-                          {pick.provenance?.matchedTakeaway && (
-                            <p className="text-[8px] text-muted-foreground/70 mt-0.5 truncate">via {pick.provenance.matchedTakeaway}</p>
-                          )}
-                        </div>
-                      </button>
+                      />
                     );
                   })}
               </div>
