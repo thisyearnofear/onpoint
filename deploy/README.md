@@ -211,7 +211,7 @@ Consider adding a weekly cron:
 | >200 MB    | Deploy fails            |
 | >20% grow  | Alert (future GH Action)|
 
-We keep the last **3 releases**. At ~87 MB each that's ~261 MB budgeted for
+We keep the last **2 releases**. At ~87 MB each that's ~174 MB budgeted for
 release history. Old releases are pruned automatically on each deploy.
 
 ---

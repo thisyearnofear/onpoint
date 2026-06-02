@@ -28,7 +28,7 @@ SSH_HOST="${ONPOINT_SSH_HOST:-snel-bot}"
 REMOTE_BASE="/opt/onpoint"
 FILTER="@onpoint/api"
 BUILD_DIR="./build/api"
-KEEP_RELEASES=3
+KEEP_RELEASES=2
 SIZE_WARN_MB=350
 SIZE_FAIL_MB=450
 HEALTH_URL="http://localhost:48751/health"
@@ -293,6 +293,7 @@ RSYNC_CMD="rsync -avz --delete \
   --exclude '*.log' \
   --exclude '.env*' \
   --exclude '.DS_Store' \
+  --exclude '._*' \
   --chmod=D755,F644 \
   ${BUILD_DIR}/ ${SSH_HOST}:${REMOTE_RELEASE}/"
 
