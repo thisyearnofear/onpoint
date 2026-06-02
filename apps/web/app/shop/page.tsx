@@ -5,12 +5,14 @@ import { ShopGrid, EngagementBadge } from "@repo/shared-ui";
 import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import type { FashionItem } from "@onpoint/shared-types";
 import Link from "next/link";
-import { ArrowLeft, ShoppingBag } from "lucide-react";
+import { ArrowLeft, ShoppingBag, Sparkles, Globe, Loader2 } from "lucide-react";
 import { CartDrawer, CartButton } from "../../components/Shop/CartDrawer";
 import { FlyToCartOverlay, type FlyItem } from "../../components/Shop/FlyToCartOverlay";
 import { CheckoutModal } from "../../components/Shop/CheckoutModal";
+import { RichProductGroup } from "../../components/Shop/RichProductCard";
 import { useCartStore } from "../../lib/stores/cart-store";
 import { useStyleContext } from "@/lib/context/StyleContext";
+import type { CuratedPick } from "../../lib/utils/curated-picks";
 
 export default function ShopPage() {
   const [selectedItem, setSelectedItem] = useState<FashionItem | null>(null);
@@ -18,6 +20,8 @@ export default function ShopPage() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [stylistAnalysis, setStylistAnalysis] = useState<any>(null);
   const [flyingItem, setFlyingItem] = useState<FlyItem | null>(null);
+  const [curatedPicks, setCuratedPicks] = useState<CuratedPick[]>([]);
+  const [isCurating, setIsCurating] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
   const openCart = useCartStore((s) => s.openCart);
 
@@ -26,12 +30,29 @@ export default function ShopPage() {
   }, []);
   const { dominantAesthetic, budgetLabel } = useStyleContext();
 
-  // Load stylist analysis from sessionStorage
+  // Load stylist analysis from sessionStorage and trigger curated picks
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = sessionStorage.getItem('stylistAnalysis');
       if (stored) {
-        setStylistAnalysis(JSON.parse(stored));
+        const analysis = JSON.parse(stored);
+        setStylistAnalysis(analysis);
+
+        const ctx = analysis.curationContext;
+        if (ctx && ctx.takeaways?.length > 0) {
+          setIsCurating(true);
+          fetch("/api/agent/curated-shop", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(ctx),
+          })
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => {
+              if (data?.picks) setCuratedPicks(data.picks);
+            })
+            .catch(() => {})
+            .finally(() => setIsCurating(false));
+        }
       }
     }
   }, []);
@@ -144,6 +165,129 @@ export default function ShopPage() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Curated Agent Picks */}
+        {(isCurating || curatedPicks.length > 0) && (
+          <div className="mb-12">
+            <div className="flex items-center gap-2 mb-6">
+              <Sparkles className="w-5 h-5 text-primary" />
+              <h2 className="text-lg font-bold text-foreground">
+                Curated For You
+              </h2>
+              {isCurating && (
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Searching live stores...
+                </span>
+              )}
+            </div>
+
+            {/* External product groups */}
+            {curatedPicks.filter((p) => p.source === "external").length > 0 && (
+              <div className="space-y-4 mb-6">
+                {curatedPicks
+                  .filter((p) => p.source === "external")
+                  .map((pick, i) => {
+                    const ext = pick.item as { name: string; price: number; source: string; url: string; imageUrl: string };
+                    return (
+                      <a
+                        key={i}
+                        href={ext.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group flex items-start gap-4 p-4 rounded-xl border border-border bg-card hover:border-primary/20 transition-all"
+                      >
+                        {ext.imageUrl && (
+                          <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted shrink-0">
+                            <img
+                              src={ext.imageUrl}
+                              alt={ext.name}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground line-clamp-2">{ext.name}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{pick.reason}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="text-sm font-bold text-primary">${ext.price}</span>
+                            <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded flex items-center gap-1">
+                              <Globe className="w-2.5 h-2.5" />
+                              {ext.source}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground group-hover:text-primary transition-colors shrink-0 self-center">
+                          Visit →
+                        </span>
+                      </a>
+                    );
+                  })}
+              </div>
+            )}
+
+            {/* Local catalog picks */}
+            {curatedPicks.filter((p) => p.source === "local").length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                {curatedPicks
+                  .filter((p) => p.source === "local")
+                  .map((pick) => {
+                    const item = pick.item as FashionItem;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          const cardEl = document.querySelector(`[data-pick-id="${item.id}"]`);
+                          const sourceRect = cardEl?.getBoundingClientRect();
+                          const target = document.querySelector("[data-cart-button]")?.getBoundingClientRect();
+                          if (sourceRect && target) {
+                            setFlyingItem({
+                              imageUrl: item.modelSrc || item.cover,
+                              sourceRect,
+                              targetRect: target,
+                            });
+                          }
+                          addItem(item);
+                        }}
+                        data-pick-id={item.id}
+                        className="group rounded-xl overflow-hidden border border-border bg-card hover:border-primary/20 transition-all text-left"
+                      >
+                        {(item.modelSrc || item.productSrc) && (
+                          <div className="aspect-square bg-muted">
+                            <img
+                              src={item.modelSrc || item.productSrc}
+                              alt={item.name}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            />
+                          </div>
+                        )}
+                        <div className="p-2">
+                          <p className="text-[11px] text-foreground font-medium truncate">{item.name}</p>
+                          <p className="text-[11px] font-bold text-primary">${item.price}</p>
+                          <p className="text-[9px] text-muted-foreground mt-0.5 line-clamp-1">{pick.reason}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+              </div>
+            )}
+
+            {/* Loading skeleton */}
+            {isCurating && curatedPicks.length === 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="rounded-xl border border-border bg-card overflow-hidden animate-pulse">
+                    <div className="aspect-square bg-muted" />
+                    <div className="p-2 space-y-2">
+                      <div className="h-3 bg-muted rounded w-3/4" />
+                      <div className="h-3 bg-muted rounded w-1/2" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

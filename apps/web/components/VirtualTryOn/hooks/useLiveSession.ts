@@ -656,42 +656,54 @@ export function useLiveSession() {
       createSuggestion({
         actionType: "purchase" as ActionType,
         amount: `$${internalMatch.price}`,
-        description: `Matching internal catalog: "${internalMatch.name}" — ${internalMatch.description}`,
+        description: `Matching: "${internalMatch.name}" — ${internalMatch.description}`,
       }).catch(console.error);
-    } else {
-      // No internal match? Trigger the Web Agent!
-      console.log(
-        `[WebAgent] No internal match for ${itemType}. Triggering web discovery...`,
-      );
+    }
 
+    // Always trigger external search for real-world alternatives
+    const extKey = `ext_${itemType}`;
+    if (canCreateSuggestion(extKey)) {
+      const personaModifiers: Record<string, string> = {
+        luxury: "designer",
+        streetwear: "streetwear",
+        sustainable: "sustainable",
+        miranda: "professional",
+        edina: "bold statement",
+        shaft: "classic",
+      };
+      const modifier = selectedPersona
+        ? personaModifiers[selectedPersona] || ""
+        : "";
+      const query = `${modifier} ${keyword}`.trim();
       const contextSnippet =
         reasoning[0]?.slice(0, 80) || "analyzing your look";
 
-      // 1. Create a "Searching" suggestion first
+      console.log(
+        `[WebAgent] Triggering external search for "${query}"...`,
+      );
+
       createSuggestion({
         actionType: "external_search" as ActionType,
-        amount: "Searching Web...",
-        description: `I observed: "${contextSnippet}". Browsing live stores for ${itemType}...`,
+        amount: "Searching...",
+        description: `Finding ${modifier || ""} ${itemType} options from live stores...`,
         isSearching: true,
       })
         .then(async (data) => {
           const suggestionId = data.suggestion.id;
-
-          // 2. Dispatch to the bridge
-          const result = await fetch("/api/agent/purchase", {
+          await fetch("/api/agent/purchase", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               userId: sessionUserIdRef.current,
               actionType: "external_search",
-              query: latest,
-              suggestionId, // To update the status later
+              query,
+              suggestionId,
             }),
           });
         })
         .catch(console.error);
     }
-  }, [reasoning, isConnected, createSuggestion, canCreateSuggestion]);
+  }, [reasoning, isConnected, createSuggestion, canCreateSuggestion, selectedPersona]);
 
   // ── Personalized recommendations fetch ──
   useEffect(() => {

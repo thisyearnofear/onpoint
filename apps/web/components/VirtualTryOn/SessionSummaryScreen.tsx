@@ -14,7 +14,6 @@ import type { ApprovalRequest } from "../Agent/AgentApprovalModal";
 import { SuggestionHistoryPanel } from "../Agent/SuggestionHistoryPanel";
 import type { AgentSuggestion } from "../Agent/AgentSuggestionToast";
 import { StyleReportCard } from "./StyleReportCard";
-import { useCartStore } from "../../lib/stores/cart-store";
 import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import type { StylistPersona } from "@repo/ai-client";
 import { generateShareText } from "../../lib/utils/score-utils";
@@ -72,7 +71,6 @@ export function SessionSummaryScreen({
   showTipModal,
   onSetShowTipModal,
 }: SessionSummaryScreenProps) {
-  const addItemToCart = useCartStore((s) => s.addItem);
   const PersonaIcon = personaStyling.icon;
 
   return (
@@ -312,6 +310,14 @@ export function SessionSummaryScreen({
                   JSON.stringify({
                     bodyType: "analyzed",
                     styleRecommendations: sessionSummary.takeaways,
+                    curationContext: {
+                      score: sessionSummary.score,
+                      takeaways: sessionSummary.takeaways,
+                      topics: sessionSummary.topics,
+                      recommendations: sessionSummary.recommendations || [],
+                      persona: selectedPersona,
+                      sessionGoal: sessionGoal,
+                    },
                   }),
                 );
               }
@@ -323,38 +329,43 @@ export function SessionSummaryScreen({
             Shop Recommended Items
           </Button>
 
-          {/* Inline product picks from session */}
-          {(() => {
-            const keywords = sessionSummary.takeaways.join(" ").toLowerCase();
-            const picks = CANVAS_ITEMS.filter((item) => {
-              const text = `${item.name} ${item.description} ${item.category}`.toLowerCase();
-              return keywords.split(/\s+/).some((w: string) => w.length > 3 && text.includes(w));
-            }).slice(0, 3);
-            if (picks.length === 0) return null;
-            return (
+          {/* Session recommendations from AI analysis */}
+          {sessionSummary.recommendations && sessionSummary.recommendations.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Recommended For You
+              </h3>
               <div className="grid grid-cols-3 gap-2">
-                {picks.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      addItemToCart(item);
-                    }}
-                    className="group rounded-xl overflow-hidden border border-border bg-muted/30 hover:border-amber-500/30 transition-all text-left"
-                  >
-                    {item.modelSrc && (
-                      <div className="aspect-square bg-muted">
-                        <img src={item.modelSrc} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                {sessionSummary.recommendations.slice(0, 3).map((rec, i) => {
+                  const catalogMatch = CANVAS_ITEMS.find(
+                    (item) =>
+                      item.name.toLowerCase() === rec.name.toLowerCase() ||
+                      item.category.toLowerCase() === rec.category.toLowerCase(),
+                  );
+                  return (
+                    <div
+                      key={i}
+                      className="rounded-xl overflow-hidden border border-border bg-muted/30 text-left"
+                    >
+                      {catalogMatch?.modelSrc && (
+                        <div className="aspect-square bg-muted">
+                          <img
+                            src={catalogMatch.modelSrc}
+                            alt={rec.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <div className="p-1.5">
+                        <p className="text-[10px] text-foreground font-medium truncate">{rec.name}</p>
+                        <p className="text-[10px] font-bold text-amber-400">${rec.price}</p>
                       </div>
-                    )}
-                    <div className="p-1.5">
-                      <p className="text-[10px] text-foreground font-medium truncate">{item.name}</p>
-                      <p className="text-[10px] font-bold text-amber-400">${item.price}</p>
                     </div>
-                  </button>
-                ))}
+                  );
+                })}
               </div>
-            );
-          })()}
+            </div>
+          )}
 
           {selectedCapture && (
             <MintLookButton

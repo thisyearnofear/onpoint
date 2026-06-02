@@ -99,6 +99,18 @@ export interface SearchOptions {
   /** Price range filter */
   minPrice?: number;
   maxPrice?: number;
+  /** Persona key for query augmentation */
+  persona?: string;
+  /** Session goal for query context */
+  sessionGoal?: string;
+  /** User's tracked style preferences */
+  stylePrefs?: {
+    categories: string[];
+    priceRange: { min: number; max: number };
+    colors?: string[];
+  };
+  /** When true, always run external search alongside local (hybrid mode) */
+  preferExternal?: boolean;
 }
 
 export interface SearchResult {
@@ -128,11 +140,11 @@ class ProductCatalogService {
     query: string,
     options: SearchOptions = {},
   ): Promise<SearchResult> {
-    const { limit = 10, forceRefresh = false } = options;
+    const { limit = 10, forceRefresh = false, preferExternal = false } = options;
 
     // Check cache first
     if (!forceRefresh) {
-      const cached = await this.getCached(query, limit);
+      const cached = await this.getCached(query, limit, options);
       if (cached) {
         return {
           items: cached,
@@ -143,12 +155,38 @@ class ProductCatalogService {
       }
     }
 
+    const augmentedQuery = this.augmentQuery(query, options);
+
+    if (preferExternal) {
+      // Hybrid mode: run local and external in parallel
+      const [localResults, externalResult] = await Promise.all([
+        Promise.resolve(searchLocalCatalog(query, limit)),
+        this.searchExternalWithSignals(augmentedQuery, limit, options),
+      ]);
+
+      const merged = [
+        ...externalResult.products,
+        ...localResults.filter(
+          (local) => !externalResult.products.some(
+            (ext) => ext.name.toLowerCase() === local.name.toLowerCase(),
+          ),
+        ),
+      ].slice(0, limit);
+
+      await this.cacheResult(query, limit, merged, options);
+      return {
+        items: merged,
+        source: merged.length > 0 ? "hybrid" : "local",
+        cached: false,
+        signals: externalResult.signals,
+      };
+    }
+
     // Tier 1: Search local catalog (fast, free)
     const localResults = searchLocalCatalog(query, limit);
 
     if (localResults.length > 0) {
-      // Cache and return local results
-      await this.cacheResult(query, limit, localResults);
+      await this.cacheResult(query, limit, localResults, options);
       return {
         items: localResults,
         source: "local",
@@ -158,11 +196,10 @@ class ProductCatalogService {
     }
 
     // Tier 2: Search external (Purch API via bridge)
-    const externalResult = await this.searchExternalWithSignals(query, limit);
+    const externalResult = await this.searchExternalWithSignals(augmentedQuery, limit, options);
 
     if (externalResult.products.length > 0) {
-      // For now, return external as-is (they're already typed)
-      await this.cacheResult(query, limit, externalResult.products);
+      await this.cacheResult(query, limit, externalResult.products, options);
       return {
         items: externalResult.products,
         source: "external",
@@ -171,7 +208,6 @@ class ProductCatalogService {
       };
     }
 
-    // No results found
     return {
       items: [],
       source: "local",
@@ -214,6 +250,7 @@ class ProductCatalogService {
   async searchExternalWithSignals(
     query: string,
     limit: number,
+    options: SearchOptions = {},
   ): Promise<ProductSearchWithSignals<ExternalProduct>> {
     if (!this.bridgeUrl && !this.agentApiUrl) {
       console.log(
@@ -234,14 +271,27 @@ class ProductCatalogService {
         headers["Authorization"] = `Bearer ${this.bridgeApiKey}`;
       }
 
+      const body: Record<string, unknown> = {
+        userId: "catalog-service",
+        query,
+        max_results: limit,
+      };
+
+      if (options.stylePrefs) {
+        body.style_prefs = {
+          colors: options.stylePrefs.colors || [],
+          categories: options.stylePrefs.categories || [],
+          price_range: {
+            min: options.stylePrefs.priceRange?.min || 0,
+            max: options.stylePrefs.priceRange?.max || 500,
+          },
+        };
+      }
+
       const response = await fetch(`${this.bridgeUrl}/v1/agent/search`, {
         method: "POST",
         headers,
-        body: JSON.stringify({
-          userId: "catalog-service",
-          query,
-          max_results: limit,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
@@ -320,13 +370,34 @@ class ProductCatalogService {
   }
 
   /**
+   * Augment search query with persona-relevant terms for better external results.
+   */
+  private augmentQuery(query: string, options: SearchOptions): string {
+    const personaModifiers: Record<string, string> = {
+      luxury: "designer luxury",
+      streetwear: "streetwear urban",
+      sustainable: "sustainable ethical",
+      miranda: "professional polished",
+      edina: "bold statement",
+      shaft: "classic versatile",
+    };
+
+    const modifier = options.persona
+      ? personaModifiers[options.persona] || ""
+      : "";
+
+    return modifier ? `${modifier} ${query}`.trim() : query;
+  }
+
+  /**
    * Get cached results from Redis
    */
   private async getCached(
     query: string,
     limit: number,
+    options: SearchOptions = {},
   ): Promise<Array<FashionItem | ExternalProduct> | null> {
-    const cacheKey = this.getCacheKey(query, limit);
+    const cacheKey = this.getCacheKey(query, limit, options);
     const cached =
       await redisGet<CacheEntry<Array<FashionItem | ExternalProduct>>>(
         cacheKey,
@@ -350,8 +421,9 @@ class ProductCatalogService {
     query: string,
     limit: number,
     results: Array<FashionItem | ExternalProduct>,
+    options: SearchOptions = {},
   ): Promise<void> {
-    const cacheKey = this.getCacheKey(query, limit);
+    const cacheKey = this.getCacheKey(query, limit, options);
     const entry: CacheEntry<Array<FashionItem | ExternalProduct>> = {
       data: results,
       cachedAt: Date.now(),
@@ -363,10 +435,13 @@ class ProductCatalogService {
   }
 
   /**
-   * Generate cache key from query and limit
+   * Generate cache key from query, limit, and context
    */
-  private getCacheKey(query: string, limit: number): string {
-    return `catalog:search:${query.toLowerCase()}:${limit}`;
+  private getCacheKey(query: string, limit: number, options: SearchOptions = {}): string {
+    const ctx = [options.persona, options.sessionGoal, options.preferExternal ? "ext" : ""]
+      .filter(Boolean)
+      .join(":");
+    return `catalog:search:${query.toLowerCase()}:${limit}${ctx ? `:${ctx}` : ""}`;
   }
 }
 

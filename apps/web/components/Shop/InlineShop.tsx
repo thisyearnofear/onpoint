@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { ShopGrid } from "@repo/shared-ui";
 import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import type { FashionItem } from "@onpoint/shared-types";
-import { ShoppingBag, Sparkles, Camera, Globe } from "lucide-react";
+import { Sparkles, Camera, Globe } from "lucide-react";
 import { PanelSkeleton } from "../ui/PanelSkeleton";
 import { Button } from "@repo/ui/button";
 import { useCartStore } from "../../lib/stores/cart-store";
@@ -13,8 +13,7 @@ import { CheckoutModal } from "./CheckoutModal";
 import { CartDrawer, CartButton } from "./CartDrawer";
 import { FlyToCartOverlay, type FlyItem } from "./FlyToCartOverlay";
 import { fetchAgentApi } from "../../lib/utils/agent-api";
-import { Product3DCard } from "./Product3DCard";
-import { RichProductCard, RichProductGroup } from "./RichProductCard";
+import { RichProductGroup } from "./RichProductCard";
 import type { ProductResult } from "@onpoint/shared-types";
 import type { MarketSignal } from "@onpoint/shared-types";
 import {
@@ -28,36 +27,6 @@ import {
 
 interface InlineShopProps {
   onTryOn?: (item?: FashionItem) => void;
-}
-
-/** Get AI-recommended items based on session history stored in sessionStorage */
-function getRecommendedItems(): { item: FashionItem; reason: string }[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const stored = sessionStorage.getItem("stylistAnalysis");
-    if (!stored) return [];
-    const analysis = JSON.parse(stored);
-    const recs: string[] = analysis.styleRecommendations || analysis.styleAdjustments || [];
-    const keywords = recs.join(" ").toLowerCase();
-
-    return CANVAS_ITEMS.filter((item) => {
-      const text = `${item.name} ${item.description} ${item.category}`.toLowerCase();
-      return keywords.split(/\s+/).some((w: string) => w.length > 3 && text.includes(w));
-    }).slice(0, 4).map((item) => {
-      // Find the recommendation that matched this item
-      const matchedRec = recs.find((r) => {
-        const rLower = r.toLowerCase();
-        return rLower.includes(item.category.toLowerCase()) ||
-          rLower.includes(item.name.toLowerCase().split(" ")[0] || "");
-      });
-      return {
-        item,
-        reason: matchedRec || `Complements your ${item.category} style`,
-      };
-    });
-  } catch {
-    return [];
-  }
 }
 
 interface ExternalFind {
@@ -74,7 +43,6 @@ interface ExternalFind {
 
 export function InlineShop({ onTryOn }: InlineShopProps) {
   const [showCheckout, setShowCheckout] = useState(false);
-  const [recommended, setRecommended] = useState<{ item: FashionItem; reason: string }[]>([]);
   const [externalFinds, setExternalFinds] = useState<ExternalFind[]>([]);
   const [flyingItem, setFlyingItem] = useState<FlyItem | null>(null);
   const flyCallbackRef = useRef<(() => void) | null>(null);
@@ -89,8 +57,6 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
   }, []);
 
   useEffect(() => {
-    setRecommended(getRecommendedItems());
-
     // Fetch accepted external search results from agent suggestions
     fetchAgentApi("/api/agent/suggestion?agentId=onpoint-stylist")
       .then((res) => (res.ok ? res.json() : { suggestions: [] }))
@@ -163,8 +129,8 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
         <CartButton />
       </div>
 
-      {/* AI Picks — unified section: web results first, then catalog matches */}
-      {(externalFinds.length > 0 || recommended.length > 0) && (
+      {/* AI Picks — web-discovered products from external search */}
+      {externalFinds.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-primary" />
@@ -174,87 +140,48 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
           </div>
 
           {/* Web-discovered products (real prices, multiple retailers) */}
-          {externalFinds.length > 0 && (
-            <div className="space-y-4">
-              {externalFinds.map((find, i) => (
-                find.products && find.products.length > 0 ? (
-                  <RichProductGroup
-                    key={i}
-                    title={find.description}
-                    products={find.products}
-                  />
-                ) : (
-                  <a
-                    key={i}
-                    href={find.externalUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group flex items-start gap-3 p-3 rounded-xl border border-primary/10 bg-card hover:border-primary/20 transition-all"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <Globe className="w-5 h-5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium line-clamp-2">{find.description}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs font-bold text-primary">{find.amount}</span>
-                        {find.source && (
-                          <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                            {find.source}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <span className="text-[10px] text-muted-foreground group-hover:text-primary transition-colors shrink-0">
-                      Visit →
-                    </span>
-                  </a>
-                )
-              ))}
-            </div>
-          )}
-
-          {/* Catalog matches from session analysis */}
-          {recommended.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {recommended.map(({ item, reason }) => (
-                <Product3DCard
-                  key={item.id}
-                  imageUrl={item.modelSrc || item.cover}
-                  name={item.name}
-                  price={item.price}
-                  badge="AI Pick"
-                  reason={reason}
-                  onClick={(e) => {
-                    const sourceRect = e.currentTarget.getBoundingClientRect();
-                    const target = document.querySelector("[data-cart-button]")?.getBoundingClientRect();
-                    if (target) {
-                      setFlyingItem({
-                        imageUrl: item.modelSrc || item.cover,
-                        sourceRect,
-                        targetRect: target,
-                      });
-                      flyCallbackRef.current = () => {
-                        setPendingTryOnSelection(fashionItemToTryOnSelection(item));
-                        addItem(item);
-                        onTryOn?.(item);
-                      };
-                    } else {
-                      // Fallback: add directly if cart button not found
-                      setPendingTryOnSelection(fashionItemToTryOnSelection(item));
-                      addItem(item);
-                      onTryOn?.(item);
-                    }
-                  }}
+          <div className="space-y-4">
+            {externalFinds.map((find, i) => (
+              find.products && find.products.length > 0 ? (
+                <RichProductGroup
+                  key={i}
+                  title={find.description}
+                  products={find.products}
                 />
-              ))}
-            </div>
-          )}
+              ) : (
+                <a
+                  key={i}
+                  href={find.externalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-start gap-3 p-3 rounded-xl border border-primary/10 bg-card hover:border-primary/20 transition-all"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <Globe className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium line-clamp-2">{find.description}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs font-bold text-primary">{find.amount}</span>
+                      {find.source && (
+                        <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                          {find.source}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground group-hover:text-primary transition-colors shrink-0">
+                    Visit →
+                  </span>
+                </a>
+              )
+            ))}
+          </div>
         </div>
       )}
 
       {/* No picks yet — nudge to try on */}
-      {externalFinds.length === 0 && recommended.length === 0 && (
+      {externalFinds.length === 0 && (
         <div className="rounded-2xl border border-dashed border-border p-6 text-center space-y-3">
           <Camera className="w-8 h-8 text-muted-foreground mx-auto" />
           <p className="text-sm text-muted-foreground">
