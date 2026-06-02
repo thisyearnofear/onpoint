@@ -193,6 +193,14 @@ function scoreLocalPicks(ctx, limit = 5) {
 
 // ── Search orchestration ──
 
+function normalizeProduct(item) {
+  return {
+    ...item,
+    imageUrl: item.imageUrl || item.image_url || '',
+    currency: item.currency || 'USD',
+  };
+}
+
 async function searchQuery(query, limit) {
   let result = await searchViaBridge(query, limit);
   if (result) return { result, source: 'bridge' };
@@ -243,7 +251,8 @@ router.post('/', async (req, res) => {
       if (source === 'venice-ai') anyVenice = true;
       if (!result || !result.items) continue;
 
-      for (const item of result.items) {
+      for (const rawItem of result.items) {
+        const item = normalizeProduct(rawItem);
         const name = (item.name || '').toLowerCase();
         if (seenNames.has(name)) continue;
         seenNames.add(name);

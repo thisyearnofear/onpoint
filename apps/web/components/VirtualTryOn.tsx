@@ -444,11 +444,33 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
         ? analysis.fitRecommendations.slice(0, 4)
         : (analysis.personalization || []).slice(0, 4);
 
+      // Create a small thumbnail for the shop page
+      let thumbnail = '';
+      try {
+        const img = new Image();
+        img.src = selectedPhotoData || previewUrl || '';
+        await new Promise<void>((resolve) => {
+          if (img.complete) { resolve(); return; }
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+        });
+        if (img.naturalWidth > 0) {
+          const canvas = document.createElement('canvas');
+          const size = 100;
+          const ratio = img.naturalWidth / img.naturalHeight;
+          canvas.width = ratio >= 1 ? size : Math.round(size * ratio);
+          canvas.height = ratio >= 1 ? Math.round(size / ratio) : size;
+          canvas.getContext('2d')?.drawImage(img, 0, 0, canvas.width, canvas.height);
+          thumbnail = canvas.toDataURL('image/jpeg', 0.6);
+        }
+      } catch { /* non-fatal */ }
+
       sessionStorage.setItem('stylistAnalysis', JSON.stringify({
         bodyType: analysis.bodyType,
         measurements: analysis.measurements,
         styleRecommendations: takeaways,
         personalization: analysis.personalization,
+        userPhoto: thumbnail,
         curationContext: {
           score: analysis.score || 5,
           takeaways,

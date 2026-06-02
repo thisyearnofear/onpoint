@@ -272,7 +272,12 @@ router.post('/', async (req, res) => {
     // Search via bridge
     const bridgeResult = await searchViaBridge(query.trim(), safeLimit);
 
-    const products = bridgeResult?.items || [];
+    const rawProducts = bridgeResult?.items || [];
+    const products = rawProducts.map((item) => ({
+      ...item,
+      imageUrl: item.imageUrl || item.image_url || '',
+      currency: item.currency || 'USD',
+    }));
     const signals = bridgeResult?.signals || [];
 
     // Process retail signal partners

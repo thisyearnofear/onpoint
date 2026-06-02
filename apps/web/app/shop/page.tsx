@@ -114,9 +114,13 @@ export default function ShopPage() {
         {stylistAnalysis && (
           <div className="mb-8 bg-gradient-to-r from-primary/10 to-accent/10 border-2 border-primary/30 rounded-2xl p-6 shadow-lg">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                <ShoppingBag className="w-6 h-6 text-primary" />
-              </div>
+              {stylistAnalysis.userPhoto ? (
+                <img src={stylistAnalysis.userPhoto} alt="Your look" className="w-12 h-12 rounded-full object-cover shrink-0 ring-2 ring-primary/20" />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                  <ShoppingBag className="w-6 h-6 text-primary" />
+                </div>
+              )}
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
                   <h3 className="text-lg font-bold text-foreground">
@@ -227,15 +231,16 @@ export default function ShopPage() {
               </div>
             )}
 
-            {/* Loading skeleton */}
+            {/* Loading skeleton — matches external card layout */}
             {isCurating && curatedPicks.length === 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="rounded-xl border border-border bg-card overflow-hidden animate-pulse">
-                    <div className="aspect-square bg-muted" />
-                    <div className="p-2 space-y-2">
-                      <div className="h-3 bg-muted rounded w-3/4" />
-                      <div className="h-3 bg-muted rounded w-1/2" />
+              <div className="space-y-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-start gap-4 rounded-xl border border-border bg-card p-4 animate-pulse">
+                    <div className="w-20 h-20 rounded-lg bg-muted shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-muted rounded w-3/4" />
+                      <div className="h-3 bg-muted rounded w-full" />
+                      <div className="h-3 bg-muted rounded w-1/3" />
                     </div>
                   </div>
                 ))}
