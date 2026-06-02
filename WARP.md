@@ -243,9 +243,10 @@ Follow the pattern in `INTEGRATION.md`:
 ## Documentation References
 
 For detailed information, see:
+- `docs/GETTING_STARTED.md` - Setup, environment, deployment
 - `docs/ARCHITECTURE.md` - Complete technical architecture
 - `docs/FEATURES.md` - User-facing features and functionality
-- `docs/AI_INTEGRATION.md` - AI provider integration details
-- `docs/ROADMAP.md` - Development timeline and milestones
-- `INTEGRATION.md` - UI enhancement integration guide
-- `README.md` - Quick start and project overview
+- `docs/ROADMAP.md` - Current focus and upcoming work
+- `docs/guides/auth.md` - Auth0 and wallet setup
+- `docs/guides/minipay.md` - MiniPay integration
+- `docs/adr/` - Architecture decision records

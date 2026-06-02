@@ -120,7 +120,9 @@ See [Getting Started](docs/GETTING_STARTED.md) for full setup.
 | [Getting Started](docs/GETTING_STARTED.md) | Setup, environment, deployment |
 | [Architecture](docs/ARCHITECTURE.md) | System design, data flow |
 | [Features](docs/FEATURES.md) | Detailed feature specs |
-| [Roadmap](docs/ROADMAP.md) | Progress and plans |
+| [Roadmap](docs/ROADMAP.md) | Current focus and upcoming work |
+| [Guides](docs/guides/) | Integration guides (Auth, MiniPay) |
+| [ADRs](docs/adr/) | Architecture decision records |
 
 ## Hackathons
 
