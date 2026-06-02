@@ -7,7 +7,6 @@ import { NextResponse } from "next/server";
 const ALLOWED_ORIGINS = [
   // Production domains
   "https://beonpoint.netlify.app",
-  "https://onpoint-web-647723858538.us-central1.run.app",
   "https://onpoint.xyz",
   "https://www.onpoint.xyz",
   "https://app.onpoint.xyz",

@@ -122,7 +122,7 @@ The core "sees → judges → shops" flow is live at https://beonpoint.netlify.a
 OnPoint now executes agent suggestions **autonomously onchain** with full verifiable receipts.
 
 #### Completed
-- [x] **Self Protocol Integration** — Agent registered with Self Agent ID (`onpoint-agent-35962`)
+- [x] **Self Protocol Integration** — Agent registered with Self Agent ID (`onpoint-agent-9177`)
   - `lib/services/self-protocol.ts` — registration + verification
   - `GET /api/agent/identity` — unified ERC-8004 + Self identity
 - [x] **Autonomous Execution Engine** — Suggestions execute onchain without manual steps

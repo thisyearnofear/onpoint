@@ -27,7 +27,7 @@ Step-by-step guide to register OnPoint for Celo Proof of Ship Season 2.
 3. Fill in project details:
    - **Name**: OnPoint
    - **Description**: AI-Powered Personal Styling Agent with autonomous decision-making, spending controls, and transparent reasoning trails
-   - **Website**: https://onpoint-web-647723858538.us-central1.run.app
+   - **Website**: https://beonpoint.netlify.app
    - **Category**: AI Agents / B2C Apps
    - **GitHub**: https://github.com/thisyearnofear/onpoint
 
@@ -103,8 +103,8 @@ For the AI Agent track, ensure your project demonstrates:
 - **Public dashboard**: `GET /api/agent/dashboard` exposes all agent activity for judges
 
 ### 4. Self Protocol Identity
-- **ERC-8004 Agent ID**: `35962` registered on Base at `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`
-- **Self Agent ID**: `onpoint-agent-35962` (integrated via `lib/services/self-protocol.ts`)
+- **ERC-8004 Agent ID**: `9177` registered on Celo at `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`
+- **Self Agent ID**: `onpoint-agent-9177` (integrated via `lib/services/self-protocol.ts`)
 - **Unified identity endpoint**: `GET /api/agent/identity` returns both registrations
 
 ### 5. Use Cases for MiniPay

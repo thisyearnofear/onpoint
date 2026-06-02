@@ -259,8 +259,8 @@ These integrations live in `apps/web/lib/services/retail-signal-partners.ts` and
 
 ## Self Protocol Identity
 
-- **Self Agent ID**: `onpoint-agent-35962` registered via `lib/services/self-protocol.ts`
-- **ERC-8004 Agent ID**: `35962` on Base registry
+- **Self Agent ID**: `onpoint-agent-9177` registered via `lib/services/self-protocol.ts`
+- **ERC-8004 Agent ID**: `9177` on Celo registry
 - **Unified identity endpoint**: `GET /api/agent/identity` returns both registrations + compliance flags
 - Mock registration fallback for demo environments (no Self API key required)
 
@@ -275,7 +275,7 @@ These integrations live in `apps/web/lib/services/retail-signal-partners.ts` and
 
 All 16 ported agent routes run directly on Hetzner Express, backed by `@repo/agent-core`:
 - **Auth**: `SERVICE_API_KEY` on stateful endpoints; public GET for dashboard/identity/catalog
-- **User context**: Forwarded from Vercel via `x-forwarded-user` header, validated by service key
+- **User context**: Forwarded from Netlify via `x-forwarded-user` header, validated by service key
 - **Deploy**: `scripts/deploy-api.sh` builds workspace deps, bundles `@repo/db` + `@repo/storage`, and deploys via isolated `npm install --omit=dev`
 
 ## Feature Matrix

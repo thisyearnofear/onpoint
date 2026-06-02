@@ -117,7 +117,7 @@ Visit: https://manage.auth0.com/dashboard/us/dev-epemgbox1ty8vjf8/
 **Fix**:
 1. In Google Cloud Console, open the project used by the Auth0 Google social connection.
 2. Go to APIs & Services → OAuth consent screen.
-3. For local/testing use, keep Publishing status as Testing and add the Gmail account you are using, for example `papaandthejimjams@gmail.com`, under Test users.
+3. For local/testing use, keep Publishing status as Testing and add the Gmail account you are using, for example `your-email@gmail.com`, under Test users.
 4. For production use, complete Google OAuth verification for every requested scope before making the app public.
 5. In Auth0 → Authentication → Social → Google OAuth2, make sure the connection uses your verified Google OAuth client ID/secret, not a placeholder or unrelated test project.
 

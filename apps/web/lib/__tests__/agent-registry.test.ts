@@ -20,7 +20,7 @@ describe("Agent Registry (ERC-8004)", () => {
         });
 
         expect(receipt.id).toMatch(/^receipt_/);
-        expect(receipt.agentId).toBe(35962);
+        expect(receipt.agentId).toBe(9177);
         expect(receipt.action).toBe("analyze_outfit");
         expect(receipt.sessionId).toBe("test-session-1");
         expect(receipt.timestamp).toBeDefined();
@@ -101,7 +101,7 @@ describe("Agent Registry (ERC-8004)", () => {
   describe("getAgentIdentity", () => {
     it("returns OnPoint agent identity", async () => {
       const identity = await getAgentIdentity();
-      expect(identity.agentId).toBe(35962);
+      expect(identity.agentId).toBe(9177);
       expect(identity.name).toBe("OnPoint AI Stylist");
       expect(identity.walletAddress).toMatch(/^0x[a-fA-F0-9]{40}$/);
     });

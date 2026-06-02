@@ -5,7 +5,7 @@
 **Project Name:** OnPoint - AI-Powered Personal Styling Agent
 **Website:** https://beonpoint.netlify.app
 **GitHub:** https://github.com/thisyearnofear/onpoint
-**Live Demo:** https://onpoint-web-647723858538.us-central1.run.app
+**Live Demo:** https://beonpoint.netlify.app
 
 ## Agent Identity
 

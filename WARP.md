@@ -235,7 +235,7 @@ Follow the pattern in `INTEGRATION.md`:
 4. Test on Celo Alfajores testnet before mainnet deployment
 
 ### Deployment
-- **Web App**: Vercel with automatic GitHub deployments
+- **Web App**: Netlify with automatic GitHub deployments
 - **CI/CD**: GitHub Actions (`.github/workflows/ci.yml`)
 - **Node Version**: Requires Node.js >= 20.19.0 (specified in root `package.json`)
 - **Package Manager**: pnpm 10.10.0
