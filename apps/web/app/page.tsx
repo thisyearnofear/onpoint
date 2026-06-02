@@ -69,7 +69,7 @@ function PersonaCarousel() {
   const personaNames: Record<string, string> = {
     miranda: "Miranda Priestly",
     edina: "Edina Monsoon",
-    shaft: "Tan France",
+    shaft: "John Shaft",
     luxury: "Anna Wintour",
     streetwear: "Virgil Abloh",
     sustainable: "Stella McCartney",

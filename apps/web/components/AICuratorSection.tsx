@@ -57,13 +57,13 @@ const AI_VOICES: AICuratorVoice[] = [
   },
   {
     personaKey: "shaft",
-    name: "Tan France",
-    description: "You're gorgeous, let's make you shine.",
+    name: "John Shaft",
+    description: "Cool, confident, no-nonsense.",
     color: "text-orange-500",
     bg: "bg-orange-500/10",
     ring: "hover:ring-orange-500/30",
     icon: MessageCircle,
-    take: "I love this pick. The proportions are really flattering for most body types. Try it on so you can see exactly how it sits — I think you'll be pleasantly surprised.",
+    take: "That's a solid pick. Clean lines, good construction — it'll hold up. Try it on and let's see if it moves right.",
   },
 ];
 
@@ -105,15 +105,15 @@ function getAIVoiceTake(
 
   if (voice.personaKey === "shaft") {
     if (has("football") || has("sportswear"))
-      return "Great choice — sportswear is all about comfort meeting style. Try it on and I'll tell you exactly how to style it for different occasions.";
+      return "Sportswear done right is about confidence, not comfort. That piece has the structure to pull it off. Try it on — see if it earns its spot.";
     if (has("ankara") || has("african-print"))
-      return "Ankara is such a beautiful fabric to work with. Try this on — I think the colors will really complement your skin tone.";
+      return "Bold print. That takes nerve to wear well — and nerve is exactly what this piece needs. Try it on and own it.";
     if (has("vintage") || has("thrift"))
-      return "I love a good vintage find. The key is making it feel intentional, not costume. Try it on and we'll see how to modernize it.";
+      return "Vintage only works if it doesn't look like a costume. This one has the bones to feel modern. Try it on — let's see if it holds up.";
     if (has("sneakers") || has("streetwear"))
-      return "Fresh sneakers can transform an entire outfit. Try these on — I think they'll become your new go-to pair.";
+      return "Clean sneakers change everything. These have the right profile — not too chunky, not too slim. Try them on and see how they move.";
     if (has("hair") || has("barber"))
-      return "Your hair is already a statement — let's find an outfit that amplifies it. Try this on and I'll show you how to pull the whole look together.";
+      return "Good hair is half the outfit. Now the other half has to match that energy. Try this on — let's see the full picture.";
   }
 
   return voice.take;

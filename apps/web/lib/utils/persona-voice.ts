@@ -57,11 +57,11 @@ const VOICE_PROFILES: Record<StylistPersona, VoiceProfile> = {
     fallbackVoice: "Samantha",
   },
   miranda: {
-    pitch: 0.7,
-    rate: 0.75,
+    pitch: 0.9,
+    rate: 0.85,
     volume: 0.95,
-    preferredVoice: "Daniel",
-    fallbackVoice: "Alex",
+    preferredVoice: "Samantha",
+    fallbackVoice: "Karen",
   },
   shaft: {
     pitch: 0.6,

@@ -41,9 +41,10 @@ export function useGeminiLive() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          provider: 'gemini',
           goal: sessionGoal || 'daily',
           persona,
-          apiKey: userApiKey?.trim() || undefined
+          byok: userApiKey?.trim() || undefined
         })
       });
       const { config, error: provError } = await response.json().catch(() => ({}));

@@ -80,9 +80,9 @@ const PERSONA_CONFIGS: Record<StylistPersona, PersonaConfig> = {
   },
   shaft: {
     key: "shaft",
-    label: "Tan France",
-    characterName: "Tan France",
-    description: "You're gorgeous, let's make you shine. Supportive, confidence-building.",
+    label: "John Shaft",
+    characterName: "John Shaft",
+    description: "Cool, confident, no-nonsense. Direct style advice with swagger.",
     mode: 'hype',
     tier: 'free',
     icon: MessageCircle,
