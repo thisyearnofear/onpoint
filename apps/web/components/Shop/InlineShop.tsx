@@ -16,7 +16,7 @@ import { fetchAgentApi } from "../../lib/utils/agent-api";
 import { RichProductGroup } from "./RichProductCard";
 import type { ProductResult } from "@onpoint/shared-types";
 import type { MarketSignal } from "@onpoint/shared-types";
-import type { CuratedPick } from "../../lib/utils/curated-picks";
+import { useCuratedPicksStore } from "../../lib/stores/curated-picks-store";
 import {
   fashionItemToTryOnSelection,
   setPendingTryOnSelection,
@@ -50,8 +50,9 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
   const addItem = useCartStore((s) => s.addItem);
   const openCart = useCartStore((s) => s.openCart);
   const [isLoading, setIsLoading] = useState(true);
-  const [curatedPicks, setCuratedPicks] = useState<CuratedPick[]>([]);
-  const [isCurating, setIsCurating] = useState(false);
+  const curatedPicks = useCuratedPicksStore((s) => s.picks);
+  const isCurating = useCuratedPicksStore((s) => s.loading);
+  const fetchPicks = useCuratedPicksStore((s) => s.fetchPicks);
 
   const handleFlyComplete = useCallback(() => {
     flyCallbackRef.current?.();
@@ -93,25 +94,14 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
           const analysis = JSON.parse(stored);
           const ctx = analysis.curationContext;
           if (ctx && ctx.takeaways?.length > 0) {
-            setIsCurating(true);
-            fetch("/api/agent/curated-shop", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(ctx),
-            })
-              .then((res) => (res.ok ? res.json() : null))
-              .then((data) => {
-                if (data?.picks) setCuratedPicks(data.picks);
-              })
-              .catch(() => {})
-              .finally(() => setIsCurating(false));
+            fetchPicks(ctx);
           }
         } catch {
           // sessionStorage parse failure is non-fatal
         }
       }
     }
-  }, []);
+  }, [fetchPicks]);
 
   useEffect(() => {
     const find = externalFinds.find(
@@ -175,6 +165,22 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
             )}
           </div>
 
+          {/* Provenance context bar */}
+          {curatedPicks.length > 0 && curatedPicks[0]?.provenance && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {curatedPicks[0].provenance.personaLabel && (
+                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-primary/10 text-primary">
+                  {curatedPicks[0].provenance.personaLabel}
+                </span>
+              )}
+              {curatedPicks[0].provenance.goalLabel && (
+                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-accent/10 text-accent">
+                  {curatedPicks[0].provenance.goalLabel}
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Curated picks from session context */}
           {curatedPicks.length > 0 && (
             <div className="space-y-4">
@@ -196,6 +202,11 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium line-clamp-2 text-foreground">{ext.name}</p>
                       <p className="text-[10px] text-muted-foreground mt-0.5">{pick.reason}</p>
+                      {pick.provenance?.matchedTakeaway && (
+                        <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] bg-primary/5 text-muted-foreground border border-primary/10">
+                          {pick.provenance.matchedTakeaway}
+                        </span>
+                      )}
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-xs font-bold text-primary">${ext.price}</span>
                         <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded flex items-center gap-1">
@@ -232,6 +243,9 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
                         <div className="p-1.5">
                           <p className="text-[10px] text-foreground font-medium truncate">{item.name}</p>
                           <p className="text-[10px] font-bold text-primary">${item.price}</p>
+                          {pick.provenance?.matchedTakeaway && (
+                            <p className="text-[8px] text-muted-foreground/70 mt-0.5 truncate">via {pick.provenance.matchedTakeaway}</p>
+                          )}
                         </div>
                       </button>
                     );

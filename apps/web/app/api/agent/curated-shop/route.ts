@@ -6,12 +6,28 @@ import {
   scoreLocalPicks,
   type CurationContext,
   type CuratedPick,
+  type PickProvenance,
 } from "../../../../lib/utils/curated-picks";
 import type { ExternalProduct } from "@onpoint/shared-types";
 import type { MarketSignal } from "@onpoint/shared-types";
 import { processRetailSignalPartners } from "../../../../lib/services/retail-signal-partners";
 import { corsHeaders } from "../../ai/_utils/http";
 export { OPTIONS } from "../../ai/_utils/http";
+
+const PERSONA_LABELS: Record<string, string> = {
+  luxury: "Luxury",
+  streetwear: "Streetwear",
+  sustainable: "Sustainable",
+  miranda: "Professional",
+  edina: "Bold",
+  shaft: "Classic",
+};
+
+const GOAL_LABELS: Record<string, string> = {
+  event: "Special Event",
+  daily: "Everyday",
+  critique: "Wardrobe Refresh",
+};
 
 const CuratedShopRequest = z.object({
   score: z.number().min(0).max(10),
@@ -68,6 +84,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const seenNames = new Set<string>();
     const picks: CuratedPick[] = [];
+    const personaLabel = ctx.persona ? PERSONA_LABELS[ctx.persona] : undefined;
+    const goalLabel = ctx.sessionGoal ? GOAL_LABELS[ctx.sessionGoal] : undefined;
 
     for (let i = 0; i < searchResults.length; i++) {
       const result = searchResults[i];
@@ -79,12 +97,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
         const isExternal = "url" in item && "source" in item;
         const takeaway = ctx.takeaways[i] || ctx.takeaways[0] || "";
+        const price = "price" in item ? (item as { price: number }).price : undefined;
+
+        const provenance: PickProvenance = {
+          personaLabel,
+          goalLabel,
+          priceRange: price != null ? `$${price}` : undefined,
+          matchedTakeaway: takeaway.slice(0, 40) || undefined,
+        };
 
         picks.push({
           source: isExternal ? "external" : "local",
           item,
           reason: `Found based on: "${takeaway.slice(0, 60)}"`,
           triggeredBy: queries[i] || "",
+          provenance,
         });
       }
     }
@@ -94,7 +121,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       for (const pick of localPicks) {
         if (!seenNames.has(pick.item.name.toLowerCase())) {
           seenNames.add(pick.item.name.toLowerCase());
-          picks.push(pick);
+          picks.push({
+            ...pick,
+            provenance: {
+              ...pick.provenance,
+              personaLabel,
+              goalLabel,
+            },
+          });
         }
       }
     }

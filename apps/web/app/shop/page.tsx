@@ -9,10 +9,9 @@ import { ArrowLeft, ShoppingBag, Sparkles, Globe, Loader2 } from "lucide-react";
 import { CartDrawer, CartButton } from "../../components/Shop/CartDrawer";
 import { FlyToCartOverlay, type FlyItem } from "../../components/Shop/FlyToCartOverlay";
 import { CheckoutModal } from "../../components/Shop/CheckoutModal";
-import { RichProductGroup } from "../../components/Shop/RichProductCard";
 import { useCartStore } from "../../lib/stores/cart-store";
+import { useCuratedPicksStore } from "../../lib/stores/curated-picks-store";
 import { useStyleContext } from "@/lib/context/StyleContext";
-import type { CuratedPick } from "../../lib/utils/curated-picks";
 
 export default function ShopPage() {
   const [selectedItem, setSelectedItem] = useState<FashionItem | null>(null);
@@ -20,10 +19,11 @@ export default function ShopPage() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [stylistAnalysis, setStylistAnalysis] = useState<any>(null);
   const [flyingItem, setFlyingItem] = useState<FlyItem | null>(null);
-  const [curatedPicks, setCuratedPicks] = useState<CuratedPick[]>([]);
-  const [isCurating, setIsCurating] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
   const openCart = useCartStore((s) => s.openCart);
+  const curatedPicks = useCuratedPicksStore((s) => s.picks);
+  const isCurating = useCuratedPicksStore((s) => s.loading);
+  const fetchPicks = useCuratedPicksStore((s) => s.fetchPicks);
 
   const handleFlyComplete = useCallback(() => {
     setFlyingItem(null);
@@ -40,22 +40,11 @@ export default function ShopPage() {
 
         const ctx = analysis.curationContext;
         if (ctx && ctx.takeaways?.length > 0) {
-          setIsCurating(true);
-          fetch("/api/agent/curated-shop", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(ctx),
-          })
-            .then((res) => (res.ok ? res.json() : null))
-            .then((data) => {
-              if (data?.picks) setCuratedPicks(data.picks);
-            })
-            .catch(() => {})
-            .finally(() => setIsCurating(false));
+          fetchPicks(ctx);
         }
       }
     }
-  }, []);
+  }, [fetchPicks]);
 
   const handleItemClick = (item: FashionItem) => {
     setSelectedItem(item);
@@ -184,6 +173,25 @@ export default function ShopPage() {
               )}
             </div>
 
+            {/* Provenance context bar */}
+            {curatedPicks.length > 0 && curatedPicks[0]?.provenance && (
+              <div className="flex items-center gap-2 mb-4 flex-wrap">
+                {curatedPicks[0].provenance.personaLabel && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/10 text-primary">
+                    {curatedPicks[0].provenance.personaLabel}
+                  </span>
+                )}
+                {curatedPicks[0].provenance.goalLabel && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-accent/10 text-accent">
+                    {curatedPicks[0].provenance.goalLabel}
+                  </span>
+                )}
+                <span className="text-[10px] text-muted-foreground">
+                  {curatedPicks.length} picks from {curatedPicks.filter(p => p.source === "external").length > 0 ? "live stores + " : ""}catalog
+                </span>
+              </div>
+            )}
+
             {/* External product groups */}
             {curatedPicks.filter((p) => p.source === "external").length > 0 && (
               <div className="space-y-4 mb-6">
@@ -211,6 +219,11 @@ export default function ShopPage() {
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground line-clamp-2">{ext.name}</p>
                           <p className="text-xs text-muted-foreground mt-1">{pick.reason}</p>
+                          {pick.provenance?.matchedTakeaway && (
+                            <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] bg-primary/5 text-muted-foreground border border-primary/10">
+                              Matched: {pick.provenance.matchedTakeaway}
+                            </span>
+                          )}
                           <div className="flex items-center gap-2 mt-2">
                             <span className="text-sm font-bold text-primary">${ext.price}</span>
                             <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded flex items-center gap-1">
@@ -267,6 +280,9 @@ export default function ShopPage() {
                           <p className="text-[11px] text-foreground font-medium truncate">{item.name}</p>
                           <p className="text-[11px] font-bold text-primary">${item.price}</p>
                           <p className="text-[9px] text-muted-foreground mt-0.5 line-clamp-1">{pick.reason}</p>
+                          {pick.provenance?.matchedTakeaway && (
+                            <p className="text-[8px] text-muted-foreground/70 mt-0.5 truncate">via {pick.provenance.matchedTakeaway}</p>
+                          )}
                         </div>
                       </button>
                     );

@@ -5,11 +5,19 @@ import {
   type StylePreferences,
 } from "@onpoint/shared-types";
 
+export interface PickProvenance {
+  personaLabel?: string;
+  goalLabel?: string;
+  priceRange?: string;
+  matchedTakeaway?: string;
+}
+
 export interface CuratedPick {
   source: "local" | "external";
   item: FashionItem | ExternalProduct;
   reason: string;
   triggeredBy: string;
+  provenance?: PickProvenance;
 }
 
 export interface CurationContext {
