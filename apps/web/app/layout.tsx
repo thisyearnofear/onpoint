@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import Script from "next/script";
 import "./globals.css";
 import "./mobile.css";
 import { Providers } from "./providers";
@@ -84,6 +85,10 @@ export default function RootLayout({
         <Providers>
           {children}
         </Providers>
+        <Script
+          src="https://s.skimresources.com/js/304047X1792196.skimlinks.js"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
