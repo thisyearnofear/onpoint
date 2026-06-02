@@ -87,11 +87,11 @@ export function MissionToast({
       className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[100] w-full max-w-sm px-4"
     >
       <div
-        className={`bg-gradient-to-r ${getRewardColor()} backdrop-blur-xl border rounded-2xl p-4 shadow-2xl`}
+        className={`bg-card/95 backdrop-blur-xl border border-border rounded-2xl p-4 shadow-2xl`}
       >
         <div className="flex items-center gap-3">
           {/* Icon */}
-          <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center shrink-0">
             {getRewardIcon()}
           </div>
 
@@ -103,10 +103,10 @@ export function MissionToast({
                 Mission Complete!
               </span>
             </div>
-            <h4 className="text-white font-bold text-sm truncate">
+            <h4 className="text-foreground font-bold text-sm truncate">
               {missionTitle}
             </h4>
-            <p className="text-white/60 text-xs mt-0.5">
+            <p className="text-muted-foreground text-xs mt-0.5">
               {getRewardText()}
             </p>
           </div>
@@ -114,9 +114,9 @@ export function MissionToast({
           {/* Close button */}
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-full hover:bg-muted flex items-center justify-center transition-colors"
           >
-            <span className="text-white/40">×</span>
+            <span className="text-muted-foreground">×</span>
           </button>
         </div>
 

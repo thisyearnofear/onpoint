@@ -78,27 +78,27 @@ function ErrorFallback({ error, onReset }: ErrorFallbackProps) {
   const isDevelopment = process.env.NODE_ENV === "development";
 
   return (
-    <div className="flex flex-col items-center justify-center h-full p-8 bg-slate-950">
+    <div className="flex flex-col items-center justify-center h-full p-8 bg-background">
       <div className="max-w-md w-full text-center space-y-6">
-        <div className="w-20 h-20 rounded-2xl bg-rose-500/10 flex items-center justify-center mx-auto">
-          <AlertTriangle className="w-10 h-10 text-rose-400" />
+        <div className="w-20 h-20 rounded-2xl bg-destructive/10 flex items-center justify-center mx-auto">
+          <AlertTriangle className="w-10 h-10 text-destructive" />
         </div>
 
         <div className="space-y-2">
-          <h2 className="text-xl font-bold text-white">Something went wrong</h2>
-          <p className="text-slate-400 text-sm">
+          <h2 className="text-xl font-bold text-foreground">Something went wrong</h2>
+          <p className="text-muted-foreground text-sm">
             The Live AR Stylist encountered an unexpected error. Your data is
             safe — this is just a UI glitch.
           </p>
         </div>
 
         {isDevelopment && error && (
-          <div className="p-4 bg-slate-900 rounded-xl border border-rose-500/20 text-left">
-            <p className="text-rose-400 text-xs font-mono break-all">
+          <div className="p-4 bg-muted rounded-xl border border-destructive/20 text-left">
+            <p className="text-destructive text-xs font-mono break-all">
               {error.message}
             </p>
             {error.stack && (
-              <pre className="text-rose-300/60 text-[10px] mt-2 overflow-auto max-h-32">
+              <pre className="text-destructive/60 text-[10px] mt-2 overflow-auto max-h-32">
                 {error.stack}
               </pre>
             )}
@@ -113,7 +113,7 @@ function ErrorFallback({ error, onReset }: ErrorFallbackProps) {
             <RefreshCw className="w-4 h-4 mr-2" />
             Try Again
           </Button>
-          <p className="text-slate-500 text-xs">
+          <p className="text-muted-foreground/70 text-xs">
             If this keeps happening, try refreshing the page or switching to a
             different browser.
           </p>

@@ -312,7 +312,7 @@ export function AgentSuggestionToast({
             variant="outline"
             onClick={handleReject}
             disabled={isProcessing}
-            className="flex-1 h-10 border-white/10 text-slate-300 hover:bg-white/10 text-sm"
+            className="flex-1 h-10 border-border text-muted-foreground hover:bg-muted text-sm"
           >
             <X className="w-4 h-4 mr-1" />
             {suggestion.actionType === "external_search" ? "Cancel Search" : "Skip"}

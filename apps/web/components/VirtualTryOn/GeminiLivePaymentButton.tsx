@@ -222,12 +222,12 @@ export function GeminiLivePaymentButton({
   // Not connected state — offer Stripe as primary, wallet as secondary
   if (!isConnected) {
     return (
-      <div className="flex flex-col items-center gap-3 p-4 bg-slate-900/50 rounded-2xl border border-white/5">
+      <div className="flex flex-col items-center gap-3 p-4 bg-card rounded-2xl border border-border">
         <Sparkles className="w-8 h-8 text-indigo-400" />
-        <p className="text-white text-sm text-center font-medium">
+        <p className="text-foreground text-sm text-center font-medium">
           Unlock Premium Voice Styling
         </p>
-        <p className="text-slate-400 text-xs text-center">
+        <p className="text-muted-foreground text-xs text-center">
           Real-time voice conversation with your AI stylist
         </p>
         <Button
@@ -257,7 +257,7 @@ export function GeminiLivePaymentButton({
           <CreditCard className="w-5 h-5 mr-2" />
           <span className="font-bold">Pay with Card — $0.30</span>
         </Button>
-        <p className="text-[10px] text-slate-600 text-center">
+        <p className="text-[10px] text-muted-foreground/70 text-center">
           Or connect a wallet in Settings to pay with crypto
         </p>
       </div>
@@ -334,7 +334,7 @@ export function GeminiLivePaymentButton({
         </div>
       )}
 
-      <p className="text-[10px] text-slate-500 text-center">
+      <p className="text-[10px] text-muted-foreground text-center">
         One-time payment for this session
       </p>
     </div>

@@ -74,11 +74,11 @@ export function AgentActionCard({
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles className="w-5 h-5 text-amber-400" />
-                <h3 className="text-white font-bold">
+                <h3 className="text-foreground font-bold">
                   Support Your AI Stylist
                 </h3>
               </div>
-              <p className="text-slate-300 text-sm">
+              <p className="text-muted-foreground text-sm">
                 Tips help improve the AI and keep the service free for everyone.
                 The agent has its own self-custodial wallet on Celo.
               </p>
@@ -119,7 +119,7 @@ export function AgentActionCard({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl border border-white/10 overflow-hidden"
+        className="bg-card rounded-3xl border border-border overflow-hidden"
       >
         {/* Header with gradient */}
         <div className="relative px-6 py-8 bg-gradient-to-r from-amber-600/20 to-orange-600/20">
@@ -131,7 +131,7 @@ export function AgentActionCard({
                 <Wallet className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h3 className="text-white font-bold text-lg">
+                <h3 className="text-foreground font-bold text-lg">
                   AI Agent Wallet
                 </h3>
                 <div className="flex items-center gap-1">
@@ -142,7 +142,7 @@ export function AgentActionCard({
                 </div>
               </div>
             </div>
-            <p className="text-slate-300 text-sm leading-relaxed">
+            <p className="text-muted-foreground text-sm leading-relaxed">
               Our AI Stylist has a self-custodial wallet on Celo, Base,
               Ethereum, and Polygon. It can receive tips, make payments, and
               mint NFTs autonomously.
@@ -154,25 +154,25 @@ export function AgentActionCard({
         <div className="p-6 space-y-3">
           <button
             onClick={() => setShowTipModal(true)}
-            className="w-full flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 transition-all group"
+            className="w-full flex items-center justify-between p-4 bg-muted/30 hover:bg-muted rounded-2xl border border-border transition-all group"
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
                 <Coins className="w-5 h-5 text-amber-400" />
               </div>
               <div className="text-left">
-                <p className="text-white font-medium">Send a Tip</p>
-                <p className="text-slate-400 text-xs">
+                <p className="text-foreground font-medium">Send a Tip</p>
+                <p className="text-muted-foreground text-xs">
                   Support your AI stylist
                 </p>
               </div>
             </div>
-            <ArrowRight className="w-5 h-5 text-slate-500 group-hover:text-white transition-colors" />
+            <ArrowRight className="w-5 h-5 text-muted-foreground/70 group-hover:text-foreground transition-colors" />
           </button>
 
           <button
             onClick={onPremiumClick || (() => {})}
-            className="w-full flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 transition-all group disabled:opacity-50"
+            className="w-full flex items-center justify-between p-4 bg-muted/30 hover:bg-muted rounded-2xl border border-border transition-all group disabled:opacity-50"
             disabled={!onPremiumClick}
           >
             <div className="flex items-center gap-3">
@@ -180,13 +180,13 @@ export function AgentActionCard({
                 <Sparkles className="w-5 h-5 text-purple-400" />
               </div>
               <div className="text-left">
-                <p className="text-white font-medium">Buy Premium Access</p>
-                <p className="text-slate-400 text-xs">
+                <p className="text-foreground font-medium">Buy Premium Access</p>
+                <p className="text-muted-foreground text-xs">
                   0.5 CELO for Venice AI features
                 </p>
               </div>
             </div>
-            <ArrowRight className="w-5 h-5 text-slate-500 group-hover:text-white transition-colors" />
+            <ArrowRight className="w-5 h-5 text-muted-foreground/70 group-hover:text-foreground transition-colors" />
           </button>
 
           {score && score >= 8 && onMintClick && (
@@ -199,8 +199,8 @@ export function AgentActionCard({
                   <Sparkles className="w-5 h-5 text-indigo-400" />
                 </div>
                 <div className="text-left">
-                  <p className="text-white font-medium">Mint Your Look</p>
-                  <p className="text-slate-400 text-xs">
+                  <p className="text-foreground font-medium">Mint Your Look</p>
+                  <p className="text-muted-foreground text-xs">
                     Score {score}/10 - Eligible!
                   </p>
                 </div>

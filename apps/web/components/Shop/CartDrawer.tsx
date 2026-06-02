@@ -46,12 +46,12 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
               scale: 0.97,
               transition: { duration: 0 },
             }}
-            className="fixed right-0 top-0 bottom-0 z-[70] w-full max-w-md bg-slate-950 border-l border-white/10 flex flex-col shadow-2xl"
+            className="fixed right-0 top-0 bottom-0 z-[70] w-full max-w-md bg-background border-l border-border flex flex-col shadow-2xl"
           >
             {/* Swipe indicator — hinted draggable edge */}
             <div className="absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex items-center justify-center pointer-events-none">
               <motion.div
-                className="flex items-center justify-center h-14 w-[18px] rounded-full border border-white/10 bg-slate-900/80 backdrop-blur-sm shadow-lg"
+                className="flex items-center justify-center h-14 w-[18px] rounded-full border border-border bg-card/80 backdrop-blur-sm shadow-lg"
                 animate={{
                   opacity: [0.5, 0.85, 0.5],
                   scale: [1, 1.06, 1],
@@ -62,15 +62,15 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
                   ease: "easeInOut",
                 }}
               >
-                <ChevronLeft className="w-3 h-3 text-slate-400" />
+                <ChevronLeft className="w-3 h-3 text-muted-foreground" />
               </motion.div>
             </div>
 
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
               <div className="flex items-center gap-3">
                 <ShoppingBag className="w-5 h-5 text-indigo-400" />
-                <h2 className="text-lg font-bold text-white">Cart</h2>
+                <h2 className="text-lg font-bold text-foreground">Cart</h2>
                 {itemCount > 0 && (
                   <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded-full">
                     {itemCount} {itemCount === 1 ? "item" : "items"}
@@ -79,9 +79,9 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
               </div>
               <button
                 onClick={closeCart}
-                className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors"
+                className="w-8 h-8 rounded-full hover:bg-muted flex items-center justify-center transition-colors"
               >
-                <X className="w-5 h-5 text-slate-400" />
+                <X className="w-5 h-5 text-muted-foreground" />
               </button>
             </div>
 
@@ -232,7 +232,7 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.6 }}
-                    className="text-slate-400 text-sm font-medium"
+                    className="text-muted-foreground text-sm font-medium"
                   >
                     Your cart is empty
                   </motion.p>
@@ -240,7 +240,7 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.8 }}
-                    className="text-slate-600 text-xs mt-1.5 max-w-[200px]"
+                    className="text-muted-foreground/70 text-xs mt-1.5 max-w-[200px]"
                   >
                     Browse the shop or ask the AI Stylist for recommendations
                   </motion.p>
@@ -253,7 +253,7 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
                     index={index}
                   >
                     {/* Product image */}
-                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-slate-800 shrink-0">
+                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted shrink-0">
                       <img
                         src={item.product.cover}
                         alt={item.product.name}
@@ -263,10 +263,10 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
 
                     {/* Details */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white font-medium truncate">
+                      <p className="text-sm text-foreground font-medium truncate">
                         {item.product.name}
                       </p>
-                      <p className="text-xs text-slate-500 mt-0.5">
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         {item.product.category}
                       </p>
                       <p className="text-sm font-bold text-amber-400 mt-1">
@@ -280,7 +280,7 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
                         onClick={() => removeItem(item.product.id)}
                         className="w-10 h-10 rounded-full hover:bg-rose-500/20 flex items-center justify-center transition-colors group"
                       >
-                        <Trash2 className="w-4 h-4 text-slate-600 group-hover:text-rose-400" />
+                        <Trash2 className="w-4 h-4 text-muted-foreground/50 group-hover:text-rose-400" />
                       </button>
 
                       <div className="flex items-center gap-2">
@@ -290,9 +290,9 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
                           }
                           aria-label="Decrease quantity"
                         >
-                          <Minus className="w-4 h-4 text-slate-400" />
+                          <Minus className="w-4 h-4 text-muted-foreground" />
                         </PressHoldButton>
-                        <span className="text-sm font-mono text-white w-8 text-center tabular-nums">
+                        <span className="text-sm font-mono text-foreground w-8 text-center tabular-nums">
                           {item.quantity}
                         </span>
                         <PressHoldButton
@@ -304,7 +304,7 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
                           aria-label="Increase quantity"
                           maxed={item.quantity >= 10}
                         >
-                          <Plus className="w-4 h-4 text-slate-400" />
+                          <Plus className="w-4 h-4 text-muted-foreground" />
                         </PressHoldButton>
                       </div>
                     </div>
@@ -315,10 +315,10 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
 
             {/* Footer */}
             {items.length > 0 && (
-              <div className="border-t border-white/10 px-6 py-4 space-y-4">
+              <div className="border-t border-border px-6 py-4 space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-400">Total</span>
-                  <span className="text-2xl font-black text-white">
+                  <span className="text-sm text-muted-foreground">Total</span>
+                  <span className="text-2xl font-black text-foreground">
                     ${total.toFixed(2)}
                   </span>
                 </div>
@@ -333,7 +333,7 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
 
                 <button
                   onClick={clearCart}
-                  className="w-full text-center text-xs text-slate-600 hover:text-rose-400 transition-colors py-3"
+                  className="w-full text-center text-xs text-muted-foreground/50 hover:text-rose-400 transition-colors py-3"
                 >
                   Clear cart
                 </button>
@@ -427,7 +427,7 @@ function SwipeableCartItem({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        className="relative flex gap-4 p-3 rounded-xl bg-white/5 border border-white/5 cursor-default touch-pan-y"
+        className="relative flex gap-4 p-3 rounded-xl bg-muted/30 border border-border cursor-default touch-pan-y"
         style={{ touchAction: "pan-y" }}
       >
         {children}
@@ -486,8 +486,8 @@ function PressHoldButton({
       onPointerLeave={clear}
       onPointerCancel={clear}
       disabled={maxed}
-      className={`w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors border border-white/10 select-none ${
-        maxed ? "opacity-30 cursor-not-allowed" : "active:bg-white/15"
+      className={`w-10 h-10 rounded-full bg-muted/30 hover:bg-muted flex items-center justify-center transition-colors border border-border select-none ${
+        maxed ? "opacity-30 cursor-not-allowed" : "active:bg-muted"
       }`}
       {...(props as React.ComponentProps<"button">)}
     >
@@ -527,10 +527,10 @@ export function CartButton() {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 10, scale: 0.95 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="absolute right-full mr-3 flex items-center gap-2.5 rounded-lg border border-white/10 bg-slate-900/95 backdrop-blur-md px-3 py-1.5 shadow-lg pointer-events-none"
+            className="absolute right-full mr-3 flex items-center gap-2.5 rounded-lg border border-border bg-card/95 backdrop-blur-md px-3 py-1.5 shadow-lg pointer-events-none"
           >
             {/* Thumbnail */}
-            <div className="w-7 h-7 rounded-md overflow-hidden bg-slate-800 shrink-0">
+            <div className="w-7 h-7 rounded-md overflow-hidden bg-muted shrink-0">
               <img
                 src={lastAddedItem.cover}
                 alt={lastAddedItem.name}
@@ -539,7 +539,7 @@ export function CartButton() {
             </div>
             {/* Name + checkmark */}
             <div className="flex flex-col">
-              <span className="text-[11px] font-medium text-white leading-tight truncate max-w-[120px]">
+              <span className="text-[11px] font-medium text-foreground leading-tight truncate max-w-[120px]">
                 {lastAddedItem.name}
               </span>
               <span className="text-[10px] text-emerald-400 flex items-center gap-1">
@@ -554,9 +554,9 @@ export function CartButton() {
       <button
         data-cart-button
         onClick={openCart}
-        className="relative w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-colors shrink-0"
+        className="relative w-10 h-10 rounded-full bg-muted/30 hover:bg-muted border border-border flex items-center justify-center transition-colors shrink-0"
       >
-        <ShoppingBag className="w-5 h-5 text-slate-300" />
+        <ShoppingBag className="w-5 h-5 text-foreground/80" />
         {itemCount > 0 && (
           <motion.span
             key={itemCount}

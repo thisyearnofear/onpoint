@@ -116,7 +116,7 @@ function PolaroidCard({
       className="relative cursor-pointer group"
     >
       {/* Polaroid frame */}
-      <div className="bg-white dark:bg-zinc-100 rounded-md shadow-lg shadow-black/15 p-2 pb-10">
+      <div className="bg-white dark:bg-zinc-800 rounded-md shadow-lg shadow-black/15 p-2 pb-10">
         {/* Photo */}
         <div className="relative aspect-[3/4] rounded-sm overflow-hidden bg-zinc-200">
           {session.coverImage ? (
@@ -149,13 +149,13 @@ function PolaroidCard({
 
         {/* Caption area (polaroid bottom) */}
         <div className="absolute bottom-0 left-0 right-0 px-3 pb-2.5 pt-1">
-          <p className="text-zinc-800 text-[11px] font-medium leading-tight line-clamp-2">
+          <p className="text-zinc-800 dark:text-zinc-100 text-[11px] font-medium leading-tight line-clamp-2">
             {session.headline || "Style analysis"}
           </p>
           <div className="flex items-center justify-between mt-1">
-            <span className="text-zinc-400 text-[10px]">{dateLabel}</span>
+            <span className="text-zinc-400 dark:text-zinc-500 text-[10px]">{dateLabel}</span>
             {session.sessionGoal && (
-              <span className="text-zinc-500 text-[9px] capitalize bg-zinc-100 px-1.5 py-0.5 rounded-full">
+              <span className="text-zinc-500 dark:text-zinc-400 text-[9px] capitalize bg-zinc-100 dark:bg-zinc-700 px-1.5 py-0.5 rounded-full">
                 {session.sessionGoal}
               </span>
             )}

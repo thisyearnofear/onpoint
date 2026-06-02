@@ -110,18 +110,18 @@ export function AgentApprovalModal({
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            className="bg-slate-900 rounded-3xl border border-white/10 max-w-md w-full overflow-hidden"
+            className="bg-card rounded-3xl border border-border max-w-md w-full overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="px-6 py-4 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-b border-white/10">
+            <div className="px-6 py-4 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-b border-border">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-2xl bg-amber-500/30 flex items-center justify-center">
                   <Icon className="w-6 h-6 text-amber-400" />
                 </div>
                 <div>
-                  <h3 className="text-white font-bold">{label}</h3>
-                  <p className="text-slate-400 text-sm">
+                  <h3 className="text-foreground font-bold">{label}</h3>
+                  <p className="text-muted-foreground text-sm">
                     Agent requests your approval
                   </p>
                 </div>
@@ -131,23 +131,23 @@ export function AgentApprovalModal({
             {/* Content */}
             <div className="p-6 space-y-4">
               {/* Action Details */}
-              <div className="bg-white/5 rounded-2xl p-4 space-y-3">
+              <div className="bg-muted/30 rounded-2xl p-4 space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Action</span>
-                  <span className="text-white font-medium">
+                  <span className="text-muted-foreground">Action</span>
+                  <span className="text-foreground font-medium">
                     {request.description}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Amount</span>
+                  <span className="text-muted-foreground">Amount</span>
                   <span className="text-amber-400 font-bold">
                     {request.amount}
                   </span>
                 </div>
                 {request.recipient && (
                   <div className="flex justify-between">
-                    <span className="text-slate-400">To</span>
-                    <span className="text-white font-mono text-sm">
+                    <span className="text-muted-foreground">To</span>
+                    <span className="text-foreground font-mono text-sm">
                       {request.recipient.slice(0, 6)}...
                       {request.recipient.slice(-4)}
                     </span>
@@ -156,7 +156,7 @@ export function AgentApprovalModal({
               </div>
 
               {/* Time Remaining */}
-              <div className="flex items-center gap-2 text-sm text-slate-400">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock className="w-4 h-4" />
                 <span>
                   Expires in {minutesRemaining}:
@@ -166,7 +166,7 @@ export function AgentApprovalModal({
 
               {/* Spending Limit Info */}
               {spendingLimit && (
-                <div className="flex items-center gap-2 text-sm text-slate-400">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <AlertTriangle className="w-4 h-4" />
                   <span>
                     Daily limit: {spendingLimit.remaining} /{" "}
@@ -191,7 +191,7 @@ export function AgentApprovalModal({
                 variant="outline"
                 onClick={handleReject}
                 disabled={isProcessing}
-                className="flex-1 border-white/20 text-slate-300 hover:bg-white/10"
+                className="flex-1 border-border text-muted-foreground hover:bg-muted"
               >
                 <X className="w-4 h-4 mr-2" />
                 Deny

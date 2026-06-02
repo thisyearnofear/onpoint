@@ -105,7 +105,7 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
           >
             <motion.div
               layout
-              className="bg-slate-900 border border-white/10 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden"
+              className="bg-card border border-border rounded-3xl max-w-md w-full shadow-2xl overflow-hidden"
             >
               {/* Success state */}
               {result?.success ? (
@@ -124,18 +124,18 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                       initial={{ opacity: 0, y: -8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.08 }}
-                      className="flex items-center justify-between px-6 py-4 border-b border-white/10"
+                      className="flex items-center justify-between px-6 py-4 border-b border-border"
                     >
                       <div className="flex items-center gap-3">
                         <ShoppingBag className="w-5 h-5 text-indigo-400" />
-                        <h2 className="text-lg font-bold text-white">Checkout</h2>
+                        <h2 className="text-lg font-bold text-foreground">Checkout</h2>
                       </div>
                       <button
                         onClick={handleClose}
                         disabled={isProcessing}
-                        className="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors disabled:opacity-50"
+                        className="w-10 h-10 rounded-full hover:bg-muted flex items-center justify-center transition-colors disabled:opacity-50"
                       >
-                        <X className="w-5 h-5 text-slate-400" />
+                        <X className="w-5 h-5 text-muted-foreground" />
                       </button>
                     </motion.div>
 
@@ -163,10 +163,10 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                       initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.2 + items.length * 0.04 }}
-                      className="px-6 py-3 border-t border-white/10 flex items-center justify-between"
+                      className="px-6 py-3 border-t border-border flex items-center justify-between"
                     >
-                      <span className="text-sm text-slate-400">Total</span>
-                      <span className="text-2xl font-black text-white">
+                      <span className="text-sm text-muted-foreground">Total</span>
+                      <span className="text-2xl font-black text-foreground">
                         ${total.toFixed(2)}
                       </span>
                     </motion.div>
@@ -180,13 +180,13 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                     >
                       <div className="flex items-center gap-2">
                         <Shield className="w-4 h-4 text-indigo-400" />
-                        <span className="text-xs font-medium text-indigo-300">
+                        <span className="text-xs font-medium text-indigo-400">
                           Secure checkout
                         </span>
                       </div>
                       <div className="flex items-start gap-2">
                         <Wallet className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                        <div className="text-[10px] text-slate-400 leading-relaxed">
+                        <div className="text-[10px] text-muted-foreground leading-relaxed">
                           Your AI stylist handles payment automatically.
                           Purchases under{" "}
                           <span className="text-amber-400 font-bold">
@@ -239,7 +239,7 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                           `Pay $${total.toFixed(2)}`
                         )}
                       </Button>
-                      <p className="text-[10px] text-slate-500 text-center flex items-center justify-center gap-1">
+                      <p className="text-[10px] text-muted-foreground/70 text-center flex items-center justify-center gap-1">
                         <Shield className="w-3 h-3" />
                         Secure payment via your AI stylist
                       </p>
@@ -290,8 +290,8 @@ function SuccessState({ result, onClose }: { result: CheckoutResult; onClose: ()
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25 }}
       >
-        <h2 className="text-2xl font-black text-white">Order Confirmed!</h2>
-        <p className="text-slate-400 text-sm mt-2">
+        <h2 className="text-2xl font-black text-foreground">Order Confirmed!</h2>
+        <p className="text-muted-foreground text-sm mt-2">
           Your AI stylist processed your purchase
         </p>
       </motion.div>
@@ -302,11 +302,11 @@ function SuccessState({ result, onClose }: { result: CheckoutResult; onClose: ()
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35 }}
-          className="bg-white/5 rounded-xl p-4 text-left space-y-3"
+          className="bg-muted/30 rounded-xl p-4 text-left space-y-3"
         >
-          <div className="flex justify-between text-xs text-slate-400">
+          <div className="flex justify-between text-xs text-muted-foreground">
             <span>Order</span>
-            <span className="font-mono text-slate-300">
+            <span className="font-mono text-foreground/80">
               {result.order.id.slice(0, 20)}…
             </span>
           </div>
@@ -318,10 +318,10 @@ function SuccessState({ result, onClose }: { result: CheckoutResult; onClose: ()
               transition={{ delay: 0.4 + i * 0.04 }}
               className="flex justify-between text-xs"
             >
-              <span className="text-slate-300">
+              <span className="text-foreground/80">
                 {item.quantity}× {item.name}
               </span>
-              <span className="text-white font-medium">
+              <span className="text-foreground font-medium">
                 ${item.subtotal.toFixed(2)}
               </span>
             </motion.div>
@@ -330,10 +330,10 @@ function SuccessState({ result, onClose }: { result: CheckoutResult; onClose: ()
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.45 + (result.order.items?.length || 0) * 0.04 }}
-            className="border-t border-white/10 pt-2 flex justify-between text-sm"
+            className="border-t border-border pt-2 flex justify-between text-sm"
           >
-            <span className="text-slate-400">Total</span>
-            <span className="font-bold text-white">
+            <span className="text-muted-foreground">Total</span>
+            <span className="font-bold text-foreground">
               {result.order.totalAmount}
             </span>
           </motion.div>
@@ -360,7 +360,7 @@ function SuccessState({ result, onClose }: { result: CheckoutResult; onClose: ()
 function CartItemRow({ item }: { item: CartItem }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-800 shrink-0">
+      <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted shrink-0">
         <img
           src={item.product.cover}
           alt={item.product.name}
@@ -368,10 +368,10 @@ function CartItemRow({ item }: { item: CartItem }) {
         />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-white font-medium truncate">
+        <p className="text-sm text-foreground font-medium truncate">
           {item.product.name}
         </p>
-        <p className="text-xs text-slate-500">Qty: {item.quantity}</p>
+        <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
       </div>
       <p className="text-sm font-bold text-amber-400">
         ${(item.product.price * item.quantity).toFixed(2)}

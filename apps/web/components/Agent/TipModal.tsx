@@ -212,11 +212,11 @@ export function TipSheet({
           animate={{ y: 0 }}
           exit={{ y: "100%" }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="relative w-full max-w-lg bg-gradient-to-b from-slate-800 to-slate-900 rounded-t-3xl border-t border-white/10 shadow-2xl"
+          className="relative w-full max-w-lg bg-card rounded-t-3xl border-t border-border shadow-2xl"
         >
           {/* Drag Handle */}
           <div className="flex justify-center pt-3 pb-2">
-            <div className="w-10 h-1 rounded-full bg-white/20" />
+            <div className="w-10 h-1 rounded-full bg-foreground/20" />
           </div>
 
           {/* Header */}
@@ -226,15 +226,15 @@ export function TipSheet({
                 <Heart className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-white font-bold">{config.headline}</h2>
-                <p className="text-slate-400 text-xs">{config.subtext}</p>
+                <h2 className="text-foreground font-bold">{config.headline}</h2>
+                <p className="text-muted-foreground text-xs">{config.subtext}</p>
               </div>
             </div>
             <button
               onClick={handleClose}
-              className="p-2 hover:bg-white/10 rounded-full transition-colors"
+              className="p-2 hover:bg-muted rounded-full transition-colors"
             >
-              <X className="w-5 h-5 text-slate-400" />
+              <X className="w-5 h-5 text-muted-foreground" />
             </button>
           </div>
 
@@ -243,7 +243,7 @@ export function TipSheet({
             {/* Wallet status */}
             {!isConnected && (
               <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-center mb-4">
-                <p className="text-amber-200 text-sm">
+                <p className="text-amber-600 dark:text-amber-200 text-sm">
                   Connect your wallet to send tips
                 </p>
               </div>
@@ -252,7 +252,7 @@ export function TipSheet({
             {/* Error display */}
             {localError && (
               <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-3 text-center mb-4">
-                <p className="text-rose-300 text-sm">{localError}</p>
+                <p className="text-rose-600 dark:text-rose-300 text-sm">{localError}</p>
               </div>
             )}
 
@@ -270,8 +270,8 @@ export function TipSheet({
                     <CheckCircle2 className="w-5 h-5 text-white" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-white font-medium">Tip sent on-chain!</p>
-                    <p className="text-slate-400 text-xs">
+                    <p className="text-foreground font-medium">Tip sent on-chain!</p>
+                    <p className="text-muted-foreground text-xs">
                       {sentAmount} cUSD on Celo
                     </p>
                     <a
@@ -295,12 +295,12 @@ export function TipSheet({
                 >
                   <Loader2 className="w-6 h-6 text-amber-400 animate-spin shrink-0" />
                   <div className="flex-1">
-                    <p className="text-white font-medium">
+                    <p className="text-foreground font-medium">
                       {isWritePending
                         ? "Confirm in your wallet…"
                         : "Waiting for confirmation…"}
                     </p>
-                    <p className="text-slate-400 text-xs">
+                    <p className="text-muted-foreground text-xs">
                       {sentAmount || "…"} cUSD on Celo
                     </p>
                   </div>
@@ -313,7 +313,7 @@ export function TipSheet({
                   animate={{ opacity: 1 }}
                   className="text-center py-4"
                 >
-                  <p className="text-slate-400 text-sm">
+                  <p className="text-muted-foreground text-sm">
                     Keep practicing — your stylist will get you there!
                   </p>
                 </motion.div>
@@ -332,19 +332,19 @@ export function TipSheet({
                         key={tip.amount}
                         onClick={() => handleQuickTip(tip.amount)}
                         disabled={!isConnected || isProcessing}
-                        className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-amber-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-muted/30 border border-border hover:bg-muted hover:border-amber-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <span className="text-2xl">{tip.icon}</span>
-                        <span className="text-white font-bold">
+                        <span className="text-foreground font-bold">
                           {tip.amount} cUSD
                         </span>
-                        <span className="text-slate-400 text-xs">
+                        <span className="text-muted-foreground text-xs">
                           {tip.label}
                         </span>
                       </button>
                     ))}
                   </div>
-                  <p className="text-center text-slate-500 text-xs">
+                  <p className="text-center text-muted-foreground/70 text-xs">
                     Tips sent on-chain to the stylist&apos;s wallet on Celo
                   </p>
                 </motion.div>

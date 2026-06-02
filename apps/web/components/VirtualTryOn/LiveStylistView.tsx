@@ -42,10 +42,10 @@ const SessionSummaryScreen = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex items-center justify-center h-full min-h-[400px] bg-slate-950">
+      <div className="flex items-center justify-center h-full min-h-[400px] bg-background">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
-          <p className="text-xs text-slate-500 font-mono tracking-wider">
+          <p className="text-xs text-muted-foreground font-mono tracking-wider">
             Preparing summary…
           </p>
         </div>
@@ -195,13 +195,13 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   // ── Provider Selection Screen ──
   if (!selectedProvider) {
     return (
-      <div className="flex flex-col h-full bg-slate-950 p-6">
+      <div className="flex flex-col h-full bg-background p-6">
         <div className="flex-1 flex flex-col justify-center items-center text-center space-y-8 max-w-md mx-auto">
           <div className="space-y-2">
-            <h1 className="text-3xl font-black text-white tracking-tighter italic">
+            <h1 className="text-3xl font-black text-foreground tracking-tighter italic">
               LIVE STYLIST
             </h1>
-            <p className="text-slate-400 text-sm">
+            <p className="text-muted-foreground text-sm">
               Point your camera at your outfit for instant AI feedback
             </p>
           </div>
@@ -220,14 +220,14 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-white group-hover:text-emerald-300 transition-colors">
+                    <h3 className="font-bold text-foreground group-hover:text-emerald-400 transition-colors">
                       Quick Style Check
                     </h3>
                     <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-500/20 text-emerald-400 rounded-full uppercase">
                       Free · 60s
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Point your camera, get instant AI feedback on your outfit.
                   </p>
                 </div>
@@ -247,14 +247,14 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-white group-hover:text-indigo-300 transition-colors">
+                    <h3 className="font-bold text-foreground group-hover:text-indigo-400 transition-colors">
                       Voice Styling
                     </h3>
                     <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-500/20 text-amber-400 rounded-full">
                       Premium
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Talk to your AI stylist in real time with voice + video.
                   </p>
                 </div>
@@ -262,8 +262,8 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             </button>
           </div>
 
-          <div className="w-full bg-slate-900/50 rounded-xl p-4 border border-white/5">
-            <p className="text-[10px] text-slate-500 text-center">
+          <div className="w-full bg-muted/50 rounded-xl p-4 border border-border">
+            <p className="text-[10px] text-muted-foreground text-center">
               Free session gives you 60 seconds of AI analysis. Upgrade for unlimited voice styling.
             </p>
           </div>
@@ -271,7 +271,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
         <Button
           variant="ghost"
-          className="text-slate-500 hover:text-white"
+          className="text-muted-foreground hover:text-foreground"
           onClick={handleBack}
         >
           Back to Wardrobe
@@ -283,7 +283,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   // ── Goal Selection Screen ──
   if (selectedProvider && !sessionGoal) {
     return (
-      <div className="flex flex-col h-full bg-slate-950 p-6">
+      <div className="flex flex-col h-full bg-background p-6">
         <div className="flex-1 flex flex-col justify-center items-center text-center space-y-8 max-w-sm mx-auto">
           <div className="space-y-2">
             <div className="flex items-center justify-center gap-2 mb-4">
@@ -301,10 +301,10 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 )}
               </div>
             </div>
-            <h1 className="text-2xl font-black text-white tracking-tighter italic uppercase">
+            <h1 className="text-2xl font-black text-foreground tracking-tighter italic uppercase">
               SESSION GOAL
             </h1>
-            <p className="text-slate-400 text-sm">
+            <p className="text-muted-foreground text-sm">
               What are you styling for today?
             </p>
           </div>
@@ -314,7 +314,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               <button
                 key={goal.id}
                 onClick={() => setSessionGoal(goal.id)}
-                className="w-full text-left p-5 rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] hover:from-white/10 hover:to-white/5 border border-white/10 transition-all group"
+                className="w-full text-left p-5 rounded-2xl bg-muted/30 hover:bg-muted/50 border border-border transition-all group"
               >
                 <div className="flex items-center gap-4">
                   <div
@@ -323,10 +323,10 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                     <goal.icon className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-white group-hover:text-indigo-300 transition-colors text-sm">
+                    <h3 className="font-bold text-foreground group-hover:text-indigo-400 transition-colors text-sm">
                       {goal.label}
                     </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">{goal.desc}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{goal.desc}</p>
                   </div>
                 </div>
               </button>
@@ -347,7 +347,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                   />
                   <button
                     onClick={() => setShowByokInput(true)}
-                    className="w-full text-center text-xs text-slate-500 hover:text-slate-300 transition-colors"
+                    className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Or use your own API key →
                   </button>
@@ -361,9 +361,9 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                     value={userApiKey}
                     onChange={(e) => setUserApiKey(e.target.value)}
                     placeholder="Enter Gemini API key"
-                    className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
+                    className="w-full px-4 py-3 rounded-xl bg-muted border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-indigo-500"
                   />
-                  <p className="text-[10px] text-slate-500">
+                  <p className="text-[10px] text-muted-foreground">
                     Your key is stored locally and never sent to our servers.
                   </p>
                 </div>
@@ -386,7 +386,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
         <Button
           variant="ghost"
-          className="text-slate-500 hover:text-white"
+          className="text-muted-foreground hover:text-foreground"
           onClick={() => setSelectedProvider(null)}
         >
           Back to Provider Selection
@@ -402,16 +402,16 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     (!selectedPersona || (!isConnected && !isInitializing))
   ) {
     return (
-      <div className="flex flex-col h-full bg-slate-950 p-6 overflow-y-auto">
+      <div className="flex flex-col h-full bg-background p-6 overflow-y-auto">
         <div className="flex-1 flex flex-col justify-center items-center text-center space-y-8 max-w-lg mx-auto py-10">
           <div className="space-y-2">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
               <Sparkles className="w-8 h-8 text-indigo-400" />
             </div>
-            <h1 className="text-2xl font-black text-white tracking-tighter italic uppercase">
+            <h1 className="text-2xl font-black text-foreground tracking-tighter italic uppercase">
               CHOOSE YOUR STYLIST
             </h1>
-            <p className="text-slate-400 text-sm">
+            <p className="text-muted-foreground text-sm">
               Select a personality to guide your session.
             </p>
           </div>
@@ -449,7 +449,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
             <Button
               variant="ghost"
-              className="text-slate-500 hover:text-white"
+              className="text-muted-foreground hover:text-foreground"
               onClick={() => setSessionGoal(null)}
             >
               Back to Goal Selection
@@ -919,17 +919,17 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               exit={{ opacity: 0, y: 20 }}
               className={`absolute ${isMobile ? "bottom-36" : "bottom-32"} inset-x-0 flex justify-center z-[40] px-4 sm:px-6`}
             >
-              <div className="bg-slate-900/40 backdrop-blur-2xl border border-white/10 p-4 rounded-3xl flex items-center gap-4 max-w-sm w-full shadow-2xl">
+              <div className="bg-card/80 backdrop-blur-2xl border border-border p-4 rounded-3xl flex items-center gap-4 max-w-sm w-full shadow-2xl">
                 <div
                   className={`w-10 h-10 rounded-2xl bg-${personaStyling.color}/20 flex items-center justify-center shrink-0 border border-${personaStyling.color}/30`}
                 >
                   <Camera className={`w-5 h-5 text-${personaStyling.accent}`} />
                 </div>
                 <div className="flex-1">
-                  <h4 className="text-white font-bold text-xs uppercase tracking-wider">
+                  <h4 className="text-foreground font-bold text-xs uppercase tracking-wider">
                     Style Capture Active
                   </h4>
-                  <p className="text-slate-400 text-[10px] leading-snug">
+                  <p className="text-muted-foreground text-[10px] leading-snug">
                     The AI is analyzing your silhouettes. Use the Timer to step
                     back and capture full poses.
                   </p>
@@ -1131,7 +1131,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
       {/* Control Bar — Mobile-safe */}
       <div
-        className="bg-slate-950 px-4 sm:px-6 py-4 sm:py-6 pb-6 sm:pb-10 flex items-center justify-around gap-2 sm:gap-4 border-t border-white/5 relative z-[50] shadow-[0_-20px_50px_rgba(0,0,0,0.5)]"
+        className="bg-card px-4 sm:px-6 py-4 sm:py-6 pb-6 sm:pb-10 flex items-center justify-around gap-2 sm:gap-4 border-t border-border relative z-[50] shadow-[0_-20px_50px_rgba(0,0,0,0.15)]"
         style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
       >
         <Button
@@ -1201,7 +1201,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             className={`w-11 h-11 sm:w-14 sm:h-14 rounded-full border transition-all ${
               isVoiceEnabled
                 ? `bg-${personaStyling.color}/20 border-${personaStyling.color}/40 text-${personaStyling.accent} shadow-[0_0_15px_rgba(99,102,241,0.2)]`
-                : "bg-white/5 border-white/10 text-white/40"
+                : "bg-muted/30 border-border text-muted-foreground"
             }`}
           >
             {isVoiceEnabled ? (
@@ -1214,9 +1214,9 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           {/* Cart + Tip — mobile accessible */}
           <button
             onClick={openCart}
-            className="relative w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-all"
+            className="relative w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-muted/30 hover:bg-muted border border-border flex items-center justify-center transition-all"
           >
-            <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6 text-slate-300" />
+            <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6 text-foreground/80" />
             {cartItemCount > 0 && (
               <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center">
                 {cartItemCount}

@@ -60,24 +60,24 @@ export function SuggestionHistoryPanel({
   const displayed = expanded ? sorted : sorted.slice(0, 3);
 
   return (
-    <div className="bg-slate-900/80 border border-indigo-500/20 rounded-2xl overflow-hidden">
+    <div className="bg-card border border-border rounded-2xl overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-white/5 transition-colors"
+        className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
       >
         <div className="flex items-center gap-2">
           <Clock className="w-4 h-4 text-indigo-400" />
-          <span className="text-xs font-bold text-white uppercase tracking-wider">
+          <span className="text-xs font-bold text-foreground uppercase tracking-wider">
             Agent Suggestions
           </span>
-          <span className="text-[10px] font-mono text-slate-500 bg-white/5 px-2 py-0.5 rounded-full">
+          <span className="text-[10px] font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
             {suggestions.length}
           </span>
         </div>
         {expanded ? (
-          <ChevronUp className="w-4 h-4 text-slate-500" />
+          <ChevronUp className="w-4 h-4 text-muted-foreground" />
         ) : (
-          <ChevronDown className="w-4 h-4 text-slate-500" />
+          <ChevronDown className="w-4 h-4 text-muted-foreground" />
         )}
       </button>
 
@@ -95,28 +95,28 @@ export function SuggestionHistoryPanel({
                 const Icon = ACTION_ICONS[suggestion.actionType] || Sparkles;
                 const status = STATUS_CONFIG[suggestion.status] ?? {
                   icon: Clock,
-                  color: "text-slate-500",
+                  color: "text-muted-foreground",
                   label: suggestion.status,
                 };
                 const StatusIcon = status.icon;
                 return (
                   <div
                     key={suggestion.id}
-                    className="flex items-start gap-3 p-3 rounded-xl bg-white/5 border border-white/5"
+                    className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 border border-border"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
-                      <Icon className="w-4 h-4 text-slate-400" />
+                    <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <Icon className="w-4 h-4 text-muted-foreground" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-white font-medium truncate">
+                      <p className="text-xs text-foreground font-medium truncate">
                         {suggestion.description}
                       </p>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-[10px] font-bold text-amber-400">
                           {suggestion.amount}
                         </span>
-                        <span className="text-[10px] text-slate-600">·</span>
-                        <span className="text-[10px] text-slate-500">
+                        <span className="text-[10px] text-muted-foreground/50">·</span>
+                        <span className="text-[10px] text-muted-foreground">
                           {formatTime(suggestion.createdAt)}
                         </span>
                       </div>
@@ -141,7 +141,7 @@ export function SuggestionHistoryPanel({
           {displayed.map((suggestion) => {
             const status = STATUS_CONFIG[suggestion.status] ?? {
               icon: Clock,
-              color: "text-slate-500",
+              color: "text-muted-foreground",
               label: suggestion.status,
             };
             const StatusIcon = status.icon;
@@ -152,10 +152,10 @@ export function SuggestionHistoryPanel({
                 className="flex items-center gap-2 text-[11px]"
               >
                 <StatusIcon className={`w-3 h-3 shrink-0 ${status.color}`} />
-                <span className="text-slate-400 truncate flex-1">
+                <span className="text-muted-foreground truncate flex-1">
                   {suggestion.description}
                 </span>
-                <span className="text-slate-600 shrink-0">
+                <span className="text-muted-foreground/50 shrink-0">
                   {formatTime(suggestion.createdAt)}
                 </span>
               </div>

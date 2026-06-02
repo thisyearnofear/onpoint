@@ -55,7 +55,7 @@ export function RichProductCard({
       onMouseEnter={() => setIsHovered(true)}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className="group relative flex items-start gap-3 p-3 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/20 transition-all text-left"
+      className="group relative flex items-start gap-3 p-3 rounded-xl border border-border bg-muted/20 hover:bg-muted/40 hover:border-muted-foreground/30 transition-all text-left"
       style={{ perspective: "600px" }}
     >
       {/* Badge */}
@@ -76,7 +76,7 @@ export function RichProductCard({
       )}
 
       {/* Product image */}
-      <div className="w-16 h-16 rounded-lg overflow-hidden bg-white/5 shrink-0 flex items-center justify-center">
+      <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted shrink-0 flex items-center justify-center">
         {product.image_url && !imgError ? (
           <img
             src={product.image_url}
@@ -86,14 +86,14 @@ export function RichProductCard({
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-500/10 to-indigo-500/10">
-            <ExternalLink className="w-5 h-5 text-white/20" />
+            <ExternalLink className="w-5 h-5 text-muted-foreground/30" />
           </div>
         )}
       </div>
 
       {/* Product info */}
       <div className="flex-1 min-w-0 space-y-1">
-        <p className="text-xs font-medium text-white line-clamp-2 leading-snug">
+        <p className="text-xs font-medium text-foreground line-clamp-2 leading-snug">
           {product.name}
         </p>
         <div className="flex items-center gap-2">
@@ -105,7 +105,7 @@ export function RichProductCard({
               : `${product.currency} `}
             {product.price.toFixed(2)}
           </span>
-          <span className="text-[10px] text-slate-500 bg-white/5 px-1.5 py-0.5 rounded border border-white/5">
+          <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border">
             {product.source}
           </span>
         </div>
@@ -113,7 +113,7 @@ export function RichProductCard({
 
       {/* Shop arrow */}
       <div className="shrink-0 self-center">
-        <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover:text-purple-400 transition-colors" />
+        <ExternalLink className="w-3.5 h-3.5 text-muted-foreground group-hover:text-purple-400 transition-colors" />
       </div>
     </a>
   );
@@ -141,9 +141,9 @@ export function RichProductGroup({
     <div className="space-y-2">
       {/* Group header */}
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-white line-clamp-1">{title}</p>
+        <p className="text-xs font-medium text-foreground line-clamp-1">{title}</p>
         {hasRange && (
-          <span className="text-[10px] text-slate-500">
+          <span className="text-[10px] text-muted-foreground">
             ${lowestPrice.toFixed(0)}–${highestPrice.toFixed(0)} across{" "}
             {sorted.length} stores
           </span>
