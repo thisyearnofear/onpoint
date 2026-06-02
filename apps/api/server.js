@@ -168,6 +168,9 @@ app.use('/api/ai/agent', json10mb, aiAuth, veniceRateLimit, require('./routes/ai
 // Catalog — public search (rate-limited but no API key needed for reads)
 app.use('/api/agent/catalog', json1k, generalRateLimit, require('./routes/catalog'));
 
+// Curated Shop — product curation from bridge (proxied via Next.js rewrites)
+app.use('/api/agent/curated-shop', json1k, generalRateLimit, require('./routes/curated-shop'));
+
 // Heartbeat — public GET, service-key for POST
 app.use('/api/agent/heartbeat', json1k, require('./routes/agent-heartbeat'));
 
