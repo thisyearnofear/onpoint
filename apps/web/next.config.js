@@ -63,6 +63,10 @@ const nextConfig = {
       { source: '/api/ai/agent', destination: `${hetzner}/api/ai/agent` },
       { source: '/api/agent/catalog', destination: `${hetzner}/api/agent/catalog` },
       { source: '/api/agent/curated-shop', destination: `${hetzner}/api/agent/curated-shop` },
+      { source: '/api/agent/heartbeat', destination: `${hetzner}/api/agent/heartbeat` },
+      { source: '/api/agent/dashboard', destination: `${hetzner}/api/agent/dashboard` },
+      { source: '/api/agent/identity', destination: `${hetzner}/api/agent/identity` },
+      { source: '/api/market-intelligence/search', destination: `${hetzner}/api/market-intelligence/search` },
       { source: '/api/curator/:slug/storefront', destination: `${hetzner}/api/curator/:slug/storefront` },
     ];
   },
