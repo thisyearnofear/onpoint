@@ -75,16 +75,60 @@ Integrates Bright Data into the agent-web-bridge tier chain for two outputs: sho
 
 ---
 
+## Celo Onchain Agents Hackathon Sprint 🏆
+> **Deadline**: ~10 days · **Focus**: Real-world payments, sub-cent costs, verifiable identity
+
+### Priority 1: Complete Curator Commerce Loop (80% of effort)
+The WhatsApp chat-ops + storefront flow is the strongest "real-world" demo.
+
+- [ ] Twilio number + Meta WhatsApp Business registration
+- [ ] Meta Business verification + outbound message templates
+- [ ] Wanja seeded into `curators` table (top 10 SKUs as `listings`)
+- [ ] `/s/[slug]` storefront with working WhatsApp checkout deep links
+- [ ] End-to-end demo: customer visits storefront → try-on → buy via WhatsApp
+
+### Priority 2: Surface Retail Intelligence (10% of effort)
+Turn styling sessions into commercial feedback for curators.
+
+- [ ] Curator dashboard showing product gap signals from storefront visitors
+- [ ] Competitor pricing from Bright Data on curator intel page
+- [ ] Recommended merchandising actions backed by live web evidence
+
+### Priority 3: Prove On-Chain Economics (10% of effort)
+Document and demonstrate Celo's sub-cent advantage.
+
+- [ ] `/lab` dashboard showing live tx costs from recent agent actions
+- [ ] Document average gas costs: agent shopping, receipts, commission splits
+- [ ] Trust protocol integration for portable on-chain identity
+
+### Competitive Advantages Already Shipped
+- ✅ ERC-8004 agent registration (9177 on Celo)
+- ✅ Self Protocol identity + dual verification
+- ✅ Agent wallet with $5-$5K spend limits
+- ✅ Autonomous execution (sub-$5 auto-execute)
+- ✅ IPFS/Filecoin verifiable receipts
+- ✅ Commission splits (85/10/3/2) with cUSD/USDT
+- ✅ MiniPay integration (auto-connect, fee abstraction)
+
+### What Judges Want
+1. **Practical utility** — Wanja's storefront solves a real problem for a real merchant
+2. **Sub-cent tx costs** — Celo gas is already cheap; prove it with live data
+3. **Verifiable identity** — Self Protocol + ERC-8004 + trust protocol = triple verification
+4. **Reusable modules** — Extract style-analysis, web-discovery, verifiable-receipts as composable skills
+5. **Immediate user base** — Curators bring their own customers to the platform
+
+---
+
 ## Upcoming
 
-### Immediate (Next 2 Weeks)
-- [ ] A/B test hero tagline variations
-- [ ] Add real-time "X people trying on now" counter
-- [ ] Implement persona voice previews
-- [ ] Add agent wallet balance display in header
+### Immediate (Aligned with Hackathon Sprint)
+- [ ] Surface retail intelligence to curators (product gaps, competitor prices)
+- [ ] Document sub-cent transaction costs with live dashboard
+- [ ] Polish MiniPay auto-connect and fee abstraction UX
+- [ ] Extract reusable agent skill modules (style-analysis, web-discovery, verifiable-receipts)
 - [ ] Set up analytics dashboard (PostHog or Mixpanel)
 
-### Short-term (Next Month)
+### Short-term (Post-Hackathon)
 - [ ] Premium persona unlock flow with payment
 - [ ] Agent wallet top-up interface
 - [ ] Email notifications for agent purchases
