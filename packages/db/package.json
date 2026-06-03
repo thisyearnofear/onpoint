@@ -28,12 +28,12 @@
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
-    "drizzle-kit": "^0.30.0",
+    "drizzle-kit": "^0.31.10",
     "tsup": "8.5.1",
     "typescript": "5.9.2"
   },
   "dependencies": {
-    "drizzle-orm": "^0.40.0",
+    "drizzle-orm": "^0.45.2",
     "@neondatabase/serverless": "^1.0.0"
   }
 }

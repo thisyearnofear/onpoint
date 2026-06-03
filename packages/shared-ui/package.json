@@ -15,14 +15,14 @@
     "./components/InteractiveStylingCanvas": "./src/components/InteractiveStylingCanvas.tsx"
   },
   "dependencies": {
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "lucide-react": "^0.376.0",
     "@onpoint/shared-types": "workspace:*"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
-    "@types/react": "19.1.0",
+    "@types/react": "19.2.16",
     "typescript": "5.9.2"
   }
 }
