@@ -163,6 +163,44 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   const personaStyling = getPersonaConfig(selectedPersona);
 
   const PersonaIcon = personaStyling.icon;
+  const liveModeLabel =
+    sessionGoal === "event"
+      ? "Event prep"
+      : sessionGoal === "critique"
+        ? "Critique"
+        : "Outfit check";
+  const scanSignals = [
+    {
+      label: "Framing",
+      value:
+        positionStatus === "good"
+          ? "locked"
+          : positionStatus === "bad"
+            ? "adjust"
+            : "scanning",
+      tone:
+        positionStatus === "good"
+          ? "text-emerald-300"
+          : positionStatus === "bad"
+            ? "text-amber-300"
+            : "text-slate-300",
+    },
+    {
+      label: "Fit",
+      value: reasoning.length > 1 ? "reading" : "pending",
+      tone: "text-sky-300",
+    },
+    {
+      label: "Palette",
+      value: isAnalyzing ? "sampling" : reasoning.length ? "ready" : "pending",
+      tone: "text-violet-300",
+    },
+    {
+      label: "Shop",
+      value: suggestions.length > 0 ? "matches" : "context",
+      tone: "text-amber-300",
+    },
+  ];
 
     // ── Session Summary Screen (lazy-loaded) ──
   if (showSummary && sessionSummary) {
@@ -195,40 +233,102 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   // ── Provider Selection Screen ──
   if (!selectedProvider) {
     return (
-      <div className="flex flex-col h-full bg-background p-6">
-        <div className="flex-1 flex flex-col justify-center items-center text-center space-y-8 max-w-md mx-auto">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-black text-foreground tracking-tighter italic">
-              LIVE STYLIST
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              Point your camera at your outfit for instant AI feedback
-            </p>
+      <div className="flex flex-col h-full bg-background p-5 sm:p-6 overflow-y-auto">
+        <div className="flex-1 flex flex-col justify-center items-center text-center gap-7 max-w-2xl mx-auto py-8">
+          <div className="space-y-4">
+            <div className="mx-auto w-16 h-16 rounded-2xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center">
+              <Camera className="w-8 h-8 text-emerald-300" />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-3xl sm:text-4xl font-black text-foreground tracking-tighter italic">
+                LIVE STYLE CAMERA
+              </h1>
+              <p className="text-muted-foreground text-sm max-w-md mx-auto">
+                Open the camera and turn your outfit into fit, palette, critique, and shopping context.
+              </p>
+            </div>
           </div>
 
-          <div className="w-full space-y-4">
+          <div className="w-full grid gap-3 sm:grid-cols-2">
             <button
               onClick={() => {
                 trackProviderSelected({ provider: "venice" });
                 setSelectedProvider("venice");
+                setSessionGoal("daily");
               }}
-              className="w-full text-left p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 border border-emerald-500/30 transition-all group"
+              className="w-full text-left p-5 rounded-2xl bg-card hover:bg-muted/50 border border-border transition-all group"
             >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shrink-0">
-                  <Zap className="w-6 h-6 text-white" />
+              <div className="flex items-start gap-4">
+                <div className="w-11 h-11 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center shrink-0">
+                  <Zap className="w-5 h-5 text-emerald-300" />
                 </div>
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-bold text-foreground group-hover:text-emerald-400 transition-colors">
-                      Quick Style Check
+                      Quick Outfit Check
                     </h3>
-                    <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-500/20 text-emerald-400 rounded-full uppercase">
-                      Free · 60s
+                    <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-500/15 text-emerald-300 rounded-full uppercase">
+                      Fast
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Point your camera, get instant AI feedback on your outfit.
+                    Framing, fit, color read, and one clear next move.
+                  </p>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                trackProviderSelected({ provider: "venice" });
+                setSelectedProvider("venice");
+                setSessionGoal("event");
+              }}
+              className="w-full text-left p-5 rounded-2xl bg-card hover:bg-muted/50 border border-border transition-all group"
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-11 h-11 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0">
+                  <Star className="w-5 h-5 text-amber-300" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-bold text-foreground group-hover:text-amber-300 transition-colors">
+                      Event Prep
+                    </h3>
+                    <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-500/15 text-amber-300 rounded-full uppercase">
+                      Occasion
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Check polish, silhouette, and event fit before you leave.
+                  </p>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                trackProviderSelected({ provider: "venice" });
+                setSelectedProvider("venice");
+                setSessionGoal("critique");
+              }}
+              className="w-full text-left p-5 rounded-2xl bg-card hover:bg-muted/50 border border-border transition-all group"
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-11 h-11 rounded-xl bg-rose-500/15 border border-rose-500/25 flex items-center justify-center shrink-0">
+                  <Eye className="w-5 h-5 text-rose-300" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-bold text-foreground group-hover:text-rose-300 transition-colors">
+                      Honest Critique
+                    </h3>
+                    <span className="px-2 py-0.5 text-[10px] font-bold bg-rose-500/15 text-rose-300 rounded-full uppercase">
+                      Direct
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Find what is not working and what to change first.
                   </p>
                 </div>
               </div>
@@ -238,34 +338,44 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               onClick={() => {
                 trackProviderSelected({ provider: "gemini" });
                 setSelectedProvider("gemini");
+                setSessionGoal("daily");
               }}
-              className="w-full text-left p-5 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 hover:from-indigo-500/20 hover:to-purple-500/20 border border-indigo-500/30 transition-all group"
+              className="w-full text-left p-5 rounded-2xl bg-card hover:bg-muted/50 border border-indigo-500/30 transition-all group"
             >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0">
-                  <Crown className="w-6 h-6 text-white" />
+              <div className="flex items-start gap-4">
+                <div className="w-11 h-11 rounded-xl bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center shrink-0">
+                  <Crown className="w-5 h-5 text-indigo-300" />
                 </div>
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-foreground group-hover:text-indigo-400 transition-colors">
-                      Voice Styling
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-bold text-foreground group-hover:text-indigo-300 transition-colors">
+                      Voice Stylist
                     </h3>
-                    <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-500/20 text-amber-400 rounded-full">
+                    <span className="px-2 py-0.5 text-[10px] font-bold bg-indigo-500/15 text-indigo-300 rounded-full uppercase">
                       Premium
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Talk to your AI stylist in real time with voice + video.
+                    Longer live session with voice-led styling and richer context.
                   </p>
                 </div>
               </div>
             </button>
           </div>
 
-          <div className="w-full bg-muted/50 rounded-xl p-4 border border-border">
-            <p className="text-[10px] text-muted-foreground text-center">
-              Free session gives you 60 seconds of AI analysis. Upgrade for unlimited voice styling.
-            </p>
+          <div className="w-full grid grid-cols-3 gap-2">
+            {[
+              ["Fit", "silhouette"],
+              ["Palette", "colors"],
+              ["Shop", "next piece"],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-xl bg-muted/40 border border-border px-3 py-2 text-left">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+                  {label}
+                </p>
+                <p className="text-xs text-foreground font-medium">{value}</p>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -428,9 +538,90 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           </div>
 
           <div className="w-full flex flex-col gap-4">
+            {selectedProvider === "gemini" && (
+              <div className="w-full rounded-2xl border border-indigo-500/25 bg-indigo-500/10 p-4 text-left space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-500/20 flex items-center justify-center">
+                    <Crown className="h-4 w-4 text-indigo-300" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-foreground">
+                      Voice Stylist access
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Verify a premium session or use your own Gemini key.
+                    </p>
+                  </div>
+                </div>
+
+                {!geminiPaymentToken && !showByokInput && (
+                  <div className="space-y-2">
+                    <GeminiLivePaymentButton
+                      onSuccess={(token: string) => {
+                        setGeminiPaymentToken(token);
+                        setShowPaymentSuccess(true);
+                        setTimeout(() => setShowPaymentSuccess(false), 3000);
+                      }}
+                    />
+                    <button
+                      onClick={() => setShowByokInput(true)}
+                      className="w-full text-center text-xs text-indigo-200/80 hover:text-indigo-100 transition-colors"
+                    >
+                      Use my own API key
+                    </button>
+                  </div>
+                )}
+
+                {showByokInput && (
+                  <div className="space-y-2">
+                    <input
+                      type="password"
+                      value={userApiKey}
+                      onChange={(e) => setUserApiKey(e.target.value)}
+                      placeholder="Enter Gemini API key"
+                      className="w-full px-4 py-3 rounded-xl bg-background/70 border border-indigo-500/25 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-indigo-400"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Your key is only used to start this live session.
+                    </p>
+                  </div>
+                )}
+
+                {showPaymentSuccess && (
+                  <p className="text-xs font-bold text-emerald-300">
+                    Premium session verified.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {error && (
+              <div className="w-full rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-left">
+                <div className="flex items-center gap-2 text-rose-400">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <p className="text-xs font-bold uppercase tracking-wider">Session Error</p>
+                </div>
+                <p className="mt-2 text-sm text-rose-300">{error}</p>
+                {error.toLowerCase().includes("camera") && (
+                  <p className="mt-2 text-xs text-rose-300/70">
+                    Make sure you allow camera access and are on HTTPS.
+                  </p>
+                )}
+                {error.toLowerCase().includes("rate limit") && (
+                  <p className="mt-2 text-xs text-rose-300/70">
+                    Wait a minute and try again, or switch to Premium for unlimited sessions.
+                  </p>
+                )}
+              </div>
+            )}
+
             <Button
               className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-full py-6 text-lg font-bold shadow-xl shadow-indigo-500/20"
-              disabled={!selectedPersona}
+              disabled={
+                !selectedPersona ||
+                isInitializing ||
+                (selectedProvider === "gemini" && !geminiPaymentToken && !userApiKey.trim())
+              }
               onClick={async () => {
                 setInitStep("connecting");
                 await new Promise((r) => setTimeout(r, 300));
@@ -444,15 +635,25 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 );
               }}
             >
-              ACTIVATE {selectedPersona?.toUpperCase() || "AGENT"}
+              {isInitializing ? (
+                <span className="flex items-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  {initStep === "connecting" ? "Connecting..." : initStep === "authenticating" ? "Authenticating..." : "Starting..."}
+                </span>
+              ) : (
+                <>START LIVE SCAN</>
+              )}
             </Button>
 
             <Button
               variant="ghost"
               className="text-muted-foreground hover:text-foreground"
-              onClick={() => setSessionGoal(null)}
+              onClick={() => {
+                setSelectedProvider(null);
+                setSessionGoal(null);
+              }}
             >
-              Back to Goal Selection
+              Back to Camera Modes
             </Button>
           </div>
         </div>
@@ -805,6 +1006,76 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 </div>
               </div>
             )}
+
+            {isConnected && (
+              <>
+                <div className="absolute inset-0 z-[22] pointer-events-none flex items-center justify-center px-8">
+                  <div
+                    className={`relative w-full max-w-[340px] sm:max-w-[420px] aspect-[3/4] rounded-[2rem] border ${
+                      positionStatus === "good"
+                        ? "border-emerald-300/45"
+                        : positionStatus === "bad"
+                          ? "border-amber-300/50"
+                          : "border-white/20"
+                    }`}
+                  >
+                    <div className="absolute -top-1 -left-1 w-10 h-10 border-t-2 border-l-2 border-white/50 rounded-tl-[2rem]" />
+                    <div className="absolute -top-1 -right-1 w-10 h-10 border-t-2 border-r-2 border-white/50 rounded-tr-[2rem]" />
+                    <div className="absolute -bottom-1 -left-1 w-10 h-10 border-b-2 border-l-2 border-white/50 rounded-bl-[2rem]" />
+                    <div className="absolute -bottom-1 -right-1 w-10 h-10 border-b-2 border-r-2 border-white/50 rounded-br-[2rem]" />
+                  </div>
+                </div>
+
+                <div className="absolute left-3 right-3 sm:left-6 sm:right-auto sm:w-[360px] bottom-5 z-[45] pointer-events-none">
+                  <div className="rounded-2xl border border-white/10 bg-black/55 backdrop-blur-2xl p-3 sm:p-4 shadow-2xl">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider text-white/45 font-bold">
+                          Live style state
+                        </p>
+                        <p className="text-sm font-bold text-white">
+                          {liveModeLabel}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
+                        <span className="text-[10px] uppercase tracking-wider text-emerald-200 font-bold">
+                          seeing
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-4 gap-2">
+                      {scanSignals.map((signal) => (
+                        <div
+                          key={signal.label}
+                          className="rounded-xl bg-white/[0.06] border border-white/10 px-2 py-2 min-w-0"
+                        >
+                          <p className="text-[9px] uppercase tracking-wider text-white/40 font-bold truncate">
+                            {signal.label}
+                          </p>
+                          <p className={`mt-0.5 text-[11px] font-bold truncate ${signal.tone}`}>
+                            {signal.value}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-3 flex items-center gap-2">
+                      <div className="flex -space-x-1">
+                        <span className="w-4 h-4 rounded-full bg-slate-100 border border-white/30" />
+                        <span className="w-4 h-4 rounded-full bg-stone-500 border border-white/30" />
+                        <span className="w-4 h-4 rounded-full bg-indigo-500 border border-white/30" />
+                        <span className="w-4 h-4 rounded-full bg-emerald-500 border border-white/30" />
+                      </div>
+                      <p className="text-[10px] text-white/55 truncate">
+                        Palette and catalog context update as frames arrive.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </>
         )}
 
@@ -927,11 +1198,11 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 </div>
                 <div className="flex-1">
                   <h4 className="text-foreground font-bold text-xs uppercase tracking-wider">
-                    Style Capture Active
+                    Live Style Context
                   </h4>
                   <p className="text-muted-foreground text-[10px] leading-snug">
-                    The AI is analyzing your silhouettes. Use the Timer to step
-                    back and capture full poses.
+                    Step back until framing locks. The camera builds fit, palette,
+                    and shopping context as frames arrive.
                   </p>
                 </div>
                 <button
@@ -1007,10 +1278,10 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 <PersonaIcon className="w-3 h-3 text-white" />
               </div>
               <span className="text-[10px] text-slate-300 font-medium">
-                AI Stylist Active
+                Style Camera Active
               </span>
               <span className="text-[9px] font-mono text-slate-500 uppercase tracking-wider">
-                {selectedProvider === "gemini" ? "Gemini Live" : "Venice AI"}
+                {selectedProvider === "gemini" ? "Premium" : "Quick"}
               </span>
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             </motion.div>
@@ -1027,7 +1298,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             >
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-[9px] text-slate-400 font-medium">
-                {selectedProvider === "gemini" ? "GEMINI" : "VENICE"}
+                {selectedProvider === "gemini" ? "PREMIUM" : "QUICK"}
               </span>
             </motion.div>
           </div>
@@ -1194,6 +1465,15 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
         </div>
 
         <div className="flex gap-2 items-center">
+          <Button
+            variant="ghost"
+            onClick={openCart}
+            className="hidden sm:flex h-12 rounded-full bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-100 px-4 gap-2"
+          >
+            <ShoppingBag className="w-4 h-4" />
+            <span className="text-xs font-bold">Shop gaps</span>
+          </Button>
+
           <Button
             variant="ghost"
             size="icon"

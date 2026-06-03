@@ -435,7 +435,7 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
     }
   }, [initialPersona, critiqueResult, initialCuratorSlug]);
 
-  const handleShopRecommendations = useCallback(() => {
+  const handleShopRecommendations = useCallback(async () => {
     if (!analysis) return;
 
     if (typeof window !== 'undefined') {
@@ -480,7 +480,7 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
       }));
       window.location.href = '/shop';
     }
-  }, [analysis, selectedPersona]);
+  }, [analysis, previewUrl, selectedPersona, selectedPhotoData]);
 
   const handleReset = useCallback(() => {
     // Track abandoned deep-link persona sessions

@@ -32,28 +32,33 @@ export function useVeniceLive() {
     }
   }, []);
 
+  const releaseStream = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  }, []);
+
+  const endProvisionedSession = useCallback(() => {
+    fetch("/api/ai/live-session/end", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider: "venice" }),
+      keepalive: true,
+    }).catch(() => {});
+  }, []);
+
   const startSession = useCallback(
     async (sessionGoal?: string, userApiKey?: string, persona?: string) => {
+      let provisioned = false;
       try {
         setIsInitializing(true);
         setError(null);
         setSessionExpired(false);
         setSessionTimeRemaining(VENICE_FREE_SESSION_SECONDS);
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error("Camera access is not supported in this browser or over non-secure context (HTTP). Please use HTTPS.");
-        }
-
-
-        // Get user media for video
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 1280, height: 720, facingMode: "user" },
-          audio: false, // Venice doesn't support audio
-        });
-        streamRef.current = stream;
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
 
         // Verify session can be started (rate limiting check)
         const response = await fetch("/api/ai/live-session", {
@@ -69,6 +74,22 @@ export function useVeniceLive() {
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.error || "Failed to connect to Venice AI");
+        }
+        provisioned = true;
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error("Camera access is not supported in this browser or over non-secure context (HTTP). Please use HTTPS.");
+        }
+
+        // Get user media for video after the backend accepts the session.
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 1280, height: 720, facingMode: "user" },
+          audio: false, // Venice doesn't support audio
+        });
+        streamRef.current = stream;
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
         }
 
         // Create Venice Live provider (uses backend proxy, no API key needed)
@@ -115,13 +136,8 @@ export function useVeniceLive() {
                 sessionRef.current.disconnect();
                 sessionRef.current = null;
               }
-              if (streamRef.current) {
-                streamRef.current.getTracks().forEach((track) => track.stop());
-                streamRef.current = null;
-              }
-              if (videoRef.current) {
-                videoRef.current.srcObject = null;
-              }
+              releaseStream();
+              endProvisionedSession();
               setIsConnected(false);
               return 0;
             }
@@ -145,13 +161,18 @@ export function useVeniceLive() {
       } catch (err: unknown) {
         const errorMessage =
           err instanceof Error ? err.message : "Failed to start live session";
+        releaseStream();
+        if (provisioned) {
+          endProvisionedSession();
+        }
         setError(errorMessage);
         console.error(err);
+        throw err instanceof Error ? err : new Error(errorMessage);
       } finally {
         setIsInitializing(false);
       }
     },
-    [clearTimer],
+    [clearTimer, endProvisionedSession, releaseStream],
   );
 
   const stopSession = useCallback(() => {
@@ -164,13 +185,8 @@ export function useVeniceLive() {
       sessionRef.current.disconnect();
       sessionRef.current = null;
     }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
+    releaseStream();
+    endProvisionedSession();
     setIsConnected(false);
     setTranscript("");
     setAiResponse("");
@@ -178,7 +194,7 @@ export function useVeniceLive() {
     setAgentEvents([]);
     setSessionTimeRemaining(VENICE_FREE_SESSION_SECONDS);
     setSessionExpired(false);
-  }, [clearTimer]);
+  }, [clearTimer, endProvisionedSession, releaseStream]);
 
   return {
     isConnected,

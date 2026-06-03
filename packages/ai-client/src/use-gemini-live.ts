@@ -15,29 +15,34 @@ export function useGeminiLive() {
   const streamRef = useRef<MediaStream | null>(null);
   const sessionRef = useRef<LiveSession | null>(null);
   const frameIntervalRef = useRef<number | null>(null);
+
+  const releaseStream = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  }, []);
+
+  const endProvisionedSession = useCallback(() => {
+    fetch('/api/ai/live-session/end', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider: 'gemini' }),
+      keepalive: true,
+    }).catch(() => {});
+  }, []);
   
   const startSession = useCallback(async (sessionGoal?: string, userApiKey?: string, persona?: string) => {
+    let provisioned = false;
     try {
       setIsInitializing(true);
       setError(null);
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error("Camera access is not supported in this browser or over non-secure context (HTTP). Please use HTTPS.");
-      }
 
-      
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 1280, height: 720, facingMode: 'user' },
-        audio: true
-      });
-      streamRef.current = stream;
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-      
-      // Fetch provisioned config from backend
-      const apiBase = process.env.NEXT_PUBLIC_AGENT_API_URL || '';
-      const response = await fetch(`${apiBase}/api/ai/live-session`, {
+      // Always use the app-local API route so the server-side proxy can inject auth.
+      const response = await fetch('/api/ai/live-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -48,8 +53,25 @@ export function useGeminiLive() {
         })
       });
       const { config, error: provError } = await response.json().catch(() => ({}));
-      if (provError || !config) throw new Error(provError || 'Failed to provision session');
+      if (!response.ok || provError || !config) {
+        throw new Error(provError || 'Failed to provision Gemini session');
+      }
+      provisioned = true;
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Camera access is not supported in this browser or over non-secure context (HTTP). Please use HTTPS.");
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 1280, height: 720, facingMode: 'user' },
+        audio: true
+      });
+      streamRef.current = stream;
       
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+
       const provider = new GeminiLiveProvider({
         apiKey: config.apiKey,
         httpOptions: { baseUrl: config.baseURL, systemInstruction: config.systemInstruction }
@@ -83,12 +105,18 @@ export function useGeminiLive() {
       }, 1000);
       
     } catch (err: any) {
-      setError(err.message || 'Failed to start live session');
+      releaseStream();
+      if (provisioned) {
+        endProvisionedSession();
+      }
+      const message = err.message || 'Failed to start live session';
+      setError(message);
       console.error(err);
+      throw err instanceof Error ? err : new Error(message);
     } finally {
       setIsInitializing(false);
     }
-  }, []);
+  }, [endProvisionedSession, releaseStream]);
   
   const stopSession = useCallback(() => {
     if (frameIntervalRef.current) {
@@ -99,19 +127,14 @@ export function useGeminiLive() {
       sessionRef.current.disconnect();
       sessionRef.current = null;
     }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
+    releaseStream();
+    endProvisionedSession();
     setIsConnected(false);
     setTranscript('');
     setAiResponse('');
     setReasoning([]);
     setAgentEvents([]);
-  }, []);
+  }, [endProvisionedSession, releaseStream]);
   
   return {
     isConnected,
@@ -123,6 +146,7 @@ export function useGeminiLive() {
     agentEvents,
     videoRef,
     startSession,
-    stopSession
+    stopSession,
+    provider: 'gemini' as const,
   };
 }

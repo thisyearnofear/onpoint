@@ -1,7 +1,10 @@
 import { proxyToHetzner } from "@/lib/utils/proxy-to-hetzner";
 
 export async function POST(request: Request) {
-  return proxyToHetzner(request, "/api/ai/live-session", "geminiSession");
+  const body = await request.clone().json().catch(() => ({}));
+  const tier = body?.provider === "venice" ? "veniceFree" : "geminiSession";
+
+  return proxyToHetzner(request, "/api/ai/live-session", tier);
 }
 
 export async function OPTIONS() {

@@ -59,7 +59,6 @@ const nextConfig = {
       { source: '/api/ai/virtual-tryon', destination: `${hetzner}/api/ai/virtual-tryon` },
       { source: '/api/ai/analyze-person', destination: `${hetzner}/api/ai/analyze-person` },
       { source: '/api/ai/venice-analyze', destination: `${hetzner}/api/ai/venice-analyze` },
-      { source: '/api/ai/live-session', destination: `${hetzner}/api/ai/live-session` },
       { source: '/api/ai/agent', destination: `${hetzner}/api/ai/agent` },
       { source: '/api/agent/catalog', destination: `${hetzner}/api/agent/catalog` },
       { source: '/api/agent/curated-shop', destination: `${hetzner}/api/agent/curated-shop` },

@@ -133,14 +133,14 @@ export function useLiveSession() {
   );
 
   // Persist provider preference
-  const handleSetProvider = (provider: AIProvider | null) => {
+  const handleSetProvider = useCallback((provider: AIProvider | null) => {
     setSelectedProvider(provider);
     if (provider) {
       localStorage.setItem("onpoint_preferred_provider", provider);
     } else {
       localStorage.removeItem("onpoint_preferred_provider");
     }
-  };
+  }, []);
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
   const [sessionGoal, setSessionGoal] = useState<SessionGoal>(null);
   const [initStep, setInitStep] = useState<string>("connecting");
@@ -185,7 +185,6 @@ export function useLiveSession() {
     isInitializing,
     error,
     videoRef,
-    startSession: providerStartSession,
     stopSession,
     transcript,
     aiResponse: liveAiResponse,
@@ -899,13 +898,52 @@ export function useLiveSession() {
     async (goal: SessionGoal, apiKey?: string, persona?: string) => {
       setSessionGoal(goal);
       if (persona) setSelectedPersona(persona);
-      await providerStartSession(
-        goal ?? undefined,
-        apiKey || undefined,
-        persona || undefined,
-      );
+      const primaryProvider = selectedProvider ?? "venice";
+      const fallbackProvider = primaryProvider === "gemini" ? "venice" : "gemini";
+      const isCameraError = (message: string) =>
+        /camera|permission|mediaDevices|getUserMedia|notallowed|notfound|secure context/i.test(
+          message,
+        );
+      const shouldFallback =
+        fallbackProvider === "venice" ||
+        Boolean(apiKey && apiKey.trim().length > 0);
+
+      const startWithProvider = async (provider: AIProvider) => {
+        const starter =
+          provider === "venice" ? venice.startSession : gemini.startSession;
+        await starter(goal ?? undefined, apiKey || undefined, persona || undefined);
+      };
+
+      try {
+        await startWithProvider(primaryProvider);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to start live session";
+
+        if (!shouldFallback || isCameraError(message)) {
+          return;
+        }
+
+        handleSetProvider(fallbackProvider);
+        setInitStep("authenticating");
+
+        // Let React attach the fallback provider's video ref before it opens the camera.
+        await new Promise<void>((resolve) => {
+          if (typeof window === "undefined") {
+            resolve();
+            return;
+          }
+          window.requestAnimationFrame(() => resolve());
+        });
+
+        try {
+          await startWithProvider(fallbackProvider);
+        } catch {
+          return;
+        }
+      }
     },
-    [providerStartSession],
+    [gemini.startSession, handleSetProvider, selectedProvider, venice.startSession],
   );
 
   // ── Derived ──
