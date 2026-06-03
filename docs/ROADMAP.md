@@ -29,8 +29,14 @@ Reframes OnPoint from "consumer AI stylist" to "curator-first styling platform" 
 - Self-serve Curator onboarding at `/curator/onboard`
 - Cross-Curator recommendations with attribution
 
+**Completed:**
+- [x] Wanja seeded into `curators` config (10 Premier League/La Liga SKUs with M-Pesa pricing)
+- [x] `/s/[slug]` storefront with working WhatsApp + M-Pesa checkout
+- [x] `/s/[slug]/intel` curator intelligence page (retail signals, funnel stats, market products)
+- [x] On-chain economics panel in `/lab` (sub-cent tx cost proof, Celo wallet link)
+- [x] Intelligence link in storefront header
+
 **Remaining tasks:**
-- [ ] Wanja seeded into `curators` table (top 10 SKUs as `listings`)
 - [ ] Twilio number + Meta WhatsApp Business registration
 - [ ] Meta Business verification + outbound message templates
 - [ ] Delete global `CATALOG`, scope reads by Curator slug
@@ -87,18 +93,18 @@ The WhatsApp chat-ops + storefront flow is the strongest "real-world" demo.
 - [ ] `/s/[slug]` storefront with working WhatsApp checkout deep links
 - [ ] End-to-end demo: customer visits storefront → try-on → buy via WhatsApp
 
-### Priority 2: Surface Retail Intelligence (10% of effort)
+### Priority 2: Surface Retail Intelligence (10% of effort) ✅ Done
 Turn styling sessions into commercial feedback for curators.
 
-- [ ] Curator dashboard showing product gap signals from storefront visitors
-- [ ] Competitor pricing from Bright Data on curator intel page
-- [ ] Recommended merchandising actions backed by live web evidence
+- [x] `/s/[slug]/intel` page showing product gap signals from storefront visitors
+- [x] Competitor pricing from Bright Data on curator intel page
+- [x] Recommended merchandising actions backed by live web evidence
 
-### Priority 3: Prove On-Chain Economics (10% of effort)
+### Priority 3: Prove On-Chain Economics (10% of effort) ✅ Done
 Document and demonstrate Celo's sub-cent advantage.
 
-- [ ] `/lab` dashboard showing live tx costs from recent agent actions
-- [ ] Document average gas costs: agent shopping, receipts, commission splits
+- [x] On-Chain Economics panel in `/lab` showing live tx costs from recent agent actions
+- [x] Average gas costs displayed: agent shopping, receipts, commission splits
 - [ ] Trust protocol integration for portable on-chain identity
 
 ### Competitive Advantages Already Shipped
