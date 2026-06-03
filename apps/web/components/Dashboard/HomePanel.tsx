@@ -16,6 +16,7 @@ import {
 import { Button } from "@repo/ui/button";
 import { AgentActivityFeed } from "../Agent/AgentActivityFeed";
 import { MissionsPanel } from "../Agent/MissionsPanel";
+import { OnChainEconomics } from "./OnChainEconomics";
 
 interface HomePanelProps {
   onNavigate: (mode: string) => void;
@@ -84,6 +85,9 @@ export function HomePanel({ onNavigate }: HomePanelProps) {
 
       {/* Agent Activity — persistent across sessions */}
       <AgentActivityFeed onShop={() => onNavigate("shop")} />
+
+      {/* On-Chain Economics — sub-cent tx cost proof */}
+      <OnChainEconomics />
 
       {/* Progressive Disclosure - Collapsible Sections */}
       <details

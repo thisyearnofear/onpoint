@@ -1,0 +1,124 @@
+{
+  "slug": "wanja",
+  "name": "Wanja",
+  "type": "human",
+  "avatar": "https://api.dicebear.com/9.x/avataaars/svg?seed=Wanja&backgroundColor=dc2626",
+  "verticals": ["football", "premier-league", "jerseys", "sportswear"],
+  "channels": {
+    "whatsapp": "+254712345678",
+    "instagram": "@wanja.kits"
+  },
+  "brand": {
+    "colors": { "primary": "#dc2626", "accent": "#b91c1c" },
+    "shareCopy": "Fresh kits from Wanja! Try on the {club} {kit_type} and DM me to cop. — Wanja ⚽",
+    "location": { "city": "Nairobi", "landmark": "Ngara" }
+  },
+  "commerce": {
+    "checkout": "whatsapp",
+    "whatsappTemplate": "Hi Wanja, I'd like to order the {club} {kit_type} kit in size {size} — KES {price}. {printing}",
+    "mpesaNumber": "+254712345678",
+    "revShare": 0.05
+  },
+  "listings": [
+    {
+      "id": "arsenal-2425-home",
+      "kit": { "club": "Arsenal", "season": "2024/25", "kitType": "home", "crestUrl": null },
+      "sizes": [
+        { "size": "S", "stock": 5, "price": 2500, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "M", "stock": 8, "price": 2500, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "L", "stock": 6, "price": 2500, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "XL", "stock": 3, "price": 2700, "printingAvailable": true, "printingPrice": 500 }
+      ]
+    },
+    {
+      "id": "arsenal-2425-away",
+      "kit": { "club": "Arsenal", "season": "2024/25", "kitType": "away", "crestUrl": null },
+      "sizes": [
+        { "size": "S", "stock": 4, "price": 2500, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "M", "stock": 7, "price": 2500, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "L", "stock": 5, "price": 2500, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "XL", "stock": 2, "price": 2700, "printingAvailable": true, "printingPrice": 500 }
+      ]
+    },
+    {
+      "id": "chelsea-2425-home",
+      "kit": { "club": "Chelsea", "season": "2024/25", "kitType": "home", "crestUrl": null },
+      "sizes": [
+        { "size": "S", "stock": 3, "price": 2500, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "M", "stock": 6, "price": 2500, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "L", "stock": 5, "price": 2500, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "XL", "stock": 2, "price": 2700, "printingAvailable": true, "printingPrice": 500 }
+      ]
+    },
+    {
+      "id": "man-utd-2425-home",
+      "kit": { "club": "Manchester United", "season": "2024/25", "kitType": "home", "crestUrl": null },
+      "sizes": [
+        { "size": "S", "stock": 4, "price": 2500, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "M", "stock": 9, "price": 2500, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "L", "stock": 6, "price": 2500, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "XL", "stock": 3, "price": 2700, "printingAvailable": true, "printingPrice": 500 }
+      ]
+    },
+    {
+      "id": "liverpool-2425-home",
+      "kit": { "club": "Liverpool", "season": "2024/25", "kitType": "home", "crestUrl": null },
+      "sizes": [
+        { "size": "S", "stock": 3, "price": 2500, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "M", "stock": 7, "price": 2500, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "L", "stock": 5, "price": 2500, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "XL", "stock": 4, "price": 2700, "printingAvailable": true, "printingPrice": 500 }
+      ]
+    },
+    {
+      "id": "man-city-2425-home",
+      "kit": { "club": "Manchester City", "season": "2024/25", "kitType": "home", "crestUrl": null },
+      "sizes": [
+        { "size": "S", "stock": 2, "price": 2500, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "M", "stock": 5, "price": 2500, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "L", "stock": 4, "price": 2500, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "XL", "stock": 2, "price": 2700, "printingAvailable": true, "printingPrice": 500 }
+      ]
+    },
+    {
+      "id": "barcelona-2425-home",
+      "kit": { "club": "Barcelona", "season": "2024/25", "kitType": "home", "crestUrl": null },
+      "sizes": [
+        { "size": "S", "stock": 3, "price": 2800, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "M", "stock": 6, "price": 2800, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "L", "stock": 4, "price": 2800, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "XL", "stock": 2, "price": 3000, "printingAvailable": true, "printingPrice": 500 }
+      ]
+    },
+    {
+      "id": "real-madrid-2425-home",
+      "kit": { "club": "Real Madrid", "season": "2024/25", "kitType": "home", "crestUrl": null },
+      "sizes": [
+        { "size": "S", "stock": 4, "price": 2800, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "M", "stock": 8, "price": 2800, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "L", "stock": 5, "price": 2800, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "XL", "stock": 3, "price": 3000, "printingAvailable": true, "printingPrice": 500 }
+      ]
+    },
+    {
+      "id": "psg-2425-home",
+      "kit": { "club": "PSG", "season": "2024/25", "kitType": "home", "crestUrl": null },
+      "sizes": [
+        { "size": "S", "stock": 2, "price": 2800, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "M", "stock": 5, "price": 2800, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "L", "stock": 3, "price": 2800, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "XL", "stock": 1, "price": 3000, "printingAvailable": true, "printingPrice": 500 }
+      ]
+    },
+    {
+      "id": "tottenham-2425-home",
+      "kit": { "club": "Tottenham", "season": "2024/25", "kitType": "home", "crestUrl": null },
+      "sizes": [
+        { "size": "S", "stock": 3, "price": 2500, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "M", "stock": 5, "price": 2500, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "L", "stock": 4, "price": 2500, "printingAvailable": true, "printingPrice": 500 },
+        { "size": "XL", "stock": 2, "price": 2700, "printingAvailable": true, "printingPrice": 500 }
+      ]
+    }
+  ]
+}

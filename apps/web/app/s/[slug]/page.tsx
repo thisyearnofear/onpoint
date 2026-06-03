@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { CSSProperties } from "react";
 import {
   ArrowLeft,
+  BarChart3,
   Camera,
   Handshake,
   MapPin,
@@ -206,6 +207,13 @@ export default async function CuratorStorefrontPage({
             OnPoint
           </Link>
           <div className="flex items-center gap-2">
+            <Link
+              href={`/s/${slug}/intel`}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <BarChart3 className="h-3.5 w-3.5" />
+              Intelligence
+            </Link>
             <ShareStorefront
               curatorSlug={slug}
               curatorName={curator.name}
