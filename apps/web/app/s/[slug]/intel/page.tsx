@@ -142,7 +142,7 @@ export default function CuratorIntelPage() {
   const [intel, setIntel] = useState<IntelligenceData | null>(null);
   const [intelLoading, setIntelLoading] = useState(false);
   const [intelError, setIntelError] = useState<string | null>(null);
-  const [activeQuery, setActiveQuery] = useState(SEARCH_QUERIES[0]);
+  const [activeQuery, setActiveQuery] = useState<string>(SEARCH_QUERIES[0] ?? "");
   const [customQuery, setCustomQuery] = useState("");
 
   useEffect(() => {
