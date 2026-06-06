@@ -10,6 +10,9 @@
  * Redis keys:
  *   market:signals:recent        — LIST, capped 200, TTL 24h
  *   market:signals:matched:{uid} — LIST, capped 50,  TTL 7d
+ *   market:prices:v2             — HASH, itemKey → JSON price record (Tier 3)
+ *   market:drops:v2              — LIST, capped 500, TTL 7d (Tier 3)
+ *   market:drops:{uid}           — LIST, capped 50,  TTL 7d (Tier 3)
  */
 
 const express = require('express');
@@ -38,6 +41,12 @@ function getRedis() {
 const DEFAULT_AGENT_ID = 'onpoint-stylist';
 const DEFAULT_USER_ID = 'system-worker';
 
+// Tier 3: Autonomous commerce — price tracking + drop detection
+const PRICE_TRACK_KEY = 'market:prices:v2';                   // Hash: itemKey → { price, lastSeen, ... }
+const DROPS_GLOBAL_KEY = 'market:drops:v2';                   // List: capped 500, TTL 7d
+const USER_DROPS_PREFIX = 'market:drops:';                     // List: market:drops:{userId}, capped 50, TTL 7d
+const PRICE_DROP_THRESHOLD = parseFloat(process.env.PRICE_DROP_THRESHOLD) || 0.10; // >=10%
+
 const ACTIVE_USERS_KEY = 'agent:active-users';
 const ACTIVE_USERS_TTL = 60 * 60 * 24 * 7; // 7d
 
@@ -56,6 +65,259 @@ const TRENDING_QUERIES = [
   'sustainable fashion brands',
   'sale luxury fashion',
 ];
+
+// ── Tier 3: Price Tracking + Drop Detection ──
+
+/**
+ * Build a stable item key for price tracking.
+ */
+function itemKey(name, source, url) {
+  return `${name || ''}|${source || ''}|${url || ''}`;
+}
+
+/**
+ * Update price history for a batch of signals.
+ * Returns previous prices so the caller can detect drops.
+ */
+async function updatePriceHistory(signals) {
+  const redis = getRedis();
+  if (!signals.length) return [];
+
+  const pipeline = redis.pipeline();
+  const prevPrices = [];
+
+  for (const signal of signals) {
+    const key = itemKey(signal.name, signal.source, signal.url);
+    if (!key) continue;
+
+    // Fetch existing
+    const existingRaw = await redis.hget(PRICE_TRACK_KEY, key);
+    const now = new Date().toISOString();
+
+    let entry;
+    if (existingRaw) {
+      try {
+        entry = JSON.parse(existingRaw);
+        prevPrices.push({ signal, oldPrice: parseFloat(entry.price) });
+      } catch {
+        prevPrices.push({ signal, oldPrice: null });
+      }
+    } else {
+      prevPrices.push({ signal, oldPrice: null });
+    }
+
+    const newEntry = {
+      name: signal.name,
+      source: signal.source,
+      url: signal.url,
+      image_url: signal.image_url,
+      query: signal.query,
+      currency: signal.currency || 'USD',
+      price: signal.price,
+      oldPrice: entry?.price || null,
+      firstSeen: entry?.firstSeen || now,
+      lastSeen: now,
+      seenCount: (entry?.seenCount || 0) + 1,
+    };
+
+    pipeline.hset(PRICE_TRACK_KEY, key, JSON.stringify(newEntry));
+  }
+
+  await pipeline.exec();
+  return prevPrices;
+}
+
+/**
+ * Detect significant price drops from updated signals.
+ * Returns array of drop objects: { signal, oldPrice, newPrice, dropPercent }
+ */
+function findPriceDrops(signals, prevPrices) {
+  const drops = [];
+
+  for (const { signal, oldPrice } of prevPrices) {
+    if (oldPrice === null || oldPrice <= 0) continue;
+
+    const newPrice = parseFloat(signal.price);
+    if (newPrice <= 0 || newPrice >= oldPrice) continue;
+
+    const dropPercent = (oldPrice - newPrice) / oldPrice;
+    if (dropPercent >= PRICE_DROP_THRESHOLD) {
+      drops.push({
+        name: signal.name,
+        source: signal.source,
+        url: signal.url,
+        image_url: signal.image_url,
+        query: signal.query,
+        currency: signal.currency,
+        newPrice,
+        oldPrice,
+        dropPercent: Math.round(dropPercent * 100),
+        discoveredAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  return drops;
+}
+
+/**
+ * Store price drops in Redis (global + per-user lists).
+ */
+async function storePriceDrops(drops, userIds = []) {
+  if (!drops.length) return 0;
+
+  const redis = getRedis();
+  const pipeline = redis.pipeline();
+
+  for (const drop of drops) {
+    const dropJson = JSON.stringify(drop);
+    pipeline.lpush(DROPS_GLOBAL_KEY, dropJson);
+
+    // Per-user drops
+    for (const userId of userIds) {
+      const userKey = `${USER_DROPS_PREFIX}${userId}`;
+      pipeline.lpush(userKey, dropJson);
+      pipeline.ltrim(userKey, 0, 49);
+      pipeline.expire(userKey, 60 * 60 * 24 * 7);
+    }
+  }
+
+  pipeline.ltrim(DROPS_GLOBAL_KEY, 0, 499);
+  pipeline.expire(DROPS_GLOBAL_KEY, 60 * 60 * 24 * 7);
+  await pipeline.exec();
+
+  return drops.length;
+}
+
+/**
+ * Attempt an autonomous purchase for a matched price drop.
+ * Checks budget, creates an external_purchase suggestion, and
+ * auto-executes if within the user's autonomy threshold.
+ */
+async function autoBuy(userId, drop, agentId = DEFAULT_AGENT_ID) {
+  try {
+    await agentCore.AgentControls.initStore(agentId, userId);
+
+    // Score the drop against user's style preferences for context
+    const prefs = agentCore.AgentControls.getStylePreferences(userId);
+    const dropWithPrice = { ...drop, price: drop.newPrice }; // scoreSignal reads signal.price
+    const scoreResult = scoreSignal(dropWithPrice, prefs);
+
+    const amount = `$${drop.newPrice}`;
+    const description = `Price drop! ${drop.name} — $${drop.oldPrice} → $${drop.newPrice} (${drop.dropPercent}% off)`;
+
+    // Create the suggestion — AgentControls handles autonomy check internally
+    const { suggestion, autoExecuted } = agentCore.AgentControls.suggestAction({
+      agentId,
+      userId,
+      actionType: 'external_purchase',
+      amount,
+      description,
+      recipient: userId,
+      metadata: {
+        source: 'price-drop',
+        dropPercent: drop.dropPercent,
+        oldPrice: drop.oldPrice,
+        newPrice: drop.newPrice,
+        productUrl: drop.url,
+        productImage: drop.image_url,
+        productName: drop.name,
+        productSource: drop.source,
+        matchScore: scoreResult.score,
+        matchReasons: scoreResult.reasons,
+      },
+    });
+
+    // Record verifiable receipt if auto-executed
+    if (autoExecuted) {
+      try {
+        await agentCore.recordReceipt({
+          action: 'propose_mint_nft',
+          sessionId: suggestion.id,
+          metadata: {
+            type: 'auto_buy_price_drop',
+            productName: drop.name,
+            productUrl: drop.url,
+            oldPrice: drop.oldPrice,
+            newPrice: drop.newPrice,
+            dropPercent: drop.dropPercent,
+            userId,
+          },
+          chain: 'celo',
+          onChain: false,
+        });
+        logger.info(`Auto-buy executed: ${drop.name} for ${userId}`, {
+          component: 'tasks',
+          userId,
+          suggestionId: suggestion.id,
+          dropPercent: drop.dropPercent,
+        });
+      } catch (receiptErr) {
+        logger.warn(`Auto-buy receipt failed for ${userId}`, { component: 'tasks' }, receiptErr);
+      }
+    }
+
+    return {
+      success: true,
+      suggestionId: suggestion.id,
+      autoExecuted,
+      description,
+      requiresApproval: !autoExecuted,
+    };
+  } catch (err) {
+    logger.error(`Auto-buy failed for ${userId}`, { component: 'tasks' }, err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Run the full Tier 3 commerce pipeline for a set of users:
+ * 1. Update price history 2. Detect drops 3. Store drops 4. Auto-buy
+ */
+async function runCommercePipeline(signals, userIds) {
+  const startTime = Date.now();
+
+  // Step 1: Update price history, get previous prices
+  const prevPrices = await updatePriceHistory(signals);
+
+  // Step 2: Detect drops
+  const drops = findPriceDrops(signals, prevPrices);
+
+  if (!drops.length) {
+    return { dropsFound: 0, autoBuyResults: [], elapsedMs: Date.now() - startTime };
+  }
+
+  logger.info(`Commerce: ${drops.length} price drop(s) detected`, {
+    component: 'tasks',
+    dropCount: drops.length,
+  });
+
+  // Step 3: Store drops globally
+  await storePriceDrops(drops, userIds);
+
+  // Step 4: Auto-buy for active users
+  const autoBuyResults = [];
+  for (const userId of userIds) {
+    // Load user's style prefs to see if they'd be interested
+    await agentCore.AgentControls.initStore(DEFAULT_AGENT_ID, userId);
+    const prefs = agentCore.AgentControls.getStylePreferences(userId);
+
+    for (const drop of drops) {
+      const score = scoreSignal(drop, prefs);
+      if (!score.matched) continue;
+
+      const result = await autoBuy(userId, drop);
+      autoBuyResults.push({ userId, dropName: drop.name, ...result });
+    }
+  }
+
+  return {
+    dropsFound: drops.length,
+    drops,
+    autoBuyResults,
+    elapsedMs: Date.now() - startTime,
+  };
+}
 
 // ── Helpers ──
 
@@ -429,6 +691,9 @@ router.post('/market-signals', async (req, res) => {
       matchResults.push(result);
     }
 
+    // Tier 3: Autonomous commerce — price tracking, drop detection, auto-buy
+    const commerceResult = await runCommercePipeline(signals, matchUserIds);
+
     res.json({
       success: true,
       queriesProcessed: queries.length,
@@ -436,6 +701,10 @@ router.post('/market-signals', async (req, res) => {
       stored,
       matchedUsers: matchResults.length,
       matchResults,
+      dropsFound: commerceResult.dropsFound,
+      drops: commerceResult.drops,
+      autoBuyResults: commerceResult.autoBuyResults,
+      commerceElapsedMs: commerceResult.elapsedMs,
       elapsedMs: Date.now() - startTime,
     });
   } catch (error) {
@@ -528,6 +797,58 @@ router.get('/active-users', async (req, res) => {
   } catch (error) {
     logger.error('Tasks active-users error', { component: 'tasks' }, error);
     res.status(500).json({ success: false, error: 'Failed to get active users' });
+  }
+});
+
+// ── POST /api/agent/tasks/auto-buy — Autonomous purchase for a price drop ──
+// Body: { userId, drop: { name, source, url, newPrice, ... } }
+
+router.post('/auto-buy', async (req, res) => {
+  const startTime = Date.now();
+  const { userId, drop } = req.body;
+
+  if (!userId || !drop) {
+    return res.status(400).json({ success: false, error: 'userId and drop are required' });
+  }
+
+  const result = await autoBuy(userId, drop);
+
+  res.json({
+    success: result.success,
+    ...result,
+    elapsedMs: Date.now() - startTime,
+  });
+});
+
+// ── GET /api/agent/tasks/drops?userId=X — Get price drops for a user ──
+
+router.get('/drops', async (req, res) => {
+  const startTime = Date.now();
+  const userId = req.query.userId;
+  const limit = parseInt(req.query.limit) || 20;
+
+  try {
+    const redis = getRedis();
+
+    if (userId) {
+      // User-specific drops
+      const userKey = `${USER_DROPS_PREFIX}${userId}`;
+      const raw = await redis.lrange(userKey, 0, limit - 1);
+      const drops = raw
+        .map((d) => { try { return JSON.parse(d); } catch { return null; } })
+        .filter(Boolean);
+      return res.json({ success: true, userId, drops, count: drops.length, elapsedMs: Date.now() - startTime });
+    }
+
+    // Global drops
+    const raw = await redis.lrange(DROPS_GLOBAL_KEY, 0, limit - 1);
+    const drops = raw
+      .map((d) => { try { return JSON.parse(d); } catch { return null; } })
+      .filter(Boolean);
+    res.json({ success: true, drops, count: drops.length, elapsedMs: Date.now() - startTime });
+  } catch (error) {
+    logger.error('Tasks drops error', { component: 'tasks' }, error);
+    res.status(500).json({ success: false, error: 'Failed to get price drops' });
   }
 });
 

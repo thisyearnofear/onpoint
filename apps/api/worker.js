@@ -103,6 +103,9 @@ app.get('/health', (req, res) => {
       lastTotalSignals: lastMarketSignalRun.totalSignals,
       lastQueriesProcessed: lastMarketSignalRun.queriesProcessed,
       lastError: lastMarketSignalRun.error,
+      lastDropsFound: lastMarketSignalRun.dropsFound || 0,
+      lastAutoBuyAttempted: lastMarketSignalRun.autoBuyAttempted || 0,
+      lastAutoBuyExecuted: lastMarketSignalRun.autoBuyExecuted || 0,
     },
     intervals: {
       heartbeatMs: HEARTBEAT_INTERVAL_MS,
@@ -130,7 +133,7 @@ async function apiPost(path, body = {}) {
     method: 'POST',
     headers,
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(60000), // 60s timeout (web bridge can be slow)
+    signal: AbortSignal.timeout(90000), // 90s timeout (web bridge + commerce pipeline)
   });
 
   const data = await response.json().catch(() => null);
@@ -334,8 +337,30 @@ async function executeMarketSignalPolling() {
           component: 'worker',
           queriesProcessed: data.queriesProcessed,
           totalSignals: data.totalSignals,
+          dropCount: data.dropsFound || 0,
+          autoBuyCount: data.autoBuyResults?.length || 0,
           elapsedMs: Date.now() - startTime,
         });
+
+        // Log auto-buy results
+        if (data.autoBuyResults?.length > 0) {
+          for (const result of data.autoBuyResults) {
+            if (result.success) {
+              logger.info(`Auto-buy: ${result.description || result.dropName}`, {
+                component: 'worker',
+                userId: result.userId,
+                autoExecuted: result.autoExecuted,
+              });
+            }
+          }
+        }
+      }
+
+      // Update market signal run with commerce data
+      if (data.dropsFound > 0 || data.autoBuyResults?.length > 0) {
+        lastMarketSignalRun.dropsFound = data.dropsFound || 0;
+        lastMarketSignalRun.autoBuyAttempted = data.autoBuyResults?.length || 0;
+        lastMarketSignalRun.autoBuyExecuted = data.autoBuyResults?.filter(r => r.autoExecuted).length || 0;
       }
     } else {
       lastMarketSignalRun = {

@@ -28,6 +28,7 @@
     "@repo/agent-core": "workspace:*",
     "@repo/ai-client": "workspace:*",
     "@repo/blockchain-client": "workspace:*",
+    "@repo/etherfuse": "workspace:*",
     "@repo/ipfs-client": "workspace:*",
     "@repo/shared-ui": "workspace:*",
     "@repo/ui": "workspace:*",

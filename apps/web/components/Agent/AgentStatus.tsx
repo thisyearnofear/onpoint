@@ -10,6 +10,7 @@ import {
   Check,
   ExternalLink,
   Sparkles,
+  TrendingDown,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { useAccount } from "wagmi";
@@ -58,6 +59,19 @@ interface MarketMatch {
   };
 }
 
+interface PriceDrop {
+  name: string;
+  source: string;
+  url: string;
+  image_url?: string;
+  newPrice: number;
+  oldPrice: number;
+  dropPercent: number;
+  query: string;
+  discoveredAt: string;
+  currency?: string;
+}
+
 const EXPLORER_URLS = [
   { chain: "Celo", url: "https://celoscan.io" },
   { chain: "Base", url: "https://basescan.org" },
@@ -88,6 +102,10 @@ export function AgentStatus({
   const [matchesLoading, setMatchesLoading] = useState(false);
   const [pendingSignalCount, setPendingSignalCount] = useState(0);
 
+  // Tier 3: Price drops from autonomous commerce
+  const [priceDrops, setPriceDrops] = useState<PriceDrop[]>([]);
+  const [dropsLoading, setDropsLoading] = useState(false);
+
   const fetchWalletData = async () => {
     try {
       const response = await fetch("/api/agent/wallet");
@@ -106,21 +124,36 @@ export function AgentStatus({
   const fetchMarketMatches = async (userAddress: string) => {
     if (!userAddress) return;
     setMatchesLoading(true);
+    setDropsLoading(true);
     try {
-      const res = await fetch(
-        `/api/agent/tasks/matches?userId=${encodeURIComponent(userAddress)}&limit=5`,
-      );
-      if (res.ok) {
-        const data = await res.json();
+      const [matchesRes, dropsRes] = await Promise.all([
+        fetch(
+          `/api/agent/tasks/matches?userId=${encodeURIComponent(userAddress)}&limit=5`,
+        ),
+        fetch(
+          `/api/agent/tasks/drops?userId=${encodeURIComponent(userAddress)}&limit=10`,
+        ),
+      ]);
+
+      if (matchesRes.ok) {
+        const data = await matchesRes.json();
         if (data.success) {
           setMatches(data.matches || []);
           setPendingSignalCount(data.pendingSignalSuggestions || 0);
+        }
+      }
+
+      if (dropsRes.ok) {
+        const data = await dropsRes.json();
+        if (data.success) {
+          setPriceDrops(data.drops || []);
         }
       }
     } catch {
       // Agent tasks endpoint may not be available
     } finally {
       setMatchesLoading(false);
+      setDropsLoading(false);
     }
   };
 
@@ -135,6 +168,7 @@ export function AgentStatus({
     } else {
       setMatches([]);
       setPendingSignalCount(0);
+      setPriceDrops([]);
     }
   }, [isConnected, address]);
 
@@ -379,6 +413,113 @@ export function AgentStatus({
             {matches.length > 3 && (
               <p className="text-[10px] text-muted-foreground text-center mt-2">
                 +{matches.length - 3} more matches
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Hot Deals — Tier 3 autonomous commerce price drops */}
+      {isConnected && address && (priceDrops.length > 0 || dropsLoading) && (
+        <div className="mx-4 mb-2">
+          <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-xl p-4 border border-emerald-500/20">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                  <TrendingDown className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <span className="text-foreground text-xs font-bold">
+                    Hot Deals
+                  </span>
+                  <span className="text-muted-foreground text-[10px] block">
+                    Price drops the agent found
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Loading skeleton */}
+            {dropsLoading && priceDrops.length === 0 && (
+              <div className="space-y-2">
+                {[1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="bg-muted/30 rounded-lg p-2.5 border border-border/50 animate-pulse"
+                  >
+                    <div className="flex items-start gap-2">
+                      <div className="w-10 h-10 rounded-lg bg-muted flex-shrink-0" />
+                      <div className="flex-1 space-y-1.5">
+                        <div className="h-3 bg-muted rounded w-3/4" />
+                        <div className="h-2.5 bg-muted rounded w-1/4" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Drop items */}
+            {priceDrops.length > 0 && (
+              <div className="space-y-2">
+                {priceDrops.slice(0, 3).map((drop, i) => (
+                  <div
+                    key={`${drop.name}|${drop.source}|${i}`}
+                    className="bg-muted/30 rounded-lg p-2.5 border border-border/50"
+                  >
+                    <div className="flex items-start gap-2">
+                      {drop.image_url ? (
+                        <img
+                          src={drop.image_url}
+                          alt={drop.name}
+                          className="w-10 h-10 rounded-lg object-cover bg-muted flex-shrink-0"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                          <TrendingDown className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-foreground text-xs font-medium truncate">
+                          {drop.name || "Unknown item"}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-emerald-300 text-[11px] font-semibold">
+                            ${drop.newPrice}
+                          </span>
+                          <span className="text-muted-foreground text-[10px] line-through">
+                            ${drop.oldPrice}
+                          </span>
+                          <span className="bg-emerald-500/20 text-emerald-300 text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                            ↓{drop.dropPercent}%
+                          </span>
+                          <span className="text-muted-foreground text-[10px]">
+                            {drop.source || ""}
+                          </span>
+                        </div>
+                      </div>
+                      {drop.url && (
+                        <a
+                          href={drop.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 hover:bg-muted rounded-lg transition-colors flex-shrink-0"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {priceDrops.length > 3 && (
+              <p className="text-[10px] text-muted-foreground text-center mt-2">
+                +{priceDrops.length - 3} more deals
               </p>
             )}
           </div>
