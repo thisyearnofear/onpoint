@@ -3,9 +3,16 @@
  *
  * Enforces spending limits based on agent reputation tier.
  * Prevents runaway agents from draining wallets.
+ *
+ * Onramp credits (via Etherfuse top-ups) are tracked separately by the
+ * @repo/etherfuse credit ledger and are NOT counted against the daily
+ * spend cap. They appear as a `topUpBalance` field on the check result
+ * and are included in the `remaining` calculation so users get the full
+ * spending power of their onramp funds without reducing their daily limit.
  */
 
 import { agentReputation, REPUTATION_CONFIG } from "./agent-reputation";
+import { getTopUpBalance } from "@repo/etherfuse";
 
 export interface SpendPolicy {
   walletAddress: string;
@@ -22,6 +29,13 @@ export interface SpendCheckResult {
   maxAmount: number;
   usedToday: number;
   remaining: number;
+  /**
+   * Onramp credits (Etherfuse top-ups) available to this wallet.
+   * These are positive adjustments that do NOT reduce the daily cap.
+   * `remaining` already includes this amount. 0 if onramp is not
+   * configured or the user has no credits.
+   */
+  topUpBalance: number;
 }
 
 // Track daily usage in memory
@@ -51,17 +65,30 @@ export async function checkSpendPolicy(
     used = usage.amount;
   }
 
-  const remaining = limit - used;
+  // Get onramp credit balance — these are positive adjustments, not spends.
+  // They add spending power without reducing the daily cap.
+  // Returns 0 if Etherfuse is not configured (no env vars set) — the
+  // getTopUpBalance function itself catches errors and returns 0.
+  const topUpBalance = await getTopUpBalance(walletAddress as `0x${string}`).catch(() => 0);
+
+  // Remaining = (daily limit - spent today) + onramp credits
+  const baseRemaining = limit - used;
+  const remaining = baseRemaining + topUpBalance;
   const allowed = amount <= remaining;
+
+  const reason = allowed
+    ? "Approved"
+    : topUpBalance > 0
+      ? `Would exceed daily limit ($${limit}) even with $${topUpBalance.toFixed(2)} in onramp credits. Used today: $${used}`
+      : `Would exceed daily limit ($${limit}). Used: $${used}, Remaining: $${baseRemaining}`;
 
   return {
     allowed,
-    reason: allowed
-      ? "Approved"
-      : `Would exceed daily limit ($${limit}). Used: $${used}, Remaining: $${remaining}`,
+    reason,
     maxAmount: limit,
     usedToday: used,
     remaining,
+    topUpBalance,
   };
 }
 

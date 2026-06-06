@@ -9,8 +9,10 @@ import {
   Copy,
   Check,
   ExternalLink,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
+import { useAccount } from "wagmi";
 
 interface AgentWallet {
   chain: string;
@@ -40,6 +42,22 @@ interface AgentStatusProps {
   onTipClick?: () => void;
 }
 
+interface MarketMatch {
+  signalId: string;
+  score: number;
+  reasons: string[];
+  matchedAt: string;
+  signal: {
+    name: string;
+    price: number;
+    source: string;
+    url: string;
+    image_url?: string;
+    currency: string;
+    query: string;
+  };
+}
+
 const EXPLORER_URLS = [
   { chain: "Celo", url: "https://celoscan.io" },
   { chain: "Base", url: "https://basescan.org" },
@@ -58,10 +76,17 @@ export function AgentStatus({
   showActions = true,
   onTipClick,
 }: AgentStatusProps) {
+  const { address, isConnected } = useAccount();
+
   const [walletData, setWalletData] = useState<AgentWalletData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Market signal matches from the autonomous agent
+  const [matches, setMatches] = useState<MarketMatch[]>([]);
+  const [matchesLoading, setMatchesLoading] = useState(false);
+  const [pendingSignalCount, setPendingSignalCount] = useState(0);
 
   const fetchWalletData = async () => {
     try {
@@ -78,13 +103,47 @@ export function AgentStatus({
     }
   };
 
+  const fetchMarketMatches = async (userAddress: string) => {
+    if (!userAddress) return;
+    setMatchesLoading(true);
+    try {
+      const res = await fetch(
+        `/api/agent/tasks/matches?userId=${encodeURIComponent(userAddress)}&limit=5`,
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setMatches(data.matches || []);
+          setPendingSignalCount(data.pendingSignalSuggestions || 0);
+        }
+      }
+    } catch {
+      // Agent tasks endpoint may not be available
+    } finally {
+      setMatchesLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchWalletData();
   }, []);
 
+  // Fetch market matches when wallet connects
+  useEffect(() => {
+    if (isConnected && address) {
+      fetchMarketMatches(address);
+    } else {
+      setMatches([]);
+      setPendingSignalCount(0);
+    }
+  }, [isConnected, address]);
+
   const handleRefresh = async () => {
     setRefreshing(true);
-    await fetchWalletData();
+    await Promise.all([
+      fetchWalletData(),
+      address ? fetchMarketMatches(address) : Promise.resolve(),
+    ]);
   };
 
   const copyAddress = (address: string) => {
@@ -205,7 +264,126 @@ export function AgentStatus({
             </div>
           </div>
         ))}
+
       </div>
+
+      {/* Agent Discoveries — proactive market signal matches */}
+      {isConnected && address && (matches.length > 0 || matchesLoading) && (
+        <div className="mx-4">
+          <div className="bg-gradient-to-r from-amber-500/10 to-rose-500/10 rounded-xl p-4 border border-amber-500/20">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-rose-600 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <span className="text-foreground text-xs font-bold">
+                    Agent Discoveries
+                  </span>
+                  <span className="text-muted-foreground text-[10px] block">
+                    Found items matching your style
+                  </span>
+                </div>
+              </div>
+              {pendingSignalCount > 0 && (
+                <span className="bg-amber-500/20 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  {pendingSignalCount} new
+                </span>
+              )}
+            </div>
+
+            {/* Loading skeleton */}
+            {matchesLoading && matches.length === 0 && (
+              <div className="space-y-2">
+                {[1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="bg-muted/30 rounded-lg p-2.5 border border-border/50 animate-pulse"
+                  >
+                    <div className="flex items-start gap-2">
+                      <div className="w-10 h-10 rounded-lg bg-muted flex-shrink-0" />
+                      <div className="flex-1 space-y-1.5">
+                        <div className="h-3 bg-muted rounded w-3/4" />
+                        <div className="h-2.5 bg-muted rounded w-1/4" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Match items */}
+            {matches.length > 0 && (
+              <div className="space-y-2">
+                {matches.slice(0, 3).map((match, i) => (
+                  <div
+                    key={match.signalId || i}
+                    className="bg-muted/30 rounded-lg p-2.5 border border-border/50"
+                  >
+                    <div className="flex items-start gap-2">
+                      {match.signal?.image_url ? (
+                        <img
+                          src={match.signal.image_url}
+                          alt={match.signal.name}
+                          className="w-10 h-10 rounded-lg object-cover bg-muted flex-shrink-0"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                          <Sparkles className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-foreground text-xs font-medium truncate">
+                          {match.signal?.name || "Unknown item"}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-amber-300 text-[11px] font-semibold">
+                            ${match.signal?.price || "?"}
+                          </span>
+                          <span className="text-muted-foreground text-[10px]">
+                            {match.signal?.source || ""}
+                          </span>
+                        </div>
+                        {(match.reasons || []).length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {match.reasons.map((reason: string) => (
+                              <span
+                                key={reason}
+                                className="text-[9px] bg-indigo-500/10 text-indigo-300 px-1.5 py-0.5 rounded-full"
+                              >
+                                {reason.replace(/_/g, " ")}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {match.signal?.url && (
+                        <a
+                          href={match.signal.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 hover:bg-muted rounded-lg transition-colors flex-shrink-0"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {matches.length > 3 && (
+              <p className="text-[10px] text-muted-foreground text-center mt-2">
+                +{matches.length - 3} more matches
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Capabilities */}
       <div className="px-5 pb-4">

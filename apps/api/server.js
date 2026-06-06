@@ -40,7 +40,9 @@ if (Sentry) {
 // No global parser — each route group controls its own memory ceiling.
 // Prevents body-parser DoS attacks (CVE-2022-24999-style).
 const json1k = express.json({ limit: '1kb' });
+const json10kb = express.json({ limit: '10kb' });
 const json10mb = express.json({ limit: '10mb' });
+const raw10kb = express.raw({ type: 'application/json', limit: '10kb' });
 
 // ── Redis ────────────────────────────────────────────────────────
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
@@ -53,6 +55,12 @@ redis.on('error', (err) => {
 redis.on('connect', () => {
   console.log('[Redis] Connected');
 });
+
+// ── Inject Redis into the Etherfuse top-up balance store ────────
+// This makes top-up credits survive API server restarts.
+// If Redis is unavailable, the store falls back to in-memory.
+const etherfuse = require('@repo/etherfuse');
+etherfuse.setTopUpRedisClient(redis);
 
 // ── Middleware ──────────────────────────────────────────────────
 const { createRateLimiter } = require('./middleware/rate-limit');
@@ -204,6 +212,12 @@ app.use('/api/agent/fraud', json1k, serviceKeyAuth, generalRateLimit, require('.
 // Mint — service-key + forwarded user (NFT minting)
 app.use('/api/agent/mint', json10mb, serviceKeyAuth, require('./routes/agent-mint'));
 
+// Webhook — no API key (Etherfuse signs via HMAC). Uses raw body for signature verification.
+app.use('/api/webhooks/etherfuse', raw10kb, require('./routes/agent-topup').webhookRouter);
+
+// TopUp — service-key + forwarded user (Etherfuse fiat onramp)
+app.use('/api/agent/topup', json10kb, serviceKeyAuth, generalRateLimit, require('./routes/agent-topup').router);
+
 // Purchase — service-key + forwarded user (product purchases)
 app.use('/api/agent/purchase', json1k, serviceKeyAuth, generalRateLimit, require('./routes/agent-purchase'));
 
@@ -212,6 +226,9 @@ app.use('/api/agent/checkout', json1k, serviceKeyAuth, require('./routes/agent-c
 
 // Tip-Agent — service-key + forwarded user (agent-to-agent tipping)
 app.use('/api/agent/tip-agent', json1k, serviceKeyAuth, generalRateLimit, require('./routes/agent-tip-agent'));
+
+// Tasks — service-key only (worker task processing)
+app.use('/api/agent/tasks', json10kb, serviceKeyAuth, require('./routes/agent-tasks'));
 
 // Escrow — service-key + forwarded user (escrow management)
 app.use('/api/agent/escrow', json1k, serviceKeyAuth, require('./routes/agent-escrow'));

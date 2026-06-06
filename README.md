@@ -23,10 +23,12 @@ See [ADR 0002 — Curator Primitive](./docs/adr/0002-curator-primitive.md) for t
 | **Live AR Styling** | Real-time video analysis with AI coaching overlays |
 | **Smart Recommendations** | Products scored by style fit, price, and quality |
 | **Agent Web Discovery** | Autonomous browsing when catalog lacks matches |
+| **Proactive Market Monitoring** | Worker polls trending fashion hourly, matches against your style preferences, surfaces discoveries in the wallet panel |
 | **Retail Intelligence** | Shopper intent → product-gap and pricing signals |
 | **Secure Token Vault** | Auth0 OAuth for external APIs (Calendar, Slack, etc.) |
 | **Spending Controls** | Configurable autonomy: small actions auto-execute, large ones require approval |
 | **Style Memory** | Learns preferences across sessions |
+| **Autonomous Agent Worker** | Persistent background task loop: heartbeat, suggestion processing, market signal polling via PM2 |
 
 ## How It Works
 
@@ -124,14 +126,21 @@ See [Getting Started](docs/GETTING_STARTED.md) for full setup.
 | [Guides](docs/guides/) | Integration guides (Auth, MiniPay) |
 | [ADRs](docs/adr/) | Architecture decision records |
 
-## Hackathons
+## Agent Worker
 
-- **Web Data UNLOCKED** — Bright Data web intelligence, AI/ML API, Cognee memory, TriggerWare workflows
-- **Auth0 Authorized to Act** — Token Vault for secure agent API access
-- **OWS Hackathon** — Agentic Storefronts + Spend Governance
-- **Tether Galactica WDK** — Agent Wallets
-- **Protocol Labs Genesis** — Verifiable Agent Logs
-- **Synthesis** — Best Agent on Celo, Private Agents
+The `onpoint-worker` (PM2 process, port 48754) is the agent's persistent brain:
+
+| Cycle | Interval | What it does |
+|---|---|---|
+| **Heartbeat** | 5 min | Checks wallet gas, Redis, bridge health; reports to Sentry |
+| **Task processing** | 5 min | Processes pending `external_search` suggestions via the web bridge |
+| **Market signal polling** | 15 min | Fetches trending fashion from Bright Data / TinyFish, stores in Redis, runs style matching against active users' preferences, creates agent suggestions for matches |
+
+Users see discoveries in the **AgentStatus** wallet panel as a "Agent Discoveries" card showing matched items with name, price, source, and match reasons.
+
+## Integrations
+
+- **Etherfuse FX API** — Fiat onramp for the agent wallet. Users buy USDC with MXN/USD/EUR via SPEI (Bitso-compatible), OXXO, or wire. The [`@repo/etherfuse`](packages/etherfuse) package is the single source of truth for the HTTP client, quote/order helpers, webhook verification, and credit ledger. **Backend-ready** — routes, Redis persistence, and spend-policy integration are active. The UI (`AddFundsButton` + balance card) has been removed pending API key availability. To activate: set `ETHERFUSE_API_KEY` and mount the component.
 
 ---
 
