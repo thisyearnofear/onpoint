@@ -29,6 +29,7 @@ See [ADR 0002 — Curator Primitive](./docs/adr/0002-curator-primitive.md) for t
 | **Spending Controls** | Configurable autonomy: small actions auto-execute, large ones require approval |
 | **Style Memory** | Learns preferences across sessions |
 | **Autonomous Agent Worker** | Persistent background task loop: heartbeat, suggestion processing, market signal polling via PM2 |
+| **Autonomous Commerce Loop** | Worker tracks price history per item, detects drops ≥10%, checks user budget & autonomy threshold, auto-buys or surfaces hot deal suggestions |
 
 ## How It Works
 
@@ -134,9 +135,30 @@ The `onpoint-worker` (PM2 process, port 48754) is the agent's persistent brain:
 |---|---|---|
 | **Heartbeat** | 5 min | Checks wallet gas, Redis, bridge health; reports to Sentry |
 | **Task processing** | 5 min | Processes pending `external_search` suggestions via the web bridge |
-| **Market signal polling** | 15 min | Fetches trending fashion from Bright Data / TinyFish, stores in Redis, runs style matching against active users' preferences, creates agent suggestions for matches |
+| **Market signal polling** | 15 min | Fetches trending fashion from Bright Data / TinyFish, stores in Redis, runs style matching against active users' preferences, creates agent suggestions for matches. **Also runs the commerce pipeline:** price history update, drop detection, and auto-buy for matched items |
 
 Users see discoveries in the **AgentStatus** wallet panel as a "Agent Discoveries" card showing matched items with name, price, source, and match reasons.
+
+### Tier 3: Autonomous Commerce Loop
+
+The worker also runs a **commerce pipeline** after each market signal cycle:
+
+| Step | What it does |
+|---|---|
+| **Price tracking** | Maintains a Redis Hash (`market:prices:v2`) recording price, `firstSeen`, `lastSeen`, and `seenCount` per item keyed by `name\|source\|url` |
+| **Drop detection** | Compares new signal prices against stored history. Flags drops ≥10% (configurable via `PRICE_DROP_THRESHOLD`) |
+| **Drop storage** | Saves drops to a global capped list (500 items, 7d TTL) and per-user lists (50 items, 7d TTL) in Redis |
+| **Auto-buy** | For each active user: scores the dropped item against style preferences, checks spending limits and autonomy threshold, creates an `external_purchase` suggestion. Items under the threshold auto-execute and record a verifiable receipt |
+
+**API endpoints:**
+
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/api/agent/tasks/market-signals` | Now returns `dropsFound`, `drops`, and `autoBuyResults` in the response |
+| `POST` | `/api/agent/tasks/auto-buy` | Trigger an autonomous purchase for a specific user + price drop item |
+| `GET`  | `/api/agent/tasks/drops?userId=X` | Fetch price drops for a user (or global drops without `userId`) |
+
+**UI:** A "Hot Deals" card in the AgentStatus wallet panel shows price drops with item image, name, new price, strikethrough old price, and a `↓X%` badge. The worker logs drops found, auto-buy attempts, and auto-buy executions to the health endpoint.
 
 ## Integrations
 
