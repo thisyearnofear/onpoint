@@ -11,7 +11,7 @@
     "deploy:api": "bash scripts/deploy-api.sh"
   },
   "devDependencies": {
-    "@types/minimatch": "6.0.0",
+    "@types/minimatch": "3.0.5",
     "prettier": "^3.6.2",
     "turbo": "^2.5.8",
     "typescript": "5.9.2"
@@ -27,6 +27,11 @@
   },
   "engines": {
     "node": ">=20.19.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/minimatch": "3.0.5"
+    }
   },
   "packageManager": "pnpm@10.10.0",
   "workspaces": [

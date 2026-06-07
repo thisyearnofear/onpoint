@@ -25,11 +25,11 @@ only what's needed — no `git pull` on the server, no pnpm on the server.
 
 ## Prerequisites
 
-| Tool      | Version   | Notes                          |
-|-----------|-----------|--------------------------------|
-| Node.js   | >=20.19.0 | Use nvm (`nvm use`)            |
-| pnpm      | 10.10.0+  | Corepack (`corepack enable`)   |
-| SSH       | any       | `~/.ssh/config` with snel-bot  |
+| Tool      | Version   | Notes                                                                                   |
+|-----------|-----------|-----------------------------------------------------------------------------------------|
+| Node.js   | >=20.19.0 | Use nvm (`nvm use`)                                                                     |
+| pnpm      | 10.10.0+  | Corepack (`corepack enable`). Requires `node-linker=hoisted` in `.npmrc` (set already). |
+| SSH       | any       | `~/.ssh/config` with snel-bot                                                           |
 
 ---
 
@@ -97,17 +97,27 @@ pnpm deploy:api
 The script does:
 
 ```
- 1. Build workspace deps       —— @repo/agent-core, @onpoint/shared-types, @repo/blockchain-client, @repo/db, @repo/storage
- 2. Size check                 —— fail >200 MB, warn >100 MB
+ 1. Build workspace deps       —— @repo/agent-core, @onpoint/shared-types, @repo/blockchain-client, @repo/db, @repo/storage, @repo/messaging-bridge, @repo/etherfuse
+ 2. Size check                 —— fail >450 MB, warn >350 MB
  3. rsync --delete             —— to /opt/onpoint/releases/api/<timestamp>/
  4. .env symlink               —— shared/api/.env → releases/api/…/.env
  5. Symlink flip               —— apps/api → releases/api/<timestamp>/
  6. pm2 reload                 —— zero-downtime reload
  7. Health check               —— curl /health, retry up to 6× (18s)
  8. Auto-rollback on failure   —— flips back, reloads, verifies
- 9. Prune inactive releases    —— keep last 3, preserve active target
-10. Disk summary               —— show usage
+ 9. Start/reload worker        —— pm2 startOrGracefulReload --only onpoint-worker
+10. Start/reload agent-server  —— pm2 startOrGracefulReload --only onpoint-agent-server
+11. Prune inactive releases    —— keep last 2, preserve active target
+12. Disk summary               —— show usage
 ```
+
+### Note: `node-linker=hoisted`
+
+The project uses `node-linker=hoisted` (set in `.npmrc`) for a flat `node_modules` structure.
+This avoids the per-project `.pnpm` virtual store symlink issues. The deploy script
+handles this automatically — it runs `tsup` with explicit paths since pnpm's filtered
+lifecycle scripts don't resolve binaries in hoisted mode. New contributors should
+ensure `.npmrc` has this setting before running `pnpm install`.
 
 ### Deploy output example
 

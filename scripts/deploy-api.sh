@@ -99,14 +99,32 @@ fi
 
 # ── Step 1: Build workspace packages (CJS output for Node.js) ───────
 # The API depends on workspace packages. These must be built to CJS before deployment.
+#
+# Note: Uses explicit tsup path instead of `pnpm --filter <pkg> build` because
+# `node-linker=hoisted` (set in .npmrc) doesn't create per-package node_modules/.bin
+# directories, so pnpm's filtered lifecycle scripts can't find the tsup binary.
 info "🔨 Building workspace packages (CJS)..."
+
+ROOT_DIR="$(pwd)"
+TSUP="$ROOT_DIR/node_modules/.bin/tsup"
+
+# Package → directory mapping (relative to project root)
+# Using indexed arrays for macOS bash 3.x compatibility
+pkg_names=("@repo/agent-core" "@onpoint/shared-types" "@repo/blockchain-client" "@repo/db" "@repo/storage" "@repo/messaging-bridge")
+pkg_dirs=("packages/agent-core" "packages/shared-types" "packages/blockchain-client" "packages/db" "packages/storage" "packages/messaging-bridge")
+
+if [[ ! -f "$TSUP" ]]; then
+  fail "tsup not found at $TSUP — run pnpm install first"
+fi
 
 if [[ "$DRY_RUN" == false ]]; then
   # Build all workspace packages in parallel
   pids=()
-  for pkg in @repo/agent-core @onpoint/shared-types @repo/blockchain-client @repo/db @repo/storage @repo/messaging-bridge; do
-    echo "   Building ${pkg}..."
-    pnpm --filter "${pkg}" build &
+  for i in "${!pkg_names[@]}"; do
+    pkg="${pkg_names[$i]}"
+    dir="${pkg_dirs[$i]}"
+    echo "   Building ${pkg} (${dir})..."
+    (cd "$dir" && "$TSUP") &
     pids+=($!)
   done
 

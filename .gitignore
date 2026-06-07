@@ -70,3 +70,4 @@ __pycache__/
 deploy/*.conf
 deploy/*SUMMARY.md
 HETZNER_CONFIG.md
+dump.rdb
