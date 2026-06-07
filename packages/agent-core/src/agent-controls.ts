@@ -136,6 +136,8 @@ export interface StylePreference {
   bodyType?: "slim" | "athletic" | "average" | "plus" | "petite" | "tall";
   styleAesthetics?: string[];
   budgetTier?: "budget-friendly" | "moderate" | "premium" | "luxury";
+  /** Max price the agent can auto-buy without approval. 0 = disabled (no auto-buy). */
+  autoBuyMaxPrice?: number;
 }
 
 export interface StyleRecommendation {
@@ -571,6 +573,7 @@ export function updateStylePreferences(
   if (updates.brands)
     prefs.brands = [...new Set([...prefs.brands, ...updates.brands])];
   if (updates.priceRange) prefs.priceRange = updates.priceRange;
+  if (updates.autoBuyMaxPrice !== undefined) prefs.autoBuyMaxPrice = updates.autoBuyMaxPrice;
   prefs.lastUpdated = Date.now();
 
   stylePreferences.set(userId, prefs);

@@ -106,6 +106,23 @@ export function AgentStatus({
   const [priceDrops, setPriceDrops] = useState<PriceDrop[]>([]);
   const [dropsLoading, setDropsLoading] = useState(false);
 
+  // Auto-buy price threshold preference
+  const [autoBuyMaxPrice, setAutoBuyMaxPrice] = useState(0);
+  const [autoBuyEnabled, setAutoBuyEnabled] = useState(false);
+  const [prefsLoading, setPrefsLoading] = useState(false);
+  const [showAutoBuySettings, setShowAutoBuySettings] = useState(false);
+  const [customPriceInput, setCustomPriceInput] = useState('');
+
+  // Per-item "Enabled!" feedback animation
+  const [justEnabledDropKey, setJustEnabledDropKey] = useState<string | null>(null);
+
+  const handlePerItemAutoBuy = (dropName: string, dropSource: string, price: number) => {
+    const key = `${dropName}|${dropSource}`;
+    setJustEnabledDropKey(key);
+    setTimeout(() => setJustEnabledDropKey(null), 1400);
+    updateAutoBuyPrice(price);
+  };
+
   const fetchWalletData = async () => {
     try {
       const response = await fetch("/api/agent/wallet");
@@ -149,6 +166,18 @@ export function AgentStatus({
           setPriceDrops(data.drops || []);
         }
       }
+
+      // Fetch auto-buy preferences
+      const prefsRes = await fetch(
+        `/api/agent/tasks/preferences?userId=${encodeURIComponent(userAddress)}`,
+      );
+      if (prefsRes.ok) {
+        const data = await prefsRes.json();
+        if (data.success) {
+          setAutoBuyMaxPrice(data.autoBuyMaxPrice || 0);
+          setAutoBuyEnabled(data.autoBuyEnabled || false);
+        }
+      }
     } catch {
       // Agent tasks endpoint may not be available
     } finally {
@@ -169,6 +198,8 @@ export function AgentStatus({
       setMatches([]);
       setPendingSignalCount(0);
       setPriceDrops([]);
+      setAutoBuyEnabled(false);
+      setAutoBuyMaxPrice(0);
     }
   }, [isConnected, address]);
 
@@ -178,6 +209,29 @@ export function AgentStatus({
       fetchWalletData(),
       address ? fetchMarketMatches(address) : Promise.resolve(),
     ]);
+  };
+
+  const updateAutoBuyPrice = async (price: number) => {
+    if (!address) return;
+    setPrefsLoading(true);
+    try {
+      const res = await fetch('/api/agent/tasks/preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: address, autoBuyMaxPrice: price }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setAutoBuyMaxPrice(data.autoBuyMaxPrice || 0);
+          setAutoBuyEnabled(data.autoBuyEnabled || false);
+        }
+      }
+    } catch {
+      // Preferences endpoint may not be available
+    } finally {
+      setPrefsLoading(false);
+    }
   };
 
   const copyAddress = (address: string) => {
@@ -500,6 +554,37 @@ export function AgentStatus({
                             {drop.source || ""}
                           </span>
                         </div>
+                        {/* Per-item auto-buy button with enabled feedback */}
+                        {(!autoBuyEnabled || justEnabledDropKey === `${drop.name}|${drop.source}`) && (
+                          <motion.button
+                            onClick={() => {
+                              if (!prefsLoading && !justEnabledDropKey) {
+                                handlePerItemAutoBuy(drop.name, drop.source, Math.ceil(drop.newPrice));
+                              }
+                            }}
+                            disabled={prefsLoading}
+                            initial={justEnabledDropKey === `${drop.name}|${drop.source}` ? { scale: 0.95 } : false}
+                            animate={
+                              justEnabledDropKey === `${drop.name}|${drop.source}`
+                                ? { scale: 1, opacity: [1, 1, 0], transition: { duration: 1.4, times: [0, 0.2, 1] } }
+                                : { scale: 1 }
+                            }
+                            className={`mt-1.5 text-[9px] px-2 py-0.5 rounded-md border transition-colors disabled:opacity-50 ${
+                              justEnabledDropKey === `${drop.name}|${drop.source}`
+                                ? 'bg-emerald-500/25 text-emerald-300 border-emerald-500/30'
+                                : 'bg-emerald-500/15 text-emerald-300/80 border-emerald-500/20 hover:bg-emerald-500/25 hover:text-emerald-300'
+                            }`}
+                          >
+                            {justEnabledDropKey === `${drop.name}|${drop.source}` ? (
+                              <span className="flex items-center gap-1">
+                                <Check className="w-2.5 h-2.5" />
+                                Enabled!
+                              </span>
+                            ) : (
+                              `Auto-buy at $${Math.ceil(drop.newPrice)}`
+                            )}
+                          </motion.button>
+                        )}
                       </div>
                       {drop.url && (
                         <a
@@ -522,6 +607,132 @@ export function AgentStatus({
                 +{priceDrops.length - 3} more deals
               </p>
             )}
+
+            {/* Prompt to enable auto-buy when disabled and deals exist */}
+            {!autoBuyEnabled && priceDrops.length > 0 && !dropsLoading && (
+              <div className="mt-2 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+                <div className="flex items-start gap-2">
+                  <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <TrendingDown className="w-3 h-3 text-amber-300" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] text-foreground font-medium">
+                      Auto-buy is off
+                    </p>
+                    <p className="text-[9px] text-muted-foreground mt-0.5">
+                      The agent found {priceDrops.length} deal{priceDrops.length > 1 ? 's' : ''}, but won't buy anything until you set a max price.
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-2">
+                      <button
+                        onClick={() => updateAutoBuyPrice(25)}
+                        className="text-[9px] px-2.5 py-1 bg-emerald-500/20 text-emerald-300 rounded-lg border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors font-medium"
+                      >
+                        Enable at $25
+                      </button>
+                      <button
+                        onClick={() => setShowAutoBuySettings(true)}
+                        className="text-[9px] px-2.5 py-1 bg-muted/30 text-muted-foreground rounded-lg border border-border/50 hover:bg-muted/50 transition-colors"
+                      >
+                        Customize
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Auto-buy settings toggle */}
+            <div className="mt-3 pt-3 border-t border-emerald-500/10">
+              <button
+                onClick={() => setShowAutoBuySettings(!showAutoBuySettings)}
+                className="w-full flex items-center justify-between text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <span className="flex items-center gap-1.5">
+                  <TrendingDown className="w-3 h-3" />
+                  Auto-buy settings
+                  {autoBuyEnabled && (
+                    <span className="bg-emerald-500/20 text-emerald-300 text-[8px] px-1.5 py-0.5 rounded-full font-bold">
+                      ${autoBuyMaxPrice} max
+                    </span>
+                  )}
+                  {!autoBuyEnabled && (
+                    <span className="bg-muted/50 text-muted-foreground text-[8px] px-1.5 py-0.5 rounded-full">
+                      off
+                    </span>
+                  )}
+                </span>
+                <span className="text-muted-foreground">
+                  {showAutoBuySettings ? '▲' : '▼'}
+                </span>
+              </button>
+
+              {showAutoBuySettings && (
+                <div className="mt-2 space-y-2">
+                  <p className="text-[9px] text-muted-foreground">
+                    Set a max price so the agent can auto-buy price drops without asking.
+                    Items above this threshold will still appear as suggestions.
+                  </p>
+
+                  {/* Preset price buttons */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {[0, 10, 25, 50, 100].map((price) => (
+                      <button
+                        key={price}
+                        disabled={prefsLoading}
+                        onClick={() => { setCustomPriceInput(''); updateAutoBuyPrice(price); }}
+                        className={`text-[10px] px-2.5 py-1 rounded-lg transition-colors ${
+                          autoBuyMaxPrice === price && autoBuyEnabled === (price > 0)
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            : 'bg-muted/30 text-muted-foreground border border-border/50 hover:bg-muted/50'
+                        }`}
+                      >
+                        {price === 0 ? 'Off' : `≤ $${price}`}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Custom price input */}
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">$</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="10000"
+                        step="1"
+                        value={customPriceInput}
+                        onChange={(e) => setCustomPriceInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !prefsLoading) {
+                            const val = parseFloat(customPriceInput);
+                            if (val > 0) updateAutoBuyPrice(val);
+                          }
+                        }}
+                        placeholder="Custom max price"
+                        disabled={prefsLoading}
+                        className="w-full bg-muted/30 border border-border/50 rounded-lg pl-5 pr-2 py-1.5 text-[11px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-emerald-500/30 disabled:opacity-50"
+                      />
+                    </div>
+                    <button
+                      disabled={prefsLoading || !customPriceInput || parseFloat(customPriceInput) <= 0}
+                      onClick={() => {
+                        const val = parseFloat(customPriceInput);
+                        if (val > 0) updateAutoBuyPrice(val);
+                      }}
+                      className="text-[10px] px-3 py-1.5 bg-emerald-500/20 text-emerald-300 rounded-lg border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                    >
+                      Set
+                    </button>
+                  </div>
+
+                  {prefsLoading && (
+                    <p className="text-[9px] text-emerald-400 animate-pulse">
+                      Saving...
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

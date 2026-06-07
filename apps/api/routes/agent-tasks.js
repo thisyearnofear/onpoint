@@ -198,8 +198,37 @@ async function autoBuy(userId, drop, agentId = DEFAULT_AGENT_ID) {
   try {
     await agentCore.AgentControls.initStore(agentId, userId);
 
-    // Score the drop against user's style preferences for context
+    // Load user's auto-buy preferences
     const prefs = agentCore.AgentControls.getStylePreferences(userId);
+    const autoBuyMax = prefs.autoBuyMaxPrice || 0;
+
+    // Check if auto-buy is enabled and within the user's max price threshold
+    if (autoBuyMax <= 0) {
+      return {
+        success: false,
+        error: 'Auto-buy disabled for this user',
+        skipped: true,
+        reason: 'auto_buy_disabled',
+      };
+    }
+
+    if (drop.newPrice > autoBuyMax) {
+      logger.info(`Auto-buy skipped for ${userId}: $${drop.newPrice} > max $${autoBuyMax}`, {
+        component: 'tasks',
+        userId,
+        newPrice: drop.newPrice,
+        maxPrice: autoBuyMax,
+      });
+      return {
+        success: false,
+        error: `Price $${drop.newPrice} exceeds max auto-buy threshold of $${autoBuyMax}`,
+        skipped: true,
+        reason: 'price_exceeds_threshold',
+        maxPrice: autoBuyMax,
+      };
+    }
+
+    // Score the drop against user's style preferences for context
     const dropWithPrice = { ...drop, price: drop.newPrice }; // scoreSignal reads signal.price
     const scoreResult = scoreSignal(dropWithPrice, prefs);
 
@@ -225,6 +254,7 @@ async function autoBuy(userId, drop, agentId = DEFAULT_AGENT_ID) {
         productSource: drop.source,
         matchScore: scoreResult.score,
         matchReasons: scoreResult.reasons,
+        autoBuyMaxPrice: autoBuyMax,
       },
     });
 
@@ -849,6 +879,70 @@ router.get('/drops', async (req, res) => {
   } catch (error) {
     logger.error('Tasks drops error', { component: 'tasks' }, error);
     res.status(500).json({ success: false, error: 'Failed to get price drops' });
+  }
+});
+
+// ── POST /api/agent/tasks/preferences — Update user auto-buy preferences ──
+// Body: { userId, autoBuyMaxPrice: number (0 = disabled) }
+
+router.post('/preferences', async (req, res) => {
+  const { userId, autoBuyMaxPrice } = req.body;
+
+  if (!userId) {
+    return res.status(400).json({ success: false, error: 'userId is required' });
+  }
+
+  if (autoBuyMaxPrice === undefined || autoBuyMaxPrice < 0) {
+    return res.status(400).json({ success: false, error: 'autoBuyMaxPrice must be a non-negative number' });
+  }
+
+  try {
+    await agentCore.AgentControls.initStore(DEFAULT_AGENT_ID, userId);
+
+    const updated = agentCore.AgentControls.updateStylePreferences(userId, {
+      autoBuyMaxPrice,
+    });
+
+    logger.info(`Auto-buy preference updated for ${userId}: max price = $${autoBuyMaxPrice}`, {
+      component: 'tasks',
+      userId,
+      autoBuyMaxPrice,
+    });
+
+    res.json({
+      success: true,
+      userId,
+      autoBuyMaxPrice: updated.autoBuyMaxPrice,
+      autoBuyEnabled: (updated.autoBuyMaxPrice || 0) > 0,
+    });
+  } catch (error) {
+    logger.error('Tasks preferences error', { component: 'tasks' }, error);
+    res.status(500).json({ success: false, error: 'Failed to update preferences' });
+  }
+});
+
+// ── GET /api/agent/tasks/preferences?userId=X — Get user auto-buy preferences ──
+
+router.get('/preferences', async (req, res) => {
+  const userId = req.query.userId;
+
+  if (!userId) {
+    return res.status(400).json({ error: 'userId query parameter is required' });
+  }
+
+  try {
+    await agentCore.AgentControls.initStore(DEFAULT_AGENT_ID, userId);
+    const prefs = agentCore.AgentControls.getStylePreferences(userId);
+
+    res.json({
+      success: true,
+      userId,
+      autoBuyMaxPrice: prefs.autoBuyMaxPrice || 0,
+      autoBuyEnabled: (prefs.autoBuyMaxPrice || 0) > 0,
+    });
+  } catch (error) {
+    logger.error('Tasks preferences error', { component: 'tasks' }, error);
+    res.status(500).json({ success: false, error: 'Failed to get preferences' });
   }
 });
 
