@@ -238,3 +238,18 @@ export {
   persistMetrics,
   resetMetrics,
 } from "./metrics";
+
+// ── Signer Client (ADR 0001 Phase 4) ──
+export {
+  type SignerHealth,
+  type SignTransferParams,
+  type SignMintParams,
+  type SignContractParams,
+  type SignerTransferResult,
+  type SignerMintResult,
+  type SignerErrorResult,
+  type SignerHealthResult,
+  SignerClient,
+  getSignerClient,
+  createSignerClient,
+} from "./signer-client";

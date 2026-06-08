@@ -41,6 +41,22 @@ export function useGeminiLive() {
       setIsInitializing(true);
       setError(null);
 
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Camera access is not supported in this browser or over non-secure context (HTTP). Please use HTTPS.");
+      }
+
+      // Open camera first so permission failures do not consume a provisioned
+      // backend session.
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 1280, height: 720, facingMode: 'user' },
+        audio: true
+      });
+      streamRef.current = stream;
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+
       // Always use the app-local API route so the server-side proxy can inject auth.
       const response = await fetch('/api/ai/live-session', {
         method: 'POST',
@@ -57,20 +73,6 @@ export function useGeminiLive() {
         throw new Error(provError || 'Failed to provision Gemini session');
       }
       provisioned = true;
-
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error("Camera access is not supported in this browser or over non-secure context (HTTP). Please use HTTPS.");
-      }
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 1280, height: 720, facingMode: 'user' },
-        audio: true
-      });
-      streamRef.current = stream;
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
 
       const provider = new GeminiLiveProvider({
         apiKey: config.apiKey,

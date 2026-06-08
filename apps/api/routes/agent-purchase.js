@@ -164,27 +164,56 @@ router.post('/', async (req, res) => {
       }
     }
 
-    // Check agent private key
-    const agentPrivateKey = process.env.AGENT_PRIVATE_KEY;
-    if (!agentPrivateKey) {
+    // Resolve signer client or fall back to AGENT_PRIVATE_KEY
+    const signerClient = agentCore.getSignerClient();
+    const agentPrivateKey = !signerClient ? process.env.AGENT_PRIVATE_KEY : null;
+
+    if (!signerClient && !agentPrivateKey) {
       return res.status(503).json({
         success: false,
-        error: 'Agent signing not configured. Set AGENT_PRIVATE_KEY to enable purchases.',
+        error: 'Agent signing not configured. Set SIGNER_URL+SIGNER_API_KEY or AGENT_PRIVATE_KEY.',
         code: 'SIGNING_NOT_CONFIGURED',
       });
     }
 
-    // Execute cUSD transfer
-    const transferResult = await agentCore.ERC20.transfer({
-      chain,
-      tokenAddress: cUSDAddress,
-      to: product.seller,
-      amount: totalAmountWei,
-      privateKey: agentPrivateKey,
-    });
+    let txHash;
+    let txAmount;
 
-    // Record spending
-    agentCore.AgentControls.recordSpending(agentId, userId, 'purchase', totalAmountWei);
+    if (signerClient) {
+      const signerResult = await signerClient.signTransfer({
+        chain,
+        tokenAddress: cUSDAddress,
+        to: product.seller,
+        amountWei: totalAmountWei.toString(),
+        action: 'purchase',
+        agentId,
+        userId,
+        suggestionId: `purchase_${Date.now()}`,
+        description: `Purchase ${quantity}x ${product.name}`,
+      });
+
+      if (!signerResult.success) {
+        return res.status(403).json({ success: false, error: signerResult.error, code: signerResult.code });
+      }
+
+      txHash = signerResult.txHash;
+      txAmount = totalFormatted;
+    } else {
+      // Fallback: sign directly with AGENT_PRIVATE_KEY (dev mode)
+      const transferResult = await agentCore.ERC20.transfer({
+        chain,
+        tokenAddress: cUSDAddress,
+        to: product.seller,
+        amount: totalAmountWei,
+        privateKey: agentPrivateKey,
+      });
+
+      txHash = transferResult.hash;
+      txAmount = `${transferResult.amount} ${transferResult.symbol}`;
+
+      // Record spending (signer does this when using signer client)
+      agentCore.AgentControls.recordSpending(agentId, userId, 'purchase', totalAmountWei);
+    }
 
     const purchaseId = `purchase_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -193,8 +222,8 @@ router.post('/', async (req, res) => {
       await agentCore.recordReceipt({
         action: 'propose_mint_nft',
         sessionId: purchaseId,
-        metadata: { productId: product.id, productName: product.name, quantity, totalAmount: transferResult.amount, recipient: product.seller, chain },
-        txHash: transferResult.hash,
+        metadata: { productId: product.id, productName: product.name, quantity, totalAmount: txAmount, recipient: product.seller, chain },
+        txHash,
         chain,
         onChain: true,
       });
@@ -209,10 +238,10 @@ router.post('/', async (req, res) => {
         productId: product.id,
         productName: product.name,
         quantity,
-        totalAmount: `${transferResult.amount} ${transferResult.symbol}`,
-        txHash: transferResult.hash,
+        totalAmount: txAmount,
+        txHash,
         chain,
-        explorerUrl: agentCore.getExplorerUrl?.(chain, transferResult.hash) || `https://celoscan.io/tx/${transferResult.hash}`,
+        explorerUrl: agentCore.getExplorerUrl?.(chain, txHash) || `https://celoscan.io/tx/${txHash}`,
         timestamp: Date.now(),
       },
     });

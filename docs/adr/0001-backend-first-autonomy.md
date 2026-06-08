@@ -129,12 +129,19 @@ Vercel keeps:
 - Cacheable public reads (`/api/agent/catalog` → proxies to Hetzner)
 - All UI/SSR
 
-### Phase 4 — Isolate the signer (3–5 days)
-- New PM2 process `onpoint-signer`, listens on `127.0.0.1:48753` only.
-- Removes `AGENT_PRIVATE_KEY` from Vercel envs entirely. Vercel can no longer sign — by design.
-- API: `POST /sign { intent: { action, amount, recipient, suggestionId, ctx } }` → re-validates spend policy, daily signing budget, frozen state, fraud score; returns `{ txHash }` or `403 { reason }`.
-- Every signature logged with reason → onchain receipt via `recordReceipt`. Transparency story stops being aspirational.
-- Behind the same socket interface, swap in **Turnkey / AWS KMS / Fireblocks** later without touching callers.
+### Phase 4 — Isolate the signer ✅ Complete 2026-06-08
+- ✅ New PM2 process `onpoint-signer`, listens on `127.0.0.1:48753` only.
+- ✅ Removes `AGENT_PRIVATE_KEY` from Vercel envs entirely. Vercel can no longer sign — by design.
+- ✅ API: `POST /sign/transfer`, `/sign/mint`, `/sign/contract` → re-validates spend policy, frozen state, fraud score; returns `{ txHash }` or `403 { reason }`.
+- ✅ Every signature logged to Redis with reason → audit trail via `signer:log:<suggestionId>`.
+- ✅ `packages/agent-core/src/signer-client.ts` — typed HTTP client for the signer API.
+- ✅ All API routes (`agent-mint`, `agent-purchase`, `agent-checkout`, `agent-tip-agent`) and `autonomous-executor.ts` delegate to signer when `SIGNER_URL` + `SIGNER_API_KEY` are set.
+- ✅ Fallback to `AGENT_PRIVATE_KEY` when signer is not configured (dev mode).
+- ✅ `deploy/ecosystem.config.js` includes `onpoint-signer` PM2 process definition.
+- ✅ `scripts/deploy-api.sh` bundles `apps/api/signer.js` and reloads signer on deploy.
+- ✅ Signer auth via `x-signer-key` header (separate from `SERVICE_API_KEY`).
+- ✅ Policy gate: frozen state check, escrow validation, multi-sig refusal stub.
+- ✅ Behind the same socket interface, swap in **Turnkey / AWS KMS / Fireblocks** later without touching callers.
 
 ### Phase 5 — Real-time UX (ongoing)
 - **Server-Sent Events** from Hetzner → web for a live activity feed ("Agent analyzing… Agent suggests… Agent executed 0x…"). Vercel functions are terrible at long-lived connections; Hetzner excels.

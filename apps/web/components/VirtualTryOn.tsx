@@ -268,6 +268,32 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
   const { isPremium, loading: premiumLoading } = usePremiumStatus();
   const { preferences } = useUserPreferences();
 
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const showUploadMode = () => {
+      const params = new URLSearchParams(window.location.search);
+      const savedMode = window.localStorage.getItem("onpoint-tryon-mode");
+      if (params.get("mode") !== "upload" && savedMode !== "upload") {
+        return;
+      }
+      setShowLiveStylist(false);
+      window.localStorage.removeItem("onpoint-tryon-mode");
+      params.delete("mode");
+      const nextQuery = params.toString();
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`,
+      );
+    };
+
+    showUploadMode();
+    window.addEventListener("onpoint-tryon-upload-mode", showUploadMode);
+    return () => {
+      window.removeEventListener("onpoint-tryon-upload-mode", showUploadMode);
+    };
+  }, []);
+
   // Hooks
   const {
     analysis,

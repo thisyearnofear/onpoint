@@ -92,60 +92,90 @@ router.post('/', async (req, res) => {
       }
     }
 
-    // Check agent private key
-    const agentPrivateKey = process.env.AGENT_PRIVATE_KEY;
-    if (!agentPrivateKey) {
+    // Resolve signer client or fall back to AGENT_PRIVATE_KEY
+    const signerClient = agentCore.getSignerClient();
+    const agentPrivateKey = !signerClient ? process.env.AGENT_PRIVATE_KEY : null;
+
+    if (!signerClient && !agentPrivateKey) {
       return res.status(503).json({
         success: false,
-        error: 'Agent signing not configured. Set AGENT_PRIVATE_KEY to enable NFT minting.',
+        error: 'Agent signing not configured. Set SIGNER_URL+SIGNER_API_KEY or AGENT_PRIVATE_KEY.',
         code: 'SIGNING_NOT_CONFIGURED',
       });
     }
 
-    // Import blockchain client modules
-    const { createPublicClient, createWalletClient, http } = require('viem');
-    const { celo } = require('viem/chains');
-    const blockchainClient = require('@repo/blockchain-client');
+    let result;
 
-    const chainConfig = chain === 'celoSepolia'
-      ? (agentCore.celoSepolia || celo)
-      : celo;
-
-    const rpcUrl = 'https://forno.celo.org';
-
-    const publicClient = createPublicClient({
-      chain: chainConfig,
-      transport: http(rpcUrl),
-    });
-
-    const walletClient = createWalletClient({
-      account: agentPrivateKey,
-      chain: chainConfig,
-      transport: http(rpcUrl),
-    });
-
-    const splitsClient = blockchainClient.createSplitsClient(
-      chainConfig.id,
-      publicClient,
-      walletClient,
-    );
-
-    const result = await blockchainClient.mintNFTWithSplit(
-      walletClient,
-      publicClient,
-      nftContract,
-      metadataUri,
-      {
+    if (signerClient) {
+      // Delegate to isolated signer process
+      const signerResult = await signerClient.signMint({
+        chain,
+        nftContract: nftContract,
+        metadataUri,
         recipients: [
           { address: royaltyAddr, percentAllocation: 85 },
           { address: agentCore.PLATFORM_WALLET || agentCore.AGENT_WALLET, percentAllocation: 15 },
         ],
-      },
-      splitsClient,
-    );
+        agentId,
+        userId,
+        suggestionId: `mint_${Date.now()}`,
+      });
 
-    // Record spending
-    agentCore.AgentControls.recordSpending(agentId, userId, 'mint', estimatedGasWei);
+      if (!signerResult.success) {
+        return res.status(403).json({ success: false, error: signerResult.error, code: signerResult.code });
+      }
+
+      result = {
+        transactionHash: signerResult.txHash,
+        tokenId: signerResult.tokenId,
+        splitAddress: null,
+      };
+    } else {
+      // Fallback: sign directly with AGENT_PRIVATE_KEY (dev mode)
+      const { createPublicClient, createWalletClient, http } = require('viem');
+      const { celo } = require('viem/chains');
+      const blockchainClient = require('@repo/blockchain-client');
+
+      const chainConfig = chain === 'celoSepolia'
+        ? (agentCore.celoSepolia || celo)
+        : celo;
+
+      const rpcUrl = 'https://forno.celo.org';
+
+      const publicClient = createPublicClient({
+        chain: chainConfig,
+        transport: http(rpcUrl),
+      });
+
+      const walletClient = createWalletClient({
+        account: agentPrivateKey,
+        chain: chainConfig,
+        transport: http(rpcUrl),
+      });
+
+      const splitsClient = blockchainClient.createSplitsClient(
+        chainConfig.id,
+        publicClient,
+        walletClient,
+      );
+
+      result = await blockchainClient.mintNFTWithSplit(
+        walletClient,
+        publicClient,
+        nftContract,
+        metadataUri,
+        {
+          recipients: [
+            { address: royaltyAddr, percentAllocation: 85 },
+            { address: agentCore.PLATFORM_WALLET || agentCore.AGENT_WALLET, percentAllocation: 15 },
+          ],
+        },
+        splitsClient,
+      );
+
+      // Record spending (signer does this when using signer client)
+      agentCore.AgentControls.recordSpending(agentId, userId, 'mint', estimatedGasWei);
+    }
 
     // Record verifiable receipt
     try {

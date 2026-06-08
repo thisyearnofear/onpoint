@@ -60,7 +60,23 @@ export function useVeniceLive() {
         setSessionExpired(false);
         setSessionTimeRemaining(VENICE_FREE_SESSION_SECONDS);
 
-        // Verify session can be started (rate limiting check)
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error("Camera access is not supported in this browser or over non-secure context (HTTP). Please use HTTPS.");
+        }
+
+        // Open camera first so permission failures do not consume a provisioned
+        // backend session.
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 1280, height: 720, facingMode: "user" },
+          audio: false, // Venice doesn't support audio
+        });
+        streamRef.current = stream;
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+
+        // Verify session can be started (rate limiting check) after camera is ready.
         const response = await fetch("/api/ai/live-session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -76,21 +92,6 @@ export function useVeniceLive() {
           throw new Error(errorData.error || "Failed to connect to Venice AI");
         }
         provisioned = true;
-
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error("Camera access is not supported in this browser or over non-secure context (HTTP). Please use HTTPS.");
-        }
-
-        // Get user media for video after the backend accepts the session.
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 1280, height: 720, facingMode: "user" },
-          audio: false, // Venice doesn't support audio
-        });
-        streamRef.current = stream;
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
 
         // Create Venice Live provider (uses backend proxy, no API key needed)
         const provider = new VeniceLiveProvider({

@@ -93,5 +93,28 @@ module.exports = {
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       merge_logs: true,
     },
+    {
+      name: 'onpoint-signer',
+      cwd: '/opt/onpoint',
+      script: 'apps/api/signer.js',      // Isolated signer (ADR 0001 Phase 4)
+      instances: 1,
+      exec_mode: 'fork',
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '200M',
+      env: {
+        NODE_ENV: 'production',
+        SIGNER_PORT: 48753,
+        REDIS_URL: 'redis://localhost:6379',
+        SIGNER_API_KEY: '',              // Set in shared/.env (must match onpoint-api)
+        AGENT_PRIVATE_KEY: '',           // Set in shared/.env — sole holder
+        SENTRY_DSN: '',                  // Shared Sentry DSN
+        SENTRY_RELEASE: '',              // Set by deploy script
+      },
+      error_file: '/var/log/pm2/onpoint-signer-error.log',
+      out_file: '/var/log/pm2/onpoint-signer-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      merge_logs: true,
+    },
   ]
 };

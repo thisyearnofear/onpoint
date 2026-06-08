@@ -470,6 +470,18 @@ if [[ "$DRY_RUN" == false ]]; then
   }
 fi
 
+# ── Step 9.6: Start/reload onpoint-signer ────────────────────────────
+# Isolated signer process (ADR 0001 Phase 4). Holds AGENT_PRIVATE_KEY
+# exclusively on loopback-only socket.
+info "🔄 Starting/reloading PM2 process: onpoint-signer"
+cmd "ssh ${SSH_HOST} \"cd ${REMOTE_BASE} && pm2 startOrGracefulReload deploy/ecosystem.config.js --only onpoint-signer\""
+
+if [[ "$DRY_RUN" == false ]]; then
+  ssh "$SSH_HOST" "cd ${REMOTE_BASE} && pm2 startOrGracefulReload deploy/ecosystem.config.js --only onpoint-signer" || {
+    warn "⚠️  Signer start/reload failed — API deploy succeeded"
+  }
+fi
+
 # ── Step 10: Cleanup old backup (if this was first-deploy transition) ─
 if [[ "$DRY_RUN" == false && "${HAS_BAK:-false}" == true ]]; then
   info "🧹 Removing backup of original apps/api directory"

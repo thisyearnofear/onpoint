@@ -125,6 +125,54 @@ router.post('/', async (req, res) => {
     const tipId = `a2a_${Date.now()}_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
     const tipToken = token || (chain === 'celo' ? 'cUSD' : 'USDT');
 
+    // Resolve signer client or fall back to ledger-only mode
+    const signerClient = agentCore.getSignerClient();
+    const agentPrivateKey = !signerClient ? process.env.AGENT_PRIVATE_KEY : null;
+
+    let txHash = null;
+    let tipStatus = 'pending';
+
+    if (signerClient) {
+      // Execute actual on-chain transfer via isolated signer
+      const cUSDAddress = agentCore.ERC20?.getCUSDAddress?.(chain);
+      if (cUSDAddress) {
+        const signerResult = await signerClient.signTransfer({
+          chain,
+          tokenAddress: cUSDAddress,
+          to: toAddress,
+          amountWei: amountWei.toString(),
+          action: 'tip',
+          agentId: fromAgentId,
+          userId,
+          suggestionId: tipId,
+          description: `Agent tip: ${fromAgentId} → ${toAgentId}`,
+        });
+
+        if (signerResult.success) {
+          txHash = signerResult.txHash;
+          tipStatus = 'completed';
+        }
+      }
+    } else if (agentPrivateKey) {
+      // Fallback: sign directly with AGENT_PRIVATE_KEY (dev mode)
+      const cUSDAddress = agentCore.ERC20?.getCUSDAddress?.(chain);
+      if (cUSDAddress) {
+        try {
+          const transferResult = await agentCore.ERC20.transfer({
+            chain,
+            tokenAddress: cUSDAddress,
+            to: toAddress,
+            amount: amountWei,
+            privateKey: agentPrivateKey,
+          });
+          txHash = transferResult.hash;
+          tipStatus = 'completed';
+        } catch (err) {
+          logger.warn('Tip transfer failed, recording as pending', { component: 'tip-agent' }, err);
+        }
+      }
+    }
+
     const tipRecord = {
       id: tipId,
       fromAgentId,
@@ -136,7 +184,8 @@ router.post('/', async (req, res) => {
       token: tipToken,
       timestamp: Date.now(),
       message,
-      status: 'pending',
+      status: tipStatus,
+      txHash,
     };
 
     const ledger = await getAgentTipLedger();
@@ -154,6 +203,8 @@ router.post('/', async (req, res) => {
       chain,
       from: `${fromAddress.slice(0, 6)}...${fromAddress.slice(-4)}`,
       to: `${toAddress.slice(0, 6)}...${toAddress.slice(-4)}`,
+      txHash,
+      status: tipStatus,
     });
 
     res.json({
@@ -167,12 +218,15 @@ router.post('/', async (req, res) => {
         chain,
         fromAddress,
         toAddress,
-        status: 'pending',
+        status: tipStatus,
+        txHash,
         timestamp: tipRecord.timestamp,
       },
-      agentResponse: message
-        ? `${toAgentId} received your ${amount} ${tipToken} tip: "${message}"`
-        : `${toAgentId} received your ${amount} ${tipToken} tip!`,
+      agentResponse: tipStatus === 'completed'
+        ? `${toAgentId} received your ${amount} ${tipToken} tip!`
+        : (message
+          ? `${toAgentId} will receive your ${amount} ${tipToken} tip: "${message}" (pending)`
+          : `${toAgentId} will receive your ${amount} ${tipToken} tip (pending)`),
     });
   } catch (error) {
     logger.error('Agent-to-agent tip failed', { component: 'tip-agent' }, error);

@@ -58,6 +58,15 @@ interface LiveStylistViewProps {
   onBack: () => void;
 }
 
+type QueuedLiveStart = {
+  provider: "venice" | "gemini";
+  goal: "daily" | "event" | "critique";
+  persona: string;
+  apiKey?: string;
+};
+
+const DEFAULT_LIVE_PERSONA = "shaft";
+
 export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   const session = useLiveSession();
   const { isConnected: isWalletConnected } = useAccount();
@@ -67,6 +76,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   const [showCheckout, setShowCheckout] = React.useState(false);
   const [showInstructions, setShowInstructions] = React.useState(true);
   const [showStyleReport, setShowStyleReport] = React.useState(false);
+  const [queuedStart, setQueuedStart] = React.useState<QueuedLiveStart | null>(null);
 
   // Stop camera when leaving the view
   const handleBack = React.useCallback(() => {
@@ -202,6 +212,82 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     },
   ];
 
+  const queueLiveStart = React.useCallback(
+    (config: QueuedLiveStart) => {
+      setSelectedProvider(config.provider);
+      setSessionGoal(config.goal);
+      setSelectedPersona(config.persona);
+      setQueuedStart(config);
+    },
+    [setSelectedPersona, setSelectedProvider, setSessionGoal],
+  );
+
+  const runStartSequence = React.useCallback(
+    async (config: QueuedLiveStart) => {
+      setInitStep("connecting");
+      await new Promise((r) => setTimeout(r, 300));
+      setInitStep("authenticating");
+      await new Promise((r) => setTimeout(r, 500));
+      setInitStep("starting");
+      await startSession(config.goal, config.apiKey, config.persona);
+    },
+    [setInitStep, startSession],
+  );
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const consumeAutoStart = () => {
+      if (queuedStart || isConnected || isInitializing) return;
+      if (window.localStorage.getItem("onpoint-live-auto-start") !== "true") {
+        return;
+      }
+      window.localStorage.removeItem("onpoint-live-auto-start");
+      queueLiveStart({
+        provider: "venice",
+        goal: "daily",
+        persona: DEFAULT_LIVE_PERSONA,
+      });
+    };
+
+    consumeAutoStart();
+    window.addEventListener("onpoint-live-auto-start", consumeAutoStart);
+    return () => {
+      window.removeEventListener("onpoint-live-auto-start", consumeAutoStart);
+    };
+  }, [isConnected, isInitializing, queueLiveStart, queuedStart]);
+
+  React.useEffect(() => {
+    if (!queuedStart || isConnected || isInitializing) return;
+    if (
+      selectedProvider !== queuedStart.provider ||
+      sessionGoal !== queuedStart.goal ||
+      selectedPersona !== queuedStart.persona
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    window.requestAnimationFrame(() => {
+      if (cancelled) return;
+      runStartSequence(queuedStart).finally(() => {
+        if (!cancelled) setQueuedStart(null);
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    isConnected,
+    isInitializing,
+    queuedStart,
+    runStartSequence,
+    selectedPersona,
+    selectedProvider,
+    sessionGoal,
+  ]);
+
     // ── Session Summary Screen (lazy-loaded) ──
   if (showSummary && sessionSummary) {
     return (
@@ -253,8 +339,11 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             <button
               onClick={() => {
                 trackProviderSelected({ provider: "venice" });
-                setSelectedProvider("venice");
-                setSessionGoal("daily");
+                queueLiveStart({
+                  provider: "venice",
+                  goal: "daily",
+                  persona: DEFAULT_LIVE_PERSONA,
+                });
               }}
               className="w-full text-left p-5 rounded-2xl bg-card hover:bg-muted/50 border border-border transition-all group"
             >
@@ -281,8 +370,11 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             <button
               onClick={() => {
                 trackProviderSelected({ provider: "venice" });
-                setSelectedProvider("venice");
-                setSessionGoal("event");
+                queueLiveStart({
+                  provider: "venice",
+                  goal: "event",
+                  persona: DEFAULT_LIVE_PERSONA,
+                });
               }}
               className="w-full text-left p-5 rounded-2xl bg-card hover:bg-muted/50 border border-border transition-all group"
             >
@@ -309,8 +401,11 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             <button
               onClick={() => {
                 trackProviderSelected({ provider: "venice" });
-                setSelectedProvider("venice");
-                setSessionGoal("critique");
+                queueLiveStart({
+                  provider: "venice",
+                  goal: "critique",
+                  persona: DEFAULT_LIVE_PERSONA,
+                });
               }}
               className="w-full text-left p-5 rounded-2xl bg-card hover:bg-muted/50 border border-border transition-all group"
             >
@@ -509,6 +604,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   if (
     selectedProvider &&
     sessionGoal &&
+    !queuedStart &&
     (!selectedPersona || (!isConnected && !isInitializing))
   ) {
     return (
@@ -623,16 +719,12 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 (selectedProvider === "gemini" && !geminiPaymentToken && !userApiKey.trim())
               }
               onClick={async () => {
-                setInitStep("connecting");
-                await new Promise((r) => setTimeout(r, 300));
-                setInitStep("authenticating");
-                await new Promise((r) => setTimeout(r, 500));
-                setInitStep("starting");
-                await startSession(
-                  sessionGoal!,
-                  userApiKey || geminiPaymentToken || undefined,
-                  selectedPersona!,
-                );
+                await runStartSequence({
+                  provider: selectedProvider,
+                  goal: sessionGoal!,
+                  apiKey: userApiKey || geminiPaymentToken || undefined,
+                  persona: selectedPersona!,
+                });
               }}
             >
               {isInitializing ? (

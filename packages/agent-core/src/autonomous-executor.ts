@@ -21,6 +21,7 @@ import { NFT_CONTRACTS, PLATFORM_WALLET, AGENT_WALLET, getExplorerUrl } from "./
 import { recordReceipt } from "./agent-registry";
 import { logger } from "./logger";
 import { Metrics } from "./metrics";
+import { getSignerClient, type SignerClient } from "./signer-client";
 
 // ============================================
 // Retry Configuration
@@ -189,11 +190,13 @@ export async function executeSuggestion(params: {
     };
   }
 
+  const signerClient = getSignerClient();
   const agentPrivateKey = process.env.AGENT_PRIVATE_KEY as `0x${string}` | undefined;
-  if (!agentPrivateKey) {
+
+  if (!signerClient && !agentPrivateKey) {
     return {
       success: false,
-      error: "AGENT_PRIVATE_KEY not configured — cannot execute autonomously",
+      error: "No signing method available — configure SIGNER_URL+SIGNER_API_KEY or AGENT_PRIVATE_KEY",
       action: actionType,
       autoApproved: true,
     };
@@ -202,12 +205,11 @@ export async function executeSuggestion(params: {
   switch (actionType) {
     case "mint": {
       const result = await withRetry(
-        () => executeMint(params, agentPrivateKey, celoAddress),
+        () => executeMint(params, signerClient, agentPrivateKey, celoAddress),
         "Mint",
         suggestionId,
       );
       if (!result.success) {
-        // Mark suggestion as failed so it can be retried later
         try {
           await markSuggestionFailed(suggestionId, userId, result.error);
         } catch { /* best effort */ }
@@ -217,7 +219,7 @@ export async function executeSuggestion(params: {
     }
     case "purchase": {
       const result = await withRetry(
-        () => executePurchase(params, agentPrivateKey, celoAddress),
+        () => executePurchase(params, signerClient, agentPrivateKey, celoAddress),
         "Purchase",
         suggestionId,
       );
@@ -231,7 +233,7 @@ export async function executeSuggestion(params: {
     }
     case "tip": {
       const result = await withRetry(
-        () => executeTip(params, agentPrivateKey, celoAddress),
+        () => executeTip(params, signerClient, agentPrivateKey, celoAddress),
         "Tip",
         suggestionId,
       );
@@ -290,7 +292,8 @@ async function markSuggestionFailed(
 
 async function executeMint(
   params: any,
-  agentPrivateKey: `0x${string}`,
+  signerClient: SignerClient | null,
+  agentPrivateKey: `0x${string}` | undefined,
   agentAddress: string,
 ): Promise<ExecutionResult> {
   const { userAddress, description, suggestionId } = params;
@@ -301,13 +304,58 @@ async function executeMint(
     return { success: false, error: "NFT contract not on Celo", action: "mint", autoApproved: true };
   }
 
+  if (signerClient) {
+    const signerResult = await signerClient.signMint({
+      chain,
+      nftContract: nftContract as string,
+      metadataUri: `ipfs://onpoint/autonomous/${suggestionId}`,
+      recipients: [
+        { address: userAddress as string, percentAllocation: 85 },
+        { address: PLATFORM_WALLET as string, percentAllocation: 15 },
+      ],
+      agentId: params.agentId,
+      userId: params.userId,
+      suggestionId,
+    });
+
+    if (!signerResult.success) {
+      return { success: false, error: signerResult.error, action: "mint", autoApproved: true };
+    }
+
+    const result = signerResult as { success: true; txHash: string; tokenId: string; explorerUrl: string };
+
+    Metrics.countAction("mint", "succeeded");
+
+    await recordReceipt({
+      action: "mint_nft",
+      sessionId: suggestionId,
+      metadata: { description, tokenId: result.tokenId, userAddress, autoApproved: true },
+      txHash: result.txHash,
+      chain: "celo",
+      onChain: true,
+    });
+
+    return {
+      success: true,
+      txHash: result.txHash,
+      tokenId: result.tokenId,
+      explorerUrl: result.explorerUrl,
+      action: "mint",
+      autoApproved: true,
+    };
+  }
+
+  // Fallback: sign directly with AGENT_PRIVATE_KEY (dev mode)
+  if (!agentPrivateKey) {
+    return { success: false, error: "No signing method available", action: "mint", autoApproved: true };
+  }
+
   const chainConfig = celo;
   const rpcUrl = "https://forno.celo.org";
 
   const publicClient = createPublicClient({ chain: chainConfig, transport: http(rpcUrl) });
   const walletClient = createWalletClient({ account: agentPrivateKey, chain: chainConfig, transport: http(rpcUrl) });
 
-  // Track nonce to prevent nonce-dance on retries
   const nonce = await getNextNonce(chain, walletClient, agentAddress as Address);
   const splitsClient = createSplitsClient(chainConfig.id, publicClient as any, walletClient as any);
 
@@ -354,7 +402,8 @@ async function executeMint(
 
 async function executePurchase(
   params: any,
-  agentPrivateKey: `0x${string}`,
+  signerClient: SignerClient | null,
+  agentPrivateKey: `0x${string}` | undefined,
   agentAddress: string,
 ): Promise<ExecutionResult> {
   const { userAddress, amount, description, recipient, suggestionId } = params;
@@ -368,6 +417,47 @@ async function executePurchase(
   const cleanedAmount = amount.replace(/[^0-9.]/g, "");
   const amountWei = parseEther(cleanedAmount || "0");
   const to = recipient || PLATFORM_WALLET;
+
+  if (signerClient) {
+    const signerResult = await signerClient.signTransfer({
+      chain,
+      tokenAddress: cUSDAddress as string,
+      to: to as string,
+      amountWei: amountWei.toString(),
+      action: "purchase",
+      agentId: params.agentId,
+      userId: params.userId,
+      suggestionId,
+      description: description || "Autonomous purchase",
+    });
+
+    if (!signerResult.success) {
+      return { success: false, error: signerResult.error, action: "purchase", autoApproved: true };
+    }
+
+    Metrics.countAction("purchase", "succeeded");
+
+    await recordReceipt({
+      action: "propose_mint_nft",
+      sessionId: suggestionId,
+      metadata: { description, amount, recipient: to, userAddress, autoApproved: true },
+      txHash: signerResult.txHash,
+      chain: "celo",
+      onChain: true,
+    });
+
+    return {
+      success: true,
+      txHash: signerResult.txHash,
+      explorerUrl: signerResult.explorerUrl,
+      action: "purchase",
+      autoApproved: true,
+    };
+  }
+
+  if (!agentPrivateKey) {
+    return { success: false, error: "No signing method available", action: "purchase", autoApproved: true };
+  }
 
   const startTime = Date.now();
   const transferResult = await ERC20.transfer({
@@ -402,7 +492,8 @@ async function executePurchase(
 
 async function executeTip(
   params: any,
-  agentPrivateKey: `0x${string}`,
+  signerClient: SignerClient | null,
+  agentPrivateKey: `0x${string}` | undefined,
   agentAddress: string,
 ): Promise<ExecutionResult> {
   const { userAddress, amount, description, recipient, suggestionId } = params;
@@ -416,6 +507,47 @@ async function executeTip(
   const cleanedAmount = amount.replace(/[^0-9.]/g, "");
   const amountWei = parseEther(cleanedAmount || "0");
   const to = recipient || AGENT_WALLET;
+
+  if (signerClient) {
+    const signerResult = await signerClient.signTransfer({
+      chain,
+      tokenAddress: cUSDAddress as string,
+      to: to as string,
+      amountWei: amountWei.toString(),
+      action: "tip",
+      agentId: params.agentId,
+      userId: params.userId,
+      suggestionId,
+      description: description || "Autonomous tip",
+    });
+
+    if (!signerResult.success) {
+      return { success: false, error: signerResult.error, action: "tip", autoApproved: true };
+    }
+
+    Metrics.countAction("tip", "succeeded");
+
+    await recordReceipt({
+      action: "tip_sent",
+      sessionId: suggestionId,
+      metadata: { description, amount, recipient: to, userAddress, autoApproved: true },
+      txHash: signerResult.txHash,
+      chain: "celo",
+      onChain: true,
+    });
+
+    return {
+      success: true,
+      txHash: signerResult.txHash,
+      explorerUrl: signerResult.explorerUrl,
+      action: "tip",
+      autoApproved: true,
+    };
+  }
+
+  if (!agentPrivateKey) {
+    return { success: false, error: "No signing method available", action: "tip", autoApproved: true };
+  }
 
   const startTime = Date.now();
   const transferResult = await ERC20.transfer({

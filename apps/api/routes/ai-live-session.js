@@ -9,17 +9,78 @@ const express = require('express');
 const router = express.Router();
 const logger = require('../lib/logger');
 
-// ── Redis-backed session tracking (prevent abuse) ──
-// Each router instance shares the app-level Redis via req.app
+// ── Session tracking (prevent abuse) ──
+// Prefer Redis when configured, but keep live camera available with an
+// in-memory fallback if Redis is absent or temporarily unavailable.
 let redis = null;
+let redisUnavailable = false;
+const memoryStore = new Map();
+
+function memoryGet(key) {
+  const entry = memoryStore.get(key);
+  if (!entry) return null;
+  if (entry.expiresAt && entry.expiresAt <= Date.now()) {
+    memoryStore.delete(key);
+    return null;
+  }
+  return entry.value;
+}
+
+function memorySet(key, value, ttlSecs) {
+  memoryStore.set(key, {
+    value,
+    expiresAt: ttlSecs ? Date.now() + ttlSecs * 1000 : null,
+  });
+}
+
+function memoryDel(key) {
+  memoryStore.delete(key);
+}
+
+function memoryIncr(key, ttlSecs) {
+  const current = Number(memoryGet(key) || 0) + 1;
+  memorySet(key, String(current), ttlSecs);
+  return current;
+}
 
 function getRedis() {
+  if (redisUnavailable || !process.env.REDIS_URL) {
+    return null;
+  }
   if (!redis) {
-    redis = require('ioredis')(
-      process.env.REDIS_URL || 'redis://localhost:6379',
-    );
+    redis = require('ioredis')(process.env.REDIS_URL, {
+      lazyConnect: true,
+      maxRetriesPerRequest: 1,
+      enableOfflineQueue: false,
+      connectTimeout: 1000,
+    });
+    redis.on('error', (error) => {
+      redisUnavailable = true;
+      logger.warn?.('Redis unavailable for live sessions, using memory fallback', {
+        component: 'live-session',
+        error: error?.message,
+      });
+    });
   }
   return redis;
+}
+
+async function redisOrMemory(operation, fallback) {
+  const r = getRedis();
+  if (!r) return fallback();
+  try {
+    if (r.status === 'wait') {
+      await r.connect();
+    }
+    return await operation(r);
+  } catch (error) {
+    redisUnavailable = true;
+    logger.warn?.('Live session Redis operation failed, using memory fallback', {
+      component: 'live-session',
+      error: error?.message,
+    });
+    return fallback();
+  }
 }
 
 const SESSION_LIMITS = {
@@ -28,11 +89,16 @@ const SESSION_LIMITS = {
 };
 
 async function enforceVeniceLimits(clientIp) {
-  const r = getRedis();
   const frameKey = `venice-frames:${clientIp}`;
 
-  const count = await r.incr(frameKey);
-  await r.expire(frameKey, SESSION_LIMITS.venice.windowSecs);
+  const count = await redisOrMemory(
+    async (r) => {
+      const next = await r.incr(frameKey);
+      await r.expire(frameKey, SESSION_LIMITS.venice.windowSecs);
+      return next;
+    },
+    () => memoryIncr(frameKey, SESSION_LIMITS.venice.windowSecs),
+  );
 
   if (count > SESSION_LIMITS.venice.maxFrames) {
     return { allowed: false, remaining: 0 };
@@ -41,9 +107,11 @@ async function enforceVeniceLimits(clientIp) {
 }
 
 async function checkActiveSession(clientIp, provider) {
-  const r = getRedis();
   const sessionKey = `session:${provider}:${clientIp}`;
-  const active = await r.get(sessionKey);
+  const active = await redisOrMemory(
+    (r) => r.get(sessionKey),
+    () => memoryGet(sessionKey),
+  );
   if (active) {
     const started = parseInt(active, 10);
     const elapsed = (Date.now() - started) / 1000;
@@ -51,16 +119,26 @@ async function checkActiveSession(clientIp, provider) {
     const remaining = Math.max(0, limit - elapsed);
 
     if (remaining > 0) {
-      return { active: true, remaining: remaining, started: started * 1000 };
+      return { active: true, remaining: remaining, started };
     }
   }
   return { active: false, remaining: 0, started: 0 };
 }
 
 async function startSession(clientIp, provider, duration) {
-  const r = getRedis();
   const sessionKey = `session:${provider}:${clientIp}`;
-  await r.set(sessionKey, String(Date.now()), 'EX', duration);
+  await redisOrMemory(
+    (r) => r.set(sessionKey, String(Date.now()), 'EX', duration),
+    () => memorySet(sessionKey, String(Date.now()), duration),
+  );
+}
+
+async function endSession(clientIp, provider) {
+  const sessionKey = `session:${provider}:${clientIp}`;
+  await redisOrMemory(
+    (r) => r.del(sessionKey),
+    () => memoryDel(sessionKey),
+  );
 }
 
 // ── Routes ──
@@ -101,9 +179,20 @@ router.post('/', async (req, res) => {
     if (provider === 'venice') {
       const active = await checkActiveSession(clientIp, 'venice');
       if (active.active) {
-        return res.status(429).json({
-          error: 'Venice session already active',
-          retryAfter: Math.round(active.remaining),
+        await startSession(clientIp, 'venice', SESSION_LIMITS.venice.maxDuration);
+        return res.json({
+          success: true,
+          provider: 'venice',
+          resumed: true,
+          config: {
+            pollingInterval: 3000,
+            model: 'qwen3-vl-235b-a22b',
+            endpoint: '/api/ai/venice-analyze',
+          },
+          limits: {
+            framesPerMinute: SESSION_LIMITS.venice.maxFrames,
+            maxSessionDuration: SESSION_LIMITS.venice.maxDuration,
+          },
         });
       }
 
@@ -222,8 +311,7 @@ router.post('/end', async (req, res) => {
   const { provider } = req.body;
 
   if (provider) {
-    const r = getRedis();
-    await r.del(`session:${provider}:${clientIp}`);
+    await endSession(clientIp, provider);
   }
 
   res.json({ success: true });

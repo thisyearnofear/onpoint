@@ -59,8 +59,9 @@ export default function RootLayout({
 
     // Adaptive performance: detect low-end devices
     // Check for low memory, low CPU cores, or small viewport + reduced motion
+    const deviceMemory = navigator.deviceMemory;
     const isLowEnd = (
-      (navigator as any).deviceMemory !== undefined && (navigator as any).deviceMemory <= 4 ||
+      deviceMemory !== undefined && deviceMemory <= 4 ||
       navigator.hardwareConcurrency !== undefined && navigator.hardwareConcurrency <= 4 ||
       window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
       window.matchMedia('(prefers-reduced-data: reduce)').matches

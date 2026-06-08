@@ -144,12 +144,14 @@ router.post('/', async (req, res) => {
 
     const orderId = `order_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-    // Check agent private key
-    const agentPrivateKey = process.env.AGENT_PRIVATE_KEY;
-    if (!agentPrivateKey) {
+    // Resolve signer client or fall back to AGENT_PRIVATE_KEY
+    const signerClient = agentCore.getSignerClient();
+    const agentPrivateKey = !signerClient ? process.env.AGENT_PRIVATE_KEY : null;
+
+    if (!signerClient && !agentPrivateKey) {
       return res.status(503).json({
         success: false,
-        error: 'Agent signing not configured. Set AGENT_PRIVATE_KEY to enable checkout.',
+        error: 'Agent signing not configured. Set SIGNER_URL+SIGNER_API_KEY or AGENT_PRIVATE_KEY.',
         code: 'SIGNING_NOT_CONFIGURED',
       });
     }
@@ -160,19 +162,46 @@ router.post('/', async (req, res) => {
     for (const recipient of split.recipients) {
       if (recipient.amount === 0n) continue;
 
-      const result = await agentCore.ERC20.transfer({
-        chain,
-        tokenAddress: cUSDAddress,
-        to: recipient.address,
-        amount: recipient.amount,
-        privateKey: agentPrivateKey,
-      });
+      if (signerClient) {
+        const signerResult = await signerClient.signTransfer({
+          chain,
+          tokenAddress: cUSDAddress,
+          to: recipient.address,
+          amountWei: recipient.amount.toString(),
+          action: 'purchase',
+          agentId,
+          userId,
+          suggestionId: `${orderId}_${recipient.address.slice(0, 8)}`,
+          description: `Checkout split: ${recipient.label}`,
+        });
 
-      txHashes.push(result.hash);
+        if (!signerResult.success) {
+          logger.warn('Checkout split transfer rejected by signer', {
+            component: 'checkout',
+            recipient: recipient.address,
+            error: signerResult.error,
+          });
+          continue;
+        }
+
+        txHashes.push(signerResult.txHash);
+      } else {
+        const result = await agentCore.ERC20.transfer({
+          chain,
+          tokenAddress: cUSDAddress,
+          to: recipient.address,
+          amount: recipient.amount,
+          privateKey: agentPrivateKey,
+        });
+
+        txHashes.push(result.hash);
+      }
     }
 
-    // Record spending
-    agentCore.AgentControls.recordSpending(agentId, userId, 'purchase', totalWei);
+    // Record spending (signer does this when using signer client)
+    if (!signerClient) {
+      agentCore.AgentControls.recordSpending(agentId, userId, 'purchase', totalWei);
+    }
 
     // Record verifiable receipt
     try {
@@ -185,7 +214,7 @@ router.post('/', async (req, res) => {
           commissions: split.recipients.map((r) => ({ label: r.label, percentBps: r.percentBps, amount: r.amount.toString(), address: r.address })),
           chain,
         },
-        txHash: txHashes[0],
+        txHash: txHashes[0] || '',
         chain,
         onChain: true,
       });
@@ -200,9 +229,9 @@ router.post('/', async (req, res) => {
         items: resolvedItems.map(({ seller, ...item }) => item),
         totalAmount: totalFormatted,
         totalWei: totalWei.toString(),
-        txHash: txHashes[0],
+        txHash: txHashes[0] || '',
         chain,
-        explorerUrl: agentCore.getExplorerUrl?.(chain, txHashes[0]) || `https://celoscan.io/tx/${txHashes[0]}`,
+        explorerUrl: txHashes[0] ? (agentCore.getExplorerUrl?.(chain, txHashes[0]) || `https://celoscan.io/tx/${txHashes[0]}`) : '',
         commissions: split.recipients.map((r) => ({
           label: r.label,
           percentBps: r.percentBps,
