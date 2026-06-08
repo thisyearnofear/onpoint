@@ -30,6 +30,8 @@ See [ADR 0002 — Curator Primitive](./docs/adr/0002-curator-primitive.md) for t
 | **Style Memory** | Learns preferences across sessions |
 | **Autonomous Agent Worker** | Persistent background task loop: heartbeat, suggestion processing, market signal polling via PM2 |
 | **Autonomous Commerce Loop** | Worker tracks price history per item, detects drops ≥10%, checks user budget & autonomy threshold, auto-buys or surfaces hot deal suggestions |
+| **Style Guides & Content** | 5 original fashion buying guides at `/guides` covering football kits, Ankara prints, streetwear, vintage, and formal wear — drives SEO and affiliate monetization |
+| **About Page** | `/about` with mission, story, and team identity — meets publisher transparency requirements for affiliate networks |
 
 ## How It Works
 

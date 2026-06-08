@@ -134,6 +134,29 @@ Document and demonstrate Celo's sub-cent advantage.
 - [ ] Extract reusable agent skill modules (style-analysis, web-discovery, verifiable-receipts)
 - [ ] Set up analytics dashboard (PostHog or Mixpanel)
 
+### Phase 13: Content & Affiliate Monetization 🎯
+> **Context**: Skimlinks rejected initial application due to insufficient original content and missing About page. These are now live — reapply after traffic builds.
+
+**Completed:**
+- [x] `/about` page with mission, story, three pillars, and team identity (meets Skimlinks transparency requirement)
+- [x] 10 original style guide articles (football kits, Ankara, streetwear, vintage, formal wear, sneaker care, sustainable fashion, accessories, plus-size, occasion wear) — 400-700 words each
+- [x] `/guides` index page listing all guides
+- [x] OG images + enhanced meta descriptions on all 10 guide pages
+- [x] Sitemap covering all pages (total 20+ URLs)
+- [x] Navigation updated (Guides + About links in header and footer)
+- [x] Privacy policy page at `/privacy` for affiliate compliance
+- [x] Affiliate disclosure in privacy policy (Skimlinks, ShareASale)
+
+**Remaining:**
+- [ ] Apply to ShareASale (now integrated with Awin) at ui.awin.com/publisher-signup — use site description that highlights original content + fashion commerce intent
+- [ ] Reapply to Skimlinks after content threshold is met
+- [ ] Monitor ShareASale/Awin approval; fall back to Impact.com if rejected
+
+**Success criteria:**
+- ≥1 affiliate network approved
+- Guide pages drive ≥5% of site traffic within 60 days
+- SEO-visible with indexed sitemap
+
 ### Short-term (Post-Hackathon)
 - [ ] Premium persona unlock flow with payment
 - [ ] Agent wallet top-up interface

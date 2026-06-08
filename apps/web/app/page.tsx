@@ -52,6 +52,18 @@ export default function Home() {
               <FlaskConical className="w-4 h-4" />
               Lab
             </Link>
+            <Link
+              href="/guides"
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-full hover:bg-muted/50"
+            >
+              Guides
+            </Link>
+            <Link
+              href="/about"
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-full hover:bg-muted/50"
+            >
+              About
+            </Link>
             <NotificationBell />
             <Auth0HeaderButton />
             <ThemeToggle />

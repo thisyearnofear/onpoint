@@ -740,6 +740,12 @@ export default function CuratorLandingPage() {
             <Link href="/" className="hover:text-foreground transition-colors">
               Home
             </Link>
+            <Link href="/guides" className="hover:text-foreground transition-colors">
+              Guides
+            </Link>
+            <Link href="/about" className="hover:text-foreground transition-colors">
+              About
+            </Link>
             <Link href="/curator/onboard" className="hover:text-foreground transition-colors">
               Apply
             </Link>
