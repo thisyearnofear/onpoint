@@ -75,7 +75,7 @@ CELO_RPC_URL=https://forno.celo.org
 This is a **pnpm + Turborepo** monorepo with the following workspaces:
 
 - **apps/web**: Next.js 15 web application (main frontend)
-- **apps/chrome-extension**: Chrome extension for fashion capture
+- **apps/chrome-extension**: [Archived] Chrome extension for fashion capture (Chrome Built-in AI Challenge 2025 — see `apps/chrome-extension/archive/`)
 - **packages/shared-ui**: Reusable React components (CardEnhanced, ShopGrid, etc.)
 - **packages/shared-types**: TypeScript type definitions and fashion data
 - **packages/ai-client**: AI service abstractions (Replicate, OpenAI, Gemini)

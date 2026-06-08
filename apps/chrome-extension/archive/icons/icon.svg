@@ -1,0 +1,32 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="64" cy="64" r="60" fill="url(#grad1)" stroke="#ffffff" stroke-width="4"/>
+
+  <!-- Fashion elements -->
+  <!-- Dress/garment shape -->
+  <path d="M64 20 L44 35 L44 50 L40 50 L40 100 L88 100 L88 50 L84 50 L84 35 Z" fill="white" opacity="0.9"/>
+
+  <!-- Hanger shape at top -->
+  <path d="M50 25 Q64 15 78 25" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+  <!-- Style accent lines -->
+  <line x1="48" y1="60" x2="80" y2="60" stroke="url(#grad1)" stroke-width="2"/>
+  <line x1="48" y1="70" x2="75" y2="70" stroke="url(#grad1)" stroke-width="2"/>
+  <line x1="48" y1="80" x2="70" y2="80" stroke="url(#grad1)" stroke-width="2"/>
+
+  <!-- AI sparkles -->
+  <circle cx="85" cy="35" r="2" fill="white"/>
+  <circle cx="43" cy="45" r="1.5" fill="white"/>
+  <circle cx="90" cy="55" r="1" fill="white"/>
+  <circle cx="38" cy="75" r="1" fill="white"/>
+
+  <!-- OnPoint text (stylized) -->
+  <text x="64" y="115" font-family="Arial, sans-serif" font-size="8" font-weight="bold" text-anchor="middle" fill="#667eea">OnPoint</text>
+</svg>

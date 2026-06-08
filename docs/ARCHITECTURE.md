@@ -63,7 +63,7 @@ The product is organized as three composable layers (see [ADR 0002](./adr/0002-c
 | Package                     | Purpose                                          |
 | --------------------------- | ------------------------------------------------ |
 | `apps/web`                  | Next.js application — UI, API routes, agent loop |
-| `apps/chrome-extension`     | Chrome Built-in AI fashion assistant             |
+| `apps/chrome-extension`     | [Archived] Chrome Built-in AI fashion assistant  |
 | `packages/shared-types`     | TypeScript types (fashion data, categories)      |
 | `packages/shared-ui`        | Reusable UI components                           |
 | `packages/ai-client`        | AI provider abstraction layer + React hooks      |

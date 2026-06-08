@@ -105,7 +105,7 @@ OnPoint uses Auth0 for account identity and wallet connection only where onchain
 onpoint/
 ├── apps/
 │   ├── web/                  # Next.js web application
-│   └── chrome-extension/     # Chrome extension (Built-in AI Challenge)
+│   └── chrome-extension/     # [Archived] Chrome extension (Built-in AI Challenge)
 ├── packages/
 │   ├── shared-types/         # TypeScript type definitions
 │   ├── shared-ui/            # Shared UI components
