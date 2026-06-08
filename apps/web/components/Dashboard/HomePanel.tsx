@@ -1,12 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Camera,
   CheckCircle2,
   ChevronRight,
   Clock,
+  Flame,
+  Globe,
   MessageCircle,
   Palette,
   Radar,
@@ -18,11 +20,58 @@ import { AgentActivityFeed } from "../Agent/AgentActivityFeed";
 import { MissionsPanel } from "../Agent/MissionsPanel";
 import { OnChainEconomics } from "./OnChainEconomics";
 
+const STREAK_KEY = "onpoint-streak";
+const VISIT_DATE_KEY = "onpoint-last-visit-date";
+
+function useStreak() {
+  const [streak, setStreak] = useState(0);
+
+  useEffect(() => {
+    try {
+      const today = new Date().toDateString();
+      const lastVisit = localStorage.getItem(VISIT_DATE_KEY);
+      const savedStreak = parseInt(localStorage.getItem(STREAK_KEY) || "0", 10);
+
+      if (lastVisit === today) {
+        // Already counted today
+        setStreak(savedStreak);
+        return;
+      }
+
+      const yesterday = new Date(Date.now() - 86400000).toDateString();
+
+      if (lastVisit === yesterday) {
+        // Consecutive day
+        const newStreak = savedStreak + 1;
+        localStorage.setItem(STREAK_KEY, String(newStreak));
+        localStorage.setItem(VISIT_DATE_KEY, today);
+        setStreak(newStreak);
+      } else if (!lastVisit) {
+        // First ever visit
+        localStorage.setItem(STREAK_KEY, "1");
+        localStorage.setItem(VISIT_DATE_KEY, today);
+        setStreak(1);
+      } else {
+        // Streak broken — more than 1 day gap
+        localStorage.setItem(STREAK_KEY, "1");
+        localStorage.setItem(VISIT_DATE_KEY, today);
+        setStreak(1);
+      }
+    } catch {
+      // localStorage unavailable
+    }
+  }, []);
+
+  return streak;
+}
+
 interface HomePanelProps {
   onNavigate: (mode: string) => void;
 }
 
 export function HomePanel({ onNavigate }: HomePanelProps) {
+  const streak = useStreak();
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -30,14 +79,24 @@ export function HomePanel({ onNavigate }: HomePanelProps) {
       exit={{ opacity: 0, y: -20 }}
       className="space-y-6"
     >
-      {/* Quick Actions — horizontal scroll on mobile */}
-      <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+      {/* Quick Actions + Streak badge */}
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+        {streak > 0 && (
+          <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-2">
+            <Flame className={`h-4 w-4 ${streak >= 3 ? "text-amber-500" : "text-amber-400"}`} />
+            <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{streak}</span>
+            <span className="text-[10px] text-amber-600/70 dark:text-amber-400/70 whitespace-nowrap">
+              day streak
+            </span>
+          </div>
+        )}
         {[
           { label: "Try On", icon: Camera, mode: "try-on", color: "bg-accent/10 text-accent border-accent/20" },
           { label: "Stylist", icon: MessageCircle, mode: "stylist", color: "bg-primary/10 text-primary border-primary/20" },
           { label: "Shop", icon: ShoppingBag, mode: "shop", color: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
           { label: "Intel", icon: Radar, mode: "intel", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
           { label: "My Looks", icon: Palette, mode: "my-looks", color: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" },
+          { label: "Trending", icon: Globe, mode: "community", color: "bg-sky-500/10 text-sky-400 border-sky-500/20" },
         ].map((action) => (
           <button
             key={action.mode}

@@ -134,7 +134,7 @@ function SignalCard({ signal }: { signal: MarketSignal }) {
 
 export default function CuratorIntelPage() {
   const params = useParams();
-  const slug = params.slug as string;
+  const slug = typeof params?.slug === "string" ? params.slug : "";
 
   const [funnel, setFunnel] = useState<FunnelStats>({ pageViews: 0, tryOns: 0, shares: 0, buyClicks: 0 });
   const [funnelLoading, setFunnelLoading] = useState(true);

@@ -45,6 +45,7 @@ interface HistoryState {
   // Queries
   latestSession: () => AnalysisSession | undefined;
   sessionCount: () => number;
+  isFirstSession: () => boolean;
 }
 
 export const useAnalysisHistory = create<HistoryState>()(
@@ -73,6 +74,7 @@ export const useAnalysisHistory = create<HistoryState>()(
 
       latestSession: () => get().sessions[0],
       sessionCount: () => get().sessions.length,
+      isFirstSession: () => get().sessions.length === 1,
     }),
     {
       name: "onpoint-analysis-history",

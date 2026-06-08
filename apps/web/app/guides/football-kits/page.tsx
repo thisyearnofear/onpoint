@@ -156,8 +156,35 @@ export default function FootballKitsGuide() {
           </div>
         </section>
 
+        {/* Related guides */}
+        <div className="border-t border-border pt-8">
+          <h3 className="text-sm font-bold mb-3">Related guides</h3>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Link
+              href="/guides/streetwear-fits"
+              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+            >
+              <p className="text-sm font-bold">Streetwear Style Guide</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Sneaker drops, layering, oversized fits</p>
+            </Link>
+            <Link
+              href="/guides/sneaker-care"
+              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+            >
+              <p className="text-sm font-bold">Sneaker Collecting &amp; Care Guide</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Cleaning, storage, authentication tips</p>
+            </Link>
+          </div>
+          {/* Curator storefront */}
+          <p className="mt-4 text-xs text-muted-foreground">
+            Browse real kits on the{" "}
+            <Link href="/s/wanja" className="text-primary hover:underline">Wanja storefront</Link>
+            {" "}— Premier League jerseys with WhatsApp checkout.
+          </p>
+        </div>
+
         {/* CTA */}
-        <div className="border-t border-border pt-8 text-center">
+        <div className="pt-6 text-center">
           <p className="text-sm text-muted-foreground mb-4">
             Ready to find your next kit?
           </p>

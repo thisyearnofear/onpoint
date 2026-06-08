@@ -43,6 +43,8 @@ export function MpesaPaymentPanel({
   itemName,
   sizes,
   mpesaNumber,
+  checkoutType = "whatsapp",
+  checkoutUrl,
 }: {
   curatorSlug: string;
   curatorName: string;
@@ -50,6 +52,8 @@ export function MpesaPaymentPanel({
   itemName: string;
   sizes: SizeOption[];
   mpesaNumber?: string;
+  checkoutType?: "whatsapp" | "shopify" | "stripe";
+  checkoutUrl?: string | null;
 }) {
   const availableSizes = sizes.filter((size) => Number(size.stock) > 0);
   const firstSize = availableSizes[0] || sizes[0];
@@ -66,7 +70,6 @@ export function MpesaPaymentPanel({
     "idle" | "sending" | "sent" | "waiting" | "paid" | "failed" | "timeout"
   >("idle");
   const [stkError, setStkError] = useState<string | null>(null);
-  const [checkoutRequestId, setCheckoutRequestId] = useState<string | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Manual payment state
@@ -121,7 +124,6 @@ export function MpesaPaymentPanel({
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
 
       setPaymentId(data.paymentId || null);
-      setCheckoutRequestId(data.checkoutRequestId || null);
       setStkStatus("sent");
 
       // Start polling for payment status
@@ -304,6 +306,33 @@ export function MpesaPaymentPanel({
   }, []);
 
   if (!firstSize) return null;
+
+  if (checkoutType === "shopify" || checkoutType === "stripe") {
+    const label = checkoutType === "shopify" ? "Shopify" : "Stripe";
+    return (
+      <div className="rounded-lg border border-border bg-muted/25 p-3">
+        {checkoutUrl ? (
+          <a
+            href={checkoutUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
+          >
+            <CreditCard className="h-4 w-4" />
+            Checkout on {label}
+          </a>
+        ) : (
+          <button
+            disabled
+            className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-muted px-3 py-2 text-sm font-bold text-muted-foreground"
+          >
+            <CreditCard className="h-4 w-4" />
+            {label} checkout not configured
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-lg border border-border bg-muted/25 p-3">

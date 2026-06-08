@@ -21,6 +21,8 @@ import {
   Lightbulb,
   Eye,
   FileText,
+  Mail,
+  Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { StylistPersona } from "@repo/ai-client";
@@ -32,6 +34,8 @@ import {
 } from "../../lib/utils/score-utils";
 import { getPersonaConfig } from "../../lib/utils/persona-config";
 import { SocialUtils } from "../../lib/utils/social";
+import { trackStyleCardShare } from "../../lib/utils/analytics";
+import { fireConfetti } from "../../lib/utils/confetti";
 
 // ── Types ──
 
@@ -77,6 +81,9 @@ export function StyleReportCard({
   const [isSharing, setIsSharing] = useState(false);
   const [showAllTakeaways, setShowAllTakeaways] = useState(false);
   const [showFullFeedback, setShowFullFeedback] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailError, setEmailError] = useState(false);
 
   const personaStyle = getPersonaConfig(persona);
   const PersonaIcon = personaStyle.icon;
@@ -126,6 +133,7 @@ export function StyleReportCard({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
+    trackStyleCardShare({ method: "copy", score, persona });
   }, [score, persona, topics, takeaways]);
 
   // ── Share to Farcaster ──
@@ -144,6 +152,7 @@ export function StyleReportCard({
       imageDataUrl: captureImage,
     });
     setIsSharingFarcaster(false);
+    trackStyleCardShare({ method: "farcaster", score, persona });
   }, [score, persona, topics, takeaways, captureImage]);
 
   // ── Share to Twitter ──
@@ -156,6 +165,7 @@ export function StyleReportCard({
     });
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
     window.open(url, "_blank");
+    trackStyleCardShare({ method: "twitter", score, persona });
   }, [score, persona, topics, takeaways]);
 
   // ── Download as Image (canvas-based) ──
@@ -172,8 +182,9 @@ export function StyleReportCard({
         });
         const link = document.createElement("a");
         link.download = `onpoint-style-report-${score}outof10.png`;
-        link.href = canvas.toDataURL("image/png");
+        link.href =        canvas.toDataURL("image/png");
         link.click();
+        trackStyleCardShare({ method: "download", score, persona });
       } else {
         handleCopy();
       }
@@ -183,7 +194,7 @@ export function StyleReportCard({
     } finally {
       setIsSharing(false);
     }
-  }, [score, handleCopy]);
+  }, [score, persona, handleCopy]);
 
   // ── Native Share (Web Share API) ──
   const handleNativeShare = useCallback(async () => {
@@ -200,8 +211,9 @@ export function StyleReportCard({
           text,
           url: window.location.href,
         });
+        trackStyleCardShare({ method: "native_share", score, persona });
       } catch {
-        // User cancelled
+        // User cancelled — don't track
       }
     } else {
       handleCopy();
@@ -533,6 +545,63 @@ export function StyleReportCard({
                 Save
               </Button>
             </div>
+
+            {/* Email my style report */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={async () => {
+                if (emailSending || emailSent) return;
+                setEmailSending(true);
+                setEmailError(false);
+                try {
+                  const res = await fetch("/api/auth/style-report-email", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      score,
+                      takeaways: takeaways.slice(0, 5),
+                    }),
+                  });
+                  const data = await res.json();
+                  if (data.sent) {
+                    setEmailSent(true);
+                    fireConfetti({ particleCount: 30, origin: { x: 0.5, y: 0.3 } });
+                  } else if (data.reason === "daily_limit") {
+                    setEmailSent(true); // Already sent today
+                  } else {
+                    setEmailError(true);
+                  }
+                } catch {
+                  setEmailError(true);
+                } finally {
+                  setEmailSending(false);
+                }
+              }}
+              className="w-full text-white/40 hover:text-white hover:bg-white/5 rounded-xl text-[10px]"
+            >
+              {emailSending ? (
+                <>
+                  <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
+                  Sending...
+                </>
+              ) : emailSent ? (
+                <>
+                  <CheckCircle className="w-3 h-3 mr-1.5 text-emerald-400" />
+                  Sent!
+                </>
+              ) : emailError ? (
+                <>
+                  <Mail className="w-3 h-3 mr-1.5 text-amber-400" />
+                  Try again
+                </>
+              ) : (
+                <>
+                  <Mail className="w-3 h-3 mr-1.5" />
+                  Email my report
+                </>
+              )}
+            </Button>
 
             {/* Copy Text */}
             <Button

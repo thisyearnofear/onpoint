@@ -62,6 +62,8 @@ export interface Curator {
     whatsappTemplate?: string;
     /** Revenue share fraction (0..1 of attributed sales) */
     revShare?: number;
+    /** M-Pesa till/paybill number */
+    mpesaNumber?: string;
   };
 }
 
@@ -127,4 +129,33 @@ export interface Session {
   polaroidKey?: string;           // R2 key for share asset
   shared: boolean;
   createdAt: string;
+}
+
+/**
+ * Storefront Response — the shape returned by GET /api/curator/:slug/storefront.
+ */
+export interface CuratorStorefrontResponse {
+  curator: Curator;
+  listings: Array<{
+    id: string;
+    sizes: Array<{
+      size: string;
+      stock: number;
+      price: number;
+      printingAvailable?: boolean;
+      printingPrice?: number;
+    }>;
+    imageUrl: string | null;
+    checkoutUrl: string | null;
+    kit: {
+      club: string;
+      season: string;
+      kitType: string;
+      crestUrl: string | null;
+    };
+  }>;
+  meta: {
+    listingCount: number;
+    checkout: string;
+  };
 }

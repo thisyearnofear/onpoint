@@ -201,6 +201,190 @@ export interface ProviderOutcomeReport {
  * Fetch the aggregated provider outcome report from Redis.
  */
 // ══════════════════════════════════════════════════════════════════════════
+// Retention metrics (saves, shares, card opens)
+// ══════════════════════════════════════════════════════════════════════════
+
+const RT_PREFIX = "analytics:retention";
+
+interface RetentionEventProperties {
+  eventType: "look_saved" | "style_card_opened" | "style_card_share";
+  score?: number;
+  persona?: string | null;
+  garmentCategory?: string;
+  hasImage?: boolean;
+  hasGarment?: boolean;
+  source?: "analysis_results" | "try_on_result" | string;
+  method?: "farcaster" | "twitter" | "download" | "copy" | "native_share";
+}
+
+/**
+ * Record a retention event — increments all relevant counters.
+ * Safe to call on every event (batch-increment by 1 each time).
+ */
+export async function recordRetentionEvent(
+  props: RetentionEventProperties,
+): Promise<void> {
+  const today = todayStr();
+  const cmds: string[][] = [];
+
+  switch (props.eventType) {
+    case "look_saved": {
+      cmds.push(["INCR", `${RT_PREFIX}:total_saves`]);
+      cmds.push(["INCR", `${RT_PREFIX}:daily:${today}:saves`]);
+      if (props.source) {
+        cmds.push(["INCR", `${RT_PREFIX}:save_source:${props.source}`]);
+      }
+      if (props.persona) {
+        cmds.push(["INCR", `${RT_PREFIX}:save_persona:${props.persona}`]);
+      }
+      break;
+    }
+    case "style_card_opened": {
+      cmds.push(["INCR", `${RT_PREFIX}:total_card_opens`]);
+      cmds.push(["INCR", `${RT_PREFIX}:daily:${today}:card_opens`]);
+      if (props.persona) {
+        cmds.push(["INCR", `${RT_PREFIX}:open_persona:${props.persona}`]);
+      }
+      break;
+    }
+    case "style_card_share": {
+      cmds.push(["INCR", `${RT_PREFIX}:total_shares`]);
+      cmds.push(["INCR", `${RT_PREFIX}:daily:${today}:shares`]);
+      const method = props.method || "unknown";
+      cmds.push(["INCR", `${RT_PREFIX}:share_method:${method}`]);
+      cmds.push(["INCR", `${RT_PREFIX}:daily:${today}:share_method:${method}`]);
+      if (props.persona) {
+        cmds.push(["INCR", `${RT_PREFIX}:share_persona:${props.persona}`]);
+      }
+      break;
+    }
+  }
+
+  if (cmds.length === 0) return;
+
+  const url = getRedisUrl();
+  const token = getRedisToken();
+  if (!url || !token) return;
+
+  try {
+    await fetch(`${url}/pipeline`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(cmds),
+    });
+  } catch {
+    // Best-effort
+  }
+}
+
+export interface RetentionReport {
+  totalSaves: number;
+  totalCardOpens: number;
+  totalShares: number;
+  shareRate: string;
+  byShareMethod: Record<string, number>;
+  bySaveSource: Record<string, number>;
+  bySavePersona: Record<string, number>;
+  bySharePersona: Record<string, number>;
+  last7Days: { date: string; saves: number; cardOpens: number; shares: number }[];
+}
+
+/**
+ * Fetch the aggregated retention report from Redis.
+ */
+export async function getRetentionReport(): Promise<RetentionReport | null> {
+  const url = getRedisUrl();
+  const token = getRedisToken();
+  if (!url || !token) return null;
+
+  const today = todayStr();
+  const dates: string[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    dates.push(
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
+    );
+  }
+
+  // Scan for dynamic keys
+  const [shareMethodKeys, saveSourceKeys, savePersonaKeys, sharePersonaKeys] = await Promise.all([
+    redisScanKeys(`${RT_PREFIX}:share_method:*`),
+    redisScanKeys(`${RT_PREFIX}:save_source:*`),
+    redisScanKeys(`${RT_PREFIX}:save_persona:*`),
+    redisScanKeys(`${RT_PREFIX}:share_persona:*`),
+  ]);
+
+  // Build keys list for batch GET
+  const keys = [
+    `${RT_PREFIX}:total_saves`,
+    `${RT_PREFIX}:total_card_opens`,
+    `${RT_PREFIX}:total_shares`,
+    ...shareMethodKeys,
+    ...saveSourceKeys,
+    ...savePersonaKeys,
+    ...sharePersonaKeys,
+    ...dates.flatMap((d) => [
+      `${RT_PREFIX}:daily:${d}:saves`,
+      `${RT_PREFIX}:daily:${d}:card_opens`,
+      `${RT_PREFIX}:daily:${d}:shares`,
+    ]),
+  ];
+
+  const values = await redisBatchGet(keys);
+  let idx = 0;
+
+  const totalSaves = (values[idx++] ?? 0) as number;
+  const totalCardOpens = (values[idx++] ?? 0) as number;
+  const totalShares = (values[idx++] ?? 0) as number;
+
+  const byShareMethod: Record<string, number> = {};
+  for (const k of shareMethodKeys) {
+    const name = k.replace(`${RT_PREFIX}:share_method:`, "");
+    byShareMethod[name] = (values[idx++] ?? 0) as number;
+  }
+
+  const bySaveSource: Record<string, number> = {};
+  for (const k of saveSourceKeys) {
+    const name = k.replace(`${RT_PREFIX}:save_source:`, "");
+    bySaveSource[name] = (values[idx++] ?? 0) as number;
+  }
+
+  const bySavePersona: Record<string, number> = {};
+  for (const k of savePersonaKeys) {
+    const name = k.replace(`${RT_PREFIX}:save_persona:`, "");
+    bySavePersona[name] = (values[idx++] ?? 0) as number;
+  }
+
+  const bySharePersona: Record<string, number> = {};
+  for (const k of sharePersonaKeys) {
+    const name = k.replace(`${RT_PREFIX}:share_persona:`, "");
+    bySharePersona[name] = (values[idx++] ?? 0) as number;
+  }
+
+  // Daily time-series
+  const last7Days: { date: string; saves: number; cardOpens: number; shares: number }[] = [];
+  for (const date of dates) {
+    const saves = (values[idx++] ?? 0) as number;
+    const cardOpens = (values[idx++] ?? 0) as number;
+    const shares = (values[idx++] ?? 0) as number;
+    last7Days.push({ date, saves, cardOpens, shares });
+  }
+
+  return {
+    totalSaves,
+    totalCardOpens,
+    totalShares,
+    shareRate: totalCardOpens > 0 ? `${Math.round((totalShares / totalCardOpens) * 100)}%` : "—",
+    byShareMethod,
+    bySaveSource,
+    bySavePersona,
+    bySharePersona,
+    last7Days,
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 // Deep-link persona funnel
 // ══════════════════════════════════════════════════════════════════════════
 

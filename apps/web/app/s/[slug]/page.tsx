@@ -13,80 +13,19 @@ import {
   ShoppingBag,
   Sparkles,
 } from "lucide-react";
+import type { CuratorStorefrontResponse } from "@onpoint/shared-types";
 import { CuratorTracker } from "../../../components/CuratorTracker";
 import { ShareStorefront } from "../../../components/ShareStorefront";
 import { CrossCuratorRecommendations } from "../../../components/CrossCuratorRecommendations";
 import { AICuratorSection } from "../../../components/AICuratorSection";
 import { MpesaPaymentPanel } from "./MpesaPaymentPanel";
+import { getApiBase } from "../../../lib/utils/api-base";
 
 export const dynamic = "force-dynamic";
 
-type SizeOption = {
-  size: string;
-  stock: number;
-  price: number;
-  printingAvailable?: boolean;
-  printingPrice?: number;
-};
+type SizeOption = CuratorStorefrontResponse["listings"][number]["sizes"][number];
 
-type CuratorStorefront = {
-  curator: {
-    slug: string;
-    name: string;
-    type: "human" | "ai";
-    verticals: string[];
-    channels?: {
-      whatsapp?: string;
-      telegram?: string;
-      instagram?: string;
-    };
-    brand?: {
-      logo?: string;
-      colors?: {
-        primary?: string;
-        accent?: string;
-      };
-      shareCopy?: string;
-      location?: {
-        city: string;
-        landmark?: string;
-      };
-    };
-    commerce?: {
-      checkout?: "whatsapp" | "shopify" | "stripe";
-      checkoutUrl?: string;
-      whatsappTemplate?: string;
-      revShare?: number;
-      mpesaNumber?: string;
-    };
-  };
-  listings: Array<{
-    id: string;
-    sizes: SizeOption[];
-    imageUrl: string | null;
-    checkoutUrl: string | null;
-    kit: {
-      club: string;
-      season: string;
-      kitType: string;
-      crestUrl: string | null;
-    };
-  }>;
-  meta: {
-    listingCount: number;
-    checkout: string;
-  };
-};
-
-function getApiBase() {
-  return (
-    process.env.NEXT_PUBLIC_AGENT_API_URL ||
-    process.env.AGENT_API_URL ||
-    "http://localhost:48751"
-  ).replace(/\/$/, "");
-}
-
-async function loadStorefront(slug: string): Promise<CuratorStorefront | null> {
+async function loadStorefront(slug: string): Promise<CuratorStorefrontResponse | null> {
   const res = await fetch(
     `${getApiBase()}/api/curator/${encodeURIComponent(slug)}/storefront`,
     {
@@ -107,9 +46,11 @@ function formatKitType(value: string) {
 }
 
 function formatMoney(value: number) {
-  return new Intl.NumberFormat("en-KE", {
+  const locale = process.env.NEXT_PUBLIC_DEFAULT_LOCALE || "en-KE";
+  const currency = process.env.NEXT_PUBLIC_DEFAULT_CURRENCY || "KES";
+  return new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: "KES",
+    currency,
     maximumFractionDigits: 0,
   }).format(value);
 }
@@ -133,6 +74,8 @@ function getInitials(value: string) {
     .map((part) => part[0]?.toUpperCase())
     .join("");
 }
+
+export const __test = { formatMoney, getLowestPrice, getTotalStock, formatKitType, getInitials };
 
 export async function generateMetadata({
   params,
@@ -475,6 +418,8 @@ export default async function CuratorStorefrontPage({
                       itemName={`${listing.kit.club} ${formatKitType(listing.kit.kitType)} kit`}
                       sizes={listing.sizes}
                       mpesaNumber={curator.commerce?.mpesaNumber || curator.channels?.whatsapp}
+                      checkoutType={curator.commerce?.checkout}
+                      checkoutUrl={listing.checkoutUrl}
                     />
 
                     <div className="flex gap-2">

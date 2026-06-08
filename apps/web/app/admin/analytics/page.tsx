@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { CrossCuratorRecommendationsSection } from "./CrossCuratorRecommendationsSection";
 import { DeepLinkPersonaFunnelSection } from "./DeepLinkPersonaFunnelSection";
+import { RetentionMetricsSection } from "./RetentionMetricsSection";
 import { Bar } from "../../../components/admin/TrendSparkline";
 
 interface ProviderOutcomeReport {
@@ -450,6 +451,9 @@ export default function AnalyticsDashboardPage() {
 
       {/* ════════════════════ Cross-Curator Recommendations ════════════════════ */}
       <CrossCuratorRecommendationsSection />
+
+      {/* ════════════════════ Retention Metrics ════════════════════ */}
+      <RetentionMetricsSection />
     </div>
   );
 }

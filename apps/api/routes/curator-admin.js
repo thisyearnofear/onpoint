@@ -47,26 +47,63 @@ router.get('/', async (req, res) => {
     return res.status(503).json({ error: 'Database not configured' });
   }
 
-  try {
-    const rows = await db
-      .select({
-        slug: curators.slug,
-        name: curators.name,
-        type: curators.type,
-        verticals: curators.verticals,
-        createdAt: curators.createdAt,
-        channels: curators.channels,
-        brand: curators.brand,
-        commerce: curators.commerce,
-        listingCount: sql`(
-          SELECT COUNT(*)::int FROM ${listings}
-          WHERE ${listings.curatorSlug} = ${curators.slug}
-        )`.as('listing_count'),
-      })
-      .from(curators)
-      .orderBy(desc(curators.createdAt));
+  const limit = req.query.limit ? parseInt(String(req.query.limit), 10) : null;
+  const offset = req.query.offset ? parseInt(String(req.query.offset), 10) : 0;
 
-    res.json({ curators: rows, total: rows.length });
+  try {
+    const [countResult] = await db
+      .select({ total: count() })
+      .from(curators);
+
+    let rows;
+    if (limit) {
+      rows = await db
+        .select({
+          slug: curators.slug,
+          name: curators.name,
+          type: curators.type,
+          verticals: curators.verticals,
+          createdAt: curators.createdAt,
+          channels: curators.channels,
+          brand: curators.brand,
+          commerce: curators.commerce,
+          listingCount: sql`(
+            SELECT COUNT(*)::int FROM ${listings}
+            WHERE ${listings.curatorSlug} = ${curators.slug}
+          )`.as('listing_count'),
+        })
+        .from(curators)
+        .orderBy(desc(curators.createdAt))
+        .limit(limit)
+        .offset(offset);
+    } else {
+      rows = await db
+        .select({
+          slug: curators.slug,
+          name: curators.name,
+          type: curators.type,
+          verticals: curators.verticals,
+          createdAt: curators.createdAt,
+          channels: curators.channels,
+          brand: curators.brand,
+          commerce: curators.commerce,
+          listingCount: sql`(
+            SELECT COUNT(*)::int FROM ${listings}
+            WHERE ${listings.curatorSlug} = ${curators.slug}
+          )`.as('listing_count'),
+        })
+        .from(curators)
+        .orderBy(desc(curators.createdAt));
+    }
+
+    res.json({
+      curators: rows,
+      meta: {
+        total: countResult?.total || 0,
+        limit,
+        offset,
+      },
+    });
   } catch (err) {
     logger.error('Failed to list curators', { component: 'curator-admin' }, err);
     res.status(500).json({ error: 'Failed to list curators' });
@@ -215,16 +252,39 @@ router.get('/:slug/listings', async (req, res) => {
     return res.status(503).json({ error: 'Database not configured' });
   }
 
+  const limit = req.query.limit ? parseInt(String(req.query.limit), 10) : null;
+  const offset = req.query.offset ? parseInt(String(req.query.offset), 10) : 0;
+
   try {
-    const rows = await db
-      .select({
-        listing: listings,
-        kit: kitSkus,
-      })
+    const [countResult] = await db
+      .select({ total: count() })
       .from(listings)
-      .innerJoin(kitSkus, eq(listings.skuId, kitSkus.id))
-      .where(eq(listings.curatorSlug, slug))
-      .orderBy(desc(listings.updatedAt));
+      .where(eq(listings.curatorSlug, slug));
+
+    let rows;
+    if (limit) {
+      rows = await db
+        .select({
+          listing: listings,
+          kit: kitSkus,
+        })
+        .from(listings)
+        .innerJoin(kitSkus, eq(listings.skuId, kitSkus.id))
+        .where(eq(listings.curatorSlug, slug))
+        .orderBy(desc(listings.updatedAt))
+        .limit(limit)
+        .offset(offset);
+    } else {
+      rows = await db
+        .select({
+          listing: listings,
+          kit: kitSkus,
+        })
+        .from(listings)
+        .innerJoin(kitSkus, eq(listings.skuId, kitSkus.id))
+        .where(eq(listings.curatorSlug, slug))
+        .orderBy(desc(listings.updatedAt));
+    }
 
     res.json({
       slug,
@@ -237,7 +297,11 @@ router.get('/:slug/listings', async (req, res) => {
           kitType: kit.kitType,
         },
       })),
-      total: rows.length,
+      meta: {
+        total: countResult?.total || 0,
+        limit,
+        offset,
+      },
     });
   } catch (err) {
     logger.error('Failed to list curator listings', { component: 'curator-admin', slug }, err);

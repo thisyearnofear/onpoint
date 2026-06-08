@@ -18,6 +18,7 @@ import {
   Smartphone,
   Share2,
 } from "lucide-react";
+import { getApiBase } from "../../../lib/utils/api-base";
 
 // ── Valid verticals (mirrors server-side list) ──────────────
 
@@ -45,14 +46,6 @@ const VERTICALS = [
   { id: "accessories", label: "Accessories", emoji: "⌚" },
   { id: "jewelry", label: "Jewelry", emoji: "💍" },
 ];
-
-// ── API base ───────────────────────────────────────────────
-// In Next.js client components, NEXT_PUBLIC_* env vars are replaced
-// at build time by Turbopack/webpack. No window access needed.
-
-const API_BASE = (
-  process.env.NEXT_PUBLIC_AGENT_API_URL || "http://localhost:48751"
-).replace(/\/$/, "");
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -141,7 +134,7 @@ export default function CuratorOnboardPage() {
       setServerMessage("");
 
       try {
-        const res = await fetch(`${API_BASE}/api/curator/apply`, {
+        const res = await fetch(`${getApiBase()}/api/curator/apply`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

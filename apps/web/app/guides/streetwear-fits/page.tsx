@@ -149,7 +149,28 @@ export default function StreetwearGuide() {
           </p>
         </section>
 
-        <div className="border-t border-border pt-8 text-center">
+        {/* Related guides */}
+        <div className="border-t border-border pt-8">
+          <h3 className="text-sm font-bold mb-3">Related guides</h3>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Link
+              href="/guides/sneaker-care"
+              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+            >
+              <p className="text-sm font-bold">Sneaker Collecting &amp; Care Guide</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Cleaning, storage, authentication tips</p>
+            </Link>
+            <Link
+              href="/guides/vintage-thrifting"
+              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+            >
+              <p className="text-sm font-bold">Vintage &amp; Thrift Shopping Guide</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Deadstock finds, quality checks, sizing</p>
+            </Link>
+          </div>
+        </div>
+
+        <div className="pt-6 text-center">
           <p className="text-sm text-muted-foreground mb-4">
             Ready to see how that drop looks on you?
           </p>

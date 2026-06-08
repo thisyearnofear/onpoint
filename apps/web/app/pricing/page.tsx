@@ -26,9 +26,8 @@ interface TierConfig {
   tier: string;
   name: string;
   price: number;
-  dailyLimit: string;
-  perActionLimit: string;
-  autonomyThreshold: string;
+  stylists: string;
+  critiques: string;
   features: string[];
   highlighted?: boolean;
 }
@@ -38,76 +37,79 @@ const TIERS: TierConfig[] = [
     tier: "free",
     name: "Free",
     price: 0,
-    dailyLimit: "$10/day",
-    perActionLimit: "$5/action",
-    autonomyThreshold: "$1 auto-approve",
+    stylists: "3 stylists",
+    critiques: "1 per session",
+
     features: [
-      "Basic style analysis",
-      "Product catalog search",
-      "Manual approval for purchases",
-      "10 actions per day",
+      "Miranda Priestly — honest, editorial critique",
+      "Edina Monsoon — bold, hilarious roasts",
+      "John Shaft — cool, confident style advice",
+      "Basic fit & color analysis",
+      "Shareable style polaroid",
     ],
   },
   {
     tier: "basic",
-    name: "Basic",
+    name: "Plus",
     price: 9.99,
-    dailyLimit: "$50/day",
-    perActionLimit: "$25/action",
-    autonomyThreshold: "$5 auto-approve",
+    stylists: "All 6 stylists",
+    critiques: "Unlimited",
+
     features: [
-      "Advanced style analysis",
-      "Autonomous purchases up to $5",
-      "Product recommendations",
-      "Purchase history",
-      "50 actions per day",
+      "All 3 Free stylists, plus:",
+      "Anna Wintour — luxury, high-fashion editorials",
+      "Virgil Abloh — streetwear, sneaker culture",
+      "Stella McCartney — sustainable, eco-conscious",
+      "Unlimited critique sessions",
+      "Download full style reports",
+      "Email reports to yourself",
     ],
   },
   {
     tier: "pro",
     name: "Pro",
-    price: 29.99,
-    dailyLimit: "$500/day",
-    perActionLimit: "$100/action",
-    autonomyThreshold: "$25 auto-approve",
+    price: 19.99,
+    stylists: "All 6 stylists",
+    critiques: "Unlimited",
+
     features: [
-      "Premium style analysis with AI",
-      "Autonomous purchases up to $25",
-      "External marketplace search",
+      "Everything in Plus, plus:",
+      "Priority AI processing (faster results)",
+      "External marketplace search & price compare",
+      "NFT minting for style polaroids",
+      "500 actions per day for agent shopping",
       "Priority support",
-      "NFT minting",
-      "500 actions per day",
     ],
     highlighted: true,
   },
   {
     tier: "concierge",
     name: "Concierge",
-    price: 99.99,
-    dailyLimit: "$5,000/day",
-    perActionLimit: "$1,000/action",
-    autonomyThreshold: "$100 auto-approve",
+    price: 49.99,
+    stylists: "All 6 + personal",
+    critiques: "Unlimited",
+
     features: [
+      "Everything in Pro, plus:",
+      "Personal stylist consultation (monthly)",
       "White-glove AI styling service",
-      "Autonomous purchases up to $100",
-      "Unlimited external search",
-      "Personal stylist consultation",
-      "Exclusive brand access",
+      "Exclusive brand access & early drops",
       "Custom NFT collections",
-      "Unlimited actions",
+      "Unlimited agent actions",
+      "Dedicated support",
     ],
   },
 ];
 
 const FEATURE_COMPARISON = [
-  { feature: "Style Analysis", free: "Basic", basic: "Advanced", pro: "Premium AI", concierge: "White-glove" },
-  { feature: "Daily Spending Limit", free: "$10", basic: "$50", pro: "$500", concierge: "$5,000" },
-  { feature: "Auto-approve Up To", free: "$1", basic: "$5", pro: "$25", concierge: "$100" },
-  { feature: "Actions Per Day", free: "10", basic: "50", pro: "500", concierge: "Unlimited" },
+  { feature: "Stylists Available", free: "3", basic: "All 6", pro: "All 6", concierge: "All 6 + Personal" },
+  { feature: "Critique Sessions", free: "1/analysis", basic: "Unlimited", pro: "Unlimited", concierge: "Unlimited" },
+  { feature: "Style Reports", free: "Basic", basic: "Full download", pro: "Full + Email", concierge: "White-glove" },
+  { feature: "Style Polaroid", free: "✓", basic: "✓", pro: "✓", concierge: "✓" },
   { feature: "External Search", free: "—", basic: "—", pro: "✓", concierge: "✓" },
   { feature: "NFT Minting", free: "—", basic: "—", pro: "✓", concierge: "✓" },
-  { feature: "Priority Support", free: "—", basic: "—", pro: "✓", concierge: "✓" },
-  { feature: "Personal Stylist", free: "—", basic: "—", pro: "—", concierge: "✓" },
+  { feature: "Priority Processing", free: "—", basic: "—", pro: "✓", concierge: "✓" },
+  { feature: "Personal Stylist", free: "—", basic: "—", pro: "—", concierge: "Monthly" },
   { feature: "Exclusive Brands", free: "—", basic: "—", pro: "—", concierge: "✓" },
 ];
 
@@ -371,11 +373,11 @@ export default function PricingPage() {
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
             Choose Your{" "}
             <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Power Level
+              Stylist
             </span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-6">
-            From casual browsing to autonomous AI shopping — pick the tier that matches your style.
+            Pick your fashion critic. Free stylists for everyone, premium personalities for deeper insight.
           </p>
 
           {/* Billing Toggle */}
@@ -446,7 +448,7 @@ export default function PricingPage() {
                       "bg-accent/10"
                     }`}>
                       {tier.tier === "free" ? <Star className="w-5 h-5 text-muted-foreground" /> :
-                       tier.tier === "basic" ? <Zap className="w-5 h-5 text-blue-400" /> :
+                       tier.tier === "basic" ? <Sparkles className="w-5 h-5 text-blue-400" /> :
                        tier.tier === "pro" ? <Rocket className="w-5 h-5 text-primary" /> :
                        <Crown className="w-5 h-5 text-accent" />}
                     </div>
@@ -469,19 +471,15 @@ export default function PricingPage() {
                     )}
                   </div>
 
-                  {/* Limits */}
-                  <div className="space-y-2 text-xs text-muted-foreground">
-                    <div className="flex justify-between">
-                      <span>Daily limit</span>
-                      <span className="font-medium text-foreground">{tier.dailyLimit}</span>
+                  {/* Stylist count + critique limit */}
+                  <div className="rounded-xl bg-muted/30 border border-border p-3 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Stylists</span>
+                      <span className="font-bold text-foreground">{tier.stylists}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Per action</span>
-                      <span className="font-medium text-foreground">{tier.perActionLimit}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Auto-approve</span>
-                      <span className="font-medium text-foreground">{tier.autonomyThreshold}</span>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Critiques</span>
+                      <span className="font-bold text-foreground">{tier.critiques}</span>
                     </div>
                   </div>
 
@@ -490,7 +488,9 @@ export default function PricingPage() {
                     {tier.features.map((feature, i) => (
                       <li key={i} className="flex items-start gap-2 text-xs">
                         <CheckCircle2 className="w-3.5 h-3.5 text-green-400 mt-0.5 shrink-0" />
-                        <span className="text-muted-foreground">{feature}</span>
+                        <span className={`${feature.includes("plus:") || feature.includes("Everything") ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                          {feature}
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -602,7 +602,7 @@ export default function PricingPage() {
                           <td className="p-3 text-center text-muted-foreground">{row.free}</td>
                           <td className="p-3 text-center text-muted-foreground">{row.basic}</td>
                           <td className={`p-3 text-center font-medium ${
-                            row.pro === "✓" ? "text-green-400" : row.pro.includes("$") ? "text-foreground" : "text-muted-foreground"
+                            row.pro === "✓" ? "text-green-400" : "text-muted-foreground"
                           }`}>{row.pro}</td>
                           <td className={`p-3 text-center ${
                             row.concierge === "✓" ? "text-green-400" : "text-muted-foreground"
@@ -623,11 +623,11 @@ export default function PricingPage() {
           <div className="space-y-4">
             <details className="group rounded-2xl border border-border bg-card overflow-hidden">
               <summary className="cursor-pointer p-4 flex items-center justify-between hover:bg-muted/30 transition-colors list-none">
-                <span className="font-medium text-sm">What happens if I exceed my daily limit?</span>
+                <span className="font-medium text-sm">What stylists are included in each plan?</span>
                 <ChevronRight className="w-4 h-4 text-muted-foreground group-open:rotate-90 transition-transform" />
               </summary>
               <div className="px-4 pb-4 text-sm text-muted-foreground">
-                Your agent will be paused until the next billing day or you can upgrade your plan for higher limits. We&apos;ll notify you before any action is taken.
+                Free includes 3 core stylists: Miranda (honest), Edina (roast), and Shaft (hype). Plus and above unlock all 6, including Anna Wintour (luxury), Virgil Abloh (streetwear), and Stella McCartney (sustainable).
               </div>
             </details>
             <details className="group rounded-2xl border border-border bg-card overflow-hidden">
@@ -645,7 +645,7 @@ export default function PricingPage() {
                 <ChevronRight className="w-4 h-4 text-muted-foreground group-open:rotate-90 transition-transform" />
               </summary>
               <div className="px-4 pb-4 text-sm text-muted-foreground">
-                Start a 14-day free trial of Pro with full access to premium stylists, autonomous purchasing up to $25, and 500 actions per day. No credit card required.
+                Start a 14-day free trial of Pro with full access to all 6 stylists, unlimited critiques, and priority AI processing. No credit card required.
               </div>
             </details>
             <details className="group rounded-2xl border border-border bg-card overflow-hidden">

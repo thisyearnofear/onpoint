@@ -124,6 +124,7 @@ export function deriveCurrentStage(state: {
   showCritiqueModeSelection: boolean;
   showPersonalitySelection: boolean;
 }): TryOnStage {
+  if (state.tryOnResult && state.analysis) return "save_share";
   if (state.tryOnResult) return "refine";
   if (state.enhancementLoading) return "generate_look";
   if (state.analysis) return "analyze_fit";

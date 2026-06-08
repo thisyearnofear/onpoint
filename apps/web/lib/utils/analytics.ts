@@ -290,6 +290,55 @@ export function trackDeepLinkPersonaSelected(properties: {
   trackEvent("deep_link_persona_selected", properties);
 }
 
+/** ── Look Save & Share Events ── */
+
+/**
+ * Track when a user saves a look from the try-on analysis results.
+ */
+export function trackLookSaved(properties: {
+  score: number;
+  persona: string | null;
+  garmentCategory?: string;
+  hasImage: boolean;
+  source: "analysis_result" | "try_on_result";
+}): void {
+  trackEvent("look_saved", properties);
+}
+
+/**
+ * Track when a user opens the shareable style card from analysis results.
+ */
+export function trackStyleCardOpened(properties: {
+  score: number;
+  persona: string;
+  hasImage: boolean;
+  hasGarment: boolean;
+}): void {
+  trackEvent("style_card_opened", properties);
+}
+
+/**
+ * Track clicks on recently saved looks from the home page.
+ */
+export function trackRecentlySavedClicked(properties: {
+  sessionAge: number; // hours since creation
+  score: number;
+  persona: string | null;
+}): void {
+  trackEvent("recently_saved_clicked", properties);
+}
+
+/**
+ * Track share actions from the style report card (Farcaster, Twitter, Download, Copy, Native share).
+ */
+export function trackStyleCardShare(properties: {
+  method: "farcaster" | "twitter" | "download" | "copy" | "native_share";
+  score: number;
+  persona: string;
+}): void {
+  trackEvent("style_card_share", properties);
+}
+
 /**
  * Track whether a deep-linked persona session completed the critique.
  */

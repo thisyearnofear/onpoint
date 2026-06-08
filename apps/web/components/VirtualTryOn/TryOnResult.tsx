@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import {
+  Bookmark,
   Sparkles,
   Share,
   CheckCircle,
@@ -18,7 +19,9 @@ import { SocialUtils } from "../../lib/utils/social";
 import {
   trackStylingTipVariantClicked,
   trackResultCompareToggled,
+  trackLookSaved,
 } from "../../lib/utils/analytics";
+import { useAnalysisHistory } from "../../lib/stores/analysis-history-store";
 
 interface StructuredTipAction {
   type: string;
@@ -123,6 +126,7 @@ export function TryOnResult({
 }: TryOnResultProps) {
   const { context } = useMiniApp();
   const [copied, setCopied] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
   const compareStartRef = useRef<number | null>(null);
 
@@ -159,6 +163,30 @@ export function TryOnResult({
     (structuredTips || []).forEach((tip) => map.set(tip.text, tip));
     return map;
   }, [structuredTips]);
+
+  const { addSession } = useAnalysisHistory();
+
+  const handleSaveLook = useCallback(() => {
+    if (saved) return;
+    addSession({
+      score: 7,
+      sessionGoal: null,
+      persona: null,
+      headline: description || 'Virtual try-on result',
+      takeaways: stylingTips || [],
+      topics: [],
+      coverImage: imageSrc || null,
+      extraImages: [],
+      recommendations: [],
+    });
+    setSaved(true);
+    trackLookSaved({
+      score: 7,
+      persona: null,
+      hasImage: Boolean(imageSrc),
+      source: "try_on_result",
+    });
+  }, [saved, description, stylingTips, imageSrc, addSession]);
 
   const handleShare = async () => {
     // Include capture image via IPFS embed
@@ -331,22 +359,28 @@ export function TryOnResult({
             </div>
           )}
 
-          {/* Enhanced action buttons with sharing */}
-          <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" onClick={onBack}>
-              Try Another
+          {/* Action buttons with save + share */}
+          <div className="grid grid-cols-3 gap-2">
+            <Button variant="outline" onClick={onBack} className="text-xs">
+              Retry
             </Button>
-            <Button onClick={handleShare}>
-              {copied ? (
-                <>
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Copied!
-                </>
+            <Button
+              variant="outline"
+              onClick={handleSaveLook}
+              disabled={saved}
+              className={`text-xs ${saved ? "border-emerald-500/30 text-emerald-600" : ""}`}
+            >
+              {saved ? (
+                <><Bookmark className="h-3.5 w-3.5 mr-1 fill-current" /> Saved</>
               ) : (
-                <>
-                  <Share className="h-4 w-4 mr-2" />
-                  {context?.client ? "Share to Farcaster" : "Share"}
-                </>
+                <><Bookmark className="h-3.5 w-3.5 mr-1" /> Save</>
+              )}
+            </Button>
+            <Button onClick={handleShare} className="text-xs">
+              {copied ? (
+                <><CheckCircle className="h-3.5 w-3.5 mr-1" /> Copied!</>
+              ) : (
+                <><Share className="h-3.5 w-3.5 mr-1" /> Share</>
               )}
             </Button>
           </div>

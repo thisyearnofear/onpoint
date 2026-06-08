@@ -14,16 +14,31 @@ const logger = require('../lib/logger');
 
 const router = express.Router();
 
-const CONNECTION_STRING = process.env.NEON_DATABASE_URL;
-const PUBLIC_R2_URL = process.env.R2_PUBLIC_URL?.replace(/\/$/, '');
 let _sql = null;
+let _connectionString = null;
+let _publicR2Url = null;
+
+function getConnectionString() {
+  if (!_connectionString) {
+    _connectionString = process.env.NEON_DATABASE_URL;
+  }
+  return _connectionString;
+}
+
+function getPublicR2Url() {
+  if (!_publicR2Url) {
+    _publicR2Url = process.env.R2_PUBLIC_URL?.replace(/\/$/, '');
+  }
+  return _publicR2Url;
+}
 
 function getDb() {
   if (!_sql) {
-    if (!CONNECTION_STRING) {
+    const cs = getConnectionString();
+    if (!cs) {
       throw new Error('NEON_DATABASE_URL not configured');
     }
-    _sql = neon(CONNECTION_STRING);
+    _sql = neon(cs);
   }
   return drizzle(_sql, { schema: { curators, listings, kitSkus } });
 }
@@ -33,8 +48,9 @@ function isValidSlug(slug) {
 }
 
 function keyToUrl(key) {
-  if (!key || !PUBLIC_R2_URL) return null;
-  return `${PUBLIC_R2_URL}/${String(key).replace(/^\/+/, '')}`;
+  const url = getPublicR2Url();
+  if (!key || !url) return null;
+  return `${url}/${String(key).replace(/^\/+/, '')}`;
 }
 
 function firstAvailableSize(sizes) {
@@ -164,3 +180,14 @@ router.get('/:slug/storefront', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.__test = {
+  isValidSlug,
+  firstAvailableSize,
+  buildWhatsAppUrl,
+  keyToUrl,
+  reset() {
+    _sql = null;
+    _connectionString = null;
+    _publicR2Url = null;
+  },
+};

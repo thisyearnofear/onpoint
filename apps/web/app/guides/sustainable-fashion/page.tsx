@@ -119,7 +119,28 @@ export default function SustainableFashionGuide() {
           </ul>
         </section>
 
-        <div className="border-t border-border pt-8 text-center">
+        {/* Related guides */}
+        <div className="border-t border-border pt-8">
+          <h3 className="text-sm font-bold mb-3">Related guides</h3>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Link
+              href="/guides/vintage-thrifting"
+              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+            >
+              <p className="text-sm font-bold">Vintage &amp; Thrift Shopping Guide</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Hidden gems, quality checks, era sizing</p>
+            </Link>
+            <Link
+              href="/guides/accessories-styling"
+              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+            >
+              <p className="text-sm font-bold">Accessories Styling Guide</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Quality over quantity, timeless pieces</p>
+            </Link>
+          </div>
+        </div>
+
+        <div className="pt-6 text-center">
           <p className="text-sm text-muted-foreground mb-4">Ready to build a sustainable wardrobe?</p>
           <Link href="/lab" className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90">
             <Camera className="h-4 w-4" />

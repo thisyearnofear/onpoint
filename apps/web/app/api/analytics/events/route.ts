@@ -3,7 +3,7 @@ import { corsHeaders } from "../../ai/_utils/http";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 export { OPTIONS } from "../../ai/_utils/http";
 import { logger } from "../../../../lib/utils/logger";
-import { recordProviderOutcome, recordDeepLinkPersonaSelected, recordDeepLinkPersonaOutcome } from "../../../../lib/utils/analytics-store";
+import { recordProviderOutcome, recordDeepLinkPersonaSelected, recordDeepLinkPersonaOutcome, recordRetentionEvent } from "../../../../lib/utils/analytics-store";
 
 interface AnalyticsEvent {
   event: string;
@@ -92,6 +92,41 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      // Persist retention events to Redis (best-effort)
+      const saveEvents = events.filter((e) => e.event === "look_saved");
+      for (const ev of saveEvents) {
+        const p = ev.properties || {};
+        recordRetentionEvent({
+          eventType: "look_saved",
+          score: p.score as number | undefined,
+          persona: p.persona as string | null,
+          garmentCategory: p.garmentCategory as string | undefined,
+          hasImage: Boolean(p.hasImage),
+          source: p.source as string | undefined,
+        });
+      }
+
+      const openEvents = events.filter((e) => e.event === "style_card_opened");
+      for (const ev of openEvents) {
+        const p = ev.properties || {};
+        recordRetentionEvent({
+          eventType: "style_card_opened",
+          score: p.score as number | undefined,
+          persona: p.persona as string | null,
+        });
+      }
+
+      const shareEvents = events.filter((e) => e.event === "style_card_share");
+      for (const ev of shareEvents) {
+        const p = ev.properties || {};
+        recordRetentionEvent({
+          eventType: "style_card_share",
+          method: p.method as "farcaster" | "twitter" | "download" | "copy" | "native_share" | undefined,
+          score: p.score as number | undefined,
+          persona: p.persona as string | null,
+        });
+      }
+
       // Aggregate metrics for key events
       const metrics = {
         provider_selections: events.filter(
@@ -112,6 +147,9 @@ export async function POST(request: NextRequest) {
         virtual_try_on_provider_errors: events.filter(
           (e) => e.event === "virtual_try_on_provider_error",
         ).length,
+        looks_saved: saveEvents.length,
+        style_cards_opened: openEvents.length,
+        style_card_shares: shareEvents.length,
       };
 
       return NextResponse.json(

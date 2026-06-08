@@ -22,7 +22,7 @@ interface SendParams {
   html: string;
 }
 
-async function send({ to, subject, html }: SendParams): Promise<boolean> {
+export async function send({ to, subject, html }: SendParams): Promise<boolean> {
   const client = getClient();
   if (!client) return false;
 

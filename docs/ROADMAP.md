@@ -35,10 +35,20 @@ Reframes OnPoint from "consumer AI stylist" to "curator-first styling platform" 
 - [x] `/s/[slug]/intel` curator intelligence page (retail signals, funnel stats, market products)
 - [x] On-chain economics panel in `/lab` (sub-cent tx cost proof, Celo wallet link)
 - [x] Intelligence link in storefront header
+- [x] WhatsApp chat-ops agent-server with full inventory management flow
+- [x] WhatsApp ingest pipeline (media upload → listing creation in Neon + R2)
+- [x] WhatsApp receipt sending via Meta Cloud API (sendWhatsAppMessage)
+- [x] Health check endpoint at `/api/agent/whatsapp/health`
+- [x] Setup guide: `docs/guides/whatsapp-setup.md`
 
 **Remaining tasks:**
-- [ ] Twilio number + Meta WhatsApp Business registration
-- [ ] Meta Business verification + outbound message templates
+- [ ] Create Meta Business Account at business.facebook.com
+- [ ] Register WhatsApp phone number in Meta Developer Portal
+- [ ] Generate permanent `WA_ACCESS_TOKEN` and get `WA_PHONE_NUMBER_ID`
+- [ ] Complete Meta Business verification (upload business docs)
+- [ ] Set env vars on Hetzner: `WA_ACCESS_TOKEN`, `WA_PHONE_NUMBER_ID`
+- [ ] Configure webhook in Meta dashboard → agent-server
+- [ ] Verify end-to-end: WhatsApp → ingest → listing → storefront
 - [ ] Delete global `CATALOG`, scope reads by Curator slug
 
 **Success criteria:**

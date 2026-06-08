@@ -12,6 +12,7 @@ import {
   User,
   Image as ImageIcon,
   Radar,
+  Globe,
 } from "lucide-react";
 import { NotificationBell } from "../NotificationBell";
 import type { FashionItem } from "@onpoint/shared-types";
@@ -29,8 +30,9 @@ import { MyLooksPanel } from "./MyLooksPanel";
 import { DesignPanel } from "./DesignPanel";
 import { SettingsPanel } from "./SettingsPanel";
 import { MarketIntelPanel } from "./MarketIntelPanel";
+import { CommunityPanel } from "./CommunityPanel";
 
-type AppMode = "dashboard" | "my-looks" | "try-on" | "stylist" | "shop" | "intel" | "settings" | "design";
+type AppMode = "dashboard" | "my-looks" | "try-on" | "stylist" | "shop" | "intel" | "settings" | "design" | "community";
 
 interface TacticalDashboardProps {
   onBack?: () => void;
@@ -45,6 +47,9 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
     }
     return "dashboard";
   });
+
+  // New looks badge state
+  const [hasNewCommunityLooks, setHasNewCommunityLooks] = React.useState(false);
 
   // Deep-link context from storefront or external pages
   const [deepLinkContext, setDeepLinkContext] = React.useState<{
@@ -72,7 +77,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
   }, []);
 
   // All valid modes (for URL param validation)
-  const ALL_MODES: AppMode[] = ["dashboard", "my-looks", "try-on", "stylist", "shop", "intel", "settings", "design"];
+  const ALL_MODES: AppMode[] = ["dashboard", "my-looks", "try-on", "stylist", "shop", "intel", "settings", "design", "community"];
 
   // Desktop top-bar: full set of tabs
   const desktopNavItems = [
@@ -82,6 +87,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
     { id: "shop" as AppMode, label: "Shop", icon: ShoppingBag, color: "text-amber-400" },
     { id: "intel" as AppMode, label: "Intel", icon: Radar, color: "text-emerald-400" },
     { id: "my-looks" as AppMode, label: "My Looks", icon: Palette, color: "text-indigo-400" },
+    { id: "community" as AppMode, label: "Trending", icon: Globe, color: "text-sky-400" },
     { id: "settings" as AppMode, label: "Settings", icon: Target, color: "text-muted-foreground" },
   ];
 
@@ -105,6 +111,12 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
       onDismissDeepLink={() => setDeepLinkContext(null)}
     />,
     stylist: () => <StylistPanel />,
+    community: () => (
+      <CommunityPanel
+        onNavigate={(m) => setMode(m as AppMode)}
+        onNewLooksStatus={setHasNewCommunityLooks}
+      />
+    ),
     intel: () => <MarketIntelPanel />,
     shop: () => (
       <ShopPanel
@@ -149,7 +161,13 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
                     : "text-muted-foreground hover:text-foreground/80"
                 }`}
               >
-                <item.icon className={`w-4 h-4 ${mode === item.id ? item.color : ""}`} />
+                <div className="relative">
+                  <item.icon className={`w-4 h-4 ${mode === item.id ? item.color : ""}`} />
+                  {/* Badge dot for new community looks */}
+                  {item.id === "community" && hasNewCommunityLooks && mode !== "community" && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-sky-400 ring-2 ring-background" />
+                  )}
+                </div>
                 <span className="text-sm font-medium">{item.label}</span>
               </button>
             ))}

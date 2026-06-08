@@ -4,8 +4,10 @@ import React from "react";
 import { Button } from "@repo/ui/button";
 import { Badge } from "@repo/ui/badge";
 import {
+  Bookmark,
   CheckCircle,
   Copy,
+  Image as ImageIcon,
   MessageCircle,
   Palette,
   Ruler,
@@ -21,6 +23,13 @@ import type { StylistPersona, VirtualTryOnAnalysis } from "@repo/ai-client";
 import type { TryOnSelection } from "../../lib/utils/try-on-selection";
 import { getPersonaConfig } from "../../lib/utils/persona-config";
 import { AnalysisSkeleton } from "./AnalysisSkeleton";
+import { useAnalysisHistory } from "../../lib/stores/analysis-history-store";
+import { StyleReportCard } from "./StyleReportCard";
+import {
+  trackLookSaved,
+  trackStyleCardOpened,
+} from "../../lib/utils/analytics";
+import { fireConfetti } from "../../lib/utils/confetti";
 
 interface AnalysisResultsProps {
   analysis: VirtualTryOnAnalysis;
@@ -84,6 +93,11 @@ export function AnalysisResults({
   const [expandedSection, setExpandedSection] = React.useState<string | null>(null);
   const [showLoading, setShowLoading] = React.useState(true);
   const [copied, setCopied] = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
+  const [showStyleCard, setShowStyleCard] = React.useState(false);
+
+  const [shareToCommunity, setShareToCommunity] = React.useState(false);
+  const { addSession, isFirstSession } = useAnalysisHistory();
 
   React.useEffect(() => {
     const timer = setTimeout(() => setShowLoading(false), 600);
@@ -125,6 +139,74 @@ export function AnalysisResults({
     preferences.budgetTier ||
     preferences.bodyType
   );
+
+  const handleSaveLook = React.useCallback(() => {
+    if (saved) return;
+    const recommendations = selectedGarment
+      ? [{ name: selectedGarment.name, price: selectedGarment.price || 0, category: selectedGarment.category || 'general' }]
+      : [];
+    addSession({
+      score: analysis.score || 5,
+      sessionGoal: preferences?.sessionGoal || null,
+      persona,
+      headline: currentLook[0] || 'Style analysis',
+      takeaways: styleRecommendations,
+      topics: fitRecommendations.slice(0, 4),
+      coverImage: previewUrl || null,
+      extraImages: [],
+      recommendations,
+    });
+    setSaved(true);
+
+    // Share to community (anonymously) if opted in
+    if (shareToCommunity) {
+      fetch("/api/community/looks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          score: analysis.score || 5,
+          persona,
+          headline: currentLook[0] || 'Style analysis',
+          takeaways: styleRecommendations,
+          topics: fitRecommendations.slice(0, 4),
+        }),
+      })
+        .then(async (res) => {
+          if (!res.ok) return;
+          const data = await res.json();
+          if (data.look?.id) {
+            // Store submitted look ID in localStorage for engagement tracking
+            try {
+              const existing = JSON.parse(
+                localStorage.getItem("onpoint-my-submitted-looks") || "[]",
+              );
+              existing.push(data.look.id);
+              // Keep only last 20
+              if (existing.length > 20) existing.shift();
+              localStorage.setItem(
+                "onpoint-my-submitted-looks",
+                JSON.stringify(existing),
+              );
+            } catch {
+              // ignore
+            }
+          }
+        })
+        .catch(() => undefined); // Best-effort — never block the save
+    }
+
+    // Fire confetti on first-ever save
+    if (isFirstSession()) {
+      setTimeout(() => fireConfetti({ particleCount: 80 }), 200);
+    }
+    trackLookSaved({
+      score: analysis.score || 5,
+      persona,
+      garmentCategory: selectedGarment?.category,
+      hasImage: Boolean(previewUrl),
+      source: "analysis_result",
+    });
+  }, [saved, analysis, preferences, persona, currentLook, styleRecommendations, fitRecommendations, previewUrl, selectedGarment, addSession, shareToCommunity]);
 
   const copyShareText = async () => {
     if (typeof navigator === "undefined" || !navigator.clipboard) return;
@@ -376,28 +458,87 @@ export function AnalysisResults({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 border-t border-border/60 pt-4">
-            {onCritiqueModeSelection && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onCritiqueModeSelection}
-                className="h-auto gap-2 py-3 text-xs"
-              >
-                <MessageCircle className="h-4 w-4" />
-                Get critique
-              </Button>
-            )}
-            <Button
-              variant="default"
-              size="sm"
-              onClick={shopRecommendations}
-              className="h-auto gap-2 bg-gradient-to-r from-primary to-accent py-3 text-xs hover:opacity-90"
+          {/* Save & Share row */}
+          <div className="flex items-center gap-2 border-t border-border/60 pt-4">
+            <div className="flex items-center gap-1.5">
+            <button
+              onClick={handleSaveLook}
+              disabled={saved}
+              className={`inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition-all ${
+                saved
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
             >
-              <Wallet className="h-4 w-4" />
-              Let agent shop
-            </Button>
+              {saved ? (
+                <><Bookmark className="h-3.5 w-3.5 fill-current" /> Saved</>
+              ) : (
+                <><Bookmark className="h-3.5 w-3.5" /> Save look</>
+              )}
+            </button>
+            {!saved && (
+              <label className="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-transparent text-[10px] text-muted-foreground/60 cursor-pointer hover:text-muted-foreground hover:border-border/40 transition-all">
+                <input
+                  type="checkbox"
+                  checked={shareToCommunity}
+                  onChange={(e) => setShareToCommunity(e.target.checked)}
+                  className="w-3 h-3 rounded border-border accent-primary"
+                />
+                Share to community
+              </label>
+            )}
           </div>
+            <button
+              onClick={() => {
+                setShowStyleCard(true);
+                trackStyleCardOpened({
+                  score: analysis.score || 5,
+                  persona,
+                  hasImage: Boolean(previewUrl),
+                  hasGarment: Boolean(selectedGarment),
+                });
+              }}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <ImageIcon className="h-3.5 w-3.5" />
+              Style card
+            </button>
+            <div className="ml-auto flex items-center gap-2">
+              {onCritiqueModeSelection && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onCritiqueModeSelection}
+                  className="h-9 gap-1.5 text-xs"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  Critique
+                </Button>
+              )}
+              <Button
+                variant="default"
+                size="sm"
+                onClick={shopRecommendations}
+                className="h-9 gap-1.5 bg-gradient-to-r from-primary to-accent text-xs"
+              >
+                <Wallet className="h-3.5 w-3.5" />
+                Shop
+              </Button>
+            </div>
+          </div>
+
+          {/* Style Report Card modal */}
+          {showStyleCard && (
+            <StyleReportCard
+              score={analysis.score || 5}
+              persona={persona}
+              takeaways={styleRecommendations}
+              topics={fitRecommendations.slice(0, 4)}
+              captureImage={previewUrl || undefined}
+              sessionGoal={preferences?.sessionGoal || "style analysis"}
+              onClose={() => setShowStyleCard(false)}
+            />
+          )}
         </div>
       </div>
     </section>

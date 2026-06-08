@@ -129,7 +129,28 @@ export default function AccessoriesStylingGuide() {
           </div>
         </section>
 
-        <div className="border-t border-border pt-8 text-center">
+        {/* Related guides */}
+        <div className="border-t border-border pt-8">
+          <h3 className="text-sm font-bold mb-3">Related guides</h3>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Link
+              href="/guides/occasion-wear"
+              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+            >
+              <p className="text-sm font-bold">Occasion Wear &amp; Event Dressing Guide</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Dress codes, colour, and event styling</p>
+            </Link>
+            <Link
+              href="/guides/streetwear-fits"
+              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+            >
+              <p className="text-sm font-bold">Streetwear Style Guide</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Layering, sneaker rotations, drops</p>
+            </Link>
+          </div>
+        </div>
+
+        <div className="pt-6 text-center">
           <p className="text-sm text-muted-foreground mb-4">Ready to accessorise with confidence?</p>
           <Link href="/lab" className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90">
             <Camera className="h-4 w-4" />

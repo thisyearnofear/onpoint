@@ -171,7 +171,28 @@ export default function FormalWearGuide() {
           </ul>
         </section>
 
-        <div className="border-t border-border pt-8 text-center">
+        {/* Related guides */}
+        <div className="border-t border-border pt-8">
+          <h3 className="text-sm font-bold mb-3">Related guides</h3>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Link
+              href="/guides/occasion-wear"
+              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+            >
+              <p className="text-sm font-bold">Occasion Wear &amp; Event Dressing Guide</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Dress codes decoded, colour coordination</p>
+            </Link>
+            <Link
+              href="/guides/ankara-style"
+              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+            >
+              <p className="text-sm font-bold">Ankara &amp; African Print Style Guide</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Fabrics, occasions, made-to-measure tips</p>
+            </Link>
+          </div>
+        </div>
+
+        <div className="pt-6 text-center">
           <p className="text-sm text-muted-foreground mb-4">
             Ready to see how that bespoke suit looks on you?
           </p>

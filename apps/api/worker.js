@@ -46,6 +46,7 @@ const SERVICE_API_KEY = process.env.SERVICE_API_KEY || '';
 const HEARTBEAT_INTERVAL_MS = parseInt(process.env.HEARTBEAT_INTERVAL_MS) || 5 * 60 * 1000;      // 5 min
 const TASK_INTERVAL_MS = parseInt(process.env.TASK_INTERVAL_MS) || 5 * 60 * 1000;                // 5 min
 const MARKET_SIGNAL_INTERVAL_MS = parseInt(process.env.MARKET_SIGNAL_INTERVAL_MS) || 15 * 60 * 1000; // 15 min
+const RETENTION_DIGEST_INTERVAL_MS = parseInt(process.env.RETENTION_DIGEST_INTERVAL_MS) || 7 * 24 * 60 * 60 * 1000; // 7 days
 
 // ── State ──
 let lastHeartbeat = {
@@ -68,6 +69,12 @@ let lastMarketSignalRun = {
   timestamp: null,
   totalSignals: 0,
   queriesProcessed: 0,
+  error: null,
+};
+
+let lastRetentionDigest = {
+  timestamp: null,
+  success: false,
   error: null,
 };
 
@@ -107,10 +114,16 @@ app.get('/health', (req, res) => {
       lastAutoBuyAttempted: lastMarketSignalRun.autoBuyAttempted || 0,
       lastAutoBuyExecuted: lastMarketSignalRun.autoBuyExecuted || 0,
     },
+    retentionDigest: {
+      lastRun: lastRetentionDigest.timestamp,
+      lastSuccess: lastRetentionDigest.success,
+      lastError: lastRetentionDigest.error,
+    },
     intervals: {
       heartbeatMs: HEARTBEAT_INTERVAL_MS,
       taskMs: TASK_INTERVAL_MS,
       marketSignalMs: MARKET_SIGNAL_INTERVAL_MS,
+      retentionDigestMs: RETENTION_DIGEST_INTERVAL_MS,
     },
     apiUrl: API_URL,
     sentry: !!process.env.SENTRY_DSN,
@@ -391,6 +404,82 @@ async function executeMarketSignalPolling() {
 }
 
 /**
+ * Task 4: Weekly retention digest — POST /api/cron/retention-digest
+ * Sends admin email with top retention metrics for the week.
+ */
+async function executeRetentionDigest() {
+  const startTime = Date.now();
+
+  const webUrl = process.env.WEB_URL || (process.env.VERCEL_DOMAIN ? `https://${process.env.VERCEL_DOMAIN}` : null);
+  if (!webUrl) {
+    lastRetentionDigest = {
+      timestamp: new Date().toISOString(),
+      success: false,
+      error: 'WEB_URL or VERCEL_DOMAIN not configured',
+    };
+    logger.warn('Retention digest skipped — WEB_URL not set', { component: 'worker' });
+    return;
+  }
+
+  try {
+    const url = `${webUrl}/api/cron/retention-digest`;
+    const headers = { 'Content-Type': 'application/json' };
+    if (SERVICE_API_KEY) {
+      headers['x-service-key'] = SERVICE_API_KEY;
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      signal: AbortSignal.timeout(30000),
+    });
+
+    const data = await response.json().catch(() => null);
+    const elapsed = Date.now() - startTime;
+
+    if (response.ok && data?.sent) {
+      lastRetentionDigest = {
+        timestamp: new Date().toISOString(),
+        success: true,
+        error: null,
+      };
+      logger.info('Retention digest sent', {
+        component: 'worker',
+        recipient: data.recipient,
+        totalSaves: data.summary?.totalSaves,
+        totalShares: data.summary?.totalShares,
+        shareRate: data.summary?.shareRate,
+        elapsedMs: elapsed,
+      });
+    } else {
+      lastRetentionDigest = {
+        timestamp: new Date().toISOString(),
+        success: false,
+        error: data?.error || `HTTP ${response.status}`,
+      };
+      logger.warn('Retention digest returned error', {
+        component: 'worker',
+        status: response.status,
+        data,
+        elapsedMs: elapsed,
+      });
+    }
+  } catch (err) {
+    const elapsed = Date.now() - startTime;
+    lastRetentionDigest = {
+      timestamp: new Date().toISOString(),
+      success: false,
+      error: err.message?.slice(0, 200) || 'Unknown error',
+    };
+    logger.error('Retention digest failed', {
+      component: 'worker',
+      elapsedMs: elapsed,
+    }, err);
+    if (Sentry) Sentry.captureException(err, { tags: { component: 'worker', task: 'retention-digest' } });
+  }
+}
+
+/**
  * Full worker cycle: heartbeat → task processing → market signals
  */
 async function runCycle() {
@@ -429,6 +518,7 @@ logger.info('Starting onpoint-worker', {
     heartbeatMs: HEARTBEAT_INTERVAL_MS,
     taskMs: TASK_INTERVAL_MS,
     marketSignalMs: MARKET_SIGNAL_INTERVAL_MS,
+    retentionDigestMs: RETENTION_DIGEST_INTERVAL_MS,
   },
   sentry: !!process.env.SENTRY_DSN,
 });
@@ -449,6 +539,14 @@ setInterval(() => {
   });
 }, MARKET_SIGNAL_INTERVAL_MS);
 
+// Retention digest: every RETENTION_DIGEST_INTERVAL_MS (7 days by default)
+setInterval(() => {
+  executeRetentionDigest().catch((err) => {
+    logger.error('Retention digest cycle error', { component: 'worker' }, err);
+    if (Sentry) Sentry.captureException(err);
+  });
+}, RETENTION_DIGEST_INTERVAL_MS);
+
 // Also run the full cycle immediately on startup (after a brief delay to let the API warm up)
 setTimeout(() => {
   runCycle().catch((err) => {
@@ -464,6 +562,14 @@ setTimeout(() => {
     if (Sentry) Sentry.captureException(err);
   });
 }, 35000);
+
+// Initial retention digest (staggered — runs 2 minutes after startup)
+setTimeout(() => {
+  executeRetentionDigest().catch((err) => {
+    logger.error('Initial retention digest failed', { component: 'worker' }, err);
+    if (Sentry) Sentry.captureException(err);
+  });
+}, 120000);
 
 // ── Start Express Server ──
 app.listen(WORKER_PORT, '127.0.0.1', () => {
