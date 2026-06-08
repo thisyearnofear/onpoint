@@ -4,10 +4,19 @@
  * Provides spending limits, approval workflows, and action controls
  * for AI agent operations. Runs at the API layer to enforce
  * business logic before any blockchain transactions.
+ *
+ * Architecture (Phase A-3):
+ *   Redis is the source of truth for persistent agent state.
+ *   An LRU cache provides fast synchronous reads for hot keys.
+ *   On startup, initStore() warms the cache from Redis.
+ *   All writes are write-through: LRU cache + Redis.
+ *   On Redis failure, falls back to LRU cache or defaults.
  */
 
+import { LRUCache } from "lru-cache";
 import { parseEther, formatEther } from "viem";
 import { logger } from "./logger";
+import { Metrics } from "./metrics";
 import {
   loadSpendingLimits,
   persistSpendingLimits,
@@ -15,11 +24,12 @@ import {
   persistAutonomyThreshold,
   persistSuggestion,
   loadSuggestion as loadSuggestionFromStore,
+  loadSuggestionIds,
   persistApproval,
+  loadApproval,
+  loadApprovalIds,
   persistStylePreferences,
   loadStylePreferences,
-  hydrateSuggestions,
-  hydrateApprovals,
   isRedisConfigured,
 } from "./agent-store";
 import { canSpendFromEscrow, deductFromEscrow } from "./escrow-service";
@@ -35,6 +45,63 @@ import {
 
 // Re-export for API routes that need direct store access
 export { loadSuggestionFromStore, persistSuggestion };
+
+// ============================================
+// LRU Cache — Single source of truth for reads
+// ============================================
+
+const CACHE = new LRUCache<string, unknown>({
+  max: 2000,
+  ttl: 1000 * 60 * 5, // 5 min default TTL
+});
+
+const CACHE_TTL = {
+  spendingLimits: 1000 * 60 * 2, // 2 min (changes frequently)
+  autonomyThreshold: 1000 * 60 * 15, // 15 min (rarely changes)
+  suggestion: 1000 * 60 * 30, // 30 min (matches Redis TTL)
+  stylePrefs: 1000 * 60 * 15, // 15 min
+  approval: 1000 * 60 * 30, // 30 min
+};
+
+const KEY = {
+  spendingLimits: (agentId: string, userId: string) =>
+    `ctrl:spending:${agentId}:${userId}`,
+  autonomyThreshold: (agentId: string, userId: string) =>
+    `ctrl:autonomy:${agentId}:${userId}`,
+  suggestion: (id: string) => `ctrl:suggestion:${id}`,
+  stylePrefs: (userId: string) => `ctrl:style:${userId}`,
+  approval: (id: string) => `ctrl:approval:${id}`,
+  suggestionIndex: (agentId: string) => `ctrl:suggestionIndex:${agentId}`,
+  approvalIndex: (agentId: string) => `ctrl:approvalIndex:${agentId}`,
+};
+
+// ============================================
+// Index Sets (for efficient iteration)
+// Suggestions and approvals need iteration by agentId.
+// These Sets track which IDs belong to which agent.
+// They are kept in sync with the LRU cache.
+// ============================================
+
+const suggestionIndex: Map<string, Set<string>> = new Map();
+const approvalIndex: Map<string, Set<string>> = new Map();
+
+function getSuggestionIdSet(agentId: string): Set<string> {
+  let set = suggestionIndex.get(agentId);
+  if (!set) {
+    set = new Set();
+    suggestionIndex.set(agentId, set);
+  }
+  return set;
+}
+
+function getApprovalIdSet(agentId: string): Set<string> {
+  let set = approvalIndex.get(agentId);
+  if (!set) {
+    set = new Set();
+    approvalIndex.set(agentId, set);
+  }
+  return set;
+}
 
 // ============================================
 // Types
@@ -204,61 +271,85 @@ const DEFAULT_LIMITS: Record<
 const DEFAULT_AUTONOMY_THRESHOLD = parseEther("5"); // 5 cUSD
 
 // ============================================
-// In-Memory Store
+// Init Store — Warmup Redis → LRU Cache
 // ============================================
 
-const spendingLimits: Map<string, SpendingLimit[]> = new Map();
-const autonomyThresholds: Map<string, bigint> = new Map();
-const pendingSuggestions: Map<string, AgentSuggestion> = new Map();
-const stylePreferences: Map<string, StylePreference> = new Map();
-const pendingApprovals: Map<string, ApprovalRequest> = new Map();
-const hydratedKeys: Set<string> = new Set();
-
-function storeKey(agentId: string, userId: string): string {
-  return `${agentId}:${userId}`;
-}
-
+/**
+ * Initialize and warm the store for a given agent+user.
+ * On first call: loads all Redis state into the LRU cache.
+ * On subsequent calls: records heartbeat (lightweight).
+ * Handles Redis outages gracefully — falls back to defaults.
+ */
 export async function initStore(
   agentId: string,
   userId: string,
 ): Promise<void> {
-  const key = storeKey(agentId, userId);
-  if (hydratedKeys.has(key)) {
+  const limitsKey = KEY.spendingLimits(agentId, userId);
+
+  // If already in cache, just record heartbeat and return
+  if (CACHE.has(limitsKey)) {
     await recordHeartbeat(agentId, userId).catch(() => {});
     return;
   }
-  hydratedKeys.add(key);
+
+  // Record heartbeat first
+  await recordHeartbeat(agentId, userId).catch(() => {});
 
   if (!isRedisConfigured()) return;
 
   try {
-    await recordHeartbeat(agentId, userId);
-
+    // Warmup spending limits
     const limits = await loadSpendingLimits(agentId, userId);
     if (limits) {
-      spendingLimits.set(key, limits);
+      CACHE.set(limitsKey, limits, { ttl: CACHE_TTL.spendingLimits });
     }
 
+    // Warmup autonomy threshold
     const threshold = await loadAutonomyThreshold(agentId, userId);
     if (threshold !== null) {
-      autonomyThresholds.set(key, threshold);
+      CACHE.set(KEY.autonomyThreshold(agentId, userId), threshold.toString(), {
+        ttl: CACHE_TTL.autonomyThreshold,
+      });
     }
 
-    await Promise.all([
-      hydrateSuggestions(agentId, userId, pendingSuggestions),
-      hydrateApprovals(agentId, userId, pendingApprovals),
-    ]);
+    // Warmup suggestions
+    const suggestionIds = await loadSuggestionIds(agentId, userId);
+    const idSet = getSuggestionIdSet(agentId);
+    for (const id of suggestionIds) {
+      idSet.add(id);
+      const suggestion = await loadSuggestionFromStore(id);
+      if (suggestion) {
+        CACHE.set(KEY.suggestion(id), suggestion, {
+          ttl: CACHE_TTL.suggestion,
+        });
+      }
+    }
+
+    // Warmup approvals
+    const approvalIds = await loadApprovalIds(agentId, userId);
+    const approvalIdSet = getApprovalIdSet(agentId);
+    for (const id of approvalIds) {
+      approvalIdSet.add(id);
+      const approval = await loadApproval(id);
+      if (approval) {
+        CACHE.set(KEY.approval(id), approval, { ttl: CACHE_TTL.approval });
+      }
+    }
+
+    // Warmup style preferences
+    // We don't know the userId here, so style prefs are lazily loaded
   } catch (err) {
     logger.error(
-      "Redis hydration failed",
+      "Redis warmup failed — will use defaults until Redis recovers",
       { component: "agent-controls", agentId, userId },
       err,
     );
   }
 }
 
+
 // ============================================
-// Core Functions
+// Core Functions — Spending Limits
 // ============================================
 
 export function initializeAgentLimits(
@@ -295,8 +386,9 @@ export function initializeAgentLimits(
     if (mintLimit) mintLimit.dailyLimit = config.dailyMintLimit;
   }
 
-  const key = storeKey(agentId, userId);
-  spendingLimits.set(key, limits);
+  // Write-through: LRU cache + Redis
+  const key = KEY.spendingLimits(agentId, userId);
+  CACHE.set(key, limits, { ttl: CACHE_TTL.spendingLimits });
   persistSpendingLimits(agentId, userId, limits).catch((err) =>
     logger.error("Persist failed", { component: "agent-controls" }, err),
   );
@@ -307,8 +399,23 @@ export function getAgentLimits(
   agentId: string,
   userId: string,
 ): SpendingLimit[] {
-  const key = storeKey(agentId, userId);
-  return spendingLimits.get(key) || initializeAgentLimits(agentId, userId);
+  const key = KEY.spendingLimits(agentId, userId);
+  const cached = CACHE.get(key) as SpendingLimit[] | undefined;
+  if (cached) return cached;
+
+  // Cache miss — initialize with defaults and kick off background Redis load
+  const limits = initializeAgentLimits(agentId, userId);
+
+  // Background fetch from Redis to get real state
+  loadSpendingLimits(agentId, userId).then((redisLimits) => {
+    if (redisLimits) {
+      CACHE.set(key, redisLimits, { ttl: CACHE_TTL.spendingLimits });
+    }
+  }).catch(() => {
+    // Fall back to defaults — already set
+  });
+
+  return limits;
 }
 
 export function checkSpendingLimit(
@@ -360,6 +467,10 @@ export function recordSpending(
   const limit = limits.find((l) => l.actionType === actionType);
   if (limit) {
     limit.spentToday += amount;
+    Metrics.countAction(actionType, "succeeded");
+    // Write-through: update cache TTL and persist to Redis
+    const key = KEY.spendingLimits(agentId, userId);
+    CACHE.set(key, limits, { ttl: CACHE_TTL.spendingLimits });
     persistSpendingLimits(agentId, userId, limits).catch((err) =>
       logger.error("Persist failed", { component: "agent-controls" }, err),
     );
@@ -413,16 +524,31 @@ export function setAutonomyThreshold(
   userId: string,
   threshold: bigint,
 ): void {
-  const key = storeKey(agentId, userId);
-  autonomyThresholds.set(key, threshold);
+  const key = KEY.autonomyThreshold(agentId, userId);
+  CACHE.set(key, threshold.toString(), { ttl: CACHE_TTL.autonomyThreshold });
   persistAutonomyThreshold(agentId, userId, threshold).catch((err) =>
     logger.error("Persist failed", { component: "agent-controls" }, err),
   );
 }
 
-export function getAutonomyThreshold(agentId: string, userId: string): bigint {
-  const key = storeKey(agentId, userId);
-  return autonomyThresholds.get(key) || DEFAULT_AUTONOMY_THRESHOLD;
+export function getAutonomyThreshold(
+  agentId: string,
+  userId: string,
+): bigint {
+  const key = KEY.autonomyThreshold(agentId, userId);
+  const cached = CACHE.get(key) as string | undefined;
+  if (cached !== undefined) return BigInt(cached);
+
+  // Background fetch from Redis
+  loadAutonomyThreshold(agentId, userId).then((threshold) => {
+    if (threshold !== null) {
+      CACHE.set(key, threshold.toString(), {
+        ttl: CACHE_TTL.autonomyThreshold,
+      });
+    }
+  }).catch(() => {});
+
+  return DEFAULT_AUTONOMY_THRESHOLD;
 }
 
 export function isBelowAutonomyThreshold(
@@ -475,7 +601,9 @@ export function createSuggestion(params: {
     autoApprovable,
   };
 
-  pendingSuggestions.set(id, suggestion);
+  // Write-through: LRU cache + index + Redis
+  CACHE.set(KEY.suggestion(id), suggestion, { ttl: CACHE_TTL.suggestion });
+  getSuggestionIdSet(params.agentId).add(id);
   persistSuggestion(suggestion, params.userId).catch((err) =>
     logger.error("Persist failed", { component: "agent-controls" }, err),
   );
@@ -483,18 +611,19 @@ export function createSuggestion(params: {
 }
 
 export function getSuggestion(id: string): AgentSuggestion | null {
-  const suggestion = pendingSuggestions.get(id);
-  if (!suggestion) return null;
+  const cached = CACHE.get(KEY.suggestion(id)) as AgentSuggestion | null | undefined;
+  if (!cached) return null;
 
-  if (Date.now() > suggestion.expiresAt && suggestion.status === "pending") {
-    suggestion.status = "expired";
+  if (Date.now() > cached.expiresAt && cached.status === "pending") {
+    cached.status = "expired";
+    CACHE.set(KEY.suggestion(id), cached, { ttl: CACHE_TTL.suggestion });
   }
 
-  return suggestion;
+  return cached;
 }
 
 export function acceptSuggestion(id: string, userId: string): boolean {
-  const suggestion = pendingSuggestions.get(id);
+  const suggestion = getSuggestion(id);
   if (!suggestion || suggestion.status !== "pending") return false;
   if (Date.now() > suggestion.expiresAt) {
     suggestion.status = "expired";
@@ -502,6 +631,7 @@ export function acceptSuggestion(id: string, userId: string): boolean {
   }
 
   suggestion.status = "accepted";
+  CACHE.set(KEY.suggestion(id), suggestion, { ttl: CACHE_TTL.suggestion });
   persistSuggestion(suggestion, userId).catch((err) =>
     logger.error("Persist failed", { component: "agent-controls" }, err),
   );
@@ -509,10 +639,11 @@ export function acceptSuggestion(id: string, userId: string): boolean {
 }
 
 export function rejectSuggestion(id: string, userId: string): boolean {
-  const suggestion = pendingSuggestions.get(id);
+  const suggestion = getSuggestion(id);
   if (!suggestion || suggestion.status !== "pending") return false;
 
   suggestion.status = "rejected";
+  CACHE.set(KEY.suggestion(id), suggestion, { ttl: CACHE_TTL.suggestion });
   persistSuggestion(suggestion, userId).catch((err) =>
     logger.error("Persist failed", { component: "agent-controls" }, err),
   );
@@ -520,10 +651,11 @@ export function rejectSuggestion(id: string, userId: string): boolean {
 }
 
 export function markSuggestionExecuted(id: string, userId: string): boolean {
-  const suggestion = pendingSuggestions.get(id);
+  const suggestion = getSuggestion(id);
   if (!suggestion || suggestion.status !== "accepted") return false;
 
   suggestion.status = "executed";
+  CACHE.set(KEY.suggestion(id), suggestion, { ttl: CACHE_TTL.suggestion });
   persistSuggestion(suggestion, userId).catch((err) =>
     logger.error("Persist failed", { component: "agent-controls" }, err),
   );
@@ -532,30 +664,55 @@ export function markSuggestionExecuted(id: string, userId: string): boolean {
 
 export function getPendingSuggestions(agentId: string): AgentSuggestion[] {
   const now = Date.now();
-  return Array.from(pendingSuggestions.values()).filter(
-    (s) =>
-      s.agentId === agentId &&
-      (s.status === "pending" || s.status === "accepted") &&
-      s.expiresAt > now,
-  );
+  const ids = getSuggestionIdSet(agentId);
+  const results: AgentSuggestion[] = [];
+
+  for (const id of ids) {
+    const suggestion = getSuggestion(id);
+    if (
+      suggestion &&
+      (suggestion.status === "pending" || suggestion.status === "accepted") &&
+      suggestion.expiresAt > now
+    ) {
+      results.push(suggestion);
+    }
+  }
+
+  return results;
 }
 
 // ============================================
 // Style Memory
 // ============================================
 
+const DEFAULT_STYLE_PREFS: Omit<StylePreference, "userId"> = {
+  colors: [],
+  categories: [],
+  brands: [],
+  priceRange: { min: 0, max: 500 },
+  lastUpdated: 0,
+};
+
 export function getStylePreferences(userId: string): StylePreference {
-  if (!stylePreferences.has(userId)) {
-    stylePreferences.set(userId, {
-      userId,
-      colors: [],
-      categories: [],
-      brands: [],
-      priceRange: { min: 0, max: 500 },
-      lastUpdated: Date.now(),
-    });
-  }
-  return stylePreferences.get(userId)!;
+  const key = KEY.stylePrefs(userId);
+  const cached = CACHE.get(key) as StylePreference | undefined;
+  if (cached) return cached;
+
+  // Background load from Redis
+  loadStylePreferences(userId).then((prefs) => {
+    if (prefs) {
+      CACHE.set(key, prefs, { ttl: CACHE_TTL.stylePrefs });
+    }
+  }).catch(() => {});
+
+  // Return default
+  const prefs: StylePreference = {
+    userId,
+    ...DEFAULT_STYLE_PREFS,
+    lastUpdated: Date.now(),
+  };
+  CACHE.set(key, prefs, { ttl: CACHE_TTL.stylePrefs });
+  return prefs;
 }
 
 export function updateStylePreferences(
@@ -573,10 +730,12 @@ export function updateStylePreferences(
   if (updates.brands)
     prefs.brands = [...new Set([...prefs.brands, ...updates.brands])];
   if (updates.priceRange) prefs.priceRange = updates.priceRange;
-  if (updates.autoBuyMaxPrice !== undefined) prefs.autoBuyMaxPrice = updates.autoBuyMaxPrice;
+  if (updates.autoBuyMaxPrice !== undefined)
+    prefs.autoBuyMaxPrice = updates.autoBuyMaxPrice;
   prefs.lastUpdated = Date.now();
 
-  stylePreferences.set(userId, prefs);
+  const key = KEY.stylePrefs(userId);
+  CACHE.set(key, prefs, { ttl: CACHE_TTL.stylePrefs });
   persistStylePreferences(prefs).catch((err) =>
     logger.error("Persist failed", { component: "agent-controls" }, err),
   );
@@ -626,7 +785,9 @@ export function createApprovalRequest(params: {
     expiresAt: Date.now() + expiresIn * 60 * 1000,
   };
 
-  pendingApprovals.set(id, request);
+  // Write-through: LRU + index + Redis
+  CACHE.set(KEY.approval(id), request, { ttl: CACHE_TTL.approval });
+  getApprovalIdSet(params.agentId).add(id);
   persistApproval(request, params.userId).catch((err) =>
     logger.error("Persist failed", { component: "agent-controls" }, err),
   );
@@ -634,11 +795,12 @@ export function createApprovalRequest(params: {
 }
 
 export function getApprovalRequest(id: string): ApprovalRequest | null {
-  const request = pendingApprovals.get(id);
+  const request = CACHE.get(KEY.approval(id)) as ApprovalRequest | undefined;
   if (!request) return null;
 
   if (Date.now() > request.expiresAt && request.status === "pending") {
     request.status = "expired";
+    CACHE.set(KEY.approval(id), request, { ttl: CACHE_TTL.approval });
   }
 
   return request;
@@ -649,7 +811,7 @@ export function approveRequest(
   userId: string,
   userSignature?: string,
 ): boolean {
-  const request = pendingApprovals.get(id);
+  const request = getApprovalRequest(id);
   if (!request || request.status !== "pending") return false;
   if (Date.now() > request.expiresAt) {
     request.status = "expired";
@@ -658,6 +820,7 @@ export function approveRequest(
 
   request.status = "approved";
   request.userSignature = userSignature;
+  CACHE.set(KEY.approval(id), request, { ttl: CACHE_TTL.approval });
   persistApproval(request, userId).catch((err) =>
     logger.error("Persist failed", { component: "agent-controls" }, err),
   );
@@ -665,10 +828,11 @@ export function approveRequest(
 }
 
 export function rejectRequest(id: string, userId: string): boolean {
-  const request = pendingApprovals.get(id);
+  const request = getApprovalRequest(id);
   if (!request || request.status !== "pending") return false;
 
   request.status = "rejected";
+  CACHE.set(KEY.approval(id), request, { ttl: CACHE_TTL.approval });
   persistApproval(request, userId).catch((err) =>
     logger.error("Persist failed", { component: "agent-controls" }, err),
   );
@@ -677,12 +841,21 @@ export function rejectRequest(id: string, userId: string): boolean {
 
 export function getPendingApprovals(agentId: string): ApprovalRequest[] {
   const now = Date.now();
-  return Array.from(pendingApprovals.values()).filter(
-    (req) =>
-      req.agentId === agentId &&
-      req.status === "pending" &&
-      req.expiresAt > now,
-  );
+  const ids = getApprovalIdSet(agentId);
+  const results: ApprovalRequest[] = [];
+
+  for (const id of ids) {
+    const request = getApprovalRequest(id);
+    if (
+      request &&
+      request.status === "pending" &&
+      request.expiresAt > now
+    ) {
+      results.push(request);
+    }
+  }
+
+  return results;
 }
 
 // ============================================
@@ -712,6 +885,7 @@ export function validateAction(params: {
   const limitCheck = checkSpendingLimit(agentId, userId, actionType, amount);
 
   if (!limitCheck.allowed) {
+    Metrics.countAction(actionType, "failed");
     return {
       allowed: false,
       requiresApproval: false,
@@ -720,6 +894,8 @@ export function validateAction(params: {
       limit: limitCheck.limit,
     };
   }
+
+  Metrics.countAction(actionType, "attempted");
 
   const limit = limitCheck.limit!;
 

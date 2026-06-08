@@ -1,0 +1,23 @@
+# ============================================
+# Grafana Dashboard Provider — Agent Overview
+# ============================================
+#
+# Auto-provisions dashboards when Grafana starts via docker-compose.
+# Place dashboard JSON files in the same directory as this provider config.
+#
+# Ref: https://grafana.com/docs/grafana/latest/administration/provisioning/#dashboards
+
+apiVersion: 1
+
+providers:
+  - name: "OnPoint Agent Overview"
+    orgId: 1
+    folder: "OnPoint"
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 60
+    allowUiUpdates: true
+    options:
+      # Scans this directory for dashboard JSON files
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: false

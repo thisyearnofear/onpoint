@@ -227,6 +227,9 @@ app.use('/api/agent/checkout', json1k, serviceKeyAuth, require('./routes/agent-c
 // Tip-Agent — service-key + forwarded user (agent-to-agent tipping)
 app.use('/api/agent/tip-agent', json1k, serviceKeyAuth, generalRateLimit, require('./routes/agent-tip-agent'));
 
+// Metrics — public, Prometheus format
+app.use('/api/agent/metrics', json1k, require('./routes/agent-metrics').router);
+
 // Tasks — service-key only (worker task processing)
 app.use('/api/agent/tasks', json10kb, serviceKeyAuth, require('./routes/agent-tasks'));
 

@@ -33,6 +33,7 @@ export {
   redisSet,
   redisSetEx,
   redisDel,
+  redisIncr,
   redisSadd,
   redisSmembers,
   redisSrem,
@@ -219,3 +220,21 @@ export {
   createCommissionRecord,
 } from "./commissions";
 
+// ── Agent Metrics (Prometheus) ──
+export {
+  type ActionStatus,
+  type ActionCounter,
+  type LatencyHistogram,
+  type EscrowSnapshot,
+  type MetricsSnapshot,
+  Metrics,
+  countAction,
+  recordLatency,
+  setEscrowBalance,
+  getActionCounters,
+  getLatencyHistograms,
+  getEscrowBalances,
+  exportPrometheus,
+  persistMetrics,
+  resetMetrics,
+} from "./metrics";

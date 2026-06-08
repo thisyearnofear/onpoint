@@ -363,6 +363,13 @@ function renderDashboardHTML() {
           { label: 'Sentry', value: agent.sentryConfigured ? '✅ Configured' : '❌ Not set', cls: agent.sentryConfigured ? 'green' : 'red' },
         ], '—'),
 
+        renderCard('Metrics', [
+          { label: 'Actions Counted', value: 'via /metrics endpoint', cls: 'green' },
+        ].concat(data.metrics?.actionCounters?.length > 0 ? [
+          { label: 'Total Actions', value: data.metrics.actionCounters.reduce((sum, c) => sum + c.count, 0).toString() },
+          { label: 'Latency Samples', value: data.metrics.latencyHistograms?.reduce((sum, h) => sum + h.sampleCount, 0).toString() || '0' },
+        ] : []), data.metrics?.actionCounters?.length > 0 ? 'connected' : 'pending'),
+
         renderCard('Public Heartbeat', [
           { label: 'Status', value: agent.heartbeat?.status || 'unavailable', cls: agent.heartbeat?.status === 'healthy' ? 'green' : (agent.heartbeat?.status === 'unavailable' ? '' : 'yellow') },
           { label: 'Venice', value: agent.heartbeat?.agent?.veniceConfigured ? '✅' : '❌' },

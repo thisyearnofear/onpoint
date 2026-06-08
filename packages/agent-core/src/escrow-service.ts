@@ -7,6 +7,7 @@
 
 import { parseEther, formatEther, type Address } from "viem";
 import { redisGet, redisSetEx, redisSet } from "./redis-helpers";
+import { Metrics } from "./metrics";
 
 // ============================================
 // Types
@@ -81,6 +82,7 @@ export async function initializeEscrow(
   };
 
   await redisSet(ESCROW_BALANCE_KEY(userId, agentId), balance);
+  Metrics.setEscrowBalance(userId, balance.balance);
   return balance;
 }
 
@@ -107,6 +109,7 @@ export async function depositToEscrow(
   balance.lastUpdated = Date.now();
 
   await redisSet(ESCROW_BALANCE_KEY(userId, agentId), balance);
+  Metrics.setEscrowBalance(userId, balance.balance);
 
   const deposit: EscrowDeposit = {
     userId,
@@ -181,6 +184,10 @@ export async function deductFromEscrow(
   balance.lastUpdated = Date.now();
 
   await redisSet(ESCROW_BALANCE_KEY(userId, agentId), balance);
+
+  // Track escrow balance for metrics
+  Metrics.setEscrowBalance(userId, balance.balance);
+
   return balance;
 }
 
@@ -223,6 +230,7 @@ export async function withdrawFromEscrow(
   balance.balance = (currentBalance - amount).toString();
   balance.lastUpdated = Date.now();
   await redisSet(ESCROW_BALANCE_KEY(userId, agentId), balance);
+  Metrics.setEscrowBalance(userId, balance.balance);
 
   const withdrawalId = `withdrawal_${Date.now()}_${Math.random().toString(36).slice(2)}`;
   const withdrawal: EscrowWithdrawal = {

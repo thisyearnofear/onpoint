@@ -1,0 +1,113 @@
+# ============================================
+# OnPoint Agent — Prometheus Scrape Config
+# ============================================
+#
+# Deploy alongside the API on the Hetzner VPS.
+# Prometheus scrapes the /api/agent/metrics endpoint
+# which exposes counters, latency histograms, escrow
+# balances, and proactive heartbeat task results.
+#
+# Usage:
+#   docker run -d \
+#     --name prometheus \
+#     -p 9090:9090 \
+#     -v /opt/onpoint/deploy/prometheus.yml:/etc/prometheus/prometheus.yml \
+#     prom/prometheus:v3.2.1
+#
+# With docker-compose (recommended):
+#   docker compose -f deploy/docker-compose.monitoring.yml up -d
+#
+# Metrics endpoint: http://localhost:48751/api/agent/metrics
+# Node exporter (system): http://localhost:9100/metrics
+#
+# Grafana dashboards can be imported from the deploy/grafana/ directory
+# once created.
+
+global:
+  # How frequently to scrape targets by default
+  scrape_interval: 15s
+
+  # How long before a scrape times out
+  scrape_timeout: 10s
+
+  # How frequently to evaluate rules
+  evaluation_interval: 15s
+
+# ── Rule files ─────────────────────────────────────────
+# Threshold alerts for gas, heartbeat, approvals, and escrow.
+rule_files:
+  - "prometheus-alerts.yml"
+
+# ── Scrape Jobs ────────────────────────────────────────
+scrape_configs:
+
+  # ── Job 1: OnPoint Agent Metrics ────────────────────
+  # Scrapes the structured Prometheus metrics from
+  # /api/agent/metrics on the Express API (port 48751).
+  - job_name: "onpoint-agent"
+
+    # Override the default scrape interval for fresh data
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+    # Use the path rewrite to access the metrics endpoint
+    metrics_path: "/api/agent/metrics"
+
+    # Static target: the API runs on localhost:48751
+    static_configs:
+      - targets:
+          - "localhost:48751"
+        labels:
+          service: "onpoint-api"
+          environment: "production"
+          component: "agent-metrics"
+          version: "2.1.0"
+
+  # ── Job 2: Self-Monitoring (Prometheus) ──────────────
+  # Standard Prometheus self-scrape for operational health.
+  - job_name: "prometheus"
+
+    scrape_interval: 30s
+    scrape_timeout: 5s
+
+    static_configs:
+      - targets:
+          - "localhost:9090"
+        labels:
+          service: "monitoring"
+          component: "prometheus"
+
+  # ── Job 3: Node Exporter (System Metrics) ───────────
+  # Linux system metrics: CPU, memory, disk, network.
+  # Requires node_exporter on the Hetzner host.
+  #   docker run -d \
+  #     --name node-exporter \
+  #     --net="host" \
+  #     --pid="host" \
+  #     -v "/:/host:ro,rslave" \
+  #     quay.io/prometheus/node-exporter:latest \
+  #     --path.rootfs=/host
+  #
+  # - job_name: "node"
+  #   scrape_interval: 30s
+  #   scrape_timeout: 5s
+  #   static_configs:
+  #     - targets:
+  #         - "localhost:9100"
+  #       labels:
+  #         service: "infrastructure"
+  #         component: "node-exporter"
+
+  # ── Job 4: PM2 Metrics (optional) ─────────────────────
+  # PM2 process health (CPU, memory, restarts).
+  # Requires pm2-prometheus-exporter or keymetrics.
+  #
+  # - job_name: "pm2"
+  #   scrape_interval: 30s
+  #   scrape_timeout: 5s
+  #   static_configs:
+  #     - targets:
+  #         - "localhost:9205"
+  #       labels:
+  #         service: "process-manager"
+  #         component: "pm2"

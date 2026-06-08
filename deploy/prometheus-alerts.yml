@@ -1,0 +1,325 @@
+# ============================================
+# OnPoint Agent — Prometheus Alerting Rules
+# ============================================
+#
+# Threshold alerts for agent operational health.
+# Loaded by prometheus.yml via rule_files directive.
+#
+# Alert severity levels:
+#   critical — Immediate attention required (pager)
+#   warning  — Needs investigation within business hours
+#   info     — Observability signal, no direct action needed
+#
+# All alerts carry labels:
+#   service:  "onpoint-api"
+#   env:      "production"  (overridden in prometheus.yml scrape labels)
+
+groups:
+  # ── Group 1: Agent Availability ──────────────────────
+  # The agent's metrics endpoint must be reachable and
+  # returning data for any other monitoring to work.
+  - name: agent_availability
+    interval: 30s
+    limit: 5
+    rules:
+
+      # ──── Alert: AgentDown ───────────────────────────
+      # The /api/agent/metrics endpoint has stopped
+      # returning data. No gas checks, no heartbeat,
+      # no metrics are possible until this recovers.
+      - alert: AgentDown
+        expr: |
+          absent(agent_up)
+        for: 30s
+        labels:
+          severity: critical
+          team: "platform"
+        annotations:
+          summary: "Agent metrics endpoint unreachable"
+          description: >
+            The `agent_up` metric has been absent for >30
+            seconds. The Express API on port 48751 is not
+            responding to scrapes. Check PM2 and nginx:
+              ssh snel-bot "pm2 status onpoint-api"
+              ssh snel-bot "sudo systemctl status nginx"
+
+  # ── Group 2: Agent Wallet & Gas ─────────────────────
+  # The agent wallet must maintain sufficient CELO for
+  # gas on autonomous transactions. The gas balance is
+  # checked every heartbeat cycle (5 min) and exported
+  # as a gauge metric.
+  - name: agent_wallet
+    interval: 1m
+    rules:
+
+      # ──── Alert: AgentGasLow ─────────────────────────
+      # CELO balance dropped below 0.5 CELO — enough for
+      # ~50-100 transactions at current gas prices.
+      # Refill before the agent can no longer execute
+      # onchain actions.
+      - alert: AgentGasLow
+        expr: |
+          agent_gas_balance < 0.5
+        for: 5m
+        labels:
+          severity: warning
+          team: "platform"
+        annotations:
+          summary: "Agent wallet gas below 0.5 CELO"
+          description: |
+            Agent wallet CELO balance is {{ $value }} CELO.
+            Refill from the platform treasury or setup an
+            automated gas-topup:
+              https://celoscan.io/address/{{ $labels.address }}
+
+      # ──── Alert: AgentGasCritical ────────────────────
+      # CELO balance below 0.01 CELO — the agent cannot
+      # afford even a single transaction. Immediate refill
+      # required.
+      - alert: AgentGasCritical
+        expr: |
+          agent_gas_balance < 0.01
+        for: 2m
+        labels:
+          severity: critical
+          team: "platform"
+        annotations:
+          summary: "Agent wallet gas critically low"
+          description: |
+            Agent wallet CELO balance is {{ $value }} CELO
+            — insufficient for transaction fees. Send CELO
+            immediately to the agent wallet address.
+
+      # ──── Alert: AgentGasUnknown ─────────────────────
+      # The gas balance metric has disappeared entirely,
+      # which means the heartbeat checks have stopped
+      # running or the metrics exporter broke.
+      - alert: AgentGasUnknown
+        expr: |
+          absent(agent_gas_balance)
+        for: 5m
+        labels:
+          severity: warning
+          team: "platform"
+        annotations:
+          summary: "Agent gas balance metric missing"
+          description: >
+            The agent_gas_balance metric has been absent for
+            >5 minutes. The heartbeat may have stopped
+            running. Check the worker:
+              ssh snel-bot "pm2 status onpoint-worker"
+              ssh snel-bot "pm2 logs onpoint-worker --lines 20"
+
+  # ── Group 3: Heartbeat & Proactive Tasks ────────────
+  # The agent's self-monitoring heartbeat runs every
+  # 5 minutes via the worker. Proactive tasks (retry,
+  # prune, alert) run as part of each heartbeat cycle.
+  - name: agent_heartbeat
+    interval: 1m
+    rules:
+
+      # ──── Alert: HeartbeatStopped ────────────────────
+      # The heartbeat proactively exports task metrics.
+      # If ALL proactive task metrics disappear, the
+      # heartbeat has likely stopped completely.
+      - alert: HeartbeatStopped
+        expr: |
+          absent(agent_heartbeat_proactive)
+        for: 10m
+        labels:
+          severity: critical
+          team: "platform"
+        annotations:
+          summary: "Agent heartbeat has stopped"
+          description: >
+            The agent_heartbeat_proactive metric has been
+            absent for >10 minutes. The heartbeat should
+            run every 5 minutes. Check the worker process:
+              ssh snel-bot "pm2 status onpoint-worker"
+              ssh snel-bot "pm2 logs onpoint-worker --lines 50"
+
+      # ──── Alert: MaxedOutSuggestions ─────────────────
+      # Suggestions that failed repeatedly (>3 retries)
+      # are being auto-rejected. A sustained presence of
+      # maxed-out suggestions means the autonomous executor
+      # cannot process a specific action type — possibly
+      # a contract issue, gas problem, or a bug.
+      - alert: MaxedOutSuggestions
+        expr: |
+          agent_heartbeat_proactive{task="maxed_out_suggestions"} > 0
+        for: 10m
+        labels:
+          severity: warning
+          team: "agent"
+        annotations:
+          summary: "Suggestions hitting max retries"
+          description: |
+            {{ $value }} suggestions have been auto-rejected
+            after exhausting their retry limit. Review the
+            autonomous executor logs:
+              ssh snel-bot "pm2 logs onpoint-api --lines 30 | grep 'max retries'"
+
+      # ──── Alert: PrunedSuggestionsSpike ──────────────
+      # Stale suggestions are being pruned from the
+      # in-memory index. A spike (>10 in a single
+      # heartbeat cycle) suggests abandoned user flows
+      # or a bug creating orphaned suggestions.
+      - alert: PrunedSuggestionsSpike
+        expr: |
+          agent_heartbeat_proactive{task="pruned_suggestions"} > 10
+        for: 5m
+        labels:
+          severity: info
+          team: "agent"
+        annotations:
+          summary: "Spike in stale suggestion pruning"
+          description: |
+            {{ $value }} stale suggestions were pruned this
+            heartbeat cycle. Investigate if this is from
+            abandoned sessions or a creation bug.
+
+  # ── Group 4: Stale Approvals ────────────────────────
+  # Approval requests that remain pending for >30 minutes
+  # indicate abandoned user flows. Each creates a fraud
+  # alert — sustained numbers suggest UX issues or
+  # notification delivery failures.
+  - name: agent_approvals
+    interval: 1m
+    rules:
+
+      # ──── Alert: StaleApprovalsDetected ──────────────
+      # Any stale approval alerts in the last heartbeat
+      # cycle means users are abandoning the approval
+      # flow. Check notification delivery and approval
+      # toast UX.
+      - alert: StaleApprovalsDetected
+        expr: |
+          agent_heartbeat_proactive{task="stale_approvals_alerted"} > 0
+        for: 5m
+        labels:
+          severity: warning
+          team: "product"
+        annotations:
+          summary: "Stale approval requests detected"
+          description: |
+            {{ $value }} approval requests have been pending
+            for >30 minutes. Users may not be receiving
+            notifications. Check the messaging bridge:
+              ssh snel-bot "pm2 logs onpoint-api --lines 20 | grep 'stale approval'"
+
+      # ──── Alert: StaleApprovalsSustained ──────────────
+      # Stale approvals persisting across multiple
+      # heartbeat cycles indicates a systemic issue
+      # with the approval flow — not just one user
+      # walking away. Likely a notification delivery
+      # failure or a broken approval UI path.
+      - alert: StaleApprovalsSustained
+        expr: |
+          sum(agent_heartbeat_proactive{task="stale_approvals_alerted"} > 0) by (job)
+        for: 30m
+        labels:
+          severity: critical
+          team: "product"
+        annotations:
+          summary: "Persistent stale approvals — systemic issue"
+          description: >
+            Stale approval alerts have been firing for >30
+            minutes across consecutive heartbeat cycles.
+            This indicates a systemic failure in the
+            approval notification pipeline. Check the
+            messaging bridge and approval route:
+              ssh snel-bot "pm2 logs onpoint-api --lines 50 | grep -E 'stale|approval'"
+
+  # ── Group 5: Escrow Account Health ──────────────────
+  # User-funded escrow accounts enable agent spending
+  # without depleting the platform wallet. Low or
+  # depleted balances block autonomous execution.
+  - name: agent_escrow
+    interval: 5m
+    rules:
+
+      # ──── Alert: EscrowBalanceLow ────────────────────
+      # A user's escrow balance has dropped below 1 cUSD.
+      # The user needs to deposit more funds before the
+      # agent can execute actions on their behalf.
+      - alert: EscrowBalanceLow
+        expr: |
+          agent_escrow_balance / 1e18 < 1
+        for: 15m
+        labels:
+          severity: warning
+          team: "product"
+        annotations:
+          summary: "User escrow balance low"
+          description: |
+            User {{ $labels.user_id }} escrow balance is
+            {{ $value }} cUSD — below the 1 cUSD minimum.
+            Prompt the user to deposit funds via top-up.
+
+      # ──── Alert: EscrowBalanceDepleted ───────────────
+      # A user's escrow balance has reached zero. The
+      # agent cannot spend on their behalf until they
+      # top up. This blocks all autonomous actions for
+      # this user.
+      - alert: EscrowBalanceDepleted
+        expr: |
+          agent_escrow_balance / 1e18 == 0
+        for: 5m
+        labels:
+          severity: info
+          team: "product"
+        annotations:
+          summary: "User escrow balance depleted"
+          description: |
+            User {{ $labels.user_id }} has zero escrow
+            balance. Autonomous execution is blocked
+            until they deposit funds.
+
+  # ── Group 6: Action Anomaly ─────────────────────────
+  # Detect unusual patterns in agent action validation
+  # rates that may indicate a spending limit issue,
+  # fraud, a bug, or a traffic spike worth investigating.
+  - name: agent_actions
+    interval: 1m
+    rules:
+
+      # ──── Alert: HighSpendingLimitRejectionRate ─────
+      # More than 20% of actions are being blocked by
+      # spending limit validation. This suggests limits
+      # are too tight for actual usage, or a burst of
+      # high-value actions is being attempted.
+      - alert: HighSpendingLimitRejectionRate
+        expr: |
+          sum(agent_actions_total{status="failed"})
+          /
+          (sum(agent_actions_total{status="attempted"}) + sum(agent_actions_total{status="failed"}))
+          > 0.2
+        for: 5m
+        labels:
+          severity: warning
+          team: "agent"
+        annotations:
+          summary: "High spending limit rejection rate (>20%)"
+          description: |
+            {{ $value | humanizePercentage }} of actions are
+            being rejected by spending limit checks.
+            Consider increasing daily limits or reviewing
+            action patterns.
+
+      # ──── Alert: LatencySpike ────────────────────────
+      # p99 latency for any action type exceeds 10 seconds.
+      # Users would experience noticeable delays in
+      # autonomous execution.
+      - alert: LatencySpike
+        expr: |
+          agent_action_latency{quantile="0.99"} > 10000
+        for: 5m
+        labels:
+          severity: warning
+          team: "agent"
+        annotations:
+          summary: "Action latency spike (p99 > 10s)"
+          description: |
+            Action type {{ $labels.type }} p99 latency is
+            {{ $value }}ms. Investigate RPC provider or
+            network congestion.

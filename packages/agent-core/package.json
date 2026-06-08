@@ -79,12 +79,15 @@
   },
   "scripts": {
     "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "check-types": "tsc --noEmit"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
     "tsup": "8.5.1",
-    "typescript": "5.9.2"
+    "typescript": "5.9.2",
+    "vitest": "^3.2.6"
   },
   "dependencies": {
     "@repo/blockchain-client": "workspace:*",

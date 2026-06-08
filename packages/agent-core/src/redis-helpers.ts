@@ -3,11 +3,17 @@
  *
  * Shared Redis operations using Upstash REST API.
  * Used across auth, rate limiting, and agent store.
+ *
+ * All fetch calls have a 2-second request-scoped timeout.
+ * On timeout or error, functions return null/[] gracefully
+ * (circuit breaker pattern — no cascading failures).
  */
 
 interface UpstashResult<T = unknown> {
   result: T;
 }
+
+const REQUEST_TIMEOUT_MS = 2000;
 
 function getRedisConfig() {
   const url = process.env.UPSTASH_REDIS_REST_URL;
@@ -15,16 +21,51 @@ function getRedisConfig() {
   return url && token ? { url, token } : null;
 }
 
+/**
+ * Create an AbortSignal that times out after REQUEST_TIMEOUT_MS.
+ * Falls back to undefined if AbortSignal.timeout is not available
+ * (Node < 16).
+ */
+function createTimeoutSignal(): AbortSignal | undefined {
+  try {
+    return AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Generic fetch wrapper with timeout and error handling.
+ * Returns null on any failure (network, timeout, non-2xx).
+ */
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+): Promise<Response | null> {
+  try {
+    const signal = createTimeoutSignal();
+    const response = await fetch(url, {
+      ...options,
+      signal: signal ?? options.signal,
+    });
+    if (!response.ok) return null;
+    return response;
+  } catch {
+    return null;
+  }
+}
+
 export async function redisGet<T>(key: string): Promise<T | null> {
   const config = getRedisConfig();
   if (!config) return null;
 
+  const response = await fetchWithTimeout(`${config.url}/get/${key}`, {
+    headers: { Authorization: `Bearer ${config.token}` },
+  });
+  if (!response) return null;
+
   try {
-    const res = await fetch(`${config.url}/get/${key}`, {
-      headers: { Authorization: `Bearer ${config.token}` },
-    });
-    if (!res.ok) return null;
-    const data: UpstashResult<string | null> = await res.json();
+    const data: UpstashResult<string | null> = await response.json();
     if (data.result === null) return null;
     return JSON.parse(data.result) as T;
   } catch {
@@ -36,18 +77,14 @@ export async function redisSet(key: string, value: unknown): Promise<void> {
   const config = getRedisConfig();
   if (!config) return;
 
-  try {
-    await fetch(`${config.url}/set/${key}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${config.token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ value: JSON.stringify(value) }),
-    });
-  } catch {
-    // Silent fail
-  }
+  await fetchWithTimeout(`${config.url}/set/${key}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${config.token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ value: JSON.stringify(value) }),
+  });
 }
 
 export async function redisSetEx(
@@ -58,61 +95,73 @@ export async function redisSetEx(
   const config = getRedisConfig();
   if (!config) return;
 
-  try {
-    await fetch(`${config.url}/set/${key}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${config.token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ value: JSON.stringify(value), ex: ttlSeconds }),
-    });
-  } catch {
-    // Silent fail
-  }
+  await fetchWithTimeout(`${config.url}/set/${key}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${config.token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ value: JSON.stringify(value), ex: ttlSeconds }),
+  });
 }
 
 export async function redisDel(key: string): Promise<void> {
   const config = getRedisConfig();
   if (!config) return;
 
-  try {
-    await fetch(`${config.url}/del/${key}`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${config.token}` },
-    });
-  } catch {
-    // Silent fail
-  }
+  await fetchWithTimeout(`${config.url}/del/${key}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${config.token}` },
+  });
 }
 
 export async function redisSadd(key: string, member: string): Promise<void> {
   const config = getRedisConfig();
   if (!config) return;
 
-  try {
-    await fetch(`${config.url}/sadd/${key}/${member}`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${config.token}` },
-    });
-  } catch {
-    // Silent fail
-  }
+  await fetchWithTimeout(`${config.url}/sadd/${key}/${member}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${config.token}` },
+  });
 }
 
 export async function redisSmembers(key: string): Promise<string[]> {
   const config = getRedisConfig();
   if (!config) return [];
 
+  const response = await fetchWithTimeout(`${config.url}/smembers/${key}`, {
+    headers: { Authorization: `Bearer ${config.token}` },
+  });
+  if (!response) return [];
+
   try {
-    const res = await fetch(`${config.url}/smembers/${key}`, {
-      headers: { Authorization: `Bearer ${config.token}` },
-    });
-    if (!res.ok) return [];
-    const data: UpstashResult<string[]> = await res.json();
+    const data: UpstashResult<string[]> = await response.json();
     return data.result || [];
   } catch {
     return [];
+  }
+}
+
+/**
+ * Atomically increment a Redis key and return the new value.
+ * Uses INCR which is atomic — safe for concurrent access.
+ * Returns null if Redis is not configured or the call fails.
+ */
+export async function redisIncr(key: string): Promise<number | null> {
+  const config = getRedisConfig();
+  if (!config) return null;
+
+  const response = await fetchWithTimeout(`${config.url}/incr/${key}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${config.token}` },
+  });
+  if (!response) return null;
+
+  try {
+    const data: UpstashResult<number> = await response.json();
+    return data.result;
+  } catch {
+    return null;
   }
 }
 
@@ -120,14 +169,10 @@ export async function redisSrem(key: string, member: string): Promise<void> {
   const config = getRedisConfig();
   if (!config) return;
 
-  try {
-    await fetch(`${config.url}/srem/${key}/${member}`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${config.token}` },
-    });
-  } catch {
-    // Silent fail
-  }
+  await fetchWithTimeout(`${config.url}/srem/${key}/${member}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${config.token}` },
+  });
 }
 
 export function isRedisConfigured(): boolean {

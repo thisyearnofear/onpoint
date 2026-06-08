@@ -1,0 +1,22 @@
+# ============================================
+# Grafana Datasource — Prometheus
+# ============================================
+#
+# Auto-provisioned when Grafana starts via docker-compose.
+# Connects to the co-deployed Prometheus instance.
+#
+# Ref: https://grafana.com/docs/grafana/latest/administration/provisioning/#datasources
+
+apiVersion: 1
+
+datasources:
+  - name: OnPoint Prometheus
+    type: prometheus
+    access: proxy
+    url: http://localhost:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: "15s"
+      queryTimeout: "30s"
+      httpMethod: "POST"

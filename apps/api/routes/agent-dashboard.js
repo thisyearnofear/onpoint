@@ -17,6 +17,7 @@ const { celo } = require('viem/chains');
 
 const agentCore = require('@repo/agent-core');
 const logger = require('../lib/logger');
+const { getLastProactiveMetrics } = require('./agent-metrics');
 
 // GET /api/agent/dashboard
 router.get('/', async (req, res) => {
@@ -80,6 +81,12 @@ router.get('/', async (req, res) => {
     // Receipts
     const { receipts, total } = await agentCore.getAllReceipts?.({ limit: 10 }).catch(() => ({ receipts: [], total: 0 })) || { receipts: [], total: 0 };
 
+    // Metrics snapshot
+    const actionCounters = agentCore.Metrics?.getActionCounters?.() || [];
+    const latencyHistograms = agentCore.Metrics?.getLatencyHistograms?.() || [];
+    const escrowBalances = agentCore.Metrics?.getEscrowBalances?.() || [];
+    const proactiveMetrics = getLastProactiveMetrics();
+
     res.json({
       agent: {
         name: 'OnPoint AI Stylist',
@@ -122,6 +129,23 @@ router.get('/', async (req, res) => {
         selfAgentIdRegistered: unifiedIdentity?.self?.status === 'verified' || unifiedIdentity?.self?.status === 'pending',
         walletOnchain: !!celoAddress,
         verifiableReceipts: receipts.some((r) => r.txHash),
+      },
+      metrics: {
+        actionCounters,
+        latencyHistograms: latencyHistograms.map((h) => ({
+          type: h.type,
+          p50: h.p50,
+          p90: h.p90,
+          p99: h.p99,
+          sampleCount: h.count,
+        })),
+        escrowBalances: escrowBalances.slice(0, 10),
+        proactive: {
+          retriedSuggestions: proactiveMetrics.retriedSuggestions,
+          prunedExpired: proactiveMetrics.prunedExpired,
+          staleApprovals: proactiveMetrics.staleApprovals,
+          updatedAt: proactiveMetrics.updatedAt,
+        },
       },
       capabilities: [
         'autonomous_mint',

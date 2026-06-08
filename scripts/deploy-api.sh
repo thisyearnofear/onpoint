@@ -110,8 +110,8 @@ TSUP="$ROOT_DIR/node_modules/.bin/tsup"
 
 # Package → directory mapping (relative to project root)
 # Using indexed arrays for macOS bash 3.x compatibility
-pkg_names=("@repo/agent-core" "@onpoint/shared-types" "@repo/blockchain-client" "@repo/db" "@repo/storage" "@repo/messaging-bridge")
-pkg_dirs=("packages/agent-core" "packages/shared-types" "packages/blockchain-client" "packages/db" "packages/storage" "packages/messaging-bridge")
+pkg_names=("@repo/agent-core" "@onpoint/shared-types" "@repo/blockchain-client" "@repo/db" "@repo/storage" "@repo/messaging-bridge" "@repo/etherfuse")
+pkg_dirs=("packages/agent-core" "packages/shared-types" "packages/blockchain-client" "packages/db" "packages/storage" "packages/messaging-bridge" "packages/etherfuse")
 
 if [[ ! -f "$TSUP" ]]; then
   fail "tsup not found at $TSUP — run pnpm install first"
@@ -202,6 +202,11 @@ if [[ "$DRY_RUN" == false ]]; then
   cp packages/messaging-bridge/package.json "$BUILD_DIR/lib/messaging-bridge/"
   cp -R packages/messaging-bridge/dist "$BUILD_DIR/lib/messaging-bridge/"
 
+  # etherfuse (API dependency for fiat onramp)
+  mkdir -p "$BUILD_DIR/lib/etherfuse"
+  cp packages/etherfuse/package.json "$BUILD_DIR/lib/etherfuse/"
+  cp -R packages/etherfuse/dist "$BUILD_DIR/lib/etherfuse/"
+
   # 3. Rewrite workspace:* → file:./lib/... in all package.json files
   #    Also copy @repo/ipfs-client if agent-core depends on it
   node -e "
@@ -233,6 +238,7 @@ if [[ "$DRY_RUN" == false ]]; then
       '@repo/db': 'file:./lib/db',
       '@repo/storage': 'file:./lib/storage',
       '@repo/messaging-bridge': 'file:./lib/messaging-bridge',
+      '@repo/etherfuse': 'file:./lib/etherfuse',
     };
 
     rewriteDeps('$BUILD_DIR/package.json', map);
@@ -243,11 +249,12 @@ if [[ "$DRY_RUN" == false ]]; then
     rewriteDeps('$BUILD_DIR/lib/db/package.json', map);
     rewriteDeps('$BUILD_DIR/lib/storage/package.json', map);
     rewriteDeps('$BUILD_DIR/lib/messaging-bridge/package.json', map);
+    rewriteDeps('$BUILD_DIR/lib/etherfuse/package.json', map);
 
     // Strip only devDependencies and scripts from lib/ packages
     // Keep dependencies and peerDependencies so npm resolves their
     // transitive deps (e.g., @lighthouse/web3 -> bls-eth-wasm)
-    for (const dir of ['agent-core','shared-types','blockchain-client','ipfs-client','db','storage','messaging-bridge']) {
+    for (const dir of ['agent-core','shared-types','blockchain-client','ipfs-client','db','storage','messaging-bridge','etherfuse']) {
       const pkgPath = '$BUILD_DIR/lib/' + dir + '/package.json';
       if (!fs.existsSync(pkgPath)) continue;
       const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
