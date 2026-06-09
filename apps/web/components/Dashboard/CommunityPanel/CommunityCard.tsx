@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Heart, Sparkles } from "lucide-react";
+import { Heart, Sparkles, Flag } from "lucide-react";
 import type { CommunityLook } from "./types";
 import { ACCENT_COLORS, DEFAULT_GRAD } from "./types";
 import { EmojiBar } from "./EmojiBar";
@@ -14,7 +14,9 @@ export function CommunityCard({
   onLike,
   onReact,
   onBookmark,
+  onReport,
   bookmarkedIds,
+  reportedIds,
   searchQuery,
   index,
 }: {
@@ -23,12 +25,15 @@ export function CommunityCard({
   onLike: (id: string) => void;
   onReact: (id: string, emoji: string) => void;
   onBookmark?: (id: string) => void;
+  onReport?: (id: string) => void;
   bookmarkedIds?: Set<string>;
+  reportedIds?: Set<string>;
   searchQuery?: string;
   index: number;
 }) {
   const isLiked = likedLooks.has(look.id);
   const isBookmarked = bookmarkedIds?.has(look.id) ?? false;
+  const isReported = reportedIds?.has(look.id) ?? false;
   const showHighlight = searchQuery && matchesSearch(look, searchQuery);
 
   const grad =
@@ -172,6 +177,21 @@ export function CommunityCard({
                 onToggle={() => onBookmark(look.id)}
                 size="sm"
               />
+            )}
+
+            {/* Report button */}
+            {onReport && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onReport(look.id); }}
+                className={`p-1 rounded-lg transition-all ${
+                  isReported
+                    ? "text-rose-400/70"
+                    : "text-muted-foreground/20 hover:text-rose-400/60"
+                }`}
+                title={isReported ? "Reported" : "Report this look"}
+              >
+                <Flag className={`w-3 h-3 ${isReported ? "fill-rose-400/70" : ""}`} />
+              </button>
             )}
           </div>
         </div>

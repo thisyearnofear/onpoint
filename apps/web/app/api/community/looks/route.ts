@@ -9,7 +9,7 @@
  * Rate-limited via IP-based throttle: 5 POSTs per minute per IP.
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { z } from "zod";
 import {
   redisGet,
@@ -140,15 +140,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Store with 7-day TTL
     await redisSetEx(COMMUNITY_LOOKS_KEY, looks, LOOK_TTL);
 
-    logger.info("Community look submitted", {
-      component: "community-api",
-      lookId: look.id,
-    });
-
-    return NextResponse.json(
+    // Respond immediately, then log + revalidate in background
+    const response = NextResponse.json(
       { success: true, look },
       { status: 201, headers: corsHeaders(origin) },
     );
+
+    after(async () => {
+      logger.info("Community look submitted", {
+        component: "community-api",
+        lookId: look.id,
+      });
+      // Touch the look-of-the-week cache so it recomputes eventually
+      await redisIncr("community:look-count").catch(() => {});
+    });
+
+    return response;
   } catch (error) {
     logger.error("Community look POST error", { component: "community-api" }, error);
     return NextResponse.json(
@@ -298,10 +305,20 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       // Keep reactions under the same 7-day TTL as looks
       await redisSetEx(reactionsKey, reactions, LOOK_TTL).catch(() => {});
 
-      return NextResponse.json(
+      const reactResponse = NextResponse.json(
         { reactions },
         { status: 200, headers: corsHeaders(origin) },
       );
+
+      after(async () => {
+        logger.info("Community reaction", {
+          component: "community-api",
+          lookId,
+          reaction,
+        });
+      });
+
+      return reactResponse;
     }
 
     // Like (backward compatible)
@@ -313,10 +330,20 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    return NextResponse.json(
+    const likeResponse = NextResponse.json(
       { likes: newCount },
       { status: 200, headers: corsHeaders(origin) },
     );
+
+    after(async () => {
+      logger.info("Community like", {
+        component: "community-api",
+        lookId,
+        newCount,
+      });
+    });
+
+    return likeResponse;
   } catch (error) {
     logger.error("Community look PATCH error", { component: "community-api" }, error);
     return NextResponse.json(

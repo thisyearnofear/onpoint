@@ -11,7 +11,8 @@ export interface CommunityLook {
 }
 
 export type SortMode = "trending" | "latest";
-export type PanelView = "browse" | "reactions" | "saved";
+export type PanelView = "browse" | "reactions" | "saved" | "moderation";
+export type LayoutMode = "list" | "grid";
 
 export const PERSONAS = [
   "miranda",
@@ -27,6 +28,7 @@ export const REACTION_EMOJIS = ["🔥", "👍", "😍", "💯", "✨"] as const;
 export const LAST_SEEN_KEY = "onpoint-community-last-seen";
 export const NEW_LOOK_CHECK_KEY = "onpoint-community-new-check";
 export const BOOKMARKS_KEY = "onpoint-community-bookmarks";
+export const REPORTED_KEY = "onpoint-community-reported";
 
 export const ACCENT_COLORS: Record<string, string> = {
   miranda: "from-purple-500 to-pink-500",
