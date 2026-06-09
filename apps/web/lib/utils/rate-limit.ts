@@ -226,6 +226,13 @@ export const RateLimits = {
     prefix: "replicate-session",
   },
 
+  /** Live session provisioning: 10 sessions per hour */
+  liveSession: {
+    maxRequests: 10,
+    windowMs: 60 * 60 * 1000,
+    prefix: "live-session",
+  },
+
   /** General API: 100 requests per minute */
   general: {
     maxRequests: 100,

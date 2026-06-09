@@ -85,6 +85,8 @@ async function redisOrMemory(operation, fallback) {
 
 const SESSION_LIMITS = {
   venice: { maxFrames: 20, windowSecs: 60, maxDuration: 300 },
+  replicate: { maxDuration: 300, maxCaptures: 10 },
+  azure: { maxDuration: 300, maxCaptures: 10 },
   gemini: { maxDuration: 1800 },
 };
 
@@ -221,6 +223,61 @@ router.post('/', async (req, res) => {
       });
     }
 
+    // Replicate AI - Free tier (uses our API key)
+    if (provider === 'replicate') {
+      const replicateToken = process.env.REPLICATE_API_TOKEN;
+      if (!replicateToken) {
+        return res.status(503).json({
+          error: 'Replicate AI is not configured on the server.',
+        });
+      }
+
+      await startSession(clientIp, 'replicate', SESSION_LIMITS.replicate.maxDuration);
+
+      return res.json({
+        success: true,
+        provider: 'replicate',
+        config: {
+          pollingInterval: 2500,
+          model: 'gpt-4o-mini',
+          endpoint: '/api/ai/replicate-analyze',
+        },
+        limits: {
+          maxCaptures: SESSION_LIMITS.replicate.maxCaptures,
+          maxSessionDuration: SESSION_LIMITS.replicate.maxDuration,
+          maxFramesPerMinute: 24,
+        },
+      });
+    }
+
+    // Azure Computer Vision - Free tier (uses our API key)
+    if (provider === 'azure') {
+      const cvEndpoint = process.env.AZURE_CV_ENDPOINT;
+      const cvApiKey = process.env.AZURE_CV_API_KEY;
+      if (!cvEndpoint || !cvApiKey) {
+        return res.status(503).json({
+          error: 'Azure Computer Vision is not configured on the server.',
+        });
+      }
+
+      await startSession(clientIp, 'azure', SESSION_LIMITS.azure.maxDuration);
+
+      return res.json({
+        success: true,
+        provider: 'azure',
+        config: {
+          pollingInterval: 3000,
+          model: 'azure-cv-4.0',
+          endpoint: '/api/ai/azure-analyze',
+        },
+        limits: {
+          maxCaptures: SESSION_LIMITS.azure.maxCaptures,
+          maxSessionDuration: SESSION_LIMITS.azure.maxDuration,
+          maxFramesPerMinute: 20,
+        },
+      });
+    }
+
     // Gemini Live - Premium (requires payment or BYOK)
     if (provider === 'gemini') {
       const geminiApiKey = byok || process.env.GOOGLE_GEMINI_API_KEY;
@@ -276,7 +333,9 @@ router.post('/', async (req, res) => {
       });
     }
 
-    return res.status(400).json({ error: 'Invalid provider. Use "venice" or "gemini".' });
+    return res.status(400).json({
+      error: 'Invalid provider. Use "venice", "replicate", "azure", or "gemini".',
+    });
   } catch (error) {
     logger.sessionError('provision', 'Live session provisioning failed', error, {
       provider: req.body?.provider,

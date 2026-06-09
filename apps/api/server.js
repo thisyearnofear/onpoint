@@ -166,6 +166,8 @@ app.get('/api/status', (req, res) => {
 app.use('/api/ai/virtual-tryon', json10mb, aiAuth, veniceRateLimit, veniceBurstLimit, require('./routes/ai-virtual-tryon'));
 app.use('/api/ai/analyze-person', json10mb, aiAuth, veniceRateLimit, veniceBurstLimit, require('./routes/ai-analyze-person'));
 app.use('/api/ai/venice-analyze', json10mb, aiAuth, veniceRateLimit, veniceBurstLimit, require('./routes/ai-venice-analyze'));
+app.use('/api/ai/replicate-analyze', json10mb, aiAuth, veniceRateLimit, require('./routes/ai-replicate-analyze'));
+app.use('/api/ai/azure-analyze', json10mb, aiAuth, veniceRateLimit, require('./routes/ai-azure-analyze'));
 app.use('/api/ai/live-session', json1k, aiAuth, liveSessionRateLimit, require('./routes/ai-live-session'));
 app.use('/api/ai/agent', json10mb, aiAuth, veniceRateLimit, require('./routes/ai-agent'));
 
