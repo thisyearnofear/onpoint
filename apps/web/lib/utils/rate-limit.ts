@@ -219,6 +219,13 @@ export const RateLimits = {
     prefix: "payment-verify",
   },
 
+  /** Replicate AI Vision session: 10 sessions per hour */
+  replicateSession: {
+    maxRequests: 10,
+    windowMs: 60 * 60 * 1000,
+    prefix: "replicate-session",
+  },
+
   /** General API: 100 requests per minute */
   general: {
     maxRequests: 100,

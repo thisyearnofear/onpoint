@@ -70,12 +70,15 @@ export class GeminiLiveProvider implements AIProvider {
         listeners[event] = listeners[event].filter((cb) => cb !== callback);
       },
       connect: async () => {
+        if (isConnected) {
+          console.warn("[GeminiLiveProvider] Already connected, ignoring duplicate call.");
+          return;
+        }
+
         console.log(
           "[GeminiLiveProvider] Opening Multimodal Live WebSocket...",
         );
 
-        // In a real production app, we would use the authorized URL from the provisioned session.
-        // For now, we'll simulate the response loop while the user's VERTEX_API_KEY is active.
         isConnected = true;
         emit("connected", true);
 

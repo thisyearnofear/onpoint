@@ -34,8 +34,91 @@ import { SessionEndingCard } from "./SessionEndingCard";
 import { useCartStore } from "../../lib/stores/cart-store";
 import { trackProviderSelected } from "../../lib/utils/analytics";
 import { useLiveSession, GOAL_OPTIONS } from "./hooks/useLiveSession";
+import { SESSION_FACTORIES, findPremiumProvider } from "@repo/ai-client";
 import { PersonalityCard } from "./PersonalityCard";
+import { ProviderComparisonModal } from "./ProviderComparisonModal";
 import { getPersonaConfig, ALL_PERSONAS } from "../../lib/utils/persona-config";
+import { recordLatency } from "../../lib/utils/latency-persistence";
+
+// Icon resolver for provider selection cards (mapped from ProviderCard.icon string)
+const CARD_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  zap: Zap,
+  star: Star,
+  eye: Eye,
+  crown: Crown,
+  sparkles: Sparkles,
+};
+
+// Static Tailwind class lookup — keeps every class name a complete string literal
+// so Tailwind JIT can detect and generate them.
+const CARD_COLOR_STYLES: Record<
+  string,
+  {
+    iconBg: string;
+    iconBorder: string;
+    iconColor: string;
+    hoverText: string;
+    badge: string;
+    badgeText: string;
+  }
+> = {
+  emerald: {
+    iconBg: "bg-emerald-500/15",
+    iconBorder: "border-emerald-500/25",
+    iconColor: "text-emerald-300",
+    hoverText: "group-hover:text-emerald-400",
+    badge: "bg-emerald-500/15",
+    badgeText: "text-emerald-300",
+  },
+  amber: {
+    iconBg: "bg-amber-500/15",
+    iconBorder: "border-amber-500/25",
+    iconColor: "text-amber-300",
+    hoverText: "group-hover:text-amber-300",
+    badge: "bg-amber-500/15",
+    badgeText: "text-amber-300",
+  },
+  rose: {
+    iconBg: "bg-rose-500/15",
+    iconBorder: "border-rose-500/25",
+    iconColor: "text-rose-300",
+    hoverText: "group-hover:text-rose-300",
+    badge: "bg-rose-500/15",
+    badgeText: "text-rose-300",
+  },
+  indigo: {
+    iconBg: "bg-indigo-500/15",
+    iconBorder: "border-indigo-500/25",
+    iconColor: "text-indigo-300",
+    hoverText: "group-hover:text-indigo-300",
+    badge: "bg-indigo-500/15",
+    badgeText: "text-indigo-300",
+  },
+  violet: {
+    iconBg: "bg-violet-500/15",
+    iconBorder: "border-violet-500/25",
+    iconColor: "text-violet-300",
+    hoverText: "group-hover:text-violet-300",
+    badge: "bg-violet-500/15",
+    badgeText: "text-violet-300",
+  },
+  fuchsia: {
+    iconBg: "bg-fuchsia-500/15",
+    iconBorder: "border-fuchsia-500/25",
+    iconColor: "text-fuchsia-300",
+    hoverText: "group-hover:text-fuchsia-300",
+    badge: "bg-fuchsia-500/15",
+    badgeText: "text-fuchsia-300",
+  },
+  sky: {
+    iconBg: "bg-sky-500/15",
+    iconBorder: "border-sky-500/25",
+    iconColor: "text-sky-300",
+    hoverText: "group-hover:text-sky-400",
+    badge: "bg-sky-500/15",
+    badgeText: "text-sky-300",
+  },
+};
 
 const SessionSummaryScreen = dynamic(
   () => import("./SessionSummaryScreen").then((m) => ({ default: m.SessionSummaryScreen })),
@@ -59,8 +142,8 @@ interface LiveStylistViewProps {
 }
 
 type QueuedLiveStart = {
-  provider: "venice" | "gemini";
-  goal: "daily" | "event" | "critique";
+  provider: string;
+  goal: string;
   persona: string;
   apiKey?: string;
 };
@@ -76,7 +159,63 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   const [showCheckout, setShowCheckout] = React.useState(false);
   const [showInstructions, setShowInstructions] = React.useState(true);
   const [showStyleReport, setShowStyleReport] = React.useState(false);
+  const [showComparison, setShowComparison] = React.useState(false);
   const [queuedStart, setQueuedStart] = React.useState<QueuedLiveStart | null>(null);
+  const fallbackAttemptsRef = React.useRef<Set<string>>(new Set());
+  const [fallbackToast, setFallbackToast] = React.useState<string | null>(null);
+  const fallbackToastTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-fallback: when a session errors, try the next provider in the chain
+  React.useEffect(() => {
+    if (!error || isConnected || isInitializing || !selectedProvider) return;
+    if (!sessionGoal) return;
+
+    const factory = SESSION_FACTORIES[selectedProvider];
+    if (!factory?.fallbackChain?.length) return;
+
+    const chain = factory.fallbackChain;
+    const attempted = fallbackAttemptsRef.current;
+
+    for (const fallbackName of chain) {
+      if (attempted.has(fallbackName)) continue;
+      attempted.add(fallbackName);
+
+      const fallbackFactory = SESSION_FACTORIES[fallbackName];
+      if (!fallbackFactory?.cards?.[0]) continue;
+
+      const fallbackGoal = fallbackFactory.cards[0].goal;
+      setFallbackToast(
+        `${factory.displayName} is unavailable — switching to ${fallbackFactory.displayName}...`,
+      );
+      if (fallbackToastTimerRef.current) {
+        clearTimeout(fallbackToastTimerRef.current);
+      }
+      fallbackToastTimerRef.current = setTimeout(() => {
+        setFallbackToast(null);
+        fallbackToastTimerRef.current = null;
+      }, 5000);
+      queueLiveStart({
+        provider: fallbackName,
+        goal: fallbackGoal,
+        persona: selectedPersona || DEFAULT_LIVE_PERSONA,
+      });
+      return;
+    }
+  }, [error, isConnected, isInitializing, selectedProvider, sessionGoal, selectedPersona, queueLiveStart]);
+
+  // Reset fallback tracking when session ends
+  React.useEffect(() => {
+    if (!isConnected) {
+      fallbackAttemptsRef.current.clear();
+    }
+  }, [isConnected]);
+
+  // Persist latency samples to localStorage for historical averages
+  React.useEffect(() => {
+    if (latencyMs > 0 && provider) {
+      recordLatency(provider, latencyMs);
+    }
+  }, [latencyMs, provider]);
 
   // Stop camera when leaving the view
   const handleBack = React.useCallback(() => {
@@ -168,6 +307,12 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     sessionTimeRemaining,
     sessionExpired,
     isVenice,
+    providerDisplayName,
+    isPremium,
+    requiresPayment,
+    supportsByok,
+    latencyMs,
+    provider,
   } = session;
 
   const personaStyling = getPersonaConfig(selectedPersona);
@@ -225,10 +370,8 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   const runStartSequence = React.useCallback(
     async (config: QueuedLiveStart) => {
       setInitStep("connecting");
-      await new Promise((r) => setTimeout(r, 300));
-      setInitStep("authenticating");
-      await new Promise((r) => setTimeout(r, 500));
-      setInitStep("starting");
+      // Call startSession immediately — it sets isInitializing=true synchronously,
+      // which triggers the init loader on the very next render. No 800ms flash.
       await startSession(config.goal, config.apiKey, config.persona);
     },
     [setInitStep, startSession],
@@ -335,128 +478,125 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             </div>
           </div>
 
-          <div className="w-full grid gap-3 sm:grid-cols-2">
-            <button
-              onClick={() => {
-                trackProviderSelected({ provider: "venice" });
-                queueLiveStart({
-                  provider: "venice",
-                  goal: "daily",
-                  persona: DEFAULT_LIVE_PERSONA,
-                });
-              }}
-              className="w-full text-left p-5 rounded-2xl bg-card hover:bg-muted/50 border border-border transition-all group"
-            >
-              <div className="flex items-start gap-4">
-                <div className="w-11 h-11 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center shrink-0">
-                  <Zap className="w-5 h-5 text-emerald-300" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-bold text-foreground group-hover:text-emerald-400 transition-colors">
-                      Quick Outfit Check
-                    </h3>
-                    <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-500/15 text-emerald-300 rounded-full uppercase">
-                      Fast
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Framing, fit, color read, and one clear next move.
-                  </p>
-                </div>
-              </div>
-            </button>
+          {/* Tier grouping: Free providers first, then Premium */}
+          {(() => {
+            const factories = Object.values(SESSION_FACTORIES);
+            const free = factories.filter((f) => !f.isPremium);
+            const premium = factories.filter((f) => f.isPremium);
 
-            <button
-              onClick={() => {
-                trackProviderSelected({ provider: "venice" });
-                queueLiveStart({
-                  provider: "venice",
-                  goal: "event",
-                  persona: DEFAULT_LIVE_PERSONA,
-                });
-              }}
-              className="w-full text-left p-5 rounded-2xl bg-card hover:bg-muted/50 border border-border transition-all group"
-            >
-              <div className="flex items-start gap-4">
-                <div className="w-11 h-11 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0">
-                  <Star className="w-5 h-5 text-amber-300" />
+            const renderTier = (
+              label: string,
+              tierFactories: typeof free,
+              isPremiumTier: boolean,
+            ) => (
+              <div key={label} className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-[10px] font-bold uppercase tracking-[0.2em] ${
+                      isPremiumTier
+                        ? "text-indigo-400/70"
+                        : "text-muted-foreground/60"
+                    }`}
+                  >
+                    {label}
+                  </span>
+                  <div className="flex-1 h-px bg-border/50" />
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-bold text-foreground group-hover:text-amber-300 transition-colors">
-                      Event Prep
-                    </h3>
-                    <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-500/15 text-amber-300 rounded-full uppercase">
-                      Occasion
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Check polish, silhouette, and event fit before you leave.
-                  </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {tierFactories.flatMap((factory) =>
+                    factory.cards.map((card) => {
+                      const CardIcon = CARD_ICONS[card.icon] ?? Camera;
+                      const firstCard = !isPremiumTier && tierFactories.indexOf(factory) === 0 && factory.cards.indexOf(card) === 0;
+                      return (
+                        <button
+                          key={`${factory.name}-${card.goal}`}
+                          onClick={() => {
+                            trackProviderSelected({ provider: factory.name });
+                            queueLiveStart({
+                              provider: factory.name,
+                              goal: card.goal,
+                              persona: DEFAULT_LIVE_PERSONA,
+                            });
+                          }}
+                          className={`w-full text-left p-5 rounded-2xl bg-card hover:bg-muted/50 border transition-all group relative ${
+                            isPremiumTier
+                              ? "border-indigo-500/30"
+                              : "border-border"
+                          } ${firstCard ? "ring-2 ring-emerald-500/30 bg-emerald-500/[0.03]" : ""}`}
+                        >
+                          {firstCard && (
+                            <span className="absolute -top-2.5 right-4 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-full bg-emerald-500 text-white shadow-lg">
+                              Quick Start
+                            </span>
+                          )}
+                          <div className="flex items-start gap-4">
+                            <div
+                              className={`w-11 h-11 rounded-xl ${
+                                CARD_COLOR_STYLES[card.color]?.iconBg ??
+                                "bg-slate-500/15"
+                              } border ${
+                                CARD_COLOR_STYLES[card.color]?.iconBorder ??
+                                "border-slate-500/25"
+                              } flex items-center justify-center shrink-0`}
+                            >
+                              <CardIcon
+                                className={`w-5 h-5 ${
+                                  CARD_COLOR_STYLES[card.color]?.iconColor ??
+                                  "text-slate-300"
+                                }`}
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h3
+                                  className={`font-bold text-foreground ${
+                                    CARD_COLOR_STYLES[card.color]?.hoverText ??
+                                    "group-hover:text-slate-400"
+                                  } transition-colors`}
+                                >
+                                  {card.title}
+                                </h3>
+                                <span
+                                  className={`px-2 py-0.5 text-[10px] font-bold ${
+                                    CARD_COLOR_STYLES[card.color]?.badge ??
+                                    "bg-slate-500/15"
+                                  } ${
+                                    CARD_COLOR_STYLES[card.color]?.badgeText ??
+                                    "text-slate-300"
+                                  } rounded-full uppercase`}
+                                >
+                                  {card.badgeLabel}
+                                </span>
+                                {isPremiumTier && (
+                                  <span className="px-2 py-0.5 text-[10px] font-bold bg-indigo-500/15 text-indigo-300 rounded-full uppercase">
+                                    Premium
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {card.description}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground/50 mt-1.5 font-mono">
+                                {factory.displayName}
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    }),
+                  )}
                 </div>
               </div>
-            </button>
+            );
 
-            <button
-              onClick={() => {
-                trackProviderSelected({ provider: "venice" });
-                queueLiveStart({
-                  provider: "venice",
-                  goal: "critique",
-                  persona: DEFAULT_LIVE_PERSONA,
-                });
-              }}
-              className="w-full text-left p-5 rounded-2xl bg-card hover:bg-muted/50 border border-border transition-all group"
-            >
-              <div className="flex items-start gap-4">
-                <div className="w-11 h-11 rounded-xl bg-rose-500/15 border border-rose-500/25 flex items-center justify-center shrink-0">
-                  <Eye className="w-5 h-5 text-rose-300" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-bold text-foreground group-hover:text-rose-300 transition-colors">
-                      Honest Critique
-                    </h3>
-                    <span className="px-2 py-0.5 text-[10px] font-bold bg-rose-500/15 text-rose-300 rounded-full uppercase">
-                      Direct
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Find what is not working and what to change first.
-                  </p>
-                </div>
+            return (
+              <div className="w-full space-y-6">
+                {renderTier("Free — instant start", free, false)}
+                {premium.length > 0 &&
+                  renderTier("Premium — enhanced features", premium, true)}
               </div>
-            </button>
-
-            <button
-              onClick={() => {
-                trackProviderSelected({ provider: "gemini" });
-                setSelectedProvider("gemini");
-                setSessionGoal("daily");
-              }}
-              className="w-full text-left p-5 rounded-2xl bg-card hover:bg-muted/50 border border-indigo-500/30 transition-all group"
-            >
-              <div className="flex items-start gap-4">
-                <div className="w-11 h-11 rounded-xl bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center shrink-0">
-                  <Crown className="w-5 h-5 text-indigo-300" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-bold text-foreground group-hover:text-indigo-300 transition-colors">
-                      Voice Stylist
-                    </h3>
-                    <span className="px-2 py-0.5 text-[10px] font-bold bg-indigo-500/15 text-indigo-300 rounded-full uppercase">
-                      Premium
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Longer live session with voice-led styling and richer context.
-                  </p>
-                </div>
-              </div>
-            </button>
-          </div>
+            );
+          })()}
 
           <div className="w-full grid grid-cols-3 gap-2">
             {[
@@ -472,6 +612,22 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               </div>
             ))}
           </div>
+
+          <button
+            onClick={() => setShowComparison(true)}
+            className="text-[10px] text-muted-foreground/60 hover:text-muted-foreground transition-colors font-mono"
+          >
+            Compare providers →
+          </button>
+
+          <ProviderComparisonModal
+            isOpen={showComparison}
+            onClose={() => setShowComparison(false)}
+            onSelect={(p, g) => {
+              trackProviderSelected({ provider: p });
+              queueLiveStart({ provider: p, goal: g, persona: DEFAULT_LIVE_PERSONA });
+            }}
+          />
         </div>
 
         <Button
@@ -538,8 +694,8 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             ))}
           </div>
 
-          {/* Gemini Payment Flow */}
-          {selectedProvider === "gemini" && (
+          {/* Payment / BYOK Flow (provider-driven) */}
+          {requiresPayment && (
             <div className="w-full space-y-3">
               {!geminiPaymentToken && !showByokInput && (
                 <>
@@ -550,22 +706,24 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                       setTimeout(() => setShowPaymentSuccess(false), 3000);
                     }}
                   />
-                  <button
-                    onClick={() => setShowByokInput(true)}
-                    className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    Or use your own API key →
-                  </button>
+                  {supportsByok && (
+                    <button
+                      onClick={() => setShowByokInput(true)}
+                      className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Or use your own {providerDisplayName} key →
+                    </button>
+                  )}
                 </>
               )}
 
-              {showByokInput && (
+              {showByokInput && supportsByok && (
                 <div className="w-full space-y-2">
                   <input
                     type="password"
                     value={userApiKey}
                     onChange={(e) => setUserApiKey(e.target.value)}
-                    placeholder="Enter Gemini API key"
+                    placeholder={`Enter ${providerDisplayName} API key`}
                     className="w-full px-4 py-3 rounded-xl bg-muted border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-indigo-500"
                   />
                   <p className="text-[10px] text-muted-foreground">
@@ -634,7 +792,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           </div>
 
           <div className="w-full flex flex-col gap-4">
-            {selectedProvider === "gemini" && (
+            {requiresPayment && (
               <div className="w-full rounded-2xl border border-indigo-500/25 bg-indigo-500/10 p-4 text-left space-y-3">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-indigo-500/20 flex items-center justify-center">
@@ -642,10 +800,12 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                   </div>
                   <div>
                     <p className="text-sm font-bold text-foreground">
-                      Voice Stylist access
+                      {providerDisplayName} access
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Verify a premium session or use your own Gemini key.
+                      {supportsByok
+                        ? `Verify a premium session or use your own ${providerDisplayName} key.`
+                        : "Verify a premium session to continue."}
                     </p>
                   </div>
                 </div>
@@ -659,22 +819,24 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                         setTimeout(() => setShowPaymentSuccess(false), 3000);
                       }}
                     />
-                    <button
-                      onClick={() => setShowByokInput(true)}
-                      className="w-full text-center text-xs text-indigo-200/80 hover:text-indigo-100 transition-colors"
-                    >
-                      Use my own API key
-                    </button>
+                    {supportsByok && (
+                      <button
+                        onClick={() => setShowByokInput(true)}
+                        className="w-full text-center text-xs text-indigo-200/80 hover:text-indigo-100 transition-colors"
+                      >
+                        Use my own API key
+                      </button>
+                    )}
                   </div>
                 )}
 
-                {showByokInput && (
+                {showByokInput && supportsByok && (
                   <div className="space-y-2">
                     <input
                       type="password"
                       value={userApiKey}
                       onChange={(e) => setUserApiKey(e.target.value)}
-                      placeholder="Enter Gemini API key"
+                      placeholder={`Enter ${providerDisplayName} API key`}
                       className="w-full px-4 py-3 rounded-xl bg-background/70 border border-indigo-500/25 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-indigo-400"
                     />
                     <p className="text-[10px] text-muted-foreground">
@@ -716,7 +878,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               disabled={
                 !selectedPersona ||
                 isInitializing ||
-                (selectedProvider === "gemini" && !geminiPaymentToken && !userApiKey.trim())
+                (requiresPayment && !geminiPaymentToken && !userApiKey.trim())
               }
               onClick={async () => {
                 await runStartSequence({
@@ -798,8 +960,22 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                     {personaStyling.label}
                   </span>
                 </div>
-                {/* Session timer for Venice free tier */}
-                {isVenice && isConnected && sessionTimeRemaining != null && (
+                {/* Latency indicator */}
+                {isConnected && latencyMs > 0 && (
+                  <span
+                    className={`text-[10px] font-mono font-bold ${
+                      latencyMs < 2000
+                        ? "text-emerald-400"
+                        : latencyMs < 5000
+                          ? "text-amber-400"
+                          : "text-rose-400"
+                    }`}
+                  >
+                    {latencyMs}ms
+                  </span>
+                )}
+                {/* Session timer (providers with time limits) */}
+                {isConnected && sessionTimeRemaining != null && (
                   <span
                     className={`text-[10px] font-mono font-bold ${
                       sessionTimeRemaining <= 30
@@ -924,7 +1100,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               {["connecting", "authenticating", "starting"].map((step, i) => {
                 const labels = [
                   "Connecting to camera...",
-                  `Authenticating with ${selectedProvider === "venice" ? "Venice AI" : "Gemini"}...`,
+                  `Authenticating with ${providerDisplayName}...`,
                   "Starting AI session...",
                 ];
                 const isCurrent =
@@ -971,11 +1147,11 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             <p
               className={`mt-8 text-${personaStyling.text} font-mono text-[10px] uppercase tracking-[0.3em] animate-pulse`}
             >
-              {selectedProvider === "venice"
-                ? "Initializing Style Scanner (Free)"
-                : "Initializing Live Agent (Premium)"}
+              {isPremium
+                ? "Initializing Live Agent (Premium)"
+                : "Initializing Style Scanner (Free)"}
             </p>
-            {selectedProvider === "gemini" && (
+            {isPremium && (
               <p className="mt-2 text-amber-400/60 text-[10px]">
                 Real-time streaming enabled
               </p>
@@ -1003,26 +1179,31 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               </h2>
               <div className="text-center mb-8 space-y-3">
                 <p className="text-slate-400 text-sm">{error}</p>
-                {selectedProvider === "venice" &&
-                  error.toLowerCase().includes("rate limit") && (
-                    <div className="p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
-                      <p className="text-indigo-300 text-xs">
-                        Upgrade to <strong>Premium</strong> for unlimited
-                        sessions
-                      </p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="mt-2 text-indigo-400 hover:text-indigo-300 text-xs"
-                        onClick={() => {
-                          setSelectedProvider("gemini");
-                          setSessionGoal(null);
-                        }}
-                      >
-                        Switch to Premium →
-                      </Button>
-                    </div>
-                  )}
+                {!isPremium &&
+                  error.toLowerCase().includes("rate limit") &&
+                  (() => {
+                    const premium = findPremiumProvider();
+                    if (!premium) return null;
+                    return (
+                      <div className="p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
+                        <p className="text-indigo-300 text-xs">
+                          Upgrade to <strong>Premium</strong> for unlimited
+                          sessions
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mt-2 text-indigo-400 hover:text-indigo-300 text-xs"
+                          onClick={() => {
+                            setSelectedProvider(premium.name);
+                            setSessionGoal(null);
+                          }}
+                        >
+                          Switch to {premium.displayName} →
+                        </Button>
+                      </div>
+                    );
+                  })()}
                 {error.toLowerCase().includes("camera") && (
                   <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20">
                     <p className="text-amber-300 text-xs">
@@ -1317,6 +1498,25 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           />
         )}
 
+        {/* Fallback notification toast (z-50) */}
+        <AnimatePresence>
+          {fallbackToast && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="absolute top-24 inset-x-0 flex justify-center z-[50] px-4 pointer-events-none"
+            >
+              <div className="bg-amber-500/15 border border-amber-500/30 backdrop-blur-xl px-4 py-2 rounded-full flex items-center gap-2 shadow-lg">
+                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="text-xs text-amber-200 font-medium">
+                  {fallbackToast}
+                </span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Agent Suggestion Toast (z-50) */}
         <AnimatePresence>
           {currentSuggestion && (
@@ -1373,7 +1573,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 Style Camera Active
               </span>
               <span className="text-[9px] font-mono text-slate-500 uppercase tracking-wider">
-                {selectedProvider === "gemini" ? "Premium" : "Quick"}
+                {isPremium ? "Premium" : "Quick"}
               </span>
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             </motion.div>
@@ -1390,7 +1590,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             >
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-[9px] text-slate-400 font-medium">
-                {selectedProvider === "gemini" ? "PREMIUM" : "QUICK"}
+                {isPremium ? "PREMIUM" : "QUICK"}
               </span>
             </motion.div>
           </div>
@@ -1542,8 +1742,8 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               )}
             </Button>
           </div>
-          {/* Captures remaining badge — Venice free tier only */}
-          {isVenice && (
+          {/* Captures remaining badge — free tier only */}
+          {!isPremium && (
             <span
               className={`text-[10px] font-mono font-bold ${
                 capturesExhausted ? "text-rose-400" : "text-slate-500"

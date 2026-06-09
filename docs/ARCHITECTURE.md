@@ -166,11 +166,12 @@ interface AIProvider {
 }
 ```
 
-| Provider         | Tier     | Capabilities                                   |
-| ---------------- | -------- | ---------------------------------------------- |
-| Venice AI        | Free     | Vision analysis via polling (`mistral-31-24b`) |
-| Gemini Live      | Premium  | Real-time WebSocket audio + video streaming    |
-| OpenAI/Replicate | Fallback | Static analysis, design generation             |
+| Provider              | Tier       | Capabilities                                                  |
+| --------------------- | ---------- | ------------------------------------------------------------- |
+| Venice AI             | Free       | Vision analysis via polling (`qwen3-vl-235b-a22b`)           |
+| Replicate (GPT-4o-mini)| Free      | Vision analysis via polling (GPT-4o-mini)                    |
+| Azure Computer Vision | Free       | Object detection + garment tagging + dense captions (AZ CV 4.0) |
+| Gemini Live           | Premium    | Real-time WebSocket audio + video streaming                   |
 
 ## Agent Web-Agency (Python Bridge)
 

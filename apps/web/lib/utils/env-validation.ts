@@ -51,9 +51,24 @@ const ENV_RULES: EnvRule[] = [
     description: "Venice AI API key (primary AI provider)",
   },
   {
+    name: "AZURE_CV_ENDPOINT",
+    required: "optional",
+    description: "Azure Computer Vision endpoint URL",
+  },
+  {
+    name: "AZURE_CV_API_KEY",
+    required: "optional",
+    description: "Azure Computer Vision API key",
+  },
+  {
     name: "GEMINI_API_KEY",
     required: "optional",
     description: "Google Gemini API key (Live AR sessions)",
+  },
+  {
+    name: "REPLICATE_API_TOKEN",
+    required: "optional",
+    description: "Replicate API token (GPT-4o-mini vision analysis)",
   },
 
   // Blockchain
@@ -97,7 +112,9 @@ export function validateEnv(): { valid: boolean; missing: string[] } {
     (process.env.GEMINI_API_KEY &&
       process.env.GEMINI_API_KEY !== "your_gemini_api_key_here") ||
     (process.env.OPENAI_API_KEY &&
-      process.env.OPENAI_API_KEY !== "your_openai_api_key_here");
+      process.env.OPENAI_API_KEY !== "your_openai_api_key_here") ||
+    (process.env.REPLICATE_API_TOKEN &&
+      process.env.REPLICATE_API_TOKEN !== "your_replicate_api_token_here");
 
   if (!hasAI) {
     if (isProduction) {

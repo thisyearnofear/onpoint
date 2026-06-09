@@ -31,12 +31,41 @@ On `/s/mo` (a human Curator's storefront), AI Curators appear as optional voices
 
 Real-time AI styling sessions — like a FaceTime call with a fashion consultant.
 
-### Free Tier (Venice AI)
+### Provider Matrix
 
-- Vision analysis via `mistral-31-24b` model
-- Adaptive polling: 2s (high motion) → 5s (low motion)
-- No payment required — uses OnPoint's API key
-- Rate limit: 60 requests/minute
+| Provider              | Tier       | Speed           | Analysis Engine             | Limits     |
+| --------------------- | ---------- | --------------- | --------------------------- | ---------- |
+| Venice AI             | Free       | ~3s polling     | Qwen VL (qwen3-vl-235b)     | 3 caps, 60s|
+| Replicate (GPT-4o-mini)| Free      | ~2.5s polling   | GPT-4o-mini via Replicate   | 10 caps, 5min|
+| Azure Computer Vision | Free       | ~3s polling     | Azure CV 4.0 (detect+tag)   | 10 caps, 5min|
+| Gemini Live           | Premium    | Real-time WS    | Gemini 2.0 Flash            | Unlimited  |
+
+### Provider Selection
+
+Provider selection cards are grouped by tier — **Free (instant start)** and **Premium (enhanced features)** — with tier dividers and badges. The first free card (Venice Daily Outfit Check) shows a green **Quick Start** badge for one-click launch. A **Compare providers** link opens a side-by-side comparison modal showing pricing, speed, max captures, session duration, audio support, connection type, and use cases across all 4 providers with quick-select buttons.
+
+### Smart Fallback
+
+When a provider session errors, the app automatically retries the next provider in the fallback chain:
+- **Venice → Replicate → Azure → Gemini**
+- **Replicate → Azure → Venice → Gemini**
+- **Azure → Replicate → Venice → Gemini**
+Each provider's fallback chain is defined in its factory config. A dedup set prevents infinite retries. A fallback notification toast informs the user (e.g., "Venice AI is unavailable — switching to Replicate AI...") with auto-dismiss after 5s.
+
+### Latency Tracking
+
+Frame-to-response latency is tracked as an exponential moving average (65/35 split) and displayed in the terminal ticker bar with color coding:
+- **< 2s**: Green — responsive
+- **2-5s**: Amber — moderate
+- **> 5s**: Red — slow
+
+Latency samples are persisted to localStorage per provider (circular buffer, max 20 samples) for historical averages.
+
+### Free Tier (Venice AI / Replicate / Azure CV)
+
+- **Venice AI**: Vision analysis via `qwen3-vl-235b-a22b` model, 3s polling, no payment required
+- **Replicate (GPT-4o-mini)**: Fashion vision via GPT-4o-mini, 2.5s polling, no payment required
+- **Azure Computer Vision**: Object detection + garment tagging + dense captions, 3s polling, F0 free tier (20 req/min)
 
 ### Premium Tier (Gemini Live)
 
@@ -48,7 +77,7 @@ Real-time AI styling sessions — like a FaceTime call with a fashion consultant
 
 ### Session Features
 
-- **Timer + limits** — Configurable session duration
+- **Timer + limits** — Configurable session duration and capture limits per provider
 - **Ending card** — Shareable summary with style score and topic badges
 - **Coaching badges** — Real-time AI observations overlaid on camera
 - **Snapshot capture** — One-tap frame with AR HUD + critique embedded

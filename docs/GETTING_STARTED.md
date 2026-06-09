@@ -30,10 +30,12 @@ Copy `.env.example` to `.env.local` and configure:
 
 ### AI Providers
 
-| Variable         | Purpose                             |
-| ---------------- | ----------------------------------- |
-| `VENICE_API_KEY` | Free-tier vision analysis           |
-| `VERTEX_API_KEY` | Gemini Live sessions (Google Cloud) |
+| Variable               | Purpose                                          |
+| ---------------------- | ------------------------------------------------ |
+| `VENICE_API_KEY`       | Free-tier vision analysis                        |
+| `AZURE_CV_ENDPOINT`    | Azure Computer Vision endpoint                   |
+| `AZURE_CV_API_KEY`     | Azure Computer Vision API key (F0 free tier)     |
+| `VERTEX_API_KEY`       | Gemini Live sessions (Google Cloud)              |
 
 ### Agent Infrastructure
 

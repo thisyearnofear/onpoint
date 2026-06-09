@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { useGeminiLive, useVeniceLive } from "@repo/ai-client";
+import { useLiveProvider, SESSION_FACTORIES } from "@repo/ai-client";
 import { sdk } from "@farcaster/miniapp-sdk";
 import { PersonaVoice } from "../../../lib/utils/persona-voice";
 import {
@@ -31,7 +31,7 @@ import {
 
 // ── Types ──
 
-export type AIProvider = "venice" | "gemini";
+export type AIProvider = keyof typeof SESSION_FACTORIES;
 
 export interface CaptureOption {
   image: string;
@@ -113,14 +113,13 @@ export const GOAL_OPTIONS = [
 
 const SUGGESTION_COOLDOWN_MS = 30_000;
 const SESSION_WARMUP_MS = 15_000;
-const VENICE_FREE_CAPTURES = 3;
 
 // ── Hook ──
 
 export function useLiveSession() {
-  // ── Providers ──
-  const gemini = useGeminiLive();
-  const venice = useVeniceLive();
+  // ── Provider-agnostic live session (selectedProvider can be any SESSION_FACTORIES key) ──
+  const factory = selectedProvider ? SESSION_FACTORIES[selectedProvider] : SESSION_FACTORIES.venice;
+  const liveProvider = useLiveProvider(factory);
 
   // ── Session state ──
   // Initialize from localStorage (DRY - single source of truth for preference)
@@ -179,10 +178,10 @@ export function useLiveSession() {
 
   // ── External hooks ──
   const isVenice = selectedProvider === "venice";
-  const activeProvider = isVenice ? venice : gemini;
   const {
     isConnected,
     isInitializing,
+    isAnalyzing,
     error,
     videoRef,
     stopSession,
@@ -190,17 +189,18 @@ export function useLiveSession() {
     aiResponse: liveAiResponse,
     reasoning,
     agentEvents,
-  } = activeProvider;
-  const isAnalyzing = isVenice ? (venice as any).isAnalyzing ?? false : false;
+    sessionTimeRemaining,
+    sessionExpired,
+    maxCaptures,
+    providerDisplayName,
+    isPremium,
+    requiresPayment,
+    supportsByok,
+    latencyMs,
+    provider: providerName,
+  } = liveProvider;
 
-  // Venice session timer (undefined for Gemini — no limit)
-  const sessionTimeRemaining = isVenice
-    ? (venice as any).sessionTimeRemaining
-    : undefined;
-  const sessionExpired = isVenice ? (venice as any).sessionExpired : false;
-
-  // Capture limits: 3 for Venice (free), unlimited for Gemini (paid)
-  const maxCaptures = isVenice ? VENICE_FREE_CAPTURES : Infinity;
+  // Capture limits driven by provider factory (Venice=3, Gemini=unlimited)
   const capturesRemaining = Math.max(0, maxCaptures - captures.length);
   const capturesExhausted = capturesRemaining <= 0;
 
@@ -733,7 +733,7 @@ export function useLiveSession() {
   // ── Capture logic ──
   const handleCapture = useCallback(async () => {
     if (!videoRef.current || isCapturing) return;
-    if (isVenice && captures.length >= VENICE_FREE_CAPTURES) return;
+    if (captures.length >= maxCaptures) return;
 
     try {
       setIsCapturing(true);
@@ -762,7 +762,7 @@ export function useLiveSession() {
 
         // Show capture confirmation toast
         const captureCount = captures.length + 1;
-        const maxLabel = isVenice ? `${VENICE_FREE_CAPTURES}` : "∞";
+        const maxLabel = maxCaptures === Infinity ? "∞" : `${maxCaptures}`;
         setCaptureToast(`Capture saved! (${captureCount}/${maxLabel})`);
         setTimeout(() => setCaptureToast(null), 2000);
       }
@@ -898,52 +898,9 @@ export function useLiveSession() {
     async (goal: SessionGoal, apiKey?: string, persona?: string) => {
       setSessionGoal(goal);
       if (persona) setSelectedPersona(persona);
-      const primaryProvider = selectedProvider ?? "venice";
-      const fallbackProvider = primaryProvider === "gemini" ? "venice" : "gemini";
-      const isCameraError = (message: string) =>
-        /camera|permission|mediaDevices|getUserMedia|notallowed|notfound|secure context/i.test(
-          message,
-        );
-      const shouldFallback =
-        fallbackProvider === "venice" ||
-        Boolean(apiKey && apiKey.trim().length > 0);
-
-      const startWithProvider = async (provider: AIProvider) => {
-        const starter =
-          provider === "venice" ? venice.startSession : gemini.startSession;
-        await starter(goal ?? undefined, apiKey || undefined, persona || undefined);
-      };
-
-      try {
-        await startWithProvider(primaryProvider);
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Failed to start live session";
-
-        if (!shouldFallback || isCameraError(message)) {
-          return;
-        }
-
-        handleSetProvider(fallbackProvider);
-        setInitStep("authenticating");
-
-        // Let React attach the fallback provider's video ref before it opens the camera.
-        await new Promise<void>((resolve) => {
-          if (typeof window === "undefined") {
-            resolve();
-            return;
-          }
-          window.requestAnimationFrame(() => resolve());
-        });
-
-        try {
-          await startWithProvider(fallbackProvider);
-        } catch {
-          return;
-        }
-      }
+      await liveProvider.startSession(goal ?? undefined, apiKey || undefined, persona || undefined);
     },
-    [gemini.startSession, handleSetProvider, selectedProvider, venice.startSession],
+    [liveProvider.startSession],
   );
 
   // ── Derived ──
@@ -956,7 +913,6 @@ export function useLiveSession() {
     // Provider
     selectedProvider,
     setSelectedProvider: handleSetProvider,
-    activeProvider,
 
     // Session
     selectedPersona,
@@ -1007,6 +963,12 @@ export function useLiveSession() {
     sessionTimeRemaining,
     sessionExpired,
     isVenice,
+    providerDisplayName,
+    isPremium,
+    requiresPayment,
+    supportsByok,
+    latencyMs,
+    provider: providerName,
 
     // Activities
     activities,
