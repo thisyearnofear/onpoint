@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Palette, Camera, Store, MessageCircle, ArrowRight, Check } from "lucide-react";
+import { Reveal } from "../../components/ui/Reveal";
 
 export const metadata: Metadata = {
   title: "About | BeOnPoint",
@@ -39,50 +40,55 @@ export default function AboutPage() {
       </header>
 
       {/* Hero */}
-      <section className="border-b border-border bg-gradient-to-b from-card to-background">
-        <div className="mx-auto max-w-3xl px-4 py-16 md:py-20 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/20">
-            <Palette className="h-7 w-7 text-white" />
+      <Reveal>
+        <section className="border-b border-border bg-gradient-to-b from-card to-background">
+          <div className="mx-auto max-w-3xl px-4 py-16 md:py-20 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/20">
+              <Palette className="h-7 w-7 text-white" />
+            </div>
+            <h1 className="mt-6 text-4xl font-black tracking-tight md:text-5xl">
+              Style commerce for{" "}
+              <span className="text-primary">everyone.</span>
+            </h1>
+            <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
+              BeOnPoint gives fashion sellers in emerging markets a branded storefront
+              with AI try-on, WhatsApp checkout, and retail intelligence — no coding,
+              no app store, no platform fees.
+            </p>
           </div>
-          <h1 className="mt-6 text-4xl font-black tracking-tight md:text-5xl">
-            Style commerce for{" "}
-            <span className="text-primary">everyone.</span>
-          </h1>
-          <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
-            BeOnPoint gives fashion sellers in emerging markets a branded storefront
-            with AI try-on, WhatsApp checkout, and retail intelligence — no coding,
-            no app store, no platform fees.
-          </p>
-        </div>
-      </section>
+        </section>
+      </Reveal>
 
       {/* Mission */}
-      <section className="border-b border-border py-14 md:py-18">
-        <div className="mx-auto max-w-3xl px-4">
-          <h2 className="text-2xl font-black tracking-tight md:text-3xl">Our mission</h2>
-          <p className="mt-4 text-base leading-7 text-muted-foreground">
-            Fashion commerce in emerging markets runs on WhatsApp and Instagram — not on
-            expensive e-commerce platforms built for Western markets. Sellers take photos
-            with their phones, post to their status, and manage orders manually through
-            messages. It works, but every &ldquo;will this fit?&rdquo; question costs time,
-            and every sizing hesitation risks a lost sale.
-          </p>
-          <p className="mt-4 text-base leading-7 text-muted-foreground">
-            BeOnPoint bridges that gap. We give sellers a branded storefront with AI-powered
-            virtual try-on so customers can see how items look before they buy. Each try-on
-            generates a shareable polaroid — free marketing for the seller. Checkout happens
-            on WhatsApp, the channel customers already use. And every session generates
-            structured retail intelligence: what&rsquo;s trending, what&rsquo;s missing from
-            the catalog, and where the market is moving.
-          </p>
-        </div>
-      </section>
+      <Reveal>
+        <section className="border-b border-border py-14 md:py-18">
+          <div className="mx-auto max-w-3xl px-4">
+            <h2 className="text-2xl font-black tracking-tight md:text-3xl">Our mission</h2>
+            <p className="mt-4 text-base leading-7 text-muted-foreground">
+              Fashion commerce in emerging markets runs on WhatsApp and Instagram — not on
+              expensive e-commerce platforms built for Western markets. Sellers take photos
+              with their phones, post to their status, and manage orders manually through
+              messages. It works, but every &ldquo;will this fit?&rdquo; question costs time,
+              and every sizing hesitation risks a lost sale.
+            </p>
+            <p className="mt-4 text-base leading-7 text-muted-foreground">
+              BeOnPoint bridges that gap. We give sellers a branded storefront with AI-powered
+              virtual try-on so customers can see how items look before they buy. Each try-on
+              generates a shareable polaroid — free marketing for the seller. Checkout happens
+              on WhatsApp, the channel customers already use. And every session generates
+              structured retail intelligence: what&rsquo;s trending, what&rsquo;s missing from
+              the catalog, and where the market is moving.
+            </p>
+          </div>
+        </section>
+      </Reveal>
 
       {/* How it works — three-pillar */}
-      <section className="border-b border-border bg-card/50 py-14 md:py-18">
-        <div className="mx-auto max-w-4xl px-4">
-          <h2 className="text-2xl font-black tracking-tight md:text-3xl text-center">Three pillars</h2>
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
+      <Reveal>
+        <section className="border-b border-border bg-card/50 py-14 md:py-18">
+          <div className="mx-auto max-w-4xl px-4">
+            <h2 className="text-2xl font-black tracking-tight md:text-3xl text-center">Three pillars</h2>
+          <div className="mt-12 grid gap-10 md:grid-cols-3">
             {[
               {
                 icon: <Store className="h-6 w-6" />,
@@ -99,26 +105,25 @@ export default function AboutPage() {
                 title: "WhatsApp commerce",
                 body: "When a customer wants to buy, they send a structured brief via WhatsApp. The curator confirms stock, collects payment (M-Pesa, bank transfer, cash), and ships. Zero platform fees.",
               },
-            ].map((pillar) => (
-              <div
-                key={pillar.title}
-                className="rounded-xl border border-border bg-card p-5 transition-all hover:shadow-md"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            ].map((pillar, i) => (
+              <div key={pillar.title} className="relative pl-6 border-l-2 border-primary/20">
+                <div className="absolute -left-3 top-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white shadow-sm">
                   {pillar.icon}
                 </div>
-                <h3 className="mt-4 font-bold">{pillar.title}</h3>
+                <h3 className="font-bold">{pillar.title}</h3>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">{pillar.body}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
+      </Reveal>
 
       {/* Story */}
-      <section className="border-b border-border py-14 md:py-18">
-        <div className="mx-auto max-w-3xl px-4">
-          <h2 className="text-2xl font-black tracking-tight md:text-3xl">Our story</h2>
+      <Reveal>
+        <section className="border-b border-border py-14 md:py-18">
+          <div className="mx-auto max-w-3xl px-4">
+            <h2 className="text-2xl font-black tracking-tight md:text-3xl">Our story</h2>
           <p className="mt-4 text-base leading-7 text-muted-foreground">
             OnPoint started as a series of hackathon experiments running in parallel — AI
             try-on, Bright Data web intelligence, on-chain agent wallets on Celo, IPFS
@@ -143,9 +148,11 @@ export default function AboutPage() {
           </p>
         </div>
       </section>
+      </Reveal>
 
       {/* Team / Identity */}
-      <section className="border-b border-border bg-card/50 py-14 md:py-18">
+      <Reveal>
+        <section className="border-b border-border bg-card/50 py-14 md:py-18">
         <div className="mx-auto max-w-3xl px-4 text-center">
           <h2 className="text-2xl font-black tracking-tight md:text-3xl">Built by builders</h2>
           <p className="mx-auto mt-4 max-w-lg text-base leading-7 text-muted-foreground">
@@ -174,9 +181,11 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+      </Reveal>
 
       {/* CTA */}
-      <section className="py-14 md:py-18">
+      <Reveal>
+        <section className="py-14 md:py-18">
         <div className="mx-auto max-w-3xl px-4 text-center">
           <h2 className="text-2xl font-black tracking-tight md:text-3xl">
             Ready to see it in action?
@@ -203,6 +212,7 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+      </Reveal>
 
       {/* Footer */}
       <footer className="border-t border-border py-8">

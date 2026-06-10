@@ -153,7 +153,7 @@ export default function GuidesIndexPage() {
               <Link
                 key={guide.slug}
                 href={`/guides/${guide.slug}`}
-                className="group block rounded-xl border border-border bg-card p-5 transition-all hover:shadow-md hover:border-primary/30"
+                className="group block border-b border-border/40 py-4 transition-colors hover:border-primary/30"
               >
                 <div className="flex items-start gap-4">
                   <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${guide.bg}`}>

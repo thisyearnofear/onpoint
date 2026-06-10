@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowLeft, Check, Sparkles, Heart, Camera } from "lucide-react";
+import { Reveal } from "../../../components/ui/Reveal";
 
 export const metadata: Metadata = {
   title: "Plus-Size Fashion & Fit Guide | BeOnPoint",
@@ -35,7 +36,8 @@ export default function PlusSizeFashionGuide() {
           </p>
         </header>
 
-        <section className="mb-10">
+        <Reveal>
+          <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Fit is everything</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
             The most important rule in plus-size fashion is simple: clothes should fit your
@@ -57,9 +59,11 @@ export default function PlusSizeFashionGuide() {
               </li>
             ))}
           </ul>
-        </section>
+          </section>
+        </Reveal>
 
-        <section className="mb-10">
+        <Reveal>
+          <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Silhouettes that work</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
             Certain silhouettes are universally flattering for plus-size bodies. These are
@@ -72,15 +76,17 @@ export default function PlusSizeFashionGuide() {
               { style: "Straight leg", why: "Straight-leg trousers and jeans balance wider hips and create a clean vertical line. Avoid skinny fits if you prefer comfort." },
               { style: "V-necklines", why: "V-necks elongate the neck and upper body. Crew necks can make a larger bust feel restricted — V-necks are more forgiving." },
             ].map(({ style, why }) => (
-              <div key={style} className="rounded-xl border border-border bg-card p-4">
+              <div key={style} className="pl-5 border-l-2 border-primary/20">
                 <h3 className="text-sm font-bold">{style}</h3>
                 <p className="mt-1 text-xs text-muted-foreground leading-5">{why}</p>
               </div>
             ))}
           </div>
-        </section>
+          </section>
+        </Reveal>
 
-        <section className="mb-10">
+        <Reveal>
+          <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Fabric &amp; pattern tips</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">Fabric choice matters as much as fit:</p>
           <ul className="mt-4 space-y-2">
@@ -97,9 +103,11 @@ export default function PlusSizeFashionGuide() {
               </li>
             ))}
           </ul>
-        </section>
+          </section>
+        </Reveal>
 
-        <section className="mb-10">
+        <Reveal>
+          <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Virtual try-on changes everything</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
             One of the biggest frustrations in plus-size shopping is ordering online and hoping
@@ -108,7 +116,8 @@ export default function PlusSizeFashionGuide() {
             shoppers because sizing varies so much between brands. See it, try it, then buy
             with confidence — no more guessing from size charts.
           </p>
-        </section>
+          </section>
+        </Reveal>
 
         {/* Related guides */}
         <div className="border-t border-border pt-8">
@@ -116,14 +125,14 @@ export default function PlusSizeFashionGuide() {
           <div className="grid gap-3 sm:grid-cols-2">
             <Link
               href="/guides/occasion-wear"
-              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+              className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
               <p className="text-sm font-bold">Occasion Wear &amp; Event Dressing Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Weddings, galas, and formal events</p>
             </Link>
             <Link
               href="/guides/sustainable-fashion"
-              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+              className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
               <p className="text-sm font-bold">Sustainable &amp; Ethical Fashion Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Quality fabrics, timeless pieces, smart shopping</p>

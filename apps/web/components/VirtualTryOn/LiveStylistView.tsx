@@ -33,7 +33,7 @@ import { CheckoutModal } from "../Shop/CheckoutModal";
 import { SessionEndingCard } from "./SessionEndingCard";
 import { useCartStore } from "../../lib/stores/cart-store";
 import { trackProviderSelected } from "../../lib/utils/analytics";
-import { useLiveSession, GOAL_OPTIONS } from "./hooks/useLiveSession";
+import { useLiveSession, GOAL_OPTIONS, type SessionGoal } from "./hooks/useLiveSession";
 import { SESSION_FACTORIES, findPremiumProvider } from "@repo/ai-client";
 import { PersonalityCard } from "./PersonalityCard";
 import { ProviderComparisonModal } from "./ProviderComparisonModal";
@@ -152,6 +152,92 @@ const DEFAULT_LIVE_PERSONA = "shaft";
 
 export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   const session = useLiveSession();
+  const {
+    selectedProvider,
+    setSelectedProvider,
+    selectedPersona,
+    setSelectedPersona,
+    sessionGoal,
+    setSessionGoal,
+    initStep,
+    setInitStep,
+    showSummary,
+    setShowSummary,
+    finalAdvice,
+    sessionEndedManually,
+    isConnected,
+    isInitializing,
+    isAnalyzing,
+    error,
+    videoRef,
+    startSession,
+    stopSession,
+    handleFinish,
+    reasoning,
+    agentEvents,
+    sessionSummary,
+    positionStatus,
+    captures,
+    selectedCaptureIndex,
+    setSelectedCaptureIndex,
+    isCapturing,
+    showFlash,
+    countdown,
+    captureToast,
+    handleCapture,
+    startTimerCapture,
+    hasCaptures,
+    selectedCapture,
+    activities,
+    coachingBadges,
+    terminalExpanded,
+    setTerminalExpanded,
+    isVoiceEnabled,
+    setIsVoiceEnabled,
+    userApiKey,
+    setUserApiKey,
+    showByokInput,
+    setShowByokInput,
+    geminiPaymentToken,
+    setGeminiPaymentToken,
+    showPaymentSuccess,
+    setShowPaymentSuccess,
+    uploadedData,
+    setUploadedData,
+    suggestions,
+    currentSuggestion,
+    handleAcceptSuggestion,
+    rejectSuggestion,
+    dismissSuggestion,
+    currentApproval,
+    isApprovalModalOpen,
+    setIsApprovalModalOpen,
+    approveRequest,
+    rejectRequest,
+    capturesRemaining,
+    capturesExhausted,
+    maxCaptures,
+    sessionTimeRemaining,
+    sessionExpired,
+    isVenice,
+    providerDisplayName,
+    isPremium,
+    requiresPayment,
+    supportsByok,
+    latencyMs,
+    provider,
+  } = session;
+
+  const queueLiveStart = React.useCallback(
+    (config: QueuedLiveStart) => {
+      setSelectedProvider(config.provider);
+      setSessionGoal(config.goal as SessionGoal);
+      setSelectedPersona(config.persona);
+      setQueuedStart(config);
+    },
+    [setSelectedPersona, setSelectedProvider, setSessionGoal],
+  );
+
   const { isConnected: isWalletConnected } = useAccount();
   const cartItemCount = useCartStore((s) => s.itemCount());
   const openCart = useCartStore((s) => s.openCart);
@@ -239,81 +325,6 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  const {
-    selectedProvider,
-    setSelectedProvider,
-    selectedPersona,
-    setSelectedPersona,
-    sessionGoal,
-    setSessionGoal,
-    initStep,
-    setInitStep,
-    showSummary,
-    setShowSummary,
-    finalAdvice,
-    sessionEndedManually,
-    isConnected,
-    isInitializing,
-    isAnalyzing,
-    error,
-    videoRef,
-    startSession,
-    stopSession,
-    handleFinish,
-    reasoning,
-    agentEvents,
-    sessionSummary,
-    positionStatus,
-    captures,
-    selectedCaptureIndex,
-    setSelectedCaptureIndex,
-    isCapturing,
-    showFlash,
-    countdown,
-    captureToast,
-    handleCapture,
-    startTimerCapture,
-    hasCaptures,
-    selectedCapture,
-    activities,
-    coachingBadges,
-    terminalExpanded,
-    setTerminalExpanded,
-    isVoiceEnabled,
-    setIsVoiceEnabled,
-    userApiKey,
-    setUserApiKey,
-    showByokInput,
-    setShowByokInput,
-    geminiPaymentToken,
-    setGeminiPaymentToken,
-    showPaymentSuccess,
-    setShowPaymentSuccess,
-    uploadedData,
-    setUploadedData,
-    suggestions,
-    currentSuggestion,
-    handleAcceptSuggestion,
-    rejectSuggestion,
-    dismissSuggestion,
-    currentApproval,
-    isApprovalModalOpen,
-    setIsApprovalModalOpen,
-    approveRequest,
-    rejectRequest,
-    capturesRemaining,
-    capturesExhausted,
-    maxCaptures,
-    sessionTimeRemaining,
-    sessionExpired,
-    isVenice,
-    providerDisplayName,
-    isPremium,
-    requiresPayment,
-    supportsByok,
-    latencyMs,
-    provider,
-  } = session;
 
   const personaStyling = getPersonaConfig(selectedPersona);
 
@@ -357,22 +368,11 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     },
   ];
 
-  const queueLiveStart = React.useCallback(
-    (config: QueuedLiveStart) => {
-      setSelectedProvider(config.provider);
-      setSessionGoal(config.goal);
-      setSelectedPersona(config.persona);
-      setQueuedStart(config);
-    },
-    [setSelectedPersona, setSelectedProvider, setSessionGoal],
-  );
 
   const runStartSequence = React.useCallback(
     async (config: QueuedLiveStart) => {
       setInitStep("connecting");
-      // Call startSession immediately — it sets isInitializing=true synchronously,
-      // which triggers the init loader on the very next render. No 800ms flash.
-      await startSession(config.goal, config.apiKey, config.persona);
+      await startSession(config.goal as SessionGoal, config.apiKey, config.persona);
     },
     [setInitStep, startSession],
   );
@@ -511,9 +511,9 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                         <button
                           key={`${factory.name}-${card.goal}`}
                           onClick={() => {
-                            trackProviderSelected({ provider: factory.name });
+                            trackProviderSelected({ provider: factory.name as "venice" | "gemini" });
                             queueLiveStart({
-                              provider: factory.name,
+                              provider: factory.name as "venice" | "gemini",
                               goal: card.goal,
                               persona: DEFAULT_LIVE_PERSONA,
                             });
@@ -624,8 +624,8 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             isOpen={showComparison}
             onClose={() => setShowComparison(false)}
             onSelect={(p, g) => {
-              trackProviderSelected({ provider: p });
-              queueLiveStart({ provider: p, goal: g, persona: DEFAULT_LIVE_PERSONA });
+              trackProviderSelected({ provider: p as "venice" | "gemini" });
+              queueLiveStart({ provider: p as "venice" | "gemini", goal: g, persona: DEFAULT_LIVE_PERSONA });
             }}
           />
         </div>
@@ -1373,7 +1373,9 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
         {/* Agent Activity Trace — Desktop Only (z-30) */}
         <div className="absolute left-4 top-24 bottom-24 w-64 pointer-events-none hidden xl:flex flex-col gap-2 overflow-hidden z-[30]">
           <AnimatePresence>
-            {agentEvents.map((event, idx) => (
+            {agentEvents.map((raw, idx) => {
+              const event = raw as { step: string; id: string; text: string };
+              return (
               <motion.div
                 key={`${event.step}-${event.id}`}
                 initial={{ opacity: 0, x: -20 }}
@@ -1394,7 +1396,8 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                   {event.text}
                 </div>
               </motion.div>
-            ))}
+            );
+            })}
           </AnimatePresence>
         </div>
 
@@ -1545,8 +1548,8 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                     alt={`Recent capture ${i + 1}`}
                     className="w-full h-full object-cover"
                   />
-                </motion.div>
-              ))}
+              </motion.div>
+            ))}
               {captures.length > 3 && (
                 <div className="w-12 h-16 rounded-lg bg-indigo-600/80 border-2 border-white/20 backdrop-blur-md flex items-center justify-center font-bold text-white text-xs">
                   +{captures.length - 3}

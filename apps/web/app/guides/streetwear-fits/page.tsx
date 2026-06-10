@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowLeft, Check, Sparkles, ShoppingBag, Camera } from "lucide-react";
+import { Reveal } from "../../../components/ui/Reveal";
 
 export const metadata: Metadata = {
   title: "Streetwear Style Guide | BeOnPoint",
@@ -40,7 +41,8 @@ export default function StreetwearGuide() {
           </p>
         </header>
 
-        <section className="mb-10">
+        <Reveal>
+          <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">The foundation: core pieces</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
             Every great streetwear fit starts with reliable basics. These are the
@@ -61,9 +63,11 @@ export default function StreetwearGuide() {
               </li>
             ))}
           </ul>
-        </section>
+          </section>
+        </Reveal>
 
-        <section className="mb-10">
+        <Reveal>
+          <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Sneaker rotation essentials</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {[
@@ -84,15 +88,17 @@ export default function StreetwearGuide() {
                 picks: "Air Jordan 1-14, Reebok Classics, Puma Suede — timeless silhouettes that never date",
               },
             ].map(({ slot, picks }) => (
-              <div key={slot} className="rounded-xl border border-border bg-card p-4">
+              <div key={slot} className="pl-5 border-l-2 border-primary/20">
                 <h3 className="text-sm font-bold">{slot}</h3>
                 <p className="mt-1 text-xs text-muted-foreground leading-5">{picks}</p>
               </div>
             ))}
           </div>
-        </section>
+          </section>
+        </Reveal>
 
-        <section className="mb-10">
+        <Reveal>
+          <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">The art of layering</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
             Streetwear layering is about proportion and contrast. The goal is depth,
@@ -114,9 +120,11 @@ export default function StreetwearGuide() {
               </li>
             ))}
           </ul>
-        </section>
+          </section>
+        </Reveal>
 
-        <section className="mb-10">
+        <Reveal>
+          <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Drops &amp; timing</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
             Streetwear moves fast. Limited drops sell out in minutes, and the resale
@@ -136,9 +144,11 @@ export default function StreetwearGuide() {
               </li>
             ))}
           </ul>
-        </section>
+          </section>
+        </Reveal>
 
-        <section className="mb-10">
+        <Reveal>
+          <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Sustainable streetwear</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
             One of the best things about streetwear culture is the vintage and second-hand
@@ -147,7 +157,8 @@ export default function StreetwearGuide() {
             Curators on BeOnPoint regularly source vintage and deadstock pieces —
             it&rsquo;s fashion with a story, and it keeps clothing out of landfills.
           </p>
-        </section>
+          </section>
+        </Reveal>
 
         {/* Related guides */}
         <div className="border-t border-border pt-8">
@@ -155,14 +166,14 @@ export default function StreetwearGuide() {
           <div className="grid gap-3 sm:grid-cols-2">
             <Link
               href="/guides/sneaker-care"
-              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+              className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
               <p className="text-sm font-bold">Sneaker Collecting &amp; Care Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Cleaning, storage, authentication tips</p>
             </Link>
             <Link
               href="/guides/vintage-thrifting"
-              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+              className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
               <p className="text-sm font-bold">Vintage &amp; Thrift Shopping Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Deadstock finds, quality checks, sizing</p>

@@ -16,6 +16,7 @@ import {
   Globe,
   Zap,
 } from "lucide-react";
+import { Reveal } from "../../components/ui/Reveal";
 
 export const metadata: Metadata = {
   title: "Become a Curator | OnPoint",
@@ -285,7 +286,7 @@ const STEPS = [
 function ArchetypeGradient({ color, accent }: { color: string; accent: string }) {
   return (
     <div
-      className="absolute inset-0 rounded-2xl opacity-[0.03] pointer-events-none"
+      className="absolute inset-0 rounded-2xl opacity-[0.07] pointer-events-none"
       style={{
         background: `linear-gradient(135deg, ${color}, ${accent})`,
       }}
@@ -323,8 +324,9 @@ export default function CuratorLandingPage() {
       </header>
 
       {/* ── Hero ── */}
-      <section className="border-b border-border bg-gradient-to-b from-card to-background">
-        <div className="mx-auto max-w-6xl px-4 py-16 md:py-24">
+      <Reveal>
+        <section className="border-b border-border bg-gradient-to-b from-card to-background">
+          <div className="mx-auto max-w-6xl px-4 py-16 md:py-24">
           <div className="mx-auto max-w-3xl text-center">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/20">
               <Store className="h-7 w-7 text-white" />
@@ -375,29 +377,28 @@ export default function CuratorLandingPage() {
           </div>
 
           {/* ── Live stats bar ── */}
-          <div className="mt-12 grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="mt-12 grid grid-cols-2 gap-6 md:grid-cols-4">
             {[
               { icon: Store, value: "5+", label: "Curators on platform", color: "text-primary" },
               { icon: Shirt, value: "120+", label: "Live listings", color: "text-emerald-500" },
               { icon: TrendingUp, value: "68%", label: "WhatsApp conversion", color: "text-amber-500" },
               { icon: Globe, value: "Kenya", label: "Active market", color: "text-sky-500" },
             ].map((stat) => (
-              <div
-                key={stat.label}
-                className="rounded-xl border border-border bg-card p-4 text-center"
-              >
+              <div key={stat.label} className="text-center">
                 <stat.icon className={`mx-auto h-5 w-5 ${stat.color}`} />
-                <p className="mt-2 text-xl font-black">{stat.value}</p>
+                <p className={`mt-2 text-xl font-black ${stat.color}`}>{stat.value}</p>
                 <p className="text-xs text-muted-foreground">{stat.label}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
+      </Reveal>
 
       {/* ── Archetypes ── */}
-      <section className="border-b border-border py-16 md:py-20">
-        <div className="mx-auto max-w-6xl px-4">
+      <Reveal>
+        <section className="border-b border-border py-16 md:py-20">
+          <div className="mx-auto max-w-6xl px-4">
           <div className="text-center">
             <p className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-4 py-1.5 text-xs font-medium text-muted-foreground">
               <Sparkles className="h-3.5 w-3.5 text-accent" />
@@ -416,7 +417,7 @@ export default function CuratorLandingPage() {
             {ARCHETYPES.map((archetype) => (
               <div
                 key={archetype.id}
-                className="group relative overflow-hidden rounded-2xl border border-border bg-card transition-all hover:shadow-lg"
+                className="group relative overflow-hidden rounded-2xl transition-all"
               >
                 <ArchetypeGradient color={archetype.color} accent={archetype.accent} />
 
@@ -558,9 +559,11 @@ export default function CuratorLandingPage() {
           </div>
         </div>
       </section>
+      </Reveal>
 
       {/* ── Benefits ── */}
-      <section className="border-b border-border bg-gradient-to-b from-card to-background py-16 md:py-20">
+      <Reveal>
+        <section className="border-b border-border bg-gradient-to-b from-card to-background py-16 md:py-20">
         <div className="mx-auto max-w-6xl px-4">
           <div className="text-center">
             <h2 className="text-3xl font-black tracking-tight md:text-4xl">
@@ -571,16 +574,16 @@ export default function CuratorLandingPage() {
             </p>
           </div>
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {BENEFITS.map((benefit) => (
               <div
                 key={benefit.title}
-                className="rounded-xl border border-border bg-card p-5 transition-all hover:shadow-md"
+                className="relative pl-6 border-l-2 border-primary/20"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <div className="absolute -left-3 top-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white shadow-sm">
                   {benefit.icon}
                 </div>
-                <h3 className="mt-4 font-bold">{benefit.title}</h3>
+                <h3 className="font-bold">{benefit.title}</h3>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
                   {benefit.body}
                 </p>
@@ -589,9 +592,11 @@ export default function CuratorLandingPage() {
           </div>
         </div>
       </section>
+      </Reveal>
 
       {/* ── How it works ── */}
-      <section className="border-b border-border py-16 md:py-20">
+      <Reveal>
+        <section className="border-b border-border py-16 md:py-20">
         <div className="mx-auto max-w-6xl px-4">
           <div className="text-center">
             <h2 className="text-3xl font-black tracking-tight md:text-4xl">
@@ -600,13 +605,13 @@ export default function CuratorLandingPage() {
             </h2>
           </div>
 
-          <div className="mt-10 grid gap-4 md:grid-cols-4">
+          <div className="mt-10 grid gap-8 md:grid-cols-4">
             {STEPS.map(({ step, title, body }) => (
               <div
                 key={step}
-                className="relative rounded-xl border border-border bg-card p-5"
+                className="relative text-center md:text-left"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-black text-primary">
+                <div className="mx-auto md:mx-0 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-black text-primary">
                   {step}
                 </div>
                 <h3 className="mt-4 font-bold">{title}</h3>
@@ -614,8 +619,8 @@ export default function CuratorLandingPage() {
                   {body}
                 </p>
                 {step < STEPS.length && (
-                  <div className="absolute -right-2 top-1/2 hidden -translate-y-1/2 md:block">
-                    <ArrowRight className="h-5 w-5 text-muted-foreground/30" />
+                  <div className="absolute -right-4 top-4 hidden md:block">
+                    <ArrowRight className="h-5 w-5 text-muted-foreground/20" />
                   </div>
                 )}
               </div>
@@ -623,9 +628,11 @@ export default function CuratorLandingPage() {
           </div>
         </div>
       </section>
+      </Reveal>
 
       {/* ── What curators say ── */}
-      <section className="border-b border-border bg-card/50 py-16 md:py-20">
+      <Reveal>
+        <section className="border-b border-border bg-card/50 py-16 md:py-20">
         <div className="mx-auto max-w-6xl px-4">
           <div className="text-center">
             <p className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-4 py-1.5 text-xs font-medium text-muted-foreground">
@@ -637,9 +644,9 @@ export default function CuratorLandingPage() {
             </h2>
           </div>
 
-          <div className="mx-auto mt-8 max-w-2xl rounded-2xl border border-border bg-card p-6 md:p-8">
+          <div className="mx-auto mt-8 max-w-2xl pl-6 border-l-4 border-emerald-500/30">
             <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-lg font-black text-emerald-500">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-sm font-black text-emerald-500">
                 W
               </div>
               <div>
@@ -673,9 +680,11 @@ export default function CuratorLandingPage() {
           </div>
         </div>
       </section>
+      </Reveal>
 
       {/* ── Final CTA ── */}
-      <section className="py-16 md:py-20">
+      <Reveal>
+        <section className="py-16 md:py-20">
         <div className="mx-auto max-w-6xl px-4">
           <div className="mx-auto max-w-2xl text-center">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/20">
@@ -726,6 +735,7 @@ export default function CuratorLandingPage() {
           </div>
         </div>
       </section>
+      </Reveal>
 
       {/* ── Footer ── */}
       <footer className="border-t border-border py-8">

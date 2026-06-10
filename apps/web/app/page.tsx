@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Bookmark,
   Palette,
@@ -16,6 +17,7 @@ import {
   Play,
   ChevronRight,
 } from "lucide-react";
+import { Reveal } from "../components/ui/Reveal";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { Auth0HeaderButton } from "../components/auth/Auth0Components";
 import { NotificationBell } from "../components/NotificationBell";
@@ -446,6 +448,186 @@ function DemoWalkthrough({ onClose }: { onClose: () => void }) {
   );
 }
 
+function HeroVisual() {
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setStep((s) => (s + 1) % 3), 4000);
+    return () => clearInterval(id);
+  }, []);
+
+  const steps = [
+    {
+      mainImage: "/assets/1Product.png",
+      mainLabel: "1. Upload Photo",
+      grid: [
+        {
+          type: "text" as const,
+          title: "FIT ANALYSIS",
+          lines: ["Athletic build", "Broad shoulders", "Slim waist"],
+          color: "primary",
+        },
+        {
+          type: "image" as const,
+          image: "/assets/2Product.png",
+          label: "2. AI Judges",
+          color: "accent",
+        },
+      ],
+    },
+    {
+      mainImage: "/assets/1Product.png",
+      mainLabel: "2. AI Analysis",
+      grid: [
+        {
+          type: "text" as const,
+          title: "STYLE SCORE",
+          lines: ["Color harmony: 8/10", "Fit: 9/10", "Silhouette: 7/10"],
+          color: "primary",
+        },
+        {
+          type: "image" as const,
+          image: "/assets/2Product.png",
+          label: "Recommended",
+          color: "accent",
+        },
+      ],
+    },
+    {
+      mainImage: "/assets/2Product.png",
+      mainLabel: "3. Agent Shops",
+      grid: [
+        {
+          type: "text" as const,
+          title: "FOUND",
+          lines: ["3 matching items", "Within budget", "Ready to buy"],
+          color: "accent",
+        },
+        {
+          type: "image" as const,
+          image: "/assets/3Product.png",
+          label: "Best match",
+          color: "primary",
+        },
+      ],
+    },
+  ];
+
+  const current = steps[step]!;
+
+  return (
+    <div className="relative rounded-2xl overflow-hidden border border-border/60 bg-gradient-to-br from-primary/5 to-accent/5 shadow-2xl p-6">
+      {/* Mascot floating badge */}
+      <div className="absolute -top-3 -right-3 z-20 animate-float">
+        <div className="relative">
+          <PersonaAvatar persona="edina" size="sm" animate="wave" showRing />
+          <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-0.5 rounded-full bg-card border border-border text-[9px] font-medium shadow-sm">
+            &ldquo;Absolutely fabulous!&rdquo;
+          </div>
+        </div>
+      </div>
+
+      <div className="absolute top-4 left-4 z-10 px-3 py-1 rounded-full bg-primary/90 text-white text-xs font-bold shadow-sm flex items-center gap-1">
+        <Sparkles className="w-3 h-3" />
+        AI Vision
+      </div>
+
+      {/* Step indicators */}
+      <div className="absolute top-4 right-4 z-10 flex gap-1.5">
+        {steps.map((_, i) => (
+          <span
+            key={i}
+            className={`h-1.5 rounded-full transition-all duration-300 ${
+              i === step ? "w-4 bg-primary" : "w-1.5 bg-primary/30"
+            }`}
+          />
+        ))}
+      </div>
+
+      <div className="space-y-3">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`main-${step}`}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
+            className="relative aspect-[4/3] rounded-lg overflow-hidden border border-border"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
+            <Image
+              src={current.mainImage}
+              alt={current.mainLabel}
+              fill
+              className="object-cover opacity-90"
+              unoptimized
+            />
+            <div className="absolute bottom-2 left-2 px-2 py-1 rounded bg-background/90 text-[10px] font-bold">
+              {current.mainLabel}
+            </div>
+          </motion.div>
+        </AnimatePresence>
+
+        <div className="grid grid-cols-2 gap-2">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`grid-left-${step}`}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.4, delay: 0.05, ease: "easeInOut" }}
+              className="relative aspect-square rounded-lg overflow-hidden border border-primary/20 bg-primary/5"
+            >
+              {current.grid[0]!.type === "text" && (
+                <div className="p-3 space-y-1">
+                  <div className="text-[10px] font-bold text-primary">
+                    {current.grid[0]!.title}
+                  </div>
+                  {current.grid[0]!.lines.map((line, i) => (
+                    <div key={i} className="text-[9px] text-muted-foreground">
+                      {line}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`grid-right-${step}`}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.4, delay: 0.1, ease: "easeInOut" }}
+              className="relative aspect-square rounded-lg overflow-hidden border"
+              style={{ borderColor: `hsl(var(--${current.grid[1]!.color}) / 0.2)` }}
+            >
+              {current.grid[1]!.type === "image" && (
+                <>
+                  <Image
+                    src={current.grid[1]!.image}
+                    alt={current.grid[1]!.label}
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                  <div
+                    className="absolute bottom-2 left-2 px-2 py-1 rounded text-white text-[10px] font-bold"
+                    style={{ backgroundColor: `hsl(var(--${current.grid[1]!.color}) / 0.9)` }}
+                  >
+                    {current.grid[1]!.label}
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function HeroView() {
   const [showDemo, setShowDemo] = useState(false);
 
@@ -459,145 +641,102 @@ function HeroView() {
       {/* Demo Walkthrough */}
       {showDemo && <DemoWalkthrough onClose={() => setShowDemo(false)} />}
 
-      <div className="relative container mx-auto px-4 py-12 md:py-20 lg:py-24">
+      <div className="relative container mx-auto px-4 py-12 md:py-20 lg:py-24 bg-gradient-to-b from-primary/[0.03] via-background to-background bg-[length:200%_200%] animate-gradient-shift">
         <div className="max-w-5xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left: Content */}
             <div className="text-center lg:text-left space-y-6">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-muted/60 border border-border text-sm text-muted-foreground">
-                <Sparkles className="w-4 h-4 text-accent" />
-                <span>AI-Powered Fashion</span>
-              </div>
-
-              <h1 className="text-4xl md:text-5xl font-black tracking-tighter leading-tight">
-                Your AI stylist
-                <span className="block text-primary">
-                  sees, judges, shops.
-                </span>
-              </h1>
-
-              <p className="text-lg text-muted-foreground leading-relaxed max-w-lg">
-                Point your camera at an outfit. Get instant AI feedback from a team of personality-driven stylists. Discover what works for your body and style.
-              </p>
-
-              <div className="flex flex-col sm:flex-row items-center lg:items-start gap-3">
-                <Link
-                  href="/lab"
-                  className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white font-bold px-8 py-6 rounded-full text-lg shadow-lg shadow-primary/25 transition-all"
-                >
-                  <Camera className="w-5 h-5" />
-                  Try It Free
-                  <ArrowRight className="w-5 h-5" />
-                </Link>
-                <DemoToggleButton onClick={() => setShowDemo(true)} />
-              </div>
-
-              <div className="flex flex-wrap justify-center lg:justify-start gap-4 pt-2 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-500" />
-                  <span>No sign-up needed</span>
+              <Reveal delay={0}>
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-muted/60 border border-border text-sm text-muted-foreground">
+                  <Sparkles className="w-4 h-4 text-accent" />
+                  <span>AI-Powered Fashion</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-500" />
-                  <span>Works on any phone</span>
+              </Reveal>
+
+              <Reveal delay={0.1}>
+                <h1 className="text-4xl md:text-5xl font-black tracking-tighter leading-tight">
+                  Your AI stylist
+                  <span className="block text-primary">
+                    sees, judges, shops.
+                  </span>
+                </h1>
+              </Reveal>
+
+              <Reveal delay={0.2}>
+                <p className="text-lg text-muted-foreground leading-relaxed max-w-lg">
+                  Point your camera at an outfit. Get instant AI feedback from a team of personality-driven stylists. Discover what works for your body and style.
+                </p>
+              </Reveal>
+
+              <Reveal delay={0.3}>
+                <div className="flex flex-col sm:flex-row items-center lg:items-start gap-3">
+                  <Link
+                    href="/lab"
+                    className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white font-bold px-8 py-6 rounded-full text-lg shadow-lg shadow-primary/25 transition-all"
+                  >
+                    <Camera className="w-5 h-5" />
+                    Try It Free
+                    <ArrowRight className="w-5 h-5" />
+                  </Link>
+                  <DemoToggleButton onClick={() => setShowDemo(true)} />
                 </div>
-                <div className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-500" />
-                  <span>30s to your first result</span>
+              </Reveal>
+
+              <Reveal delay={0.4}>
+                <div className="flex flex-wrap justify-center lg:justify-start gap-4 pt-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-emerald-500" />
+                    <span>No sign-up needed</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-emerald-500" />
+                    <span>Works on any phone</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-emerald-500" />
+                    <span>30s to your first result</span>
+                  </div>
+                  <LiveCounter />
                 </div>
-                <LiveCounter />
-              </div>
+              </Reveal>
 
               {/* Persona Mascot Presence */}
-              <div className="pt-4 border-t border-border/40">
-                <p className="text-xs text-muted-foreground text-center lg:text-left mb-3">
-                  <Sparkles className="w-3 h-3 inline mr-1 text-accent" />
-                  Choose your stylist personality
-                </p>
-                <PersonaCarousel />
-              </div>
+              <Reveal delay={0.5}>
+                <div className="pt-4 border-t border-border/40">
+                  <p className="text-xs text-muted-foreground text-center lg:text-left mb-3">
+                    <Sparkles className="w-3 h-3 inline mr-1 text-accent" />
+                    Choose your stylist personality
+                  </p>
+                  <PersonaCarousel />
+                </div>
+              </Reveal>
 
               {/* Sample AI output — mobile preview */}
-              <div className="lg:hidden mt-4 rounded-2xl border border-primary/20 bg-card/50 p-4 space-y-3">
-                <div className="flex items-center gap-2 text-xs text-primary font-bold uppercase tracking-wider">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Sample AI Analysis
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-3xl font-black text-primary">8/10</div>
-                  <div className="flex-1 text-xs text-muted-foreground leading-relaxed">
-                    &ldquo;Strong color coordination. The oversized silhouette works well with your frame. Consider a structured bag to balance the proportions.&rdquo;
+              <Reveal delay={0.4} className="lg:hidden">
+                <div className="mt-4 rounded-2xl border border-primary/20 bg-card/50 p-4 space-y-3">
+                  <div className="flex items-center gap-2 text-xs text-primary font-bold uppercase tracking-wider">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Sample AI Analysis
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-3xl font-black text-primary">8/10</div>
+                    <div className="flex-1 text-xs text-muted-foreground leading-relaxed">
+                      &ldquo;Strong color coordination. The oversized silhouette works well with your frame. Consider a structured bag to balance the proportions.&rdquo;
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-medium">✓ Color Harmony</span>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-medium">✓ Fit</span>
+                    <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-[10px] font-medium">↑ Accessories</span>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-medium">✓ Color Harmony</span>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-medium">✓ Fit</span>
-                  <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-[10px] font-medium">↑ Accessories</span>
-                </div>
-              </div>
+              </Reveal>
             </div>
 
             {/* Right: Visual — desktop only */}
-            <div className="relative hidden lg:block">
-              <div className="relative rounded-2xl overflow-hidden border border-border/60 bg-gradient-to-br from-primary/5 to-accent/5 shadow-2xl p-6">
-                {/* Mascot floating badge */}
-                <div className="absolute -top-3 -right-3 z-20 animate-float">
-                  <div className="relative">
-                    <PersonaAvatar persona="edina" size="sm" animate="wave" showRing />
-                    <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-0.5 rounded-full bg-card border border-border text-[9px] font-medium shadow-sm">
-                      &ldquo;Absolutely fabulous!&rdquo;
-                    </div>
-                  </div>
-                </div>
-
-                <div className="absolute top-4 left-4 z-10 px-3 py-1 rounded-full bg-primary/90 text-white text-xs font-bold shadow-sm flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" />
-                  AI Vision
-                </div>
-                
-                <div className="space-y-3">
-                  <div className="relative aspect-[4/3] rounded-lg overflow-hidden border border-border">
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
-                    <Image
-                      src="/assets/1Product.png"
-                      alt="AI analyzing your photo"
-                      fill
-                      className="object-cover opacity-90"
-                      unoptimized
-                    />
-                    <div className="absolute bottom-2 left-2 px-2 py-1 rounded bg-background/90 text-[10px] font-bold">
-                      1. Upload Photo
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="relative aspect-square rounded-lg overflow-hidden border border-primary/20 bg-primary/5">
-                      <div className="p-3 space-y-1">
-                        <div className="text-[10px] font-bold text-primary">FIT ANALYSIS</div>
-                        <div className="text-[9px] text-muted-foreground">Athletic build</div>
-                        <div className="text-[9px] text-muted-foreground">Broad shoulders</div>
-                        <div className="text-[9px] text-muted-foreground">Slim waist</div>
-                      </div>
-                      <div className="absolute bottom-2 left-2 px-2 py-1 rounded bg-primary/90 text-white text-[10px] font-bold">
-                        2. AI Judges
-                      </div>
-                    </div>
-                    <div className="relative aspect-square rounded-lg overflow-hidden border border-accent/20">
-                      <Image
-                        src="/assets/2Product.png"
-                        alt="AI recommended outfit"
-                        fill
-                        className="object-cover"
-                        unoptimized
-                      />
-                      <div className="absolute bottom-2 left-2 px-2 py-1 rounded bg-accent/90 text-white text-[10px] font-bold">
-                        3. Agent Shops
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <Reveal direction="right" delay={0.15} className="relative hidden lg:block">
+              <HeroVisual />
+            </Reveal>
           </div>
         </div>
       </div>
@@ -625,9 +764,9 @@ function RecentlySavedSection() {
   if (recent.length === 0) return null;
 
   return (
-    <section className="border-t border-border/60 bg-gradient-to-b from-card/50 to-background">
+    <section className="border-t border-border/60 bg-gradient-to-b from-card/50 to-background overflow-hidden">
       <div className="container mx-auto px-4 py-12 md:py-16">
-        <div className="max-w-5xl mx-auto">
+        <Reveal className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <div>
               <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground font-medium mb-1">
@@ -647,8 +786,9 @@ function RecentlySavedSection() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {recent.map((session) => {
+          {/* Film strip — overlapping images, no card containers */}
+          <div className="flex -space-x-4 sm:-space-x-6 md:-space-x-8">
+            {recent.map((session, i) => {
               const date = new Date(session.createdAt);
               const dateLabel = date.toLocaleDateString("en-US", {
                 month: "short",
@@ -657,48 +797,44 @@ function RecentlySavedSection() {
               return (
                 <Link
                   key={session.id}
-          href="/lab?tab=my-looks"
-          onClick={() =>
-            trackRecentlySavedClicked({
-              sessionAge: (Date.now() - new Date(session.createdAt).getTime()) / 3600000,
-              score: session.score,
-              persona: session.persona,
-            })
-          }
-                  className="group block rounded-xl border border-border bg-card overflow-hidden transition-all hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5"
+                  href="/lab?tab=my-looks"
+                  onClick={() =>
+                    trackRecentlySavedClicked({
+                      sessionAge: (Date.now() - new Date(session.createdAt).getTime()) / 3600000,
+                      score: session.score,
+                      persona: session.persona,
+                    })
+                  }
+                  className="group relative flex-1 aspect-[4/3] overflow-hidden rounded-lg transition-all duration-300 hover:z-10 hover:scale-[1.02] hover:shadow-2xl"
+                  style={{ minWidth: 0 }}
                 >
-                  {/* Polaroid-style photo area */}
-                  <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-                    {session.coverImage ? (
-                      <img
-                        src={session.coverImage}
-                        alt={session.headline}
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center">
-                        <Camera className="h-8 w-8 text-muted-foreground/30" />
-                      </div>
-                    )}
-                    {/* Gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-                    {/* Score badge */}
-                    <div className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-xs font-bold text-white backdrop-blur-sm">
-                      <Sparkles className="h-3 w-3 text-amber-400" />
-                      {session.score}/10
+                  {session.coverImage ? (
+                    <img
+                      src={session.coverImage}
+                      alt={session.headline}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-muted">
+                      <Camera className="h-8 w-8 text-muted-foreground/30" />
                     </div>
+                  )}
+                  {/* Gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  {/* Score badge */}
+                  <div className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-xs font-bold text-white backdrop-blur-sm">
+                    <Sparkles className="h-3 w-3 text-amber-400" />
+                    {session.score}/10
                   </div>
-                  {/* Info area */}
-                  <div className="p-3">
-                    <p className="text-xs font-semibold leading-snug line-clamp-1">
+                  {/* Info overlay — visible on hover */}
+                  <div className="absolute inset-x-0 bottom-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                    <p className="text-xs font-semibold leading-snug text-white line-clamp-1 drop-shadow-lg">
                       {session.headline}
                     </p>
-                    <div className="mt-1.5 flex items-center justify-between">
-                      <span className="text-[10px] text-muted-foreground">
-                        {dateLabel}
-                      </span>
+                    <div className="mt-1 flex items-center gap-2">
+                      <span className="text-[10px] text-white/70">{dateLabel}</span>
                       {session.persona && (
-                        <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary capitalize">
+                        <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[9px] font-medium text-white capitalize">
                           {session.persona}
                         </span>
                       )}
@@ -708,7 +844,7 @@ function RecentlySavedSection() {
               );
             })}
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );

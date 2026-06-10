@@ -220,7 +220,7 @@ export default async function CuratorStorefrontPage({
             </div>
           </div>
 
-          <aside className="rounded-lg border border-border bg-card p-5 shadow-sm">
+          <aside className="pl-5 border-l-2" style={{ borderColor: "var(--curator-primary)" }}>
             <div className="space-y-4">
               <div
                 className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg text-2xl font-black text-white"
@@ -278,7 +278,7 @@ export default async function CuratorStorefrontPage({
 
       <section className="border-b border-border bg-muted/20">
         <div className="mx-auto grid max-w-6xl gap-4 px-4 py-6 md:grid-cols-[1fr_1fr_1fr]">
-          <div className="rounded-lg border border-border bg-card p-4">
+          <div className="pl-5 border-l-2 border-primary/20">
             <div className="flex items-center gap-2 text-primary">
               <Sparkles className="h-4 w-4" />
               <p className="text-xs font-bold uppercase tracking-wider">{curator.name}'s take</p>
@@ -288,7 +288,7 @@ export default async function CuratorStorefrontPage({
               OnPoint brief and I will confirm the cleanest size and available stock.
             </p>
           </div>
-          <div className="rounded-lg border border-border bg-card p-4">
+          <div className="pl-5 border-l-2 border-primary/20">
             <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Demand loop
             </p>
@@ -297,7 +297,7 @@ export default async function CuratorStorefrontPage({
               shopper intent, and the next action.
             </p>
           </div>
-          <div className="rounded-lg border border-border bg-card p-4">
+          <div className="pl-5 border-l-2 border-primary/20">
             <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Live inventory
             </p>
@@ -325,7 +325,7 @@ export default async function CuratorStorefrontPage({
           </p>
         </div>
         {listings.length === 0 ? (
-          <div className="flex min-h-[280px] flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card p-8 text-center">
+          <div className="flex min-h-[280px] flex-col items-center justify-center rounded-lg border border-dashed border-border p-8 text-center">
             <PackageSearch className="h-10 w-10 text-muted-foreground" />
             <h2 className="mt-4 text-xl font-bold">No live listings yet</h2>
             <p className="mt-2 max-w-md text-sm text-muted-foreground">
@@ -343,7 +343,7 @@ export default async function CuratorStorefrontPage({
                 <article
                   key={listing.id}
                   data-listing-id={listing.id}
-                  className="overflow-hidden rounded-lg border border-border bg-card shadow-sm"
+                  className="overflow-hidden rounded-lg border border-border"
                 >
                   <div className="relative aspect-[4/3] bg-muted">
                     {listing.imageUrl ? (

@@ -5,5 +5,6 @@ export { CardEnhanced } from './components/CardEnhanced';
 export { TransitionLink } from './components/TransitionLink';
 export { TransitionDetail } from './components/TransitionDetail';
 export { ShopGrid } from './components/ShopGrid';
+export { AnimatedCounter } from './components/AnimatedCounter';
 export { EngagementBadge } from './components/EngagementBadge';
 export { default as InteractiveStylingCanvas } from './components/InteractiveStylingCanvas';

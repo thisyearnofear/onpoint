@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowLeft, Check, Sparkles, Leaf, Camera } from "lucide-react";
+import { Reveal } from "../../../components/ui/Reveal";
 
 export const metadata: Metadata = {
   title: "Sustainable & Ethical Fashion Guide | BeOnPoint",
@@ -34,7 +35,8 @@ export default function SustainableFashionGuide() {
           </p>
         </header>
 
-        <section className="mb-10">
+        <Reveal>
+          <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">The five R&rsquo;s of sustainable fashion</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {[
@@ -44,18 +46,20 @@ export default function SustainableFashionGuide() {
               { r: "Recycle", body: "When a piece is truly done, recycle it through textile recycling programs. Never throw clothes in general waste." },
               { r: "Rent", body: "For one-off occasions (weddings, events), consider renting instead of buying. It saves money and closet space." },
             ].map(({ r, body }) => (
-              <div key={r} className="rounded-xl border border-border bg-card p-4">
+              <div key={r} className="pl-5 border-l-2 border-primary/20">
                 <h3 className="text-sm font-bold text-emerald-600">{r}</h3>
                 <p className="mt-1 text-xs text-muted-foreground leading-5">{body}</p>
               </div>
             ))}
           </div>
-        </section>
+          </section>
+        </Reveal>
 
-        <section className="mb-10">
+        <Reveal>
+          <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Fabrics to choose (and avoid)</h2>
           <div className="mt-4 space-y-3">
-            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+            <div className="pl-5 border-l-2 border-emerald-500/30">
               <h3 className="text-sm font-bold text-emerald-600">Choose these</h3>
               <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
                 <li>• Organic cotton — uses 91% less water than conventional cotton</li>
@@ -65,7 +69,7 @@ export default function SustainableFashionGuide() {
                 <li>• Wool — natural, renewable, biodegradable (look for responsible sourcing)</li>
               </ul>
             </div>
-            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+            <div className="pl-5 border-l-2 border-amber-500/30">
               <h3 className="text-sm font-bold text-amber-600">Reduce use of</h3>
               <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
                 <li>• Polyester — sheds microplastics in every wash, takes 200+ years to decompose</li>
@@ -75,9 +79,11 @@ export default function SustainableFashionGuide() {
               </ul>
             </div>
           </div>
-        </section>
+          </section>
+        </Reveal>
 
-        <section className="mb-10">
+        <Reveal>
+          <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Make your clothes last longer</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">The most sustainable garment is the one already in your closet. Extend its life:</p>
           <ul className="mt-4 space-y-2">
@@ -95,9 +101,11 @@ export default function SustainableFashionGuide() {
               </li>
             ))}
           </ul>
-        </section>
+          </section>
+        </Reveal>
 
-        <section className="mb-10">
+        <Reveal>
+          <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Smart second-hand shopping</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
             Buying second-hand is the single most impactful thing you can do for sustainable fashion.
@@ -117,7 +125,8 @@ export default function SustainableFashionGuide() {
               </li>
             ))}
           </ul>
-        </section>
+          </section>
+        </Reveal>
 
         {/* Related guides */}
         <div className="border-t border-border pt-8">
@@ -125,14 +134,14 @@ export default function SustainableFashionGuide() {
           <div className="grid gap-3 sm:grid-cols-2">
             <Link
               href="/guides/vintage-thrifting"
-              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+              className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
               <p className="text-sm font-bold">Vintage &amp; Thrift Shopping Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Hidden gems, quality checks, era sizing</p>
             </Link>
             <Link
               href="/guides/accessories-styling"
-              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+              className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
               <p className="text-sm font-bold">Accessories Styling Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Quality over quantity, timeless pieces</p>

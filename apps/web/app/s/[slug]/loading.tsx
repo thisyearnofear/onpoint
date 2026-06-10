@@ -35,7 +35,7 @@ export default function CuratorStorefrontLoading() {
                 <div className="h-5 w-36 rounded bg-muted animate-pulse" />
               </div>
             </div>
-            <aside className="rounded-lg border border-border bg-card p-5">
+            <aside className="pl-5 border-l-2 border-border/30">
               <div className="space-y-4">
                 <div className="h-16 w-16 rounded-lg bg-muted animate-pulse" />
                 <div className="h-5 w-1/2 rounded bg-muted animate-pulse" />
@@ -64,7 +64,7 @@ export default function CuratorStorefrontLoading() {
         <div className="mx-auto max-w-6xl px-4 py-6">
           <div className="grid gap-4 md:grid-cols-3">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="rounded-lg border border-border bg-card p-4 space-y-2">
+              <div key={i} className="pl-5 border-l-2 border-border/30 space-y-2">
                 <div className="h-3 w-24 rounded bg-muted animate-pulse" />
                 <div className="h-4 w-full rounded bg-muted/60 animate-pulse" />
               </div>
@@ -83,7 +83,7 @@ export default function CuratorStorefrontLoading() {
           {[0, 1, 2, 3, 4, 5].map((i) => (
             <div
               key={i}
-              className="overflow-hidden rounded-lg border border-border bg-card"
+              className="overflow-hidden rounded-lg border border-border"
             >
               <div className="aspect-[4/3] bg-muted animate-pulse" />
               <div className="p-4 space-y-3">

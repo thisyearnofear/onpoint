@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Zap, TrendingUp, Award, Heart } from 'lucide-react';
+import { AnimatedCounter } from './AnimatedCounter';
 
 /**
  * Animated Engagement Badge Component
@@ -66,33 +67,8 @@ export const EngagementBadge: React.FC<EngagementBadgeProps> = ({
   compact = false,
   className = '',
 }) => {
-  const [displayCount, setDisplayCount] = useState(0);
   const config = BADGE_CONFIG[type] ?? BADGE_CONFIG.trending;
   const Icon = config.icon;
-
-  // Animated counter
-  useEffect(() => {
-    if (!animated) {
-      setDisplayCount(tryOnCount);
-      return;
-    }
-
-    let animationId: ReturnType<typeof setInterval>;
-    let current = 0;
-
-    const increment = Math.max(1, Math.floor(tryOnCount / 20));
-    animationId = setInterval(() => {
-      current += increment;
-      if (current >= tryOnCount) {
-        setDisplayCount(tryOnCount);
-        clearInterval(animationId);
-      } else {
-        setDisplayCount(current);
-      }
-    }, 30);
-
-    return () => clearInterval(animationId);
-  }, [tryOnCount, animated]);
 
   if (compact) {
     return (
@@ -147,7 +123,12 @@ export const EngagementBadge: React.FC<EngagementBadgeProps> = ({
         {/* Try-On Count */}
         <div className="text-center">
           <div className="text-xl font-bold text-foreground">
-            {displayCount > 999 ? `${(displayCount / 1000).toFixed(1)}k` : displayCount}
+            <AnimatedCounter
+              value={tryOnCount}
+              duration={600}
+              animated={animated}
+              formatter={(v) => v > 999 ? `${(v / 1000).toFixed(1)}k` : String(Math.round(v))}
+            />
           </div>
           <div className="text-xs text-muted-foreground">Try-ons</div>
         </div>

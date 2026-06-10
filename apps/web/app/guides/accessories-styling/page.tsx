@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowLeft, Check, Sparkles, Star, Camera } from "lucide-react";
+import { Reveal } from "../../../components/ui/Reveal";
 
 export const metadata: Metadata = {
   title: "Accessories Styling Guide | BeOnPoint",
@@ -34,6 +35,7 @@ export default function AccessoriesStylingGuide() {
           </p>
         </header>
 
+        <Reveal>
         <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">The rule of three</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
@@ -43,7 +45,9 @@ export default function AccessoriesStylingGuide() {
             remove one and see if the outfit still works.
           </p>
         </section>
+        </Reveal>
 
+        <Reveal>
         <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Metal mixing: the new rules</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
@@ -65,7 +69,9 @@ export default function AccessoriesStylingGuide() {
             ))}
           </ul>
         </section>
+        </Reveal>
 
+        <Reveal>
         <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Building your accessories wardrobe</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -87,14 +93,16 @@ export default function AccessoriesStylingGuide() {
                 essentials: "A 1-inch belt in black and brown covers most outfits. A structured cap, a beanie (winter), and a Panama or wide-brim (summer) round it out.",
               },
             ].map(({ category, essentials }) => (
-              <div key={category} className="rounded-xl border border-border bg-card p-4">
+              <div key={category} className="pl-5 border-l-2 border-primary/20">
                 <h3 className="text-sm font-bold text-foreground">{category}</h3>
                 <p className="mt-1 text-xs text-muted-foreground leading-5">{essentials}</p>
               </div>
             ))}
           </div>
         </section>
+        </Reveal>
 
+        <Reveal>
         <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Occasion matching</h2>
           <ul className="mt-4 space-y-3">
@@ -104,14 +112,16 @@ export default function AccessoriesStylingGuide() {
               { occasion: "Casual / Weekend", tip: "Layer beaded bracelets, wear a fabric watch strap, use a canvas tote. This is where you experiment." },
               { occasion: "Formal / Ceremony", tip: "Match metals to your outfit hardware. Pearl or diamond studs are always appropriate. A clutch or small structured bag." },
             ].map(({ occasion, tip }) => (
-              <li key={occasion} className="rounded-xl border border-border bg-card p-4">
+              <li key={occasion} className="pl-5 border-l-2 border-primary/20">
                 <p className="text-sm font-bold text-foreground">{occasion}</p>
                 <p className="mt-1 text-xs text-muted-foreground leading-5">{tip}</p>
               </li>
             ))}
           </ul>
         </section>
+        </Reveal>
 
+        <Reveal>
         <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Proportion matters</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
@@ -120,7 +130,7 @@ export default function AccessoriesStylingGuide() {
             bolder pieces. Your watch face should be proportional to your wrist — a general rule
             is the lugs should not overhang your wrist.
           </p>
-          <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm">
+          <div className="mt-4 pl-5 border-l-2 border-primary/30 text-sm">
             <p className="font-semibold text-foreground">Virtual try-on for accessories</p>
             <p className="mt-1 text-muted-foreground">
               Use BeOnPoint&rsquo;s virtual try-on to see how watches, bags, and jewellery look on your
@@ -128,6 +138,7 @@ export default function AccessoriesStylingGuide() {
             </p>
           </div>
         </section>
+        </Reveal>
 
         {/* Related guides */}
         <div className="border-t border-border pt-8">
@@ -135,14 +146,14 @@ export default function AccessoriesStylingGuide() {
           <div className="grid gap-3 sm:grid-cols-2">
             <Link
               href="/guides/occasion-wear"
-              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+              className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
               <p className="text-sm font-bold">Occasion Wear &amp; Event Dressing Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Dress codes, colour, and event styling</p>
             </Link>
             <Link
               href="/guides/streetwear-fits"
-              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+              className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
               <p className="text-sm font-bold">Streetwear Style Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Layering, sneaker rotations, drops</p>

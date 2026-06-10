@@ -63,6 +63,7 @@ export function MpesaPaymentPanel({
   const [selectedSize, setSelectedSize] = useState(firstSize?.size || "");
   const [customerPhone, setCustomerPhone] = useState("");
   const [paymentId, setPaymentId] = useState<string | null>(null);
+  const [checkoutRequestId, setCheckoutRequestId] = useState<string | null>(null);
 
   // STK Push state
   const [method, setMethod] = useState<"stk" | "manual">("stk");

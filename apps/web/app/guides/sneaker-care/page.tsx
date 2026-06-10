@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowLeft, Check, Sparkles, ShoppingBag, Camera } from "lucide-react";
+import { Reveal } from "../../../components/ui/Reveal";
 
 export const metadata: Metadata = {
   title: "Sneaker Collecting & Care Guide | BeOnPoint",
@@ -34,7 +35,8 @@ export default function SneakerCareGuide() {
           </p>
         </header>
 
-        <section className="mb-10">
+        <Reveal>
+          <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Building your rotation</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">A well-balanced rotation covers every scenario without overlap. Aim for:</p>
           <ul className="mt-4 space-y-2">
@@ -51,9 +53,11 @@ export default function SneakerCareGuide() {
               </li>
             ))}
           </ul>
-        </section>
+          </section>
+        </Reveal>
 
-        <section className="mb-10">
+        <Reveal>
+          <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Cleaning by material</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {[
@@ -62,15 +66,17 @@ export default function SneakerCareGuide() {
               { material: "Mesh / Knit", care: "Cold water + gentle detergent. Stuff with paper towels to maintain shape while drying. Air dry only." },
               { material: "Canvas", care: "Machine washable on gentle cycle (remove laces first). Air dry — heat damages glue and shape." },
             ].map(({ material, care }) => (
-              <div key={material} className="rounded-xl border border-border bg-card p-4">
+              <div key={material} className="pl-5 border-l-2 border-primary/20">
                 <h3 className="text-sm font-bold">{material}</h3>
                 <p className="mt-1 text-xs text-muted-foreground leading-5">{care}</p>
               </div>
             ))}
           </div>
-        </section>
+          </section>
+        </Reveal>
 
-        <section className="mb-10">
+        <Reveal>
+          <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Storage for value retention</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">How you store sneakers directly affects their resale value. Follow these rules:</p>
           <ul className="mt-4 space-y-2">
@@ -88,9 +94,11 @@ export default function SneakerCareGuide() {
               </li>
             ))}
           </ul>
-        </section>
+          </section>
+        </Reveal>
 
-        <section className="mb-10">
+        <Reveal>
+          <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Spotting fakes: quick checklist</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">When buying from resellers or second-hand, run through these checks:</p>
           <ul className="mt-4 space-y-2">
@@ -107,9 +115,11 @@ export default function SneakerCareGuide() {
               </li>
             ))}
           </ul>
-        </section>
+          </section>
+        </Reveal>
 
-        <section className="mb-10">
+        <Reveal>
+          <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">When to buy: seasonal timing</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
             Sneaker prices fluctuate by season. The best time to buy is typically 2-3 months
@@ -117,7 +127,8 @@ export default function SneakerCareGuide() {
             seasons (Black Friday, end-of-year) often see price drops on general-release pairs.
             Limited collabs rarely drop in price — buy at retail or don&rsquo;t buy at all.
           </p>
-        </section>
+          </section>
+        </Reveal>
 
         {/* Related guides */}
         <div className="border-t border-border pt-8">
@@ -125,14 +136,14 @@ export default function SneakerCareGuide() {
           <div className="grid gap-3 sm:grid-cols-2">
             <Link
               href="/guides/streetwear-fits"
-              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+              className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
               <p className="text-sm font-bold">Streetwear Style Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Sneaker rotation essentials, drops, layering</p>
             </Link>
             <Link
               href="/guides/sustainable-fashion"
-              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+              className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
               <p className="text-sm font-bold">Sustainable &amp; Ethical Fashion Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Making clothes last, fabric choices, care</p>

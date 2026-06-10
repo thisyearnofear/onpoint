@@ -81,7 +81,7 @@ export function PersonaAvatar({
           transition-all duration-300
           ${config.bg}
           ${showRing ? `ring-2 ${config.border.replace("border-", "ring-")} ring-offset-2 ring-offset-background` : ""}
-          ${onClick ? "cursor-pointer hover:scale-110 active:scale-95" : ""}
+          ${onClick ? "cursor-pointer hover:scale-110 active:scale-95 hover:animate-glow-pulse" : ""}
           ${animClass}
           overflow-hidden
         `}

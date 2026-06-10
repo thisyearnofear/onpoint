@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowLeft, Check, Shirt, Ruler, Printer, Smartphone } from "lucide-react";
+import { Reveal } from "../../../components/ui/Reveal";
 
 export const metadata: Metadata = {
   title: "Football Kit Buying Guide | BeOnPoint",
@@ -43,6 +44,7 @@ export default function FootballKitsGuide() {
         </header>
 
         {/* Section 1 */}
+        <Reveal>
         <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Sizing: getting it right the first time</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
@@ -65,8 +67,10 @@ export default function FootballKitsGuide() {
             ))}
           </ul>
         </section>
+        </Reveal>
 
         {/* Section 2 */}
+        <Reveal>
         <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Printing names &amp; numbers</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
@@ -89,12 +93,14 @@ export default function FootballKitsGuide() {
             ))}
           </ul>
         </section>
+        </Reveal>
 
         {/* Section 3 */}
+        <Reveal>
         <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Authentic vs. replica</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border border-border bg-card p-4">
+            <div className="pl-5 border-l-2 border-primary/20">
               <h3 className="text-sm font-bold">Replica (Stadium)</h3>
               <ul className="mt-2 space-y-1.5 text-xs text-muted-foreground">
                 <li>• Standard fit, more comfortable for casual wear</li>
@@ -103,7 +109,7 @@ export default function FootballKitsGuide() {
                 <li>• Easier to print names and numbers on</li>
               </ul>
             </div>
-            <div className="rounded-xl border border-border bg-card p-4">
+            <div className="pl-5 border-l-2 border-primary/20">
               <h3 className="text-sm font-bold">Authentic (Vapor/Player)</h3>
               <ul className="mt-2 space-y-1.5 text-xs text-muted-foreground">
                 <li>• Tight, performance fit — size up if unsure</li>
@@ -114,8 +120,10 @@ export default function FootballKitsGuide() {
             </div>
           </div>
         </section>
+        </Reveal>
 
         {/* Section 4 */}
+        <Reveal>
         <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Current season vs. retro</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
@@ -137,8 +145,10 @@ export default function FootballKitsGuide() {
             ))}
           </ul>
         </section>
+        </Reveal>
 
         {/* Section 5 */}
+        <Reveal>
         <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Buying via WhatsApp</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
@@ -147,7 +157,7 @@ export default function FootballKitsGuide() {
             everything: item, size, printing details, and delivery info. The curator
             confirms stock and you pay however works best — M-Pesa, bank transfer, or cash.
           </p>
-          <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm">
+          <div className="mt-4 pl-5 border-l-2 border-primary/30 text-sm">
             <p className="font-semibold text-foreground">Pro tip</p>
             <p className="mt-1 text-muted-foreground">
               Use the AI try-on before you order. Upload a photo and see how the kit fits
@@ -155,6 +165,7 @@ export default function FootballKitsGuide() {
             </p>
           </div>
         </section>
+        </Reveal>
 
         {/* Related guides */}
         <div className="border-t border-border pt-8">
@@ -162,14 +173,14 @@ export default function FootballKitsGuide() {
           <div className="grid gap-3 sm:grid-cols-2">
             <Link
               href="/guides/streetwear-fits"
-              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+              className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
               <p className="text-sm font-bold">Streetwear Style Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Sneaker drops, layering, oversized fits</p>
             </Link>
             <Link
               href="/guides/sneaker-care"
-              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+              className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
               <p className="text-sm font-bold">Sneaker Collecting &amp; Care Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Cleaning, storage, authentication tips</p>

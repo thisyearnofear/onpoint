@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { useLiveProvider, SESSION_FACTORIES } from "@repo/ai-client";
+import { useLiveProvider, SESSION_FACTORIES, type LiveSessionFactory } from "@repo/ai-client";
 import { sdk } from "@farcaster/miniapp-sdk";
 import { PersonaVoice } from "../../../lib/utils/persona-voice";
 import {
@@ -71,7 +71,7 @@ export interface SessionSummary {
   recommendations?: Array<{ name: string; price: number; category: string }>;
 }
 
-type SessionGoal = "event" | "daily" | "critique" | null;
+export type SessionGoal = "event" | "daily" | "critique" | null;
 
 // ── Goal options (constant) ──
 
@@ -117,10 +117,6 @@ const SESSION_WARMUP_MS = 15_000;
 // ── Hook ──
 
 export function useLiveSession() {
-  // ── Provider-agnostic live session (selectedProvider can be any SESSION_FACTORIES key) ──
-  const factory = selectedProvider ? SESSION_FACTORIES[selectedProvider] : SESSION_FACTORIES.venice;
-  const liveProvider = useLiveProvider(factory);
-
   // ── Session state ──
   // Initialize from localStorage (DRY - single source of truth for preference)
   const [selectedProvider, setSelectedProvider] = useState<AIProvider | null>(
@@ -130,6 +126,10 @@ export function useLiveSession() {
       return saved === "venice" || saved === "gemini" ? saved : null;
     },
   );
+
+  // ── Provider-agnostic live session (selectedProvider can be any SESSION_FACTORIES key) ──
+  const factory = (selectedProvider ? SESSION_FACTORIES[selectedProvider] : SESSION_FACTORIES.venice) as LiveSessionFactory;
+  const liveProvider = useLiveProvider(factory);
 
   // Persist provider preference
   const handleSetProvider = useCallback((provider: AIProvider | null) => {
@@ -492,7 +492,7 @@ export function useLiveSession() {
   // ── Activity tracking (agent events) ──
   useEffect(() => {
     if (agentEvents.length > 0) {
-      const latest = agentEvents[0];
+      const latest = agentEvents[0] as { id: string; text: string } | undefined;
       if (!latest) return;
       setActivities((prev) =>
         [

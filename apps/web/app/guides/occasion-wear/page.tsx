@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowLeft, Check, Sparkles, Calendar, Camera } from "lucide-react";
+import { Reveal } from "../../../components/ui/Reveal";
 
 export const metadata: Metadata = {
   title: "Occasion Wear & Event Dressing Guide | BeOnPoint",
@@ -34,6 +35,7 @@ export default function OccasionWearGuide() {
           </p>
         </header>
 
+        <Reveal>
         <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Dress codes decoded</h2>
           <div className="mt-4 space-y-3">
@@ -45,7 +47,7 @@ export default function OccasionWearGuide() {
               { code: "Smart Casual", what: "Dressy separates — a blouse with tailored trousers, a knit dress, or a blazer with jeans. No ties required. Common for daytime events and less formal celebrations." },
               { code: "Traditional / Cultural", what: "Many African and diaspora events specify traditional attire — Agbada, Kente, Ankara, Dashiki, or Kaftan. Always check the invitation for cultural dress guidance." },
             ].map(({ code, what }) => (
-              <div key={code} className="rounded-xl border border-border bg-card p-4">
+              <div key={code} className="pl-5 border-l-2 border-primary/20">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-primary shrink-0" />
                   <h3 className="text-sm font-bold">{code}</h3>
@@ -55,7 +57,9 @@ export default function OccasionWearGuide() {
             ))}
           </div>
         </section>
+        </Reveal>
 
+        <Reveal>
         <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Colour coordination for events</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
@@ -76,7 +80,9 @@ export default function OccasionWearGuide() {
             ))}
           </ul>
         </section>
+        </Reveal>
 
+        <Reveal>
         <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Fabric &amp; climate considerations</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
@@ -87,7 +93,9 @@ export default function OccasionWearGuide() {
             Avoid heavy synthetic fabrics that trap heat — your comfort affects your confidence.
           </p>
         </section>
+        </Reveal>
 
+        <Reveal>
         <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Planning ahead: the timeline</h2>
           <ul className="mt-4 space-y-2">
@@ -105,6 +113,7 @@ export default function OccasionWearGuide() {
             ))}
           </ul>
         </section>
+        </Reveal>
 
         {/* Related guides */}
         <div className="border-t border-border pt-8">
@@ -112,14 +121,14 @@ export default function OccasionWearGuide() {
           <div className="grid gap-3 sm:grid-cols-2">
             <Link
               href="/guides/formal-wear"
-              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+              className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
               <p className="text-sm font-bold">Formal Wear &amp; Tailoring Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Bespoke vs MTM, fabric, traditional fits</p>
             </Link>
             <Link
               href="/guides/ankara-style"
-              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+              className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
               <p className="text-sm font-bold">Ankara &amp; African Print Style Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Fabrics, ceremonies, and cultural dress</p>

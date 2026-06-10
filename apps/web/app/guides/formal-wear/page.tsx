@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowLeft, Check, Sparkles, Scissors, Camera } from "lucide-react";
+import { Reveal } from "../../../components/ui/Reveal";
 
 export const metadata: Metadata = {
   title: "Formal Wear & Tailoring Guide | BeOnPoint",
@@ -41,10 +42,11 @@ export default function FormalWearGuide() {
           </p>
         </header>
 
+        <Reveal>
         <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Bespoke vs. made-to-measure</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border border-border bg-card p-4">
+            <div className="pl-5 border-l-2 border-primary/20">
               <h3 className="text-sm font-bold">Made-to-Measure (MTM)</h3>
               <ul className="mt-2 space-y-1.5 text-xs text-muted-foreground">
                 <li>• Starts from a standard pattern, adjusted to your measurements</li>
@@ -54,7 +56,7 @@ export default function FormalWearGuide() {
                 <li>• Faster turnaround: 1-3 weeks</li>
               </ul>
             </div>
-            <div className="rounded-xl border border-border bg-card p-4">
+            <div className="pl-5 border-l-2 border-primary/20">
               <h3 className="text-sm font-bold">Bespoke</h3>
               <ul className="mt-2 space-y-1.5 text-xs text-muted-foreground">
                 <li>• Pattern created from scratch for your body</li>
@@ -66,7 +68,9 @@ export default function FormalWearGuide() {
             </div>
           </div>
         </section>
+        </Reveal>
 
+        <Reveal>
         <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Choosing your fabric</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
@@ -88,7 +92,9 @@ export default function FormalWearGuide() {
             ))}
           </ul>
         </section>
+        </Reveal>
 
+        <Reveal>
         <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Getting measured: the essentials</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
@@ -106,14 +112,16 @@ export default function FormalWearGuide() {
               { meas: "Back length", desc: "From base of neck to desired hem length" },
               { meas: "Neck circumference", desc: "Around the base of the neck, two fingers of room" },
             ].map(({ meas, desc }) => (
-              <div key={meas} className="rounded-lg border border-border bg-muted/30 px-3 py-2">
+              <div key={meas} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
                 <p className="text-xs font-bold text-foreground">{meas}</p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">{desc}</p>
               </div>
             ))}
           </div>
         </section>
+        </Reveal>
 
+        <Reveal>
         <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Traditional formal wear guide</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
@@ -141,7 +149,7 @@ export default function FormalWearGuide() {
             ].map(({ type, detail }) => (
               <li
                 key={type}
-                className="rounded-xl border border-border bg-card p-4"
+                className="pl-5 border-l-2 border-primary/20"
               >
                 <p className="text-sm font-bold text-foreground">{type}</p>
                 <p className="mt-1 text-xs text-muted-foreground leading-5">{detail}</p>
@@ -149,7 +157,9 @@ export default function FormalWearGuide() {
             ))}
           </ul>
         </section>
+        </Reveal>
 
+        <Reveal>
         <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">The BeOnPoint advantage for formal wear</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
@@ -170,6 +180,7 @@ export default function FormalWearGuide() {
             ))}
           </ul>
         </section>
+        </Reveal>
 
         {/* Related guides */}
         <div className="border-t border-border pt-8">
@@ -177,14 +188,14 @@ export default function FormalWearGuide() {
           <div className="grid gap-3 sm:grid-cols-2">
             <Link
               href="/guides/occasion-wear"
-              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+              className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
               <p className="text-sm font-bold">Occasion Wear &amp; Event Dressing Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Dress codes decoded, colour coordination</p>
             </Link>
             <Link
               href="/guides/ankara-style"
-              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+              className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
               <p className="text-sm font-bold">Ankara &amp; African Print Style Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Fabrics, occasions, made-to-measure tips</p>

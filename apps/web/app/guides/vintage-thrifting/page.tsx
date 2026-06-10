@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowLeft, Check, Sparkles, Search, Camera } from "lucide-react";
+import { Reveal } from "../../../components/ui/Reveal";
 
 export const metadata: Metadata = {
   title: "Vintage & Thrift Shopping Guide | BeOnPoint",
@@ -41,7 +42,8 @@ export default function VintageThriftingGuide() {
           </p>
         </header>
 
-        <section className="mb-10">
+        <Reveal>
+          <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">What to look for</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {[
@@ -62,15 +64,17 @@ export default function VintageThriftingGuide() {
                 why: "Vintage blazers from quality brands offer tailoring that&rsquo;s nearly impossible to find at thrift prices.",
               },
             ].map(({ item, why }) => (
-              <div key={item} className="rounded-xl border border-border bg-card p-4">
+              <div key={item} className="pl-5 border-l-2 border-primary/20">
                 <h3 className="text-sm font-bold">{item}</h3>
                 <p className="mt-1 text-xs text-muted-foreground leading-5">{why}</p>
               </div>
             ))}
           </div>
-        </section>
+          </section>
+        </Reveal>
 
-        <section className="mb-10">
+        <Reveal>
+          <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Quality checks before you buy</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
             Not all vintage is good vintage. When evaluating a piece, run through this
@@ -91,9 +95,11 @@ export default function VintageThriftingGuide() {
               </li>
             ))}
           </ul>
-        </section>
+          </section>
+        </Reveal>
 
-        <section className="mb-10">
+        <Reveal>
+          <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Sizing vintage pieces</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
             Vintage sizing is different from modern sizing. A 1990s size M fits closer
@@ -113,7 +119,7 @@ export default function VintageThriftingGuide() {
               </li>
             ))}
           </ul>
-          <div className="mt-4 rounded-xl border border-accent/20 bg-accent/5 p-4 text-sm">
+          <div className="mt-4 pl-5 border-l-2 border-accent/30 text-sm">
             <p className="font-semibold text-foreground">Virtual try-on helps here</p>
             <p className="mt-1 text-muted-foreground">
               With BeOnPoint, you can see how a vintage piece fits your body type before
@@ -121,9 +127,11 @@ export default function VintageThriftingGuide() {
               from measurements alone.
             </p>
           </div>
-        </section>
+          </section>
+        </Reveal>
 
-        <section className="mb-10">
+        <Reveal>
+          <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Eras worth knowing</h2>
           <div className="mt-4 space-y-3">
             {[
@@ -144,13 +152,14 @@ export default function VintageThriftingGuide() {
                 body: "Baggy jeans, slip dresses, plaid shirts, minimalism. The most sought-after vintage era for streetwear. Sizing is closest to modern.",
               },
             ].map(({ era, body }) => (
-              <div key={era} className="rounded-xl border border-border bg-card p-4">
+              <div key={era} className="pl-5 border-l-2 border-primary/20">
                 <h3 className="text-sm font-bold">{era}</h3>
                 <p className="mt-1 text-xs text-muted-foreground leading-5">{body}</p>
               </div>
             ))}
           </div>
-        </section>
+          </section>
+        </Reveal>
 
         {/* Related guides */}
         <div className="border-t border-border pt-8">
@@ -158,14 +167,14 @@ export default function VintageThriftingGuide() {
           <div className="grid gap-3 sm:grid-cols-2">
             <Link
               href="/guides/sustainable-fashion"
-              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+              className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
               <p className="text-sm font-bold">Sustainable &amp; Ethical Fashion Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Five R's, fabric choices, second-hand tips</p>
             </Link>
             <Link
               href="/guides/accessories-styling"
-              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+              className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
               <p className="text-sm font-bold">Accessories Styling Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Watches, bags, jewellery, and proportion</p>

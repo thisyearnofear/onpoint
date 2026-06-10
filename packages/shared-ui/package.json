@@ -11,6 +11,7 @@
     "./components/TransitionLink": "./src/components/TransitionLink.tsx",
     "./components/CardEnhanced": "./src/components/CardEnhanced.tsx",
     "./components/ShopGrid": "./src/components/ShopGrid.tsx",
+    "./components/AnimatedCounter": "./src/components/AnimatedCounter.tsx",
     "./components/EngagementBadge": "./src/components/EngagementBadge.tsx",
     "./components/InteractiveStylingCanvas": "./src/components/InteractiveStylingCanvas.tsx"
   },

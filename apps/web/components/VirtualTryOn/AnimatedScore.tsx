@@ -1,31 +1,17 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-// framer-motion removed — using CSS transitions instead
+import React from "react";
 import { getScoreConfig } from "../../lib/utils/score-utils";
+import { AnimatedCounter } from "@repo/shared-ui";
 
 interface AnimatedScoreProps {
-  /** Final score value (0-10) */
   score: number;
-  /** Delay before animation starts (seconds) */
   delay?: number;
-  /** Size variant */
   size?: "sm" | "md" | "lg";
-  /** Whether to show the /10 suffix */
   showMax?: boolean;
-  /** Tier label to display below score (uses score-utils if not provided) */
   tier?: string;
 }
 
-/**
- * AnimatedScore - Dramatic score reveal animation
- *
- * Features:
- * - Number roll animation from 0 to final score
- * - Spring-based entrance animation
- * - Configurable size and styling
- * - Uses score-utils for tier styling (DRY)
- */
 export function AnimatedScore({
   score,
   delay = 0.3,
@@ -33,9 +19,6 @@ export function AnimatedScore({
   showMax = true,
   tier,
 }: AnimatedScoreProps) {
-  const [displayScore, setDisplayScore] = useState(0);
-
-  // Size configurations
   const sizeClasses = {
     sm: "text-4xl sm:text-5xl",
     md: "text-5xl sm:text-6xl",
@@ -48,34 +31,6 @@ export function AnimatedScore({
     lg: "text-lg -right-4 bottom-2",
   };
 
-  // Number roll animation
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const duration = 1500;
-      const steps = 30;
-      const stepDuration = duration / steps;
-      const increment = score / steps;
-      let current = 0;
-      let step = 0;
-
-      const interval = setInterval(() => {
-        step++;
-        current = Math.min(Math.round(increment * step * 10) / 10, score);
-        setDisplayScore(current);
-
-        if (step >= steps) {
-          clearInterval(interval);
-          setDisplayScore(score);
-        }
-      }, stepDuration);
-
-      return () => clearInterval(interval);
-    }, delay * 1000);
-
-    return () => clearTimeout(timer);
-  }, [score, delay]);
-
-  // Get config from score-utils (single source of truth)
   const config = getScoreConfig(score);
   const displayTier = tier ?? config.tier;
   const isElite = score >= 8;
@@ -91,17 +46,15 @@ export function AnimatedScore({
         className="animate-count-up relative mb-3"
         style={{ animationDelay: `${delay}s` }}
       >
-        <span
+        <AnimatedCounter
+          value={score}
+          delay={delay}
+          duration={1500}
+          decimals={1}
           className={`${sizeClasses[size]} font-black text-white leading-none tracking-tighter tabular-nums drop-shadow-lg`}
-        >
-          {Number.isInteger(displayScore)
-            ? displayScore
-            : displayScore.toFixed(1)}
-        </span>
+        />
         {showMax && (
-          <span
-            className={`absolute ${maxClasses[size]} font-bold text-white/50`}
-          >
+          <span className={`absolute ${maxClasses[size]} font-bold text-white/50`}>
             /10
           </span>
         )}
@@ -112,9 +65,7 @@ export function AnimatedScore({
           className={`animate-fade-in px-4 py-1 rounded-full ${tierBgClass} border backdrop-blur-sm`}
           style={{ animationDelay: `${delay + 0.4}s` }}
         >
-          <span
-            className={`text-[10px] font-bold ${tierTextClass} uppercase tracking-[0.15em]`}
-          >
+          <span className={`text-[10px] font-bold ${tierTextClass} uppercase tracking-[0.15em]`}>
             {displayTier}
           </span>
         </div>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowLeft, Check, Sparkles, Camera } from "lucide-react";
+import { Reveal } from "../../../components/ui/Reveal";
 
 export const metadata: Metadata = {
   title: "Ankara & African Print Style Guide | BeOnPoint",
@@ -41,6 +42,7 @@ export default function AnkaraStyleGuide() {
           </p>
         </header>
 
+        <Reveal>
         <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Choosing your fabric</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -60,7 +62,7 @@ export default function AnkaraStyleGuide() {
             ].map((fabric) => (
               <div
                 key={fabric.name}
-                className="rounded-xl border border-border bg-card p-4"
+                className="pl-5 border-l-2 border-primary/20"
               >
                 <h3 className="text-sm font-bold">{fabric.name}</h3>
                 <p className="mt-2 text-xs leading-5 text-muted-foreground">
@@ -70,7 +72,9 @@ export default function AnkaraStyleGuide() {
             ))}
           </div>
         </section>
+        </Reveal>
 
+        <Reveal>
         <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Matching print to occasion</h2>
           <ul className="mt-4 space-y-3">
@@ -98,7 +102,7 @@ export default function AnkaraStyleGuide() {
             ].map((item) => (
               <li
                 key={item.occasion}
-                className="rounded-xl border border-border bg-card p-4"
+                className="pl-5 border-l-2 border-primary/20"
               >
                 <p className="text-sm font-bold text-foreground">{item.occasion}</p>
                 <p className="mt-1 text-xs text-muted-foreground leading-5">
@@ -108,7 +112,9 @@ export default function AnkaraStyleGuide() {
             ))}
           </ul>
         </section>
+        </Reveal>
 
+        <Reveal>
         <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Made-to-measure: what to provide</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
@@ -131,7 +137,9 @@ export default function AnkaraStyleGuide() {
             ))}
           </ul>
         </section>
+        </Reveal>
 
+        <Reveal>
         <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Try before you tailor</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
@@ -141,7 +149,7 @@ export default function AnkaraStyleGuide() {
             This replaces the usual back-and-forth of WhatsApp messages and ensures
             you love the look before committing.
           </p>
-          <div className="mt-4 rounded-xl border border-accent/20 bg-accent/5 p-4 text-sm">
+          <div className="mt-4 pl-5 border-l-2 border-accent/30 text-sm">
             <p className="font-semibold text-foreground">Why it matters</p>
             <p className="mt-1 text-muted-foreground">
               Ankara prints look different on a roll vs. on a body. The same print can
@@ -150,6 +158,7 @@ export default function AnkaraStyleGuide() {
             </p>
           </div>
         </section>
+        </Reveal>
 
         {/* Related guides */}
         <div className="border-t border-border pt-8">
@@ -157,14 +166,14 @@ export default function AnkaraStyleGuide() {
           <div className="grid gap-3 sm:grid-cols-2">
             <Link
               href="/guides/formal-wear"
-              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+              className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
               <p className="text-sm font-bold">Formal Wear &amp; Tailoring Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Agbadas, kaftans, and bespoke tailoring</p>
             </Link>
             <Link
               href="/guides/occasion-wear"
-              className="block rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm"
+              className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
               <p className="text-sm font-bold">Occasion Wear &amp; Event Dressing Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Weddings, graduations, and cultural events</p>

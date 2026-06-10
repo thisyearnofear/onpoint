@@ -84,7 +84,7 @@ function StatCard({
   color: string;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <div className="pl-5 border-l-2 border-primary/20">
       <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
         <Icon className="h-3.5 w-3.5" style={{ color }} />
         {label}
@@ -107,7 +107,7 @@ function SignalCard({ signal }: { signal: MarketSignal }) {
   const Icon = config.icon;
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <div className="pl-5 border-l-2 border-primary/20">
       <div className="flex items-start gap-3">
         <div
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
@@ -339,7 +339,7 @@ export default function CuratorIntelPage() {
                     {intel.products.map((product, i) => (
                       <div
                         key={`${product.source}-${i}`}
-                        className="overflow-hidden rounded-lg border border-border bg-card"
+                        className="overflow-hidden rounded-lg border border-border"
                       >
                         {product.imageUrl && (
                           <div className="aspect-square bg-muted">
@@ -377,7 +377,7 @@ export default function CuratorIntelPage() {
 
               {/* Memory & partner status */}
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="rounded-lg border border-border bg-card p-4">
+                <div className="pl-5 border-l-2 border-primary/20">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     Retail Memory
                   </h3>
@@ -407,7 +407,7 @@ export default function CuratorIntelPage() {
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-border bg-card p-4">
+                <div className="pl-5 border-l-2 border-primary/20">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     Partner Integrations
                   </h3>
@@ -462,7 +462,7 @@ export default function CuratorIntelPage() {
         </div>
 
         {/* CTA */}
-        <div className="rounded-lg border border-border bg-card p-6 text-center">
+        <div className="rounded-lg border border-border bg-muted/30 p-6 text-center">
           <h2 className="text-lg font-bold">Ready to act on these signals?</h2>
           <p className="mt-2 text-sm text-muted-foreground">
             Stock what customers are searching for. Update your listings via WhatsApp chat-ops.

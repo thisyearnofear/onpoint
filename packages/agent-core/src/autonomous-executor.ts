@@ -67,10 +67,14 @@ async function getNextNonce(
     const key = NONCE_KEY(chainName);
     const incremented = await redisIncr(key);
 
+    if (incremented === null) {
+      return undefined;
+    }
+
     if (incremented === 1) {
       // First increment — this was a new key, so use the chain's current nonce
       // Then increment again so next call gets nonce + 1
-      const currentNonce = await walletClient.getTransactionCount({ address: agentAddress });
+      const currentNonce = await (walletClient as any).getTransactionCount({ address: agentAddress });
       const { redisSet } = await import("./redis-helpers");
       await redisSet(key, (currentNonce + 1n).toString());
       return currentNonce;

@@ -50,7 +50,7 @@ export { loadSuggestionFromStore, persistSuggestion };
 // LRU Cache — Single source of truth for reads
 // ============================================
 
-const CACHE = new LRUCache<string, unknown>({
+const CACHE = new LRUCache<string, any>({
   max: 2000,
   ttl: 1000 * 60 * 5, // 5 min default TTL
 });
