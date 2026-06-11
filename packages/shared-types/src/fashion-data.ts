@@ -713,8 +713,8 @@ function cleanupCache() {
 }
 
 // Run cleanup every hour
-if (typeof global !== "undefined") {
-  setInterval(cleanupCache, 60 * 60 * 1000);
+if (typeof globalThis !== "undefined") {
+  globalThis.setInterval(cleanupCache, 60 * 60 * 1000);
 }
 
 /**

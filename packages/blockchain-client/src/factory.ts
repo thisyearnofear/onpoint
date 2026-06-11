@@ -1,7 +1,7 @@
 import { type WalletClient } from 'viem';
 import { type WalletAdapter } from '@onpoint/shared-types';
-import { StandardWalletAdapter } from './adapters/standard-adapter';
-import { MiniPayAdapter } from './adapters/minipay-adapter';
+import { StandardWalletAdapter } from './adapters/standard-adapter.js';
+import { MiniPayAdapter } from './adapters/minipay-adapter.js';
 
 // MiniPay is mainnet-only; cUSD is only deployed on Celo mainnet (42220).
 const CELO_MAINNET_ID = 42220;
