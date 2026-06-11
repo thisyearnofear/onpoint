@@ -256,6 +256,19 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     if (!error || isConnected || isInitializing || !selectedProvider) return;
     if (!sessionGoal) return;
 
+    // Don't auto-fallback on payment or auth errors — these require user action
+    const errorLower = error.toLowerCase();
+    if (
+      errorLower.includes("payment") ||
+      errorLower.includes("api key") ||
+      errorLower.includes("requires payment") ||
+      errorLower.includes("402") ||
+      errorLower.includes("camera") ||
+      errorLower.includes("permission")
+    ) {
+      return;
+    }
+
     const factory = SESSION_FACTORIES[selectedProvider];
     if (!factory?.fallbackChain?.length) return;
 
@@ -266,8 +279,10 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
       if (attempted.has(fallbackName)) continue;
       attempted.add(fallbackName);
 
+      // Only fall back to providers the backend actually supports
       const fallbackFactory = SESSION_FACTORIES[fallbackName];
       if (!fallbackFactory?.cards?.[0]) continue;
+      if (fallbackName !== "venice" && fallbackName !== "gemini") continue;
 
       const fallbackGoal = fallbackFactory.cards[0].goal;
       setFallbackToast(
@@ -1213,17 +1228,70 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 )}
               </div>
               <div className="flex flex-col gap-3">
-                <Button
-                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-full font-bold"
-                  onClick={() =>
-                    startSession(
-                      sessionGoal,
-                      userApiKey || geminiPaymentToken || undefined,
-                    )
-                  }
-                >
-                  Try Again
-                </Button>
+                {/* Payment/BYOK options for payment-required errors */}
+                {supportsByok &&
+                  (error.toLowerCase().includes("payment") ||
+                    error.toLowerCase().includes("api key") ||
+                    error.toLowerCase().includes("requires payment")) && (
+                    <div className="space-y-3">
+                      {!geminiPaymentToken && !showByokInput && (
+                        <>
+                          <GeminiLivePaymentButton
+                            onSuccess={(token: string) => {
+                              setGeminiPaymentToken(token);
+                              setShowPaymentSuccess(true);
+                              startSession(sessionGoal, token);
+                            }}
+                          />
+                          <button
+                            onClick={() => setShowByokInput(true)}
+                            className="w-full text-xs text-slate-400 hover:text-white transition-colors py-1"
+                          >
+                            Or use your own API key
+                          </button>
+                        </>
+                      )}
+                      {showByokInput && (
+                        <div className="space-y-2">
+                          <input
+                            type="password"
+                            value={userApiKey}
+                            onChange={(e) => setUserApiKey(e.target.value)}
+                            placeholder="Enter your Gemini API key"
+                            className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50"
+                          />
+                          <Button
+                            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-full font-bold"
+                            disabled={!userApiKey.trim()}
+                            onClick={() => {
+                              startSession(sessionGoal, userApiKey);
+                            }}
+                          >
+                            Start with API Key
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                {/* Standard retry for non-payment errors */}
+                {!(
+                  supportsByok &&
+                  (error.toLowerCase().includes("payment") ||
+                    error.toLowerCase().includes("api key") ||
+                    error.toLowerCase().includes("requires payment"))
+                ) && (
+                  <Button
+                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-full font-bold"
+                    onClick={() =>
+                      startSession(
+                        sessionGoal,
+                        userApiKey || geminiPaymentToken || undefined,
+                      )
+                    }
+                  >
+                    Try Again
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   className="text-slate-400 hover:text-white hover:bg-white/5 font-bold"
