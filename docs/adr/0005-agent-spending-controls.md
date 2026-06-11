@@ -48,7 +48,8 @@ the web app build or advertised as a user-facing capability by default.
 
 ## Follow-Up Work
 
-- Add UI for policy summaries and approval thresholds.
+- Expand the shipped wallet policy UI beyond approval threshold and auto-buy
+  presets to full action-specific limit editing.
 - Persist policy definitions alongside agent controls.
 - Decide whether signing-layer enforcement is required before increasing
   autonomous purchase limits.

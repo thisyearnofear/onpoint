@@ -78,9 +78,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <Auth0Provider>
-      <QueryClientProvider client={queryClient}>
-        <MiniAppProvider analyticsEnabled={true}>
-          <WagmiProvider config={config}>
+      <WagmiProvider config={config}>
+        <QueryClientProvider client={queryClient}>
+          <MiniAppProvider analyticsEnabled={true}>
             <MiniPayProvider>
               <RainbowKitProvider
                 theme={(theme === "dark" ? darkTheme : lightTheme)({
@@ -100,9 +100,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
                 </AIProviderContext>
               </RainbowKitProvider>
             </MiniPayProvider>
-          </WagmiProvider>
-        </MiniAppProvider>
-      </QueryClientProvider>
+          </MiniAppProvider>
+        </QueryClientProvider>
+      </WagmiProvider>
     </Auth0Provider>
   );
 }

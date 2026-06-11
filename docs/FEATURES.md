@@ -192,6 +192,8 @@ a product promise. See [ADR 0005](./adr/0005-agent-spending-controls.md).
 
 ### Policy Surface
 
+- Wallet panel summary for daily caps, remaining budget, approval thresholds, allowed actions, and enforcement mode
+- Editable wallet panel presets for approval threshold and auto-buy max price
 - Daily/weekly spend caps
 - Per-purchase approval thresholds
 - Allowed actions: browse, reserve, tip, buy, mint

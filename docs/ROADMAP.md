@@ -97,7 +97,7 @@ OWS remains optional backend infrastructure; the user-facing feature is the
 policy surface.
 
 **Deliverables:**
-- [ ] Policy summary UI: daily cap, approval threshold, allowed actions
+- [x] Policy summary UI in the agent wallet panel: daily caps, approval threshold, allowed actions, and first editable presets
 - [ ] Curator/merchant allowlist for autonomous purchases
 - [ ] Action-specific limits for browse, reserve, tip, buy, mint
 - [ ] Signed audit log visible from the wallet/agent panel

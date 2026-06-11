@@ -11,6 +11,8 @@ import {
   ExternalLink,
   Sparkles,
   TrendingDown,
+  LockKeyhole,
+  Gauge,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { useAccount } from "wagmi";
@@ -35,6 +37,29 @@ interface AgentWalletData {
     nftMinter: string;
   };
   supportedChains: string[];
+  policy?: AgentPolicy;
+}
+
+interface AgentPolicyLimit {
+  action: string;
+  daily: number;
+  perAction: number;
+  remaining: number;
+  requiresApproval: boolean;
+}
+
+interface AgentPolicy {
+  autonomyThreshold: number;
+  allowedActions: string[];
+  limits: AgentPolicyLimit[];
+  autoBuy: {
+    enabled: boolean;
+    maxPrice: number;
+  };
+  enforcement: {
+    appLayer: boolean;
+    signingLayer: boolean;
+  };
 }
 
 interface AgentStatusProps {
@@ -110,6 +135,7 @@ export function AgentStatus({
   const [autoBuyMaxPrice, setAutoBuyMaxPrice] = useState(0);
   const [autoBuyEnabled, setAutoBuyEnabled] = useState(false);
   const [prefsLoading, setPrefsLoading] = useState(false);
+  const [policySaving, setPolicySaving] = useState(false);
   const [showAutoBuySettings, setShowAutoBuySettings] = useState(false);
   const [customPriceInput, setCustomPriceInput] = useState('');
 
@@ -234,11 +260,41 @@ export function AgentStatus({
     }
   };
 
+  const updatePolicySettings = async (updates: {
+    autonomyThreshold?: number;
+    autoBuyMaxPrice?: number;
+  }) => {
+    setPolicySaving(true);
+    try {
+      const res = await fetch("/api/agent/wallet", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (res.ok) {
+        await fetchWalletData();
+        if (updates.autoBuyMaxPrice !== undefined) {
+          setAutoBuyMaxPrice(updates.autoBuyMaxPrice);
+          setAutoBuyEnabled(updates.autoBuyMaxPrice > 0);
+        }
+      }
+    } catch {
+      // Policy endpoint may not be available in older deployments.
+    } finally {
+      setPolicySaving(false);
+    }
+  };
+
   const copyAddress = (address: string) => {
     navigator.clipboard.writeText(address);
     setCopiedAddress(address);
     setTimeout(() => setCopiedAddress(null), 2000);
   };
+
+  const policy = walletData?.policy;
+  const purchaseLimit = policy?.limits.find(
+    (limit) => limit.action === "external_purchase" || limit.action === "purchase",
+  );
 
   if (isLoading) {
     return (
@@ -354,6 +410,131 @@ export function AgentStatus({
         ))}
 
       </div>
+
+      {/* Spending Policy */}
+      {policy && (
+        <div className="mx-4 mb-3">
+          <div className="rounded-xl border border-cyan-500/20 bg-cyan-950/10 p-4">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/15">
+                  <LockKeyhole className="h-4 w-4 text-cyan-300" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-foreground">
+                    Spending Policy
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Autonomy cap ${formatPolicyDollars(policy.autonomyThreshold)}
+                  </p>
+                </div>
+              </div>
+              <span
+                className={`rounded-full px-2 py-1 text-[9px] font-bold ${
+                  policy.autoBuy.enabled
+                    ? "bg-emerald-500/15 text-emerald-300"
+                    : "bg-muted/40 text-muted-foreground"
+                }`}
+              >
+                {policy.autoBuy.enabled
+                  ? `Auto-buy <= $${formatPolicyDollars(policy.autoBuy.maxPrice)}`
+                  : "Auto-buy off"}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <PolicyMetric
+                label="Approval"
+                value={`>$${formatPolicyDollars(policy.autonomyThreshold)}`}
+              />
+              <PolicyMetric
+                label="Buy limit"
+                value={
+                  purchaseLimit
+                    ? `$${formatPolicyDollars(purchaseLimit.perAction)}`
+                    : "Review"
+                }
+              />
+              <PolicyMetric
+                label="Enforced"
+                value={policy.enforcement.signingLayer ? "App + sign" : "App"}
+              />
+            </div>
+
+            <div className="mt-3 grid gap-2 rounded-lg border border-border/30 bg-background/25 p-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] font-medium text-muted-foreground">
+                  Approval threshold
+                </span>
+                <div className="flex gap-1">
+                  {[0, 5, 10, 25].map((value) => (
+                    <PolicyPresetButton
+                      key={value}
+                      active={policy.autonomyThreshold === value}
+                      disabled={policySaving}
+                      onClick={() =>
+                        updatePolicySettings({ autonomyThreshold: value })
+                      }
+                    >
+                      {value === 0 ? "Ask all" : `$${value}`}
+                    </PolicyPresetButton>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] font-medium text-muted-foreground">
+                  Auto-buy max
+                </span>
+                <div className="flex gap-1">
+                  {[0, 10, 25, 50].map((value) => (
+                    <PolicyPresetButton
+                      key={value}
+                      active={
+                        policy.autoBuy.maxPrice === value &&
+                        policy.autoBuy.enabled === (value > 0)
+                      }
+                      disabled={policySaving}
+                      onClick={() =>
+                        updatePolicySettings({ autoBuyMaxPrice: value })
+                      }
+                    >
+                      {value === 0 ? "Off" : `$${value}`}
+                    </PolicyPresetButton>
+                  ))}
+                </div>
+              </div>
+              {policySaving && (
+                <p className="text-[9px] text-cyan-300">Saving policy...</p>
+              )}
+            </div>
+
+            <div className="mt-3 space-y-1.5">
+              {policy.limits.slice(0, 4).map((limit) => (
+                <div
+                  key={limit.action}
+                  className="grid grid-cols-[1fr_auto_auto] items-center gap-2 rounded-lg bg-background/35 px-2.5 py-2"
+                >
+                  <span className="truncate text-[10px] font-medium text-foreground">
+                    {policyActionLabel(limit.action)}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    ${formatPolicyDollars(limit.perAction)} max
+                  </span>
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 text-[8px] font-bold ${
+                      limit.requiresApproval
+                        ? "bg-amber-500/15 text-amber-300"
+                        : "bg-emerald-500/15 text-emerald-300"
+                    }`}
+                  >
+                    {limit.requiresApproval ? "approval" : "auto"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Agent Discoveries — proactive market signal matches */}
       {isConnected && address && (matches.length > 0 || matchesLoading) && (
@@ -794,4 +975,61 @@ function formatBalance(balance: string): string {
   if (value === 0) return "0";
   if (value < 0.001) return "<0.001";
   return value.toFixed(4);
+}
+
+function formatPolicyDollars(value: number): string {
+  if (!Number.isFinite(value)) return "0";
+  if (value >= 1000) return value.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  if (value >= 10) return value.toFixed(0);
+  return value.toFixed(value % 1 === 0 ? 0 : 2);
+}
+
+function policyActionLabel(action: string): string {
+  const labels: Record<string, string> = {
+    external_search: "Browse web",
+    external_purchase: "External buy",
+    purchase: "Catalog buy",
+    tip: "Tip",
+    mint: "Mint",
+  };
+  return labels[action] ?? action.replace(/_/g, " ");
+}
+
+function PolicyMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border/40 bg-background/35 px-2.5 py-2">
+      <div className="mb-1 flex items-center gap-1 text-[9px] uppercase tracking-wider text-muted-foreground">
+        <Gauge className="h-2.5 w-2.5" />
+        {label}
+      </div>
+      <p className="truncate text-[11px] font-bold text-foreground">{value}</p>
+    </div>
+  );
+}
+
+function PolicyPresetButton({
+  active,
+  disabled,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  disabled: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={`rounded-md border px-2 py-1 text-[9px] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+        active
+          ? "border-cyan-500/35 bg-cyan-500/20 text-cyan-200"
+          : "border-border/40 bg-muted/25 text-muted-foreground hover:bg-muted/45 hover:text-foreground"
+      }`}
+    >
+      {children}
+    </button>
+  );
 }
