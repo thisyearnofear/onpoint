@@ -72,13 +72,23 @@ const compressImage = (file: File, quality = 0.8): Promise<Blob> => {
 export function CameraCapture({ onCapture, onCancel }: CameraCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const stopCamera = React.useCallback(() => {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  }, []);
+
   // Initialize camera
   useEffect(() => {
+    let cancelled = false;
+
     const initCamera = async () => {
       try {
         setLoading(true);
@@ -86,9 +96,14 @@ export function CameraCapture({ onCapture, onCancel }: CameraCaptureProps) {
           video: { facingMode: "user" },
           audio: false 
         });
-        setStream(mediaStream);
+        if (cancelled) {
+          mediaStream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        streamRef.current = mediaStream;
         if (videoRef.current) {
           videoRef.current.srcObject = mediaStream;
+          await videoRef.current.play().catch(() => {});
         }
       } catch (err) {
         console.error("Error accessing camera:", err);
@@ -101,11 +116,18 @@ export function CameraCapture({ onCapture, onCancel }: CameraCaptureProps) {
     initCamera();
 
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+      cancelled = true;
+      stopCamera();
+    };
+  }, [stopCamera]);
+
+  useEffect(() => {
+    return () => {
+      if (capturedImage) {
+        URL.revokeObjectURL(capturedImage);
       }
     };
-  }, []);
+  }, [capturedImage]);
 
   const captureImage = async () => {
     if (videoRef.current && canvasRef.current) {
@@ -129,13 +151,21 @@ export function CameraCapture({ onCapture, onCancel }: CameraCaptureProps) {
               const compressedBlob = await compressImage(new File([blob], "camera-capture.jpg"));
               const compressedFile = new File([compressedBlob], "camera-capture.jpg", { type: "image/jpeg" });
               
-              setCapturedImage(URL.createObjectURL(compressedBlob));
+              const imageUrl = URL.createObjectURL(compressedBlob);
+              setCapturedImage((current) => {
+                if (current) URL.revokeObjectURL(current);
+                return imageUrl;
+              });
               onCapture(compressedFile);
             } catch (err) {
               console.error("Error compressing image:", err);
               // Fallback to original if compression fails
               const file = new File([blob], "camera-capture.jpg", { type: "image/jpeg" });
-              setCapturedImage(URL.createObjectURL(blob));
+              const imageUrl = URL.createObjectURL(blob);
+              setCapturedImage((current) => {
+                if (current) URL.revokeObjectURL(current);
+                return imageUrl;
+              });
               onCapture(file);
             }
           }
@@ -145,7 +175,10 @@ export function CameraCapture({ onCapture, onCancel }: CameraCaptureProps) {
   };
 
   const retakeImage = () => {
-    setCapturedImage(null);
+    setCapturedImage((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return null;
+    });
   };
 
   return (

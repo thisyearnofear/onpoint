@@ -46,7 +46,13 @@ export default class AIClientManager {
   }
 
   private isChromeExtension(): boolean {
-    return typeof chrome !== 'undefined' && !!chrome.runtime?.id;
+    const chromeRuntime = (
+      globalThis as typeof globalThis & {
+        chrome?: { runtime?: { id?: string } };
+      }
+    ).chrome?.runtime;
+
+    return Boolean(chromeRuntime?.id);
   }
 
   public getProvider(): AIProvider {

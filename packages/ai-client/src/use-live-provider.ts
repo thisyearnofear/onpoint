@@ -135,6 +135,7 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
   const timerIntervalRef = useRef<number | null>(null);
   const factoryRef = useRef(factory);
   const lastFrameTimeRef = useRef(0);
+  const frameSendInFlightRef = useRef(false);
   const [latencyMs, setLatencyMs] = useState(0);
 
   // Track factory identity to detect provider switches
@@ -181,6 +182,7 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
       clearInterval(frameIntervalRef.current);
       frameIntervalRef.current = null;
     }
+    frameSendInFlightRef.current = false;
     if (sessionRef.current) {
       sessionRef.current.disconnect();
       sessionRef.current = null;
@@ -231,6 +233,7 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          await videoRef.current.play().catch(() => {});
         }
 
         // Provision the backend session
@@ -317,11 +320,26 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
         // Start sending video frames for analysis
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
-        frameIntervalRef.current = window.setInterval(() => {
-          if (videoRef.current && ctx && sessionRef.current) {
-            canvas.width = videoRef.current.videoWidth;
-            canvas.height = videoRef.current.videoHeight;
-            ctx.drawImage(videoRef.current, 0, 0);
+        frameIntervalRef.current = window.setInterval(async () => {
+          const video = videoRef.current;
+          const session = sessionRef.current;
+          if (!video || !ctx || !session || frameSendInFlightRef.current) {
+            return;
+          }
+
+          if (
+            video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
+            video.videoWidth === 0 ||
+            video.videoHeight === 0
+          ) {
+            return;
+          }
+
+          try {
+            frameSendInFlightRef.current = true;
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             const base64Image = canvas.toDataURL("image/jpeg", 0.7);
 
             lastFrameTimeRef.current = Date.now();
@@ -332,10 +350,12 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
                 canvas.width,
                 canvas.height,
               ).data;
-              sessionRef.current.sendImage(base64Image, pixels);
+              await session.sendImage(base64Image, pixels);
             } else {
-              sessionRef.current.sendImage(base64Image);
+              await session.sendImage(base64Image);
             }
+          } finally {
+            frameSendInFlightRef.current = false;
           }
         }, factory.frameIntervalMs());
       } catch (err: unknown) {
