@@ -13,7 +13,11 @@ import {
   Crown,
   Sparkles,
   ChevronRight,
+  TrendingUp,
+  Flame,
+  Users,
 } from "lucide-react";
+import { useAnalysisHistory } from "../lib/stores/analysis-history-store";
 
 // --- Types (mirrored from subscription-service for the component) ---
 
@@ -25,7 +29,10 @@ type NotificationType =
   | "subscription_canceled"
   | "subscription_renewed"
   | "subscription_upgraded"
-  | "usage_limit_reached";
+  | "usage_limit_reached"
+  | "score_milestone"
+  | "streak_reminder"
+  | "persona_unlock";
 
 interface Notification {
   id: string;
@@ -80,6 +87,12 @@ function notificationIcon(type: NotificationType) {
       return { icon: Sparkles, color: "text-accent", bg: "bg-accent/10" };
     case "usage_limit_reached":
       return { icon: CreditCard, color: "text-amber-500", bg: "bg-amber-500/10" };
+    case "score_milestone":
+      return { icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-500/10" };
+    case "streak_reminder":
+      return { icon: Flame, color: "text-orange-500", bg: "bg-orange-500/10" };
+    case "persona_unlock":
+      return { icon: Users, color: "text-violet-500", bg: "bg-violet-500/10" };
     default:
       return { icon: Bell, color: "text-muted-foreground", bg: "bg-muted" };
   }
@@ -110,7 +123,7 @@ function NotificationList({
         <Bell className="w-10 h-10 mx-auto text-muted-foreground/40" />
         <p>No notifications yet</p>
         <p className="text-xs text-muted-foreground/60">
-          Subscription events will appear here
+          Style milestones and subscription events will appear here
         </p>
       </div>
     );
@@ -184,6 +197,69 @@ function NotificationList({
   );
 }
 
+// --- Client-side product notification generator ---
+
+function generateProductNotifications(
+  sessions: { id: string; score: number; persona?: string | null; createdAt: string }[],
+): Notification[] {
+  if (sessions.length === 0) return [];
+  const dismissed = new Set(
+    (typeof window !== "undefined" ? sessionStorage.getItem("dismissed_product_notifs") : "")?.split(",").filter(Boolean) || [],
+  );
+  const result: Notification[] = [];
+
+  const bestScore = Math.max(...sessions.map((s) => s.score));
+  if (bestScore >= 9 && !dismissed.has("score_milestone")) {
+    result.push({
+      id: "product:score_milestone",
+      type: "score_milestone",
+      title: `You hit ${bestScore}/10!`,
+      message: "Your best look yet. Keep pushing the boundaries.",
+      timestamp: Date.now() - 3600000,
+      read: false,
+      actionUrl: "/lab?tab=my-looks",
+    });
+  }
+
+  const weekAgo = Date.now() - 7 * 86400000;
+  const thisWeek = sessions.filter((s) => new Date(s.createdAt).getTime() > weekAgo);
+  if (thisWeek.length >= 3 && !dismissed.has("streak_reminder")) {
+    result.push({
+      id: "product:streak_reminder",
+      type: "streak_reminder",
+      title: `${thisWeek.length} looks this week`,
+      message: thisWeek.length >= 5
+        ? "You're on fire! Keep the streak going."
+        : "One more to hit your weekly streak.",
+      timestamp: Date.now() - 7200000,
+      read: false,
+      actionUrl: "/lab",
+    });
+  }
+
+  const personaCounts: Record<string, number> = {};
+  for (const s of sessions) {
+    if (s.persona) personaCounts[s.persona] = (personaCounts[s.persona] || 0) + 1;
+  }
+  for (const [persona, count] of Object.entries(personaCounts)) {
+    if (count >= 5 && !dismissed.has(`persona_unlock:${persona}`)) {
+      const others = Object.keys(personaCounts).filter((p) => p !== persona);
+      const suggestion = others.length > 0 ? ` Try ${others[0]} for a fresh perspective?` : "";
+      result.push({
+        id: `product:persona_unlock:${persona}`,
+        type: "persona_unlock",
+        title: `${count} looks with ${persona}`,
+        message: `You're a ${persona} regular.${suggestion}`,
+        timestamp: Date.now() - 5400000,
+        read: false,
+        actionUrl: `/lab?tab=try-on`,
+      });
+    }
+  }
+
+  return result;
+}
+
 // --- Component ---
 
 export function NotificationBell({ direction = "down" }: { direction?: "up" | "down" }) {
@@ -192,6 +268,7 @@ export function NotificationBell({ direction = "down" }: { direction?: "up" | "d
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const sessions = useAnalysisHistory((state) => state.sessions);
 
   const isMobileOverlay = direction === "up";
   const prevUnreadRef = useRef(0);
@@ -202,9 +279,12 @@ export function NotificationBell({ direction = "down" }: { direction?: "up" | "d
       const res = await fetch("/api/notifications");
       if (!res.ok) return;
       const data = await res.json();
-      const newCount = data.unreadCount || 0;
+      const serverNotifications: Notification[] = data.notifications || [];
+      const productNotifications = generateProductNotifications(sessions);
+      const merged = [...productNotifications, ...serverNotifications];
+      const newCount = merged.filter((n) => !n.read).length;
       const prevCount = prevUnreadRef.current;
-      setNotifications(data.notifications || []);
+      setNotifications(merged);
       setUnreadCount(newCount);
 
       // Vibrate on new notification arrival (mobile only)
@@ -216,7 +296,7 @@ export function NotificationBell({ direction = "down" }: { direction?: "up" | "d
     } catch {
       // Silently fail — notifications are non-critical
     }
-  }, [isMobileOverlay]);
+  }, [isMobileOverlay, sessions]);
 
   // Initial fetch + polling every 30s
   useEffect(() => {
@@ -249,6 +329,20 @@ export function NotificationBell({ direction = "down" }: { direction?: "up" | "d
 
   // Mark single notification as read
   const handleMarkRead = async (id: string) => {
+    if (id.startsWith("product:")) {
+      const dismissed = sessionStorage.getItem("dismissed_product_notifs") || "";
+      const key = id.replace("product:", "");
+      const keys = dismissed ? dismissed.split(",") : [];
+      if (!keys.includes(key)) {
+        sessionStorage.setItem("dismissed_product_notifs", [...keys, key].join(","));
+      }
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+      return;
+    }
+
     try {
       await fetch("/api/notifications", {
         method: "POST",

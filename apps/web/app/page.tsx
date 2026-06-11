@@ -32,6 +32,8 @@ import { getPersonaConfig } from "../lib/utils/persona-config";
 import type { StylistPersona } from "@repo/ai-client";
 import { useAnalysisHistory } from "../lib/stores/analysis-history-store";
 import { trackRecentlySavedClicked } from "../lib/utils/analytics";
+import { useScoreProgression } from "../lib/hooks/useScoreProgression";
+import { captureReferralFromURL } from "../lib/utils/referral";
 
 export default function Home() {
   return (
@@ -83,6 +85,23 @@ export default function Home() {
           </div>
         </div>
       </header>
+
+      {/* Mobile Header */}
+      <div className="md:hidden sticky top-0 z-50 w-full border-b border-border/60 bg-background/95 backdrop-blur-xl">
+        <div className="flex items-center justify-between px-4 h-12">
+          <div className="flex items-center gap-2">
+            <div className="p-1 rounded-lg bg-gradient-to-br from-primary to-accent shadow-sm">
+              <Palette className="h-3.5 w-3.5 text-white" />
+            </div>
+            <span className="text-sm font-bold tracking-tight">BeOnPoint</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <NotificationBell direction="up" />
+            <Auth0HeaderButton />
+            <ThemeToggle />
+          </div>
+        </div>
+      </div>
 
       <HeroView />
     </div>
@@ -239,6 +258,7 @@ function PersonaMeetModal({
 function WelcomeBackBanner() {
   const sessions = useAnalysisHistory((state) => state.sessions);
   const latest = sessions[0];
+  const { totalLooks, bestScore, trend, daysSinceLastLook } = useScoreProgression();
 
   if (!latest) return null;
 
@@ -252,6 +272,9 @@ function WelcomeBackBanner() {
   else if (daysAgo < 7) timeAgo = `${daysAgo}d ago`;
   else timeAgo = new Date(latest.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
+  const isStale = daysSinceLastLook !== null && daysSinceLastLook >= 7;
+  const trendLabel = trend === "improving" ? "Your scores are trending up" : trend === "declining" ? "Time to try a new stylist?" : null;
+
   return (
     <div className="mb-6 rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 p-4">
       <div className="flex items-center gap-4">
@@ -260,12 +283,16 @@ function WelcomeBackBanner() {
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold text-foreground">
-            Welcome back! 👋
+            {isStale ? "It's been a while — your style skills are waiting" : "Welcome back!"}
           </p>
           <p className="mt-0.5 text-xs text-muted-foreground">
             Last analysis {timeAgo} — <span className="font-semibold text-primary">{latest.score}/10</span>
             {latest.persona && <>, styled by <span className="capitalize font-medium">{latest.persona}</span></>}
+            {totalLooks > 1 && <> · {totalLooks} looks{bestScore ? `, best: ${bestScore}/10` : ""}</>}
           </p>
+          {trendLabel && (
+            <p className="mt-0.5 text-[11px] font-medium text-primary">{trendLabel}</p>
+          )}
         </div>
         <Link
           href="/lab?tab=my-looks"
@@ -377,7 +404,7 @@ function DemoWalkthrough({ onClose }: { onClose: () => void }) {
           {/* Stat badge */}
           {current.stat && (
             <div className="absolute bottom-4 right-4 rounded-xl bg-black/70 px-3 py-2 text-center backdrop-blur-sm">
-              <p className="text-[9px] uppercase tracking-wider text-white/60">{current.stat.label}</p>
+              <p className="text-[11px] uppercase tracking-wider text-white/60">{current.stat.label}</p>
               <p className="text-lg font-black text-white">{current.stat.value}</p>
             </div>
           )}
@@ -582,7 +609,7 @@ function HeroVisual() {
   const current = steps[step]!;
 
   return (
-    <div className="relative rounded-2xl overflow-hidden border border-border/60 bg-gradient-to-br from-primary/5 to-accent/5 shadow-2xl p-6">
+    <div className="relative rounded-2xl overflow-hidden border border-border/40 bg-gradient-to-br from-primary/[0.06] to-accent/[0.04] shadow-xl shadow-primary/10 p-6">
       <div className="absolute top-4 left-4 z-10 px-3 py-1 rounded-full bg-primary/90 text-white text-xs font-bold shadow-sm flex items-center gap-1">
         <Sparkles className="w-3 h-3" />
         AI Vision
@@ -632,7 +659,7 @@ function HeroVisual() {
                     {current.grid[0]!.title}
                   </div>
                   {current.grid[0]!.lines.map((line, i) => (
-                    <div key={i} className="text-[9px] text-muted-foreground">
+                    <div key={i} className="text-[11px] text-muted-foreground">
                       {line}
                     </div>
                   ))}
@@ -782,8 +809,9 @@ function LookCrafter() {
   const handleDownload = async () => {
     if (!cardRef.current) return;
     const html2canvas = (await import("html2canvas")).default;
+    const isDark = document.documentElement.classList.contains("dark");
     const canvas = await html2canvas(cardRef.current, {
-      backgroundColor: "#ffffff",
+      backgroundColor: isDark ? "#0f0f13" : "#ffffff",
       scale: 2,
       useCORS: true,
     });
@@ -794,19 +822,20 @@ function LookCrafter() {
   };
 
   const handleShare = async () => {
-    const text = `I just crafted a look on BeOnPoint! Scored ${result?.score}/10 with ${getPersonaConfig(persona!).characterName} as my stylist. Try it yourself:`;
-    const url = typeof window !== "undefined" ? window.location.origin : "";
+    const personaName = getPersonaConfig(persona!).characterName.split(" ")[0];
+    const text = `${personaName} rated my ${occasion} look ${result?.score}/10 and said "${result?.critique.slice(0, 60)}..." — what would ${personaName} say about yours?`;
+    const shareUrl = typeof window !== "undefined" ? window.location.origin : "";
     if (navigator.share) {
-      navigator.share({ title: "My OnPoint Look", text, url });
+      navigator.share({ title: "My OnPoint Look", text, url: shareUrl });
     } else {
-      await navigator.clipboard.writeText(`${text} ${url}`);
+      await navigator.clipboard.writeText(`${text} ${shareUrl}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
   return (
-    <section className="border-t border-border/60 bg-gradient-to-b from-background to-card/30">
+    <section className="bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.04),transparent_60%)]">
       <div className="container mx-auto px-4 py-12 md:py-16">
         <Reveal>
           <div className="max-w-2xl mx-auto text-center mb-8">
@@ -824,7 +853,7 @@ function LookCrafter() {
         </Reveal>
 
         <Reveal delay={0.1}>
-          <div className="max-w-lg mx-auto rounded-2xl border border-border bg-card shadow-xl overflow-hidden">
+          <div className="max-w-lg mx-auto rounded-2xl border border-border/40 bg-gradient-to-br from-background via-background to-primary/[0.03] shadow-lg shadow-primary/5 overflow-hidden">
             {phase === "choose" && (
               <div className="p-6 space-y-6">
                 {/* Occasion */}
@@ -929,7 +958,7 @@ function LookCrafter() {
                 {/* Polaroid card */}
                 <div
                   ref={cardRef}
-                  className="mx-auto max-w-[280px] bg-white rounded-lg shadow-lg overflow-hidden"
+                  className="mx-auto max-w-[280px] bg-background rounded-lg shadow-[inset_0_2px_8px_hsl(var(--border)/0.3)] overflow-hidden -rotate-1 hover:rotate-0 transition-transform duration-500"
                 >
                   <div className="relative aspect-[3/4]">
                     <Image
@@ -944,7 +973,7 @@ function LookCrafter() {
                       <div className="w-4 h-4 rounded-full bg-primary/80 flex items-center justify-center">
                         {React.createElement(getPersonaConfig(persona!).icon, { className: "w-2.5 h-2.5 text-white" })}
                       </div>
-                      <span className="text-[9px] font-bold text-white">
+                      <span className="text-[11px] font-bold text-white">
                         {getPersonaConfig(persona!).characterName.split(" ")[0]}
                       </span>
                     </div>
@@ -963,19 +992,19 @@ function LookCrafter() {
                       </div>
                     </div>
                   </div>
-                  <div className="p-3 bg-white">
-                    <p className="text-[11px] text-gray-600 italic leading-relaxed">
+                  <div className="p-3 bg-background">
+                    <p className="text-[11px] text-muted-foreground italic leading-relaxed">
                       &ldquo;{result.critique}&rdquo;
                     </p>
                     <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                      <span className="px-1.5 py-0.5 rounded bg-gray-100 text-[9px] font-medium text-gray-500 capitalize">
+                      <span className="px-1.5 py-0.5 rounded bg-muted text-[11px] font-medium text-muted-foreground capitalize">
                         {occasion}
                       </span>
-                      <span className="px-1.5 py-0.5 rounded bg-gray-100 text-[9px] font-medium text-gray-500 capitalize">
+                      <span className="px-1.5 py-0.5 rounded bg-muted text-[11px] font-medium text-muted-foreground capitalize">
                         {vibe}
                       </span>
                     </div>
-                    <p className="text-[8px] text-gray-300 mt-2 text-center tracking-wider uppercase">
+                    <p className="text-fashion-label mt-2 text-center text-muted-foreground/40">
                       Crafted on BeOnPoint
                     </p>
                   </div>
@@ -1024,8 +1053,48 @@ function LookCrafter() {
   );
 }
 
+function EditorialStats() {
+  const sessions = useAnalysisHistory((state) => state.sessions);
+  const totalLooks = sessions.length;
+  const avgScore = totalLooks > 0 ? (sessions.reduce((sum, s) => sum + s.score, 0) / totalLooks).toFixed(1) : null;
+  const bestScore = totalLooks > 0 ? Math.max(...sessions.map((s) => s.score)) : null;
+
+  const stats = [
+    { value: "6", label: "AI stylists", suffix: "" },
+    { value: avgScore || "8", label: "avg. score", suffix: "/10" },
+    { value: totalLooks > 0 ? String(totalLooks) : "30", label: totalLooks > 0 ? "looks you've analyzed" : "seconds to first result", suffix: "" },
+    { value: bestScore ? String(bestScore) : "0", label: totalLooks > 0 ? "your best score" : "platform fees", suffix: totalLooks > 0 ? "/10" : "", prefix: totalLooks > 0 ? "" : "$" },
+  ];
+
+  return (
+    <section className="bg-[radial-gradient(ellipse_at_bottom,hsl(var(--primary)/0.05),transparent_60%)]">
+      <div className="container mx-auto px-4 py-16 md:py-24">
+        <div className="max-w-4xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
+            {stats.map((stat, i) => (
+              <Reveal key={stat.label} delay={i * 0.08}>
+                <div className="text-center md:text-left">
+                  <div className="text-4xl md:text-5xl font-black tracking-tighter text-foreground">
+                    {"prefix" in stat && stat.prefix}{stat.value}
+                    {stat.suffix && <span className="text-primary">{stat.suffix}</span>}
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">{stat.label}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function HeroView() {
   const [showDemo, setShowDemo] = useState(false);
+
+  useEffect(() => {
+    captureReferralFromURL();
+  }, []);
 
   return (
     <div className="min-h-screen">
@@ -1109,7 +1178,7 @@ function HeroView() {
 
               {/* Sample AI output — mobile preview */}
               <Reveal delay={0.4} className="lg:hidden">
-                <div className="mt-4 rounded-2xl border border-primary/20 bg-card/50 p-4 space-y-3">
+                <div className="mt-4 rounded-2xl border border-primary/10 bg-gradient-to-br from-primary/[0.04] to-accent/[0.03] p-4 space-y-3">
                   <div className="flex items-center gap-2 text-xs text-primary font-bold uppercase tracking-wider">
                     <Sparkles className="w-3.5 h-3.5" />
                     Sample AI Analysis
@@ -1143,8 +1212,50 @@ function HeroView() {
       {/* Craft a Look — interactive lead magnet */}
       <LookCrafter />
 
+      {/* Editorial Stats */}
+      <EditorialStats />
+
+      {/* Curator Pitch Strip */}
+      <Reveal>
+        <section className="border-t border-border/30">
+          <div className="container mx-auto px-4 py-10 md:py-14">
+            <div className="max-w-3xl mx-auto text-center">
+              <p className="text-lg md:text-xl font-light tracking-tight text-foreground">
+                You curate fashion?{" "}
+                <Link
+                  href="/curator"
+                  className="font-bold text-primary hover:text-primary/80 transition-colors underline underline-offset-4 decoration-primary/30"
+                >
+                  Open a storefront
+                </Link>
+                {" "}— AI try-on, branded polaroids, WhatsApp checkout. Zero fees.
+              </p>
+            </div>
+          </div>
+        </section>
+      </Reveal>
+
+      {/* Footer */}
+      <footer className="border-t border-border/60 py-8">
+        <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 text-sm text-muted-foreground md:flex-row">
+          <div className="flex items-center gap-2">
+            <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-1 shadow-md">
+              <Palette className="h-3.5 w-3.5 text-white" />
+            </div>
+            BeOnPoint
+          </div>
+          <div className="flex items-center gap-4">
+            <Link href="/curator" className="hover:text-foreground transition-colors">Curators</Link>
+            <Link href="/lab" className="hover:text-foreground transition-colors">Lab</Link>
+            <Link href="/guides" className="hover:text-foreground transition-colors">Guides</Link>
+            <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
+          </div>
+          <p className="text-xs">AI-powered personal styling.</p>
+        </div>
+      </footer>
+
       {/* Mobile Continue Button */}
-      <div className="fixed bottom-20 left-4 right-4 md:hidden z-40">
+      <div className="fixed bottom-4 left-4 right-4 md:hidden z-40 pb-[env(safe-area-inset-bottom)]">
         <Link
           href="/lab"
           className="block w-full bg-primary text-white font-bold py-4 rounded-full shadow-lg text-center"
@@ -1163,7 +1274,7 @@ function RecentlySavedSection() {
   if (recent.length === 0) return null;
 
   return (
-    <section className="border-t border-border/60 bg-gradient-to-b from-card/50 to-background overflow-hidden">
+    <section className="bg-[radial-gradient(ellipse_at_center,hsl(var(--accent)/0.04),transparent_70%)] overflow-hidden">
       <div className="container mx-auto px-4 py-12 md:py-16">
         <Reveal className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-6">
@@ -1233,7 +1344,7 @@ function RecentlySavedSection() {
                     <div className="mt-1 flex items-center gap-2">
                       <span className="text-[10px] text-white/70">{dateLabel}</span>
                       {session.persona && (
-                        <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[9px] font-medium text-white capitalize">
+                        <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[11px] font-medium text-white capitalize">
                           {session.persona}
                         </span>
                       )}

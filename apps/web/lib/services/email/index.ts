@@ -106,6 +106,79 @@ export async function sendWelcomeEmail(email: string, name?: string): Promise<bo
   });
 }
 
+export async function sendStyleRecapEmail(
+  email: string,
+  name: string | undefined,
+  recap: {
+    totalLooks: number;
+    bestScore: number;
+    avgScore: number;
+    mostUsedPersona: string;
+    trend: "improving" | "stable" | "declining";
+  },
+): Promise<boolean> {
+  const trendLabel =
+    recap.trend === "improving"
+      ? "Your scores are trending up — keep pushing."
+      : recap.trend === "declining"
+        ? "Try a bolder palette or a new stylist to shake things up."
+        : "Consistent style — ready to level up?";
+
+  const tip =
+    recap.avgScore < 7
+      ? "Try a bolder palette — experimentation pays off."
+      : recap.avgScore < 8
+        ? "Focus on accessories to push from good to great."
+        : "Your eye is sharp. Try a new persona for fresh perspectives.";
+
+  return send({
+    to: email,
+    subject: `Your OnPoint month in review — ${recap.totalLooks} looks analyzed`,
+    html: `
+      <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 16px;">
+        <h1 style="font-size: 20px; font-weight: 800; margin-bottom: 4px;">
+          Hey${name ? ` ${name}` : ""} — your style month
+        </h1>
+        <p style="color: #94a3b8; font-size: 13px; margin: 0 0 24px;">Here's what you've been up to on OnPoint.</p>
+
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+          <tr>
+            <td style="width: 33%; padding: 12px 4px; text-align: center;">
+              <p style="font-size: 28px; font-weight: 900; margin: 0; color: #6366f1;">${recap.totalLooks}</p>
+              <p style="font-size: 11px; color: #94a3b8; margin: 4px 0 0;">Looks analyzed</p>
+            </td>
+            <td style="width: 33%; padding: 12px 4px; text-align: center;">
+              <p style="font-size: 28px; font-weight: 900; margin: 0; color: #10b981;">${recap.bestScore}/10</p>
+              <p style="font-size: 11px; color: #94a3b8; margin: 4px 0 0;">Best score</p>
+            </td>
+            <td style="width: 33%; padding: 12px 4px; text-align: center;">
+              <p style="font-size: 28px; font-weight: 900; margin: 0; color: #f59e0b;">${recap.avgScore}/10</p>
+              <p style="font-size: 11px; color: #94a3b8; margin: 4px 0 0;">Average</p>
+            </td>
+          </tr>
+        </table>
+
+        <div style="background: #f8fafc; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+          <p style="font-size: 13px; color: #64748b; margin: 0 0 4px;">Most-used stylist</p>
+          <p style="font-size: 16px; font-weight: 700; color: #334155; margin: 0; text-transform: capitalize;">${recap.mostUsedPersona}</p>
+        </div>
+
+        <div style="background: #f8fafc; border-radius: 12px; padding: 16px; margin-bottom: 24px;">
+          <p style="font-size: 13px; color: #64748b; margin: 0 0 4px;">Trend</p>
+          <p style="font-size: 14px; font-weight: 600; color: #334155; margin: 0;">${trendLabel}</p>
+        </div>
+
+        <div style="border-left: 3px solid #6366f1; padding-left: 12px; margin-bottom: 28px;">
+          <p style="font-size: 13px; color: #334155; margin: 0;"><strong>Tip:</strong> ${tip}</p>
+        </div>
+
+        <a href="${APP_URL}" style="display: inline-block; padding: 12px 24px; background: #6366f1; color: white; text-decoration: none; border-radius: 999px; font-weight: 700;">Analyze your next look →</a>
+        <p style="color: #94a3b8; font-size: 12px; margin-top: 32px;">OnPoint — AI-powered personal styling</p>
+      </div>
+    `,
+  });
+}
+
 export async function sendStyleReportEmail(
   email: string,
   name: string | undefined,
