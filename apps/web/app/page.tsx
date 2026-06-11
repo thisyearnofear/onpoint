@@ -16,6 +16,10 @@ import {
   X,
   Play,
   ChevronRight,
+  Download,
+  Share2,
+  Shirt,
+  Wand2,
 } from "lucide-react";
 import { Reveal } from "../components/ui/Reveal";
 import { ThemeToggle } from "../components/ThemeToggle";
@@ -295,21 +299,21 @@ function DemoWalkthrough({ onClose }: { onClose: () => void }) {
     {
       title: "Upload your photo",
       description: "Snap a photo or upload one from your gallery. OnPoint analyzes your outfit in seconds.",
-      image: "/assets/1Product.png",
+      image: "/assets/1Model.png",
       badge: "1. Upload",
       stat: null,
     },
     {
       title: "AI analyzes your style",
       description: "Our AI stylists read your silhouette, color palette, and fit. Get a detailed score and personalized feedback.",
-      image: "/assets/1Product.png",
+      image: "/assets/2Model.png",
       badge: "2. AI Analysis",
       stat: { label: "Score", value: "8/10" },
     },
     {
       title: "Save & share your look",
       description: "Save to My Looks, share a polaroid-style card to Farcaster or Twitter, or email yourself the full report.",
-      image: "/assets/2Product.png",
+      image: "/assets/3Model.png",
       badge: "3. Share",
       stat: { label: "Shared", value: "1.2K" },
     },
@@ -448,36 +452,62 @@ function DemoWalkthrough({ onClose }: { onClose: () => void }) {
   );
 }
 
+const PERSONA_QUOTES: Record<string, string> = {
+  miranda: "Passable.",
+  edina: "Fabulous!",
+  shaft: "Right on.",
+  luxury: "Exquisite.",
+  streetwear: "Fresh.",
+  sustainable: "Thoughtful.",
+};
+
+function PersonaChip({ persona }: { persona: StylistPersona }) {
+  const config = getPersonaConfig(persona);
+  const Icon = config.icon;
+  return (
+    <div className={`inline-flex items-center gap-1.5 rounded-full ${config.bg} border ${config.border} px-2.5 py-1 transition-all duration-500`}>
+      <Icon className={`h-3 w-3 ${config.text}`} />
+      <span className="text-[10px] font-bold text-foreground">
+        {config.characterName.split(" ")[0]}:
+      </span>
+      <span className={`text-[10px] font-medium ${config.text}`}>
+        &ldquo;{PERSONA_QUOTES[persona]}&rdquo;
+      </span>
+    </div>
+  );
+}
+
 function HeroVisual() {
   const [step, setStep] = useState(0);
+  const cyclingPersonas: StylistPersona[] = ["miranda", "edina", "shaft", "luxury", "streetwear"];
 
   useEffect(() => {
-    const id = setInterval(() => setStep((s) => (s + 1) % 3), 4000);
+    const id = setInterval(() => setStep((s) => (s + 1) % 5), 5000);
     return () => clearInterval(id);
   }, []);
 
   const steps = [
     {
-      mainImage: "/assets/1Product.png",
-      mainLabel: "1. Upload Photo",
+      mainImage: "/assets/1Model.png",
+      mainLabel: "1. Upload Your Look",
       grid: [
         {
           type: "text" as const,
-          title: "FIT ANALYSIS",
-          lines: ["Athletic build", "Broad shoulders", "Slim waist"],
+          title: "SNAP & ANALYZE",
+          lines: ["Take a photo", "AI scans instantly", "Any outfit works"],
           color: "primary",
         },
         {
           type: "image" as const,
-          image: "/assets/2Product.png",
-          label: "2. AI Judges",
+          image: "/assets/1Product.png",
+          label: "Detected items",
           color: "accent",
         },
       ],
     },
     {
-      mainImage: "/assets/1Product.png",
-      mainLabel: "2. AI Analysis",
+      mainImage: "/assets/2Model.png",
+      mainLabel: "2. AI Reads Your Style",
       grid: [
         {
           type: "text" as const,
@@ -488,25 +518,61 @@ function HeroVisual() {
         {
           type: "image" as const,
           image: "/assets/2Product.png",
-          label: "Recommended",
+          label: "Palette match",
+          color: "accent",
+        },
+      ],
+    },
+    {
+      mainImage: "/assets/3Model.png",
+      mainLabel: "3. Get Your Verdict",
+      grid: [
+        {
+          type: "text" as const,
+          title: "CRITIQUE",
+          lines: ["Strong proportions", "Elevate accessories", "Great layering"],
+          color: "accent",
+        },
+        {
+          type: "image" as const,
+          image: "/assets/3Product.png",
+          label: "Suggested fix",
+          color: "primary",
+        },
+      ],
+    },
+    {
+      mainImage: "/assets/1Product.png",
+      mainLabel: "4. Agent Finds Matches",
+      grid: [
+        {
+          type: "text" as const,
+          title: "SHOPPING",
+          lines: ["3 items found", "Within budget", "Ready to buy"],
+          color: "primary",
+        },
+        {
+          type: "image" as const,
+          image: "/assets/2Model.png",
+          label: "Best match",
           color: "accent",
         },
       ],
     },
     {
       mainImage: "/assets/2Product.png",
-      mainLabel: "3. Agent Shops",
+      mainLabel: "5. Share Your Look",
       grid: [
         {
           type: "text" as const,
-          title: "FOUND",
-          lines: ["3 matching items", "Within budget", "Ready to buy"],
+          title: "SHARE",
+          lines: ["Polaroid card", "Farcaster cast", "Download PNG"],
           color: "accent",
         },
         {
           type: "image" as const,
-          image: "/assets/3Product.png",
-          label: "Best match",
+          image: "/assets/3Model.png",
+          label: "Your style",
           color: "primary",
         },
       ],
@@ -517,31 +583,13 @@ function HeroVisual() {
 
   return (
     <div className="relative rounded-2xl overflow-hidden border border-border/60 bg-gradient-to-br from-primary/5 to-accent/5 shadow-2xl p-6">
-      {/* Mascot floating badge */}
-      <div className="absolute -top-3 -right-3 z-20 animate-float">
-        <div className="relative">
-          <PersonaAvatar persona="edina" size="sm" animate="wave" showRing />
-          <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-0.5 rounded-full bg-card border border-border text-[9px] font-medium shadow-sm">
-            &ldquo;Absolutely fabulous!&rdquo;
-          </div>
-        </div>
-      </div>
-
       <div className="absolute top-4 left-4 z-10 px-3 py-1 rounded-full bg-primary/90 text-white text-xs font-bold shadow-sm flex items-center gap-1">
         <Sparkles className="w-3 h-3" />
         AI Vision
       </div>
 
-      {/* Step indicators */}
-      <div className="absolute top-4 right-4 z-10 flex gap-1.5">
-        {steps.map((_, i) => (
-          <span
-            key={i}
-            className={`h-1.5 rounded-full transition-all duration-300 ${
-              i === step ? "w-4 bg-primary" : "w-1.5 bg-primary/30"
-            }`}
-          />
-        ))}
+      <div className="absolute top-4 right-4 z-10">
+        <PersonaChip persona={cyclingPersonas[step % cyclingPersonas.length]!} />
       </div>
 
       <div className="space-y-3">
@@ -624,7 +672,355 @@ function HeroVisual() {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Step dots */}
+      <div className="flex justify-center gap-1.5 mt-3">
+        {steps.map((_, i) => (
+          <span
+            key={i}
+            className={`h-1.5 rounded-full transition-all duration-300 ${
+              i === step ? "w-4 bg-primary" : "w-1.5 bg-primary/30"
+            }`}
+          />
+        ))}
+      </div>
     </div>
+  );
+}
+
+const LOOK_PRESETS: Record<string, { image: string; scoreRange: [number, number]; palette: string[] }> = {
+  "date-minimalist": { image: "/assets/1Model.png", scoreRange: [8, 9], palette: ["#2C2C2C", "#F5F0E8", "#C4A882"] },
+  "date-bold": { image: "/assets/2Model.png", scoreRange: [7, 9], palette: ["#8B0000", "#FFD700", "#1A1A2E"] },
+  "date-vintage": { image: "/assets/3Model.png", scoreRange: [7, 8], palette: ["#D4A574", "#8B6914", "#F5F5DC"] },
+  "date-streetwear": { image: "/assets/1Model.png", scoreRange: [7, 8], palette: ["#FF6B35", "#000000", "#F7F7F7"] },
+  "office-minimalist": { image: "/assets/2Model.png", scoreRange: [8, 9], palette: ["#1B1B1B", "#FFFFFF", "#4A6FA5"] },
+  "office-bold": { image: "/assets/3Model.png", scoreRange: [7, 8], palette: ["#003366", "#CC0000", "#F5F5F5"] },
+  "office-vintage": { image: "/assets/1Model.png", scoreRange: [7, 9], palette: ["#8B7355", "#2F4F4F", "#FFFFF0"] },
+  "office-streetwear": { image: "/assets/2Model.png", scoreRange: [7, 8], palette: ["#36454F", "#000080", "#E8E8E8"] },
+  "festival-minimalist": { image: "/assets/3Model.png", scoreRange: [7, 8], palette: ["#FF69B4", "#FFFFFF", "#FFD700"] },
+  "festival-bold": { image: "/assets/1Model.png", scoreRange: [8, 9], palette: ["#FF1493", "#00CED1", "#FFD700"] },
+  "festival-vintage": { image: "/assets/2Model.png", scoreRange: [7, 8], palette: ["#CD853F", "#800080", "#F0E68C"] },
+  "festival-streetwear": { image: "/assets/3Model.png", scoreRange: [8, 9], palette: ["#FF4500", "#1E90FF", "#32CD32"] },
+  "street-minimalist": { image: "/assets/1Model.png", scoreRange: [7, 8], palette: ["#000000", "#808080", "#FFFFFF"] },
+  "street-bold": { image: "/assets/2Model.png", scoreRange: [8, 9], palette: ["#FF0000", "#000000", "#FFFFFF"] },
+  "street-vintage": { image: "/assets/3Model.png", scoreRange: [7, 8], palette: ["#8B4513", "#DEB887", "#556B2F"] },
+  "street-streetwear": { image: "/assets/1Model.png", scoreRange: [8, 9], palette: ["#FF6347", "#4169E1", "#000000"] },
+};
+
+const PERSONA_CRITIQUES: Record<string, string[]> = {
+  miranda: [
+    "The silhouette is acceptable, but the palette shows promise. Refine the accessories.",
+    "Interesting proportions. The layering works — keep pushing the boundaries.",
+    "A solid foundation. Now elevate it with one unexpected detail.",
+  ],
+  edina: [
+    "Darling, this is STUNNING. The colors are singing! Just add more drama!",
+    "Oh honey, YES! This turns heads. Now make it louder — MORE IS MORE!",
+    "Fabulous doesn't even cover it! The vibe is immaculate. Add sparkle!",
+  ],
+  shaft: [
+    "Clean. Confident. You look like you own the room. Keep it sharp.",
+    "That's what I'm talking about. Strong look, strong energy. Stay bold.",
+    "Right on. This has swagger written all over it. Wear it like you mean it.",
+  ],
+};
+
+function LookCrafter() {
+  const [phase, setPhase] = useState<"choose" | "generating" | "result">("choose");
+  const [occasion, setOccasion] = useState<string | null>(null);
+  const [vibe, setVibe] = useState<string | null>(null);
+  const [persona, setPersona] = useState<StylistPersona | null>(null);
+  const [result, setResult] = useState<{ image: string; score: number; critique: string; palette: string[] } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const occasions = [
+    { id: "date", label: "Date Night", emoji: "🌙" },
+    { id: "office", label: "Office", emoji: "💼" },
+    { id: "festival", label: "Festival", emoji: "🎪" },
+    { id: "street", label: "Street", emoji: "🏙️" },
+  ];
+
+  const vibes = [
+    { id: "minimalist", label: "Minimalist" },
+    { id: "bold", label: "Bold" },
+    { id: "vintage", label: "Vintage" },
+    { id: "streetwear", label: "Streetwear" },
+  ];
+
+  const freePersonas: { id: StylistPersona; name: string; emoji: string }[] = [
+    { id: "miranda", name: "Miranda", emoji: "⭐" },
+    { id: "edina", name: "Edina", emoji: "✨" },
+    { id: "shaft", name: "Shaft", emoji: "💬" },
+  ];
+
+  const canGenerate = occasion && vibe && persona;
+
+  const handleGenerate = useCallback(() => {
+    if (!canGenerate) return;
+    setPhase("generating");
+    setTimeout(() => {
+      const key = `${occasion}-${vibe}`;
+      const preset = LOOK_PRESETS[key] || LOOK_PRESETS["date-minimalist"]!;
+      const score = preset.scoreRange[0] + Math.floor(Math.random() * (preset.scoreRange[1] - preset.scoreRange[0] + 1));
+      const critiques = PERSONA_CRITIQUES[persona!] || PERSONA_CRITIQUES.edina!;
+      const critique = critiques[Math.floor(Math.random() * critiques.length)]!;
+      setResult({ image: preset.image, score, critique, palette: preset.palette });
+      setPhase("result");
+    }, 1800);
+  }, [occasion, vibe, persona, canGenerate]);
+
+  const handleReset = () => {
+    setPhase("choose");
+    setOccasion(null);
+    setVibe(null);
+    setPersona(null);
+    setResult(null);
+    setCopied(false);
+  };
+
+  const handleDownload = async () => {
+    if (!cardRef.current) return;
+    const html2canvas = (await import("html2canvas")).default;
+    const canvas = await html2canvas(cardRef.current, {
+      backgroundColor: "#ffffff",
+      scale: 2,
+      useCORS: true,
+    });
+    const link = document.createElement("a");
+    link.download = "my-onpoint-look.png";
+    link.href = canvas.toDataURL();
+    link.click();
+  };
+
+  const handleShare = async () => {
+    const text = `I just crafted a look on BeOnPoint! Scored ${result?.score}/10 with ${getPersonaConfig(persona!).characterName} as my stylist. Try it yourself:`;
+    const url = typeof window !== "undefined" ? window.location.origin : "";
+    if (navigator.share) {
+      navigator.share({ title: "My OnPoint Look", text, url });
+    } else {
+      await navigator.clipboard.writeText(`${text} ${url}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <section className="border-t border-border/60 bg-gradient-to-b from-background to-card/30">
+      <div className="container mx-auto px-4 py-12 md:py-16">
+        <Reveal>
+          <div className="max-w-2xl mx-auto text-center mb-8">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-xs font-medium text-accent mb-4">
+              <Wand2 className="w-3.5 h-3.5" />
+              Interactive Preview
+            </div>
+            <h2 className="text-2xl md:text-3xl font-black tracking-tight">
+              Craft a look, get your score
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Pick a vibe, choose your AI stylist, and get a shareable look card — no sign-up needed.
+            </p>
+          </div>
+        </Reveal>
+
+        <Reveal delay={0.1}>
+          <div className="max-w-lg mx-auto rounded-2xl border border-border bg-card shadow-xl overflow-hidden">
+            {phase === "choose" && (
+              <div className="p-6 space-y-6">
+                {/* Occasion */}
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                    1. Pick the occasion
+                  </p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {occasions.map((o) => (
+                      <button
+                        key={o.id}
+                        onClick={() => setOccasion(o.id)}
+                        className={`flex flex-col items-center gap-1 rounded-xl p-3 text-xs font-medium transition-all ${
+                          occasion === o.id
+                            ? "bg-primary/10 border-2 border-primary text-primary shadow-sm"
+                            : "bg-muted/50 border-2 border-transparent text-muted-foreground hover:bg-muted"
+                        }`}
+                      >
+                        <span className="text-lg">{o.emoji}</span>
+                        <span>{o.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Vibe */}
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                    2. Pick your vibe
+                  </p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {vibes.map((v) => (
+                      <button
+                        key={v.id}
+                        onClick={() => setVibe(v.id)}
+                        className={`rounded-xl p-2.5 text-xs font-medium transition-all ${
+                          vibe === v.id
+                            ? "bg-primary/10 border-2 border-primary text-primary shadow-sm"
+                            : "bg-muted/50 border-2 border-transparent text-muted-foreground hover:bg-muted"
+                        }`}
+                      >
+                        {v.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Persona */}
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                    3. Choose your stylist
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    {freePersonas.map((p) => {
+                      const config = getPersonaConfig(p.id);
+                      return (
+                        <button
+                          key={p.id}
+                          onClick={() => setPersona(p.id)}
+                          className={`flex flex-col items-center gap-1.5 rounded-xl p-3 transition-all ${
+                            persona === p.id
+                              ? `${config.bg} border-2 ${config.border.replace("border-", "border-")} shadow-sm`
+                              : "bg-muted/50 border-2 border-transparent hover:bg-muted"
+                          }`}
+                        >
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${config.bg}`}>
+                            {React.createElement(config.icon, { className: `w-5 h-5 ${config.text}` })}
+                          </div>
+                          <span className="text-[11px] font-medium">{p.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Generate button */}
+                <button
+                  onClick={handleGenerate}
+                  disabled={!canGenerate}
+                  className="w-full flex items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-sm font-bold text-white transition-all hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Generate My Look
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {phase === "generating" && (
+              <div className="p-12 flex flex-col items-center justify-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
+                  <Sparkles className="w-8 h-8 text-primary animate-spin" />
+                </div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  {getPersonaConfig(persona!).characterName} is styling your look...
+                </p>
+              </div>
+            )}
+
+            {phase === "result" && result && (
+              <div className="p-6 space-y-4">
+                {/* Polaroid card */}
+                <div
+                  ref={cardRef}
+                  className="mx-auto max-w-[280px] bg-white rounded-lg shadow-lg overflow-hidden"
+                >
+                  <div className="relative aspect-[3/4]">
+                    <Image
+                      src={result.image}
+                      alt="Your crafted look"
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                    <div className="absolute top-3 left-3 flex items-center gap-1.5 rounded-full bg-black/50 px-2 py-1 backdrop-blur-sm">
+                      <div className="w-4 h-4 rounded-full bg-primary/80 flex items-center justify-center">
+                        {React.createElement(getPersonaConfig(persona!).icon, { className: "w-2.5 h-2.5 text-white" })}
+                      </div>
+                      <span className="text-[9px] font-bold text-white">
+                        {getPersonaConfig(persona!).characterName.split(" ")[0]}
+                      </span>
+                    </div>
+                    <div className="absolute bottom-3 left-3 right-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-2xl font-black text-white drop-shadow-lg">{result.score}/10</span>
+                        <div className="flex gap-1">
+                          {result.palette.map((color, i) => (
+                            <div
+                              key={i}
+                              className="w-4 h-4 rounded-full border-2 border-white/50 shadow-sm"
+                              style={{ backgroundColor: color }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-3 bg-white">
+                    <p className="text-[11px] text-gray-600 italic leading-relaxed">
+                      &ldquo;{result.critique}&rdquo;
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                      <span className="px-1.5 py-0.5 rounded bg-gray-100 text-[9px] font-medium text-gray-500 capitalize">
+                        {occasion}
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded bg-gray-100 text-[9px] font-medium text-gray-500 capitalize">
+                        {vibe}
+                      </span>
+                    </div>
+                    <p className="text-[8px] text-gray-300 mt-2 text-center tracking-wider uppercase">
+                      Crafted on BeOnPoint
+                    </p>
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex gap-2 justify-center">
+                  <button
+                    onClick={handleDownload}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Download
+                  </button>
+                  <button
+                    onClick={handleShare}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                  >
+                    {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Share2 className="w-3.5 h-3.5" />}
+                    {copied ? "Copied!" : "Share"}
+                  </button>
+                  <button
+                    onClick={handleReset}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                  >
+                    <Shirt className="w-3.5 h-3.5" />
+                    New Look
+                  </button>
+                </div>
+
+                {/* CTA to lab */}
+                <Link
+                  href={`/lab?persona=${persona}`}
+                  className="flex items-center justify-center gap-2 w-full rounded-full bg-primary py-3 text-sm font-bold text-white hover:bg-primary/90 transition-colors"
+                >
+                  <Camera className="w-4 h-4" />
+                  Try it with your own photo
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            )}
+          </div>
+        </Reveal>
+      </div>
+    </section>
   );
 }
 
@@ -743,6 +1139,9 @@ function HeroView() {
 
       {/* Recently Saved — shown when user has saved looks */}
       <RecentlySavedSection />
+
+      {/* Craft a Look — interactive lead magnet */}
+      <LookCrafter />
 
       {/* Mobile Continue Button */}
       <div className="fixed bottom-20 left-4 right-4 md:hidden z-40">
