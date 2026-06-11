@@ -78,8 +78,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <Auth0Provider>
-      <WagmiProvider config={config}>
-        <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <WagmiProvider config={config}>
           <MiniAppProvider analyticsEnabled={true}>
             <MiniPayProvider>
               <RainbowKitProvider
@@ -101,8 +101,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
               </RainbowKitProvider>
             </MiniPayProvider>
           </MiniAppProvider>
-        </QueryClientProvider>
-      </WagmiProvider>
+        </WagmiProvider>
+      </QueryClientProvider>
     </Auth0Provider>
   );
 }
