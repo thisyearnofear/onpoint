@@ -10,9 +10,9 @@ import { SplitsClient } from "@0xsplits/splits-sdk";
 import { type WalletAdapter } from "@onpoint/shared-types";
 
 export { type WalletAdapter, type WalletAdapterType } from "@onpoint/shared-types";
-export { createWalletAdapter } from './factory.js';
-export { StandardWalletAdapter } from './adapters/standard-adapter.js';
-export { MiniPayAdapter } from './adapters/minipay-adapter.js';
+export { createWalletAdapter } from './factory';
+export { StandardWalletAdapter } from './adapters/standard-adapter';
+export { MiniPayAdapter } from './adapters/minipay-adapter';
 
 export interface NetworkConfig {
   chainId: number;
