@@ -32,8 +32,6 @@ import { Toaster } from "@/components/toast";
 import { StyleProvider } from "@/lib/context/StyleContext";
 import { MiniPayProvider } from "@/components/MiniPayProvider";
 
-const queryClient = new QueryClient();
-
 function MiniAppReady() {
   const { isSDKLoaded } = useMiniApp();
   useEffect(() => {
@@ -76,12 +74,13 @@ function useResolvedTheme() {
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const theme = useResolvedTheme();
+  const [queryClient] = useState(() => new QueryClient());
 
   return (
     <Auth0Provider>
-      <MiniAppProvider analyticsEnabled={true}>
-        <WagmiProvider config={config}>
-          <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <MiniAppProvider analyticsEnabled={true}>
+          <WagmiProvider config={config}>
             <MiniPayProvider>
               <RainbowKitProvider
                 theme={(theme === "dark" ? darkTheme : lightTheme)({
@@ -101,9 +100,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
                 </AIProviderContext>
               </RainbowKitProvider>
             </MiniPayProvider>
-          </QueryClientProvider>
-        </WagmiProvider>
-      </MiniAppProvider>
+          </WagmiProvider>
+        </MiniAppProvider>
+      </QueryClientProvider>
     </Auth0Provider>
   );
 }
