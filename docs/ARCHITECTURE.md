@@ -152,6 +152,9 @@ These modules live in `apps/web/lib/` and are designed to be extracted into any 
 | **Self Protocol**           | `services/self-protocol.ts`                 | Self Agent ID registration and verification            |
 | **Heartbeat Loop**          | `api/agent/heartbeat/route.ts`            | Proactive gas monitoring, fraud checks, receipt logging  |
 | **Agent Dashboard**         | `api/agent/dashboard/route.ts`            | Public transparency endpoint for judges                  |
+| **Referral Links**          | `lib/utils/referral.ts`                   | Trackable share links with base62-encoded ref codes      |
+| **Score Progression**       | `lib/hooks/useScoreProgression.ts`         | Composable hook for trend, best score, persona usage     |
+| **Style Recap Cron**        | `api/cron/style-recap/route.ts`           | Monthly re-engagement email via Hetzner worker           |
 
 ## AI Provider Abstraction
 

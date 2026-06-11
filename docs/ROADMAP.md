@@ -153,11 +153,10 @@ Document and demonstrate Celo's sub-cent advantage.
 ## Upcoming
 
 ### Immediate (Aligned with Hackathon Sprint)
-- [ ] Surface retail intelligence to curators (product gaps, competitor prices)
+- [x] Set up analytics dashboard (PostHog integrated — event tracking for try-ons, shares, persona selection, referral landings)
 - [ ] Document sub-cent transaction costs with live dashboard
 - [ ] Polish MiniPay auto-connect and fee abstraction UX
 - [ ] Extract reusable agent skill modules (style-analysis, web-discovery, verifiable-receipts)
-- [ ] Set up analytics dashboard (PostHog or Mixpanel)
 
 ### Phase 13: Content & Affiliate Monetization 🎯
 > **Context**: Skimlinks rejected initial application due to insufficient original content and missing About page. These are now live — reapply after traffic builds.
@@ -185,8 +184,8 @@ Document and demonstrate Celo's sub-cent advantage.
 ### Short-term (Post-Hackathon)
 - [ ] Premium persona unlock flow with payment
 - [ ] Agent wallet top-up interface
-- [ ] Email notifications for agent purchases
-- [ ] Saved looks gallery with sharing
+- [x] Email notifications — style recap email, score milestone, streak reminders (`lib/services/email/index.ts`, `NotificationBell`)
+- [x] Saved looks gallery with sharing — analysis history store + LookCrafter polaroid download + referral-enhanced share links
 - [ ] Mobile app prototype (React Native)
 
 ### Medium-term (Next Quarter)
@@ -242,6 +241,9 @@ Document and demonstrate Celo's sub-cent advantage.
 | Curator: try-on → purchase | > 15% | 📊 Phase 11 |
 | Cross-Curator purchases | ≥ 1/week | 📊 Phase 11 |
 | Onboarded Curators | ≥ 5 in 90 days | 📊 Phase 11 |
+| LookCrafter → Try-On | > 25% | 📊 Growth |
+| Referral share → return visit | > 10% | 📊 Growth |
+| Weekly returning users | > 30% of DAU | 📊 Growth |
 
 ---
 

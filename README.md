@@ -33,6 +33,8 @@ See [ADR 0005 — Agent Spending Controls](./docs/adr/0005-agent-spending-contro
 | **Autonomous Commerce Loop** | Worker tracks price history per item, detects drops ≥10%, checks user budget & autonomy threshold, auto-buys or surfaces hot deal suggestions |
 | **Style Guides & Content** | 5 original fashion buying guides at `/guides` covering football kits, Ankara prints, streetwear, vintage, and formal wear — drives SEO and affiliate monetization |
 | **About Page** | `/about` with mission, story, and team identity — meets publisher transparency requirements for affiliate networks |
+| **Interactive LookCrafter** | Zero-signup lead magnet: pick occasion + vibe + persona, get a shareable polaroid result card — drives viral loops |
+| **Referral & Score Tracking** | Trackable share links, score progression hook, product notifications (milestones, streaks), monthly style recap email |
 
 ## How It Works
 

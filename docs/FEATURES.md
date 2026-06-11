@@ -84,6 +84,60 @@ Latency samples are persisted to localStorage per provider (circular buffer, max
 
 ---
 
+## Landing Page & Growth Loops
+
+The landing page (`/`) doubles as an editorial lead-gen surface with interactive previews, viral share mechanics, and re-engagement loops.
+
+### Interactive LookCrafter
+
+A zero-signup lead magnet: users pick an occasion, vibe, and AI stylist persona, then receive a shareable polaroid-style result card.
+- Client-side generation (no API calls) — instant results
+- Downloadable PNG via html2canvas (dark/light mode aware)
+- Curiosity-generating share copy: persona-specific quotes + scores
+- Dark-mode-aware polaroid with subtle rotation and editorial watermark (`text-fashion-label`)
+
+### Referral Link System
+
+Trackable deep links for every share. Encodes a short ref code (base62 hash of user + source + persona) into `?ref=` URL params.
+- **File**: `lib/utils/referral.ts`
+- **Sources**: `look_crafter`, `polaroid`, `curator_storefront`, `style_report`
+- Landing page captures `?ref=` → sessionStorage → attribution
+- `generateShareLink()` and `parseReferralLink()` for DRY link management
+
+### Score Progression & Re-Engagement
+
+A composable hook (`lib/hooks/useScoreProgression.ts`) reads from the analysis history zustand store and computes:
+- **Trend**: improving / stable / declining from last 3 scores
+- **Best score**, average, total looks, most-used persona, days since last look
+
+Consumed by:
+- **WelcomeBackBanner**: shows trend arrows, total looks, best score, stale-user messaging (>7 days)
+- **EditorialStats section**: editorial big-numbers layout below the fold
+- **Product notifications**: score milestones, streak reminders, persona unlocks
+
+### Product Notifications
+
+Three client-side notification types merged with server subscription events in `NotificationBell`:
+- `score_milestone`: "You hit 9/10! Your best look yet."
+- `streak_reminder`: "3 looks this week — one more to hit your streak."
+- `persona_unlock`: "You've used Miranda 5 times. Try Edina for a roast?"
+
+Generated from `useAnalysisHistory` data, deduplicated via sessionStorage dismissal.
+
+### Style Recap Email
+
+Monthly re-engagement email via Resend (`lib/services/email/index.ts`):
+- `sendStyleRecapEmail()` with personalized recap (total looks, best score, trend, most-used persona, actionable tip)
+- Cron route at `/api/cron/style-recap` for Hetzner worker scheduling
+- Aggregate platform stats from retention report when per-user data isn't yet available server-side
+
+### Design System
+
+- **Typography utilities**: `text-fashion-display` (weight 100, tight tracking), `text-fashion-headline` (weight 900), `text-fashion-label` (uppercase micro-labels)
+- **Atmospheric backgrounds**: Radial gradients (`ellipse_at_top`, `ellipse_at_center`, `ellipse_at_bottom`) replace generic `bg-card` containers — no card borders, no drop shadows on the landing page
+
+---
+
 ## AI Curators (Stylist Personas)
 
 The six personas below are **AI Curators** under the unified schema. They are loaded from `lib/utils/persona-config.ts` and re-emitted as `Curator` objects with `type: "ai"`, so they can be slotted into any human Curator's storefront as a "second opinion" voice.
@@ -339,3 +393,8 @@ All 16 ported agent routes run directly on Hetzner Express, backed by `@repo/age
 | NFT Minting              | ✅  | -          | ✅       | Complete |
 | Social Sharing           | ✅  | ✅         | ✅       | Complete |
 | Agentic Tipping          | ✅  | -          | -        | Complete |
+| **LookCrafter Lead Magnet** | ✅ | -       | -        | Complete |
+| **Referral Link System** | ✅  | -          | -        | Complete |
+| **Score Progression**    | ✅  | -          | -        | Complete |
+| **Product Notifications**| ✅  | -          | -        | Complete |
+| **Style Recap Email**    | ✅  | -          | -        | Complete |
