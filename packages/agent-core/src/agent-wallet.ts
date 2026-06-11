@@ -3,7 +3,7 @@
  *
  * Dual-standard wallet layer:
  * - Tether WDK: self-custodial multi-chain wallet (Tether Hackathon track)
- * - Open Wallet Standard (OWS): policy-gated signing, x402 compatibility
+ * - Open Wallet Standard (OWS): optional backend-only policy signing/x402 support
  *
  * WDK uses bare-node-runtime which may not be available in all environments.
  * Falls back to AGENT_WALLET_ADDRESS env var for address resolution.
@@ -20,11 +20,14 @@ import {
   getExplorerUrl,
   type ChainName,
 } from "./chains";
+import { createRequire } from "node:module";
 
 // WDK modules loaded dynamically at runtime
 let WDK: any = null;
 let WalletManagerEvm: any = null;
 let wdkAvailable = false;
+const requireOptionalNative = createRequire(import.meta.url);
+const OWS_PACKAGE_NAME = "@open-wallet-standard/core";
 
 async function loadWDK() {
   if (WDK !== null) return;
@@ -336,7 +339,9 @@ export class AgentWalletService {
   private async loadOWS() {
     if (this.owsModule !== null) return;
     try {
-      this.owsModule = await import("@open-wallet-standard/core");
+      // OWS ships platform-specific .node binaries. Keep it as a runtime-only
+      // optional dependency so Next.js does not try to parse the native binary.
+      this.owsModule = requireOptionalNative(OWS_PACKAGE_NAME);
       this.owsAvailable = true;
     } catch {
       this.owsAvailable = false;

@@ -89,6 +89,21 @@ Integrates Bright Data into the agent-web-bridge tier chain for two outputs: sho
 - [ ] Just-in-Time consent flow
 - [ ] Step-up auth for >$50 transactions
 
+### Phase 14: Agent Spending Controls 🎯
+> **ADR**: [0005](./adr/0005-agent-spending-controls.md)
+
+Make agent autonomy legible and enforceable before raising purchase limits.
+OWS remains optional backend infrastructure; the user-facing feature is the
+policy surface.
+
+**Deliverables:**
+- [ ] Policy summary UI: daily cap, approval threshold, allowed actions
+- [ ] Curator/merchant allowlist for autonomous purchases
+- [ ] Action-specific limits for browse, reserve, tip, buy, mint
+- [ ] Signed audit log visible from the wallet/agent panel
+- [ ] Step-up approval for high-value or unfamiliar merchants
+- [ ] Decide whether signing-layer enforcement via OWS is required before expanding autonomous purchase limits
+
 ---
 
 ## Celo Onchain Agents Hackathon Sprint 🏆

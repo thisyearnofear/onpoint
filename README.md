@@ -15,6 +15,7 @@
 **For curators:** The same flow becomes live-web GTM intelligence. When the catalog lacks a match, OnPoint searches the open web, compares market options, and surfaces product gaps, competitor pricing, and recommended actions.
 
 See [ADR 0002 — Curator Primitive](./docs/adr/0002-curator-primitive.md) for the organizing decision.
+See [ADR 0005 — Agent Spending Controls](./docs/adr/0005-agent-spending-controls.md) for the autonomy and wallet-policy decision.
 
 ## Core Features
 

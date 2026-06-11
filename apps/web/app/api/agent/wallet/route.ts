@@ -29,6 +29,15 @@ export async function GET(request: NextRequest) {
         getAgentWalletInfo(),
         getOWSWalletInfo(),
       ]);
+      const capabilities = [
+        "multi_chain_wallet",
+        "receive_tips",
+        "execute_payments",
+        "nft_minting",
+        "spending_controls",
+        "verifiable_receipts",
+      ];
+      if (owsInfo) capabilities.push("policy_gated_signing", "x402_compatible");
 
       return NextResponse.json(
         {
@@ -36,14 +45,7 @@ export async function GET(request: NextRequest) {
             name: "OnPoint AI Stylist",
             description:
               "Autonomous fashion styling agent with self-custodial wallet",
-            capabilities: [
-              "multi_chain_wallet",
-              "receive_tips",
-              "execute_payments",
-              "nft_minting",
-              "ows_policy_signing",
-              "x402_payments",
-            ],
+            capabilities,
           },
           wallets: walletInfo.walletInfo,
           addresses: walletInfo.addresses,
@@ -67,4 +69,3 @@ export async function GET(request: NextRequest) {
     }
   })(request);
 }
-

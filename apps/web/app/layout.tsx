@@ -15,7 +15,15 @@ const geistMono = localFont({
   variable: "--font-geist-mono",
 });
 
+const appBaseUrl =
+  process.env.NEXT_PUBLIC_URL ||
+  process.env.APP_BASE_URL ||
+  process.env.AUTH0_BASE_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
+  "https://onpoint.style";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(appBaseUrl),
   title: "BeOnPoint - AI Fashion Studio",
   description: "Multiplatform ecosystem for personalized fashion discovery & digital ownership",
 };
@@ -30,7 +38,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const baseUrl = process.env.NEXT_PUBLIC_URL ?? "";
+  const baseUrl = appBaseUrl;
   const embed = {
     version: "1",
     imageUrl: `${baseUrl}/assets/1Product.png`,

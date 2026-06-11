@@ -167,7 +167,7 @@ The UI uses **9 GPU-accelerated keyframe animations** defined in global CSS:
 ### Configuration
 - `apps/web/config/wagmi.ts` - Web3 wallet configuration
 - `turbo.json` - Turborepo pipeline configuration
-- `next.config.js` - Next.js configuration (serverExternalPackages for Turbopack compat, image optimization, Origin Trials)
+- `next.config.js` - Next.js configuration (optional native package externalization, Turbopack aliases, image optimization, Origin Trials)
 
 ### AI Integration
 - `packages/ai-client/src/providers/replicate-provider.ts` - Virtual try-on and vision analysis

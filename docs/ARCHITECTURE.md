@@ -40,9 +40,9 @@ The product is organized as three composable layers (see [ADR 0002](./adr/0002-c
 ┌──────────────────────────┴───────────────────────────────────┐
 │                     Service Layer                             │
 ├──────────────┬──────────────┬──────────────┬─────────────────┤
-│   AI Providers│  Agent Bridge│  Wallet Svc  │  Auth0 Identity │
-│ (Venice/     │ (Python      │ (WDK +      │ (Token Vault)   │
-│  Gemini/OpenAI)│ FastAPI)    │  OWS)       │                 │
+│   AI Providers│  Agent Bridge│ Wallet +    │  Auth0 Identity │
+│ (Venice/     │ (Python      │ Spending    │ (Token Vault)   │
+│  Gemini/OpenAI)│ FastAPI)    │ Controls    │                 │
 └──────────────┴──────────────┴──────────────┴─────────────────┘
                             │
 ┌──────────────────────────┴───────────────────────────────────┐
@@ -148,7 +148,7 @@ These modules live in `apps/web/lib/` and are designed to be extracted into any 
 | **Commission Splits**       | `utils/commissions.ts`                      | Four-tier revenue distribution calculator                |
 | **Suggestion Toast**        | `components/Agent/AgentSuggestionToast.tsx` | Time-bounded agent-to-user proposals                     |
 | **Style Memory**            | `fashion-data.ts` (getRecommendedItems)     | Preference tracking + personalized scoring               |
-| **Agent Wallet**            | `services/agent-wallet.ts`                  | Multi-chain self-custodial wallet service (WDK + OWS)  |
+| **Agent Wallet**            | `services/agent-wallet.ts`                  | Multi-chain self-custodial wallet service with optional OWS backend support |
 | **Self Protocol**           | `services/self-protocol.ts`                 | Self Agent ID registration and verification            |
 | **Heartbeat Loop**          | `api/agent/heartbeat/route.ts`            | Proactive gas monitoring, fraud checks, receipt logging  |
 | **Agent Dashboard**         | `api/agent/dashboard/route.ts`            | Public transparency endpoint for judges                  |
@@ -199,7 +199,8 @@ The bridge is an isolated Python FastAPI service using Browser Use Cloud V3 with
 
 - **Autonomy threshold**: Actions under $5 cUSD auto-execute via `autonomous-executor.ts`; above requires user approval
 - **Autonomous execution flow**: Accepted suggestion → `executeSuggestion()` → agent wallet signs → onchain broadcast → verifiable receipt
-- **Policy-gated signing**: OWS layer enforces spend limits before any transaction
+- **Agent Spending Controls**: App and backend policies enforce daily caps, approval thresholds, allowed actions, supported tokens/chains, and audit logging before autonomous execution. See [ADR 0005](./adr/0005-agent-spending-controls.md).
+- **Optional signing-layer enforcement**: OWS may be used by backend services for policy-gated signing or x402 interoperability, but it is not required by the web app and is not advertised unless available.
 - **Fraud detection**: Dead Man's Switch heartbeat, velocity checks, anomaly scoring, multi-sig for >$500
 - **Verifiable logs**: Every autonomous action signed by agent wallet, stored on IPFS/Filecoin, with optional Celo memo tx
 - **Self Protocol identity**: Agent registered with Self Agent ID for Proof of Humanity compliance

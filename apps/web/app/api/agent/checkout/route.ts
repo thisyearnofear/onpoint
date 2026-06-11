@@ -9,7 +9,7 @@
  * Without X-PAYMENT, returns HTTP 402 with payment requirements so any
  * x402-compatible agent wallet can pay automatically.
  *
- * OWS Hackathon Track: x402/MPP payment rails + OWS wallet compatibility.
+ * x402 support is optional infrastructure for compatible agent wallets.
  * Tether Hackathon Track: WDK self-custodial wallet + commission splits.
  */
 
@@ -464,4 +464,3 @@ export async function POST(
     }
   })(request);
 }
-

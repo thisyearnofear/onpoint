@@ -1,7 +1,9 @@
 /**
- * Spend Policy Engine - OWS Hackathon Track 2: Spend Governance
+ * Spend Policy Engine - Agent Spending Controls
  *
- * Enforces spending limits based on agent reputation tier.
+ * Enforces spending limits based on agent reputation tier. OWS can be used as
+ * an optional backend enforcement layer, but the product primitive is the
+ * user-visible spending policy.
  * Prevents runaway agents from draining wallets.
  *
  * Onramp credits (via Etherfuse top-ups) are tracked separately by the

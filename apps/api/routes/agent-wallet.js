@@ -2,7 +2,7 @@
  * Agent Wallet Route — /api/agent/wallet
  *
  * Exposes the AI Agent's self-custodial wallet capabilities:
- * addresses, balances, and OWS wallet info.
+ * addresses, balances, and optional backend OWS wallet info.
  *
  * Ported from apps/web/app/api/agent/wallet/route.ts
  *
@@ -29,6 +29,15 @@ router.get('/', async (req, res) => {
     ]);
 
     const celoAddress = walletInfo.addresses?.celo || '';
+    const capabilities = [
+      'multi_chain_wallet',
+      'receive_tips',
+      'execute_payments',
+      'nft_minting',
+      'spending_controls',
+      'verifiable_receipts',
+    ];
+    if (owsInfo) capabilities.push('policy_gated_signing', 'x402_compatible');
 
     // Onchain CELO balance
     let celoBalance = '0';
@@ -67,14 +76,7 @@ router.get('/', async (req, res) => {
       agent: {
         name: 'OnPoint AI Stylist',
         description: 'Autonomous fashion styling agent with self-custodial wallet',
-        capabilities: [
-          'multi_chain_wallet',
-          'receive_tips',
-          'execute_payments',
-          'nft_minting',
-          'ows_policy_signing',
-          'x402_payments',
-        ],
+        capabilities,
       },
       wallets: walletInfo.walletInfo || [],
       addresses: walletInfo.addresses || {},

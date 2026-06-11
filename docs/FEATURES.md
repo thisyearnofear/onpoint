@@ -180,11 +180,24 @@ These integrations live in `apps/web/lib/services/retail-signal-partners.ts` and
 
 ## Spending Controls & Transparency
 
+The user-facing feature is **Agent Spending Controls**: clear limits on what the
+agent can do without asking. OWS is an optional backend enforcement detail, not
+a product promise. See [ADR 0005](./adr/0005-agent-spending-controls.md).
+
 ### Autonomy Threshold
 
 - **Under $5 cUSD**: Auto-execute onchain via `autonomous-executor.ts` without interrupting the user
 - **Over $5 cUSD**: Creates approval request → user accepts/rejects via toast → onchain execution on accept
 - Configurable per `agentId:userId` via `AgentControls.setAutonomyThreshold()`
+
+### Policy Surface
+
+- Daily/weekly spend caps
+- Per-purchase approval thresholds
+- Allowed actions: browse, reserve, tip, buy, mint
+- Allowed chains/tokens: Celo/Base and cUSD/USDC/USDT where configured
+- Allowed merchants and Curators as the Curator primitive matures
+- Audit trail of autonomous actions, signed receipts, and execution results
 
 ### Autonomous Execution Engine
 

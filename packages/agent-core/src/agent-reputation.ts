@@ -1,5 +1,5 @@
 /**
- * Agent Reputation System — OWS Spend Governance
+ * Agent Reputation System — Agent Spending Controls
  *
  * Tracks agent reputation to dynamically adjust spending limits.
  *

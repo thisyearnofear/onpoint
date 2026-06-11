@@ -1,9 +1,7 @@
 /** @type {import('next').NextConfig} */
-import { withSentryConfig } from "@sentry/nextjs";
-
 const nextConfig = {
   output: 'standalone',
-  // Externalize packages that Turbopack can't bundle (e.g. native ESM-only modules)
+  // Keep optional native packages out of Next.js route bundles when present.
   serverExternalPackages: ['@open-wallet-standard/core'],
   transpilePackages: [
     '@repo/ipfs-client',
@@ -22,6 +20,12 @@ const nextConfig = {
     prefetchInlining: true,
     appNewScrollHandler: true,
   },
+  turbopack: {
+    resolveAlias: {
+      'pino-pretty': './lib/shims/empty-module.ts',
+      '@react-native-async-storage/async-storage': './lib/shims/empty-module.ts',
+    },
+  },
   // Add a webpack configuration to polyfill indexedDB in server environments
   webpack: (config, { isServer }) => {
     if (isServer) {
@@ -39,15 +43,6 @@ const nextConfig = {
       'pino-pretty': false,
       '@react-native-async-storage/async-storage': false,
     };
-
-    // Remove webpack externals for OWS (now handled by serverExternalPackages above)
-    // and handle native binary modules that can't be parsed by webpack
-    config.module = config.module || {};
-    config.module.rules = config.module.rules || [];
-    config.module.rules.push({
-      test: /\.node$/,
-      use: 'node-loader',
-    });
 
     return config;
   },
@@ -87,11 +82,4 @@ const nextConfig = {
   },
 };
 
-export default withSentryConfig(nextConfig, {
-  silent: true,
-  disableServerWebpackPlugin: true,
-  disableClientWebpackPlugin: true,
-  widenClientFileUpload: false,
-  hideSourceMaps: true,
-  automaticVercelMonitors: false,
-});
+export default nextConfig;
