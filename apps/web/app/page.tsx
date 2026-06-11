@@ -20,6 +20,8 @@ import {
   Share2,
   Shirt,
   Wand2,
+  Lock,
+  Crown,
 } from "lucide-react";
 import { Reveal } from "../components/ui/Reveal";
 import { ThemeToggle } from "../components/ThemeToggle";
@@ -28,7 +30,8 @@ import { NotificationBell } from "../components/NotificationBell";
 import { LiveCounter } from "../components/LiveCounter";
 import { Button } from "@repo/ui/button";
 import { PersonaAvatar } from "../components/ui/PersonaAvatar";
-import { getPersonaConfig } from "../lib/utils/persona-config";
+import { getPersonaConfig, PREMIUM_PERSONAS, isPersonaUnlocked } from "../lib/utils/persona-config";
+import { usePremiumStatus } from "../hooks/use-premium-status";
 import type { StylistPersona } from "@repo/ai-client";
 import { useAnalysisHistory } from "../lib/stores/analysis-history-store";
 import { trackRecentlySavedClicked } from "../lib/utils/analytics";
@@ -110,6 +113,7 @@ export default function Home() {
 
 function PersonaCarousel() {
   const [selectedPersona, setSelectedPersona] = useState<StylistPersona | null>(null);
+  const { isPremium } = usePremiumStatus();
   const personas: StylistPersona[] = ["miranda", "edina", "shaft", "luxury", "streetwear", "sustainable"];
   const personaNames: Record<string, string> = {
     miranda: "Miranda Priestly",
@@ -125,6 +129,7 @@ function PersonaCarousel() {
         {personas.map((p) => {
           const config = getPersonaConfig(p);
           const PersonaIcon = config.icon;
+          const locked = !isPersonaUnlocked(p, isPremium);
           return (
             <button
               key={p}
@@ -132,8 +137,14 @@ function PersonaCarousel() {
               className="group relative flex flex-col items-center gap-1"
             >
               <PersonaAvatar persona={p} size="sm" animate="idle" />
+              {locked && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-background/60 backdrop-blur-[1px]">
+                  <Lock className="w-3 h-3 text-muted-foreground/70" />
+                </div>
+              )}
               <span className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                 {personaNames[p]}
+                {locked && <Lock className="w-2.5 h-2.5 inline ml-1" />}
               </span>
             </button>
           );
@@ -144,6 +155,7 @@ function PersonaCarousel() {
       {selectedPersona && (
         <PersonaMeetModal
           persona={selectedPersona}
+          isPremium={isPremium}
           onClose={() => setSelectedPersona(null)}
         />
       )}
@@ -153,13 +165,16 @@ function PersonaCarousel() {
 
 function PersonaMeetModal({
   persona,
+  isPremium,
   onClose,
 }: {
   persona: StylistPersona;
+  isPremium: boolean;
   onClose: () => void;
 }) {
   const config = getPersonaConfig(persona);
   const PersonaIcon = config.icon;
+  const locked = !isPersonaUnlocked(persona, isPremium);
 
   const sampleCritiques: Record<string, string> = {
     miranda: "The structure is passable. The silhouette flatters your frame, but that color choice is three seasons stale. We can work with the proportions, but let's elevate the palette.",
@@ -240,15 +255,27 @@ function PersonaMeetModal({
           </div>
 
           {/* CTA */}
-          <Link
-            href={`/lab?tab=try-on&persona=${persona}`}
-            onClick={onClose}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 text-sm font-bold text-white hover:bg-primary/90 transition-colors"
-          >
-            <Camera className="h-4 w-4" />
-            Try {config.characterName.split(" ")[0]} as your stylist
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+          {locked ? (
+            <Link
+              href="/pricing"
+              onClick={onClose}
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary to-accent py-3 text-sm font-bold text-white hover:opacity-90 transition-opacity"
+            >
+              <Crown className="h-4 w-4" />
+              Upgrade to unlock {config.characterName.split(" ")[0]}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          ) : (
+            <Link
+              href={`/lab?tab=try-on&persona=${persona}`}
+              onClick={onClose}
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 text-sm font-bold text-white hover:bg-primary/90 transition-colors"
+            >
+              <Camera className="h-4 w-4" />
+              Try {config.characterName.split(" ")[0]} as your stylist
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          )}
         </div>
       </div>
     </div>

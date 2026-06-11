@@ -107,16 +107,47 @@ policy surface.
 ---
 
 ## Celo Onchain Agents Hackathon Sprint 🏆
-> **Deadline**: ~10 days · **Focus**: Real-world payments, sub-cent costs, verifiable identity
+> **Deadline**: June 15, 2026 (9 AM GMT) · **Prize pool**: $5K CELO across 3 tracks
+> **Tracks**: Best Agent ($2.5K/$1K/$500) · Most Activity ($500) · Highest 8004scan Rank ($500)
+> **Judging**: ecosystem alignment + consistent onchain transactions + real-world utility + Self Agent ID
 
-### Priority 1: Complete Curator Commerce Loop (80% of effort)
-The WhatsApp chat-ops + storefront flow is the strongest "real-world" demo.
+### 4-Day Sprint Plan (re-prioritized for judge scoring)
 
-- [ ] Twilio number + Meta WhatsApp Business registration
-- [ ] Meta Business verification + outbound message templates
-- [ ] Wanja seeded into `curators` table (top 10 SKUs as `listings`)
-- [ ] `/s/[slug]` storefront with working WhatsApp checkout deep links
-- [ ] End-to-end demo: customer visits storefront → try-on → buy via WhatsApp
+The consumer funnel is now editorial (growth plan shipped). This sprint makes the bottom of the funnel produce **real onchain transactions** — the primary scoring criterion.
+
+#### Day 1: Onchain Transaction Flows
+- [ ] Agent tip flow end-to-end — user tips AI stylist in cUSD, receipt on IPFS (simplest tx demo)
+- [ ] Premium persona unlock — gate 3 premium personas behind subscription tier, upgrade CTA in picker
+- [ ] Agent wallet top-up UI — re-add AddFundsButton + balance card (requires ETHERFUSE_API_KEY)
+
+#### Day 2: Curator Commerce + Trust Surface
+- [ ] Curator merchant allowlist — trusted merchants auto-execute, unknown merchants require approval
+- [ ] Autonomous purchase demo — agent buys $35 jersey from Wanja on /s/wanja, Celo tx in audit log <30s
+- [ ] Audit log in wallet panel — timestamp, action, amount, tx hash, explorer link, IPFS receipt link
+
+#### Day 3: Ecosystem Alignment Polish
+- [ ] Trust protocol attestation — sign Celo message with ERC-8004 + Self Protocol, surface badge in /lab
+- [ ] MiniPay auto-connect — use farcaster-miniapp-wagmi-connector when isMiniPay, fee abstraction toast
+- [ ] Demo recording + submission draft
+
+#### Day 4: Submit
+- [ ] Install Celo Builders skill: `npx skills add https://celobuilders.xyz`
+- [ ] Submit via agent: "Help me submit my project to the Celo Onchain Agents Hackathon"
+- [ ] Verify submission on 8004scan
+
+### Demo Script (what judges see)
+1. Editorial landing page → LookCrafter → polaroid → share (viral loop, conversion)
+2. Real photo with free persona → score → **tip agent in cUSD** (onchain tx #1)
+3. /s/wanja storefront → agent finds jersey → **auto-buys under threshold** → Celo tx in audit log (onchain tx #2 + real-world utility)
+4. User hits persona limit → **upgrades to Plus** → premium persona unlocked (product maturity)
+5. Agent identity badge shows **ERC-8004 + Self Protocol + trust attestation** (ecosystem alignment)
+
+### Explicitly NOT doing (4 days is tight)
+- Auth0 as primary entry (infrastructure, not demo-visible enough)
+- Module extraction (developer experience, judges don't score on it)
+- Affiliate applications (weeks of waiting, no onchain activity)
+- Mobile app prototype (too late for this hackathon)
+- Creator marketplace (premature — defer to ≥10 Curators per ADR 0002)
 
 ### Priority 2: Surface Retail Intelligence (10% of effort) ✅ Done
 Turn styling sessions into commercial feedback for curators.

@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { useAccount } from "wagmi";
+import { AgentAuditLog } from "./AgentAuditLog";
+import { MerchantAllowlist } from "./MerchantAllowlist";
 
 interface AgentWallet {
   chain: string;
@@ -535,6 +537,12 @@ export function AgentStatus({
           </div>
         </div>
       )}
+
+      {/* Transaction Audit Log — onchain activity from the signer */}
+      {isConnected && <AgentAuditLog />}
+
+      {/* Merchant Allowlist — trusted stores for auto-buy */}
+      {isConnected && <MerchantAllowlist />}
 
       {/* Agent Discoveries — proactive market signal matches */}
       {isConnected && address && (matches.length > 0 || matchesLoading) && (

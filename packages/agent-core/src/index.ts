@@ -37,6 +37,7 @@ export {
   redisSadd,
   redisSmembers,
   redisSrem,
+  redisScan,
   isRedisConfigured,
 } from "./redis-helpers";
 export {

@@ -10,6 +10,7 @@ import {
 import { ThemeToggle } from "../../components/ThemeToggle";
 import { NotificationBell } from "../../components/NotificationBell";
 import { AgentWalletBadge } from "../../components/AgentWalletBadge";
+import { AttestationBadge } from "../../components/AttestationBadge";
 import { Auth0HeaderButton } from "../../components/auth/Auth0Components";
 import { TacticalDashboard } from "../../components/Dashboard/TacticalDashboard";
 
@@ -42,6 +43,7 @@ export default function LabPage() {
 
           <div className="flex items-center gap-1">
             <NotificationBell />
+            <AttestationBadge />
             <AgentWalletBadge />
             <Auth0HeaderButton />
             <ThemeToggle />
@@ -62,6 +64,7 @@ export default function LabPage() {
           </Link>
           <div className="flex items-center gap-1.5">
             <NotificationBell />
+            <AttestationBadge />
             <Auth0HeaderButton />
             <ThemeToggle />
           </div>

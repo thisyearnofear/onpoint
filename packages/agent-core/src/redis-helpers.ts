@@ -175,6 +175,41 @@ export async function redisSrem(key: string, member: string): Promise<void> {
   });
 }
 
+/**
+ * Scan for keys matching a pattern using the Redis SCAN command.
+ * Returns up to `count` matching keys. Performs multiple iterations
+ * if needed to reach the count limit.
+ */
+export async function redisScan(
+  pattern: string,
+  count: number = 100,
+): Promise<string[]> {
+  const config = getRedisConfig();
+  if (!config) return [];
+
+  const keys: string[] = [];
+  let cursor = 0;
+
+  do {
+    const response = await fetchWithTimeout(
+      `${config.url}/scan/${cursor}/match/${encodeURIComponent(pattern)}/count/${Math.min(count - keys.length, 100)}`,
+      { headers: { Authorization: `Bearer ${config.token}` } },
+    );
+    if (!response) break;
+
+    try {
+      const data: UpstashResult<[string, string[]]> = await response.json();
+      const [nextCursor, batch] = data.result;
+      cursor = parseInt(nextCursor, 10);
+      keys.push(...batch);
+    } catch {
+      break;
+    }
+  } while (cursor !== 0 && keys.length < count);
+
+  return keys.slice(0, count);
+}
+
 export function isRedisConfigured(): boolean {
   return !!getRedisConfig();
 }
