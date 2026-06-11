@@ -12,15 +12,8 @@ import {
   Clock,
   Volume2,
   VolumeX,
-  Zap,
-  Crown,
   CheckCircle,
-  Coins,
   ShoppingBag,
-  Eye,
-  Leaf,
-  Star,
-  MessageCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAccount } from "wagmi";
@@ -33,92 +26,12 @@ import { CheckoutModal } from "../Shop/CheckoutModal";
 import { SessionEndingCard } from "./SessionEndingCard";
 import { useCartStore } from "../../lib/stores/cart-store";
 import { trackProviderSelected } from "../../lib/utils/analytics";
-import { useLiveSession, GOAL_OPTIONS, type SessionGoal } from "./hooks/useLiveSession";
-import { SESSION_FACTORIES, findPremiumProvider } from "@repo/ai-client";
-import { PersonalityCard } from "./PersonalityCard";
+import { useLiveSession, type SessionGoal } from "./hooks/useLiveSession";
+import { findPremiumProvider } from "@repo/ai-client";
 import { ProviderComparisonModal } from "./ProviderComparisonModal";
-import { getPersonaConfig, ALL_PERSONAS } from "../../lib/utils/persona-config";
+import { getPersonaConfig } from "../../lib/utils/persona-config";
 import { recordLatency } from "../../lib/utils/latency-persistence";
 
-// Icon resolver for provider selection cards (mapped from ProviderCard.icon string)
-const CARD_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  zap: Zap,
-  star: Star,
-  eye: Eye,
-  crown: Crown,
-  sparkles: Sparkles,
-};
-
-// Static Tailwind class lookup — keeps every class name a complete string literal
-// so Tailwind JIT can detect and generate them.
-const CARD_COLOR_STYLES: Record<
-  string,
-  {
-    iconBg: string;
-    iconBorder: string;
-    iconColor: string;
-    hoverText: string;
-    badge: string;
-    badgeText: string;
-  }
-> = {
-  emerald: {
-    iconBg: "bg-emerald-500/15",
-    iconBorder: "border-emerald-500/25",
-    iconColor: "text-emerald-300",
-    hoverText: "group-hover:text-emerald-400",
-    badge: "bg-emerald-500/15",
-    badgeText: "text-emerald-300",
-  },
-  amber: {
-    iconBg: "bg-amber-500/15",
-    iconBorder: "border-amber-500/25",
-    iconColor: "text-amber-300",
-    hoverText: "group-hover:text-amber-300",
-    badge: "bg-amber-500/15",
-    badgeText: "text-amber-300",
-  },
-  rose: {
-    iconBg: "bg-rose-500/15",
-    iconBorder: "border-rose-500/25",
-    iconColor: "text-rose-300",
-    hoverText: "group-hover:text-rose-300",
-    badge: "bg-rose-500/15",
-    badgeText: "text-rose-300",
-  },
-  indigo: {
-    iconBg: "bg-indigo-500/15",
-    iconBorder: "border-indigo-500/25",
-    iconColor: "text-indigo-300",
-    hoverText: "group-hover:text-indigo-300",
-    badge: "bg-indigo-500/15",
-    badgeText: "text-indigo-300",
-  },
-  violet: {
-    iconBg: "bg-violet-500/15",
-    iconBorder: "border-violet-500/25",
-    iconColor: "text-violet-300",
-    hoverText: "group-hover:text-violet-300",
-    badge: "bg-violet-500/15",
-    badgeText: "text-violet-300",
-  },
-  fuchsia: {
-    iconBg: "bg-fuchsia-500/15",
-    iconBorder: "border-fuchsia-500/25",
-    iconColor: "text-fuchsia-300",
-    hoverText: "group-hover:text-fuchsia-300",
-    badge: "bg-fuchsia-500/15",
-    badgeText: "text-fuchsia-300",
-  },
-  sky: {
-    iconBg: "bg-sky-500/15",
-    iconBorder: "border-sky-500/25",
-    iconColor: "text-sky-300",
-    hoverText: "group-hover:text-sky-400",
-    badge: "bg-sky-500/15",
-    badgeText: "text-sky-300",
-  },
-};
 
 const SessionSummaryScreen = dynamic(
   () => import("./SessionSummaryScreen").then((m) => ({ default: m.SessionSummaryScreen })),
@@ -247,16 +160,14 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   const [showStyleReport, setShowStyleReport] = React.useState(false);
   const [showComparison, setShowComparison] = React.useState(false);
   const [queuedStart, setQueuedStart] = React.useState<QueuedLiveStart | null>(null);
-  const fallbackAttemptsRef = React.useRef<Set<string>>(new Set());
-  const [fallbackToast, setFallbackToast] = React.useState<string | null>(null);
-  const fallbackToastTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasRetriedRef = React.useRef(false);
 
-  // Auto-fallback: when a session errors, try the next provider in the chain
+  // Silent fallback: if Venice fails (non-payment/camera error), try Gemini once
   React.useEffect(() => {
     if (!error || isConnected || isInitializing || !selectedProvider) return;
     if (!sessionGoal) return;
+    if (hasRetriedRef.current) return;
 
-    // Don't auto-fallback on payment or auth errors — these require user action
     const errorLower = error.toLowerCase();
     if (
       errorLower.includes("payment") ||
@@ -269,47 +180,22 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
       return;
     }
 
-    const factory = SESSION_FACTORIES[selectedProvider];
-    if (!factory?.fallbackChain?.length) return;
-
-    const chain = factory.fallbackChain;
-    const attempted = fallbackAttemptsRef.current;
-
-    for (const fallbackName of chain) {
-      if (attempted.has(fallbackName)) continue;
-      attempted.add(fallbackName);
-
-      // Only fall back to providers the backend actually supports
-      const fallbackFactory = SESSION_FACTORIES[fallbackName];
-      if (!fallbackFactory?.cards?.[0]) continue;
-      if (fallbackName !== "venice" && fallbackName !== "gemini") continue;
-
-      const fallbackGoal = fallbackFactory.cards[0].goal;
-      setFallbackToast(
-        `${factory.displayName} is unavailable — switching to ${fallbackFactory.displayName}...`,
-      );
-      if (fallbackToastTimerRef.current) {
-        clearTimeout(fallbackToastTimerRef.current);
-      }
-      fallbackToastTimerRef.current = setTimeout(() => {
-        setFallbackToast(null);
-        fallbackToastTimerRef.current = null;
-      }, 5000);
+    if (selectedProvider === "venice") {
+      hasRetriedRef.current = true;
       queueLiveStart({
-        provider: fallbackName,
-        goal: fallbackGoal,
+        provider: "gemini",
+        goal: sessionGoal,
         persona: selectedPersona || DEFAULT_LIVE_PERSONA,
       });
-      return;
     }
   }, [error, isConnected, isInitializing, selectedProvider, sessionGoal, selectedPersona, queueLiveStart]);
 
-  // Reset fallback tracking when session ends
+  // Reset retry flag when session connects or user returns to start screen
   React.useEffect(() => {
-    if (!isConnected) {
-      fallbackAttemptsRef.current.clear();
+    if (isConnected || !selectedProvider) {
+      hasRetriedRef.current = false;
     }
-  }, [isConnected]);
+  }, [isConnected, selectedProvider]);
 
   // Persist latency samples to localStorage for historical averages
   React.useEffect(() => {
@@ -474,11 +360,11 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     );
   }
 
-  // ── Provider Selection Screen ──
+  // ── Start Screen ──
   if (!selectedProvider) {
     return (
       <div className="flex flex-col h-full bg-background p-5 sm:p-6 overflow-y-auto">
-        <div className="flex-1 flex flex-col justify-center items-center text-center gap-7 max-w-2xl mx-auto py-8">
+        <div className="flex-1 flex flex-col justify-center items-center text-center gap-7 max-w-md mx-auto py-8">
           <div className="space-y-4">
             <div className="mx-auto w-16 h-16 rounded-2xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center">
               <Camera className="w-8 h-8 text-emerald-300" />
@@ -493,146 +379,48 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             </div>
           </div>
 
-          {/* Tier grouping: Free providers first, then Premium */}
-          {(() => {
-            const factories = Object.values(SESSION_FACTORIES);
-            const free = factories.filter((f) => !f.isPremium);
-            const premium = factories.filter((f) => f.isPremium);
-
-            const renderTier = (
-              label: string,
-              tierFactories: typeof free,
-              isPremiumTier: boolean,
-            ) => (
-              <div key={label} className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`text-[10px] font-bold uppercase tracking-[0.2em] ${
-                      isPremiumTier
-                        ? "text-indigo-400/70"
-                        : "text-muted-foreground/60"
-                    }`}
-                  >
-                    {label}
-                  </span>
-                  <div className="flex-1 h-px bg-border/50" />
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {tierFactories.flatMap((factory) =>
-                    factory.cards.map((card) => {
-                      const CardIcon = CARD_ICONS[card.icon] ?? Camera;
-                      const firstCard = !isPremiumTier && tierFactories.indexOf(factory) === 0 && factory.cards.indexOf(card) === 0;
-                      return (
-                        <button
-                          key={`${factory.name}-${card.goal}`}
-                          onClick={() => {
-                            trackProviderSelected({ provider: factory.name as "venice" | "gemini" });
-                            queueLiveStart({
-                              provider: factory.name as "venice" | "gemini",
-                              goal: card.goal,
-                              persona: DEFAULT_LIVE_PERSONA,
-                            });
-                          }}
-                          className={`w-full text-left p-5 rounded-2xl bg-card hover:bg-muted/50 border transition-all group relative ${
-                            isPremiumTier
-                              ? "border-indigo-500/30"
-                              : "border-border"
-                          } ${firstCard ? "ring-2 ring-emerald-500/30 bg-emerald-500/[0.03]" : ""}`}
-                        >
-                          {firstCard && (
-                            <span className="absolute -top-2.5 right-4 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-full bg-emerald-500 text-white shadow-lg">
-                              Quick Start
-                            </span>
-                          )}
-                          <div className="flex items-start gap-4">
-                            <div
-                              className={`w-11 h-11 rounded-xl ${
-                                CARD_COLOR_STYLES[card.color]?.iconBg ??
-                                "bg-slate-500/15"
-                              } border ${
-                                CARD_COLOR_STYLES[card.color]?.iconBorder ??
-                                "border-slate-500/25"
-                              } flex items-center justify-center shrink-0`}
-                            >
-                              <CardIcon
-                                className={`w-5 h-5 ${
-                                  CARD_COLOR_STYLES[card.color]?.iconColor ??
-                                  "text-slate-300"
-                                }`}
-                              />
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <h3
-                                  className={`font-bold text-foreground ${
-                                    CARD_COLOR_STYLES[card.color]?.hoverText ??
-                                    "group-hover:text-slate-400"
-                                  } transition-colors`}
-                                >
-                                  {card.title}
-                                </h3>
-                                <span
-                                  className={`px-2 py-0.5 text-[10px] font-bold ${
-                                    CARD_COLOR_STYLES[card.color]?.badge ??
-                                    "bg-slate-500/15"
-                                  } ${
-                                    CARD_COLOR_STYLES[card.color]?.badgeText ??
-                                    "text-slate-300"
-                                  } rounded-full uppercase`}
-                                >
-                                  {card.badgeLabel}
-                                </span>
-                                {isPremiumTier && (
-                                  <span className="px-2 py-0.5 text-[10px] font-bold bg-indigo-500/15 text-indigo-300 rounded-full uppercase">
-                                    Premium
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {card.description}
-                              </p>
-                              <p className="text-[10px] text-muted-foreground/50 mt-1.5 font-mono">
-                                {factory.displayName}
-                              </p>
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    }),
-                  )}
-                </div>
+          {error && (
+            <div className="w-full rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-left">
+              <div className="flex items-center gap-2 text-rose-400">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <p className="text-xs font-bold uppercase tracking-wider">Session Error</p>
               </div>
-            );
-
-            return (
-              <div className="w-full space-y-6">
-                {renderTier("Free — instant start", free, false)}
-                {premium.length > 0 &&
-                  renderTier("Premium — enhanced features", premium, true)}
-              </div>
-            );
-          })()}
-
-          <div className="w-full grid grid-cols-3 gap-2">
-            {[
-              ["Fit", "silhouette"],
-              ["Palette", "colors"],
-              ["Shop", "next piece"],
-            ].map(([label, value]) => (
-              <div key={label} className="rounded-xl bg-muted/40 border border-border px-3 py-2 text-left">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                  {label}
+              <p className="mt-2 text-sm text-rose-300">{error}</p>
+              {error.toLowerCase().includes("camera") && (
+                <p className="mt-2 text-xs text-rose-300/70">
+                  Make sure you allow camera access and are on HTTPS.
                 </p>
-                <p className="text-xs text-foreground font-medium">{value}</p>
-              </div>
-            ))}
-          </div>
+              )}
+            </div>
+          )}
+
+          <Button
+            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-full py-6 text-lg font-bold shadow-xl shadow-emerald-500/20"
+            disabled={isInitializing}
+            onClick={() => {
+              trackProviderSelected({ provider: "venice" });
+              queueLiveStart({
+                provider: "venice",
+                goal: "daily",
+                persona: DEFAULT_LIVE_PERSONA,
+              });
+            }}
+          >
+            {isInitializing ? (
+              <span className="flex items-center gap-2">
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Connecting...
+              </span>
+            ) : (
+              <>START STYLE CAMERA</>
+            )}
+          </Button>
 
           <button
             onClick={() => setShowComparison(true)}
-            className="text-[10px] text-muted-foreground/60 hover:text-muted-foreground transition-colors font-mono"
+            className="text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
           >
-            Compare providers →
+            Compare AI providers →
           </button>
 
           <ProviderComparisonModal
@@ -652,280 +440,6 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
         >
           Back to Wardrobe
         </Button>
-      </div>
-    );
-  }
-
-  // ── Goal Selection Screen ──
-  if (selectedProvider && !sessionGoal) {
-    return (
-      <div className="flex flex-col h-full bg-background p-6">
-        <div className="flex-1 flex flex-col justify-center items-center text-center space-y-8 max-w-sm mx-auto">
-          <div className="space-y-2">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                  selectedProvider === "venice"
-                    ? "bg-emerald-500/20"
-                    : "bg-indigo-500/20"
-                }`}
-              >
-                {selectedProvider === "venice" ? (
-                  <Zap className="w-5 h-5 text-emerald-400" />
-                ) : (
-                  <Crown className="w-5 h-5 text-indigo-400" />
-                )}
-              </div>
-            </div>
-            <h1 className="text-2xl font-black text-foreground tracking-tighter italic uppercase">
-              SESSION GOAL
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              What are you styling for today?
-            </p>
-          </div>
-
-          <div className="w-full space-y-3">
-            {GOAL_OPTIONS.map((goal) => (
-              <button
-                key={goal.id}
-                onClick={() => setSessionGoal(goal.id)}
-                className="w-full text-left p-5 rounded-2xl bg-muted/30 hover:bg-muted/50 border border-border transition-all group"
-              >
-                <div className="flex items-center gap-4">
-                  <div
-                    className={`w-10 h-10 rounded-xl bg-gradient-to-br ${goal.color} flex items-center justify-center shrink-0`}
-                  >
-                    <goal.icon className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-foreground group-hover:text-indigo-400 transition-colors text-sm">
-                      {goal.label}
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">{goal.desc}</p>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {/* Payment / BYOK Flow (provider-driven) */}
-          {requiresPayment && (
-            <div className="w-full space-y-3">
-              {!geminiPaymentToken && !showByokInput && (
-                <>
-                  <GeminiLivePaymentButton
-                    onSuccess={(token: string) => {
-                      setGeminiPaymentToken(token);
-                      setShowPaymentSuccess(true);
-                      setTimeout(() => setShowPaymentSuccess(false), 3000);
-                    }}
-                  />
-                  {supportsByok && (
-                    <button
-                      onClick={() => setShowByokInput(true)}
-                      className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      Or use your own {providerDisplayName} key →
-                    </button>
-                  )}
-                </>
-              )}
-
-              {showByokInput && supportsByok && (
-                <div className="w-full space-y-2">
-                  <input
-                    type="password"
-                    value={userApiKey}
-                    onChange={(e) => setUserApiKey(e.target.value)}
-                    placeholder={`Enter ${providerDisplayName} API key`}
-                    className="w-full px-4 py-3 rounded-xl bg-muted border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-indigo-500"
-                  />
-                  <p className="text-[10px] text-muted-foreground">
-                    Your key is stored locally and never sent to our servers.
-                  </p>
-                </div>
-              )}
-
-              {showPaymentSuccess && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-center"
-                >
-                  <p className="text-emerald-400 text-sm font-bold">
-                    Payment verified
-                  </p>
-                </motion.div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <Button
-          variant="ghost"
-          className="text-muted-foreground hover:text-foreground"
-          onClick={() => setSelectedProvider(null)}
-        >
-          Back to Provider Selection
-        </Button>
-      </div>
-    );
-  }
-
-  // ── Persona Selection Screen ──
-  if (
-    selectedProvider &&
-    sessionGoal &&
-    !queuedStart &&
-    (!selectedPersona || (!isConnected && !isInitializing))
-  ) {
-    return (
-      <div className="flex flex-col h-full bg-background p-6 overflow-y-auto">
-        <div className="flex-1 flex flex-col justify-center items-center text-center space-y-8 max-w-lg mx-auto py-10">
-          <div className="space-y-2">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
-              <Sparkles className="w-8 h-8 text-indigo-400" />
-            </div>
-            <h1 className="text-2xl font-black text-foreground tracking-tighter italic uppercase">
-              CHOOSE YOUR STYLIST
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              Select a personality to guide your session.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full">
-            {ALL_PERSONAS.map((persona) => (
-              <PersonalityCard
-                key={persona}
-                persona={persona}
-                isSelected={selectedPersona === persona}
-                onSelect={(p) => setSelectedPersona(p)}
-              />
-            ))}
-          </div>
-
-          <div className="w-full flex flex-col gap-4">
-            {requiresPayment && (
-              <div className="w-full rounded-2xl border border-indigo-500/25 bg-indigo-500/10 p-4 text-left space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-indigo-500/20 flex items-center justify-center">
-                    <Crown className="h-4 w-4 text-indigo-300" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-foreground">
-                      {providerDisplayName} access
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {supportsByok
-                        ? `Verify a premium session or use your own ${providerDisplayName} key.`
-                        : "Verify a premium session to continue."}
-                    </p>
-                  </div>
-                </div>
-
-                {!geminiPaymentToken && !showByokInput && (
-                  <div className="space-y-2">
-                    <GeminiLivePaymentButton
-                      onSuccess={(token: string) => {
-                        setGeminiPaymentToken(token);
-                        setShowPaymentSuccess(true);
-                        setTimeout(() => setShowPaymentSuccess(false), 3000);
-                      }}
-                    />
-                    {supportsByok && (
-                      <button
-                        onClick={() => setShowByokInput(true)}
-                        className="w-full text-center text-xs text-indigo-200/80 hover:text-indigo-100 transition-colors"
-                      >
-                        Use my own API key
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {showByokInput && supportsByok && (
-                  <div className="space-y-2">
-                    <input
-                      type="password"
-                      value={userApiKey}
-                      onChange={(e) => setUserApiKey(e.target.value)}
-                      placeholder={`Enter ${providerDisplayName} API key`}
-                      className="w-full px-4 py-3 rounded-xl bg-background/70 border border-indigo-500/25 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-indigo-400"
-                    />
-                    <p className="text-[10px] text-muted-foreground">
-                      Your key is only used to start this live session.
-                    </p>
-                  </div>
-                )}
-
-                {showPaymentSuccess && (
-                  <p className="text-xs font-bold text-emerald-300">
-                    Premium session verified.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {error && (
-              <div className="w-full rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-left">
-                <div className="flex items-center gap-2 text-rose-400">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  <p className="text-xs font-bold uppercase tracking-wider">Session Error</p>
-                </div>
-                <p className="mt-2 text-sm text-rose-300">{error}</p>
-                {error.toLowerCase().includes("camera") && (
-                  <p className="mt-2 text-xs text-rose-300/70">
-                    Make sure you allow camera access and are on HTTPS.
-                  </p>
-                )}
-                {error.toLowerCase().includes("rate limit") && (
-                  <p className="mt-2 text-xs text-rose-300/70">
-                    Wait a minute and try again, or switch to Premium for unlimited sessions.
-                  </p>
-                )}
-              </div>
-            )}
-
-            <Button
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-full py-6 text-lg font-bold shadow-xl shadow-indigo-500/20"
-              disabled={
-                !selectedPersona ||
-                isInitializing ||
-                (requiresPayment && !geminiPaymentToken && !userApiKey.trim())
-              }
-              onClick={async () => {
-                await runStartSequence({
-                  provider: selectedProvider,
-                  goal: sessionGoal!,
-                  apiKey: userApiKey || geminiPaymentToken || undefined,
-                  persona: selectedPersona!,
-                });
-              }}
-            >
-              {isInitializing ? (
-                <span className="flex items-center gap-2">
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  {initStep === "connecting" ? "Connecting..." : initStep === "authenticating" ? "Authenticating..." : "Starting..."}
-                </span>
-              ) : (
-                <>START LIVE SCAN</>
-              )}
-            </Button>
-
-            <Button
-              variant="ghost"
-              className="text-muted-foreground hover:text-foreground"
-              onClick={() => {
-                setSelectedProvider(null);
-                setSessionGoal(null);
-              }}
-            >
-              Back to Camera Modes
-            </Button>
-          </div>
-        </div>
       </div>
     );
   }
@@ -1210,11 +724,12 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                           size="sm"
                           className="mt-2 text-indigo-400 hover:text-indigo-300 text-xs"
                           onClick={() => {
-                            setSelectedProvider(premium.name);
+                            stopSession();
+                            setSelectedProvider(null);
                             setSessionGoal(null);
                           }}
                         >
-                          Switch to {premium.displayName} →
+                          Go Back
                         </Button>
                       </div>
                     );
@@ -1281,27 +796,17 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                     error.toLowerCase().includes("requires payment"))
                 ) && (
                   <Button
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-full font-bold"
-                    onClick={() =>
-                      startSession(
-                        sessionGoal,
-                        userApiKey || geminiPaymentToken || undefined,
-                      )
-                    }
+                    variant="ghost"
+                    className="text-slate-400 hover:text-white hover:bg-white/5 font-bold"
+                    onClick={() => {
+                      stopSession();
+                      setSelectedProvider(null);
+                      setSessionGoal(null);
+                    }}
                   >
-                    Try Again
+                    Go Back
                   </Button>
                 )}
-                <Button
-                  variant="ghost"
-                  className="text-slate-400 hover:text-white hover:bg-white/5 font-bold"
-                  onClick={() => {
-                    setSelectedProvider(null);
-                    setSessionGoal(null);
-                  }}
-                >
-                  Choose Different Provider
-                </Button>
               </div>
             </div>
           </div>
@@ -1568,25 +1073,6 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             onDismiss={() => setShowInstructions(false)}
           />
         )}
-
-        {/* Fallback notification toast (z-50) */}
-        <AnimatePresence>
-          {fallbackToast && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="absolute top-24 inset-x-0 flex justify-center z-[50] px-4 pointer-events-none"
-            >
-              <div className="bg-amber-500/15 border border-amber-500/30 backdrop-blur-xl px-4 py-2 rounded-full flex items-center gap-2 shadow-lg">
-                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
-                <span className="text-xs text-amber-200 font-medium">
-                  {fallbackToast}
-                </span>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Agent Suggestion Toast (z-50) */}
         <AnimatePresence>
