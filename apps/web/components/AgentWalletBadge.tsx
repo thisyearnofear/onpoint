@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useUser } from "@auth0/nextjs-auth0/client";
 import { Wallet, Loader2 } from "lucide-react";
 
 interface WalletData {
@@ -17,6 +18,10 @@ interface WalletData {
 export function AgentWalletBadge() {
   const [wallets, setWallets] = useState<WalletData[]>([]);
   const [loading, setLoading] = useState(true);
+  // `/api/agent/wallet` is auth-gated (it returns per-user policy/spending
+  // data alongside the public wallet info). Don't fire the request when
+  // the visitor is not signed in — that just produces a 401 in the console.
+  const { user: authUser, isLoading: authLoading } = useUser();
 
   useEffect(() => {
     let cancelled = false;
@@ -39,9 +44,14 @@ export function AgentWalletBadge() {
       }
     }
 
+    if (authLoading) return;
+    if (!authUser) {
+      setLoading(false);
+      return;
+    }
     fetchWallet();
     return () => { cancelled = true; };
-  }, []);
+  }, [authUser, authLoading]);
 
   if (loading) return null;
   if (wallets.length === 0) return null;

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useUser } from "@auth0/nextjs-auth0/client";
 import {
   Bell,
   BellRing,
@@ -273,6 +274,11 @@ export function NotificationBell({ direction = "down" }: { direction?: "up" | "d
   const isMobileOverlay = direction === "up";
   const prevUnreadRef = useRef(0);
 
+  // Don't poll server notifications when there is no Auth0 session.
+  // `/api/notifications` is auth-gated; polling it while logged out just
+  // produces a 401 storm in the console and wastes rate-limit budget.
+  const { user: authUser, isLoading: authLoading } = useUser();
+
   // Fetch notifications
   const fetchNotifications = useCallback(async () => {
     try {
@@ -298,12 +304,14 @@ export function NotificationBell({ direction = "down" }: { direction?: "up" | "d
     }
   }, [isMobileOverlay, sessions]);
 
-  // Initial fetch + polling every 30s
+  // Initial fetch + polling every 30s (only while signed in)
   useEffect(() => {
+    if (authLoading) return;
+    if (!authUser) return;
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30_000);
     return () => clearInterval(interval);
-  }, [fetchNotifications]);
+  }, [fetchNotifications, authUser, authLoading]);
 
   // Prevent body scroll when mobile overlay is open
   useEffect(() => {
