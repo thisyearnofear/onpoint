@@ -14,6 +14,11 @@ import {
   VolumeX,
   CheckCircle,
   ShoppingBag,
+  ShieldCheck,
+  Ruler,
+  Palette,
+  Zap,
+  ArrowLeft,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAccount } from "wagmi";
@@ -363,83 +368,199 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   // ── Start Screen ──
   if (!selectedProvider) {
     return (
-      <div className="flex flex-col h-full bg-background p-5 sm:p-6 overflow-y-auto">
-        <div className="flex-1 flex flex-col justify-center items-center text-center gap-7 max-w-md mx-auto py-8">
-          <div className="space-y-4">
-            <div className="mx-auto w-16 h-16 rounded-2xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center">
-              <Camera className="w-8 h-8 text-emerald-300" />
-            </div>
-            <div className="space-y-2">
-              <h1 className="text-3xl sm:text-4xl font-black text-foreground tracking-tighter italic">
-                LIVE STYLE CAMERA
-              </h1>
-              <p className="text-muted-foreground text-sm max-w-md mx-auto">
-                Open the camera and turn your outfit into fit, palette, critique, and shopping context.
-              </p>
-            </div>
-          </div>
-
-          {error && (
-            <div className="w-full rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-left">
-              <div className="flex items-center gap-2 text-rose-400">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                <p className="text-xs font-bold uppercase tracking-wider">Session Error</p>
-              </div>
-              <p className="mt-2 text-sm text-rose-300">{error}</p>
-              {error.toLowerCase().includes("camera") && (
-                <p className="mt-2 text-xs text-rose-300/70">
-                  Make sure you allow camera access and are on HTTPS.
-                </p>
-              )}
-            </div>
-          )}
-
-          <Button
-            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-full py-6 text-lg font-bold shadow-xl shadow-emerald-500/20"
-            disabled={isInitializing}
-            onClick={() => {
-              trackProviderSelected({ provider: "venice" });
-              queueLiveStart({
-                provider: "venice",
-                goal: "daily",
-                persona: DEFAULT_LIVE_PERSONA,
-              });
-            }}
-          >
-            {isInitializing ? (
-              <span className="flex items-center gap-2">
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Connecting...
-              </span>
-            ) : (
-              <>START STYLE CAMERA</>
-            )}
-          </Button>
-
+      <div className="flex flex-col h-full bg-background">
+        {/* Top bar: back + status */}
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border/50 shrink-0">
           <button
-            onClick={() => setShowComparison(true)}
-            className="text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+            onClick={handleBack}
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
-            Compare AI providers →
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Back
           </button>
-
-          <ProviderComparisonModal
-            isOpen={showComparison}
-            onClose={() => setShowComparison(false)}
-            onSelect={(p, g) => {
-              trackProviderSelected({ provider: p as "venice" | "gemini" });
-              queueLiveStart({ provider: p as "venice" | "gemini", goal: g, persona: DEFAULT_LIVE_PERSONA });
-            }}
-          />
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground">
+              Free · No signup
+            </span>
+          </div>
         </div>
 
-        <Button
-          variant="ghost"
-          className="text-muted-foreground hover:text-foreground"
-          onClick={handleBack}
-        >
-          Back to Wardrobe
-        </Button>
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="flex flex-col items-center gap-5 sm:gap-6 max-w-2xl mx-auto w-full px-5 sm:px-6 py-6 sm:py-8">
+
+            {/* HERO PREVIEW CARD — shows what the live session will look like */}
+            <div className="w-full">
+              <div className="relative aspect-[4/5] sm:aspect-[16/10] w-full overflow-hidden rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950/30 shadow-2xl shadow-emerald-500/10">
+                {/* Radial glow */}
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,_rgba(16,185,129,0.18),_transparent_60%)]" />
+
+                {/* Stylized person silhouette (head + shoulders) */}
+                <div className="absolute inset-0 flex items-end justify-center">
+                  <div className="relative w-[44%] h-[78%]">
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[34%] aspect-square rounded-full bg-gradient-to-b from-slate-300/70 to-slate-500/70" />
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-[58%] rounded-t-[45%] bg-gradient-to-b from-slate-400/60 to-slate-600/60" />
+                  </div>
+                </div>
+
+                {/* Framing corners */}
+                <div className="absolute inset-6 sm:inset-10">
+                  <div className="relative w-full h-full">
+                    <div className="absolute -top-1 -left-1 w-8 h-8 border-t-2 border-l-2 border-emerald-300/80 rounded-tl-2xl" />
+                    <div className="absolute -top-1 -right-1 w-8 h-8 border-t-2 border-r-2 border-emerald-300/80 rounded-tr-2xl" />
+                    <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-2 border-l-2 border-emerald-300/80 rounded-bl-2xl" />
+                    <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-2 border-r-2 border-emerald-300/80 rounded-br-2xl" />
+                  </div>
+                </div>
+
+                {/* Top status pill */}
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 backdrop-blur-md border border-emerald-400/30 shadow-lg">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-200">
+                    Good Position
+                  </span>
+                </div>
+
+                {/* Bottom scan signal chips — preview of live HUD */}
+                <div className="absolute bottom-4 inset-x-3 sm:inset-x-6 flex gap-1.5 sm:gap-2">
+                  {[
+                    { label: 'Framing', value: 'locked', color: 'text-emerald-300' },
+                    { label: 'Fit', value: 'reading', color: 'text-sky-300' },
+                    { label: 'Palette', value: 'sampling', color: 'text-violet-300' },
+                    { label: 'Shop', value: 'matches', color: 'text-amber-300' },
+                  ].map((s) => (
+                    <div
+                      key={s.label}
+                      className="flex-1 rounded-lg bg-black/40 backdrop-blur-md border border-white/10 px-1.5 sm:px-2 py-1.5 min-w-0"
+                    >
+                      <p className="text-[8px] uppercase tracking-wider text-white/50 font-bold truncate">
+                        {s.label}
+                      </p>
+                      <p className={`text-[10px] sm:text-[11px] font-bold truncate ${s.color}`}>
+                        {s.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Scan line — sweeps top to bottom and back */}
+                <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                  <motion.div
+                    aria-hidden
+                    className="absolute inset-x-0 h-full"
+                    initial={{ y: '-100%' }}
+                    animate={{ y: ['-100%', '100%', '-100%'] }}
+                    transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                  >
+                    <div className="h-px bg-gradient-to-r from-transparent via-emerald-300/80 to-transparent shadow-[0_0_20px_rgba(16,185,129,0.6)]" />
+                  </motion.div>
+                </div>
+              </div>
+            </div>
+
+            {/* Title + value copy */}
+            <div className="text-center space-y-2 max-w-lg">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25">
+                <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+                  On-device preview · No signup
+                </span>
+              </div>
+              <h1 className="text-3xl sm:text-5xl font-black text-foreground tracking-tighter italic">
+                Live Style Camera
+              </h1>
+              <p className="text-muted-foreground text-sm sm:text-base max-w-md mx-auto leading-relaxed">
+                Point at an outfit. Get instant fit, palette, and shopping context from your AI stylist.
+              </p>
+            </div>
+
+            {/* Value bullets — what the user gets */}
+            <div className="grid grid-cols-3 gap-2 w-full max-w-md">
+              {[
+                { icon: Ruler, label: 'Fit', desc: 'Proportion read' },
+                { icon: Palette, label: 'Palette', desc: 'Color harmony' },
+                { icon: Zap, label: 'Matches', desc: 'Shop the gaps' },
+              ].map(({ icon: Icon, label, desc }) => (
+                <div
+                  key={label}
+                  className="flex flex-col items-center text-center p-2.5 sm:p-3 rounded-xl border border-border bg-card/50"
+                >
+                  <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-1.5">
+                    <Icon className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <p className="text-xs font-bold">{label}</p>
+                  <p className="text-[10px] text-muted-foreground leading-tight">
+                    {desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* Error display */}
+            {error && (
+              <div className="w-full max-w-md rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-left">
+                <div className="flex items-center gap-2 text-rose-400">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <p className="text-xs font-bold uppercase tracking-wider">Session Error</p>
+                </div>
+                <p className="mt-2 text-sm text-rose-300">{error}</p>
+                {error.toLowerCase().includes("camera") && (
+                  <p className="mt-2 text-xs text-rose-300/70">
+                    Make sure you allow camera access and are on HTTPS.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Start button — explicit permission gate */}
+            <div className="w-full max-w-md space-y-2">
+              <Button
+                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-full py-6 text-base sm:text-lg font-bold shadow-xl shadow-emerald-500/30 transition-all hover:shadow-emerald-500/50"
+                disabled={isInitializing}
+                onClick={() => {
+                  trackProviderSelected({ provider: "venice" });
+                  queueLiveStart({
+                    provider: "venice",
+                    goal: "daily",
+                    persona: DEFAULT_LIVE_PERSONA,
+                  });
+                }}
+              >
+                {isInitializing ? (
+                  <span className="flex items-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Connecting...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <Camera className="w-5 h-5" />
+                    START STYLE CAMERA
+                  </span>
+                )}
+              </Button>
+              <p className="text-[10px] text-center text-muted-foreground/70 leading-relaxed">
+                We only open the camera after you tap. Frames stay on your device unless you save them.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setShowComparison(true)}
+              className="text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+            >
+              Compare AI providers →
+            </button>
+
+            <ProviderComparisonModal
+              isOpen={showComparison}
+              onClose={() => setShowComparison(false)}
+              onSelect={(p, g) => {
+                trackProviderSelected({ provider: p as "venice" | "gemini" });
+                queueLiveStart({ provider: p as "venice" | "gemini", goal: g, persona: DEFAULT_LIVE_PERSONA });
+              }}
+            />
+          </div>
+        </div>
       </div>
     );
   }

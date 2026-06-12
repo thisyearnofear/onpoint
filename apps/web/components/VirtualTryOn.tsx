@@ -693,7 +693,10 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
           )}
 
           {showLiveStylist ? (
-            <div className="animate-fade-in">
+            // Wrap in a viewport-relative box so LiveStylistView's `h-full` root
+            // can actually fill (it had no defined height before, collapsing the
+            // camera viewport to a sliver between the top ticker and control bar).
+            <div className="animate-fade-in h-[min(calc(100dvh-140px),900px)] min-h-[640px]">
               <LiveStylistView onBack={() => setShowLiveStylist(false)} />
             </div>
           ) : (
