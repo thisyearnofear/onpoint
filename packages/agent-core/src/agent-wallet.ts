@@ -26,7 +26,14 @@ import { createRequire } from "node:module";
 let WDK: any = null;
 let WalletManagerEvm: any = null;
 let wdkAvailable = false;
-const requireOptionalNative = createRequire(import.meta.url);
+// tsup compiles this file to CJS for the API bundle, where
+// import.meta.url is undefined and __filename is the absolute path.
+// ESM callers hit the import.meta.url branch.
+const requireOptionalNative = createRequire(
+  (typeof __filename !== "undefined"
+    ? `file://${__filename}`
+    : (import.meta as ImportMeta).url) as string,
+);
 const OWS_PACKAGE_NAME = "@open-wallet-standard/core";
 
 async function loadWDK() {
