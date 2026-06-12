@@ -7,6 +7,7 @@
 
 const express = require('express');
 const router = express.Router();
+const Redis = require('ioredis');
 const logger = require('../lib/logger');
 
 // ── Session tracking (prevent abuse) ──
@@ -48,19 +49,28 @@ function getRedis() {
     return null;
   }
   if (!redis) {
-    redis = require('ioredis')(process.env.REDIS_URL, {
-      lazyConnect: true,
-      maxRetriesPerRequest: 1,
-      enableOfflineQueue: false,
-      connectTimeout: 1000,
-    });
-    redis.on('error', (error) => {
+    try {
+      redis = new Redis(process.env.REDIS_URL, {
+        lazyConnect: true,
+        maxRetriesPerRequest: 1,
+        enableOfflineQueue: false,
+        connectTimeout: 1000,
+      });
+      redis.on('error', (error) => {
+        redisUnavailable = true;
+        logger.warn?.('Redis unavailable for live sessions, using memory fallback', {
+          component: 'live-session',
+          error: error?.message,
+        });
+      });
+    } catch (error) {
       redisUnavailable = true;
-      logger.warn?.('Redis unavailable for live sessions, using memory fallback', {
+      logger.warn?.('Failed to construct Redis client, using memory fallback', {
         component: 'live-session',
         error: error?.message,
       });
-    });
+      return null;
+    }
   }
   return redis;
 }
