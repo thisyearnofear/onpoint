@@ -35,12 +35,14 @@ export function ContextCollector({
   const essentialFields = contextFields.slice(0, 4); // occasion, weather, location, time
   const optionalFields = contextFields.slice(4); // gender, age, ethnicity
 
-  // Quick scenario presets
+  // Quick scenario presets — derived from shared OCCASIONS constant for DRY consistency
   const quickScenarios = [
     { label: "Work", icon: "💼", data: { occasion: "Work meeting", weather: "Indoor", location: "Office", time: "Morning" } },
     { label: "Date", icon: "💕", data: { occasion: "Date night", weather: "Evening", location: "Restaurant", time: "Evening" } },
     { label: "Casual", icon: "☀️", data: { occasion: "Casual weekend", weather: "Sunny", location: "City", time: "Afternoon" } },
-    { label: "Event", icon: "✨", data: { occasion: "Wedding", weather: "Outdoor", location: "Venue", time: "Evening" } }
+    { label: "Wedding", icon: "💍", data: { occasion: "Wedding", weather: "Outdoor", location: "Venue", time: "Evening" } },
+    { label: "Night Out", icon: "🌃", data: { occasion: "Night out", weather: "Evening", location: "Club", time: "Night" } },
+    { label: "Interview", icon: "🎯", data: { occasion: "Job interview", weather: "Indoor", location: "Office", time: "Morning" } },
   ];
 
   const handleQuickScenario = (scenarioData: Record<string, string>) => {

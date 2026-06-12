@@ -50,8 +50,9 @@ import {
   OCCASION_VIBE_SYNERGY,
   OCCASION_PALETTES,
   OCCASION_DISPLAY_LABELS,
+  BUDGET_TIERS,
 } from "../lib/utils/style-constants";
-import type { BodyType } from "../lib/utils/style-constants";
+import type { BodyType, BudgetTier } from "../lib/utils/style-constants";
 import { captureReferralFromURL } from "../lib/utils/referral";
 
 export default function Home() {
@@ -834,17 +835,21 @@ function LookCrafter() {
   const [persona, setPersona] = useState<StylistPersona | null>(null);
   const [bodyType, setBodyType] = useState<BodyType | null>(null);
   const [critiqueMode, setCritiqueMode] = useState<CritiqueMode>("real");
+  const [budgetTier, setBudgetTier] = useState<BudgetTier | null>(null);
   const [result, setResult] = useState<{ image: string; score: number; critique: string; palette: string[] } | null>(null);
   const [copied, setCopied] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Wire up user preferences — pre-fill body type from saved preferences
+  // Wire up user preferences — pre-fill body type and budget tier from saved preferences
   const { preferences, updatePreferencesWithSync } = useUserPreferences();
   useEffect(() => {
     if (preferences?.bodyType && !bodyType) {
       setBodyType(preferences.bodyType as BodyType);
     }
-  }, [preferences, bodyType]);
+    if (preferences?.budgetTier && !budgetTier) {
+      setBudgetTier(preferences.budgetTier as BudgetTier);
+    }
+  }, [preferences, bodyType, budgetTier]);
 
   const occasions = OCCASIONS;
   const vibes = VIBES;
@@ -894,6 +899,7 @@ function LookCrafter() {
         persona: persona!,
         bodyType,
         critiqueMode,
+        budgetTier,
       }),
       signal: controller.signal,
     })
@@ -927,12 +933,18 @@ function LookCrafter() {
     updatePreferencesWithSync({ bodyType: bt });
   };
 
+  const handleBudgetTierSelect = (bt: BudgetTier) => {
+    setBudgetTier(bt);
+    updatePreferencesWithSync({ budgetTier: bt });
+  };
+
   const handleReset = () => {
     setPhase("choose");
     setOccasion(null);
     setVibe(null);
     setPersona(null);
     setBodyType(null);
+    setBudgetTier(null);
     setCritiqueMode("real");
     setResult(null);
     setCopied(false);
@@ -1058,10 +1070,33 @@ function LookCrafter() {
                   </div>
                 </div>
 
-                {/* 4. Critique Mode */}
+                {/* 4. Budget */}
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                    4. Critique style
+                    4. Budget range
+                  </p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {BUDGET_TIERS.map((bt) => (
+                      <button
+                        key={bt.id}
+                        onClick={() => handleBudgetTierSelect(bt.id)}
+                        className={`flex flex-col items-center gap-0.5 rounded-xl p-2.5 text-xs font-medium transition-all ${
+                          budgetTier === bt.id
+                            ? "bg-primary/10 border-2 border-primary text-primary shadow-sm"
+                            : "bg-muted/50 border-2 border-transparent text-muted-foreground hover:bg-muted"
+                        }`}
+                      >
+                        <span className="text-base">{bt.emoji}</span>
+                        <span>{bt.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 5. Critique Mode */}
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                    5. Critique style
                   </p>
                   <div className="grid grid-cols-3 gap-2">
                     {([
@@ -1088,10 +1123,10 @@ function LookCrafter() {
                   </div>
                 </div>
 
-                {/* 5. Stylist */}
+                {/* 6. Stylist */}
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                    5. Choose your stylist
+                    6. Choose your stylist
                   </p>
                   <div className="flex gap-3 justify-center">
                     {freePersonas.map((p) => {

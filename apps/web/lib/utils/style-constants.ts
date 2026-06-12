@@ -163,11 +163,11 @@ export const OCCASION_PALETTES: Record<string, Record<string, string[]>> = {
 // Budget Tiers
 // ============================================
 
-export type BudgetTier = "budget" | "moderate" | "premium" | "luxury";
+export type BudgetTier = "budget-friendly" | "moderate" | "premium" | "luxury";
 
-export const BUDGET_TIERS: { id: BudgetTier; label: string; description: string }[] = [
-  { id: "budget", label: "Budget", description: "Smart, affordable finds" },
-  { id: "moderate", label: "Moderate", description: "Best value for quality" },
-  { id: "premium", label: "Premium", description: "Investment pieces" },
-  { id: "luxury", label: "Luxury", description: "Designer & high-end" },
+export const BUDGET_TIERS: { id: BudgetTier; label: string; description: string; emoji: string }[] = [
+  { id: "budget-friendly", label: "Budget", description: "Smart, affordable finds", emoji: "💰" },
+  { id: "moderate", label: "Moderate", description: "Best value for quality", emoji: "⭐" },
+  { id: "premium", label: "Premium", description: "Investment pieces", emoji: "💎" },
+  { id: "luxury", label: "Luxury", description: "Designer & high-end", emoji: "👑" },
 ];
