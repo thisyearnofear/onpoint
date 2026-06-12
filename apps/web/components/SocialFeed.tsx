@@ -21,6 +21,7 @@ import { FarcasterUser } from './FarcasterUser';
 import { useMemoryAPI, useSocialActivities } from '../lib/hooks/useMemoryAPI';
 import { SocialActivity } from '@onpoint/shared-types';
 import { EmptyState } from './ui/EmptyState';
+import { LooksFaceoff } from './LooksFaceoff';
 
 interface SocialFeedProps {
     filter?: 'all' | 'following' | 'trending';
@@ -199,6 +200,9 @@ export function SocialFeed({ filter = 'all', showDiscovery = true }: SocialFeedP
                     </Card>
                 )}
             </div>
+
+            {/* Who Wore It Better? Face-off */}
+            <LooksFaceoff />
 
             {/* Activity Feed */}
             <div className="space-y-4">

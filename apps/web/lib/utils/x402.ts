@@ -10,17 +10,17 @@
 
 import type { PaymentRequirements } from "x402/types";
 
-// USDC on Base Sepolia (testnet) — 6 decimals
-const USDC_BASE_SEPOLIA = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
-// USDC on Base mainnet — 6 decimals
-const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+// cUSD on Celo Alfajores (testnet) — 18 decimals
+const CUSD_CELO_TESTNET = "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1";
+// cUSD on Celo mainnet — 18 decimals
+const CUSD_CELO_MAINNET = "0x765DE8164458C172EE097029dfb482Ff182ad001";
 
 const IS_TESTNET = process.env.NODE_ENV !== "production";
 
-export const X402_NETWORK = IS_TESTNET ? "base-sepolia" : "base";
-export const X402_ASSET = IS_TESTNET ? USDC_BASE_SEPOLIA : USDC_BASE;
-// 6 decimals: 1 USDC = 1_000_000
-export const X402_DECIMALS = 6;
+export const X402_NETWORK = IS_TESTNET ? "celo-alfajores" : "celo";
+export const X402_ASSET = IS_TESTNET ? CUSD_CELO_TESTNET : CUSD_CELO_MAINNET;
+// 18 decimals: 1 cUSD = 1_000_000_000_000_000_000
+export const X402_DECIMALS = 18;
 
 /**
  * Build a PaymentRequirements object for a given USD amount.
@@ -38,7 +38,7 @@ export function buildPaymentRequirements(
   const atomicAmount = Math.round(usdAmount * 10 ** X402_DECIMALS).toString();
   return {
     scheme: "exact",
-    network: X402_NETWORK,
+    network: X402_NETWORK as PaymentRequirements["network"],
     maxAmountRequired: atomicAmount,
     resource,
     description,

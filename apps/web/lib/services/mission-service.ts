@@ -43,7 +43,8 @@ export interface MissionRequirement {
     | "catalog-browse"
     | "persona-used"
     | "share-count"
-    | "external-search-count";
+    | "external-search-count"
+    | "vote-cast";
   target?: string; // e.g., persona ID, category
   threshold?: number;
 }
@@ -178,6 +179,16 @@ const MISSIONS: Mission[] = [
     reward: { type: "xp", value: 50 },
     requirements: [{ type: "share-count", threshold: 1 }],
     maxProgress: 1,
+  },
+  {
+    id: "style-judge",
+    title: "Style Judge",
+    description: "Vote on 5 community face-off matches (Reward: 30 XP)",
+    category: "social",
+    icon: "Vote",
+    reward: { type: "xp", value: 30 },
+    requirements: [{ type: "vote-cast", threshold: 5 }],
+    maxProgress: 5,
   },
 
   // Web Agent Missions

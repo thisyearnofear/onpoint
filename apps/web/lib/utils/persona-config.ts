@@ -15,6 +15,12 @@ export interface PersonaConfig {
   mode: 'honest' | 'roast' | 'hype'; // Maps to critique style
   tier: 'free' | 'premium'; // Unlock status
 
+  // Unlock requirements (gamified economy — XP or badge)
+  unlockRequirements?: {
+    xp?: number;
+    badge?: string;
+  };
+
   // Icons
   icon: React.ElementType;
 
@@ -106,6 +112,7 @@ const PERSONA_CONFIGS: Record<StylistPersona, PersonaConfig> = {
     mode: 'honest',
     tier: 'premium',
     icon: Crown,
+    unlockRequirements: { xp: 300, badge: "style-elite" },
     gradient: "from-amber-500 to-yellow-600",
     color: "amber-500",
     accent: "amber-400",
@@ -124,6 +131,7 @@ const PERSONA_CONFIGS: Record<StylistPersona, PersonaConfig> = {
     mode: 'hype',
     tier: 'premium',
     icon: Zap,
+    unlockRequirements: { xp: 150, badge: "collector" },
     gradient: "from-blue-500 to-cyan-600",
     color: "blue-500",
     accent: "blue-400",
@@ -142,6 +150,7 @@ const PERSONA_CONFIGS: Record<StylistPersona, PersonaConfig> = {
     mode: 'honest',
     tier: 'premium',
     icon: Leaf,
+    unlockRequirements: { xp: 200, badge: "miranda-approved" },
     gradient: "from-emerald-500 to-green-600",
     color: "emerald-500",
     accent: "emerald-400",
@@ -165,7 +174,29 @@ export const ALL_PERSONAS = Object.keys(PERSONA_CONFIGS) as StylistPersona[];
 export const FREE_PERSONAS: StylistPersona[] = ['miranda', 'edina', 'shaft'];
 export const PREMIUM_PERSONAS: StylistPersona[] = ['luxury', 'streetwear', 'sustainable'];
 
-export function isPersonaUnlocked(persona: StylistPersona, hasPremium: boolean): boolean {
+export function isPersonaUnlocked(
+  persona: StylistPersona,
+  hasPremium: boolean,
+  userState?: { xp: number; badges: string[] },
+): boolean {
   const config = getPersonaConfig(persona);
-  return config.tier === 'free' || hasPremium;
+  if (config.tier === 'free' || hasPremium) return true;
+  if (!userState || !config.unlockRequirements) return false;
+
+  const { xp, badge } = config.unlockRequirements;
+  const meetsXp = xp === undefined || userState.xp >= xp;
+  const meetsBadge = badge === undefined || userState.badges.includes(badge);
+
+  return meetsXp && meetsBadge;
+}
+
+export function getPersonaUnlockHint(persona: StylistPersona): string | null {
+  const config = getPersonaConfig(persona);
+  if (config.tier === 'free' || !config.unlockRequirements) return null;
+
+  const hints: string[] = [];
+  const { xp, badge } = config.unlockRequirements;
+  if (xp) hints.push(`${xp} XP`);
+  if (badge) hints.push(`"${badge}" badge`);
+  return hints.length > 0 ? `Reach ${hints.join(' or earn the ')} to unlock ${config.characterName}` : null;
 }

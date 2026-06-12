@@ -12,6 +12,7 @@ interface PersonalityCardProps {
   onSelect: (persona: StylistPersona) => void;
   disabled?: boolean;
   isLocked?: boolean;
+  unlockHint?: string;
 }
 
 const SHORT_GREETINGS: Record<string, string> = {
@@ -29,6 +30,7 @@ export function PersonalityCard({
   onSelect,
   disabled,
   isLocked = false,
+  unlockHint,
 }: PersonalityCardProps) {
   const [isPlaying, setIsPlaying] = React.useState(false);
   const mountedRef = useRef(true);
@@ -131,7 +133,9 @@ export function PersonalityCard({
           </span>
         )}
         {isLocked && (
-          <span className="text-[10px] text-gray-500">Unlock with Pro</span>
+          <span className="text-[10px] text-gray-500 text-center leading-tight">
+            {unlockHint || "Unlock with Pro"}
+          </span>
         )}
       </div>
     </div>

@@ -12,9 +12,10 @@ import { imageFileToDataUrl } from "@repo/ai-client";
 import type { StylistPersona } from "@repo/ai-client";
 import type { QualityCheckResult } from "./VirtualTryOn/usePhotoQualityCheck";
 
-import { FREE_PERSONAS, PREMIUM_PERSONAS, isPersonaUnlocked, getPersonaConfig } from "../lib/utils/persona-config";
+import { FREE_PERSONAS, PREMIUM_PERSONAS, isPersonaUnlocked, getPersonaConfig, getPersonaUnlockHint } from "../lib/utils/persona-config";
 import { usePremiumStatus } from "../hooks/use-premium-status";
 import { useUserPreferences } from "../hooks/useUserPreferences";
+import { useMissionState } from "../hooks/use-mission-state";
 import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import type { TryOnSelection } from "../lib/utils/try-on-selection";
 import {
@@ -267,6 +268,7 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
 
   const { isPremium, loading: premiumLoading } = usePremiumStatus();
   const { preferences } = useUserPreferences();
+  const { missionState } = useMissionState();
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -412,7 +414,8 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
   }, [analyzePhoto, preferences, selectedPhoto]);
 
   const handlePersonaSelect = useCallback(async (persona: StylistPersona) => {
-    if (!selectedPhoto || !isPersonaUnlocked(persona, isPremium)) return;
+    const userState = missionState ? { xp: missionState.totalXp, badges: missionState.badges } : undefined;
+    if (!selectedPhoto || !isPersonaUnlocked(persona, isPremium, userState)) return;
     
     setSelectedPersona(persona);
     setShowPersonalitySelection(false);
@@ -425,7 +428,7 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
     } catch (err) {
       console.error("Error getting persona critique:", err);
     }
-  }, [selectedPhoto, getPersonalityCritique, isPremium]);
+  }, [selectedPhoto, getPersonalityCritique, isPremium, missionState]);
 
   // Auto-select persona from deep-link after analysis completes
   const hasAutoSelectedPersona = React.useRef(false);
@@ -908,28 +911,34 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                             <p className="text-xs font-medium text-muted-foreground">PREMIUM STYLISTS</p>
                             {!isPremium && (
                               <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent/20 text-accent font-bold">
-                                Upgrade to unlock
+                                Unlock via XP, badge, or Pro
                               </span>
                             )}
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            {PREMIUM_PERSONAS.map((persona) => (
-                              <PersonalityCard
-                                key={persona}
-                                persona={persona}
-                                isSelected={selectedPersona === persona}
-                                onSelect={handlePersonaSelect}
-                                disabled={loading || critiqueLoading}
-                                isLocked={!isPremium}
-                              />
-                            ))}
+                            {PREMIUM_PERSONAS.map((persona) => {
+                              const userState = missionState ? { xp: missionState.totalXp, badges: missionState.badges } : undefined;
+                              const unlocked = isPersonaUnlocked(persona, isPremium, userState);
+                              const hint = !unlocked ? getPersonaUnlockHint(persona) : null;
+                              return (
+                                <PersonalityCard
+                                  key={persona}
+                                  persona={persona}
+                                  isSelected={selectedPersona === persona}
+                                  onSelect={handlePersonaSelect}
+                                  disabled={loading || critiqueLoading}
+                                  isLocked={!unlocked}
+                                  unlockHint={hint || undefined}
+                                />
+                              );
+                            })}
                           </div>
                         </div>
 
                         {!isPremium && !premiumLoading && (
                           <div className="mt-4 p-3 rounded-lg bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
                             <p className="text-xs text-muted-foreground mb-2">
-                              Unlock premium stylists and unlimited critiques with OnPoint Premium.
+                              Unlock premium stylists via XP, badges, or OnPoint Premium.
                             </p>
                             <a
                               href="/pricing"
