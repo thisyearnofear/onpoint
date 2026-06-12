@@ -18,6 +18,7 @@ import { Button } from "@repo/ui/button";
 import { useAccount } from "wagmi";
 import { AgentAuditLog } from "./AgentAuditLog";
 import { MerchantAllowlist } from "./MerchantAllowlist";
+import { AddFundsButton } from "./AddFundsButton";
 
 interface AgentWallet {
   chain: string;
@@ -946,6 +947,7 @@ export function AgentStatus({
       {/* Actions */}
       {showActions && (
         <div className="px-4 pb-4 space-y-2">
+          <AddFundsButton />
           <Button
             className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold"
             onClick={onTipClick}
