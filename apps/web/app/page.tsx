@@ -22,6 +22,10 @@ import {
   Wand2,
   Lock,
   Crown,
+  Flame,
+  Heart,
+  Scale,
+  Ruler,
 } from "lucide-react";
 import { Reveal } from "../components/ui/Reveal";
 import { ThemeToggle } from "../components/ThemeToggle";
@@ -32,10 +36,22 @@ import { Button } from "@repo/ui/button";
 import { PersonaAvatar } from "../components/ui/PersonaAvatar";
 import { getPersonaConfig, PREMIUM_PERSONAS, isPersonaUnlocked } from "../lib/utils/persona-config";
 import { usePremiumStatus } from "../hooks/use-premium-status";
-import type { StylistPersona } from "@repo/ai-client";
+import type { StylistPersona, CritiqueMode } from "@repo/ai-client";
 import { useAnalysisHistory } from "../lib/stores/analysis-history-store";
 import { trackRecentlySavedClicked } from "../lib/utils/analytics";
 import { useScoreProgression } from "../lib/hooks/useScoreProgression";
+import { useUserPreferences } from "../hooks/useUserPreferences";
+import {
+  BODY_TYPES,
+  OCCASIONS,
+  VIBES,
+  VIBE_IMAGES,
+  VIBE_PALETTES,
+  OCCASION_VIBE_SYNERGY,
+  OCCASION_PALETTES,
+  OCCASION_DISPLAY_LABELS,
+} from "../lib/utils/style-constants";
+import type { BodyType } from "../lib/utils/style-constants";
 import { captureReferralFromURL } from "../lib/utils/referral";
 
 export default function Home() {
@@ -742,41 +758,73 @@ function HeroVisual() {
   );
 }
 
-const LOOK_PRESETS: Record<string, { image: string; scoreRange: [number, number]; palette: string[] }> = {
-  "date-minimalist": { image: "/assets/1Model.png", scoreRange: [8, 9], palette: ["#2C2C2C", "#F5F0E8", "#C4A882"] },
-  "date-bold": { image: "/assets/2Model.png", scoreRange: [7, 9], palette: ["#8B0000", "#FFD700", "#1A1A2E"] },
-  "date-vintage": { image: "/assets/3Model.png", scoreRange: [7, 8], palette: ["#D4A574", "#8B6914", "#F5F5DC"] },
-  "date-streetwear": { image: "/assets/1Model.png", scoreRange: [7, 8], palette: ["#FF6B35", "#000000", "#F7F7F7"] },
-  "office-minimalist": { image: "/assets/2Model.png", scoreRange: [8, 9], palette: ["#1B1B1B", "#FFFFFF", "#4A6FA5"] },
-  "office-bold": { image: "/assets/3Model.png", scoreRange: [7, 8], palette: ["#003366", "#CC0000", "#F5F5F5"] },
-  "office-vintage": { image: "/assets/1Model.png", scoreRange: [7, 9], palette: ["#8B7355", "#2F4F4F", "#FFFFF0"] },
-  "office-streetwear": { image: "/assets/2Model.png", scoreRange: [7, 8], palette: ["#36454F", "#000080", "#E8E8E8"] },
-  "festival-minimalist": { image: "/assets/3Model.png", scoreRange: [7, 8], palette: ["#FF69B4", "#FFFFFF", "#FFD700"] },
-  "festival-bold": { image: "/assets/1Model.png", scoreRange: [8, 9], palette: ["#FF1493", "#00CED1", "#FFD700"] },
-  "festival-vintage": { image: "/assets/2Model.png", scoreRange: [7, 8], palette: ["#CD853F", "#800080", "#F0E68C"] },
-  "festival-streetwear": { image: "/assets/3Model.png", scoreRange: [8, 9], palette: ["#FF4500", "#1E90FF", "#32CD32"] },
-  "street-minimalist": { image: "/assets/1Model.png", scoreRange: [7, 8], palette: ["#000000", "#808080", "#FFFFFF"] },
-  "street-bold": { image: "/assets/2Model.png", scoreRange: [8, 9], palette: ["#FF0000", "#000000", "#FFFFFF"] },
-  "street-vintage": { image: "/assets/3Model.png", scoreRange: [7, 8], palette: ["#8B4513", "#DEB887", "#556B2F"] },
-  "street-streetwear": { image: "/assets/1Model.png", scoreRange: [8, 9], palette: ["#FF6347", "#4169E1", "#000000"] },
-};
 
-const PERSONA_CRITIQUES: Record<string, string[]> = {
-  miranda: [
-    "The silhouette is acceptable, but the palette shows promise. Refine the accessories.",
-    "Interesting proportions. The layering works — keep pushing the boundaries.",
-    "A solid foundation. Now elevate it with one unexpected detail.",
-  ],
-  edina: [
-    "Darling, this is STUNNING. The colors are singing! Just add more drama!",
-    "Oh honey, YES! This turns heads. Now make it louder — MORE IS MORE!",
-    "Fabulous doesn't even cover it! The vibe is immaculate. Add sparkle!",
-  ],
-  shaft: [
-    "Clean. Confident. You look like you own the room. Keep it sharp.",
-    "That's what I'm talking about. Strong look, strong energy. Stay bold.",
-    "Right on. This has swagger written all over it. Wear it like you mean it.",
-  ],
+
+/** Mode-aware critiques per persona — each mode gets 4+ entries for variety */
+const PERSONA_CRITIQUES: Record<string, Record<string, string[]>> = {
+  miranda: {
+    real: [
+      "The silhouette is acceptable, but the palette shows promise. Refine the accessories.",
+      "Interesting proportions. The layering works — keep pushing the boundaries.",
+      "A solid foundation. Now elevate it with one unexpected detail. The potential is there.",
+      "Strong composition. The fit flatters your frame. Consider a bolder silhouette for impact.",
+      "Clean lines, intentional palette. This works. Now edit one element for maximum effect.",
+    ],
+    roast: [
+      "Did you dress in the dark? The proportions are at war with each other. Pick a lane.",
+      "That hem length suggests you simply don't care. I'd suggest you start.",
+      "The palette is screaming. Tell it to use its indoor voice. We can salvage this.",
+      "This is... a choice. Not a good one, but a choice nonetheless. Let's rebuild from the shoes up.",
+    ],
+    flatter: [
+      "You clearly understand proportion. The silhouette is working beautifully for you.",
+      "There's real intelligence in this composition. You have a natural eye for balance.",
+      "The palette is considered and cohesive. This is someone who knows what they're doing.",
+      "Strong foundation with room to play. You've earned the right to experiment more.",
+    ],
+  },
+  edina: {
+    real: [
+      "Darling, this is STUNNING. The colors are singing! Just add more drama!",
+      "Oh honey, YES! This turns heads. Now make it louder — MORE IS MORE!",
+      "Fabulous doesn't even cover it! The vibe is immaculate. Add sparkle!",
+      "You've got the base right, sweetie, but where's the EXCITEMENT? Textures! Layers!",
+      "I'm getting there with this look. It needs a STATEMENT piece to push it over the top.",
+    ],
+    roast: [
+      "Sweetie, no. Just... no. This is giving 'I gave up.' And I REFUSE to accept that!",
+      "Oh honey. The 80s called and they want their outfit back. Burn it. Start over.",
+      "This is a CRIME against fashion, darling! We need an intervention, stat!",
+      "Budget. BUDGET, sweetie! This look screams 'I raided a charity bin in the dark.'",
+    ],
+    flatter: [
+      "ABSOLUTELY FABULOUS! You look like a million bucks, darling! MEGA-WOW!",
+      "Yes yes YES! This is the energy we need! You are a STYLE ICON in the making!",
+      "Darling, you've got IT! That special something! Now let's turn it up to ELEVEN!",
+      "I am OBSESSED with this look! The confidence, the attitude, the VISION!",
+    ],
+  },
+  shaft: {
+    real: [
+      "Clean. Confident. You look like you own the room. Keep it sharp.",
+      "That's what I'm talking about. Strong look, strong energy. Stay bold.",
+      "Right on. This has swagger written all over it. Wear it like you mean it.",
+      "Solid look. The proportions work. Now own it like you knew it would.",
+      "Clean execution. The details are right where they should be. Respect.",
+    ],
+    roast: [
+      "Nah. That's not it. You're better than this — try again.",
+      "That fit is doing you dirty. Size up, size down, but fix it.",
+      "You're trying too hard. Real style doesn't try. It just IS.",
+      "Lose the accessories. All of them. You look like you're cosplaying.",
+    ],
+    flatter: [
+      "Now THAT'S what I'm talking about. Clean, sharp, confident. You got it.",
+      "Right on. This is a look that says 'I know who I am.' Respect.",
+      "Clean. You look like you walked out of a magazine. Keep that energy.",
+      "That's how you do it. Strong choices, strong execution. You're on fire.",
+    ],
+  },
 };
 
 function LookCrafter() {
@@ -784,23 +832,22 @@ function LookCrafter() {
   const [occasion, setOccasion] = useState<string | null>(null);
   const [vibe, setVibe] = useState<string | null>(null);
   const [persona, setPersona] = useState<StylistPersona | null>(null);
+  const [bodyType, setBodyType] = useState<BodyType | null>(null);
+  const [critiqueMode, setCritiqueMode] = useState<CritiqueMode>("real");
   const [result, setResult] = useState<{ image: string; score: number; critique: string; palette: string[] } | null>(null);
   const [copied, setCopied] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const occasions = [
-    { id: "date", label: "Date Night", emoji: "🌙" },
-    { id: "office", label: "Office", emoji: "💼" },
-    { id: "festival", label: "Festival", emoji: "🎪" },
-    { id: "street", label: "Street", emoji: "🏙️" },
-  ];
+  // Wire up user preferences — pre-fill body type from saved preferences
+  const { preferences, updatePreferencesWithSync } = useUserPreferences();
+  useEffect(() => {
+    if (preferences?.bodyType && !bodyType) {
+      setBodyType(preferences.bodyType as BodyType);
+    }
+  }, [preferences, bodyType]);
 
-  const vibes = [
-    { id: "minimalist", label: "Minimalist" },
-    { id: "bold", label: "Bold" },
-    { id: "vintage", label: "Vintage" },
-    { id: "streetwear", label: "Streetwear" },
-  ];
+  const occasions = OCCASIONS;
+  const vibes = VIBES;
 
   const freePersonas: { id: StylistPersona; name: string; emoji: string }[] = [
     { id: "miranda", name: "Miranda", emoji: "⭐" },
@@ -813,22 +860,80 @@ function LookCrafter() {
   const handleGenerate = useCallback(() => {
     if (!canGenerate) return;
     setPhase("generating");
-    setTimeout(() => {
-      const key = `${occasion}-${vibe}`;
-      const preset = LOOK_PRESETS[key] || LOOK_PRESETS["date-minimalist"]!;
-      const score = preset.scoreRange[0] + Math.floor(Math.random() * (preset.scoreRange[1] - preset.scoreRange[0] + 1));
-      const critiques = PERSONA_CRITIQUES[persona!] || PERSONA_CRITIQUES.edina!;
-      const critique = critiques[Math.floor(Math.random() * critiques.length)]!;
-      setResult({ image: preset.image, score, critique, palette: preset.palette });
-      setPhase("result");
-    }, 1800);
-  }, [occasion, vibe, persona, canGenerate]);
+
+    // 1. Compute pre-canned result instantly (always available, no API dependency)
+    const buildCannedResult = () => {
+      const synergy = OCCASION_VIBE_SYNERGY[occasion!]?.[vibe!] || [7, 8];
+      const baseScore = synergy[0] + Math.floor(Math.random() * (synergy[1] - synergy[0] + 1));
+      const variance = bodyType ? Math.floor(Math.random() * 3) - 1 : 0;
+      const score = Math.max(1, Math.min(10, baseScore + variance));
+      const palette = OCCASION_PALETTES[occasion!]?.[vibe!] || VIBE_PALETTES[vibe!] || VIBE_PALETTES.minimalist!;
+      const image = VIBE_IMAGES[vibe!] || "/assets/1Model.png";
+      const modeCritiques = PERSONA_CRITIQUES[persona!]?.[critiqueMode];
+      const fallbackCritiques = PERSONA_CRITIQUES[persona!]?.real;
+      const critiquePool = modeCritiques || fallbackCritiques || PERSONA_CRITIQUES.edina!.real!;
+      const critique = critiquePool[Math.floor(Math.random() * critiquePool.length)]!;
+      return { image, score, critique, palette };
+    };
+
+    // Show pre-canned result immediately
+    const canned = buildCannedResult();
+    setResult(canned);
+    setPhase("result");
+
+    // 2. Progressive enhancement: try AI-generated critique in background
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+    fetch("/api/ai/look-preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        occasion: occasion!,
+        vibe: vibe!,
+        persona: persona!,
+        bodyType,
+        critiqueMode,
+      }),
+      signal: controller.signal,
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`API returned ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        if (data.critique && data.score) {
+          setResult((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  score: data.score,
+                  critique: data.critique,
+                }
+              : prev,
+          );
+        }
+      })
+      .catch(() => {
+        // Silently fall back to pre-canned — already shown
+      })
+      .finally(() => {
+        clearTimeout(timeoutId);
+      });
+  }, [occasion, vibe, persona, bodyType, critiqueMode, canGenerate]);
+
+  const handleBodyTypeSelect = (bt: BodyType) => {
+    setBodyType(bt);
+    updatePreferencesWithSync({ bodyType: bt });
+  };
 
   const handleReset = () => {
     setPhase("choose");
     setOccasion(null);
     setVibe(null);
     setPersona(null);
+    setBodyType(null);
+    setCritiqueMode("real");
     setResult(null);
     setCopied(false);
   };
@@ -850,7 +955,8 @@ function LookCrafter() {
 
   const handleShare = async () => {
     const personaName = getPersonaConfig(persona!).characterName.split(" ")[0];
-    const text = `${personaName} rated my ${occasion} look ${result?.score}/10 and said "${result?.critique.slice(0, 60)}..." — what would ${personaName} say about yours?`;
+    const occasionLabel = OCCASION_DISPLAY_LABELS[occasion!] || occasion!;
+    const text = `${personaName} rated my ${occasionLabel} look ${result?.score}/10 and said "${result?.critique.slice(0, 60)}..." — what would ${personaName} say about yours?`;
     const shareUrl = typeof window !== "undefined" ? window.location.origin : "";
     if (navigator.share) {
       navigator.share({ title: "My OnPoint Look", text, url: shareUrl });
@@ -882,18 +988,42 @@ function LookCrafter() {
         <Reveal delay={0.1}>
           <div className="max-w-lg mx-auto rounded-2xl border border-border/40 bg-gradient-to-br from-background via-background to-primary/[0.03] shadow-lg shadow-primary/5 overflow-hidden">
             {phase === "choose" && (
-              <div className="p-6 space-y-6">
-                {/* Occasion */}
+              <div className="p-6 space-y-5">
+                {/* 1. Body Type */}
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1">
+                    <Ruler className="w-3 h-3" />
+                    1. Your body type
+                  </p>
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                    {BODY_TYPES.map((bt) => (
+                      <button
+                        key={bt.id}
+                        onClick={() => handleBodyTypeSelect(bt.id)}
+                        className={`flex flex-col items-center gap-0.5 rounded-lg p-2 text-[10px] font-medium transition-all ${
+                          bodyType === bt.id
+                            ? "bg-primary/10 border border-primary text-primary shadow-sm"
+                            : "bg-muted/50 border border-transparent text-muted-foreground hover:bg-muted"
+                        }`}
+                      >
+                        <span className="text-base">{bt.emoji}</span>
+                        <span className="leading-tight">{bt.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 2. Occasion */}
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                    1. Pick the occasion
+                    2. Pick the occasion
                   </p>
                   <div className="grid grid-cols-4 gap-2">
                     {occasions.map((o) => (
                       <button
                         key={o.id}
                         onClick={() => setOccasion(o.id)}
-                        className={`flex flex-col items-center gap-1 rounded-xl p-3 text-xs font-medium transition-all ${
+                        className={`flex flex-col items-center gap-1 rounded-xl p-2.5 text-xs font-medium transition-all ${
                           occasion === o.id
                             ? "bg-primary/10 border-2 border-primary text-primary shadow-sm"
                             : "bg-muted/50 border-2 border-transparent text-muted-foreground hover:bg-muted"
@@ -906,10 +1036,10 @@ function LookCrafter() {
                   </div>
                 </div>
 
-                {/* Vibe */}
+                {/* 3. Vibe */}
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                    2. Pick your vibe
+                    3. Pick your vibe
                   </p>
                   <div className="grid grid-cols-4 gap-2">
                     {vibes.map((v) => (
@@ -928,10 +1058,40 @@ function LookCrafter() {
                   </div>
                 </div>
 
-                {/* Persona */}
+                {/* 4. Critique Mode */}
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                    3. Choose your stylist
+                    4. Critique style
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {([
+                      { id: "real" as CritiqueMode, label: "Real", icon: Scale, color: "text-blue-500" },
+                      { id: "roast" as CritiqueMode, label: "Roast", icon: Flame, color: "text-red-500" },
+                      { id: "flatter" as CritiqueMode, label: "Flatter", icon: Heart, color: "text-pink-500" },
+                    ]).map((mode) => {
+                      const ModeIcon = mode.icon;
+                      return (
+                        <button
+                          key={mode.id}
+                          onClick={() => setCritiqueMode(mode.id)}
+                          className={`flex items-center justify-center gap-1.5 rounded-xl p-2.5 text-xs font-medium transition-all ${
+                            critiqueMode === mode.id
+                              ? "bg-primary/10 border-2 border-primary text-primary shadow-sm"
+                              : "bg-muted/50 border-2 border-transparent text-muted-foreground hover:bg-muted"
+                          }`}
+                        >
+                          <ModeIcon className={`w-3.5 h-3.5 ${mode.color}`} />
+                          {mode.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 5. Stylist */}
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                    5. Choose your stylist
                   </p>
                   <div className="flex gap-3 justify-center">
                     {freePersonas.map((p) => {
