@@ -5,6 +5,7 @@ import "./globals.css";
 import "./mobile.css";
 import { Providers } from "./providers";
 import '@rainbow-me/rainbowkit/styles.css';
+import { auth0 } from "@/lib/auth0";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -33,11 +34,13 @@ export const viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth0.getSession();
+  const user = session?.user;
   const baseUrl = appBaseUrl;
   const embed = {
     version: "1",
@@ -91,7 +94,7 @@ export default function RootLayout({
         <meta name="fc:frame" content={JSON.stringify(embed)} />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <Providers>
+        <Providers user={user}>
           {children}
         </Providers>
         <Script

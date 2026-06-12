@@ -28,6 +28,7 @@ import { sdk } from "@farcaster/miniapp-sdk";
 import { useEffect, useState } from "react";
 import { MiniAppProvider, useMiniApp } from "@neynar/react";
 import { Auth0Provider } from "@auth0/nextjs-auth0/client";
+import type { User } from "@auth0/nextjs-auth0/types";
 import { Toaster } from "@/components/toast";
 import { StyleProvider } from "@/lib/context/StyleContext";
 import { MiniPayProvider } from "@/components/MiniPayProvider";
@@ -72,12 +73,18 @@ function useResolvedTheme() {
   return theme;
 }
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({
+  children,
+  user,
+}: {
+  children: React.ReactNode;
+  user?: User;
+}) {
   const theme = useResolvedTheme();
   const [queryClient] = useState(() => new QueryClient());
 
   return (
-    <Auth0Provider>
+    <Auth0Provider user={user}>
       <QueryClientProvider client={queryClient}>
         <WagmiProvider config={config}>
           <MiniAppProvider analyticsEnabled={true}>
