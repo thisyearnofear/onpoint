@@ -165,42 +165,6 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   const [showStyleReport, setShowStyleReport] = React.useState(false);
   const [showComparison, setShowComparison] = React.useState(false);
   const [queuedStart, setQueuedStart] = React.useState<QueuedLiveStart | null>(null);
-  const hasRetriedRef = React.useRef(false);
-
-  // Silent fallback: if Venice fails (non-payment/camera error), try Gemini once
-  React.useEffect(() => {
-    if (!error || isConnected || isInitializing || !selectedProvider) return;
-    if (!sessionGoal) return;
-    if (hasRetriedRef.current) return;
-
-    const errorLower = error.toLowerCase();
-    if (
-      errorLower.includes("payment") ||
-      errorLower.includes("api key") ||
-      errorLower.includes("requires payment") ||
-      errorLower.includes("402") ||
-      errorLower.includes("camera") ||
-      errorLower.includes("permission")
-    ) {
-      return;
-    }
-
-    if (selectedProvider === "venice") {
-      hasRetriedRef.current = true;
-      queueLiveStart({
-        provider: "gemini",
-        goal: sessionGoal,
-        persona: selectedPersona || DEFAULT_LIVE_PERSONA,
-      });
-    }
-  }, [error, isConnected, isInitializing, selectedProvider, sessionGoal, selectedPersona, queueLiveStart]);
-
-  // Reset retry flag when session connects or user returns to start screen
-  React.useEffect(() => {
-    if (isConnected || !selectedProvider) {
-      hasRetriedRef.current = false;
-    }
-  }, [isConnected, selectedProvider]);
 
   // Persist latency samples to localStorage for historical averages
   React.useEffect(() => {
@@ -381,7 +345,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           <div className="flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground">
-              Free · No signup
+              {isPremium ? 'Premium' : 'Free · No signup'}
             </span>
           </div>
         </div>
@@ -444,18 +408,20 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                   ))}
                 </div>
 
-                {/* Scan line — sweeps top to bottom and back */}
-                <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                  <motion.div
-                    aria-hidden
-                    className="absolute inset-x-0 h-full"
-                    initial={{ y: '-100%' }}
-                    animate={{ y: ['-100%', '100%', '-100%'] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-                  >
-                    <div className="h-px bg-gradient-to-r from-transparent via-emerald-300/80 to-transparent shadow-[0_0_20px_rgba(16,185,129,0.6)]" />
-                  </motion.div>
-                </div>
+                {/* Scan line — only for real-time (premium) providers */}
+                {isPremium && (
+                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                    <motion.div
+                      aria-hidden
+                      className="absolute inset-x-0 h-full"
+                      initial={{ y: '-100%' }}
+                      animate={{ y: ['-100%', '100%', '-100%'] }}
+                      transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                    >
+                      <div className="h-px bg-gradient-to-r from-transparent via-emerald-300/80 to-transparent shadow-[0_0_20px_rgba(16,185,129,0.6)]" />
+                    </motion.div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -464,14 +430,17 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
               <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25">
                 <ShieldCheck className="w-3 h-3 text-emerald-400" />
                 <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300">
-                  On-device preview · No signup
+                  {isPremium ? 'Live · Premium' : 'On-device preview · No signup'}
                 </span>
               </div>
               <h1 className="text-3xl sm:text-5xl font-black text-foreground tracking-tighter italic">
-                Live Style Camera
+                {isPremium ? 'Live Style Camera' : 'Snap & Analyze'}
               </h1>
               <p className="text-muted-foreground text-sm sm:text-base max-w-md mx-auto leading-relaxed">
-                Point at an outfit. Get instant fit, palette, and shopping context from your AI stylist.
+                {isPremium
+                  ? 'Real-time AI feedback as you move. Get fit, palette, and voice-led styling.'
+                  : 'Tap to capture. Get fit, palette, and shopping matches in seconds.'
+                }
               </p>
             </div>
 
@@ -506,9 +475,17 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 </div>
                 <p className="mt-2 text-sm text-rose-300">{error}</p>
                 {error.toLowerCase().includes("camera") && (
-                  <p className="mt-2 text-xs text-rose-300/70">
-                    Make sure you allow camera access and are on HTTPS.
-                  </p>
+                  <div className="mt-2 space-y-2">
+                    <p className="text-xs text-rose-300/70">
+                      Make sure you allow camera access and are on HTTPS.
+                    </p>
+                    <button
+                      onClick={() => { stopSession(); setSelectedProvider(null); }}
+                      className="text-xs text-amber-300 hover:text-amber-200 underline underline-offset-2"
+                    >
+                      Use Upload Photo instead →
+                    </button>
+                  </div>
                 )}
               </div>
             )}

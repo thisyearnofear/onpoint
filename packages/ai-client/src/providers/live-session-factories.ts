@@ -57,6 +57,7 @@ const veniceFactory: LiveSessionFactory = {
 
   fallbackChain: ["replicate", "azure", "gemini"],
 
+  realTimeFrames: false,
   supportsAudio: () => false,
 
   frameIntervalMs: () => 3000,
@@ -130,6 +131,7 @@ const replicateFactory: LiveSessionFactory = {
 
   fallbackChain: ["azure", "venice", "gemini"],
 
+  realTimeFrames: false,
   supportsAudio: () => false,
 
   frameIntervalMs: () => 2500,
@@ -195,6 +197,7 @@ const azureFactory: LiveSessionFactory = {
 
   fallbackChain: ["replicate", "venice", "gemini"],
 
+  realTimeFrames: false,
   supportsAudio: () => false,
 
   frameIntervalMs: () => 3000,
@@ -258,6 +261,7 @@ const geminiFactory: LiveSessionFactory = {
     },
   ],
 
+  realTimeFrames: true,
   supportsAudio: () => true,
 
   frameIntervalMs: () => 1000,

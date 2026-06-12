@@ -10,7 +10,6 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useLiveProvider, SESSION_FACTORIES, type LiveSessionFactory } from "@repo/ai-client";
-import { sdk } from "@farcaster/miniapp-sdk";
 import { PersonaVoice } from "../../../lib/utils/persona-voice";
 import {
   useAgentSuggestions,
@@ -23,20 +22,20 @@ import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import { MissionService } from "../../../lib/services/mission-service";
 import { StyleContextStore } from "../../../lib/services/style-context-store";
 import { useAnalysisHistory } from "../../../lib/stores/analysis-history-store";
+import { Palette, Ruler, CheckCircle, Eye } from "lucide-react";
 import { compressToThumbnail } from "../../PolaroidGallery";
 import {
   buildHeuristicStyleScore,
   extractStructuredStyleScore,
 } from "../../../lib/utils/style-score";
+import { useCaptureState } from "./useCaptureState";
 
 // ── Types ──
 
 export type AIProvider = keyof typeof SESSION_FACTORIES;
 
-export interface CaptureOption {
-  image: string;
-  comment: string;
-}
+// Re-exported from useCaptureState (canonical location) for backward compatibility
+export type { CaptureOption } from "./useCaptureState";
 
 export type ActivityType = "thought" | "decision" | "action";
 
@@ -72,42 +71,6 @@ export interface SessionSummary {
 }
 
 export type SessionGoal = "event" | "daily" | "critique" | null;
-
-// ── Goal options (constant) ──
-
-import {
-  Calendar,
-  Sun,
-  MessageSquareWarning,
-  Palette,
-  Ruler,
-  CheckCircle,
-  Eye,
-} from "lucide-react";
-
-export const GOAL_OPTIONS = [
-  {
-    id: "event" as const,
-    label: "Event Styling",
-    desc: "Prepare for a special occasion — formal, party, or date night",
-    icon: Calendar,
-    color: "from-purple-500 to-indigo-600",
-  },
-  {
-    id: "daily" as const,
-    label: "Daily Outfit Check",
-    desc: "Quick review of your everyday look for fit and coordination",
-    icon: Sun,
-    color: "from-amber-500 to-orange-600",
-  },
-  {
-    id: "critique" as const,
-    label: "Honest Critique",
-    desc: "No sugarcoating — real talk on what works and what doesn't",
-    icon: MessageSquareWarning,
-    color: "from-rose-500 to-red-600",
-  },
-];
 
 // ── Constants ──
 
@@ -148,13 +111,6 @@ export function useLiveSession() {
   const [sessionEndedManually, setSessionEndedManually] = useState(false);
 
   // ── Capture state ──
-  const [captures, setCaptures] = useState<CaptureOption[]>([]);
-  const [selectedCaptureIndex, setSelectedCaptureIndex] = useState<number>(0);
-  const [isCapturing, setIsCapturing] = useState(false);
-  const [showFlash, setShowFlash] = useState(false);
-  const [countdown, setCountdown] = useState<number | null>(null);
-  const [captureToast, setCaptureToast] = useState<string | null>(null);
-
   // ── UI toggles ──
   const [terminalExpanded, setTerminalExpanded] = useState(false);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
@@ -200,9 +156,7 @@ export function useLiveSession() {
     provider: providerName,
   } = liveProvider;
 
-  // Capture limits driven by provider factory (Venice=3, Gemini=unlimited)
-  const capturesRemaining = Math.max(0, maxCaptures - captures.length);
-  const capturesExhausted = capturesRemaining <= 0;
+  // Session-level state from live provider
 
   const {
     suggestions,
@@ -220,6 +174,8 @@ export function useLiveSession() {
     approveRequest,
     rejectRequest,
   } = useAgentApproval();
+
+  const capture = useCaptureState(maxCaptures);
 
   const addItemToCart = useCartStore((s) => s.addItem);
   const addHistorySession = useAnalysisHistory((s) => s.addSession);
@@ -730,97 +686,7 @@ export function useLiveSession() {
       .catch(console.error);
   }, [isConnected, createSuggestion, canCreateSuggestion]);
 
-  // ── Capture logic ──
-  const handleCapture = useCallback(async () => {
-    if (!videoRef.current || isCapturing) return;
-    if (captures.length >= maxCaptures) return;
-
-    try {
-      setIsCapturing(true);
-      setShowFlash(true);
-      setTimeout(() => setShowFlash(false), 150);
-
-      try {
-        sdk.actions.ready();
-      } catch {}
-
-      const canvas = document.createElement("canvas");
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.drawImage(videoRef.current, 0, 0);
-        const image = canvas.toDataURL("image/jpeg", 0.82);
-
-        const newCapture = {
-          image,
-          comment: reasoning[0] || "Analyzing style selection…",
-        };
-
-        setCaptures((prev) => [...prev, newCapture]);
-        setSelectedCaptureIndex(captures.length);
-
-        // Show capture confirmation toast
-        const captureCount = captures.length + 1;
-        const maxLabel = maxCaptures === Infinity ? "∞" : `${maxCaptures}`;
-        setCaptureToast(`Capture saved! (${captureCount}/${maxLabel})`);
-        setTimeout(() => setCaptureToast(null), 2000);
-      }
-    } catch (err) {
-      console.error("Capture error:", err);
-    } finally {
-      setIsCapturing(false);
-    }
-  }, [isCapturing, reasoning, videoRef, captures.length]);
-
-  const startTimerCapture = useCallback(() => {
-    if (countdown !== null) return;
-    setCountdown(10);
-
-    try {
-      const ctx = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
-      const playBeep = async (freq: number) => {
-        if (ctx.state === "suspended") await ctx.resume();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.frequency.setValueAtTime(freq, ctx.currentTime);
-        gain.gain.setValueAtTime(0.05, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.1);
-      };
-
-      let count = 10;
-      const interval = setInterval(() => {
-        count--;
-        if (count > 0) {
-          if (count <= 3) playBeep(880);
-          else if (count % 2 === 0) playBeep(440);
-          setCountdown(count);
-        } else {
-          clearInterval(interval);
-          playBeep(1760);
-          setCountdown(null);
-          handleCapture();
-        }
-      }, 1000);
-      playBeep(440);
-    } catch {
-      let count = 10;
-      const interval = setInterval(() => {
-        count--;
-        if (count > 0) setCountdown(count);
-        else {
-          clearInterval(interval);
-          setCountdown(null);
-          handleCapture();
-        }
-      }, 1000);
-    }
-  }, [countdown, handleCapture]);
+  // ── Capture logic (delegated to useCaptureState hook) ──
 
   // ── Session actions ──
   const handleFinish = useCallback(async () => {
@@ -870,11 +736,11 @@ export function useLiveSession() {
     if (sessionSummary && sessionSummary.takeaways.length > 0) {
       // Compress cover image to thumbnail for storage efficiency
       let coverImage: string | null = null;
-      if (captures.length > 0) {
+      if (capture.captures.length > 0) {
         try {
-          coverImage = await compressToThumbnail(captures[0]!.image);
+          coverImage = await compressToThumbnail(capture.captures[0]!.image);
         } catch {
-          coverImage = captures[0]!.image;
+          coverImage = capture.captures[0]!.image;
         }
       }
 
@@ -904,8 +770,6 @@ export function useLiveSession() {
   );
 
   // ── Derived ──
-  const hasCaptures = captures.length > 0;
-  const selectedCapture = hasCaptures ? captures[selectedCaptureIndex] : null;
   const isCritique = sessionGoal === "critique";
 
   // ── Return ──
@@ -941,22 +805,22 @@ export function useLiveSession() {
     positionStatus,
     isCritique,
 
-    // Captures
-    captures,
-    selectedCaptureIndex,
-    setSelectedCaptureIndex,
-    isCapturing,
-    showFlash,
-    countdown,
-    captureToast,
-    handleCapture,
-    startTimerCapture,
-    hasCaptures,
-    selectedCapture,
+    // Captures (delegated to useCaptureState)
+    captures: capture.captures,
+    selectedCaptureIndex: capture.selectedCaptureIndex,
+    setSelectedCaptureIndex: capture.setSelectedCaptureIndex,
+    isCapturing: capture.isCapturing,
+    showFlash: capture.showFlash,
+    countdown: capture.countdown,
+    captureToast: capture.captureToast,
+    handleCapture: () => capture.handleCapture(videoRef, reasoning),
+    startTimerCapture: () => capture.startTimerCapture(videoRef, reasoning),
+    hasCaptures: capture.hasCaptures,
+    selectedCapture: capture.selectedCapture,
     uploadedData,
     setUploadedData,
-    capturesRemaining,
-    capturesExhausted,
+    capturesRemaining: capture.capturesRemaining,
+    capturesExhausted: capture.capturesExhausted,
     maxCaptures,
 
     // Session limits

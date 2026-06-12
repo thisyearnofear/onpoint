@@ -49,6 +49,8 @@ export interface LiveSessionFactory {
   readonly cards: readonly ProviderCard[];
   /** Ordered list of provider names to fall back to if this provider fails */
   readonly fallbackChain?: readonly string[];
+  /** Whether the provider supports real-time continuous frame streaming. */
+  readonly realTimeFrames: boolean;
   supportsAudio(): boolean;
   frameIntervalMs(): number;
   sendFramePixels(): boolean;
@@ -71,6 +73,7 @@ const NULL_FACTORY: LiveSessionFactory = {
   requiresPayment: false,
   supportsByok: false,
   cards: [],
+  realTimeFrames: false,
   supportsAudio: () => false,
   frameIntervalMs: () => 1000,
   sendFramePixels: () => false,
@@ -317,47 +320,49 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
           }, 1000);
         }
 
-        // Start sending video frames for analysis
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        frameIntervalRef.current = window.setInterval(async () => {
-          const video = videoRef.current;
-          const session = sessionRef.current;
-          if (!video || !ctx || !session || frameSendInFlightRef.current) {
-            return;
-          }
-
-          if (
-            video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
-            video.videoWidth === 0 ||
-            video.videoHeight === 0
-          ) {
-            return;
-          }
-
-          try {
-            frameSendInFlightRef.current = true;
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const base64Image = canvas.toDataURL("image/jpeg", 0.7);
-
-            lastFrameTimeRef.current = Date.now();
-            if (factory.sendFramePixels()) {
-              const pixels = ctx.getImageData(
-                0,
-                0,
-                canvas.width,
-                canvas.height,
-              ).data;
-              await session.sendImage(base64Image, pixels);
-            } else {
-              await session.sendImage(base64Image);
+        // Start sending video frames for analysis (only for real-time streaming providers)
+        if (factory.realTimeFrames) {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          frameIntervalRef.current = window.setInterval(async () => {
+            const video = videoRef.current;
+            const session = sessionRef.current;
+            if (!video || !ctx || !session || frameSendInFlightRef.current) {
+              return;
             }
-          } finally {
-            frameSendInFlightRef.current = false;
-          }
-        }, factory.frameIntervalMs());
+
+            if (
+              video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
+              video.videoWidth === 0 ||
+              video.videoHeight === 0
+            ) {
+              return;
+            }
+
+            try {
+              frameSendInFlightRef.current = true;
+              canvas.width = video.videoWidth;
+              canvas.height = video.videoHeight;
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              const base64Image = canvas.toDataURL("image/jpeg", 0.7);
+
+              lastFrameTimeRef.current = Date.now();
+              if (factory.sendFramePixels()) {
+                const pixels = ctx.getImageData(
+                  0,
+                  0,
+                  canvas.width,
+                  canvas.height,
+                ).data;
+                await session.sendImage(base64Image, pixels);
+              } else {
+                await session.sendImage(base64Image);
+              }
+            } finally {
+              frameSendInFlightRef.current = false;
+            }
+          }, factory.frameIntervalMs());
+        }
       } catch (err: unknown) {
         const errorMessage =
           err instanceof Error ? err.message : "Failed to start live session";
