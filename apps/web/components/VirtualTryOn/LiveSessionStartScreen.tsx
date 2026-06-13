@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { ProviderComparisonModal } from "./ProviderComparisonModal";
+import { useStartButton } from "./hooks/useStartButton";
 
 interface LiveSessionStartScreenProps {
   onBack: () => void;
@@ -43,21 +44,8 @@ export function LiveSessionStartScreen({
 }: LiveSessionStartScreenProps) {
   // Local state — flips on click so the button shows feedback immediately,
   // before the parent swaps to the camera view and isInitializing kicks in.
-  const [isStarting, setIsStarting] = React.useState(false);
+  const { showSpinner, handleStart } = useStartButton(onStart, isInitializing);
 
-  const handleStart = React.useCallback(() => {
-    if (isStarting || isInitializing) return;
-    setIsStarting(true);
-    // Brief delay so the spinner is visible before the start screen unmounts.
-    window.setTimeout(() => onStart(), 200);
-  }, [isStarting, isInitializing, onStart]);
-
-  // Reset local state if initialization is cancelled and we come back to the start screen.
-  React.useEffect(() => {
-    if (!isInitializing) setIsStarting(false);
-  }, [isInitializing]);
-
-  const showSpinner = isStarting || isInitializing;
   return (
     <div className="flex flex-col h-full bg-background">
       <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border/50 shrink-0">

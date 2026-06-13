@@ -13,6 +13,7 @@ import {
   VolumeX,
   CheckCircle,
   ShoppingBag,
+  HelpCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAccount } from "wagmi";
@@ -29,6 +30,8 @@ import { getPersonaConfig } from "../../lib/utils/persona-config";
 import { recordLatency } from "../../lib/utils/latency-persistence";
 import { LiveSessionStartScreen } from "./LiveSessionStartScreen";
 import { LiveSessionError } from "./LiveSessionError";
+import { AutoDismissTimer } from "./hooks/AutoDismissTimer";
+import { CaptureProgressRing } from "./hooks/CaptureProgressRing";
 
 
 const SessionSummaryScreen = dynamic(
@@ -73,7 +76,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     initStep,
     setInitStep,
     showSummary,
-    setShowSummary,
+    setShowSummary: _setShowSummary,
     finalAdvice,
     sessionEndedManually,
     isConnected,
@@ -111,10 +114,10 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     setShowByokInput,
     geminiPaymentToken,
     setGeminiPaymentToken,
-    showPaymentSuccess,
-    setShowPaymentSuccess,
-    uploadedData,
-    setUploadedData,
+    showPaymentSuccess: _showPaymentSuccess,
+    setShowPaymentSuccess: _setShowPaymentSuccess,
+    uploadedData: _uploadedData,
+    setUploadedData: _setUploadedData,
     suggestions,
     currentSuggestion,
     handleAcceptSuggestion,
@@ -133,7 +136,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     isVenice,
     providerDisplayName,
     isPremium,
-    requiresPayment,
+    requiresPayment: _requiresPayment,
     supportsByok,
     latencyMs,
     provider,
@@ -149,7 +152,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     [setSelectedPersona, setSelectedProvider, setSessionGoal],
   );
 
-  const { isConnected: isWalletConnected } = useAccount();
+  const { isConnected: _isWalletConnected } = useAccount();
   const cartItemCount = useCartStore((s) => s.itemCount());
   const openCart = useCartStore((s) => s.openCart);
   const [showTipModal, setShowTipModal] = React.useState(false);
@@ -170,6 +173,9 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   const handleBack = React.useCallback(() => {
     session.stopSession();
     onBack();
+    // `session` is intentionally omitted from deps — it changes on every
+    // render, which would defeat the purpose of useCallback.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.stopSession, onBack]);
 
   // Cleanup on unmount — ensure camera stops if component is removed
@@ -177,6 +183,9 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
     return () => {
       session.stopSession();
     };
+    // We intentionally omit `session` from deps — we only want this to run on unmount,
+    // and session.stopSession is captured fresh via the ref pattern below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Mobile detection — hide non-essential HUD elements on small screens
@@ -189,53 +198,64 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
   }, []);
 
 
-  const personaStyling = getPersonaConfig(selectedPersona);
+  const personaStyling = React.useMemo(
+    () => getPersonaConfig(selectedPersona),
+    [selectedPersona],
+  );
 
   // When the session is ending (manual stop, expired, or out of captures),
   // unmount the camera video so it can't reconnect to a cleared stream and
   // doesn't waste resources while the ending card / summary is shown.
-  const sessionEnding =
-    sessionEndedManually || sessionExpired || capturesExhausted;
+  const sessionEnding = React.useMemo(
+    () => sessionEndedManually || sessionExpired || capturesExhausted,
+    [sessionEndedManually, sessionExpired, capturesExhausted],
+  );
 
   const PersonaIcon = personaStyling.icon;
-  const liveModeLabel =
-    sessionGoal === "event"
-      ? "Event prep"
-      : sessionGoal === "critique"
-        ? "Critique"
-        : "Outfit check";
-  const scanSignals = [
-    {
-      label: "Framing",
-      value:
-        positionStatus === "good"
-          ? "locked"
-          : positionStatus === "bad"
-            ? "adjust"
-            : "scanning",
-      tone:
-        positionStatus === "good"
-          ? "text-emerald-300"
-          : positionStatus === "bad"
-            ? "text-amber-300"
-            : "text-slate-300",
-    },
-    {
-      label: "Fit",
-      value: reasoning.length > 1 ? "reading" : "pending",
-      tone: "text-sky-300",
-    },
-    {
-      label: "Palette",
-      value: isAnalyzing ? "sampling" : reasoning.length ? "ready" : "pending",
-      tone: "text-violet-300",
-    },
-    {
-      label: "Shop",
-      value: suggestions.length > 0 ? "matches" : "context",
-      tone: "text-amber-300",
-    },
-  ];
+  const liveModeLabel = React.useMemo(
+    () =>
+      sessionGoal === "event"
+        ? "Event prep"
+        : sessionGoal === "critique"
+          ? "Critique"
+          : "Outfit check",
+    [sessionGoal],
+  );
+  const scanSignals = React.useMemo(
+    () => [
+      {
+        label: "Framing",
+        value:
+          positionStatus === "good"
+            ? "locked"
+            : positionStatus === "bad"
+              ? "adjust"
+              : "scanning",
+        tone:
+          positionStatus === "good"
+            ? "text-emerald-300"
+            : positionStatus === "bad"
+              ? "text-amber-300"
+              : "text-slate-300",
+      },
+      {
+        label: "Fit",
+        value: reasoning.length > 1 ? "reading" : "pending",
+        tone: "text-sky-300",
+      },
+      {
+        label: "Palette",
+        value: isAnalyzing ? "sampling" : reasoning.length ? "ready" : "pending",
+        tone: "text-violet-300",
+      },
+      {
+        label: "Shop",
+        value: suggestions.length > 0 ? "matches" : "context",
+        tone: "text-amber-300",
+      },
+    ],
+    [positionStatus, reasoning.length, isAnalyzing, suggestions.length],
+  );
 
 
   const runStartSequence = React.useCallback(
@@ -340,18 +360,24 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
         onDismissError={() => { stopSession(); setSelectedProvider(null); }}
         onStart={() => {
           trackProviderSelected({ provider: "venice" });
-          queueLiveStart({
-            provider: "venice",
-            goal: "daily",
-            persona: DEFAULT_LIVE_PERSONA,
-          });
+          // Set all session state and call startSession in one batch.
+          // The hook's startSession sets isInitializing(true) synchronously,
+          // so the main view renders with the init overlay already showing —
+          // eliminating the blank-camera flash between start screen and init.
+          setSelectedProvider("venice");
+          setSessionGoal("daily");
+          setSelectedPersona(DEFAULT_LIVE_PERSONA);
+          startSession("daily", undefined, DEFAULT_LIVE_PERSONA);
         }}
         onCompareProviders={() => setShowComparison(true)}
         showComparison={showComparison}
         onCloseComparison={() => setShowComparison(false)}
         onSelectComparisonProvider={(p, g) => {
           trackProviderSelected({ provider: p as "venice" | "gemini" });
-          queueLiveStart({ provider: p as "venice" | "gemini", goal: g, persona: DEFAULT_LIVE_PERSONA });
+          setSelectedProvider(p as "venice" | "gemini");
+          setSessionGoal(g as SessionGoal);
+          setSelectedPersona(DEFAULT_LIVE_PERSONA);
+          startSession(g as SessionGoal, undefined, DEFAULT_LIVE_PERSONA);
         }}
       />
     );
@@ -525,25 +551,46 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
       {/* Main Viewport */}
       <div className="flex-1 relative bg-slate-900 overflow-hidden">
-        {/* Init Loader */}
+        {/* Init Loader — floating card so the user can see the camera preview
+            as it initializes behind it. */}
         {isInitializing && (
-          <div className="absolute inset-0 z-[70] flex flex-col items-center justify-center bg-black/90 backdrop-blur-sm">
-            <div className="relative">
-              <div
-                className={`w-20 h-20 rounded-full border-t-2 border-${personaStyling.color} animate-spin`}
-              />
-              <div className="absolute inset-0 flex items-center justify-center">
+          <div
+            className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[70] w-[min(92vw,420px)] rounded-2xl bg-black/80 backdrop-blur-xl border border-white/10 p-4 shadow-2xl pointer-events-auto"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="relative shrink-0">
                 <div
-                  className={`w-12 h-12 rounded-full border-b-2 border-${personaStyling.accent} animate-spin-slow`}
+                  className={`w-8 h-8 rounded-full border-t-2 border-${personaStyling.color} animate-spin`}
                 />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div
+                    className={`w-4 h-4 rounded-full border-b-2 border-${personaStyling.accent} animate-spin-slow`}
+                  />
+                </div>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p
+                  className={`text-${personaStyling.text} font-mono text-[10px] uppercase tracking-[0.2em] truncate`}
+                >
+                  {isPremium
+                    ? "Connecting Live Agent"
+                    : "Connecting Style Scanner"}
+                </p>
+                {isPremium && (
+                  <p className="text-amber-400/60 text-[9px] mt-0.5">
+                    Real-time streaming enabled
+                  </p>
+                )}
               </div>
             </div>
-            <div className="mt-8 w-64 space-y-4">
+            <div className="space-y-1.5">
               {["connecting", "authenticating", "starting"].map((step, i) => {
                 const labels = [
-                  "Connecting to camera...",
-                  `Authenticating with ${providerDisplayName}...`,
-                  "Starting AI session...",
+                  "Camera ready",
+                  `Authenticating ${providerDisplayName}`,
+                  "Starting AI session",
                 ];
                 const isCurrent =
                   initStep === step ||
@@ -561,9 +608,9 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                     (initStep === "starting" || initStep === "ready")) ||
                   (step === "starting" && initStep === "ready");
                 return (
-                  <div key={step} className="flex items-center gap-3">
+                  <div key={step} className="flex items-center gap-2">
                     <div
-                      className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                      className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
                         isCurrent
                           ? `bg-${personaStyling.color} animate-pulse`
                           : isDone
@@ -572,13 +619,19 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                       }`}
                     >
                       {isDone ? (
-                        <CheckCircle className="w-4 h-4 text-white" />
+                        <CheckCircle className="w-2.5 h-2.5 text-white" />
                       ) : isCurrent ? (
-                        <div className="w-2 h-2 bg-white rounded-full" />
+                        <div className="w-1.5 h-1.5 bg-white rounded-full" />
                       ) : null}
                     </div>
                     <span
-                      className={`text-xs ${isCurrent ? `text-${personaStyling.text}` : isDone ? "text-emerald-400" : "text-slate-500"}`}
+                      className={`text-[10px] truncate ${
+                        isCurrent
+                          ? `text-${personaStyling.text}`
+                          : isDone
+                            ? "text-emerald-400"
+                            : "text-slate-500"
+                      }`}
                     >
                       {labels[i]}
                     </span>
@@ -586,18 +639,6 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 );
               })}
             </div>
-            <p
-              className={`mt-8 text-${personaStyling.text} font-mono text-[10px] uppercase tracking-[0.3em] animate-pulse`}
-            >
-              {isPremium
-                ? "Initializing Live Agent (Premium)"
-                : "Initializing Style Scanner (Free)"}
-            </p>
-            {isPremium && (
-              <p className="mt-2 text-amber-400/60 text-[10px]">
-                Real-time streaming enabled
-              </p>
-            )}
             <button
               onClick={() => {
                 stopSession();
@@ -606,9 +647,9 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 setSelectedPersona(null);
                 setQueuedStart(null);
               }}
-              className="mt-8 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white text-xs font-medium transition-colors"
+              className="mt-3 w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white text-[10px] font-medium transition-colors"
             >
-              <PhoneOff className="w-3.5 h-3.5" />
+              <PhoneOff className="w-3 h-3" />
               Cancel
             </button>
           </div>
@@ -628,14 +669,14 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             onGoBack={() => { stopSession(); setSelectedProvider(null); setSessionGoal(null); }}
             onPaymentSuccess={(token) => {
               setGeminiPaymentToken(token);
-              setShowPaymentSuccess(true);
+              _setShowPaymentSuccess(true);
               startSession(sessionGoal as SessionGoal, token);
             }}
             onStartSession={(goal, apiKey) => startSession(goal as SessionGoal, apiKey)}
             onShowByok={() => setShowByokInput(true)}
             onSetUserApiKey={(key) => setUserApiKey(key)}
           />
-        ) : sessionEnding ? null : (
+        ) : sessionEnding || isInitializing ? null : (
           <>
             <video
               ref={videoRef}
@@ -1174,6 +1215,23 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             )}
           </Button>
 
+          {/* Help — recall instructions toast */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setShowInstructions(true);
+            }}
+            aria-label="Show capture instructions"
+            className={`w-11 h-11 sm:w-14 sm:h-14 rounded-full border transition-all ${
+              showInstructions
+                ? `bg-${personaStyling.color}/20 border-${personaStyling.color}/40 text-${personaStyling.accent}`
+                : "bg-muted/30 border-border text-muted-foreground"
+            }`}
+          >
+            <HelpCircle className="w-5 h-5 sm:w-6 sm:h-6" />
+          </Button>
+
           {/* Cart + Tip — mobile accessible */}
           <button
             onClick={openCart}
@@ -1190,65 +1248,5 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
       </div>
       )}
     </div>
-  );
-}
-
-// ── Helper: auto-dismiss timer ──
-
-function AutoDismissTimer({
-  ms,
-  onDismiss,
-}: {
-  ms: number;
-  onDismiss: () => void;
-}) {
-  React.useEffect(() => {
-    const timer = setTimeout(onDismiss, ms);
-    return () => clearTimeout(timer);
-  }, [ms, onDismiss]);
-  return null;
-}
-
-// ── Helper: capture progress ring ──
-
-function CaptureProgressRing({
-  used,
-  total,
-}: {
-  used: number;
-  total: number;
-}) {
-  const radius = 26;
-  const circumference = 2 * Math.PI * radius;
-  const progress = total > 0 ? Math.min(used / total, 1) : 0;
-  const offset = circumference * (1 - progress);
-
-  return (
-    <svg
-      className="absolute -inset-1 w-[calc(100%+8px)] h-[calc(100%+8px)] -rotate-90 pointer-events-none"
-      viewBox="0 0 64 64"
-      aria-hidden
-    >
-      <circle
-        cx="32"
-        cy="32"
-        r={radius}
-        stroke="rgba(255,255,255,0.15)"
-        strokeWidth="3"
-        fill="none"
-      />
-      <circle
-        cx="32"
-        cy="32"
-        r={radius}
-        stroke="white"
-        strokeWidth="3"
-        fill="none"
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
-        strokeLinecap="round"
-        style={{ transition: "stroke-dashoffset 400ms ease-out" }}
-      />
-    </svg>
   );
 }

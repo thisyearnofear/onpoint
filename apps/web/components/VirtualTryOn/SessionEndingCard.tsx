@@ -85,13 +85,13 @@ export function SessionEndingCard({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-0 z-[60] flex items-center justify-center bg-background/80 backdrop-blur-xl"
+      className="absolute inset-x-0 bottom-0 z-[60] flex items-end justify-center pointer-events-none"
     >
       <motion.div
-        initial={{ scale: 0.85, y: 40, opacity: 0 }}
-        animate={{ scale: 1, y: 0, opacity: 1 }}
-        transition={{ type: "spring", damping: 20, stiffness: 150, delay: 0.1 }}
-        className="w-full max-w-sm mx-3 sm:mx-4 overflow-hidden rounded-3xl max-h-[90vh] flex flex-col"
+        initial={{ y: 60, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: "spring", damping: 22, stiffness: 200, delay: 0.05 }}
+        className="w-full max-w-md mx-3 sm:mx-4 mb-2 overflow-hidden rounded-3xl max-h-[80vh] flex flex-col pointer-events-auto shadow-2xl"
       >
         {/* Card top — gradient hero with score */}
         <div
