@@ -10,6 +10,7 @@ export * from "./providers/replicate-live-provider";
 export * from "./providers/azure-live-provider";
 export * from "./hooks";
 export * from "./use-live-provider";
+export * from "./camera-permissions";
 export * from "./providers/live-session-factories";
 export * from "./context/AIContext";
 export * from "./services/personality-service";

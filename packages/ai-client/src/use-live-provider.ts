@@ -12,6 +12,12 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { LiveSession } from "./providers/base-provider";
+import {
+  classifyCameraError,
+  checkCameraPermission,
+  type CameraError,
+  type CameraErrorStep,
+} from "./camera-permissions";
 
 // ── Public types ──
 
@@ -93,6 +99,12 @@ export interface LiveProviderState {
   isInitializing: boolean;
   isAnalyzing: boolean;
   error: string | null;
+  /**
+   * Structured error for camera-related failures. When set, the UI should
+   * render a dedicated recovery screen with browser-specific instructions
+   * (see CameraBlocked). When null, fall back to the generic `error` string.
+   */
+  cameraError: CameraError | null;
   transcript: string;
   aiResponse: string;
   reasoning: string[];
@@ -151,6 +163,7 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
   const [isInitializing, setIsInitializing] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cameraError, setCameraError] = useState<CameraError | null>(null);
   const [transcript, setTranscript] = useState<string>("");
   const [aiResponse, setAiResponse] = useState<string>("");
   const [reasoning, setReasoning] = useState<string[]>([]);
@@ -232,6 +245,7 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
         : undefined,
     );
     setSessionExpired(false);
+    setCameraError(null);
   }, [clearTimer, endProvisionedSession, factory, releaseStream]);
 
   const startSession = useCallback(
@@ -244,14 +258,30 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
       try {
         setIsInitializing(true);
         setError(null);
+        setCameraError(null);
         setSessionExpired(false);
         if (factory.hasSessionTimer()) {
           setSessionTimeRemaining(factory.maxSessionDurationMs() / 1000);
         }
 
+        // ── Step: precheck ──
+        // If the Permissions API is available (Chromium / Firefox) and the
+        // user has already denied camera access, skip getUserMedia entirely
+        // and surface a structured recovery message. The browser will not
+        // re-prompt, so there's no point in waiting for a timeout.
+        const permState = await checkCameraPermission();
+        if (permState === "denied") {
+          throw classifyCameraError(
+            { name: "NotAllowedError", message: "Permission denied" },
+            "precheck",
+          );
+        }
+
+        // ── Step: getUserMedia ──
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error(
-            "Camera access is not supported in this browser or over non-secure context (HTTP). Please use HTTPS.",
+          throw classifyCameraError(
+            { name: "SecurityError", message: "Camera API not available" },
+            "getUserMedia",
           );
         }
 
@@ -274,7 +304,7 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
           await videoRef.current.play().catch(() => {});
         }
 
-        // Provision the backend session
+        // ── Step: provision ──
         const provisionedConfig = await withTimeout(
           factory.provisionSession({
             goal: sessionGoal || "daily",
@@ -286,7 +316,7 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
         );
         provisioned = true;
 
-        // Create the provider-specific session (may be sync or async depending on provider)
+        // ── Step: create ──
         const session = await withTimeout(
           Promise.resolve(
             factory.createSession(provisionedConfig, sessionGoal || "daily"),
@@ -331,6 +361,7 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
         session.on("disconnected", () => setIsConnected(false));
         session.on("analyzing", setAnalyzingSafe);
 
+        // ── Step: connect ──
         await withTimeout(
           session.connect(),
           SESSION_SETUP_TIMEOUT_MS,
@@ -410,15 +441,39 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
           }, factory.frameIntervalMs());
         }
       } catch (err: unknown) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Failed to start live session";
         releaseStream();
         if (provisioned) {
           endProvisionedSession();
         }
-        setError(errorMessage);
-        console.error(err);
-        throw err instanceof Error ? err : new Error(errorMessage);
+        // Classify the error so the UI can render a tailored recovery
+        // message. If the error came from the camera flow (precheck,
+        // getUserMedia) it becomes a structured CameraError; everything
+        // else falls through to the generic string error.
+        if (err && typeof err === "object" && "kind" in err && "step" in err) {
+          const camErr = err as CameraError;
+          // We don't know the original step for a rethrown wrapper, so
+          // best-effort: assume the failing step is the one we tagged.
+          setCameraError(camErr);
+          console.warn("Camera error:", camErr);
+        } else {
+          const errorMessage =
+            err instanceof Error
+              ? err.message
+              : "Failed to start live session";
+          // Still try to classify a plain Error in case it's a getUserMedia
+          // DOMException that didn't go through our precheck path (e.g.
+          // Safari, where Permissions API is unsupported).
+          if (err && typeof err === "object" && "name" in err) {
+            const step: CameraErrorStep = navigator.mediaDevices
+              ? "getUserMedia"
+              : "precheck";
+            setCameraError(classifyCameraError(err, step));
+          } else {
+            setError(errorMessage);
+          }
+          console.error(err);
+        }
+        throw err instanceof Error ? err : new Error("Session start failed");
       } finally {
         setIsInitializing(false);
       }
@@ -436,6 +491,7 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
     isInitializing,
     isAnalyzing,
     error,
+    cameraError,
     transcript,
     aiResponse,
     reasoning,

@@ -90,6 +90,7 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
     isInitializing,
     isAnalyzing,
     error,
+    cameraError,
     videoRef,
     startSession,
     stopSession,
@@ -720,10 +721,15 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
           </div>
         )}
 
-        {/* Error Screen */}
-        {error ? (
+        {/* Error Screen — LiveSessionError handles both generic errors
+            (payment, network, server) and structured camera errors. When
+            cameraError is set, it renders a recovery layout with
+            browser-specific steps; otherwise it falls back to the
+            generic error shell. */}
+        {error || cameraError ? (
           <LiveSessionError
-            error={error}
+            error={error ?? undefined}
+            cameraError={cameraError}
             isPremium={isPremium}
             supportsByok={supportsByok}
             geminiPaymentToken={geminiPaymentToken}
