@@ -41,6 +41,23 @@ export function LiveSessionStartScreen({
   onSelectComparisonProvider,
   capturesRemaining,
 }: LiveSessionStartScreenProps) {
+  // Local state — flips on click so the button shows feedback immediately,
+  // before the parent swaps to the camera view and isInitializing kicks in.
+  const [isStarting, setIsStarting] = React.useState(false);
+
+  const handleStart = React.useCallback(() => {
+    if (isStarting || isInitializing) return;
+    setIsStarting(true);
+    // Brief delay so the spinner is visible before the start screen unmounts.
+    window.setTimeout(() => onStart(), 200);
+  }, [isStarting, isInitializing, onStart]);
+
+  // Reset local state if initialization is cancelled and we come back to the start screen.
+  React.useEffect(() => {
+    if (!isInitializing) setIsStarting(false);
+  }, [isInitializing]);
+
+  const showSpinner = isStarting || isInitializing;
   return (
     <div className="flex flex-col h-full bg-background">
       <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border/50 shrink-0">
@@ -197,10 +214,10 @@ export function LiveSessionStartScreen({
           <div className="w-full max-w-md space-y-2">
             <Button
               className="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-full py-6 text-base sm:text-lg font-bold shadow-xl shadow-emerald-500/30 transition-all hover:shadow-emerald-500/50"
-              disabled={isInitializing}
-              onClick={onStart}
+              disabled={showSpinner}
+              onClick={handleStart}
             >
-              {isInitializing ? (
+              {showSpinner ? (
                 <span className="flex items-center gap-2">
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Connecting...

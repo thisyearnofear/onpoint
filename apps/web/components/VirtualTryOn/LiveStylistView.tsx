@@ -191,6 +191,12 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
   const personaStyling = getPersonaConfig(selectedPersona);
 
+  // When the session is ending (manual stop, expired, or out of captures),
+  // unmount the camera video so it can't reconnect to a cleared stream and
+  // doesn't waste resources while the ending card / summary is shown.
+  const sessionEnding =
+    sessionEndedManually || sessionExpired || capturesExhausted;
+
   const PersonaIcon = personaStyling.icon;
   const liveModeLabel =
     sessionGoal === "event"
@@ -592,6 +598,19 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 Real-time streaming enabled
               </p>
             )}
+            <button
+              onClick={() => {
+                stopSession();
+                setSelectedProvider(null);
+                setSessionGoal(null);
+                setSelectedPersona(null);
+                setQueuedStart(null);
+              }}
+              className="mt-8 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white text-xs font-medium transition-colors"
+            >
+              <PhoneOff className="w-3.5 h-3.5" />
+              Cancel
+            </button>
           </div>
         )}
 
@@ -616,7 +635,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             onShowByok={() => setShowByokInput(true)}
             onSetUserApiKey={(key) => setUserApiKey(key)}
           />
-        ) : (
+        ) : sessionEnding ? null : (
           <>
             <video
               ref={videoRef}
@@ -853,11 +872,12 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 </div>
                 <div className="flex-1">
                   <h4 className="text-foreground font-bold text-xs uppercase tracking-wider">
-                    Live Style Context
+                    Capture {maxCaptures} Style Shots
                   </h4>
                   <p className="text-muted-foreground text-[10px] leading-snug">
-                    Step back until framing locks. The camera builds fit, palette,
-                    and shopping context as frames arrive.
+                    Step back until framing locks. Tap the camera button to save
+                    snapshots — {capturesRemaining} shot{capturesRemaining !== 1 ? "s" : ""} left
+                    build your full style profile.
                   </p>
                 </div>
                 <button
@@ -1032,7 +1052,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
 
       {/* Session Ending Card — shows on manual stop, session expired, or captures exhausted */}
       <AnimatePresence>
-        {(sessionExpired || capturesExhausted || sessionEndedManually) &&
+        {sessionEnding &&
           !showSummary &&
           sessionSummary && (
             <SessionEndingCard
@@ -1056,6 +1076,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
       </AnimatePresence>
 
       {/* Control Bar — Mobile-safe */}
+      {!sessionEnding && (
       <div
         className="bg-card px-4 sm:px-6 py-4 sm:py-6 pb-6 sm:pb-10 flex items-center justify-around gap-2 sm:gap-4 border-t border-border relative z-[50] shadow-[0_-20px_50px_rgba(0,0,0,0.15)]"
         style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
@@ -1091,7 +1112,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
             <Button
               size="icon"
               onClick={handleCapture}
-              className={`w-14 h-14 sm:w-18 sm:h-18 rounded-full text-white shadow-xl ${
+              className={`w-14 h-14 sm:w-18 sm:h-18 rounded-full text-white shadow-xl relative ${
                 capturesExhausted
                   ? "bg-slate-700 cursor-not-allowed shadow-none"
                   : `bg-${personaStyling.color} hover:bg-${personaStyling.accent} shadow-${personaStyling.color}/20`
@@ -1102,6 +1123,13 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 <Sparkles className="animate-spin w-6 h-6 sm:w-8 sm:h-8" />
               ) : (
                 <Camera className="w-6 h-6 sm:w-8 sm:h-8" />
+              )}
+              {/* Capture progress ring (free tier) */}
+              {!isPremium && maxCaptures > 0 && maxCaptures !== Infinity && (
+                <CaptureProgressRing
+                  used={maxCaptures - capturesRemaining}
+                  total={maxCaptures}
+                />
               )}
             </Button>
           </div>
@@ -1160,6 +1188,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           </button>
         </div>
       </div>
+      )}
     </div>
   );
 }
@@ -1178,4 +1207,48 @@ function AutoDismissTimer({
     return () => clearTimeout(timer);
   }, [ms, onDismiss]);
   return null;
+}
+
+// ── Helper: capture progress ring ──
+
+function CaptureProgressRing({
+  used,
+  total,
+}: {
+  used: number;
+  total: number;
+}) {
+  const radius = 26;
+  const circumference = 2 * Math.PI * radius;
+  const progress = total > 0 ? Math.min(used / total, 1) : 0;
+  const offset = circumference * (1 - progress);
+
+  return (
+    <svg
+      className="absolute -inset-1 w-[calc(100%+8px)] h-[calc(100%+8px)] -rotate-90 pointer-events-none"
+      viewBox="0 0 64 64"
+      aria-hidden
+    >
+      <circle
+        cx="32"
+        cy="32"
+        r={radius}
+        stroke="rgba(255,255,255,0.15)"
+        strokeWidth="3"
+        fill="none"
+      />
+      <circle
+        cx="32"
+        cy="32"
+        r={radius}
+        stroke="white"
+        strokeWidth="3"
+        fill="none"
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        strokeLinecap="round"
+        style={{ transition: "stroke-dashoffset 400ms ease-out" }}
+      />
+    </svg>
+  );
 }
