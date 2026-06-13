@@ -115,6 +115,35 @@ export interface LiveProviderState {
   provider: string;
 }
 
+// ── Helpers ──
+
+/**
+ * Default timeout for the overall startSession flow. Long enough to absorb
+ * slow networks and a delayed camera-permission prompt, short enough that
+ * users don't give up and bail.
+ */
+const SESSION_SETUP_TIMEOUT_MS = 15_000;
+
+/**
+ * Race a promise against a timeout. If the timeout wins, reject with a
+ * user-friendly message that the caller can surface verbatim.
+ */
+export function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  message: string,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  return Promise.race<T>([
+    promise,
+    new Promise<T>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(message)), ms);
+    }),
+  ]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
+
 // ── Hook ──
 
 export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState {
@@ -227,11 +256,17 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
         }
 
         // Open camera first so permission failures do not consume a
-        // provisioned backend session.
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 1280, height: 720, facingMode: "user" },
-          audio: factory.supportsAudio(),
-        });
+        // provisioned backend session. Wrapped in a timeout so a hung
+        // permission prompt doesn't leave the UI stuck on "initializing"
+        // forever.
+        const stream = await withTimeout(
+          navigator.mediaDevices.getUserMedia({
+            video: { width: 1280, height: 720, facingMode: "user" },
+            audio: factory.supportsAudio(),
+          }),
+          SESSION_SETUP_TIMEOUT_MS,
+          "Camera setup is taking longer than expected. Your browser may be blocking the camera. Try uploading a photo instead.",
+        );
         streamRef.current = stream;
 
         if (videoRef.current) {
@@ -240,17 +275,24 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
         }
 
         // Provision the backend session
-        const provisionedConfig = await factory.provisionSession({
-          goal: sessionGoal || "daily",
-          apiKey: userApiKey,
-          persona,
-        });
+        const provisionedConfig = await withTimeout(
+          factory.provisionSession({
+            goal: sessionGoal || "daily",
+            apiKey: userApiKey,
+            persona,
+          }),
+          SESSION_SETUP_TIMEOUT_MS,
+          "Setting up your AI session is taking longer than expected. Our server may be busy. Try again, or upload a photo instead.",
+        );
         provisioned = true;
 
-        // Create the provider-specific session
-        const session = await factory.createSession(
-          provisionedConfig,
-          sessionGoal || "daily",
+        // Create the provider-specific session (may be sync or async depending on provider)
+        const session = await withTimeout(
+          Promise.resolve(
+            factory.createSession(provisionedConfig, sessionGoal || "daily"),
+          ),
+          SESSION_SETUP_TIMEOUT_MS,
+          "Connecting to your AI stylist timed out. Try again, or upload a photo instead.",
         );
 
         // Attach listeners
@@ -289,7 +331,11 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
         session.on("disconnected", () => setIsConnected(false));
         session.on("analyzing", setAnalyzingSafe);
 
-        await session.connect();
+        await withTimeout(
+          session.connect(),
+          SESSION_SETUP_TIMEOUT_MS,
+          "Connecting to your AI stylist timed out. Try again, or upload a photo instead.",
+        );
         sessionRef.current = session;
         setIsConnected(true);
 

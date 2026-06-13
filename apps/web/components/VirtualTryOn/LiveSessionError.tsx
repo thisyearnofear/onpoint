@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Button } from "@repo/ui/button";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Upload } from "lucide-react";
 import { GeminiLivePaymentButton } from "./GeminiLivePaymentButton";
 import { findPremiumProvider } from "@repo/ai-client";
 
@@ -20,6 +20,12 @@ interface LiveSessionErrorProps {
   onStartSession: (goal: string | null, apiKey?: string) => void;
   onShowByok: () => void;
   onSetUserApiKey: (key: string) => void;
+  /**
+   * Optional handler to switch to the photo-upload mode. Shown as a
+   * primary action for camera-related errors so users have a clear
+   * escape hatch when the camera can't launch.
+   */
+  onUseUploadPhoto?: () => void;
 }
 
 export function LiveSessionError({
@@ -36,8 +42,14 @@ export function LiveSessionError({
   onStartSession,
   onShowByok,
   onSetUserApiKey,
+  onUseUploadPhoto,
 }: LiveSessionErrorProps) {
   const errorLower = error.toLowerCase();
+  const isCameraError =
+    errorLower.includes("camera") ||
+    errorLower.includes("permission") ||
+    errorLower.includes("setup") ||
+    errorLower.includes("timed out");
 
   const title =
     errorLower.includes("rate limit")
@@ -127,13 +139,24 @@ export function LiveSessionError({
             </div>
           )}
           {!isPaymentError && (
-            <Button
-              variant="ghost"
-              className="text-slate-400 hover:text-white hover:bg-white/5 font-bold"
-              onClick={onGoBack}
-            >
-              Go Back
-            </Button>
+            <div className="flex flex-col gap-2">
+              {isCameraError && onUseUploadPhoto && (
+                <Button
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-full font-bold gap-2"
+                  onClick={onUseUploadPhoto}
+                >
+                  <Upload className="w-4 h-4" />
+                  Upload a Photo instead
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                className="text-slate-400 hover:text-white hover:bg-white/5 font-bold"
+                onClick={onGoBack}
+              >
+                {isCameraError && onUseUploadPhoto ? "Go Back" : "Go Back"}
+              </Button>
+            </div>
           )}
         </div>
       </div>

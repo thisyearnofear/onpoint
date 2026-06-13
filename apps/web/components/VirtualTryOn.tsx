@@ -700,7 +700,10 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
             // can actually fill (it had no defined height before, collapsing the
             // camera viewport to a sliver between the top ticker and control bar).
             <div className="animate-fade-in h-[min(calc(100dvh-140px),900px)] min-h-[640px]">
-              <LiveStylistView onBack={() => setShowLiveStylist(false)} />
+              <LiveStylistView
+                onBack={() => setShowLiveStylist(false)}
+                onSwitchToUpload={() => setShowLiveStylist(false)}
+              />
             </div>
           ) : (
             <div className="animate-fade-in max-w-2xl mx-auto space-y-6">

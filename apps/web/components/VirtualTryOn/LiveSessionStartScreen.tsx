@@ -10,6 +10,7 @@ import {
   Ruler,
   Palette,
   Zap,
+  Upload,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { ProviderComparisonModal } from "./ProviderComparisonModal";
@@ -27,6 +28,10 @@ interface LiveSessionStartScreenProps {
   onCloseComparison: () => void;
   onSelectComparisonProvider: (provider: string, goal: string) => void;
   capturesRemaining: number;
+  /**
+   * Optional handler to switch to photo upload mode from the start screen.
+   */
+  onUseUploadPhoto?: () => void;
 }
 
 export function LiveSessionStartScreen({
@@ -41,6 +46,7 @@ export function LiveSessionStartScreen({
   onCloseComparison,
   onSelectComparisonProvider,
   capturesRemaining,
+  onUseUploadPhoto,
 }: LiveSessionStartScreenProps) {
   // Local state — flips on click so the button shows feedback immediately,
   // before the parent swaps to the camera view and isInitializing kicks in.
@@ -222,6 +228,16 @@ export function LiveSessionStartScreen({
           >
             Compare AI providers →
           </button>
+
+          {onUseUploadPhoto && (
+            <button
+              onClick={onUseUploadPhoto}
+              className="text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors inline-flex items-center gap-1.5"
+            >
+              <Upload className="w-3 h-3" />
+              Or upload a photo instead →
+            </button>
+          )}
 
           <ProviderComparisonModal
             isOpen={showComparison}
