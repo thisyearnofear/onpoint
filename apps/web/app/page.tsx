@@ -1317,6 +1317,25 @@ function HeroView() {
     captureReferralFromURL();
   }, []);
 
+  // Show the floating mobile CTA only when the hero CTA has scrolled out of view.
+  // Default to `true` (visible) so the button stays hidden until the observer confirms
+  // the hero CTA is offscreen — avoids a flash of the floating button on load.
+  const heroCtaRef = React.useRef<HTMLDivElement | null>(null);
+  const [heroCtaInView, setHeroCtaInView] = React.useState(true);
+  React.useEffect(() => {
+    const el = heroCtaRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry) setHeroCtaInView(entry.isIntersecting);
+      },
+      { threshold: 0 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="min-h-screen">
       {/* Welcome Back Banner */}
@@ -1355,10 +1374,13 @@ function HeroView() {
               </Reveal>
 
               <Reveal delay={0.3}>
-                <div className="flex flex-col sm:flex-row items-center lg:items-start gap-3">
+                <div
+                  ref={heroCtaRef}
+                  className="flex flex-col sm:flex-row items-center lg:items-start gap-3"
+                >
                   <Link
                     href="/lab"
-                    className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white font-bold px-8 py-6 rounded-full text-lg shadow-lg shadow-primary/25 transition-all"
+                    className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 active:bg-primary/80 active:scale-[0.98] text-white font-bold px-8 py-6 rounded-full text-lg shadow-lg shadow-primary/25 transition-[background-color,transform]"
                   >
                     <Camera className="w-5 h-5" />
                     Try It Free
@@ -1475,11 +1497,18 @@ function HeroView() {
         </div>
       </footer>
 
-      {/* Mobile Continue Button */}
-      <div className="fixed bottom-4 left-4 right-4 md:hidden z-40 pb-[env(safe-area-inset-bottom)]">
+      {/* Mobile Continue Button — only shows once the hero CTA scrolls out of view */}
+      <div
+        className={`fixed bottom-4 left-4 right-4 md:hidden z-40 pb-[env(safe-area-inset-bottom)] transition-all duration-300 ease-out ${
+          heroCtaInView
+            ? "translate-y-24 opacity-0 pointer-events-none"
+            : "translate-y-0 opacity-100"
+        }`}
+        aria-hidden={heroCtaInView}
+      >
         <Link
           href="/lab"
-          className="block w-full bg-primary text-white font-bold py-4 rounded-full shadow-lg text-center"
+          className="block w-full bg-primary text-white font-bold py-4 rounded-full shadow-lg text-center active:bg-primary/80 active:scale-[0.98] transition-[background-color,transform]"
         >
           Try It Free — Point Your Camera
         </Link>
