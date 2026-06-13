@@ -75,27 +75,27 @@ export default function Home() {
           <div className="flex items-center gap-1">
             <Link
               href="/curator"
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-full hover:bg-muted/50"
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 active:bg-muted active:scale-[0.98] transition-[background-color,transform,color] px-3 py-1.5 rounded-full"
             >
               <Store className="w-4 h-4" />
               Curators
             </Link>
             <Link
               href="/lab"
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-full hover:bg-muted/50"
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 active:bg-muted active:scale-[0.98] transition-[background-color,transform,color] px-3 py-1.5 rounded-full"
             >
               <FlaskConical className="w-4 h-4" />
               Lab
             </Link>
             <Link
               href="/guides"
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-full hover:bg-muted/50"
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 active:bg-muted active:scale-[0.98] transition-[background-color,transform,color] px-3 py-1.5 rounded-full"
             >
               Guides
             </Link>
             <Link
               href="/about"
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-full hover:bg-muted/50"
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 active:bg-muted active:scale-[0.98] transition-[background-color,transform,color] px-3 py-1.5 rounded-full"
             >
               About
             </Link>
@@ -151,7 +151,7 @@ function PersonaCarousel() {
             <button
               key={p}
               onClick={() => setSelectedPersona(p)}
-              className="group relative flex flex-col items-center gap-1"
+              className="group relative flex flex-col items-center gap-1 active:scale-[0.95] transition-transform"
             >
               <PersonaAvatar persona={p} size="sm" animate="idle" />
               {locked && (
@@ -227,7 +227,7 @@ function PersonaMeetModal({
         <div className={`bg-gradient-to-br ${config.gradient} p-6 text-center`}>
           <button
             onClick={onClose}
-            className="absolute right-3 top-3 rounded-full bg-black/20 p-1.5 text-white/70 hover:text-white transition-colors"
+            className="absolute right-3 top-3 rounded-full bg-black/20 p-1.5 text-white/70 hover:text-white active:bg-black/30 active:scale-[0.95] transition-[background-color,transform,color]"
           >
             <X className="h-4 w-4" />
           </button>
@@ -286,7 +286,7 @@ function PersonaMeetModal({
             <Link
               href={`/lab?tab=try-on&persona=${persona}`}
               onClick={onClose}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 text-sm font-bold text-white hover:bg-primary/90 transition-colors"
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 text-sm font-bold text-white hover:bg-primary/90 active:bg-primary/80 active:scale-[0.98] transition-[background-color,transform]"
             >
               <Camera className="h-4 w-4" />
               Try {config.characterName.split(" ")[0]} as your stylist
@@ -340,7 +340,7 @@ function WelcomeBackBanner() {
         </div>
         <Link
           href="/lab?tab=my-looks"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-bold text-white transition-all hover:bg-primary/90"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-bold text-white hover:bg-primary/90 active:bg-primary/80 active:scale-[0.98] transition-[background-color,transform]"
         >
           View looks
           <ChevronRight className="h-3 w-3" />
@@ -354,7 +354,7 @@ function DemoToggleButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="inline-flex items-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-medium text-muted-foreground transition-all hover:border-primary/30 hover:text-foreground hover:bg-muted/50"
+      className="inline-flex items-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-medium text-muted-foreground transition-all hover:border-primary/30 hover:text-foreground hover:bg-muted/50 active:bg-muted active:scale-[0.98]"
     >
       <Play className="h-4 w-4" />
       See how it works
@@ -424,7 +424,7 @@ function DemoWalkthrough({ onClose }: { onClose: () => void }) {
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute right-3 top-3 z-10 rounded-full bg-black/20 p-1.5 text-white/70 hover:text-white transition-colors"
+          className="absolute right-3 top-3 z-10 rounded-full bg-black/20 p-1.5 text-white/70 hover:text-white active:bg-black/30 active:scale-[0.95] transition-[background-color,transform,color]"
         >
           <X className="h-4 w-4" />
         </button>
@@ -462,7 +462,7 @@ function DemoWalkthrough({ onClose }: { onClose: () => void }) {
                   e.stopPropagation();
                   setStep(i);
                 }}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
+                className={`h-1.5 rounded-full transition-all duration-300 active:scale-y-[1.5] ${
                   i === step ? "w-6 bg-white" : "w-1.5 bg-white/40"
                 }`}
               />
@@ -499,7 +499,7 @@ function DemoWalkthrough({ onClose }: { onClose: () => void }) {
                     e.stopPropagation();
                     advance();
                   }}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-bold text-white hover:bg-primary/90 transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-bold text-white hover:bg-primary/90 active:bg-primary/80 active:scale-[0.98] transition-[background-color,transform]"
                 >
                   Next
                   <ArrowRight className="h-3 w-3" />
@@ -508,7 +508,7 @@ function DemoWalkthrough({ onClose }: { onClose: () => void }) {
                 <Link
                   href="/lab"
                   onClick={onClose}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-primary px-5 py-2 text-xs font-bold text-white hover:bg-primary/90 transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-primary px-5 py-2 text-xs font-bold text-white hover:bg-primary/90 active:bg-primary/80 active:scale-[0.98] transition-[background-color,transform]"
                 >
                   <Camera className="h-3.5 w-3.5" />
                   Try it free
@@ -1012,10 +1012,10 @@ function LookCrafter() {
                       <button
                         key={bt.id}
                         onClick={() => handleBodyTypeSelect(bt.id)}
-                        className={`flex flex-col items-center gap-0.5 rounded-lg p-2 text-[10px] font-medium transition-all ${
+                        className={`flex flex-col items-center gap-0.5 rounded-lg p-2 text-[10px] font-medium transition-all active:scale-[0.95] ${
                           bodyType === bt.id
                             ? "bg-primary/10 border border-primary text-primary shadow-sm"
-                            : "bg-muted/50 border border-transparent text-muted-foreground hover:bg-muted"
+                            : "bg-muted/50 border border-transparent text-muted-foreground hover:bg-muted active:bg-muted/80"
                         }`}
                       >
                         <span className="text-base">{bt.emoji}</span>
@@ -1035,10 +1035,10 @@ function LookCrafter() {
                       <button
                         key={o.id}
                         onClick={() => setOccasion(o.id)}
-                        className={`flex flex-col items-center gap-1 rounded-xl p-2.5 text-xs font-medium transition-all ${
+                        className={`flex flex-col items-center gap-1 rounded-xl p-2.5 text-xs font-medium transition-all active:scale-[0.95] ${
                           occasion === o.id
                             ? "bg-primary/10 border-2 border-primary text-primary shadow-sm"
-                            : "bg-muted/50 border-2 border-transparent text-muted-foreground hover:bg-muted"
+                            : "bg-muted/50 border-2 border-transparent text-muted-foreground hover:bg-muted active:bg-muted/80"
                         }`}
                       >
                         <span className="text-lg">{o.emoji}</span>
@@ -1058,10 +1058,10 @@ function LookCrafter() {
                       <button
                         key={v.id}
                         onClick={() => setVibe(v.id)}
-                        className={`rounded-xl p-2.5 text-xs font-medium transition-all ${
+                        className={`rounded-xl p-2.5 text-xs font-medium transition-all active:scale-[0.95] ${
                           vibe === v.id
                             ? "bg-primary/10 border-2 border-primary text-primary shadow-sm"
-                            : "bg-muted/50 border-2 border-transparent text-muted-foreground hover:bg-muted"
+                            : "bg-muted/50 border-2 border-transparent text-muted-foreground hover:bg-muted active:bg-muted/80"
                         }`}
                       >
                         {v.label}
@@ -1080,10 +1080,10 @@ function LookCrafter() {
                       <button
                         key={bt.id}
                         onClick={() => handleBudgetTierSelect(bt.id)}
-                        className={`flex flex-col items-center gap-0.5 rounded-xl p-2.5 text-xs font-medium transition-all ${
+                        className={`flex flex-col items-center gap-0.5 rounded-xl p-2.5 text-xs font-medium transition-all active:scale-[0.95] ${
                           budgetTier === bt.id
                             ? "bg-primary/10 border-2 border-primary text-primary shadow-sm"
-                            : "bg-muted/50 border-2 border-transparent text-muted-foreground hover:bg-muted"
+                            : "bg-muted/50 border-2 border-transparent text-muted-foreground hover:bg-muted active:bg-muted/80"
                         }`}
                       >
                         <span className="text-base">{bt.emoji}</span>
@@ -1109,10 +1109,10 @@ function LookCrafter() {
                         <button
                           key={mode.id}
                           onClick={() => setCritiqueMode(mode.id)}
-                          className={`flex items-center justify-center gap-1.5 rounded-xl p-2.5 text-xs font-medium transition-all ${
+                          className={`flex items-center justify-center gap-1.5 rounded-xl p-2.5 text-xs font-medium transition-all active:scale-[0.95] ${
                             critiqueMode === mode.id
                               ? "bg-primary/10 border-2 border-primary text-primary shadow-sm"
-                              : "bg-muted/50 border-2 border-transparent text-muted-foreground hover:bg-muted"
+                              : "bg-muted/50 border-2 border-transparent text-muted-foreground hover:bg-muted active:bg-muted/80"
                           }`}
                         >
                           <ModeIcon className={`w-3.5 h-3.5 ${mode.color}`} />
@@ -1135,10 +1135,10 @@ function LookCrafter() {
                         <button
                           key={p.id}
                           onClick={() => setPersona(p.id)}
-                          className={`flex flex-col items-center gap-1.5 rounded-xl p-3 transition-all ${
+                          className={`flex flex-col items-center gap-1.5 rounded-xl p-3 transition-all active:scale-[0.95] ${
                             persona === p.id
                               ? `${config.bg} border-2 ${config.border.replace("border-", "border-")} shadow-sm`
-                              : "bg-muted/50 border-2 border-transparent hover:bg-muted"
+                              : "bg-muted/50 border-2 border-transparent hover:bg-muted active:bg-muted/80"
                           }`}
                         >
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${config.bg}`}>
@@ -1155,7 +1155,7 @@ function LookCrafter() {
                 <button
                   onClick={handleGenerate}
                   disabled={!canGenerate}
-                  className="w-full flex items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-sm font-bold text-white transition-all hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="w-full flex items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-sm font-bold text-white transition-all hover:bg-primary/90 active:bg-primary/80 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
                 >
                   <Sparkles className="w-4 h-4" />
                   Generate My Look
@@ -1236,35 +1236,34 @@ function LookCrafter() {
                 <div className="flex gap-2 justify-center">
                   <button
                     onClick={handleDownload}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-xs font-medium text-foreground hover:bg-muted active:bg-muted/80 active:scale-[0.98] transition-[background-color,transform]"
                   >
                     <Download className="w-3.5 h-3.5" />
                     Download
                   </button>
                   <button
                     onClick={handleShare}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-xs font-medium text-foreground hover:bg-muted active:bg-muted/80 active:scale-[0.98] transition-[background-color,transform]"
                   >
                     {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Share2 className="w-3.5 h-3.5" />}
                     {copied ? "Copied!" : "Share"}
                   </button>
                   <button
                     onClick={handleReset}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-xs font-medium text-foreground hover:bg-muted active:bg-muted/80 active:scale-[0.98] transition-[background-color,transform]"
                   >
                     <Shirt className="w-3.5 h-3.5" />
                     New Look
                   </button>
                 </div>
 
-                {/* CTA to lab */}
+                {/* CTA to lab — secondary action, the hero CTA above is the primary */}
                 <Link
                   href={`/lab?persona=${persona}`}
-                  className="flex items-center justify-center gap-2 w-full rounded-full bg-primary py-3 text-sm font-bold text-white hover:bg-primary/90 transition-colors"
+                  className="flex items-center justify-center gap-2 w-full rounded-full border border-border bg-transparent py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/50 active:bg-muted active:scale-[0.98] transition-[background-color,transform,color]"
                 >
-                  <Camera className="w-4 h-4" />
-                  Try it with your own photo
-                  <ArrowRight className="w-4 h-4" />
+                  Try this look
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
             )}
@@ -1511,7 +1510,7 @@ function RecentlySavedSection() {
             </div>
             <Link
               href="/lab"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 active:opacity-70 active:scale-[0.98] transition-[opacity,transform,color]"
             >
               New look
               <ArrowRight className="h-3.5 w-3.5" />
