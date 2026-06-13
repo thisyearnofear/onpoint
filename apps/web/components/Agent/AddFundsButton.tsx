@@ -302,20 +302,14 @@ export function AddFundsButton() {
                     </div>
 
                     <Button
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-full py-4 font-bold"
-                      disabled={!address || !amount || loading}
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-full py-4 font-bold"
+                      disabled={!address || !amount}
+                      loading={loading}
+                      loadingIcon={<Loader2 className="w-4 h-4 animate-spin" />}
                       onClick={handleGetQuote}
                     >
-                      {loading ? (
-                        <span className="flex items-center gap-2">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Getting quote…
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-2">
-                          Get Quote <ArrowRight className="w-4 h-4" />
-                        </span>
-                      )}
+                      {loading ? "Getting quote…" : "Get Quote"}
+                      {!loading && <ArrowRight className="w-4 h-4" />}
                     </Button>
                   </div>
                 )}
@@ -363,15 +357,12 @@ export function AddFundsButton() {
                         Cancel
                       </Button>
                       <Button
-                        className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-bold"
-                        disabled={loading}
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-full font-bold"
+                        loading={loading}
+                        loadingIcon={<Loader2 className="w-4 h-4 animate-spin" />}
                         onClick={handleCreateOrder}
                       >
-                        {loading ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          "Continue"
-                        )}
+                        Continue
                       </Button>
                     </div>
                   </div>

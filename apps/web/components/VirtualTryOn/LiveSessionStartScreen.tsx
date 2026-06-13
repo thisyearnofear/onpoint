@@ -201,21 +201,15 @@ export function LiveSessionStartScreen({
 
           <div className="w-full max-w-md space-y-2">
             <Button
-              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-full py-6 text-base sm:text-lg font-bold shadow-xl shadow-emerald-500/30 transition-all hover:shadow-emerald-500/50"
-              disabled={showSpinner}
+              className="w-full bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-full py-6 text-base sm:text-lg font-bold shadow-xl shadow-emerald-500/30 transition-all hover:shadow-emerald-500/50"
+              loading={showSpinner}
+              loadingIcon={
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              }
               onClick={handleStart}
             >
-              {showSpinner ? (
-                <span className="flex items-center gap-2">
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Connecting...
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <Camera className="w-5 h-5" />
-                  START STYLE CAMERA
-                </span>
-              )}
+              <Camera className="w-5 h-5" />
+              {showSpinner ? "Connecting..." : "START STYLE CAMERA"}
             </Button>
             <p className="text-[10px] text-center text-muted-foreground/70 leading-relaxed">
               We only open the camera after you tap. Frames stay on your device unless you save them.

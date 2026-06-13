@@ -323,14 +323,11 @@ export function SessionEndingCard({
           >
             <Button
               onClick={shareToFarcaster}
-              disabled={isSharing}
-              className="w-full bg-muted/30 hover:bg-muted/50 text-foreground border border-border rounded-full py-5 text-sm font-bold gap-2"
+              loading={isSharing}
+              loadingIcon={<Sparkles className="w-4 h-4 animate-spin" />}
+              className="w-full bg-muted/30 hover:bg-muted/50 active:bg-muted/70 text-foreground border border-border rounded-full py-5 text-sm font-bold gap-2"
             >
-              {isSharing ? (
-                <Sparkles className="w-4 h-4 animate-spin" />
-              ) : (
-                <Share2 className="w-4 h-4" />
-              )}
+              <Share2 className="w-4 h-4" />
               {isSharing ? "Uploading…" : "Share on Farcaster"}
             </Button>
           </motion.div>

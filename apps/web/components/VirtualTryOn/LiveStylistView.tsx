@@ -647,7 +647,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 setSelectedPersona(null);
                 setQueuedStart(null);
               }}
-              className="mt-3 w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white text-[10px] font-medium transition-colors"
+              className="mt-3 w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 active:bg-white/15 active:scale-[0.98] border border-white/10 text-white/70 hover:text-white text-[10px] font-medium transition-[background-color,transform,box-shadow]"
             >
               <PhoneOff className="w-3 h-3" />
               Cancel
@@ -924,7 +924,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
                 <button
                   onClick={() => setShowInstructions(false)}
                   aria-label="Dismiss instructions"
-                  className="w-11 h-11 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors"
+                  className="w-11 h-11 rounded-full hover:bg-white/10 active:bg-white/15 active:scale-[0.95] flex items-center justify-center transition-[background-color,transform]"
                 >
                   <AlertCircle className="w-4 h-4 text-white/40" />
                 </button>
@@ -1235,7 +1235,7 @@ export function LiveStylistView({ onBack }: LiveStylistViewProps) {
           {/* Cart + Tip — mobile accessible */}
           <button
             onClick={openCart}
-            className="relative w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-muted/30 hover:bg-muted border border-border flex items-center justify-center transition-all"
+            className="relative w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-muted/30 hover:bg-muted active:bg-muted/50 active:scale-[0.95] border border-border flex items-center justify-center transition-[background-color,transform]"
           >
             <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6 text-foreground/80" />
             {cartItemCount > 0 && (
