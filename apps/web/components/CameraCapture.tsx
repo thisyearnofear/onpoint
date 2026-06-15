@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { Camera, RefreshCw, X } from "lucide-react";
+import { getUserMediaWithTimeout } from "@repo/ai-client";
 
 interface CameraCaptureProps {
   onCapture: (file: File) => void;
@@ -91,44 +92,17 @@ export function CameraCapture({ onCapture, onCancel }: CameraCaptureProps) {
 
     const initCamera = async () => {
       // 30s budget for the OS-level permission prompt (human-driven).
-      // Uses an abortable pattern: if the timer wins, we attach a cleanup
-      // handler on the still-pending getUserMedia to stop its tracks the
-      // moment it resolves — without this, the camera LED stays on and
-      // the next retry fails with NotReadableError.
-      let timer: ReturnType<typeof setTimeout> | null = null;
-      let timedOut = false;
-
+      // Delegates to getUserMediaWithTimeout, which combines an
+      // AbortController (native cancellation in Chrome/Edge/Firefox 132+)
+      // with the abortableTimeout fallback (Safari / older Firefox).
       try {
         setLoading(true);
 
-        const mediaPromise = navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user" },
-          audio: false,
-        });
-
-        const timeoutPromise = new Promise<MediaStream>((_, reject) => {
-          timer = setTimeout(() => {
-            timedOut = true;
-            reject(
-              new Error(
-                "Camera setup is taking longer than expected. Check your browser's address bar for a permission prompt.",
-              ),
-            );
-          }, 30_000);
-        });
-
-        // Attach a cleanup handler that stops tracks if getUserMedia
-        // resolves after the timeout or after unmount. The .catch()
-        // prevents unhandled rejections from the cleanup handler.
-        mediaPromise
-          .then((stream) => {
-            if (timedOut || cancelled) {
-              stream.getTracks().forEach((t) => t.stop());
-            }
-          })
-          .catch(() => {});
-
-        const mediaStream = await Promise.race([mediaPromise, timeoutPromise]);
+        const mediaStream = await getUserMediaWithTimeout(
+          { video: { facingMode: "user" }, audio: false },
+          30_000,
+          "Camera setup is taking longer than expected. Check your browser's address bar for a permission prompt.",
+        );
         if (cancelled) {
           mediaStream.getTracks().forEach((track) => track.stop());
           return;
@@ -157,7 +131,6 @@ export function CameraCapture({ onCapture, onCancel }: CameraCaptureProps) {
           "Could not access camera. Please ensure you've granted permission and that your camera is working.",
         );
       } finally {
-        if (timer) clearTimeout(timer);
         setLoading(false);
       }
     };

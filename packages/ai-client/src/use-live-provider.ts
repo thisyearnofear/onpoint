@@ -179,6 +179,72 @@ export function abortableTimeout<T>(
   });
 }
 
+/**
+ * Open the camera with a hard timeout AND clean cancellation. Uses two
+ * complementary mechanisms:
+ *
+ *   1. AbortController — passed as `signal` on the getUserMedia constraints.
+ *      Supported in Chrome 103+, Edge, Firefox 132+. When supported, the
+ *      browser itself rejects the in-flight call and releases the camera
+ *      hardware the moment we call `controller.abort()` — no race window.
+ *
+ *   2. abortableTimeout — races against a timer. If the browser ignored
+ *      the signal (Safari, older Firefox), the timer still fires and we
+ *      stop any late-arriving tracks on the still-pending promise. This
+ *      closes the leak even on browsers without native signal support.
+ *
+ * Always passing the signal is intentional: there is no reliable
+ * runtime feature-detect for `getUserMedia({ signal })` support, and an
+ * unsupported signal is silently ignored by the browser — so the worst
+ * case degrades to the same behavior we had before (timer-driven).
+ */
+export function getUserMediaWithTimeout(
+  constraints: MediaStreamConstraints,
+  ms: number,
+  message: string,
+): Promise<MediaStream> {
+  const controller =
+    typeof AbortController !== "undefined" ? new AbortController() : null;
+  let timedOut = false;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+
+  const mediaPromise = navigator.mediaDevices.getUserMedia({
+    ...constraints,
+    ...(controller ? { signal: controller.signal } : {}),
+  });
+
+  // Cleanup: if getUserMedia resolves after we already gave up, stop the
+  // tracks so the camera LED goes off. Runs on a separate chain so the
+  // race below is not affected.
+  mediaPromise
+    .then((stream) => {
+      if (timedOut) {
+        stream.getTracks().forEach((t) => t.stop());
+      }
+    })
+    .catch(() => {
+      // Expected when the browser honors the abort signal and rejects
+      // with AbortError — the timeout is what surfaces to the user.
+    });
+
+  const timeoutPromise = new Promise<MediaStream>((_, reject) => {
+    timer = setTimeout(() => {
+      timedOut = true;
+      // Asks the browser to release the camera right now. If the browser
+      // supports it, this rejects `mediaPromise` with AbortError; if not,
+      // it's a no-op and the cleanup .then() above handles the tail.
+      controller?.abort();
+      reject(new Error(message));
+    }, ms);
+  });
+
+  return Promise.race<MediaStream>([mediaPromise, timeoutPromise]).finally(
+    () => {
+      if (timer) clearTimeout(timer);
+    },
+  );
+}
+
 /** Per-step timeouts. Camera permission is human-driven (user must read + click the OS prompt), so it gets the longest budget. */
 const CAMERA_SETUP_TIMEOUT_MS = 30_000;
 const SESSION_SETUP_TIMEOUT_MS = 15_000;
@@ -313,24 +379,19 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
         }
 
         // Open camera first so permission failures do not consume a
-        // provisioned backend session. Wrapped in abortableTimeout so a
-        // hung permission prompt doesn't leak the MediaStream — if the
-        // timer wins, we stop the tracks on the still-pending promise the
-        // moment it resolves. Without this, the camera LED stays on and
-        // the next retry fails with NotReadableError.
-        const getUserMediaPromise = navigator.mediaDevices.getUserMedia({
-          video: { width: 1280, height: 720, facingMode: "user" },
-          audio: factory.supportsAudio(),
-        });
-        const stream = await abortableTimeout(
-          getUserMediaPromise,
+        // provisioned backend session. Uses getUserMediaWithTimeout which
+        // combines an AbortController (for native cancellation in
+        // Chrome/Edge/Firefox 132+) with the abortableTimeout fallback
+        // (for Safari / older Firefox that ignore the signal). Either
+        // way, no MediaStream is leaked if the user takes too long on
+        // the OS permission prompt.
+        const stream = await getUserMediaWithTimeout(
+          {
+            video: { width: 1280, height: 720, facingMode: "user" },
+            audio: factory.supportsAudio(),
+          },
           CAMERA_SETUP_TIMEOUT_MS,
           "Camera setup is taking longer than expected. Your browser may be blocking the camera. Try uploading a photo instead.",
-          (pending) => {
-            pending
-              .then((s) => s.getTracks().forEach((t) => t.stop()))
-              .catch(() => {});
-          },
         );
         streamRef.current = stream;
 
