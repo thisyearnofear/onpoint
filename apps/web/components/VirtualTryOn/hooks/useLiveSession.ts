@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { useLiveProvider, SESSION_FACTORIES, type LiveSessionFactory } from "@repo/ai-client";
+import { useLiveProvider, SESSION_FACTORIES, type LiveSessionFactory, detectBrowser } from "@repo/ai-client";
 import { PersonaVoice } from "../../../lib/utils/persona-voice";
 import {
   useAgentSuggestions,
@@ -28,6 +28,7 @@ import {
   buildHeuristicStyleScore,
   extractStructuredStyleScore,
 } from "../../../lib/utils/style-score";
+import { trackCameraError } from "../../../lib/utils/analytics";
 import { useCaptureState } from "./useCaptureState";
 
 // ── Types ──
@@ -188,6 +189,7 @@ export function useLiveSession() {
   const sessionStartTimeRef = useRef(0);
   const recommendationsFetchedRef = useRef(false);
   const sessionUserIdRef = useRef<string>("");
+  const trackedCameraErrorRef = useRef<string | null>(null);
 
   // ── Session start tracking ──
   useEffect(() => {
@@ -228,6 +230,32 @@ export function useLiveSession() {
       recommendationsFetchedRef.current = false;
     }
   }, [isConnected, sessionGoal]);
+
+  // ── Camera error telemetry ──
+  // Fires once per failure (deduplicated via ref) so we can measure how
+  // often the camera launch path fails in production and which failure
+  // mode is dominant. PII-safe: only the structured kind, step, and
+  // coarse browser info from @repo/ai-client — no stream contents, no
+  // error stacks, no user identifiers.
+  useEffect(() => {
+    if (!cameraError) {
+      trackedCameraErrorRef.current = null;
+      return;
+    }
+    const signature = `${cameraError.kind}:${cameraError.step}`;
+    if (trackedCameraErrorRef.current === signature) return;
+    trackedCameraErrorRef.current = signature;
+
+    const browser = detectBrowser();
+    trackCameraError({
+      kind: cameraError.kind,
+      step: cameraError.step,
+      browser: browser.name,
+      provider: providerName,
+      isMobile: browser.mobile,
+      isIos: browser.ios,
+    });
+  }, [cameraError, providerName]);
 
   // ── Suggestion gating ──
   const canCreateSuggestion = useCallback((itemType: string) => {

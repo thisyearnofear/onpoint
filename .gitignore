@@ -37,6 +37,8 @@ yarn-error.log*
 *.pem
 
 # AI Assistant Tools (local-only, not shared)
+.agents/
+skills-lock.json
 .qoder/
 .junie/
 .zencoder/

@@ -15,9 +15,26 @@ import { LiveSession } from "./providers/base-provider";
 import {
   classifyCameraError,
   checkCameraPermission,
+  PlaybackBlockedError,
   type CameraError,
   type CameraErrorStep,
 } from "./camera-permissions";
+import {
+  CAMERA_SETUP_TIMEOUT_MS,
+  SESSION_SETUP_TIMEOUT_MS,
+  getUserMediaWithTimeout,
+  withTimeout,
+} from "./camera-session";
+
+// Re-export the camera-session primitives for backward compatibility —
+// existing callers that import from use-live-provider still get them.
+export {
+  CAMERA_SETUP_TIMEOUT_MS,
+  SESSION_SETUP_TIMEOUT_MS,
+  withTimeout,
+  abortableTimeout,
+  getUserMediaWithTimeout,
+} from "./camera-session";
 
 // ── Public types ──
 
@@ -128,126 +145,10 @@ export interface LiveProviderState {
 }
 
 // ── Helpers ──
-
-/**
- * Race a promise against a timeout. If the timeout wins, reject with a
- * user-friendly message that the caller can surface verbatim. The loser's
- * timer is cleared; the loser's promise is NOT cancelled — callers that
- * need cancellation (e.g. getUserMedia) must use `abortableTimeout`.
- */
-export function withTimeout<T>(
-  promise: Promise<T>,
-  ms: number,
-  message: string,
-): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  return Promise.race<T>([
-    promise,
-    new Promise<T>((_, reject) => {
-      timer = setTimeout(() => reject(new Error(message)), ms);
-    }),
-  ]).finally(() => {
-    if (timer) clearTimeout(timer);
-  });
-}
-
-/**
- * Race a promise against a timeout AND cancel the loser. If the timeout
- * wins, `onTimeout` is called with the still-pending promise so the caller
- * can stop it (e.g. stop a leaked MediaStream's tracks when getUserMedia
- * resolves after we've given up). This is the only safe way to use a
- * timeout on getUserMedia — otherwise the camera LED stays on after the UI
- * gives up, and the next retry fails with NotReadableError.
- */
-export function abortableTimeout<T>(
-  promise: Promise<T>,
-  ms: number,
-  message: string,
-  onTimeout: (pending: Promise<T>) => void,
-): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  return Promise.race<T>([
-    promise,
-    new Promise<T>((_, reject) => {
-      timer = setTimeout(() => {
-        onTimeout(promise);
-        reject(new Error(message));
-      }, ms);
-    }),
-  ]).finally(() => {
-    if (timer) clearTimeout(timer);
-  });
-}
-
-/**
- * Open the camera with a hard timeout AND clean cancellation. Uses two
- * complementary mechanisms:
- *
- *   1. AbortController — passed as `signal` on the getUserMedia constraints.
- *      Supported in Chrome 103+, Edge, Firefox 132+. When supported, the
- *      browser itself rejects the in-flight call and releases the camera
- *      hardware the moment we call `controller.abort()` — no race window.
- *
- *   2. abortableTimeout — races against a timer. If the browser ignored
- *      the signal (Safari, older Firefox), the timer still fires and we
- *      stop any late-arriving tracks on the still-pending promise. This
- *      closes the leak even on browsers without native signal support.
- *
- * Always passing the signal is intentional: there is no reliable
- * runtime feature-detect for `getUserMedia({ signal })` support, and an
- * unsupported signal is silently ignored by the browser — so the worst
- * case degrades to the same behavior we had before (timer-driven).
- */
-export function getUserMediaWithTimeout(
-  constraints: MediaStreamConstraints,
-  ms: number,
-  message: string,
-): Promise<MediaStream> {
-  const controller =
-    typeof AbortController !== "undefined" ? new AbortController() : null;
-  let timedOut = false;
-  let timer: ReturnType<typeof setTimeout> | null = null;
-
-  const mediaPromise = navigator.mediaDevices.getUserMedia({
-    ...constraints,
-    ...(controller ? { signal: controller.signal } : {}),
-  });
-
-  // Cleanup: if getUserMedia resolves after we already gave up, stop the
-  // tracks so the camera LED goes off. Runs on a separate chain so the
-  // race below is not affected.
-  mediaPromise
-    .then((stream) => {
-      if (timedOut) {
-        stream.getTracks().forEach((t) => t.stop());
-      }
-    })
-    .catch(() => {
-      // Expected when the browser honors the abort signal and rejects
-      // with AbortError — the timeout is what surfaces to the user.
-    });
-
-  const timeoutPromise = new Promise<MediaStream>((_, reject) => {
-    timer = setTimeout(() => {
-      timedOut = true;
-      // Asks the browser to release the camera right now. If the browser
-      // supports it, this rejects `mediaPromise` with AbortError; if not,
-      // it's a no-op and the cleanup .then() above handles the tail.
-      controller?.abort();
-      reject(new Error(message));
-    }, ms);
-  });
-
-  return Promise.race<MediaStream>([mediaPromise, timeoutPromise]).finally(
-    () => {
-      if (timer) clearTimeout(timer);
-    },
-  );
-}
-
-/** Per-step timeouts. Camera permission is human-driven (user must read + click the OS prompt), so it gets the longest budget. */
-const CAMERA_SETUP_TIMEOUT_MS = 30_000;
-const SESSION_SETUP_TIMEOUT_MS = 15_000;
+//
+// Camera + timeout primitives live in ./camera-session. The re-exports at
+// the top of this file keep the public surface of use-live-provider
+// stable for existing callers.
 
 // ── Hook ──
 
@@ -404,10 +305,10 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
           } catch (playErr) {
             stream.getTracks().forEach((t) => t.stop());
             streamRef.current = null;
-            throw classifyCameraError(
-              { name: "PlaybackBlockedError", message: "Video playback was blocked by the browser" },
-              "getUserMedia",
-            );
+            // PlaybackBlockedError is a real Error subclass with
+            // name="PlaybackBlockedError", so classifyCameraError will
+            // route it to the structured `playback_blocked` kind.
+            throw new PlaybackBlockedError();
           }
         }
 

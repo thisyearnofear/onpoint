@@ -318,6 +318,25 @@ export function trackStyleCardOpened(properties: {
 }
 
 /**
+ * Track a camera launch failure. Fires once per failure, with enough
+ * metadata to debug without capturing PII (no stream contents, no error
+ * stacks). Kind comes from the structured CameraError in
+ * @repo/ai-client/camera-permissions, step is the setup phase that
+ * failed, browser is the coarse UA classification, and provider is the
+ * factory the user was trying to connect to.
+ */
+export function trackCameraError(properties: {
+  kind: string;
+  step: string;
+  browser: string;
+  provider: string;
+  isMobile: boolean;
+  isIos: boolean;
+}): void {
+  trackEvent("camera_error", properties);
+}
+
+/**
  * Track clicks on recently saved looks from the home page.
  */
 export function trackRecentlySavedClicked(properties: {

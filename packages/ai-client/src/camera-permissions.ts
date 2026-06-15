@@ -78,6 +78,25 @@ export interface CameraError {
   step: CameraErrorStep;
 }
 
+// ── Typed error classes ──
+//
+// `classifyCameraError` matches on the thrown value's `name` property.
+// Using real Error subclasses keeps the call site type-safe and avoids
+// the `as DOMException` / string-literal-name hacks that lie to the
+// type system.
+
+/**
+ * Thrown when getUserMedia succeeded but the browser refused to autoplay
+ * the resulting <video> (iOS Low Power Mode, Android Data Saver, in-app
+ * browsers that suppress autoplay). Classified as `playback_blocked`.
+ */
+export class PlaybackBlockedError extends Error {
+  override readonly name = "PlaybackBlockedError";
+  constructor(message = "Video playback was blocked by the browser") {
+    super(message);
+  }
+}
+
 // ── Browser detection ──
 
 /**
@@ -181,6 +200,25 @@ export function classifyCameraError(
         ? err
         : "Unknown camera error";
 
+  // ── Playback blocked: getUserMedia succeeded but the browser refused
+  // to autoplay the video (iOS Low Power Mode, Android Data Saver,
+  // in-app browsers that suppress autoplay). Checked BEFORE the
+  // NotAllowedError message regex below, otherwise a message that
+  // contains the word "denied" (e.g. "autoplay denied") would be
+  // misclassified as permission_denied. ──
+  if (name === "PlaybackBlockedError") {
+    return {
+      kind: "playback_blocked",
+      title: "Video playback was blocked",
+      message:
+        "Your camera started, but your browser blocked video playback. This can happen in Low Power Mode, Data Saver mode, or when using an in-app browser.",
+      steps: playbackBlockedSteps(browser),
+      primaryAction: "upload",
+      canGoBack: true,
+      step,
+    };
+  }
+
   // ── Timeouts get their own kind so we can offer "retry" or "upload". ──
   if (name === "AbortError" || isTimeoutMessage(message)) {
     return {
@@ -275,22 +313,6 @@ export function classifyCameraError(
         "If you're testing locally, use http://localhost instead of an IP address",
         "Or upload a photo instead",
       ],
-      primaryAction: "upload",
-      canGoBack: true,
-      step,
-    };
-  }
-
-  // ── Playback blocked: getUserMedia succeeded but the browser refused
-  // to autoplay the video (iOS Low Power Mode, Android Data Saver,
-  // in-app browsers that suppress autoplay). ──
-  if (name === "PlaybackBlockedError") {
-    return {
-      kind: "playback_blocked",
-      title: "Video playback was blocked",
-      message:
-        "Your camera started, but your browser blocked video playback. This can happen in Low Power Mode, Data Saver mode, or when using an in-app browser.",
-      steps: playbackBlockedSteps(browser),
       primaryAction: "upload",
       canGoBack: true,
       step,

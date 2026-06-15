@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { withTimeout, abortableTimeout, getUserMediaWithTimeout } from "@repo/ai-client";
+import { withTimeout, abortableTimeout, getUserMediaWithTimeout, PlaybackBlockedError, classifyCameraError } from "@repo/ai-client";
 
 describe("withTimeout", () => {
   it("resolves with the value when the promise resolves before the timeout", async () => {
@@ -216,5 +216,21 @@ describe("getUserMediaWithTimeout", () => {
     await expect(
       getUserMediaWithTimeout({ video: true }, 1000, "should not be thrown"),
     ).rejects.toThrow("NotAllowedError");
+  });
+});
+
+describe("PlaybackBlockedError", () => {
+  it("is a real Error subclass with the structured name", () => {
+    const err = new PlaybackBlockedError();
+    expect(err).toBeInstanceOf(Error);
+    expect(err.name).toBe("PlaybackBlockedError");
+    expect(err.message).toBeTruthy();
+  });
+
+  it("classifies into the playback_blocked kind via classifyCameraError", () => {
+    const err = new PlaybackBlockedError("autoplay denied");
+    const classified = classifyCameraError(err, "getUserMedia");
+    expect(classified.kind).toBe("playback_blocked");
+    expect(classified.step).toBe("getUserMedia");
   });
 });
