@@ -754,7 +754,7 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
             onSetUserApiKey={(key) => setUserApiKey(key)}
             onUseUploadPhoto={onSwitchToUpload}
           />
-        ) : sessionEnding || isInitializing ? null : (
+        ) : sessionEnding ? null : (
           <>
             <video
               ref={videoRef}
