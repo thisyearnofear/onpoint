@@ -12,6 +12,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { LiveSession } from "./providers/base-provider";
+import { SESSION_FACTORIES } from "./providers/live-session-factories";
 import {
   classifyCameraError,
   checkCameraPermission,
@@ -25,6 +26,32 @@ import {
   getUserMediaWithTimeout,
   withTimeout,
 } from "./camera-session";
+
+// ── Fallback chain resolver ──
+//
+// Each LiveSessionFactory may declare a `fallbackChain` listing provider
+// names to try if the primary fails during provision+create. This builds
+// the ordered list, skipping:
+//   - factories that aren't registered in SESSION_FACTORIES
+//   - premium providers (gemini) when no BYOK is provided, since they
+//     would just 402 again
+//   - any factory with `disableFallback: true`
+//   - duplicates (e.g. if two providers list each other in their chains)
+function resolveFallbackChain(
+  primary: LiveSessionFactory,
+  hasByok: boolean,
+): LiveSessionFactory[] {
+  const chain: LiveSessionFactory[] = [primary];
+  for (const name of primary.fallbackChain ?? []) {
+    const next = SESSION_FACTORIES[name];
+    if (!next) continue;
+    if (next.disableFallback) continue;
+    if (next.requiresPayment && !hasByok) continue;
+    if (chain.some((f) => f.name === next.name)) continue;
+    chain.push(next);
+  }
+  return chain;
+}
 
 // Re-export the camera-session primitives for backward compatibility —
 // existing callers that import from use-live-provider still get them.
@@ -72,6 +99,13 @@ export interface LiveSessionFactory {
   readonly cards: readonly ProviderCard[];
   /** Ordered list of provider names to fall back to if this provider fails */
   readonly fallbackChain?: readonly string[];
+  /**
+   * When true, other providers must not fall back to this factory even
+   * if it is named in their `fallbackChain`. Useful for premium-only
+   * terminal providers (e.g. gemini) that should only be reached
+   * explicitly via the user's selection, not via silent cascade.
+   */
+  readonly disableFallback?: boolean;
   /** Whether the provider supports real-time continuous frame streaming. */
   readonly realTimeFrames: boolean;
   supportsAudio(): boolean;
@@ -131,6 +165,7 @@ export interface LiveProviderState {
     sessionGoal?: string,
     userApiKey?: string,
     persona?: string,
+    factoryOverride?: LiveSessionFactory,
   ) => Promise<void>;
   stopSession: () => void;
   sessionTimeRemaining: number | undefined;
@@ -234,19 +269,20 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
     setReasoning([]);
     setAgentEvents([]);
     setSessionTimeRemaining(
-      factory.hasSessionTimer()
-        ? factory.maxSessionDurationMs() / 1000
+      factoryRef.current.hasSessionTimer()
+        ? factoryRef.current.maxSessionDurationMs() / 1000
         : undefined,
     );
     setSessionExpired(false);
     setCameraError(null);
-  }, [clearTimer, endProvisionedSession, factory, releaseStream]);
+  }, [clearTimer, endProvisionedSession, releaseStream]);
 
   const startSession = useCallback(
     async (
       sessionGoal?: string,
       userApiKey?: string,
       persona?: string,
+      factoryOverride?: LiveSessionFactory,
     ) => {
       let provisioned = false;
       try {
@@ -254,8 +290,14 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
         setError(null);
         setCameraError(null);
         setSessionExpired(false);
-        if (factory.hasSessionTimer()) {
-          setSessionTimeRemaining(factory.maxSessionDurationMs() / 1000);
+
+        // Resolve the primary factory: an explicit caller override
+        // (e.g. "Quick Start = venice" passed from useLiveSession) wins
+        // over the persisted preference, so the user can never be
+        // trapped on a paid/BYOK provider by stale localStorage.
+        const primaryFactory = factoryOverride ?? factoryRef.current;
+        if (primaryFactory.hasSessionTimer()) {
+          setSessionTimeRemaining(primaryFactory.maxSessionDurationMs() / 1000);
         }
 
         // ── Step: precheck ──
@@ -289,7 +331,7 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
         const stream = await getUserMediaWithTimeout(
           {
             video: { width: 1280, height: 720, facingMode: "user" },
-            audio: factory.supportsAudio(),
+            audio: primaryFactory.supportsAudio(),
           },
           CAMERA_SETUP_TIMEOUT_MS,
           "Camera setup is taking longer than expected. Your browser may be blocking the camera. Try uploading a photo instead.",
@@ -312,26 +354,77 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
           }
         }
 
-        // ── Step: provision ──
-        const provisionedConfig = await withTimeout(
-          factory.provisionSession({
-            goal: sessionGoal || "daily",
-            apiKey: userApiKey,
-            persona,
-          }),
-          SESSION_SETUP_TIMEOUT_MS,
-          "Setting up your AI session is taking longer than expected. Our server may be busy. Try again, or upload a photo instead.",
-        );
-        provisioned = true;
+        // ── Step: provision + create (with fallback chain) ──
+        // The camera is already open. Walk the chain in order, trying
+        // each factory's provisionSession + createSession. The first
+        // that succeeds wins. If a factory's provision succeeds but
+        // create fails, we POST /end to release the backend session
+        // before moving to the next factory. The premium gemini
+        // factory is filtered out of the chain when no BYOK key is
+        // provided (resolveFallbackChain handles that).
+        const chain = resolveFallbackChain(primaryFactory, !!userApiKey?.trim());
+        let effectiveFactory: LiveSessionFactory | null = null;
+        let effectiveSession: LiveSession | null = null;
+        let lastError: Error | null = null;
 
-        // ── Step: create ──
-        const session = await withTimeout(
-          Promise.resolve(
-            factory.createSession(provisionedConfig, sessionGoal || "daily"),
-          ),
-          SESSION_SETUP_TIMEOUT_MS,
-          "Connecting to your AI stylist timed out. Try again, or upload a photo instead.",
-        );
+        for (const candidate of chain) {
+          let candidateProvisioned = false;
+          try {
+            const candidateConfig = await withTimeout(
+              candidate.provisionSession({
+                goal: sessionGoal || "daily",
+                apiKey: userApiKey,
+                persona,
+              }),
+              SESSION_SETUP_TIMEOUT_MS,
+              "Setting up your AI session is taking longer than expected. Our server may be busy. Try again, or upload a photo instead.",
+            );
+            candidateProvisioned = true;
+
+            const candidateSession = await withTimeout(
+              Promise.resolve(
+                candidate.createSession(candidateConfig, sessionGoal || "daily"),
+              ),
+              SESSION_SETUP_TIMEOUT_MS,
+              "Connecting to your AI stylist timed out. Try again, or upload a photo instead.",
+            );
+
+            effectiveFactory = candidate;
+            effectiveSession = candidateSession;
+            break;
+          } catch (err) {
+            lastError = err as Error;
+            // Release the partial backend session before trying the
+            // next factory. keepalive: true so the request survives
+            // even if we're tearing down the React state.
+            if (candidateProvisioned) {
+              try {
+                await fetch("/api/ai/live-session/end", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ provider: candidate.name }),
+                  keepalive: true,
+                });
+              } catch {
+                // Best-effort cleanup; don't let a teardown error
+                // shadow the real failure.
+              }
+            }
+          }
+        }
+
+        if (!effectiveFactory || !effectiveSession) {
+          throw lastError ?? new Error("No AI provider available");
+        }
+
+        // Update factoryRef so endProvisionedSession (called from
+        // stopSession) POSTs /end to the *actual* provider, not the
+        // primary that failed. This is the key fix for the gemini
+        // 402 trap: even if venice's chain silently falls back, the
+        // end call goes to the right backend.
+        factoryRef.current = effectiveFactory;
+        const session = effectiveSession;
+        provisioned = true;
 
         // Attach listeners
         const setTranscriptSafe = (text: unknown) =>
@@ -379,10 +472,10 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
         setIsConnected(true);
 
         // Start session countdown timer (for providers with session limits)
-        if (factory.hasSessionTimer()) {
+        if (effectiveFactory.hasSessionTimer()) {
           timerIntervalRef.current = window.setInterval(() => {
             setSessionTimeRemaining((prev) => {
-              const current = prev ?? factory.maxSessionDurationMs() / 1000;
+              const current = prev ?? effectiveFactory!.maxSessionDurationMs() / 1000;
               const next = current - 1;
               if (next <= 0) {
                 clearTimer();
@@ -406,7 +499,7 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
         }
 
         // Start sending video frames for analysis (only for real-time streaming providers)
-        if (factory.realTimeFrames) {
+        if (effectiveFactory.realTimeFrames) {
           const canvas = document.createElement("canvas");
           const ctx = canvas.getContext("2d");
           frameIntervalRef.current = window.setInterval(async () => {
@@ -432,7 +525,7 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
               const base64Image = canvas.toDataURL("image/jpeg", 0.7);
 
               lastFrameTimeRef.current = Date.now();
-              if (factory.sendFramePixels()) {
+              if (effectiveFactory!.sendFramePixels()) {
                 const pixels = ctx.getImageData(
                   0,
                   0,
@@ -446,7 +539,7 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
             } finally {
               frameSendInFlightRef.current = false;
             }
-          }, factory.frameIntervalMs());
+          }, effectiveFactory.frameIntervalMs());
         }
       } catch (err: unknown) {
         releaseStream();
@@ -491,7 +584,6 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
     [
       clearTimer,
       endProvisionedSession,
-      factory,
       releaseStream,
     ],
   );

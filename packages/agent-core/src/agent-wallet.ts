@@ -26,14 +26,24 @@ import { createRequire } from "node:module";
 let WDK: any = null;
 let WalletManagerEvm: any = null;
 let wdkAvailable = false;
-// tsup compiles this file to CJS for the API bundle, where
-// import.meta.url is undefined and __filename is the absolute path.
-// ESM callers hit the import.meta.url branch.
-const requireOptionalNative = createRequire(
-  (typeof __filename !== "undefined"
-    ? `file://${__filename}`
-    : (import.meta as ImportMeta).url) as string,
-);
+
+// Lazy require for optional native dependencies. Constructed on first
+// use inside loadOWS() so module import never throws — tsup CJS chunk
+// re-exports sometimes lose __filename, and import.meta.url is always
+// undefined in CJS. Falling back to process.cwd() is enough for
+// node_modules resolution.
+let _requireOptionalNative: NodeRequire | null = null;
+function getRequireOptionalNative(): NodeRequire {
+  if (_requireOptionalNative) return _requireOptionalNative;
+  const base =
+    typeof __filename !== "undefined"
+      ? __filename
+      : typeof (import.meta as ImportMeta).url === "string"
+        ? (import.meta as ImportMeta).url
+        : `${process.cwd()}/`;
+  _requireOptionalNative = createRequire(base);
+  return _requireOptionalNative;
+}
 const OWS_PACKAGE_NAME = "@open-wallet-standard/core";
 
 async function loadWDK() {
@@ -348,7 +358,7 @@ export class AgentWalletService {
     try {
       // OWS ships platform-specific .node binaries. Keep it as a runtime-only
       // optional dependency so Next.js does not try to parse the native binary.
-      this.owsModule = requireOptionalNative(OWS_PACKAGE_NAME);
+      this.owsModule = getRequireOptionalNative()(OWS_PACKAGE_NAME);
       this.owsAvailable = true;
     } catch {
       this.owsAvailable = false;

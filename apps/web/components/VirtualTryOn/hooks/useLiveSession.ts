@@ -790,10 +790,26 @@ export function useLiveSession() {
   }, [liveAiResponse, stopSession, selectedPersona, sessionSummary]);
 
   const startSession = useCallback(
-    async (goal: SessionGoal, apiKey?: string, persona?: string) => {
+    async (
+      goal: SessionGoal,
+      apiKey?: string,
+      persona?: string,
+      provider?: AIProvider,
+    ) => {
       setSessionGoal(goal);
       if (persona) setSelectedPersona(persona);
-      await liveProvider.startSession(goal ?? undefined, apiKey || undefined, persona || undefined);
+      // Provider override (passed by the caller, e.g. Quick Start)
+      // wins over the persisted preference. This prevents the user
+      // from being trapped on a paid/BYOK provider (e.g. gemini)
+      // after one accidental click — Quick Start always means venice.
+      await liveProvider.startSession(
+        goal ?? undefined,
+        apiKey || undefined,
+        persona || undefined,
+        provider
+          ? SESSION_FACTORIES[provider as keyof typeof SESSION_FACTORIES]
+          : undefined,
+      );
     },
     [liveProvider.startSession],
   );

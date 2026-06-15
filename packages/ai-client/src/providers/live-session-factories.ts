@@ -6,6 +6,14 @@
  *   1. One factory entry here
  *   2. One backend branch in /api/ai/live-session
  * No new hooks or UI changes needed.
+ *
+ * Fallback ladder convention (Wave 1, 0G Bridge Buildathon):
+ *   The three free polling providers (venice, replicate, azure) cascade
+ *   through each other and through `0g` (the 0G Compute Router) before
+ *   falling through to `gemini` (the premium WebSocket terminal).
+ *   `0g` is a TEE-attested HTTP provider — same wire shape as the others
+ *   — so it slots in cleanly. `gemini` remains the terminal because
+ *   0G is HTTP-only and cannot replace the live WebSocket experience.
  */
 
 import type {
@@ -17,6 +25,7 @@ import { VeniceLiveProvider } from "./venice-live-provider";
 import { GeminiLiveProvider } from "./gemini-live-provider";
 import { ReplicateLiveProvider } from "./replicate-live-provider";
 import { AzureLiveProvider } from "./azure-live-provider";
+import { ZeroGLiveProvider } from "./zero-g-live-provider";
 
 const VENICE_FREE_SESSION_SECONDS = 60;
 
@@ -55,7 +64,7 @@ const veniceFactory: LiveSessionFactory = {
     },
   ],
 
-  fallbackChain: ["replicate", "azure", "gemini"],
+  fallbackChain: ["replicate", "azure", "0g", "gemini"],
 
   realTimeFrames: false,
   supportsAudio: () => false,
@@ -129,7 +138,7 @@ const replicateFactory: LiveSessionFactory = {
     },
   ],
 
-  fallbackChain: ["azure", "venice", "gemini"],
+  fallbackChain: ["azure", "venice", "0g", "gemini"],
 
   realTimeFrames: false,
   supportsAudio: () => false,
@@ -195,7 +204,7 @@ const azureFactory: LiveSessionFactory = {
     },
   ],
 
-  fallbackChain: ["replicate", "venice", "gemini"],
+  fallbackChain: ["replicate", "venice", "0g", "gemini"],
 
   realTimeFrames: false,
   supportsAudio: () => false,
@@ -250,6 +259,12 @@ const geminiFactory: LiveSessionFactory = {
   isPremium: true,
   requiresPayment: true,
   supportsByok: true,
+  // Gemini is the terminal of the fallback chain. Other free-tier
+  // providers (venice, replicate, azure, 0g) MUST NOT silently fall
+  // back to gemini — it would 402 immediately when no BYOK key is
+  // configured on the server. Users reach gemini explicitly via the
+  // comparison screen or premium upgrade flow.
+  disableFallback: true,
   cards: [
     {
       goal: "daily",
@@ -318,12 +333,104 @@ const geminiFactory: LiveSessionFactory = {
   },
 };
 
+// ── 0G Compute (Wave 1, 0G Bridge Buildathon) ───────────────────────────────
+//
+// 0G Router is OpenAI Chat Completions compatible over HTTP, so we
+// reuse the same polling-loop shape as Venice / Replicate / Azure.
+// The provider carries a default vision model (qwen3-vl-30b) verified
+// against the live catalog at https://router-api.0g.ai/v1/models, with
+// a TEE-attested fallback to dstack / TDX. There is intentionally no
+// `connectLiveSession` — 0G is HTTP-only and the chain still terminates
+// at Gemini for the WebSocket premium experience.
+
+const zerogFactory: LiveSessionFactory = {
+  name: "0g",
+  displayName: "0G Compute",
+  isPremium: false,
+  requiresPayment: false,
+  supportsByok: false,
+  cards: [
+    {
+      goal: "daily",
+      title: "TEE-Verified Stylist",
+      description:
+        "0G Compute Router — verifiable AI with TEE attestation. Cheapest vision-capable model in the catalog.",
+      icon: "shield",
+      color: "emerald",
+      badgeLabel: "Verified",
+    },
+    {
+      goal: "critique",
+      title: "African Fashion Insight",
+      description:
+        "Multi-vertical fashion critique routed through 0G's decentralized GPU marketplace.",
+      icon: "globe",
+      color: "lime",
+      badgeLabel: "0G",
+    },
+  ],
+
+  // 0G itself doesn't fall back to a different 0G model — once the
+  // Router errors, the chain goes to the Gemini premium terminal.
+  fallbackChain: ["gemini"],
+
+  realTimeFrames: false,
+  supportsAudio: () => false,
+
+  frameIntervalMs: () => 2500,
+
+  sendFramePixels: () => false,
+
+  hasSessionTimer: () => false,
+
+  maxSessionDurationMs: () => 300_000, // 5 min
+
+  maxCaptures: () => 10,
+
+  provisionSession: async (config: SessionConfig) => {
+    const response = await fetch("/api/ai/live-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        provider: "0g",
+        goal: config.goal || "daily",
+        persona: config.persona,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.error || "Failed to connect to 0G Compute",
+      );
+    }
+
+    const data = await response.json();
+    return {
+      pollingInterval: data.config?.pollingInterval ?? 2500,
+      // The backend /api/ai/live-session resolves the default model from
+      // ZERO_G_MODEL, defaulting to qwen3-vl-30b on the verified catalog.
+      model: data.config?.model ?? "qwen3-vl-30b",
+    };
+  },
+
+  createSession: (provisionedConfig, goal) => {
+    const provider = new ZeroGLiveProvider({
+      pollingIntervalMs:
+        (provisionedConfig.pollingInterval as number) ?? 2500,
+      model: (provisionedConfig.model as string) ?? "qwen3-vl-30b",
+    });
+    return provider.createSession(goal);
+  },
+};
+
 // ── Registry ──
 
 export const SESSION_FACTORIES: Record<string, LiveSessionFactory> = {
   venice: veniceFactory,
   replicate: replicateFactory,
   azure: azureFactory,
+  "0g": zerogFactory,
   gemini: geminiFactory,
 };
 

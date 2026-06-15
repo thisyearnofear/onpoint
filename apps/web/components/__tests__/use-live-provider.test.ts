@@ -283,3 +283,135 @@ describe("useLiveProvider integration — camera launch flow", () => {
     expect(result.current.cameraError).toBeNull();
   });
 });
+
+// ── Fallback chain + factory override tests ──
+
+import { SESSION_FACTORIES } from "@repo/ai-client";
+
+describe("useLiveProvider — factoryOverride and fallback chain", () => {
+  beforeEach(() => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+    } as Response);
+
+    Object.defineProperty(navigator, "mediaDevices", {
+      value: {
+        getUserMedia: vi.fn().mockResolvedValue(createMockStream()),
+      },
+      configurable: true,
+      writable: true,
+    });
+
+    Object.defineProperty(navigator, "permissions", {
+      value: {
+        query: vi
+          .fn()
+          .mockResolvedValue({ state: "prompt" } as PermissionStatus),
+      },
+      configurable: true,
+    });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it("uses factoryOverride instead of the hook's factory", async () => {
+    const primaryFactory = createFactory();
+    const overrideFactory = {
+      ...createFactory(),
+      name: "override",
+      displayName: "Override Provider",
+    };
+
+    const { result } = renderHook(() => useLiveProvider(primaryFactory));
+    const video = setupVideoElement();
+    result.current.videoRef.current = video;
+
+    await act(async () => {
+      await result.current.startSession(
+        "daily",
+        undefined,
+        undefined,
+        overrideFactory,
+      );
+    });
+
+    expect(result.current.isConnected).toBe(true);
+    expect(primaryFactory.provisionSession).not.toHaveBeenCalled();
+    expect(overrideFactory.provisionSession).toHaveBeenCalledTimes(1);
+  });
+
+  it("walks the fallback chain when the primary provisionSession throws", async () => {
+    const primaryFactory = {
+      ...createFactory(),
+      name: "failing-primary",
+      fallbackChain: ["fallback-target"],
+    };
+    (primaryFactory.provisionSession as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error("Primary is down"),
+    );
+
+    const fallbackFactory = {
+      ...createFactory(),
+      name: "fallback-target",
+    };
+
+    // Register the fallback in the live registry so resolveFallbackChain
+    // can find it. Clean up after the test.
+    SESSION_FACTORIES["fallback-target"] = fallbackFactory;
+
+    const { result } = renderHook(() => useLiveProvider(primaryFactory));
+    const video = setupVideoElement();
+    result.current.videoRef.current = video;
+
+    await act(async () => {
+      await result.current.startSession("daily");
+    });
+
+    expect(result.current.isConnected).toBe(true);
+    expect(primaryFactory.provisionSession).toHaveBeenCalledTimes(1);
+    expect(fallbackFactory.provisionSession).toHaveBeenCalledTimes(1);
+
+    delete SESSION_FACTORIES["fallback-target"];
+  });
+
+  it("filters premium providers (disableFallback) from the chain when no BYOK", async () => {
+    const primaryFactory = {
+      ...createFactory(),
+      name: "free-primary",
+      fallbackChain: ["premium-terminal"],
+    };
+    (primaryFactory.provisionSession as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error("Free primary is down"),
+    );
+
+    const premiumFactory = {
+      ...createFactory(),
+      name: "premium-terminal",
+      isPremium: true,
+      requiresPayment: true,
+      disableFallback: true,
+    };
+
+    SESSION_FACTORIES["premium-terminal"] = premiumFactory;
+
+    const { result } = renderHook(() => useLiveProvider(primaryFactory));
+    const video = setupVideoElement();
+    result.current.videoRef.current = video;
+
+    await act(async () => {
+      // No BYOK key — premium should be skipped
+      await result.current.startSession("daily");
+    });
+
+    // Primary was tried, premium was filtered out, so no fallback happened
+    expect(primaryFactory.provisionSession).toHaveBeenCalledTimes(1);
+    expect(premiumFactory.provisionSession).not.toHaveBeenCalled();
+    // Session failed because no provider was available
+    expect(result.current.isConnected).toBe(false);
+
+    delete SESSION_FACTORIES["premium-terminal"];
+  });
+});

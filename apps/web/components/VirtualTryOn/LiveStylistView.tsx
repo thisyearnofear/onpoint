@@ -26,7 +26,7 @@ import { CheckoutModal } from "../Shop/CheckoutModal";
 import { SessionEndingCard } from "./SessionEndingCard";
 import { useCartStore } from "../../lib/stores/cart-store";
 import { trackProviderSelected } from "../../lib/utils/analytics";
-import { useLiveSession, type SessionGoal } from "./hooks/useLiveSession";
+import { useLiveSession, type AIProvider, type SessionGoal } from "./hooks/useLiveSession";
 import { getPersonaConfig } from "../../lib/utils/persona-config";
 import { recordLatency } from "../../lib/utils/latency-persistence";
 import { LiveSessionStartScreen } from "./LiveSessionStartScreen";
@@ -70,6 +70,20 @@ type QueuedLiveStart = {
 };
 
 const DEFAULT_LIVE_PERSONA = "shaft";
+
+/**
+ * Quick Start primary provider.
+ *
+ * When NEXT_PUBLIC_ZERO_G_ENABLED is set, prefer 0G Compute (verifiable
+ * inference, 1.5s latency, $0.02/$0.19 per 1M tokens for the default
+ * qwen3-vl-30b model). 0G is HTTP-only so it slots in as a polling
+ * provider alongside venice / replicate / azure; the WebSocket premium
+ * terminal (gemini) is still reached via the fallback chain.
+ *
+ * Wave 1 of the 0G Bridge Buildathon.
+ */
+const QUICK_START_PROVIDER: "venice" | "0g" =
+  process.env.NEXT_PUBLIC_ZERO_G_ENABLED === "true" ? "0g" : "venice";
 
 export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewProps) {
   const session = useLiveSession();
@@ -269,7 +283,7 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
   const runStartSequence = React.useCallback(
     async (config: QueuedLiveStart) => {
       setInitStep("connecting");
-      await startSession(config.goal as SessionGoal, config.apiKey, config.persona);
+      await startSession(config.goal as SessionGoal, config.apiKey, config.persona, config.provider as AIProvider);
     },
     [setInitStep, startSession],
   );
@@ -379,10 +393,18 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
           // The hook's startSession sets isInitializing(true) synchronously,
           // so the main view renders with the init overlay already showing —
           // eliminating the blank-camera flash between start screen and init.
-          setSelectedProvider("venice");
+          //
+          // Pass QUICK_START_PROVIDER (0g when enabled, otherwise venice)
+          // as the explicit provider override. Quick Start must always
+          // mean the configured primary regardless of the persisted
+          // `onpoint_preferred_provider` in localStorage. Without this
+          // override, a returning user with provider="gemini" persisted
+          // would call startSession with the gemini factory still in the
+          // closure, hit a 402, and never be able to escape.
+          setSelectedProvider(QUICK_START_PROVIDER);
           setSessionGoal("daily");
           setSelectedPersona(DEFAULT_LIVE_PERSONA);
-          startSession("daily", undefined, DEFAULT_LIVE_PERSONA);
+          startSession("daily", undefined, DEFAULT_LIVE_PERSONA, QUICK_START_PROVIDER);
         }}
         onCompareProviders={() => setShowComparison(true)}
         showComparison={showComparison}
@@ -392,7 +414,15 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
           setSelectedProvider(p as "venice" | "gemini");
           setSessionGoal(g as SessionGoal);
           setSelectedPersona(DEFAULT_LIVE_PERSONA);
-          startSession(g as SessionGoal, undefined, DEFAULT_LIVE_PERSONA);
+          // Pass the chosen provider as the explicit override so the
+          // session uses the right factory on the first call (the
+          // setSelectedProvider state update won't have flushed yet).
+          startSession(
+            g as SessionGoal,
+            undefined,
+            DEFAULT_LIVE_PERSONA,
+            p as AIProvider,
+          );
         }}
       />
     );
