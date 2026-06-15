@@ -130,15 +130,10 @@ export interface LiveProviderState {
 // ── Helpers ──
 
 /**
- * Default timeout for the overall startSession flow. Long enough to absorb
- * slow networks and a delayed camera-permission prompt, short enough that
- * users don't give up and bail.
- */
-const SESSION_SETUP_TIMEOUT_MS = 15_000;
-
-/**
  * Race a promise against a timeout. If the timeout wins, reject with a
- * user-friendly message that the caller can surface verbatim.
+ * user-friendly message that the caller can surface verbatim. The loser's
+ * timer is cleared; the loser's promise is NOT cancelled — callers that
+ * need cancellation (e.g. getUserMedia) must use `abortableTimeout`.
  */
 export function withTimeout<T>(
   promise: Promise<T>,
@@ -155,6 +150,38 @@ export function withTimeout<T>(
     if (timer) clearTimeout(timer);
   });
 }
+
+/**
+ * Race a promise against a timeout AND cancel the loser. If the timeout
+ * wins, `onTimeout` is called with the still-pending promise so the caller
+ * can stop it (e.g. stop a leaked MediaStream's tracks when getUserMedia
+ * resolves after we've given up). This is the only safe way to use a
+ * timeout on getUserMedia — otherwise the camera LED stays on after the UI
+ * gives up, and the next retry fails with NotReadableError.
+ */
+export function abortableTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  message: string,
+  onTimeout: (pending: Promise<T>) => void,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  return Promise.race<T>([
+    promise,
+    new Promise<T>((_, reject) => {
+      timer = setTimeout(() => {
+        onTimeout(promise);
+        reject(new Error(message));
+      }, ms);
+    }),
+  ]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
+
+/** Per-step timeouts. Camera permission is human-driven (user must read + click the OS prompt), so it gets the longest budget. */
+const CAMERA_SETUP_TIMEOUT_MS = 30_000;
+const SESSION_SETUP_TIMEOUT_MS = 15_000;
 
 // ── Hook ──
 
@@ -286,22 +313,41 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
         }
 
         // Open camera first so permission failures do not consume a
-        // provisioned backend session. Wrapped in a timeout so a hung
-        // permission prompt doesn't leave the UI stuck on "initializing"
-        // forever.
-        const stream = await withTimeout(
-          navigator.mediaDevices.getUserMedia({
-            video: { width: 1280, height: 720, facingMode: "user" },
-            audio: factory.supportsAudio(),
-          }),
-          SESSION_SETUP_TIMEOUT_MS,
+        // provisioned backend session. Wrapped in abortableTimeout so a
+        // hung permission prompt doesn't leak the MediaStream — if the
+        // timer wins, we stop the tracks on the still-pending promise the
+        // moment it resolves. Without this, the camera LED stays on and
+        // the next retry fails with NotReadableError.
+        const getUserMediaPromise = navigator.mediaDevices.getUserMedia({
+          video: { width: 1280, height: 720, facingMode: "user" },
+          audio: factory.supportsAudio(),
+        });
+        const stream = await abortableTimeout(
+          getUserMediaPromise,
+          CAMERA_SETUP_TIMEOUT_MS,
           "Camera setup is taking longer than expected. Your browser may be blocking the camera. Try uploading a photo instead.",
+          (pending) => {
+            pending
+              .then((s) => s.getTracks().forEach((t) => t.stop()))
+              .catch(() => {});
+          },
         );
         streamRef.current = stream;
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          await videoRef.current.play().catch(() => {});
+          // Surface autoplay failures so the UI can show a real error
+          // instead of silently going black on iOS Low Power / Data Saver.
+          try {
+            await videoRef.current.play();
+          } catch (playErr) {
+            stream.getTracks().forEach((t) => t.stop());
+            streamRef.current = null;
+            throw classifyCameraError(
+              { name: "PlaybackBlockedError", message: "Video playback was blocked by the browser" },
+              "getUserMedia",
+            );
+          }
         }
 
         // ── Step: provision ──
@@ -473,7 +519,9 @@ export function useLiveProvider(factory: LiveSessionFactory): LiveProviderState 
           }
           console.error(err);
         }
-        throw err instanceof Error ? err : new Error("Session start failed");
+        // Don't rethrow — the UI has already received the structured
+        // cameraError / error state. Rethrowing here caused unhandled
+        // promise rejections in callers that don't .catch() the await.
       } finally {
         setIsInitializing(false);
       }

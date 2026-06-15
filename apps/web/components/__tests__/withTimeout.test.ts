@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { withTimeout } from "@repo/ai-client";
+import { withTimeout, abortableTimeout } from "@repo/ai-client";
 
 describe("withTimeout", () => {
   it("resolves with the value when the promise resolves before the timeout", async () => {
@@ -51,5 +51,47 @@ describe("withTimeout", () => {
 
     setTimeoutSpy.mockRestore();
     clearTimeoutSpy.mockRestore();
+  });
+});
+
+describe("abortableTimeout", () => {
+  it("invokes onTimeout with the pending promise when the timer wins", async () => {
+    const slow = new Promise<string>((resolve) =>
+      setTimeout(() => resolve("late"), 200),
+    );
+    const onTimeout = vi.fn();
+    await expect(
+      abortableTimeout(slow, 50, "timed out", onTimeout),
+    ).rejects.toThrow("timed out");
+    expect(onTimeout).toHaveBeenCalledTimes(1);
+    expect(onTimeout).toHaveBeenCalledWith(slow);
+    // Wait long enough for the late resolver to fire so the test doesn't
+    // leak the pending promise into the next test.
+    await slow;
+  });
+
+  it("does not invoke onTimeout when the promise resolves first", async () => {
+    const onTimeout = vi.fn();
+    const result = await abortableTimeout(
+      Promise.resolve("ok"),
+      5000,
+      "msg",
+      onTimeout,
+    );
+    expect(result).toBe("ok");
+    expect(onTimeout).not.toHaveBeenCalled();
+  });
+
+  it("propagates the original rejection if the promise rejects first", async () => {
+    const onTimeout = vi.fn();
+    await expect(
+      abortableTimeout(
+        Promise.reject(new Error("denied")),
+        5000,
+        "msg",
+        onTimeout,
+      ),
+    ).rejects.toThrow("denied");
+    expect(onTimeout).not.toHaveBeenCalled();
   });
 });

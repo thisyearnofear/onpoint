@@ -90,12 +90,45 @@ export function CameraCapture({ onCapture, onCancel }: CameraCaptureProps) {
     let cancelled = false;
 
     const initCamera = async () => {
+      // 30s budget for the OS-level permission prompt (human-driven).
+      // Uses an abortable pattern: if the timer wins, we attach a cleanup
+      // handler on the still-pending getUserMedia to stop its tracks the
+      // moment it resolves — without this, the camera LED stays on and
+      // the next retry fails with NotReadableError.
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      let timedOut = false;
+
       try {
         setLoading(true);
-        const mediaStream = await navigator.mediaDevices.getUserMedia({ 
+
+        const mediaPromise = navigator.mediaDevices.getUserMedia({
           video: { facingMode: "user" },
-          audio: false 
+          audio: false,
         });
+
+        const timeoutPromise = new Promise<MediaStream>((_, reject) => {
+          timer = setTimeout(() => {
+            timedOut = true;
+            reject(
+              new Error(
+                "Camera setup is taking longer than expected. Check your browser's address bar for a permission prompt.",
+              ),
+            );
+          }, 30_000);
+        });
+
+        // Attach a cleanup handler that stops tracks if getUserMedia
+        // resolves after the timeout or after unmount. The .catch()
+        // prevents unhandled rejections from the cleanup handler.
+        mediaPromise
+          .then((stream) => {
+            if (timedOut || cancelled) {
+              stream.getTracks().forEach((t) => t.stop());
+            }
+          })
+          .catch(() => {});
+
+        const mediaStream = await Promise.race([mediaPromise, timeoutPromise]);
         if (cancelled) {
           mediaStream.getTracks().forEach((track) => track.stop());
           return;
@@ -103,12 +136,28 @@ export function CameraCapture({ onCapture, onCancel }: CameraCaptureProps) {
         streamRef.current = mediaStream;
         if (videoRef.current) {
           videoRef.current.srcObject = mediaStream;
-          await videoRef.current.play().catch(() => {});
+          // Surface autoplay failures (iOS Low Power, Data Saver, in-app
+          // browsers) instead of silently going black.
+          try {
+            await videoRef.current.play();
+          } catch {
+            // Autoplay blocked — stop the stream and show a specific
+            // error message instead of the generic permission message.
+            mediaStream.getTracks().forEach((t) => t.stop());
+            streamRef.current = null;
+            setError(
+              "Video playback was blocked. This can happen in Low Power Mode or Data Saver mode. Try uploading a photo instead, or try a different browser.",
+            );
+            return;
+          }
         }
       } catch (err) {
         console.error("Error accessing camera:", err);
-        setError("Could not access camera. Please ensure you've granted permission and that your camera is working.");
+        setError(
+          "Could not access camera. Please ensure you've granted permission and that your camera is working.",
+        );
       } finally {
+        if (timer) clearTimeout(timer);
         setLoading(false);
       }
     };

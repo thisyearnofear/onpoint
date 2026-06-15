@@ -179,6 +179,7 @@ function iconForKind(kind: CameraErrorKind): React.ElementType {
     case "in_use":
     case "no_camera":
     case "unsupported":
+    case "playback_blocked":
       return Camera;
     case "constraints_not_met":
       return Search;

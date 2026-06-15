@@ -31,6 +31,8 @@ export type CameraErrorKind =
   | "unsupported"
   /** One of the session setup steps (getUserMedia, provisioning, connect) didn't complete in time. */
   | "timeout"
+  /** getUserMedia succeeded but the browser blocked autoplay (Low Power Mode, Data Saver, in-app browser). */
+  | "playback_blocked"
   /** Caught something we don't recognize. */
   | "other";
 
@@ -279,6 +281,22 @@ export function classifyCameraError(
     };
   }
 
+  // ── Playback blocked: getUserMedia succeeded but the browser refused
+  // to autoplay the video (iOS Low Power Mode, Android Data Saver,
+  // in-app browsers that suppress autoplay). ──
+  if (name === "PlaybackBlockedError") {
+    return {
+      kind: "playback_blocked",
+      title: "Video playback was blocked",
+      message:
+        "Your camera started, but your browser blocked video playback. This can happen in Low Power Mode, Data Saver mode, or when using an in-app browser.",
+      steps: playbackBlockedSteps(browser),
+      primaryAction: "upload",
+      canGoBack: true,
+      step,
+    };
+  }
+
   // ── Fallback: pass through the message but tag as `other`. ──
   return {
     kind: "other",
@@ -387,6 +405,28 @@ function timeoutSteps(step: CameraErrorStep, browser: BrowserInfo): string[] {
   return [
     "Check your internet connection",
     "Try again — or upload a photo instead",
+  ];
+}
+
+function playbackBlockedSteps(browser: BrowserInfo): string[] {
+  if (browser.ios) {
+    return [
+      "Disable Low Power Mode in Settings → Battery",
+      "If you're using an in-app browser (Instagram, Twitter, etc.), try opening this page in Safari instead",
+      "Or upload a photo — you'll get the same AI analysis",
+    ];
+  }
+  if (browser.mobile) {
+    return [
+      "Disable Data Saver in Chrome Settings → Data Saver",
+      "If you're using an in-app browser, try opening this page in Chrome instead",
+      "Or upload a photo — you'll get the same AI analysis",
+    ];
+  }
+  return [
+    "Check that your browser isn't blocking media autoplay (check site permissions)",
+    "Try tapping the screen once to start playback",
+    "Or upload a photo instead — you'll get the same AI analysis",
   ];
 }
 
