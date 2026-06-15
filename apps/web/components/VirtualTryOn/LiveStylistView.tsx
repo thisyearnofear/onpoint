@@ -357,7 +357,13 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
   }
 
   // ── Start Screen ──
-  if (!selectedProvider) {
+  // Show whenever no session is actually in flight. We intentionally don't
+  // gate on `selectedProvider` alone: it can be hydrated from localStorage
+  // (provider preference) on every visit, which would silently skip the
+  // start screen and drop the user into the main view with no live session
+  // and an empty <video>. Keep the start screen up until something is
+  // queued, initializing, or connected.
+  if (!isConnected && !isInitializing && !queuedStart) {
     return (
       <LiveSessionStartScreen
         onBack={handleBack}

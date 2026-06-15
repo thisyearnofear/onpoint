@@ -349,14 +349,21 @@ export function AgentSuggestionToast({
 // Hook for managing suggestions
 // ============================================
 
-export function useAgentSuggestions(agentId: string = "onpoint-stylist") {
+export function useAgentSuggestions(
+  agentId: string = "onpoint-stylist",
+  options: { enabled?: boolean } = {},
+) {
+  const { enabled = true } = options;
   const [suggestions, setSuggestions] = useState<AgentSuggestion[]>([]);
   const [currentSuggestion, setCurrentSuggestion] =
     useState<AgentSuggestion | null>(null);
   const dismissedIds = React.useRef<Set<string>>(new Set());
 
-  // Poll for new suggestions
+  // Poll for new suggestions while enabled. Anonymous landing visitors had no
+  // gate here and were hammering /api/agent/suggestion every 5s — caller now
+  // passes enabled=false until there's an active session.
   useEffect(() => {
+    if (!enabled) return;
     const pollSuggestions = async () => {
       try {
         const response = await fetchAgentApi(
@@ -366,18 +373,16 @@ export function useAgentSuggestions(agentId: string = "onpoint-stylist") {
           const data = await response.json();
           setSuggestions(data.suggestions || []);
 
-          // Show first pending suggestion that hasn't been dismissed
           const pending = data.suggestions?.find(
             (s: AgentSuggestion) =>
               (s.status === "pending" || s.status === "accepted") &&
               !dismissedIds.current.has(s.id),
           );
-          if (
-            pending &&
-            (!currentSuggestion || currentSuggestion.id !== pending.id)
-          ) {
-            setCurrentSuggestion(pending);
-          }
+          setCurrentSuggestion((prev) => {
+            if (!pending) return prev;
+            if (prev && prev.id === pending.id) return prev;
+            return pending;
+          });
         }
       } catch (error) {
         console.error("Failed to poll suggestions:", error);
@@ -387,7 +392,7 @@ export function useAgentSuggestions(agentId: string = "onpoint-stylist") {
     pollSuggestions();
     const interval = setInterval(pollSuggestions, 5000);
     return () => clearInterval(interval);
-  }, [agentId, currentSuggestion]);
+  }, [agentId, enabled]);
 
   const acceptSuggestion = async (id: string) => {
     const response = await fetchAgentApi("/api/agent/suggestion", {

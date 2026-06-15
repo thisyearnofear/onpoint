@@ -167,7 +167,7 @@ export function useLiveSession() {
     rejectSuggestion,
     createSuggestion,
     dismissSuggestion,
-  } = useAgentSuggestions();
+  } = useAgentSuggestions("onpoint-stylist", { enabled: isConnected });
 
   const {
     currentApproval,
