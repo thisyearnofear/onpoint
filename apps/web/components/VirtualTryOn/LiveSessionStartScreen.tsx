@@ -32,6 +32,10 @@ interface LiveSessionStartScreenProps {
    * Optional handler to switch to photo upload mode from the start screen.
    */
   onUseUploadPhoto?: () => void;
+  /** Whether a completed session exists in the history store. */
+  hasStoredSession?: boolean;
+  /** Opens the last completed session summary from history. */
+  onViewStoredSession?: () => void;
 }
 
 export function LiveSessionStartScreen({
@@ -47,6 +51,8 @@ export function LiveSessionStartScreen({
   onSelectComparisonProvider,
   capturesRemaining,
   onUseUploadPhoto,
+  hasStoredSession,
+  onViewStoredSession,
 }: LiveSessionStartScreenProps) {
   // Local state — flips on click so the button shows feedback immediately,
   // before the parent swaps to the camera view and isInitializing kicks in.
@@ -236,6 +242,15 @@ export function LiveSessionStartScreen({
             >
               <Upload className="w-3 h-3" />
               Or upload a photo instead →
+            </button>
+          )}
+
+          {hasStoredSession && onViewStoredSession && (
+            <button
+              onClick={onViewStoredSession}
+              className="text-[11px] text-emerald-500/60 hover:text-emerald-400 transition-colors inline-flex items-center gap-1.5"
+            >
+              View last analysis →
             </button>
           )}
 

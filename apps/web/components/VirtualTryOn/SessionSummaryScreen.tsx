@@ -47,6 +47,8 @@ interface SessionSummaryScreenProps {
   onSetShowStyleReport: (v: boolean) => void;
   showTipModal: boolean;
   onSetShowTipModal: (v: boolean) => void;
+  /** Whether this screen renders from a live session or a rehydrated history record. */
+  source?: "live" | "history";
 }
 
 export function SessionSummaryScreen({
@@ -70,7 +72,9 @@ export function SessionSummaryScreen({
   onSetShowStyleReport,
   showTipModal,
   onSetShowTipModal,
+  source = "live",
 }: SessionSummaryScreenProps) {
+  const isReadOnly = source === "history";
   const PersonaIcon = personaStyling.icon;
 
   return (
@@ -288,7 +292,7 @@ export function SessionSummaryScreen({
 
         {/* Action Buttons */}
         <div className="flex flex-col gap-3 pt-4">
-          <SuggestionHistoryPanel suggestions={suggestions} />
+          {!isReadOnly && <SuggestionHistoryPanel suggestions={suggestions} />}
 
           {/* Style Report Card Button */}
           <Button
@@ -368,7 +372,7 @@ export function SessionSummaryScreen({
             </div>
           )}
 
-          {selectedCapture && (
+          {selectedCapture && !isReadOnly && (
             <MintLookButton
               imageUrl={selectedCapture.image}
               ipfsCid=""
@@ -386,55 +390,77 @@ export function SessionSummaryScreen({
               }}
             />
           )}
-          <Button
-            className="w-full bg-muted/30 hover:bg-muted text-foreground border border-border rounded-full py-6 text-lg font-bold gap-2"
-            onClick={async () => {
-              if (!selectedCapture) return;
-              const text = generateShareText({
-                score: sessionSummary.score,
-                personaLabel: personaStyling.label,
-                topics: sessionSummary.topics,
-                takeaways: sessionSummary.takeaways,
-                sessionGoal: sessionGoal || undefined,
-              });
-              await SocialUtils.shareContent({
-                text,
-                imageDataUrl: selectedCapture.image,
-              });
-            }}
-          >
-            Share to Farcaster
-          </Button>
+          {!isReadOnly && (
+            <Button
+              className="w-full bg-muted/30 hover:bg-muted text-foreground border border-border rounded-full py-6 text-lg font-bold gap-2"
+              onClick={async () => {
+                if (!selectedCapture) return;
+                const text = generateShareText({
+                  score: sessionSummary.score,
+                  personaLabel: personaStyling.label,
+                  topics: sessionSummary.topics,
+                  takeaways: sessionSummary.takeaways,
+                  sessionGoal: sessionGoal || undefined,
+                });
+                await SocialUtils.shareContent({
+                  text,
+                  imageDataUrl: selectedCapture.image,
+                });
+              }}
+            >
+              Share to Farcaster
+            </Button>
+          )}
 
-          <AgentStatus
-            compact
-            showActions
-            onTipClick={() => onSetShowTipModal(true)}
-          />
-          <AgentActionCard
-            score={sessionSummary?.score}
-            onMintClick={selectedCapture ? () => {} : undefined}
-          />
-          <AgentPermissionDashboard />
+          {!isReadOnly && (
+            <>
+              <AgentStatus
+                compact
+                showActions
+                onTipClick={() => onSetShowTipModal(true)}
+              />
+              <AgentActionCard
+                score={sessionSummary?.score}
+                onMintClick={selectedCapture ? () => {} : undefined}
+              />
+              <AgentPermissionDashboard />
+            </>
+          )}
+
+          <button
+            onClick={() => {
+              onBack();
+              window.dispatchEvent(
+                new CustomEvent("onpoint:navigate", { detail: "my-looks" }),
+              );
+            }}
+            className="w-full text-center text-[11px] text-emerald-500/70 hover:text-emerald-400 transition-colors py-2"
+          >
+            Saved to My Looks — View all →
+          </button>
         </div>
 
-        <TipSheet
-          isOpen={showTipModal}
-          onClose={() => onSetShowTipModal(false)}
-          score={sessionSummary?.score}
-        />
-        <AgentApprovalModal
-          isOpen={isApprovalModalOpen}
-          onClose={() => onSetShowTipModal(false)}
-          onApprove={(requestId: string) => {
-            onApprove();
-            return Promise.resolve();
-          }}
-          onReject={(requestId: string) => {
-            onReject();
-          }}
-          request={currentApproval}
-        />
+        {!isReadOnly && (
+          <>
+            <TipSheet
+              isOpen={showTipModal}
+              onClose={() => onSetShowTipModal(false)}
+              score={sessionSummary?.score}
+            />
+            <AgentApprovalModal
+              isOpen={isApprovalModalOpen}
+              onClose={() => onSetShowTipModal(false)}
+              onApprove={(requestId: string) => {
+                onApprove();
+                return Promise.resolve();
+              }}
+              onReject={(requestId: string) => {
+                onReject();
+              }}
+              request={currentApproval}
+            />
+          </>
+        )}
 
         {/* Style Report Card Modal */}
         <AnimatePresence>

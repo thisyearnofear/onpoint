@@ -25,8 +25,9 @@ import { CartDrawer } from "../Shop/CartDrawer";
 import { CheckoutModal } from "../Shop/CheckoutModal";
 import { SessionEndingCard } from "./SessionEndingCard";
 import { useCartStore } from "../../lib/stores/cart-store";
+import { useAnalysisHistory } from "../../lib/stores/analysis-history-store";
 import { trackProviderSelected } from "../../lib/utils/analytics";
-import { useLiveSession, type AIProvider, type SessionGoal } from "./hooks/useLiveSession";
+import { useLiveSession, type AIProvider, type SessionGoal, type SessionSummary } from "./hooks/useLiveSession";
 import { getPersonaConfig } from "../../lib/utils/persona-config";
 import { recordLatency } from "../../lib/utils/latency-persistence";
 import { LiveSessionStartScreen } from "./LiveSessionStartScreen";
@@ -94,7 +95,6 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
     setSelectedPersona,
     sessionGoal,
     setSessionGoal,
-    initStep,
     setInitStep,
     showSummary,
     setShowSummary: _setShowSummary,
@@ -156,7 +156,6 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
     sessionTimeRemaining,
     sessionExpired,
     isVenice,
-    providerDisplayName,
     isPremium,
     requiresPayment: _requiresPayment,
     supportsByok,
@@ -183,6 +182,26 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
   const [showStyleReport, setShowStyleReport] = React.useState(false);
   const [showComparison, setShowComparison] = React.useState(false);
   const [queuedStart, setQueuedStart] = React.useState<QueuedLiveStart | null>(null);
+  const [showStoredSummary, setShowStoredSummary] = React.useState(false);
+
+  const lastSessionId = useAnalysisHistory((s) => s.lastSessionId);
+  const getSessionById = useAnalysisHistory((s) => s.getSessionById);
+
+  const storedSummary = React.useMemo<SessionSummary | null>(() => {
+    if (!showStoredSummary || !lastSessionId) return null;
+    const stored = getSessionById(lastSessionId);
+    if (!stored) return null;
+    return {
+      score: stored.score,
+      scoreConfidence: stored.scoreConfidence ?? 0.5,
+      scoreSource: (stored.scoreSource as "model" | "heuristic") ?? "heuristic",
+      scoreEvidence: stored.scoreEvidence ?? [],
+      topics: stored.topics,
+      takeaways: stored.takeaways,
+      fullFeedback: stored.fullFeedback ?? [],
+      recommendations: stored.recommendations,
+    };
+  }, [showStoredSummary, lastSessionId, getSessionById]);
 
   // Persist latency samples to localStorage for historical averages
   React.useEffect(() => {
@@ -232,6 +251,26 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
     () => sessionEndedManually || sessionExpired || capturesExhausted,
     [sessionEndedManually, sessionExpired, capturesExhausted],
   );
+
+  const hudVisible = isConnected && !isInitializing && !sessionEnding;
+  const hudDensity = isMobile ? "minimal" : "full";
+
+  // Auto-advance from ending card to summary when captures exhausted.
+  // A ref prevents the timer from resetting when handleFinish's identity
+  // changes due to sessionSummary recomputation during streaming teardown.
+  const autoAdvanceFired = React.useRef(false);
+  React.useEffect(() => {
+    if (showSummary || !capturesExhausted) {
+      autoAdvanceFired.current = false;
+    }
+  }, [showSummary, capturesExhausted]);
+  React.useEffect(() => {
+    if (capturesExhausted && sessionSummary && !showSummary && !autoAdvanceFired.current) {
+      autoAdvanceFired.current = true;
+      const timer = setTimeout(() => handleFinish(), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [capturesExhausted, sessionSummary, showSummary, handleFinish]);
 
   const PersonaIcon = personaStyling.icon;
   const liveModeLabel = React.useMemo(
@@ -366,6 +405,37 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
         onSetShowStyleReport={setShowStyleReport}
         showTipModal={showTipModal}
         onSetShowTipModal={setShowTipModal}
+        source="live"
+      />
+    );
+  }
+
+  // ── Stored Summary (rehydrated from history) ──
+  if (showStoredSummary && storedSummary) {
+    const storedSession = lastSessionId ? getSessionById(lastSessionId) : null;
+    return (
+      <SessionSummaryScreen
+        sessionSummary={storedSummary}
+        personaStyling={getPersonaConfig(storedSession?.persona)}
+        selectedPersona={storedSession?.persona ?? null}
+        onBack={() => setShowStoredSummary(false)}
+        hasCaptures={!!storedSession?.coverImage}
+        captures={storedSession?.coverImage ? [{ image: storedSession.coverImage, comment: "Cover" }] : []}
+        selectedCaptureIndex={storedSession?.coverImage ? 0 : null}
+        onSelectCapture={() => {}}
+        selectedCapture={storedSession?.coverImage ? { image: storedSession.coverImage, comment: "Cover" } : null}
+        suggestions={[]}
+        finalAdvice={storedSession?.takeaways?.[0] || storedSummary.takeaways[0] || "Style analysis"}
+        sessionGoal={storedSession?.sessionGoal ?? null}
+        isApprovalModalOpen={false}
+        currentApproval={null}
+        onApprove={() => {}}
+        onReject={() => {}}
+        showStyleReport={showStyleReport}
+        onSetShowStyleReport={setShowStyleReport}
+        showTipModal={false}
+        onSetShowTipModal={() => {}}
+        source="history"
       />
     );
   }
@@ -424,6 +494,8 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
             p as AIProvider,
           );
         }}
+        hasStoredSession={!!lastSessionId}
+        onViewStoredSession={() => setShowStoredSummary(true)}
       />
     );
   }
@@ -431,7 +503,8 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
   // ── Main Live Session View ──
   return (
     <div className="flex flex-col h-full bg-black overflow-hidden relative font-sans">
-      {/* Top Ticker — Neural Stylist Reasoning */}
+      {/* Top Ticker — Neural Stylist Reasoning (hidden during init/ending) */}
+      {hudVisible && (
       <div
         className={`absolute top-0 inset-x-0 z-[30] ${isMobile ? "p-2" : "p-4"} pointer-events-none`}
       >
@@ -593,6 +666,7 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
           </div>
         </motion.div>
       </div>
+      )}
 
       {/* Main Viewport */}
       <div className="flex-1 relative bg-slate-900 overflow-hidden">
@@ -678,60 +752,6 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
                 )}
               </div>
             </div>
-            <div className="space-y-1.5">
-              {["connecting", "authenticating", "starting"].map((step, i) => {
-                const labels = [
-                  "Camera ready",
-                  `Authenticating ${providerDisplayName}`,
-                  "Starting AI session",
-                ];
-                const isCurrent =
-                  initStep === step ||
-                  (step === "connecting" &&
-                    initStep !== "authenticating" &&
-                    initStep !== "starting" &&
-                    initStep !== "ready" &&
-                    initStep !== "error");
-                const isDone =
-                  (step === "connecting" &&
-                    (initStep === "authenticating" ||
-                      initStep === "starting" ||
-                      initStep === "ready")) ||
-                  (step === "authenticating" &&
-                    (initStep === "starting" || initStep === "ready")) ||
-                  (step === "starting" && initStep === "ready");
-                return (
-                  <div key={step} className="flex items-center gap-2">
-                    <div
-                      className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
-                        isCurrent
-                          ? `bg-${personaStyling.color} animate-pulse`
-                          : isDone
-                            ? "bg-emerald-500"
-                            : "bg-slate-600"
-                      }`}
-                    >
-                      {isDone ? (
-                        <CheckCircle className="w-2.5 h-2.5 text-white" />
-                      ) : isCurrent ? (
-                        <div className="w-1.5 h-1.5 bg-white rounded-full" />
-                      ) : null}
-                    </div>
-                    <span
-                      className={`text-[10px] truncate ${
-                        isCurrent
-                          ? `text-${personaStyling.text}`
-                          : isDone
-                            ? "text-emerald-400"
-                            : "text-slate-500"
-                      }`}
-                    >
-                      {labels[i]}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
             <button
               onClick={() => {
                 stopSession();
@@ -809,7 +829,7 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
               }`}
             />
             {/* Position status text indicator (for colorblind users / accessibility) */}
-            {isConnected && positionStatus !== "analyzing" && (
+            {isConnected && positionStatus !== "analyzing" && hudVisible && (
               <div
                 className={`absolute ${isMobile ? "top-14" : "top-20"} inset-x-0 flex justify-center pointer-events-none z-[25]`}
               >
@@ -827,7 +847,7 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
               </div>
             )}
 
-            {isConnected && (
+            {hudVisible && (
               <>
                 <div className="absolute inset-0 z-[22] pointer-events-none flex items-center justify-center px-8">
                   <div
@@ -846,6 +866,7 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
                   </div>
                 </div>
 
+                {hudDensity === "full" && (
                 <div className="absolute left-3 right-3 sm:left-6 sm:right-auto sm:w-[360px] bottom-5 z-[45] pointer-events-none">
                   <div className="rounded-2xl border border-white/10 bg-black/55 backdrop-blur-2xl p-3 sm:p-4 shadow-2xl">
                     <div className="flex items-center justify-between gap-3">
@@ -894,13 +915,14 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
                     </div>
                   </div>
                 </div>
+                )}
               </>
             )}
           </>
         )}
 
         {/* Neural HUD Overlay — Simplified on Mobile */}
-        {isConnected && (
+        {hudVisible && (
           <div
             className={`absolute ${isMobile ? "inset-2" : "inset-4"} border-2 ${isAnalyzing ? "border-indigo-500/20" : "border-white/5"} rounded-[1.5rem] sm:rounded-[2rem] pointer-events-none overflow-hidden transition-colors duration-500`}
           >
@@ -918,6 +940,7 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
         )}
 
         {/* Agent Activity Trace — Desktop Only (z-30) */}
+        {hudVisible && (
         <div className="absolute left-4 top-24 bottom-24 w-64 pointer-events-none hidden xl:flex flex-col gap-2 overflow-hidden z-[30]">
           <AnimatePresence>
             {agentEvents.map((raw, idx) => {
@@ -947,8 +970,10 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
             })}
           </AnimatePresence>
         </div>
+        )}
 
         {/* Activities Panel — Desktop Only (z-30) */}
+        {hudVisible && (
         <div className="absolute right-4 top-24 bottom-24 w-64 pointer-events-none hidden xl:flex flex-col gap-2 overflow-hidden z-[30]">
           <AnimatePresence>
             {activities.map((activity, idx) => (
@@ -977,8 +1002,10 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
             ))}
           </AnimatePresence>
         </div>
+        )}
 
         {/* Coaching Badges (z-40) — Show only first badge on mobile */}
+        {hudVisible && (
         <AnimatePresence>
           {coachingBadges.length > 0 && (
             <motion.div
@@ -1003,10 +1030,11 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
             </motion.div>
           )}
         </AnimatePresence>
+        )}
 
-        {/* Instruction Toast — merged into coaching system, shows first 15s */}
+        {/* Instruction Toast — sticky until first capture, then auto-dismisses */}
         <AnimatePresence>
-          {showInstructions && isConnected && (
+          {showInstructions && hudVisible && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1021,12 +1049,14 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
                 </div>
                 <div className="flex-1">
                   <h4 className="text-foreground font-bold text-xs uppercase tracking-wider">
-                    Capture {maxCaptures} Style Shots
+                    {captures.length === 0
+                      ? `Take ${maxCaptures} Style Shots`
+                      : `${capturesRemaining} more to go`}
                   </h4>
                   <p className="text-muted-foreground text-[10px] leading-snug">
-                    Step back until framing locks. Tap the camera button to save
-                    snapshots — {capturesRemaining} shot{capturesRemaining !== 1 ? "s" : ""} left
-                    build your full style profile.
+                    {captures.length === 0
+                      ? "Step back until framing locks. Tap the timer to pose hands-free — you've got 3 shots to build your style profile."
+                      : `Tap the camera button or use the timer. ${capturesRemaining} shot${capturesRemaining !== 1 ? "s" : ""} left for your full profile.`}
                   </p>
                 </div>
                 <button
@@ -1041,17 +1071,17 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
           )}
         </AnimatePresence>
 
-        {/* Auto-dismiss instruction toast after 15s */}
-        {showInstructions && isConnected && (
+        {/* Auto-dismiss instruction toast — only after first capture (5s) */}
+        {showInstructions && hudVisible && captures.length > 0 && (
           <AutoDismissTimer
-            ms={15_000}
+            ms={5_000}
             onDismiss={() => setShowInstructions(false)}
           />
         )}
 
         {/* Agent Suggestion Toast (z-50) */}
         <AnimatePresence>
-          {currentSuggestion && (
+          {currentSuggestion && hudVisible && (
             <AgentSuggestionToast
               suggestion={currentSuggestion}
               onAccept={handleAcceptSuggestion}
@@ -1062,7 +1092,7 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
         </AnimatePresence>
 
         {/* Captures Mini-Gallery — Desktop Only (z-40) */}
-        {hasCaptures && !isMobile && (
+        {hasCaptures && hudDensity === "full" && hudVisible && (
           <div className="absolute left-6 bottom-28 sm:bottom-32 z-[40] flex flex-col gap-3">
             <div className="flex -space-x-3">
               {captures.slice(-3).map((cap, i) => (
@@ -1089,7 +1119,7 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
         )}
 
         {/* Floating Status — Desktop Only (z-50) */}
-        {isConnected && !isMobile && (
+        {hudDensity === "full" && hudVisible && (
           <div className="absolute right-6 bottom-28 sm:bottom-32 z-[50] hidden sm:flex flex-col gap-2">
             <motion.div
               initial={{ opacity: 0, x: 20 }}
@@ -1113,7 +1143,7 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
         )}
 
         {/* Mobile: Compact Status Indicator */}
-        {isConnected && isMobile && (
+        {hudVisible && isMobile && (
           <div className="absolute right-4 top-24 z-[50]">
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
@@ -1224,6 +1254,33 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
           )}
       </AnimatePresence>
 
+      {/* Capture Progress Strip — persistent nudge above control bar */}
+      {isConnected && !sessionEnding && !isPremium && maxCaptures > 0 && maxCaptures !== Infinity && (
+        <div className="bg-card/90 backdrop-blur-md border-t border-border/50 px-4 py-2.5 flex items-center gap-3 z-[45]">
+          <div className="flex items-center gap-1.5">
+            {Array.from({ length: maxCaptures }, (_, i) => (
+              <div
+                key={i}
+                className={`w-2.5 h-2.5 rounded-full transition-colors duration-300 ${
+                  i < captures.length
+                    ? `bg-${personaStyling.color}`
+                    : "bg-white/15 border border-white/20"
+                }`}
+              />
+            ))}
+          </div>
+          <span className="text-[10px] text-muted-foreground font-medium leading-tight">
+            {captures.length === 0
+              ? `Photo 1 of ${maxCaptures} — step back and tap to capture`
+              : captures.length === 1
+                ? `Photo 2 of ${maxCaptures} — try a different angle`
+                : captures.length < maxCaptures
+                  ? `Last one — turn for a full profile`
+                  : "All shots captured"}
+          </span>
+        </div>
+      )}
+
       {/* Control Bar — Mobile-safe */}
       {!sessionEnding && (
       <div
@@ -1241,6 +1298,7 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
 
         <div className="flex flex-col items-center gap-2 sm:gap-4">
           <div className="flex items-center gap-2 sm:gap-4">
+            <div className="flex flex-col items-center gap-0.5">
             <Button
               size="icon"
               onClick={startTimerCapture}
@@ -1257,6 +1315,8 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
                 className={`w-6 h-6 sm:w-8 sm:h-8 ${countdown !== null ? "text-white" : capturesExhausted ? "text-white/30" : "text-slate-950"}`}
               />
             </Button>
+            <span className="text-[9px] text-slate-500 font-medium">Timer</span>
+            </div>
 
             <Button
               size="icon"
@@ -1282,18 +1342,6 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
               )}
             </Button>
           </div>
-          {/* Captures remaining badge — free tier only */}
-          {!isPremium && (
-            <span
-              className={`text-[10px] font-mono font-bold ${
-                capturesExhausted ? "text-rose-400" : "text-slate-500"
-              }`}
-            >
-              {capturesExhausted
-                ? "Free captures used"
-                : `${capturesRemaining} capture${capturesRemaining !== 1 ? "s" : ""} left`}
-            </span>
-          )}
         </div>
 
         <div className="flex gap-2 items-center">

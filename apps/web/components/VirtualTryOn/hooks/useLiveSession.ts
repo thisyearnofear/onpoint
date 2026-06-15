@@ -781,8 +781,12 @@ export function useLiveSession() {
         takeaways: sessionSummary.takeaways,
         topics: sessionSummary.topics,
         coverImage,
-        extraImages: [], // Skip storing extra images to conserve localStorage
+        extraImages: [],
         recommendations: sessionSummary.recommendations || [],
+        scoreConfidence: sessionSummary.scoreConfidence,
+        scoreSource: sessionSummary.scoreSource,
+        scoreEvidence: sessionSummary.scoreEvidence,
+        fullFeedback: sessionSummary.fullFeedback,
       });
     }
 

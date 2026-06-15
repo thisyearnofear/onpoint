@@ -85,7 +85,7 @@ export function SessionEndingCard({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-x-0 bottom-0 z-[60] flex items-end justify-center pointer-events-none"
+      className="relative flex-1 flex items-center justify-center pointer-events-none"
     >
       <motion.div
         initial={{ y: 60, opacity: 0 }}
@@ -377,6 +377,24 @@ export function SessionEndingCard({
               className="w-full text-center text-[10px] text-muted-foreground/60 hover:text-foreground/60 transition-colors py-1"
             >
               View Full Summary →
+            </button>
+          </motion.div>
+
+          {/* View My Looks — navigate to saved looks gallery */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.15 }}
+          >
+            <button
+              onClick={() => {
+                window.dispatchEvent(
+                  new CustomEvent("onpoint:navigate", { detail: "my-looks" })
+                );
+              }}
+              className="w-full text-center text-[10px] text-emerald-500/60 hover:text-emerald-400 transition-colors py-1"
+            >
+              Saved to My Looks ✓ — View all →
             </button>
           </motion.div>
 
