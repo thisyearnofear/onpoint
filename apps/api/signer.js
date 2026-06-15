@@ -2,7 +2,7 @@
 /**
  * onpoint-signer — Isolated Signer Process
  *
- * Sole holder of AGENT_PRIVATE_KEY. Listens on 127.0.0.1:48753 (loopback only).
+ * Sole holder of AGENT_PRIVATE_KEY. Listens on 127.0.0.1:48755 (loopback only).
  * Re-validates policy before signing and broadcasting. Every signature is
  * logged to Redis for audit trail.
  *
@@ -12,7 +12,7 @@
  *
  * Swappable for KMS / Turnkey / Fireblocks later without touching callers.
  *
- * Port: 48753 (internal — loopback only, NOT exposed via nginx)
+ * Port: 48755 (internal — loopback only, NOT exposed via nginx)
  */
 
 require('dotenv').config();
@@ -34,7 +34,7 @@ if (process.env.SENTRY_DSN) {
 }
 
 // ── Constants ──
-const SIGNER_PORT = parseInt(process.env.SIGNER_PORT) || 48753;
+const SIGNER_PORT = parseInt(process.env.SIGNER_PORT) || 48755;
 const SIGNER_API_KEY = process.env.SIGNER_API_KEY || '';
 const AGENT_PRIVATE_KEY = process.env.AGENT_PRIVATE_KEY || '';
 

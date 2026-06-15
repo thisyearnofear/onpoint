@@ -104,7 +104,7 @@ module.exports = {
       max_memory_restart: '200M',
       env: {
         NODE_ENV: 'production',
-        SIGNER_PORT: 48753,
+        SIGNER_PORT: 48755,
         REDIS_URL: 'redis://localhost:6379',
         SIGNER_API_KEY: '',              // Set in shared/.env (must match onpoint-api)
         AGENT_PRIVATE_KEY: '',           // Set in shared/.env — sole holder

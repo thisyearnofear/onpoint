@@ -8,7 +8,7 @@
  *   Vercel = presentation + identity
  *   Hetzner = AI + agent state + signer (future)
  *
- * Ports: 48751 (API), 48752 (Bridge), 48753 (Signer — future)
+ * Ports: 48751 (API), 48752 (Bridge), 48753 (Agent server), 48755 (Signer)
  */
 
 require('dotenv').config();
