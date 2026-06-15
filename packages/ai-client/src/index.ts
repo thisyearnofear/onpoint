@@ -4,6 +4,8 @@ export * from "./providers/gemini-provider";
 export * from "./providers/gemini-live-provider";
 export * from "./providers/openai-provider";
 export * from "./providers/server-provider";
+export * from "./providers/zero-g-provider";
+export * from "./providers/zero-g-live-provider";
 export * from "./providers/venice-provider";
 export * from "./providers/venice-live-provider";
 export * from "./providers/replicate-live-provider";

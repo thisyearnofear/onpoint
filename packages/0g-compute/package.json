@@ -1,0 +1,25 @@
+{
+  "name": "@repo/0g-compute",
+  "version": "0.1.0",
+  "private": true,
+  "description": "0G Compute Network client — OpenAI-compatible Router + Direct SDK for verifiable AI inference and fine-tuning (0G Bridge Buildathon, Wave 1).",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts",
+    "./types": "./src/types.ts",
+    "./models": "./src/models.ts"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@onpoint/shared-types": "workspace:*"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "typescript": "5.9.2",
+    "vitest": "^3.2.6"
+  }
+}

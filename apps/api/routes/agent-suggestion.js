@@ -101,9 +101,29 @@ router.post('/', async (req, res) => {
     // Create Verifiable Agent Log (IPFS/Filecoin) for audit trail
     let verifiableLogCid = null;
     try {
+      // If the upstream analyze call ran on 0G Compute and the agent
+      // layer stamped the TEE proof on the suggestion metadata, lift
+      // it into the receipt's attestation block. Two attestations on
+      // a single IPFS-pinned receipt — our signer commits to the
+      // action, the TEE provider commits to the inference. See
+      // docs/adr/0006-0g-compute-african-fashion.md.
+      const teeProof = result.suggestion?.metadata?.tee;
       const { cid } = await agentCore.VerifiableAgentService.createVerifiableLog(
         result.suggestion,
         userId,
+        undefined,
+        teeProof
+          ? {
+              tee: {
+                provider: teeProof.provider,
+                requestId: teeProof.requestId,
+                mode: teeProof.mode,
+                teeType: "TDX",
+                verifier: "dstack",
+                billing: teeProof.billing,
+              },
+            }
+          : {},
       );
       verifiableLogCid = cid;
 

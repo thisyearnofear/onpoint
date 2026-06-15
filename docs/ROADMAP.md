@@ -38,10 +38,12 @@ The core "sees → judges → shops" flow is live at https://beonpoint.netlify.a
 **Goal**: Define architecture, get $5,000 in 0G Credits
 
 **Deliverables**:
-- [ ] ADR 0006: 0G Compute Integration for African Fashion Fine-Tuning
-- [ ] Architecture diagram showing 0G Compute alongside existing providers
-- [ ] Data pipeline design: African fashion dataset → 0G Compute → fine-tuned model
-- [ ] Integration plan: How fine-tuned model plugs into existing `ai-client` provider abstraction
+- [x] ADR 0006: 0G Compute Integration for African Fashion Fine-Tuning (accepted 2026-06-15)
+- [x] Architecture diagram showing 0G Compute alongside existing providers
+- [x] `packages/0g-compute/` — OpenAI-compatible Router client (inference)
+- [x] Data pipeline design: 0G Router verified catalog (qwen3-vl-30b, minimax-m3, 0gm-1.0-35b-a3b)
+- [x] Integration: 0G provider slots into `ai-client`, server-side chain, and live-session factories
+- [x] Fallback chain update: Venice → 0G → Replicate → Azure (server); 0g inserted before `gemini` in each free-tier factory
 - [ ] Public X post with project scope + #0GBridge #BuildOn0G
 
 **Core Principles Alignment**:

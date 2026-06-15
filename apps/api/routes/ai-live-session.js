@@ -97,6 +97,7 @@ const SESSION_LIMITS = {
   venice: { maxFrames: 20, windowSecs: 60, maxDuration: 300 },
   replicate: { maxDuration: 300, maxCaptures: 10 },
   azure: { maxDuration: 300, maxCaptures: 10 },
+  '0g': { maxFrames: 30, windowSecs: 60, maxDuration: 300 },
   gemini: { maxDuration: 1800 },
 };
 
@@ -116,6 +117,27 @@ async function enforceVeniceLimits(clientIp) {
     return { allowed: false, remaining: 0 };
   }
   return { allowed: true, remaining: SESSION_LIMITS.venice.maxFrames - count };
+}
+
+async function enforceZeroGLimits(clientIp) {
+  const frameKey = `zerog-frames:${clientIp}`;
+
+  const count = await redisOrMemory(
+    async (r) => {
+      const next = await r.incr(frameKey);
+      await r.expire(frameKey, SESSION_LIMITS['0g'].windowSecs);
+      return next;
+    },
+    () => memoryIncr(frameKey, SESSION_LIMITS['0g'].windowSecs),
+  );
+
+  if (count > SESSION_LIMITS['0g'].maxFrames) {
+    return { allowed: false, remaining: 0 };
+  }
+  return {
+    allowed: true,
+    remaining: SESSION_LIMITS['0g'].maxFrames - count,
+  };
 }
 
 async function checkActiveSession(clientIp, provider) {
@@ -288,6 +310,40 @@ router.post('/', async (req, res) => {
       });
     }
 
+    // 0G Compute - Free tier (uses our API key, 0G Bridge Buildathon Wave 1)
+    if (provider === '0g') {
+      const zerogKey = process.env.ZERO_G_API_KEY;
+      if (!zerogKey) {
+        return res.status(503).json({
+          error: '0G Compute is not configured on the server (ZERO_G_API_KEY missing).',
+        });
+      }
+
+      const frameCheck = await enforceZeroGLimits(clientIp);
+      if (!frameCheck.allowed) {
+        return res.status(429).json({
+          error: '0G frame rate exhausted',
+          retryAfter: 60,
+        });
+      }
+
+      await startSession(clientIp, '0g', SESSION_LIMITS['0g'].maxDuration);
+
+      return res.json({
+        success: true,
+        provider: '0g',
+        config: {
+          pollingInterval: 2500,
+          model: process.env.ZERO_G_MODEL || 'qwen3-vl-30b',
+          endpoint: '/api/ai/zerog-analyze',
+        },
+        limits: {
+          framesPerMinute: SESSION_LIMITS['0g'].maxFrames,
+          maxSessionDuration: SESSION_LIMITS['0g'].maxDuration,
+        },
+      });
+    }
+
     // Gemini Live - Premium (requires payment or BYOK)
     if (provider === 'gemini') {
       const geminiApiKey = byok || process.env.GOOGLE_GEMINI_API_KEY;
@@ -344,7 +400,7 @@ router.post('/', async (req, res) => {
     }
 
     return res.status(400).json({
-      error: 'Invalid provider. Use "venice", "replicate", "azure", or "gemini".',
+      error: 'Invalid provider. Use "venice", "replicate", "azure", "0g", or "gemini".',
     });
   } catch (error) {
     logger.sessionError('provision', 'Live session provisioning failed', error, {

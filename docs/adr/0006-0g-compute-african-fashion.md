@@ -1,6 +1,6 @@
 # ADR 0006: 0G Compute Integration for African Fashion Fine-Tuning
 
-- **Status:** Proposed — 2026-06-15
+- **Status:** Accepted — 2026-06-15
 - **Date:** 2026-06-15
 - **Deciders:** OnPoint core
 - **Supersedes:** —
@@ -16,11 +16,30 @@ OnPoint is participating in the 0G Bridge Buildathon (June 13 – August 21, 202
 - Provide generic styling advice that doesn't respect cultural significance
 - Cannot distinguish between similar patterns from different regions
 
-**Opportunity**: 0G Compute offers decentralized GPU infrastructure for fine-tuning AI models. By fine-tuning a vision model on African fashion data, OnPoint can:
+**Opportunity**: 0G Compute offers decentralized GPU infrastructure for verifiable AI inference and fine-tuning. By fine-tuning a model on African fashion data, OnPoint can:
 - Achieve >90% accuracy on African pattern classification
 - Provide culturally-aware styling recommendations
 - Differentiate from competitors (Stitch Fix, ASOS AI, etc.)
 - Align with "African Differentiation" roadmap item (Phase Post-MVP)
+- Record TEE-attested inferences on-chain for verifiable audit trails (ADR 0005)
+
+## Verified Catalog (2026-06-15)
+
+The 0G Router (https://router-api.0g.ai/v1) is OpenAI Chat Completions compatible. The live catalog was probed directly with `curl -H "Authorization: Bearer *** /v1/models` and the vision-capable models available for inference today are:
+
+| Model | Modalities | Context | Output | Input $/1M | Output $/1M | Verifiability |
+|-------|-----------|---------|--------|------------|-------------|---------------|
+| **qwen3-vl-30b** (default) | text + image → text | 262K | 32K | $0.02 | $0.19 | TeeTLS / TDX / dstack |
+| **minimax-m3** | text + image + video → text | 1M | 131K | Free (0G Bridge promo, Jun 15–18 2026) | Free | TeeTLS / TDX / dstack |
+| **0gm-1.0-35b-a3b** | text + image → text | 262K | 32K | $0.03 | $0.19 | TeeML / TDX / dstack |
+
+`qwen3-vl-30b` is the workhorse: cheapest vision-capable entry, 1.5–1.7s latency on the live Router, JSON-mode output works, accepts `image_url` content blocks (verified by direct probe).
+
+**Predefined fine-tunable models** (text-only, per docs 2026-06):
+- `Qwen2.5-0.5B-Instruct` — 0.5 0G / 1M tokens, ~100 MB LoRA
+- `Qwen3-32B` — 4 0G / 1M tokens, ~900 MB LoRA
+
+There is no predefined **vision** fine-tunable model on 0G. The 0G Router exposes vision-capable inference models (above), but the predefined fine-tuning catalog is text-only. Custom vision providers may exist — discoverable via `0g-compute-cli fine-tuning list-providers` — but they are not in the published predefined list.
 
 ## Decision
 
@@ -165,16 +184,28 @@ import { ZeroGProvider } from "@repo/ai-client/providers/zero-g-provider";
 
 export const FALLBACK_CHAIN: AIProvider[] = [
   veniceProvider,      // Free tier, fast (~3s)
-  zeroGProvider,       // Fine-tuned African fashion model (~2s)
-  geminiProvider,      // Premium, real-time streaming
+  zeroGProvider,       // 0G Compute (qwen3-vl-30b, TEE-attested, ~1.5s)
+  geminiProvider,      // Premium, real-time streaming (WebSocket)
   openaiProvider,      // Final fallback
 ];
 
 // ZeroG provider is conditionally added based on env var
-if (process.env.ZERO_G_COMPUTE_ENABLED === "true") {
+if (process.env.NEXT_PUBLIC_ZERO_G_ENABLED === "true") {
   FALLBACK_CHAIN.splice(1, 0, zeroGProvider);
 }
 ```
+
+**Server-side analyze chain** (apps/api/routes/ai-agent.js): Venice → 0G → Replicate → Azure. 0G is positioned second because the TEE attestation gives us a stronger receipt surface than Replicate / Azure, and the default model is the cheapest vision-capable entry on the live catalog.
+
+**Live AR session factories** (packages/ai-client/src/providers/live-session-factories.ts): each free-tier factory's `fallbackChain` now inserts `0g` between the last free provider and `gemini`. 0G is HTTP-only, so it cannot replace the WebSocket premium terminal; it slots in as a polling-based option that the chain visits before paying for Gemini Live.
+
+## Re-Scoped Fine-Tuning Thesis
+
+The original ADR proposed fine-tuning a Qwen-VL vision model. The live 0G catalog exposes only **text-only** predefined fine-tunable models (Qwen2.5-0.5B-Instruct, Qwen3-32B). We re-scope as follows:
+
+- **Wave 1–2 (now)**: Fine-tune `Qwen3-32B` on structured text descriptions of African garments (cultural context, occasion, region, pattern names, materials). Use the fine-tuned Qwen3-32B as the **chat** model (`chatWithStylist` path, persona-aware), and the catalog's `qwen3-vl-30b` as the **vision** model for photo analysis. Two-model pipeline, each with a clear role.
+- **Wave 3 (stretch)**: Search for a custom Qwen-VL provider via `0g-compute-cli fine-tuning list-providers`. If found, fine-tune a vision model directly and unify the pipeline.
+- **Open question**: Whether 0G's Direct SDK fine-tuning flow supports the multimodal dataset format we'd need for a Qwen-VL run. Resolve in Wave 3.
 
 ## Wave-by-Wave Implementation
 
