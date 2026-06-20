@@ -249,8 +249,19 @@ export async function executeSuggestion(params: {
       }
       return result.result;
     }
+    // `external_search` has no on-chain component — its work is performed
+    // by the worker via `POST /api/agent/tasks/execute` (see
+    // apps/api/routes/agent-tasks.js). Call sites must filter it out
+    // before calling executeSuggestion. Return a loud error if anyone
+    // reaches this branch so a routing mistake is visible immediately
+    // rather than silently inflating success metrics.
     case "external_search":
-      return { success: true, action: actionType, autoApproved: true };
+      return {
+        success: false,
+        error: "external_search is not executed by the autonomous executor; route to /api/agent/tasks/execute (worker)",
+        action: actionType,
+        autoApproved: true,
+      };
     default:
       return {
         success: false,
