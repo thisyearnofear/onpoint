@@ -327,9 +327,6 @@ importers:
       '@onpoint/shared-types':
         specifier: workspace:*
         version: link:../shared-types
-      openai:
-        specifier: ^4.73.0
-        version: 4.104.0(ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))(zod@3.25.76)
     devDependencies:
       '@repo/typescript-config':
         specifier: workspace:*
@@ -354,7 +351,7 @@ importers:
         version: link:../ipfs-client
       '@tetherto/wdk':
         specifier: '*'
-        version: 1.0.0-beta.11(bare-pipe@4.2.0(bare-abort-controller@1.1.2)(bare-buffer@3.6.1))(bare-tcp@2.5.0(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-pipe@4.2.0(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)))
+        version: 1.0.0-beta.12(bare-pipe@4.2.0(bare-abort-controller@1.1.2)(bare-buffer@3.6.1))(bare-tcp@2.5.0(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-pipe@4.2.0(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)))
       '@tetherto/wdk-wallet-evm':
         specifier: '*'
         version: 1.0.0-beta.13(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-pipe@4.2.0(bare-abort-controller@1.1.2)(bare-buffer@3.6.1))(bare-tcp@2.5.0(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-pipe@4.2.0(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)))(bare-url@2.4.5)(bufferutil@4.1.0)(utf-8-validate@6.0.6)
@@ -3912,8 +3909,8 @@ packages:
   '@tetherto/wdk-wallet@1.0.0-beta.9':
     resolution: {integrity: sha512-sycU5+3fcgnJNR2vftGYykwrcqIzy9WKef6Yzwn7luS4S+MHDz+nfhhI0t9Qh3GMC+1m52LSMGBro3BPSHszNg==}
 
-  '@tetherto/wdk@1.0.0-beta.11':
-    resolution: {integrity: sha512-XGympMKcgfp0yNwCOF4hDkz0lQ+PTn1rtHwTzirSd4ONrbRZgjY2Pe+p7g3PV2LJqLDKlxih4VNxv0kr365qEw==}
+  '@tetherto/wdk@1.0.0-beta.12':
+    resolution: {integrity: sha512-Jk1o/NV0/iPUp7hdSHw/6RASn0AeLomyaSZt8D3DDh54txBCNX6Bi0QK8fHhlnBVbS44NPec/IJHe+sMa0T8ow==}
 
   '@tetherto/wdk@1.0.0-beta.6':
     resolution: {integrity: sha512-UBBHlKbdHWEHWgAdAo3/WjLu5UHQLpnRaBI16GVcmanB1eenA+lOdxI1I9Y4u9Toy587g/g9/V9yAgy0OsPc3Q==}
@@ -14590,7 +14587,7 @@ snapshots:
       - bare-tcp
       - react-native-b4a
 
-  '@tetherto/wdk@1.0.0-beta.11(bare-pipe@4.2.0(bare-abort-controller@1.1.2)(bare-buffer@3.6.1))(bare-tcp@2.5.0(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-pipe@4.2.0(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)))':
+  '@tetherto/wdk@1.0.0-beta.12(bare-pipe@4.2.0(bare-abort-controller@1.1.2)(bare-buffer@3.6.1))(bare-tcp@2.5.0(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-pipe@4.2.0(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)))':
     dependencies:
       '@tetherto/wdk-wallet': 1.0.0-beta.10(bare-pipe@4.2.0(bare-abort-controller@1.1.2)(bare-buffer@3.6.1))(bare-tcp@2.5.0(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-pipe@4.2.0(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)))
       bare-node-runtime: 1.4.0(bare-pipe@4.2.0(bare-abort-controller@1.1.2)(bare-buffer@3.6.1))(bare-tcp@2.5.0(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-pipe@4.2.0(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)))
