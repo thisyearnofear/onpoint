@@ -12,6 +12,7 @@
 # This launches:
 #   - Prometheus on port 9090
 #   - Grafana on port 3000 (admin / admin — change on first login)
+#   - node-exporter on port 9100 (host metrics: CPU, memory, disk, network)
 #
 # Data volumes persist in named Docker volumes:
 #   - prometheus_data
@@ -46,6 +47,9 @@ services:
       - "--web.console.libraries=/usr/share/prometheus/console_libraries"
       - "--web.console.templates=/usr/share/prometheus/consoles"
       - "--web.enable-admin-api"
+      # Enables POST /-/reload so config changes don't require a container
+      # restart. The sync-monitoring.sh script uses this.
+      - "--web.enable-lifecycle"
     # Health check
     healthcheck:
       test: ["CMD", "wget", "--spider", "http://localhost:9090/-/healthy"]
@@ -79,6 +83,25 @@ services:
     depends_on:
       prometheus:
         condition: service_healthy
+
+  # ── Node Exporter ────────────────────────────
+  # Linux system metrics (CPU, memory, disk, network) scraped by
+  # Prometheus's `node` job at localhost:9100. Host networking + a
+  # read-only bind mount on / so it can see the real host filesystem
+  # rather than the container's overlay.
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:v1.8.2
+    container_name: onpoint-node-exporter
+    restart: unless-stopped
+    network_mode: host
+    pid: host
+    volumes:
+      - "/:/host:ro,rslave"
+    command:
+      - "--path.rootfs=/host"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    # No healthcheck — node-exporter exposes /metrics directly;
+    # Prometheus will mark the target down if it stops responding.
 
 volumes:
   prometheus_data:

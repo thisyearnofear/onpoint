@@ -79,24 +79,17 @@ scrape_configs:
 
   # ── Job 3: Node Exporter (System Metrics) ───────────
   # Linux system metrics: CPU, memory, disk, network.
-  # Requires node_exporter on the Hetzner host.
-  #   docker run -d \
-  #     --name node-exporter \
-  #     --net="host" \
-  #     --pid="host" \
-  #     -v "/:/host:ro,rslave" \
-  #     quay.io/prometheus/node-exporter:latest \
-  #     --path.rootfs=/host
-  #
-  # - job_name: "node"
-  #   scrape_interval: 30s
-  #   scrape_timeout: 5s
-  #   static_configs:
-  #     - targets:
-  #         - "localhost:9100"
-  #       labels:
-  #         service: "infrastructure"
-  #         component: "node-exporter"
+  # Started by docker-compose.monitoring.yml alongside Prometheus
+  # and Grafana (host networking, read-only / mount).
+  - job_name: "node"
+    scrape_interval: 30s
+    scrape_timeout: 5s
+    static_configs:
+      - targets:
+          - "localhost:9100"
+        labels:
+          service: "infrastructure"
+          component: "node-exporter"
 
   # ── Job 4: PM2 Metrics (optional) ─────────────────────
   # PM2 process health (CPU, memory, restarts).
