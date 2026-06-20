@@ -368,6 +368,47 @@ a product promise. See [ADR 0005](./adr/0005-agent-spending-controls.md).
 - **Dead Man's Switch**: Records heartbeat every 5 min; freezes agent after 15 min of silence
 - **Gas monitoring**: Alerts when CELO balance drops below 0.5 (warn) or 0.01 (critical)
 - **Self-management dashboard**: `GET /api/agent/dashboard` — public transparency for judges
+- **Auto-rebalance escrow detection**: every ~6 hours, scans all user escrow balances and flags accounts whose balance has drifted significantly from their daily spending limit (over > 1.5× or under < 0.5×). Detection only — actual refunds stay user-initiated via `/api/agent/escrow/withdraw`. See [Auto-Rebalance Escrow](#auto-rebalance-escrow) below.
+
+## Auto-Rebalance Escrow
+
+A proactive task in the heartbeat that surfaces escrow accounts whose balance has drifted from the user's configured daily spending limit.
+
+### Why
+
+Users deposit funds into escrow so the agent can spend on their behalf without per-transaction approval. Over time, balances drift:
+
+- **Over-funded**: large deposits accumulate, leaving idle capital exposed to contract risk and tying up user funds.
+- **Under-funded**: balance drops below 0.5× the daily limit, leaving the agent unable to execute autonomous actions.
+
+The detection module flags these accounts so the operator (or a future user-facing notification) can act. Refunds and top-ups stay **user-initiated** in v1 — auto-moving money on the user's behalf requires policy decisions (gas payment, refund caps, multi-sig for large amounts) that warrant a separate design pass.
+
+### How
+
+- `packages/agent-core/src/auto-rebalance.ts` — pure detection. `detectRebalanceCandidates()` scans `escrow:balance:*:{agentId}` keys, fetches each user's balance + spending limit, and classifies each account.
+- Threshold: default 1.5× the daily limit. `over` if `balance > 1.5 × daily_limit`, `under` if `balance < 0.5 × daily_limit`, otherwise `ok`.
+- Called from the heartbeat as **Task 8**. Runs at most every 6 hours (every 72nd heartbeat cycle at the 5-minute cadence) to bound Redis SCAN cost.
+- Capped at 500 users per cycle for safety; full scan happens within ~6 hours even at scale.
+
+### Metrics
+
+| Metric | Type | Labels | Meaning |
+|---|---|---|---|
+| `agent_escrow_rebalance_candidates` | gauge | `reason="over"\|"under"` | Users in each drift state |
+| `agent_escrow_rebalance_excess_wei` | gauge | — | Total excess across `over` users (wei) |
+| `agent_escrow_rebalance_shortfall_wei` | gauge | — | Total shortfall across `under` users (wei) |
+
+Alert: `EscrowRebalanceCandidatesHigh` fires when the combined candidate count exceeds 50 for 30 minutes (warning, product team).
+
+### Tests
+
+11 tests in `packages/agent-core/src/__tests__/auto-rebalance.test.ts` cover threshold classification, mixed-user scenarios, and the metrics wiring.
+
+### Future
+
+- **Auto-refund for `over`**: requires agent signing authority for the escrow contract; gated by user opt-in.
+- **Auto-topup for `under`**: requires the agent wallet to fund on the user's behalf; needs a budget policy and a separate `EscrowTopup` audit log.
+- **Per-user opt-in flag**: `autoRebalance: boolean` on the spending limits, default false.
 
 ## Phase 3 Architecture: All Agent Routes on Hetzner
 

@@ -10,15 +10,15 @@
 │                                                             │
 │  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐  │
 │  │ onpoint-api  │   │onpoint-worker│   │onpoint-signer│  │
-│  │  :48751      │   │  (PM2)       │   │  :48753      │  │
+│  │  :48751      │   │  (PM2)       │   │  :48755      │  │
 │  └──────┬───────┘   └──────┬───────┘   └──────────────┘  │
 │         │                  │                               │
 │         │  /metrics         │ heartbeat (5 min)          │
 │         ▼                  ▼                               │
 │  ┌─────────────────────────────────────────────────────┐  │
 │  │  Prometheus (:9090)  ← scrape targets               │  │
-│  │  - onpoint-api /metrics                             │  │
-│  │  - node-exporter (host metrics)                    │  │
+│  │  - onpoint-agent (/api/agent/metrics)              │  │
+│  │  - node-exporter (:9100, host metrics)             │  │
 │  └─────────────────────────────────────────────────────┘  │
 │         │                                                 │
 │         ▼                                                 │
@@ -82,8 +82,40 @@ Panels:
 
 | Target | Endpoint | What it exports |
 |---|---|---|
-| `onpoint-api` | `http://localhost:48751/metrics` | Agent action counters, latency histograms, escrow snapshots, gas balance |
-| `node-exporter` | `http://localhost:9100/metrics` | Host CPU, memory, disk, network |
+| `onpoint-agent` | `http://localhost:48751/api/agent/metrics` | Agent action counters, latency histograms, escrow snapshots, gas balance, proactive task results |
+| `node` | `http://localhost:9100/metrics` | Host CPU, memory, disk, network |
+| `prometheus` | `http://localhost:9090/metrics` | Self-monitoring (scrape health, TSDB size) |
+
+---
+
+## Syncing config changes
+
+The monitoring stack lives in `/opt/onpoint/deploy/` on the server, outside
+the API release tree (which is managed by `scripts/deploy-api.sh`). For
+monitoring config changes, use `scripts/sync-monitoring.sh`:
+
+```bash
+# Sync prometheus.yml, prometheus-alerts.yml, and grafana/, then
+# reload Prometheus in place (no container restart).
+./scripts/sync-monitoring.sh
+
+# Preview only
+./scripts/sync-monitoring.sh --dry-run
+
+# Also restart Grafana (needed when dashboard JSON or provisioning
+# files change — bind-mounted configs don't hot-reload).
+./scripts/sync-monitoring.sh --restart
+```
+
+The script:
+
+1. Rsyncs `deploy/` to the server (excludes `.env*` files).
+2. Triggers `POST /-/reload` on Prometheus so config changes apply
+   without a container restart (requires `--web.enable-lifecycle`,
+   which is set in `docker-compose.monitoring.yml`).
+3. Optionally restarts Grafana.
+4. Verifies all Prometheus targets are `up` and Grafana's datasource
+   and dashboard are loaded.
 
 ---
 
