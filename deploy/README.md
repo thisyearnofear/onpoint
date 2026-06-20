@@ -13,8 +13,8 @@ only what's needed — no `git pull` on the server, no pnpm on the server.
 - **Backend API:** Hetzner VPS via PM2 (Express on port 48751)
 - **Bridge:** Python FastAPI on port 48752 (Browser-Use / Purch)
 - **Cache:** Redis on localhost:6379 (shared instance)
-- **Future worker:** `onpoint-worker` (Phase 1)
-- **Future signer:** `onpoint-signer` on 127.0.0.1:48753 (Phase 4)
+- **Worker:** `onpoint-worker` on 127.0.0.1:48754 (Phase 1) — heartbeat + task batch loop
+- **Signer:** `onpoint-signer` on 127.0.0.1:48755 (Phase 4) — sole holder of `AGENT_PRIVATE_KEY`, signs mint/transfer requests from the autonomous executor
 
 **Deploy strategy (ADR 0001):**
 - `pnpm` builds the workspace packages locally → isolated `npm install --omit=dev` bundle → `rsync` → symlink flip → `pm2 reload`
@@ -54,6 +54,14 @@ SERVICE_API_KEY=your-key-here
 AGENT_WALLET_ADDRESS=0x...
 PREMIUM_USERS=
 VERCEL_DOMAIN=https://onpoint.vercel.app
+
+# Signer (onpoint-signer, port 48755) — sole holder of AGENT_PRIVATE_KEY.
+# The executor on onpoint-api calls SIGNER_URL to request signatures
+# for autonomous mint/purchase/tip actions; SIGNER_API_KEY must match
+# between the two processes.
+SIGNER_URL=http://localhost:48755
+SIGNER_API_KEY=your-key-here
+AGENT_PRIVATE_KEY=0x...
 EOF
 
 chmod 600 /opt/onpoint/shared/api/.env
@@ -230,6 +238,7 @@ release history. Old releases are pruned automatically on each deploy.
 
 - **`.env*` files are excluded from rsync** — secrets never leave the server
 - **`shared/api/.env`** is the single source of truth for secrets
+- **`AGENT_PRIVATE_KEY` lives only in `onpoint-signer`** — `onpoint-api` never holds it; mint/transfer requests are signed remotely via `SIGNER_URL` + `SIGNER_API_KEY`. This isolates the hot key from the public-facing API process.
 - **`setup-secrets.sh`** writes secrets directly over SSH — never stored locally
 - **No git pull on deploy** — builds are deterministic from local lockfile
 - **No pnpm on the server** — the deploy bundle is self-contained
