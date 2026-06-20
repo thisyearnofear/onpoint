@@ -25,8 +25,55 @@ const appBaseUrl =
 
 export const metadata: Metadata = {
   metadataBase: new URL(appBaseUrl),
-  title: "BeOnPoint - AI Fashion Studio",
-  description: "Multiplatform ecosystem for personalized fashion discovery & digital ownership",
+  title: "BeOnPoint — AI Fashion Studio",
+  description:
+    "Curator-first AI fashion studio. Personalized styling, onchain ownership, and digital storefronts for emerging-market creators.",
+  applicationName: "BeOnPoint",
+  keywords: [
+    "AI fashion",
+    "personal stylist",
+    "virtual try-on",
+    "curator marketplace",
+    "Celo",
+    "onchain fashion",
+    "emerging market creators",
+  ],
+  authors: [{ name: "BeOnPoint" }],
+  creator: "BeOnPoint",
+  publisher: "BeOnPoint",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: appBaseUrl,
+    siteName: "BeOnPoint",
+    title: "BeOnPoint — AI Fashion Studio",
+    description:
+      "Curator-first AI fashion studio. Personalized styling, onchain ownership, and digital storefronts for emerging-market creators.",
+    images: [
+      {
+        // Resolved against metadataBase (apps/web/app/opengraph-image.png).
+        url: "/opengraph-image.png",
+        width: 1200,
+        height: 630,
+        alt: "BeOnPoint — AI Fashion Studio",
+        type: "image/png",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "BeOnPoint — AI Fashion Studio",
+    description:
+      "Curator-first AI fashion studio. Personalized styling, onchain ownership, and digital storefronts for emerging-market creators.",
+    images: ["/opengraph-image.png"],
+    creator: "@onpoint",
+  },
+  // Farcaster Mini App discovery picks up `opengraph-image.png` via the
+  // Frame/miniapp meta tag below, but explicit og:* tags help when the
+  // link is unfurled on other surfaces (Lens, X, LinkedIn, Slack).
+  other: {
+    "theme-color": "#0F0F13",
+  },
 };
 
 export const viewport = {
@@ -44,14 +91,14 @@ export default async function RootLayout({
   const baseUrl = appBaseUrl;
   const embed = {
     version: "1",
-    imageUrl: `${baseUrl}/assets/1Product.png`,
+    imageUrl: `${baseUrl}/opengraph-image.png`,
     button: {
       title: "Start BeOnPoint",
       action: {
         type: "launch_frame",
         name: "BeOnPoint",
         url: baseUrl || undefined,
-        splashImageUrl: `${baseUrl}/assets/1Product.png`,
+        splashImageUrl: `${baseUrl}/opengraph-image.png`,
         splashBackgroundColor: "#0F0F13",
       },
     },
