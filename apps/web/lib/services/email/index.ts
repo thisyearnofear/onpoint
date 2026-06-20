@@ -7,6 +7,7 @@
 
 import { Resend } from "resend";
 import { logger } from "../../utils/logger";
+import { getBaseUrl } from "../../base-url";
 
 function getClient(): Resend | null {
   const key = process.env.RESEND_API_KEY;
@@ -14,7 +15,10 @@ function getClient(): Resend | null {
   return new Resend(key);
 }
 
-const FROM = process.env.RESEND_FROM_EMAIL || "OnPoint <noreply@onpoint.style>";
+// RESEND_FROM_EMAIL must be set to a Resend-verified address in production
+// (e.g. "BeOnPoint <hello@yourdomain.com>"). If unset, Resend rejects the
+// send with a 403, so the misconfiguration is loud rather than silent.
+const FROM = process.env.RESEND_FROM_EMAIL || "BeOnPoint <onboarding@resend.dev>";
 
 interface SendParams {
   to: string;
@@ -36,7 +40,7 @@ export async function send({ to, subject, html }: SendParams): Promise<boolean> 
   }
 }
 
-const APP_URL = process.env.AUTH0_BASE_URL || process.env.APP_BASE_URL || "https://onpoint.style";
+const APP_URL = getBaseUrl();
 
 export async function sendSubscriptionEmail(
   email: string,

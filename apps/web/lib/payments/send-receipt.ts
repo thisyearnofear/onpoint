@@ -9,6 +9,7 @@
  */
 
 import { logger } from "../../lib/utils/logger";
+import { getBaseUrl } from "../base-url";
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -52,7 +53,7 @@ export interface FulfilmentPayload {
 // ─── WhatsApp ─────────────────────────────────────────────────
 
 function getBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_URL || "https://onpoint.style";
+  return getBaseUrl();
 }
 
 function getWhatsAppConfig() {
@@ -276,7 +277,9 @@ async function sendViaEmail(
   const apiKey = getEmailConfig();
   if (!apiKey) return false;
 
-  const from = process.env.RESEND_FROM_EMAIL || "OnPoint <noreply@onpoint.style>";
+  // RESEND_FROM_EMAIL must be set to a Resend-verified address in production.
+  // The fallback only fires when unconfigured; Resend will reject it loudly.
+  const from = process.env.RESEND_FROM_EMAIL || "BeOnPoint <onboarding@resend.dev>";
 
   try {
     const html = buildReceiptEmail(payload);

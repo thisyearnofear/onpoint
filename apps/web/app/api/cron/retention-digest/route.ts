@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { corsHeaders } from "../../ai/_utils/http";
 import { getRetentionReport } from "../../../../lib/utils/analytics-store";
 import { send } from "../../../../lib/services/email";
+import { getBaseUrl } from "../../../../lib/base-url";
 import { logger } from "../../../../lib/utils/logger";
 import { rateLimit, RateLimits, getClientId } from "../../../../lib/utils/rate-limit";
 import { auth0 } from "../../../../lib/auth0";
@@ -120,10 +121,7 @@ export async function POST(request: NextRequest) {
         ? `${Math.round((weeklyShares / weeklyCardOpens) * 100)}%`
         : "—";
 
-    const APP_URL =
-      process.env.AUTH0_BASE_URL ||
-      process.env.APP_BASE_URL ||
-      "https://onpoint.style";
+    const APP_URL = getBaseUrl();
 
     const html = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 16px;">

@@ -490,7 +490,7 @@ export function StyleReportCard({
           {/* QR / Link Hint */}
           <div className="text-center">
             <p className="text-[9px] text-white/30 font-mono">
-              onpoint.style &bull; {new Date().toLocaleDateString()}
+              BeOnPoint &bull; {new Date().toLocaleDateString()}
             </p>
           </div>
 

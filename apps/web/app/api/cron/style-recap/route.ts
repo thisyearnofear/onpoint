@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { corsHeaders } from "../../ai/_utils/http";
 import { send } from "../../../../lib/services/email";
+import { getBaseUrl } from "../../../../lib/base-url";
 import { StyleContextStore } from "../../../../lib/services/style-context-store";
 import { logger } from "../../../../lib/utils/logger";
 import { rateLimit, RateLimits, getClientId } from "../../../../lib/utils/rate-limit";
@@ -130,7 +131,7 @@ export async function POST(request: NextRequest) {
             </h1>
             <p style="color: #94a3b8; font-size: 13px; margin: 0 0 24px;">Community digest for ${monthLabel}.</p>
             <p style="color: #64748b;">No active users with weekly data yet. Register users in the style context store to enable personalized recaps.</p>
-            <a href="${process.env.AUTH0_BASE_URL || process.env.APP_BASE_URL || "https://onpoint.style"}" style="display: inline-block; padding: 12px 24px; background: #6366f1; color: white; text-decoration: none; border-radius: 999px; font-weight: 700;">View Dashboard →</a>
+            <a href="${getBaseUrl()}" style="display: inline-block; padding: 12px 24px; background: #6366f1; color: white; text-decoration: none; border-radius: 999px; font-weight: 700;">View Dashboard →</a>
             <p style="color: #94a3b8; font-size: 12px; margin-top: 32px;">OnPoint — AI-powered personal styling</p>
           </div>
         `,

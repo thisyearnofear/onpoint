@@ -44,7 +44,7 @@ async function trackEvent(
         properties: {
           ...properties,
           source: "stripe_webhook",
-          $current_url: "https://api.onpoint.style/stripe/webhook",
+          $current_url: `${process.env.URL || "https://beonpoint.netlify.app"}/stripe/webhook`,
         },
       }),
     });

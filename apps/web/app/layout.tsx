@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import Script from "next/script";
+import { getBaseUrl } from "@/lib/base-url";
 import "./globals.css";
 import "./mobile.css";
 import { Providers } from "./providers";
@@ -16,12 +17,7 @@ const geistMono = localFont({
   variable: "--font-geist-mono",
 });
 
-const appBaseUrl =
-  process.env.NEXT_PUBLIC_URL ||
-  process.env.APP_BASE_URL ||
-  process.env.AUTH0_BASE_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
-  "https://onpoint.style";
+const appBaseUrl = getBaseUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(appBaseUrl),
