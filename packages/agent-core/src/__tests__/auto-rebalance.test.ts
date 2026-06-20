@@ -19,7 +19,7 @@ vi.mock("../escrow-service", () => ({
 }));
 
 vi.mock("../agent-store", () => ({
-  getSpendingLimits: vi.fn(),
+  loadSpendingLimits: vi.fn(),
 }));
 
 vi.mock("../metrics", () => ({
@@ -42,7 +42,7 @@ import {
 } from "../auto-rebalance";
 import { redisScan } from "../redis-helpers";
 import { getEscrowBalance } from "../escrow-service";
-import { getSpendingLimits } from "../agent-store";
+import { loadSpendingLimits } from "../agent-store";
 import { Metrics } from "../metrics";
 
 const AGENT_ID = "onpoint-stylist";
@@ -71,7 +71,7 @@ function setupUsers(
         }
       : null,
   );
-  vi.mocked(getSpendingLimits).mockImplementation(async () => {
+  vi.mocked(loadSpendingLimits).mockImplementation(async () => {
     const u = users[0];
     return u
       ? {
@@ -83,8 +83,8 @@ function setupUsers(
         }
       : null;
   });
-  // getSpendingLimits uses (agentId, userId) — give every user their own limit
-  vi.mocked(getSpendingLimits).mockImplementation(
+  // loadSpendingLimits uses (agentId, userId) — give every user their own limit
+  vi.mocked(loadSpendingLimits).mockImplementation(
     async (_agentId: string, userId: string) => {
       const u = users.find((x) => x.userId === userId);
       return u

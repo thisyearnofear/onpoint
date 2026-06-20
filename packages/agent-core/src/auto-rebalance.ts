@@ -30,7 +30,7 @@
 import { logger } from "./logger";
 import { Metrics } from "./metrics";
 import { getEscrowBalance, type EscrowBalance } from "./escrow-service";
-import { getSpendingLimits } from "./agent-store";
+import { loadSpendingLimits } from "./agent-store";
 import { redisScan } from "./redis-helpers";
 
 // ============================================
@@ -109,7 +109,7 @@ export async function detectRebalanceCandidates(
     const balance = await getEscrowBalance(userId, agentId);
     if (!balance) continue;
 
-    const limits = await getSpendingLimits(agentId, userId);
+    const limits = await loadSpendingLimits(agentId, userId);
     if (!limits) continue;
 
     const dailyLimit = BigInt(limits.daily || "0");
