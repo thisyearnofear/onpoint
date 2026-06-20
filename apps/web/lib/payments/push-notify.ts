@@ -94,8 +94,11 @@ export async function sendPushNotification(params: {
     return false;
   }
 
+  // VAPID requires a contact URI for push service abuse reports. Replace
+  // with a real admin address (mailto:admin@yourdomain.com) when you have
+  // a verified domain. example.com is RFC 2606 reserved and signals "set me."
   webPush.setVapidDetails(
-    "mailto:support@onpoint.com",
+    "mailto:admin@example.com",
     vapid.publicKey,
     vapid.privateKey,
   );

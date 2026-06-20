@@ -62,7 +62,9 @@ export const metadata: Metadata = {
     description:
       "Curator-first AI fashion studio. Personalized styling, onchain ownership, and digital storefronts for emerging-market creators.",
     images: ["/opengraph-image.png"],
-    creator: "@onpoint",
+    // creator: "@your-twitter-handle" — set to your Twitter/X handle when
+    // you have one. Omitted for now so we don't attribute the card to an
+    // account we don't control.
   },
   // Farcaster Mini App discovery picks up `opengraph-image.png` via the
   // Frame/miniapp meta tag below, but explicit og:* tags help when the
