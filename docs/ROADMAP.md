@@ -17,6 +17,51 @@ The core "sees → judges → shops" flow is live at https://beonpoint.netlify.a
 
 ---
 
+## Curator Customer Focus — Current Quarter Strategic Pivot
+
+**The customer is the curator, not the end-user.** OnPoint is a B2B2C platform: curators (small-business fashion sellers, often selling on WhatsApp today) run branded storefronts at `/s/[slug]`, their downstream customers browse and buy there, and we provide the admin / sales / marketing infrastructure so they spend less time on manual ops.
+
+This is in addition to (not a replacement for) the direct-to-consumer AR stylist experience at the root.
+
+### What's built (Phase 11 complete)
+
+- **Self-serve onboarding** at `/curator/onboard` — 30-second form creates a branded storefront URL
+- **Public storefront** at `/s/[slug]` — branded listings, try-on, M-Pesa payment panel, WhatsApp share
+- **Curator admin panel** at `/admin/curators/[slug]` — listings CRUD, payments table, notifications feed, reply templates, cross-curator analytics
+- **M-Pesa STK push** — automated payment requests via Safaricom Daraja
+- **WhatsApp Business API** — receipt sending via Meta Cloud API (outbound; full incoming requires Meta Business verification — see deferred items below)
+- **DB schema** — `curators`, `listings`, `orders`, `kit_skus`, `sessions` tables with FKs
+- **AI try-on + polaroid generation** — reusable by curators' customers
+- **Cross-curator AI recommendations** — catalog-aware suggestions on each storefront
+
+### Gaps for WhatsApp-first sellers (next quarter)
+
+Mapped against a typical curator's daily workflow (customer message → manual order tracking → manual payment → manual shipping):
+
+- [ ] **Order management surface** — DB has `orders`, but a curator-facing "list orders / mark shipped / mark delivered / see payment status" UI needs to be verified end-to-end and likely polished
+- [ ] **Customer CRM** — surface repeat customers, purchase history, contact info (currently buried)
+- [ ] **Self-serve product creation** — verify a curator can upload a phone photo + write a description and get a listing without admin intervention
+- [ ] **Mobile-first curator dashboard** — `/admin/curators/[slug]` works on desktop but curators live on their phones; phone-optimized view likely needed
+- [ ] **Marketing automation** — one-tap "broadcast new stock to past customers" (vs manual WhatsApp status updates)
+- [ ] **Actionable analytics** — "what sold this week" / "which customer hasn't ordered in 60 days" — surfaceable but probably buried
+- [ ] **WhatsApp incoming message handling** — outgoing receipts work; a bot that handles "do you have size M?" incoming is not built
+- [ ] **Meta Business verification** — required for full WhatsApp Business API; not yet done (see Phase 11 deferred items)
+
+### Iteration loop
+
+1. **Discovery call** with a real WhatsApp-selling curator. Goal: document their current workflow end-to-end, identify the one pain point that would save them the most time.
+2. **Ship that one thing** within the week.
+3. **Bring it back**, watch them use it, learn what's next.
+4. Repeat.
+
+**Anti-pattern**: building features speculatively before validating against a real curator's workflow. The Phase 11 success criterion "Zero new features without named Curator request" still applies — every gap above gets opened as a ticket only after a curator asks for it (or a paid pilot surfaces it).
+
+### Long-term positioning
+
+When curators ask "what does this become?", the answer isn't the autonomous on-chain agent we've been building — it's "your own storefront, with an AI that helps your customers browse, try-on, and pay without you manually handling each one." The on-chain agent (escrow, signer, auto-rebalance) is plumbing for the payment layer underneath, not the front-of-house experience. Use that framing when the conversation drifts toward "when does the AI do things on its own."
+
+---
+
 ## 0G Bridge Buildathon 🎯 PRIMARY FOCUS
 
 > **Program**: 0G Bridge by AKINDO · 10 weeks · 5 Waves · $50K in 0G Credits
