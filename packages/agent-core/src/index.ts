@@ -197,6 +197,17 @@ export {
   executeSuggestion,
 } from "./autonomous-executor";
 
+// ── Auto-Rebalance Escrow Detection ──
+export {
+  type RebalanceCandidate,
+  type RebalanceReason,
+  type RebalanceStats,
+  detectRebalanceCandidates,
+  getRebalanceStats,
+  updateRebalanceMetrics,
+  AutoRebalance,
+} from "./auto-rebalance";
+
 // ── ERC-20 Utilities ──
 export {
   type ERC20Balance,

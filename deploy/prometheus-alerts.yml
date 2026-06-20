@@ -275,6 +275,33 @@ groups:
             balance. Autonomous execution is blocked
             until they deposit funds.
 
+      # ──── Alert: EscrowRebalanceCandidatesHigh ─────
+      # More than 20% of scanned users have escrow
+      # balances that have drifted significantly from
+      # their spending limits (either too much or too
+      # little). The auto-rebalance module surfaces
+      # these as candidates; high counts suggest a
+      # systemic issue (e.g. deposit inflows, limit
+      # changes) worth investigating.
+      - alert: EscrowRebalanceCandidatesHigh
+        expr: |
+          (agent_escrow_rebalance_candidates{reason="over"}
+            + agent_escrow_rebalance_candidates{reason="under"}) > 50
+        for: 30m
+        labels:
+          severity: warning
+          team: "product"
+        annotations:
+          summary: "Many escrow rebalance candidates"
+          description: |
+            {{ $value }} users have escrow balances
+            that have drifted from their spending limits
+            (over: {{ with query "agent_escrow_rebalance_candidates{reason=\"over\"}" }}{{ . | first | value }}{{ end }},
+             under: {{ with query "agent_escrow_rebalance_candidates{reason=\"under\"}" }}{{ . | first | value }}{{ end }}).
+            This often follows limit changes or large
+            deposits/withdrawals. Investigate the
+            auto-rebalance module's candidate list.
+
   # ── Group 6: Action Anomaly ─────────────────────────
   # Detect unusual patterns in agent action validation
   # rates that may indicate a spending limit issue,

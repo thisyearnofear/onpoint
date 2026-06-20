@@ -48,6 +48,55 @@ function serviceKeyAuth(req, res, next) {
   next();
 }
 
+// ============================================
+// Proactive Task 8: Auto-Rebalance Escrow Detection
+// ============================================
+/**
+ * Scan all user escrow balances and flag accounts whose balance has
+ * drifted significantly from their spending limit. Detection only —
+ * actual refunds are user-initiated. Results feed Grafana gauges and
+ * the EscrowRebalanceCandidatesHigh alert.
+ *
+ * Runs at most every 6 hours (every 72nd heartbeat cycle at 5 min
+ * intervals) to keep the Redis SCAN cost bounded.
+ */
+const REBALANCE_CYCLE_INTERVAL = 72; // ~6 hours at 5-min heartbeat
+let heartbeatCallCount = 0;
+
+async function runAutoRebalanceCheck() {
+  heartbeatCallCount++;
+  const shouldRun = heartbeatCallCount % REBALANCE_CYCLE_INTERVAL === 0;
+
+  const result = { ran: shouldRun, scannedUsers: 0, usersOver: 0, usersUnder: 0, totalExcessWei: '0', totalShortfallWei: '0', durationMs: 0, error: null };
+
+  if (!shouldRun) {
+    return result;
+  }
+
+  try {
+    const stats = await agentCore.AutoRebalance.getRebalanceStats(AGENT_ID);
+    agentCore.AutoRebalance.updateRebalanceMetrics(stats);
+    result.scannedUsers = stats.scannedUsers;
+    result.usersOver = stats.usersOver;
+    result.usersUnder = stats.usersUnder;
+    result.totalExcessWei = stats.totalExcessWei.toString();
+    result.totalShortfallWei = stats.totalShortfallWei.toString();
+    result.durationMs = stats.durationMs;
+
+    if (stats.usersOver > 0 || stats.usersUnder > 0) {
+      logger.info('Auto-rebalance: candidates detected', {
+        component: 'heartbeat',
+        ...result,
+      });
+    }
+  } catch (err) {
+    result.error = err.message;
+    logger.error('Auto-rebalance check failed', { component: 'heartbeat' }, err);
+  }
+
+  return result;
+}
+
 const VERBOSE = process.env.NODE_ENV !== 'production';
 
 // ============================================
@@ -415,6 +464,10 @@ router.post('/', serviceKeyAuth, async (req, res) => {
       tasksExecuted.push('stale_approvals:0');
     }
 
+    // Task 8: Auto-rebalance escrow detection (every ~6 hours)
+    const rebalanceResults = await runAutoRebalanceCheck();
+    tasksExecuted.push(rebalanceResults.ran ? `rebalance_check:scanned:${rebalanceResults.scannedUsers}` : 'rebalance_check:skipped');
+
     const elapsed = Date.now() - startTime;
 
     // Determine overall health
@@ -440,6 +493,7 @@ router.post('/', serviceKeyAuth, async (req, res) => {
         retriedSuggestions: retryResults,
         prunedExpired: pruneResults,
         staleApprovals: alertResults,
+        autoRebalance: rebalanceResults,
       },
       tasksExecuted,
       healthStatus,

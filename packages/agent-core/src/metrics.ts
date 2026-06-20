@@ -67,6 +67,9 @@ const latencies: Record<string, number[]> = {};
 const escrowBalances: Record<string, string> = {};
 let gasBalance: number | null = null; // CELO amount, not wei
 let gasWalletAddress: string = "";
+const escrowRebalanceCandidates: Record<string, number> = {};
+let escrowRebalanceExcess: bigint = 0n;
+let escrowRebalanceShortfall: bigint = 0n;
 
 // ============================================
 // Public API
@@ -118,6 +121,45 @@ export function setGasBalance(address: string, celoBalance: string): void {
 export function getGasBalance(): { address: string; balance: number } | null {
   if (gasBalance === null) return null;
   return { address: gasWalletAddress, balance: gasBalance };
+}
+
+/**
+ * Update the escrow rebalance detection gauge.
+ * Called by the auto-rebalance module on each heartbeat cycle.
+ * @param reason — "over" (excess) or "under" (shortfall)
+ * @param count  — number of users in this state
+ */
+export function setEscrowRebalanceCandidates(reason: string, count: number): void {
+  escrowRebalanceCandidates[reason] = count;
+}
+
+/**
+ * Update the total excess escrow across all "over" users (in wei).
+ */
+export function setEscrowRebalanceExcess(wei: bigint): void {
+  escrowRebalanceExcess = wei;
+}
+
+/**
+ * Update the total shortfall escrow across all "under" users (in wei).
+ */
+export function setEscrowRebalanceShortfall(wei: bigint): void {
+  escrowRebalanceShortfall = wei;
+}
+
+/**
+ * Get the rebalance detection snapshot.
+ */
+export function getEscrowRebalanceSnapshot(): {
+  candidates: Record<string, number>;
+  totalExcessWei: bigint;
+  totalShortfallWei: bigint;
+} {
+  return {
+    candidates: { ...escrowRebalanceCandidates },
+    totalExcessWei: escrowRebalanceExcess,
+    totalShortfallWei: escrowRebalanceShortfall,
+  };
 }
 
 /**
@@ -235,6 +277,21 @@ export function exportPrometheus(): string {
     );
   }
 
+  // Escrow rebalance detection (auto-rebalance module)
+  lines.push("# HELP agent_escrow_rebalance_candidates Users whose escrow balance drifted significantly from their spending limit");
+  lines.push("# TYPE agent_escrow_rebalance_candidates gauge");
+  for (const [reason, count] of Object.entries(escrowRebalanceCandidates)) {
+    lines.push(
+      `agent_escrow_rebalance_candidates{reason="${escapeLabel(reason)}"} ${count} ${ts}`,
+    );
+  }
+  lines.push("# HELP agent_escrow_rebalance_excess_wei Total excess escrow across 'over' users (wei)");
+  lines.push("# TYPE agent_escrow_rebalance_excess_wei gauge");
+  lines.push(`agent_escrow_rebalance_excess_wei ${escrowRebalanceExcess.toString()} ${ts}`);
+  lines.push("# HELP agent_escrow_rebalance_shortfall_wei Total shortfall across 'under' users (wei)");
+  lines.push("# TYPE agent_escrow_rebalance_shortfall_wei gauge");
+  lines.push(`agent_escrow_rebalance_shortfall_wei ${escrowRebalanceShortfall.toString()} ${ts}`);
+
   // Health metric
   lines.push("# HELP agent_up Whether the agent metrics collection is active");
   lines.push("# TYPE agent_up gauge");
@@ -293,6 +350,10 @@ export const Metrics = {
   setEscrowBalance,
   setGasBalance,
   getGasBalance,
+  setEscrowRebalanceCandidates,
+  setEscrowRebalanceExcess,
+  setEscrowRebalanceShortfall,
+  getEscrowRebalanceSnapshot,
   getActionCounters,
   getLatencyHistograms,
   getEscrowBalances,
