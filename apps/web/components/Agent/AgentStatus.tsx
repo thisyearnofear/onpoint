@@ -1075,6 +1075,33 @@ function PolicyPresetButton({
 // to avoid rendering off-screen iframes (PERFORMANT). Sandboxed; the source is
 // tinyfish.ai's live-preview stream which we trust per ADR 0008.
 // ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Hostname allowlist for the live-preview iframe.
+ *
+ * Security rationale (per ADR 0008 + review #7): the iframe sandbox
+ * combination `allow-scripts allow-same-origin` effectively neutralises
+ * the sandbox — script + same-origin can read/modify parent state. We
+ * therefore constrain the src host to a single trusted origin so that no
+ * upstream change (or attacker-influenced upstream) can pivot the iframe
+ * into an XSS vector. Update this constant only when intentionally
+ * expanding the trusted set.
+ */
+const TRUSTED_STREAM_HOSTNAMES = new Set([
+  "stream.tinyfish.ai",
+  "agent.tinyfish.ai",
+]);
+
+function isTrustedStreamUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:") return false;
+    return TRUSTED_STREAM_HOSTNAMES.has(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
 function LiveAgentPreview({
   streamingUrl,
   source,
@@ -1085,10 +1112,14 @@ function LiveAgentPreview({
   const ref = React.useRef<HTMLDivElement | null>(null);
   const [inView, setInView] = React.useState(false);
 
+  // Refuse to mount an iframe for any URL we don't explicitly trust.
+  // The card still renders its label + status pill so the UI doesn't
+  // silently disappear, but the iframe block is omitted.
+  const trusted = isTrustedStreamUrl(streamingUrl);
+
   React.useEffect(() => {
     const el = ref.current;
-    if (!el || typeof IntersectionObserver === "undefined") {
-      setInView(true); // graceful fallback: mount immediately
+    if (!el || typeof IntersectionObserver === "undefined" || !trusted) {
       return;
     }
     const io = new IntersectionObserver(
@@ -1104,7 +1135,7 @@ function LiveAgentPreview({
     );
     io.observe(el);
     return () => io.disconnect();
-  }, []);
+  }, [trusted]);
 
   return (
     <div
@@ -1116,9 +1147,11 @@ function LiveAgentPreview({
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
           Live · {source}
         </span>
-        <span className="text-muted-foreground">tinyfish preview</span>
+        <span className="text-muted-foreground">
+          {trusted ? "tinyfish preview" : "preview unavailable"}
+        </span>
       </div>
-      {inView && (
+      {trusted && inView && (
         <iframe
           src={streamingUrl}
           title={`Live agent preview for ${source}`}

@@ -13,6 +13,7 @@ plumbs the values through.
 import asyncio
 import os
 import re
+import time
 import logging
 from dataclasses import dataclass, field
 from typing import AsyncGenerator, List, Literal, Optional
@@ -25,6 +26,8 @@ SEARCH_URL = "https://api.search.tinyfish.ai"
 FETCH_URL = "https://api.fetch.tinyfish.ai"
 RUN_ASYNC_URL = "https://agent.tinyfish.ai/v1/automation/run-async"
 RUN_POLL_URL = "https://agent.tinyfish.ai/v1/runs"
+# Legacy blocking endpoint, kept as the kill-switch fallback (see _blocking_agent_browse).
+RUN_BLOCKING_URL = "https://agent.tinyfish.ai/v1/automation/run"
 
 # Fashion domains to prioritise in search results
 FASHION_DOMAINS = {
@@ -190,6 +193,30 @@ class TinyFishClient:
         if not self.available:
             return TinyFishResult()
 
+        # ADR 0008 D5 kill switch: TINYFISH_ASYNC=0 reverts to the legacy
+        # blocking /v1/automation/run path. Useful for one-flag rollback if
+        # the polling primitive misbehaves in production.
+        if os.getenv("TINYFISH_ASYNC") == "0":
+            result = await self._blocking_agent_browse(
+                query=query,
+                max_results=max_results,
+                use_profile=use_profile,
+                profile_id=profile_id,
+                browser_profile=browser_profile,
+                proxy_country=proxy_country,
+            )
+            if on_update is not None:
+                try:
+                    on_update(TinyFishAgentUpdate(
+                        phase="done" if not result.blocked else "error",
+                        streaming_url=result.streaming_url,
+                        browser_profile=browser_profile,
+                        proxy_country=proxy_country,
+                    ))
+                except Exception:
+                    pass
+            return result
+
         # Resolve profile source: explicit profile_id wins; else default env var.
         effective_profile_id = profile_id or os.getenv("TINYFISH_DEFAULT_PROFILE_ID")
         use_profile_effective = bool(use_profile and self.api_key)
@@ -327,7 +354,7 @@ class TinyFishClient:
         )
 
         # 2. Poll until terminal.
-        deadline = asyncio.get_event_loop().time() + (max_wait_ms / 1000)
+        deadline = time.monotonic() + (max_wait_ms / 1000)
         announced_running = False
         streaming_url: Optional[str] = None
         poll_interval = POLL_INTERVAL_MS / 1000
@@ -381,7 +408,7 @@ class TinyFishClient:
                     )
                 return
 
-            if asyncio.get_event_loop().time() > deadline:
+            if time.monotonic() > deadline:
                 yield TinyFishAgentUpdate(
                     phase="error",
                     run_id=run_id,
@@ -396,6 +423,78 @@ class TinyFishClient:
                 return
 
             await asyncio.sleep(poll_interval)
+
+    # ------------------------------------------------------------------
+    # Legacy blocking path — kill-switch fallback (ADR 0008 D5)
+    # ------------------------------------------------------------------
+
+    async def _blocking_agent_browse(
+        self,
+        *,
+        query: str,
+        max_results: int,
+        use_profile: bool,
+        profile_id: Optional[str],
+        browser_profile: BrowserProfile,
+        proxy_country: Optional[ProxyCountry],
+    ) -> TinyFishResult:
+        """Pre-ADR-0008 blocking /v1/automation/run call.
+
+        Used only when TINYFISH_ASYNC=0 (one-flag rollback). Kept as a
+        private helper so the public surface stays the same and so the
+        fallback path can never be selected by callers directly.
+        """
+        if not self.available:
+            return TinyFishResult()
+
+        effective_profile_id = profile_id or os.getenv("TINYFISH_DEFAULT_PROFILE_ID")
+        use_profile_effective = bool(use_profile and self.api_key)
+
+        body = {
+            "url": "https://www.google.com",
+            "goal": self._build_agent_goal(query, max_results),
+            "browser_profile": browser_profile,
+        }
+        if proxy_country:
+            body["proxy_config"] = {"enabled": True, "country_code": proxy_country}
+        if use_profile_effective:
+            body["use_profile"] = True
+            if effective_profile_id:
+                body["profile_id"] = effective_profile_id
+
+        try:
+            resp = await self._client.post(RUN_BLOCKING_URL, json=body)
+            if not resp.is_success:
+                logger.error(
+                    f"TinyFish blocking run failed ({resp.status_code}): {resp.text[:200]}"
+                )
+                return TinyFishResult(
+                    browser_profile=browser_profile,
+                    proxy_country=proxy_country,
+                    blocked=False,
+                    last_phase="error",
+                )
+            data = resp.json()
+            products = _products_from_agent_result(data.get("result"), query)
+            streaming_url = data.get("live_url") or data.get("streaming_url")
+            blocked = _looks_blocked_dict(data.get("result"))
+            return TinyFishResult(
+                products=products,
+                live_url=streaming_url,
+                streaming_url=streaming_url,
+                browser_profile=browser_profile,
+                proxy_country=proxy_country,
+                blocked=blocked,
+                last_phase="done",
+            )
+        except Exception as e:
+            logger.error(f"TinyFish blocking agent browse failed: {e}")
+            return TinyFishResult(
+                browser_profile=browser_profile,
+                proxy_country=proxy_country,
+                blocked=False,
+                last_phase="error",
+            )
 
     async def _start_run(
         self,
@@ -551,14 +650,21 @@ def _looks_blocked(update: TinyFishAgentUpdate) -> bool:
         msg = (update.error or "").lower()
         if any(k in msg for k in ("blocked", "captcha", "access denied", "forbidden")):
             return True
-    result = update.result
+    return _looks_blocked_dict(update.result)
+
+
+def _looks_blocked_dict(result) -> bool:
+    """Raw-result variant of _looks_blocked, used by the blocking kill-switch path."""
+    if result is None:
+        return False
     if isinstance(result, dict):
         if result.get("error") == "blocked":
             return True
-        if isinstance(result.get("items"), list):
+        items = result.get("items") if isinstance(result.get("items"), list) else None
+        if items:
             return any(
                 isinstance(it, dict) and it.get("error") == "blocked"
-                for it in result["items"]
+                for it in items
             )
     if isinstance(result, list):
         return any(

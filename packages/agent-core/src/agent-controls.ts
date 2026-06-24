@@ -1107,10 +1107,11 @@ export async function dispatchExternalAction(
     };
   }
 
-  // ADR 0008 D6/D7: when payload.stream is true, route to the SSE variant of
-  // the search endpoint. We forward Accept header so the bridge can return
-  // event-stream frames. Caller-side reads remain identical: a terminal
-  // `data: {...}` frame carries the final JSON.
+  // ADR 0008 D6/D7 + review #1 fix: when payload.stream is true, route to
+  // the SSE variant and *consume the stream* (not response.json() — SSE
+  // bodies are not valid JSON). We accumulate frames until we see the
+  // terminal `result` event (whose payload mirrors the JSON SearchResponse),
+  // then return it as `data`.
   const wantsStream = Boolean((action.payload as any)?.stream);
   const endpoint = wantsStream ? `${bridgeUrl}/v1/agent/search/stream` : `${bridgeUrl}/v1/agent/${action.type}`;
   const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -1127,8 +1128,101 @@ export async function dispatchExternalAction(
       throw new Error(`Bridge returned error: ${response.statusText}`);
     }
 
-    const data = await response.json();
-    return { success: true, data };
+    // Non-streaming path: a single JSON body, unchanged from before.
+    if (!wantsStream) {
+      const data = await response.json();
+      return { success: true, data };
+    }
+
+    // Streaming path: parse `event:` / `data:` frames from the SSE body
+    // until we see the terminal `result` event. Anything before that
+    // (`phase.starting`, `phase.running`, `phase.error`) is discarded
+    // after being logged — the caller's contract is the final payload.
+    if (!response.body) {
+      throw new Error("Bridge SSE response had no body");
+    }
+
+    const reader = (response.body as ReadableStream<Uint8Array>).getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let currentEvent = "";
+    let resultPayload: any = null;
+
+    // Hard cap on stream consumption to prevent infinite loops on
+    // malformed streams. Each search is bounded by max_wait_ms server-side,
+    // so 5 MB of accumulated text is a generous ceiling.
+    const MAX_BYTES = 5 * 1024 * 1024;
+    let bytesRead = 0;
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      bytesRead += value.byteLength;
+      if (bytesRead > MAX_BYTES) {
+        await reader.cancel();
+        throw new Error("Bridge SSE stream exceeded size cap");
+      }
+      buffer += decoder.decode(value, { stream: true });
+
+      // SSE frames are delimited by a blank line. Process any complete
+      // frames currently in the buffer.
+      let frameEnd;
+      while ((frameEnd = buffer.indexOf("\n\n")) !== -1) {
+        const frame = buffer.slice(0, frameEnd);
+        buffer = buffer.slice(frameEnd + 2);
+
+        let dataLines: string[] = [];
+        for (const line of frame.split("\n")) {
+          if (line.startsWith("event:")) {
+            currentEvent = line.slice(6).trim();
+          } else if (line.startsWith("data:")) {
+            dataLines.push(line.slice(5).trim());
+          }
+        }
+        const dataStr = dataLines.join("\n");
+        if (!dataStr) continue;
+
+        if (currentEvent === "result") {
+          try {
+            resultPayload = JSON.parse(dataStr);
+          } catch (parseErr) {
+            throw new Error(
+              `Bridge SSE 'result' event was not valid JSON: ${dataStr.slice(0, 200)}`,
+            );
+          }
+          // Terminal — drain remaining buffered bytes and stop.
+          await reader.cancel();
+          break;
+        }
+        if (currentEvent === "phase.error") {
+          // Surface as a soft failure — phase.error can arrive without a
+          // terminal `result` event. Capture the error and stop.
+          try {
+            const errData = JSON.parse(dataStr);
+            return {
+              success: false,
+              error: errData?.error || "Bridge reported phase error",
+            };
+          } catch {
+            return { success: false, error: "Bridge reported phase error" };
+          }
+        }
+        // Other phase events (phase.starting, phase.running, phase.done)
+        // are intentionally ignored here — the caller's contract is the
+        // final structured payload, which only `result` carries.
+      }
+
+      if (resultPayload !== null) break;
+    }
+
+    if (resultPayload === null) {
+      return {
+        success: false,
+        error: "Bridge SSE stream ended without a `result` event",
+      };
+    }
+
+    return { success: true, data: resultPayload };
   } catch (err) {
     logger.error(
       "External action dispatch failed",

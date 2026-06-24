@@ -407,7 +407,21 @@ async def search_items_stream(
     request: SearchRequest,
     _auth: bool = Depends(verify_api_key),
 ):
-    """SSE variant of /v1/agent/search. One event per phase; final event is the JSON body."""
+    """SSE variant of /v1/agent/search.
+
+    Event contract (review #2 fix): one event per phase lifecycle step,
+    plus exactly one terminal `result` event carrying the structured
+    SearchResponse payload.
+
+      event: phase.starting  data: { phase: "starting", run_id, ... }
+      event: phase.running   data: { phase: "running",  streaming_url, ... }
+      event: phase.error     data: { phase: "error",    error, ... }
+      event: result          data: { status: "success", items: [...], live_url, ... }
+
+    Consumers that only care about the final payload listen for `result`
+    and ignore the lifecycle events. EventSource's per-event listeners
+    (`addEventListener('result', ...)`) make this trivial.
+    """
     if os.getenv("DEMO_MARKET_INTEL") == "1":
         async def demo_events():
             demo_result = demo_market_intel_result(request.query, request.max_results)
@@ -417,11 +431,10 @@ async def search_items_stream(
                 signals=_brightdata_to_signals(demo_result),
                 reply="Demo market-intelligence fixture",
             )
-            yield _sse_event("done", payload.model_dump())
+            yield _sse_event("result", payload.model_dump())
         return StreamingResponse(demo_events(), media_type="text/event-stream")
 
-    # Tier 2 fast path: still emit a single final event so the UI knows we
-    # didn't enter Tier 3.
+    # Tier 2 fast path: single terminal `result` event (no phase events).
     purch_result = await search_purch(request.query, request.max_results)
     if purch_result.products:
         payload = SearchResponse(
@@ -440,7 +453,7 @@ async def search_items_stream(
             reply=purch_result.reply or None,
         )
         async def purch_events():
-            yield _sse_event("done", payload.model_dump())
+            yield _sse_event("result", payload.model_dump())
         return StreamingResponse(purch_events(), media_type="text/event-stream")
 
     # Tier 3 streaming path — TinyFish Agent with phase events.
@@ -448,7 +461,7 @@ async def search_items_stream(
     if not tf.available:
         async def err_events():
             yield _sse_event(
-                "error",
+                "phase.error",
                 {"error": "TINYFISH_API_KEY not set and no Tier 2 results."},
             )
         return StreamingResponse(err_events(), media_type="text/event-stream")
@@ -464,7 +477,10 @@ async def search_items_stream(
                 proxy_country=request.proxy_country,
                 max_wait_ms=request.max_wait_ms,
             ):
-                event_data = {
+                # `phase.{starting|running|error}` — phase lifecycle metadata
+                # (no items yet). Consumers that only want the final payload
+                # listen for `result` instead.
+                phase_data = {
                     "phase": update.phase,
                     "run_id": update.run_id,
                     "streaming_url": update.streaming_url,
@@ -475,10 +491,13 @@ async def search_items_stream(
                     "profile_id": update.profile_id,
                 }
                 if update.phase == "error":
-                    event_data["error"] = update.error
-                yield _sse_event(update.phase, event_data)
+                    phase_data["error"] = update.error
+                yield _sse_event(f"phase.{update.phase}", phase_data)
+
                 if update.phase == "done":
-                    # Emit a final structured payload so the consumer can render items.
+                    # `result` — single, final structured payload mirroring
+                    # the JSON SearchResponse shape. Consumers (incl. our
+                    # own dispatchExternalAction) read this event and stop.
                     products = _products_from_update(update, request.query)
                     payload = SearchResponse(
                         status="success",
@@ -487,7 +506,7 @@ async def search_items_stream(
                         ),
                         live_url=update.streaming_url,
                     )
-                    yield _sse_event("done", payload.model_dump())
+                    yield _sse_event("result", payload.model_dump())
                     return
         finally:
             await tf.close()

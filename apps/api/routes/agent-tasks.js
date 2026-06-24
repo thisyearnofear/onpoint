@@ -41,25 +41,10 @@ function getRedis() {
 const DEFAULT_AGENT_ID = 'onpoint-stylist';
 const DEFAULT_USER_ID = 'system-worker';
 
-// ── Anti-bot posture table (ADR 0008 D4) ──
-// Single source of truth for "which merchants need STEALTH + proxy". The
-// worker (apps/api/worker.js) also reads this for market-signal cycles.
-const PROTECTED_DOMAINS = new Set([
-  'farfetch.com',
-  'ssense.com',
-  'nordstrom.com',
-  'net-a-porter.com',
-]);
-
-function antiBotPostureForQuery(query) {
-  const q = (query || '').toLowerCase();
-  for (const domain of PROTECTED_DOMAINS) {
-    if (q.includes(domain)) {
-      return { browserProfile: 'STEALTH', proxyCountry: 'US' };
-    }
-  }
-  return { browserProfile: 'LITE', proxyCountry: null };
-}
+// ── Anti-bot posture (ADR 0008 D4) — single source of truth lives in
+// apps/api/lib/anti-bot-posture.js so the worker and the route handler
+// cannot drift.
+const { antiBotPostureForQuery } = require('../lib/anti-bot-posture');
 
 // Tier 3: Autonomous commerce — price tracking + drop detection
 const PRICE_TRACK_KEY = 'market:prices:v2';                   // Hash: itemKey → { price, lastSeen, ... }
@@ -620,7 +605,7 @@ router.post('/execute', async (req, res) => {
 
     if (externalSearches.length === 0) {
       if (sseMode) {
-        writeEvent('done', {
+        writeEvent('result', {
           success: true,
           processed: 0,
           pendingCount: pending.length,
@@ -657,7 +642,7 @@ router.post('/execute', async (req, res) => {
       const posture = antiBotPostureForQuery(query);
 
       suggestion.isSearching = true;
-      writeEvent('starting', {
+      writeEvent('phase.starting', {
         suggestionId: suggestion.id,
         query,
         browserProfile: posture.browserProfile,
@@ -708,7 +693,11 @@ router.post('/execute', async (req, res) => {
 
           results.push({ suggestionId: suggestion.id, success: true, itemCount: items.length, topItem: topItem.name });
 
-          writeEvent('done', {
+          writeEvent('phase.done', {
+            suggestionId: suggestion.id,
+            streamingUrl: suggestion.streamingUrl,
+          });
+          writeEvent('result', {
             suggestionId: suggestion.id,
             success: true,
             itemCount: items.length,
@@ -729,7 +718,7 @@ router.post('/execute', async (req, res) => {
 
           const errMsg = bridgeResult.error || 'No results';
           results.push({ suggestionId: suggestion.id, success: false, error: errMsg });
-          writeEvent('error', { suggestionId: suggestion.id, error: errMsg });
+          writeEvent('phase.error', { suggestionId: suggestion.id, error: errMsg });
 
           logger.warn(`Tasks: no results for suggestion ${suggestion.id}`, { component: 'tasks', query });
         }
@@ -737,7 +726,7 @@ router.post('/execute', async (req, res) => {
         suggestion.isSearching = false;
         const errMsg = err.message || 'Unknown error';
         results.push({ suggestionId: suggestion.id, success: false, error: errMsg });
-        writeEvent('error', { suggestionId: suggestion.id, error: errMsg });
+        writeEvent('phase.error', { suggestionId: suggestion.id, error: errMsg });
         logger.error(`Tasks: failed to process suggestion ${suggestion.id}`, { component: 'tasks' }, err);
       }
     }
@@ -753,14 +742,14 @@ router.post('/execute', async (req, res) => {
     };
 
     if (sseMode) {
-      writeEvent('done', summary);
+      writeEvent('result', summary);
       return res.end();
     }
     return res.json(summary);
   } catch (error) {
     logger.error('Tasks execute error', { component: 'tasks' }, error);
     if (sseMode) {
-      writeEvent('error', {
+      writeEvent('phase.error', {
         error: 'Failed to process pending tasks',
         elapsedMs: Date.now() - startTime,
       });
@@ -787,9 +776,23 @@ router.post('/market-signals', async (req, res) => {
 
     for (const query of queries) {
       try {
+        // ADR 0008 D4 + review #4 fix: apply anti-bot posture per query so
+        // protected retailers (Farfetch, SSENSE, …) are scanned in
+        // STEALTH + proxy mode during the proactive market-signal cycle.
+        const posture = antiBotPostureForQuery(query);
+
         const result = await agentCore.AgentControls.dispatchExternalAction(
           DEFAULT_USER_ID,
-          { type: 'search', payload: { query } },
+          {
+            type: 'search',
+            payload: {
+              query,
+              browserProfile: posture.browserProfile,
+              proxyCountry: posture.proxyCountry,
+              useProfile: true,
+              profileId: process.env.TINYFISH_DEFAULT_PROFILE_ID || undefined,
+            },
+          },
         );
 
         if (result.success && result.data?.items?.length > 0) {
@@ -803,6 +806,10 @@ router.post('/market-signals', async (req, res) => {
               url: item.url,
               image_url: item.image_url,
               discoveredAt: new Date().toISOString(),
+              // Surface the anti-bot posture used so the curator log
+              // (and downstream store) can attribute block events.
+              browserProfile: posture.browserProfile,
+              proxyCountry: posture.proxyCountry,
             });
           }
 
@@ -810,6 +817,8 @@ router.post('/market-signals', async (req, res) => {
             component: 'tasks',
             query,
             itemCount: result.data.items.length,
+            browserProfile: posture.browserProfile,
+            proxyCountry: posture.proxyCountry,
           });
         }
       } catch (err) {

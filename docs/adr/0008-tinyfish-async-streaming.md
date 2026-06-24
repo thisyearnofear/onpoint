@@ -52,17 +52,24 @@ Return as JSON: { ... }
 
 This matches the [anti-bot guide's](https://docs.tinyfish.ai/anti-bot-guide) Step 3 hardening. Single source of truth — no caller can opt out.
 
-### D4. Worker decides per-query when to escalate (anti-bot posture)
+### D4. Per-query escalation lives in the route handler, not the worker
 
-`apps/api/worker.js` (the market-signal poller) is the single decision point. For each query it inspects the merchant domain (whitelist in `WHITELIST_DOMAINS`) and:
+The single decision point for anti-bot posture is `apps/api/routes/agent-tasks.js`, exercised by both endpoints:
 
-| Merchant class | Default `browser_profile` | Default `proxy_country` |
+- `POST /api/agent/tasks/execute` (one-off suggestion processing)
+- `POST /api/agent/tasks/market-signals` (proactive worker cycle)
+
+Both routes call `antiBotPostureForQuery(query)` and forward `browserProfile` + `proxyCountry` to the bridge. The worker process (`apps/api/worker.js`) just invokes these endpoints; it doesn't apply posture itself. This keeps the rule in exactly one place (`apps/api/lib/anti-bot-posture.js`).
+
+The rule, per merchant class:
+
+| Merchant class | `browser_profile` | `proxy_country` |
 |---|---|---|
 | Whitelisted open retailers (Zara, H&M, ASOS) | `LITE` | `None` |
 | Protected retailers (Farfetch, SSENSE, Nordstrom, Net-a-Porter) | `STEALTH` | `US` |
 | Unknown | `LITE` | `None` |
 
-Worker can override per-cycle via config. The bridge stays dumb (it accepts what it's told). Per **CLEAN**, the bridge has no opinion on which merchants are protected.
+The bridge stays dumb (it accepts what it's told). Per **CLEAN**, the bridge has no opinion on which merchants are protected.
 
 ### D5. Default-ON for async streaming (operational risk accepted)
 
@@ -110,6 +117,18 @@ Per **PREVENT BLOAT** we do not adopt preemptively. The escalation path is docum
 > If measured CAPTCHA-block rate exceeds 5% of retailer-scoped runs over a 30-day window, open ADR 0009: introduce a `PlaywrightAgentProvider` implementing the same `TinyFishClient` interface (returns `TinyFishResult`), with CapSolver integrated. The bridge keeps a single contract; the implementation swaps. Per **interface segregation**, no caller changes.
 
 This keeps CapSolver as a measured, justified intervention rather than speculative infra.
+
+## Configuration
+
+Three env vars on the bridge host. The surface is also documented in `packages/agent-web-bridge/.env.example` (single source of truth for env contracts).
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `TINYFISH_API_KEY` | _(required)_ | TinyFish Agent API key. |
+| `TINYFISH_DEFAULT_PROFILE_ID` | unset | Default Browser Context Profile id. When set, the agent reuses saved logged-in state for retailer runs. Per-user profile registry is a separate ADR scope. |
+| `TINYFISH_ASYNC` | `1` | **Kill switch.** Set to `0` to revert `agent_browse` to the legacy blocking `/v1/automation/run` path. One-flag rollback if the async-polling primitive misbehaves. |
+
+Per-merchant anti-bot posture (browser profile + proxy) is selected automatically by `apps/api/lib/anti-bot-posture.js` — Farfetch, SSENSE, Nordstrom, Net-a-Porter run with `STEALTH` + `US` proxy; everything else runs `LITE` with no proxy. No env var needed for the rule itself.
 
 ## Consequences
 

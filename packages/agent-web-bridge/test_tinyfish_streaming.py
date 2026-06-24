@@ -330,3 +330,72 @@ async def test_search_and_fetch_unchanged(client):
     assert len(result.products) == 1
     assert result.products[0].name == "Black Blazer"
     assert result.products[0].price == 250.0
+
+
+# ── Phase 3 review: TINYFISH_ASYNC=0 kill switch ──────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_kill_switch_reverts_to_blocking_path(monkeypatch, client):
+    """When TINYFISH_ASYNC=0, agent_browse hits the legacy blocking endpoint."""
+    monkeypatch.setenv("TINYFISH_ASYNC", "0")
+
+    captured = {}
+
+    async def fake_post(url, json=None, **_):
+        captured["url"] = url
+        captured["body"] = json
+        return make_response(200, {
+            "result": [{"name": "Sneaker", "price": 120, "source": "ssense.com",
+                        "url": "https://ssense.com/s", "currency": "USD"}],
+            "live_url": "https://stream.tinyfish/live-legacy",
+        })
+
+    client._client.post = fake_post
+
+    result = await client.agent_browse(
+        "sneakers", 3,
+        browser_profile="STEALTH",
+        proxy_country="US",
+        use_profile=True,
+    )
+
+    # Hit the legacy blocking endpoint, not the async one.
+    assert captured["url"].endswith("/v1/automation/run")
+    assert captured["body"]["browser_profile"] == "STEALTH"
+    assert captured["body"]["proxy_config"] == {"enabled": True, "country_code": "US"}
+    assert captured["body"]["use_profile"] is True
+    assert result.live_url == "https://stream.tinyfish/live-legacy"
+    assert len(result.products) == 1
+    assert result.last_phase == "done"
+
+
+@pytest.mark.asyncio
+async def test_kill_switch_default_uses_async_path(monkeypatch, client):
+    """When TINYFISH_ASYNC is unset or '1', agent_browse uses the async path."""
+    monkeypatch.delenv("TINYFISH_ASYNC", raising=False)
+
+    start_run_called = False
+
+    async def fake_start_run(*args, **_kwargs):
+        nonlocal start_run_called
+        start_run_called = True
+        return "run_async_default"
+
+    async def fake_get_run(*_args, **_kwargs):
+        return {"run_id": "x", "status": "COMPLETED",
+                "streaming_url": None, "result": []}
+
+    # Make any direct POST call fail loudly so we know the async path was taken.
+    client._client.post = AsyncMock(
+        side_effect=AssertionError("should not hit the blocking endpoint")
+    )
+    with patch.object(client, "_start_run", new=fake_start_run), \
+         patch.object(client, "_get_run", new=fake_get_run):
+        await client.agent_browse("x", 3)
+
+    assert start_run_called is True
+
+
+# ── Phase 3 review: SSE consumer in dispatchExternalAction ────────────────
+# (Tested in the TypeScript agent-core suite; see __tests__/agent-controls.test.ts)
