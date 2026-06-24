@@ -52,10 +52,6 @@ export interface FulfilmentPayload {
 
 // ─── WhatsApp ─────────────────────────────────────────────────
 
-function getBaseUrl(): string {
-  return getBaseUrl();
-}
-
 function getWhatsAppConfig() {
   const token = process.env.WA_ACCESS_TOKEN;
   const phoneNumberId = process.env.WA_PHONE_NUMBER_ID;

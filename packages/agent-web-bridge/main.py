@@ -2,17 +2,19 @@ from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
+from typing import List, Literal, Optional, Dict, Any
+from fastapi.responses import StreamingResponse
 import uvicorn
 from browser_use_sdk.v3 import AsyncBrowserUse
 import os
 import time
+import json
 import logging
 from collections import defaultdict
 from dotenv import load_dotenv
 import asyncio
 from purch_client import PurchClient, PurchProduct, PurchSearchResult
-from tinyfish_client import TinyFishClient, TinyFishResult
+from tinyfish_client import TinyFishClient, TinyFishResult, TinyFishAgentUpdate
 from brightdata_client import BrightDataClient, BrightDataResult
 from demo_fixtures import demo_market_intel_result
 
@@ -149,6 +151,13 @@ class SearchRequest(BaseModel):
     query: str
     style_prefs: Optional[StylePrefs] = None
     max_results: int = 3
+    # Anti-bot posture (ADR 0008 D1). The bridge is a pass-through — the
+    # worker (apps/api/worker.js) is the single decision point per merchant.
+    use_profile: bool = True
+    profile_id: Optional[str] = None
+    browser_profile: Literal["LITE", "STEALTH"] = "LITE"
+    proxy_country: Optional[Literal["US", "GB", "CA", "DE", "FR", "JP", "AU"]] = None
+    max_wait_ms: int = 180_000
 
 
 class SearchResponse(BaseModel):
@@ -363,19 +372,138 @@ async def search_items(
     # Tier 3 fallback: TinyFish Agent (redundancy for Browser Use)
     tf = TinyFishClient()
     if tf.available:
-        tf_result = await tf.agent_browse(query, max_results)
+        tf_result = await tf.agent_browse(
+            query,
+            max_results,
+            use_profile=request.use_profile,
+            profile_id=request.profile_id,
+            browser_profile=request.browser_profile,
+            proxy_country=request.proxy_country,
+            max_wait_ms=request.max_wait_ms,
+        )
         await tf.close()
         if tf_result.products:
             return SearchResponse(
                 status="success",
                 items=_tinyfish_to_items(tf_result),
                 live_url=tf_result.live_url,
+                reply=("blocked_by_anti_bot" if tf_result.blocked else None),
             )
 
     raise HTTPException(
         status_code=503,
         detail="All search providers exhausted. Configure BROWSER_USE_API_KEY or TINYFISH_API_KEY.",
     )
+
+
+# --- Streaming variant (ADR 0008 D7) ----------------------------------------
+# Same handler as /v1/agent/search but emits text/event-stream with one event
+# per TinyFish agent phase. Tiers 2/2.5 are JSON-final; only the Tier 3
+# TinyFish Agent path emits SSE phases. Other tiers are wrapped in a single
+# final event for simplicity.
+
+@app.post("/v1/agent/search/stream")
+async def search_items_stream(
+    request: SearchRequest,
+    _auth: bool = Depends(verify_api_key),
+):
+    """SSE variant of /v1/agent/search. One event per phase; final event is the JSON body."""
+    if os.getenv("DEMO_MARKET_INTEL") == "1":
+        async def demo_events():
+            demo_result = demo_market_intel_result(request.query, request.max_results)
+            payload = SearchResponse(
+                status="success",
+                items=_brightdata_to_items(demo_result),
+                signals=_brightdata_to_signals(demo_result),
+                reply="Demo market-intelligence fixture",
+            )
+            yield _sse_event("done", payload.model_dump())
+        return StreamingResponse(demo_events(), media_type="text/event-stream")
+
+    # Tier 2 fast path: still emit a single final event so the UI knows we
+    # didn't enter Tier 3.
+    purch_result = await search_purch(request.query, request.max_results)
+    if purch_result.products:
+        payload = SearchResponse(
+            status="success",
+            items=[
+                ItemData(
+                    source=p.source,
+                    name=p.title,
+                    price=p.price,
+                    currency="USD",
+                    url=p.source_url or f"https://purch.xyz/product/{p.asin}",
+                    image_url=p.image_url,
+                )
+                for p in purch_result.products
+            ],
+            reply=purch_result.reply or None,
+        )
+        async def purch_events():
+            yield _sse_event("done", payload.model_dump())
+        return StreamingResponse(purch_events(), media_type="text/event-stream")
+
+    # Tier 3 streaming path — TinyFish Agent with phase events.
+    tf = TinyFishClient()
+    if not tf.available:
+        async def err_events():
+            yield _sse_event(
+                "error",
+                {"error": "TINYFISH_API_KEY not set and no Tier 2 results."},
+            )
+        return StreamingResponse(err_events(), media_type="text/event-stream")
+
+    async def phase_events():
+        try:
+            async for update in tf.stream_agent_browse(
+                request.query,
+                request.max_results,
+                use_profile=request.use_profile,
+                profile_id=request.profile_id,
+                browser_profile=request.browser_profile,
+                proxy_country=request.proxy_country,
+                max_wait_ms=request.max_wait_ms,
+            ):
+                event_data = {
+                    "phase": update.phase,
+                    "run_id": update.run_id,
+                    "streaming_url": update.streaming_url,
+                    "status": update.status,
+                    "browser_profile": update.browser_profile,
+                    "proxy_country": update.proxy_country,
+                    "used_profile": update.used_profile,
+                    "profile_id": update.profile_id,
+                }
+                if update.phase == "error":
+                    event_data["error"] = update.error
+                yield _sse_event(update.phase, event_data)
+                if update.phase == "done":
+                    # Emit a final structured payload so the consumer can render items.
+                    products = _products_from_update(update, request.query)
+                    payload = SearchResponse(
+                        status="success",
+                        items=_tinyfish_to_items(
+                            TinyFishResult(products=products, streaming_url=update.streaming_url)
+                        ),
+                        live_url=update.streaming_url,
+                    )
+                    yield _sse_event("done", payload.model_dump())
+                    return
+        finally:
+            await tf.close()
+
+    return StreamingResponse(phase_events(), media_type="text/event-stream")
+
+
+def _sse_event(event: str, data: dict) -> str:
+    """Format a single SSE frame."""
+    return f"event: {event}\ndata: {json.dumps(data)}\n\n"
+
+
+def _products_from_update(update: TinyFishAgentUpdate, query: str):
+    """Pull structured products out of a `done` phase update for the SSE final payload."""
+    from tinyfish_client import _products_from_agent_result  # internal but stable
+    return _products_from_agent_result(update.result, query)
 
 
 @app.get("/health")

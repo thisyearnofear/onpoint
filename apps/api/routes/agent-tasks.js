@@ -41,6 +41,26 @@ function getRedis() {
 const DEFAULT_AGENT_ID = 'onpoint-stylist';
 const DEFAULT_USER_ID = 'system-worker';
 
+// ── Anti-bot posture table (ADR 0008 D4) ──
+// Single source of truth for "which merchants need STEALTH + proxy". The
+// worker (apps/api/worker.js) also reads this for market-signal cycles.
+const PROTECTED_DOMAINS = new Set([
+  'farfetch.com',
+  'ssense.com',
+  'nordstrom.com',
+  'net-a-porter.com',
+]);
+
+function antiBotPostureForQuery(query) {
+  const q = (query || '').toLowerCase();
+  for (const domain of PROTECTED_DOMAINS) {
+    if (q.includes(domain)) {
+      return { browserProfile: 'STEALTH', proxyCountry: 'US' };
+    }
+  }
+  return { browserProfile: 'LITE', proxyCountry: null };
+}
+
 // Tier 3: Autonomous commerce — price tracking + drop detection
 const PRICE_TRACK_KEY = 'market:prices:v2';                   // Hash: itemKey → { price, lastSeen, ... }
 const DROPS_GLOBAL_KEY = 'market:drops:v2';                   // List: capped 500, TTL 7d
@@ -566,10 +586,29 @@ async function matchForUser(userId) {
 }
 
 // ── POST /api/agent/tasks/execute — Process pending external_search suggestions ──
+//
+// ADR 0008 D6: when the client sends Accept: text/event-stream, emit one SSE
+// event per phase as each suggestion progresses. JSON path retained for
+// back-compat — both share the same handler.
 
 router.post('/execute', async (req, res) => {
   const startTime = Date.now();
   const agentId = req.body.agentId || DEFAULT_AGENT_ID;
+  const accept = (req.headers.accept || '').toLowerCase();
+  const sseMode = accept.includes('text/event-stream');
+
+  if (sseMode) {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders?.();
+  }
+
+  const writeEvent = (event, data) => {
+    if (!sseMode) return;
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
 
   try {
     await agentCore.AgentControls.initStore(agentId, DEFAULT_USER_ID);
@@ -580,6 +619,16 @@ router.post('/execute', async (req, res) => {
     );
 
     if (externalSearches.length === 0) {
+      if (sseMode) {
+        writeEvent('done', {
+          success: true,
+          processed: 0,
+          pendingCount: pending.length,
+          results: [],
+          elapsedMs: Date.now() - startTime,
+        });
+        return res.end();
+      }
       return res.json({
         success: true,
         processed: 0,
@@ -592,25 +641,49 @@ router.post('/execute', async (req, res) => {
     logger.info(`Tasks: processing ${externalSearches.length} external_search suggestion(s)`, {
       component: 'tasks',
       agentId,
+      sseMode,
     });
 
     const results = [];
 
     for (const suggestion of externalSearches) {
+      const query = suggestion.description || '';
+      if (!query) {
+        results.push({ suggestionId: suggestion.id, success: false, error: 'No search query' });
+        continue;
+      }
+
+      // Per-merchant anti-bot posture (ADR 0008 D4).
+      const posture = antiBotPostureForQuery(query);
+
+      suggestion.isSearching = true;
+      writeEvent('starting', {
+        suggestionId: suggestion.id,
+        query,
+        browserProfile: posture.browserProfile,
+        proxyCountry: posture.proxyCountry,
+      });
+
       try {
-        const query = suggestion.description || '';
-        if (!query) {
-          results.push({ suggestionId: suggestion.id, success: false, error: 'No search query' });
-          continue;
-        }
-
-        suggestion.isSearching = true;
-
         const bridgeResult = await agentCore.AgentControls.dispatchExternalAction(
           DEFAULT_USER_ID,
-          { type: 'search', payload: { query } },
+          {
+            type: 'search',
+            payload: {
+              query,
+              // Anti-bot posture (passed through to bridge → TinyFish).
+              browserProfile: posture.browserProfile,
+              proxyCountry: posture.proxyCountry,
+              // Browser Context Profiles (ADR 0008 D2 / Phase 2).
+              useProfile: true,
+              profileId: process.env.TINYFISH_DEFAULT_PROFILE_ID || undefined,
+              // SSE flag: the bridge will use the streaming variant.
+              stream: sseMode,
+            },
+          },
         );
 
+        // Bridge returned its terminal result.
         if (bridgeResult.success && bridgeResult.data?.items?.length > 0) {
           const items = bridgeResult.data.items;
           const topItem = items[0];
@@ -620,6 +693,7 @@ router.post('/execute', async (req, res) => {
           suggestion.externalUrl = topItem.url;
           suggestion.isSearching = false;
           suggestion.liveUrl = bridgeResult.data.live_url;
+          suggestion.streamingUrl = bridgeResult.data.streaming_url || bridgeResult.data.live_url;
           suggestion.amount = `$${topItem.price} cUSD`;
           suggestion.products = items.map((item) => ({
             name: item.name,
@@ -634,26 +708,41 @@ router.post('/execute', async (req, res) => {
 
           results.push({ suggestionId: suggestion.id, success: true, itemCount: items.length, topItem: topItem.name });
 
+          writeEvent('done', {
+            suggestionId: suggestion.id,
+            success: true,
+            itemCount: items.length,
+            topItem: topItem.name,
+            streamingUrl: suggestion.streamingUrl,
+            items,
+          });
+
           logger.info(`Tasks: processed suggestion ${suggestion.id} — ${items.length} item(s) found`, {
             component: 'tasks',
             query,
             itemCount: items.length,
+            blocked: bridgeResult.data.reply === 'blocked_by_anti_bot',
           });
         } else {
           suggestion.isSearching = false;
           agentCore.AgentControls.createSuggestion({ ...suggestion, userId: DEFAULT_USER_ID });
 
-          results.push({ suggestionId: suggestion.id, success: false, error: bridgeResult.error || 'No results' });
+          const errMsg = bridgeResult.error || 'No results';
+          results.push({ suggestionId: suggestion.id, success: false, error: errMsg });
+          writeEvent('error', { suggestionId: suggestion.id, error: errMsg });
 
           logger.warn(`Tasks: no results for suggestion ${suggestion.id}`, { component: 'tasks', query });
         }
       } catch (err) {
+        suggestion.isSearching = false;
+        const errMsg = err.message || 'Unknown error';
+        results.push({ suggestionId: suggestion.id, success: false, error: errMsg });
+        writeEvent('error', { suggestionId: suggestion.id, error: errMsg });
         logger.error(`Tasks: failed to process suggestion ${suggestion.id}`, { component: 'tasks' }, err);
-        results.push({ suggestionId: suggestion.id, success: false, error: err.message || 'Unknown error' });
       }
     }
 
-    res.json({
+    const summary = {
       success: true,
       processed: results.length,
       succeeded: results.filter((r) => r.success).length,
@@ -661,10 +750,27 @@ router.post('/execute', async (req, res) => {
       pendingCount: pending.length,
       results,
       elapsedMs: Date.now() - startTime,
-    });
+    };
+
+    if (sseMode) {
+      writeEvent('done', summary);
+      return res.end();
+    }
+    return res.json(summary);
   } catch (error) {
     logger.error('Tasks execute error', { component: 'tasks' }, error);
-    res.status(500).json({ success: false, error: 'Failed to process pending tasks', elapsedMs: Date.now() - startTime });
+    if (sseMode) {
+      writeEvent('error', {
+        error: 'Failed to process pending tasks',
+        elapsedMs: Date.now() - startTime,
+      });
+      return res.end();
+    }
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to process pending tasks',
+      elapsedMs: Date.now() - startTime,
+    });
   }
 });
 

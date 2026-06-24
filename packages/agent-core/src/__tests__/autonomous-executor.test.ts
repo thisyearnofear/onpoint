@@ -209,8 +209,8 @@ describe("executeSuggestion — mint", () => {
 
     // Verify the signMint payload includes the expected recipients
     // (85% user, 15% platform).
-    const call = signerMock.__mockSignMint.mock.calls[0][0];
-    expect(call.recipients).toEqual([
+    const call = signerMock.__mockSignMint.mock.calls[0]?.[0];
+    expect(call?.recipients).toEqual([
       { address: BASE_PARAMS.userAddress, percentAllocation: 85 },
       { address: expect.stringMatching(/^0x/), percentAllocation: 15 },
     ]);

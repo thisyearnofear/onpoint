@@ -1107,10 +1107,19 @@ export async function dispatchExternalAction(
     };
   }
 
+  // ADR 0008 D6/D7: when payload.stream is true, route to the SSE variant of
+  // the search endpoint. We forward Accept header so the bridge can return
+  // event-stream frames. Caller-side reads remain identical: a terminal
+  // `data: {...}` frame carries the final JSON.
+  const wantsStream = Boolean((action.payload as any)?.stream);
+  const endpoint = wantsStream ? `${bridgeUrl}/v1/agent/search/stream` : `${bridgeUrl}/v1/agent/${action.type}`;
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (wantsStream) headers["Accept"] = "text/event-stream";
+
   try {
-    const response = await fetch(`${bridgeUrl}/v1/agent/${action.type}`, {
+    const response = await fetch(endpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({ userId, ...action.payload }),
     });
 

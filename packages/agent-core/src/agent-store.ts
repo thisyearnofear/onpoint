@@ -89,6 +89,24 @@ export async function loadSpendingLimits(
   return data.map(deserializeSpendingLimit);
 }
 
+/**
+ * Aggregate the per-actionType daily limits into a single user-wide daily cap.
+ *
+ * The canonical "what can this user spend today across all actions" value.
+ * Used by rebalance detection (auto-rebalance.ts) and any other caller that
+ * needs a single bigint rather than the per-actionType array.
+ *
+ * Per DRY: one aggregation rule, one place. Returns null if no limits stored.
+ */
+export async function loadDailySpendingLimit(
+  agentId: string,
+  userId: string,
+): Promise<bigint | null> {
+  const limits = await loadSpendingLimits(agentId, userId);
+  if (!limits || limits.length === 0) return null;
+  return limits.reduce((sum, l) => sum + l.dailyLimit, 0n);
+}
+
 export async function persistSpendingLimits(
   agentId: string,
   userId: string,

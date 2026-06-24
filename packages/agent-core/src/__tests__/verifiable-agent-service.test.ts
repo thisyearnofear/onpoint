@@ -23,7 +23,7 @@ vi.mock("@repo/ipfs-client", () => ({
 }));
 
 // ── Mock agent-wallet so we don't need a real signer ──
-const mockSign = vi.fn(() => Promise.resolve("0xmocksignature"));
+const mockSign = vi.fn((_payload: string) => Promise.resolve("0xmocksignature"));
 const mockGetAddresses = vi.fn(() =>
   Promise.resolve({ celo: "0xagent" }),
 );

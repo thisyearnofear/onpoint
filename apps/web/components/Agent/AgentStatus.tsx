@@ -98,6 +98,10 @@ interface PriceDrop {
   query: string;
   discoveredAt: string;
   currency?: string;
+  // ADR 0008: live browser preview surfaced from the agent's streaming_url.
+  streamingUrl?: string;
+  // Whether the agent encountered an anti-bot block for this drop.
+  blocked?: boolean;
 }
 
 const EXPLORER_URLS = [
@@ -787,6 +791,25 @@ export function AgentStatus({
                         </a>
                       )}
                     </div>
+
+                    {/* ADR 0008 Phase 3: live browser preview from the agent run.
+                        Surfaced inline; lazily mounted via IntersectionObserver. */}
+                    {drop.streamingUrl && (
+                      <LiveAgentPreview
+                        streamingUrl={drop.streamingUrl}
+                        source={drop.source}
+                      />
+                    )}
+
+                    {/* Anti-bot block hint — surfaced if the agent returned a blocked sentinel. */}
+                    {drop.blocked && (
+                      <div className="mt-1.5 flex items-center gap-1.5 text-amber-300/90">
+                        <Shield className="w-3 h-3" />
+                        <span className="text-[10px]">
+                          Anti-bot blocked this retailer — next run will retry with stealth + proxy.
+                        </span>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1041,5 +1064,69 @@ function PolicyPresetButton({
     >
       {children}
     </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LiveAgentPreview — ADR 0008 Phase 3
+//
+// Inline (not a new component file, per ENHANCEMENT FIRST) helper that lazily
+// mounts an iframe with the agent's streaming_url. Uses IntersectionObserver
+// to avoid rendering off-screen iframes (PERFORMANT). Sandboxed; the source is
+// tinyfish.ai's live-preview stream which we trust per ADR 0008.
+// ─────────────────────────────────────────────────────────────────────────────
+function LiveAgentPreview({
+  streamingUrl,
+  source,
+}: {
+  streamingUrl: string;
+  source: string;
+}) {
+  const ref = React.useRef<HTMLDivElement | null>(null);
+  const [inView, setInView] = React.useState(false);
+
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setInView(true); // graceful fallback: mount immediately
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            setInView(true);
+            io.disconnect();
+          }
+        }
+      },
+      { rootMargin: "100px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className="mt-2 rounded-md border border-indigo-500/20 bg-indigo-500/5 overflow-hidden"
+    >
+      <div className="flex items-center justify-between px-2 py-1 text-[9px] text-indigo-300/80">
+        <span className="flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          Live · {source}
+        </span>
+        <span className="text-muted-foreground">tinyfish preview</span>
+      </div>
+      {inView && (
+        <iframe
+          src={streamingUrl}
+          title={`Live agent preview for ${source}`}
+          loading="lazy"
+          sandbox="allow-scripts allow-same-origin"
+          className="w-full h-[320px] border-0 bg-black"
+        />
+      )}
+    </div>
   );
 }

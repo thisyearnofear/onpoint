@@ -32,23 +32,25 @@ describe("@repo/0g-compute — catalog snapshot", () => {
     for (const id of ZERO_G_VISION_MODELS) {
       const entry = ZERO_G_MODEL_CATALOG[id];
       expect(entry, `missing catalog entry for ${id}`).toBeDefined();
-      expect(entry.vision).toBe(true);
-      expect(entry.contextLength).toBeGreaterThan(0);
-      expect(entry.maxOutputTokens).toBeGreaterThan(0);
-      expect(["TeeML", "TeeTLS"]).toContain(entry.verification);
+      expect(entry!.vision).toBe(true);
+      expect(entry!.contextLength).toBeGreaterThan(0);
+      expect(entry!.maxOutputTokens).toBeGreaterThan(0);
+      expect(["TeeML", "TeeTLS"]).toContain(entry!.verification);
     }
   });
 
   it("flags minimax-m3 as free during the 0G Bridge promo", () => {
     const m3 = ZERO_G_MODEL_CATALOG["minimax-m3"];
-    expect(m3.inputUsdPer1M).toBe(0);
-    expect(m3.outputUsdPer1M).toBe(0);
+    expect(m3).toBeDefined();
+    expect(m3!.inputUsdPer1M).toBe(0);
+    expect(m3!.outputUsdPer1M).toBe(0);
   });
 
   it("flags qwen3-vl-30b as the cheapest vision model", () => {
     const qwen = ZERO_G_MODEL_CATALOG["qwen3-vl-30b"];
-    expect(qwen.inputUsdPer1M).toBeLessThan(
-      ZERO_G_MODEL_CATALOG["0gm-1.0-35b-a3b"].inputUsdPer1M,
+    expect(qwen).toBeDefined();
+    expect(qwen!.inputUsdPer1M).toBeLessThan(
+      ZERO_G_MODEL_CATALOG["0gm-1.0-35b-a3b"]!.inputUsdPer1M,
     );
   });
 
