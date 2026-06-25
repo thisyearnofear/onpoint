@@ -50,6 +50,7 @@ skills-lock.json
 .copilot/
 .aider/
 .claude/
+.openclaude/
 
 # pnpm
 # pnpm-lock.yaml removed to allow deterministic cloud builds
