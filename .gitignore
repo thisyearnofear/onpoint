@@ -56,9 +56,8 @@ skills-lock.json
 # pnpm-lock.yaml removed to allow deterministic cloud builds
 .pnpm/
 .blackboxcli/
-# Ignore scripts/ by default but re-include the operational ones below.
+# Ignore scripts/ by default but re-include specific operational ones below.
 scripts/
-!scripts/
 !scripts/deploy-api.sh
 !scripts/rollback-api.sh
 !scripts/setup-secrets.sh
@@ -81,3 +80,6 @@ deploy/*.conf
 deploy/*SUMMARY.md
 HETZNER_CONFIG.md
 dump.rdb
+
+# test negation
+!apps/web/scripts/register-erc8004-agent.mjs
