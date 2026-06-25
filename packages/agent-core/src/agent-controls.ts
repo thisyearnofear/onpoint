@@ -1116,6 +1116,16 @@ export async function dispatchExternalAction(
   const endpoint = wantsStream ? `${bridgeUrl}/v1/agent/search/stream` : `${bridgeUrl}/v1/agent/${action.type}`;
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (wantsStream) headers["Accept"] = "text/event-stream";
+  // Bridge requires Authorization in production (verify_api_key gates
+  // every endpoint on it). lib/product-search.js already does this; the
+  // agent-controls path (used by the worker for external_search and
+  // market-signals) was missing it, causing silent 401s in production.
+  // BRIDGE_API_KEY is the canonical var; fall back to SERVICE_API_KEY
+  // to match the product-search pattern and minimise config drift.
+  const bridgeAuthKey = process.env.BRIDGE_API_KEY || process.env.SERVICE_API_KEY;
+  if (bridgeAuthKey) {
+    headers["Authorization"] = `Bearer ${bridgeAuthKey}`;
+  }
 
   try {
     const response = await fetch(endpoint, {
