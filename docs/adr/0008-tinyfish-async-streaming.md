@@ -130,6 +130,17 @@ Three env vars on the bridge host. The surface is also documented in `packages/a
 
 Per-merchant anti-bot posture (browser profile + proxy) is selected automatically by `apps/api/lib/anti-bot-posture.js` — Farfetch, SSENSE, Nordstrom, Net-a-Porter run with `STEALTH` + `US` proxy; everything else runs `LITE` with no proxy. No env var needed for the rule itself.
 
+## Deployment topology
+
+The bridge is a Python process running on the same VPS as the Node.js API (`snel-bot`). PM2 manages both:
+
+- `deploy/ecosystem.config.js` defines 5 apps: `onpoint-api`, `onpoint-worker`, `onpoint-agent-server`, `onpoint-signer`, `onpoint-bridge` (added in the review follow-up).
+- `scripts/deploy-api.sh` rsyncs only the Node API build. Bridge code is read live from the working tree (`/opt/onpoint/packages/agent-web-bridge/`); to roll bridge code changes, `git pull` on the server before the deploy.
+- `deploy-api.sh` Step 8a runs a **bridge health check** (`http://localhost:48752/health`) before flipping the API symlink — a down bridge would make every `external_search` 503, so we abort early.
+- `deploy-api.sh` Step 9.7 adds `onpoint-bridge` to the `pm2 startOrGracefulReload` sequence so env changes on the server are picked up on every API deploy.
+
+Bridge secrets live in `/opt/onpoint/packages/agent-web-bridge/.env`, loaded by `main.py` via `python-dotenv`. PM2's `env` block carries only non-secret config (`ENVIRONMENT`, `HOST`, `PORT`, `ALLOWED_ORIGINS`).
+
 ## Consequences
 
 ### Positive

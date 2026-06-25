@@ -34,6 +34,15 @@ SIZE_FAIL_MB=450
 HEALTH_URL="http://localhost:48751/health"
 HEALTH_RETRIES=6
 HEALTH_DELAY=3
+# Bridge health check (Python web-bridge — see ADR 0008).
+# The API proxies external_search → bridge, so the bridge must be up
+# for any Tier 3 search to work. deploy-api.sh does not deploy bridge
+# code (it reads live from the working tree), but it does verify the
+# bridge is healthy before flipping the symlink so we don't ship a
+# release that immediately starts failing every external_search.
+BRIDGE_HEALTH_URL="http://localhost:48752/health"
+BRIDGE_HEALTH_RETRIES=3
+BRIDGE_HEALTH_DELAY=2
 NPM_CACHE_DIR="/tmp/onpoint-npm-cache"
 ISOLATED_DIR="/tmp/onpoint-isolated-build"
 
@@ -395,18 +404,39 @@ if [[ "$DRY_RUN" == false ]]; then
 fi
 
 # ── Step 8: Health check with automatic rollback ────────────────────
-info "🏥 Running health check..."
+info "🏥 Running health checks..."
 
+# ── 8a. Bridge health check (ADR 0008 deploy gap) ──────────────────
+# A down bridge makes every external_search fail. Catch it before we
+# flip the API symlink so a green API deploy doesn't leave Tier 3 broken.
+if [[ "$DRY_RUN" == false ]]; then
+  BRIDGE_OK=false
+  for i in $(seq 1 "$BRIDGE_HEALTH_RETRIES"); do
+    sleep "$BRIDGE_HEALTH_DELAY"
+    if ssh "$SSH_HOST" "curl -sf ${BRIDGE_HEALTH_URL}" &>/dev/null; then
+      BRIDGE_OK=true
+      echo -e "   ${GREEN}✅${NC} Bridge health check passed (attempt ${i}/${BRIDGE_HEALTH_RETRIES})"
+      break
+    fi
+    echo -e "   ${YELLOW}⏳${NC} Waiting for bridge... (${i}/${BRIDGE_HEALTH_RETRIES})"
+  done
+
+  if [[ "$BRIDGE_OK" != true ]]; then
+    fail "❌ Bridge (${BRIDGE_HEALTH_URL}) is unreachable after ${BRIDGE_HEALTH_RETRIES} attempts. Aborting before symlink flip. Diagnose with: ssh ${SSH_HOST} \"pm2 logs onpoint-bridge\". Start it with: ssh ${SSH_HOST} \"pm2 start deploy/ecosystem.config.js --only onpoint-bridge\"."
+  fi
+fi
+
+# ── 8b. API health check (existing behaviour, unchanged) ───────────
 if [[ "$DRY_RUN" == false ]]; then
   HEALTH_OK=false
   for i in $(seq 1 "$HEALTH_RETRIES"); do
     sleep "$HEALTH_DELAY"
     if ssh "$SSH_HOST" "curl -sf ${HEALTH_URL}" &>/dev/null; then
       HEALTH_OK=true
-      echo -e "   ${GREEN}✅${NC} Health check passed (attempt ${i}/${HEALTH_RETRIES})"
+      echo -e "   ${GREEN}✅${NC} API health check passed (attempt ${i}/${HEALTH_RETRIES})"
       break
     fi
-    echo -e "   ${YELLOW}⏳${NC} Waiting for service... (${i}/${HEALTH_RETRIES})"
+    echo -e "   ${YELLOW}⏳${NC} Waiting for API... (${i}/${HEALTH_RETRIES})"
   done
 
   if [[ "$HEALTH_OK" != true ]]; then
@@ -482,6 +512,23 @@ if [[ "$DRY_RUN" == false ]]; then
   }
 fi
 
+# ── Step 9.7: Start/reload onpoint-bridge ────────────────────────────
+# Python web-bridge (ADR 0008). Bridge code is NOT rsynced by this
+# deploy — it reads live from the working tree — so a reload here is
+# only useful for picking up env changes. The pre-flight bridge health
+# check (Step 8a) ensures the process is up before we get here, so a
+# failed reload surfaces a clear warning rather than a silent outage.
+# To roll bridge code changes: ssh snel-bot "cd /opt/onpoint && git pull"
+# first, then run this script.
+info "🔄 Starting/reloading PM2 process: onpoint-bridge"
+cmd "ssh ${SSH_HOST} \"cd ${REMOTE_BASE} && pm2 startOrGracefulReload deploy/ecosystem.config.js --only onpoint-bridge\""
+
+if [[ "$DRY_RUN" == false ]]; then
+  ssh "$SSH_HOST" "cd ${REMOTE_BASE} && pm2 startOrGracefulReload deploy/ecosystem.config.js --only onpoint-bridge" || {
+    warn "⚠️  Bridge start/reload failed — API deploy succeeded; external_search will return 503 until the bridge is back. Run: ssh ${SSH_HOST} \"pm2 logs onpoint-bridge\""
+  }
+fi
+
 # ── Step 10: Cleanup old backup (if this was first-deploy transition) ─
 if [[ "$DRY_RUN" == false && "${HAS_BAK:-false}" == true ]]; then
   info "🧹 Removing backup of original apps/api directory"
@@ -547,6 +594,8 @@ echo ""
 info "✅ Deploy complete! Release: ${TS}"
 echo "   View logs: ssh ${SSH_HOST} \"pm2 logs onpoint-api --lines 20\""
 echo "   Worker:    ssh ${SSH_HOST} \"pm2 logs onpoint-worker --lines 20\""
+echo "   Bridge:    ssh ${SSH_HOST} \"pm2 logs onpoint-bridge --lines 20\""
 echo "   Dashboard: http://${SSH_HOST}:48751/status-ui"
 echo "   Health:    ssh ${SSH_HOST} \"curl ${HEALTH_URL}\""
+echo "   Bridge:    ssh ${SSH_HOST} \"curl ${BRIDGE_HEALTH_URL}\""
 echo "   Config:    ssh ${SSH_HOST} \"pm2 show onpoint-worker --no-color | head -10\""

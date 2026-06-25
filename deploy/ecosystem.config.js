@@ -116,5 +116,43 @@ module.exports = {
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       merge_logs: true,
     },
+
+    // ── onpoint-bridge ───────────────────────────────────────────────
+    // Python web-bridge for TinyFish / BrightData / Purch / Browser Use.
+    // ADR 0008 + ADR 0004. The bridge is NOT deployed by deploy-api.sh's
+    // rsync — the code is read live from the working tree (uvicorn imports
+    // main.py + tinyfish_client.py from disk). To roll bridge code
+    // changes, run `git pull` on the server before this PM2 reload.
+    //
+    // Secrets (TINYFISH_API_KEY, BRIDGE_API_KEY, ...) live in
+    // /opt/onpoint/packages/agent-web-bridge/.env, loaded by main.py via
+    // python-dotenv. The env block below only carries non-secret config.
+    //
+    // The bridge listens on 127.0.0.1:48752 (loopback only — only the
+    // onpoint-api process should call it). The API's BRIDGE_URL must
+    // match this port.
+    {
+      name: 'onpoint-bridge',
+      cwd: '/opt/onpoint/packages/agent-web-bridge',
+      script: 'venv/bin/uvicorn',         // venv-installed entry point
+      args: 'main:app --host 127.0.0.1 --port 48752',
+      interpreter: 'none',                // execute the venv binary directly
+      instances: 1,
+      exec_mode: 'fork',
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '300M',         // Python uses more than Node
+      env: {
+        // Non-secret config only. Secrets are loaded from .env by main.py.
+        ENVIRONMENT: 'production',
+        HOST: '127.0.0.1',
+        PORT: '48752',
+        ALLOWED_ORIGINS: 'http://localhost:48751',
+      },
+      error_file: '/var/log/pm2/onpoint-bridge-error.log',
+      out_file: '/var/log/pm2/onpoint-bridge-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      merge_logs: true,
+    },
   ]
 };
