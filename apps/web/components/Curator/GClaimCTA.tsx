@@ -47,6 +47,7 @@ import {
   generateFVLink,
   claimUBI,
 } from "../../lib/services/g-claim-service";
+import { recordMetric } from "../../lib/utils/metrics";
 import type { Address } from "viem";
 
 interface GClaimCTAProps {
@@ -251,14 +252,17 @@ export function GClaimCTA({ onClaimed, compact, className }: GClaimCTAProps) {
         setState((prev) => ({ ...prev, txHash }));
         setPhase("success");
         onClaimed?.(txHash);
+        recordMetric("claim", "succeeded");
         // Refresh status to show cooldown
         setTimeout(() => refreshStatus(), 2000);
       } else {
         setError("Claim transaction was not submitted");
         setPhase("error");
+        recordMetric("claim", "failed");
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Claim failed";
+      recordMetric("claim", "failed");
       // If the SDK redirected to FV, we'll be in the verifying state
       if (msg.includes("whitelist") || msg.includes("verification")) {
         startWhitelistPoll();

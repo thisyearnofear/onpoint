@@ -53,11 +53,14 @@ The 0G Bridge Buildathon (current primary focus, ends Aug 21) does not conflict 
 | `apps/web/app/curator/onboard/page.tsx` | **Shipped** | Collapsible G$ UBI claim section |
 | `apps/web/app/s/[slug]/page.tsx` | **Shipped** | GStreamPanel in curator storefront sidebar (shows when curator has `commerce.walletAddress`) |
 | `Curator.commerce.walletAddress` | **Shipped** | Added to shared-types for G$ streaming destination |
-| `getTokenAddress("GOOD_DOLLAR", "celo")` in `chains.ts` | Planned | Replaces hardcoded `CUSD_ADDRESS` const in TipModal |
-| `"G$"` in spend-policy allowlist | Planned | One line in `spend-policy.ts` |
-| `"ubi_claim"` action type in `AgentControls` | Planned | Owns its own daily cap + audit trail, separate from tip/purchase |
-| **I1: G$ tip jar** in `TipModal` + `AgentStatus` | Planned | Score-gated amounts rendered as "1,000 G$" etc. |
-| KPI dashboard action types | Planned | `tip_g$`, `claim`, `stream_g$` registered with `Metrics.countAction` |
+| `getTokenAddress("GOOD_DOLLAR", "celo")` in `chains.ts` | **Shipped** | Used by TipModal to resolve G$ token address (Wave 1) |
+| `"G$"` in spend-policy allowlist | **Shipped** | One line in `spend-policy.ts` (Wave 1) |
+| `"ubi_claim"` action type in `AgentControls` | **Shipped** | Owns its own daily cap + audit trail (Wave 1) |
+| **I1: G$ tip jar** in `TipModal` + `AgentStatus` | **Shipped** | TipTokenPicker (cUSD/G$), score-gated G$ amounts (1k–20k G$), G$ Tips stat tile in AgentStatus |
+| `apps/web/components/Agent/TipTokenPicker.tsx` | **Shipped** | Segmented control for selecting cUSD or G$ UBI as tip currency |
+| KPI dashboard action types | **Shipped** | `tip_g$` (server-side via agent-tip.js), `claim` + `stream_g$` (client-side via POST /api/agent/metrics) |
+| `apps/web/lib/utils/metrics.ts` | **Shipped** | Fire-and-forget client-side metric recording for claim + stream_g$ actions |
+| `apps/api/routes/agent-metrics.js` POST endpoint | **Shipped** | Accepts `{ action, status }` from client, records via `Metrics.countAction()` |
 
 ## What we explicitly will **not** build
 
@@ -211,18 +214,18 @@ Tracking via `packages/agent-core/src/metrics.ts` (already exports `Metrics.coun
 
 ## Execution order
 
-1. E1–E3 cross-cutting enablers (1 PR)
-2. `@repo/gooddollar` skeleton + addresses + ABIs + types (1 PR)
-3. `packages/gooddollar/src/claim.ts` + test (1 PR)
-4. **Integration 3: G$ claim onboarding** (1 PR) — uses claim.ts immediately, smallest UI surface
-5. `packages/gooddollar/src/streaming.ts` + test (1 PR)
-6. **Integration 2: G$ streaming subs** (1 PR) — needs streaming.ts + price oracle wiring
-7. `packages/gooddollar/src/balance.ts` (1 PR)
-8. **Integration 1: G$ tip jar** (1 PR) — uses balance.ts + ERC20.transferToken
-9. KPI dashboard action types + dashboard tile (1 PR)
-10. S4 application write-up (uses metrics from step 9)
+1. ~~E1–E3 cross-cutting enablers~~ ✅ Shipped
+2. ~~`@repo/gooddollar` skeleton + addresses + ABIs + types~~ ✅ Shipped
+3. ~~`packages/gooddollar/src/claim.ts` + test~~ ✅ Shipped
+4. ~~**Integration 3: G$ claim onboarding**~~ ✅ Shipped — uses citizen-sdk for FV + gas faucet
+5. ~~`packages/gooddollar/src/streaming.ts` + test~~ ✅ Shipped
+6. ~~**Integration 2: G$ streaming subs**~~ ✅ Shipped — GStreamPanel on curator storefronts
+7. ~~`packages/gooddollar/src/balance.ts`~~ ✅ Shipped — GBalancePill in AgentStatus
+8. ~~**Integration 1: G$ tip jar**~~ ✅ Shipped — TipTokenPicker + G$ amounts in TipModal
+9. ~~KPI dashboard action types~~ ✅ Shipped — tip_g$, claim, stream_g$ via countAction + POST /api/agent/metrics
+10. S4 application write-up (pending — apply at https://ubi.gd/4oiCPk7)
 
-Total: ~10 PRs.
+All code shipped in 3 commits (Wave 1 + Wave 2+3 + G$ tip jar). Remaining: deploy, mainnet smoke test, apply on Flow State.
 
 ## Verification
 

@@ -100,6 +100,18 @@ The G$ token (`0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A`) is a native Superflu
 
 **Rationale (CLEAN):** the initial implementation incorrectly combined `isWhitelisted`, `claim`, and `lastClaim` on a single contract address. The split is documented in `addresses.ts` as the single source of truth.
 
+### D11. G$ tip jar extends the existing TipSheet with a token picker
+
+The `TipSheet` (aka `TipModal`) is the post-session tipping surface. Rather than creating a separate G$ tip component, we extend the existing one with a `TipTokenPicker` segmented control (cUSD / G$). G$ amounts are ~1000x larger than cUSD equivalents (G$ ≈ $0.0001), so the score-gated tip config is per-token. The token address is resolved via `getTokenAddress("GOOD_DOLLAR", "celo")` from `chains.ts` — no hardcoded G$ address in the UI.
+
+**Rationale (ENHANCEMENT FIRST, DRY):** a separate `GTipModal` would duplicate the bottom-sheet, score-gating, tx-confirmation, and error-handling logic. One component with a token picker is smaller, keeps the UX consistent, and the tip ledger already accepts a polymorphic `token` field. The `agent-tip.js` and `agent-tip-agent.js` API routes record `tip_g$` metrics when `token === "G$"`.
+
+### D12. Client-side actions record metrics via POST /api/agent/metrics
+
+Claim and stream actions happen entirely client-side via wagmi (no server-side transaction). To record these in the existing `Metrics.countAction()` store (Prometheus + Redis), a lightweight POST endpoint was added to `agent-metrics.js`. The client util `metrics.ts` fires-and-forgets `{ action, status }` to this endpoint. Three action types are tracked: `"tip_g$"`, `"claim"`, `"stream_g$"`.
+
+**Rationale (DRY):** reusing the existing metrics store and Prometheus export pipeline. No new dashboard framework — the `/api/agent/metrics` GET endpoint already exports Prometheus text format, and the new action types appear automatically as `agent_actions_total{type="tip_g$",status="succeeded"}` etc.
+
 ## Consequences
 
 **Positive:**
@@ -120,15 +132,15 @@ The G$ token (`0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A`) is a native Superflu
 
 Full plan and execution order live in `docs/hackathons/goodbuilders-season-4.md`. Summary:
 
-1. E1–E3 cross-cutting enablers (1 PR, 1 day)
-2. `@repo/gooddollar` skeleton (1 PR, 1 day)
-3. `claim.ts` + test (1 PR, 1 day)
-4. **I3: G$ claim onboarding** (1 PR, 1 day)
-5. `streaming.ts` + test (1 PR, 2 days)
-6. **I2: G$ streaming subs** (1 PR, 2 days)
-7. `balance.ts` (1 PR, 0.5 day)
-8. **I1: G$ tip jar** (1 PR, 1 day)
-9. KPI dashboard (1 PR, 1 day)
-10. S4 application write-up (1 day)
+1. ~~E1–E3 cross-cutting enablers~~ ✅ Shipped (Wave 1)
+2. ~~`@repo/gooddollar` skeleton~~ ✅ Shipped (Wave 1)
+3. ~~`claim.ts` + test~~ ✅ Shipped (Wave 2, refactored with correct contract split)
+4. ~~**I3: G$ claim onboarding**~~ ✅ Shipped (Wave 2, uses @goodsdks/citizen-sdk)
+5. ~~`streaming.ts` + test~~ ✅ Shipped (Wave 3)
+6. ~~**I2: G$ streaming subs**~~ ✅ Shipped (Wave 3, GStreamPanel on storefronts)
+7. ~~`balance.ts`~~ ✅ Shipped (Wave 2, GBalancePill in AgentStatus)
+8. ~~**I1: G$ tip jar**~~ ✅ Shipped (TipTokenPicker + TipModal G$ support)
+9. ~~KPI dashboard~~ ✅ Shipped (tip_g$, claim, stream_g$ metrics via countAction + POST /api/agent/metrics)
+10. S4 application write-up (pending — apply at https://ubi.gd/4oiCPk7)
 
-Total: ~10 PRs, ~11 dev days.
+All code is shipped. Remaining: deploy, mainnet smoke test, apply on Flow State.

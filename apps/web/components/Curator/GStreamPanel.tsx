@@ -42,6 +42,7 @@ import {
   getStreamMonthly,
   formatGAmount,
 } from "../../lib/services/g-stream-service";
+import { recordMetric } from "../../lib/utils/metrics";
 import type { Address } from "viem";
 
 interface GStreamPanelProps {
@@ -124,14 +125,17 @@ export function GStreamPanel({
       if (hash) {
         setTxHash(hash);
         setPhase("success");
+        recordMetric("stream_g$", "succeeded");
         setTimeout(() => refreshStream(), 2000);
       } else {
         setError("Transaction was not submitted");
         setPhase("error");
+        recordMetric("stream_g$", "failed");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to open stream");
       setPhase("error");
+      recordMetric("stream_g$", "failed");
     }
   }, [publicClient, walletClient, address, curatorAddress, selectedMonthly, refreshStream]);
 
@@ -150,11 +154,13 @@ export function GStreamPanel({
       if (hash) {
         setTxHash(hash);
         setPhase("success");
+        recordMetric("stream_g$", "succeeded");
         setTimeout(() => refreshStream(), 2000);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update stream");
       setPhase("error");
+      recordMetric("stream_g$", "failed");
     }
   }, [publicClient, walletClient, address, curatorAddress, selectedMonthly, refreshStream]);
 
@@ -172,11 +178,13 @@ export function GStreamPanel({
       if (hash) {
         setTxHash(hash);
         setPhase("success");
+        recordMetric("stream_g$", "succeeded");
         setTimeout(() => refreshStream(), 2000);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to close stream");
       setPhase("error");
+      recordMetric("stream_g$", "failed");
     }
   }, [publicClient, walletClient, address, curatorAddress, refreshStream]);
 

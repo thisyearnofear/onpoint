@@ -18,6 +18,8 @@ const agentCore = require('@repo/agent-core');
 const logger = require('../lib/logger');
 const { forwardedUser } = require('../middleware/forwarded-user');
 
+const { countAction } = agentCore.Metrics ?? {};
+
 const AGENT_TIP_LEDGER_KEY = 'agent:tip-ledger:a2a:v1';
 
 router.use(forwardedUser);
@@ -134,11 +136,13 @@ router.post('/', async (req, res) => {
 
     if (signerClient) {
       // Execute actual on-chain transfer via isolated signer
-      const cUSDAddress = agentCore.ERC20?.getCUSDAddress?.(chain);
-      if (cUSDAddress) {
+      const tokenAddress = tipToken === 'G$'
+        ? agentCore.getTokenAddress?.('GOOD_DOLLAR', chain)
+        : agentCore.ERC20?.getCUSDAddress?.(chain);
+      if (tokenAddress) {
         const signerResult = await signerClient.signTransfer({
           chain,
-          tokenAddress: cUSDAddress,
+          tokenAddress,
           to: toAddress,
           amountWei: amountWei.toString(),
           action: 'tip',
@@ -155,12 +159,14 @@ router.post('/', async (req, res) => {
       }
     } else if (agentPrivateKey) {
       // Fallback: sign directly with AGENT_PRIVATE_KEY (dev mode)
-      const cUSDAddress = agentCore.ERC20?.getCUSDAddress?.(chain);
-      if (cUSDAddress) {
+      const tokenAddress = tipToken === 'G$'
+        ? agentCore.getTokenAddress?.('GOOD_DOLLAR', chain)
+        : agentCore.ERC20?.getCUSDAddress?.(chain);
+      if (tokenAddress) {
         try {
           const transferResult = await agentCore.ERC20.transfer({
             chain,
-            tokenAddress: cUSDAddress,
+            tokenAddress,
             to: toAddress,
             amount: amountWei,
             privateKey: agentPrivateKey,
@@ -206,6 +212,12 @@ router.post('/', async (req, res) => {
       txHash,
       status: tipStatus,
     });
+
+    // Record metrics for KPI dashboard (GoodBuilders S4)
+    if (countAction) {
+      const actionType = tipToken === 'G$' ? 'tip_g$' : 'tip';
+      countAction(actionType, tipStatus === 'completed' ? 'succeeded' : 'failed');
+    }
 
     res.json({
       success: true,

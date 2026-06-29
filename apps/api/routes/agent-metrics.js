@@ -65,6 +65,33 @@ router.get('/', async (req, res) => {
   }
 });
 
+// POST /api/agent/metrics — Record a client-side action (claim, stream_g$, etc.)
+// Body: { action: string, status: "attempted" | "succeeded" | "failed" }
+router.post('/', (req, res) => {
+  const { action, status } = req.body;
+
+  if (!action || !status) {
+    return res.status(400).json({ error: 'Missing required fields: action, status' });
+  }
+
+  const validStatuses = ['attempted', 'succeeded', 'failed'];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ error: `status must be one of: ${validStatuses.join(', ')}` });
+  }
+
+  if (agentCore.Metrics?.countAction) {
+    agentCore.Metrics.countAction(action, status);
+  }
+
+  logger.info('Recorded client-side metric', {
+    component: 'metrics',
+    action,
+    status,
+  });
+
+  res.json({ success: true, action, status });
+});
+
 function getLastProactiveMetrics() {
   return lastProactiveMetrics;
 }

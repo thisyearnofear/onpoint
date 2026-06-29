@@ -442,12 +442,14 @@ All 16 ported agent routes run directly on Hetzner Express, backed by `@repo/age
 | **GoodDollar G$ UBI Claim** | ✅ | - | - | Complete |
 | **GoodDollar G$ Streaming** | ✅ | - | - | Complete |
 | **GoodDollar G$ Balance** | ✅ | - | - | Complete |
+| **GoodDollar G$ Tip Jar** | ✅ | - | - | Complete |
+| **GoodDollar G$ KPI Metrics** | ✅ | - | - | Complete |
 
 ---
 
 ## GoodDollar G$ Integration — Phase 14
 
-Three live G$ integrations on Celo mainnet for GoodBuilders Season 4 eligibility. See [ADR 0009](./adr/0009-gooddollar-g-integration.md) and [GoodBuilders S4 plan](./hackathons/goodbuilders-season-4.md).
+Three live G$ integrations on Celo mainnet for GoodBuilders Season 4 eligibility, plus KPI metrics infrastructure for the program's weekly reporting requirements. See [ADR 0009](./adr/0009-gooddollar-g-integration.md) and [GoodBuilders S4 plan](./hackathons/goodbuilders-season-4.md).
 
 ### G$ UBI Claim (`GClaimCTA`)
 
@@ -485,3 +487,20 @@ Single source of truth for GoodDollar contract addresses, ABIs, and helpers:
 - `streaming.ts` — `createGStream` / `updateGStream` / `deleteGStream` / `getFlowRate` / `getTotalFlowRate`
 - `balance.ts` — `getGBalanceSnapshot` (30s cache) + `formatGAmount`
 - 23 unit tests, all passing
+
+### G$ Tip Jar (`TipTokenPicker` + `TipModal`)
+
+The post-session tip sheet now supports both cUSD and G$ via a segmented token picker. G$ amounts are ~1000x larger than cUSD (G$ ≈ $0.0001):
+- Standard: 1,000 / 2,500 / 5,000 G$
+- Premium (score 8+): 5,000 / 10,000 / 20,000 G$
+
+Token address resolved via `getTokenAddress("GOOD_DOLLAR", "celo")` from `chains.ts` — no hardcoded G$ address in the UI. G$-specific error message guides users to claim UBI first if balance is insufficient. A "G$ Tips" stat tile in `AgentStatus` links to the feature.
+
+### KPI Metrics Infrastructure
+
+Three GoodDollar action types tracked via the existing `Metrics.countAction()` store (Prometheus + Redis):
+- `"tip_g$"` — recorded server-side in `agent-tip.js` and `agent-tip-agent.js` when `token === "G$"`
+- `"claim"` — recorded client-side via `POST /api/agent/metrics` from `GClaimCTA`
+- `"stream_g$"` — recorded client-side via `POST /api/agent/metrics` from `GStreamPanel`
+
+The `agent-metrics.js` POST endpoint accepts `{ action, status }` from the client util `metrics.ts` (fire-and-forget). All action types appear automatically in the Prometheus export at `GET /api/agent/metrics` as `agent_actions_total{type="tip_g$",status="succeeded"}` etc.

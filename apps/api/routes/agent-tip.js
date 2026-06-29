@@ -16,6 +16,8 @@ const agentCore = require('@repo/agent-core');
 const logger = require('../lib/logger');
 const { forwardedUser, requireUserField } = require('../middleware/forwarded-user');
 
+const { countAction } = agentCore.Metrics ?? {};
+
 const TIP_LEDGER_KEY = 'agent:tip-ledger:v1';
 
 async function getTipLedger() {
@@ -96,6 +98,12 @@ router.post('/', async (req, res) => {
       token: tipToken,
       chain,
     });
+
+    // Record metrics for KPI dashboard (GoodBuilders S4)
+    if (countAction) {
+      const actionType = tipToken === 'G$' ? 'tip_g$' : 'tip';
+      countAction(actionType, 'succeeded');
+    }
 
     res.json({
       success: true,
