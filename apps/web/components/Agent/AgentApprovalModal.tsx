@@ -13,6 +13,7 @@ import {
   Clock,
   Search,
   Globe,
+  Gift,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { fetchAgentApi } from "../../lib/utils/agent-api";
@@ -50,6 +51,7 @@ const ACTION_ICONS: Record<ActionType, React.ElementType> = {
   agent_to_agent: Coins,
   external_search: Search,
   external_purchase: Globe,
+  ubi_claim: Gift,
 };
 
 const ACTION_LABELS: Record<ActionType, string> = {
@@ -60,6 +62,7 @@ const ACTION_LABELS: Record<ActionType, string> = {
   agent_to_agent: "Agent Transfer",
   external_search: "Web Search",
   external_purchase: "External Shop",
+  ubi_claim: "G$ UBI Claim",
 };
 
 export function AgentApprovalModal({

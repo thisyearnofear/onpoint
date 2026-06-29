@@ -155,6 +155,34 @@ export const TOKEN_ADDRESSES = {
     polygon: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F" as Address,
     arbitrum: null,
   },
+  /**
+   * GoodDollar G$ — UBI token on Celo. Native Superfluid SuperToken (no
+   * wrapping needed). ERC-20 surface, 18 decimals. ~$0.0001 USD price
+   * with high short-term volatility — see ADR 0009.
+   */
+  GOOD_DOLLAR: {
+    celo: "0x62B8B1109F25406f3D27cDaA3F8d2305d6eDbBB7" as Address,
+    celoSepolia: null,
+    base: null,
+    ethereum: null,
+    polygon: null,
+    arbitrum: null,
+  },
+} as const;
+
+/**
+ * Superfluid CFAv1Forwarder — canonical forwarder on Celo mainnet.
+ * Used by `@repo/gooddollar/streaming` for createFlow / updateFlow /
+ * deleteFlow on G$ (a native SuperToken). Source:
+ * https://docs.superfluid.finance/developers/constant-flow-agreement-cfa
+ */
+export const SUPERFLUID_CFA_FORWARDER = {
+  celo: "0xcfA132E353cB4E398081B7F68C40dA562f0Fa1Da" as Address,
+  celoSepolia: null,
+  base: null,
+  ethereum: null,
+  polygon: null,
+  arbitrum: null,
 } as const;
 
 export const NFT_CONTRACTS = {
@@ -206,4 +234,36 @@ export function supportsCUSD(chain: ChainName): boolean {
  */
 export function supportsNFTMinting(chain: ChainName): boolean {
   return NFT_CONTRACTS[chain] !== null;
+}
+
+/**
+ * GoodDollar G$ lives only on Celo mainnet today. This helper is the
+ * single source of truth — every consumer that needs to resolve G$ should
+ * call this rather than hardcoding `0x62B8B110...`. Returns null on any
+ * non-Celo chain.
+ */
+export function getGTokenAddress(chain: ChainName): Address | null {
+  return TOKEN_ADDRESSES.GOOD_DOLLAR[chain];
+}
+
+/**
+ * True if the token is a native Superfluid SuperToken on the given chain.
+ * Today this is true only for G$ on Celo. If GoodDollar migrates G$ to
+ * another chain (or if we add another SuperToken), extend this list.
+ */
+export function isSuperfluidNativeToken(
+  symbol: keyof typeof TOKEN_ADDRESSES,
+  chain: ChainName,
+): boolean {
+  if (chain !== "celo") return false;
+  return symbol === "GOOD_DOLLAR";
+}
+
+/**
+ * Resolve the Superfluid CFAv1Forwarder address for a chain. Used by
+ * `@repo/gooddollar/streaming` for createFlow / updateFlow / deleteFlow.
+ * Returns null on chains where Superfluid is not deployed.
+ */
+export function getSuperfluidCFAForwarder(chain: ChainName): Address | null {
+  return SUPERFLUID_CFA_FORWARDER[chain];
 }

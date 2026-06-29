@@ -149,7 +149,7 @@ export async function getAgentPolicy(
     walletAddress: walletAddress.toLowerCase(),
     maxPerTransaction: tier,
     maxPerDay: tier,
-    allowedTokens: ["USDC", "cUSD", "ETH"],
+    allowedTokens: ["USDC", "cUSD", "G$", "ETH"],
     allowedChains: [8453, 42220], // Base, Celo
     requiresApproval: tier < REPUTATION_CONFIG.establishedLimit,
   };

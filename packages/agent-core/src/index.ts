@@ -19,9 +19,13 @@ export {
   EXPLORER_URLS,
   TOKEN_ADDRESSES,
   NFT_CONTRACTS,
+  SUPERFLUID_CFA_FORWARDER,
   getExplorerUrl,
   getTokenAddress,
   getNFTContract,
+  getGTokenAddress,
+  getSuperfluidCFAForwarder,
+  isSuperfluidNativeToken,
   supportsCUSD,
   supportsNFTMinting,
 } from "./chains";

@@ -15,6 +15,7 @@ import {
   Search,
   Eye,
   RefreshCw,
+  Gift,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import type { ActionType } from "../../lib/middleware/agent-controls";
@@ -73,6 +74,7 @@ const ACTION_LABELS: Record<ActionType, string> = {
   agent_to_agent: "Transfer",
   external_search: "Exploring Web",
   external_purchase: "View Item",
+  ubi_claim: "Claim G$ UBI",
 };
 
 const ACTION_ICONS: Record<ActionType, React.ElementType> = {
@@ -83,6 +85,7 @@ const ACTION_ICONS: Record<ActionType, React.ElementType> = {
   agent_to_agent: Coins,
   external_search: Search,
   external_purchase: Globe,
+  ubi_claim: Gift,
 };
 
 export function AgentSuggestionToast({

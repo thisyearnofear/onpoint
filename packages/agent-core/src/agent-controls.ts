@@ -114,7 +114,12 @@ export type ActionType =
   | "premium"
   | "agent_to_agent"
   | "external_search"
-  | "external_purchase";
+  | "external_purchase"
+  /**
+   * GoodDollar UBI claim. See ADR 0009. Caps are app-layer audit honesty —
+   * GoodDollar's `ClaimFacet` enforces the real rate limit on-chain.
+   */
+  | "ubi_claim";
 
 export interface SpendingLimit {
   agentId: string;
@@ -265,6 +270,12 @@ const DEFAULT_LIMITS: Record<
     dailyLimit: parseEther("1000"),
     perActionLimit: parseEther("200"),
     requiresApproval: true,
+  },
+  ubi_claim: {
+    actionType: "ubi_claim",
+    dailyLimit: parseEther("1"),
+    perActionLimit: parseEther("1"),
+    requiresApproval: false,
   },
 };
 

@@ -320,6 +320,107 @@ Before every 0G-related change, verify:
 
 ---
 
+## GoodBuilders Season 4 🎯 APPLYING
+
+> **Program**: GoodBuilders S4 × Flow State — 3-month continuous funding round
+> **Prize pool**: $50K USD streamed in G$ via GoodDollar's native Superfluid capabilities
+> **Goal**: Ship three live G$ integrations on Celo mainnet, then apply with measurable KPIs
+
+**Status**: Planning → E1–E3 enablers + `@repo/gooddollar` skeleton in flight.
+
+**Why this matters**: S4 explicitly requires "a live G$ integration before or at the start of the season." OnPoint has zero GoodDollar surface area today. Shipping three integrations moves the project from ineligible to credible applicant.
+
+**Strategy: Enhancement First, One Package**
+
+Three integrations hang off a single new package, `@repo/gooddollar`. No parallel "gooddollar" routes, no copy-pasted ERC-20 utilities. The existing tip, subscription, and onboard surfaces get one new branch each.
+
+| Integration | Surface | Files touched |
+|---|---|---|
+| **G$ tip jar** | `TipModal`, `AgentStatus` | `agent-tip.js`, `agent-tip-agent.js`, `TipModal.tsx`, `AgentStatus.tsx` |
+| **G$ streaming subs** | Pricing + subscription route | `subscription-service.ts`, `subscription/route.ts`, `pricing/page.tsx` |
+| **G$ claim onboarding** | Onboard + AddFunds | `curator/onboard/page.tsx`, `AddFundsButton.tsx`, new `GClaimCTA.tsx` |
+
+**Full plan**: [docs/hackathons/goodbuilders-season-4.md](./hackathons/goodbuilders-season-4.md)
+**Architecture decision**: [ADR 0009](./adr/0009-gooddollar-g-integration.md)
+
+### Wave-by-wave plan
+
+#### Wave 1: Cross-cutting enablers + skeleton (this week)
+
+- [ ] E1: Extend `packages/agent-core/src/chains.ts` — add `GOOD_DOLLAR` to `TOKEN_ADDRESSES`, add `getGTokenAddress`, `isSuperfluidNativeToken` helpers
+- [ ] E2: Extend `spend-policy.ts` allowlist — add `"G$"` to `allowedTokens`
+- [ ] E3: Extend `agent-controls.ts` — add `"ubi_claim"` ActionType + default limits
+- [ ] Create `packages/gooddollar/` skeleton — `package.json`, `tsconfig.json`, `tsup.config.ts`, `src/{addresses,abis,types,index}.ts`
+
+**Success criteria**: `pnpm turbo run check-types --filter=@repo/gooddollar` passes. Existing tests still green. `TipModal` reads token address from `chains.ts` (no new hardcoding).
+
+#### Wave 2: Claim + onboard (week 2)
+
+- [ ] `packages/gooddollar/src/claim.ts` + `test/claim.test.ts`
+- [ ] `packages/gooddollar/src/balance.ts`
+- [ ] `apps/web/lib/services/g-claim-service.ts`
+- [ ] `apps/web/components/Curator/GClaimCTA.tsx`
+- [ ] **Integration 3** wired into `curator/onboard/page.tsx` and `AddFundsButton.tsx`
+
+**Success criteria**: A curator on Celo can claim their daily G$ UBI from the onboard flow. The receipt is verifiable on Celoscan.
+
+#### Wave 3: Streaming + subs (week 3)
+
+- [ ] `packages/gooddollar/src/streaming.ts` + `test/streaming.test.ts`
+- [ ] `apps/web/lib/services/g-stream-service.ts`
+- [ ] **Integration 2** wired into `subscription-service.ts`, `subscription/route.ts`, `pricing/page.tsx`
+
+**Success criteria**: A curator can subscribe to "Pro" tier via G$ stream. Flow is verifiable on Superfluid Dashboard. TODO at `subscription/route.ts:158` is closed.
+
+#### Wave 4: Tip jar + KPIs (week 4)
+
+- [ ] `apps/web/components/Agent/TipTokenPicker.tsx`
+- [ ] **Integration 1** wired into `TipModal.tsx`, `agent-tip.js`, `agent-tip-agent.js`, `AgentStatus.tsx`
+- [ ] KPI dashboard tiles: G$ tips, UBI claims, G$ streaming subs
+
+**Success criteria**: User can send a G$ tip after a session. The AgentStatus panel shows "G$ Tips this week" stat tile.
+
+#### Wave 5: Apply (week 5+)
+
+- [ ] S4 application write-up with KPIs from `Metrics.countAction` history
+- [ ] Demo video (same cadence as 0G Buildathon)
+- [ ] Public X post with each integration screenshot
+
+### KPIs (12-week targets)
+
+| Metric | Source | Target |
+|---|---|---|
+| G$ tips sent to agent | `agent:tip-ledger:v1` filter `token=G$` | 500 |
+| Total G$ tipped | same | 50,000 G$ |
+| Curators claiming UBI | on-chain `Identity.lastClaim` events | 25 |
+| G$ streaming subs active | `subscription:*` filter `paymentMethod=superfluid-G$` | 10 |
+| Total G$ streamed | on-chain CFAv1 events | 1,000,000 G$ (~$100) |
+
+### Core Principles alignment
+
+| Principle | Application |
+|---|---|
+| **ENHANCEMENT FIRST** | Each integration adds one branch to an existing surface. No new pages, no new top-level routes. |
+| **CONSOLIDATION** | Hardcoded `CUSD_ADDRESS` in TipModal and cUSD lookup in tip-agent collapse to `getTokenAddress("GOOD_DOLLAR", chain)`. TODO at `subscription/route.ts:158` closes. |
+| **PREVENT BLOAT** | One new package, ~6 source files. Zero new env-var prefixes. Zero new payment endpoints. |
+| **DRY** | G$ contract knowledge lives in `@repo/gooddollar` only. Three integrations import from it. |
+| **CLEAN** | No HTTP calls in `streaming.ts`. No claim math in the UI. `GClaimCTA` owns UI only. |
+| **MODULAR** | `addresses`, `abis`, `claim`, `streaming`, `balance`, `types` are independently importable subpaths. |
+| **PERFORMANT** | G$ price feed cached 5 min. G$ balance cached 30s. Stream rate reads cached 60s. |
+| **ORGANIZED** | `@repo/gooddollar` mirrors `@repo/etherfuse` shape. Subpath exports per module. |
+
+### What we will **not** build
+
+Per PREVENT BLOAT and the existing project posture:
+
+- No parallel "gooddollar" route group or mini-app.
+- No G$ as a payment rail for actual product checkout (volatility).
+- No GoodDollar V2 (V4) protocol migration work.
+- No GoodDollar Reserve, Savings (sG$), or DAO governance integration.
+- No GoodDollar face-verification backend — we surface the contract revert and link to GoodDollar's verification flow.
+
+---
+
 ## Upcoming (Post-0G Buildathon)
 
 ### Short-term (Q4 2026)
@@ -389,6 +490,10 @@ Before every 0G-related change, verify:
 | **0G Credits earned** | $50,000 | 🎯 $0 |
 | **African fashion accuracy** | > 90% | 🎯 Wave 3 |
 | **Demo Day** | Token2049 Singapore | 🎯 October 2026 |
+| **G$ tips sent to agent** | ≥ 500 (12 wk) | 🎯 Wave 4 |
+| **Curators claiming G$ UBI** | ≥ 25 (12 wk) | 🎯 Wave 2 |
+| **G$ streaming subs active** | ≥ 10 (12 wk) | 🎯 Wave 3 |
+| **Total G$ streamed** | ≥ 1M G$ (12 wk) | 🎯 Wave 3 |
 
 ---
 
@@ -406,3 +511,6 @@ Before every 0G-related change, verify:
 | **Fine-tuning fails** | **Use base model + few-shot examples as fallback** |
 | **Wave deadline missed** | **Rejoin next wave — multi-wave completion rewarded** |
 | **Demo Day format change** | **Prepare both in-person and virtual pitch assets** |
+| **G$ price volatility on subs** | **Snapshot G$/USD at stream creation; lock flow rate for 30d; document drift on pricing page** |
+| **Curator on non-Celo chain can't claim** | **Detect + one-click `switchChain(celo)` via wagmi; surface verification requirement clearly** |
+| **`superfluid` enum migration breaks callers** | **`subscription-service.upgradeSubscription` defaults unknown legacy values to `"superfluid-cUSD"`** |
