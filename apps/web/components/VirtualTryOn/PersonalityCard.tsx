@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef } from "react";
-import { Lock, Volume2, Square } from "lucide-react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Lock, Volume2, Square, Eye, X } from "lucide-react";
 import type { StylistPersona } from "@repo/ai-client";
 import { getPersonaConfig } from "../../lib/utils/persona-config";
 import { speakAsPersona, stopSpeaking } from "../../lib/utils/persona-voice";
@@ -36,6 +36,7 @@ export function PersonalityCard({
   gCost,
 }: PersonalityCardProps) {
   const [isPlaying, setIsPlaying] = React.useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const mountedRef = useRef(true);
   const config = getPersonaConfig(persona);
   const Icon = config.icon;
@@ -147,6 +148,45 @@ export function PersonalityCard({
               <span className="text-gray-500">{unlockHint || "Unlock with Pro"}</span>
             )}
           </span>
+        )}
+        {isLocked && config.previewSnippet && (
+          <div className="w-full mt-1">
+            {!showPreview ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  setShowPreview(true);
+                }}
+                className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Eye className="h-3 w-3" />
+                Preview their style
+              </button>
+            ) : (
+              <div
+                className="relative rounded-lg bg-muted/60 p-2.5 text-left"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    setShowPreview(false);
+                  }}
+                  className="absolute top-1 right-1 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+                <p className="text-[10px] italic text-muted-foreground leading-relaxed pr-4">
+                  {config.previewSnippet}
+                </p>
+                <p className="text-[9px] text-muted-foreground/60 mt-1.5">
+                  Premium stylists include scores, brand picks & price ranges.
+                </p>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>

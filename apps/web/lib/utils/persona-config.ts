@@ -54,6 +54,14 @@ export interface PersonaConfig {
     | "bold"
     | "cold"
     | "classic";
+
+  /**
+   * Short preview snippet shown on locked premium persona cards —
+   * demonstrates the domain expertise (brand names, price ranges,
+   * structured analysis) that makes premium different from free.
+   * This makes the value gap visible at the point of friction.
+   */
+  previewSnippet?: string;
 }
 
 const PERSONA_CONFIGS: Record<StylistPersona, PersonaConfig> = {
@@ -133,6 +141,7 @@ const PERSONA_CONFIGS: Record<StylistPersona, PersonaConfig> = {
     lightColor: "text-yellow-600",
     lightBg: "bg-yellow-50",
     layoutStyle: "editorial",
+    previewSnippet: "\"Style Score: 6/10. The silhouette is right but the fabric isn't doing you justice. Investment Picks: Loro Piana cashmere sweater — $1,200-$1,800. COS wool blazer — $150 as an entry-level alternative. Next Level: Swap the fast-fashion tee for a Sunspel cotton crewneck — $90. It'll last a decade.\"",
   },
   streetwear: {
     key: "streetwear",
@@ -153,6 +162,7 @@ const PERSONA_CONFIGS: Record<StylistPersona, PersonaConfig> = {
     lightColor: "text-blue-600",
     lightBg: "bg-blue-50",
     layoutStyle: "bold",
+    previewSnippet: "\"Drip Score: 4/10. It's giving Sunday dad at the barbecue. Drop Picks: Carhartt WIP Detroit jacket — $140-$180. New Balance 990v6 — $200, worth every penny. Next Level: Swap that basic tee for an oversized boxy graphic from Aries — $80. Proportions go from flat to stacked.\"",
   },
   sustainable: {
     key: "sustainable",
@@ -173,6 +183,7 @@ const PERSONA_CONFIGS: Record<StylistPersona, PersonaConfig> = {
     lightColor: "text-green-600",
     lightBg: "bg-green-50",
     layoutStyle: "organic",
+    previewSnippet: "\"Sustainability Score: 5/10. That polyester blend will pill after three washes. Eco Picks: Patagonia recycled wool sweater — $200, 80% recycled fiber. Vintage Levi's 501s — $30-$60 at Depop, cost-per-wear approaching zero. Next Level: Same silhouette in Tencel — look at Reformation's linen tee, $60.\"",
   },
 };
 

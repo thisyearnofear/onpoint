@@ -36,6 +36,44 @@ Continue claiming daily → the loop sustains premium access + creator support
 
 This is the loop the S4 reviewers asked for: **Claim G$ → Build a savings streak → Protect savings → Continue claiming daily.** "Savings" = accrued style perks (premium personas unlocked via streak badges). "Protect" = maintain your daily claim habit so your streak keeps advancing (opportunity cost, not punishment — earned badges are permanent).
 
+### Why the loop works: real premium value gap
+
+The G$ loop only works if paying G$ for a premium persona delivers a **genuinely better experience** than the free tier. If premium is just a personality reskin, the loop is theater.
+
+Premium personas produce **structurally richer output** than free personas:
+
+| Aspect | Free personas (Miranda/Edina/Shaft) | Premium personas (Anna/Virgil/Stella) |
+|---|---|---|
+| Token limit | 500 | 800 |
+| Output structure | Generic 6-point analysis | Structured: Score + Verdict + Brand Picks (with price ranges) + Next Level |
+| Brand recommendations | General references | Specific brands + approximate price ranges |
+| Scoring | None | X/10 score with justification |
+| Actionability | General suggestions | Specific product recommendations with cost |
+
+This gap is made **visible at the point of friction**: locked premium persona cards show a "Preview their style" link that expands to show an example of the structured output (score, brand picks, price ranges). The user sees exactly what they'd get before deciding to claim G$ and pay for a session.
+
+### Wallet-first: the loop works without an account
+
+The G$ loop is **wallet-first** — no Auth0 account required. A wallet-only user can:
+
+1. **Claim G$** — citizen-sdk + wagmi (wallet-only by design)
+2. **Build a streak** — localStorage (wallet-only)
+3. **Pay G$ for premium sessions** — wagmi ERC-20 transfer (wallet-only)
+4. **See streak mission progress** — wallet-based fallback in `useMissionState` + `/api/agent/missions`
+
+Auth0 is a convenience layer (subscriptions, preferences, external account connections) — not a gate for the G$ loop. The `/api/agent/missions` endpoint accepts wallet-based auth for `g-claim-streak` events, and `useMissionState` falls back to the wallet address when Auth0 is absent.
+
+### Where the loop is surfaced
+
+| Surface | What the user sees | When |
+|---|---|---|
+| HomePanel (Day 0) | "Unlock premium stylists with free G$" card with milestone path + connect wallet CTA | Before first claim |
+| HomePanel (Day 1+) | GStreakPill with streak count, next milestone, protect prompt | After first claim |
+| VirtualTryOn (locked personas) | "Preview their style" → structured output snippet + G$ cost + "No G$ yet? Claim below" | When viewing locked premium personas |
+| AgentStatus (compact) | "Claim G$" pill (Day 0) or streak count (Day 1+) | Always visible in status bar |
+
+The loop is **not surfaced on the landing page** — introducing G$ before the user has tried the product adds cognitive load at the wrong moment. The user first experiences free styling, then discovers G$ when they hit the premium wall.
+
 ### Four G$ integrations on Celo mainnet
 
 1. **G$ UBI claim** (`GClaimCTA` + `@goodsdks/citizen-sdk`) — daily claim with gas faucet + face verification. Surfaces in `AgentStatus` (`GBalancePill`), `AddFundsButton`, and `/curator/onboard`.
@@ -80,14 +118,16 @@ The 0G Bridge Buildathon (current primary focus, ends Aug 21) does not conflict 
 | `apps/web/components/Curator/GClaimCTA.tsx` | **Shipped** | Full claim flow: disconnected → wrong-chain → not-whitelisted (FV) → can-claim → claiming → success → cooldown. Wired to streak on success. |
 | `apps/web/components/Curator/GBalancePill.tsx` | **Shipped** | Persistent G$ balance indicator with 30s cache, expandable claim CTA, in AgentStatus |
 | `apps/web/components/Curator/GStreamPanel.tsx` | **Shipped** | Superfluid streaming subscription panel with preset amounts, active stream management |
-| `apps/web/components/Curator/GStreakPill.tsx` | **Shipped** | G$ Style Streak surface — streak count, active perks, next milestone, "protect your streak" prompt. Compact (AgentStatus) + full card (HomePanel). |
+| `apps/web/components/Curator/GStreakPill.tsx` | **Shipped** | G$ Style Streak surface — streak count, active perks, next milestone, "protect your streak" prompt. Compact (AgentStatus) + full card (HomePanel). Day 0 state: "Unlock premium stylists with free G$" card with milestone path + connect wallet CTA, visible to users who haven't claimed yet. |
 | `apps/web/lib/utils/g-streak-config.ts` | **Shipped** | Streak milestones (3/7/14/30 days) → badges → persona unlocks. Single source of truth. 12 tests. |
 | `apps/web/lib/hooks/use-g-streak.ts` | **Shipped** | Claim-driven streak hook (positive-only, localStorage). Replaces visit-based streak in HomePanel. |
 | `apps/web/lib/hooks/use-g-session-payment.ts` | **Shipped** | Per-session G$ payment hook — ERC-20 transfer to agent wallet. Reuses TipModal's wagmi pattern. |
-| `apps/web/lib/utils/persona-config.ts` | **Shipped** | Added `gCost` to premium personas (1k/2k/3k G$). Streak badges as alt-unlock path. `canPayWithG` + `getGSessionCost` helpers. |
-| `apps/web/components/VirtualTryOn.tsx` | **Shipped** | Premium persona gate: unlocked → direct access; locked + G$ payable → per-session payment confirm → on tx confirm, session runs. Streak badges merged into unlock check. |
-| `apps/web/components/VirtualTryOn/PersonalityCard.tsx` | **Shipped** | Shows G$ cost badge on locked premium cards; G$-payable cards are clickable (open payment confirm). |
-| `apps/web/components/Dashboard/HomePanel.tsx` | **Shipped** | Uses `useGStreak` (replaces visit-streak); GStreakPill card in the home dashboard. |
+| `apps/web/lib/utils/persona-config.ts` | **Shipped** | Added `gCost` to premium personas (1k/2k/3k G$). Streak badges as alt-unlock path. `canPayWithG` + `getGSessionCost` helpers. `previewSnippet` field with example structured output for locked card previews. |
+| `apps/web/components/VirtualTryOn.tsx` | **Shipped** | Premium persona gate: unlocked → direct access; locked + G$ payable → per-session payment confirm → on tx confirm, session runs. Streak badges merged into unlock check. "No G$ yet? Claim free daily G$ below" hint on premium persona wall. |
+| `apps/web/components/VirtualTryOn/PersonalityCard.tsx` | **Shipped** | Shows G$ cost badge on locked premium cards; G$-payable cards are clickable (open payment confirm). "Preview their style" link expands to show a snippet of the premium output (scores, brand picks, price ranges) — makes the value gap visible at the point of friction. |
+| `packages/ai-client/src/services/personality-service.ts` | **Shipped** | Premium personas (luxury/streetwear/sustainable) now produce structured output: Score + Verdict + Brand Picks (with price ranges) + Next Level. Token limit raised from 500 → 800 for premium. Free personas keep the generic 6-point analysis. |
+| `apps/web/app/api/ai/personality-critique/route.ts` | **Shipped** | Respects persona-specific `maxTokens` (was silently capping all at 400). Detects premium personas and skips the generic 6-point prompt structure, letting the persona's own structured output instructions drive the response. |
+| `apps/web/components/Dashboard/HomePanel.tsx` | **Shipped** | Uses `useGStreak` (replaces visit-streak); GStreakPill card in the home dashboard. GStreakPill Day 0 state surfaces the G$ loop entry point to new users who haven't claimed yet. |
 | `apps/web/lib/services/mission-service.ts` | **Shipped** | 4 streak missions (3/7/14/30 days) + `g-claim-streak` event type. Streak progress SET (not increment) to handle resets. |
 | `apps/web/components/Agent/AgentStatus.tsx` | **Shipped** | GStreakPill (compact) next to GBalancePill. |
 | `apps/web/components/Agent/AddFundsButton.tsx` | **Shipped** | "Claim G$ instead" tile + unified success state with auto-close |
@@ -269,7 +309,9 @@ Tracking via `packages/agent-core/src/metrics.ts` (already exports `Metrics.coun
 8. ~~**Integration 1: G$ tip jar**~~ ✅ Shipped — TipTokenPicker + G$ amounts in TipModal
 9. ~~KPI dashboard action types~~ ✅ Shipped — tip_g$, claim, stream_g$ via countAction + POST /api/agent/metrics
 10. ~~**G$ value loop: per-session premium access + Style Streak**~~ ✅ Shipped — `useGSessionPayment` (per-session G$ cost for premium personas), `useGStreak` + `GStreakPill` + `g-streak-config` (claim-driven streak → badges → persona unlocks), streak missions in MissionService, GStreakPill in AgentStatus + HomePanel, `session_g$` metric
-11. S4 application write-up (pending — apply at https://ubi.gd/4oiCPk7)
+11. ~~**Wallet-first G$ loop**~~ ✅ Shipped — `/api/agent/missions` accepts wallet-based auth for `g-claim-streak` events, `useMissionState` falls back to wallet address when Auth0 is absent, Upstash Redis deep health check in `/api/health?deep=true`
+12. ~~**Premium value gap + loop surfacing**~~ ✅ Shipped — Premium personas produce structurally richer output (800 tokens, Score + Brand Picks + Price Ranges + Next Level), `previewSnippet` on locked persona cards makes the gap visible, GStreakPill Day 0 state surfaces the loop to new users, "No G$ yet?" hint on premium persona wall
+13. S4 application write-up (pending — apply at https://ubi.gd/4oiCPk7)
 
 All code shipped. Remaining: deploy, mainnet smoke test, apply on Flow State.
 

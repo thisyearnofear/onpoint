@@ -984,6 +984,11 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                               );
                             })}
                           </div>
+                          {!isPremium && (
+                            <p className="mt-2 text-[11px] text-muted-foreground/80">
+                              No G$ yet? Claim free daily G$ below — no card needed.
+                            </p>
+                          )}
                         </div>
 
                         {/* G$ Style Streak — the loop surface */}

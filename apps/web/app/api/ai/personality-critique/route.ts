@@ -47,12 +47,15 @@ ${userContext.isCeloUser ? "They are part of the Celo fashion community." : ""}
 `;
       }
 
-      // Create the enhanced prompt for personality-based critique
-      const enhancedPrompt = `${config.prompt}
-
-${contextInjection}
-
-Please analyze the outfit in this image and provide a critique that matches your personality and expertise. 
+      // Create the enhanced prompt for personality-based critique.
+      // Premium personas carry their own output structure instructions in
+      // the persona prompt (Style Score, Investment Picks, etc.). Free
+      // personas get the generic 6-point analysis structure.
+      const isPremium = ["luxury", "streetwear", "sustainable"].includes(persona);
+      const outputStructure = isPremium
+        ? "" // Premium persona prompts already include "PREMIUM OUTPUT STRUCTURE"
+        : `
+Please analyze the outfit in this image and provide a critique that matches your personality and expertise.
 Consider:
 1. Overall style and aesthetic
 2. Fit and proportions
@@ -62,6 +65,12 @@ Consider:
 6. What's working well
 
 Keep your response engaging and true to your character while being genuinely helpful.`;
+
+      const enhancedPrompt = `${config.prompt}
+
+${contextInjection}
+
+${outputStructure}`.trim();
 
       // For now, we'll use text-based analysis since image analysis requires special handling
       // In a production environment, you'd process the actual image
@@ -73,8 +82,8 @@ Keep your response engaging and true to your character while being genuinely hel
         geminiModel: "gemini-3.1-flash-lite-preview",
         openaiModel: config.model || "gpt-4o-mini",
         openaiOptions: {
-          max_tokens: config.maxTokens || 400,
-          temperature: config.temperature || 0.7,
+          max_tokens: config.maxTokens ?? 500,
+          temperature: config.temperature ?? 0.7,
         },
       });
 
