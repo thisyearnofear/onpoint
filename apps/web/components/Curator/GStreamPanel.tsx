@@ -55,9 +55,14 @@ interface GStreamPanelProps {
   className?: string;
 }
 
-type Phase = "loading" | "disconnected" | "wrong-chain" | "idle" | "active" | "pending" | "success" | "error";
+type Phase = "loading" | "disconnected" | "wrong-chain" | "idle" | "active" | "pending" | "success" | "error" | "confirm-stop";
 
-const PRESET_MONTHLY = [5, 10, 25, 50];
+const PRESET_MONTHLY: { amount: number; usd: string }[] = [
+  { amount: 5, usd: "~$0.01" },
+  { amount: 10, usd: "~$0.01" },
+  { amount: 25, usd: "~$0.03" },
+  { amount: 50, usd: "~$0.05" },
+];
 
 export function GStreamPanel({
   curatorAddress,
@@ -288,17 +293,17 @@ export function GStreamPanel({
             {curatorName && <span className="text-muted-foreground"> to {curatorName}</span>}
           </p>
           <div className="flex items-center gap-1.5">
-            {PRESET_MONTHLY.map((amt) => (
+            {PRESET_MONTHLY.map((p) => (
               <button
-                key={amt}
-                onClick={() => setSelectedMonthly(amt)}
+                key={p.amount}
+                onClick={() => setSelectedMonthly(p.amount)}
                 className={`rounded-md px-2 py-0.5 text-[10px] font-bold transition-colors ${
-                  selectedMonthly === amt
+                  selectedMonthly === p.amount
                     ? "bg-emerald-500/20 text-emerald-300"
                     : "bg-muted/40 text-muted-foreground hover:bg-muted"
                 }`}
               >
-                {amt}
+                {p.amount}
               </button>
             ))}
           </div>
@@ -313,11 +318,43 @@ export function GStreamPanel({
             Update
           </button>
           <button
-            onClick={handleStop}
+            onClick={() => setPhase("confirm-stop")}
             className="inline-flex items-center gap-1 rounded-lg border border-rose-500/30 px-3 py-1.5 text-xs font-bold text-rose-400 transition-colors hover:bg-rose-500/10"
           >
             <X className="h-3 w-3" />
             Stop
+          </button>
+        </div>
+      </Shell>
+    );
+  }
+
+  // Confirm stop — destructive action confirmation
+  if (phase === "confirm-stop") {
+    return (
+      <Shell compact={compact} className={className}>
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-rose-500/10 shrink-0">
+          <AlertCircle className="h-4 w-4 text-rose-400" />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-foreground">Stop the stream?</p>
+          <p className="text-xs text-muted-foreground">
+            {curatorName ? `${curatorName} will stop receiving G$ from you.` : "The curator will stop receiving G$ from you."} This can&apos;t be undone — you&apos;d need to start a new stream.
+          </p>
+        </div>
+        <div className="flex gap-1.5">
+          <button
+            onClick={() => setPhase("active")}
+            className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-muted-foreground transition-colors hover:bg-muted"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleStop}
+            className="inline-flex items-center gap-1 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-rose-500"
+          >
+            <X className="h-3 w-3" />
+            Stop stream
           </button>
         </div>
       </Shell>
@@ -339,17 +376,20 @@ export function GStreamPanel({
           Continuous per-second payments. Cancel anytime.
         </p>
         <div className="flex items-center gap-1.5">
-          {PRESET_MONTHLY.map((amt) => (
+          {PRESET_MONTHLY.map((p) => (
             <button
-              key={amt}
-              onClick={() => setSelectedMonthly(amt)}
-              className={`rounded-md px-2.5 py-1 text-xs font-bold transition-colors ${
-                selectedMonthly === amt
+              key={p.amount}
+              onClick={() => setSelectedMonthly(p.amount)}
+              className={`flex flex-col items-center rounded-md px-2.5 py-1 text-xs font-bold transition-colors ${
+                selectedMonthly === p.amount
                   ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
                   : "bg-muted/40 text-muted-foreground hover:bg-muted border border-transparent"
               }`}
             >
-              {amt} G$/mo
+              {p.amount} G$/mo
+              <span className="text-[9px] font-normal text-muted-foreground/60">
+                {p.usd}/mo
+              </span>
             </button>
           ))}
         </div>

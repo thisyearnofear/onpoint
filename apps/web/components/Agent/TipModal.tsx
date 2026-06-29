@@ -52,11 +52,12 @@ const ERC20_TRANSFER_ABI = [
 /**
  * Score-gated tip configuration per token.
  * G$ is ~$0.0001, so G$ amounts are ~1000x larger than cUSD equivalents.
+ * `usd` field gives users a frame of reference for G$ amounts.
  */
 const TIP_CONFIGS: Record<TipToken, {
-  low: { amounts: readonly { amount: string; label: string; icon: string }[]; headline: string; subtext: string };
-  standard: { amounts: readonly { amount: string; label: string; icon: string }[]; headline: string; subtext: string };
-  premium: { amounts: readonly { amount: string; label: string; icon: string }[]; headline: string; subtext: string };
+  low: { amounts: readonly { amount: string; label: string; icon: string; usd?: string }[]; headline: string; subtext: string };
+  standard: { amounts: readonly { amount: string; label: string; icon: string; usd?: string }[]; headline: string; subtext: string };
+  premium: { amounts: readonly { amount: string; label: string; icon: string; usd?: string }[]; headline: string; subtext: string };
 }> = {
   cUSD: {
     low: {
@@ -91,18 +92,18 @@ const TIP_CONFIGS: Record<TipToken, {
     },
     standard: {
       amounts: [
-        { amount: "1000", label: "Thanks!", icon: "🙏" },
-        { amount: "2500", label: "Great!", icon: "👏" },
-        { amount: "5000", label: "Amazing!", icon: "🔥" },
+        { amount: "1000", label: "Thanks!", icon: "🙏", usd: "~$0.10" },
+        { amount: "2500", label: "Great!", icon: "👏", usd: "~$0.25" },
+        { amount: "5000", label: "Amazing!", icon: "🔥", usd: "~$0.50" },
       ],
       headline: "Tip in G$ UBI",
       subtext: "Support your stylist with GoodDollar",
     },
     premium: {
       amounts: [
-        { amount: "5000", label: "Great!", icon: "👏" },
-        { amount: "10000", label: "Amazing!", icon: "🔥" },
-        { amount: "20000", label: "Superstar!", icon: "⭐" },
+        { amount: "5000", label: "Great!", icon: "👏", usd: "~$0.50" },
+        { amount: "10000", label: "Amazing!", icon: "🔥", usd: "~$1.00" },
+        { amount: "20000", label: "Superstar!", icon: "⭐", usd: "~$2.00" },
       ],
       headline: "Elite Style Session!",
       subtext: "Celebrate with G$ UBI — GoodDollar on Celo",
@@ -423,12 +424,17 @@ export function TipSheet({
                         key={`${selectedToken}-${tip.amount}`}
                         onClick={() => handleQuickTip(tip.amount)}
                         disabled={!isConnected || isProcessing}
-                        className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-muted/30 border border-border hover:bg-muted hover:border-amber-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex flex-col items-center gap-1.5 p-4 rounded-2xl bg-muted/30 border border-border hover:bg-muted hover:border-amber-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <span className="text-2xl">{tip.icon}</span>
                         <span className="text-foreground font-bold">
                           {tip.amount} {selectedToken}
                         </span>
+                        {tip.usd && (
+                          <span className="text-emerald-400/60 text-[10px] font-medium">
+                            {tip.usd}
+                          </span>
+                        )}
                         <span className="text-muted-foreground text-xs">
                           {tip.label}
                         </span>
@@ -447,6 +453,7 @@ export function TipSheet({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
+                  className="space-y-2"
                 >
                   <button
                     onClick={() => setIsExpanded(true)}
@@ -456,6 +463,9 @@ export function TipSheet({
                     <Heart className="w-5 h-5" />
                     Say Thanks
                   </button>
+                  <p className="text-center text-muted-foreground/50 text-[10px]">
+                    Tip in cUSD or G$ UBI · Powered by GoodDollar on Celo
+                  </p>
                 </motion.div>
               )}
             </AnimatePresence>

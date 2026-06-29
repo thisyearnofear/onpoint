@@ -23,16 +23,19 @@ const TOKENS: Array<{
   id: TipToken;
   label: string;
   icon: React.ReactNode;
+  activeClass: string;
 }> = [
   {
     id: "cUSD",
     label: "cUSD",
     icon: <Heart className="h-3.5 w-3.5" />,
+    activeClass: "bg-amber-500/20 text-amber-300 shadow-sm",
   },
   {
     id: "G$",
     label: "G$ UBI",
     icon: <Coins className="h-3.5 w-3.5" />,
+    activeClass: "bg-emerald-500/20 text-emerald-300 shadow-sm",
   },
 ];
 
@@ -54,7 +57,7 @@ export function TipTokenPicker({ value, onChange, disabled }: TipTokenPickerProp
           disabled={disabled}
           className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition-all ${
             value === token.id
-              ? "bg-amber-500/20 text-amber-300 shadow-sm"
+              ? token.activeClass
               : "text-muted-foreground hover:text-foreground"
           }`}
         >

@@ -425,19 +425,14 @@ export function AgentStatus({
           <GBalancePill />
         </div>
 
-        {/* G$ Tips — link to tip with G$ */}
+        {/* G$ Tips — available after sessions */}
         <div className="flex items-center justify-between pt-1">
           <span className="text-muted-foreground text-xs uppercase tracking-wider">
             G$ Tips
           </span>
-          <a
-            href="https://docs.gooddollar.org"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[10px] text-emerald-400/70 hover:text-emerald-300 hover:underline"
-          >
-            Tip in G$ after sessions
-          </a>
+          <span className="text-[10px] text-emerald-400/70">
+            Available after sessions
+          </span>
         </div>
 
       </div>

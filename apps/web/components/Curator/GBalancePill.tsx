@@ -12,9 +12,9 @@
  * Clicking the pill opens the claim CTA inline (collapsible).
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAccount, useChainId, usePublicClient } from "wagmi";
-import { Gift, Loader2, ChevronDown } from "lucide-react";
+import { Gift, Loader2, ChevronDown, Sparkles } from "lucide-react";
 import { celo } from "../../config/chains";
 import { getGBalanceSnapshot, formatGAmount } from "@repo/gooddollar";
 import { GClaimCTA } from "./GClaimCTA";
@@ -28,6 +28,7 @@ export function GBalancePill({ className }: GBalancePillProps) {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const publicClient = usePublicClient();
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const [balance, setBalance] = useState<bigint | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,6 +36,7 @@ export function GBalancePill({ className }: GBalancePillProps) {
   const [claimed, setClaimed] = useState(false);
 
   const isOnCelo = chainId === celo.id;
+  const isZeroBalance = !loading && balance !== null && balance === 0n;
 
   const fetchBalance = useCallback(async () => {
     if (!isConnected || !isOnCelo || !publicClient || !address) {
@@ -65,7 +67,6 @@ export function GBalancePill({ className }: GBalancePillProps) {
   // Refresh after a claim
   useEffect(() => {
     if (claimed) {
-      // Wait a moment for the tx to settle, then refresh
       const timer = setTimeout(() => fetchBalance(), 3000);
       return () => clearTimeout(timer);
     }
@@ -78,22 +79,43 @@ export function GBalancePill({ className }: GBalancePillProps) {
     return () => clearInterval(interval);
   }, [isConnected, isOnCelo, fetchBalance]);
 
-  // Hide when not connected, not on Celo, or balance is zero
+  // Click-outside-to-close
+  useEffect(() => {
+    if (!expanded) return;
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setExpanded(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [expanded]);
+
+  // Hide when not connected or not on Celo
   if (!isConnected || !isOnCelo) return null;
-  if (!loading && balance !== null && balance === 0n && !expanded) return null;
 
   const displayBalance = balance !== null ? formatGAmount(balance) : null;
 
   return (
-    <div className={`relative ${className ?? ""}`}>
+    <div className={`relative ${className ?? ""}`} ref={containerRef}>
       <button
         onClick={() => setExpanded((v) => !v)}
-        className="flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-3 py-1.5 text-xs font-medium text-emerald-300 transition-colors hover:bg-emerald-500/10"
+        className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+          isZeroBalance
+            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/15 animate-pulse"
+            : "border-emerald-500/20 bg-emerald-500/5 text-emerald-300 hover:bg-emerald-500/10"
+        }`}
         title="GoodDollar G$ balance"
       >
-        <Gift className="h-3.5 w-3.5" />
+        {isZeroBalance ? (
+          <Sparkles className="h-3.5 w-3.5" />
+        ) : (
+          <Gift className="h-3.5 w-3.5" />
+        )}
         {loading ? (
           <Loader2 className="h-3 w-3 animate-spin" />
+        ) : isZeroBalance ? (
+          <span>Claim G$</span>
         ) : (
           <span>{displayBalance ?? "0.00 G$"}</span>
         )}

@@ -390,12 +390,13 @@ export function GClaimCTA({ onClaimed, compact, className }: GClaimCTAProps) {
   }
 
   if (phase === "success" && state.txHash) {
+    const claimedAmount = state.entitlement > 0n ? formatGAmount(state.entitlement) : null;
     return (
       <Shell compact={compact} className={className}>
         <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
         <div className="flex-1">
           <p className="text-sm font-semibold text-foreground">
-            G$ claimed successfully!
+            {claimedAmount ? `${claimedAmount} claimed!` : "G$ claimed successfully!"}
           </p>
           <a
             href={`https://celoscan.io/tx/${state.txHash}`}
@@ -413,9 +414,14 @@ export function GClaimCTA({ onClaimed, compact, className }: GClaimCTAProps) {
 
   if (phase === "cooldown") {
     const next = state.nextClaimTime;
-    const hoursLeft = next
-      ? Math.max(0, Math.ceil((next.getTime() - Date.now()) / 3600000))
-      : 24;
+    const msLeft = next ? Math.max(0, next.getTime() - Date.now()) : 0;
+    const hoursLeft = Math.floor(msLeft / 3600000);
+    const minsLeft = Math.floor((msLeft % 3600000) / 60000);
+    const timeLabel = hoursLeft > 0
+      ? `${hoursLeft}h ${minsLeft}m`
+      : minsLeft > 0
+        ? `${minsLeft}m`
+        : "<1m";
     return (
       <Shell compact={compact} className={className}>
         <Clock className="h-5 w-5 text-muted-foreground shrink-0" />
@@ -424,7 +430,7 @@ export function GClaimCTA({ onClaimed, compact, className }: GClaimCTAProps) {
             Already claimed today
           </p>
           <p className="text-xs text-muted-foreground">
-            Next claim in ~{hoursLeft}h{next && ` · ${next.toLocaleString()}`}
+            Next claim in {timeLabel}
           </p>
         </div>
         <button

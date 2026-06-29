@@ -266,10 +266,10 @@ export function AddFundsButton() {
                         </div>
                         <div className="flex-1">
                           <p className="text-sm font-bold text-emerald-300">
-                            Claim G$ instead
+                            Claim free G$ UBI
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            Free daily GoodDollar UBI — no fiat needed
+                            Free daily GoodDollar on Celo — no fiat needed
                           </p>
                         </div>
                         <ArrowRight className="h-4 w-4 text-emerald-400" />
