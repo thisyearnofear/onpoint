@@ -10,8 +10,8 @@ import path from 'path';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_AGENT_API_URL || 'https://api.onpoint.famile.xyz';
 
-// Sample base64 image (1x1 transparent PNG for testing)
-const SAMPLE_IMAGE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+// Sample image for testing (replace with actual base64 or file path)
+const SAMPLE_IMAGE = 'data:image/png;base64,PLACEHOLDER';
 
 async function testVisionAnalysis() {
   console.log('🔍 Testing Venice Vision API for Virtual Try-On\n');
