@@ -18,7 +18,7 @@ export {
   getGoodDollarUbiSchemeAddress,
   getGoodDollarFaucetAddress,
   isGoodDollarLiveChain,
-} from "./addresses.js";
+} from "./addresses";
 
 export {
   ERC20_ABI,
@@ -26,7 +26,7 @@ export {
   GOODDOLLAR_IDENTITY_ABI,
   GOODDOLLAR_UBISCHEME_ABI,
   GOODDOLLAR_FAUCET_ABI,
-} from "./abis.js";
+} from "./abis";
 
 export type {
   GClaimResult,
@@ -35,10 +35,10 @@ export type {
   GFlowDirection,
   GStreamRate,
   GBalanceSnapshot,
-} from "./types.js";
+} from "./types";
 
-export { getClaimStatus, claimUBI } from "./claim.js";
-export { getGBalanceSnapshot, formatGAmount } from "./balance.js";
+export { getClaimStatus, claimUBI } from "./claim";
+export { getGBalanceSnapshot, formatGAmount } from "./balance";
 export {
   createGStream,
   updateGStream,
@@ -47,4 +47,4 @@ export {
   getTotalFlowRate,
   monthlyToFlowRate,
   flowRateToMonthly,
-} from "./streaming.js";
+} from "./streaming";

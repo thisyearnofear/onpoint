@@ -29,15 +29,15 @@ import {
   decodeErrorResult,
 } from "viem";
 
-import { type GClaimStatus, type GClaimResult } from "./types.js";
+import { type GClaimStatus, type GClaimResult } from "./types";
 import {
   GOODDOLLAR_IDENTITY_ABI,
   GOODDOLLAR_UBISCHEME_ABI,
-} from "./abis.js";
+} from "./abis";
 import {
   getGoodDollarIdentityAddress,
   getGoodDollarUbiSchemeAddress,
-} from "./addresses.js";
+} from "./addresses";
 
 /** 24 hours in seconds — approximate claim cooldown for UI display. */
 const CLAIM_COOLDOWN_SECONDS = 24 * 60 * 60;

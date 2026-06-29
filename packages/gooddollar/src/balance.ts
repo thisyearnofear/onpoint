@@ -17,12 +17,12 @@ import {
   formatEther,
 } from "viem";
 
-import { type GBalanceSnapshot } from "./types.js";
-import { ERC20_ABI, SUPERFLUID_CFA_FORWARDER_ABI } from "./abis.js";
+import { type GBalanceSnapshot } from "./types";
+import { ERC20_ABI, SUPERFLUID_CFA_FORWARDER_ABI } from "./abis";
 import {
   getGTokenAddress,
   getSuperfluidCFAForwarderAddress,
-} from "./addresses.js";
+} from "./addresses";
 
 /** Cache TTL in milliseconds — matches AgentStatus panel refresh cadence. */
 const CACHE_TTL_MS = 30_000;

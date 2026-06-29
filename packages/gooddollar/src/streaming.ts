@@ -23,12 +23,12 @@ import {
   type Chain,
 } from "viem";
 
-import { type GStreamParams, type GStreamRate } from "./types.js";
-import { SUPERFLUID_CFA_FORWARDER_ABI } from "./abis.js";
+import { type GStreamParams, type GStreamRate } from "./types";
+import { SUPERFLUID_CFA_FORWARDER_ABI } from "./abis";
 import {
   getGTokenAddress,
   getSuperfluidCFAForwarderAddress,
-} from "./addresses.js";
+} from "./addresses";
 
 /**
  * Minimum buffer of 4 decimal-seconds of flow rate. Per ADR 0009 D7,
