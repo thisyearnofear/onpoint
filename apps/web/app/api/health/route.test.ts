@@ -2,6 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../lib/utils/redis-helpers", () => ({
   isRedisConfigured: vi.fn(() => true),
+  redisGet: vi.fn().mockResolvedValue(null),
+  redisSetEx: vi.fn().mockResolvedValue(undefined),
+  redisDel: vi.fn().mockResolvedValue(undefined),
 }));
 
 describe("GET /api/health", () => {
@@ -12,7 +15,8 @@ describe("GET /api/health", () => {
     vi.stubEnv("VENICE_API_KEY", "venice-key");
 
     const { GET } = await import("./route");
-    const response = await GET();
+    const req = new Request("http://localhost/api/health") as any;
+    const response = await GET(req);
     const payload = await response.json();
 
     expect(response.status).toBe(200);

@@ -63,6 +63,7 @@ scripts/
 !scripts/setup-secrets.sh
 !scripts/sync-monitoring.sh
 !scripts/test-routes.sh
+!apps/web/scripts/test-upstash.mjs
 
 # Secrets (note: .synthesis-credentials is still tracked in git history —
 # rotate the key and run: git rm --cached .synthesis-credentials)
