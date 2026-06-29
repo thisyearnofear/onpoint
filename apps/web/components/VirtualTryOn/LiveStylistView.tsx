@@ -272,6 +272,23 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
     }
   }, [capturesExhausted, sessionSummary, showSummary, handleFinish]);
 
+  // Auto-open TipSheet 1.5s after the session ending card appears for
+  // decent scores (>= 5). Users can dismiss with "Not now" and the choice
+  // is remembered per-browser via localStorage so it never nags twice.
+  const autoTipFired = React.useRef(false);
+  React.useEffect(() => {
+    if (!sessionEnding || !sessionSummary || showSummary) {
+      autoTipFired.current = false;
+      return;
+    }
+    if (autoTipFired.current) return;
+    if (sessionSummary.score < 5) return;
+    if (typeof window !== "undefined" && localStorage.getItem("onpoint-tip-dismissed") === "1") return;
+    autoTipFired.current = true;
+    const timer = setTimeout(() => setShowTipModal(true), 1500);
+    return () => clearTimeout(timer);
+  }, [sessionEnding, sessionSummary, showSummary]);
+
   const PersonaIcon = personaStyling.icon;
   const liveModeLabel = React.useMemo(
     () =>

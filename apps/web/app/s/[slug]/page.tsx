@@ -491,6 +491,19 @@ export default async function CuratorStorefrontPage({
           <CrossCuratorRecommendations sourceCuratorSlug={slug} limit={6} />
         </div>
       </section>
+
+      {/* Browse all curators */}
+      <section className="border-t border-border">
+        <div className="mx-auto max-w-6xl px-4 py-6 text-center">
+          <Link
+            href="/curators"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Browse all curators
+            <ArrowLeft className="h-3.5 w-3.5 rotate-180" />
+          </Link>
+        </div>
+      </section>
     </main>
     </>
   );

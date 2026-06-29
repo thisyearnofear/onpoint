@@ -759,6 +759,9 @@ export default function CuratorLandingPage() {
             <Link href="/curator/onboard" className="hover:text-foreground transition-colors">
               Apply
             </Link>
+            <Link href="/curators" className="hover:text-foreground transition-colors">
+              Browse curators
+            </Link>
             <Link href="/s/wanja" className="hover:text-foreground transition-colors">
               Example storefront
             </Link>

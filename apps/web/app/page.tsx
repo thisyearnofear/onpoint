@@ -1488,6 +1488,7 @@ function HeroView() {
             BeOnPoint
           </div>
           <div className="flex items-center gap-4">
+            <Link href="/curators" className="hover:text-foreground transition-colors">Browse</Link>
             <Link href="/curator" className="hover:text-foreground transition-colors">Curators</Link>
             <Link href="/lab" className="hover:text-foreground transition-colors">Lab</Link>
             <Link href="/guides" className="hover:text-foreground transition-colors">Guides</Link>

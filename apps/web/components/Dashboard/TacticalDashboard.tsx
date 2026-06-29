@@ -13,6 +13,8 @@ import {
   Image as ImageIcon,
   Radar,
   Globe,
+  Grid,
+  X,
 } from "lucide-react";
 import { NotificationBell } from "../NotificationBell";
 import type { FashionItem } from "@onpoint/shared-types";
@@ -91,13 +93,15 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
     { id: "settings" as AppMode, label: "Settings", icon: Target, color: "text-muted-foreground" },
   ];
 
-  // Mobile bottom nav: 4 core destinations
-  const bottomNavItems = [
-    { id: "dashboard" as AppMode, label: "Home", icon: LayoutDashboard },
-    { id: "my-looks" as AppMode, label: "My Looks", icon: ImageIcon },
-    // Try On is rendered as the elevated center button (not in this array)
-    { id: "settings" as AppMode, label: "Settings", icon: User },
+  // Hidden tabs accessible via "More" button on mobile
+  const moreNavItems = [
+    { id: "stylist" as AppMode, label: "Stylist", icon: MessageCircle, color: "text-primary" },
+    { id: "shop" as AppMode, label: "Shop", icon: ShoppingBag, color: "text-amber-400" },
+    { id: "intel" as AppMode, label: "Intel", icon: Radar, color: "text-emerald-400" },
+    { id: "community" as AppMode, label: "Trending", icon: Globe, color: "text-sky-400" },
   ];
+
+  const [moreOpen, setMoreOpen] = useState(false);
 
   // Route map — each mode maps to its content factory
   const contentMap: Record<AppMode, () => ReactNode> = {
@@ -225,18 +229,85 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
             </span>
           </div>
 
-          {/* Settings */}
+          {/* More — opens sheet with hidden tabs */}
           <button
-            onClick={() => navigateTo("settings")}
+            onClick={() => setMoreOpen(true)}
             className={`flex flex-col items-center gap-0.5 pt-2 pb-1 px-3 transition-colors ${
-              mode === "settings" ? "text-primary" : "text-muted-foreground"
+              moreNavItems.some((item) => item.id === mode) ? "text-primary" : "text-muted-foreground"
             }`}
           >
-            <User className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Settings</span>
+            <Grid className="w-5 h-5" />
+            <span className="text-[10px] font-medium">More</span>
           </button>
         </div>
       </nav>
+
+      {/* ── Mobile "More" sheet (hidden tabs) ── */}
+      {moreOpen && (
+        <div className="md:hidden fixed inset-0 z-[60]" onClick={() => setMoreOpen(false)}>
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          {/* Sheet */}
+          <div
+            className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl border-t border-border shadow-2xl pb-[env(safe-area-inset-bottom,0px)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-10 h-1 rounded-full bg-foreground/20" />
+            </div>
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 pb-3">
+              <span className="text-sm font-bold text-foreground">More</span>
+              <button
+                onClick={() => setMoreOpen(false)}
+                className="p-1.5 hover:bg-muted rounded-full transition-colors"
+              >
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </div>
+            {/* Tab grid */}
+            <div className="grid grid-cols-4 gap-2 px-6 pb-6">
+              {moreNavItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    navigateTo(item.id);
+                    setMoreOpen(false);
+                  }}
+                  className={`flex flex-col items-center gap-2 p-3 rounded-2xl transition-all ${
+                    mode === item.id
+                      ? "bg-muted/50 ring-1 ring-border"
+                      : "hover:bg-muted/30"
+                  }`}
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/40">
+                    <item.icon className={`w-5 h-5 ${mode === item.id ? item.color : "text-muted-foreground"}`} />
+                  </div>
+                  <span className={`text-[10px] font-medium ${mode === item.id ? "text-foreground" : "text-muted-foreground"}`}>
+                    {item.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+            {/* Settings link */}
+            <div className="border-t border-border px-6 py-3">
+              <button
+                onClick={() => {
+                  navigateTo("settings");
+                  setMoreOpen(false);
+                }}
+                className={`flex items-center gap-3 w-full py-2 transition-colors ${
+                  mode === "settings" ? "text-primary" : "text-muted-foreground"
+                }`}
+              >
+                <User className="w-5 h-5" />
+                <span className="text-sm font-medium">Settings</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
     </>
   );

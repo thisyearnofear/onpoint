@@ -8,7 +8,7 @@
 const express = require('express');
 const { neon } = require('@neondatabase/serverless');
 const { drizzle } = require('drizzle-orm/neon-http');
-const { eq, desc } = require('drizzle-orm');
+const { eq, desc, count, sql } = require('drizzle-orm');
 const { curators, listings, kitSkus } = require('@repo/db');
 const logger = require('../lib/logger');
 
@@ -80,6 +80,48 @@ function buildWhatsAppUrl(curator, listing) {
 
   return `https://wa.me/${phone.replace(/^\+/, '')}?text=${encodeURIComponent(`${text}${printingNote}`)}`;
 }
+
+// ── GET /api/curator/directory — public listing of all curators ──
+router.get('/directory', async (req, res) => {
+  let db;
+  try {
+    db = getDb();
+  } catch (err) {
+    logger.error('NEON_DATABASE_URL not configured', { component: 'curator-storefront' });
+    return res.status(503).json({ error: 'Database not configured' });
+  }
+
+  try {
+    const rows = await db
+      .select({
+        slug: curators.slug,
+        name: curators.name,
+        type: curators.type,
+        verticals: curators.verticals,
+        brand: curators.brand,
+        channels: curators.channels,
+        createdAt: curators.createdAt,
+        liveListingCount: sql`(
+          SELECT COUNT(*)::int FROM ${listings}
+          WHERE ${listings.curatorSlug} = ${curators.slug}
+          AND ${listings.status} = 'live'
+        )`.as('live_listing_count'),
+      })
+      .from(curators)
+      .orderBy(desc(curators.createdAt));
+
+    res.json({
+      curators: rows,
+      meta: {
+        total: rows.length,
+        generatedAt: new Date().toISOString(),
+      },
+    });
+  } catch (err) {
+    logger.error('Failed to list curator directory', { component: 'curator-storefront' }, err);
+    res.status(500).json({ error: 'Failed to load directory' });
+  }
+});
 
 router.get('/:slug/storefront', async (req, res) => {
   const slug = String(req.params.slug || '').toLowerCase();

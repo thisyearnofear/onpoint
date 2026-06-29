@@ -466,6 +466,17 @@ export function TipSheet({
                   <p className="text-center text-muted-foreground/50 text-[10px]">
                     Tip in cUSD or G$ UBI · Powered by GoodDollar on Celo
                   </p>
+                  <button
+                    onClick={() => {
+                      if (typeof window !== "undefined") {
+                        localStorage.setItem("onpoint-tip-dismissed", "1");
+                      }
+                      handleClose();
+                    }}
+                    className="w-full text-center text-muted-foreground/40 hover:text-muted-foreground/60 text-[10px] transition-colors pt-1"
+                  >
+                    Not now — don&apos;t auto-show tips
+                  </button>
                 </motion.div>
               )}
             </AnimatePresence>
