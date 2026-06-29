@@ -7,7 +7,6 @@ import {
   Camera,
   MessageCircle,
   LayoutDashboard,
-  Target,
   ShoppingBag,
   User,
   Image as ImageIcon,
@@ -33,6 +32,7 @@ import { DesignPanel } from "./DesignPanel";
 import { SettingsPanel } from "./SettingsPanel";
 import { MarketIntelPanel } from "./MarketIntelPanel";
 import { CommunityPanel } from "./CommunityPanel";
+import { DashboardTooltips } from "./DashboardTooltips";
 
 type AppMode = "dashboard" | "my-looks" | "try-on" | "stylist" | "shop" | "intel" | "settings" | "design" | "community";
 
@@ -81,24 +81,22 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
   // All valid modes (for URL param validation)
   const ALL_MODES: AppMode[] = ["dashboard", "my-looks", "try-on", "stylist", "shop", "intel", "settings", "design", "community"];
 
-  // Desktop top-bar: full set of tabs
+  // Desktop top-bar: 6 core tabs (reduced from 8 for cognitive load)
   const desktopNavItems = [
     { id: "dashboard" as AppMode, label: "Home", icon: LayoutDashboard, color: "text-foreground" },
     { id: "try-on" as AppMode, label: "Try On", icon: Camera, color: "text-accent" },
     { id: "stylist" as AppMode, label: "Stylist", icon: MessageCircle, color: "text-primary" },
     { id: "shop" as AppMode, label: "Shop", icon: ShoppingBag, color: "text-amber-400" },
-    { id: "intel" as AppMode, label: "Intel", icon: Radar, color: "text-emerald-400" },
     { id: "my-looks" as AppMode, label: "My Looks", icon: Palette, color: "text-indigo-400" },
-    { id: "community" as AppMode, label: "Trending", icon: Globe, color: "text-sky-400" },
-    { id: "settings" as AppMode, label: "Settings", icon: Target, color: "text-muted-foreground" },
+    { id: "community" as AppMode, label: "Community", icon: Globe, color: "text-sky-400" },
   ];
 
-  // Hidden tabs accessible via "More" button on mobile
+  // Hidden tabs accessible via "More" button on mobile + desktop overflow
   const moreNavItems = [
+    { id: "intel" as AppMode, label: "Market Intel", icon: Radar, color: "text-emerald-400" },
+    { id: "community" as AppMode, label: "Community", icon: Globe, color: "text-sky-400" },
     { id: "stylist" as AppMode, label: "Stylist", icon: MessageCircle, color: "text-primary" },
     { id: "shop" as AppMode, label: "Shop", icon: ShoppingBag, color: "text-amber-400" },
-    { id: "intel" as AppMode, label: "Intel", icon: Radar, color: "text-emerald-400" },
-    { id: "community" as AppMode, label: "Trending", icon: Globe, color: "text-sky-400" },
   ];
 
   const [moreOpen, setMoreOpen] = useState(false);
@@ -149,6 +147,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
   return (
     <>
       <NewUserOnboarding />
+      <DashboardTooltips />
       <div className="flex flex-col min-h-screen bg-background">
 
       {/* ── Desktop top tab bar (hidden on mobile) ── */}
@@ -176,6 +175,18 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
               </button>
             ))}
             <div className="ml-auto flex items-center gap-1">
+              {/* Desktop More button — Market Intel + Settings */}
+              <button
+                onClick={() => setMoreOpen(true)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all whitespace-nowrap ${
+                  mode === "intel" || mode === "settings"
+                    ? "bg-muted text-foreground ring-1 ring-border"
+                    : "text-muted-foreground hover:text-foreground/80"
+                }`}
+              >
+                <Grid className="w-4 h-4" />
+                <span className="text-sm font-medium">More</span>
+              </button>
               <NotificationBell />
             </div>
           </div>
@@ -242,9 +253,9 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
         </div>
       </nav>
 
-      {/* ── Mobile "More" sheet (hidden tabs) ── */}
+      {/* ── "More" sheet (hidden tabs — works on both mobile and desktop) ── */}
       {moreOpen && (
-        <div className="md:hidden fixed inset-0 z-[60]" onClick={() => setMoreOpen(false)}>
+        <div className="fixed inset-0 z-[60]" onClick={() => setMoreOpen(false)}>
           {/* Backdrop */}
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           {/* Sheet */}

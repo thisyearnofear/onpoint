@@ -1378,14 +1378,19 @@ function HeroView() {
                   ref={heroCtaRef}
                   className="flex flex-col sm:flex-row items-center lg:items-start gap-3"
                 >
-                  <Link
-                    href="/lab"
-                    className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 active:bg-primary/80 active:scale-[0.98] text-white font-bold px-8 py-6 rounded-full text-lg shadow-lg shadow-primary/25 transition-[background-color,transform]"
-                  >
-                    <Camera className="w-5 h-5" />
-                    Try It Free
-                    <ArrowRight className="w-5 h-5" />
-                  </Link>
+                  <div className="flex flex-col items-center gap-1.5">
+                    <Link
+                      href="/lab"
+                      className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 active:bg-primary/80 active:scale-[0.98] text-white font-bold px-8 py-6 rounded-full text-lg shadow-lg shadow-primary/25 transition-[background-color,transform]"
+                    >
+                      <Camera className="w-5 h-5" />
+                      Try It Free
+                      <ArrowRight className="w-5 h-5" />
+                    </Link>
+                    <p className="text-[11px] text-muted-foreground/70 text-center max-w-[280px]">
+                      Snap a photo or upload one — your AI stylist scores your fit in seconds
+                    </p>
+                  </div>
                   <DemoToggleButton onClick={() => setShowDemo(true)} />
                 </div>
               </Reveal>

@@ -18,6 +18,9 @@ import {
   AlertCircle,
   Star,
   Link2,
+  Coins,
+  Gift,
+  Sparkles,
 } from "lucide-react";
 import { MissionService } from "../lib/services/mission-service";
 import { useMiniApp } from "@neynar/react";
@@ -42,6 +45,7 @@ export function EnhancedConnectButton({
   const { signMessageAsync } = useSignMessage();
   const [walletLinked, setWalletLinked] = useState(false);
   const [linkingWallet, setLinkingWallet] = useState(false);
+  const [showValueProp, setShowValueProp] = useState(false);
 
   useEffect(() => {
     setWalletLinked(false);
@@ -189,16 +193,52 @@ export function EnhancedConnectButton({
                   )}
                 </div>
               ) : (
-                <Button
-                  variant="outline"
-                  className="border-primary/50 bg-primary/10 hover:bg-primary/20 text-primary transition-all active:scale-95"
-                  onClick={openConnectModal}
+                <div
+                  className="relative"
+                  onMouseEnter={() => setShowValueProp(true)}
+                  onMouseLeave={() => setShowValueProp(false)}
                 >
-                  <div className="flex items-center gap-2">
-                    <Wallet className="h-4 w-4" />
-                    <span>Connect Wallet</span>
-                  </div>
-                </Button>
+                  <Button
+                    variant="outline"
+                    className="border-primary/50 bg-primary/10 hover:bg-primary/20 text-primary transition-all active:scale-95"
+                    onClick={openConnectModal}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Wallet className="h-4 w-4" />
+                      <span>Connect Wallet</span>
+                    </div>
+                  </Button>
+                  {showValueProp && (
+                    <div className="absolute top-full right-0 mt-2 w-64 bg-card border border-border rounded-2xl shadow-xl p-4 z-50 animate-fade-in">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-3">
+                        Why connect?
+                      </p>
+                      <div className="space-y-2.5">
+                        <div className="flex items-start gap-2">
+                          <Gift className="w-3.5 h-3.5 text-emerald-400 mt-0.5 shrink-0" />
+                          <p className="text-xs text-foreground/80">
+                            Claim <span className="font-bold">free G$ UBI</span> daily
+                          </p>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <Coins className="w-3.5 h-3.5 text-amber-400 mt-0.5 shrink-0" />
+                          <p className="text-xs text-foreground/80">
+                            <span className="font-bold">Tip your stylist</span> in cUSD or G$
+                          </p>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <Sparkles className="w-3.5 h-3.5 text-indigo-400 mt-0.5 shrink-0" />
+                          <p className="text-xs text-foreground/80">
+                            <span className="font-bold">Mint Proof of Style</span> NFTs
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground/50 mt-3 pt-2 border-t border-border/50">
+                        On Celo · No gas fees for claiming
+                      </p>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           );

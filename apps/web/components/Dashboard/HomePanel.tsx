@@ -94,9 +94,9 @@ export function HomePanel({ onNavigate }: HomePanelProps) {
           { label: "Try On", icon: Camera, mode: "try-on", color: "bg-accent/10 text-accent border-accent/20" },
           { label: "Stylist", icon: MessageCircle, mode: "stylist", color: "bg-primary/10 text-primary border-primary/20" },
           { label: "Shop", icon: ShoppingBag, mode: "shop", color: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
-          { label: "Intel", icon: Radar, mode: "intel", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
+          { label: "Market Intel", icon: Radar, mode: "intel", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
           { label: "My Looks", icon: Palette, mode: "my-looks", color: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" },
-          { label: "Trending", icon: Globe, mode: "community", color: "bg-sky-500/10 text-sky-400 border-sky-500/20" },
+          { label: "Community", icon: Globe, mode: "community", color: "bg-sky-500/10 text-sky-400 border-sky-500/20" },
         ].map((action) => (
           <button
             key={action.mode}

@@ -14,8 +14,13 @@ import {
   Zap,
   Coins,
   ShoppingBag,
+  Check,
+  Plus,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
+import type { FashionItem } from "@onpoint/shared-types";
+import { FashionCategory } from "@onpoint/shared-types";
+import { useCartStore } from "../../lib/stores/cart-store";
 import type { SessionSummary, CaptureOption } from "./hooks/useLiveSession";
 import { getScoreConfig, generateShareText } from "../../lib/utils/score-utils";
 import { SocialUtils } from "../../lib/utils/social";
@@ -63,6 +68,30 @@ export function SessionEndingCard({
   const scoreConfig = getScoreConfig(summary.score);
 
   const [isSharing, setIsSharing] = useState(false);
+  const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
+  const addItem = useCartStore((s) => s.addItem);
+  const openCart = useCartStore((s) => s.openCart);
+
+  const handleAddToCart = (product: { name: string; price: number; category: string }, index: number) => {
+    const id = `rec-${index}-${product.name}`;
+    if (addedIds.has(id)) {
+      openCart();
+      return;
+    }
+    const fashionItem: FashionItem = {
+      id,
+      slug: product.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+      name: product.name,
+      description: `AI recommended from ${product.category}`,
+      price: product.price,
+      category: FashionCategory.Accessories,
+      cover: "",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    addItem(fashionItem);
+    setAddedIds((prev) => new Set(prev).add(id));
+  };
 
   const shareToFarcaster = async () => {
     setIsSharing(true);
@@ -281,29 +310,50 @@ export function SessionEndingCard({
                 Recommended For You
               </p>
               <div className="space-y-2">
-                {recommendedProducts.slice(0, 3).map((product, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50"
-                  >
-                    <div className="flex items-center gap-2">
-                      <ShoppingBag className="w-4 h-4 text-primary/70" />
-                      <div>
-                        <p className="text-xs text-foreground font-medium">
-                          {product.name}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {product.category.includes(".")
-                            ? `Found at ${product.category}`
-                            : product.category}
-                        </p>
+                {recommendedProducts.slice(0, 3).map((product, i) => {
+                  const itemId = `rec-${i}-${product.name}`;
+                  const isAdded = addedIds.has(itemId);
+                  return (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50"
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <ShoppingBag className="w-4 h-4 text-primary/70 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-xs text-foreground font-medium truncate">
+                            {product.name}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {product.category.includes(".")
+                              ? `Found at ${product.category}`
+                              : product.category}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs text-amber-400 font-bold">
+                          ${product.price}
+                        </span>
+                        <button
+                          onClick={() => handleAddToCart(product, i)}
+                          className={`flex items-center justify-center w-7 h-7 rounded-lg transition-all ${
+                            isAdded
+                              ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                              : "bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20"
+                          }`}
+                          aria-label={isAdded ? "View cart" : "Add to cart"}
+                        >
+                          {isAdded ? (
+                            <Check className="w-3.5 h-3.5" />
+                          ) : (
+                            <Plus className="w-3.5 h-3.5" />
+                          )}
+                        </button>
                       </div>
                     </div>
-                    <span className="text-xs text-amber-400 font-bold">
-                      ${product.price}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               <Button
                 onClick={onViewShop}

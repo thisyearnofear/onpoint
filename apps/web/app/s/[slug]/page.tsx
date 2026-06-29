@@ -92,9 +92,17 @@ export async function generateMetadata({
     };
   }
 
+  const verticals = storefront.curator.verticals ?? [];
+  const verticalLabel = verticals.length > 0
+    ? ` · ${verticals.slice(0, 3).join(", ")}`
+    : "";
+  const listingLabel = storefront.meta.listingCount > 0
+    ? `${storefront.meta.listingCount} live listing${storefront.meta.listingCount !== 1 ? "s" : ""}`
+    : "Storefront";
+
   return {
     title: `${storefront.curator.name} | OnPoint`,
-    description: `Shop ${storefront.curator.name}'s live OnPoint storefront.`,
+    description: `${listingLabel} from ${storefront.curator.name}${verticalLabel}. Try on items with AI, then checkout via WhatsApp.`,
   };
 }
 
