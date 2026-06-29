@@ -5,13 +5,12 @@
  * `@superfluid-finance/sdk-core`. Raw viem writes to CFAv1Forwarder work
  * with these small, well-documented ABIs.
  *
- * Each ABI is the smallest set of functions/methods we actually call.
- * No events are exported yet — they will land when claim.ts and
- * streaming.ts land in Waves 2 and 3 respectively.
+ * GoodDollar on Celo uses separate contracts for Identity (whitelist)
+ * and UBIScheme (claim). The ABIs are split accordingly.
  */
 
 // ============================================
-// ERC-20 (G$ is ERC-20 with standard surface)
+// ERC-20 (G$ is ERC-20 / ERC-777 with standard surface)
 // ============================================
 
 export const ERC20_ABI = [
@@ -51,13 +50,6 @@ export const ERC20_ABI = [
 // ============================================
 // Superfluid CFAv1Forwarder
 // ============================================
-//
-// The forwarder is a meta-transaction entry point. Calling createFlow on
-// it executes the flow on behalf of `msg.sender` (the connected wallet),
-// so the user does NOT need to hold Superfluid's own host contract
-// permissions. This is the recommended pattern for dapp integrations.
-//
-// Reference: https://docs.superfluid.finance/developers/constant-flow-agreement-cfa/forwarder
 
 export const SUPERFLUID_CFA_FORWARDER_ABI = [
   {
@@ -122,38 +114,98 @@ export const SUPERFLUID_CFA_FORWARDER_ABI = [
 ] as const;
 
 // ============================================
-// GoodDollar Identity (UBI claim)
+// GoodDollar Identity (whitelist + wallet-link)
 // ============================================
 //
-// The Identity contract exposes a `claim()` function (no args) that
-// distributes the per-identity daily UBI in G$ if the caller is a
-// verified GoodDollar member and has not claimed in the last 24h.
+// The Identity contract manages whitelist state. Users are whitelisted
+// after passing face verification. Connected (non-root) wallets are NOT
+// directly whitelisted — use getWhitelistedRoot to check eligibility.
 //
-// `lastClaim(address)` returns the unix timestamp of the user's most
-// recent successful claim, or 0 if they have never claimed.
-//
-// Reference: https://docs.gooddollar.org/for-developers
+// Reference: https://docs.gooddollar.org/for-developers/core-contracts/identity
 
 export const GOODDOLLAR_IDENTITY_ABI = [
+  {
+    name: "isWhitelisted",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    name: "getWhitelistedRoot",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ name: "whitelisted", type: "address" }],
+  },
+  {
+    name: "lastAuthenticated",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ name: "timestamp", type: "uint256" }],
+  },
+  {
+    name: "authenticationPeriod",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "period", type: "uint256" }],
+  },
+] as const;
+
+// ============================================
+// GoodDollar UBIScheme (daily claim)
+// ============================================
+//
+// The UBIScheme contract handles UBI distribution. claim() distributes
+// the daily UBI to whitelisted users. checkEntitlement() returns the
+// claimable amount (0 if not eligible or already claimed).
+//
+// This is SEPARATE from the Identity contract.
+// Reference: https://docs.gooddollar.org/for-developers/core-contracts
+
+export const GOODDOLLAR_UBISCHEME_ABI = [
   {
     name: "claim",
     type: "function",
     stateMutability: "nonpayable",
     inputs: [],
+    outputs: [],
+  },
+  {
+    name: "checkEntitlement",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "account", type: "address" }],
     outputs: [{ name: "amount", type: "uint256" }],
   },
+] as const;
+
+// ============================================
+// GoodDollar Faucet (gas sponsorship)
+// ============================================
+
+export const GOODDOLLAR_FAUCET_ABI = [
   {
-    name: "lastClaim",
+    name: "topWallet",
     type: "function",
-    stateMutability: "view",
-    inputs: [{ name: "user", type: "address" }],
-    outputs: [{ name: "timestamp", type: "uint256" }],
+    stateMutability: "nonpayable",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [],
   },
   {
-    name: "isWhitelisted",
+    name: "minTopping",
     type: "function",
     stateMutability: "view",
-    inputs: [{ name: "user", type: "address" }],
-    outputs: [{ name: "", type: "bool" }],
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    name: "toppingAmount",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
   },
 ] as const;

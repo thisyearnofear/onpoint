@@ -19,6 +19,7 @@ import { useAccount } from "wagmi";
 import { AgentAuditLog } from "./AgentAuditLog";
 import { MerchantAllowlist } from "./MerchantAllowlist";
 import { AddFundsButton } from "./AddFundsButton";
+import { GBalancePill } from "../Curator/GBalancePill";
 
 interface AgentWallet {
   chain: string;
@@ -415,6 +416,14 @@ export function AgentStatus({
             </div>
           </div>
         ))}
+
+        {/* G$ UBI balance + claim */}
+        <div className="flex items-center justify-between pt-1">
+          <span className="text-muted-foreground text-xs uppercase tracking-wider">
+            GoodDollar UBI
+          </span>
+          <GBalancePill />
+        </div>
 
       </div>
 

@@ -17,8 +17,12 @@ import {
   ShoppingBag,
   Smartphone,
   Share2,
+  Gift,
+  ChevronDown,
+  CheckCircle,
 } from "lucide-react";
 import { getApiBase } from "../../../lib/utils/api-base";
+import { GClaimCTA } from "../../../components/Curator/GClaimCTA";
 
 // ── Valid verticals (mirrors server-side list) ──────────────
 
@@ -101,6 +105,8 @@ export default function CuratorOnboardPage() {
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [serverMessage, setServerMessage] = useState("");
   const [storefrontUrl, setStorefrontUrl] = useState("");
+  const [gSectionOpen, setGSectionOpen] = useState(false);
+  const [gClaimed, setGClaimed] = useState(false);
 
   const handleChange = useCallback(
     (field: keyof FormData, value: string | string[]) => {
@@ -519,6 +525,52 @@ export default function CuratorOnboardPage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* ── GoodDollar UBI claim (optional) ── */}
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setGSectionOpen((v) => !v)}
+              className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-left transition-colors hover:bg-muted/30"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10">
+                  <Gift className="h-4 w-4 text-emerald-500" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-foreground">
+                    Claim today&apos;s G$ UBI?
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    Free daily GoodDollar — optional, takes 10 seconds.
+                  </p>
+                </div>
+              </div>
+              <ChevronDown
+                className={`h-4 w-4 text-muted-foreground transition-transform ${
+                  gSectionOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {gSectionOpen && (
+              <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+                {gClaimed && (
+                  <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
+                    <CheckCircle className="h-4 w-4 shrink-0" />
+                    G$ claimed! Funds are in your wallet on Celo.
+                  </div>
+                )}
+                <GClaimCTA
+                  onClaimed={() => setGClaimed(true)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  GoodDollar is a UBI protocol on Celo. You can claim once per
+                  day if you have a verified GoodDollar identity.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* ── Error banner ── */}

@@ -24,8 +24,11 @@ The 0G Bridge Buildathon (current primary focus, ends Aug 21) does not conflict 
 
 ## Verified facts
 
-- G$ on Celo mainnet: `0x62B8B1109F25406f3D27cDaA3F8d2305d6eDbBB7` (ERC-20, 18 decimals)
-- G$ is a **native Superfluid SuperToken** on Celo — no wrapping needed. `CFAv1Forwarder.createFlow()` works directly. Confirmed by GoodDollar's official docs (`docs.gooddollar.org/.../use-gusd-streaming`).
+- G$ on Celo mainnet: `0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A` (SuperGoodDollar SuperToken, 18 decimals) — verified against `@goodsdks/citizen-sdk` v1.2.5 and GoodDollar docs
+- G$ is a **native Superfluid SuperToken** on Celo — no wrapping needed. `CFAv1Forwarder.createFlow()` works directly.
+- GoodDollar on Celo uses **three separate contracts**: Identity (`0xC361...`) for whitelist/FV, UBIScheme (`0x43d7...`) for claims, Faucet (`0x4F93...`) for gas sponsorship
+- `@goodsdks/citizen-sdk` (viem-based, 2 deps) provides `ClaimSDK` + `IdentitySDK` with gas faucet, face verification (`generateFVLink`), and connected-wallet detection (`getWhitelistedRoot`)
+- Superfluid CFAv1Forwarder on Celo: `0xcfA132E353cB4E398081B7F68C40dA562f0Fa1Da`
 - Existing tip infra: `apps/api/routes/agent-tip.js` (record-only), `agent-tip-agent.js` (real on-chain via signer), `apps/web/components/Agent/TipModal.tsx` (real wagmi `writeContract`).
 - Existing Superfluid slot: `subscription-service.ts` already has `paymentMethod: "superfluid"` but stores `flowRate` only — no on-chain flow creation yet. S4 implementation closes that TODO.
 - Existing onboard: `apps/web/app/curator/onboard/page.tsx` → POST `/api/curator/apply`. No wallet, no claim.
@@ -34,17 +37,26 @@ The 0G Bridge Buildathon (current primary focus, ends Aug 21) does not conflict 
 
 | Surface | Status | Notes |
 |---|---|---|
-| `@repo/gooddollar` package | Planned | Single source of truth for G$ addresses, ABIs, claim helpers, streaming helpers |
+| `@repo/gooddollar` package | **Shipped** | Single source of truth for G$ addresses, ABIs, claim helpers, streaming helpers, balance reads |
+| `packages/gooddollar/src/addresses.ts` | **Shipped** | Split Identity / UBIScheme / Faucet / G$ token / CFA Forwarder (verified against citizen-sdk v1.2.5) |
+| `packages/gooddollar/src/claim.ts` | **Shipped** | `getClaimStatus` (getWhitelistedRoot + checkEntitlement) + `claimUBI` with simulation + revert decoding |
+| `packages/gooddollar/src/streaming.ts` | **Shipped** | `createGStream` / `updateGStream` / `deleteGStream` / `getFlowRate` / `getTotalFlowRate` + `monthlyToFlowRate` / `flowRateToMonthly` |
+| `packages/gooddollar/src/balance.ts` | **Shipped** | `getGBalanceSnapshot` (30s cache) + `formatGAmount` |
+| `packages/gooddollar/src/__tests__/` | **Shipped** | 23 tests (claim + balance + streaming), all passing |
+| `@goodsdks/citizen-sdk` dep in `apps/web` | **Shipped** | ClaimSDK + IdentitySDK for gas faucet, FV redirect, connected-wallet detection |
+| `apps/web/lib/services/g-claim-service.ts` | **Shipped** | Wrapper using citizen-sdk: createIdentitySDK, createClaimSDK, checkWhitelist, checkEntitlement, generateFVLink, claimUBI |
+| `apps/web/lib/services/g-stream-service.ts` | **Shipped** | Thin wrapper: openStream, updateStream, closeStream, getStreamMonthly, getTotalOutgoingMonthly |
+| `apps/web/components/Curator/GClaimCTA.tsx` | **Shipped** | Full claim flow: disconnected → wrong-chain → not-whitelisted (FV) → can-claim → claiming → success → cooldown |
+| `apps/web/components/Curator/GBalancePill.tsx` | **Shipped** | Persistent G$ balance indicator with 30s cache, expandable claim CTA, in AgentStatus |
+| `apps/web/components/Curator/GStreamPanel.tsx` | **Shipped** | Superfluid streaming subscription panel with preset amounts, active stream management |
+| `apps/web/components/Agent/AddFundsButton.tsx` | **Shipped** | "Claim G$ instead" tile + unified success state with auto-close |
+| `apps/web/app/curator/onboard/page.tsx` | **Shipped** | Collapsible G$ UBI claim section |
+| `apps/web/app/s/[slug]/page.tsx` | **Shipped** | GStreamPanel in curator storefront sidebar (shows when curator has `commerce.walletAddress`) |
+| `Curator.commerce.walletAddress` | **Shipped** | Added to shared-types for G$ streaming destination |
 | `getTokenAddress("GOOD_DOLLAR", "celo")` in `chains.ts` | Planned | Replaces hardcoded `CUSD_ADDRESS` const in TipModal |
-| `isSuperfluidNativeToken(symbol, chain)` helper | Planned | Returns true only for G$ on Celo |
 | `"G$"` in spend-policy allowlist | Planned | One line in `spend-policy.ts` |
 | `"ubi_claim"` action type in `AgentControls` | Planned | Owns its own daily cap + audit trail, separate from tip/purchase |
-| `packages/gooddollar/src/claim.ts` | Planned | `claimUBI(publicClient, walletClient)` → tx |
-| `packages/gooddollar/src/streaming.ts` | Planned | `createGStream` / `updateGStream` / `deleteGStream` / `getFlowRate` |
-| `packages/gooddollar/src/balance.ts` | Planned | Cached G$ balance + stream rate reads |
 | **I1: G$ tip jar** in `TipModal` + `AgentStatus` | Planned | Score-gated amounts rendered as "1,000 G$" etc. |
-| **I2: G$ streaming subs** in `subscription-service` | Planned | Closes the on-chain flow TODO in the subscription route |
-| **I3: G$ claim onboarding** in `/curator/onboard` + `AddFundsButton` | Planned | One CTA component reused in both surfaces |
 | KPI dashboard action types | Planned | `tip_g$`, `claim`, `stream_g$` registered with `Metrics.countAction` |
 
 ## What we explicitly will **not** build
@@ -56,7 +68,7 @@ Per **PREVENT BLOAT** and **CONSOLIDATION**:
 - No G$ as a payment rail for actual product checkout. G$ is ~$0.0001 with high volatility — wrong medium for commerce.
 - No GoodDollar V2 (V4) protocol migration work.
 - No GoodDollar Reserve, Savings (sG$), or DAO governance integration.
-- No GoodDollar face-verification backend — we surface the contract revert and link to GoodDollar's verification flow.
+- No GoodDollar face-verification backend — handled by `@goodsdks/citizen-sdk`'s `generateFVLink()` which opens GoodDollar's hosted FV flow in-app.
 
 ## Architecture (Core Principles compliance)
 
@@ -241,6 +253,8 @@ pnpm turbo run test --filter=@repo/gooddollar
 ## Links
 
 - GoodBuilders Season 4: https://gooddollar.org
-- G$ on CeloScan: https://celoscan.io/token/0x62B8B1109F25406f3D27cDaA3F8d2305d6eDbBB7
-- GoodDollar docs — G$ streaming: https://docs.gooddollar.org/for-developers/developer-guides/use-gusd-streaming
+- G$ on CeloScan: https://celoscan.io/token/0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A
+- GoodDollar docs — core contracts: https://docs.gooddollar.org/for-developers/core-contracts
+- GoodDollar docs — Sybil Resistance / Identity SDK: https://docs.gooddollar.org/for-developers/apis-and-sdks/sybil-resistance
+- `@goodsdks/citizen-sdk` on npm: https://www.npmjs.com/package/@goodsdks/citizen-sdk
 - Superfluid CFAv1Forwarder on Celo: `0xcfA132E353cB4E398081B7F68C40dA562f0Fa1Da`

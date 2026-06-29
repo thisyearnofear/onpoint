@@ -19,6 +19,7 @@ import { ShareStorefront } from "../../../components/ShareStorefront";
 import { CrossCuratorRecommendations } from "../../../components/CrossCuratorRecommendations";
 import { AICuratorSection } from "../../../components/AICuratorSection";
 import { MpesaPaymentPanel } from "./MpesaPaymentPanel";
+import { GStreamPanel } from "../../../components/Curator/GStreamPanel";
 import { getApiBase } from "../../../lib/utils/api-base";
 
 export const dynamic = "force-dynamic";
@@ -270,6 +271,12 @@ export default async function CuratorStorefrontPage({
                   <MessageCircle className="h-4 w-4" />
                   Message {curator.name}
                 </a>
+              )}
+              {curator.commerce?.walletAddress && (
+                <GStreamPanel
+                  curatorAddress={curator.commerce.walletAddress}
+                  curatorName={curator.name}
+                />
               )}
             </div>
           </aside>

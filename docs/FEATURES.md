@@ -439,3 +439,49 @@ All 16 ported agent routes run directly on Hetzner Express, backed by `@repo/age
 | **Score Progression**    | ✅  | -          | -        | Complete |
 | **Product Notifications**| ✅  | -          | -        | Complete |
 | **Style Recap Email**    | ✅  | -          | -        | Complete |
+| **GoodDollar G$ UBI Claim** | ✅ | - | - | Complete |
+| **GoodDollar G$ Streaming** | ✅ | - | - | Complete |
+| **GoodDollar G$ Balance** | ✅ | - | - | Complete |
+
+---
+
+## GoodDollar G$ Integration — Phase 14
+
+Three live G$ integrations on Celo mainnet for GoodBuilders Season 4 eligibility. See [ADR 0009](./adr/0009-gooddollar-g-integration.md) and [GoodBuilders S4 plan](./hackathons/goodbuilders-season-4.md).
+
+### G$ UBI Claim (`GClaimCTA`)
+
+A composable claim call-to-action reused in three surfaces:
+- **`/curator/onboard`** — collapsible "Claim your daily G$" section in the curator onboarding form
+- **`AddFundsButton` modal** — "Claim G$ instead" tile above fiat onramp options
+- **`AgentStatus` panel** — persistent `GBalancePill` that expands to reveal the claim CTA
+
+Full flow backed by `@goodsdks/citizen-sdk`:
+1. Wallet not connected → connect prompt
+2. Wrong chain → one-click "Switch to Celo"
+3. Not whitelisted → "Verify" button opens GoodDollar's in-app face verification (`generateFVLink`); polls `getWhitelistedRoot` on return
+4. Can claim → "Claim today's G$" button (SDK handles gas faucet automatically)
+5. Already claimed → countdown to next claim time
+6. Success → amount + Celoscan link
+
+### G$ Streaming Subscriptions (`GStreamPanel`)
+
+Superfluid G$ streaming panel on curator storefronts (`/s/[slug]`). Lets users open, update, or close continuous per-second G$ streams to curators. Shows when a curator has `commerce.walletAddress` set.
+
+- Preset monthly amounts (5 / 10 / 25 / 50 G$/mo)
+- Active stream management (update rate, stop stream)
+- `monthlyToFlowRate` / `flowRateToMonthly` conversion helpers
+- Min flow rate validation (0.0001 G$/s per ADR 0009 D7)
+
+### G$ Balance Pill (`GBalancePill`)
+
+Persistent G$ balance indicator in `AgentStatus` with 30-second cache via `getGBalanceSnapshot`. Auto-hides when balance is zero (first-time users). Expands to reveal the claim CTA.
+
+### Package: `@repo/gooddollar`
+
+Single source of truth for GoodDollar contract addresses, ABIs, and helpers:
+- `addresses.ts` — Identity, UBIScheme, Faucet, G$ token, CFAv1Forwarder (verified against citizen-sdk v1.2.5)
+- `claim.ts` — `getClaimStatus` (getWhitelistedRoot + checkEntitlement) + `claimUBI`
+- `streaming.ts` — `createGStream` / `updateGStream` / `deleteGStream` / `getFlowRate` / `getTotalFlowRate`
+- `balance.ts` — `getGBalanceSnapshot` (30s cache) + `formatGAmount`
+- 23 unit tests, all passing

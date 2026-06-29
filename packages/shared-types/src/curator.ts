@@ -64,6 +64,8 @@ export interface Curator {
     revShare?: number;
     /** M-Pesa till/paybill number */
     mpesaNumber?: string;
+    /** Celo wallet address for G$ streaming subscriptions (Superfluid). */
+    walletAddress?: `0x${string}`;
   };
 }
 

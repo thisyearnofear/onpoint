@@ -13,9 +13,11 @@ import {
   Check,
   ArrowRight,
   Ban,
+  Gift,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { useAccount } from "wagmi";
+import { GClaimCTA } from "../Curator/GClaimCTA";
 
 type FiatCurrency = "MXN" | "USD" | "EUR";
 
@@ -76,6 +78,8 @@ export function AddFundsButton() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [showGClaim, setShowGClaim] = useState(false);
+  const [gClaimTxHash, setGClaimTxHash] = useState<string | null>(null);
 
   const reset = useCallback(() => {
     setStep("amount");
@@ -86,6 +90,8 @@ export function AddFundsButton() {
     setLoading(false);
     setError(null);
     setCopiedField(null);
+    setShowGClaim(false);
+    setGClaimTxHash(null);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -212,7 +218,11 @@ export function AddFundsButton() {
                           ? "Review your quote"
                           : step === "order"
                             ? "Complete your payment"
-                            : "Funds added"}
+                            : step === "done"
+                              ? gClaimTxHash
+                                ? "G$ UBI claimed"
+                                : "Funds added"
+                              : "Funds added"}
                     </p>
                   </div>
                 </div>
@@ -243,6 +253,42 @@ export function AddFundsButton() {
                           Connect your wallet to add funds
                         </p>
                       </div>
+                    )}
+
+                    {/* G$ UBI claim tile */}
+                    {address && !showGClaim && (
+                      <button
+                        onClick={() => setShowGClaim(true)}
+                        className="flex w-full items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-left transition-colors hover:bg-emerald-500/10"
+                      >
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10">
+                          <Gift className="h-4 w-4 text-emerald-400" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-bold text-emerald-300">
+                            Claim G$ instead
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Free daily GoodDollar UBI — no fiat needed
+                          </p>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-emerald-400" />
+                      </button>
+                    )}
+
+                    {address && showGClaim && (
+                      <GClaimCTA
+                        compact
+                        onClaimed={(txHash) => {
+                          setGClaimTxHash(txHash);
+                          // Transition to unified success step
+                          setStep("done");
+                          // Auto-close after 4 seconds
+                          setTimeout(() => {
+                            handleClose();
+                          }, 4000);
+                        }}
+                      />
                     )}
 
                     <div>
@@ -459,6 +505,36 @@ export function AddFundsButton() {
                     >
                       {closeLabel}
                     </Button>
+                  </div>
+                )}
+
+                {step === "done" && (
+                  <div className="space-y-4">
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-6 text-center space-y-3">
+                      <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto" />
+                      <p className="text-emerald-300 font-bold text-lg">
+                        {gClaimTxHash ? "G$ Claimed!" : "Funds Added!"}
+                      </p>
+                      <p className="text-muted-foreground text-sm">
+                        {gClaimTxHash
+                          ? "Your daily GoodDollar UBI is now in your wallet on Celo."
+                          : "Your top-up is being processed."}
+                      </p>
+                      {gClaimTxHash && (
+                        <a
+                          href={`https://celoscan.io/tx/${gClaimTxHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-emerald-400 hover:underline"
+                        >
+                          View on Celoscan
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
+                      <p className="text-[10px] text-muted-foreground/60 pt-1">
+                        Closing automatically…
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>

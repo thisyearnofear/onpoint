@@ -57,7 +57,7 @@ Streaming subs lock the G$ flow rate at stream creation. We snapshot the G$/USD 
 
 ### D7. Claim hook is composable, not a new page
 
-`GClaimCTA` is an ~80-line component reused in both `AddFundsButton.tsx` (above the Etherfuse fiat tiles) and `apps/web/app/curator/onboard/page.tsx` (between the brand-color section and the submit button). It takes `onClaimed` as a callback and owns no success UX.
+`GClaimCTA` is a composable component reused in both `AddFundsButton.tsx` (above the Etherfuse fiat tiles) and `apps/web/app/curator/onboard/page.tsx` (between the brand-color section and the submit button). It takes `onClaimed(txHash)` as a callback and manages the full claim flow internally: wallet-not-connected → wrong-chain → not-whitelisted (in-app FV via `generateFVLink`) → can-claim → claiming → success → cooldown. A `GBalancePill` persistent indicator sits in `AgentStatus.tsx` and expands to reveal the same CTA.
 
 **Rationale (MODULAR, ORGANIZED):** a "gooddollar" page or route group would imply G$ is a separate product. It is not — it is one payment and one claim rail inside the existing product. Reuse the same component in both surfaces keeps the UI identical and reduces drift.
 
@@ -73,8 +73,32 @@ Streaming subs lock the G$ flow rate at stream creation. We snapshot the G$/USD 
 - G$ as a payment rail for actual product checkout. G$ is ~$0.0001 with high volatility — wrong medium for commerce.
 - GoodDollar V2 (V4) protocol migration work.
 - GoodDollar Reserve, Savings (sG$), or DAO governance integration.
-- GoodDollar face-verification backend — we surface the contract revert and link to GoodDollar's verification flow.
-- Adding a GoodDollar SDK dependency. Raw viem writes keep the dep surface small.
+- GoodDollar face-verification backend — handled by `@goodsdks/citizen-sdk`'s `generateFVLink()` which opens GoodDollar's hosted FV flow in-app (see D9).
+
+### D9. Web layer uses `@goodsdks/citizen-sdk` for the full claim UX
+
+The raw-viem helpers in `@repo/gooddollar/claim.ts` remain the canonical package-level interface (no SDK dep, usable by non-web consumers). In `apps/web`, the `g-claim-service.ts` wrapper uses `@goodsdks/citizen-sdk`'s `ClaimSDK` + `IdentitySDK` which handle:
+
+- **Gas faucet**: auto-tops-up CELO so users can claim without holding gas tokens
+- **Face verification**: `generateFVLink(callbackUrl)` opens GoodDollar's hosted FV flow in a new tab; the CTA polls `getWhitelistedRoot()` on return
+- **Connected wallets**: `getWhitelistedRoot(address)` returns the root whitelisted address (non-zero = eligible), correctly handling wallets linked via `connectAccount`
+- **Multi-chain fallback**: SDK tries Celo → XDC → Fuse for entitlement
+
+**Rationale (ENHANCEMENT FIRST):** the SDK is viem-based (no ethers conflict), 2 deps, 245KB unpacked. Re-implementing gas faucet + FV redirect + connected-wallet detection in raw viem would be ~500 lines of fragile code that duplicates GoodDollar's maintained SDK. The package stays SDK-free for non-web consumers; the web app gets the delightful path.
+
+### D10. Identity and UBIScheme are separate contracts
+
+GoodDollar on Celo uses **three** separate contracts (verified against `@goodsdks/citizen-sdk` v1.2.5):
+
+| Contract | Address (Celo prod) | Purpose |
+|---|---|---|
+| Identity | `0xC361A6E67822a0EDc17D899227dd9FC50BD62F42` | Whitelist, FV state, wallet-linking |
+| UBIScheme | `0x43d72Ff17701B2DA814620735C39C620Ce0ea4A1` | Daily claim distribution |
+| Faucet | `0x4F93Fa058b03953C851eFaA2e4FC5C34afDFAb84` | Gas sponsorship for claims |
+
+The G$ token (`0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A`) is a native Superfluid SuperToken on Celo (SuperGoodDollar.sol) — no wrapping needed for streaming.
+
+**Rationale (CLEAN):** the initial implementation incorrectly combined `isWhitelisted`, `claim`, and `lastClaim` on a single contract address. The split is documented in `addresses.ts` as the single source of truth.
 
 ## Consequences
 
