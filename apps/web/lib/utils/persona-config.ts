@@ -5,6 +5,7 @@
 
 import { Crown, Zap, Leaf, Sparkles, Star, MessageCircle } from "lucide-react";
 import type { StylistPersona } from "@repo/ai-client";
+import { G_STREAK_BADGES } from "./g-streak-config";
 
 export interface PersonaConfig {
   // Identity
@@ -20,6 +21,15 @@ export interface PersonaConfig {
     xp?: number;
     badge?: string;
   };
+
+  /**
+   * Per-session G$ cost for premium personas (in whole G$ units).
+   * When set, a user who hasn't unlocked the persona via XP/badge/Pro
+   * can pay this G$ amount per styling session instead. This is the
+   * core "G$ has real value" surface — G$ is the free, no-card path to
+   * premium styling. See ADR 0009 / goodbuilders-season-4.md.
+   */
+  gCost?: number;
 
   // Icons
   icon: React.ElementType;
@@ -113,6 +123,7 @@ const PERSONA_CONFIGS: Record<StylistPersona, PersonaConfig> = {
     tier: 'premium',
     icon: Crown,
     unlockRequirements: { xp: 300, badge: "style-elite" },
+    gCost: 3000, // ~$0.30 per session — the no-card premium path
     gradient: "from-amber-500 to-yellow-600",
     color: "amber-500",
     accent: "amber-400",
@@ -132,6 +143,7 @@ const PERSONA_CONFIGS: Record<StylistPersona, PersonaConfig> = {
     tier: 'premium',
     icon: Zap,
     unlockRequirements: { xp: 150, badge: "collector" },
+    gCost: 1000, // ~$0.10 per session
     gradient: "from-blue-500 to-cyan-600",
     color: "blue-500",
     accent: "blue-400",
@@ -151,6 +163,7 @@ const PERSONA_CONFIGS: Record<StylistPersona, PersonaConfig> = {
     tier: 'premium',
     icon: Leaf,
     unlockRequirements: { xp: 200, badge: "miranda-approved" },
+    gCost: 2000, // ~$0.20 per session
     gradient: "from-emerald-500 to-green-600",
     color: "emerald-500",
     accent: "emerald-400",
@@ -187,7 +200,32 @@ export function isPersonaUnlocked(
   const meetsXp = xp === undefined || userState.xp >= xp;
   const meetsBadge = badge === undefined || userState.badges.includes(badge);
 
-  return meetsXp && meetsBadge;
+  // Streak badges (streak-starter / streak-keeper / streak-master /
+  // streak-legend) are an alt-unlock path. They are permanent once earned
+  // (positive-only streak design) and grant the corresponding persona
+  // without the XP requirement.
+  const hasStreakBadge = userState.badges.some((b) =>
+    G_STREAK_BADGES.includes(b),
+  );
+
+  return (meetsXp && meetsBadge) || hasStreakBadge;
+}
+
+/**
+ * Whether a premium persona can be accessed via a per-session G$ payment
+ * (the no-card premium path). True for premium personas with a gCost.
+ */
+export function canPayWithG(persona: StylistPersona): boolean {
+  const config = getPersonaConfig(persona);
+  return config.tier === 'premium' && typeof config.gCost === 'number';
+}
+
+/**
+ * The per-session G$ cost for a premium persona, or null if not payable.
+ */
+export function getGSessionCost(persona: StylistPersona): number | null {
+  const config = getPersonaConfig(persona);
+  return typeof config.gCost === 'number' ? config.gCost : null;
 }
 
 export function getPersonaUnlockHint(persona: StylistPersona): string | null {

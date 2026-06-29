@@ -44,7 +44,8 @@ export interface MissionRequirement {
     | "persona-used"
     | "share-count"
     | "external-search-count"
-    | "vote-cast";
+    | "vote-cast"
+    | "g-claim-streak";
   target?: string; // e.g., persona ID, category
   threshold?: number;
 }
@@ -169,6 +170,51 @@ const MISSIONS: Mission[] = [
     maxProgress: 1,
   },
 
+  // G$ Style Streak Missions — the GoodDollar claim loop.
+  // Positive-only: milestones grant badges that unlock premium personas
+  // (see persona-config isPersonaUnlocked + g-streak-config). Missing a
+  // day forfeits the next bonus but never revokes earned badges.
+  {
+    id: "g-streak-3",
+    title: "Style Streak Starter",
+    description: "Claim your daily G$ UBI 3 days in a row",
+    category: "economy",
+    icon: "Gift",
+    reward: { type: "badge", value: "streak-starter" },
+    requirements: [{ type: "g-claim-streak", threshold: 3 }],
+    maxProgress: 3,
+  },
+  {
+    id: "g-streak-7",
+    title: "Week of Style",
+    description: "Claim your daily G$ UBI 7 days in a row",
+    category: "economy",
+    icon: "Gift",
+    reward: { type: "badge", value: "streak-keeper" },
+    requirements: [{ type: "g-claim-streak", threshold: 7 }],
+    maxProgress: 7,
+  },
+  {
+    id: "g-streak-14",
+    title: "Fortnight Fashionista",
+    description: "Claim your daily G$ UBI 14 days in a row",
+    category: "economy",
+    icon: "Gift",
+    reward: { type: "badge", value: "streak-master" },
+    requirements: [{ type: "g-claim-streak", threshold: 14 }],
+    maxProgress: 14,
+  },
+  {
+    id: "g-streak-30",
+    title: "Style Legend",
+    description: "Claim your daily G$ UBI 30 days in a row",
+    category: "economy",
+    icon: "Gift",
+    reward: { type: "badge", value: "streak-legend" },
+    requirements: [{ type: "g-claim-streak", threshold: 30 }],
+    maxProgress: 30,
+  },
+
   // Social Missions
   {
     id: "first-share",
@@ -259,6 +305,7 @@ export function updateMissionProgress(
     persona?: string;
     score?: number;
     category?: string;
+    streak?: number;
   },
 ): { missionId: string; newProgress: number; completed: boolean }[] {
   const state = getUserMissionState(userId);
@@ -282,11 +329,18 @@ export function updateMissionProgress(
       }
     }
 
-    // Increment progress
-    progress.currentProgress = Math.min(
-      progress.currentProgress + 1,
-      mission.maxProgress,
-    );
+    // For streak missions, SET progress to the current streak count (not
+    // increment). A streak reset re-starts counting from the new value,
+    // but never revokes a badge already claimed (completed stays true).
+    if (eventType === "g-claim-streak" && metadata?.streak != null) {
+      progress.currentProgress = Math.min(metadata.streak, mission.maxProgress);
+    } else {
+      // Increment progress
+      progress.currentProgress = Math.min(
+        progress.currentProgress + 1,
+        mission.maxProgress,
+      );
+    }
 
     // Check completion
     if (progress.currentProgress >= mission.maxProgress) {

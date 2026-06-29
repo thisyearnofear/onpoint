@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 import {
   Camera,
@@ -19,58 +19,15 @@ import { Button } from "@repo/ui/button";
 import { AgentActivityFeed } from "../Agent/AgentActivityFeed";
 import { MissionsPanel } from "../Agent/MissionsPanel";
 import { OnChainEconomics } from "./OnChainEconomics";
-
-const STREAK_KEY = "onpoint-streak";
-const VISIT_DATE_KEY = "onpoint-last-visit-date";
-
-function useStreak() {
-  const [streak, setStreak] = useState(0);
-
-  useEffect(() => {
-    try {
-      const today = new Date().toDateString();
-      const lastVisit = localStorage.getItem(VISIT_DATE_KEY);
-      const savedStreak = parseInt(localStorage.getItem(STREAK_KEY) || "0", 10);
-
-      if (lastVisit === today) {
-        // Already counted today
-        setStreak(savedStreak);
-        return;
-      }
-
-      const yesterday = new Date(Date.now() - 86400000).toDateString();
-
-      if (lastVisit === yesterday) {
-        // Consecutive day
-        const newStreak = savedStreak + 1;
-        localStorage.setItem(STREAK_KEY, String(newStreak));
-        localStorage.setItem(VISIT_DATE_KEY, today);
-        setStreak(newStreak);
-      } else if (!lastVisit) {
-        // First ever visit
-        localStorage.setItem(STREAK_KEY, "1");
-        localStorage.setItem(VISIT_DATE_KEY, today);
-        setStreak(1);
-      } else {
-        // Streak broken — more than 1 day gap
-        localStorage.setItem(STREAK_KEY, "1");
-        localStorage.setItem(VISIT_DATE_KEY, today);
-        setStreak(1);
-      }
-    } catch {
-      // localStorage unavailable
-    }
-  }, []);
-
-  return streak;
-}
+import { GStreakPill } from "../Curator/GStreakPill";
+import { useGStreak } from "../../lib/hooks/use-g-streak";
 
 interface HomePanelProps {
   onNavigate: (mode: string) => void;
 }
 
 export function HomePanel({ onNavigate }: HomePanelProps) {
-  const streak = useStreak();
+  const { streak } = useGStreak();
 
   return (
     <motion.div
@@ -86,7 +43,7 @@ export function HomePanel({ onNavigate }: HomePanelProps) {
             <Flame className={`h-4 w-4 ${streak >= 3 ? "text-amber-500" : "text-amber-400"}`} />
             <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{streak}</span>
             <span className="text-[10px] text-amber-600/70 dark:text-amber-400/70 whitespace-nowrap">
-              day streak
+              G$ streak
             </span>
           </div>
         )}
@@ -141,6 +98,9 @@ export function HomePanel({ onNavigate }: HomePanelProps) {
           </Button>
         </div>
       </motion.div>
+
+      {/* G$ Style Streak — the claim loop surface */}
+      <GStreakPill />
 
       {/* Agent Activity — persistent across sessions */}
       <AgentActivityFeed onShop={() => onNavigate("shop")} />

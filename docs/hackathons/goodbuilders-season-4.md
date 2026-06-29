@@ -8,13 +8,44 @@
 
 ## TL;DR
 
-OnPoint is a curator-first styling + retail intelligence platform with an ERC-8004-registered self-custodial agent wallet on Celo (agent ID 9177). The existing tip, subscription, and onboarding surfaces already run on Celo mainnet — the integration shape is well-defined. This plan adds GoodDollar's G$ as a **first-class token** in three places:
+OnPoint is a curator-first AI styling app: upload a photo, get a critique from an AI persona (Miranda Priestly, Edina Monsoon, John Shaft — or premium personas like Anna Wintour / Virgil Abloh / Stella McCartney), discover matching products, and tip or subscribe to curators. ERC-8004-registered self-custodial agent wallet on Celo (agent ID 9177).
 
-1. **G$ tip jar** on `AgentStatus` — every post-session tip can be paid in cUSD or G$. Lowest risk, highest visibility.
-2. **G$ streaming subscriptions** for curators — pay for Pro/Concierge tiers via second-by-second Superfluid G$ flows. Directly mirrors S4's funding mechanism.
-3. **G$ UBI claim hook** at `/curator/onboard` and inside `AddFundsButton` — first-time curators can claim their daily G$ on signup. Highest leverage for S4's "growing the ecosystem" KPI.
+G$ is the **free, no-card-needed path to premium styling.** Celo's audience skews toward users where card access is limited; G$ UBI gives them purchasing power for premium AI services they otherwise couldn't access. This is the genuine product value — not a bolted-on chore.
 
-All three hang off one new package, `@repo/gooddollar`, that supplies addresses, ABIs, claim helpers, and Superfluid stream helpers. No parallel "gooddollar" packages, no copy-pasted ERC-20 utilities.
+### The G$ value loop
+
+```
+Claim G$ daily (free UBI via @goodsdks/citizen-sdk — gas sponsored, face-verified)
+   ↓
+G$ funds premium styling sessions (per-session G$ cost: 1k–3k G$ ≈ $0.10–0.30)
+   ↓
+Use a premium persona (Anna Wintour / Virgil Abloh / Stella McCartney)
+   ↓
+Tip your curator in G$ (TipModal + TipTokenPicker) — G$ circulates in the ecosystem
+   ↓
+Stream G$ to a curator you love (GStreamPanel — Superfluid per-second payments)
+   ↓
+Build a Style Streak — consecutive daily claims unlock premium personas PERMANENTLY
+   ↓
+"Protect" your streak — claim daily to keep advancing. Positive-only: missing a day
+   forfeits the next bonus but NEVER revokes perks already earned. Your G$ is
+   self-custodied; the streak is positive reinforcement, not a trap.
+   ↓
+Continue claiming daily → the loop sustains premium access + creator support
+```
+
+This is the loop the S4 reviewers asked for: **Claim G$ → Build a savings streak → Protect savings → Continue claiming daily.** "Savings" = accrued style perks (premium personas unlocked via streak badges). "Protect" = maintain your daily claim habit so your streak keeps advancing (opportunity cost, not punishment — earned badges are permanent).
+
+### Four G$ integrations on Celo mainnet
+
+1. **G$ UBI claim** (`GClaimCTA` + `@goodsdks/citizen-sdk`) — daily claim with gas faucet + face verification. Surfaces in `AgentStatus` (`GBalancePill`), `AddFundsButton`, and `/curator/onboard`.
+2. **G$ per-session premium access** (`useGSessionPayment` + `VirtualTryOn` persona gate) — pay 1k–3k G$ per premium styling session. The core "G$ has real value" surface: G$ is the no-card on-ramp to premium AI styling.
+3. **G$ tip jar** (`TipModal` + `TipTokenPicker`) — every post-session tip can be paid in cUSD or G$. Score-gated G$ amounts (1k–20k G$).
+4. **G$ streaming subscriptions** (`GStreamPanel` + Superfluid `CFAv1Forwarder`) — per-second G$ streams to curators. Directly mirrors S4's funding mechanism.
+
+Plus the **G$ Style Streak** (`useGStreak` + `GStreakPill` + `g-streak-config`) — the retention loop that ties daily claims to premium persona unlocks via the existing `MissionService` badge system.
+
+All hang off one package, `@repo/gooddollar`, that supplies addresses, ABIs, claim helpers, and Superfluid stream helpers. No parallel "gooddollar" packages, no copy-pasted ERC-20 utilities.
 
 ## Why now
 
@@ -46,20 +77,30 @@ The 0G Bridge Buildathon (current primary focus, ends Aug 21) does not conflict 
 | `@goodsdks/citizen-sdk` dep in `apps/web` | **Shipped** | ClaimSDK + IdentitySDK for gas faucet, FV redirect, connected-wallet detection |
 | `apps/web/lib/services/g-claim-service.ts` | **Shipped** | Wrapper using citizen-sdk: createIdentitySDK, createClaimSDK, checkWhitelist, checkEntitlement, generateFVLink, claimUBI |
 | `apps/web/lib/services/g-stream-service.ts` | **Shipped** | Thin wrapper: openStream, updateStream, closeStream, getStreamMonthly, getTotalOutgoingMonthly |
-| `apps/web/components/Curator/GClaimCTA.tsx` | **Shipped** | Full claim flow: disconnected → wrong-chain → not-whitelisted (FV) → can-claim → claiming → success → cooldown |
+| `apps/web/components/Curator/GClaimCTA.tsx` | **Shipped** | Full claim flow: disconnected → wrong-chain → not-whitelisted (FV) → can-claim → claiming → success → cooldown. Wired to streak on success. |
 | `apps/web/components/Curator/GBalancePill.tsx` | **Shipped** | Persistent G$ balance indicator with 30s cache, expandable claim CTA, in AgentStatus |
 | `apps/web/components/Curator/GStreamPanel.tsx` | **Shipped** | Superfluid streaming subscription panel with preset amounts, active stream management |
+| `apps/web/components/Curator/GStreakPill.tsx` | **Shipped** | G$ Style Streak surface — streak count, active perks, next milestone, "protect your streak" prompt. Compact (AgentStatus) + full card (HomePanel). |
+| `apps/web/lib/utils/g-streak-config.ts` | **Shipped** | Streak milestones (3/7/14/30 days) → badges → persona unlocks. Single source of truth. 12 tests. |
+| `apps/web/lib/hooks/use-g-streak.ts` | **Shipped** | Claim-driven streak hook (positive-only, localStorage). Replaces visit-based streak in HomePanel. |
+| `apps/web/lib/hooks/use-g-session-payment.ts` | **Shipped** | Per-session G$ payment hook — ERC-20 transfer to agent wallet. Reuses TipModal's wagmi pattern. |
+| `apps/web/lib/utils/persona-config.ts` | **Shipped** | Added `gCost` to premium personas (1k/2k/3k G$). Streak badges as alt-unlock path. `canPayWithG` + `getGSessionCost` helpers. |
+| `apps/web/components/VirtualTryOn.tsx` | **Shipped** | Premium persona gate: unlocked → direct access; locked + G$ payable → per-session payment confirm → on tx confirm, session runs. Streak badges merged into unlock check. |
+| `apps/web/components/VirtualTryOn/PersonalityCard.tsx` | **Shipped** | Shows G$ cost badge on locked premium cards; G$-payable cards are clickable (open payment confirm). |
+| `apps/web/components/Dashboard/HomePanel.tsx` | **Shipped** | Uses `useGStreak` (replaces visit-streak); GStreakPill card in the home dashboard. |
+| `apps/web/lib/services/mission-service.ts` | **Shipped** | 4 streak missions (3/7/14/30 days) + `g-claim-streak` event type. Streak progress SET (not increment) to handle resets. |
+| `apps/web/components/Agent/AgentStatus.tsx` | **Shipped** | GStreakPill (compact) next to GBalancePill. |
 | `apps/web/components/Agent/AddFundsButton.tsx` | **Shipped** | "Claim G$ instead" tile + unified success state with auto-close |
 | `apps/web/app/curator/onboard/page.tsx` | **Shipped** | Collapsible G$ UBI claim section |
 | `apps/web/app/s/[slug]/page.tsx` | **Shipped** | GStreamPanel in curator storefront sidebar (shows when curator has `commerce.walletAddress`) |
 | `Curator.commerce.walletAddress` | **Shipped** | Added to shared-types for G$ streaming destination |
-| `getTokenAddress("GOOD_DOLLAR", "celo")` in `chains.ts` | **Shipped** | Used by TipModal to resolve G$ token address (Wave 1) |
-| `"G$"` in spend-policy allowlist | **Shipped** | One line in `spend-policy.ts` (Wave 1) |
-| `"ubi_claim"` action type in `AgentControls` | **Shipped** | Owns its own daily cap + audit trail (Wave 1) |
+| `getTokenAddress("GOOD_DOLLAR", "celo")` in `chains.ts` | **Shipped** | Used by TipModal + useGSessionPayment to resolve G$ token address |
+| `"G$"` in spend-policy allowlist | **Shipped** | One line in `spend-policy.ts` |
+| `"ubi_claim"` action type in `AgentControls` | **Shipped** | Owns its own daily cap + audit trail |
 | **I1: G$ tip jar** in `TipModal` + `AgentStatus` | **Shipped** | TipTokenPicker (cUSD/G$), score-gated G$ amounts (1k–20k G$), G$ Tips stat tile in AgentStatus |
 | `apps/web/components/Agent/TipTokenPicker.tsx` | **Shipped** | Segmented control for selecting cUSD or G$ UBI as tip currency |
-| KPI dashboard action types | **Shipped** | `tip_g$` (server-side via agent-tip.js), `claim` + `stream_g$` (client-side via POST /api/agent/metrics) |
-| `apps/web/lib/utils/metrics.ts` | **Shipped** | Fire-and-forget client-side metric recording for claim + stream_g$ actions |
+| KPI dashboard action types | **Shipped** | `tip_g$`, `claim`, `stream_g$`, `session_g$` via countAction + POST /api/agent/metrics |
+| `apps/web/lib/utils/metrics.ts` | **Shipped** | Fire-and-forget client-side metric recording for claim + stream_g$ + session_g$ actions |
 | `apps/api/routes/agent-metrics.js` POST endpoint | **Shipped** | Accepts `{ action, status }` from client, records via `Metrics.countAction()` |
 
 ## What we explicitly will **not** build
@@ -204,13 +245,17 @@ Once shipped, each integration produces a measurable surface:
 
 | KPI | Source | Target (12 weeks) |
 |---|---|---|
-| # of G$ tips sent to agent | `agent:tip-ledger:v1` filter `token=G$` | 500 |
-| Total G$ tipped | same | 50,000 G$ |
-| # of curators claiming UBI | on-chain `Identity.lastClaim` events | 25 |
+| # of G$ UBI claims | `agent_actions_total{type="claim",status="succeeded"}` | 500 |
+| # of unique claimers | on-chain `UBIScheme.claim` events | 50 |
+| # of premium sessions paid in G$ | `agent_actions_total{type="session_g$",status="succeeded"}` | 200 |
+| # of G$ tips sent to curators | `agent:tip-ledger:v1` filter `token=G$` | 300 |
+| Total G$ tipped | same | 30,000 G$ |
 | # of G$ streaming subs active | `subscription:*` filter `paymentMethod=superfluid-G$` | 10 |
 | Total G$ streamed to curators | on-chain CFAv1 events | 1,000,000 G$ (~$100) |
+| # of users reaching 7-day streak | `mission:*` filter `missionId=g-streak-7` completed | 25 |
+| # of users reaching 30-day streak | `mission:*` filter `missionId=g-streak-30` completed | 5 |
 
-Tracking via `packages/agent-core/src/metrics.ts` (already exports `Metrics.countAction(actionType, status)`). New action types: `"tip_g$"`, `"claim"`, `"stream_g$"`.
+Tracking via `packages/agent-core/src/metrics.ts` (already exports `Metrics.countAction(actionType, status)`). Action types: `"tip_g$"`, `"claim"`, `"stream_g$"`, `"session_g$"`. Streak milestones via `MissionService` (g-streak-3/7/14/30).
 
 ## Execution order
 
@@ -223,19 +268,22 @@ Tracking via `packages/agent-core/src/metrics.ts` (already exports `Metrics.coun
 7. ~~`packages/gooddollar/src/balance.ts`~~ ✅ Shipped — GBalancePill in AgentStatus
 8. ~~**Integration 1: G$ tip jar**~~ ✅ Shipped — TipTokenPicker + G$ amounts in TipModal
 9. ~~KPI dashboard action types~~ ✅ Shipped — tip_g$, claim, stream_g$ via countAction + POST /api/agent/metrics
-10. S4 application write-up (pending — apply at https://ubi.gd/4oiCPk7)
+10. ~~**G$ value loop: per-session premium access + Style Streak**~~ ✅ Shipped — `useGSessionPayment` (per-session G$ cost for premium personas), `useGStreak` + `GStreakPill` + `g-streak-config` (claim-driven streak → badges → persona unlocks), streak missions in MissionService, GStreakPill in AgentStatus + HomePanel, `session_g$` metric
+11. S4 application write-up (pending — apply at https://ubi.gd/4oiCPk7)
 
-All code shipped in 3 commits (Wave 1 + Wave 2+3 + G$ tip jar). Remaining: deploy, mainnet smoke test, apply on Flow State.
+All code shipped. Remaining: deploy, mainnet smoke test, apply on Flow State.
 
 ## Verification
 
 ```bash
 pnpm install                                # picks up @repo/gooddollar workspace
 pnpm turbo run check-types --filter=@repo/gooddollar
-pnpm turbo run check-types --filter=@repo/agent-core
-pnpm turbo run lint
-pnpm turbo run test --filter=@repo/gooddollar
-# Manual smoke: Celo mainnet, open AgentStatus, send a G$ tip; claim UBI; subscribe via G$ stream
+cd apps/web && npx tsc --noEmit             # web app typecheck (includes G$ loop)
+cd packages/gooddollar && npx vitest run    # 23 package tests
+cd apps/web && npx vitest run lib/utils/__tests__/g-streak-config.test.ts  # 12 streak config tests
+# Manual smoke: Celo mainnet, open AgentStatus, claim G$ (streak advances), 
+# select a locked premium persona → pay G$ per session, tip curator in G$,
+# open a G$ stream to a curator storefront
 ```
 
 ## Risk register

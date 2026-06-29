@@ -20,6 +20,7 @@ import { AgentAuditLog } from "./AgentAuditLog";
 import { MerchantAllowlist } from "./MerchantAllowlist";
 import { AddFundsButton } from "./AddFundsButton";
 import { GBalancePill } from "../Curator/GBalancePill";
+import { GStreakPill } from "../Curator/GStreakPill";
 
 interface AgentWallet {
   chain: string;
@@ -423,6 +424,14 @@ export function AgentStatus({
             GoodDollar UBI
           </span>
           <GBalancePill />
+        </div>
+
+        {/* G$ Style Streak — the claim loop surface */}
+        <div className="flex items-center justify-between pt-1">
+          <span className="text-muted-foreground text-xs uppercase tracking-wider">
+            G$ Streak
+          </span>
+          <GStreakPill compact />
         </div>
 
         {/* G$ Tips — available after sessions */}

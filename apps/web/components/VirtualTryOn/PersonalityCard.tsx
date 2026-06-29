@@ -13,6 +13,8 @@ interface PersonalityCardProps {
   disabled?: boolean;
   isLocked?: boolean;
   unlockHint?: string;
+  /** Per-session G$ cost shown on locked premium cards (the no-card path). */
+  gCost?: number;
 }
 
 const SHORT_GREETINGS: Record<string, string> = {
@@ -31,6 +33,7 @@ export function PersonalityCard({
   disabled,
   isLocked = false,
   unlockHint,
+  gCost,
 }: PersonalityCardProps) {
   const [isPlaying, setIsPlaying] = React.useState(false);
   const mountedRef = useRef(true);
@@ -65,19 +68,21 @@ export function PersonalityCard({
   return (
     <div
       role="button"
-      tabIndex={disabled || isLocked ? -1 : 0}
+      tabIndex={disabled || (isLocked && !gCost) ? -1 : 0}
       aria-label={`Select ${config.label} (${config.characterName})`}
       aria-pressed={isSelected}
       className={`relative p-4 border-2 rounded-lg transition-all duration-200 ${
         isSelected
           ? `border-primary ${config.lightBg} shadow-md`
-          : isLocked
+          : isLocked && !gCost
           ? "border-gray-200 bg-gray-50 opacity-60"
+          : isLocked && gCost
+          ? "border-emerald-200 bg-emerald-50/50 hover:border-emerald-400 cursor-pointer"
           : "border-border hover:border-primary/50 cursor-pointer"
-      } ${disabled || isLocked ? "cursor-not-allowed" : ""}`}
-      onClick={() => !disabled && !isLocked && onSelect(persona)}
+      } ${disabled || (isLocked && !gCost) ? "cursor-not-allowed" : ""}`}
+      onClick={() => !disabled && (!isLocked || gCost) && onSelect(persona)}
       onKeyDown={(e) => {
-        if (!disabled && !isLocked && (e.key === "Enter" || e.key === " ")) {
+        if (!disabled && (!isLocked || gCost) && (e.key === "Enter" || e.key === " ")) {
           e.preventDefault();
           onSelect(persona);
         }
@@ -133,8 +138,14 @@ export function PersonalityCard({
           </span>
         )}
         {isLocked && (
-          <span className="text-[10px] text-gray-500 text-center leading-tight">
-            {unlockHint || "Unlock with Pro"}
+          <span className="text-[10px] text-center leading-tight">
+            {gCost ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 font-bold text-emerald-700">
+                {gCost.toLocaleString()} G$ / session
+              </span>
+            ) : (
+              <span className="text-gray-500">{unlockHint || "Unlock with Pro"}</span>
+            )}
           </span>
         )}
       </div>

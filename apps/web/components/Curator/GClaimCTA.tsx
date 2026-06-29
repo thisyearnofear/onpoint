@@ -48,6 +48,7 @@ import {
   claimUBI,
 } from "../../lib/services/g-claim-service";
 import { recordMetric } from "../../lib/utils/metrics";
+import { useGStreak } from "../../lib/hooks/use-g-streak";
 import type { Address } from "viem";
 
 interface GClaimCTAProps {
@@ -94,7 +95,10 @@ export function GClaimCTA({ onClaimed, compact, className }: GClaimCTAProps) {
   });
   const [error, setError] = useState<string | null>(null);
   const [fvLink, setFvLink] = useState<string | null>(null);
+  const [milestoneBonus, setMilestoneBonus] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const { recordClaim } = useGStreak();
 
   const isOnCelo = chainId === celo.id;
 
@@ -253,6 +257,35 @@ export function GClaimCTA({ onClaimed, compact, className }: GClaimCTAProps) {
         setPhase("success");
         onClaimed?.(txHash);
         recordMetric("claim", "succeeded");
+        // Advance the G$ Style Streak and surface any newly-crossed
+        // milestone bonus. Positive-only: never revokes earned perks.
+        const crossed = recordClaim();
+        if (crossed.length > 0) {
+          setMilestoneBonus(crossed[crossed.length - 1]!.rewardLabel);
+        }
+        // Best-effort: sync streak progress to the mission service so the
+        // MissionsPanel reflects streak progress. Uses the wallet address
+        // as the userId (the streak is wallet-scoped, not Auth0-scoped).
+        // The canonical unlock path is the localStorage streak badges
+        // merged in VirtualTryOn — this POST is for display only.
+        try {
+          const streakState = JSON.parse(
+            localStorage.getItem("onpoint-g-streak") || "0",
+          );
+          fetch("/api/agent/missions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId: address,
+              eventType: "g-claim-streak",
+              metadata: { streak: Number(streakState) || 1 },
+            }),
+          }).catch(() => {
+            // Silent — display-only sync
+          });
+        } catch {
+          // non-fatal
+        }
         // Refresh status to show cooldown
         setTimeout(() => refreshStatus(), 2000);
       } else {
@@ -407,6 +440,12 @@ export function GClaimCTA({ onClaimed, compact, className }: GClaimCTAProps) {
             View on Celoscan
             <ExternalLink className="h-3 w-3" />
           </a>
+          {milestoneBonus && (
+            <p className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-amber-400">
+              <Sparkles className="h-3 w-3" />
+              Streak milestone! {milestoneBonus}
+            </p>
+          )}
         </div>
       </Shell>
     );

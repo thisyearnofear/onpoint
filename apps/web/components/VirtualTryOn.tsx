@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from "react";
 import { Button } from "@repo/ui/button";
-import { Upload, Camera, CheckCircle2, Palette, Ruler, ShieldCheck, Sparkles, Wand2 } from "lucide-react";
+import { Upload, Camera, CheckCircle2, Palette, Ruler, ShieldCheck, Sparkles, Wand2, Gift } from "lucide-react";
 import dynamic from "next/dynamic";
 // framer-motion removed — using CSS transitions instead
 import { useVirtualTryOn } from "@repo/ai-client";
@@ -12,10 +12,13 @@ import { imageFileToDataUrl } from "@repo/ai-client";
 import type { StylistPersona } from "@repo/ai-client";
 import type { QualityCheckResult } from "./VirtualTryOn/usePhotoQualityCheck";
 
-import { FREE_PERSONAS, PREMIUM_PERSONAS, isPersonaUnlocked, getPersonaConfig, getPersonaUnlockHint } from "../lib/utils/persona-config";
+import { FREE_PERSONAS, PREMIUM_PERSONAS, isPersonaUnlocked, getPersonaConfig, getPersonaUnlockHint, canPayWithG, getGSessionCost } from "../lib/utils/persona-config";
 import { usePremiumStatus } from "../hooks/use-premium-status";
 import { useUserPreferences } from "../hooks/useUserPreferences";
 import { useMissionState } from "../hooks/use-mission-state";
+import { useGStreak } from "../lib/hooks/use-g-streak";
+import { useGSessionPayment } from "../lib/hooks/use-g-session-payment";
+import { GStreakPill } from "./Curator/GStreakPill";
 import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import type { TryOnSelection } from "../lib/utils/try-on-selection";
 import {
@@ -269,6 +272,21 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
   const { isPremium, loading: premiumLoading } = usePremiumStatus();
   const { preferences } = useUserPreferences();
   const { missionState } = useMissionState();
+  const { earnedBadges: streakBadges } = useGStreak();
+  const gPayment = useGSessionPayment();
+  const [gPaymentPersona, setGPaymentPersona] = useState<StylistPersona | null>(null);
+
+  // Merge streak-earned badges into the unlock check so personas unlocked
+  // via the G$ streak show as available (positive-only, permanent).
+  const mergedBadges = [
+    ...(missionState?.badges ?? []),
+    ...streakBadges,
+  ];
+  const mergedUserState = missionState
+    ? { xp: missionState.totalXp, badges: mergedBadges }
+    : streakBadges.length > 0
+      ? { xp: 0, badges: mergedBadges }
+      : undefined;
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -414,21 +432,50 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
   }, [analyzePhoto, preferences, selectedPhoto]);
 
   const handlePersonaSelect = useCallback(async (persona: StylistPersona) => {
-    const userState = missionState ? { xp: missionState.totalXp, badges: missionState.badges } : undefined;
-    if (!selectedPhoto || !isPersonaUnlocked(persona, isPremium, userState)) return;
-    
+    if (!selectedPhoto) return;
+    // If already unlocked (XP/badge/Pro/streak), proceed directly.
+    if (isPersonaUnlocked(persona, isPremium, mergedUserState)) {
+      setSelectedPersona(persona);
+      setShowPersonalitySelection(false);
+      try {
+        const critique = await getPersonalityCritique(selectedPhoto, persona, 'real');
+        if (critique) {
+          setCritiqueResult({ persona, critique });
+        }
+      } catch (err) {
+        console.error("Error getting persona critique:", err);
+      }
+      return;
+    }
+    // If locked but G$-payable, open the per-session G$ payment confirm.
+    if (canPayWithG(persona)) {
+      setGPaymentPersona(persona);
+    }
+  }, [selectedPhoto, getPersonalityCritique, isPremium, mergedUserState]);
+
+  // Run the premium session after a G$ payment confirms on-chain.
+  const runPaidSession = useCallback(async (persona: StylistPersona) => {
+    if (!selectedPhoto) return;
     setSelectedPersona(persona);
     setShowPersonalitySelection(false);
-    
+    setGPaymentPersona(null);
     try {
       const critique = await getPersonalityCritique(selectedPhoto, persona, 'real');
       if (critique) {
         setCritiqueResult({ persona, critique });
       }
     } catch (err) {
-      console.error("Error getting persona critique:", err);
+      console.error("Error getting paid persona critique:", err);
     }
-  }, [selectedPhoto, getPersonalityCritique, isPremium, missionState]);
+  }, [selectedPhoto, getPersonalityCritique]);
+
+  // When the G$ transfer confirms, proceed with the paid session.
+  React.useEffect(() => {
+    if (gPayment.isConfirmed && gPaymentPersona) {
+      runPaidSession(gPaymentPersona);
+      gPayment.reset();
+    }
+  }, [gPayment.isConfirmed, gPaymentPersona, runPaidSession, gPayment]);
 
   // Auto-select persona from deep-link after analysis completes
   const hasAutoSelectedPersona = React.useRef(false);
@@ -450,7 +497,7 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
       });
       handlePersonaSelect(initialPersona);
     }
-  }, [initialPersona, analysis, critiqueResult, selectedPersona, handlePersonaSelect, initialCuratorSlug, selectedTryOnItem]);
+  }, [initialPersona, analysis, critiqueResult, selectedPersona, handlePersonaSelect, initialCuratorSlug, selectedTryOnItem, mergedUserState, isPremium]);
 
   // Track deep-link persona outcome when critique completes
   React.useEffect(() => {
@@ -913,16 +960,16 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                           <div className="flex items-center justify-between mb-3">
                             <p className="text-xs font-medium text-muted-foreground">PREMIUM STYLISTS</p>
                             {!isPremium && (
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent/20 text-accent font-bold">
-                                Unlock via XP, badge, or Pro
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold">
+                                Unlock via XP, badge, G$, or Pro
                               </span>
                             )}
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             {PREMIUM_PERSONAS.map((persona) => {
-                              const userState = missionState ? { xp: missionState.totalXp, badges: missionState.badges } : undefined;
-                              const unlocked = isPersonaUnlocked(persona, isPremium, userState);
+                              const unlocked = isPersonaUnlocked(persona, isPremium, mergedUserState);
                               const hint = !unlocked ? getPersonaUnlockHint(persona) : null;
+                              const gCost = !unlocked ? getGSessionCost(persona) : null;
                               return (
                                 <PersonalityCard
                                   key={persona}
@@ -932,16 +979,68 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                                   disabled={loading || critiqueLoading}
                                   isLocked={!unlocked}
                                   unlockHint={hint || undefined}
+                                  gCost={gCost ?? undefined}
                                 />
                               );
                             })}
                           </div>
                         </div>
 
+                        {/* G$ Style Streak — the loop surface */}
+                        <div className="mb-4">
+                          <GStreakPill />
+                        </div>
+
+                        {/* G$ per-session payment confirm */}
+                        {gPaymentPersona && (
+                          <div className="mb-4 p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5">
+                            <div className="flex items-start gap-3">
+                              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 shrink-0">
+                                <Gift className="h-4 w-4 text-white" />
+                              </div>
+                              <div className="flex-1 space-y-1">
+                                <p className="text-sm font-bold text-foreground">
+                                  Pay {getGSessionCost(gPaymentPersona)?.toLocaleString()} G$ for this session
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  One premium styling session with{" "}
+                                  {getPersonaConfig(gPaymentPersona).characterName}. No card needed —
+                                  powered by your GoodDollar UBI.
+                                </p>
+                                {gPayment.error && (
+                                  <p className="text-xs text-rose-400 break-words">{gPayment.error}</p>
+                                )}
+                                {gPayment.isPending && (
+                                  <p className="text-xs text-emerald-400">Confirm in wallet…</p>
+                                )}
+                              </div>
+                              <div className="flex flex-col gap-1.5">
+                                <button
+                                  onClick={() => gPayment.payForSession(gPaymentPersona)}
+                                  disabled={gPayment.isPending}
+                                  className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 px-3 py-1.5 text-xs font-bold text-white transition-all hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50"
+                                >
+                                  {gPayment.isPending ? "Confirming…" : "Pay with G$"}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setGPaymentPersona(null);
+                                    gPayment.reset();
+                                  }}
+                                  disabled={gPayment.isPending}
+                                  className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         {!isPremium && !premiumLoading && (
                           <div className="mt-4 p-3 rounded-lg bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
                             <p className="text-xs text-muted-foreground mb-2">
-                              Unlock premium stylists via XP, badges, or OnPoint Premium.
+                              Unlock premium stylists via XP, badges, daily G$ claims, or OnPoint Premium.
                             </p>
                             <a
                               href="/pricing"
