@@ -82,5 +82,8 @@ deploy/*SUMMARY.md
 HETZNER_CONFIG.md
 dump.rdb
 
+# Demo videos (local-only, too large for repo; wire in via URL if needed)
+apps/web/public/demo/
+
 # test negation
 !apps/web/scripts/register-erc8004-agent.mjs
