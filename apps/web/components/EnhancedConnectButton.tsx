@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useAccount, useChainId, useSignMessage, useEnsName, useEnsAvatar } from "wagmi";
+import { useAccount, useChainId, useSignMessage } from "wagmi";
 import { useUser } from "@auth0/nextjs-auth0/client";
 import { SiweMessage } from "siwe";
 import {
@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { MissionService } from "../lib/services/mission-service";
 import { useMiniApp } from "@neynar/react";
+import { resolveENSAddress, getENSAvatar } from "../lib/utils/ens";
 import { celo, celoSepolia } from "../config/chains";
 import { useMiniPay } from "../lib/hooks/useMiniPay";
 
@@ -43,10 +44,37 @@ export function EnhancedConnectButton({
   const { user } = useUser();
   const { isMiniPay } = useMiniPay();
   const { signMessageAsync } = useSignMessage();
-  // Resolve primary ENS name + avatar when a wallet connects (Ethereum mainnet).
-  // Falls back to the truncated address on the button if no ENS is set.
-  const { data: ensName } = useEnsName({ address, chainId: 1 });
-  const { data: ensAvatar } = useEnsAvatar({ name: ensName ?? undefined, chainId: 1 });
+  // Resolve primary ENS name + avatar by calling ensdata.net directly.
+  // wagmi's built-in useEnsName uses the eth.merkle.io path which we have
+  // blocked at the fetch layer, so it never returned a name. The
+  // ensdata.net API supports address → name lookups against the public ENS
+  // registry with no CORS issues, and works for any wallet connected on any
+  // chain (Celo included) since ENS lives on Ethereum mainnet regardless.
+  const [ensName, setEnsName] = useState<string | null>(null);
+  const [ensAvatar, setEnsAvatar] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setEnsName(null);
+    setEnsAvatar(null);
+    if (!address) return;
+    (async () => {
+      try {
+        const name = await resolveENSAddress(address);
+        if (cancelled) return;
+        setEnsName(name);
+        if (name) {
+          const avatar = await getENSAvatar(name);
+          if (cancelled) return;
+          setEnsAvatar(avatar);
+        }
+      } catch {
+        // Non-fatal — wallet still works, just shows truncated address
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [address]);
   const [walletLinked, setWalletLinked] = useState(false);
   const [linkingWallet, setLinkingWallet] = useState(false);
   const [showValueProp, setShowValueProp] = useState(false);
