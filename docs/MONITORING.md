@@ -60,6 +60,29 @@ ssh snel-bot "cd /opt/onpoint && docker compose -f deploy/docker-compose.monitor
 
 ---
 
+## Resilience & Self-Healing
+
+Independent of the Prometheus/Grafana stack, three layers keep the backend up:
+
+1. **PM2 persistence** — `onpoint-api`, `onpoint-worker`, and `onpoint-bridge` live
+   in `/opt/onpoint/ecosystem.config.js` (all with `cwd: apps/api` so the `.env`
+   symlink resolves) and are saved via `pm2 save`; `pm2 startup` is enabled so they
+   survive reboot. After changing the process list, **always run `pm2 save`** —
+   otherwise a PM2 resurrect brings back the old set and the API 502s.
+2. **Watchdog cron** — `/opt/onpoint/watchdog.sh` runs every 2 min, pings each
+   service's `/health`, and `pm2 restart`s + logs any unhealthy one. Catches the
+   "process online but wedged" case PM2's crash-only restart misses.
+   Log: `/var/log/pm2/onpoint-watchdog.log`.
+3. **Graceful frontend fallback** — `apps/web/lib/utils/proxy-to-hetzner.ts` adds a
+   30s timeout + one retry and converts upstream gateway failures (502/503/504)
+   into a clean `503 {error, retryable:true}`, so an outage shows a friendly
+   "try again" message instead of nginx's raw 502 HTML.
+
+> **API returning 502?** `ssh snel-bot`, `pm2 list` (are all three `onpoint-*`
+> present?), then `cd /opt/onpoint && pm2 start ecosystem.config.js && pm2 save`.
+
+---
+
 ## Dashboards
 
 ### Agent Overview (Grafana)
