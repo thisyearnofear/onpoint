@@ -19,6 +19,12 @@ export default function PrivacyPage() {
             </div>
             BeOnPoint
           </Link>
+          <Link
+            href="/terms"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Terms of Service
+          </Link>
         </div>
       </header>
 
@@ -148,6 +154,7 @@ export default function PrivacyPage() {
             <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
             <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
             <Link href="/guides" className="hover:text-foreground transition-colors">Guides</Link>
+            <Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link>
           </div>
           <p className="text-xs">Your privacy matters.</p>
         </div>

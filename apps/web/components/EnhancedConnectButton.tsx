@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useAccount, useChainId, useSignMessage } from "wagmi";
+import { useAccount, useChainId, useSignMessage, useEnsName, useEnsAvatar } from "wagmi";
 import { useUser } from "@auth0/nextjs-auth0/client";
 import { SiweMessage } from "siwe";
 import {
@@ -43,6 +43,10 @@ export function EnhancedConnectButton({
   const { user } = useUser();
   const { isMiniPay } = useMiniPay();
   const { signMessageAsync } = useSignMessage();
+  // Resolve primary ENS name + avatar when a wallet connects (Ethereum mainnet).
+  // Falls back to the truncated address on the button if no ENS is set.
+  const { data: ensName } = useEnsName({ address, chainId: 1 });
+  const { data: ensAvatar } = useEnsAvatar({ name: ensName ?? undefined, chainId: 1 });
   const [walletLinked, setWalletLinked] = useState(false);
   const [linkingWallet, setLinkingWallet] = useState(false);
   const [showValueProp, setShowValueProp] = useState(false);
@@ -171,8 +175,17 @@ export function EnhancedConnectButton({
                     className="border-primary/20 bg-background/50 hover:bg-primary/10 transition-colors"
                   >
                     <div className="flex items-center gap-2">
-                      <Wallet className="h-4 w-4 text-primary" />
-                      <span>{account.displayName}</span>
+                      {ensAvatar ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={ensAvatar}
+                          alt={ensName ?? "ENS avatar"}
+                          className="h-5 w-5 rounded-full"
+                        />
+                      ) : (
+                        <Wallet className="h-4 w-4 text-primary" />
+                      )}
+                      <span>{ensName ?? account.displayName}</span>
                     </div>
                   </Button>
 

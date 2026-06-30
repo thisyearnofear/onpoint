@@ -1501,6 +1501,8 @@ function HeroView() {
             <Link href="/lab" className="hover:text-foreground transition-colors">Lab</Link>
             <Link href="/guides" className="hover:text-foreground transition-colors">Guides</Link>
             <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
+            <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
+            <Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link>
           </div>
           <p className="text-xs">AI-powered personal styling.</p>
         </div>
