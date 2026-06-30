@@ -30,6 +30,7 @@ import {
 import { Reveal } from "../components/ui/Reveal";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { Auth0HeaderButton } from "../components/auth/Auth0Components";
+import { EnhancedConnectButton } from "../components/EnhancedConnectButton";
 import { NotificationBell } from "../components/NotificationBell";
 import { LiveCounter } from "../components/LiveCounter";
 import { Button } from "@repo/ui/button";
@@ -100,6 +101,7 @@ export default function Home() {
               About
             </Link>
             <NotificationBell />
+            <EnhancedConnectButton className="hidden lg:flex" />
             <Auth0HeaderButton />
             <ThemeToggle />
           </div>
@@ -117,6 +119,7 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-1">
             <NotificationBell direction="up" />
+            <EnhancedConnectButton />
             <Auth0HeaderButton />
             <ThemeToggle />
           </div>

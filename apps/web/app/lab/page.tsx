@@ -12,6 +12,7 @@ import { NotificationBell } from "../../components/NotificationBell";
 import { AgentWalletBadge } from "../../components/AgentWalletBadge";
 import { AttestationBadge } from "../../components/AttestationBadge";
 import { Auth0HeaderButton } from "../../components/auth/Auth0Components";
+import { EnhancedConnectButton } from "../../components/EnhancedConnectButton";
 import { TacticalDashboard } from "../../components/Dashboard/TacticalDashboard";
 
 export default function LabPage() {
@@ -45,6 +46,7 @@ export default function LabPage() {
             <NotificationBell />
             <AttestationBadge />
             <AgentWalletBadge />
+            <EnhancedConnectButton className="hidden lg:flex" />
             <Auth0HeaderButton />
             <ThemeToggle />
           </div>
@@ -65,6 +67,7 @@ export default function LabPage() {
           <div className="flex items-center gap-1.5">
             <NotificationBell />
             <AttestationBadge />
+            <EnhancedConnectButton />
             <Auth0HeaderButton />
             <ThemeToggle />
           </div>
