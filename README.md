@@ -1,6 +1,12 @@
-# OnPoint — Curator-First Styling + Retail Intelligence
+# OnPoint — AI-Powered Fashion Platform
 
-> Stylists hand customers a branded try-on → polaroid → share → buy loop. Each session generates live retail intelligence: product gaps, competitor prices, demand signals, and GTM actions.
+> **Your WhatsApp. Your Storefront. AI-Powered.**
+
+OnPoint is a multi-sided fashion platform serving three distinct customers:
+
+1. **Curators** (PRIMARY) — WhatsApp-first fashion sellers who need branded storefronts, M-Pesa payments, and AI assistance
+2. **Consumers** — Style seekers who want AR try-on, AI coaching, and personalized recommendations  
+3. **AI Agents** — Autonomous shopping agents with spending controls and verifiable commerce
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-indigo)](https://beonpoint.netlify.app)
 [![Multi-Chain](https://img.shields.io/badge/Chains-Celo%20%7C%20Base%20%7C%20Ethereum%20%7C%20Polygon-22C55E)]()
@@ -8,14 +14,51 @@
 
 ---
 
+## 📋 Strategic Direction
+
+**Current Phase**: Curator Domination (Q3 2026)
+
+We're building the obvious choice for WhatsApp-first fashion sellers in Africa. The product is curator-focused first, then expands to multi-role homepage once each segment proves traction.
+
+**Key Documents**:
+- **Strategy**: [`docs/STRATEGY.md`](./docs/STRATEGY.md) — Phased roadmap, success criteria, decision framework
+- **Phase 1 Implementation**: [`docs/PHASE_1_IMPLEMENTATION.md`](./docs/PHASE_1_IMPLEMENTATION.md) — 4-week curator build plan
+- **Week 1 Checklist**: [`docs/WEEK_1_CHECKLIST.md`](./docs/WEEK_1_CHECKLIST.md) — Day-by-day homepage redesign guide
+
+**Success Metrics** (Phase 1 Exit Criteria):
+- ✅ 10 active curators (currently 3 ready)
+- ✅ 40% activation rate (onboard → first sale within 7 days)
+- ✅ 60% week-1 retention
+- ✅ NPS > 50
+
+---
+
 ## What It Does
 
-**For shoppers:** Point your camera at an outfit, get instant AI styling feedback, discover matching products, and shop — all with transparent reasoning and spending controls.
+### For Curators (Small Business Sellers)
+- **Branded Storefront**: Get your own URL at `/s/[your-name]` in 30 seconds
+- **M-Pesa Integration**: Automated payment requests via Safaricom Daraja API
+- **WhatsApp Receipts**: Automated order confirmations sent via WhatsApp Business API
+- **Product Management**: Upload from phone camera, manage inventory, track stock
+- **Order & Customer Management**: See orders, mark shipped, track repeat customers
+- **AI Try-On**: Your customers can virtually try products before buying
+- **Marketing Automation**: One-tap broadcasts to customer base
 
-**For curators:** The same flow becomes live-web GTM intelligence. When the catalog lacks a match, OnPoint searches the open web, compares market options, and surfaces product gaps, competitor pricing, and recommended actions.
+### For Consumers (Style Seekers)
+- **Live AR Styling**: Real-time camera analysis with AI coaching overlays
+- **AI Personas**: Get feedback from multiple AI stylists (free & premium)
+- **Virtual Try-On**: See yourself in clothes before purchasing
+- **Smart Recommendations**: Products scored by style fit, price, and quality
+- **Shop Curator Storefronts**: Browse products from vetted sellers
 
-See [ADR 0002 — Curator Primitive](./docs/adr/0002-curator-primitive.md) for the organizing decision.
-See [ADR 0005 — Agent Spending Controls](./docs/adr/0005-agent-spending-controls.md) for the autonomy and wallet-policy decision.
+### For AI Agents (Autonomous Commerce)
+- **Agent Wallet**: Self-custodial wallet with configurable spending limits
+- **Spending Controls**: Auto-execute small purchases, request approval for large ones
+- **Verifiable Actions**: Cryptographic signing + IPFS audit trails
+- **Web Discovery**: Autonomous browsing when catalog lacks matches
+- **Fraud Detection**: Circuit breakers, anomaly detection, escrow protection
+
+**Architecture**: See [ADR 0002 — Curator Primitive](./docs/adr/0002-curator-primitive.md) for the organizing decision.
 
 ## Core Features
 
