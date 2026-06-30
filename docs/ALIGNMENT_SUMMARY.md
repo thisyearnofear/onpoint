@@ -1,7 +1,16 @@
 # OnPoint Strategic Alignment Summary
 
+> **⚠️ SUPERSEDED — see [docs/STRATEGY.md](./STRATEGY.md)**
+>
+> This document (2026-06-30) described a *planned rebuild* of the homepage as
+> 100% curator-focused, with the consumer experience moved to `/shop`. That
+> rebuild was attempted, found to duplicate the existing `/curator` surface, and
+> reverted. The current strategy is **diagnose-then-enhance**, not rebuild.
+>
+> Kept for historical context only. Do not act on the rebuild plan below.
+
 **Date**: 2026-06-30  
-**Status**: ✅ Aligned and documented
+**Status**: ⚠️ Superseded by docs/STRATEGY.md (2026-06-30)
 
 ---
 

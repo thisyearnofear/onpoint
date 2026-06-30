@@ -12,58 +12,82 @@ OnPoint is a **multi-sided AI fashion platform** serving three distinct customer
 2. **Consumers** — Style seekers who need AR try-on, AI coaching, and shopping discovery
 3. **AI Agents** — Autonomous shopping agents owned by power users seeking agentic commerce infrastructure
 
-**Current Status**: Production beta with strong technical foundation but unclear value proposition. Three curators ready to onboard but frontend doesn't serve them well. Consumers find the product semi-useful but unreliable/slow.
+**Current Status**: Production beta. Strong technical foundation. 3 curators ready to onboard but giving feedback that the funnel is unclear.
 
-**Strategic Pivot**: Curator-first growth, then expand to multi-role homepage once each segment proves traction.
-
----
-
-## The Problem
-
-### Identity Crisis
-The current homepage serves everyone and no one:
-- Landing page has consumer-focused persona selector
-- Navigation doesn't clearly separate curator vs consumer flows
-- Agent controls hidden in `/lab` with no clear entry point
-- New visitors don't understand if they're shopping, selling, or configuring AI
-
-### Feature Bloat
-- 971 TypeScript files across 40+ API routes
-- 6 AI providers, 4 blockchains, 80+ React components
-- Virtual try-on, autonomous agents, NFT minting, GoodDollar UBI, M-Pesa, WhatsApp Business API, market intelligence, and more
-- Maintenance burden is massive, new users face decision paralysis
-
-### Performance & Reliability Issues
-- Vercel → Hetzner proxy adds latency to every AI request
-- 6 AI provider SDKs loaded in frontend (large bundle)
-- Inconsistent design system (Tailwind + Pigment CSS)
-- 605 useState/useEffect instances = excessive re-renders
-- No comprehensive error handling or monitoring
+**Strategic Pivot**: Curator-first growth via diagnosis-then-enhancement, NOT rebuild.
 
 ---
 
-## Strategic Direction: Phased Focus
+## What Already Exists (We Built Forward Without Auditing)
 
-### Phase 1: Curator Domination (Q3 2026 — CURRENT)
+**Reality check**: Before proposing new builds, an audit of the codebase shows we have most of what we need:
+
+### Curator Surfaces (Production-Ready)
+- **`/curator`** — Full curator landing page (775 lines) with 6 archetypes (Sportswear, Streetwear, Ankara, Vintage, Tailor, Luxury), real Wanja testimonial, benefits, how-it-works, final CTA
+- **`/curator/onboard`** — Self-serve onboarding form with comprehensive vertical taxonomy (21+ verticals)
+- **`/s/[slug]`** — Branded curator storefronts with try-on, polaroid sharing, WhatsApp checkout
+- **`/admin/curators`** — Admin dashboard
+- **`/admin/curators/[slug]`** — Per-curator management (listings, payments, notifications, reply templates)
+
+### Consumer Surfaces
+- **`/`** — Current homepage with persona selector, body type, occasion, vibe pickers
+- **`/shop`** — Product grid with cart, fly-to-cart animation, checkout modal
+- **`/style`** — Virtual try-on / live stylist
+
+### Agent Surfaces
+- **`/lab`** — Agent wallet dashboard, spending controls, missions
+
+### Navigation
+- Desktop header already links to `/curator`, `/lab`, `/guides`, `/about`
+- Mobile bottom nav exists
+
+---
+
+## The Real Problem (Diagnosis Required, Not Rebuild)
+
+The 3 curators ready to onboard are confused — but **we don't know what specifically confuses them** because we haven't done curator interviews yet.
+
+**Hypotheses to test** (in priority order):
+
+### Hypothesis 1: Root `/` Should Lead to `/curator`
+**Symptom**: Curators land on `/` and see persona selector / try-on demo. They think this is a consumer app.
+
+**Test**: Ask the 3 curators "Where did you land first?" and "Did you understand this was for sellers?"
+
+**Fix if confirmed**: Add curator entry point to `/` hero OR redirect new visitors with curator intent (e.g. UTM params, referral sources).
+
+### Hypothesis 2: Onboarding Form Has Friction
+**Symptom**: Curators reach `/curator/onboard` but drop off mid-form.
+
+**Test**: Watch a curator complete the form. Note where they hesitate.
+
+**Fix if confirmed**: Simplify form, reorder fields, add progress indicator.
+
+### Hypothesis 3: Post-Onboarding Drop-Off
+**Symptom**: Curators finish onboarding but don't add products / share storefront.
+
+**Test**: Check existing curators' activation rates from analytics.
+
+**Fix if confirmed**: Improve activation email, add "what's next" guidance, mobile-optimize admin dashboard.
+
+### Hypothesis 4: Mobile Admin Dashboard
+**Symptom**: Curators try to manage business from phone but admin is desktop-first.
+
+**Test**: Watch a curator try to add a product from their phone.
+
+**Fix if confirmed**: Mobile-first redesign of `/admin/curators/[slug]`.
+
+---
+
+## Phased Strategic Focus
+
+### Phase 1: Curator Activation (Q3 2026 — CURRENT)
 
 **Goal**: Make OnPoint the obvious choice for WhatsApp-first fashion sellers in Africa.
 
-**Target Customers**: 
-- Small-business fashion sellers currently managing inventory via WhatsApp chats
-- Earn $500-$5,000/month, mostly via M-Pesa
-- Pain points: Manual order tracking, payment reconciliation, inventory management
+**Approach**: Diagnose blockers via curator interviews → enhance existing surfaces → measure activation.
 
-**Value Proposition**:
-> "Your WhatsApp. Your Storefront. AI-Powered."
-> Turn your fashion business into a branded storefront with AI assistance in 30 seconds.
-
-**Homepage Design**: 100% curator-focused
-- Hero: WhatsApp-to-storefront transformation demo
-- CTA: "Start Selling in 30 Seconds" → `/curator/onboard`
-- Social proof: "$12K earned by curators this month"
-- Features: M-Pesa integration, WhatsApp receipts, AI product recommendations
-- Consumer shopping portal at `/shop` (secondary navigation)
-- Agent controls at `/lab` (footer link for power users)
+**Key Principle**: ENHANCEMENT FIRST. We have `/curator`, `/curator/onboard`, `/s/[slug]`, `/admin/curators/[slug]`. We do NOT need to rebuild. We need to surgically improve based on real curator feedback.
 
 **Success Metrics** (90 days):
 - ✅ 3 curators ready to onboard → **10 active curators**
@@ -71,20 +95,26 @@ The current homepage serves everyone and no one:
 - ✅ Weekly curator retention **> 60%**
 - ✅ Curator NPS **> 50**
 
-**Key Features to Ship**:
-1. **Mobile-first curator dashboard** — `/admin/curators/[slug]` optimized for phone
-2. **Order management UI** — List orders, mark shipped/delivered, payment status
-3. **Self-serve product upload** — Phone photo + description → listing (no admin intervention)
-4. **Customer CRM** — Surface repeat customers, purchase history
-5. **WhatsApp incoming handler** — Bot responds to "Do you have size M?" questions
-6. **Marketing automation** — One-tap "broadcast new stock to past customers"
+**Activation Funnel to Instrument**:
+1. Land on site → 100%
+2. View `/curator` → ??% (need PostHog tracking)
+3. Click "Apply" → ??%
+4. Complete onboarding form → ??%
+5. Add first product → ??%
+6. Share storefront link → ??%
+7. First sale → 40% target
 
-**What to Kill/Defer**:
-- ❌ NFT minting for style moments → Move to `/lab` behind feature flag
-- ❌ Calendar integration → Remove entirely (not curator or consumer need)
-- ❌ Multiple AI persona system → Keep 2 free personas max, kill premium unlock flow
-- ❌ Agent missions panel → Simplify to basic wallet + spending controls
-- ❌ Design studio / collage → Archive (confusing, low engagement)
+**Decisions to Make Based on Curator Interviews**:
+- Does root `/` need a curator entry banner?
+- Should `/` redirect to `/curator` for non-authenticated visitors?
+- Which onboarding step is causing drop-off?
+- What's missing from admin dashboard that curators ask for?
+
+**What We Will NOT Do** (Anti-Pattern Guardrails):
+- ❌ Build new homepage components without checking existing ones
+- ❌ Duplicate functionality that lives in `/curator`
+- ❌ Rebuild admin dashboard without watching curators use it first
+- ❌ Add new features before understanding which existing ones underperform
 
 ---
 
@@ -92,39 +122,34 @@ The current homepage serves everyone and no one:
 
 **Prerequisite**: 10+ active curators with >40% activation rate
 
-**Goal**: Make the consumer AR styling experience fast and reliable.
+**Goal**: Make consumer AR styling experience fast and reliable.
 
-**Value Proposition**:
-> "AI styling coach that tells you what works before you buy."
-> 3-second camera analysis, instant feedback, shop the recommendations.
+**Existing Surface**: `/` (current homepage), `/shop`, `/style`
 
 **Focus Areas**:
 
-**Performance Optimization**:
-- Move AI SDKs to backend only (eliminate 6 provider libraries from frontend bundle)
-- Implement proper caching (CDN, Redis, browser storage)
-- Add bundle analyzer, cut bundle size by 40%
-- Consolidate to ONE styling solution (Tailwind only, remove Pigment CSS)
-- Optimize React re-renders (audit 605 hook instances)
+**Performance**:
+- Move AI SDKs to backend only (cut frontend bundle ~40%)
+- Centralized AI provider fallback with shared circuit breaker (Redis state)
+- Lazy-load AI client packages
+- Consolidate to ONE styling solution (Tailwind, remove Pigment CSS)
 
 **Reliability**:
-- Centralized provider fallback with shared circuit breaker (Redis state)
-- Add loading states everywhere (skeleton loaders, progress indicators, ETA)
-- Error boundaries on all major components
-- Fix mobile camera scan-signals gap
-- Add E2E tests for critical flows (camera → analysis → recommendation → checkout)
+- Add error boundaries to major components
+- Add loading states (skeleton loaders, progress, ETA)
+- Fix mobile camera scan-signals gap (per team memory)
+- E2E tests for critical flows
 
-**Simplified UX**:
-- Landing page progressive disclosure (show 3 personas, "See all" expands)
+**UX Simplification**:
+- Progressive disclosure on `/` (show 3 personas, "See all" expands)
+- Remove decision paralysis (body type + occasion + vibe + budget all at once is too much)
 - Onboarding flow instead of dumping everything on homepage
-- Remove decision paralysis (body type, occasion, vibe, budget all at once = too much)
 
-**Success Metrics** (90 days):
-- ✅ AI response latency **< 3s P95**
-- ✅ Camera session completion rate **> 70%**
-- ✅ Try-on → purchase conversion **> 15%**
-- ✅ Weekly returning users **> 30%**
-- ✅ Mobile bounce rate **< 40%**
+**Success Metrics**:
+- AI response latency < 3s P95
+- Camera session completion rate > 70%
+- Try-on → purchase conversion > 15%
+- Mobile bounce rate < 40%
 
 ---
 
@@ -134,36 +159,28 @@ The current homepage serves everyone and no one:
 
 **Goal**: Enable AI agents to shop autonomously on behalf of their owners.
 
-**Target Customers**: 
-- Power users who want autonomous shopping
-- Crypto-native users comfortable with agent wallets
-- Early adopters seeking agentic commerce
+**Existing Surface**: `/lab` (agent wallet dashboard), `packages/agent-core` (spending controls, escrow, fraud detection)
 
-**Value Proposition**:
-> "Your AI shops while you sleep."
-> Set preferences, fund wallet, let AI discover and purchase on your behalf.
-
-**Why This Is Last**:
-AI agents are **amazing potential customers for curators** if:
+**Why This Is Last**: Agents are amazing customers FOR curators IF:
 1. ✅ Curators have reliable inventory and payment infrastructure
 2. ✅ Product catalog is comprehensive and accurate
 3. ✅ Checkout flow is fast and doesn't require human intervention
 4. ✅ Agent API is well-documented and stable
 
-Without (1-4), agents will fail to complete purchases and erode trust.
+Without (1-4), agents fail purchases and erode trust.
 
 **Focus Areas**:
 - Agent-to-curator API for bulk inventory queries
 - Webhook notifications for stock availability
-- Autonomous checkout without approval (below spending threshold)
 - Agent reputation system (curator allowlists, fraud detection)
 - Multi-agent collaboration (stylist + shopper + finance agent)
+- Public agent SDK / docs
 
-**Success Metrics** (90 days):
-- ✅ 50+ funded agent wallets
-- ✅ Agent purchase success rate **> 92%**
-- ✅ Autonomous purchases (no approval) **> 60%** of agent volume
-- ✅ Agent-driven curator revenue **> 20%** of total
+**Success Metrics**:
+- 50+ funded agent wallets
+- Agent purchase success rate > 92%
+- Autonomous purchases (no approval) > 60% of agent volume
+- Agent-driven curator revenue > 20% of total
 
 ---
 
@@ -175,243 +192,62 @@ Without (1-4), agents will fail to complete purchases and erode trust.
 
 **Design Pattern**: "Choose Your Adventure" with Smart Defaults
 
-**Homepage Structure**:
-```
-1. Universal Hero (5 seconds to hook EVERYONE)
-   - "AI-Powered Fashion, Your Way"
-   - Compelling demo video showing all three use cases
-   - Role selector (prominent but not blocking)
+**Key Implementation**:
+- Smart role detection (wallet connected = agent, curator slug = curator, default consumer)
+- Persistent role toggle (top-right, URL param + localStorage)
+- URL-based routing (`?role=curator` or subdomains)
+- Each view = standalone landing page quality
 
-2. Default View (Consumer-focused if no role selected)
-   - Live AR stylist demo you can try immediately
-   - Social proof: "10,000+ looks analyzed this week"
-
-3. Role-Specific Content (loads below fold based on selection)
-   - Consumer view: AR try-on demo, shop now
-   - Curator view: WhatsApp-to-storefront, start selling
-   - Agent view: Autonomous shopping, set up agent
-```
-
-**Implementation Details**:
-
-**Smart Role Detection**:
-```typescript
-const detectedRole = 
-  hasWalletConnected ? 'agent' :
-  hasCuratorSlug ? 'curator' :
-  'consumer'; // Default
-```
-
-**Persistent Role Toggle** (top-right, always visible):
-- "For Me" | "For Business" | "AI Agent"
-- Saves to localStorage + URL param
-- Syncs across page navigation
-
-**URL-Based Routing** (shareable, SEO-friendly):
-```
-beonpoint.xyz              → Consumer (default)
-beonpoint.xyz?role=curator → Curator view
-beonpoint.xyz?role=agent   → Agent view
-
-OR subdomain approach:
-shop.beonpoint.xyz   → Consumer
-sell.beonpoint.xyz   → Curator
-agent.beonpoint.xyz  → Agent
-```
-
-**Each View = Standalone Landing Page Quality**:
-- Consumer: "Your AI styling coach" + live camera demo
-- Curator: "Turn your WhatsApp into a storefront" + earnings proof
-- Agent: "Your AI shops while you sleep" + success rate stats
-
-**Success Metrics**:
-- ✅ Role selection engagement **> 40%** (users who interact with toggle)
-- ✅ Bounce rate per role **< 35%**
-- ✅ Conversion rate improves or matches dedicated landing pages
-- ✅ Cross-role discovery **> 10%** (consumer becomes curator, etc.)
+**Why Build This Last**: Only legitimate after each segment has proven demand and we have data on which routing performs best.
 
 ---
 
-## Architecture Simplification Plan
+## Architecture Improvements (Run in Parallel with Phase 1)
 
 ### Current Issues
 - Vercel (presentation) + Hetzner VPS (agent autonomy) split adds latency
-- Three separate Node processes (API, worker, agent-server) on Hetzner
-- Redis as "single source of truth" but also Neon Postgres (state drift risk)
-- No redundancy, no disaster recovery plan documented
+- 6 AI provider SDKs in frontend bundle
+- 605 useState/useEffect instances across 80 components (re-render risk)
+- Tailwind + Pigment CSS dual systems (inconsistency)
+- No comprehensive monitoring / SLA alerting
 
-### Proposed Simplification (Post-Curator MVP)
+### Quick Wins (Ship This Week)
+1. **API latency tracking** — P50/P95/P99 per route, Sentry alerts
+2. **Bundle analyzer** — `next build --profile`, identify top 10 offenders
+3. **Activation funnel** — PostHog events for curator funnel (land → onboard → product → sale)
 
-**Option A: Full Serverless** (Recommended for scale)
-```
-Vercel Edge Functions (API routes)
-    ↓
-Neon Postgres (serverless)
-    ↓
-Upstash Redis (serverless)
-    ↓
-Cloudflare R2 (storage)
-```
+### Medium Term (Phase 2)
+1. **Move AI SDKs server-side** — Cut bundle ~40%
+2. **Centralize provider fallback** — Shared circuit breaker in Redis
+3. **Consolidate styling** — Pick Tailwind, drop Pigment
 
-**Benefits**:
-- Zero ops burden (no VPS management)
-- Auto-scaling, global edge distribution
-- Cost scales with usage
-- Built-in redundancy
-
-**Tradeoffs**:
-- Lose direct server control
-- Harder to run long-lived processes (worker, agent-server)
-- May need separate service for autonomous agent operations
+### Long Term (Post-Phase 3)
+1. **Infrastructure decision** — Full serverless (Vercel + Upstash + Neon) vs. hybrid (keep Hetzner with redundancy)
+2. **Database read replicas** for analytics
+3. **APM / distributed tracing** (DataDog or New Relic)
 
 ---
 
-**Option B: Hybrid** (Keep Hetzner for agent autonomy)
-```
-Vercel (presentation + lightweight APIs)
-    ↓
-Hetzner (AI inference + agent operations) with:
-    - Load balancer
-    - 2nd VPS for redundancy
-    - Automated backups (Redis + Postgres)
-    - Monitoring/alerting (DataDog)
-    ↓
-Cloudflare CDN (in front of Hetzner)
-```
+## What We Will NOT Build (Anti-Bloat Guardrails)
 
-**Benefits**:
-- Keep control over agent autonomy logic
-- Can run long-lived processes
-- Better for GPU-intensive AI workloads
-
-**Tradeoffs**:
-- Higher ops burden
-- Need to manage redundancy/failover
-- Fixed costs even at low usage
-
----
-
-**Recommendation**: Start with **Option A** for curator-first phase (serverless, focus on product). Evaluate **Option B** only if agent autonomy becomes core differentiator and requires dedicated infrastructure.
-
----
-
-## Monitoring & Observability
-
-### Current Gaps
-- Sentry for errors, PostHog for product analytics
-- No APM, no distributed tracing, no SLA alerting
-
-### Minimum Viable Monitoring (Ship This Week)
-
-**1. Performance Monitoring**:
-```typescript
-// Track P50, P95, P99 latencies per route
-app.use((req, res, next) => {
-  const start = Date.now();
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-    metrics.histogram('api.latency', duration, {
-      route: req.path,
-      method: req.method,
-      status: res.statusCode,
-    });
-  });
-  next();
-});
-```
-
-**2. Business Metrics Dashboard**:
-- Curator activation rate (onboard → first sale)
-- Consumer conversion rate (camera → checkout)
-- Agent success rate (autonomous purchase completion)
-- Revenue per curator per week
-- AI provider fallback rate (Venice fail → 0G → Gemini)
-
-**3. Alerting** (PagerDuty or Slack webhooks):
-- API error rate > 5% (5min window)
-- Checkout success rate < 95% (15min window)
-- AI latency P95 > 5s (5min window)
-- Agent purchase failure rate > 15% (1hr window)
-
-**4. Status Page** (for curators):
-- Are payments working? (M-Pesa, Stripe)
-- Is agent online? (heartbeat timestamp)
-- AI provider health (Venice, 0G, Gemini)
-
----
-
-## What We Will NOT Build
-
-To maintain focus, we explicitly **will not** build:
-
-### Features to Kill
+### Killed Entirely
 - ❌ Calendar integration (no curator or consumer demand)
-- ❌ NFT minting for every style session (move to `/lab` for power users only)
-- ❌ Design studio / collage (confusing, low engagement)
-- ❌ Multiple blockchain support (focus on Celo only for now)
-- ❌ Curator-to-curator collaboration (premature, need 25+ curators first)
+- ❌ Design studio / collage (low engagement)
 
-### Features to Defer (Post-Phase 3)
-- Multi-chain agent wallets (Ethereum, Polygon, Base) → Celo only for now
-- Custom persona creation (train on your style) → Too complex, low ROI
-- Creator marketplace (stylist profiles) → Need 10+ stylists first
-- Mobile app (React Native) → PWA is sufficient for MVP
-- White-label storefronts → SaaS complexity, defer until 100+ curators
+### Experimental (Not Curator-Facing)
+- 🧪 KarmaGAP integration — wired at `/api/karmagap/*` (project/grant discovery + Hermes agent). Not part of the curator activation funnel; kept for future grant/ops exploration. Do NOT surface in curator or consumer UI until a phase explicitly needs it.
 
----
+### Moved to `/lab` (Power Users Only)
+- ⏸️ NFT minting for style moments
+- ⏸️ Advanced agent autonomy features
+- ⏸️ Agent missions panel (simplify to basic wallet + spending controls)
 
-## Success Criteria by Phase
-
-### Phase 1: Curator Domination (Q3 2026)
-- ✅ 10 active curators (currently 3 ready)
-- ✅ 40% curator activation rate (onboard → first sale)
-- ✅ 60% week-1 retention
-- ✅ NPS > 50
-
-**Exit Criteria**: 3 consecutive weeks with all 4 metrics above target.
-
----
-
-### Phase 2: Consumer Reliability (Q4 2026)
-- ✅ AI latency < 3s P95
-- ✅ 70% camera session completion
-- ✅ 15% try-on → purchase conversion
-- ✅ 30% weekly returning users
-
-**Exit Criteria**: 4 consecutive weeks with all 4 metrics above target.
-
----
-
-### Phase 3: AI Agent Infrastructure (Q1 2027)
-- ✅ 50 funded agent wallets
-- ✅ 92% agent purchase success rate
-- ✅ 60% autonomous (no approval) purchase rate
-- ✅ 20% agent-driven curator revenue
-
-**Exit Criteria**: 6 consecutive weeks with all 4 metrics above target.
-
----
-
-### Phase 4: Multi-Role Homepage (Q2 2027)
-- ✅ All Phase 1-3 metrics remain above target
-- ✅ Role selection engagement > 40%
-- ✅ Bounce rate per role < 35%
-- ✅ 10% cross-role discovery rate
-
-**Exit Criteria**: 8 consecutive weeks with healthy metrics across all three segments.
-
----
-
-## Risk Mitigation
-
-| Risk | Mitigation | Owner |
-|------|-----------|-------|
-| **Curators don't activate** | Weekly 1:1 calls, watch them use product, fix blockers within 48hrs | Product |
-| **AI unreliable** | Centralized circuit breaker, fallback chain, 3s timeout → human fallback | Engineering |
-| **Hetzner single point of failure** | Migrate to serverless (Vercel + Upstash + Neon) OR add 2nd VPS + load balancer | Infrastructure |
-| **Feature bloat creeps back** | Every feature requires curator request + approval from product lead | Product |
-| **Performance degrades** | P95 latency alerts, weekly performance review, bundle size CI checks | Engineering |
-| **Cash burn on AI inference** | 0G Compute credits ($50K), monitor cost per session, kill expensive providers | Finance |
+### Deferred (Post-Phase 3)
+- ⏸️ Multi-chain support (Celo only for now)
+- ⏸️ Custom persona creation (train on your style)
+- ⏸️ Creator marketplace (stylist profiles)
+- ⏸️ Mobile app (PWA is sufficient for MVP)
+- ⏸️ White-label storefronts
 
 ---
 
@@ -419,55 +255,103 @@ To maintain focus, we explicitly **will not** build:
 
 When evaluating new features or pivots, ask:
 
-**1. Does this serve our current phase's primary customer?**
-- Phase 1: If it doesn't help curators sell more, defer it.
-- Phase 2: If it doesn't make consumers more successful, defer it.
-- Phase 3: If it doesn't enable agent autonomy, defer it.
+1. **Does this serve our current phase's primary customer?**
+   - Phase 1: If it doesn't help curators sell more, defer it.
 
-**2. Can this be killed or simplified?**
-- Every line of code is a liability. Can we achieve 80% of value with 20% of effort?
+2. **Does this enhance an existing surface or duplicate one?**
+   - ENHANCEMENT FIRST: We have `/curator`, `/curator/onboard`, `/s/[slug]`, `/admin/curators/[slug]`. Improve them; don't rebuild.
 
-**3. Does this create product complexity or reduce it?**
-- New UI surface = complexity. Removing features = simplification.
+3. **Can this be killed or simplified?**
+   - Every line of code is a liability.
 
-**4. What's the opportunity cost?**
-- Building X means not building Y. Is X the highest leverage thing we could do?
+4. **What's the opportunity cost?**
+   - Building X means not building Y.
 
-**5. How will we measure success?**
-- If we can't define a metric, we can't know if it worked. No metric = no build.
+5. **How will we measure success?**
+   - No metric = no build.
 
 ---
 
-## Communication
+## Next Immediate Steps (Week of 2026-07-01)
 
-### Internal (Team)
-- Weekly all-hands: Review metrics, celebrate wins, adjust course
-- Daily standups: Blockers only (5 min max)
-- Bi-weekly retros: What's working, what's not, what to change
+### Step 1: Curator Interviews (THIS WEEK)
+Talk to the 3 ready curators. Watch them use the product. Specifically:
+- Where did they land first?
+- Did they understand this was for sellers?
+- Where in the onboarding flow did they hesitate?
+- What did they expect that wasn't there?
+- Can they manage their store from their phone?
 
-### External (Users)
-- Monthly product updates (blog post + email)
-- Curator-specific newsletter (tips, best practices, success stories)
-- Public roadmap (this doc) updated quarterly
+**Output**: Document specific blockers in `docs/curator-feedback-2026-07.md`
+
+### Step 2: Activation Funnel Instrumentation
+Add PostHog events for:
+- `/curator` page view
+- `/curator/onboard` started
+- `/curator/onboard` completed
+- First product added
+- Storefront shared
+- First sale
+
+**Output**: Dashboard showing drop-off at each step
+
+### Step 3: Targeted Fixes
+Based on Step 1 findings, prioritize fixes:
+- If homepage blocker → enhance root `/` or redirect to `/curator`
+- If onboarding blocker → simplify `/curator/onboard` form
+- If post-signup blocker → improve admin dashboard mobile UX
+- If product upload blocker → enhance self-serve flow
+
+**Output**: PR per fix, measured impact on funnel
+
+### Step 4: Iterate
+Repeat interviews after each fix. Don't move to Phase 2 until activation rate hits 40%.
+
+---
+
+## Success Criteria by Phase
+
+### Phase 1 Exit Criteria (must hold 3 consecutive weeks)
+- ✅ 10 active curators (≥1 sale in last 30 days)
+- ✅ 40% activation rate (onboard → first sale within 7 days)
+- ✅ 60% week-1 retention
+- ✅ NPS > 50
+
+### Phase 2 Exit Criteria (must hold 4 consecutive weeks)
+- ✅ AI latency < 3s P95
+- ✅ 70% camera session completion
+- ✅ 15% try-on → purchase conversion
+- ✅ 30% weekly returning users
+
+### Phase 3 Exit Criteria (must hold 6 consecutive weeks)
+- ✅ 50 funded agent wallets
+- ✅ 92% agent purchase success rate
+- ✅ 60% autonomous (no approval) purchase rate
+- ✅ 20% agent-driven curator revenue
+
+### Phase 4 Exit Criteria (must hold 8 consecutive weeks)
+- ✅ All Phase 1-3 metrics remain above target
+- ✅ Role selection engagement > 40%
+- ✅ Bounce rate per role < 35%
+- ✅ 10% cross-role discovery rate
 
 ---
 
 ## Conclusion
 
-OnPoint has strong technical foundations but needs **ruthless focus** to achieve product-market fit.
+OnPoint has strong technical foundations AND most of the curator surfaces are already built. The work isn't rebuilding — it's **listening, measuring, and surgically enhancing**.
 
 **The plan**:
-1. **Q3 2026**: Nail curator experience (10 active, 40% activation)
-2. **Q4 2026**: Fix consumer reliability (3s latency, 70% completion)
-3. **Q1 2027**: Enable agent autonomy (50 wallets, 92% success)
-4. **Q2 2027**: Launch multi-role homepage (40% engagement)
+1. **Talk to 3 curators** — Find specific blockers (not hypothetical)
+2. **Instrument funnel** — Know where they drop off
+3. **Enhance surgically** — Smallest possible change to fix each blocker
+4. **Measure impact** — Did activation rate improve?
+5. **Repeat** — Until 10 curators, 40% activation, then move to Phase 2
 
-Each phase builds on the previous. We don't move to Phase 2 until Phase 1 exit criteria are met.
-
-**Discipline beats ambition.** We will ship less, but ship it better.
+**Discipline beats ambition.** ENHANCEMENT FIRST. PREVENT BLOAT. Ship less, but ship it better.
 
 ---
 
 **Document Owner**: Product Lead  
 **Last Reviewed**: 2026-06-30  
-**Next Review**: 2026-09-30
+**Next Review**: 2026-07-07 (after curator interviews)

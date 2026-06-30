@@ -17,48 +17,54 @@ The core "sees → judges → shops" flow is live at https://beonpoint.netlify.a
 
 ---
 
-## Curator Customer Focus — Current Quarter Strategic Pivot
+## Strategic Direction
 
-**The customer is the curator, not the end-user.** OnPoint is a B2B2C platform: curators (small-business fashion sellers, often selling on WhatsApp today) run branded storefronts at `/s/[slug]`, their downstream customers browse and buy there, and we provide the admin / sales / marketing infrastructure so they spend less time on manual ops.
+**Updated**: 2026-06-30 — OnPoint is adopting a **phased focus strategy** (curator → consumer → agent → multi-role). The full strategy, hypotheses, success criteria, and decision framework live in **[docs/STRATEGY.md](./STRATEGY.md)** — that is the single source of truth. This roadmap tracks *what's built* and *operational gaps*.
 
-This is in addition to (not a replacement for) the direct-to-consumer AR stylist experience at the root.
+### Phase 1: Curator Activation (Q3 2026) 🎯 CURRENT FOCUS
 
-### What's built (Phase 11 complete)
+**Target**: 10 active curators, 40% activation rate, 60% week-1 retention, NPS > 50. See STRATEGY.md for exit criteria.
 
-- **Self-serve onboarding** at `/curator/onboard` — 30-second form creates a branded storefront URL
-- **Public storefront** at `/s/[slug]` — branded listings, try-on, M-Pesa payment panel, WhatsApp share
-- **Curator admin panel** at `/admin/curators/[slug]` — listings CRUD, payments table, notifications feed, reply templates, cross-curator analytics
-- **M-Pesa STK push** — automated payment requests via Safaricom Daraja
-- **WhatsApp Business API** — receipt sending via Meta Cloud API (outbound; full incoming requires Meta Business verification — see deferred items below)
-- **DB schema** — `curators`, `listings`, `orders`, `kit_skus`, `sessions` tables with FKs
-- **AI try-on + polaroid generation** — reusable by curators' customers
-- **Cross-curator AI recommendations** — catalog-aware suggestions on each storefront
+**Approach**: Diagnose-then-enhance, NOT rebuild. The curator surfaces already exist (`/curator`, `/curator/onboard`, `/s/[slug]`, `/admin/curators/[slug]`). Run the interview protocol in **[docs/CURATOR_INTERVIEWS.md](./CURATOR_INTERVIEWS.md)** before building anything.
 
-### Gaps for WhatsApp-first sellers (next quarter)
+### What's Built (Phase 11 Complete)
 
-Mapped against a typical curator's daily workflow (customer message → manual order tracking → manual payment → manual shipping):
+- ✅ Self-serve onboarding at `/curator/onboard`
+- ✅ Public storefront at `/s/[slug]` with branded listings
+- ✅ M-Pesa STK push payment integration
+- ✅ WhatsApp receipt sending (outbound only)
+- ✅ Curator admin panel at `/admin/curators/[slug]`
+- ✅ AI try-on + polaroid generation for curator customers
+- ✅ Cross-curator AI recommendations
 
-- [ ] **Order management surface** — DB has `orders`, but a curator-facing "list orders / mark shipped / mark delivered / see payment status" UI needs to be verified end-to-end and likely polished
-- [ ] **Customer CRM** — surface repeat customers, purchase history, contact info (currently buried)
-- [ ] **Self-serve product creation** — verify a curator can upload a phone photo + write a description and get a listing without admin intervention
-- [ ] **Mobile-first curator dashboard** — `/admin/curators/[slug]` works on desktop but curators live on their phones; phone-optimized view likely needed
-- [ ] **Marketing automation** — one-tap "broadcast new stock to past customers" (vs manual WhatsApp status updates)
-- [ ] **Actionable analytics** — "what sold this week" / "which customer hasn't ordered in 60 days" — surfaceable but probably buried
-- [ ] **WhatsApp incoming message handling** — outgoing receipts work; a bot that handles "do you have size M?" incoming is not built
-- [ ] **Meta Business verification** — required for full WhatsApp Business API; not yet done (see Phase 11 deferred items)
+### Candidate Gaps (Validate via Curator Interviews — Do NOT Build Speculatively)
 
-### Iteration loop
+These are *hypotheses* from the STRATEGY.md diagnosis section, not a build queue. Only ship a fix after 2+ curators flag it as a blocker in interviews.
 
-1. **Discovery call** with a real WhatsApp-selling curator. Goal: document their current workflow end-to-end, identify the one pain point that would save them the most time.
-2. **Ship that one thing** within the week.
-3. **Bring it back**, watch them use it, learn what's next.
-4. Repeat.
+- [ ] **Root `/` clarity for curators** — curators may land on `/` and read it as a consumer app. Confirm via interview before changing `/` or redirecting.
+- [ ] **Mobile-first `/admin/curators/[slug]`** — curators live on their phones; admin is desktop-first. Confirm by watching a curator add a product on mobile.
+- [ ] **Order management UI** — list orders, update status, track payments. Verify the existing surface end-to-end before rebuilding.
+- [ ] **Customer CRM surface** — repeat customers, purchase history, phone numbers.
+- [ ] **Self-serve product upload** — phone photo + description → live listing (no admin intervention).
+- [ ] **WhatsApp templates + incoming handler** — pre-written messages; bot for size/availability questions.
+- [ ] **Marketing automation** — one-tap broadcast to past customers.
+- [ ] **Actionable analytics** — "what sold this week", top customers, stock movement.
+- [ ] **Meta Business verification** — unlock full WhatsApp Business API features.
 
-**Anti-pattern**: building features speculatively before validating against a real curator's workflow. The Phase 11 success criterion "Zero new features without named Curator request" still applies — every gap above gets opened as a ticket only after a curator asks for it (or a paid pilot surfaces it).
+### Iteration Loop
 
-### Long-term positioning
+1. **Discovery call** with curator → Document their workflow, identify #1 pain point
+2. **Ship that one thing** within 1 week
+3. **Watch them use it** → Learn what's next
+4. **Repeat weekly** until curator NPS > 50
 
-When curators ask "what does this become?", the answer isn't the autonomous on-chain agent we've been building — it's "your own storefront, with an AI that helps your customers browse, try-on, and pay without you manually handling each one." The on-chain agent (escrow, signer, auto-rebalance) is plumbing for the payment layer underneath, not the front-of-house experience. Use that framing when the conversation drifts toward "when does the AI do things on its own."
+**Anti-pattern**: Building features speculatively. Every fix requires 2+ curators to flag it as a blocker first.
+
+### Later Phases
+
+- **Phase 2: Consumer Reliability** (Q4 2026) — see STRATEGY.md
+- **Phase 3: AI Agent Infrastructure** (Q1 2027) — see STRATEGY.md
+- **Phase 4: Multi-Role Homepage** (Q2 2027) — see STRATEGY.md
 
 ---
 

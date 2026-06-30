@@ -131,6 +131,7 @@ app.get('/health', json1k, async (req, res) => {
     gemini: !!process.env.GOOGLE_GEMINI_API_KEY,
     serviceKey: !!process.env.SERVICE_API_KEY,
     agentWallet: !!process.env.AGENT_WALLET_ADDRESS,
+    karmaGap: !!process.env.KARMA_GAP_API_KEY,
     infrastructure: {
       bridge: !!process.env.BRIDGE_URL,
       vercel: !!process.env.VERCEL_DOMAIN,
@@ -155,6 +156,7 @@ app.get('/api/status', (req, res) => {
       'catalog',
       'agent-heartbeat',
       'agent-proxy',
+      'karmagap',
     ],
   });
 });
@@ -241,6 +243,9 @@ app.use('/api/agent/escrow', json1k, serviceKeyAuth, require('./routes/agent-esc
 
 // Treasury — service-key + forwarded user (treasury management)
 app.use('/api/agent/treasury', json1k, serviceKeyAuth, require('./routes/agent-treasury'));
+
+// KarmaGAP — public read (grant/project discovery)
+app.use('/api/karmagap', json1k, generalRateLimit, require('./routes/karmagap'));
 
 // Missions — service-key + forwarded user (gamified challenges)
 app.use('/api/agent/missions', json1k, serviceKeyAuth, require('./routes/agent-missions'));
