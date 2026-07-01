@@ -20,6 +20,7 @@ import { CrossCuratorRecommendations } from "../../../components/CrossCuratorRec
 import { AICuratorSection } from "../../../components/AICuratorSection";
 import { MpesaPaymentPanel } from "./MpesaPaymentPanel";
 import { GStreamPanel } from "../../../components/Curator/GStreamPanel";
+import { CuratorInventoryPanel } from "../../../components/CuratorInventoryPanel";
 import { getApiBase } from "../../../lib/utils/api-base";
 
 export const dynamic = "force-dynamic";
@@ -325,6 +326,9 @@ export default async function CuratorStorefrontPage({
       </section>
 
       <section className="mx-auto max-w-6xl px-4 py-10">
+        {/* Curator inventory panel (only visible to the curator themselves) */}
+        <CuratorInventoryPanel curatorSlug={slug} />
+
         <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">

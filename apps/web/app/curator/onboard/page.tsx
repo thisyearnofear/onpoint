@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import { getApiBase } from "../../../lib/utils/api-base";
 import { GClaimCTA } from "../../../components/Curator/GClaimCTA";
+import { ShareKit } from "../../../components/ShareKit";
+import { OnboardingChecklist } from "../../../components/OnboardingChecklist";
 
 // ── Valid verticals (mirrors server-side list) ──────────────
 
@@ -196,6 +198,14 @@ export default function CuratorOnboardPage() {
               ? window.location.origin
               : "https://beonpoint.netlify.app";
           setStorefrontUrl(`${origin}/s/${data.slug}`);
+          // Save slug to localStorage so the storefront can detect
+          // the curator is visiting their own page and show the
+          // inventory panel
+          try {
+            localStorage.setItem("onpoint_curator_slug", data.slug);
+          } catch {
+            // localStorage not available
+          }
           setSubmitState("success");
         } else if (res.status === 409) {
           setErrors({ slug: body.message || "Slug already taken" });
@@ -273,6 +283,11 @@ export default function CuratorOnboardPage() {
             </button>
           </div>
 
+          {/* Progress checklist */}
+          <div className="mt-8 w-full">
+            <OnboardingChecklist curatorSlug={data.slug} storefrontUrl={storefrontUrl} />
+          </div>
+
           {/* See what your customers see — interactive demo */}
           <div className="mt-10 w-full">
             <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-6 text-left">
@@ -336,6 +351,45 @@ export default function CuratorOnboardPage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* What you'll receive — try-on brief preview */}
+          <div className="mt-8 w-full">
+            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6 text-left">
+              <div className="flex items-center gap-2 mb-3">
+                <MessageCircle className="h-5 w-5 text-emerald-500" />
+                <h2 className="text-lg font-bold">What you&apos;ll receive on WhatsApp</h2>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                When a customer tries on an item on your storefront and clicks &ldquo;Ask {data.name || "the curator"}&rdquo;,
+                you&apos;ll get a WhatsApp message that looks like this:
+              </p>
+              {/* Mock WhatsApp message */}
+              <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/30 p-4 border border-emerald-200 dark:border-emerald-900">
+                <div className="flex items-start gap-2">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-xs font-bold text-white">
+                    C
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400 mb-1">Customer</p>
+                    <div className="rounded-lg bg-white dark:bg-background border border-border px-3 py-2 text-sm text-foreground shadow-sm">
+                      Hi {data.name || "there"}, I tried on the <strong>Arsenal Home Kit</strong> in <strong>M</strong> on OnPoint and it fits well.
+                      I&apos;d like <strong>#7 printed</strong>. Do you have it in stock? Ready to pay via M-Pesa.
+                    </div>
+                    <p className="mt-1 text-[10px] text-muted-foreground">via OnPoint try-on · just now</p>
+                  </div>
+                </div>
+              </div>
+              <p className="mt-3 text-xs text-muted-foreground">
+                One message with everything you need: the item, the size, the fit result, and the printing request.
+                You just confirm stock and share your payment details.
+              </p>
+            </div>
+          </div>
+
+          {/* Share kit */}
+          <div className="mt-6 w-full">
+            <ShareKit storefrontUrl={storefrontUrl} curatorName={data.name || "Curator"} />
           </div>
 
           <div className="mt-10 flex flex-wrap justify-center gap-3">
