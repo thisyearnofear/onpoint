@@ -332,12 +332,13 @@ export default function CuratorLandingPage() {
               <Store className="h-7 w-7 text-white" />
             </div>
             <h1 className="mt-6 text-4xl font-black tracking-tight md:text-5xl">
-              Turn your style eye
-              <span className="block text-primary">into a storefront.</span>
+              WhatsApp is your checkout.
+              <span className="block text-primary">OnPoint is your fitting room.</span>
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
-              Get a branded page with AI try-on, polaroid sharing, WhatsApp checkout,
-              and analytics — free to create, zero platform fees.
+              Your customers try on items with AI, see the fit, and arrive on your
+              WhatsApp with a ready-to-act brief. You stop answering &ldquo;will this fit?&rdquo;
+              and start confirming orders.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link
@@ -393,6 +394,112 @@ export default function CuratorLandingPage() {
           </div>
         </div>
       </section>
+      </Reveal>
+
+      {/* ── Before/After WhatsApp comparison ── */}
+      <Reveal>
+        <section className="border-b border-border py-16 md:py-20">
+          <div className="mx-auto max-w-6xl px-4">
+            <div className="text-center">
+              <p className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-4 py-1.5 text-xs font-medium text-muted-foreground">
+                <MessageCircle className="h-3.5 w-3.5 text-emerald-500" />
+                Why OnPoint + WhatsApp beats WhatsApp alone
+              </p>
+              <h2 className="mt-4 text-3xl font-black tracking-tight md:text-4xl">
+                Same customer. Half the messages.
+              </h2>
+              <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
+                OnPoint doesn&apos;t replace your WhatsApp — it makes every conversation
+                shorter and more likely to close.
+              </p>
+            </div>
+
+            <div className="mt-10 grid gap-6 md:grid-cols-2">
+              {/* Without OnPoint */}
+              <div className="rounded-2xl border border-border bg-muted/20 p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
+                    <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <h3 className="font-bold text-muted-foreground">WhatsApp alone</h3>
+                </div>
+                <div className="space-y-2.5">
+                  {[
+                    "Do you have Arsenal kits?",
+                    "What sizes do you have?",
+                    "How much is the home kit?",
+                    "Does it fit a slim M?",
+                    "Can you print #7?",
+                    "How does it look on?",
+                    "Can you send a photo?",
+                    "What colors does it come in?",
+                    "How long does delivery take?",
+                    "Ok I'll take the M, #7 printed",
+                  ].map((msg, i) => (
+                    <div key={i} className="flex items-center gap-2 text-sm">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
+                        {i + 1}
+                      </span>
+                      <span className="text-muted-foreground italic">{msg}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground">
+                  <span className="font-bold">10 messages</span> before the customer is ready to buy.
+                  Now multiply by 20 customers a day.
+                </div>
+              </div>
+
+              {/* With OnPoint */}
+              <div className="rounded-2xl border-2 border-primary/30 bg-primary/5 p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15">
+                    <Camera className="h-4 w-4 text-primary" />
+                  </div>
+                  <h3 className="font-bold text-primary">OnPoint + WhatsApp</h3>
+                </div>
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">
+                      1
+                    </span>
+                    <span className="text-foreground">
+                      Customer visits your storefront, tries on the Arsenal home kit with AI
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">
+                      2
+                    </span>
+                    <span className="text-foreground">
+                      Sees it fits in M, gets a polaroid, clicks &ldquo;Ask the curator&rdquo;
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-[10px] font-bold text-emerald-600">
+                      <MessageCircle className="h-3 w-3" />
+                    </span>
+                    <span className="font-medium text-foreground">
+                      &ldquo;Hi, I tried on the Arsenal home kit in M on OnPoint, it fits. I want #7 printed. Ready to pay.&rdquo;
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-4 border-t border-primary/20 pt-3 text-xs">
+                  <span className="font-bold text-primary">1 message</span> on WhatsApp. The customer
+                  already knows the item, the size, and the fit. You confirm stock and collect payment.
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 text-center">
+              <p className="text-sm text-muted-foreground">
+                <span className="font-bold text-foreground">That&apos;s the difference.</span>
+                OnPoint collapses 10 questions into 1 ready-to-act brief. Your WhatsApp
+                becomes a checkout, not a consultation.
+              </p>
+            </div>
+          </div>
+        </section>
       </Reveal>
 
       {/* ── Archetypes ── */}

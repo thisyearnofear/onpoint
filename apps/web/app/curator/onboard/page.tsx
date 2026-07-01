@@ -7,6 +7,7 @@ import {
   Check,
   CheckCircle2,
   Copy,
+  Camera,
   Globe,
   Loader2,
   MessageCircle,
@@ -272,7 +273,33 @@ export default function CuratorOnboardPage() {
             </button>
           </div>
 
-          <div className="mt-10 w-full space-y-4 text-left">
+          {/* See what your customers see — interactive demo */}
+          <div className="mt-10 w-full">
+            <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-6 text-left">
+              <div className="flex items-center gap-2 mb-3">
+                <Camera className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-bold">See what your customers see</h2>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Before you add inventory, try the AI try-on yourself. This is exactly
+                what your customers will experience when they visit your storefront.
+              </p>
+              <Link
+                href="/s/wanja?demo=1"
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white transition-all hover:bg-primary/90 hover:shadow-lg"
+              >
+                <Camera className="h-4 w-4" />
+                Try the AI try-on now
+                <ArrowLeft className="h-3.5 w-3.5 rotate-180" />
+              </Link>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Opens Wanja&apos;s storefront (our example curator). Pick any item,
+                click &ldquo;Try with AI&rdquo;, and see the polaroid your customers get.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-8 w-full space-y-4 text-left">
             <h2 className="text-lg font-bold">Next steps</h2>
             <div className="space-y-3">
               <div className="flex items-start gap-3 rounded-lg border border-border bg-card p-4">

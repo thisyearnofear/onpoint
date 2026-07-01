@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   RefreshCw,
   Loader2,
+  MessageCircle,
   MousePointerClick,
   Search,
   DollarSign,
@@ -222,24 +223,56 @@ export default function CuratorIntelPage() {
           </p>
         </div>
 
+        {/* WhatsApp comparison banner */}
+        <div className="mb-8 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10">
+              <BarChart3 className="h-5 w-5 text-emerald-500" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm">
+                This is the data you lose on WhatsApp.
+              </h3>
+              <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                On WhatsApp alone, you don&apos;t know how many people viewed your items,
+                how many tried them on, or how many shared them with friends. OnPoint shows
+                you the full funnel — so you know what&apos;s working and what&apos;s not.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Funnel stats */}
         <div className="mb-10">
           <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
             <BarChart3 className="h-4 w-4" />
             Storefront Funnel
+            <span className="ml-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
+              OnPoint only
+            </span>
           </h2>
           {funnelLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-              <StatCard icon={Eye} label="Page Views" value={funnel.pageViews} color="#3b82f6" />
-              <StatCard icon={Camera} label="Try-Ons" value={funnel.tryOns} color="#8b5cf6" />
-              <StatCard icon={Share2} label="Shares" value={funnel.shares} color="#22c55e" />
-              <StatCard icon={MousePointerClick} label="Buy Clicks" value={funnel.buyClicks} color="#f59e0b" />
-              <StatCard icon={TrendingUp} label="Conversion" value={`${conversionRate}%`} color="#ef4444" />
-            </div>
+            <>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                <StatCard icon={Eye} label="Page Views" value={funnel.pageViews} color="#3b82f6" />
+                <StatCard icon={Camera} label="Try-Ons" value={funnel.tryOns} color="#8b5cf6" />
+                <StatCard icon={Share2} label="Shares" value={funnel.shares} color="#22c55e" />
+                <StatCard icon={MousePointerClick} label="Buy Clicks" value={funnel.buyClicks} color="#f59e0b" />
+                <StatCard icon={TrendingUp} label="Conversion" value={`${conversionRate}%`} color="#ef4444" />
+              </div>
+              {/* WhatsApp comparison row */}
+              <div className="mt-4 flex items-center gap-3 rounded-lg border border-dashed border-border bg-muted/10 px-4 py-3 text-xs text-muted-foreground">
+                <MessageCircle className="h-4 w-4 shrink-0 text-muted-foreground/50" />
+                <span>
+                  On WhatsApp alone, all of these would be <span className="font-bold text-muted-foreground">0</span>.
+                  You&apos;d have no idea how many people looked, tried, or shared — only who actually messaged you.
+                </span>
+              </div>
+            </>
           )}
         </div>
 
