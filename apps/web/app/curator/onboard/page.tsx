@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   Check,
   CheckCircle2,
+  Copy,
   Globe,
   Loader2,
   MessageCircle,
@@ -107,6 +108,32 @@ export default function CuratorOnboardPage() {
   const [storefrontUrl, setStorefrontUrl] = useState("");
   const [gSectionOpen, setGSectionOpen] = useState(false);
   const [gClaimed, setGClaimed] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const handleCopyLink = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(storefrontUrl);
+    } catch {
+      // Fallback for older browsers
+      const textarea = document.createElement("textarea");
+      textarea.value = storefrontUrl;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2500);
+  }, [storefrontUrl]);
+
+  const handleWhatsAppShare = useCallback(() => {
+    const shareText = `Check out my storefront on OnPoint — try on items with AI and shop direct! ${storefrontUrl}`;
+    window.open(
+      `https://wa.me/?text=${encodeURIComponent(shareText)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  }, [storefrontUrl]);
 
   const handleChange = useCallback(
     (field: keyof FormData, value: string | string[]) => {
@@ -197,10 +224,10 @@ export default function CuratorOnboardPage() {
           </div>
 
           <h1 className="text-3xl font-black tracking-tight">
-            Storefront created!
+            {data.name ? `${data.name}, your` : "Your"} storefront is live!
           </h1>
           <p className="mt-3 max-w-sm text-muted-foreground">
-            Your OnPoint storefront is live. Here&apos;s your link:
+            Your OnPoint storefront is ready. Here&apos;s your link:
           </p>
 
           <a
@@ -215,6 +242,35 @@ export default function CuratorOnboardPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
           </a>
+
+          {/* One-tap share actions */}
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium transition-all hover:bg-muted active:scale-[0.98]"
+            >
+              {linkCopied ? (
+                <>
+                  <Check className="h-4 w-4 text-emerald-500" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <Copy className="h-4 w-4" />
+                  Copy link
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={handleWhatsAppShare}
+              className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-bold text-white transition-all hover:bg-emerald-600 active:scale-[0.98]"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Share on WhatsApp
+            </button>
+          </div>
 
           <div className="mt-10 w-full space-y-4 text-left">
             <h2 className="text-lg font-bold">Next steps</h2>

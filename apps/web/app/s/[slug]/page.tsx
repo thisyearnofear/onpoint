@@ -347,6 +347,17 @@ export default async function CuratorStorefrontPage({
               This curator has a storefront, but inventory has not been added
               yet. Check back after the next stock update.
             </p>
+            {curator.channels?.whatsapp && (
+              <a
+                href={`https://wa.me/${curator.channels.whatsapp.replace(/^\+/, "")}?text=${encodeURIComponent(`Hi ${curator.name}, I see your OnPoint storefront is live but has no listings yet. You can add inventory by sending a message like "+ arsenal home M 2500 4" with a photo to the OnPoint agent. Let me know if you need help!`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-5 inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-5 py-3 text-sm font-bold text-white transition-all hover:bg-emerald-600 active:scale-[0.98]"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Message {curator.name} to add stock
+              </a>
+            )}
           </div>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -442,7 +453,8 @@ export default async function CuratorStorefrontPage({
                         href={`/lab?tab=try-on&from=${encodeURIComponent(slug)}&item=${encodeURIComponent(listing.id)}`}
                         data-analytics-tryon
                         data-listing-id={listing.id}
-                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-md border border-border px-4 py-3 text-sm font-bold transition-colors hover:bg-muted"
+                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-md border-2 px-4 py-3 text-sm font-bold transition-all hover:opacity-80 active:scale-[0.98]"
+                        style={{ borderColor: "var(--curator-accent)", color: "var(--curator-accent)" }}
                       >
                         <Camera className="h-4 w-4" />
                         Try with AI
