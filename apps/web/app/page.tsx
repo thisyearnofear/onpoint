@@ -118,6 +118,13 @@ export default function Home() {
             <span className="text-sm font-bold tracking-tight">BeOnPoint</span>
           </div>
           <div className="flex items-center gap-1">
+            <Link
+              href="/curator"
+              className="inline-flex items-center gap-1 text-xs font-medium text-primary px-2 py-1 rounded-full bg-primary/10 hover:bg-primary/15 transition-colors"
+            >
+              <Store className="w-3 h-3" />
+              Curators
+            </Link>
             <NotificationBell direction="up" />
             <EnhancedConnectButton />
             <Auth0HeaderButton />

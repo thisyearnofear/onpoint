@@ -160,7 +160,14 @@ export default function CuratorOnboardPage() {
         const body = await res.json();
 
         if (res.ok) {
-          setStorefrontUrl(body.storefrontUrl);
+          // Construct URL from current origin — the API returns
+          // onpoint.famile.xyz which doesn't resolve; the live site
+          // is wherever this frontend is deployed (e.g. beonpoint.netlify.app)
+          const origin =
+            typeof window !== "undefined"
+              ? window.location.origin
+              : "https://beonpoint.netlify.app";
+          setStorefrontUrl(`${origin}/s/${data.slug}`);
           setSubmitState("success");
         } else if (res.status === 409) {
           setErrors({ slug: body.message || "Slug already taken" });

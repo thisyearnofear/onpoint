@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { corsHeaders } from "../../ai/_utils/http";
-import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
+import { rateLimit, RateLimits, getClientId } from "../../../../lib/utils/rate-limit";
 export { OPTIONS } from "../../ai/_utils/http";
 import { logger } from "../../../../lib/utils/logger";
 import { recordProviderOutcome, recordDeepLinkPersonaSelected, recordDeepLinkPersonaOutcome, recordRetentionEvent } from "../../../../lib/utils/analytics-store";
@@ -13,11 +13,21 @@ interface AnalyticsEvent {
 }
 
 export async function POST(request: NextRequest) {
-  return requireAuthWithRateLimit(async (req, _ctx) => {
-    const origin = req.headers.get("origin") || "*";
+    // Analytics ingestion is fire-and-forget — no auth required.
+    // Rate limit by IP to prevent abuse.
+    const clientId = getClientId(request) || "unknown";
+    const rlResult = await rateLimit(`analytics:${clientId}`, RateLimits.general);
+    if (!rlResult.allowed) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded" },
+        { status: 429, headers: { "X-RateLimit-Remaining": rlResult.remaining.toString() } },
+      );
+    }
+
+    const origin = request.headers.get("origin") || "*";
 
     try {
-      const body = await req.json();
+      const body = await request.json();
       const events: AnalyticsEvent[] = body.events || [];
 
       if (!Array.isArray(events) || events.length === 0) {
@@ -167,5 +177,4 @@ export async function POST(request: NextRequest) {
         { status: 500, headers: corsHeaders(origin) },
       );
     }
-  })(request);
 }
