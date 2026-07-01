@@ -436,6 +436,107 @@ export function requireAuthWithRateLimit<T extends NextResponse>(
 }
 
 // ============================================
+// Demo Mode — unauthenticated access with strict rate limit
+// ============================================
+
+/**
+ * Demo rate limit: 5 requests per hour per IP.
+ * Lets unauthenticated visitors try read-only AI features
+ * (color-palette, style-suggestions) without a wallet connection.
+ */
+const DEMO_RATE_LIMIT_CONFIG = {
+  maxRequests: 5,
+  windowMs: 60 * 60 * 1000, // 1 hour
+  prefix: "demo-ai",
+};
+
+/**
+ * Wrapper that allows authenticated users (normal rate limit) OR
+ * unauthenticated demo users (strict 5 req/hour per IP).
+ *
+ * Use this for read-only AI demo endpoints where requiring auth
+ * creates a conversion barrier for first-time visitors (curators
+ * evaluating the product, hackathon reviewers, etc.).
+ *
+ * The handler receives a partial auth context — `userId` will be
+ * "demo:<ip>" for unauthenticated requests, and tier will be "free".
+ */
+export function requireAuthOrDemo<T extends NextResponse>(
+  handler: (request: NextRequest, context: AgentAuthContext) => Promise<T>,
+): (request: NextRequest) => Promise<T> {
+  return async (request: NextRequest): Promise<T> => {
+    // Try real auth first
+    const auth = await extractAuth(request);
+
+    if (auth) {
+      // Authenticated user — apply normal tiered rate limit
+      const rateLimitResult = await applyTieredRateLimit(request, auth);
+      if (!rateLimitResult.allowed) {
+        return NextResponse.json(
+          {
+            error: "Rate limit exceeded",
+            retryAfter: Math.ceil(
+              (rateLimitResult.resetAt - Date.now()) / 1000,
+            ),
+            remaining: rateLimitResult.remaining,
+          },
+          {
+            status: 429,
+            headers: {
+              "X-RateLimit-Limit": auth.tier === "premium" ? "500" : "60",
+              "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+              "X-RateLimit-Reset": Math.ceil(
+                rateLimitResult.resetAt / 1000,
+              ).toString(),
+            },
+          },
+        ) as T;
+      }
+      return handler(request, auth);
+    }
+
+    // No auth — demo mode with strict IP rate limit
+    const clientId = getClientId(request) || "unknown";
+    const demoResult = await rateLimit(
+      `demo:${clientId}`,
+      DEMO_RATE_LIMIT_CONFIG,
+    );
+
+    if (!demoResult.allowed) {
+      return NextResponse.json(
+        {
+          error: "Demo limit reached. Connect your wallet for unlimited access.",
+          retryAfter: Math.ceil(
+            (demoResult.resetAt - Date.now()) / 1000,
+          ),
+          remaining: demoResult.remaining,
+          demoMode: true,
+        },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": "5",
+            "X-RateLimit-Remaining": demoResult.remaining.toString(),
+            "X-RateLimit-Reset": Math.ceil(
+              demoResult.resetAt / 1000,
+            ).toString(),
+          },
+        },
+      ) as T;
+    }
+
+    const demoContext: AgentAuthContext = {
+      userId: `demo:${clientId}`,
+      agentId: "onpoint-stylist",
+      permissions: FREE_TIER_PERMISSIONS,
+      tier: "free",
+    };
+
+    return handler(request, demoContext);
+  };
+}
+
+// ============================================
 // Utility Functions
 // ============================================
 

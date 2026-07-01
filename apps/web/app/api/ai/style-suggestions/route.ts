@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateText } from "../_utils/providers";
 import { corsHeaders } from "../_utils/http";
-import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
+import { requireAuthOrDemo } from "../../../../middleware/agent-auth";
 export { OPTIONS } from "../_utils/http";
 import { logger } from "../../../../lib/utils/logger";
 
 export async function POST(request: NextRequest) {
-  return requireAuthWithRateLimit(async (req, _ctx) => {
+  return requireAuthOrDemo(async (req, _ctx) => {
     try {
       const {
         prompt,

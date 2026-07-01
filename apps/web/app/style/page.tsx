@@ -119,16 +119,13 @@ export default function StylePage() {
         </p>
         </div>
 
-        {/* Auth Gate — AI features require wallet connection */}
+        {/* Demo mode notice — soft nudge, not a hard gate */}
         {!isConnected && (
-          <div className="flex flex-col items-center gap-3 mb-8 p-6 rounded-lg border border-primary/20 bg-primary/5 max-w-2xl mx-auto text-center">
-            <Wallet className="h-8 w-8 text-primary" />
-            <div>
-              <p className="font-medium text-foreground">Connect your wallet to use AI features</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Color palettes, style suggestions, and AI enhancement require authentication.
-              </p>
-            </div>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-6 text-sm text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <Wallet className="h-4 w-4" />
+              You're in demo mode (5 requests/hour).
+            </span>
             <EnhancedConnectButton />
           </div>
         )}
@@ -139,7 +136,7 @@ export default function StylePage() {
           onClick={handleGenerateVariations}
           variant="outline"
           className="flex items-center gap-2"
-          disabled={suggestionsLoading || !isConnected}
+          disabled={suggestionsLoading}
         >
           {suggestionsLoading ? (
             <RefreshCw className="h-4 w-4 animate-spin" />
@@ -195,7 +192,7 @@ export default function StylePage() {
                 size="sm"
                 className="text-xs h-6 px-2"
                 onClick={() => setPalettePrompt(preset)}
-                disabled={paletteLoading || !isConnected}
+                disabled={paletteLoading}
               >
                 {preset.split(' ')[0]}
               </Button>
@@ -206,7 +203,7 @@ export default function StylePage() {
         <Button
           onClick={handleAIEnhance}
           className="fashion-gradient text-white flex items-center gap-2"
-          disabled={enhancementLoading || !isConnected}
+          disabled={enhancementLoading}
         >
         <Wand2 className="h-4 w-4" />
         {enhancementLoading ? 'Enhancing...' : 'AI Enhance'}
