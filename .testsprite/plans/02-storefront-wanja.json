@@ -1,0 +1,15 @@
+{
+  "projectId": "e68d1403-2397-41f1-b25e-0a92d290111a",
+  "type": "frontend",
+  "name": "Storefront (Wanja) — listings + try-on + empty state",
+  "planSteps": [
+    { "type": "action", "description": "Navigate to Wanja's storefront", "action": "navigate", "value": "https://beonpoint.netlify.app/s/wanja" },
+    { "type": "assertion", "description": "Curator name 'Wanja' is visible in the heading", "selector": "body", "condition": "text_contains", "value": "Wanja" },
+    { "type": "assertion", "description": "Intelligence link is visible", "selector": "body", "condition": "text_contains", "value": "Intelligence" },
+    { "type": "assertion", "description": "Share button is visible", "selector": "body", "condition": "text_contains", "value": "Share" },
+    { "type": "assertion", "description": "WhatsApp checkout badge text is visible", "selector": "body", "condition": "text_contains", "value": "WhatsApp" },
+    { "type": "assertion", "description": "Try with AI button is visible on listing cards", "selector": "body", "condition": "text_contains", "value": "Try with AI" },
+    { "type": "assertion", "description": "Browse all curators link at bottom", "selector": "body", "condition": "text_contains", "value": "Browse all curators" },
+    { "type": "assertion", "description": "M-Pesa payment reference is visible", "selector": "body", "condition": "text_contains", "value": "M-Pesa" }
+  ]
+}

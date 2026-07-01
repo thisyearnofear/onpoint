@@ -1,0 +1,12 @@
+{
+  "projectId": "e68d1403-2397-41f1-b25e-0a92d290111a",
+  "type": "frontend",
+  "name": "Onboarding form — fields and submit button visible",
+  "planSteps": [
+    { "type": "action", "description": "Navigate directly to the curator onboarding page at the exact URL https://beonpoint.netlify.app/curator/onboard — do not navigate to any other URL", "action": "navigate", "value": "https://beonpoint.netlify.app/curator/onboard" },
+    { "type": "assertion", "description": "Page contains the 'Start your OnPoint storefront' heading", "selector": "body", "condition": "text_contains", "value": "Start your OnPoint storefront" },
+    { "type": "assertion", "description": "Page contains the 'Storefront slug' label", "selector": "body", "condition": "text_contains", "value": "Storefront slug" },
+    { "type": "assertion", "description": "Page contains the 'Your name' label", "selector": "body", "condition": "text_contains", "value": "Your name" },
+    { "type": "assertion", "description": "Page contains the 'Create storefront' submit button text", "selector": "body", "condition": "text_contains", "value": "Create storefront" }
+  ]
+}

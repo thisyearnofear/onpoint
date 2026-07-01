@@ -87,3 +87,8 @@ apps/web/public/demo/
 
 # test negation
 !apps/web/scripts/register-erc8004-agent.mjs
+
+# TestSprite — keep plans/ in repo, ignore temporary artifacts
+.testsprite/failure-*
+.testsprite/steps-*
+.testsprite/failure*/

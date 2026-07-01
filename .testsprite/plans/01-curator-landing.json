@@ -1,0 +1,15 @@
+{
+  "projectId": "e68d1403-2397-41f1-b25e-0a92d290111a",
+  "type": "frontend",
+  "name": "Curator landing page — positioning + CTAs",
+  "planSteps": [
+    { "type": "action", "description": "Navigate directly to the curator landing page at https://beonpoint.netlify.app/curator — stay on this page, do not navigate to any other URL", "action": "navigate", "value": "https://beonpoint.netlify.app/curator" },
+    { "type": "assertion", "description": "Page body contains the text 'WhatsApp is your checkout'", "selector": "body", "condition": "text_contains", "value": "WhatsApp is your checkout" },
+    { "type": "assertion", "description": "Page body contains the text 'fitting room'", "selector": "body", "condition": "text_contains", "value": "fitting room" },
+    { "type": "assertion", "description": "Page body contains the text 'Same customer'", "selector": "body", "condition": "text_contains", "value": "Same customer" },
+    { "type": "assertion", "description": "Page body contains the text 'WhatsApp alone'", "selector": "body", "condition": "text_contains", "value": "WhatsApp alone" },
+    { "type": "assertion", "description": "Page body contains the text 'OnPoint + WhatsApp'", "selector": "body", "condition": "text_contains", "value": "OnPoint + WhatsApp" },
+    { "type": "assertion", "description": "Page body contains the text 'Create your storefront'", "selector": "body", "condition": "text_contains", "value": "Create your storefront" },
+    { "type": "assertion", "description": "Page body contains the text 'See an example'", "selector": "body", "condition": "text_contains", "value": "See an example" }
+  ]
+}

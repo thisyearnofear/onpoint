@@ -1,0 +1,10 @@
+{
+  "projectId": "e68d1403-2397-41f1-b25e-0a92d290111a",
+  "type": "frontend",
+  "name": "Homepage — mobile curator nav visibility",
+  "planSteps": [
+    { "type": "action", "description": "Navigate to homepage", "action": "navigate", "value": "https://beonpoint.netlify.app/" },
+    { "type": "assertion", "description": "BeOnPoint brand name is visible", "selector": "body", "condition": "text_contains", "value": "BeOnPoint" },
+    { "type": "assertion", "description": "Curators link text is visible in the page", "selector": "body", "condition": "text_contains", "value": "Curators" }
+  ]
+}

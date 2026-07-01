@@ -214,4 +214,46 @@ The worker also runs a **commerce pipeline** after each market signal cycle:
 
 ---
 
+## Testing — TestSprite Verification Loop
+
+This project uses [TestSprite CLI](https://github.com/TestSprite/testsprite-cli) for AI-driven frontend testing against the live deployment at [beonpoint.netlify.app](https://beonpoint.netlify.app).
+
+### Test coverage
+
+5 frontend tests verify the curator journey end-to-end:
+
+| Test | What it verifies |
+|------|-----------------|
+| Homepage mobile nav | "BeOnPoint" brand + "Curators" link visible |
+| Curator landing page | "WhatsApp is your checkout" hero, before/after comparison, CTAs |
+| Storefront (Wanja) | Listings, "Try with AI" buttons, M-Pesa, "Browse all curators" |
+| Intel dashboard | "Data you lose on WhatsApp" banner, funnel, "OnPoint only" badge |
+| Onboarding form | "Start your OnPoint storefront", slug/name fields, "Create storefront" button |
+
+### Running tests
+
+```bash
+# Install TestSprite CLI
+npm install -g @testsprite/testsprite-cli
+
+# Authenticate
+testsprite setup
+
+# Run all tests
+testsprite test rerun <test-id-1> <test-id-2> ... --wait --output json
+
+# Read failure bundle
+testsprite test failure get <test-id> --out .testsprite/failure
+```
+
+### CI/CD
+
+Tests are wired into GitHub Actions — see [`.github/workflows/testsprite.yml`](.github/workflows/testsprite.yml). Every PR triggers a full test rerun against the live site.
+
+### Loop history
+
+See [`LOOP.md`](./LOOP.md) for the agent-written log of each verification iteration.
+
+---
+
 **[Live Demo](https://beonpoint.netlify.app)** | [GitHub](https://github.com/thisyearnofear/onpoint) | MIT License

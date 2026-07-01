@@ -1,0 +1,13 @@
+{
+  "projectId": "e68d1403-2397-41f1-b25e-0a92d290111a",
+  "type": "frontend",
+  "name": "Intel dashboard — WhatsApp comparison framing",
+  "planSteps": [
+    { "type": "action", "description": "Navigate to Wanja's intel page", "action": "navigate", "value": "https://beonpoint.netlify.app/s/wanja/intel" },
+    { "type": "assertion", "description": "Page title says 'Retail Intelligence'", "selector": "body", "condition": "text_contains", "value": "Retail Intelligence" },
+    { "type": "assertion", "description": "WhatsApp comparison banner is visible", "selector": "body", "condition": "text_contains", "value": "data you lose on WhatsApp" },
+    { "type": "assertion", "description": "Storefront Funnel section header is visible", "selector": "body", "condition": "text_contains", "value": "Storefront Funnel" },
+    { "type": "assertion", "description": "OnPoint only badge is visible", "selector": "body", "condition": "text_contains", "value": "OnPoint only" },
+    { "type": "assertion", "description": "Market Signals section is visible", "selector": "body", "condition": "text_contains", "value": "Market Signals" }
+  ]
+}

@@ -1,0 +1,51 @@
+name: TestSprite Verification
+
+on:
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+env:
+  TESTSPRITE_API_KEY: ${{ secrets.TESTSPRITE_API_KEY }}
+  PROJECT_ID: e68d1403-2397-41f1-b25e-0a92d290111a
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install TestSprite CLI
+        run: npm install -g @testsprite/testsprite-cli
+
+      - name: Configure credentials
+        run: testsprite setup --from-env --yes
+
+      - name: Run all frontend tests
+        id: tests
+        run: |
+          testsprite test run --all --project "$PROJECT_ID" \
+            --wait --timeout 600 --output json > result.json 2>&1 || true
+          cat result.json
+          # Check if any tests failed
+          if jq -e '.summary.failed > 0 or .summary.timedOut > 0' result.json >/dev/null 2>&1; then
+            echo "::warning::Some tests failed or timed out — check the output above"
+            exit 1
+          fi
+          echo "All tests passed!"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testsprite-results
+          path: |
+            result.json
+            .testsprite/
+          retention-days: 30
