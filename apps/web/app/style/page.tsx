@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Palette, Sparkles, ArrowLeft, Shirt, Wand2, RefreshCw } from 'lucide-react';
+import { Palette, Sparkles, ArrowLeft, Shirt, Wand2, RefreshCw, Wallet } from 'lucide-react';
+import { useAccount } from 'wagmi';
 import { Button } from '@repo/ui/button';
 import { EnhancedConnectButton, ChainStatusIndicator } from '@/components/chains';
 import { Input } from '@repo/ui/input';
@@ -12,6 +13,7 @@ import { useToast } from '@/components/toast';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 
 export default function StylePage() {
+  const { isConnected } = useAccount();
   const { palette, loading: paletteLoading, error: paletteError, generatePalette, clearError } = useAIColorPalette();
   const { enhancement, loading: enhancementLoading, enhanceTryOn } = useAIVirtualTryOnEnhancement();
   const { preferences } = useUserPreferences();
@@ -117,13 +119,27 @@ export default function StylePage() {
         </p>
         </div>
 
+        {/* Auth Gate — AI features require wallet connection */}
+        {!isConnected && (
+          <div className="flex flex-col items-center gap-3 mb-8 p-6 rounded-lg border border-primary/20 bg-primary/5 max-w-2xl mx-auto text-center">
+            <Wallet className="h-8 w-8 text-primary" />
+            <div>
+              <p className="font-medium text-foreground">Connect your wallet to use AI features</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Color palettes, style suggestions, and AI enhancement require authentication.
+              </p>
+            </div>
+            <EnhancedConnectButton />
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="flex flex-wrap justify-center gap-4 mb-8">
         <Button
           onClick={handleGenerateVariations}
           variant="outline"
           className="flex items-center gap-2"
-          disabled={suggestionsLoading}
+          disabled={suggestionsLoading || !isConnected}
         >
           {suggestionsLoading ? (
             <RefreshCw className="h-4 w-4 animate-spin" />
@@ -179,7 +195,7 @@ export default function StylePage() {
                 size="sm"
                 className="text-xs h-6 px-2"
                 onClick={() => setPalettePrompt(preset)}
-                disabled={paletteLoading}
+                disabled={paletteLoading || !isConnected}
               >
                 {preset.split(' ')[0]}
               </Button>
@@ -190,7 +206,7 @@ export default function StylePage() {
         <Button
           onClick={handleAIEnhance}
           className="fashion-gradient text-white flex items-center gap-2"
-          disabled={enhancementLoading}
+          disabled={enhancementLoading || !isConnected}
         >
         <Wand2 className="h-4 w-4" />
         {enhancementLoading ? 'Enhancing...' : 'AI Enhance'}

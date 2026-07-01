@@ -161,7 +161,7 @@ export const TOKEN_ADDRESSES = {
    * with high short-term volatility — see ADR 0009.
    */
   GOOD_DOLLAR: {
-    celo: "0x62B8B1109F25406f3D27cDaA3F8d2305d6eDbBB7" as Address,
+    celo: "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A" as Address,
     celoSepolia: null,
     base: null,
     ethereum: null,
