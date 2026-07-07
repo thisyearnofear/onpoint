@@ -37,7 +37,11 @@ if (Sentry) {
 }
 
 // ── Static files (digital garment images) ────────────────────────
-app.use('/digital-garments', express.static('public/digital-garments', {
+// Uses shared directory so images survive releases without re-upload.
+const digitalGarmentsPath = process.env.NODE_ENV === 'production'
+  ? '/opt/onpoint/shared/api/public/digital-garments'
+  : 'public/digital-garments';
+app.use('/digital-garments', express.static(digitalGarmentsPath, {
   maxAge: '7d',
   immutable: true,
 }));
