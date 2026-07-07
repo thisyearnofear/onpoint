@@ -56,8 +56,11 @@ function rawSql(strings, ...values) {
 }
 
 function r2KeyToUrl(key) {
+  if (!key) return null;
+  // Full URLs (https://, ipfs://) pass through as-is — used for digital listings
+  if (/^(https?:|ipfs:)/.test(key)) return key;
   const base = process.env.R2_PUBLIC_URL?.replace(/\/$/, '');
-  if (!key || !base) return null;
+  if (!base) return null;
   return `${base}/${String(key).replace(/^\/+/, '')}`;
 }
 
