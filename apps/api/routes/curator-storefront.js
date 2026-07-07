@@ -59,8 +59,11 @@ function isValidSlug(slug) {
 }
 
 function keyToUrl(key) {
+  if (!key) return null;
+  // Full URLs (https://, ipfs://) pass through as-is — used for digital listings
+  if (/^(https?:|ipfs:)/.test(key)) return key;
   const url = getPublicR2Url();
-  if (!key || !url) return null;
+  if (!url) return null;
   return `${url}/${String(key).replace(/^\/+/, '')}`;
 }
 
@@ -134,6 +137,9 @@ router.get('/directory', async (req, res) => {
       curators: rows.map(({ commerce, ...row }) => ({
         ...row,
         agentCommerceEnabled: Boolean(curatorPayoutAddress({ commerce })),
+        // Digital curators offer try-on even without a payout address —
+        // the try-on payment goes to the platform wallet or a split.
+        digitalTryOnEnabled: row.digitalListingCount > 0,
       })),
       meta: {
         total: rows.length,
