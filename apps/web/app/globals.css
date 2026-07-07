@@ -305,3 +305,28 @@
     font-size: 0.65rem;
   }
 }
+/* ── View Transitions (directory ↔ storefront) ─────────────────
+   Shared elements (curator avatar/name) morph between pages via
+   components/ViewTransition.tsx. Browsers without the API get a
+   normal instant navigation. */
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 220ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Shared-element morphs: slightly slower than the page crossfade so
+   the avatar/name arrival reads as deliberate, not glitchy */
+::view-transition-group(*) {
+  animation-duration: 320ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

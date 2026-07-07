@@ -21,6 +21,7 @@ import { AICuratorSection } from "../../../components/AICuratorSection";
 import { MpesaPaymentPanel } from "./MpesaPaymentPanel";
 import { GStreamPanel } from "../../../components/Curator/GStreamPanel";
 import { CuratorInventoryPanel } from "../../../components/CuratorInventoryPanel";
+import { TransitionLink } from "../../../components/ViewTransition";
 import { getApiBase } from "../../../lib/utils/api-base";
 
 export const dynamic = "force-dynamic";
@@ -195,7 +196,10 @@ export default async function CuratorStorefrontPage({
             </div>
 
             <div className="space-y-4">
-              <h1 className="max-w-3xl text-4xl font-black tracking-tight md:text-6xl">
+              <h1
+                className="max-w-3xl text-4xl font-black tracking-tight md:text-6xl"
+                style={{ viewTransitionName: `curator-name-${slug}` }}
+              >
                 {curator.name}
               </h1>
               <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
@@ -234,7 +238,10 @@ export default async function CuratorStorefrontPage({
             <div className="space-y-4">
               <div
                 className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg text-2xl font-black text-white"
-                style={{ background: "var(--curator-primary)" }}
+                style={{
+                  background: "var(--curator-primary)",
+                  viewTransitionName: `curator-avatar-${slug}`,
+                }}
               >
                 {curator.brand?.logo ? (
                   <img
@@ -519,13 +526,13 @@ export default async function CuratorStorefrontPage({
       {/* Browse all curators */}
       <section className="border-t border-border">
         <div className="mx-auto max-w-6xl px-4 py-6 text-center">
-          <Link
+          <TransitionLink
             href="/curators"
             className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             Browse all curators
             <ArrowLeft className="h-3.5 w-3.5 rotate-180" />
-          </Link>
+          </TransitionLink>
         </div>
       </section>
     </main>

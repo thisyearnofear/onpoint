@@ -33,6 +33,7 @@ import { SWRConfig } from "swr";
 import { Toaster } from "@/components/toast";
 import { StyleProvider } from "@/lib/context/StyleContext";
 import { MiniPayProvider } from "@/components/MiniPayProvider";
+import { ViewTransitionProvider } from "@/components/ViewTransition";
 
 function MiniAppReady() {
   const { isSDKLoaded } = useMiniApp();
@@ -123,7 +124,9 @@ export function Providers({
                   <StyleProvider>
                   <MiniAppReady />
                   <Toaster>
-                    {children}
+                    <ViewTransitionProvider>
+                      {children}
+                    </ViewTransitionProvider>
                   </Toaster>
                   </StyleProvider>
                 </AIProviderContext>
