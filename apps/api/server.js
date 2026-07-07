@@ -259,6 +259,12 @@ app.use('/api/agent/schedule-event', json1k, serviceKeyAuth, require('./routes/a
 
 app.use('/api/agent/whatsapp', json1k, serviceKeyAuth, generalRateLimit, require('./routes/agent-whatsapp'));
 
+// ── Agent Try-On (public, x402-paid — payment IS the auth) ──────
+// External agents render a listing on their human before buying.
+// Large body limit: the person photo arrives as a base64 data URI.
+
+app.use('/api/agent/try-on', json10mb, veniceRateLimit, require('./routes/agent-tryon'));
+
 // ── Curator Routes (public, rate-limited) ───────────────────────
 // Self-serve curator onboarding (ADR 0002). No API key needed.
 
@@ -268,6 +274,14 @@ app.use('/api/curator', json1k, generalRateLimit, require('./routes/curator-stor
 // ── Admin Routes (service-to-service: SERVICE_API_KEY auth) ─────
 
 app.use('/api/admin/curators', json10mb, serviceKeyAuth, generalRateLimit, require('./routes/curator-admin'));
+
+// ── Fulfillment Routes (order lifecycle: ship/deliver/dispute/resolve) ──
+
+app.use('/api/orders', json1k, serviceKeyAuth, require('./routes/fulfillment'));
+
+// ── Cron Routes (worker-triggered, SERVICE_API_KEY auth) ────────
+
+app.use('/api/cron', json1k, serviceKeyAuth, require('./routes/cron-payout'));
 
 // ── Status Dashboard ────────────────────────────────────────────
 

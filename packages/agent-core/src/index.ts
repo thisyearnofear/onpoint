@@ -28,6 +28,7 @@ export {
   isSuperfluidNativeToken,
   supportsCUSD,
   supportsNFTMinting,
+  createTransport,
 } from "./chains";
 
 // ── Utilities ──

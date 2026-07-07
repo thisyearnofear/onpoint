@@ -30,7 +30,7 @@ export interface X402Challenge {
 }
 
 // cUSD — 18 decimals
-const CUSD_CELO_MAINNET = "0x765DE8164458C172EE097029dfb482Ff182ad001";
+const CUSD_CELO_MAINNET = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
 const CUSD_CELO_TESTNET = "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1"; // Alfajores
 
 const IS_TESTNET = process.env.X402_NETWORK === "celo-alfajores";

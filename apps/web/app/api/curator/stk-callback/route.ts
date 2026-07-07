@@ -24,6 +24,67 @@ export { OPTIONS } from "../../ai/_utils/http";
 const PAYMENT_PREFIX = "curator:payments";
 const MAX_RECENT_PAYMENTS = 200;
 
+/**
+ * Record the confirmed payment as an order in the Postgres ledger
+ * (ADR 0001: Hetzner owns state). Idempotent server-side on the M-Pesa
+ * receipt, so callback retries are safe. Never blocks the Safaricom ack —
+ * a ledger hiccup is logged for reconciliation, not surfaced.
+ */
+async function recordOrderInLedger(
+  payment: Record<string, unknown>,
+  mpesaReceipt: string,
+  verifiedPhone: string | undefined,
+): Promise<void> {
+  const apiBase = (
+    process.env.NEXT_PUBLIC_AGENT_API_URL ||
+    process.env.AGENT_API_URL ||
+    "http://localhost:48751"
+  ).replace(/\/$/, "");
+  const serviceKey = process.env.SERVICE_API_KEY;
+  if (!serviceKey) {
+    logger.warn("SERVICE_API_KEY not set — M-Pesa order not ledgered", {
+      component: "curator-stk-callback",
+      mpesaReceipt,
+    });
+    return;
+  }
+
+  try {
+    const res = await fetch(`${apiBase}/api/orders/record`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-service-key": serviceKey,
+      },
+      body: JSON.stringify({
+        curatorSlug: payment.curatorSlug,
+        listingId: payment.listingId,
+        size: payment.size,
+        amountKes: payment.amount,
+        mpesaReceipt,
+        customerPhone: verifiedPhone || payment.customerPhone || undefined,
+        source: "site_buy",
+      }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Ledger rejected M-Pesa order", {
+        component: "curator-stk-callback",
+        mpesaReceipt,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+    }
+  } catch (err) {
+    logger.error(
+      "Failed to ledger M-Pesa order — reconcile manually",
+      { component: "curator-stk-callback", mpesaReceipt },
+      err,
+    );
+  }
+}
+
 function getRedisUrl(): string | undefined {
   return process.env.UPSTASH_REDIS_REST_URL;
 }
@@ -156,6 +217,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (result.success && updatedPayment) {
       await createStkConfirmedNotification(updatedPayment);
+    }
+
+    if (result.success && result.mpesaReceiptNumber) {
+      await recordOrderInLedger(
+        match.payment,
+        result.mpesaReceiptNumber,
+        result.phoneNumber ? String(result.phoneNumber) : undefined,
+      );
     }
 
     logger.info("STK callback processed", {

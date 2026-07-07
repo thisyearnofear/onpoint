@@ -115,7 +115,7 @@ async function checkWalletGas() {
   try {
     const publicClient = createPublicClient({
       chain: celo,
-      transport: http('https://forno.celo.org'),
+      transport: agentCore.createTransport('celo'),
     });
 
     // Derive address from private key (we use the AGENT_WALLET_ADDRESS env var)

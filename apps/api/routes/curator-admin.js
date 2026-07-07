@@ -587,5 +587,123 @@ router.delete('/:slug/listings/:id/photos', async (req, res) => {
   }
 });
 
+// ── GET /api/admin/curators/:slug/ledger — payout ledger (owed vs paid) ──
+router.get('/:slug/ledger', async (req, res) => {
+  const slug = String(req.params.slug || '');
+  try {
+    const db = getDb();
+    const { orders: ordersTable } = require('@repo/db');
+    const { eq, sql, and, isNull } = require('drizzle-orm');
+
+    // Aggregate owed vs paid for this curator
+    const rows = await db
+      .select({
+        total: sql`count(*)::int`,
+        totalCusd: sql`coalesce(sum(${ordersTable.amountCusd}::numeric), 0)::text`,
+        paidCount: sql`count(*) filter (where ${ordersTable.payoutTxHash} is not null)::int`,
+        paidCusd: sql`coalesce(sum(${ordersTable.amountCusd}::numeric) filter (where ${ordersTable.payoutTxHash} is not null), 0)::text`,
+        owedCount: sql`count(*) filter (where ${ordersTable.payoutTxHash} is null and ${ordersTable.paymentTxHash} is not null)::int`,
+        owedCusd: sql`coalesce(sum(${ordersTable.amountCusd}::numeric) filter (where ${ordersTable.payoutTxHash} is null and ${ordersTable.paymentTxHash} is not null), 0)::text`,
+        cancelledCount: sql`count(*) filter (where ${ordersTable.status} = 'cancelled')::int`,
+        disputedCount: sql`count(*) filter (where ${ordersTable.status} = 'disputed')::int`,
+      })
+      .from(ordersTable)
+      .where(eq(ordersTable.curatorSlug, slug));
+
+    const summary = rows[0] || {};
+
+    // Recent orders with payout status
+    const recentOrders = await db
+      .select()
+      .from(ordersTable)
+      .where(eq(ordersTable.curatorSlug, slug))
+      .orderBy(sql`${ordersTable.createdAt} desc`)
+      .limit(20);
+
+    // Get curator for split info
+    const [curator] = await db.select().from(curators).where(eq(curators.slug, slug)).limit(1);
+
+    res.json({
+      curator: {
+        slug,
+        walletAddress: curator?.commerce?.walletAddress || null,
+        splitAddress: curator?.commerce?.splitAddress || null,
+        revShare: curator?.commerce?.revShare ?? 0.05,
+        payoutModel: curator?.commerce?.splitAddress ? '0xSplits (non-custodial)' : 'custodial',
+      },
+      summary: {
+        totalOrders: summary.total || 0,
+        totalCusd: summary.totalCusd || '0',
+        paidOrders: summary.paidCount || 0,
+        paidCusd: summary.paidCusd || '0',
+        owedOrders: summary.owedCount || 0,
+        owedCusd: summary.owedCusd || '0',
+        cancelledOrders: summary.cancelledCount || 0,
+        disputedOrders: summary.disputedCount || 0,
+      },
+      recentOrders,
+    });
+  } catch (err) {
+    logger.error('Failed to get curator ledger', { component: 'curator-admin', slug }, err);
+    res.status(500).json({ error: 'Failed to get ledger' });
+  }
+});
+
+// ── POST /api/admin/curators/:slug/setup-split ──
+// Deploy a 0xSplits SplitV2 for an existing curator who doesn't have one yet.
+// Requires the curator to have commerce.walletAddress set.
+router.post('/:slug/setup-split', async (req, res) => {
+  const slug = String(req.params.slug || '');
+
+  try {
+    const db = getDb();
+    const [curator] = await db.select().from(curators).where(eq(curators.slug, slug)).limit(1);
+
+    if (!curator) {
+      return res.status(404).json({ error: 'Curator not found' });
+    }
+
+    const walletAddress = curator.commerce?.walletAddress;
+    if (!walletAddress) {
+      return res.status(409).json({
+        error: 'Curator has no walletAddress configured — set one first',
+      });
+    }
+
+    if (curator.commerce?.splitAddress) {
+      return res.status(409).json({
+        error: 'Split already deployed',
+        splitAddress: curator.commerce.splitAddress,
+      });
+    }
+
+    const { deployCuratorSplit } = require('../lib/split-setup');
+    const revShare = curator.commerce?.revShare ?? 0.05;
+    const { splitAddress, txHash } = await deployCuratorSplit(walletAddress, revShare);
+
+    // Save split address to curator commerce
+    const updatedCommerce = {
+      ...curator.commerce,
+      splitAddress,
+      splitTxHash: txHash,
+    };
+    await db.update(curators).set({ commerce: updatedCommerce }).where(eq(curators.slug, slug));
+
+    logger.info('Split deployed for existing curator', {
+      component: 'curator-admin', slug, splitAddress, txHash,
+    });
+
+    res.status(201).json({
+      success: true,
+      splitAddress,
+      txHash,
+      payoutModel: '0xSplits (non-custodial)',
+    });
+  } catch (err) {
+    logger.error('Failed to deploy split', { component: 'curator-admin', slug }, err);
+    res.status(500).json({ error: `Failed to deploy split: ${err.message}` });
+  }
+});
+
 module.exports = router;
 

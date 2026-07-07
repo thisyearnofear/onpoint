@@ -120,11 +120,12 @@ async function recordReceiptOnChain(
   try {
     const { createWalletClient, http } = await import("viem");
     const { celo } = await import("viem/chains");
+    const { createTransport } = await import("./chains");
 
     const client = createWalletClient({
       account: privateKey,
       chain: celo,
-      transport: http("https://forno.celo.org"),
+      transport: createTransport("celo"),
     });
 
     const receiptData = JSON.stringify({

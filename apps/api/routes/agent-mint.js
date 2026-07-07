@@ -140,17 +140,15 @@ router.post('/', async (req, res) => {
         ? (agentCore.celoSepolia || celo)
         : celo;
 
-      const rpcUrl = 'https://forno.celo.org';
-
       const publicClient = createPublicClient({
         chain: chainConfig,
-        transport: http(rpcUrl),
+        transport: agentCore.createTransport(chain === 'celoSepolia' ? 'celoSepolia' : 'celo'),
       });
 
       const walletClient = createWalletClient({
         account: agentPrivateKey,
         chain: chainConfig,
-        transport: http(rpcUrl),
+        transport: agentCore.createTransport(chain === 'celoSepolia' ? 'celoSepolia' : 'celo'),
       });
 
       const splitsClient = blockchainClient.createSplitsClient(

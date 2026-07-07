@@ -31,6 +31,18 @@ function curatorPayoutAddress(curator) {
 }
 
 /**
+ * Curator's 0xSplits SplitV2 address — when present, the buyer pays the
+ * Split contract directly instead of the platform wallet. The Split
+ * non-custodially holds funds until `distribute` is called.
+ */
+function curatorSplitAddress(curator) {
+  const address = curator?.commerce?.splitAddress;
+  return typeof address === 'string' && /^0x[0-9a-fA-F]{40}$/.test(address)
+    ? address
+    : null;
+}
+
+/**
  * Seller share in basis points. `commerce.revShare` is the platform's
  * fraction of attributed sales (e.g. 0.05), so the curator keeps the rest.
  * Falls back to the default split in @repo/agent-core when unset.
@@ -64,9 +76,16 @@ function buildListingAgentCommerce(curator, listing) {
   return { available: true, currency: 'cUSD', offers };
 }
 
+/** Price of one agent try-on call in cUSD (env-tunable). */
+function tryOnPriceCusd() {
+  const price = Number(process.env.X402_TRYON_PRICE_USD);
+  return Number.isFinite(price) && price > 0 ? price : 0.25;
+}
+
 /** Storefront-level agent commerce metadata (chain, token, order endpoint). */
 function buildStorefrontAgentCommerce(curator, slug) {
   const enabled = Boolean(curatorPayoutAddress(curator));
+  const splitAddr = curatorSplitAddress(curator);
   return {
     enabled,
     chain: 'celo',
@@ -75,11 +94,21 @@ function buildStorefrontAgentCommerce(curator, slug) {
     token: sharedTypes.X402_ASSET,
     tokenSymbol: 'cUSD',
     orderEndpoint: `/api/curator/${slug}/order`,
+    payoutModel: splitAddr ? '0xSplits (non-custodial)' : 'custodial',
+    splitAddress: splitAddr || undefined,
+    tryOn: {
+      endpoint: '/api/agent/try-on',
+      priceCusd: tryOnPriceCusd(),
+      description:
+        'x402-paid fitting room: POST {curatorSlug, listingId, photoData} to render this catalog on your human and get a fit signal before buying.',
+    },
+    earningsEndpoint: `/api/curator/${slug}/earnings`,
     flow: enabled
       ? [
+          `Optional: POST /api/agent/try-on with {curatorSlug, listingId, photoData} to check fit first (${tryOnPriceCusd()} cUSD)`,
           `POST ${`/api/curator/${slug}/order`} with {listingId, size, quantity} to receive a 402 payment challenge`,
           'Transfer the exact cUSD amount to the payTo address on Celo',
-          'Re-POST the same body plus {paymentTxHash} to confirm the order',
+          'Re-POST the same body plus {paymentTxHash, quoteId} to confirm the order',
         ]
       : ['Curator has not configured a payout wallet; agent checkout unavailable'],
   };
@@ -89,7 +118,9 @@ module.exports = {
   kesToCusd,
   kesPerUsd,
   curatorPayoutAddress,
+  curatorSplitAddress,
   curatorSellerBps,
+  tryOnPriceCusd,
   buildListingAgentCommerce,
   buildStorefrontAgentCommerce,
 };

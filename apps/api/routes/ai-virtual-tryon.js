@@ -991,6 +991,13 @@ Be SPECIFIC. Reference what you see in the photo. Give actionable, personalized 
 });
 
 module.exports = router;
+// Shared engine — consumed by the x402-paid agent try-on route
+// (routes/agent-tryon.js) so both surfaces run the same pipeline.
+module.exports.engine = {
+  buildGeneratedOutfitImageResponse,
+  generateVisionAnalysis,
+  parseBodyAnalysisResponse,
+};
 module.exports.__test = {
   parseJsonObject,
   normalizeStructuredBodyAnalysis,

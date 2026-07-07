@@ -3,7 +3,7 @@ import { type WalletAdapter } from '@onpoint/shared-types';
 
 // cUSD addresses by chain ID
 const CUSD_ADDRESSES: Record<number, Address | undefined> = {
-  42220: '0x765DE8164458C172EE097029dfb482Ff182ad001', // Celo Mainnet
+  42220: '0x765DE816845861e75A25fCA122bb6898B8B1282a', // Celo Mainnet (cUSD / Mento Dollar proxy)
   // Celo Sepolia has no deployed cUSD — adapter will throw if feeCurrency is required
 };
 

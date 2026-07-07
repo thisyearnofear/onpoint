@@ -14,9 +14,19 @@ import { listings } from "./listings";
  * Minimal PII: only customer_phone is stored. Full addresses / PII
  * require a separate ADR if needed.
  *
- * Agent orders (source "agent") settle on-chain: the buyer pays cUSD to the
- * platform wallet (payment_tx_hash), then the curator's share is paid out to
- * commerce.walletAddress (payout_tx_hash). Both are Celoscan-verifiable.
+ * Agent orders (source "agent") settle on-chain: the buyer pays cUSD to
+ * the payTo address (either the platform wallet for custodial flow, or a
+ * 0xSplits SplitV2 contract for non-custodial flow). The curator's share
+ * is either sent as a separate transfer (custodial) or distributed by the
+ * Split contract (non-custodial). Both are Celoscan-verifiable.
+ *
+ * Fulfillment lifecycle:
+ *   confirmed → shipped → delivered → (disputed → resolved)
+ *   confirmed → cancelled (stock race or dispute escalation)
+ *
+ * Escrow: when using 0xSplits, funds are held in the Split contract until
+ * `distribute` is called. The curator payout (payoutTxHash) is set when
+ * distribution happens, which can be after delivery confirmation.
  */
 export const orders = pgTable("orders", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -39,15 +49,37 @@ export const orders = pgTable("orders", {
   paymentTxHash: text("payment_tx_hash").unique(),
   payoutTxHash: text("payout_tx_hash"),
 
+  // M-Pesa settlement (site_buy orders only) — one ledger for all channels.
+  // The unique M-Pesa receipt is the fiat twin of payment_tx_hash.
+  amountKes: text("amount_kes"),
+  mpesaReceipt: text("mpesa_receipt").unique(),
+
   source: text("source", {
     enum: ["whatsapp_deeplink", "site_buy", "agent"],
   }).notNull(),
 
   status: text("status", {
-    enum: ["pending", "confirmed", "fulfilled", "cancelled"],
+    enum: ["pending", "confirmed", "shipped", "delivered", "disputed", "resolved", "cancelled"],
   })
     .notNull()
     .default("pending"),
 
+  // Fulfillment tracking
+  trackingNumber: text("tracking_number"),
+  shippedAt: timestamp("shipped_at", { withTimezone: true }),
+  deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+
+  // Dispute handling
+  disputeReason: text("dispute_reason"),
+  disputeOpenedAt: timestamp("dispute_opened_at", { withTimezone: true }),
+  disputeResolution: text("dispute_resolution", {
+    enum: ["refund", "partial_refund", "reship", "closed_favor_curator", "closed_favor_buyer"],
+  }),
+  disputeResolvedAt: timestamp("dispute_resolved_at", { withTimezone: true }),
+
+  // Refund tracking (for stock-race cancellations or dispute resolutions)
+  refundTxHash: text("refund_tx_hash"),
+
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

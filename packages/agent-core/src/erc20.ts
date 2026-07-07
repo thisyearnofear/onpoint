@@ -15,7 +15,7 @@ import {
   type Hash,
 } from "viem";
 import { celo, base, mainnet, polygon } from "viem/chains";
-import { type ChainName, RPC_URLS, TOKEN_ADDRESSES, getExplorerUrl } from "./chains";
+import { type ChainName, RPC_URLS, TOKEN_ADDRESSES, getExplorerUrl, createTransport } from "./chains";
 
 const CHAIN_OBJECTS: Record<string, any> = {
   celo,
@@ -43,6 +43,8 @@ export interface TransferParams {
   to: Address;
   amount: bigint;
   privateKey: `0x${string}`;
+  /** Optional hex suffix appended to calldata (e.g. ERC-8021 attribution tag) */
+  dataSuffix?: `0x${string}`;
 }
 
 export interface ApproveParams {
@@ -126,7 +128,7 @@ export async function getERC20Balance(
 ): Promise<ERC20Balance> {
   const client = createPublicClient({
     chain: CHAIN_OBJECTS[chain],
-    transport: http(RPC_URLS[chain]),
+    transport: createTransport(chain),
   });
 
   const [balance, decimals, symbol] = await Promise.all([
@@ -165,7 +167,7 @@ export async function getAllowance(
 ): Promise<bigint> {
   const client = createPublicClient({
     chain: CHAIN_OBJECTS[chain],
-    transport: http(RPC_URLS[chain]),
+    transport: createTransport(chain),
   });
 
   const allowance = await client.readContract({
@@ -216,7 +218,7 @@ export async function verifyTokenTransfer(params: {
 
   const client = createPublicClient({
     chain: CHAIN_OBJECTS[chain],
-    transport: http(RPC_URLS[chain]),
+    transport: createTransport(chain),
   });
 
   let receipt;
@@ -275,26 +277,46 @@ export function getTokenAddress(
 export async function transferToken(
   params: TransferParams,
 ): Promise<TokenTransferResult> {
-  const { chain, tokenAddress, to, amount, privateKey } = params;
+  const { chain, tokenAddress, to, amount, privateKey, dataSuffix } = params;
   const viemChain = CHAIN_OBJECTS[chain];
 
   const client = createWalletClient({
     account: privateKey,
     chain: viemChain,
-    transport: http(RPC_URLS[chain]),
+    transport: createTransport(chain),
   });
 
-  const hash = await client.writeContract({
-    address: tokenAddress,
-    abi: ERC20_ABI,
-    functionName: "transfer",
-    args: [to, amount],
-    chain: viemChain,
-  });
+  // Encode the transfer calldata, then append the attribution suffix
+  // (ERC-8021). The EVM ignores trailing bytes after the function args,
+  // so the transfer call is unaffected but the tx is tagged on-chain.
+  let txData: `0x${string}` | undefined;
+  if (dataSuffix && dataSuffix !== "0x") {
+    const { encodeFunctionData } = await import("viem");
+    const encoded = encodeFunctionData({
+      abi: ERC20_ABI,
+      functionName: "transfer",
+      args: [to, amount],
+    });
+    txData = (encoded + dataSuffix.slice(2)) as `0x${string}`;
+  }
+
+  const hash = txData
+    ? await client.sendTransaction({
+        to: tokenAddress,
+        data: txData,
+        chain: viemChain,
+      })
+    : await client.writeContract({
+        address: tokenAddress,
+        abi: ERC20_ABI,
+        functionName: "transfer",
+        args: [to, amount],
+        chain: viemChain,
+      });
 
   const publicClient = createPublicClient({
     chain: viemChain,
-    transport: http(RPC_URLS[chain]),
+    transport: createTransport(chain),
   });
 
   const [decimals, symbol] = await Promise.all([
@@ -326,7 +348,7 @@ export async function approveToken(params: ApproveParams): Promise<Hash> {
   const client = createWalletClient({
     account: privateKey,
     chain: viemChain,
-    transport: http(RPC_URLS[chain]),
+    transport: createTransport(chain),
   });
 
   const hash = await client.writeContract({

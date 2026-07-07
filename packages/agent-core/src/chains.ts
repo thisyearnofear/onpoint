@@ -9,7 +9,7 @@
  * re-exports from here.
  */
 
-import { type Address } from "viem";
+import { type Address, http, fallback } from "viem";
 
 // ============================================
 // Chain Name Types
@@ -79,7 +79,7 @@ export const celo = {
       blockCreated: 13112599,
     },
     cUSD: {
-      address: "0x765DE8164458C172EE097029dfb482Ff182ad001",
+      address: "0x765DE816845861e75A25fCA122bb6898B8B1282a",
     },
     OnPointNFT: {
       address: "0x8e0a3BcF07Ec8133408A3837DD2DCe398A42f576",
@@ -121,6 +121,39 @@ export const RPC_URLS: Record<ChainName, string> = {
   arbitrum: "https://arb1.arbitrum.io/rpc",
 };
 
+/**
+ * Fallback RPC endpoints — if the primary fails, viem tries these in order.
+ * Public community endpoints first (free), then DRPC (decentralized, no key).
+ * Override at runtime via env: CELO_RPC_FALLBACKS=url1,url2
+ */
+const RPC_FALLBACKS: Record<ChainName, string[]> = {
+  celo: (process.env.CELO_RPC_FALLBACKS || "https://rpc.celo.org,https://celo.drpc.org")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean),
+  celoSepolia: [],
+  base: ["https://base.drpc.org"],
+  ethereum: ["https://eth.llamarpc.com"],
+  polygon: ["https://polygon-rpc.com"],
+  arbitrum: ["https://arbitrum.drpc.org"],
+};
+
+/**
+ * Create a viem transport with automatic fallback across multiple RPCs.
+ * Usage: `createPublicClient({ chain: celo, transport: createTransport("celo") })`
+ *
+ * viem's fallback() tries each transport in order and falls back on failure.
+ */
+export function createTransport(chain: ChainName) {
+  const primary = RPC_URLS[chain];
+  const fallbacks = RPC_FALLBACKS[chain] || [];
+  if (fallbacks.length === 0) return http(primary);
+  return fallback(
+    [primary, ...fallbacks].map((url) => http(url)),
+    { rank: false, retryCount: 2 },
+  );
+}
+
 // ============================================
 // Explorer URLs (single source of truth)
 // ============================================
@@ -140,7 +173,7 @@ export const EXPLORER_URLS: Record<ChainName, string> = {
 
 export const TOKEN_ADDRESSES = {
   cUSD: {
-    celo: "0x765DE8164458C172EE097029dfb482Ff182ad001" as Address,
+    celo: "0x765DE816845861e75A25fCA122bb6898B8B1282a" as Address,
     celoSepolia: null,
     base: null,
     ethereum: null,

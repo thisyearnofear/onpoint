@@ -34,7 +34,7 @@ interface TipSheetProps {
  * Kept as fallback — the canonical source is getTokenAddress("cUSD", "celo")
  * from chains.ts, but TipModal runs on Celo only.
  */
-const CUSD_ADDRESS = "0x765DE8164458C172EE097029dfb482Ff182ad001" as const;
+const CUSD_ADDRESS = "0x765DE816845861e75A25fCA122bb6898B8B1282a" as const;
 
 const ERC20_TRANSFER_ABI = [
   {

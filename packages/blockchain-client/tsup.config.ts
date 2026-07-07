@@ -6,6 +6,6 @@ export default defineConfig({
   outDir: "dist",
   sourcemap: true,
   clean: true,
-  bundle: false, // Don't bundle — let Node resolve deps at runtime
-  noExternal: [], // Bundle nothing as external
+  bundle: true, // Bundle local imports into a single output file
+  noExternal: [/^@0xsplits/, /^viem/, /^@onpoint/, /^ethers/], // Keep external deps as require()
 });

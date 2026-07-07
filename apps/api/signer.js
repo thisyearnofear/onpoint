@@ -136,14 +136,13 @@ app.post('/sign/transfer', async (req, res) => {
     }
 
     // ── Execute Transfer ──
-    const { createWalletClient, http } = require('viem');
+    const { createWalletClient } = require('viem');
     const chainModule = getChainModule(chain);
-    const rpcUrl = getRpcUrl(chain);
 
     const walletClient = createWalletClient({
       account: AGENT_PRIVATE_KEY,
       chain: chainModule,
-      transport: http(rpcUrl),
+      transport: getRpcTransport(chain),
     });
 
     const nonce = await getNextNonce(chain);
@@ -235,20 +234,19 @@ app.post('/sign/mint', async (req, res) => {
       });
     }
 
-    const { createPublicClient, createWalletClient, http } = require('viem');
+    const { createPublicClient, createWalletClient } = require('viem');
     const blockchainClient = require('@repo/blockchain-client');
     const chainModule = getChainModule(chain);
-    const rpcUrl = getRpcUrl(chain);
 
     const publicClient = createPublicClient({
       chain: chainModule,
-      transport: http(rpcUrl),
+      transport: getRpcTransport(chain),
     });
 
     const walletClient = createWalletClient({
       account: AGENT_PRIVATE_KEY,
       chain: chainModule,
-      transport: http(rpcUrl),
+      transport: getRpcTransport(chain),
     });
 
     const nonce = await getNextNonce(chain);
@@ -351,14 +349,13 @@ app.post('/sign/contract', async (req, res) => {
       });
     }
 
-    const { createWalletClient, http } = require('viem');
+    const { createWalletClient } = require('viem');
     const chainModule = getChainModule(chain);
-    const rpcUrl = getRpcUrl(chain);
 
     const walletClient = createWalletClient({
       account: AGENT_PRIVATE_KEY,
       chain: chainModule,
-      transport: http(rpcUrl),
+      transport: getRpcTransport(chain),
     });
 
     const nonce = await getNextNonce(chain);
@@ -444,8 +441,24 @@ const rpcUrls = {
   polygon: 'https://polygon.llamarpc.com',
 };
 
+const rpcFallbacks = {
+  celo: ['https://rpc.celo.org', 'https://celo.drpc.org'],
+  celoSepolia: [],
+  base: ['https://base.drpc.org'],
+  ethereum: ['https://eth.drpc.org'],
+  polygon: ['https://polygon-rpc.com'],
+};
+
 function getRpcUrl(chain) {
   return rpcUrls[chain] || rpcUrls.celo;
+}
+
+function getRpcTransport(chain) {
+  const { http, fallback } = require('viem');
+  const primary = getRpcUrl(chain);
+  const fb = rpcFallbacks[chain] || [];
+  if (fb.length === 0) return http(primary);
+  return fallback([primary, ...fb].map((url) => http(url)), { rank: false, retryCount: 2 });
 }
 
 function getExplorerUrlForChain(chain, hash) {
@@ -527,10 +540,9 @@ async function getNextNonce(chain) {
 
     if (incremented === 1) {
       // First increment — seed from chain's current nonce
-      const { createPublicClient, http } = require('viem');
+      const { createPublicClient } = require('viem');
       const chainModule = getChainModule(chain);
-      const rpcUrl = getRpcUrl(chain);
-      const client = createPublicClient({ chain: chainModule, transport: http(rpcUrl) });
+      const client = createPublicClient({ chain: chainModule, transport: getRpcTransport(chain) });
       const currentNonce = await client.getTransactionCount({ address: agentAddress });
       const { redisSet } = require('@repo/agent-core');
       await redisSet(key, (Number(currentNonce) + 1).toString());
@@ -608,6 +620,7 @@ module.exports = {
   initialize,
   getChainModule,
   getRpcUrl,
+  getRpcTransport,
   getExplorerUrlForChain,
   ERC20_ABI,
 };

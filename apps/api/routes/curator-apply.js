@@ -17,6 +17,7 @@
 const express = require('express');
 const { neon } = require('@neondatabase/serverless');
 const { drizzle } = require('drizzle-orm/neon-http');
+const { eq } = require('drizzle-orm');
 const { curators } = require('@repo/db');
 const logger = require('../lib/logger');
 
@@ -184,6 +185,36 @@ router.post('/', async (req, res) => {
 
     logger.info('Curator created', { component: 'curator-apply', slug });
 
+    // Deploy a 0xSplits SplitV2 for non-custodial payouts if the curator
+    // provided a wallet address. Fire-and-forget — the curator doesn't
+    // wait for the on-chain tx. The split address is persisted to
+    // commerce.splitAddress once deployed.
+    if (walletAddress) {
+      const { deployCuratorSplit } = require('../lib/split-setup');
+      deployCuratorSplit(walletAddress, 0.05)
+        .then(async ({ splitAddress, txHash }) => {
+          try {
+            const db2 = getDb();
+            // Read current commerce, merge splitAddress, write back
+            const [row] = await db2.select().from(curators).where(eq(curators.slug, slug)).limit(1);
+            if (row) {
+              const updatedCommerce = { ...row.commerce, splitAddress, splitTxHash: txHash };
+              await db2.update(curators).set({ commerce: updatedCommerce }).where(eq(curators.slug, slug));
+              logger.info('Split address saved for curator', {
+                component: 'curator-apply', slug, splitAddress,
+              });
+            }
+          } catch (updateErr) {
+            logger.error('Failed to save split address', { component: 'curator-apply', slug }, updateErr);
+          }
+        })
+        .catch((splitErr) => {
+          logger.error('Split deployment failed — curator will use fallback custodial payout', {
+            component: 'curator-apply', slug,
+          }, splitErr);
+        });
+    }
+
     res.status(201).json({
       success: true,
       curator: {
@@ -202,7 +233,7 @@ router.post('/', async (req, res) => {
         `Visit ${storefrontUrl} to see your storefront`,
         'Share the link with your customers!',
         walletAddress
-          ? 'Agent checkout is enabled — AI agents can buy from your storefront and you earn cUSD on Celo'
+          ? 'Agent checkout is enabled — AI agents can buy from your storefront and you earn cUSD on Celo. A non-custodial split contract is being deployed for your payouts.'
           : 'Add a Celo wallet address to enable agent checkout and earn cUSD when AI agents buy from you',
       ],
     });

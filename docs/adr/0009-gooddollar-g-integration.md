@@ -29,7 +29,7 @@ One package owns addresses, ABIs, claim helpers, streaming helpers, and cached b
 
 Add `GOOD_DOLLAR` to `TOKEN_ADDRESSES` in `packages/agent-core/src/chains.ts`. Add helpers `getGTokenAddress(chain)` and `isSuperfluidNativeToken(symbol, chain)` (returns true only for `GOOD_DOLLAR.celo`). The existing `getTokenAddress(symbol, chain)` and `supportsCUSD(chain)` patterns are the template.
 
-**Rationale (CONSOLIDATION, DRY):** the existing `TipModal.tsx:32` has a hardcoded `const CUSD_ADDRESS = "0x765DE8164458C172EE097029dfb482Ff182ad001"`. The existing `agent-tip-agent.js:166` does `agentCore.ERC20?.getCUSDAddress?.(chain)` to resolve the same value. Two duplicate hardcodings collapse to one read from `chains.ts`. The pattern is the same as what cUSD and USDT already do.
+**Rationale (CONSOLIDATION, DRY):** the existing `TipModal.tsx:32` has a hardcoded `const CUSD_ADDRESS = "0x765DE816845861e75A25fCA122bb6898B8B1282a"`. The existing `agent-tip-agent.js:166` does `agentCore.ERC20?.getCUSDAddress?.(chain)` to resolve the same value. Two duplicate hardcodings collapse to one read from `chains.ts`. The pattern is the same as what cUSD and USDT already do.
 
 ### D3. `"ubi_claim"` is a first-class `ActionType`
 

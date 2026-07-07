@@ -35,7 +35,7 @@ router.get('/', async (req, res) => {
       agentCore.getOWSWalletInfo().catch(() => null),
     ]);
 
-    const celoAddress = walletInfo.addresses?.celo || '';
+    const celoAddress = walletInfo.addresses?.treasury || walletInfo.addresses?.celo || '';
     const userId = req.query.userId || 'system';
     await agentCore.AgentControls.initStore(DEFAULT_AGENT_ID, userId);
     const limits = agentCore.AgentControls.getAgentLimits(DEFAULT_AGENT_ID, userId);
@@ -72,13 +72,13 @@ router.get('/', async (req, res) => {
       try {
         const publicClient = createPublicClient({
           chain: celo,
-          transport: http('https://forno.celo.org'),
+          transport: agentCore.createTransport('celo'),
         });
 
         const balance = await publicClient.getBalance({ address: celoAddress });
         celoBalance = formatEther(balance);
 
-        const cUSD = '0x765DE8164458C172EE097029dfb482Ff182ad001';
+        const cUSD = '0x765DE816845861e75A25fCA122bb6898B8B1282a';
         const cUSDBal = await publicClient.readContract({
           address: cUSD,
           abi: [{

@@ -64,3 +64,27 @@ Reference implementation: `scripts/agent-buyer.mjs` (also the e2e test).
 - Deploy requires the additive migration
   `packages/db/drizzle/0001_sparkling_archangel.sql` and `AGENT_PRIVATE_KEY`
   (or signer) on the API host for payouts.
+
+## Addendum (2026-07-07): paid try-on + unified ledger
+
+**Try-on as a paid capability** — `POST /api/agent/try-on` exposes the
+fitting room to external agents via the same x402 pattern: 402 challenge →
+cUSD fee on Celo → on-chain verification → IDM-VTON render + structured
+fit signal (body analysis, `recommendedSize` mapped to stocked sizes).
+The fee routes to the curator's Split when one exists, so curators earn
+from try-ons of their catalog even when the purchase happens elsewhere.
+Replay-safe via the `payments` table (`tx_hash UNIQUE`), which is also the
+pay-per-call revenue ledger. Advertised in storefront `agentCommerce.tryOn`
+and the `commerce` block of `/.well-known/agent.json`.
+
+**One ledger** — confirmed M-Pesa payments now land in the same Postgres
+`orders` table as agent orders: the web STK callback calls
+`POST /api/orders/record` (service-key auth, idempotent on the unique
+`mpesa_receipt` — the fiat twin of `payment_tx_hash`). The public
+`GET /api/curator/:slug/earnings` endpoint returns the reconciled view:
+GMV by channel, try-on revenue, and per-order proof (Celoscan link or
+M-Pesa receipt). Traction claims and evidence can no longer diverge.
+
+Migration: `packages/db/drizzle/0003_lonely_mongoose.sql` (payments table
++ `orders.amount_kes` / `orders.mpesa_receipt`). Env: `X402_TRYON_PRICE_USD`
+(default 0.25), `SERVICE_API_KEY` on the web host for ledger recording.

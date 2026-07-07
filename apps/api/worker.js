@@ -47,6 +47,7 @@ const HEARTBEAT_INTERVAL_MS = parseInt(process.env.HEARTBEAT_INTERVAL_MS) || 5 *
 const TASK_INTERVAL_MS = parseInt(process.env.TASK_INTERVAL_MS) || 5 * 60 * 1000;                // 5 min
 const MARKET_SIGNAL_INTERVAL_MS = parseInt(process.env.MARKET_SIGNAL_INTERVAL_MS) || 15 * 60 * 1000; // 15 min
 const RETENTION_DIGEST_INTERVAL_MS = parseInt(process.env.RETENTION_DIGEST_INTERVAL_MS) || 7 * 24 * 60 * 60 * 1000; // 7 days
+const PAYOUT_RETRY_INTERVAL_MS = parseInt(process.env.PAYOUT_RETRY_INTERVAL_MS) || 30 * 60 * 1000; // 30 min
 
 // ── State ──
 let lastHeartbeat = {
@@ -75,6 +76,15 @@ let lastMarketSignalRun = {
 let lastRetentionDigest = {
   timestamp: null,
   success: false,
+  error: null,
+};
+
+let lastPayoutRetry = {
+  timestamp: null,
+  processed: 0,
+  succeeded: 0,
+  failed: 0,
+  autoReleased: 0,
   error: null,
 };
 
@@ -119,11 +129,20 @@ app.get('/health', (req, res) => {
       lastSuccess: lastRetentionDigest.success,
       lastError: lastRetentionDigest.error,
     },
+    payoutRetry: {
+      lastRun: lastPayoutRetry.timestamp,
+      lastProcessed: lastPayoutRetry.processed,
+      lastSucceeded: lastPayoutRetry.succeeded,
+      lastFailed: lastPayoutRetry.failed,
+      lastAutoReleased: lastPayoutRetry.autoReleased,
+      lastError: lastPayoutRetry.error,
+    },
     intervals: {
       heartbeatMs: HEARTBEAT_INTERVAL_MS,
       taskMs: TASK_INTERVAL_MS,
       marketSignalMs: MARKET_SIGNAL_INTERVAL_MS,
       retentionDigestMs: RETENTION_DIGEST_INTERVAL_MS,
+      payoutRetryMs: PAYOUT_RETRY_INTERVAL_MS,
     },
     apiUrl: API_URL,
     sentry: !!process.env.SENTRY_DSN,
@@ -480,6 +499,66 @@ async function executeRetentionDigest() {
 }
 
 /**
+ * Task 5: Payout retry + split distribution — POST /api/cron/payout-retry
+ * Retries failed curator payouts and distributes pending SplitV2 balances.
+ * Also auto-releases shipped orders to delivered after AUTO_RELEASE_DAYS.
+ */
+async function executePayoutRetry() {
+  const startTime = Date.now();
+
+  if (!SERVICE_API_KEY) {
+    lastPayoutRetry = {
+      timestamp: new Date().toISOString(),
+      processed: 0, succeeded: 0, failed: 0, autoReleased: 0,
+      error: 'SERVICE_API_KEY not configured',
+    };
+    return;
+  }
+
+  try {
+    const { ok, data } = await apiPost('/api/cron/payout-retry');
+
+    if (ok && data?.success) {
+      lastPayoutRetry = {
+        timestamp: new Date().toISOString(),
+        processed: data.processed || 0,
+        succeeded: data.succeeded || 0,
+        failed: data.failed || 0,
+        autoReleased: data.autoReleased || 0,
+        error: null,
+      };
+      logger.info('Payout retry completed', {
+        component: 'worker',
+        processed: data.processed,
+        succeeded: data.succeeded,
+        failed: data.failed,
+        autoReleased: data.autoReleased,
+        elapsedMs: Date.now() - startTime,
+      });
+    } else {
+      lastPayoutRetry = {
+        timestamp: new Date().toISOString(),
+        processed: 0, succeeded: 0, failed: 0, autoReleased: 0,
+        error: data?.error || 'Payout retry failed',
+      };
+      logger.warn('Payout retry returned error', {
+        component: 'worker',
+        data,
+        elapsedMs: Date.now() - startTime,
+      });
+    }
+  } catch (err) {
+    lastPayoutRetry = {
+      timestamp: new Date().toISOString(),
+      processed: 0, succeeded: 0, failed: 0, autoReleased: 0,
+      error: err.message?.slice(0, 200) || 'Unknown error',
+    };
+    logger.error('Payout retry failed', { component: 'worker', elapsedMs: Date.now() - startTime }, err);
+    if (Sentry) Sentry.captureException(err, { tags: { component: 'worker', task: 'payout-retry' } });
+  }
+}
+
+/**
  * Full worker cycle: heartbeat → task processing → market signals
  */
 async function runCycle() {
@@ -519,6 +598,7 @@ logger.info('Starting onpoint-worker', {
     taskMs: TASK_INTERVAL_MS,
     marketSignalMs: MARKET_SIGNAL_INTERVAL_MS,
     retentionDigestMs: RETENTION_DIGEST_INTERVAL_MS,
+    payoutRetryMs: PAYOUT_RETRY_INTERVAL_MS,
   },
   sentry: !!process.env.SENTRY_DSN,
 });
@@ -538,6 +618,14 @@ setInterval(() => {
     if (Sentry) Sentry.captureException(err);
   });
 }, MARKET_SIGNAL_INTERVAL_MS);
+
+// Payout retry + split distribution: every PAYOUT_RETRY_INTERVAL_MS (30 min)
+setInterval(() => {
+  executePayoutRetry().catch((err) => {
+    logger.error('Payout retry cycle error', { component: 'worker' }, err);
+    if (Sentry) Sentry.captureException(err);
+  });
+}, PAYOUT_RETRY_INTERVAL_MS);
 
 // Retention digest: every RETENTION_DIGEST_INTERVAL_MS (7 days by default)
 setInterval(() => {
@@ -570,6 +658,14 @@ setTimeout(() => {
     if (Sentry) Sentry.captureException(err);
   });
 }, 120000);
+
+// Initial payout retry (staggered — runs 2.5 min after startup)
+setTimeout(() => {
+  executePayoutRetry().catch((err) => {
+    logger.error('Initial payout retry failed', { component: 'worker' }, err);
+    if (Sentry) Sentry.captureException(err);
+  });
+}, 150000);
 
 // ── Start Express Server ──
 app.listen(WORKER_PORT, '127.0.0.1', () => {

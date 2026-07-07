@@ -19,25 +19,35 @@
     "product_recommendation",
     "autonomous_purchase",
     "curator_storefront_checkout",
+    "paid_virtual_try_on",
     "nft_minting",
     "spending_controls",
     "transparent_reasoning"
   ],
   "commerce": {
-    "description": "Buy fashion items from curator storefronts with cUSD on Celo. Curators are paid their share on-chain in the same flow.",
+    "description": "Buy fashion items from curator storefronts with cUSD on Celo. Curators are paid their share on-chain in the same flow. Try on any listing before buying via the x402-paid fitting room.",
     "protocol": "x402",
     "chainId": 42220,
-    "token": "0x765DE8164458C172EE097029dfb482Ff182ad001",
+    "token": "0x765DE816845861e75A25fCA122bb6898B8B1282a",
     "tokenSymbol": "cUSD",
     "directory": "https://api.onpoint.famile.xyz/api/curator/directory",
     "storefront": "https://api.onpoint.famile.xyz/api/curator/{slug}/storefront",
     "order": "https://api.onpoint.famile.xyz/api/curator/{slug}/order",
+    "tryOn": "https://api.onpoint.famile.xyz/api/agent/try-on",
+    "earnings": "https://api.onpoint.famile.xyz/api/curator/{slug}/earnings",
+    "attribution": {
+      "code": "celo_aac2acfa60e8",
+      "standard": "ERC-8021",
+      "instructions": "Append the attribution dataSuffix (provided in every 402 response) to your cUSD transfer transaction data. This tags your payment as OnPoint activity on the Celo attribution dashboard."
+    },
     "flow": [
       "GET directory — curators with agentCommerceEnabled accept agent orders",
       "GET storefront — listings carry agentCommerce.offers with cUSD prices",
-      "POST order {listingId, size, quantity} — returns 402 with payment requirements",
-      "Transfer the cUSD amount to payTo on Celo, then re-POST with paymentTxHash",
-      "201 response includes order, payment and curator payout Celoscan links"
+      "Optional: POST tryOn {curatorSlug, listingId, photoData} — pay a small cUSD fee to render the item on your human and get a fit signal (render + recommended size) before buying",
+      "POST order {listingId, size, quantity} — returns 402 with payment requirements + attribution dataSuffix",
+      "Transfer the cUSD amount to payTo on Celo (append the attribution dataSuffix to the tx data), then re-POST with paymentTxHash",
+      "201 response includes order, payment and curator payout Celoscan links",
+      "GET earnings — public reconciled ledger per curator (every sale links to a Celoscan tx or M-Pesa receipt)"
     ]
   },
   "supportedTrust": ["reputation", "validation"],

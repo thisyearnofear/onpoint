@@ -17,7 +17,7 @@ import { AgentControls, type ActionType } from "./agent-controls";
 import { getAgentWallet } from "./agent-wallet";
 import { mintNFTWithSplit, createSplitsClient } from "@repo/blockchain-client";
 import { ERC20 } from "./erc20";
-import { NFT_CONTRACTS, PLATFORM_WALLET, AGENT_WALLET, getExplorerUrl } from "./chains";
+import { NFT_CONTRACTS, PLATFORM_WALLET, AGENT_WALLET, getExplorerUrl, createTransport } from "./chains";
 import { recordReceipt } from "./agent-registry";
 import { logger } from "./logger";
 import { Metrics } from "./metrics";
@@ -366,10 +366,9 @@ async function executeMint(
   }
 
   const chainConfig = celo;
-  const rpcUrl = "https://forno.celo.org";
 
-  const publicClient = createPublicClient({ chain: chainConfig, transport: http(rpcUrl) });
-  const walletClient = createWalletClient({ account: agentPrivateKey, chain: chainConfig, transport: http(rpcUrl) });
+  const publicClient = createPublicClient({ chain: chainConfig, transport: createTransport("celo") });
+  const walletClient = createWalletClient({ account: agentPrivateKey, chain: chainConfig, transport: createTransport("celo") });
 
   const nonce = await getNextNonce(chain, walletClient, agentAddress as Address);
   const splitsClient = createSplitsClient(chainConfig.id, publicClient as any, walletClient as any);
