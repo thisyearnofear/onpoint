@@ -118,6 +118,12 @@ router.get('/directory', async (req, res) => {
           WHERE ${listings.curatorSlug} = ${curators.slug}
           AND ${listings.status} = 'live'
         )`.as('live_listing_count'),
+        digitalListingCount: sql`(
+          SELECT COUNT(*)::int FROM ${listings}
+          WHERE ${listings.curatorSlug} = ${curators.slug}
+          AND ${listings.status} = 'live'
+          AND ${listings.inventoryType} = 'digital'
+        )`.as('digital_listing_count'),
       })
       .from(curators)
       .orderBy(desc(curators.createdAt));
@@ -174,7 +180,7 @@ router.get('/:slug/storefront', async (req, res) => {
         kit: kitSkus,
       })
       .from(listings)
-      .innerJoin(kitSkus, eq(listings.skuId, kitSkus.id))
+      .leftJoin(kitSkus, eq(listings.skuId, kitSkus.id))
       .where(eq(listings.curatorSlug, slug))
       .orderBy(desc(listings.updatedAt));
 
@@ -192,11 +198,15 @@ router.get('/:slug/storefront', async (req, res) => {
     const liveListings = rows
       .filter(({ listing }) => listing.status === 'live')
       .map(({ listing, kit }) => {
-        const imageKey = listing.photoKeys?.[0] || kit.officialImageKey || null;
+        const isDigital = listing.inventoryType === 'digital';
+        const imageKey = listing.photoKeys?.[0] || kit?.officialImageKey || null;
         return {
           id: listing.id,
           curatorSlug: listing.curatorSlug,
           skuId: listing.skuId,
+          inventoryType: listing.inventoryType || 'physical',
+          title: listing.title || null,
+          tags: listing.tags || [],
           sizes: listing.sizes || [],
           photoKeys: listing.photoKeys || [],
           status: listing.status,
@@ -204,16 +214,22 @@ router.get('/:slug/storefront', async (req, res) => {
           updatedAt: listing.updatedAt,
           imageKey,
           imageUrl: keyToUrl(imageKey),
-          kit: {
-            id: kit.id,
-            club: kit.club,
-            season: kit.season,
-            kitType: kit.kitType,
-            officialImageKey: kit.officialImageKey,
-            crestKey: kit.crestKey,
-            officialImageUrl: keyToUrl(kit.officialImageKey),
-            crestUrl: keyToUrl(kit.crestKey),
-          },
+          ...(kit ? {
+            kit: {
+              id: kit.id,
+              club: kit.club,
+              season: kit.season,
+              kitType: kit.kitType,
+              officialImageKey: kit.officialImageKey,
+              crestKey: kit.crestKey,
+              officialImageUrl: keyToUrl(kit.officialImageKey),
+              crestUrl: keyToUrl(kit.crestKey),
+            },
+          } : {}),
+          ...(isDigital ? {
+            digital: true,
+            tryOnUrl: `/api/agent/try-on`,
+          } : {}),
         };
       });
 
@@ -381,7 +397,7 @@ router.post('/:slug/order', async (req, res) => {
       .select({ listing: listings, curator: curators, kit: kitSkus })
       .from(listings)
       .innerJoin(curators, eq(listings.curatorSlug, curators.slug))
-      .innerJoin(kitSkus, eq(listings.skuId, kitSkus.id))
+      .leftJoin(kitSkus, eq(listings.skuId, kitSkus.id))
       .where(eq(listings.id, listingId))
       .limit(1);
 
@@ -390,6 +406,19 @@ router.post('/:slug/order', async (req, res) => {
     }
     if (row.listing.status !== 'live') {
       return res.status(409).json({ error: 'Listing is not live' });
+    }
+    // Digital listings can't be ordered — they're try-on only.
+    // Redirect agents to the try-on endpoint.
+    if (row.listing.inventoryType === 'digital') {
+      return res.status(409).json({
+        error: 'This is a digital listing and cannot be ordered as a physical product.',
+        tryOn: {
+          url: '/api/agent/try-on',
+          method: 'POST',
+          body: { curatorSlug: slug, listingId, photoData: '<base64 data URI>' },
+          hint: 'Try on this digital design first, then check similarPhysicalItems in the response for physical alternatives from human curators.',
+        },
+      });
     }
 
     const payoutAddress = curatorPayoutAddress(row.curator);
@@ -414,7 +443,7 @@ router.post('/:slug/order', async (req, res) => {
     // Integer cents math — no float drift on quantity multiplication
     const totalCusd = (Math.round(unitCusd * 100) * quantity) / 100;
 
-    const itemLabel = `${row.kit.club} ${row.kit.kitType} (${size}) x${quantity}`;
+    const itemLabel = row.kit ? `${row.kit.club} ${row.kit.kitType} (${size}) x${quantity}` : `${row.listing.title || 'Item'} (${size}) x${quantity}`;
 
     // ── Payment routing ──
     // If the curator has a 0xSplits SplitV2 deployed, the buyer pays the

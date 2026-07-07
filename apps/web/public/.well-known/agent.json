@@ -20,12 +20,13 @@
     "autonomous_purchase",
     "curator_storefront_checkout",
     "paid_virtual_try_on",
+    "digital_curator_try_on",
     "nft_minting",
     "spending_controls",
     "transparent_reasoning"
   ],
   "commerce": {
-    "description": "Buy fashion items from curator storefronts with cUSD on Celo. Curators are paid their share on-chain in the same flow. Try on any listing before buying via the x402-paid fitting room.",
+    "description": "Buy fashion items from curator storefronts with cUSD on Celo. Curators are paid their share on-chain in the same flow. Try on any listing before buying via the x402-paid fitting room. Digital curators (type: 'ai', inventoryType: 'digital') offer AI-generated garment designs — try on the digital design, then discover similar physical items from human curators.",
     "protocol": "x402",
     "chainId": 42220,
     "token": "0x765DE816845861e75A25fCA122bb6898B8B1282a",
@@ -41,10 +42,10 @@
       "instructions": "Append the attribution dataSuffix (provided in every 402 response) to your cUSD transfer transaction data. This tags your payment as OnPoint activity on the Celo attribution dashboard."
     },
     "flow": [
-      "GET directory — curators with agentCommerceEnabled accept agent orders",
-      "GET storefront — listings carry agentCommerce.offers with cUSD prices",
-      "Optional: POST tryOn {curatorSlug, listingId, photoData} — pay a small cUSD fee to render the item on your human and get a fit signal (render + recommended size) before buying",
-      "POST order {listingId, size, quantity} — returns 402 with payment requirements + attribution dataSuffix",
+      "GET directory — curators with agentCommerceEnabled accept agent orders. Curators with digitalListingCount > 0 have AI-generated digital garments (try-on only, no physical order)",
+      "GET storefront — listings carry agentCommerce.offers with cUSD prices. Digital listings have inventoryType: 'digital' and a tryOnUrl instead of sizes/stock",
+      "Optional: POST tryOn {curatorSlug, listingId, photoData} — pay a small cUSD fee to render the item on your human and get a fit signal (render + recommended size) before buying. For digital listings, the response includes similarPhysicalItems — physical listings from human curators that match by tags",
+      "POST order {listingId, size, quantity} — returns 402 with payment requirements + attribution dataSuffix. Digital listings return 409 with a redirect to the try-on endpoint",
       "Transfer the cUSD amount to payTo on Celo (append the attribution dataSuffix to the tx data), then re-POST with paymentTxHash",
       "201 response includes order, payment and curator payout Celoscan links",
       "GET earnings — public reconciled ledger per curator (every sale links to a Celoscan tx or M-Pesa receipt)"

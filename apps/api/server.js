@@ -36,6 +36,12 @@ if (Sentry) {
   app.use(Sentry.Handlers.requestHandler());
 }
 
+// ── Static files (digital garment images) ────────────────────────
+app.use('/digital-garments', express.static('public/digital-garments', {
+  maxAge: '7d',
+  immutable: true,
+}));
+
 // ── Per-route body parsing with size limits ──────────────────────
 // No global parser — each route group controls its own memory ceiling.
 // Prevents body-parser DoS attacks (CVE-2022-24999-style).

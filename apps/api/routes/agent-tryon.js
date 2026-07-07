@@ -22,7 +22,7 @@
 const express = require('express');
 const { neon } = require('@neondatabase/serverless');
 const { drizzle } = require('drizzle-orm/neon-http');
-const { eq } = require('drizzle-orm');
+const { eq, and, ne, sql } = require('drizzle-orm');
 const { curators, listings, kitSkus, payments } = require('@repo/db');
 const sharedTypes = require('@onpoint/shared-types');
 const agentCore = require('@repo/agent-core');
@@ -35,13 +35,24 @@ const router = express.Router();
 
 const CONNECTION_STRING = process.env.NEON_DATABASE_URL;
 let _sql = null;
+let _db = null;
 
 function getDb() {
+  if (!_db) {
+    if (!CONNECTION_STRING) throw new Error('NEON_DATABASE_URL not configured');
+    _sql = neon(CONNECTION_STRING);
+    _db = drizzle(_sql, { schema: { curators, listings, kitSkus, payments } });
+  }
+  return _db;
+}
+
+/** Raw neon SQL tagged template — for queries that drizzle can't express */
+function rawSql(strings, ...values) {
   if (!_sql) {
     if (!CONNECTION_STRING) throw new Error('NEON_DATABASE_URL not configured');
     _sql = neon(CONNECTION_STRING);
   }
-  return drizzle(_sql, { schema: { curators, listings, kitSkus, payments } });
+  return _sql(strings, ...values);
 }
 
 function r2KeyToUrl(key) {
@@ -125,11 +136,12 @@ router.post('/', async (req, res) => {
   }
 
   try {
+    // leftJoin kitSkus — digital listings have no SKU
     const [row] = await db
       .select({ listing: listings, curator: curators, kit: kitSkus })
       .from(listings)
       .innerJoin(curators, eq(listings.curatorSlug, curators.slug))
-      .innerJoin(kitSkus, eq(listings.skuId, kitSkus.id))
+      .leftJoin(kitSkus, eq(listings.skuId, kitSkus.id))
       .where(eq(listings.id, listingId))
       .limit(1);
 
@@ -137,14 +149,17 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ error: 'Listing not found for this curator' });
     }
 
+    const isDigital = row.listing.inventoryType === 'digital';
     const garmentUrl = r2KeyToUrl(
-      row.listing.photoKeys?.[0] || row.kit.officialImageKey,
+      row.listing.photoKeys?.[0] || row.kit?.officialImageKey,
     );
     if (!garmentUrl) {
       return res.status(409).json({ error: 'Listing has no garment image to try on' });
     }
 
-    const itemLabel = `${row.kit.club} ${row.kit.kitType} kit (${row.kit.season})`;
+    const itemLabel = isDigital
+      ? row.listing.title || 'Digital garment'
+      : `${row.kit.club} ${row.kit.kitType} kit (${row.kit.season})`;
     const priceCusd = tryOnPriceCusd();
     const splitAddress = curatorSplitAddress(row.curator);
     const payTo = splitAddress || agentCore.PLATFORM_WALLET;
@@ -324,7 +339,48 @@ Return ONLY valid JSON:
       slug,
       listingId,
       provider: render.value.provider,
+      isDigital,
     });
+
+    // For digital listings, find similar physical items from human curators
+    // to bridge the digital→physical funnel. Match by tag overlap.
+    let similarPhysicalItems = [];
+    if (isDigital && row.listing.tags?.length > 0) {
+      try {
+        const tags = row.listing.tags;
+        // Query physical listings from human curators that share tags.
+        const matches = await rawSql`
+          SELECT l.id, l.curator_slug, l.title, l.photo_keys, l.sizes,
+                 c.name AS curator_name
+          FROM listings l
+          INNER JOIN curators c ON l.curator_slug = c.slug
+          WHERE l.inventory_type = 'physical'
+            AND l.status = 'live'
+            AND c.type = 'human'
+            AND l.curator_slug != ${slug}
+            AND l.tags && ${tags}
+          LIMIT 5
+        `;
+
+        similarPhysicalItems = matches.map((m) => ({
+          listingId: m.id,
+          curatorSlug: m.curator_slug,
+          curatorName: m.curator_name,
+          title: m.title || `${m.curator_name} listing`,
+          imageUrl: r2KeyToUrl(m.photo_keys?.[0]),
+          orderUrl: `/api/curator/${m.curator_slug}/order`,
+          storefrontUrl: `/api/curator/${m.curator_slug}/storefront`,
+        }));
+      } catch (matchErr) {
+        logger.warn('Failed to find similar physical items', { component: 'agent-tryon', listingId }, matchErr);
+      }
+    }
+
+    const nextHint = isDigital
+      ? similarPhysicalItems.length > 0
+        ? `This is a digital design by ${row.curator.name}. Want the real thing? Check similarPhysicalItems for physical listings from human curators, then POST the order endpoint.`
+        : `This is a digital design by ${row.curator.name}. Browse the directory for human curators with similar items.`
+      : 'Happy with the fit? POST the order endpoint with {listingId, size, quantity} to buy.';
 
     return res.status(200).json({
       success: true,
@@ -332,6 +388,7 @@ Return ONLY valid JSON:
         item: itemLabel,
         curatorSlug: slug,
         listingId,
+        inventoryType: row.listing.inventoryType,
         render: {
           image: render.value.generatedImage,
           provider: render.value.provider,
@@ -348,10 +405,16 @@ Return ONLY valid JSON:
         payoutModel: splitAddress ? '0xSplits (curator earns a share)' : 'platform',
       },
       receiptId,
-      next: {
-        order: `/api/curator/${slug}/order`,
-        hint: 'Happy with the fit? POST the order endpoint with {listingId, size, quantity} to buy.',
-      },
+      ...(isDigital ? { similarPhysicalItems } : {}),
+      next: isDigital
+        ? {
+            hint: nextHint,
+            directory: '/api/curator/directory',
+          }
+        : {
+            order: `/api/curator/${slug}/order`,
+            hint: nextHint,
+          },
     });
   } catch (err) {
     logger.error('Agent try-on failed', { component: 'agent-tryon', slug }, err);
