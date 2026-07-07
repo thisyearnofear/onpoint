@@ -17,8 +17,8 @@ let _publicR2Url = null;
 
 function getSql() {
   if (!_sql) {
-    const connectionString = process.env.DATABASE_URL;
-    if (!connectionString) throw new Error('DATABASE_URL not set');
+    const connectionString = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
+    if (!connectionString) throw new Error('NEON_DATABASE_URL not set');
     _sql = neon(connectionString);
   }
   return _sql;
@@ -26,7 +26,7 @@ function getSql() {
 
 function getPublicR2Url() {
   if (_publicR2Url === null) {
-    _publicR2Url = process.env.PUBLIC_R2_URL || process.env.R2_PUBLIC_URL || '';
+    _publicR2Url = process.env.R2_PUBLIC_URL?.replace(/\/$/, '') || '';
   }
   return _publicR2Url;
 }
