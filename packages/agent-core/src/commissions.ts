@@ -60,19 +60,27 @@ export function calculateSplit(
   opts?: {
     affiliateAddress?: Address;
     agentAddress?: Address;
+    /** Override seller share (e.g. from Curator.commerce.revShare). Must leave room for affiliate + agent tiers. */
+    sellerBps?: number;
   },
 ): CommissionSplit {
   const recipients: CommissionRecipient[] = [];
 
-  const sellerAmount = (totalWei * BigInt(BPS.seller)) / 10000n;
+  const maxSellerBps = 10000 - BPS.affiliate - BPS.agent;
+  const sellerBps = Math.min(
+    Math.max(Math.round(opts?.sellerBps ?? BPS.seller), 0),
+    maxSellerBps,
+  );
+
+  const sellerAmount = (totalWei * BigInt(sellerBps)) / 10000n;
   recipients.push({
     address: sellerAddress,
     label: "seller",
-    percentBps: BPS.seller,
+    percentBps: sellerBps,
     amount: sellerAmount,
   });
 
-  let platformBps = BPS.platform;
+  let platformBps = 10000 - sellerBps - BPS.affiliate - BPS.agent;
   let affiliateAmount = 0n;
   let agentAmount = 0n;
 

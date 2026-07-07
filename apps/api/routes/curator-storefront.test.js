@@ -186,3 +186,76 @@ describe('curator-storefront HTTP endpoint', () => {
     expect(res.body).toHaveProperty('error', 'Failed to load storefront');
   });
 });
+
+describe('POST /:slug/order — agent checkout validation', () => {
+  const OLD_ENV = process.env;
+
+  function makeApp() {
+    const app = express();
+    app.use(express.json());
+    app.use('/api/curator', router);
+    return app;
+  }
+
+  beforeEach(() => {
+    process.env = { ...OLD_ENV };
+    router.__test.reset();
+  });
+
+  afterEach(() => {
+    process.env = OLD_ENV;
+  });
+
+  it('rejects an invalid slug', async () => {
+    const { default: supertest } = await import('supertest');
+    const res = await supertest(makeApp())
+      .post('/api/curator/x/order')
+      .send({ listingId: 'abc', size: 'M' })
+      .expect(400);
+    expect(res.body.error).toBe('Invalid curator slug');
+  });
+
+  it('requires listingId and size', async () => {
+    const { default: supertest } = await import('supertest');
+    const app = makeApp();
+
+    let res = await supertest(app).post('/api/curator/wanja/order').send({ size: 'M' }).expect(400);
+    expect(res.body.error).toBe('listingId is required');
+
+    res = await supertest(app).post('/api/curator/wanja/order').send({ listingId: 'abc' }).expect(400);
+    expect(res.body.error).toBe('size is required');
+  });
+
+  it('bounds quantity between 1 and 10', async () => {
+    const { default: supertest } = await import('supertest');
+    const app = makeApp();
+
+    for (const quantity of [0, 11, 1.5, 'two']) {
+      const res = await supertest(app)
+        .post('/api/curator/wanja/order')
+        .send({ listingId: 'abc', size: 'M', quantity })
+        .expect(400);
+      expect(res.body.error).toMatch(/quantity/);
+    }
+  });
+
+  it('rejects a malformed paymentTxHash', async () => {
+    const { default: supertest } = await import('supertest');
+    const res = await supertest(makeApp())
+      .post('/api/curator/wanja/order')
+      .send({ listingId: 'abc', size: 'M', paymentTxHash: '0x123' })
+      .expect(400);
+    expect(res.body.error).toMatch(/paymentTxHash/);
+  });
+
+  it('returns 503 when NEON_DATABASE_URL is not set', async () => {
+    delete process.env.NEON_DATABASE_URL;
+
+    const { default: supertest } = await import('supertest');
+    const res = await supertest(makeApp())
+      .post('/api/curator/wanja/order')
+      .send({ listingId: 'abc', size: 'M' })
+      .expect(503);
+    expect(res.body).toHaveProperty('error', 'Database not configured');
+  });
+});

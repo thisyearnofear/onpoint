@@ -182,6 +182,85 @@ export function getCUSDAddress(chain: ChainName): Address | null {
   return TOKEN_ADDRESSES.cUSD[chain];
 }
 
+export interface TransferVerification {
+  verified: boolean;
+  reason?: string;
+  from?: Address;
+  amount?: bigint;
+  blockNumber?: bigint;
+}
+
+const TRANSFER_EVENT = {
+  name: "Transfer",
+  type: "event",
+  inputs: [
+    { name: "from", type: "address", indexed: true },
+    { name: "to", type: "address", indexed: true },
+    { name: "value", type: "uint256", indexed: false },
+  ],
+} as const;
+
+/**
+ * Verify that a confirmed transaction transferred at least `minAmount` of
+ * `tokenAddress` to `to`. Used to validate payment proofs submitted by
+ * external agents (they pay from their own wallet, then present the txHash).
+ */
+export async function verifyTokenTransfer(params: {
+  chain: ChainName;
+  tokenAddress: Address;
+  txHash: Hash;
+  to: Address;
+  minAmount: bigint;
+}): Promise<TransferVerification> {
+  const { chain, tokenAddress, txHash, to, minAmount } = params;
+
+  const client = createPublicClient({
+    chain: CHAIN_OBJECTS[chain],
+    transport: http(RPC_URLS[chain]),
+  });
+
+  let receipt;
+  try {
+    receipt = await client.getTransactionReceipt({ hash: txHash });
+  } catch {
+    return { verified: false, reason: "Transaction not found or not yet confirmed" };
+  }
+
+  if (receipt.status !== "success") {
+    return { verified: false, reason: "Transaction reverted" };
+  }
+
+  const { parseEventLogs } = await import("viem");
+  const transfers = parseEventLogs({
+    abi: [TRANSFER_EVENT],
+    logs: receipt.logs,
+    eventName: "Transfer",
+  }).filter(
+    (log) =>
+      log.address.toLowerCase() === tokenAddress.toLowerCase() &&
+      log.args.to.toLowerCase() === to.toLowerCase(),
+  );
+
+  if (transfers.length === 0) {
+    return { verified: false, reason: "No matching token transfer to recipient in transaction" };
+  }
+
+  const total = transfers.reduce((sum, log) => sum + log.args.value, 0n);
+  if (total < minAmount) {
+    return {
+      verified: false,
+      reason: `Insufficient amount: got ${formatEther(total)}, need ${formatEther(minAmount)}`,
+    };
+  }
+
+  return {
+    verified: true,
+    from: transfers[0]?.args.from,
+    amount: total,
+    blockNumber: receipt.blockNumber,
+  };
+}
+
 export function getTokenAddress(
   symbol: keyof typeof TOKEN_ADDRESSES,
   chain: ChainName,
@@ -312,6 +391,7 @@ export const ERC20 = {
   transfer: transferToken,
   approve: approveToken,
   transferCUSD,
+  verifyTransfer: verifyTokenTransfer,
   getExplorerUrl,
   parseEther,
   formatEther,

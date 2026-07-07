@@ -36,6 +36,9 @@ export * from './fashion-data';
 // Re-export market intelligence signal types
 export * from './market-intelligence';
 
+// Re-export x402 payment protocol builders
+export * from './x402';
+
 // ============ Fashion Domain Types ============
 
 /**

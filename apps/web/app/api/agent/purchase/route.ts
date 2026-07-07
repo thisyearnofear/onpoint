@@ -325,7 +325,7 @@ export async function POST(
       // Record verifiable agent receipt onchain
       try {
         await recordReceipt({
-          action: "propose_mint_nft",
+          action: "purchase",
           sessionId: purchaseId,
           metadata: {
             productId: product.id,

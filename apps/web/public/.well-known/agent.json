@@ -18,10 +18,28 @@
     "style_analysis",
     "product_recommendation",
     "autonomous_purchase",
+    "curator_storefront_checkout",
     "nft_minting",
     "spending_controls",
     "transparent_reasoning"
   ],
+  "commerce": {
+    "description": "Buy fashion items from curator storefronts with cUSD on Celo. Curators are paid their share on-chain in the same flow.",
+    "protocol": "x402",
+    "chainId": 42220,
+    "token": "0x765DE8164458C172EE097029dfb482Ff182ad001",
+    "tokenSymbol": "cUSD",
+    "directory": "https://api.onpoint.famile.xyz/api/curator/directory",
+    "storefront": "https://api.onpoint.famile.xyz/api/curator/{slug}/storefront",
+    "order": "https://api.onpoint.famile.xyz/api/curator/{slug}/order",
+    "flow": [
+      "GET directory — curators with agentCommerceEnabled accept agent orders",
+      "GET storefront — listings carry agentCommerce.offers with cUSD prices",
+      "POST order {listingId, size, quantity} — returns 402 with payment requirements",
+      "Transfer the cUSD amount to payTo on Celo, then re-POST with paymentTxHash",
+      "201 response includes order, payment and curator payout Celoscan links"
+    ]
+  },
   "supportedTrust": ["reputation", "validation"],
   "version": "1.0.0",
   "createdAt": "2026-03-23T07:11:35.978Z",

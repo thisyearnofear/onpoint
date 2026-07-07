@@ -15,6 +15,7 @@ import { readPersistentState, writePersistentState } from "./persistent-state";
 export type AgentAction =
   | "analyze_outfit"
   | "recommend_product"
+  | "purchase"
   | "propose_mint_nft"
   | "mint_nft"
   | "check_wallet_balance"
@@ -106,7 +107,10 @@ async function recordReceiptOnChain(
 ): Promise<string | undefined> {
   const privateKey = process.env.AGENT_PRIVATE_KEY as `0x${string}` | undefined;
   if (!privateKey) {
-    logger.info("Skipping on-chain receipt; AGENT_PRIVATE_KEY missing", {
+    // On-chain anchoring is a hard requirement in production — a silently
+    // skipped anchor means unverifiable activity. Fail loud, not quiet.
+    const log = process.env.NODE_ENV === "production" ? logger.error : logger.warn;
+    log("On-chain receipt NOT anchored; AGENT_PRIVATE_KEY missing", {
       component: "agent-registry",
       receiptId: receipt.id,
     });

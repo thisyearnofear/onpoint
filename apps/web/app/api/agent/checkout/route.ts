@@ -41,7 +41,8 @@ import { recordReceipt } from "../../../../lib/services/agent-registry";
 import {
   buildPaymentRequirements,
   getPaymentHeader,
-} from "../../../../lib/utils/x402";
+} from "@onpoint/shared-types";
+import type { PaymentRequirements } from "x402/types";
 import { verify, settle } from "x402/verify";
 export { OPTIONS } from "../../ai/_utils/http";
 
@@ -201,7 +202,7 @@ export async function POST(
         AGENT_WALLET,
         resourceUrl,
         `OnPoint checkout: ${resolvedItems.map((i) => i.name).join(", ")}`,
-      );
+      ) as unknown as PaymentRequirements;
 
       if (!paymentHeader) {
         // No payment header — return 402 so x402 clients can pay and retry
@@ -387,7 +388,7 @@ export async function POST(
       // Record verifiable agent receipt onchain
       try {
         await recordReceipt({
-          action: "propose_mint_nft",
+          action: "purchase",
           sessionId: orderId,
           metadata: {
             items: resolvedItems.map((i) => ({

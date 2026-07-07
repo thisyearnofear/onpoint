@@ -206,7 +206,7 @@ router.post('/', async (req, res) => {
     // Record verifiable receipt
     try {
       await agentCore.recordReceipt({
-        action: 'propose_mint_nft',
+        action: 'purchase',
         sessionId: orderId,
         metadata: {
           items: resolvedItems.map((i) => ({ productId: i.productId, name: i.name, quantity: i.quantity, subtotal: i.subtotal })),

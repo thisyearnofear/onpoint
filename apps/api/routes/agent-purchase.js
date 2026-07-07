@@ -220,7 +220,7 @@ router.post('/', async (req, res) => {
     // Record verifiable receipt
     try {
       await agentCore.recordReceipt({
-        action: 'propose_mint_nft',
+        action: 'purchase',
         sessionId: purchaseId,
         metadata: { productId: product.id, productName: product.name, quantity, totalAmount: txAmount, recipient: product.seller, chain },
         txHash,

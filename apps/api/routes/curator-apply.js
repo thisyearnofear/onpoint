@@ -86,6 +86,14 @@ function validate(body) {
     errors.push('whatsapp must be in E.164 format (e.g. +254712345678)');
   }
 
+  // Optional: walletAddress — Celo payout wallet; enables agent checkout
+  if (body.walletAddress && typeof body.walletAddress === 'string') {
+    body.walletAddress = body.walletAddress.trim();
+  }
+  if (body.walletAddress && !/^0x[0-9a-fA-F]{40}$/.test(body.walletAddress)) {
+    errors.push('walletAddress must be a valid 0x address (Celo wallet for cUSD payouts)');
+  }
+
   // Optional: verticals — warn about unknown ones but don't reject
   if (body.verticals) {
     if (!Array.isArray(body.verticals)) {
@@ -137,7 +145,7 @@ router.post('/', async (req, res) => {
     });
   }
 
-  const { slug, name, whatsapp, verticals, brand } = req.body;
+  const { slug, name, whatsapp, verticals, brand, walletAddress } = req.body;
 
   try {
     // Insert with ON CONFLICT DO NOTHING — handles the race condition
@@ -159,6 +167,7 @@ router.post('/', async (req, res) => {
         commerce: {
           checkout: 'whatsapp',
           revShare: 0.05,
+          ...(walletAddress ? { walletAddress } : {}),
         },
       })
       .onConflictDoNothing();
@@ -192,6 +201,9 @@ router.post('/', async (req, res) => {
         'Add inventory by sending a WhatsApp message to our agent',
         `Visit ${storefrontUrl} to see your storefront`,
         'Share the link with your customers!',
+        walletAddress
+          ? 'Agent checkout is enabled — AI agents can buy from your storefront and you earn cUSD on Celo'
+          : 'Add a Celo wallet address to enable agent checkout and earn cUSD when AI agents buy from you',
       ],
     });
   } catch (err) {

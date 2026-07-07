@@ -22,6 +22,7 @@ import {
   Gift,
   ChevronDown,
   CheckCircle,
+  Wallet,
 } from "lucide-react";
 import { getApiBase } from "../../../lib/utils/api-base";
 import { GClaimCTA } from "../../../components/Curator/GClaimCTA";
@@ -61,6 +62,7 @@ type FormData = {
   slug: string;
   name: string;
   whatsapp: string;
+  walletAddress: string;
   verticals: string[];
   brandPrimary: string;
   brandAccent: string;
@@ -91,6 +93,10 @@ function validate(data: FormData): FormErrors {
     errors.whatsapp = "Enter a valid number with country code (e.g. +254712345678)";
   }
 
+  if (data.walletAddress && !/^0x[0-9a-fA-F]{40}$/.test(data.walletAddress)) {
+    errors.walletAddress = "Enter a valid wallet address (0x followed by 40 characters)";
+  }
+
   return errors;
 }
 
@@ -101,6 +107,7 @@ export default function CuratorOnboardPage() {
     slug: "",
     name: "",
     whatsapp: "",
+    walletAddress: "",
     verticals: ["football"],
     brandPrimary: "#1a1a2e",
     brandAccent: "#e94560",
@@ -177,6 +184,7 @@ export default function CuratorOnboardPage() {
             slug: data.slug,
             name: data.name,
             whatsapp: data.whatsapp || undefined,
+            walletAddress: data.walletAddress || undefined,
             verticals: data.verticals,
             brand: {
               colors: {
@@ -550,6 +558,36 @@ export default function CuratorOnboardPage() {
                 <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
                   <AlertCircle className="h-3 w-3" />
                   {errors.whatsapp}
+                </p>
+              )}
+            </div>
+
+            {/* Payout wallet */}
+            <div>
+              <label className="mb-1.5 flex items-center gap-2 text-sm font-medium">
+                <Wallet className="h-4 w-4 text-amber-500" />
+                Payout wallet
+                <span className="text-xs font-normal text-muted-foreground">
+                  (optional, unlocks AI agent sales)
+                </span>
+              </label>
+              <input
+                type="text"
+                value={data.walletAddress}
+                onChange={(e) => handleChange("walletAddress", e.target.value)}
+                placeholder="0x…"
+                className={`w-full rounded-xl border bg-card px-4 py-3 font-mono text-sm outline-none transition-all placeholder:text-muted-foreground/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/10 ${
+                  errors.walletAddress ? "border-destructive/50" : "border-border"
+                }`}
+              />
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Your Celo wallet (MiniPay works). AI agents can then buy from your
+                storefront and you get paid in cUSD, instantly and on-chain.
+              </p>
+              {errors.walletAddress && (
+                <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+                  <AlertCircle className="h-3 w-3" />
+                  {errors.walletAddress}
                 </p>
               )}
             </div>

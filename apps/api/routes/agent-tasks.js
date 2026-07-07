@@ -267,7 +267,7 @@ async function autoBuy(userId, drop, agentId = DEFAULT_AGENT_ID) {
     if (autoExecuted) {
       try {
         await agentCore.recordReceipt({
-          action: 'propose_mint_nft',
+          action: 'purchase',
           sessionId: suggestion.id,
           metadata: {
             type: 'auto_buy_price_drop',

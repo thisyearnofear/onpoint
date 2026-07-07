@@ -134,6 +134,33 @@ export interface Session {
 }
 
 /**
+ * Agent Commerce — machine-readable purchase offer on a storefront listing.
+ * Present only when the Curator has a payout wallet (commerce.walletAddress).
+ * Agents buy via POST /api/curator/:slug/order (x402 402-challenge flow).
+ */
+export interface ListingAgentCommerce {
+  available: true;
+  currency: "cUSD";
+  offers: Array<{
+    size: string;
+    stock: number;
+    priceKes: number;
+    priceCusd: number;
+  }>;
+}
+
+export interface StorefrontAgentCommerce {
+  enabled: boolean;
+  chain: "celo";
+  chainId: number;
+  network: string;
+  token: string;
+  tokenSymbol: "cUSD";
+  orderEndpoint: string;
+  flow: string[];
+}
+
+/**
  * Storefront Response — the shape returned by GET /api/curator/:slug/storefront.
  */
 export interface CuratorStorefrontResponse {
@@ -149,6 +176,7 @@ export interface CuratorStorefrontResponse {
     }>;
     imageUrl: string | null;
     checkoutUrl: string | null;
+    agentCommerce: ListingAgentCommerce | null;
     kit: {
       club: string;
       season: string;
@@ -159,5 +187,6 @@ export interface CuratorStorefrontResponse {
   meta: {
     listingCount: number;
     checkout: string;
+    agentCommerce?: StorefrontAgentCommerce;
   };
 }
