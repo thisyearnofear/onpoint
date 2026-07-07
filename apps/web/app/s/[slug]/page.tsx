@@ -121,14 +121,16 @@ export default async function CuratorStorefrontPage({
   }
 
   const { curator, listings, meta } = storefront;
+  const digitalListings = listings.filter((l) => l.digital || l.inventoryType === "digital");
+  const physicalListings = listings.filter((l) => !l.digital && l.inventoryType !== "digital");
   const primary = curator.brand?.colors?.primary || "#111827";
   const acc = curator.brand?.colors?.accent || "#e94560";
 
   // Build listings summary for analytics (slim, no image data)
   const trackerListings = listings.map((l) => ({
     id: l.id,
-    club: l.kit.club,
-    kitType: l.kit.kitType,
+    club: l.kit?.club || l.title || "Digital",
+    kitType: l.kit?.kitType || "design",
     lowestPrice: getLowestPrice(l.sizes),
     checkoutType: meta.checkout,
   }));
@@ -371,10 +373,94 @@ export default async function CuratorStorefrontPage({
             )}
           </div>
         ) : (
+          <>
+          {/* Digital designs — try-on only, no sizes/stock/checkout */}
+          {digitalListings.length > 0 && (
+            <div className="mb-8">
+              <div className="mb-4 flex items-center gap-2">
+                <Sparkles className="h-4 w-4" style={{ color: "var(--curator-accent)" }} />
+                <h3 className="text-sm font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                  Digital Designs · Try-On Only
+                </h3>
+              </div>
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {digitalListings.map((listing) => (
+                  <article
+                    key={listing.id}
+                    data-listing-id={listing.id}
+                    className="overflow-hidden rounded-lg border border-border"
+                  >
+                    <div className="relative aspect-[4/3] bg-muted">
+                      {listing.imageUrl ? (
+                        <img
+                          src={listing.imageUrl}
+                          alt={listing.title || "Digital design"}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div
+                          className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center text-white"
+                          style={{
+                            background:
+                              "linear-gradient(135deg, var(--curator-primary), var(--curator-accent))",
+                          }}
+                        >
+                          <Sparkles className="h-10 w-10" />
+                          <p className="text-sm font-bold">{listing.title || "Digital Design"}</p>
+                        </div>
+                      )}
+                      <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-violet-600/90 px-3 py-1 text-xs font-bold text-white shadow-sm">
+                        <Sparkles className="h-3 w-3" />
+                        Digital
+                      </div>
+                    </div>
+                    <div className="space-y-3 p-4">
+                      <div>
+                        <h2 className="text-lg font-bold">
+                          {listing.title || "Digital Design"}
+                        </h2>
+                        {listing.tags && listing.tags.length > 0 && (
+                          <div className="mt-1.5 flex flex-wrap gap-1.5">
+                            {listing.tags.slice(0, 5).map((tag) => (
+                              <span
+                                key={tag}
+                                className="rounded-md bg-muted/60 px-2 py-0.5 text-xs text-muted-foreground"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <p className="rounded-md bg-violet-500/10 px-3 py-2 text-xs text-violet-700 dark:text-violet-300">
+                        AI-generated design. Try it on virtually — no physical
+                        item to ship. Agents are matched to similar physical
+                        items from human curators after try-on.
+                      </p>
+                      <a
+                        href={`/lab?tab=try-on&from=${encodeURIComponent(slug)}&item=${encodeURIComponent(listing.id)}`}
+                        data-analytics-tryon
+                        data-listing-id={listing.id}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                        style={{ background: "var(--curator-primary)" }}
+                      >
+                        <Camera className="h-4 w-4" />
+                        Try on this design
+                      </a>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Physical listings — full commerce flow */}
+          {physicalListings.length > 0 && (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {listings.map((listing) => {
+            {physicalListings.map((listing) => {
               const lowestPrice = getLowestPrice(listing.sizes);
               const stock = getTotalStock(listing.sizes);
+              const kit = listing.kit;
 
               return (
                 <article
@@ -386,7 +472,7 @@ export default async function CuratorStorefrontPage({
                     {listing.imageUrl ? (
                       <img
                         src={listing.imageUrl}
-                        alt={`${listing.kit.club} ${listing.kit.kitType} kit`}
+                        alt={`${kit?.club ?? "Item"} ${kit?.kitType ?? ""} kit`}
                         className="h-full w-full object-cover"
                       />
                     ) : (
@@ -398,28 +484,28 @@ export default async function CuratorStorefrontPage({
                         }}
                       >
                         <div className="grid h-16 w-16 place-items-center rounded-full border border-white/25 bg-white/15 text-xl font-black backdrop-blur">
-                          {getInitials(listing.kit.club)}
+                          {getInitials(kit?.club ?? "Item")}
                         </div>
                         <div>
-                          <p className="text-sm font-bold">{listing.kit.club}</p>
+                          <p className="text-sm font-bold">{kit?.club ?? "Item"}</p>
                           <p className="text-xs text-white/75">
-                            {formatKitType(listing.kit.kitType)} kit
+                            {formatKitType(kit?.kitType ?? "")} kit
                           </p>
                         </div>
                       </div>
                     )}
                     <div className="absolute left-3 top-3 rounded-full bg-background/90 px-3 py-1 text-xs font-bold shadow-sm">
-                      {formatKitType(listing.kit.kitType)}
+                      {formatKitType(kit?.kitType ?? "")}
                     </div>
                   </div>
 
                   <div className="space-y-4 p-4">
                     <div>
                       <h2 className="text-lg font-bold">
-                        {listing.kit.club}
+                        {kit?.club ?? "Item"}
                       </h2>
                       <p className="text-sm text-muted-foreground">
-                        {listing.kit.season} season
+                        {kit?.season ?? ""} season
                       </p>
                     </div>
 
@@ -452,7 +538,7 @@ export default async function CuratorStorefrontPage({
                       curatorSlug={curator.slug}
                       curatorName={curator.name}
                       listingId={listing.id}
-                      itemName={`${listing.kit.club} ${formatKitType(listing.kit.kitType)} kit`}
+                      itemName={`${kit?.club ?? "Item"} ${formatKitType(kit?.kitType ?? "")} kit`}
                       sizes={listing.sizes}
                       mpesaNumber={curator.commerce?.mpesaNumber || curator.channels?.whatsapp}
                       checkoutType={curator.commerce?.checkout}
@@ -499,6 +585,8 @@ export default async function CuratorStorefrontPage({
               );
             })}
           </div>
+          )}
+          </>
         )}
       </section>
 

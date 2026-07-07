@@ -88,3 +88,24 @@ M-Pesa receipt). Traction claims and evidence can no longer diverge.
 Migration: `packages/db/drizzle/0003_lonely_mongoose.sql` (payments table
 + `orders.amount_kes` / `orders.mpesa_receipt`). Env: `X402_TRYON_PRICE_USD`
 (default 0.25), `SERVICE_API_KEY` on the web host for ledger recording.
+
+
+---
+
+## Addendum: Digital Listings — Try-On Only (2026-07-07)
+
+The order flow described above applies to `inventoryType: "physical"`
+listings only. **Digital listings** (`inventoryType: "digital"`,
+introduced in ADR 0011) are try-on only — there is no physical product
+to ship.
+
+- `POST /api/curator/:slug/order` returns **409** for digital listings
+  with a redirect to the try-on endpoint
+- `POST /api/agent/try-on` is the sole revenue path for digital listings
+- The try-on response includes `similarPhysicalItems` — physical
+  listings from human curators matched by tags — bridging digital
+  discovery to physical commerce
+
+Migration: `packages/db/drizzle/0004_smart_sinister_six.sql`
+(`listings.inventory_type`, `listings.title`, `listings.tags`, and
+`listings.sku_id` made nullable).

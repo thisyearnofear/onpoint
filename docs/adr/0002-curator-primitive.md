@@ -190,3 +190,24 @@ See [ROADMAP.md → Phase 11](../ROADMAP.md) for the 12-week sequence. Summary:
 - **Pricing model**: SaaS to Curator, revshare on attributed sales, or premium-AI-session split? Decide after Phase 11 measurement.
 - **Where Curator configs live**: flat `apps/web/config/curators/*.json` for v1, Redis-backed for v2. ADR open until self-serve Curator signup is required.
 - **AI Curator catalog source**: do AI Curators have their own catalog, or do they recommend across the union of human Curator catalogs? Default: union, scoped by the human Curator hosting them.
+
+
+---
+
+## Addendum: Digital Curators (2026-07-07)
+
+The original ADR positioned AI Curators as "second opinion" voices inside
+human Curator storefronts. **Digital curators** (ADR 0011) evolve this:
+AI curators can now have their **own storefront** with a **digital-only
+catalog** — AI-generated garment designs that exist as rendered images,
+not physical inventory.
+
+The `Curator` schema is unchanged (`type: "ai"`). The new capability is
+in the `listings` table: `inventoryType: "digital"` listings have no
+`kit_sku` FK, no sizes/stock, and are try-on only. The digital curator
+earns from try-on payments; the human curator earns when the agent
+follows the `similarPhysicalItems` bridge to order a physical item.
+
+This resolves the open question above: **AI Curators now have their own
+catalog** (digital designs), in addition to recommending across the union
+of human Curator catalogs when hosted on a human storefront.

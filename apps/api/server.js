@@ -281,6 +281,11 @@ app.use('/api/agent/try-on', json10mb, veniceRateLimit, require('./routes/agent-
 app.use('/api/curator/apply', json1k, generalRateLimit, require('./routes/curator-apply'));
 app.use('/api/curator', json1k, generalRateLimit, require('./routes/curator-storefront'));
 
+// ── Listing Routes (public, rate-limited) ───────────────────────
+// Similar physical items for digital listings (digital→physical funnel).
+
+app.use('/api/listings', generalRateLimit, require('./routes/listing-similar'));
+
 // ── Admin Routes (service-to-service: SERVICE_API_KEY auth) ─────
 
 app.use('/api/admin/curators', json10mb, serviceKeyAuth, generalRateLimit, require('./routes/curator-admin'));

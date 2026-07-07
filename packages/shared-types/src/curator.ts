@@ -86,13 +86,17 @@ export interface KitSKU {
 }
 
 /**
- * Listing — a Curator's inventory item, referencing a KitSKU.
- * Created when Wanja texts "+ arsenal home M 2500 4" + photo.
+ * Listing — a Curator's inventory item.
+ * Physical listings reference a KitSKU and have sizes/stock.
+ * Digital listings (AI-generated garments) have no KitSKU — try-on only.
  */
 export interface Listing {
   id: string;                     // UUID
   curatorSlug: string;
-  skuId: string;                  // references KitSKU.id
+  skuId: string | null;           // references KitSKU.id (null for digital)
+  inventoryType?: "physical" | "digital"; // default: "physical"
+  title?: string | null;          // human-readable title (digital listings)
+  tags?: string[];                // style/vertical tags (digital→physical matching)
   sizes: Array<{
     size: string;
     stock: number;
@@ -100,7 +104,7 @@ export interface Listing {
     printingAvailable?: boolean;
     printingPrice?: number;
   }>;
-  photoKeys: string[];            // R2 keys — override official kit image
+  photoKeys: string[];            // R2 keys or full URLs (digital listings)
   status: "live" | "paused" | "archived";
   createdAt: string;
   updatedAt: string;
@@ -167,6 +171,9 @@ export interface CuratorStorefrontResponse {
   curator: Curator;
   listings: Array<{
     id: string;
+    inventoryType?: "physical" | "digital";
+    title?: string | null;
+    tags?: string[];
     sizes: Array<{
       size: string;
       stock: number;
@@ -177,7 +184,9 @@ export interface CuratorStorefrontResponse {
     imageUrl: string | null;
     checkoutUrl: string | null;
     agentCommerce: ListingAgentCommerce | null;
-    kit: {
+    digital?: boolean;
+    tryOnUrl?: string;
+    kit?: {
       club: string;
       season: string;
       kitType: string;

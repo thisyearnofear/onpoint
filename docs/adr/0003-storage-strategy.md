@@ -215,3 +215,18 @@ Folded into Phase 11 Wks 1–2 in [ROADMAP.md](../ROADMAP.md):
 - **ORM**: Drizzle (recommended — SQL-first, lightweight, Neon-friendly) vs. Prisma (heavier, more ergonomic). Default to Drizzle unless team prefers Prisma's DX.
 - **Image-transform path**: Cloudflare Images vs. self-hosted via Hetzner + Sharp. Default to Cloudflare Images for v1; revisit if cost spikes.
 - **Schema migration tooling**: Drizzle Kit vs. external (Atlas, sqlc-style). Default to Drizzle Kit.
+
+---
+
+## Addendum: Digital Garment Images (2026-07-07)
+
+Digital curator garment images (AI-generated via Venice SD35) are served
+from the Hetzner server's static directory (`/opt/onpoint/shared/api/
+public/digital-garments/`) at `https://api.onpoint.famile.xyz/
+digital-garments/{id}.webp`, not from R2.
+
+Rationale: R2 env vars are not yet configured on the server, and digital
+garment images are small (~50KB webp each) with no need for CDN
+transforms. The shared directory survives releases via symlink. When R2
+is configured, these images can be migrated to R2 with the
+`curators/{slug}/listings/{listing-id}/1.webp` key layout.

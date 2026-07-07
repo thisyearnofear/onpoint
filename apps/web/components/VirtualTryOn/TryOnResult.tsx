@@ -34,6 +34,16 @@ interface StructuredTip {
   action?: StructuredTipAction;
 }
 
+interface SimilarPhysicalItem {
+  listingId: string;
+  curatorSlug: string;
+  curatorName: string;
+  title: string;
+  imageUrl: string | null;
+  orderUrl: string;
+  storefrontUrl: string;
+}
+
 interface TryOnResultProps {
   result:
     | {
@@ -53,6 +63,8 @@ interface TryOnResultProps {
   /** One-click retry with same settings */
   onRetry?: () => void;
   onChangeGarment?: () => void;
+  /** Similar physical items from human curators (digital→physical funnel) */
+  similarPhysicalItems?: SimilarPhysicalItem[];
 }
 
 // Utility function to parse simple markdown bold text
@@ -123,6 +135,7 @@ export function TryOnResult({
   onVariantFromTip,
   onRetry,
   onChangeGarment,
+  similarPhysicalItems,
 }: TryOnResultProps) {
   const { context } = useMiniApp();
   const [copied, setCopied] = useState(false);
@@ -409,10 +422,43 @@ export function TryOnResult({
             </div>
           )}
 
-          <Button variant="outline" className="w-full">
-            <ShoppingBag className="h-4 w-4 mr-2" />
-            Shop Similar Items
-          </Button>
+          {/* Digital→Physical funnel: similar physical items from human curators */}
+          {similarPhysicalItems && similarPhysicalItems.length > 0 && (
+            <div className="w-full mt-2">
+              <div className="flex items-center gap-2 mb-3">
+                <ShoppingBag className="h-4 w-4 text-primary" />
+                <p className="text-sm font-bold">Shop the real thing</p>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                This was a digital design. Here are similar physical items from
+                human curators you can order now.
+              </p>
+              <div className="grid gap-2">
+                {similarPhysicalItems.map((item) => (
+                  <a
+                    key={item.listingId}
+                    href={`/s/${item.curatorSlug}`}
+                    className="flex items-center gap-3 rounded-lg border border-border p-2.5 transition-all hover:border-primary/40 hover:bg-muted/30"
+                  >
+                    {item.imageUrl && (
+                      <img
+                        src={item.imageUrl}
+                        alt={item.title}
+                        className="h-12 w-12 rounded-md object-cover flex-shrink-0"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{item.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        by {item.curatorName}
+                      </p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* AI Model Transparency Label */}
           <div className="text-xs text-gray-500 text-center mt-3 flex items-center justify-center gap-1">

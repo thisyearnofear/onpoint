@@ -663,6 +663,42 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
         providerLabel: getProviderLabel(enhancement),
       }
     : null;
+
+  // Digital→physical funnel: fetch similar physical items when try-on
+  // is initiated from a digital listing (via ?from=slug&item=listingId).
+  const [similarPhysicalItems, setSimilarPhysicalItems] = React.useState<
+    Array<{
+      listingId: string;
+      curatorSlug: string;
+      curatorName: string;
+      title: string;
+      imageUrl: string | null;
+      orderUrl: string;
+      storefrontUrl: string;
+    }>
+  >([]);
+
+  React.useEffect(() => {
+    if (!tryOnResult || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const itemId = params.get("item");
+    if (!itemId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE || "/api";
+        const res = await fetch(`${apiBase}/listings/${encodeURIComponent(itemId)}/similar`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled && data.similarPhysicalItems?.length > 0) {
+          setSimilarPhysicalItems(data.similarPhysicalItems);
+        }
+      } catch {
+        // Silently fail — similar items are a nice-to-have, not critical
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [tryOnResult?.id]);
   const outcomeKeyRef = React.useRef<string | null>(null);
   const errorKeyRef = React.useRef<string | null>(null);
 
@@ -906,6 +942,7 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                               });
                             }
                           }}
+                          similarPhysicalItems={similarPhysicalItems}
                         />
                       </div>
                     )}
