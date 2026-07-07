@@ -16,14 +16,11 @@ OnPoint is a multi-sided fashion platform serving three distinct customers:
 
 ## 📋 Strategic Direction
 
-**Current Phase**: Curator Domination (Q3 2026)
+**Current Phase**: Curator Activation (Q3 2026) — 9 human curators + 1 digital curator (Nia Digital) live
 
 We're building the obvious choice for WhatsApp-first fashion sellers in Africa. The product is curator-focused first, then expands to multi-role homepage once each segment proves traction.
 
-**Key Documents**:
-- **Strategy**: [`docs/STRATEGY.md`](./docs/STRATEGY.md) — Phased roadmap, success criteria, decision framework
-- **Phase 1 Implementation**: [`docs/PHASE_1_IMPLEMENTATION.md`](./docs/PHASE_1_IMPLEMENTATION.md) — 4-week curator build plan
-- **Week 1 Checklist**: [`docs/WEEK_1_CHECKLIST.md`](./docs/WEEK_1_CHECKLIST.md) — Day-by-day homepage redesign guide
+**Key Document**: [`docs/STRATEGY.md`](./docs/STRATEGY.md) — Phased roadmap, success criteria, decision framework, what's built
 
 **Success Metrics** (Phase 1 Exit Criteria):
 - ✅ 10 active curators (currently 3 ready)
@@ -42,6 +39,7 @@ We're building the obvious choice for WhatsApp-first fashion sellers in Africa. 
 - **Product Management**: Upload from phone camera, manage inventory, track stock
 - **Order & Customer Management**: See orders, mark shipped, track repeat customers
 - **AI Try-On**: Your customers can virtually try products before buying
+- **Digital Discovery**: AI digital curators (like Nia Digital) create designs that route traffic to your physical inventory via tag-matched similar items
 - **Marketing Automation**: One-tap broadcasts to customer base
 
 ### For Consumers (Style Seekers)
@@ -53,6 +51,8 @@ We're building the obvious choice for WhatsApp-first fashion sellers in Africa. 
 
 ### For AI Agents (Autonomous Commerce)
 - **Agent Wallet**: Self-custodial wallet with configurable spending limits
+- **x402 Try-On Payments**: Pay $0.25 cUSD per try-on via HTTP 402 challenge flow
+- **Digital Curators**: Try on AI-generated designs from digital curators like Nia Digital, then get matched to similar physical items from human curators
 - **Spending Controls**: Auto-execute small purchases, request approval for large ones
 - **Verifiable Actions**: Cryptographic signing + IPFS audit trails
 - **Web Discovery**: Autonomous browsing when catalog lacks matches
@@ -168,12 +168,13 @@ See [Getting Started](docs/GETTING_STARTED.md) for full setup.
 
 | Doc | What's Inside |
 |-----|--------------|
+| [Strategy](docs/STRATEGY.md) | Phased roadmap, what's built, success metrics, decision framework |
 | [Getting Started](docs/GETTING_STARTED.md) | Setup, environment, deployment |
-| [Architecture](docs/ARCHITECTURE.md) | System design, data flow |
-| [Features](docs/FEATURES.md) | Detailed feature specs |
-| [Roadmap](docs/ROADMAP.md) | Current focus and upcoming work |
-| [Guides](docs/guides/) | Integration guides (Auth, MiniPay) |
-| [ADRs](docs/adr/) | Architecture decision records |
+| [Architecture](docs/ARCHITECTURE.md) | System design, data flow, digital→physical funnel |
+| [Features](docs/FEATURES.md) | Feature specs (curator storefronts, digital curators, agent commerce) |
+| [Monitoring](docs/MONITORING.md) | Hetzner monitoring stack, dashboards, alerting |
+| [Guides](docs/guides/) | Integration guides (Auth, WhatsApp, MiniPay) |
+| [ADRs](docs/adr/) | Architecture decision records (0001–0011) |
 
 ## Agent Worker
 

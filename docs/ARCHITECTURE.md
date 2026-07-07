@@ -14,10 +14,11 @@ The product is organized as three composable layers (see [ADR 0002](./adr/0002-c
 ╰────────────────────────────┬─────────────────────────────────╯
                              ▲
 ╭────────────────────────────┴─────────────────────────────────╮
-│  LAYER 2 — The Cast   (Curators: humans + AI personas)       │
+│  LAYER 2 — The Cast   (Curators: humans + AI + digital)      │
 │  Single schema in @onpoint/shared-types · Curator            │
-│  human  → apps/web/config/curators/*.json                    │
-│  ai     → apps/web/lib/utils/persona-config.ts               │
+│  human   → apps/web/config/curators/*.json (seed archetypes) │
+│  ai      → apps/web/lib/utils/persona-config.ts (stylists)   │
+│  digital → Neon curators table (type: "ai", digital catalog) │
 ╰────────────────────────────┬─────────────────────────────────╯
                              ▲
 ╭────────────────────────────┴─────────────────────────────────╮
@@ -72,7 +73,9 @@ The product is organized as three composable layers (see [ADR 0002](./adr/0002-c
 | `packages/storage`          | Cloudflare R2 helpers (put, signed URLs, transforms) |
 | `packages/messaging-bridge` | Spectrum-ts wrapper — WhatsApp / Telegram / iMessage providers for the Hetzner agent |
 | `apps/api/routes/curator-apply.js` | Public curator onboarding endpoint |
-| `apps/api/routes/curator-storefront.js` | Public curator storefront read endpoint |
+| `apps/api/routes/curator-storefront.js` | Public curator storefront read endpoint (handles physical + digital listings) |
+| `apps/api/routes/listing-similar.js` | Public endpoint: similar physical items for a digital listing (digital→physical funnel) |
+| `apps/api/routes/agent-tryon.js` | x402-paid agent try-on endpoint (returns `similarPhysicalItems` for digital listings) |
 | `apps/api/lib/whatsapp-ingest.js` | WhatsApp media -> R2 -> Neon ingest pipeline |
 | `apps/web/app/s/[slug]/page.tsx` | Branded curator storefront UI |
 | `apps/web/components/AICuratorSection.tsx` | AI Curator second opinion voices on human storefronts |
@@ -101,6 +104,14 @@ The product is organized as three composable layers (see [ADR 0002](./adr/0002-c
 5. **(Optional) AI second opinion** → AI Curator persona renders alongside, recommendations scoped to host Curator's catalog
 6. **Buy** → off-ramp via `commerce.checkout`. For `whatsapp`: `wa.me/{phone}?text={prefilled SKU}` deep link. For `shopify`/`stripe`: external checkout URL. For AI-initiated purchases across Curators, the agent layer (autonomous executor + Lighthouse receipts) records attribution + revshare.
 7. **Current implementation** → `/s/[slug]` is live in the web app and consumes `GET /api/curator/:slug/storefront`; the first production slice is WhatsApp-first checkout for live listings.
+
+### Digital curator → physical funnel (ADR 0011)
+1. **Agent or consumer visits `/s/nia`** → Storefront API returns 8 digital listings with `inventoryType: "digital"`, violet badge, try-on CTA
+2. **Try-on initiated** → `POST /api/agent/try-on` (x402 payment: $0.25 cUSD) or web try-on flow
+3. **Digital listing has no physical product** → API returns `similarPhysicalItems` matched by tags (e.g. `["football", "arsenal", "home"]`)
+4. **Similar items from human curators** → `GET /api/listings/:id/similar` joins `kit_skus` for title/image, returns 5 physical listings
+5. **UI renders "Shop the real thing"** → TryOnResult shows cards linking to human curator storefronts (`/s/wanja`, `/s/mo`, etc.)
+6. **Agent or consumer follows link** → Lands on human curator storefront → can order physical item via WhatsApp/M-Pesa/agent checkout
 
 ### Curator chat-ops admin (Wanja path) — Phase 11
 1. **Curator texts agent** → Spectrum-ts WhatsApp provider → Hetzner `apps/api/routes/agent-whatsapp.js` + `apps/api/lib/whatsapp-ingest.js` (PM2)
@@ -197,6 +208,8 @@ The bridge is an isolated Python FastAPI service using Browser Use Cloud V3 with
 | Polygon  | Multi-chain support                               |
 
 **Smart contracts**: NFT minting (ERC-721A), commission splits (0xSplits), agent tipping (cUSD/USDT transfers).
+
+**x402 try-on payments**: Agents pay $0.25 cUSD per try-on via HTTP 402 challenge flow (ADR 0010, 0011). Digital curator try-ons route revenue to the AI curator's 0xSplits; physical try-ons route to the human curator's split.
 
 ## Security Model
 

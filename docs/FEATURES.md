@@ -1,29 +1,67 @@
 # Features
 
-> **Organizing primitive**: every styling voice in OnPoint — human merchant or AI persona — is a `Curator` (see [ADR 0002](./adr/0002-curator-primitive.md)). Features below are composed against one Curator at a time on `/s/[slug]`, or against the full Curator set on the consumer dashboard.
+> **Organizing primitive**: every styling voice in OnPoint — human merchant, AI persona, or digital curator — is a `Curator` (see [ADR 0002](./adr/0002-curator-primitive.md)). Features below are composed against one Curator at a time on `/s/[slug]`, or against the full Curator set on the consumer dashboard.
 
-## Curator Storefronts (`/s/[slug]`) — Phase 11
+## Curator Storefronts (`/s/[slug]`)
 
-A branded surface a Curator hands to their customers. Composes existing components (`VirtualTryOn`, `PolaroidGallery`, `SessionEndingCard`, `collage`) against one Curator's catalog and brand kit. No new feature surface — pure recomposition.
-Implemented in `apps/web/app/s/[slug]/page.tsx`, backed by `apps/api/routes/curator-storefront.js`.
+A branded surface a Curator hands to their customers. Composes existing components (`VirtualTryOn`, `PolaroidGallery`, `SessionEndingCard`) against one Curator's catalog and brand kit.
 
 ### What a Curator gets
 - `/s/{slug}` route with their logo, colors, voice, and catalog
 - Customer try-on scoped to their inventory
-- Branded polaroid frame + share templates (IG story, polaroid, fit-check card)
+- Branded polaroid frame + share templates
 - Optional "second opinion" from AI Curators (Miranda, Edina, Tan…) — context-aware takes based on the host Curator's verticals
-- Off-ramp checkout to their existing Shopify / WhatsApp / Stripe — the first pass uses WhatsApp deep links from live listings
-- Self-serve onboarding at `/curator/onboard` — 30-second form that creates a Neon row + storefront URL
-- Cross-curator recommendations — AI finds complementary items from other Curators' catalogs
+- Off-ramp checkout to their existing Shopify / WhatsApp / Stripe / M-Pesa
+- Self-serve onboarding at `/curator/onboard`
+- Cross-curator recommendations with attribution tracking
 
-### Two Curator types, one schema
+### Three Curator types, one schema
 | Type | Source | Example | Catalog |
 |------|--------|---------|---------|
-| `human` | `apps/web/config/curators/*.json` + Neon | Mo (football), Amara (Ankara), Juma (vintage), Kofi (sneakers), Nneka (hair) | Their inventory |
-| `ai`    | `lib/utils/persona-config.ts` (re-emitted as `Curator`) | Miranda Priestly, Edina Monsoon, Tan France | Union of host Curator's catalog |
+| `human` | `apps/web/config/curators/*.json` + Neon | Mo (football), Amara (Ankara), Wanja (Premier League) | Their physical inventory |
+| `ai` | `lib/utils/persona-config.ts` | Miranda Priestly, Edina Monsoon, Tan France | Union of host Curator's catalog |
+| `digital` | Neon `curators` table (`type: "ai"`) | Nia Digital (AI-generated garments) | Digital-only designs, try-on only |
 
-### Coexistence
-On `/s/mo` (a human Curator's storefront), AI Curators appear as optional voices: same try-on, three takes on the result. On AI Curator surfaces, human Curators' catalogs are the recommendation pool. The agent layer (autonomous executor, ERC-8004 receipts, Token Vault) becomes the attribution + AI-purchase infrastructure for cross-Curator transactions.
+---
+
+## Digital Curators & Digital→Physical Funnel (ADR 0011)
+
+AI curators with their own storefronts and AI-generated digital garments. Agents and consumers try on digital designs, then get matched to similar physical items from human curators.
+
+### How it works
+1. **Digital curator storefront** (`/s/nia`) — 8 AI-generated garment designs rendered with violet "Digital" badge, tags, and try-on CTA (no sizes/stock/checkout)
+2. **Try-on** — `POST /api/agent/try-on` (x402: $0.25 cUSD) or web try-on flow
+3. **Similar physical items** — API returns `similarPhysicalItems` matched by tags (e.g. `["football", "arsenal", "home"]`)
+4. **Public endpoint** — `GET /api/listings/:id/similar` joins `kit_skus` for title/image
+5. **"Shop the real thing"** — TryOnResult renders cards linking to human curator storefronts
+6. **Conversion** — Agent or consumer follows link → orders physical item from human curator
+
+### Digital listing schema
+- `inventoryType: "digital"` — no `skuId`, no sizes, no stock
+- `title` and `tags` columns for matching
+- `photoKeys` contain full URLs (served from static directory, see ADR 0003 addendum)
+- Orders return 409 with redirect to try-on endpoint
+
+---
+
+## Agent Commerce (ADR 0010, 0011)
+
+### x402 Try-On Payments
+- Agents pay $0.25 cUSD per try-on via HTTP 402 challenge flow
+- Revenue routes to curator's 0xSplits (physical) or AI curator's split (digital)
+- `agent.json` manifest at `/.well-known/agent.json` advertises capabilities
+
+### Agent Storefront Checkout
+- `POST /api/curator/:slug/order` — agents buy physical listings via cUSD
+- 0xSplits payout routing to curator's wallet
+- Digital listings return 409 (try-on only, no physical product)
+
+### Agent Infrastructure
+- **ERC-8004 registered** agent wallet on Celo
+- **Agent dashboard** at `GET /api/agent/dashboard` — public transparency endpoint
+- **Heartbeat** at `POST /api/agent/heartbeat` — gas monitoring, fraud checks, receipt logging
+- **Dead Man's Switch** — freezes agent after 15 min of silence
+- **Verifiable receipts** — every autonomous action signed, stored on IPFS, optional Celo memo tx
 
 ---
 
@@ -32,151 +70,38 @@ On `/s/mo` (a human Curator's storefront), AI Curators appear as optional voices
 Real-time AI styling sessions — like a FaceTime call with a fashion consultant.
 
 ### Provider Matrix
+| Provider | Tier | Speed | Engine |
+|----------|------|-------|--------|
+| Venice AI | Free | ~3s polling | Qwen VL (qwen3-vl-235b) |
+| Replicate | Free | ~2.5s polling | GPT-4o-mini |
+| Azure CV | Free | ~3s polling | Azure CV 4.0 (detect+tag) |
+| Gemini Live | Premium | Real-time WS | Gemini 2.0 Flash |
 
-| Provider              | Tier       | Speed           | Analysis Engine             | Limits     |
-| --------------------- | ---------- | --------------- | --------------------------- | ---------- |
-| Venice AI             | Free       | ~3s polling     | Qwen VL (qwen3-vl-235b)     | 3 caps, 60s|
-| Replicate (GPT-4o-mini)| Free      | ~2.5s polling   | GPT-4o-mini via Replicate   | 10 caps, 5min|
-| Azure Computer Vision | Free       | ~3s polling     | Azure CV 4.0 (detect+tag)   | 10 caps, 5min|
-| Gemini Live           | Premium    | Real-time WS    | Gemini 2.0 Flash            | Unlimited  |
-
-### Provider Selection
-
-Provider selection cards are grouped by tier — **Free (instant start)** and **Premium (enhanced features)** — with tier dividers and badges. The first free card (Venice Daily Outfit Check) shows a green **Quick Start** badge for one-click launch. A **Compare providers** link opens a side-by-side comparison modal showing pricing, speed, max captures, session duration, audio support, connection type, and use cases across all 4 providers with quick-select buttons.
-
-### Smart Fallback
-
-When a provider session errors, the app automatically retries the next provider in the fallback chain:
-- **Venice → Replicate → Azure → Gemini**
-- **Replicate → Azure → Venice → Gemini**
-- **Azure → Replicate → Venice → Gemini**
-Each provider's fallback chain is defined in its factory config. A dedup set prevents infinite retries. A fallback notification toast informs the user (e.g., "Venice AI is unavailable — switching to Replicate AI...") with auto-dismiss after 5s.
-
-### Latency Tracking
-
-Frame-to-response latency is tracked as an exponential moving average (65/35 split) and displayed in the terminal ticker bar with color coding:
-- **< 2s**: Green — responsive
-- **2-5s**: Amber — moderate
-- **> 5s**: Red — slow
-
-Latency samples are persisted to localStorage per provider (circular buffer, max 20 samples) for historical averages.
-
-### Free Tier (Venice AI / Replicate / Azure CV)
-
-- **Venice AI**: Vision analysis via `qwen3-vl-235b-a22b` model, 3s polling, no payment required
-- **Replicate (GPT-4o-mini)**: Fashion vision via GPT-4o-mini, 2.5s polling, no payment required
-- **Azure Computer Vision**: Object detection + garment tagging + dense captions, 3s polling, F0 free tier (20 req/min)
-
-### Premium Tier (Gemini Live)
-
-- Real-time bidirectional WebSocket streaming
-- Full audio input/output — talk and be interrupted naturally
-- Instant video frame analysis (1fps canvas capture)
-- Tactical HUD with Agent Reasoning Terminal
-- **Cost**: 0.5 CELO per session OR Bring Your Own Key (BYOK)
-
-### Session Features
-
-- **Timer + limits** — Configurable session duration and capture limits per provider
-- **Ending card** — Shareable summary with style score and topic badges
-- **Coaching badges** — Real-time AI observations overlaid on camera
-- **Snapshot capture** — One-tap frame with AR HUD + critique embedded
-
----
-
-## Landing Page & Growth Loops
-
-The landing page (`/`) doubles as an editorial lead-gen surface with interactive previews, viral share mechanics, and re-engagement loops.
-
-### Interactive LookCrafter
-
-A zero-signup lead magnet: users pick an occasion, vibe, and AI stylist persona, then receive a shareable polaroid-style result card.
-- Client-side generation (no API calls) — instant results
-- Downloadable PNG via html2canvas (dark/light mode aware)
-- Curiosity-generating share copy: persona-specific quotes + scores
-- Dark-mode-aware polaroid with subtle rotation and editorial watermark (`text-fashion-label`)
-
-### Referral Link System
-
-Trackable deep links for every share. Encodes a short ref code (base62 hash of user + source + persona) into `?ref=` URL params.
-- **File**: `lib/utils/referral.ts`
-- **Sources**: `look_crafter`, `polaroid`, `curator_storefront`, `style_report`
-- Landing page captures `?ref=` → sessionStorage → attribution
-- `generateShareLink()` and `parseReferralLink()` for DRY link management
-
-### Score Progression & Re-Engagement
-
-A composable hook (`lib/hooks/useScoreProgression.ts`) reads from the analysis history zustand store and computes:
-- **Trend**: improving / stable / declining from last 3 scores
-- **Best score**, average, total looks, most-used persona, days since last look
-
-Consumed by:
-- **WelcomeBackBanner**: shows trend arrows, total looks, best score, stale-user messaging (>7 days)
-- **EditorialStats section**: editorial big-numbers layout below the fold
-- **Product notifications**: score milestones, streak reminders, persona unlocks
-
-### Product Notifications
-
-Three client-side notification types merged with server subscription events in `NotificationBell`:
-- `score_milestone`: "You hit 9/10! Your best look yet."
-- `streak_reminder`: "3 looks this week — one more to hit your streak."
-- `persona_unlock`: "You've used Miranda 5 times. Try Edina for a roast?"
-
-Generated from `useAnalysisHistory` data, deduplicated via sessionStorage dismissal.
-
-### Style Recap Email
-
-Monthly re-engagement email via Resend (`lib/services/email/index.ts`):
-- `sendStyleRecapEmail()` with personalized recap (total looks, best score, trend, most-used persona, actionable tip)
-- Cron route at `/api/cron/style-recap` for Hetzner worker scheduling
-- Aggregate platform stats from retention report when per-user data isn't yet available server-side
-
-### Design System
-
-- **Typography utilities**: `text-fashion-display` (weight 100, tight tracking), `text-fashion-headline` (weight 900), `text-fashion-label` (uppercase micro-labels)
-- **Atmospheric backgrounds**: Radial gradients (`ellipse_at_top`, `ellipse_at_center`, `ellipse_at_bottom`) replace generic `bg-card` containers — no card borders, no drop shadows on the landing page
+Smart fallback: Venice → Replicate → Azure → Gemini with dedup prevention.
 
 ---
 
 ## AI Curators (Stylist Personas)
 
-The six personas below are **AI Curators** under the unified schema. They are loaded from `lib/utils/persona-config.ts` and re-emitted as `Curator` objects with `type: "ai"`, so they can be slotted into any human Curator's storefront as a "second opinion" voice.
+Six AI personas loaded from `lib/utils/persona-config.ts`, re-emitted as `Curator` objects with `type: "ai"`. When mounted inside `/s/[slug]`, recommendations are scoped to the host Curator's catalog.
 
-| Persona          | Style                                           | Default verticals |
-| ---------------- | ----------------------------------------------- | ----------------- |
-| Anna Karenina    | Russian aristocratic, 19th-century high society | formal, occasion  |
-| Artful Dodger    | Street-smart youth, urban style, sneakerhead    | streetwear, sneakers |
-| Mowgli           | Natural coexistence, ecological balance         | sustainable, outdoor |
-| Edina Monsoon    | Avant-garde fashion victim                      | high-fashion, experimental |
-| Miranda Priestly | Impossibly high runway standards                | runway, luxury |
-| John Shaft       | 1970s cool sophistication                       | retro, tailoring |
-
-**Capabilities**: Upload photos, context-aware conversations, style suggestions, cross-component integration. When mounted inside `/s/[slug]`, an AI Curator's recommendations are scoped to the host Curator's catalog (the union model — see [ADR 0002](./adr/0002-curator-primitive.md#open-questions)).
+| Persona | Style | Default verticals |
+|---------|-------|-------------------|
+| Anna Karenina | Russian aristocratic | formal, occasion |
+| Artful Dodger | Street-smart urban | streetwear, sneakers |
+| Mowgli | Natural coexistence | sustainable, outdoor |
+| Edina Monsoon | Avant-garde | high-fashion, experimental |
+| Miranda Priestly | Runway standards | runway, luxury |
+| John Shaft | 1970s cool | retro, tailoring |
 
 ---
 
 ## Smart Shopping
 
-### Product Catalog
-
 - 24+ products across 6 categories with real fashion photography
-- Categories: Shirts, Pants, Shoes, Accessories, Outerwear, Dresses
-- Engagement metrics: try-on count, mint count, average rating
-
-### Personalized Recommendations
-
-Products scored by:
-
-- **Category fit** (+10 points for matching user preferences)
-- **Price range** (+5 points for fitting budget)
-- **Rating bonus** (higher-rated items score better)
-- **Variety noise** (prevents filter bubbles)
-
-### Cart & Checkout
-
-- Zustand store with localStorage persistence
+- Personalized recommendations scored by category fit, price range, rating, and variety noise
+- Zustand cart store with localStorage persistence
 - Commission splits: 85% seller / 10% platform / 3% affiliate / 2% agent
-- Unallocated shares roll to platform (no value loss)
 - On-chain cUSD/USDT payments with transaction verification
 
 ---
@@ -185,131 +110,24 @@ Products scored by:
 
 When the internal catalog doesn't have a match, the agent browses the open web:
 
-### 4-Tier Discovery Engine
+| Tier | Source | Speed | Coverage |
+|------|--------|-------|----------|
+| 1 | Internal catalog | Instant | Curated |
+| 2 | Purch API aggregation | Fast | 1B+ products |
+| 2.5 | TinyFish + Bright Data SERP (parallel) | Fast | Structured web |
+| 3 | Browser Use Cloud | Variable | Open web |
 
-| Tier | Source                                 | Speed    | Coverage       |
-| ---- | -------------------------------------- | -------- | -------------- |
-| 1    | Internal catalog                       | Instant  | Curated        |
-| 2    | Purch API aggregation                  | Fast     | 1B+ products   |
-| 2.5  | TinyFish + Bright Data SERP (parallel) | Fast     | Structured web |
-| 3    | Browser Use Cloud                      | Variable | Open web       |
-
-**Bright Data integration** ([ADR 0004](./adr/0004-brightdata-web-intelligence.md)): Structured Google Shopping search via SERP API + product page extraction via Web Unlocker. Runs in parallel with TinyFish at Tier 2.5 — first non-empty result wins. Gated by `BRIGHTDATA_API_KEY` env var; silent skip if unset.
-
-### Retail GTM Intelligence
-
-The same web-discovery event also creates Curator-facing intelligence. A shopper still gets a recommendation; the Curator gets evidence about what the market is offering and what their own catalog is missing.
-
-Initial signal types:
-
-- **Product gap** — User intent the Curator catalog could not satisfy
-- **Competitor price** — Live price range for comparable products across retailers
-- **Retailer availability** — Where matching items are currently discoverable
-- **Trend match** — Repeated shopper intent that maps to a style, occasion, or category
-- **Recommended action** — A merchandising or campaign suggestion backed by live web evidence
-
-This keeps OnPoint consumer-first while giving stylists, boutiques, and retail GTM teams a commercial feedback loop from every styling session.
-
-Partner enrichment is layered onto the same normalized market signal response:
-
-- **AI/ML API** — Generates a merchant-ready brief from live products, signals, and memory when `AIML_API_KEY` is set. If unset, the UI shows a deterministic `ready` brief.
-- **Cognee** — Prepares or sends retail signal memory for repeated intent, known gaps, remembered retailers, and last-seen timestamps. If unset, the UI shows `Cognee Memory` as `ready`.
-- **TriggerWare** — Prepares a `retail.product_gap.detected` workflow for product gaps and recommended actions, then verifies the configured TriggerWare trigger registry through `https://api.triggerware.com` when `TRIGGERWARE_API_KEY` is set. If unset, the UI shows `TriggerWare Workflow` as `ready` or `skipped`.
-
-These integrations live in `apps/web/lib/services/retail-signal-partners.ts` and are optional, so missing partner keys do not block Bright Data search or the Intel page.
-
-### Live Monitoring
-
-- `live_url` surfaced in UI for real-time observation
-- Progress updates via AgentSuggestionToast
-- Marketplace whitelist: FARFETCH, SSENSE, Zara, ASOS
-
-### Autonomy
-
-- $5 micro-action threshold auto-approves web discovery tasks (~$0.10/action)
-- Isolated Python microservice for browser automation
-- **Autonomous execution**: Below-threshold suggestions execute onchain immediately without user interaction
+Bright Data integration (ADR 0004): SERP API + Web Unlocker, gated by `BRIGHTDATA_API_KEY`. Also generates Curator-facing retail intelligence (product gaps, competitor prices, availability signals).
 
 ---
 
 ## Spending Controls & Transparency
 
-The user-facing feature is **Agent Spending Controls**: clear limits on what the
-agent can do without asking. OWS is an optional backend enforcement detail, not
-a product promise. See [ADR 0005](./adr/0005-agent-spending-controls.md).
-
-### Autonomy Threshold
-
-- **Under $5 cUSD**: Auto-execute onchain via `autonomous-executor.ts` without interrupting the user
-- **Over $5 cUSD**: Creates approval request → user accepts/rejects via toast → onchain execution on accept
-- Configurable per `agentId:userId` via `AgentControls.setAutonomyThreshold()`
-
-### Policy Surface
-
-- Wallet panel summary for daily caps, remaining budget, approval thresholds, allowed actions, and enforcement mode
-- Editable wallet panel presets for approval threshold and auto-buy max price
-- Daily/weekly spend caps
-- Per-purchase approval thresholds
+- **Autonomy threshold**: Under $5 cUSD auto-executes; over $5 requires user approval
+- Daily/weekly spend caps, per-purchase approval thresholds
 - Allowed actions: browse, reserve, tip, buy, mint
-- Allowed chains/tokens: Celo/Base and cUSD/USDC/USDT where configured
-- Allowed merchants and Curators as the Curator primitive matures
-- Audit trail of autonomous actions, signed receipts, and execution results
-
-### Autonomous Execution Engine
-
-- `executeSuggestion()` resolves agent wallet, signs transaction, broadcasts to Celo mainnet
-- Supports `mint`, `purchase`, `tip` actions with full onchain receipts
-- Records spending via `AgentControls.recordSpending()`
-- Falls back gracefully if `AGENT_PRIVATE_KEY` is not configured
-
-### Suggestion Toast System
-
-- 10-second countdown with auto-dismiss
-- Auto-approve badge for sub-threshold actions
-- Smart gating: 30s cooldown, item-type dedup, 15s session warmup
-- `useAgentSuggestions` hook: polls API, manages current suggestion state
-- Displays execution result (txHash, explorer link) after onchain broadcast
-
-### Verifiable Agent Logs
-
-- Every autonomous action cryptographically signed by the agent's self-custodial wallet
-- Signed receipts stored on **IPFS/Filecoin** via Lighthouse with CID in UI
-- **Onchain receipts**: Optional Celo memo transaction encodes receipt JSON for tamper-proof audit trail
-- **Public dashboard**: `GET /api/agent/dashboard` exposes all receipts for judges
-- Follows ERC-8004 "Agents with Receipts" pattern
-
----
-
-## Style Memory
-
-- **90-day persistence** of user preferences in Redis
-- Tracks categories, price ranges, interaction patterns
-- `getRecommendedItems` scores products against stored preferences
-- In-memory fallback when Redis is unavailable
-- Write-through cache: synchronous reads, fire-and-forget writes
-
----
-
-## Social & Sharing
-
-### Farcaster Integration
-
-- Runs as a Farcaster mini-app
-- Direct casting via `sdk.actions.composeCast`
-- "Proof of Style" snapshots shared to feed
-
-### Agentic Tipping
-
-- Tip the AI stylist in cUSD directly from sessions
-- Supports Celo Mainnet and Alfajores
-- Automatic network switching
-- Agent responds with personalized thank you
-
-### Memory Protocol
-
-- Cross-platform identity (Farcaster, Twitter)
-- Social activity tracking: try-ons, mints, reactions
-- $MEM token rewards for engagement
+- Audit trail of autonomous actions with signed receipts
+- See [ADR 0005](./adr/0005-agent-spending-controls.md)
 
 ---
 
@@ -317,41 +135,38 @@ a product promise. See [ADR 0005](./adr/0005-agent-spending-controls.md).
 
 - IDM-VTON model via Replicate API
 - Upload garment + human images for AI-powered fitting
-- Body-inclusive visualizations
-- Performance optimizations with caching
-- Animated UI with Framer Motion
+- Body-inclusive visualizations with caching
+- **Digital→physical funnel**: TryOnResult renders "Shop the real thing" section with similar physical items when try-on is from a digital listing
 
 ---
 
-## Auth0 Token Vault for AI Agents
+## Social & Sharing
 
-### Secure Credential Delegation
+- Farcaster mini-app integration with direct casting
+- Agentic tipping in cUSD (Celo Mainnet + Alfajores)
+- "Proof of Style" snapshots shared to feed
+- Referral links with base62-encoded tracking codes
 
-- **Agent-mediated API calls**: AI agent never directly handles third-party OAuth tokens
-- **Scoped access**: Granular permissions (`shopping:read`, `shopping:write`, `shopping:purchase`)
-- **Token isolation**: Credentials stored in Auth0 Token Vault, never exposed to AI model
-- **User control dashboard**: View/revoke retailer connections in real-time
+---
 
-### Auth0 Integration
+## Style Memory
 
-- **Identity provider**: Centralized auth via Auth0 for agentic commerce features
-- **Signed wallet mapping**: Link Auth0 identity to on-chain wallet addresses only after the wallet signs a SIWE message with a one-time nonce
-- **Just-in-time consent**: Users authorize specific retailers when needed
-- **Hackathon**: [Authorized to Act](https://authorizedtoact.devpost.com/) — $10,000 prize pool
+- 90-day persistence of user preferences in Redis
+- Tracks categories, price ranges, interaction patterns
+- In-memory fallback when Redis unavailable
 
-### Components
+---
 
-- **CardEnhanced** — Product cards with like/share, trending badges, ratings, quick preview
-- **ShopGrid** — Responsive grid with sorting (trending/rating/price), category filtering
-- **EngagementBadge** — Social proof (Trending/Viral/Popular/New) with animated counters
+## GoodDollar G$ Integration (ADR 0009)
 
-### Animations
+Three live G$ integrations on Celo mainnet:
 
-- 9 GPU-accelerated keyframes (scale-pulse, shimmer, bounce-in-up, float, glow, card-tilt, swipe-in-left, gradient-shift, count-up)
-- View Transitions API for smooth list → detail morphing
-- Respects `prefers-reduced-motion` for accessibility
+- **G$ UBI Claim** (`GClaimCTA`) — daily UBI claim in onboarding, add-funds, and agent status
+- **G$ Streaming Subscriptions** (`GStreamPanel`) — Superfluid G$ streams to curators
+- **G$ Tip Jar** — post-session tips in G$ via token picker in TipModal
+- **G$ Balance Pill** — persistent balance indicator in AgentStatus
 
-**Expected impact**: +40-80% engagement lift, +50-80% share volume
+Package: `@repo/gooddollar` — single source of truth for contract addresses, ABIs, and helpers.
 
 ---
 
@@ -359,148 +174,31 @@ a product promise. See [ADR 0005](./adr/0005-agent-spending-controls.md).
 
 - **Self Agent ID**: `onpoint-agent-9177` registered via `lib/services/self-protocol.ts`
 - **ERC-8004 Agent ID**: `9177` on Celo registry
-- **Unified identity endpoint**: `GET /api/agent/identity` returns both registrations + compliance flags
-- Mock registration fallback for demo environments (no Self API key required)
-
-## Agent Heartbeat & Self-Management
-
-- **Heartbeat endpoint**: `POST /api/agent/heartbeat` — agent monitors its own gas, fraud status, and proactive tasks
-- **Dead Man's Switch**: Records heartbeat every 5 min; freezes agent after 15 min of silence
-- **Gas monitoring**: Alerts when CELO balance drops below 0.5 (warn) or 0.01 (critical)
-- **Self-management dashboard**: `GET /api/agent/dashboard` — public transparency for judges
-- **Auto-rebalance escrow detection**: every ~6 hours, scans all user escrow balances and flags accounts whose balance has drifted significantly from their daily spending limit (over > 1.5× or under < 0.5×). Detection only — actual refunds stay user-initiated via `/api/agent/escrow/withdraw`. See [Auto-Rebalance Escrow](#auto-rebalance-escrow) below.
-
-## Auto-Rebalance Escrow
-
-A proactive task in the heartbeat that surfaces escrow accounts whose balance has drifted from the user's configured daily spending limit.
-
-### Why
-
-Users deposit funds into escrow so the agent can spend on their behalf without per-transaction approval. Over time, balances drift:
-
-- **Over-funded**: large deposits accumulate, leaving idle capital exposed to contract risk and tying up user funds.
-- **Under-funded**: balance drops below 0.5× the daily limit, leaving the agent unable to execute autonomous actions.
-
-The detection module flags these accounts so the operator (or a future user-facing notification) can act. Refunds and top-ups stay **user-initiated** in v1 — auto-moving money on the user's behalf requires policy decisions (gas payment, refund caps, multi-sig for large amounts) that warrant a separate design pass.
-
-### How
-
-- `packages/agent-core/src/auto-rebalance.ts` — pure detection. `detectRebalanceCandidates()` scans `escrow:balance:*:{agentId}` keys, fetches each user's balance + spending limit, and classifies each account.
-- Threshold: default 1.5× the daily limit. `over` if `balance > 1.5 × daily_limit`, `under` if `balance < 0.5 × daily_limit`, otherwise `ok`.
-- Called from the heartbeat as **Task 8**. Runs at most every 6 hours (every 72nd heartbeat cycle at the 5-minute cadence) to bound Redis SCAN cost.
-- Capped at 500 users per cycle for safety; full scan happens within ~6 hours even at scale.
-
-### Metrics
-
-| Metric | Type | Labels | Meaning |
-|---|---|---|---|
-| `agent_escrow_rebalance_candidates` | gauge | `reason="over"\|"under"` | Users in each drift state |
-| `agent_escrow_rebalance_excess_wei` | gauge | — | Total excess across `over` users (wei) |
-| `agent_escrow_rebalance_shortfall_wei` | gauge | — | Total shortfall across `under` users (wei) |
-
-Alert: `EscrowRebalanceCandidatesHigh` fires when the combined candidate count exceeds 50 for 30 minutes (warning, product team).
-
-### Tests
-
-11 tests in `packages/agent-core/src/__tests__/auto-rebalance.test.ts` cover threshold classification, mixed-user scenarios, and the metrics wiring.
-
-### Future
-
-- **Auto-refund for `over`**: requires agent signing authority for the escrow contract; gated by user opt-in.
-- **Auto-topup for `under`**: requires the agent wallet to fund on the user's behalf; needs a budget policy and a separate `EscrowTopup` audit log.
-- **Per-user opt-in flag**: `autoRebalance: boolean` on the spending limits, default false.
-
-## Phase 3 Architecture: All Agent Routes on Hetzner
-
-All 16 ported agent routes run directly on Hetzner Express, backed by `@repo/agent-core`:
-- **Auth**: `SERVICE_API_KEY` on stateful endpoints; public GET for dashboard/identity/catalog
-- **User context**: Forwarded from Netlify via `x-forwarded-user` header, validated by service key
-- **Deploy**: `scripts/deploy-api.sh` builds workspace deps, bundles `@repo/db` + `@repo/storage`, and deploys via isolated `npm install --omit=dev`
-
-## Feature Matrix
-
-| Feature                  | Web | Chrome Ext | Mini App | Status   |
-| ------------------------ | --- | ---------- | -------- | -------- |
-| AI Stylist (Text)        | ✅  | ✅         | ✅       | Complete |
-| Live AR Stylist          | ✅  | -          | -        | Complete |
-| Virtual Try-On           | ✅  | ✅         | -        | Complete |
-| Smart Recommendations    | ✅  | ✅         | ✅       | Complete |
-| Agent Web Discovery      | ✅  | -          | -        | Complete |
-| **Autonomous Execution** | ✅  | -          | -        | Complete |
-| **Self Protocol ID**     | ✅  | -          | -        | Complete |
-| **Agent Heartbeat**      | ✅  | -          | -        | Complete |
-| Spending Controls        | ✅  | ✅         | ✅       | Complete |
-| Style Memory             | ✅  | ✅         | ✅       | Complete |
-| NFT Minting              | ✅  | -          | ✅       | Complete |
-| Social Sharing           | ✅  | ✅         | ✅       | Complete |
-| Agentic Tipping          | ✅  | -          | -        | Complete |
-| **LookCrafter Lead Magnet** | ✅ | -       | -        | Complete |
-| **Referral Link System** | ✅  | -          | -        | Complete |
-| **Score Progression**    | ✅  | -          | -        | Complete |
-| **Product Notifications**| ✅  | -          | -        | Complete |
-| **Style Recap Email**    | ✅  | -          | -        | Complete |
-| **GoodDollar G$ UBI Claim** | ✅ | - | - | Complete |
-| **GoodDollar G$ Streaming** | ✅ | - | - | Complete |
-| **GoodDollar G$ Balance** | ✅ | - | - | Complete |
-| **GoodDollar G$ Tip Jar** | ✅ | - | - | Complete |
-| **GoodDollar G$ KPI Metrics** | ✅ | - | - | Complete |
+- **Unified identity endpoint**: `GET /api/agent/identity`
 
 ---
 
-## GoodDollar G$ Integration — Phase 14
+## Feature Matrix
 
-Three live G$ integrations on Celo mainnet for GoodBuilders Season 4 eligibility, plus KPI metrics infrastructure for the program's weekly reporting requirements. See [ADR 0009](./adr/0009-gooddollar-g-integration.md) and [GoodBuilders S4 plan](./hackathons/goodbuilders-season-4.md).
-
-### G$ UBI Claim (`GClaimCTA`)
-
-A composable claim call-to-action reused in three surfaces:
-- **`/curator/onboard`** — collapsible "Claim your daily G$" section in the curator onboarding form
-- **`AddFundsButton` modal** — "Claim G$ instead" tile above fiat onramp options
-- **`AgentStatus` panel** — persistent `GBalancePill` that expands to reveal the claim CTA
-
-Full flow backed by `@goodsdks/citizen-sdk`:
-1. Wallet not connected → connect prompt
-2. Wrong chain → one-click "Switch to Celo"
-3. Not whitelisted → "Verify" button opens GoodDollar's in-app face verification (`generateFVLink`); polls `getWhitelistedRoot` on return
-4. Can claim → "Claim today's G$" button (SDK handles gas faucet automatically)
-5. Already claimed → countdown to next claim time
-6. Success → amount + Celoscan link
-
-### G$ Streaming Subscriptions (`GStreamPanel`)
-
-Superfluid G$ streaming panel on curator storefronts (`/s/[slug]`). Lets users open, update, or close continuous per-second G$ streams to curators. Shows when a curator has `commerce.walletAddress` set.
-
-- Preset monthly amounts (5 / 10 / 25 / 50 G$/mo)
-- Active stream management (update rate, stop stream)
-- `monthlyToFlowRate` / `flowRateToMonthly` conversion helpers
-- Min flow rate validation (0.0001 G$/s per ADR 0009 D7)
-
-### G$ Balance Pill (`GBalancePill`)
-
-Persistent G$ balance indicator in `AgentStatus` with 30-second cache via `getGBalanceSnapshot`. Auto-hides when balance is zero (first-time users). Expands to reveal the claim CTA.
-
-### Package: `@repo/gooddollar`
-
-Single source of truth for GoodDollar contract addresses, ABIs, and helpers:
-- `addresses.ts` — Identity, UBIScheme, Faucet, G$ token, CFAv1Forwarder (verified against citizen-sdk v1.2.5)
-- `claim.ts` — `getClaimStatus` (getWhitelistedRoot + checkEntitlement) + `claimUBI`
-- `streaming.ts` — `createGStream` / `updateGStream` / `deleteGStream` / `getFlowRate` / `getTotalFlowRate`
-- `balance.ts` — `getGBalanceSnapshot` (30s cache) + `formatGAmount`
-- 23 unit tests, all passing
-
-### G$ Tip Jar (`TipTokenPicker` + `TipModal`)
-
-The post-session tip sheet now supports both cUSD and G$ via a segmented token picker. G$ amounts are ~1000x larger than cUSD (G$ ≈ $0.0001):
-- Standard: 1,000 / 2,500 / 5,000 G$
-- Premium (score 8+): 5,000 / 10,000 / 20,000 G$
-
-Token address resolved via `getTokenAddress("GOOD_DOLLAR", "celo")` from `chains.ts` — no hardcoded G$ address in the UI. G$-specific error message guides users to claim UBI first if balance is insufficient. A "G$ Tips" stat tile in `AgentStatus` links to the feature.
-
-### KPI Metrics Infrastructure
-
-Three GoodDollar action types tracked via the existing `Metrics.countAction()` store (Prometheus + Redis):
-- `"tip_g$"` — recorded server-side in `agent-tip.js` and `agent-tip-agent.js` when `token === "G$"`
-- `"claim"` — recorded client-side via `POST /api/agent/metrics` from `GClaimCTA`
-- `"stream_g$"` — recorded client-side via `POST /api/agent/metrics` from `GStreamPanel`
-
-The `agent-metrics.js` POST endpoint accepts `{ action, status }` from the client util `metrics.ts` (fire-and-forget). All action types appear automatically in the Prometheus export at `GET /api/agent/metrics` as `agent_actions_total{type="tip_g$",status="succeeded"}` etc.
+| Feature | Web | Status |
+|---------|-----|--------|
+| Curator Storefronts | ✅ | Complete |
+| Digital Curators | ✅ | Complete |
+| Agent Commerce (x402) | ✅ | Complete |
+| Live AR Stylist | ✅ | Complete |
+| Virtual Try-On | ✅ | Complete |
+| Smart Recommendations | ✅ | Complete |
+| Agent Web Discovery | ✅ | Complete |
+| Autonomous Execution | ✅ | Complete |
+| Spending Controls | ✅ | Complete |
+| Self Protocol ID | ✅ | Complete |
+| Agent Heartbeat | ✅ | Complete |
+| Style Memory | ✅ | Complete |
+| NFT Minting | ✅ | Complete |
+| Social Sharing | ✅ | Complete |
+| Agentic Tipping | ✅ | Complete |
+| Referral Links | ✅ | Complete |
+| Score Progression | ✅ | Complete |
+| Style Recap Email | ✅ | Complete |
+| GoodDollar G$ Integration | ✅ | Complete |
+| Auth0 Token Vault | ⏸️ | Paused |
