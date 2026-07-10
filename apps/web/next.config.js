@@ -87,7 +87,8 @@ const nextConfig = {
       { source: '/style/:path*', destination: '/lab?tab=try-on', permanent: true },
       { source: '/collage', destination: '/lab?tab=try-on', permanent: true },
       { source: '/collage/:path*', destination: '/lab?tab=try-on', permanent: true },
-      { source: '/social', destination: '/curators', permanent: false },
+      { source: '/social', destination: '/curators', permanent: true },
+      { source: '/social/:path*', destination: '/curators', permanent: true },
     ];
   },
 };

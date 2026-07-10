@@ -1,9 +1,23 @@
 # Phase 1 Audit — Supply Graph Readiness
 
-**Date:** 2026-07-10  
+**Date:** 2026-07-10 (updated same day after WS0–5)  
 **North star:** [STRATEGY.md](./STRATEGY.md)
 
-Audit of surfaces vs densify supply / improve fit / improve settlement for human or agent clients. Enhancement first; delete don’t deprecate.
+Enhancement first; delete don’t deprecate.
+
+---
+
+## Shipped this cycle
+
+| Workstream | Status |
+|------------|--------|
+| WS0 audit + kill list | ✅ This file |
+| WS1 brand + homepage dual CTAs | ✅ `lib/brand.ts`, `/`, `/about` |
+| WS2 supply truth | ✅ `agentPurchasable`, physical counts, admin Agent column, onboard wallet CTA |
+| WS4 agent DX | ✅ [guides/agent-commerce.md](./guides/agent-commerce.md), `agent.json` docs URL |
+| WS5 consolidate | ✅ `/style` + `/collage` deleted (redirect → Lab); `/social` deleted (redirect → `/curators`) |
+| Admin wallet edit | ✅ `/admin/curators/[slug]` WalletEditor + `PATCH .../commerce` |
+| Third-party agent metrics | ✅ `apps/api/lib/agent-demand.js` |
 
 ---
 
@@ -14,47 +28,47 @@ Audit of surfaces vs densify supply / improve fit / improve settlement for human
 | `/s/[slug]` + storefront API | Canonical catalog (human + agent) |
 | Try-on (web + `/api/agent/try-on`) | Fit rail |
 | `/curator`, `/curator/onboard`, WhatsApp ingest | Supply acquisition |
-| `/curators` | Human demand entry to live inventory |
-| `/admin/curators/*` | Ops until chat-ops covers more |
-| `agent.json`, directory, x402 order | Agent demand path |
-| Digital→physical (`/s/nia`, similar items) | Discovery → physical SKUs |
+| `/curators` | Human demand entry |
+| `/admin/curators/*` | Ops — wallet + agent-ready badge |
+| `agent.json`, directory `?agentPurchasable=1` | Agent demand path |
+| Digital→physical (`/s/nia`) | Discovery → physical SKUs |
 
-## Align (copy/CTA only — no rebuild)
+## Align (remaining)
 
 | Surface | Action |
 |---------|--------|
-| `/` | Hero + CTAs → dual clients; Lab not primary; demote wallet chrome |
-| `/about` | Done — mission/pillars/CTAs aligned |
-| `/lab` | Default = try-on/shop useful paths; agent wallet chrome secondary |
-| `/pricing` | Label shopper vs supply clearly (follow-up) |
-| Brand strings | Prefer `OnPoint` via `apps/web/lib/brand.ts` |
+| `/lab` | Default try-on/shop; keep agent chrome secondary |
+| `/pricing` | Label shopper vs supply clearly |
+| Brand sweep | Legal/guides/share cards still say BeOnPoint in places — prefer `PRODUCT_NAME` |
 
-## Consolidate / redirect (confirm analytics, then delete)
+## Killed / redirected
 
-| Surface | Rationale |
-|---------|-----------|
-| `/style`, `/collage` | Redirect → `/lab?tab=try-on` (pages deleted) |
-| `/social` | Soft redirect → `/curators` (page kept for now) |
-| Homepage persona carousel in hero | Decision paralysis; move below fold or drop from first viewport |
-| Homepage `EnhancedConnectButton` | Wallet before value — hide on marketing `/` |
+| Surface | Disposition |
+|---------|-------------|
+| `/style`, `/collage` | Deleted; permanent redirect → `/lab?tab=try-on` |
+| `/social` | Deleted; permanent redirect → `/curators` |
+| Homepage persona carousel in hero | Removed |
+| Homepage wallet connect | Removed from marketing `/` |
 
-## Do not build
+---
 
-- Phase 4 multi-role homepage
-- New try-on or storefront stack
-- Lab-as-hero marketing
-- Deprecate-in-place without deletion after audit window
+## Metrics
 
-## Metrics instrumentation (Phase 1)
+| Metric | How to read |
+|--------|-------------|
+| Agent-purchasable curators | `node scripts/agent-commerce-ready.mjs` or `GET /api/curator/directory` → `meta.agentPurchasableCount` (**target ≥ 5**) |
+| Third-party try-ons / orders | Logs + Prometheus `agent_try_on_third_party` / `agent_order_third_party` |
+| Human try-on → purchase | Curator funnel analytics |
 
-| Metric | Source |
-|--------|--------|
-| Third-party agent try-ons | `agent_tryon` actions tagged `caller=third_party\|own` + logs |
-| Third-party agent orders | `agent_order` same tagging on storefront order confirm |
-| Human try-on → purchase | Existing curator funnel analytics |
-| Agent-commerce-enabled curators | Ops query: wallet + live physical SKUs |
+### Prod snapshot (2026-07-10, pre–API deploy of new fields)
+
+- 13 curators in directory; **0** with `agentCommerceEnabled` (no payout wallets set)
+- Human curators with live physical stock (wallet gap only): **wanja (20), zara, mo, juma, grace, fatima, amara (5 each)** → **7** would become agent-purchasable once wallets are set **and** Hetzner API is deployed with the new directory fields
+- Digital: **nia** (8 digital, try-on only)
+
+**Ops playbook to hit ≥5:** For each of wanja/zara/mo/juma/grace (or any five), set Celo/MiniPay wallet in `/admin/curators/[slug]` → optional Setup 0xSplit → redeploy API if `physicalListingCount` / `agentPurchasable` missing on directory → re-run `agent-commerce-ready.mjs`.
 
 ---
 
 **Owner:** Product  
-**Next:** Homepage reshape (WS1) · supply density (WS2) · agent demand (WS4) in parallel
+**Next:** Deploy API to Hetzner · set ≥5 curator wallets · chase third-party agent calls

@@ -32,7 +32,10 @@ Third-party (non–platform-wallet) try-ons and orders are tagged `caller=third_
 ```bash
 # Count agent-purchasable curators (wallet + live physical listings)
 curl -s 'https://api.onpoint.famile.xyz/api/curator/directory?agentPurchasable=1' | jq '.meta'
-# or: node scripts/agent-commerce-ready.mjs
+node scripts/agent-commerce-ready.mjs
 ```
 
-Admin UI (`/admin/curators`) shows **Ready / Wallet only / No wallet** per curator.
+Admin UI (`/admin/curators`) shows **Ready / Wallet only / No wallet**.  
+Per-curator wallet editor: `/admin/curators/[slug]` → Commerce → Save wallet (optional Setup 0xSplit).
+
+**API deploy note:** `physicalListingCount` / `agentPurchasable` require the latest `apps/api` on Hetzner. Until then the ops script lists `stockedNoWallet` from live − digital counts.

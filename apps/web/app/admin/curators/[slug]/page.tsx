@@ -22,6 +22,7 @@ import { CuratorReplyTemplates } from "./CuratorReplyTemplates";
 import { CrossCuratorSummaryCard } from "./CrossCuratorSummaryCard";
 import { PaymentsTable } from "./PaymentsTable";
 import { NotificationsFeed } from "./NotificationsFeed";
+import { WalletEditor } from "./WalletEditor";
 
 interface CuratorDetail {
   slug: string;
@@ -50,6 +51,8 @@ interface CuratorDetail {
     checkoutUrl?: string;
     whatsappTemplate?: string;
     revShare?: number;
+    walletAddress?: string;
+    splitAddress?: string;
   };
   createdAt: string;
   listingCount: number;
@@ -549,7 +552,26 @@ export default async function CuratorDetailPage({
                 </span>
               </div>
             )}
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Agent sales</span>
+              <span
+                className={`font-medium ${
+                  curator.commerce?.walletAddress
+                    ? "text-emerald-600"
+                    : "text-amber-600"
+                }`}
+              >
+                {curator.commerce?.walletAddress
+                  ? "Wallet set"
+                  : "Needs payout wallet"}
+              </span>
+            </div>
           </div>
+          <WalletEditor
+            slug={curator.slug}
+            initialWallet={curator.commerce?.walletAddress}
+            splitAddress={curator.commerce?.splitAddress}
+          />
         </div>
 
         {/* Brand */}

@@ -1,7 +1,8 @@
 # OnPoint Strategic Direction
 
 **Last Updated**: 2026-07-10  
-**Status**: Canonical product strategy — other docs defer here for vision, phases, and metrics.
+**Status**: Canonical product strategy — other docs defer here for vision, phases, and metrics.  
+**Phase 1 ops:** [PHASE1_AUDIT.md](./PHASE1_AUDIT.md) · [guides/agent-commerce.md](./guides/agent-commerce.md) · `node scripts/agent-commerce-ready.mjs`
 
 ---
 
@@ -61,7 +62,9 @@ Own-agent wallet / missions / NFT chrome in `/lab` is **infrastructure and power
 - 9 human curator archetypes seeded; 1 digital curator (Nia Digital) with digital→physical funnel
 - Agent commerce live on Celo: x402 try-on, storefront checkout, curator splits ([ADR 0010](./adr/0010-agent-storefront-checkout.md), [ADR 0011](./adr/0011-erc8004-registration-and-digital-curators.md))
 - Human loop live: `/s/[slug]`, WhatsApp/M-Pesa, try-on, polaroids
-- Binding constraint to watch: **supply density + third-party agent calls** (not homepage persona theater)
+- Product clarity: homepage dual CTAs (shop + supply); Lab demoted from primary hero
+- Directory truth: `agentPurchasable` = wallet + live physical SKUs ([guides/agent-commerce.md](./guides/agent-commerce.md))
+- Binding constraint: **payout wallets on stocked curators + third-party agent calls** (see [PHASE1_AUDIT.md](./PHASE1_AUDIT.md) prod snapshot)
 
 ---
 
@@ -73,9 +76,10 @@ Detail lives in [FEATURES.md](./FEATURES.md) and ADRs. Strategy-level map:
 |---------|------|
 | `/s/[slug]` + storefront API | **Canonical catalog** — human HTML + machine offers, one inventory |
 | Try-on (web + `POST /api/agent/try-on`) | **Fit rail** — size/fit signal; digital→physical matching |
-| `/curator`, onboard, admin, WhatsApp ingest | **Supply acquisition & ops** |
+| `/curator`, onboard, admin, WhatsApp ingest | **Supply acquisition & ops** (admin wallet editor) |
 | `/.well-known/agent.json`, directory, x402 order | **Agent demand path** |
-| `/`, `/lab`, `/shop`, `/style` | Secondary / power — slim and align; do not redefine the north star |
+| `/`, `/lab`, `/shop` | Marketing + power surfaces — Lab is not the hero |
+| `/style`, `/collage`, `/social` | **Removed** — redirects to Lab try-on or `/curators` |
 
 Infrastructure: Vercel/Netlify (presentation) + Hetzner (API, worker, signer, bridge) — [ADR 0001](./adr/0001-backend-first-autonomy.md). Monitoring: [MONITORING.md](./MONITORING.md).
 
@@ -191,8 +195,8 @@ Phases optimize the **supply graph**, not a single persona. Prerequisites are re
 | Metric | Target | Notes |
 |--------|--------|-------|
 | Page load (key surfaces) | < 2s | ✅ baseline |
-| Agent-commerce-enabled SKUs | Growing | Phase 1 north-star input |
-| Third-party agent try-ons | Growing | Phase 1 demand proof |
+| Agent-commerce-enabled SKUs | Growing | Prefer **agentPurchasable** curators (wallet + live physical) — [PHASE1_AUDIT.md](./PHASE1_AUDIT.md) |
+| Third-party agent try-ons | Growing | Phase 1 demand proof (`caller=third_party`) |
 | Agent order success | ≥ 85% → 92% | Phase 1 → 2 |
 | Curator: share → visit | > 20% | ✅ |
 | Curator: try-on → purchase | > 15% | 📊 |

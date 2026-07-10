@@ -34,6 +34,14 @@ export async function PUT(
   return proxyRequest("PUT", path, request);
 }
 
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> },
+) {
+  const { path } = await params;
+  return proxyRequest("PATCH", path, request);
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ path: string[] }> },
@@ -75,8 +83,8 @@ async function proxyRequest(
       headers,
     };
 
-    // For POST/PUT with JSON body, forward the body
-    if (["POST", "PUT"].includes(method) && reqContentType?.includes("application/json")) {
+    // For POST/PUT/PATCH with JSON body, forward the body
+    if (["POST", "PUT", "PATCH"].includes(method) && reqContentType?.includes("application/json")) {
       const body = await request.json();
       fetchOptions.body = JSON.stringify(body);
     }

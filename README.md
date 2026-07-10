@@ -13,7 +13,7 @@ OnPoint is the **execution layer** for fashion intent that needs **fit + real st
 
 **Canonical strategy:** [`docs/STRATEGY.md`](./docs/STRATEGY.md) — north star, phases, metrics, kill list. Do not fork roadmap copy elsewhere.
 
-**Current phase:** Supply Graph Readiness (Q3 2026) — densify agent-commerce-enabled inventory + third-party agent usage + human WhatsApp conversion in parallel.
+**Current phase:** Supply Graph Readiness (Q3 2026) — densify **agent-purchasable** inventory (wallet + live physical SKUs) and third-party agent usage in parallel. Ops: `node scripts/agent-commerce-ready.mjs` · [PHASE1_AUDIT.md](./docs/PHASE1_AUDIT.md).
 
 ---
 

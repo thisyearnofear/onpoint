@@ -187,6 +187,33 @@ router.put('/:slug', async (req, res) => {
   const { name, verticals, channels, brand, commerce } = req.body;
 
   try {
+    // Merge commerce when provided so partial wallet updates don't wipe checkout/revShare/split.
+    let commerceUpdate;
+    if (commerce && typeof commerce === 'object') {
+      const [existing] = await db
+        .select({ commerce: curators.commerce })
+        .from(curators)
+        .where(eq(curators.slug, slug))
+        .limit(1);
+      if (!existing) {
+        return res.status(404).json({ error: 'Curator not found' });
+      }
+      const nextCommerce = { ...(existing.commerce || {}), ...commerce };
+      if (nextCommerce.walletAddress !== undefined) {
+        const addr = String(nextCommerce.walletAddress || '').trim();
+        if (addr === '') {
+          delete nextCommerce.walletAddress;
+        } else if (!/^0x[0-9a-fA-F]{40}$/.test(addr)) {
+          return res.status(400).json({
+            error: 'walletAddress must be a valid 0x address (40 hex chars)',
+          });
+        } else {
+          nextCommerce.walletAddress = addr;
+        }
+      }
+      commerceUpdate = nextCommerce;
+    }
+
     const [updated] = await db
       .update(curators)
       .set({
@@ -194,7 +221,7 @@ router.put('/:slug', async (req, res) => {
         ...(verticals ? { verticals } : {}),
         ...(channels ? { channels } : {}),
         ...(brand ? { brand } : {}),
-        ...(commerce ? { commerce } : {}),
+        ...(commerceUpdate ? { commerce: commerceUpdate } : {}),
       })
       .where(eq(curators.slug, slug))
       .returning();
@@ -208,6 +235,80 @@ router.put('/:slug', async (req, res) => {
   } catch (err) {
     logger.error('Failed to update curator', { component: 'curator-admin', slug }, err);
     res.status(500).json({ error: 'Failed to update curator' });
+  }
+});
+
+// ── PATCH /api/admin/curators/:slug/commerce — set payout wallet (merge) ──
+
+router.patch('/:slug/commerce', async (req, res) => {
+  const slug = String(req.params.slug || '').toLowerCase();
+
+  if (!isValidSlug(slug)) {
+    return res.status(400).json({ error: 'Invalid curator slug' });
+  }
+
+  let db;
+  try {
+    db = getDb();
+  } catch (err) {
+    logger.error('NEON_DATABASE_URL not configured', { component: 'curator-admin' });
+    return res.status(503).json({ error: 'Database not configured' });
+  }
+
+  const walletRaw = req.body?.walletAddress;
+  if (walletRaw !== undefined && walletRaw !== null && typeof walletRaw !== 'string') {
+    return res.status(400).json({ error: 'walletAddress must be a string' });
+  }
+
+  const walletAddress = typeof walletRaw === 'string' ? walletRaw.trim() : undefined;
+  if (walletAddress && !/^0x[0-9a-fA-F]{40}$/.test(walletAddress)) {
+    return res.status(400).json({
+      error: 'walletAddress must be a valid 0x address (40 hex chars)',
+    });
+  }
+
+  try {
+    const [existing] = await db
+      .select()
+      .from(curators)
+      .where(eq(curators.slug, slug))
+      .limit(1);
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Curator not found' });
+    }
+
+    const nextCommerce = { ...(existing.commerce || {}) };
+    if (walletAddress === '') {
+      delete nextCommerce.walletAddress;
+    } else if (walletAddress) {
+      nextCommerce.walletAddress = walletAddress;
+    }
+
+    const [updated] = await db
+      .update(curators)
+      .set({ commerce: nextCommerce })
+      .where(eq(curators.slug, slug))
+      .returning();
+
+    const hasWallet = Boolean(updated.commerce?.walletAddress);
+    logger.info('Curator commerce patched', {
+      component: 'curator-admin',
+      slug,
+      hasWallet,
+    });
+
+    res.json({
+      curator: updated,
+      agentPurchasableHint:
+        'Wallet alone is not enough — curator also needs live physical listings with stock for agentPurchasable=true',
+      setupSplit: hasWallet && !updated.commerce?.splitAddress
+        ? `POST /api/admin/curators/${slug}/setup-split`
+        : undefined,
+    });
+  } catch (err) {
+    logger.error('Failed to patch curator commerce', { component: 'curator-admin', slug }, err);
+    res.status(500).json({ error: 'Failed to update commerce' });
   }
 });
 
