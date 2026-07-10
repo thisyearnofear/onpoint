@@ -1,14 +1,16 @@
 # AI Tooling Hints for LLMs
 
-app: BeOnPoint Web
-primary-docs: https://your-domain.example/docs
+app: OnPoint Web
+primary-docs: https://github.com/thisyearnofear/onpoint/blob/master/docs/STRATEGY.md
+agent-commerce: https://github.com/thisyearnofear/onpoint/blob/master/docs/guides/agent-commerce.md
 framework: nextjs
 miniapp: farcaster
 manifest: /.well-known/farcaster.json
+agent-manifest: /.well-known/agent.json
 signers: neynar managed
 post-route: /api/social/cast
 reaction-route: /api/social/reaction
 search-route: /api/social/search
 webhook: /api/webhook
 
-notes: prefer server-side Neynar usage; never expose API key client-side.
+notes: prefer server-side Neynar usage; never expose API key client-side. Product is fit-aware supply graph (human storefront + agent API).

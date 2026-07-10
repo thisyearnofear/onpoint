@@ -9,7 +9,6 @@ import {
   LayoutDashboard,
   ShoppingBag,
   User,
-  Image as ImageIcon,
   Radar,
   Globe,
   Grid,
@@ -41,14 +40,8 @@ interface TacticalDashboardProps {
 }
 
 export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
-  // New users go straight to try-on. Returning users see dashboard.
-  // NewUserOnboarding is a modal overlay that shows on first visit
-  const [mode, setMode] = useState<AppMode>(() => {
-    if (typeof window !== "undefined" && !localStorage.getItem("onpoint-first-session-done")) {
-      return "try-on";
-    }
-    return "dashboard";
-  });
+  // Default to try-on (fit rail). URL ?tab= still deep-links power surfaces.
+  const [mode, setMode] = useState<AppMode>("try-on");
 
   // New looks badge state
   const [hasNewCommunityLooks, setHasNewCommunityLooks] = React.useState(false);
@@ -81,22 +74,22 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
   // All valid modes (for URL param validation)
   const ALL_MODES: AppMode[] = ["dashboard", "my-looks", "try-on", "stylist", "shop", "intel", "settings", "design", "community"];
 
-  // Desktop top-bar: 6 core tabs (reduced from 8 for cognitive load)
+  // Desktop top-bar: fit + shop first; community/intel in More
   const desktopNavItems = [
-    { id: "dashboard" as AppMode, label: "Home", icon: LayoutDashboard, color: "text-foreground" },
     { id: "try-on" as AppMode, label: "Try On", icon: Camera, color: "text-accent" },
-    { id: "stylist" as AppMode, label: "Stylist", icon: MessageCircle, color: "text-primary" },
     { id: "shop" as AppMode, label: "Shop", icon: ShoppingBag, color: "text-amber-400" },
+    { id: "stylist" as AppMode, label: "Stylist", icon: MessageCircle, color: "text-primary" },
     { id: "my-looks" as AppMode, label: "My Looks", icon: Palette, color: "text-indigo-400" },
-    { id: "community" as AppMode, label: "Community", icon: Globe, color: "text-sky-400" },
+    { id: "dashboard" as AppMode, label: "Home", icon: LayoutDashboard, color: "text-foreground" },
   ];
 
-  // Hidden tabs accessible via "More" button on mobile + desktop overflow
+  // Hidden tabs accessible via "More"
   const moreNavItems = [
-    { id: "intel" as AppMode, label: "Market Intel", icon: Radar, color: "text-emerald-400" },
-    { id: "community" as AppMode, label: "Community", icon: Globe, color: "text-sky-400" },
-    { id: "stylist" as AppMode, label: "Stylist", icon: MessageCircle, color: "text-primary" },
     { id: "shop" as AppMode, label: "Shop", icon: ShoppingBag, color: "text-amber-400" },
+    { id: "stylist" as AppMode, label: "Stylist", icon: MessageCircle, color: "text-primary" },
+    { id: "community" as AppMode, label: "Community", icon: Globe, color: "text-sky-400" },
+    { id: "intel" as AppMode, label: "Market Intel", icon: Radar, color: "text-emerald-400" },
+    { id: "settings" as AppMode, label: "Settings", icon: User, color: "text-muted-foreground" },
   ];
 
   const [moreOpen, setMoreOpen] = useState(false);
@@ -179,7 +172,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
               <button
                 onClick={() => setMoreOpen(true)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all whitespace-nowrap ${
-                  mode === "intel" || mode === "settings"
+                  mode === "intel" || mode === "settings" || mode === "community"
                     ? "bg-muted text-foreground ring-1 ring-border"
                     : "text-muted-foreground hover:text-foreground/80"
                 }`}
@@ -212,15 +205,15 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
             <span className="text-[10px] font-medium">Home</span>
           </button>
 
-          {/* My Looks */}
+          {/* Shop */}
           <button
-            onClick={() => navigateTo("my-looks")}
+            onClick={() => navigateTo("shop")}
             className={`flex flex-col items-center gap-0.5 pt-2 pb-1 px-3 transition-colors ${
-              mode === "my-looks" ? "text-primary" : "text-muted-foreground"
+              mode === "shop" ? "text-primary" : "text-muted-foreground"
             }`}
           >
-            <ImageIcon className="w-5 h-5" />
-            <span className="text-[10px] font-medium">My Looks</span>
+            <ShoppingBag className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Shop</span>
           </button>
 
           {/* Try On — elevated center button */}

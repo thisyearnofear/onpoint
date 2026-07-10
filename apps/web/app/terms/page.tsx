@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import { Palette, FileText } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Terms of Service | BeOnPoint",
+  title: "Terms of Service | OnPoint",
   description:
-    "BeOnPoint Terms of Service — the rules and conditions for using our AI styling and curator storefront platform.",
+    "OnPoint Terms of Service — the rules and conditions for using our AI styling and curator storefront platform.",
 };
 
 export default function TermsPage() {
@@ -17,7 +17,7 @@ export default function TermsPage() {
             <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-1.5 shadow-md">
               <Palette className="h-4 w-4 text-white" />
             </div>
-            BeOnPoint
+            OnPoint
           </Link>
           <Link
             href="/privacy"
@@ -43,9 +43,9 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-bold text-foreground">1. Acceptance of Terms</h2>
             <p className="mt-2">
-              By accessing or using BeOnPoint (the "Service"), you agree to be bound
+              By accessing or using OnPoint (the "Service"), you agree to be bound
               by these Terms of Service. If you do not agree, do not use the Service.
-              BeOnPoint is operated as a community-build application and is provided
+              OnPoint is operated as a community-build application and is provided
               free of charge unless explicitly stated otherwise on a paid tier.
             </p>
           </section>
@@ -53,7 +53,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-bold text-foreground">2. Description of Service</h2>
             <p className="mt-2">
-              BeOnPoint provides an AI-powered fashion styling experience, including
+              OnPoint provides an AI-powered fashion styling experience, including
               virtual try-on analysis, persona-driven style critiques, shareable style
               polaroids, and a self-serve storefront system for curators and merchants.
               The Service integrates with third-party providers for wallet connectivity,
@@ -66,7 +66,7 @@ export default function TermsPage() {
             <p className="mt-2">
               You may sign in via email and password or by linking a Web3 wallet. You
               are responsible for maintaining the security of your account and any
-              connected wallet. BeOnPoint cannot recover funds lost due to compromised
+              connected wallet. OnPoint cannot recover funds lost due to compromised
               credentials or unauthorized wallet access.
             </p>
           </section>
@@ -85,13 +85,13 @@ export default function TermsPage() {
             <h2 className="text-lg font-bold text-foreground">5. User Content</h2>
             <p className="mt-2">
               You retain ownership of photos, storefront content, and other materials
-              you upload. By uploading, you grant BeOnPoint a non-exclusive licence to
+              you upload. By uploading, you grant OnPoint a non-exclusive licence to
               process that content for the purpose of operating the Service (for
               example, running the AI styling pipeline or displaying your storefront).
             </p>
             <p className="mt-3">
               Uploaded try-on photos are processed in memory and are not persistently
-              stored on BeOnPoint servers.
+              stored on OnPoint servers.
             </p>
           </section>
 
@@ -99,7 +99,7 @@ export default function TermsPage() {
             <h2 className="text-lg font-bold text-foreground">6. Curators and Storefronts</h2>
             <p className="mt-2">
               Curators are responsible for the accuracy of their storefront listings,
-              pricing, contact information, and order fulfilment. BeOnPoint is not a
+              pricing, contact information, and order fulfilment. OnPoint is not a
               party to transactions between curators and customers. Checkout happens
               off-platform (typically via WhatsApp or M-Pesa), and we do not process
               or guarantee those payments.
@@ -111,7 +111,7 @@ export default function TermsPage() {
             <p className="mt-2">
               Where the Service connects to a Web3 wallet (for example to claim daily
               GoodDollar UBI on Celo), transactions are recorded on public blockchains.
-              These transactions are irreversible. BeOnPoint is not responsible for
+              These transactions are irreversible. OnPoint is not responsible for
               network fees, smart-contract behaviour, or loss of funds due to user
               error.
             </p>
@@ -151,7 +151,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-bold text-foreground">11. Limitation of Liability</h2>
             <p className="mt-2">
-              To the maximum extent permitted by law, BeOnPoint and its contributors
+              To the maximum extent permitted by law, OnPoint and its contributors
               are not liable for any indirect, incidental, special, or consequential
               damages arising from your use of the Service.
             </p>
@@ -182,7 +182,7 @@ export default function TermsPage() {
             <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-1 shadow-md">
               <Palette className="h-3.5 w-3.5 text-white" />
             </div>
-            BeOnPoint
+            OnPoint
           </div>
           <div className="flex items-center gap-4">
             <Link href="/" className="hover:text-foreground transition-colors">Home</Link>

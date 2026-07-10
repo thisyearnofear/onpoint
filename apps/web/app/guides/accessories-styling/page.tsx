@@ -4,11 +4,11 @@ import { ArrowLeft, Check, Sparkles, Star, Camera } from "lucide-react";
 import { Reveal } from "../../../components/ui/Reveal";
 
 export const metadata: Metadata = {
-  title: "Accessories Styling Guide | BeOnPoint",
+  title: "Accessories Styling Guide | OnPoint",
   description:
     "How to style watches, bags, jewelry, belts, and hats — proportion rules, metal mixing, occasion matching, and building an accessories wardrobe.",
   openGraph: {
-    title: "Accessories Styling Guide | BeOnPoint",
+    title: "Accessories Styling Guide | OnPoint",
     description: "Master the art of accessories. Watches, bags, jewelry, belts — proportion, mixing, and occasion matching.",
     images: [{ url: "/assets/3Product.png" }],
   },
@@ -20,7 +20,7 @@ export default function AccessoriesStylingGuide() {
       <article className="mx-auto max-w-3xl px-4 py-12">
         <Link href="/" className="mb-8 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
           <ArrowLeft className="h-3.5 w-3.5" />
-          Back to BeOnPoint
+          Back to OnPoint
         </Link>
 
         <header className="mb-10">
@@ -133,7 +133,7 @@ export default function AccessoriesStylingGuide() {
           <div className="mt-4 pl-5 border-l-2 border-primary/30 text-sm">
             <p className="font-semibold text-foreground">Virtual try-on for accessories</p>
             <p className="mt-1 text-muted-foreground">
-              Use BeOnPoint&rsquo;s virtual try-on to see how watches, bags, and jewellery look on your
+              Use OnPoint&rsquo;s virtual try-on to see how watches, bags, and jewellery look on your
               body type before you buy. Upload a photo and see the proportions for yourself.
             </p>
           </div>

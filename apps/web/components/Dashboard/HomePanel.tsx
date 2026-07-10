@@ -8,12 +8,11 @@ import {
   ChevronRight,
   Clock,
   Flame,
-  Globe,
   MessageCircle,
   Palette,
-  Radar,
   ShoppingBag,
   Target,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { AgentActivityFeed } from "../Agent/AgentActivityFeed";
@@ -36,7 +35,6 @@ export function HomePanel({ onNavigate }: HomePanelProps) {
       exit={{ opacity: 0, y: -20 }}
       className="space-y-6"
     >
-      {/* Quick Actions + Streak badge */}
       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
         {streak > 0 && (
           <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-2">
@@ -49,11 +47,9 @@ export function HomePanel({ onNavigate }: HomePanelProps) {
         )}
         {[
           { label: "Try On", icon: Camera, mode: "try-on", color: "bg-accent/10 text-accent border-accent/20" },
-          { label: "Stylist", icon: MessageCircle, mode: "stylist", color: "bg-primary/10 text-primary border-primary/20" },
           { label: "Shop", icon: ShoppingBag, mode: "shop", color: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
-          { label: "Market Intel", icon: Radar, mode: "intel", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
+          { label: "Stylist", icon: MessageCircle, mode: "stylist", color: "bg-primary/10 text-primary border-primary/20" },
           { label: "My Looks", icon: Palette, mode: "my-looks", color: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" },
-          { label: "Community", icon: Globe, mode: "community", color: "bg-sky-500/10 text-sky-400 border-sky-500/20" },
         ].map((action) => (
           <button
             key={action.mode}
@@ -66,7 +62,6 @@ export function HomePanel({ onNavigate }: HomePanelProps) {
         ))}
       </div>
 
-      {/* Primary CTA - Virtual Try-On */}
       <motion.div
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -79,36 +74,58 @@ export function HomePanel({ onNavigate }: HomePanelProps) {
           <div className="flex-1 space-y-3">
             <div className="flex items-center gap-2">
               <span className="px-2 py-0.5 text-[10px] font-bold bg-primary/20 text-primary rounded-full uppercase tracking-wider">
-                ✨ Start Here
+                Fit rail
               </span>
             </div>
             <h3 className="text-2xl font-black text-foreground tracking-tight">
-              Upload a Photo, Get Your Look
+              Try on, then shop real stock
             </h3>
             <p className="text-muted-foreground text-sm max-w-md">
-              AI analyzes your fit, recommends styles, and shops for you with its wallet.
+              Upload a photo for a fit signal, then browse curator storefronts — WhatsApp/M-Pesa checkout, no wallet required.
             </p>
           </div>
-          <Button
-            onClick={() => onNavigate("try-on")}
-            className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white font-bold py-4 px-8 rounded-2xl shadow-lg shadow-primary/25 flex items-center gap-3"
-          >
-            <Camera className="w-5 h-5" />
-            <span>Start Try-On</span>
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button
+              onClick={() => onNavigate("try-on")}
+              className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white font-bold py-4 px-8 rounded-2xl shadow-lg shadow-primary/25 flex items-center gap-3"
+            >
+              <Camera className="w-5 h-5" />
+              <span>Start Try-On</span>
+            </Button>
+            <Button
+              onClick={() => onNavigate("shop")}
+              variant="outline"
+              className="font-bold py-4 px-6 rounded-2xl"
+            >
+              <ShoppingBag className="w-5 h-5 mr-2" />
+              Shop
+            </Button>
+          </div>
         </div>
       </motion.div>
 
-      {/* G$ Style Streak — the claim loop surface */}
       <GStreakPill />
 
-      {/* Agent Activity — persistent across sessions */}
-      <AgentActivityFeed onShop={() => onNavigate("shop")} />
+      <details className="group rounded-2xl border border-border bg-card/40 overflow-hidden">
+        <summary className="cursor-pointer p-4 flex items-center justify-between hover:bg-muted/30 transition-colors list-none">
+          <div className="flex items-center gap-2 text-foreground">
+            <Wallet className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-bold uppercase tracking-wider">
+              Agent &amp; power tools
+            </span>
+          </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground group-open:rotate-90 transition-transform" />
+        </summary>
+        <div className="px-4 pb-4 space-y-4 border-t border-border/60 pt-4">
+          <p className="text-xs text-muted-foreground">
+            Optional infrastructure for autonomous shopping — not required for try-on or WhatsApp checkout.
+          </p>
+          <AgentActivityFeed onShop={() => onNavigate("shop")} />
+          <OnChainEconomics />
+          <MissionsPanel userId="user-default" compact />
+        </div>
+      </details>
 
-      {/* On-Chain Economics — sub-cent tx cost proof */}
-      <OnChainEconomics />
-
-      {/* Progressive Disclosure - Collapsible Sections */}
       <details
         className="group rounded-2xl border border-border bg-card/40 overflow-hidden"
         open
@@ -125,19 +142,15 @@ export function HomePanel({ onNavigate }: HomePanelProps) {
         <div className="px-4 pb-4 space-y-3 text-sm text-muted-foreground">
           <li className="flex items-start gap-2">
             <CheckCircle2 className="w-4 h-4 mt-0.5 text-primary shrink-0" />
-            <span>
-              Stop guessing if an outfit will suit you before checkout.
-            </span>
+            <span>See fit before you buy — on real curator inventory.</span>
           </li>
           <li className="flex items-start gap-2">
             <CheckCircle2 className="w-4 h-4 mt-0.5 text-primary shrink-0" />
-            <span>
-              Get personalized style advice without a stylist session.
-            </span>
+            <span>Checkout on WhatsApp / M-Pesa without a crypto wallet.</span>
           </li>
           <li className="flex items-start gap-2">
             <CheckCircle2 className="w-4 h-4 mt-0.5 text-primary shrink-0" />
-            <span>Move from inspiration to decision in minutes.</span>
+            <span>Same catalog is reachable by shopping agents via API.</span>
           </li>
         </div>
       </details>
@@ -157,25 +170,22 @@ export function HomePanel({ onNavigate }: HomePanelProps) {
             <span className="w-5 h-5 rounded-full bg-muted text-foreground text-[10px] font-bold grid place-items-center mt-0.5">
               1
             </span>
-            <span>Upload a photo to preview fit</span>
+            <span>Try on a listing with AI fit signal</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="w-5 h-5 rounded-full bg-muted text-foreground text-[10px] font-bold grid place-items-center mt-0.5">
               2
             </span>
-            <span>Get AI recommendations for your event & budget</span>
+            <span>Shop curator storefronts or Lab shop</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="w-5 h-5 rounded-full bg-muted text-foreground text-[10px] font-bold grid place-items-center mt-0.5">
               3
             </span>
-            <span>Save or share your look</span>
+            <span>Close on WhatsApp / M-Pesa — or let an agent buy</span>
           </li>
         </div>
       </details>
-
-      {/* Progress - Simple compact view */}
-      <MissionsPanel userId="user-default" compact />
     </motion.div>
   );
 }

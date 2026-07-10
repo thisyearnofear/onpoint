@@ -1,4 +1,4 @@
-// Social utility functions for BeOnPoint
+// Social utility functions for OnPoint
 import { SocialActivity } from '@onpoint/shared-types';
 
 export interface ShareOptions {
@@ -117,13 +117,13 @@ export class SocialUtils {
     static generateShareText(activity: SocialActivity): string {
         switch (activity.type) {
             case 'try_on':
-                return `Just tried on ${activity.metadata?.outfitName || 'an amazing look'} with BeOnPoint! 🔥 #BeOnPoint #Fashion #AI`;
+                return `Just tried on ${activity.metadata?.outfitName || 'an amazing look'} with OnPoint! 🔥 #OnPoint #Fashion #AI`;
             case 'mint':
-                return `Minted ${activity.metadata?.nftName || 'a new NFT'} on BeOnPoint! ✨ #BeOnPoint #NFT #Fashion`;
+                return `Minted ${activity.metadata?.nftName || 'a new NFT'} on OnPoint! ✨ #OnPoint #NFT #Fashion`;
             case 'reaction':
-                return `Loving the fashion creativity on BeOnPoint! 💫 #BeOnPoint #Fashion`;
+                return `Loving the fashion creativity on OnPoint! 💫 #OnPoint #Fashion`;
             default:
-                return `Creating amazing fashion experiences with BeOnPoint! 🎨 #BeOnPoint #Fashion #AI`;
+                return `Creating amazing fashion experiences with OnPoint! 🎨 #OnPoint #Fashion #AI`;
         }
     }
 

@@ -3,11 +3,11 @@ import type { Metadata } from "next";
 import { Palette, ArrowRight, Shirt, Sparkles, ShoppingBag, Search, Scissors, Footprints, Leaf, Star, Heart, Calendar } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Style Guides | BeOnPoint",
+  title: "Style Guides | OnPoint",
   description:
     "Fashion style guides and buying advice — football kits, Ankara prints, streetwear, vintage thrifting, formal wear, and more. Expert tips for smarter shopping.",
   openGraph: {
-    title: "Style Guides | BeOnPoint",
+    title: "Style Guides | OnPoint",
     description: "Expert fashion style guides and buying advice across every category.",
     images: [{ url: "/assets/1Product.png" }],
   },
@@ -116,7 +116,7 @@ export default function GuidesIndexPage() {
             <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-1.5 shadow-md">
               <Palette className="h-4 w-4 text-white" />
             </div>
-            BeOnPoint
+            OnPoint
           </Link>
           <Link
             href="/lab"
@@ -196,7 +196,7 @@ export default function GuidesIndexPage() {
             <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-1 shadow-md">
               <Palette className="h-3.5 w-3.5 text-white" />
             </div>
-            BeOnPoint
+            OnPoint
           </div>
           <div className="flex items-center gap-4">
             <Link href="/" className="hover:text-foreground transition-colors">Home</Link>

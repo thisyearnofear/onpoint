@@ -4,11 +4,11 @@ import { ArrowLeft, Check, Sparkles, Calendar, Camera } from "lucide-react";
 import { Reveal } from "../../../components/ui/Reveal";
 
 export const metadata: Metadata = {
-  title: "Occasion Wear & Event Dressing Guide | BeOnPoint",
+  title: "Occasion Wear & Event Dressing Guide | OnPoint",
   description:
     "What to wear to weddings, graduations, galas, and formal events — dress codes decoded, fabric advice, colour coordination, and how to stand out for the right reasons.",
   openGraph: {
-    title: "Occasion Wear & Event Dressing Guide | BeOnPoint",
+    title: "Occasion Wear & Event Dressing Guide | OnPoint",
     description: "Decode dress codes for weddings, graduations, and formal events. Fabric, colour, and styling tips.",
     images: [{ url: "/assets/3Product.png" }],
   },
@@ -20,7 +20,7 @@ export default function OccasionWearGuide() {
       <article className="mx-auto max-w-3xl px-4 py-12">
         <Link href="/" className="mb-8 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
           <ArrowLeft className="h-3.5 w-3.5" />
-          Back to BeOnPoint
+          Back to OnPoint
         </Link>
 
         <header className="mb-10">

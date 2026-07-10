@@ -205,8 +205,8 @@ export function TryOnResult({
     // Include capture image via IPFS embed
     const imageUrl = imageSrc;
     const shareText = description
-      ? `Just tried on this look with BeOnPoint! ${description} 🔥 #BeOnPoint #Fashion #AI`
-      : `Just tried on this amazing look with BeOnPoint! 🔥 #BeOnPoint #Fashion #AI`;
+      ? `Just tried on this look with OnPoint! ${description} 🔥 #OnPoint #Fashion #AI`
+      : `Just tried on this amazing look with OnPoint! 🔥 #OnPoint #Fashion #AI`;
 
     const success = await SocialUtils.shareContent(
       imageUrl.startsWith("http")

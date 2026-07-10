@@ -275,7 +275,7 @@ async function sendViaEmail(
 
   // RESEND_FROM_EMAIL must be set to a Resend-verified address in production.
   // The fallback only fires when unconfigured; Resend will reject it loudly.
-  const from = process.env.RESEND_FROM_EMAIL || "BeOnPoint <onboarding@resend.dev>";
+  const from = process.env.RESEND_FROM_EMAIL || "OnPoint <onboarding@resend.dev>";
 
   try {
     const html = buildReceiptEmail(payload);

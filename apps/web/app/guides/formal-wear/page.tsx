@@ -4,11 +4,11 @@ import { ArrowLeft, Check, Sparkles, Scissors, Camera } from "lucide-react";
 import { Reveal } from "../../../components/ui/Reveal";
 
 export const metadata: Metadata = {
-  title: "Formal Wear & Tailoring Guide | BeOnPoint",
+  title: "Formal Wear & Tailoring Guide | OnPoint",
   description:
     "The complete guide to formal wear and tailoring — choosing fabrics, getting measured, understanding bespoke vs. made-to-measure, and ordering custom suits, kaftans, and agbadas online.",
   openGraph: {
-    title: "Formal Wear & Tailoring Guide | BeOnPoint",
+    title: "Formal Wear & Tailoring Guide | OnPoint",
     description: "Bespoke vs made-to-measure, fabric selection, measurements — order custom formal wear with confidence.",
     images: [{ url: "/assets/1Product.png" }],
   },
@@ -23,7 +23,7 @@ export default function FormalWearGuide() {
           className="mb-8 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          Back to BeOnPoint
+          Back to OnPoint
         </Link>
 
         <header className="mb-10">
@@ -161,10 +161,10 @@ export default function FormalWearGuide() {
 
         <Reveal>
         <section className="mb-10">
-          <h2 className="text-xl font-bold tracking-tight">The BeOnPoint advantage for formal wear</h2>
+          <h2 className="text-xl font-bold tracking-tight">The OnPoint advantage for formal wear</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
             Formal wear is high-consideration and high-value. Every hesitation matters.
-            BeOnPoint lets you:
+            OnPoint lets you:
           </p>
           <ul className="mt-4 space-y-2">
             {[

@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import { Palette, Shield } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | BeOnPoint",
+  title: "Privacy Policy | OnPoint",
   description:
-    "BeOnPoint privacy policy — how we collect, use, and protect your data. Includes affiliate disclosure, cookie usage, and data handling practices.",
+    "OnPoint privacy policy — how we collect, use, and protect your data. Includes affiliate disclosure, cookie usage, and data handling practices.",
 };
 
 export default function PrivacyPage() {
@@ -17,7 +17,7 @@ export default function PrivacyPage() {
             <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-1.5 shadow-md">
               <Palette className="h-4 w-4 text-white" />
             </div>
-            BeOnPoint
+            OnPoint
           </Link>
           <Link
             href="/terms"
@@ -43,7 +43,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-lg font-bold text-foreground">1. Information We Collect</h2>
             <p className="mt-2">
-              BeOnPoint collects minimal information necessary to provide our AI styling and
+              OnPoint collects minimal information necessary to provide our AI styling and
               storefront services. This may include:
             </p>
             <ul className="mt-3 list-disc pl-5 space-y-1.5">
@@ -78,7 +78,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-lg font-bold text-foreground">4. Affiliate Disclosure</h2>
             <p className="mt-2">
-              Some links on BeOnPoint may be affiliate links. If you click an affiliate link
+              Some links on OnPoint may be affiliate links. If you click an affiliate link
               and make a purchase, we may earn a commission at no additional cost to you.
               We participate in affiliate programs including Skimlinks and ShareASale.
               As an Amazon Associate, we may earn from qualifying purchases.
@@ -148,7 +148,7 @@ export default function PrivacyPage() {
             <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-1 shadow-md">
               <Palette className="h-3.5 w-3.5 text-white" />
             </div>
-            BeOnPoint
+            OnPoint
           </div>
           <div className="flex items-center gap-4">
             <Link href="/" className="hover:text-foreground transition-colors">Home</Link>

@@ -131,12 +131,12 @@ export function SessionEndingCard({
           <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-black/10 blur-2xl rounded-full" />
 
           <div className="relative z-10">
-            {/* Header — BeOnPoint branding */}
+            {/* Header — OnPoint branding */}
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-white/80" />
                 <span className="text-sm font-black text-white tracking-tight italic">
-                  BeOnPoint
+                  OnPoint
                 </span>
               </div>
               <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider">

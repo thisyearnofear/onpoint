@@ -4,11 +4,11 @@ import { ArrowLeft, Check, Sparkles, Heart, Camera } from "lucide-react";
 import { Reveal } from "../../../components/ui/Reveal";
 
 export const metadata: Metadata = {
-  title: "Plus-Size Fashion & Fit Guide | BeOnPoint",
+  title: "Plus-Size Fashion & Fit Guide | OnPoint",
   description:
     "Your guide to plus-size fashion — finding the right fit, flattering silhouettes, trusted brands, and how to dress with confidence at every size.",
   openGraph: {
-    title: "Plus-Size Fashion & Fit Guide | BeOnPoint",
+    title: "Plus-Size Fashion & Fit Guide | OnPoint",
     description: "Dress with confidence at any size. Fit tips, silhouettes, trusted brands, and virtual try-on for plus-size fashion.",
     images: [{ url: "/assets/1Product.png" }],
   },
@@ -20,7 +20,7 @@ export default function PlusSizeFashionGuide() {
       <article className="mx-auto max-w-3xl px-4 py-12">
         <Link href="/" className="mb-8 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
           <ArrowLeft className="h-3.5 w-3.5" />
-          Back to BeOnPoint
+          Back to OnPoint
         </Link>
 
         <header className="mb-10">
@@ -111,7 +111,7 @@ export default function PlusSizeFashionGuide() {
           <h2 className="text-xl font-bold tracking-tight">Virtual try-on changes everything</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
             One of the biggest frustrations in plus-size shopping is ordering online and hoping
-            for the best. BeOnPoint&rsquo;s virtual try-on lets you upload a photo and see how any
+            for the best. OnPoint&rsquo;s virtual try-on lets you upload a photo and see how any
             item fits your body type before you commit. This is especially valuable for plus-size
             shoppers because sizing varies so much between brands. See it, try it, then buy
             with confidence — no more guessing from size charts.

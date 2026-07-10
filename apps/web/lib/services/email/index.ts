@@ -16,9 +16,9 @@ function getClient(): Resend | null {
 }
 
 // RESEND_FROM_EMAIL must be set to a Resend-verified address in production
-// (e.g. "BeOnPoint <hello@yourdomain.com>"). If unset, Resend rejects the
+// (e.g. "OnPoint <hello@yourdomain.com>"). If unset, Resend rejects the
 // send with a 403, so the misconfiguration is loud rather than silent.
-const FROM = process.env.RESEND_FROM_EMAIL || "BeOnPoint <onboarding@resend.dev>";
+const FROM = process.env.RESEND_FROM_EMAIL || "OnPoint <onboarding@resend.dev>";
 
 interface SendParams {
   to: string;

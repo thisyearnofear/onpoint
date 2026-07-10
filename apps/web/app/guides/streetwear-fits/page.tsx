@@ -4,11 +4,11 @@ import { ArrowLeft, Check, Sparkles, ShoppingBag, Camera } from "lucide-react";
 import { Reveal } from "../../../components/ui/Reveal";
 
 export const metadata: Metadata = {
-  title: "Streetwear Style Guide | BeOnPoint",
+  title: "Streetwear Style Guide | OnPoint",
   description:
     "The essential streetwear style guide — sneaker drops, layering techniques, oversized fits, and how to build a wardrobe that moves culture forward.",
   openGraph: {
-    title: "Streetwear Style Guide | BeOnPoint",
+    title: "Streetwear Style Guide | OnPoint",
     description: "Sneaker drops, layering, oversized fits — build a streetwear wardrobe that moves culture forward.",
     images: [{ url: "/assets/2Product.png" }],
   },
@@ -23,7 +23,7 @@ export default function StreetwearGuide() {
           className="mb-8 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          Back to BeOnPoint
+          Back to OnPoint
         </Link>
 
         <header className="mb-10">
@@ -154,7 +154,7 @@ export default function StreetwearGuide() {
             One of the best things about streetwear culture is the vintage and second-hand
             market. Deadstock (never worn) pieces from previous seasons, vintage band tees,
             and thrifted cargos all bring authenticity that new items can&rsquo;t replicate.
-            Curators on BeOnPoint regularly source vintage and deadstock pieces —
+            Curators on OnPoint regularly source vintage and deadstock pieces —
             it&rsquo;s fashion with a story, and it keeps clothing out of landfills.
           </p>
           </section>

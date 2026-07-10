@@ -4,11 +4,11 @@ import { ArrowLeft, Check, Sparkles, Camera } from "lucide-react";
 import { Reveal } from "../../../components/ui/Reveal";
 
 export const metadata: Metadata = {
-  title: "Ankara & African Print Style Guide | BeOnPoint",
+  title: "Ankara & African Print Style Guide | OnPoint",
   description:
     "Your complete guide to Ankara, Kente, Kitenge, and African print fashion — occasion wear, fabric selection, styling tips, and how to order custom pieces online.",
   openGraph: {
-    title: "Ankara & African Print Style Guide | BeOnPoint",
+    title: "Ankara & African Print Style Guide | OnPoint",
     description: "Ankara, Kente, Kitenge — fabrics, occasions, styling tips for African print fashion.",
     images: [{ url: "/assets/3Product.png" }],
   },
@@ -23,7 +23,7 @@ export default function AnkaraStyleGuide() {
           className="mb-8 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          Back to BeOnPoint
+          Back to OnPoint
         </Link>
 
         <header className="mb-10">
@@ -144,7 +144,7 @@ export default function AnkaraStyleGuide() {
           <h2 className="text-xl font-bold tracking-tight">Try before you tailor</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
             One of the biggest challenges with custom African print fashion is visualising
-            how a bold pattern will drape on your body. On BeOnPoint, you can upload a
+            how a bold pattern will drape on your body. On OnPoint, you can upload a
             photo and see a virtual try-on of the garment before the curator cuts fabric.
             This replaces the usual back-and-forth of WhatsApp messages and ensures
             you love the look before committing.

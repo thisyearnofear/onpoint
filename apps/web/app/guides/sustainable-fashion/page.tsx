@@ -4,11 +4,11 @@ import { ArrowLeft, Check, Sparkles, Leaf, Camera } from "lucide-react";
 import { Reveal } from "../../../components/ui/Reveal";
 
 export const metadata: Metadata = {
-  title: "Sustainable & Ethical Fashion Guide | BeOnPoint",
+  title: "Sustainable & Ethical Fashion Guide | OnPoint",
   description:
     "How to build a sustainable wardrobe — fabric choices, second-hand shopping, caring for clothes to extend their life, and supporting ethical brands.",
   openGraph: {
-    title: "Sustainable & Ethical Fashion Guide | BeOnPoint",
+    title: "Sustainable & Ethical Fashion Guide | OnPoint",
     description: "Build a wardrobe that looks good and does good. Fabric choices, thrifting, and care tips.",
     images: [{ url: "/assets/1Product.png" }],
   },
@@ -20,7 +20,7 @@ export default function SustainableFashionGuide() {
       <article className="mx-auto max-w-3xl px-4 py-12">
         <Link href="/" className="mb-8 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
           <ArrowLeft className="h-3.5 w-3.5" />
-          Back to BeOnPoint
+          Back to OnPoint
         </Link>
 
         <header className="mb-10">
@@ -109,7 +109,7 @@ export default function SustainableFashionGuide() {
           <h2 className="text-xl font-bold tracking-tight">Smart second-hand shopping</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
             Buying second-hand is the single most impactful thing you can do for sustainable fashion.
-            On BeOnPoint, vintage and thrift curators list pre-loved pieces with virtual try-on,
+            On OnPoint, vintage and thrift curators list pre-loved pieces with virtual try-on,
             so you can see the fit before you buy. Look for:
           </p>
           <ul className="mt-4 space-y-2">

@@ -67,7 +67,7 @@ export function generateShareText(data: ShareData): string {
   const tier = getScoreTier(data.score);
   const topicStr = data.topics.slice(0, 3).join(", ");
   const takeaway = data.takeaways[0] || "Found my perfect look!";
-  return `OnPoint Style Report\n\nScore: ${data.score}/10 (${tier})\nStylist: ${data.personaLabel}\nFocus: ${topicStr || "Personal Style"}\n\n"${takeaway}"\n\nMinted on Celo via BeOnPoint`;
+  return `OnPoint Style Report\n\nScore: ${data.score}/10 (${tier})\nStylist: ${data.personaLabel}\nFocus: ${topicStr || "Personal Style"}\n\n"${takeaway}"\n\nMinted on Celo via OnPoint`;
 }
 
 export function generateFullReportText(

@@ -4,11 +4,11 @@ import { ArrowLeft, Check, Sparkles, Search, Camera } from "lucide-react";
 import { Reveal } from "../../../components/ui/Reveal";
 
 export const metadata: Metadata = {
-  title: "Vintage & Thrift Shopping Guide | BeOnPoint",
+  title: "Vintage & Thrift Shopping Guide | OnPoint",
   description:
     "The complete guide to vintage and thrift fashion shopping — how to find hidden gems, check quality, size vintage pieces, and build a unique wardrobe sustainably.",
   openGraph: {
-    title: "Vintage & Thrift Shopping Guide | BeOnPoint",
+    title: "Vintage & Thrift Shopping Guide | OnPoint",
     description: "Find hidden gems, check quality, size vintage pieces — build a unique wardrobe sustainably.",
     images: [{ url: "/assets/3Product.png" }],
   },
@@ -23,7 +23,7 @@ export default function VintageThriftingGuide() {
           className="mb-8 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          Back to BeOnPoint
+          Back to OnPoint
         </Link>
 
         <header className="mb-10">
@@ -122,7 +122,7 @@ export default function VintageThriftingGuide() {
           <div className="mt-4 pl-5 border-l-2 border-accent/30 text-sm">
             <p className="font-semibold text-foreground">Virtual try-on helps here</p>
             <p className="mt-1 text-muted-foreground">
-              With BeOnPoint, you can see how a vintage piece fits your body type before
+              With OnPoint, you can see how a vintage piece fits your body type before
               buying. Upload a photo and try on the item virtually — no more guessing
               from measurements alone.
             </p>

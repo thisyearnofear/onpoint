@@ -4,11 +4,11 @@ import { ArrowLeft, Check, Shirt, Ruler, Printer, Smartphone } from "lucide-reac
 import { Reveal } from "../../../components/ui/Reveal";
 
 export const metadata: Metadata = {
-  title: "Football Kit Buying Guide | BeOnPoint",
+  title: "Football Kit Buying Guide | OnPoint",
   description:
     "The complete guide to buying football kits online — sizing, printing names & numbers, authentic vs. replica, and how to get the perfect fit for match day.",
   openGraph: {
-    title: "Football Kit Buying Guide | BeOnPoint",
+    title: "Football Kit Buying Guide | OnPoint",
     description: "Sizing, printing, authentic vs. replica — everything you need to buy the perfect football kit.",
     images: [{ url: "/assets/2Product.png" }],
   },
@@ -24,7 +24,7 @@ export default function FootballKitsGuide() {
           className="mb-8 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          Back to BeOnPoint
+          Back to OnPoint
         </Link>
 
         {/* Header */}
@@ -152,7 +152,7 @@ export default function FootballKitsGuide() {
         <section className="mb-10">
           <h2 className="text-xl font-bold tracking-tight">Buying via WhatsApp</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
-            On BeOnPoint, you browse kits on a curator&rsquo;s storefront, try them on
+            On OnPoint, you browse kits on a curator&rsquo;s storefront, try them on
             virtually, and send a ready-to-act brief via WhatsApp. The brief captures
             everything: item, size, printing details, and delivery info. The curator
             confirms stock and you pay however works best — M-Pesa, bank transfer, or cash.

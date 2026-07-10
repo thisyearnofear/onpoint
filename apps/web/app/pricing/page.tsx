@@ -368,16 +368,45 @@ export default function PricingPage() {
           </motion.div>
         )}
 
+        {/* Audience split */}
+        <div className="mb-10 grid gap-4 md:grid-cols-2 max-w-3xl mx-auto">
+          <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5 text-left">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-primary mb-1">
+              For shoppers &amp; stylists
+            </p>
+            <h2 className="text-lg font-black tracking-tight mb-2">Premium plans below</h2>
+            <p className="text-sm text-muted-foreground">
+              Unlock more AI stylists, reports, and optional agent actions. Try-on on curator storefronts stays free.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-5 text-left">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+              For curators (supply)
+            </p>
+            <h2 className="text-lg font-black tracking-tight mb-2">Storefront is free</h2>
+            <p className="text-sm text-muted-foreground mb-3">
+              Branded `/s/your-slug`, AI try-on for your customers, WhatsApp/M-Pesa checkout — no platform subscription required.
+            </p>
+            <Link
+              href="/curator"
+              className="inline-flex items-center gap-1 text-sm font-bold text-primary hover:underline"
+            >
+              Add your inventory
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+
         {/* Page Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Choose Your{" "}
+            Shopper{" "}
             <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Stylist
+              plans
             </span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-6">
-            Pick your fashion critic. Free stylists for everyone, premium personalities for deeper insight.
+            Stylist unlocks and agent action quotas for people shopping the fit rail — not curator storefront fees.
           </p>
 
           {/* Billing Toggle */}

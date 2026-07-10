@@ -1,7 +1,7 @@
 {
-  "name": "BeOnPoint - AI Fashion Studio",
-  "short_name": "BeOnPoint",
-  "description": "Your AI stylist sees, judges, shops. Snap a photo, get instant AI feedback, and discover your perfect style.",
+  "name": "OnPoint — Fit before you buy",
+  "short_name": "OnPoint",
+  "description": "Fit-aware fashion commerce for people and agents. Try on real curator stock, then WhatsApp/M-Pesa or agent checkout.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0F0F13",
@@ -26,13 +26,13 @@
       "name": "Virtual Try-On",
       "short_name": "Try On",
       "description": "Try on outfits with AI",
-      "url": "/lab"
+      "url": "/lab?tab=try-on"
     },
     {
-      "name": "AI Stylist",
-      "short_name": "Stylist",
-      "description": "Get style advice from AI",
-      "url": "/?tab=stylist"
+      "name": "Shop storefronts",
+      "short_name": "Shop",
+      "description": "Browse curator inventory",
+      "url": "/curators"
     }
   ]
 }

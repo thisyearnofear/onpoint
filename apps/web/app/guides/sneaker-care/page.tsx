@@ -4,11 +4,11 @@ import { ArrowLeft, Check, Sparkles, ShoppingBag, Camera } from "lucide-react";
 import { Reveal } from "../../../components/ui/Reveal";
 
 export const metadata: Metadata = {
-  title: "Sneaker Collecting & Care Guide | BeOnPoint",
+  title: "Sneaker Collecting & Care Guide | OnPoint",
   description:
     "The essential guide to sneaker collecting — building a rotation, cleaning and maintenance, storing for value retention, and spotting authentic vs. fake pairs.",
   openGraph: {
-    title: "Sneaker Collecting & Care Guide | BeOnPoint",
+    title: "Sneaker Collecting & Care Guide | OnPoint",
     description: "Build a sneaker rotation that holds value. Cleaning, storage, authentication tips.",
     images: [{ url: "/assets/2Product.png" }],
   },
@@ -20,7 +20,7 @@ export default function SneakerCareGuide() {
       <article className="mx-auto max-w-3xl px-4 py-12">
         <Link href="/" className="mb-8 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
           <ArrowLeft className="h-3.5 w-3.5" />
-          Back to BeOnPoint
+          Back to OnPoint
         </Link>
 
         <header className="mb-10">

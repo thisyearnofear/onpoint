@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server';
  */
 export async function GET() {
   const baseUrl = process.env.NEXT_PUBLIC_URL || '';
-  const name = process.env.NEXT_PUBLIC_APP_NAME || 'BeOnPoint';
+  const name = process.env.NEXT_PUBLIC_APP_NAME || 'OnPoint';
   const iconUrl = `${baseUrl}/assets/1Product.png`;
 
   // Account association JSON (paste from Farcaster Manifest Tool)
