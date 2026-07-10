@@ -60,15 +60,17 @@ Enhancement first; delete don’t deprecate.
 | Third-party try-ons / orders | Logs + Prometheus `agent_try_on_third_party` / `agent_order_third_party` |
 | Human try-on → purchase | Curator funnel analytics |
 
-### Prod snapshot (2026-07-10, pre–API deploy of new fields)
+### Prod snapshot (2026-07-10)
 
-- 13 curators in directory; **0** with `agentCommerceEnabled` (no payout wallets set)
-- Human curators with live physical stock (wallet gap only): **wanja (20), zara, mo, juma, grace, fatima, amara (5 each)** → **7** would become agent-purchasable once wallets are set **and** Hetzner API is deployed with the new directory fields
-- Digital: **nia** (8 digital, try-on only)
+**API deployed** (`releases/api/20260710-140822`) — directory now returns `physicalListingCount` + `agentPurchasable`.
 
-**Ops playbook to hit ≥5:** For each of wanja/zara/mo/juma/grace (or any five), set Celo/MiniPay wallet in `/admin/curators/[slug]` → optional Setup 0xSplit → redeploy API if `physicalListingCount` / `agentPurchasable` missing on directory → re-run `agent-commerce-ready.mjs`.
+- 13 curators; **0** agent-purchasable (**0** wallets configured)
+- Human curators with live physical stock awaiting wallets: **wanja (20), zara, mo, juma, grace, fatima, amara (5 each)** → **7** ready once wallets are set
+- Digital: **nia** (8 digital, try-on only — not agent-purchasable for physical orders)
+
+**Ops playbook to hit ≥5:** Open `/admin/curators/[slug]` for any five of the stocked humans → paste MiniPay/Celo payout address → Save wallet → optional Setup 0xSplit → `node scripts/agent-commerce-ready.mjs` until `ready: true`.
 
 ---
 
 **Owner:** Product  
-**Next:** Deploy API to Hetzner · set ≥5 curator wallets · chase third-party agent calls
+**Next:** Set ≥5 curator payout wallets via admin · chase third-party agent calls
