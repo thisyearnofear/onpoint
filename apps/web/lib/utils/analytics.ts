@@ -479,3 +479,11 @@ function hashCode(str: string): number {
   }
   return hash;
 }
+
+/** Homepage CTA funnel — Phase 1 dual-client clarity */
+export function trackHomepageCta(properties: {
+  cta: "shop" | "supply" | "lab" | "demo";
+  placement: "hero" | "mobile_sticky" | "nav" | "pitch" | "footer";
+}): void {
+  trackEvent("homepage_cta_click", properties);
+}

@@ -17,9 +17,10 @@ import {
   Zap,
 } from "lucide-react";
 import { Reveal } from "../../components/ui/Reveal";
+import { PRODUCT_NAME } from "../../lib/brand";
 
 export const metadata: Metadata = {
-  title: "Become a Curator | OnPoint",
+  title: `Become a Curator | ${PRODUCT_NAME}`,
   description:
     "Turn your fashion eye into a storefront. Get AI try-on, branded polaroids, WhatsApp checkout, and analytics — free to join.",
 };
@@ -309,7 +310,7 @@ export default function CuratorLandingPage() {
             <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-1.5 shadow-md">
               <Palette className="h-4 w-4 text-white" />
             </div>
-            BeOnPoint
+            {PRODUCT_NAME}
           </Link>
           <div className="flex items-center gap-3">
             <Link
@@ -851,7 +852,7 @@ export default function CuratorLandingPage() {
             <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-1 shadow-md">
               <Palette className="h-3.5 w-3.5 text-white" />
             </div>
-            BeOnPoint
+            {PRODUCT_NAME}
           </div>
           <div className="flex items-center gap-4">
             <Link href="/" className="hover:text-foreground transition-colors">

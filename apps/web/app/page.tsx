@@ -20,8 +20,6 @@ import {
   Share2,
   Shirt,
   Wand2,
-  Lock,
-  Crown,
   Flame,
   Heart,
   Scale,
@@ -30,16 +28,16 @@ import {
 import { Reveal } from "../components/ui/Reveal";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { Auth0HeaderButton } from "../components/auth/Auth0Components";
-import { EnhancedConnectButton } from "../components/EnhancedConnectButton";
 import { NotificationBell } from "../components/NotificationBell";
 import { LiveCounter } from "../components/LiveCounter";
 import { Button } from "@repo/ui/button";
-import { PersonaAvatar } from "../components/ui/PersonaAvatar";
-import { getPersonaConfig, PREMIUM_PERSONAS, isPersonaUnlocked } from "../lib/utils/persona-config";
-import { usePremiumStatus } from "../hooks/use-premium-status";
+import { getPersonaConfig } from "../lib/utils/persona-config";
 import type { StylistPersona, CritiqueMode } from "@repo/ai-client";
 import { useAnalysisHistory } from "../lib/stores/analysis-history-store";
-import { trackRecentlySavedClicked } from "../lib/utils/analytics";
+import {
+  trackHomepageCta,
+  trackRecentlySavedClicked,
+} from "../lib/utils/analytics";
 import { useScoreProgression } from "../lib/hooks/useScoreProgression";
 import { useUserPreferences } from "../hooks/useUserPreferences";
 import {
@@ -55,6 +53,13 @@ import {
 } from "../lib/utils/style-constants";
 import type { BodyType, BudgetTier } from "../lib/utils/style-constants";
 import { captureReferralFromURL } from "../lib/utils/referral";
+import {
+  CTA_LAB,
+  CTA_SHOP,
+  CTA_SUPPLY,
+  HERO,
+  PRODUCT_NAME,
+} from "../lib/brand";
 
 export default function Home() {
   return (
@@ -68,25 +73,35 @@ export default function Home() {
                 <Palette className="h-4 w-4 text-white" />
               </div>
               <span className="text-base font-bold tracking-tight">
-                BeOnPoint
+                {PRODUCT_NAME}
               </span>
             </div>
           </div>
 
           <div className="flex items-center gap-1">
             <Link
-              href="/curator"
+              href={CTA_SHOP.href}
+              onClick={() => trackHomepageCta({ cta: "shop", placement: "nav" })}
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 active:bg-muted active:scale-[0.98] transition-[background-color,transform,color] px-3 py-1.5 rounded-full"
+            >
+              <Camera className="w-4 h-4" />
+              Shop
+            </Link>
+            <Link
+              href={CTA_SUPPLY.href}
+              onClick={() => trackHomepageCta({ cta: "supply", placement: "nav" })}
               className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 active:bg-muted active:scale-[0.98] transition-[background-color,transform,color] px-3 py-1.5 rounded-full"
             >
               <Store className="w-4 h-4" />
-              Curators
+              Supply
             </Link>
             <Link
-              href="/lab"
+              href={CTA_LAB.href}
+              onClick={() => trackHomepageCta({ cta: "lab", placement: "nav" })}
               className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 active:bg-muted active:scale-[0.98] transition-[background-color,transform,color] px-3 py-1.5 rounded-full"
             >
               <FlaskConical className="w-4 h-4" />
-              Lab
+              {CTA_LAB.label}
             </Link>
             <Link
               href="/guides"
@@ -101,7 +116,6 @@ export default function Home() {
               About
             </Link>
             <NotificationBell />
-            <EnhancedConnectButton className="hidden lg:flex" />
             <Auth0HeaderButton />
             <ThemeToggle />
           </div>
@@ -115,18 +129,26 @@ export default function Home() {
             <div className="p-1 rounded-lg bg-gradient-to-br from-primary to-accent shadow-sm">
               <Palette className="h-3.5 w-3.5 text-white" />
             </div>
-            <span className="text-sm font-bold tracking-tight">BeOnPoint</span>
+            <span className="text-sm font-bold tracking-tight">{PRODUCT_NAME}</span>
           </div>
           <div className="flex items-center gap-1">
             <Link
-              href="/curator"
+              href={CTA_SHOP.href}
+              onClick={() => trackHomepageCta({ cta: "shop", placement: "nav" })}
               className="inline-flex items-center gap-1 text-xs font-medium text-primary px-2 py-1 rounded-full bg-primary/10 hover:bg-primary/15 transition-colors"
             >
+              <Camera className="w-3 h-3" />
+              Shop
+            </Link>
+            <Link
+              href={CTA_SUPPLY.href}
+              onClick={() => trackHomepageCta({ cta: "supply", placement: "nav" })}
+              className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground px-2 py-1 rounded-full hover:bg-muted/50 transition-colors"
+            >
               <Store className="w-3 h-3" />
-              Curators
+              Supply
             </Link>
             <NotificationBell direction="up" />
-            <EnhancedConnectButton />
             <Auth0HeaderButton />
             <ThemeToggle />
           </div>
@@ -134,177 +156,6 @@ export default function Home() {
       </div>
 
       <HeroView />
-    </div>
-  );
-}
-
-function PersonaCarousel() {
-  const [selectedPersona, setSelectedPersona] = useState<StylistPersona | null>(null);
-  const { isPremium } = usePremiumStatus();
-  const personas: StylistPersona[] = ["miranda", "edina", "shaft", "luxury", "streetwear", "sustainable"];
-  const personaNames: Record<string, string> = {
-    miranda: "Miranda Priestly",
-    edina: "Edina Monsoon",
-    shaft: "John Shaft",
-    luxury: "Anna Wintour",
-    streetwear: "Virgil Abloh",
-    sustainable: "Stella McCartney",
-  };
-  return (
-    <>
-      <div className="flex flex-wrap justify-center lg:justify-start gap-3 pt-2">
-        {personas.map((p) => {
-          const config = getPersonaConfig(p);
-          const PersonaIcon = config.icon;
-          const locked = !isPersonaUnlocked(p, isPremium);
-          return (
-            <button
-              key={p}
-              onClick={() => setSelectedPersona(p)}
-              className="group relative flex flex-col items-center gap-1 active:scale-[0.95] transition-transform"
-            >
-              <PersonaAvatar persona={p} size="sm" animate="idle" />
-              {locked && (
-                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-background/60 backdrop-blur-[1px]">
-                  <Lock className="w-3 h-3 text-muted-foreground/70" />
-                </div>
-              )}
-              <span className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                {personaNames[p]}
-                {locked && <Lock className="w-2.5 h-2.5 inline ml-1" />}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Meet the Stylist Modal */}
-      {selectedPersona && (
-        <PersonaMeetModal
-          persona={selectedPersona}
-          isPremium={isPremium}
-          onClose={() => setSelectedPersona(null)}
-        />
-      )}
-    </>
-  );
-}
-
-function PersonaMeetModal({
-  persona,
-  isPremium,
-  onClose,
-}: {
-  persona: StylistPersona;
-  isPremium: boolean;
-  onClose: () => void;
-}) {
-  const config = getPersonaConfig(persona);
-  const PersonaIcon = config.icon;
-  const locked = !isPersonaUnlocked(persona, isPremium);
-
-  const sampleCritiques: Record<string, string> = {
-    miranda: "The structure is passable. The silhouette flatters your frame, but that color choice is three seasons stale. We can work with the proportions, but let's elevate the palette.",
-    edina: "Darling! It's a look! The shape is absolutely fabulous, but that fabric? Sweetie, no. We need texture, we need drama, we need PEOPLE TO TURN THEIR HEADS!",
-    shaft: "Right on. You've got the basics down — clean lines, good fit. But let's take it up a notch. A little more edge, a little more attitude. You feel me?",
-    luxury: "Exquisite bone structure. The garment shows promise but lacks refinement. I'd suggest investing in quality fabrics and timeless silhouettes. Luxury is in the details.",
-    streetwear: "Fresh. The silhouette is on point but the execution needs work. We're talking layered textures, statement accessories, and that effortless 'I didn't try' vibe.",
-    sustainable: "Lovely to see natural fibers. The piece has potential but let's think about longevity — can you wear this 30 ways? Can it be repaired, reused, reimagined?",
-  };
-
-  const sampleScore: Record<string, number> = {
-    miranda: 7,
-    edina: 7,
-    shaft: 8,
-    luxury: 7,
-    streetwear: 8,
-    sustainable: 8,
-  };
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Meet ${config.characterName}`}
-    >
-      <div
-        className="relative w-full max-w-sm rounded-2xl border border-border bg-card shadow-2xl overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Gradient header */}
-        <div className={`bg-gradient-to-br ${config.gradient} p-6 text-center`}>
-          <button
-            onClick={onClose}
-            className="absolute right-3 top-3 rounded-full bg-black/20 p-1.5 text-white/70 hover:text-white active:bg-black/30 active:scale-[0.95] transition-[background-color,transform,color]"
-          >
-            <X className="h-4 w-4" />
-          </button>
-
-          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-white/20 shadow-lg">
-            <PersonaIcon className="h-8 w-8 text-white" />
-          </div>
-          <h3 className="text-lg font-black text-white">{config.characterName}</h3>
-          <p className="mt-1 text-xs text-white/80">{config.description}</p>
-          <span className={`mt-2 inline-block rounded-full ${config.bg} px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider ${config.lightColor}`}>
-            {config.mode} critic • {config.tier === "free" ? "Free" : "Premium"}
-          </span>
-        </div>
-
-        <div className="p-5 space-y-4">
-          {/* Sample critique */}
-          <div>
-            <div className="flex items-center gap-1.5 mb-2">
-              <Sparkles className="h-3 w-3 text-accent" />
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                Sample analysis
-              </span>
-            </div>
-            <div className="rounded-xl bg-muted/50 p-3 border border-border">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl font-black text-primary">{sampleScore[persona]}/10</span>
-                <p className="text-xs text-muted-foreground leading-relaxed italic">
-                  &ldquo;{sampleCritiques[persona]}&rdquo;
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Stylist mode badge */}
-          <div className="flex flex-wrap gap-1.5">
-            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground border border-border">
-              Mode: {config.mode}
-            </span>
-            <span className={`rounded-full ${config.bg} px-2 py-0.5 text-[10px] ${config.lightColor} border ${config.border}`}>
-              {config.layoutStyle} style
-            </span>
-          </div>
-
-          {/* CTA */}
-          {locked ? (
-            <Link
-              href="/pricing"
-              onClick={onClose}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary to-accent py-3 text-sm font-bold text-white hover:opacity-90 transition-opacity"
-            >
-              <Crown className="h-4 w-4" />
-              Upgrade to unlock {config.characterName.split(" ")[0]}
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          ) : (
-            <Link
-              href={`/lab?tab=try-on&persona=${persona}`}
-              onClick={onClose}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 text-sm font-bold text-white hover:bg-primary/90 active:bg-primary/80 active:scale-[0.98] transition-[background-color,transform]"
-            >
-              <Camera className="h-4 w-4" />
-              Try {config.characterName.split(" ")[0]} as your stylist
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
@@ -1237,7 +1088,7 @@ function LookCrafter() {
                       </span>
                     </div>
                     <p className="text-fashion-label mt-2 text-center text-muted-foreground/40">
-                      Crafted on BeOnPoint
+                      Crafted on {PRODUCT_NAME}
                     </p>
                   </div>
                 </div>
@@ -1364,22 +1215,22 @@ function HeroView() {
               <Reveal delay={0}>
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-muted/60 border border-border text-sm text-muted-foreground">
                   <Sparkles className="w-4 h-4 text-accent" />
-                  <span>AI-Powered Fashion</span>
+                  <span>{HERO.eyebrow}</span>
                 </div>
               </Reveal>
 
               <Reveal delay={0.1}>
                 <h1 className="text-4xl md:text-5xl font-black tracking-tighter leading-tight">
-                  Your AI stylist
+                  {HERO.headline}
                   <span className="block text-primary">
-                    sees, judges, shops.
+                    {HERO.headlineAccent}
                   </span>
                 </h1>
               </Reveal>
 
               <Reveal delay={0.2}>
                 <p className="text-lg text-muted-foreground leading-relaxed max-w-lg">
-                  Point your camera at an outfit. Get instant AI feedback from a team of personality-driven stylists. Discover what works for your body and style.
+                  {HERO.subcopy}
                 </p>
               </Reveal>
 
@@ -1390,17 +1241,30 @@ function HeroView() {
                 >
                   <div className="flex flex-col items-center gap-1.5">
                     <Link
-                      href="/lab"
+                      href={CTA_SHOP.href}
+                      onClick={() =>
+                        trackHomepageCta({ cta: "shop", placement: "hero" })
+                      }
                       className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 active:bg-primary/80 active:scale-[0.98] text-white font-bold px-8 py-6 rounded-full text-lg shadow-lg shadow-primary/25 transition-[background-color,transform]"
                     >
                       <Camera className="w-5 h-5" />
-                      Try It Free
+                      {CTA_SHOP.label}
                       <ArrowRight className="w-5 h-5" />
                     </Link>
                     <p className="text-[11px] text-muted-foreground/70 text-center max-w-[280px]">
-                      Snap a photo or upload one — your AI stylist scores your fit in seconds
+                      Browse live storefronts — try on real stock, then WhatsApp checkout
                     </p>
                   </div>
+                  <Link
+                    href={CTA_SUPPLY.onboardHref}
+                    onClick={() =>
+                      trackHomepageCta({ cta: "supply", placement: "hero" })
+                    }
+                    className="inline-flex items-center gap-2 border border-border hover:bg-muted/50 active:scale-[0.98] font-bold px-6 py-6 rounded-full text-base transition-[background-color,transform]"
+                  >
+                    <Store className="w-5 h-5" />
+                    {CTA_SUPPLY.onboardLabel}
+                  </Link>
                   <DemoToggleButton onClick={() => setShowDemo(true)} />
                 </div>
               </Reveal>
@@ -1409,28 +1273,17 @@ function HeroView() {
                 <div className="flex flex-wrap justify-center lg:justify-start gap-4 pt-2 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-emerald-500" />
-                    <span>No sign-up needed</span>
+                    <span>No wallet before first try-on</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-emerald-500" />
-                    <span>Works on any phone</span>
+                    <span>WhatsApp / M-Pesa ready</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-emerald-500" />
-                    <span>30s to your first result</span>
+                    <span>Same catalog for agents</span>
                   </div>
                   <LiveCounter />
-                </div>
-              </Reveal>
-
-              {/* Persona Mascot Presence */}
-              <Reveal delay={0.5}>
-                <div className="pt-4 border-t border-border/40">
-                  <p className="text-xs text-muted-foreground text-center lg:text-left mb-3">
-                    <Sparkles className="w-3 h-3 inline mr-1 text-accent" />
-                    Choose your stylist personality
-                  </p>
-                  <PersonaCarousel />
                 </div>
               </Reveal>
 
@@ -1439,7 +1292,7 @@ function HeroView() {
                 <div className="mt-4 rounded-2xl border border-primary/10 bg-gradient-to-br from-primary/[0.04] to-accent/[0.03] p-4 space-y-3">
                   <div className="flex items-center gap-2 text-xs text-primary font-bold uppercase tracking-wider">
                     <Sparkles className="w-3.5 h-3.5" />
-                    Sample AI Analysis
+                    Sample fit signal
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-3xl font-black text-primary">8/10</div>
@@ -1467,31 +1320,46 @@ function HeroView() {
       {/* Recently Saved — shown when user has saved looks */}
       <RecentlySavedSection />
 
-      {/* Craft a Look — interactive lead magnet */}
-      <LookCrafter />
-
-      {/* Editorial Stats */}
-      <EditorialStats />
-
-      {/* Curator Pitch Strip */}
+      {/* Dual-client pitch — supply + demand before LookCrafter */}
       <Reveal>
         <section className="border-t border-border/30">
           <div className="container mx-auto px-4 py-10 md:py-14">
-            <div className="max-w-3xl mx-auto text-center">
+            <div className="max-w-3xl mx-auto text-center space-y-4">
               <p className="text-lg md:text-xl font-light tracking-tight text-foreground">
-                You curate fashion?{" "}
+                Sell on WhatsApp?{" "}
                 <Link
-                  href="/curator"
+                  href={CTA_SUPPLY.href}
+                  onClick={() =>
+                    trackHomepageCta({ cta: "supply", placement: "pitch" })
+                  }
                   className="font-bold text-primary hover:text-primary/80 transition-colors underline underline-offset-4 decoration-primary/30"
                 >
-                  Open a storefront
+                  Put your inventory on OnPoint
                 </Link>
-                {" "}— AI try-on, branded polaroids, WhatsApp checkout. Zero fees.
+                {" "}— AI try-on, polaroids, M-Pesa. Agents can buy the same stock.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Prefer to shop first?{" "}
+                <Link
+                  href={CTA_SHOP.href}
+                  onClick={() =>
+                    trackHomepageCta({ cta: "shop", placement: "pitch" })
+                  }
+                  className="font-medium text-foreground underline underline-offset-2"
+                >
+                  Browse live storefronts
+                </Link>
               </p>
             </div>
           </div>
         </section>
       </Reveal>
+
+      {/* Craft a Look — interactive lead magnet */}
+      <LookCrafter />
+
+      {/* Editorial Stats */}
+      <EditorialStats />
 
       {/* Footer */}
       <footer className="border-t border-border/60 py-8">
@@ -1500,18 +1368,36 @@ function HeroView() {
             <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-1 shadow-md">
               <Palette className="h-3.5 w-3.5 text-white" />
             </div>
-            BeOnPoint
+            {PRODUCT_NAME}
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/curators" className="hover:text-foreground transition-colors">Browse</Link>
-            <Link href="/curator" className="hover:text-foreground transition-colors">Curators</Link>
-            <Link href="/lab" className="hover:text-foreground transition-colors">Lab</Link>
+            <Link
+              href={CTA_SHOP.href}
+              onClick={() => trackHomepageCta({ cta: "shop", placement: "footer" })}
+              className="hover:text-foreground transition-colors"
+            >
+              Shop
+            </Link>
+            <Link
+              href={CTA_SUPPLY.href}
+              onClick={() => trackHomepageCta({ cta: "supply", placement: "footer" })}
+              className="hover:text-foreground transition-colors"
+            >
+              Supply
+            </Link>
+            <Link
+              href={CTA_LAB.href}
+              onClick={() => trackHomepageCta({ cta: "lab", placement: "footer" })}
+              className="hover:text-foreground transition-colors"
+            >
+              Lab
+            </Link>
             <Link href="/guides" className="hover:text-foreground transition-colors">Guides</Link>
             <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
             <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link>
           </div>
-          <p className="text-xs">AI-powered personal styling.</p>
+          <p className="text-xs">Fit before you buy.</p>
         </div>
       </footer>
 
@@ -1525,10 +1411,13 @@ function HeroView() {
         aria-hidden={heroCtaInView}
       >
         <Link
-          href="/lab"
+          href={CTA_SHOP.href}
+          onClick={() =>
+            trackHomepageCta({ cta: "shop", placement: "mobile_sticky" })
+          }
           className="block w-full bg-primary text-white font-bold py-4 rounded-full shadow-lg text-center active:bg-primary/80 active:scale-[0.98] transition-[background-color,transform]"
         >
-          Try It Free — Point Your Camera
+          {CTA_SHOP.mobileLabel}
         </Link>
       </div>
     </div>

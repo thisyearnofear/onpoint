@@ -336,6 +336,10 @@ Return ONLY valid JSON:
       logger.warn('Failed to record try-on receipt', { component: 'agent-tryon', paymentId }, receiptErr);
     }
 
+    const { classifyAgentCaller, recordAgentDemand } = require('../lib/agent-demand');
+    const caller = classifyAgentCaller(verification.from);
+    recordAgentDemand('try_on', caller, 'succeeded');
+
     logger.info('Agent try-on served', {
       component: 'agent-tryon',
       paymentId,
@@ -343,6 +347,8 @@ Return ONLY valid JSON:
       listingId,
       provider: render.value.provider,
       isDigital,
+      caller,
+      payerAddress: verification.from,
     });
 
     // For digital listings, find similar physical items from human curators

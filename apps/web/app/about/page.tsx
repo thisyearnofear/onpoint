@@ -3,10 +3,12 @@ import type { Metadata } from "next";
 import { Palette, Camera, Store, MessageCircle, ArrowRight, Check } from "lucide-react";
 import { Reveal } from "../../components/ui/Reveal";
 
+import { PRODUCT_NAME } from "../../lib/brand";
+
 export const metadata: Metadata = {
-  title: "About | BeOnPoint",
+  title: `About | ${PRODUCT_NAME}`,
   description:
-    "BeOnPoint is a curator-first AI fashion studio — a multiplatform ecosystem for personalized styling, fashion discovery, and digital ownership for emerging-market fashion sellers.",
+    "OnPoint is the fit-aware execution layer for fashion — try-on, real stock, and local pay for people and agents. Curators supply the graph; shoppers and agents buy from it.",
 };
 
 export default function AboutPage() {
@@ -19,21 +21,21 @@ export default function AboutPage() {
             <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-1.5 shadow-md">
               <Palette className="h-4 w-4 text-white" />
             </div>
-            BeOnPoint
+            {PRODUCT_NAME}
           </Link>
           <div className="flex items-center gap-3">
             <Link
               href="/curator"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              For Curators
+              Supply inventory
             </Link>
             <Link
-              href="/lab"
+              href="/curators"
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-primary/90"
             >
               <Camera className="h-4 w-4" />
-              Try It Free
+              Try on & shop
             </Link>
           </div>
         </div>
@@ -47,13 +49,13 @@ export default function AboutPage() {
               <Palette className="h-7 w-7 text-white" />
             </div>
             <h1 className="mt-6 text-4xl font-black tracking-tight md:text-5xl">
-              Style commerce for{" "}
-              <span className="text-primary">everyone.</span>
+              Fit before you buy —{" "}
+              <span className="text-primary">for people and agents.</span>
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
-              BeOnPoint gives fashion sellers in emerging markets a branded storefront
-              with AI try-on, WhatsApp checkout, and retail intelligence — no coding,
-              no app store, no platform fees.
+              OnPoint is the execution layer for fashion intent that needs fit, real stock,
+              and local pay. Curators bring inventory; humans and agents buy from the same
+              catalog — try-on first, WhatsApp/M-Pesa or on-chain checkout.
             </p>
           </div>
         </section>
@@ -72,12 +74,11 @@ export default function AboutPage() {
               and every sizing hesitation risks a lost sale.
             </p>
             <p className="mt-4 text-base leading-7 text-muted-foreground">
-              BeOnPoint bridges that gap. We give sellers a branded storefront with AI-powered
-              virtual try-on so customers can see how items look before they buy. Each try-on
-              generates a shareable polaroid — free marketing for the seller. Checkout happens
-              on WhatsApp, the channel customers already use. And every session generates
-              structured retail intelligence: what&rsquo;s trending, what&rsquo;s missing from
-              the catalog, and where the market is moving.
+              OnPoint bridges that gap — and makes the same inventory reachable by AI agents.
+              Sellers get a branded storefront with virtual try-on so buyers see fit before
+              they commit. Polaroids turn try-ons into shareable marketing. Humans check out
+              on WhatsApp/M-Pesa; agents use structured offers and paid try-on on the same
+              stock. Fit signal + truthful catalog + local settlement is the product.
             </p>
           </div>
         </section>
@@ -92,20 +93,20 @@ export default function AboutPage() {
             {[
               {
                 icon: <Store className="h-6 w-6" />,
-                title: "Curator storefronts",
-                body: "Every seller gets a branded /s/yourslug page with their colors, logo, and voice — no coding, no CMS. Inventory is added via WhatsApp: send a photo and the agent creates a live listing.",
+                title: "One catalog, two clients",
+                body: "Every curator gets /s/yourslug for humans and a machine-readable storefront for agents — same listings, stock, and brand. Inventory can land via WhatsApp: photo in, live SKU out.",
               },
               {
                 icon: <Camera className="h-6 w-6" />,
-                title: "AI try-on & polaroids",
-                body: "Customers upload a photo and see how any item fits their body type. Every try-on generates a branded polaroid they can share — turning customers into brand ambassadors.",
+                title: "Fit rail (try-on)",
+                body: "People and agents try before they buy. Size/fit signals cut hesitation; polaroids turn sessions into shareable proof. Digital designs route to similar physical stock.",
               },
               {
                 icon: <MessageCircle className="h-6 w-6" />,
-                title: "WhatsApp commerce",
-                body: "When a customer wants to buy, they send a structured brief via WhatsApp. The curator confirms stock, collects payment (M-Pesa, bank transfer, cash), and ships. Zero platform fees.",
+                title: "Local + agent settlement",
+                body: "Humans close on WhatsApp and M-Pesa. Agents pay via x402/cUSD with curator payouts. Same commerce loop — transport matches the buyer.",
               },
-            ].map((pillar, i) => (
+            ].map((pillar) => (
               <div key={pillar.title} className="relative pl-6 border-l-2 border-primary/20">
                 <div className="absolute -left-3 top-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white shadow-sm">
                   {pillar.icon}
@@ -140,7 +141,7 @@ export default function AboutPage() {
             every session generates live retail intelligence on the back end.
           </p>
           <p className="mt-4 text-base leading-7 text-muted-foreground">
-            Today, BeOnPoint is live with curators in Kenya across sportswear, streetwear,
+            Today, {PRODUCT_NAME} is live with curators in Kenya across sportswear, streetwear,
             Ankara, vintage, and formal wear — each with their own branded storefront,
             AI try-on, and WhatsApp checkout. We&rsquo;re developer-owned, fee-free,
             and focused entirely on making fashion commerce work for the markets that
@@ -156,7 +157,7 @@ export default function AboutPage() {
         <div className="mx-auto max-w-3xl px-4 text-center">
           <h2 className="text-2xl font-black tracking-tight md:text-3xl">Built by builders</h2>
           <p className="mx-auto mt-4 max-w-lg text-base leading-7 text-muted-foreground">
-            BeOnPoint is an independent, developer-owned project. We believe the best
+            {PRODUCT_NAME} is an independent, developer-owned project. We believe the best
             tools for emerging-market commerce come from builders who understand the
             constraints: mobile-first, WhatsApp-native, fee-free, and built for the
             seller who hustles.
@@ -191,23 +192,23 @@ export default function AboutPage() {
             Ready to see it in action?
           </h2>
           <p className="mx-auto mt-3 max-w-md text-muted-foreground">
-            Try the AI styling experience yourself, or apply to open your own storefront.
+            Browse live storefronts and try on, or onboard inventory into the supply graph.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
-              href="/lab"
+              href="/curators"
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl"
             >
               <Camera className="h-4 w-4" />
-              Try It Free
+              Try on & shop
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              href="/curator"
+              href="/curator/onboard"
               className="inline-flex items-center gap-2 rounded-xl border border-border px-6 py-3.5 text-sm font-bold transition-colors hover:bg-card"
             >
               <Store className="h-4 w-4" />
-              Open a storefront
+              Add your inventory
             </Link>
           </div>
         </div>
@@ -221,12 +222,12 @@ export default function AboutPage() {
             <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-1 shadow-md">
               <Palette className="h-3.5 w-3.5 text-white" />
             </div>
-            BeOnPoint
+            {PRODUCT_NAME}
           </div>
           <div className="flex items-center gap-4">
             <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
-            <Link href="/curator" className="hover:text-foreground transition-colors">For Curators</Link>
-            <Link href="/lab" className="hover:text-foreground transition-colors">Try On</Link>
+            <Link href="/curator" className="hover:text-foreground transition-colors">Supply</Link>
+            <Link href="/curators" className="hover:text-foreground transition-colors">Shop</Link>
           </div>
           <p className="text-xs">Built for emerging-market fashion commerce.</p>
         </div>

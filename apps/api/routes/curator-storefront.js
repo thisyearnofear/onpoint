@@ -727,6 +727,10 @@ router.post('/:slug/order', async (req, res) => {
       logger.warn('Failed to record order receipt', { component: 'curator-storefront', orderId }, receiptErr);
     }
 
+    const { classifyAgentCaller, recordAgentDemand } = require('../lib/agent-demand');
+    const caller = classifyAgentCaller(verification.from);
+    recordAgentDemand('order', caller, 'succeeded');
+
     logger.info('Agent order confirmed', {
       component: 'curator-storefront',
       slug,
@@ -735,6 +739,8 @@ router.post('/:slug/order', async (req, res) => {
       payoutTxHash,
       usingSplit,
       splitAddress: usingSplit ? splitAddress : undefined,
+      caller,
+      buyerAddress: verification.from,
     });
 
     return res.status(201).json({

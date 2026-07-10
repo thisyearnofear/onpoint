@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import Script from "next/script";
 import { getBaseUrl } from "@/lib/base-url";
+import { META_DESCRIPTION, PRODUCT_NAME, TAGLINE } from "@/lib/brand";
 import "./globals.css";
 import "./mobile.css";
 import { Providers } from "./providers";
@@ -21,50 +22,45 @@ const appBaseUrl = getBaseUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(appBaseUrl),
-  title: "BeOnPoint — AI Fashion Studio",
-  description:
-    "Curator-first AI fashion studio. Personalized styling, onchain ownership, and digital storefronts for emerging-market creators.",
-  applicationName: "BeOnPoint",
+  title: `${PRODUCT_NAME} — ${TAGLINE}`,
+  description: META_DESCRIPTION,
+  applicationName: PRODUCT_NAME,
   keywords: [
     "AI fashion",
-    "personal stylist",
     "virtual try-on",
-    "curator marketplace",
+    "agentic commerce",
+    "WhatsApp fashion",
+    "M-Pesa",
+    "curator storefront",
     "Celo",
-    "onchain fashion",
-    "emerging market creators",
+    "x402",
   ],
-  authors: [{ name: "BeOnPoint" }],
-  creator: "BeOnPoint",
-  publisher: "BeOnPoint",
+  authors: [{ name: PRODUCT_NAME }],
+  creator: PRODUCT_NAME,
+  publisher: PRODUCT_NAME,
   openGraph: {
     type: "website",
     locale: "en_US",
     url: appBaseUrl,
-    siteName: "BeOnPoint",
-    title: "BeOnPoint — AI Fashion Studio",
-    description:
-      "Curator-first AI fashion studio. Personalized styling, onchain ownership, and digital storefronts for emerging-market creators.",
+    siteName: PRODUCT_NAME,
+    title: `${PRODUCT_NAME} — ${TAGLINE}`,
+    description: META_DESCRIPTION,
     images: [
       {
         // Resolved against metadataBase (apps/web/app/opengraph-image.png).
         url: "/opengraph-image.png",
         width: 1200,
         height: 630,
-        alt: "BeOnPoint — AI Fashion Studio",
+        alt: `${PRODUCT_NAME} — ${TAGLINE}`,
         type: "image/png",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "BeOnPoint — AI Fashion Studio",
-    description:
-      "Curator-first AI fashion studio. Personalized styling, onchain ownership, and digital storefronts for emerging-market creators.",
+    title: `${PRODUCT_NAME} — ${TAGLINE}`,
+    description: META_DESCRIPTION,
     images: ["/opengraph-image.png"],
-    // creator: "@your-twitter-handle" — set to your Twitter/X handle when
-    // you have one. Omitted for now so we don't attribute the card to an
-    // account we don't control.
   },
   // Farcaster Mini App discovery picks up `opengraph-image.png` via the
   // Frame/miniapp meta tag below, but explicit og:* tags help when the
@@ -91,10 +87,10 @@ export default async function RootLayout({
     version: "1",
     imageUrl: `${baseUrl}/opengraph-image.png`,
     button: {
-      title: "Start BeOnPoint",
+      title: `Start ${PRODUCT_NAME}`,
       action: {
         type: "launch_frame",
-        name: "BeOnPoint",
+        name: PRODUCT_NAME,
         url: baseUrl || undefined,
         splashImageUrl: `${baseUrl}/opengraph-image.png`,
         splashBackgroundColor: "#0F0F13",

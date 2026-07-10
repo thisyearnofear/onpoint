@@ -1,6 +1,7 @@
 # Features
 
-> **Organizing primitive**: every styling voice in OnPoint — human merchant, AI persona, or digital curator — is a `Curator` (see [ADR 0002](./adr/0002-curator-primitive.md)). Features below are composed against one Curator at a time on `/s/[slug]`, or against the full Curator set on the consumer dashboard.
+> **Vision:** [STRATEGY.md](./STRATEGY.md) — OnPoint is the fit-aware execution layer (human storefront + agent API over one supply graph).  
+> **Organizing primitive:** every supply voice — human merchant, AI persona, or digital curator — is a `Curator` ([ADR 0002](./adr/0002-curator-primitive.md)). Features compose against one Curator on `/s/[slug]` (and its machine-readable twin), or across the Curator set for discovery.
 
 ## Curator Storefronts (`/s/[slug]`)
 

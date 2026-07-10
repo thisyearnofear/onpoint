@@ -1,10 +1,12 @@
 # ADR 0002 — Curator Primitive & Stylist Storefronts
 
-- **Status:** Proposed — 2026-05-28 (amended 2026-05-28 for Wanja / chat-ops admin)
-- **Date:** 2026-05-28
+- **Status:** Accepted — organizing primitive still in force
+- **Date:** 2026-05-28 (amended 2026-05-28 for Wanja / chat-ops admin; vision pointer 2026-07-10)
 - **Deciders:** OnPoint core
 - **Supersedes:** —
-- **Related:** [ADR 0001](./0001-backend-first-autonomy.md), [ADR 0003 — Storage Strategy](./0003-storage-strategy.md), [ARCHITECTURE.md](../ARCHITECTURE.md), [ROADMAP.md](../ROADMAP.md), [FEATURES.md](../FEATURES.md)
+- **Related:** [STRATEGY.md](../STRATEGY.md) (canonical north star — supply graph + dual demand clients), [ADR 0001](./0001-backend-first-autonomy.md), [ADR 0003 — Storage Strategy](./0003-storage-strategy.md), [ARCHITECTURE.md](../ARCHITECTURE.md), [FEATURES.md](../FEATURES.md)
+
+> **2026-07-10:** Product strategy no longer ranks “curators primary / agents last.” Curators remain the **supply primitive**; humans and external agents are **co-equal demand clients** over the same inventory. See [STRATEGY.md](../STRATEGY.md). Operating principles below (one primitive, compose storefronts, no wallet before first try-on) still apply.
 
 ## Context
 

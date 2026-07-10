@@ -1,30 +1,33 @@
 # Architecture
 
+> **Product vision & phases:** [STRATEGY.md](./STRATEGY.md) — this doc owns system shape and data flow only.
+
 ## System Overview
 
-OnPoint is a monorepo containing a Next.js web app, AI provider abstractions, and a Python microservice for autonomous web browsing.
+OnPoint is a monorepo: Next.js presentation, Hetzner API/autonomy, AI providers, and a Python web-bridge. The product is a **fit-aware supply graph** with two demand clients (human UI + agent API) over one Curator inventory.
 
-The product is organized as three composable layers (see [ADR 0002](./adr/0002-curator-primitive.md)):
+Three composable layers ([ADR 0002](./adr/0002-curator-primitive.md)):
 
 ```diagram
 ╭──────────────────────────────────────────────────────────────╮
-│  LAYER 3 — The Loop   (consumer surface)                     │
-│  Try-on → Polaroid → Share → Buy → Memory → Re-engage        │
-│  Rendered on /s/[slug] by composing shipped components       │
+│  LAYER 3 — The Loop   (dual clients, one inventory)          │
+│  Human:  /s/[slug] → try-on → polaroid → WhatsApp/M-Pesa     │
+│  Agent:  directory/offers → x402 try-on → checkout → payout  │
+│  Same listings · same fit rail · different transport         │
 ╰────────────────────────────┬─────────────────────────────────╯
                              ▲
 ╭────────────────────────────┴─────────────────────────────────╮
 │  LAYER 2 — The Cast   (Curators: humans + AI + digital)      │
 │  Single schema in @onpoint/shared-types · Curator            │
-│  human   → apps/web/config/curators/*.json (seed archetypes) │
-│  ai      → apps/web/lib/utils/persona-config.ts (stylists)   │
-│  digital → Neon curators table (type: "ai", digital catalog) │
+│  = supply + taste acquisition (not a separate product)       │
+│  human   → config/curators + Neon                            │
+│  ai      → persona-config.ts (stylists)                      │
+│  digital → Neon (e.g. Nia) → physical funnel by tags         │
 ╰────────────────────────────┬─────────────────────────────────╯
                              ▲
 ╭────────────────────────────┴─────────────────────────────────╮
 │  LAYER 1 — The Engine                                        │
-│  AI providers · try-on · persistence · payments ·            │
-│  agent receipts (now: cross-Curator attribution)             │
+│  AI / try-on · stock · M-Pesa + cUSD · receipts · attribution│
 ╰──────────────────────────────────────────────────────────────╯
 ```
 
@@ -81,7 +84,7 @@ The product is organized as three composable layers (see [ADR 0002](./adr/0002-c
 | `apps/web/components/AICuratorSection.tsx` | AI Curator second opinion voices on human storefronts |
 | `apps/web/components/CrossCuratorRecommendations.tsx` | Cross-curator product recommendations with attribution tracking |
 | `apps/web/app/curator/onboard/page.tsx` | Self-serve Curator onboarding form |
-| `apps/web/app/lab/page.tsx` | Agent/web3 surface (TacticalDashboard) relocated here |
+| `apps/web/app/lab/page.tsx` | Power-user / own-agent tooling (not the demand hero) |
 | `apps/web/app/admin/analytics/CuratorComparisonTable.tsx` | Cross-curator comparison table with sparklines |
 | `apps/web/components/admin/TrendSparkline.tsx` | Shared sparkline, Bar, CSV export, SMA trend components |
 
