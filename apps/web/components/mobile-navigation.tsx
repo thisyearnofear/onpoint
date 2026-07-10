@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Menu, X, Palette, Sparkles, Users, Settings } from 'lucide-react';
+import { Menu, X, Palette, Camera, Store, FlaskConical } from 'lucide-react';
 import { Button } from '@repo/ui/button';
 import Link from 'next/link';
-import { EnhancedConnectButton } from './EnhancedConnectButton';
+import { CTA_LAB, CTA_SHOP, CTA_SUPPLY, PRODUCT_NAME } from '../lib/brand';
 
 interface MobileNavigationProps {
   showBackButton?: boolean;
@@ -15,7 +15,6 @@ export function MobileNavigation({ showBackButton = false }: MobileNavigationPro
 
   return (
     <>
-      {/* Mobile menu button */}
       <Button
         variant="ghost"
         size="icon"
@@ -25,7 +24,6 @@ export function MobileNavigation({ showBackButton = false }: MobileNavigationPro
         {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
       </Button>
 
-      {/* Mobile menu overlay */}
       {isOpen && (
         <div className="md:hidden fixed inset-0 z-40 bg-background/80 backdrop-blur-sm">
           <div className="fixed inset-y-0 right-0 w-full max-w-sm bg-card border-l flex flex-col">
@@ -33,7 +31,7 @@ export function MobileNavigation({ showBackButton = false }: MobileNavigationPro
               <div className="flex items-center gap-2">
                 <Palette className="h-6 w-6 text-primary" />
                 <span className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  BeOnPoint
+                  {PRODUCT_NAME}
                 </span>
               </div>
               <Button
@@ -55,42 +53,26 @@ export function MobileNavigation({ showBackButton = false }: MobileNavigationPro
               ) : null}
 
               <Button asChild variant="ghost" className="justify-start">
-                <Link href="/collage" onClick={() => setIsOpen(false)}>
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Collage Creator
+                <Link href={CTA_SHOP.href} onClick={() => setIsOpen(false)}>
+                  <Camera className="h-4 w-4 mr-2" />
+                  {CTA_SHOP.label}
                 </Link>
               </Button>
 
               <Button asChild variant="ghost" className="justify-start">
-                <Link href="/style" onClick={() => setIsOpen(false)}>
-                  <Palette className="h-4 w-4 mr-2" />
-                  Style Lab
+                <Link href={CTA_SUPPLY.href} onClick={() => setIsOpen(false)}>
+                  <Store className="h-4 w-4 mr-2" />
+                  {CTA_SUPPLY.label}
                 </Link>
               </Button>
 
               <Button asChild variant="ghost" className="justify-start">
-                <Link href="/social" onClick={() => setIsOpen(false)}>
-                  <Users className="h-4 w-4 mr-2" />
-                  Social
+                <Link href={`${CTA_LAB.href}?tab=try-on`} onClick={() => setIsOpen(false)}>
+                  <FlaskConical className="h-4 w-4 mr-2" />
+                  Lab try-on
                 </Link>
               </Button>
-
-              <div className="border-t border-border pt-4 mt-2">
-                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2 px-3">
-                  Accounts
-                </p>
-                <Button asChild variant="ghost" className="justify-start text-muted-foreground hover:text-foreground">
-                  <Link href="/?tab=settings" onClick={() => setIsOpen(false)}>
-                    <Settings className="h-4 w-4 mr-2" />
-                    Connected Accounts
-                  </Link>
-                </Button>
-              </div>
             </nav>
-
-            <div className="p-4 border-t">
-              <EnhancedConnectButton className="w-full" />
-            </div>
           </div>
         </div>
       )}

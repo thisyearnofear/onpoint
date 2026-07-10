@@ -60,6 +60,8 @@ function curatorSellerBps(curator) {
  */
 function buildListingAgentCommerce(curator, listing) {
   if (!curatorPayoutAddress(curator)) return null;
+  // Digital designs are try-on only — never expose purchase offers.
+  if (listing?.inventoryType === 'digital') return null;
 
   const offers = (Array.isArray(listing.sizes) ? listing.sizes : [])
     .filter((entry) => Number(entry.stock) > 0)

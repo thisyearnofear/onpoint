@@ -16,8 +16,11 @@ interface CuratorRow {
   createdAt: string;
   channels: { whatsapp?: string };
   brand: { colors?: { primary?: string } };
-  commerce: { checkout?: string };
+  commerce: { checkout?: string; walletAddress?: string };
   listingCount: number;
+  physicalLiveCount?: number;
+  hasWallet?: boolean;
+  agentPurchasable?: boolean;
 }
 
 interface ListResponse {
@@ -31,7 +34,11 @@ async function getCurators(): Promise<ListResponse> {
       cache: "no-store",
     });
     if (!res.ok) return { curators: [], total: 0 };
-    return res.json();
+    const data = await res.json();
+    return {
+      curators: data.curators ?? [],
+      total: data.total ?? data.meta?.total ?? 0,
+    };
   } catch {
     return { curators: [], total: 0 };
   }
@@ -51,6 +58,7 @@ function formatDate(iso: string) {
 
 export default async function CuratorListPage() {
   const { curators: rows, total } = await getCurators();
+  const agentReady = rows.filter((c) => c.agentPurchasable).length;
 
   return (
     <div className="space-y-6">
@@ -60,6 +68,10 @@ export default async function CuratorListPage() {
           <h1 className="text-2xl font-black tracking-tight">Curators</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {total} curator{total !== 1 ? "s" : ""} registered
+            {" · "}
+            <span className={agentReady > 0 ? "text-emerald-600" : undefined}>
+              {agentReady} agent-purchasable
+            </span>
           </p>
         </div>
         <Link
@@ -101,6 +113,9 @@ export default async function CuratorListPage() {
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                   Listings
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                  Agent
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                   Checkout
@@ -170,7 +185,27 @@ export default async function CuratorListPage() {
                     >
                       <ShoppingBag className="h-3 w-3" />
                       {curator.listingCount}
+                      {typeof curator.physicalLiveCount === "number" && (
+                        <span className="text-[10px] opacity-70">
+                          ({curator.physicalLiveCount} phys)
+                        </span>
+                      )}
                     </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {curator.agentPurchasable ? (
+                      <span className="inline-flex rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-600">
+                        Ready
+                      </span>
+                    ) : curator.hasWallet ? (
+                      <span className="inline-flex rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+                        Wallet only
+                      </span>
+                    ) : (
+                      <span className="inline-flex rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                        No wallet
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     {curator.channels?.whatsapp ? (

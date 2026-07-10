@@ -567,22 +567,23 @@ export default function CuratorOnboardPage() {
               <label className="mb-1.5 flex items-center gap-2 text-sm font-medium">
                 <Wallet className="h-4 w-4 text-amber-500" />
                 Payout wallet
-                <span className="text-xs font-normal text-muted-foreground">
-                  (optional, unlocks AI agent sales)
+                <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                  Needed for agent sales
                 </span>
               </label>
               <input
                 type="text"
                 value={data.walletAddress}
                 onChange={(e) => handleChange("walletAddress", e.target.value)}
-                placeholder="0x…"
+                placeholder="0x… (MiniPay / Celo)"
                 className={`w-full rounded-xl border bg-card px-4 py-3 font-mono text-sm outline-none transition-all placeholder:text-muted-foreground/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/10 ${
                   errors.walletAddress ? "border-destructive/50" : "border-border"
                 }`}
               />
               <p className="mt-1.5 text-xs text-muted-foreground">
-                Your Celo wallet (MiniPay works). AI agents can then buy from your
-                storefront and you get paid in cUSD, instantly and on-chain.
+                Add a Celo address so AI agents can buy your stock and pay you in cUSD
+                on-chain. WhatsApp/M-Pesa still works without it — agents do not.
+                You can paste a MiniPay address.
               </p>
               {errors.walletAddress && (
                 <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">

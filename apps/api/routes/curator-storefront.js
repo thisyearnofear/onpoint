@@ -127,23 +127,45 @@ router.get('/directory', async (req, res) => {
           AND ${listings.status} = 'live'
           AND ${listings.inventoryType} = 'digital'
         )`.as('digital_listing_count'),
+        physicalListingCount: sql`(
+          SELECT COUNT(*)::int FROM ${listings}
+          WHERE ${listings.curatorSlug} = ${curators.slug}
+          AND ${listings.status} = 'live'
+          AND (${listings.inventoryType} IS DISTINCT FROM 'digital')
+        )`.as('physical_listing_count'),
       })
       .from(curators)
       .orderBy(desc(curators.createdAt));
 
-    res.json({
-      // Expose whether each curator accepts on-chain agent orders, but never
-      // the raw commerce config (wallet stays visible only via the 402 flow).
-      curators: rows.map(({ commerce, ...row }) => ({
+    const onlyPurchasable = String(req.query.agentPurchasable || '') === '1'
+      || String(req.query.agentPurchasable || '').toLowerCase() === 'true';
+
+    const mapped = rows.map(({ commerce, ...row }) => {
+      const hasWallet = Boolean(curatorPayoutAddress({ commerce }));
+      const physicalListingCount = Number(row.physicalListingCount) || 0;
+      return {
         ...row,
-        agentCommerceEnabled: Boolean(curatorPayoutAddress({ commerce })),
-        // Digital curators offer try-on even without a payout address —
-        // the try-on payment goes to the platform wallet or a split.
+        physicalListingCount,
+        // Backward-compatible: wallet configured (may still have zero offers).
+        agentCommerceEnabled: hasWallet,
+        // Phase 1 metric: wallet + at least one live physical listing.
+        agentPurchasable: hasWallet && physicalListingCount > 0,
         digitalTryOnEnabled: row.digitalListingCount > 0,
-      })),
+      };
+    });
+
+    const curatorsOut = onlyPurchasable
+      ? mapped.filter((c) => c.agentPurchasable)
+      : mapped;
+
+    res.json({
+      curators: curatorsOut,
       meta: {
-        total: rows.length,
+        total: curatorsOut.length,
+        agentPurchasableCount: mapped.filter((c) => c.agentPurchasable).length,
+        agentCommerceEnabledCount: mapped.filter((c) => c.agentCommerceEnabled).length,
         generatedAt: new Date().toISOString(),
+        filter: onlyPurchasable ? 'agentPurchasable' : null,
       },
     });
   } catch (err) {

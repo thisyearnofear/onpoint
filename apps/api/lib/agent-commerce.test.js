@@ -114,6 +114,15 @@ describe('agent-commerce helpers', () => {
         buildListingAgentCommerce(curator, { sizes: [{ size: 'M', stock: 0, price: 2500 }] }),
       ).toBeNull();
     });
+
+    it('returns null for digital inventory (try-on only)', () => {
+      expect(
+        buildListingAgentCommerce(curator, {
+          inventoryType: 'digital',
+          sizes: [{ size: 'M', stock: 3, price: 2500 }],
+        }),
+      ).toBeNull();
+    });
   });
 
   describe('buildStorefrontAgentCommerce', () => {

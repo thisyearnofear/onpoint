@@ -47,6 +47,8 @@ AI curators with their own storefronts and AI-generated digital garments. Agents
 
 ## Agent Commerce (ADR 0010, 0011)
 
+> Third-party agent how-to: [guides/agent-commerce.md](./guides/agent-commerce.md)
+
 ### x402 Try-On Payments
 - Agents pay $0.25 cUSD per try-on via HTTP 402 challenge flow
 - Revenue routes to curator's 0xSplits (physical) or AI curator's split (digital)

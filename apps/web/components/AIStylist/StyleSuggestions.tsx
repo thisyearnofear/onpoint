@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
-import { Sparkles, ShoppingBag, Palette, Camera, ExternalLink } from "lucide-react";
+import { Sparkles, ShoppingBag, Palette, Camera } from "lucide-react";
 import type { StyleSuggestion } from "@repo/ai-client";
 
 interface StyleSuggestionsProps {
@@ -64,31 +64,23 @@ export function StyleSuggestions({ suggestions }: StyleSuggestionsProps) {
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button
               variant="outline"
-              onClick={() => window.open('/collage', '_blank')}
+              onClick={() => window.open('/lab?tab=try-on', '_blank')}
               className="flex items-center gap-2 border-primary/30 text-primary hover:bg-primary/5"
-            >
-              <Palette className="h-4 w-4" />
-              Create Visual Board
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => window.open('/style', '_blank')}
-              className="flex items-center gap-2 border-accent/30 text-accent hover:bg-accent/5"
             >
               <Camera className="h-4 w-4" />
               Try On Virtually
             </Button>
             <Button
               variant="outline"
-              onClick={() => window.open('/', '_blank')}
-              className="flex items-center gap-2 border-muted-foreground/30 text-muted-foreground hover:bg-muted/5"
+              onClick={() => window.open('/curators', '_blank')}
+              className="flex items-center gap-2 border-accent/30 text-accent hover:bg-accent/5"
             >
-              <ExternalLink className="h-4 w-4" />
-              Design Studio
+              <Palette className="h-4 w-4" />
+              Shop storefronts
             </Button>
           </div>
           <p className="text-center text-xs text-muted-foreground mt-3">
-            Take your styling session further with our integrated tools
+            Continue in Lab try-on or browse live curator inventory
           </p>
         </div>
       </CardContent>

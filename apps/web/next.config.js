@@ -80,6 +80,16 @@ const nextConfig = {
     }
     return headers;
   },
+  async redirects() {
+    // PHASE1_AUDIT: kill collage/style playgrounds; keep Lab as power surface.
+    return [
+      { source: '/style', destination: '/lab?tab=try-on', permanent: true },
+      { source: '/style/:path*', destination: '/lab?tab=try-on', permanent: true },
+      { source: '/collage', destination: '/lab?tab=try-on', permanent: true },
+      { source: '/collage/:path*', destination: '/lab?tab=try-on', permanent: true },
+      { source: '/social', destination: '/curators', permanent: false },
+    ];
+  },
 };
 
 export default nextConfig;

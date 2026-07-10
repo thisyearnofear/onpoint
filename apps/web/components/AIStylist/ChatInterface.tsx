@@ -256,12 +256,12 @@ export function ChatInterface({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.open('/collage', '_blank')}
+              onClick={() => window.open('/lab?tab=try-on', '_blank')}
               className="border-accent/30 text-accent hover:bg-accent/5 h-8 text-xs px-2"
-              title="Create visual inspiration board"
+              title="Open Lab try-on"
             >
               <Palette className="h-3 w-3 mr-1" />
-              Collage
+              Try-on
             </Button>
             {messages.length > 0 && (
               <Button

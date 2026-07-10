@@ -33,9 +33,8 @@ Audit of surfaces vs densify supply / improve fit / improve settlement for human
 
 | Surface | Rationale |
 |---------|-----------|
-| `/style` vs Lab Try On | Duplicate stylist entry — keep one, redirect the other |
-| `/collage` | STRATEGY kill list (design studio / collage) |
-| `/social` | Likely orphan social surface — verify traffic then remove |
+| `/style`, `/collage` | Redirect → `/lab?tab=try-on` (pages deleted) |
+| `/social` | Soft redirect → `/curators` (page kept for now) |
 | Homepage persona carousel in hero | Decision paralysis; move below fold or drop from first viewport |
 | Homepage `EnhancedConnectButton` | Wallet before value — hide on marketing `/` |
 

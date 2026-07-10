@@ -55,51 +55,62 @@ router.get('/', async (req, res) => {
       .select({ total: count() })
       .from(curators);
 
+    const selectShape = {
+      slug: curators.slug,
+      name: curators.name,
+      type: curators.type,
+      verticals: curators.verticals,
+      createdAt: curators.createdAt,
+      channels: curators.channels,
+      brand: curators.brand,
+      commerce: curators.commerce,
+      listingCount: sql`(
+        SELECT COUNT(*)::int FROM ${listings}
+        WHERE ${listings.curatorSlug} = ${curators.slug}
+      )`.as('listing_count'),
+      physicalLiveCount: sql`(
+        SELECT COUNT(*)::int FROM ${listings}
+        WHERE ${listings.curatorSlug} = ${curators.slug}
+        AND ${listings.status} = 'live'
+        AND (${listings.inventoryType} IS DISTINCT FROM 'digital')
+      )`.as('physical_live_count'),
+    };
+
     let rows;
     if (limit) {
       rows = await db
-        .select({
-          slug: curators.slug,
-          name: curators.name,
-          type: curators.type,
-          verticals: curators.verticals,
-          createdAt: curators.createdAt,
-          channels: curators.channels,
-          brand: curators.brand,
-          commerce: curators.commerce,
-          listingCount: sql`(
-            SELECT COUNT(*)::int FROM ${listings}
-            WHERE ${listings.curatorSlug} = ${curators.slug}
-          )`.as('listing_count'),
-        })
+        .select(selectShape)
         .from(curators)
         .orderBy(desc(curators.createdAt))
         .limit(limit)
         .offset(offset);
     } else {
       rows = await db
-        .select({
-          slug: curators.slug,
-          name: curators.name,
-          type: curators.type,
-          verticals: curators.verticals,
-          createdAt: curators.createdAt,
-          channels: curators.channels,
-          brand: curators.brand,
-          commerce: curators.commerce,
-          listingCount: sql`(
-            SELECT COUNT(*)::int FROM ${listings}
-            WHERE ${listings.curatorSlug} = ${curators.slug}
-          )`.as('listing_count'),
-        })
+        .select(selectShape)
         .from(curators)
         .orderBy(desc(curators.createdAt));
     }
 
+    const enriched = rows.map((row) => {
+      const hasWallet = Boolean(
+        row.commerce?.walletAddress
+        && /^0x[0-9a-fA-F]{40}$/.test(String(row.commerce.walletAddress)),
+      );
+      const physicalLiveCount = Number(row.physicalLiveCount) || 0;
+      return {
+        ...row,
+        physicalLiveCount,
+        hasWallet,
+        agentPurchasable: hasWallet && physicalLiveCount > 0,
+      };
+    });
+
     res.json({
-      curators: rows,
+      curators: enriched,
+      total: countResult?.total || 0,
       meta: {
         total: countResult?.total || 0,
+        agentPurchasableCount: enriched.filter((c) => c.agentPurchasable).length,
         limit,
         offset,
       },
