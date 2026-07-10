@@ -63,6 +63,8 @@ scripts/
 !scripts/setup-secrets.sh
 !scripts/sync-monitoring.sh
 !scripts/test-routes.sh
+!scripts/agent-commerce-ready.mjs
+!scripts/agent-buyer.mjs
 !apps/web/scripts/test-upstash.mjs
 
 # Secrets (note: .synthesis-credentials is still tracked in git history —
