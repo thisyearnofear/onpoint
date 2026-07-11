@@ -20,7 +20,7 @@ import { CrossCuratorRecommendations } from "../../../components/CrossCuratorRec
 import { AICuratorSection } from "../../../components/AICuratorSection";
 import { MpesaPaymentPanel } from "./MpesaPaymentPanel";
 import { GStreamPanel } from "../../../components/Curator/GStreamPanel";
-import { CuratorInventoryPanel } from "../../../components/CuratorInventoryPanel";
+import { CuratorOwnerTools } from "../../../components/Curator/CuratorOwnerTools";
 import { TransitionLink } from "../../../components/ViewTransition";
 import { getApiBase } from "../../../lib/utils/api-base";
 
@@ -336,7 +336,7 @@ export default async function CuratorStorefrontPage({
 
       <section className="mx-auto max-w-6xl px-4 py-10">
         {/* Curator inventory panel (only visible to the curator themselves) */}
-        <CuratorInventoryPanel curatorSlug={slug} />
+        <CuratorOwnerTools curatorSlug={slug} curatorName={curator.name} />
 
         <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
           <div>

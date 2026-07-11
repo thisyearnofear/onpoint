@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Plus, Package, ChevronDown, ChevronUp } from "lucide-react";
+import { useState } from "react";
+import { Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { InventoryForm } from "./InventoryForm";
+import { useCuratorOwner } from "../lib/hooks/use-curator-owner";
 
 interface CuratorInventoryPanelProps {
   curatorSlug: string;
+  /** Parent already verified owner (e.g. CuratorOwnerTools). */
+  skipOwnerCheck?: boolean;
 }
 
 /**
@@ -18,23 +21,14 @@ interface CuratorInventoryPanelProps {
  * onboarding). In a future iteration this should use a proper
  * auth session.
  */
-export function CuratorInventoryPanel({ curatorSlug }: CuratorInventoryPanelProps) {
-  const [isOwner, setIsOwner] = useState(false);
+export function CuratorInventoryPanel({
+  curatorSlug,
+  skipOwnerCheck = false,
+}: CuratorInventoryPanelProps) {
+  const isOwner = useCuratorOwner(curatorSlug);
   const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    // Check if this is the curator's own storefront
-    try {
-      const lastSlug = localStorage.getItem("onpoint_curator_slug");
-      if (lastSlug === curatorSlug) {
-        setIsOwner(true);
-      }
-    } catch {
-      // localStorage not available
-    }
-  }, [curatorSlug]);
-
-  if (!isOwner) return null;
+  if (!skipOwnerCheck && !isOwner) return null;
 
   return (
     <div className="mb-6">

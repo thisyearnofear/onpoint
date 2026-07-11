@@ -7,7 +7,6 @@ import {
   Check,
   CheckCircle2,
   Copy,
-  Camera,
   Globe,
   Loader2,
   MessageCircle,
@@ -29,6 +28,8 @@ import { GClaimCTA } from "../../../components/Curator/GClaimCTA";
 import { ShareKit } from "../../../components/ShareKit";
 import { OnboardingChecklist } from "../../../components/OnboardingChecklist";
 import { CuratorPayoutWalletPanel } from "../../../components/Curator/CuratorPayoutWalletPanel";
+import { CuratorHomePanel } from "../../../components/Curator/CuratorHomePanel";
+import { markCuratorOwner } from "../../../lib/hooks/use-curator-owner";
 
 // ── Valid verticals (mirrors server-side list) ──────────────
 
@@ -217,7 +218,7 @@ export default function CuratorOnboardPage() {
           // the curator is visiting their own page and show the
           // inventory panel
           try {
-            localStorage.setItem("onpoint_curator_slug", data.slug);
+            markCuratorOwner(data.slug);
           } catch {
             // localStorage not available
           }
@@ -298,35 +299,19 @@ export default function CuratorOnboardPage() {
             </button>
           </div>
 
+          {/* Curator home — stats, brief preview, agent channel */}
+          <div className="mt-8 w-full">
+            <CuratorHomePanel
+              curatorSlug={data.slug}
+              curatorName={data.name || "Curator"}
+              storefrontUrl={storefrontUrl}
+              compact
+            />
+          </div>
+
           {/* Progress checklist */}
           <div className="mt-8 w-full">
             <OnboardingChecklist curatorSlug={data.slug} storefrontUrl={storefrontUrl} />
-          </div>
-
-          {/* See what your customers see — interactive demo */}
-          <div className="mt-10 w-full">
-            <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-6 text-left">
-              <div className="flex items-center gap-2 mb-3">
-                <Camera className="h-5 w-5 text-primary" />
-                <h2 className="text-lg font-bold">See what your customers see</h2>
-              </div>
-              <p className="text-sm text-muted-foreground mb-4">
-                Before you add inventory, try the AI try-on yourself. This is exactly
-                what your customers will experience when they visit your storefront.
-              </p>
-              <Link
-                href="/s/wanja?demo=1"
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white transition-all hover:bg-primary/90 hover:shadow-lg"
-              >
-                <Camera className="h-4 w-4" />
-                Try the AI try-on now
-                <ArrowLeft className="h-3.5 w-3.5 rotate-180" />
-              </Link>
-              <p className="mt-3 text-xs text-muted-foreground">
-                Opens Wanja&apos;s storefront (our example curator). Pick any item,
-                click &ldquo;Try with AI&rdquo;, and see the polaroid your customers get.
-              </p>
-            </div>
           </div>
 
           <div className="mt-8 w-full space-y-4 text-left">
@@ -365,40 +350,6 @@ export default function CuratorOnboardPage() {
                   </p>
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* What you'll receive — try-on brief preview */}
-          <div className="mt-8 w-full">
-            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6 text-left">
-              <div className="flex items-center gap-2 mb-3">
-                <MessageCircle className="h-5 w-5 text-emerald-500" />
-                <h2 className="text-lg font-bold">What you&apos;ll receive on WhatsApp</h2>
-              </div>
-              <p className="text-sm text-muted-foreground mb-4">
-                When a customer tries on an item on your storefront and clicks &ldquo;Ask {data.name || "the curator"}&rdquo;,
-                you&apos;ll get a WhatsApp message that looks like this:
-              </p>
-              {/* Mock WhatsApp message */}
-              <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/30 p-4 border border-emerald-200 dark:border-emerald-900">
-                <div className="flex items-start gap-2">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-xs font-bold text-white">
-                    C
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400 mb-1">Customer</p>
-                    <div className="rounded-lg bg-white dark:bg-background border border-border px-3 py-2 text-sm text-foreground shadow-sm">
-                      Hi {data.name || "there"}, I tried on the <strong>Arsenal Home Kit</strong> in <strong>M</strong> on OnPoint and it fits well.
-                      I&apos;d like <strong>#7 printed</strong>. Do you have it in stock? Ready to pay via M-Pesa.
-                    </div>
-                    <p className="mt-1 text-[10px] text-muted-foreground">via OnPoint try-on · just now</p>
-                  </div>
-                </div>
-              </div>
-              <p className="mt-3 text-xs text-muted-foreground">
-                One message with everything you need: the item, the size, the fit result, and the printing request.
-                You just confirm stock and share your payment details.
-              </p>
             </div>
           </div>
 

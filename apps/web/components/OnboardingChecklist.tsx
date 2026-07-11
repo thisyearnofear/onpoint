@@ -127,7 +127,7 @@ export function OnboardingChecklist({ curatorSlug, storefrontUrl }: OnboardingCh
       label: "Try on your own item",
       description: "Experience what your customers see",
       icon: Camera,
-      href: "/s/wanja?demo=1",
+      href: storefrontUrl,
       ctaLabel: "Try it",
     },
     share: {
