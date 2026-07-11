@@ -20,6 +20,10 @@ const { drizzle } = require('drizzle-orm/neon-http');
 const { eq } = require('drizzle-orm');
 const { curators } = require('@repo/db');
 const logger = require('../lib/logger');
+const {
+  generateCustodialWallet,
+  buildCommerceWithCustodialWallet,
+} = require('../lib/curator-payout-wallets');
 
 const router = express.Router();
 
@@ -94,6 +98,9 @@ function validate(body) {
   if (body.walletAddress && !/^0x[0-9a-fA-F]{40}$/.test(body.walletAddress)) {
     errors.push('walletAddress must be a valid 0x address (Celo wallet for cUSD payouts)');
   }
+  if (body.provisionCustodialWallet !== undefined && typeof body.provisionCustodialWallet !== 'boolean') {
+    errors.push('provisionCustodialWallet must be a boolean');
+  }
 
   // Optional: verticals — warn about unknown ones but don't reject
   if (body.verticals) {
@@ -146,7 +153,24 @@ router.post('/', async (req, res) => {
     });
   }
 
-  const { slug, name, whatsapp, verticals, brand, walletAddress } = req.body;
+  const { slug, name, whatsapp, verticals, brand, walletAddress, provisionCustodialWallet } = req.body;
+
+  let resolvedWalletAddress = walletAddress;
+  let initialCommerce = {
+    checkout: 'whatsapp',
+    revShare: 0.05,
+    ...(resolvedWalletAddress ? {
+      walletAddress: resolvedWalletAddress,
+      payoutWalletStatus: 'curator_owned',
+      payoutWalletProvider: 'manual',
+    } : {}),
+  };
+
+  if (!resolvedWalletAddress && provisionCustodialWallet) {
+    const { address } = generateCustodialWallet(slug);
+    resolvedWalletAddress = address;
+    initialCommerce = buildCommerceWithCustodialWallet(initialCommerce, address);
+  }
 
   try {
     // Insert with ON CONFLICT DO NOTHING — handles the race condition
@@ -165,11 +189,7 @@ router.post('/', async (req, res) => {
           colors: { primary: '#1a1a2e', accent: '#e94560' },
           location: { city: '', landmark: '' },
         },
-        commerce: {
-          checkout: 'whatsapp',
-          revShare: 0.05,
-          ...(walletAddress ? { walletAddress } : {}),
-        },
+        commerce: initialCommerce,
       })
       .onConflictDoNothing();
 
@@ -189,9 +209,9 @@ router.post('/', async (req, res) => {
     // provided a wallet address. Fire-and-forget — the curator doesn't
     // wait for the on-chain tx. The split address is persisted to
     // commerce.splitAddress once deployed.
-    if (walletAddress) {
+    if (resolvedWalletAddress && initialCommerce.payoutWalletStatus === 'curator_owned') {
       const { deployCuratorSplit } = require('../lib/split-setup');
-      deployCuratorSplit(walletAddress, 0.05)
+      deployCuratorSplit(resolvedWalletAddress, 0.05)
         .then(async ({ splitAddress, txHash }) => {
           try {
             const db2 = getDb();

@@ -28,6 +28,7 @@ import { getApiBase } from "../../../lib/utils/api-base";
 import { GClaimCTA } from "../../../components/Curator/GClaimCTA";
 import { ShareKit } from "../../../components/ShareKit";
 import { OnboardingChecklist } from "../../../components/OnboardingChecklist";
+import { CuratorPayoutWalletPanel } from "../../../components/Curator/CuratorPayoutWalletPanel";
 
 // ── Valid verticals (mirrors server-side list) ──────────────
 
@@ -63,6 +64,8 @@ type FormData = {
   name: string;
   whatsapp: string;
   walletAddress: string;
+  payoutWalletStatus: "unset" | "platform_custodial" | "curator_owned";
+  provisionCustodialOnApply: boolean;
   verticals: string[];
   brandPrimary: string;
   brandAccent: string;
@@ -108,6 +111,8 @@ export default function CuratorOnboardPage() {
     name: "",
     whatsapp: "",
     walletAddress: "",
+    payoutWalletStatus: "unset",
+    provisionCustodialOnApply: false,
     verticals: ["football"],
     brandPrimary: "#1a1a2e",
     brandAccent: "#e94560",
@@ -185,6 +190,8 @@ export default function CuratorOnboardPage() {
             name: data.name,
             whatsapp: data.whatsapp || undefined,
             walletAddress: data.walletAddress || undefined,
+            provisionCustodialWallet:
+              data.provisionCustodialOnApply && !data.walletAddress,
             verticals: data.verticals,
             brand: {
               colors: {
@@ -564,27 +571,45 @@ export default function CuratorOnboardPage() {
 
             {/* Payout wallet */}
             <div>
-              <label className="mb-1.5 flex items-center gap-2 text-sm font-medium">
+              <label className="mb-3 flex items-center gap-2 text-sm font-medium">
                 <Wallet className="h-4 w-4 text-amber-500" />
                 Payout wallet
                 <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
                   Needed for agent sales
                 </span>
               </label>
-              <input
-                type="text"
-                value={data.walletAddress}
-                onChange={(e) => handleChange("walletAddress", e.target.value)}
-                placeholder="0x… (MiniPay / Celo)"
-                className={`w-full rounded-xl border bg-card px-4 py-3 font-mono text-sm outline-none transition-all placeholder:text-muted-foreground/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/10 ${
-                  errors.walletAddress ? "border-destructive/50" : "border-border"
-                }`}
-              />
-              <p className="mt-1.5 text-xs text-muted-foreground">
-                Add a Celo address so AI agents can buy your stock and pay you in cUSD
-                on-chain. WhatsApp/M-Pesa still works without it — agents do not.
-                You can paste a MiniPay address.
-              </p>
+              {data.slug && data.whatsapp ? (
+                <CuratorPayoutWalletPanel
+                  slug={data.slug}
+                  whatsapp={data.whatsapp}
+                  initialWallet={data.walletAddress}
+                  initialStatus={data.payoutWalletStatus}
+                  compact
+                  deferApi
+                  onRequestCustodial={() => {
+                    setData((prev) => ({
+                      ...prev,
+                      provisionCustodialOnApply: true,
+                      payoutWalletStatus: "platform_custodial",
+                    }));
+                  }}
+                  onWalletChange={(address, status) => {
+                    setData((prev) => ({
+                      ...prev,
+                      walletAddress: address,
+                      payoutWalletStatus: status,
+                      provisionCustodialOnApply:
+                        status === "platform_custodial" ? prev.provisionCustodialOnApply : false,
+                    }));
+                    setErrors((prev) => ({ ...prev, walletAddress: undefined }));
+                  }}
+                />
+              ) : (
+                <p className="rounded-xl border border-dashed border-border bg-muted/20 px-4 py-3 text-xs text-muted-foreground">
+                  Enter your storefront slug and WhatsApp number above, then choose how
+                  to receive agent payouts — no seed phrase required.
+                </p>
+              )}
               {errors.walletAddress && (
                 <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
                   <AlertCircle className="h-3 w-3" />

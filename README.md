@@ -78,7 +78,7 @@ See [Getting Started](docs/GETTING_STARTED.md) for env vars and full setup.
 | [Features](docs/FEATURES.md) | Feature specs |
 | [Getting Started](docs/GETTING_STARTED.md) | Setup & deploy |
 | [Monitoring](docs/MONITORING.md) | Ops dashboards |
-| [Guides](docs/guides/) | Auth, WhatsApp, MiniPay, [Agent commerce](docs/guides/agent-commerce.md) |
+| [Guides](docs/guides/) | Auth, WhatsApp, MiniPay, [Agent commerce](docs/guides/agent-commerce.md), [Curator wallets](docs/guides/curator-payout-wallets.md) |
 | [ADRs](docs/adr/) | Decision records |
 
 ---

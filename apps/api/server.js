@@ -279,6 +279,7 @@ app.use('/api/agent/try-on', json10mb, veniceRateLimit, require('./routes/agent-
 // Self-serve curator onboarding (ADR 0002). No API key needed.
 
 app.use('/api/curator/apply', json1k, generalRateLimit, require('./routes/curator-apply'));
+app.use('/api/curator', json1k, generalRateLimit, require('./routes/curator-wallet'));
 app.use('/api/curator', json1k, generalRateLimit, require('./routes/curator-storefront'));
 
 // ── Listing Routes (public, rate-limited) ───────────────────────

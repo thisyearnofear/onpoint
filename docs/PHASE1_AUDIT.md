@@ -1,6 +1,6 @@
 # Phase 1 Audit — Supply Graph Readiness
 
-**Date:** 2026-07-10 (updated same day after WS0–5)  
+**Date:** 2026-07-11 (custodial + Magic curator wallets)  
 **North star:** [STRATEGY.md](./STRATEGY.md)
 
 Enhancement first; delete don’t deprecate.
@@ -18,6 +18,8 @@ Enhancement first; delete don’t deprecate.
 | WS5 consolidate | ✅ `/style` + `/collage` deleted (redirect → Lab); `/social` deleted (redirect → `/curators`) |
 | Admin wallet edit | ✅ `/admin/curators/[slug]` WalletEditor + `PATCH .../commerce` |
 | Third-party agent metrics | ✅ `apps/api/lib/agent-demand.js` |
+| Custodial payout bootstrap | ✅ `curator-payout-wallets.js`, admin batch + `/curator/wallet` |
+| Magic embedded wallets | ✅ `magic-wallet.ts` + Netlify `NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY` |
 
 ---
 
@@ -27,7 +29,7 @@ Enhancement first; delete don’t deprecate.
 |---------|-----|
 | `/s/[slug]` + storefront API | Canonical catalog (human + agent) |
 | Try-on (web + `/api/agent/try-on`) | Fit rail |
-| `/curator`, `/curator/onboard`, WhatsApp ingest | Supply acquisition |
+| `/curator`, `/curator/onboard`, `/curator/wallet`, WhatsApp ingest | Supply acquisition + payout wallets |
 | `/curators` | Human demand entry |
 | `/admin/curators/*` | Ops — wallet + agent-ready badge |
 | `agent.json`, directory `?agentPurchasable=1` | Agent demand path |
@@ -60,17 +62,29 @@ Enhancement first; delete don’t deprecate.
 | Third-party try-ons / orders | Logs + Prometheus `agent_try_on_third_party` / `agent_order_third_party` |
 | Human try-on → purchase | Curator funnel analytics |
 
-### Prod snapshot (2026-07-10)
+### Prod snapshot (2026-07-11)
 
-**API deployed** (`releases/api/20260710-140822`) — directory now returns `physicalListingCount` + `agentPurchasable`.
+**Prior (2026-07-10):** API `20260710-140822` — 13 curators, **0** agent-purchasable; **7** stocked humans awaiting wallets (wanja, zara, mo, juma, grace, fatima, amara).
 
-- 13 curators; **0** agent-purchasable (**0** wallets configured)
-- Human curators with live physical stock awaiting wallets: **wanja (20), zara, mo, juma, grace, fatima, amara (5 each)** → **7** ready once wallets are set
-- Digital: **nia** (8 digital, try-on only — not agent-purchasable for physical orders)
+**Now:**
 
-**Ops playbook to hit ≥5:** Open `/admin/curators/[slug]` for any five of the stocked humans → paste MiniPay/Celo payout address → Save wallet → optional Setup 0xSplit → `node scripts/agent-commerce-ready.mjs` until `ready: true`.
+- Netlify: `NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY` set — redeploy web for Magic CTA on `/curator/onboard`
+- Hetzner: `MAGIC_SECRET_KEY` on API `.env`
+- **Pending after API deploy:** custodial batch → expect ≥5 `agentPurchasable`
+
+**Deployed 2026-07-11:** API `20260711-105003` · custodial batch provisioned **7** agent-purchasable curators (wanja, zara, mo, juma, grace, fatima, amara). Verify: `node scripts/agent-commerce-ready.mjs` → `ready: true`.
+
+**Ops playbook to hit ≥5:**
+
+1. Deploy API (custodial routes + `CURATOR_PAYOUT_KEYS_PATH` on Hetzner, chmod 600)
+2. `SERVICE_API_KEY=… node scripts/bootstrap-curator-payout-wallets.mjs` — or admin **Generate custodial** per slug
+3. `node scripts/agent-commerce-ready.mjs` until `ready: true`
+4. Curators self-serve: `/curator/onboard` or `/curator/wallet` — Magic, MiniPay, or custodial
+5. After curator-owned wallet: admin **Setup 0xSplit** (skip while `platform_custodial`)
+
+Guide: [curator-payout-wallets.md](./guides/curator-payout-wallets.md)
 
 ---
 
 **Owner:** Product  
-**Next:** Set ≥5 curator payout wallets via admin · chase third-party agent calls
+**Next:** Deploy API · run bootstrap script · verify directory · chase third-party agent calls

@@ -36,6 +36,14 @@ node scripts/agent-commerce-ready.mjs
 ```
 
 Admin UI (`/admin/curators`) shows **Ready / Wallet only / No wallet**.  
-Per-curator wallet editor: `/admin/curators/[slug]` → Commerce → Save wallet (optional Setup 0xSplit).
+Per-curator wallet editor: `/admin/curators/[slug]` → Commerce → **Generate custodial** or Save wallet.
+
+**Bootstrap batch (after API deploy):**
+
+```bash
+SERVICE_API_KEY=... node scripts/bootstrap-curator-payout-wallets.mjs
+```
+
+Full curator wallet ops (custodial, Magic, MiniPay, migrate): [curator-payout-wallets.md](./curator-payout-wallets.md)
 
 **API deploy note:** `physicalListingCount` / `agentPurchasable` require the latest `apps/api` on Hetzner. Until then the ops script lists `stockedNoWallet` from live − digital counts.

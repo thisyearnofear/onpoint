@@ -16,7 +16,7 @@ interface CuratorRow {
   createdAt: string;
   channels: { whatsapp?: string };
   brand: { colors?: { primary?: string } };
-  commerce: { checkout?: string; walletAddress?: string };
+  commerce: { checkout?: string; walletAddress?: string; payoutWalletStatus?: string };
   listingCount: number;
   physicalLiveCount?: number;
   hasWallet?: boolean;
@@ -196,6 +196,9 @@ export default async function CuratorListPage() {
                     {curator.agentPurchasable ? (
                       <span className="inline-flex rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-600">
                         Ready
+                        {curator.commerce?.payoutWalletStatus === "platform_custodial" && (
+                          <span className="ml-1 text-[10px] opacity-80">(custodial)</span>
+                        )}
                       </span>
                     ) : curator.hasWallet ? (
                       <span className="inline-flex rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-700">

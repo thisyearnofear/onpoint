@@ -16,6 +16,14 @@ const { eq, desc, count, sql } = require('drizzle-orm');
 const { curators, listings, kitSkus } = require('@repo/db');
 const { upload, keyFor, remove } = require('@repo/storage');
 const logger = require('../lib/logger');
+const {
+  generateCustodialWallet,
+  buildCommerceWithCustodialWallet,
+  buildCommerceWithCuratorOwnedWallet,
+  sweepCustodialWallet,
+  isValidAddress,
+  hasCustodialWallet,
+} = require('../lib/curator-payout-wallets');
 
 const router = express.Router();
 
@@ -281,8 +289,28 @@ router.patch('/:slug/commerce', async (req, res) => {
     const nextCommerce = { ...(existing.commerce || {}) };
     if (walletAddress === '') {
       delete nextCommerce.walletAddress;
+      delete nextCommerce.payoutWalletStatus;
+      delete nextCommerce.payoutWalletProvisionedAt;
+      delete nextCommerce.payoutWalletClaimedAt;
     } else if (walletAddress) {
-      nextCommerce.walletAddress = walletAddress;
+      const wasCustodial = existing.commerce?.payoutWalletStatus === 'platform_custodial';
+      const sameAddress = String(existing.commerce?.walletAddress || '').toLowerCase()
+        === walletAddress.toLowerCase();
+      if (wasCustodial && !sameAddress) {
+        Object.assign(
+          nextCommerce,
+          buildCommerceWithCuratorOwnedWallet(existing.commerce, walletAddress),
+        );
+      } else if (!wasCustodial) {
+        nextCommerce.walletAddress = walletAddress;
+        nextCommerce.payoutWalletStatus = 'curator_owned';
+        nextCommerce.payoutWalletProvider = 'manual';
+        nextCommerce.payoutWalletClaimedAt = new Date().toISOString();
+        delete nextCommerce.splitAddress;
+        delete nextCommerce.splitTxHash;
+      } else {
+        nextCommerce.walletAddress = walletAddress;
+      }
     }
 
     const [updated] = await db
@@ -814,6 +842,156 @@ router.post('/:slug/setup-split', async (req, res) => {
   } catch (err) {
     logger.error('Failed to deploy split', { component: 'curator-admin', slug }, err);
     res.status(500).json({ error: `Failed to deploy split: ${err.message}` });
+  }
+});
+
+// ── POST /api/admin/curators/provision-custodial-batch ──
+// Bootstrap custodial payout wallets for stocked humans missing wallets.
+router.post('/provision-custodial-batch', async (req, res) => {
+  const slugs = Array.isArray(req.body?.slugs)
+    ? req.body.slugs.map((s) => String(s).toLowerCase())
+    : null;
+
+  try {
+    const db = getDb();
+    const rows = await db
+      .select({
+        slug: curators.slug,
+        name: curators.name,
+        type: curators.type,
+        commerce: curators.commerce,
+        physicalLiveCount: sql`(
+          SELECT COUNT(*)::int FROM ${listings}
+          WHERE ${listings.curatorSlug} = ${curators.slug}
+          AND ${listings.status} = 'live'
+          AND (${listings.inventoryType} IS DISTINCT FROM 'digital')
+        )`.as('physical_live_count'),
+      })
+      .from(curators)
+      .orderBy(desc(curators.createdAt));
+
+    const targets = rows.filter((row) => {
+      const hasWallet = Boolean(
+        row.commerce?.walletAddress
+        && /^0x[0-9a-fA-F]{40}$/.test(String(row.commerce.walletAddress)),
+      );
+      const physicalLiveCount = Number(row.physicalLiveCount) || 0;
+      if (hasWallet || physicalLiveCount === 0) return false;
+      if (!slugs) return row.type === 'human';
+      return slugs.includes(row.slug);
+    });
+
+    const results = [];
+    for (const row of targets) {
+      const { address, alreadyExisted } = generateCustodialWallet(row.slug);
+      const nextCommerce = buildCommerceWithCustodialWallet(row.commerce, address);
+      await db.update(curators).set({ commerce: nextCommerce }).where(eq(curators.slug, row.slug));
+      results.push({
+        slug: row.slug,
+        name: row.name,
+        address,
+        alreadyExisted,
+        agentPurchasable: true,
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      provisioned: results.length,
+      results,
+      hint: 'Verify with node scripts/agent-commerce-ready.mjs',
+    });
+  } catch (err) {
+    logger.error('Failed custodial batch provision', { component: 'curator-admin' }, err);
+    res.status(500).json({ error: err.message || 'Batch provision failed' });
+  }
+});
+
+// ── POST /api/admin/curators/:slug/provision-custodial-wallet ──
+router.post('/:slug/provision-custodial-wallet', async (req, res) => {
+  const slug = String(req.params.slug || '').toLowerCase();
+  if (!isValidSlug(slug)) {
+    return res.status(400).json({ error: 'Invalid curator slug' });
+  }
+
+  try {
+    const db = getDb();
+    const [curator] = await db.select().from(curators).where(eq(curators.slug, slug)).limit(1);
+    if (!curator) return res.status(404).json({ error: 'Curator not found' });
+
+    const { address, alreadyExisted } = generateCustodialWallet(slug);
+    const nextCommerce = buildCommerceWithCustodialWallet(curator.commerce, address);
+    const [updated] = await db
+      .update(curators)
+      .set({ commerce: nextCommerce })
+      .where(eq(curators.slug, slug))
+      .returning();
+
+    res.status(alreadyExisted ? 200 : 201).json({
+      success: true,
+      alreadyExisted,
+      address,
+      curator: updated,
+      payoutWalletStatus: 'platform_custodial',
+    });
+  } catch (err) {
+    logger.error('Failed to provision custodial wallet', { component: 'curator-admin', slug }, err);
+    res.status(500).json({ error: err.message || 'Provision failed' });
+  }
+});
+
+// ── POST /api/admin/curators/:slug/migrate-payout-wallet ──
+router.post('/:slug/migrate-payout-wallet', async (req, res) => {
+  const slug = String(req.params.slug || '').toLowerCase();
+  if (!isValidSlug(slug)) {
+    return res.status(400).json({ error: 'Invalid curator slug' });
+  }
+
+  const newWalletAddress = String(req.body?.walletAddress || '').trim();
+  const sweepFirst = req.body?.sweep !== false;
+  const providerRaw = String(req.body?.provider || 'manual').trim();
+  const provider = ['magic', 'minipay', 'manual'].includes(providerRaw) ? providerRaw : 'manual';
+
+  if (!isValidAddress(newWalletAddress)) {
+    return res.status(400).json({
+      error: 'walletAddress must be a valid 0x address (40 hex chars)',
+    });
+  }
+
+  try {
+    const db = getDb();
+    const [curator] = await db.select().from(curators).where(eq(curators.slug, slug)).limit(1);
+    if (!curator) return res.status(404).json({ error: 'Curator not found' });
+
+    let sweep = { txHash: null, amountWei: '0', skipped: true };
+    if (
+      sweepFirst
+      && curator.commerce?.payoutWalletStatus === 'platform_custodial'
+      && hasCustodialWallet(slug)
+    ) {
+      sweep = await sweepCustodialWallet(slug, newWalletAddress);
+    }
+
+    const nextCommerce = buildCommerceWithCuratorOwnedWallet(
+      curator.commerce,
+      newWalletAddress,
+      provider,
+    );
+    const [updated] = await db
+      .update(curators)
+      .set({ commerce: nextCommerce })
+      .where(eq(curators.slug, slug))
+      .returning();
+
+    res.json({
+      success: true,
+      sweep,
+      curator: updated,
+      setupSplit: `POST /api/admin/curators/${slug}/setup-split`,
+    });
+  } catch (err) {
+    logger.error('Failed to migrate payout wallet', { component: 'curator-admin', slug }, err);
+    res.status(500).json({ error: err.message || 'Migration failed' });
   }
 });
 

@@ -57,7 +57,8 @@ skills-lock.json
 .pnpm/
 .blackboxcli/
 # Ignore scripts/ by default but re-include specific operational ones below.
-scripts/
+scripts/*
+!scripts/
 !scripts/deploy-api.sh
 !scripts/rollback-api.sh
 !scripts/setup-secrets.sh
@@ -65,6 +66,7 @@ scripts/
 !scripts/test-routes.sh
 !scripts/agent-commerce-ready.mjs
 !scripts/agent-buyer.mjs
+!scripts/bootstrap-curator-payout-wallets.mjs
 !apps/web/scripts/test-upstash.mjs
 
 # Secrets (note: .synthesis-credentials is still tracked in git history —
@@ -86,6 +88,11 @@ dump.rdb
 
 # Demo videos (local-only, too large for repo; wire in via URL if needed)
 apps/web/public/demo/
+
+# Curator custodial payout keys — server-only, never commit
+curator-payout-keys.json
+apps/api/.curator-payout-keys.json
+**/.curator-payout-keys.json
 
 # test negation
 !apps/web/scripts/register-erc8004-agent.mjs

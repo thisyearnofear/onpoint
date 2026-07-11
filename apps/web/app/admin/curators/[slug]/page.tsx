@@ -53,6 +53,7 @@ interface CuratorDetail {
     revShare?: number;
     walletAddress?: string;
     splitAddress?: string;
+    payoutWalletStatus?: "unset" | "platform_custodial" | "curator_owned";
   };
   createdAt: string;
   listingCount: number;
@@ -571,6 +572,7 @@ export default async function CuratorDetailPage({
             slug={curator.slug}
             initialWallet={curator.commerce?.walletAddress}
             splitAddress={curator.commerce?.splitAddress}
+            payoutWalletStatus={curator.commerce?.payoutWalletStatus}
           />
         </div>
 

@@ -66,6 +66,14 @@ export interface Curator {
     mpesaNumber?: string;
     /** Celo wallet address for G$ streaming subscriptions (Superfluid). */
     walletAddress?: `0x${string}`;
+    /** Who controls the payout wallet — unset until configured. */
+    payoutWalletStatus?: "unset" | "platform_custodial" | "curator_owned";
+    payoutWalletProvider?: "platform_custodial" | "magic" | "minipay" | "manual";
+    payoutWalletProvisionedAt?: string;
+    payoutWalletClaimedAt?: string;
+    /** 0xSplits SplitV2 contract — non-custodial agent checkout payTo */
+    splitAddress?: `0x${string}`;
+    splitTxHash?: string;
   };
 }
 

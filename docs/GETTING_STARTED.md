@@ -46,6 +46,16 @@ Copy `.env.example` to `.env.local` and configure:
 | `LIGHTHOUSE_API_KEY`       | IPFS/Filecoin decentralized storage                |
 | `AGENT_PRIVATE_KEY`        | Agent wallet for demo transactions                 |
 
+### Curator payout wallets (optional)
+
+| Variable | Where | Purpose |
+| -------- | ----- | ------- |
+| `NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY` | `apps/web/.env.local` / Netlify | Magic email/Google login for curator payouts (Celo) |
+| `MAGIC_SECRET_KEY` | API server only (`apps/api/.env`) | Magic Express/TEE — never expose to web |
+| `CURATOR_PAYOUT_KEYS_PATH` | API server only | Custodial bootstrap key file (chmod 600) |
+
+See [curator-payout-wallets.md](./guides/curator-payout-wallets.md).
+
 ### Social & Integrations
 
 | Variable         | Purpose                        |

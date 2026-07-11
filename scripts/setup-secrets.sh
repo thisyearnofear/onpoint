@@ -51,6 +51,7 @@ check_mode() {
   check_secret "OPENAI_API_KEY"
   check_secret "SERVICE_API_KEY"
   check_secret "AGENT_WALLET_ADDRESS"
+  check_secret "MAGIC_SECRET_KEY"
   check_secret "VERCEL_DOMAIN"
   check_secret "PREMIUM_USERS"
 
@@ -146,6 +147,7 @@ prompt_secret "VENICE_API_KEY"         "Venice AI API key — required for visio
 prompt_secret "GOOGLE_GEMINI_API_KEY"  "Google Gemini API key — required for Live Session routes" ""
 prompt_secret "OPENAI_API_KEY"         "OpenAI API key — optional fallback for AI routes" ""
 prompt_secret "SERVICE_API_KEY"        "Service-to-service auth key — shared between Vercel and Hetzner" ""
+prompt_secret "MAGIC_SECRET_KEY"       "Magic embedded wallet secret (sk_live_…) — API server only, never web" ""
 prompt_secret "AGENT_WALLET_ADDRESS"   "Agent wallet address for gas checks (0x...)" ""
 prompt_secret "VERCEL_DOMAIN"          "Vercel domain for agent route proxying (e.g., onpoint.vercel.app)" ""
 prompt_secret "PREMIUM_USERS"          "Comma-separated list of premium user IDs (optional)" ""
