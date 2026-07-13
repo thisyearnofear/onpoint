@@ -19,6 +19,7 @@ import {
   buildWhatsAppBriefPreview,
   fetchCuratorHomeSnapshot,
   funnelInsight,
+  nudgeInsight,
   type CuratorHomeSnapshot,
 } from "../../lib/services/curator-home";
 
@@ -68,6 +69,13 @@ export function CuratorHomePanel({
     snapshot?.agentPurchasable ?? false,
     snapshot?.wallet?.payoutWalletStatus,
   );
+  const nudge = nudgeInsight({
+    agentPurchasable: snapshot?.agentPurchasable ?? false,
+    walletStatus: snapshot?.wallet?.payoutWalletStatus,
+    activeStorefronts: snapshot?.nudge?.activeStorefronts,
+    betaSpotsRemaining: snapshot?.nudge?.betaSpotsRemaining,
+    tryOns: funnel.tryOns,
+  });
   const brief = buildWhatsAppBriefPreview({
     curatorName,
     listing: snapshot?.firstListing,
@@ -168,6 +176,33 @@ export function CuratorHomePanel({
           )}
         </div>
       </div>
+
+      {/* Nudge / FOMO banner */}
+      {nudge.urgency !== "none" && !loading && (
+        <div
+          className={`mt-4 flex items-center justify-between gap-3 rounded-xl border p-3 ${
+            nudge.urgency === "high"
+              ? "border-amber-500/30 bg-amber-500/5"
+              : "border-primary/20 bg-primary/5"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <TrendingUp className={`h-4 w-4 ${nudge.urgency === "high" ? "text-amber-500" : "text-primary"}`} />
+            <div>
+              <p className="text-sm font-bold">{nudge.headline}</p>
+              <p className="text-xs text-muted-foreground">{nudge.detail}</p>
+            </div>
+          </div>
+          {nudge.urgency === "high" && (
+            <Link
+              href={walletUrl}
+              className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              {nudge.cta}
+            </Link>
+          )}
+        </div>
+      )}
     </div>
   );
 }

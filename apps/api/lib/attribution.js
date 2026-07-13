@@ -5,9 +5,18 @@
  * Celo attribution dashboard can credit us for the on-chain activity we
  * drive (agent orders, payouts, split distributions, try-on fees).
  *
- * The code is derived from our API hostname (api.onpoint.famile.xyz) and
- * is also exposed in 402 responses so paying agents can optionally tag
- * their own payment transactions with our code.
+ * Two codes are carried in every transaction (ERC-8021 supports arrays):
+ *
+ * 1. HOSTNAME_CODE — derived from our API hostname (api.onpoint.famile.xyz).
+ *    This is the platform-level code, exposed in 402 responses so paying
+ *    agents can optionally tag their own payment transactions with it.
+ *
+ * 2. ASSIGNED_TAG — assigned by Celo Builders when we registered for the
+ *    Agentic Payments & DeFAI Hackathon. Derived from our GitHub repo slug
+ *    (thisyearnofear/onpoint) and locked at first save. Only this code is
+ *    credited on the hackathon leaderboard.
+ *
+ * Both codes are included via toDataSuffix([hostnameCode, assignedTag]).
  */
 
 let _attributionTags = null;
@@ -22,30 +31,49 @@ function getAttributionTags() {
 // isn't set — the code is stable per deployment.
 const HOSTNAME = process.env.ATTRIBUTION_HOSTNAME || 'api.onpoint.famile.xyz';
 
-let ATTRIBUTION_CODE = null;
+let HOSTNAME_CODE = null;
 try {
-  ATTRIBUTION_CODE = getAttributionTags().codeFromHostname(HOSTNAME);
+  HOSTNAME_CODE = getAttributionTags().codeFromHostname(HOSTNAME);
 } catch {
   // Fallback: a fixed code we control
-  ATTRIBUTION_CODE = 'celo_onpoint_agent';
+  HOSTNAME_CODE = 'celo_onpoint_agent';
 }
 
+// Assigned hackathon tag — derived from GitHub repo slug at registration.
+// Locked at first save on celobuilders.xyz. Override via env if needed.
+const ASSIGNED_TAG = process.env.ASSIGNED_ATTRIBUTION_TAG || 'celo_ce9e004195d5';
+
 /**
- * The ERC-8021 data suffix for our attribution code.
+ * The ERC-8021 data suffix carrying both attribution codes.
  * Append this to transaction `data` to tag the tx on-chain.
  */
 let DATA_SUFFIX = null;
 try {
-  DATA_SUFFIX = getAttributionTags().toDataSuffix(ATTRIBUTION_CODE);
+  DATA_SUFFIX = getAttributionTags().toDataSuffix([HOSTNAME_CODE, ASSIGNED_TAG]);
 } catch {
   DATA_SUFFIX = '0x';
 }
 
 /**
- * Get the attribution code (e.g. "celo_aac2acfa60e8").
+ * Get the hostname-derived attribution code (e.g. "celo_aac2acfa60e8").
  */
 function getAttributionCode() {
-  return ATTRIBUTION_CODE;
+  return HOSTNAME_CODE;
+}
+
+/**
+ * Get the hackathon-assigned attribution tag (e.g. "celo_ce9e004195d5").
+ * This is the tag credited on the Dune leaderboard.
+ */
+function getAssignedTag() {
+  return ASSIGNED_TAG;
+}
+
+/**
+ * Get all attribution codes in the order they appear in the suffix.
+ */
+function getAttributionCodes() {
+  return [HOSTNAME_CODE, ASSIGNED_TAG];
 }
 
 /**
@@ -73,8 +101,11 @@ function withAttribution(data) {
 
 module.exports = {
   getAttributionCode,
+  getAssignedTag,
+  getAttributionCodes,
   getAttributionSuffix,
   withAttribution,
-  ATTRIBUTION_CODE,
+  HOSTNAME_CODE,
+  ASSIGNED_TAG,
   DATA_SUFFIX,
 };

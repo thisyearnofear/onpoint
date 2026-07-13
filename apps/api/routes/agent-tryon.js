@@ -28,7 +28,8 @@ const sharedTypes = require('@onpoint/shared-types');
 const agentCore = require('@repo/agent-core');
 const logger = require('../lib/logger');
 const { curatorSplitAddress, tryOnPriceCusd } = require('../lib/agent-commerce');
-const { getAttributionSuffix, getAttributionCode } = require('../lib/attribution');
+const { getAttributionSuffix, getAttributionCode, getAssignedTag } = require('../lib/attribution');
+const x402Facilitator = require('../lib/x402-facilitator');
 const { engine } = require('./ai-virtual-tryon');
 
 const router = express.Router();
@@ -163,7 +164,7 @@ router.post('/', async (req, res) => {
     const itemLabel = isDigital
       ? row.listing.title || 'Digital garment'
       : `${row.kit.club} ${row.kit.kitType} kit (${row.kit.season})`;
-    const priceCusd = tryOnPriceCusd();
+    const priceCusd = tryOnPriceCusd(row.curator);
     const splitAddress = curatorSplitAddress(row.curator);
     const payTo = splitAddress || agentCore.PLATFORM_WALLET;
     const resourceUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
@@ -174,10 +175,30 @@ router.post('/', async (req, res) => {
       `OnPoint try-on: ${itemLabel} from ${row.curator.name}`,
     );
 
+    // Build facilitator-compatible requirements (USDC via Celo x402 facilitator).
+    // The facilitator settles EIP-3009 transferWithAuthorization on-chain
+    // (gasless for the buyer) and counts toward the Most x402 Payments track.
+    const facilitatorRequirements = x402Facilitator.buildFacilitatorRequirements(
+      priceCusd,
+      payTo,
+      resourceUrl,
+      `OnPoint try-on: ${itemLabel} from ${row.curator.name}`,
+    );
+
+    // ── Check for x402 facilitator payment (X-PAYMENT header) ──
+    const xPaymentHeader = req.headers['x-payment'];
+
     // ── Step 1: no payment proof → 402 challenge ──
-    if (!paymentTxHash) {
+    if (!paymentTxHash && !xPaymentHeader) {
       return res.status(402).json({
         ...sharedTypes.build402Body([requirements]),
+        // Facilitator path: USDC via Celo x402 facilitator (x402 v2)
+        x402: {
+          x402Version: 2,
+          accepts: [facilitatorRequirements],
+          facilitatorUrl: x402Facilitator.FACILITATOR_URL,
+          instructions: 'Sign an EIP-3009 transferWithAuthorization for USDC and send it in the X-PAYMENT header. The facilitator settles on-chain (gasless for buyer).',
+        },
         quote: {
           purpose: 'try_on',
           curatorSlug: slug,
@@ -186,20 +207,45 @@ router.post('/', async (req, res) => {
           priceCusd,
           payTo,
           payoutModel: splitAddress ? '0xSplits (curator earns a share)' : 'platform',
-          token: sharedTypes.X402_ASSET,
+          token: **********************,
           chainId: sharedTypes.X402_CHAIN_ID,
           attribution: {
             code: getAttributionCode(),
+            assignedTag: getAssignedTag(),
             dataSuffix: getAttributionSuffix(),
             instructions: 'Append the dataSuffix to your transfer transaction data to tag it as OnPoint activity on Celo.',
           },
           instructions:
-            'Transfer the cUSD fee to payTo on Celo, then re-POST the same body with paymentTxHash.',
+            'Two payment paths: (1) cUSD — transfer to payTo, re-POST with paymentTxHash. (2) USDC via x402 facilitator — sign EIP-3009 auth, send in X-PAYMENT header.',
         },
       });
     }
 
-    // ── Step 2: verify payment, run try-on, then claim ──
+    // ── Step 2a: facilitator payment (X-PAYMENT header) ──
+    let settlementTxHash = null;
+    let payerAddress = null;
+    if (xPaymentHeader) {
+      const result = await x402Facilitator.processFacilitatorPayment(
+        xPaymentHeader,
+        facilitatorRequirements,
+      );
+      if (!result.success) {
+        return res.status(402).json({
+          error: `Facilitator payment failed: ${result.error}`,
+          ...sharedTypes.build402Body([requirements]),
+          x402: {
+            x402Version: 2,
+            accepts: [facilitatorRequirements],
+            facilitatorUrl: x402Facilitator.FACILITATOR_URL,
+          },
+        });
+      }
+      settlementTxHash = result.txHash;
+      // The facilitator settled on-chain; we don't have the payer's address
+      // from the facilitator response, but the tx hash is the proof.
+      payerAddress = '0x0000000000000000000000000000000000000000'; // facilitator-settled
+    } else {
+      // ── Step 2b: verify cUSD payment, run try-on, then claim ──
     const minAmountWei = BigInt(requirements.maxAmountRequired);
     const verification = await agentCore.ERC20.verifyTransfer({
       chain: 'celo',
@@ -225,6 +271,11 @@ router.post('/', async (req, res) => {
     if (existing.length > 0) {
       return res.status(409).json({ error: 'Payment transaction already used' });
     }
+    } // end cUSD verification path
+
+    // The effective tx hash and payer for this request
+    const effectiveTxHash = settlementTxHash || paymentTxHash;
+    const effectivePayer = settlementTxHash ? payerAddress : (verification?.from || null);
 
     // Render + fit analysis run concurrently — independent pipelines.
     // We run these BEFORE claiming the payment so that a render failure
@@ -262,12 +313,14 @@ Return ONLY valid JSON:
       // with the same tx hash.
       logger.error(
         'Try-on render failed — payment NOT claimed (agent can retry)',
-        { component: 'agent-tryon', listingId, paymentTxHash },
+        { component: 'agent-tryon', listingId, txHash: effectiveTxHash },
         render.reason,
       );
       return res.status(502).json({
-        error: 'Try-on render failed — your payment was not claimed. You can retry with the same paymentTxHash.',
-        retryable: true,
+        error: settlementTxHash
+          ? 'Try-on render failed. The facilitator payment was settled on-chain but not ledgered. Contact support.'
+          : 'Try-on render failed — your payment was not claimed. You can retry with the same paymentTxHash.',
+        retryable: !settlementTxHash,
       });
     }
 
@@ -277,11 +330,11 @@ Return ONLY valid JSON:
       .values({
         purpose: 'try_on',
         curatorSlug: slug,
-        payerAddress: verification.from,
+        payerAddress: effectivePayer,
         amountCusd: priceCusd.toFixed(2),
-        txHash: paymentTxHash,
+        txHash: effectiveTxHash,
         resource: '/api/agent/try-on',
-        metadata: { listingId, item: itemLabel, payTo, splitAddress: splitAddress || null },
+        metadata: { listingId, item: itemLabel, payTo, splitAddress: splitAddress || null, paymentMethod: settlementTxHash ? 'x402_facilitator' : 'cusd' },
       })
       .onConflictDoNothing({ target: payments.txHash })
       .returning({ id: payments.id });
@@ -291,7 +344,7 @@ Return ONLY valid JSON:
       // the render. The render is done but the payment is already used.
       // Return the render anyway — the agent got value.
       logger.warn('Try-on payment claimed by concurrent request during render', {
-        component: 'agent-tryon', paymentTxHash, listingId,
+        component: 'agent-tryon', txHash: effectiveTxHash, listingId,
       });
       return res.status(409).json({
         error: 'Payment transaction already used by a concurrent request',
@@ -325,10 +378,11 @@ Return ONLY valid JSON:
           listingId,
           item: itemLabel,
           priceCusd,
-          payerAddress: verification.from,
+          payerAddress: effectivePayer,
           renderProvider: render.value.provider,
+          paymentMethod: settlementTxHash ? 'x402_facilitator' : 'cusd',
         },
-        txHash: paymentTxHash,
+        txHash: effectiveTxHash,
         chain: 'celo',
       });
       receiptId = receipt.id;
@@ -337,7 +391,7 @@ Return ONLY valid JSON:
     }
 
     const { classifyAgentCaller, recordAgentDemand } = require('../lib/agent-demand');
-    const caller = classifyAgentCaller(verification.from);
+    const caller = classifyAgentCaller(effectivePayer);
     recordAgentDemand('try_on', caller, 'succeeded');
 
     logger.info('Agent try-on served', {
@@ -348,7 +402,8 @@ Return ONLY valid JSON:
       provider: render.value.provider,
       isDigital,
       caller,
-      payerAddress: verification.from,
+      payerAddress: effectivePayer,
+      paymentMethod: settlementTxHash ? 'x402_facilitator' : 'cusd',
     });
 
     // For digital listings, find similar physical items from human curators
@@ -408,10 +463,11 @@ Return ONLY valid JSON:
       },
       payment: {
         id: paymentId,
-        txHash: paymentTxHash,
+        txHash: effectiveTxHash,
         amountCusd: priceCusd.toFixed(2),
-        explorerUrl: agentCore.getExplorerUrl('celo', paymentTxHash),
+        explorerUrl: agentCore.getExplorerUrl('celo', effectiveTxHash),
         payoutModel: splitAddress ? '0xSplits (curator earns a share)' : 'platform',
+        paymentMethod: settlementTxHash ? 'x402_facilitator' : 'cusd',
       },
       receiptId,
       ...(isDigital ? { similarPhysicalItems } : {}),

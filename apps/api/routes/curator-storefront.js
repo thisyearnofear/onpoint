@@ -21,7 +21,8 @@ const {
   buildListingAgentCommerce,
   buildStorefrontAgentCommerce,
 } = require('../lib/agent-commerce');
-const { getAttributionSuffix, getAttributionCode } = require('../lib/attribution');
+const { getAttributionSuffix, getAttributionCode, getAssignedTag } = require('../lib/attribution');
+const x402Facilitator = require('../lib/x402-facilitator');
 
 const router = express.Router();
 
@@ -140,6 +141,15 @@ router.get('/directory', async (req, res) => {
     const onlyPurchasable = String(req.query.agentPurchasable || '') === '1'
       || String(req.query.agentPurchasable || '').toLowerCase() === 'true';
 
+    // By default, the agent-facing directory only shows curators that are
+    // either purchasable (wallet + physical listings) or have digital try-on
+    // capability. Human curators without wallets are hidden — they can't be
+    // purchased from and their income would go to the platform wallet, which
+    // defeats the self-custodial infrastructure. Use ?includeInactive=1 for
+    // admin/internal views that need to see all curators.
+    const includeInactive = String(req.query.includeInactive || '') === '1'
+      || String(req.query.includeInactive || '').toLowerCase() === 'true';
+
     const mapped = rows.map(({ commerce, ...row }) => {
       const hasWallet = Boolean(curatorPayoutAddress({ commerce }));
       const physicalListingCount = Number(row.physicalListingCount) || 0;
@@ -154,9 +164,19 @@ router.get('/directory', async (req, res) => {
       };
     });
 
+    // Filter: show only curators that agents can actually transact with.
+    // Purchasable (wallet + physical stock) OR digital try-on enabled.
+    const agentVisible = (c) => c.agentPurchasable || c.digitalTryOnEnabled;
+
     const curatorsOut = onlyPurchasable
       ? mapped.filter((c) => c.agentPurchasable)
-      : mapped;
+      : includeInactive
+        ? mapped
+        : mapped.filter(agentVisible);
+
+    // Count inactive curators (without wallets) for nudge messaging
+    const inactiveCount = mapped.filter((c) => !c.agentPurchasable && !c.digitalTryOnEnabled).length;
+    const activeCount = mapped.filter(agentVisible).length;
 
     res.json({
       curators: curatorsOut,
@@ -164,8 +184,12 @@ router.get('/directory', async (req, res) => {
         total: curatorsOut.length,
         agentPurchasableCount: mapped.filter((c) => c.agentPurchasable).length,
         agentCommerceEnabledCount: mapped.filter((c) => c.agentCommerceEnabled).length,
+        digitalTryOnCount: mapped.filter((c) => c.digitalTryOnEnabled).length,
+        activeStorefronts: activeCount,
+        inactiveCurators: inactiveCount,
+        betaSpotsRemaining: Math.max(0, 25 - activeCount),
         generatedAt: new Date().toISOString(),
-        filter: onlyPurchasable ? 'agentPurchasable' : null,
+        filter: onlyPurchasable ? 'agentPurchasable' : includeInactive ? null : 'agentVisible',
       },
     });
   } catch (err) {
@@ -490,6 +514,17 @@ router.post('/:slug/order', async (req, res) => {
       `OnPoint order from ${row.curator.name}: ${itemLabel}`,
     );
 
+    // Build facilitator-compatible requirements (USDC via Celo x402 facilitator).
+    const facilitatorRequirements = x402Facilitator.buildFacilitatorRequirements(
+      totalCusd,
+      payTo,
+      resourceUrl,
+      `OnPoint order from ${row.curator.name}: ${itemLabel}`,
+    );
+
+    // Check for x402 facilitator payment (X-PAYMENT header)
+    const xPaymentHeader = req.headers['x-payment'];
+
     // Deterministic quote ID — same listing+size+quantity+price produces the
     // same ID, so retries after a network blip get the same quote. Includes
     // a timestamp bucket (minute-granularity) so the quote is reproducible
@@ -500,9 +535,16 @@ router.post('/:slug/order', async (req, res) => {
     const quoteExpiresAt = new Date(Date.now() + QUOTE_TTL_SECONDS * 1000).toISOString();
 
     // ── Step 1: no payment proof yet → 402 challenge with quote ──
-    if (!paymentTxHash) {
+    if (!paymentTxHash && !xPaymentHeader) {
       return res.status(402).json({
         ...sharedTypes.build402Body([requirements]),
+        // Facilitator path: USDC via Celo x402 facilitator (x402 v2)
+        x402: {
+          x402Version: 2,
+          accepts: [facilitatorRequirements],
+          facilitatorUrl: x402Facilitator.FACILITATOR_URL,
+          instructions: 'Sign an EIP-3009 transferWithAuthorization for USDC and send it in the X-PAYMENT header. The facilitator settles on-chain (gasless for buyer).',
+        },
         quote: {
           quoteId,
           quoteExpiresAt,
@@ -513,20 +555,44 @@ router.post('/:slug/order', async (req, res) => {
           unitCusd,
           totalCusd,
           payTo,
-          token: sharedTypes.X402_ASSET,
+          token: **********************,
           chainId: sharedTypes.X402_CHAIN_ID,
           attribution: {
             code: getAttributionCode(),
+            assignedTag: getAssignedTag(),
             dataSuffix: getAttributionSuffix(),
             instructions: 'Append the dataSuffix to your transfer transaction data to tag it as OnPoint activity on Celo.',
           },
           instructions:
-            'Transfer the exact cUSD amount to payTo on Celo, then re-POST with paymentTxHash and quoteId.',
+            'Two payment paths: (1) cUSD — transfer to payTo, re-POST with paymentTxHash and quoteId. (2) USDC via x402 facilitator — sign EIP-3009 auth, send in X-PAYMENT header.',
         },
       });
     }
 
-    // ── Step 2: payment proof supplied → verify quote, claim, pay out ──
+    // ── Step 2a: facilitator payment (X-PAYMENT header) ──
+    let settlementTxHash = null;
+    let facilitatorPayer = null;
+    if (xPaymentHeader) {
+      const result = await x402Facilitator.processFacilitatorPayment(
+        xPaymentHeader,
+        facilitatorRequirements,
+      );
+      if (!result.success) {
+        return res.status(402).json({
+          error: `Facilitator payment failed: ${result.error}`,
+          ...sharedTypes.build402Body([requirements]),
+          x402: {
+            x402Version: 2,
+            accepts: [facilitatorRequirements],
+            facilitatorUrl: x402Facilitator.FACILITATOR_URL,
+          },
+        });
+      }
+      settlementTxHash = result.txHash;
+      facilitatorPayer = '0x0000000000000000000000000000000000000000';
+    }
+
+    // ── Step 2b: payment proof supplied → verify quote, claim, pay out ──
 
     // Validate quote expiry if the client provides a quoteId
     if (clientQuoteId && typeof clientQuoteId === 'string') {
@@ -542,7 +608,7 @@ router.post('/:slug/order', async (req, res) => {
       }
     }
 
-    // ── Step 2: payment proof supplied → verify, claim, pay out ──
+    // ── Step 2c: verify cUSD payment (skip for facilitator path) ──
     const signerClient = agentCore.getSignerClient();
     const payoutKey = !signerClient ? process.env.AGENT_PRIVATE_KEY : null;
     if (!signerClient && !payoutKey) {
@@ -552,21 +618,28 @@ router.post('/:slug/order', async (req, res) => {
       });
     }
 
-    const minAmountWei = BigInt(requirements.maxAmountRequired);
-    const verification = await agentCore.ERC20.verifyTransfer({
-      chain: 'celo',
-      tokenAddress: sharedTypes.X402_ASSET,
-      txHash: paymentTxHash,
-      to: payTo,
-      minAmount: minAmountWei,
-    });
-
-    if (!verification.verified) {
-      return res.status(402).json({
-        error: `Payment not verified: ${verification.reason}`,
-        ...sharedTypes.build402Body([requirements]),
+    let verification = null;
+    if (!settlementTxHash) {
+      const minAmountWei = BigInt(requirements.maxAmountRequired);
+      verification = await agentCore.ERC20.verifyTransfer({
+        chain: 'celo',
+        tokenAddress: **********************,
+        txHash: paymentTxHash,
+        to: payTo,
+        minAmount: minAmountWei,
       });
+
+      if (!verification.verified) {
+        return res.status(402).json({
+          error: `Payment not verified: ${verification.reason}`,
+          ...sharedTypes.build402Body([requirements]),
+        });
+      }
     }
+
+    // The effective tx hash and payer for this request
+    const effectiveTxHash = settlementTxHash || paymentTxHash;
+    const effectivePayer = settlementTxHash ? facilitatorPayer : verification.from;
 
     // Claim the payment tx atomically — the unique constraint on
     // payment_tx_hash makes replays and double-payout races impossible.
@@ -578,8 +651,8 @@ router.post('/:slug/order', async (req, res) => {
         size,
         quantity,
         amountCusd: totalCusd.toFixed(2),
-        buyerAddress: verification.from,
-        paymentTxHash,
+        buyerAddress: effectivePayer,
+        paymentTxHash: effectiveTxHash,
         source: 'agent',
         status: 'confirmed',
       })
@@ -592,7 +665,7 @@ router.post('/:slug/order', async (req, res) => {
       const [existing] = await db
         .select()
         .from(orders)
-        .where(eq(orders.paymentTxHash, paymentTxHash))
+        .where(eq(orders.paymentTxHash, effectiveTxHash))
         .limit(1);
       if (existing) {
         return res.status(200).json({
@@ -678,6 +751,7 @@ router.post('/:slug/order', async (req, res) => {
       });
     } else {
       // Custodial fallback: send curator their share from the agent wallet
+      const minAmountWei = BigInt(requirements.maxAmountRequired);
       const split = agentCore.calculateSplit(minAmountWei, payoutAddress, {
         sellerBps: curatorSellerBps(row.curator),
       });
@@ -732,8 +806,9 @@ router.post('/:slug/order', async (req, res) => {
           listingId,
           item: itemLabel,
           totalCusd,
-          buyerAddress: verification.from,
+          buyerAddress: effectivePayer,
           payoutTxHash,
+          paymentMethod: settlementTxHash ? 'x402_facilitator' : 'cusd',
           curatorPayout: sellerShare
             ? `${(Number(sellerShare.amount) / 1e18).toFixed(2)} cUSD`
             : usingSplit
@@ -741,7 +816,7 @@ router.post('/:slug/order', async (req, res) => {
               : null,
           splitAddress: usingSplit ? splitAddress : undefined,
         },
-        txHash: paymentTxHash,
+        txHash: effectiveTxHash,
         chain: 'celo',
       });
       receiptId = receipt.id;
@@ -750,7 +825,7 @@ router.post('/:slug/order', async (req, res) => {
     }
 
     const { classifyAgentCaller, recordAgentDemand } = require('../lib/agent-demand');
-    const caller = classifyAgentCaller(verification.from);
+    const caller = classifyAgentCaller(effectivePayer);
     recordAgentDemand('order', caller, 'succeeded');
 
     logger.info('Agent order confirmed', {
@@ -762,7 +837,8 @@ router.post('/:slug/order', async (req, res) => {
       usingSplit,
       splitAddress: usingSplit ? splitAddress : undefined,
       caller,
-      buyerAddress: verification.from,
+      buyerAddress: effectivePayer,
+      paymentMethod: settlementTxHash ? 'x402_facilitator' : 'cusd',
     });
 
     return res.status(201).json({
@@ -777,9 +853,10 @@ router.post('/:slug/order', async (req, res) => {
         totalCusd,
         status: 'confirmed',
         payment: {
-          txHash: paymentTxHash,
-          from: verification.from,
-          explorerUrl: agentCore.getExplorerUrl('celo', paymentTxHash),
+          txHash: effectiveTxHash,
+          from: effectivePayer,
+          explorerUrl: agentCore.getExplorerUrl('celo', effectiveTxHash),
+          paymentMethod: settlementTxHash ? 'x402_facilitator' : 'cusd',
         },
         payout: payoutTxHash
           ? {

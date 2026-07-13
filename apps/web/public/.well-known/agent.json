@@ -21,12 +21,12 @@
     "curator_storefront_checkout",
     "paid_virtual_try_on",
     "digital_curator_try_on",
-    "nft_minting",
+    "nft_minting_with_royalty",
     "spending_controls",
     "transparent_reasoning"
   ],
   "commerce": {
-    "description": "Buy fashion items from curator storefronts with cUSD on Celo. Curators are paid their share on-chain in the same flow. Try on any listing before buying via the x402-paid fitting room. Digital curators (type: 'ai', inventoryType: 'digital') offer AI-generated garment designs — try on the digital design, then discover similar physical items from human curators.",
+    "description": "Buy fashion items from curator storefronts with cUSD on Celo. Curators are paid their share on-chain in the same flow. Try on any listing before buying via the x402-paid fitting room. Digital curators (type: 'ai', inventoryType: 'digital') offer AI-generated garment designs — try on the digital design, then discover similar physical items from human curators. NFT minting with 0xSplits royalties available for fashion digital assets.",
     "protocol": "x402",
     "docs": "https://github.com/thisyearnofear/onpoint/blob/master/docs/guides/agent-commerce.md",
     "chainId": 42220,
@@ -38,19 +38,40 @@
     "order": "https://api.onpoint.famile.xyz/api/curator/{slug}/order",
     "tryOn": "https://api.onpoint.famile.xyz/api/agent/try-on",
     "earnings": "https://api.onpoint.famile.xyz/api/curator/{slug}/earnings",
+    "mint": "https://api.onpoint.famile.xyz/api/agent/mint",
+    "nftContract": "0x8e0a3BcF07Ec8133408A3837DD2DCe398A42f576",
+    "nftRoyaltySplit": "85% to creator / 15% to platform via 0xSplits",
+    "pricing": {
+      "discovery": "Free — browse directory, storefronts, and listings",
+      "digitalTryOn": "$0.03 per try-on (80% digital curator / 20% platform via 0xSplits)",
+      "physicalTryOn": "$0.05 per try-on (95% human curator / 5% platform)",
+      "physicalOrder": "Listing price (95% curator / 5% platform via 0xSplits)",
+      "nftMint": "$0.10 per mint (85% creator / 15% platform via 0xSplits)",
+      "agentRevenueModel": "Agents may add markup on purchases (agent-controlled). Future: platform shares 2.5% of its fee with referring agents via 0xSplits.",
+      "notes": "Per-curator try-on price can be overridden via commerce.tryOnPriceUsd. All payments in cUSD or USDC on Celo mainnet."
+    },
     "attribution": {
       "code": "celo_aac2acfa60e8",
+      "assignedTag": "celo_ce9e004195d5",
       "standard": "ERC-8021",
-      "instructions": "Append the attribution dataSuffix (provided in every 402 response) to your cUSD transfer transaction data. This tags your payment as OnPoint activity on the Celo attribution dashboard."
+      "instructions": "Append the attribution dataSuffix (provided in every 402 response) to your cUSD transfer transaction data. The dataSuffix carries both codes in an ERC-8021 array. Already have your own code? Use toDataSuffix(['your_code', 'celo_ce9e004195d5']) — the assigned tag must be present for hackathon leaderboard credit."
+    },
+    "facilitator": {
+      "url": "https://api.x402.celo.org",
+      "standard": "x402 v2 (EIP-3009 transferWithAuthorization)",
+      "tokens": ["USDC", "USDT"],
+      "instructions": "For gasless payments via the Celo x402 facilitator: sign an EIP-3009 transferWithAuthorization for USDC, encode the PaymentPayload as base64 JSON, and send it in the X-PAYMENT header. The facilitator settles on-chain (it pays gas). No cUSD transfer or paymentTxHash needed."
     },
     "flow": [
       "GET directory?agentPurchasable=1 — curators with agentPurchasable=true have a payout wallet AND live physical SKUs. agentCommerceEnabled alone means wallet only (may have zero offers). digitalListingCount > 0 means try-on-only digital designs",
       "GET storefront — listings carry agentCommerce.offers with cUSD prices when purchasable. Digital listings have inventoryType: 'digital' and no purchase offers",
       "Optional: POST tryOn {curatorSlug, listingId, photoData} — pay a small cUSD fee to render the item and get a fit signal before buying. Digital try-ons may return similarPhysicalItems",
-      "POST order {listingId, size, quantity} — returns 402 with payment requirements + attribution dataSuffix. Digital listings return 409 with a redirect to try-on",
+      "POST order {listingId, size, quantity} — returns 402 with payment requirements + attribution dataSuffix + x402 facilitator requirements (USDC). Digital listings return 409 with a redirect to try-on",
+      "Two payment paths: (1) cUSD — transfer to payTo, re-POST with paymentTxHash. (2) USDC via x402 facilitator — sign EIP-3009 auth, send in X-PAYMENT header (gasless, facilitator settles).",
       "Transfer the cUSD amount to payTo on Celo (append the attribution dataSuffix to the tx data), then re-POST with paymentTxHash",
       "201 response includes order, payment and curator payout Celoscan links",
-      "GET earnings — public reconciled ledger per curator"
+      "GET earnings — public reconciled ledger per curator",
+      "POST mint {userAddress, metadataUri, royaltyRecipient} — mints an OnPoint NFT with a 0xSplits royalty (85% creator / 15% platform). Requires service auth."
     ]
   },
   "supportedTrust": ["reputation", "validation"],

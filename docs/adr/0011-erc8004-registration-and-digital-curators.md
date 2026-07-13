@@ -40,8 +40,11 @@ See `packages/agent-core/src/agent-registry.ts` for the implementation.
 
 ## ERC-8021 Attribution Tags
 
-All platform-initiated cUSD transfers carry an ERC-8021 attribution tag in the
-transaction calldata, derived from the API hostname:
+All platform-initiated cUSD transfers carry ERC-8021 attribution tags in the
+transaction calldata. Two codes are carried in every transaction (ERC-8021
+supports arrays):
+
+### Hostname-derived code
 
 | Field | Value |
 |-------|-------|
@@ -50,10 +53,27 @@ transaction calldata, derived from the API hostname:
 | SDK | `@celo/attribution-tags@0.3.0` |
 | Module | `apps/api/lib/attribution.js` |
 
-Every 402 response (order + try-on) includes the attribution code and dataSuffix
-so paying agents can optionally tag their own payment transactions. All
-platform payout transfers (curator payouts, retry payouts) carry the suffix
-automatically via `TransferParams.dataSuffix` in `packages/agent-core/src/erc20.ts`.
+### Hackathon-assigned tag
+
+| Field | Value |
+|-------|-------|
+| Assigned tag | `celo_ce9e004195d5` |
+| Derived from | GitHub repo slug: `thisyearnofear/onpoint` |
+| Locked at | 2026-07-13 (first save on celobuilders.xyz) |
+| Hackathon | Agentic Payments & DeFAI Hackathon (Jul 7–20, 2026) |
+| Leaderboard | https://dune.com/celo/agentic-payments-defai-hackathon |
+| Tracks | Most x402 Payments, Most Revenue Generated |
+
+Only the assigned tag is credited on the hackathon leaderboard. Both codes
+are included via `toDataSuffix([hostnameCode, assignedTag])` so platform
+transactions are credited on both the general Celo dashboard and the
+hackathon leaderboard.
+
+Every 402 response (order + try-on) includes the attribution code, assigned
+tag, and dataSuffix so paying agents can optionally tag their own payment
+transactions. All platform payout transfers (curator payouts, retry payouts)
+carry the suffix automatically via `TransferParams.dataSuffix` in
+`packages/agent-core/src/erc20.ts`.
 
 ## Digital Curators
 

@@ -67,6 +67,7 @@ scripts/*
 !scripts/agent-commerce-ready.mjs
 !scripts/agent-buyer.mjs
 !scripts/bootstrap-curator-payout-wallets.mjs
+!scripts/setup-digital-curator-wallet.mjs
 !apps/web/scripts/test-upstash.mjs
 
 # Secrets (note: .synthesis-credentials is still tracked in git history —

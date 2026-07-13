@@ -34,6 +34,10 @@ export interface CuratorHomeSnapshot {
     WalletStatusResponse,
     "walletAddress" | "payoutWalletStatus" | "payoutWalletProvider"
   > | null;
+  nudge: {
+    activeStorefronts: number;
+    betaSpotsRemaining: number;
+  };
 }
 
 export async function fetchCuratorFunnel(slug: string): Promise<CuratorFunnelStats> {
@@ -80,12 +84,13 @@ function firstInStockListing(
 
 export async function fetchCuratorHomeSnapshot(slug: string): Promise<CuratorHomeSnapshot> {
   const apiBase = getApiBase();
-  const [funnel, storefrontRes, walletRes] = await Promise.all([
+  const [funnel, storefrontRes, walletRes, dirRes] = await Promise.all([
     fetchCuratorFunnel(slug),
     fetch(`/api/curator/${encodeURIComponent(slug)}/storefront`, {
       cache: "no-store",
     }),
     fetchWalletStatus(apiBase, slug).catch(() => null),
+    fetch(`${apiBase}/api/curator/directory`, { cache: "no-store" }).catch(() => null),
   ]);
 
   let listingCount = 0;
@@ -102,6 +107,15 @@ export async function fetchCuratorHomeSnapshot(slug: string): Promise<CuratorHom
     firstListing = firstInStockListing(storefront);
   }
 
+  let dirMeta: { activeStorefronts?: number; betaSpotsRemaining?: number } = {};
+  if (dirRes?.ok) {
+    const dirData = await dirRes.json().catch(() => ({}));
+    dirMeta = {
+      activeStorefronts: dirData.meta?.activeStorefronts ?? 0,
+      betaSpotsRemaining: dirData.meta?.betaSpotsRemaining ?? 0,
+    };
+  }
+
   return {
     funnel,
     listingCount,
@@ -114,6 +128,10 @@ export async function fetchCuratorHomeSnapshot(slug: string): Promise<CuratorHom
           payoutWalletProvider: walletRes.payoutWalletProvider,
         }
       : null,
+    nudge: {
+      activeStorefronts: dirMeta.activeStorefronts ?? 0,
+      betaSpotsRemaining: dirMeta.betaSpotsRemaining ?? 0,
+    },
   };
 }
 
@@ -155,21 +173,70 @@ export function agentChannelLabel(
 ): { title: string; body: string; tone: "ready" | "setup" | "off" } {
   if (agentPurchasable) {
     return {
-      title: "Extra buyers: AI shoppers",
-      body: "Your live stock is listed for AI agents worldwide. They pay in cUSD; you fulfil like any WhatsApp order. WhatsApp checkout still works.",
+      title: "AI shoppers are live on your storefront",
+      body: "Your stock is listed for AI agents worldwide. They pay in cUSD on Celo; you fulfil like any WhatsApp order. You're ahead of curators still setting up.",
       tone: "ready",
     };
   }
   if (walletStatus === "platform_custodial" || walletStatus === "curator_owned") {
     return {
-      title: "Almost ready for AI shoppers",
-      body: "Payout wallet is set — add live physical stock with sizes to open agent checkout.",
+      title: "Almost ready — one step from AI revenue",
+      body: "Your payout wallet is set. Add live physical stock with sizes to unlock agent checkout. Every day without stock is a day AI shoppers buy elsewhere.",
       tone: "setup",
     };
   }
   return {
-    title: "Optional: AI shopper channel",
-    body: "Same inventory, extra demand — set a payout wallet when you want AI agents to buy your stock. Not required for WhatsApp sales.",
+    title: "Your storefront is invisible to AI shoppers",
+    body: "AI agents are buying from curators with active wallets right now. You're missing that demand. Add a payout wallet (60 seconds, free) to go live.",
     tone: "off",
+  };
+}
+
+/**
+ * Nudge psychology for the curator dashboard. Creates urgency and FOMO
+ * without being pushy — shows what they're missing, limited beta scarcity,
+ * and social proof from active curators.
+ */
+export function nudgeInsight(params: {
+  agentPurchasable: boolean;
+  walletStatus: PayoutWalletStatus | undefined;
+  activeStorefronts?: number;
+  betaSpotsRemaining?: number;
+  tryOns: number;
+}): { headline: string; detail: string; cta: string; urgency: "high" | "medium" | "none" } {
+  const { agentPurchasable, walletStatus, activeStorefronts = 0, betaSpotsRemaining, tryOns } = params;
+
+  if (agentPurchasable) {
+    // Already live — celebrate and show momentum
+    return {
+      headline: tryOns > 0
+        ? `${tryOns} try-on${tryOns === 1 ? "" : "s"} on your stock`
+        : "You're live for AI shoppers",
+      detail: tryOns > 0
+        ? "AI agents are discovering your items. Keep stock fresh to stay ranked in the directory."
+        : "Your storefront is agent-ready. New items boost your directory ranking.",
+      cta: "Add more stock",
+      urgency: "none",
+    };
+  }
+
+  if (walletStatus === "platform_custodial" || walletStatus === "curator_owned") {
+    return {
+      headline: "Wallet ready — stock is the last step",
+      detail: "Other curators with live stock are getting AI orders. Add one item with sizes to join them.",
+      cta: "Add your first item",
+      urgency: "medium",
+    };
+  }
+
+  // No wallet at all — maximum nudge
+  const betaText = betaSpotsRemaining !== undefined && betaSpotsRemaining <= 10
+    ? ` Only ${betaSpotsRemaining} beta spots left.`
+    : "";
+  return {
+    headline: `${activeStorefronts} curator${activeStorefronts === 1 ? "" : "s"} are live for AI shoppers`,
+    detail: `AI agents browse the directory and buy from curators with payout wallets. You're not visible to them yet.${betaText} It takes 60 seconds to set up.`,
+    cta: "Activate payout wallet",
+    urgency: "high",
   };
 }

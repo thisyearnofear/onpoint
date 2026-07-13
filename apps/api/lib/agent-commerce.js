@@ -78,36 +78,50 @@ function buildListingAgentCommerce(curator, listing) {
   return { available: true, currency: 'cUSD', offers };
 }
 
-/** Price of one agent try-on call in cUSD (env-tunable). */
-function tryOnPriceCusd() {
+/**
+ * Price of one agent try-on call in cUSD.
+ *
+ * Per-curator override: if the curator's commerce config has
+ * tryOnPriceUsd, use it. Otherwise fall back to the env var
+ * X402_TRYON_PRICE_USD (default: 0.03 — see ADR 0013).
+ *
+ * @param {object} [curator] — optional curator record for per-curator pricing
+ */
+function tryOnPriceCusd(curator) {
+  // Per-curator override
+  const perCurator = Number(curator?.commerce?.tryOnPriceUsd);
+  if (Number.isFinite(perCurator) && perCurator > 0) return perCurator;
+
+  // Global env var
   const price = Number(process.env.X402_TRYON_PRICE_USD);
-  return Number.isFinite(price) && price > 0 ? price : 0.25;
+  return Number.isFinite(price) && price > 0 ? price : 0.03;
 }
 
 /** Storefront-level agent commerce metadata (chain, token, order endpoint). */
 function buildStorefrontAgentCommerce(curator, slug) {
   const enabled = Boolean(curatorPayoutAddress(curator));
   const splitAddr = curatorSplitAddress(curator);
+  const tryOnPrice = tryOnPriceCusd(curator);
   return {
     enabled,
     chain: 'celo',
     chainId: sharedTypes.X402_CHAIN_ID,
     network: sharedTypes.X402_NETWORK,
-    token: sharedTypes.X402_ASSET,
+    token: **********************,
     tokenSymbol: 'cUSD',
     orderEndpoint: `/api/curator/${slug}/order`,
     payoutModel: splitAddr ? '0xSplits (non-custodial)' : 'custodial',
     splitAddress: splitAddr || undefined,
     tryOn: {
       endpoint: '/api/agent/try-on',
-      priceCusd: tryOnPriceCusd(),
+      priceCusd: tryOnPrice,
       description:
         'x402-paid fitting room: POST {curatorSlug, listingId, photoData} to render this catalog on your human and get a fit signal before buying.',
     },
     earningsEndpoint: `/api/curator/${slug}/earnings`,
     flow: enabled
       ? [
-          `Optional: POST /api/agent/try-on with {curatorSlug, listingId, photoData} to check fit first (${tryOnPriceCusd()} cUSD)`,
+          `Optional: POST /api/agent/try-on with {curatorSlug, listingId, photoData} to check fit first (${tryOnPrice} cUSD)`,
           `POST ${`/api/curator/${slug}/order`} with {listingId, size, quantity} to receive a 402 payment challenge`,
           'Transfer the exact cUSD amount to the payTo address on Celo',
           'Re-POST the same body plus {paymentTxHash, quoteId} to confirm the order',
