@@ -183,12 +183,40 @@ Agent keeps:       $2.00  (markup)
 - Environment variable: `X402_TRYON_PRICE_USD=0.03` on the server.
 - Per-curator override: set `commerce.tryOnPriceUsd` in the curator record.
 
+## 0xSplits Status: Deferred
+
+The 0xSplits SplitV2 SDK does not support Celo chain ID 42220. Until this
+is resolved (either by deploying the SplitV2 contract on Celo or using an
+alternative split mechanism), the **custodial fallback model** is used:
+
+- Buyer payments go to the platform wallet (or the curator's custodial
+  wallet if one is provisioned).
+- The cron payout worker (`apps/api/routes/cron-payout.js`) distributes
+  the curator's share from the platform wallet, carrying the attribution
+  tag on every payout transaction.
+- Curators can self-serve migrate to their own wallet via WhatsApp-verified
+  `POST /api/curator/:slug/wallet/migrate`.
+
+This is acceptable because:
+1. **Digital curator (Nia)** is platform-owned — custodial control is
+   correct by design.
+2. **Human curators** are not yet activated for agent orders — the
+   custodial model is a placeholder until they go live.
+3. **The hackathon** counts transaction count and volume with attribution
+   tags, both of which work in the custodial model.
+
+When human curators activate, implement one of:
+- Deploy the 0xSplits SplitV2 contract manually on Celo (EVM-compatible)
+- Use a simple custom split contract
+- Route payments directly to the curator's own wallet (no intermediary)
+
 ## Consequences
 
 - Try-on default drops from $0.25 to $0.03 (8.3x cheaper, 8.3x more volume).
-- Digital curator (Nia) needs a wallet + split set up (via
-  `scripts/setup-digital-curator-wallet.mjs`).
+- Digital curator (Nia) has a custodial wallet provisioned
+  (`0x232df0B239700C934F8d78536731bA234EbbDC34`); split deferred.
 - Agent revenue model (markup) works today; platform fee share is a
-  roadmap item requiring 0xSplits recipient changes.
+  roadmap item requiring split mechanism changes.
+- 0xSplits deferred — custodial fallback model is live and working.
 - First-try-on-free requires Redis tracking (future enhancement).
 - All prices are USD-pegged via cUSD/USDC, insulated from crypto volatility.

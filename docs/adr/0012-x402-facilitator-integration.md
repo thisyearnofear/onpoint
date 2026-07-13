@@ -1,7 +1,8 @@
 # ADR 0012: Celo x402 Facilitator Integration
 
 **Status**: Accepted  
-**Date**: 2026-07-13
+**Date**: 2026-07-13  
+**Deployed**: 2026-07-14 (release 20260714-023128)
 
 ## Context
 
