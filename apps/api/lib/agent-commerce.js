@@ -107,7 +107,7 @@ function buildStorefrontAgentCommerce(curator, slug) {
     chain: 'celo',
     chainId: sharedTypes.X402_CHAIN_ID,
     network: sharedTypes.X402_NETWORK,
-    token: **********************,
+    token: sharedTypes.X402_ASSET,
     tokenSymbol: 'cUSD',
     orderEndpoint: `/api/curator/${slug}/order`,
     payoutModel: splitAddr ? '0xSplits (non-custodial)' : 'custodial',

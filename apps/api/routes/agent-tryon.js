@@ -207,7 +207,7 @@ router.post('/', async (req, res) => {
           priceCusd,
           payTo,
           payoutModel: splitAddress ? '0xSplits (curator earns a share)' : 'platform',
-          token: **********************,
+          token: sharedTypes.X402_ASSET,
           chainId: sharedTypes.X402_CHAIN_ID,
           attribution: {
             code: getAttributionCode(),

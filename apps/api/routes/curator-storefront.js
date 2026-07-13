@@ -555,7 +555,7 @@ router.post('/:slug/order', async (req, res) => {
           unitCusd,
           totalCusd,
           payTo,
-          token: **********************,
+          token: sharedTypes.X402_ASSET,
           chainId: sharedTypes.X402_CHAIN_ID,
           attribution: {
             code: getAttributionCode(),
@@ -623,7 +623,7 @@ router.post('/:slug/order', async (req, res) => {
       const minAmountWei = BigInt(requirements.maxAmountRequired);
       verification = await agentCore.ERC20.verifyTransfer({
         chain: 'celo',
-        tokenAddress: **********************,
+        tokenAddress: sharedTypes.X402_ASSET,
         txHash: paymentTxHash,
         to: payTo,
         minAmount: minAmountWei,
