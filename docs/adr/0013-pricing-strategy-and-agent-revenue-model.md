@@ -1,7 +1,8 @@
 # ADR 0013: Pricing Strategy & Agent Revenue Model
 
 **Status**: Accepted  
-**Date**: 2026-07-13
+**Date**: 2026-07-13  
+**Deployed**: 2026-07-14 (frontend /pricing page live)
 
 ## Context
 
@@ -209,6 +210,31 @@ When human curators activate, implement one of:
 - Deploy the 0xSplits SplitV2 contract manually on Celo (EVM-compatible)
 - Use a simple custom split contract
 - Route payments directly to the curator's own wallet (no intermediary)
+
+## Frontend Implementation (Deployed 2026-07-14)
+
+### Shared Navigation
+Created `apps/web/components/OnPointHeader.tsx` with consistent navigation
+across all pages: Shop, Supply, Pricing, Developers, Guides, About. Includes
+auth, notifications, and theme toggle.
+
+### Pricing Page (`/pricing`)
+- Fetches live stats from `/api/curator/directory?agentPurchasable=1`
+- Shows platform stats: curator count, listing count, digital designs
+- Error handling: shows cached data if API fetch fails
+- Displays 4 pricing tiers: Discovery, Digital Try-On, Physical Try-On, Order
+- Agent revenue model section with markup and future fee share
+- NFT minting section with contract address and 85/15 royalty split
+- Attribution tags section showing both platform and hostname codes
+- "How it works" flow: Browse → Try-On → Pay → Earn
+
+### Landing Page Enhancements
+- Agent-first CTA in hero ("For agents" button linking to /developers)
+- Live stats section: 8 curators, 55 listings, $0.03 try-on, 24/7 API uptime
+- Digital fashion showcase featuring Nia with 3-card grid (try-on, mint, earn)
+
+### Analytics
+Added "developers" to `trackHomepageCta` CTA types for agent-first button tracking.
 
 ## Consequences
 

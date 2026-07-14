@@ -1,45 +1,22 @@
+"use client";
+
 import Link from "next/link";
-import type { Metadata } from "next";
-import { Palette, Camera, Store, MessageCircle, ArrowRight, Check } from "lucide-react";
+import {
+  ArrowRight,
+  Camera,
+  Check,
+  MessageCircle,
+  Palette,
+  Store,
+} from "lucide-react";
 import { Reveal } from "../../components/ui/Reveal";
-
+import { OnPointHeader, OnPointFooter } from "../../components/OnPointHeader";
 import { PRODUCT_NAME } from "../../lib/brand";
-
-export const metadata: Metadata = {
-  title: `About | ${PRODUCT_NAME}`,
-  description:
-    "OnPoint is the fit-aware execution layer for fashion — try-on, real stock, and local pay for people and agents. Curators supply the graph; shoppers and agents buy from it.",
-};
 
 export default function AboutPage() {
   return (
     <main className="min-h-screen bg-background text-foreground selection:bg-primary/30">
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/95 backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2 text-sm font-bold">
-            <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-1.5 shadow-md">
-              <Palette className="h-4 w-4 text-white" />
-            </div>
-            {PRODUCT_NAME}
-          </Link>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/curator"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Supply inventory
-            </Link>
-            <Link
-              href="/curators"
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-primary/90"
-            >
-              <Camera className="h-4 w-4" />
-              Try on & shop
-            </Link>
-          </div>
-        </div>
-      </header>
+      <OnPointHeader />
 
       {/* Hero */}
       <Reveal>
@@ -216,22 +193,7 @@ export default function AboutPage() {
       </Reveal>
 
       {/* Footer */}
-      <footer className="border-t border-border py-8">
-        <div className="mx-auto flex max-w-4xl flex-col items-center justify-between gap-4 px-4 text-sm text-muted-foreground md:flex-row">
-          <div className="flex items-center gap-2">
-            <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-1 shadow-md">
-              <Palette className="h-3.5 w-3.5 text-white" />
-            </div>
-            {PRODUCT_NAME}
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
-            <Link href="/curator" className="hover:text-foreground transition-colors">Supply</Link>
-            <Link href="/curators" className="hover:text-foreground transition-colors">Shop</Link>
-          </div>
-          <p className="text-xs">Built for emerging-market fashion commerce.</p>
-        </div>
-      </footer>
+      <OnPointFooter />
     </main>
   );
 }

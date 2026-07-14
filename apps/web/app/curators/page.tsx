@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { CuratorDirectoryClient } from "./CuratorDirectoryClient";
 import { getApiBase } from "../../lib/utils/api-base";
+import { OnPointHeader } from "../../components/OnPointHeader";
 
 export const metadata: Metadata = {
   title: "Browse Curators | OnPoint",
@@ -66,6 +67,8 @@ export default async function CuratorsPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <OnPointHeader />
+
       {/* ── Header ── */}
       <header className="border-b border-border bg-gradient-to-b from-muted/30 to-background">
         <div className="container mx-auto px-4 py-10 md:py-16 max-w-5xl">
