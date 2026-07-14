@@ -1,16 +1,33 @@
-# AI Tooling Hints for LLMs
+# OnPoint — Agent Commerce
 
-app: OnPoint Web
-primary-docs: https://github.com/thisyearnofear/onpoint/blob/master/docs/STRATEGY.md
-agent-commerce: https://github.com/thisyearnofear/onpoint/blob/master/docs/guides/agent-commerce.md
-framework: nextjs
-miniapp: farcaster
-manifest: /.well-known/farcaster.json
-agent-manifest: /.well-known/agent.json
-signers: neynar managed
-post-route: /api/social/cast
-reaction-route: /api/social/reaction
-search-route: /api/social/search
-webhook: /api/webhook
+> Fit-aware fashion supply graph. Same catalog for humans and agents.
+> Try on real inventory with AI, then pay with cUSD or gasless USDC on Celo.
 
-notes: prefer server-side Neynar usage; never expose API key client-side. Product is fit-aware supply graph (human storefront + agent API).
+## Base URL
+api: https://api.onpoint.famile.xyz
+web: https://beonpoint.netlify.app
+manifest: /.well-known/agent.json
+guide: https://github.com/thisyearnofear/onpoint/blob/master/AGENTS.md
+
+## What you can do
+- Browse curators and storefronts (free, no auth)
+- Try on items before buying ($0.03 digital, $0.05 physical, cUSD)
+- Buy physical items from curator storefronts (cUSD on Celo)
+- Mint fashion NFTs with 0xSplits royalties ($0.10)
+- All payments via x402 (HTTP 402 challenge) or x402 facilitator (gasless USDC)
+
+## Quick start
+1. GET /api/curator/directory?agentPurchasable=1
+2. GET /api/curator/{slug}/storefront
+3. POST /api/agent/try-on (optional, 402 -> pay -> re-POST with txHash)
+4. POST /api/curator/{slug}/order (402 -> pay -> re-POST with txHash)
+5. GET /api/curator/{slug}/earnings (public ledger)
+
+## Reference implementation
+buyer-script: https://github.com/thisyearnofear/onpoint/blob/master/scripts/agent-buyer.mjs
+
+## Chain
+chain: Celo (42220)
+token: cUSD / USDC
+facilitator: https://api.x402.celo.org (EIP-3009, gasless)
+attribution: ERC-8021 (append dataSuffix from 402 response to payment tx data)

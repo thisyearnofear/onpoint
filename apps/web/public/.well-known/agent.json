@@ -28,7 +28,7 @@
   "commerce": {
     "description": "Buy fashion items from curator storefronts with cUSD on Celo. Curators are paid their share on-chain in the same flow. Try on any listing before buying via the x402-paid fitting room. Digital curators (type: 'ai', inventoryType: 'digital') offer AI-generated garment designs — try on the digital design, then discover similar physical items from human curators. NFT minting with 0xSplits royalties available for fashion digital assets.",
     "protocol": "x402",
-    "docs": "https://github.com/thisyearnofear/onpoint/blob/master/docs/guides/agent-commerce.md",
+    "docs": "https://github.com/thisyearnofear/onpoint/blob/master/AGENTS.md",
     "chainId": 42220,
     "token": "0x765DE816845861e75A25fCA122bb6898B8B1282a",
     "tokenSymbol": "cUSD",
