@@ -63,6 +63,7 @@ function publicWalletStatus(curator) {
     payoutWalletProvider: commerce.payoutWalletProvider || null,
     payoutWalletProvisionedAt: commerce.payoutWalletProvisionedAt || null,
     payoutWalletClaimedAt: commerce.payoutWalletClaimedAt || null,
+    activatedAt: commerce.activatedAt || null,
     splitAddress: commerce.splitAddress || null,
     agentCommerceHint:
       commerce.walletAddress
@@ -119,6 +120,8 @@ router.post('/:slug/wallet/provision', async (req, res) => {
 
     const { address, alreadyExisted } = generateCustodialWallet(slug);
     const nextCommerce = buildCommerceWithCustodialWallet(curator.commerce, address);
+    // Mark as activated — curator explicitly provisioned via self-serve
+    nextCommerce.activatedAt = nextCommerce.activatedAt || new Date().toISOString();
 
     const [updated] = await db
       .update(curators)

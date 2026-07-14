@@ -72,6 +72,7 @@ export function CuratorHomePanel({
   const nudge = nudgeInsight({
     agentPurchasable: snapshot?.agentPurchasable ?? false,
     walletStatus: snapshot?.wallet?.payoutWalletStatus,
+    activatedAt: snapshot?.wallet?.activatedAt,
     activeStorefronts: snapshot?.nudge?.activeStorefronts,
     betaSpotsRemaining: snapshot?.nudge?.betaSpotsRemaining,
     tryOns: funnel.tryOns,

@@ -147,10 +147,22 @@ function buildCommerceWithCuratorOwnedWallet(commerce, address, provider = 'manu
     payoutWalletStatus: 'curator_owned',
     payoutWalletProvider: provider,
     payoutWalletClaimedAt: new Date().toISOString(),
+    activatedAt: (commerce || {}).activatedAt || new Date().toISOString(),
   };
   delete next.splitAddress;
   delete next.splitTxHash;
   return next;
+}
+
+/**
+ * Set activatedAt on commerce — marks curator as self-served (visible to agents).
+ * Called by self-serve wallet flows (curator-wallet.js), not by admin provision.
+ */
+function markActivated(commerce) {
+  return {
+    ...(commerce || {}),
+    activatedAt: new Date().toISOString(),
+  };
 }
 
 async function getCusdBalance(address) {
@@ -219,4 +231,5 @@ module.exports = {
   sweepCustodialWallet,
   getCusdBalance,
   isValidAddress,
+  markActivated,
 };

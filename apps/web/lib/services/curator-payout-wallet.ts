@@ -15,6 +15,7 @@ export interface WalletStatusResponse {
   payoutWalletProvider?: PayoutWalletProvider | null;
   payoutWalletProvisionedAt?: string | null;
   payoutWalletClaimedAt?: string | null;
+  activatedAt?: string | null;
   message?: string;
 }
 

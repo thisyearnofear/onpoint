@@ -153,9 +153,11 @@ router.get('/directory', async (req, res) => {
     const mapped = rows.map(({ commerce, ...row }) => {
       const hasWallet = Boolean(curatorPayoutAddress({ commerce }));
       const physicalListingCount = Number(row.physicalListingCount) || 0;
+      const activatedAt = commerce?.activatedAt;
       return {
         ...row,
         physicalListingCount,
+        activatedAt,
         // Backward-compatible: wallet configured (may still have zero offers).
         agentCommerceEnabled: hasWallet,
         // Phase 1 metric: wallet + at least one live physical listing.
@@ -165,8 +167,12 @@ router.get('/directory', async (req, res) => {
     });
 
     // Filter: show only curators that agents can actually transact with.
-    // Purchasable (wallet + physical stock) OR digital try-on enabled.
-    const agentVisible = (c) => c.agentPurchasable || c.digitalTryOnEnabled;
+    // AI curators are always visible (platform-owned by design).
+    // Human curators need activatedAt (self-served) to be visible.
+    const agentVisible = (c) => {
+      if (c.type === 'ai') return c.agentPurchasable || c.digitalTryOnEnabled;
+      return c.activatedAt && (c.agentPurchasable || c.digitalTryOnEnabled);
+    };
 
     const curatorsOut = onlyPurchasable
       ? mapped.filter((c) => c.agentPurchasable)

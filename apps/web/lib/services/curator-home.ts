@@ -32,7 +32,7 @@ export interface CuratorHomeSnapshot {
   firstListing: ListingBriefPreview | null;
   wallet: Pick<
     WalletStatusResponse,
-    "walletAddress" | "payoutWalletStatus" | "payoutWalletProvider"
+    "walletAddress" | "payoutWalletStatus" | "payoutWalletProvider" | "activatedAt"
   > | null;
   nudge: {
     activeStorefronts: number;
@@ -126,6 +126,7 @@ export async function fetchCuratorHomeSnapshot(slug: string): Promise<CuratorHom
           walletAddress: walletRes.walletAddress,
           payoutWalletStatus: walletRes.payoutWalletStatus,
           payoutWalletProvider: walletRes.payoutWalletProvider,
+          activatedAt: walletRes.activatedAt,
         }
       : null,
     nudge: {
@@ -200,11 +201,12 @@ export function agentChannelLabel(
 export function nudgeInsight(params: {
   agentPurchasable: boolean;
   walletStatus: PayoutWalletStatus | undefined;
+  activatedAt?: string | null;
   activeStorefronts?: number;
   betaSpotsRemaining?: number;
   tryOns: number;
 }): { headline: string; detail: string; cta: string; urgency: "high" | "medium" | "none" } {
-  const { agentPurchasable, walletStatus, activeStorefronts = 0, betaSpotsRemaining, tryOns } = params;
+  const { agentPurchasable, walletStatus, activatedAt, activeStorefronts = 0, betaSpotsRemaining, tryOns } = params;
 
   if (agentPurchasable) {
     // Already live — celebrate and show momentum
@@ -217,6 +219,16 @@ export function nudgeInsight(params: {
         : "Your storefront is agent-ready. New items boost your directory ranking.",
       cta: "Add more stock",
       urgency: "none",
+    };
+  }
+
+  // Has wallet but not activated yet
+  if ((walletStatus === "platform_custodial" || walletStatus === "curator_owned") && !activatedAt) {
+    return {
+      headline: "Your storefront is invisible to AI shoppers",
+      detail: `You have a payout wallet, but you haven't activated yet. ${activeStorefronts} curator${activeStorefronts === 1 ? "" : "s"} are live and getting AI orders. Activate now to join them.`,
+      cta: "Activate storefront",
+      urgency: "high",
     };
   }
 
@@ -235,7 +247,7 @@ export function nudgeInsight(params: {
     : "";
   return {
     headline: `${activeStorefronts} curator${activeStorefronts === 1 ? "" : "s"} are live for AI shoppers`,
-    detail: `AI agents browse the directory and buy from curators with payout wallets. You're not visible to them yet.${betaText} It takes 60 seconds to set up.`,
+    detail: `AI agents browse the directory and buy from activated curators. You're not visible to them yet.${betaText} It takes 60 seconds to activate.`,
     cta: "Activate payout wallet",
     urgency: "high",
   };
