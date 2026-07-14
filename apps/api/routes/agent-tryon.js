@@ -27,7 +27,7 @@ const { curators, listings, kitSkus, payments } = require('@repo/db');
 const sharedTypes = require('@onpoint/shared-types');
 const agentCore = require('@repo/agent-core');
 const logger = require('../lib/logger');
-const { curatorSplitAddress, tryOnPriceCusd, storefrontWebUrl, polaroidWebUrl } = require('../lib/agent-commerce');
+const { curatorSplitAddress, tryOnPriceCusd, storefrontWebUrl, polaroidWebUrl, webBaseUrl, buildRevenueHint } = require('../lib/agent-commerce');
 const { getAttributionSuffix, getAttributionCode, getAssignedTag } = require('../lib/attribution');
 const x402Facilitator = require('../lib/x402-facilitator');
 const { engine } = require('./ai-virtual-tryon');
@@ -219,6 +219,7 @@ router.post('/', async (req, res) => {
           instructions:
             'Two payment paths: (1) cUSD — transfer to payTo, re-POST with paymentTxHash. (2) USDC via x402 facilitator — sign EIP-3009 auth, send in X-PAYMENT header.',
         },
+        revenueHint: buildRevenueHint('try_on', { totalCusd: priceCusd, curator: row.curator }),
       });
     }
 
@@ -517,6 +518,7 @@ Return ONLY valid JSON:
         paymentMethod: settlementTxHash ? 'x402_facilitator' : 'cusd',
       },
       receiptId,
+      receiptUrl: receiptId ? `${webBaseUrl()}/r/${receiptId}` : undefined,
       ...(isDigital ? { similarPhysicalItems } : {}),
       next: isDigital
         ? {

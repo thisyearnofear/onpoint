@@ -27,6 +27,8 @@ const {
   buildListingAgentCommerce,
   buildStorefrontAgentCommerce,
   storefrontWebUrl,
+  webBaseUrl,
+  buildRevenueHint,
 } = require('../lib/agent-commerce');
 const { getAttributionSuffix, getAttributionCode, getAssignedTag } = require('../lib/attribution');
 const x402Facilitator = require('../lib/x402-facilitator');
@@ -580,6 +582,7 @@ router.post('/:slug/order', async (req, res) => {
           instructions:
             'Two payment paths: (1) cUSD — transfer to payTo, re-POST with paymentTxHash and quoteId. (2) USDC via x402 facilitator — sign EIP-3009 auth, send in X-PAYMENT header.',
         },
+        revenueHint: buildRevenueHint('order', { totalCusd, curator: row.curator }),
       });
     }
 
@@ -888,6 +891,7 @@ router.post('/:slug/order', async (req, res) => {
               }
             : { status: 'pending', to: payoutAddress },
         receiptId,
+        receiptUrl: receiptId ? `${webBaseUrl()}/r/${receiptId}` : undefined,
         storefrontUrl: storefrontWebUrl(slug),
       },
     });

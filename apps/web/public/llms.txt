@@ -25,6 +25,8 @@ guide: https://github.com/thisyearnofear/onpoint/blob/master/AGENTS.md
 
 ## Viral loop
 - try-on returns polaroid.webUrl -> shareable branded page with fit score + on-chain proof
+- order returns receiptUrl -> branded receipt page with payment + payout proof
+- 402 responses include revenueHint -> shows curator share, platform fee, agent markup note
 - storefront + order responses include webUrl -> human-browsable links agents can share
 - polaroid page has OG meta tags -> social shares render OnPoint-branded cards
 
