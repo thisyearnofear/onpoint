@@ -1,9 +1,35 @@
 # Phase 1 Audit — Supply Graph Readiness
 
-**Date:** 2026-07-11 (custodial + Magic curator wallets)  
+**Date:** 2026-07-14 (codebase hygiene + revenue model clarity)  
 **North star:** [STRATEGY.md](./STRATEGY.md)
 
-Enhancement first; delete don’t deprecate.
+Enhancement first; delete don't deprecate.
+
+## Revenue Without Human Curators Live
+
+The platform can drive transactions and revenue before human curators self-serve wallets:
+
+| Revenue driver | Works without curator wallets? | Mechanism |
+|----------------|-------------------------------|-----------|
+| Digital try-on ($0.03) | YES | Nia is platform-owned with custodial wallet. 80% to Nia's split, 20% to platform. |
+| NFT minting ($0.10) | YES | 85% creator / 15% platform via 0xSplits. |
+| Agent markup | YES | Agents add their own fee on top of any purchase. Platform does not participate. |
+| Human WhatsApp checkout | YES (curator revenue) | `/s/[slug]` pages browsable without wallet. WhatsApp deep link checkout. Curator paid directly. |
+| Agent physical orders (cUSD) | NO | Requires `agentPurchasable` = wallet + live physical SKUs |
+| Physical try-on fees to curator | NO (goes to platform) | Without wallet/split, try-on fees default to platform wallet |
+
+## Curator Gating Logic
+
+Human curators are hidden from the agent directory until they self-serve:
+
+- **Agent directory** (`GET /api/curator/directory`): filters by `agentVisible` — AI curators always visible; human curators need `activatedAt` (self-served) AND (`agentPurchasable` OR `digitalTryOnEnabled`).
+- **Storefront pages** (`/s/[slug]`): loadable by slug regardless of agent-purchasable status. Humans can browse and WhatsApp-checkout even without a wallet. Agent commerce offers (cUSD prices) only appear when the curator has a payout wallet.
+- **`?includeInactive=1`**: shows all curators for admin/nudge purposes.
+- **`?agentPurchasable=1`**: shows only curators with wallet + live physical SKUs.
+
+## Curator Identity
+
+Current state: trust-based. Seeded curators are admin-created (`config/curators/*.json`). New curators self-serve via `/curator/onboard` (slug, name, WhatsApp, wallet, verticals). No KYC or OTP. WhatsApp number is primary trust signal. Admin sets `activatedAt` to gate visibility. Production needs WhatsApp OTP / social proof.
 
 ---
 
@@ -73,22 +99,18 @@ Enhancement first; delete don’t deprecate.
 | Third-party try-ons / orders | Logs + Prometheus `agent_try_on_third_party` / `agent_order_third_party` |
 | Human try-on → purchase | Curator funnel analytics |
 
-### Prod snapshot (2026-07-11)
+### Prod snapshot (2026-07-14)
 
-**Prior (2026-07-10):** API `20260710-140822` — 13 curators, **0** agent-purchasable; **7** stocked humans awaiting wallets (wanja, zara, mo, juma, grace, fatima, amara).
+**Hackathon mode:** Platform can drive revenue now without human curators being agent-live. Digital try-on ($0.03 via Nia), NFT minting ($0.10), and agent markup model all work. Human storefront pages (`/s/[slug]`) are browsable and WhatsApp-checkout-able even without wallets.
 
-**Now:**
+**Prior (2026-07-11):** API `20260711-105003` — custodial batch provisioned 7 agent-purchasable curators (wanja, zara, mo, juma, grace, fatima, amara). Verify: `node scripts/agent-commerce-ready.mjs` → `ready: true`.
 
-- Netlify: `NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY` set — redeploy web for Magic CTA on `/curator/onboard`
-- Hetzner: `MAGIC_SECRET_KEY` on API `.env`
-- **Pending after API deploy:** custodial batch → expect ≥5 `agentPurchasable`
+**Codebase hygiene shipped (2026-07-14):** Dead code removed (DesignStudio, SocialFeed, useMemoryAPI + orphaned API routes). Demand-side discovery components (LooksFaceoff, CommunityPanel) quarantined per [ADR 0014](./adr/0014-demand-side-discovery-components.md). Homepage decomposed (1662 -> 11 lines, 8 components). Navigation unified via `OnPointHeader`. Lab simplified (design/community modes removed, agent chrome in More sheet). API jsconfig + JSDoc annotations added.
 
-**Deployed 2026-07-11:** API `20260711-105003` · custodial batch provisioned **7** agent-purchasable curators (wanja, zara, mo, juma, grace, fatima, amara). Verify: `node scripts/agent-commerce-ready.mjs` → `ready: true`.
-
-**Ops playbook to hit ≥5:**
+**Ops playbook to activate human curators (post-hackathon):**
 
 1. Deploy API (custodial routes + `CURATOR_PAYOUT_KEYS_PATH` on Hetzner, chmod 600)
-2. `SERVICE_API_KEY=… node scripts/bootstrap-curator-payout-wallets.mjs` — or admin **Generate custodial** per slug
+2. `SERVICE_API_KEY=... node scripts/bootstrap-curator-payout-wallets.mjs` — or admin **Generate custodial** per slug
 3. `node scripts/agent-commerce-ready.mjs` until `ready: true`
 4. Curators self-serve: `/curator/onboard` or `/curator/wallet` — Magic, MiniPay, or custodial
 5. After curator-owned wallet: admin **Setup 0xSplit** (skip while `platform_custodial`)
@@ -98,4 +120,4 @@ Guide: [curator-payout-wallets.md](./guides/curator-payout-wallets.md)
 ---
 
 **Owner:** Product  
-**Next:** Deploy API · run bootstrap script · verify directory · chase third-party agent calls
+**Next:** Drive hackathon transactions (digital try-ons + NFT mints) · chase third-party agent calls · verify supply graph after hackathon

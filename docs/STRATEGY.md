@@ -62,9 +62,12 @@ Own-agent wallet / missions / NFT chrome in `/lab` is **infrastructure and power
 - 9 human curator archetypes seeded; 1 digital curator (Nia Digital) with digital→physical funnel
 - Agent commerce live on Celo: x402 try-on, storefront checkout, curator splits ([ADR 0010](./adr/0010-agent-storefront-checkout.md), [ADR 0011](./adr/0011-erc8004-registration-and-digital-curators.md))
 - Human loop live: `/s/[slug]`, WhatsApp/M-Pesa, try-on, polaroids
-- Product clarity: homepage dual CTAs (shop + supply); Lab demoted from primary hero
+- Product clarity: homepage dual CTAs (shop + supply); Lab demoted from primary hero; navigation unified via `OnPointHeader`
 - Directory truth: `agentPurchasable` = wallet + live physical SKUs ([guides/agent-commerce.md](./guides/agent-commerce.md))
+- **Revenue without human curator wallets**: digital try-on ($0.03, Nia), NFT minting ($0.10), agent markup model. Human storefront pages (`/s/[slug]`) are browsable and WhatsApp-checkout-able even without a wallet — curators can share their link before going agent-live.
+- **Curator gating**: human curators are hidden from the agent directory until they self-serve and set up a payout wallet (`activatedAt` + `agentPurchasable`). `?includeInactive=1` shows all for admin/nudge purposes. Curator identity is currently trust-based (admin-seeded or self-applied via `/curator/onboard`); WhatsApp number is the primary trust signal. Production needs WhatsApp OTP / social proof verification.
 - Binding constraint: **payout wallets on stocked curators + third-party agent calls** (see [PHASE1_AUDIT.md](./PHASE1_AUDIT.md) prod snapshot)
+- Codebase hygiene: dead code removed, homepage decomposed, ADR 0014 filed for demand-side discovery component rewiring
 
 ---
 
@@ -78,8 +81,8 @@ Detail lives in [FEATURES.md](./FEATURES.md) and ADRs. Strategy-level map:
 | Try-on (web + `POST /api/agent/try-on`) | **Fit rail** — size/fit signal; digital→physical matching |
 | `/curator`, onboard, admin, WhatsApp ingest | **Supply acquisition & ops** (admin wallet editor) |
 | `/.well-known/agent.json`, directory, x402 order | **Agent demand path** |
-| `/`, `/lab`, `/shop` | Marketing + power surfaces — Lab is not the hero |
-| `/style`, `/collage`, `/social` | **Removed** — redirects to Lab try-on or `/curators` |
+| `/`, `/lab`, `/shop` | Marketing + power surfaces — Lab is not the hero; uses `OnPointHeader` |
+| `/style`, `/collage`, `/social` | **Removed** — redirects to Lab try-on or `/curators`. Demand-side discovery components (LooksFaceoff, CommunityPanel) quarantined per [ADR 0014](./adr/0014-demand-side-discovery-components.md) for Phase 2 rewiring |
 
 Infrastructure: Vercel/Netlify (presentation) + Hetzner (API, worker, signer, bridge) — [ADR 0001](./adr/0001-backend-first-autonomy.md). Monitoring: [MONITORING.md](./MONITORING.md).
 
