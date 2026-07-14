@@ -20,6 +20,12 @@ Enhancement first; delete don’t deprecate.
 | Third-party agent metrics | ✅ `apps/api/lib/agent-demand.js` |
 | Custodial payout bootstrap | ✅ `curator-payout-wallets.js`, admin batch + `/curator/wallet` |
 | Magic embedded wallets | ✅ `magic-wallet.ts` + Netlify `NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY` |
+| Codebase hygiene ([ADR 0014](./adr/0014-demand-side-discovery-components.md)) | ✅ Dead code deleted (DesignStudio, SocialFeed, useMemoryAPI); demand-side discovery components quarantined for Phase 2 rewiring |
+| Navigation unification | ✅ `OnPointHeader` responsive (desktop + mobile); homepage, `/curator`, `/lab` all use shared header/footer |
+| Homepage decomposition | ✅ `app/page.tsx` 1662 → 11 lines; 8 components extracted to `components/home/` |
+| Lab simplification | ✅ `design` + `community` modes removed from `TacticalDashboard`; agent chrome moved to "More" sheet |
+| API type safety | ✅ `jsconfig.json` + JSDoc annotations on `agent-checkout.js`, `curator-storefront.js` |
+| CI lint step | ✅ Lint step added to `.github/workflows/ci.yml` |
 
 ---
 
@@ -39,9 +45,11 @@ Enhancement first; delete don’t deprecate.
 
 | Surface | Action |
 |---------|--------|
-| `/lab` | Default try-on/shop; keep agent chrome secondary |
+| `/lab` | ✅ Default try-on/shop; agent chrome in "More" sheet (ADR 0014) |
 | `/pricing` | Label shopper vs supply clearly |
 | Brand sweep | Legal/guides/share cards still say BeOnPoint in places — prefer `PRODUCT_NAME` |
+| Pricing messaging | ✅ "Zero platform fees" → "No subscription. No listing fees." (ADR 0013 reconciliation) |
+| Hardcoded API URLs | ✅ `/developers`, `/pricing`, funnel route use `getApiBase()` |
 
 ## Killed / redirected
 
@@ -51,6 +59,9 @@ Enhancement first; delete don’t deprecate.
 | `/social` | Deleted; permanent redirect → `/curators` |
 | Homepage persona carousel in hero | Removed |
 | Homepage wallet connect | Removed from marketing `/` |
+| `DesignStudio.tsx`, `DesignPanel.tsx` | Deleted (collage/design studio, low engagement); `generateDesign` capability retained in AI providers |
+| `SocialFeed.tsx`, `useMemoryAPI.ts` | Deleted (Farcaster-coupled feed); `SocialActivity` type retained in `shared-types` |
+| `/api/social/feed`, `/api/social/activity` | Deleted (orphaned after SocialFeed removal) |
 
 ---
 

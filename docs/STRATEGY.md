@@ -166,6 +166,7 @@ Phases optimize the **supply graph**, not a single persona. Prerequisites are re
 | Auth0 Token Vault | ⏸️ | — |
 | Content & affiliate monetization | ⏸️ | — |
 | GoodDollar G$ | 🧪 | [0009](./adr/0009-gooddollar-g-integration.md) |
+| Demand-side discovery components | 📦 Quarantined | [0014](./adr/0014-demand-side-discovery-components.md) |
 
 ---
 

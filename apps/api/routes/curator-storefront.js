@@ -3,6 +3,12 @@
  *
  * Public read endpoint for ADR 0002 storefronts.
  * Returns a Curator profile plus live listings joined to the PL kit backbone.
+ *
+ * @typedef {import('express').Request} ExpressRequest
+ * @typedef {import('express').Response} ExpressResponse
+ * @typedef {import('@onpoint/shared-types').CuratorStorefrontResponse} CuratorStorefrontResponse
+ * @typedef {import('@onpoint/shared-types').Curator} Curator
+ * @typedef {import('@onpoint/shared-types').Listing} Listing
  */
 
 const express = require('express');

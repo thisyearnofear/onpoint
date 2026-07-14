@@ -13,6 +13,7 @@ import {
   Zap,
 } from "lucide-react";
 import { OnPointHeader, OnPointFooter } from "../../components/OnPointHeader";
+import { getApiBase } from "../../lib/utils/api-base";
 import { PRODUCT_NAME } from "../../lib/brand";
 import { useState, useEffect } from "react";
 
@@ -31,7 +32,7 @@ export default function PricingPage() {
     // Fetch live stats from API
     const fetchStats = async () => {
       try {
-        const response = await fetch("https://api.onpoint.famile.xyz/api/curator/directory?agentPurchasable=1");
+        const response = await fetch(`${getApiBase()}/api/curator/directory?agentPurchasable=1`);
         const data = await response.json();
         const curators = data.curators?.length || 8;
         const listings = data.curators?.reduce((sum: number, c: any) => sum + (c.liveListingCount || 0), 0) || 55;

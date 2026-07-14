@@ -149,6 +149,8 @@ Bright Data integration (ADR 0004): SERP API + Web Unlocker, gated by `BRIGHTDAT
 - Agentic tipping in cUSD (Celo Mainnet + Alfajores)
 - "Proof of Style" snapshots shared to feed
 - Referral links with base62-encoded tracking codes
+- `SocialActivity` type retained in `shared-types` for future social proof on storefronts
+- Demand-side discovery components (`LooksFaceoff`, `CommunityPanel`) quarantined per [ADR 0014](./adr/0014-demand-side-discovery-components.md) — retained for Phase 2 rewiring to Curator/polaroid schema
 
 ---
 

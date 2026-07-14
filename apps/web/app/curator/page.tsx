@@ -17,6 +17,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Reveal } from "../../components/ui/Reveal";
+import { OnPointHeader, OnPointFooter } from "../../components/OnPointHeader";
 import { PRODUCT_NAME } from "../../lib/brand";
 
 export const metadata: Metadata = {
@@ -300,29 +301,7 @@ function ArchetypeGradient({ color, accent }: { color: string; accent: string })
 export default function CuratorLandingPage() {
   return (
     <main className="min-h-screen bg-background text-foreground selection:bg-primary/30">
-      {/* ── Header ── */}
-      <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/95 backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <Link
-            href="/"
-            className="flex items-center gap-2 text-sm font-bold"
-          >
-            <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-1.5 shadow-md">
-              <Palette className="h-4 w-4 text-white" />
-            </div>
-            {PRODUCT_NAME}
-          </Link>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/curator/onboard"
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-primary/90"
-            >
-              <Sparkles className="h-4 w-4" />
-              Apply now
-            </Link>
-          </div>
-        </div>
-      </header>
+      <OnPointHeader />
 
       {/* ── Hero ── */}
       <Reveal>
@@ -373,7 +352,7 @@ export default function CuratorLandingPage() {
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <Check className="h-4 w-4 text-emerald-500" />
-                Zero platform fees
+                Zero subscription fees
               </span>
             </div>
           </div>
@@ -829,7 +808,7 @@ export default function CuratorLandingPage() {
               </span>
               <span className="inline-flex items-center gap-1">
                 <Check className="h-3.5 w-3.5 text-emerald-500" />
-                No platform fees
+                No subscription fees
               </span>
               <span className="inline-flex items-center gap-1">
                 <Check className="h-3.5 w-3.5 text-emerald-500" />
@@ -845,38 +824,7 @@ export default function CuratorLandingPage() {
       </section>
       </Reveal>
 
-      {/* ── Footer ── */}
-      <footer className="border-t border-border py-8">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 text-sm text-muted-foreground md:flex-row">
-          <div className="flex items-center gap-2">
-            <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-1 shadow-md">
-              <Palette className="h-3.5 w-3.5 text-white" />
-            </div>
-            {PRODUCT_NAME}
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/" className="hover:text-foreground transition-colors">
-              Home
-            </Link>
-            <Link href="/guides" className="hover:text-foreground transition-colors">
-              Guides
-            </Link>
-            <Link href="/about" className="hover:text-foreground transition-colors">
-              About
-            </Link>
-            <Link href="/curator/onboard" className="hover:text-foreground transition-colors">
-              Apply
-            </Link>
-            <Link href="/curators" className="hover:text-foreground transition-colors">
-              Browse curators
-            </Link>
-            <Link href="/s/wanja" className="hover:text-foreground transition-colors">
-              Example storefront
-            </Link>
-          </div>
-          <p className="text-xs">No platform fees. Always.</p>
-        </div>
-      </footer>
+      <OnPointFooter />
     </main>
   );
 }

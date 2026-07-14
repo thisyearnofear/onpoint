@@ -10,11 +10,13 @@ import {
   ShoppingBag,
   User,
   Radar,
-  Globe,
   Grid,
   X,
 } from "lucide-react";
 import { NotificationBell } from "../NotificationBell";
+import { AgentWalletBadge } from "../AgentWalletBadge";
+import { AttestationBadge } from "../AttestationBadge";
+import { EnhancedConnectButton } from "../EnhancedConnectButton";
 import type { FashionItem } from "@onpoint/shared-types";
 import {
   fashionItemToTryOnSelection,
@@ -27,13 +29,15 @@ import { ShopPanel } from "./ShopPanel";
 import { NewUserOnboarding } from "./NewUserOnboarding";
 import { HomePanel } from "./HomePanel";
 import { MyLooksPanel } from "./MyLooksPanel";
-import { DesignPanel } from "./DesignPanel";
+// DesignPanel and CommunityPanel are quarantined (ADR 0014).
+// They are retained in the codebase for Phase 2 demand-side discovery rewiring
+// but unwired from the Lab UI per "agent layer becomes infrastructure, not the hero" (ADR 0002).
 import { SettingsPanel } from "./SettingsPanel";
 import { MarketIntelPanel } from "./MarketIntelPanel";
-import { CommunityPanel } from "./CommunityPanel";
+// CommunityPanel import removed — quarantined per ADR 0014 (demand-side discovery, pending Phase 2 rewiring).
 import { DashboardTooltips } from "./DashboardTooltips";
 
-type AppMode = "dashboard" | "my-looks" | "try-on" | "stylist" | "shop" | "intel" | "settings" | "design" | "community";
+type AppMode = "dashboard" | "my-looks" | "try-on" | "stylist" | "shop" | "intel" | "settings";
 
 interface TacticalDashboardProps {
   onBack?: () => void;
@@ -42,9 +46,6 @@ interface TacticalDashboardProps {
 export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
   // Default to try-on (fit rail). URL ?tab= still deep-links power surfaces.
   const [mode, setMode] = useState<AppMode>("try-on");
-
-  // New looks badge state
-  const [hasNewCommunityLooks, setHasNewCommunityLooks] = React.useState(false);
 
   // Deep-link context from storefront or external pages
   const [deepLinkContext, setDeepLinkContext] = React.useState<{
@@ -72,7 +73,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
   }, []);
 
   // All valid modes (for URL param validation)
-  const ALL_MODES: AppMode[] = ["dashboard", "my-looks", "try-on", "stylist", "shop", "intel", "settings", "design", "community"];
+  const ALL_MODES: AppMode[] = ["dashboard", "my-looks", "try-on", "stylist", "shop", "intel", "settings"];
 
   // Desktop top-bar: fit + shop first; community/intel in More
   const desktopNavItems = [
@@ -87,7 +88,6 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
   const moreNavItems = [
     { id: "shop" as AppMode, label: "Shop", icon: ShoppingBag, color: "text-amber-400" },
     { id: "stylist" as AppMode, label: "Stylist", icon: MessageCircle, color: "text-primary" },
-    { id: "community" as AppMode, label: "Community", icon: Globe, color: "text-sky-400" },
     { id: "intel" as AppMode, label: "Market Intel", icon: Radar, color: "text-emerald-400" },
     { id: "settings" as AppMode, label: "Settings", icon: User, color: "text-muted-foreground" },
   ];
@@ -98,7 +98,6 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
   const contentMap: Record<AppMode, () => ReactNode> = {
     dashboard: () => <HomePanel onNavigate={(m) => setMode(m as AppMode)} />,
     "my-looks": () => <MyLooksPanel onNavigate={(m) => setMode(m as AppMode)} />,
-    "design": () => <DesignPanel onNavigate={(m) => setMode(m as AppMode)} />,
     "try-on": () => <TryOnPanel
       deepLinkFrom={deepLinkContext?.from}
       deepLinkItem={deepLinkContext?.item}
@@ -106,12 +105,6 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
       onDismissDeepLink={() => setDeepLinkContext(null)}
     />,
     stylist: () => <StylistPanel />,
-    community: () => (
-      <CommunityPanel
-        onNavigate={(m) => setMode(m as AppMode)}
-        onNewLooksStatus={setHasNewCommunityLooks}
-      />
-    ),
     intel: () => <MarketIntelPanel />,
     shop: () => (
       <ShopPanel
@@ -159,10 +152,6 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
               >
                 <div className="relative">
                   <item.icon className={`w-4 h-4 ${mode === item.id ? item.color : ""}`} />
-                  {/* Badge dot for new community looks */}
-                  {item.id === "community" && hasNewCommunityLooks && mode !== "community" && (
-                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-sky-400 ring-2 ring-background" />
-                  )}
                 </div>
                 <span className="text-sm font-medium">{item.label}</span>
               </button>
@@ -172,7 +161,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
               <button
                 onClick={() => setMoreOpen(true)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all whitespace-nowrap ${
-                  mode === "intel" || mode === "settings" || mode === "community"
+                  mode === "intel" || mode === "settings"
                     ? "bg-muted text-foreground ring-1 ring-border"
                     : "text-muted-foreground hover:text-foreground/80"
                 }`}
@@ -308,6 +297,17 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
                 <User className="w-5 h-5" />
                 <span className="text-sm font-medium">Settings</span>
               </button>
+            </div>
+            {/* Power tools — agent chrome, secondary per ADR 0002 */}
+            <div className="border-t border-border px-6 py-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50 mb-2">
+                Power
+              </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <AttestationBadge />
+                <AgentWalletBadge />
+                <EnhancedConnectButton className="flex" />
+              </div>
             </div>
           </div>
         </div>

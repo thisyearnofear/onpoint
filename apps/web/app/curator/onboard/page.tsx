@@ -346,7 +346,7 @@ export default function CuratorOnboardPage() {
                 <div>
                   <p className="font-semibold">Get paid directly</p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Checkout happens on WhatsApp — you handle payment however works best (M-Pesa, bank transfer, cash). Zero platform fees.
+                    Checkout happens on WhatsApp — you handle payment however works best (M-Pesa, bank transfer, cash). No subscription or listing fees.
                   </p>
                 </div>
               </div>

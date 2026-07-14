@@ -84,20 +84,21 @@ Three composable layers ([ADR 0002](./adr/0002-curator-primitive.md)):
 | `apps/web/components/AICuratorSection.tsx` | AI Curator second opinion voices on human storefronts |
 | `apps/web/components/CrossCuratorRecommendations.tsx` | Cross-curator product recommendations with attribution tracking |
 | `apps/web/app/curator/onboard/page.tsx` | Self-serve Curator onboarding form |
-| `apps/web/app/lab/page.tsx` | Power-user / own-agent tooling (not the demand hero) |
+| `apps/web/app/lab/page.tsx` | Power-user / own-agent tooling (not the demand hero); uses `OnPointHeader` |
+| `apps/web/components/OnPointHeader.tsx` | Shared responsive header + footer (desktop + mobile) |
+| `apps/web/components/home/` | Homepage components extracted from monolithic `page.tsx` (HeroView, LookCrafter, HeroVisual, etc.) |
+| `apps/web/components/Dashboard/TacticalDashboard.tsx` | Lab dashboard with 7 modes: try-on, shop, stylist, my-looks, dashboard, intel, settings |
 | `apps/web/app/admin/analytics/CuratorComparisonTable.tsx` | Cross-curator comparison table with sparklines |
 | `apps/web/components/admin/TrendSparkline.tsx` | Shared sparkline, Bar, CSV export, SMA trend components |
 
 ## Data Flow
 
-### Consumer dashboard (`/`)
-1. **User uploads image/camera** → Client validation
-2. **AI processing** → Provider abstraction routes to Venice/Gemini/OpenAI
-3. **Style scoring** → Sentiment-weighted analysis (1-10 scale)
-4. **Suggestion generation** → AgentSuggestionToast displays proposals
-5. **User action** → Accept/reject flows through API
-6. **State persistence** → Redis storage with in-memory fallback
-7. **Web discovery** (if no catalog match) → Python bridge browses external sites
+### Consumer homepage (`/`)
+1. **Server component** → `app/page.tsx` renders `OnPointHeader` + `HeroView` (client island)
+2. **HeroView** → Composes `WelcomeBackBanner`, `HeroVisual`, `LookCrafter`, `EditorialStats`, `RecentlySavedSection`
+3. **LookCrafter** → Pre-canned result instantly, progressive AI enhancement via `/api/ai/look-preview` (5s timeout, silent fallback)
+4. **Dual CTAs** → Shop (`/curators`) + Supply (`/curator`) + Agents (`/developers`)
+5. **No wallet/Auth0 before first interaction** (ADR 0002 §5)
 
 ### Curator storefront (`/s/[slug]`) — Phase 11
 1. **Curator + listings loaded** → Hetzner API reads from Neon (`curators` + `listings` joined to `kit_skus`); R2 image URLs constructed via `packages/storage`

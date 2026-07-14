@@ -19,8 +19,9 @@ import {
   Zap,
 } from "lucide-react";
 import { OnPointHeader, OnPointFooter } from "../../components/OnPointHeader";
+import { getApiBase } from "../../lib/utils/api-base";
 
-const API_BASE = "https://api.onpoint.famile.xyz";
+const API_BASE = getApiBase();
 
 function Endpoint({ method, path, desc }: { method: string; path: string; desc: string }) {
   const colors: Record<string, string> = {

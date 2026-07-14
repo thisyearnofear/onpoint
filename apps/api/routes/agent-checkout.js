@@ -7,6 +7,14 @@
  * Ported from apps/web/app/api/agent/checkout/route.ts
  *
  * Auth: SERVICE_API_KEY + forwarded user context
+ *
+ * @typedef {import('express').Request} ExpressRequest
+ * @typedef {import('express').Response} ExpressResponse
+ * @typedef {import('@onpoint/shared-types').CuratorStorefrontResponse} CuratorStorefrontResponse
+ * @typedef {import('@onpoint/shared-types').Order} Order
+ * @typedef {{ productId: string, quantity: number }} CheckoutItem
+ * @typedef {{ items: CheckoutItem[], agentId?: string }} CheckoutRequestBody
+ * @typedef {{ success: boolean, orderId?: string, totalUsd?: string, payoutTxHash?: string, error?: string }} CheckoutResponse
  */
 
 const express = require('express');
@@ -36,6 +44,11 @@ const PRODUCT_MAP = Object.fromEntries(
 
 router.use(forwardedUser);
 
+/**
+ * Validates the checkout request body.
+ * @param {any} body - The request body to validate.
+ * @returns {string|null} Error message if invalid, null if valid.
+ */
 function validateCheckoutBody(body) {
   if (!body.items || !Array.isArray(body.items) || body.items.length === 0) {
     return 'items array is required with at least one item';

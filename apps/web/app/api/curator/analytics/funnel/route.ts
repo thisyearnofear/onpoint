@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   }
 
   const hetzner = (
-    process.env.AGENT_API_URL || "https://api.onpoint.famile.xyz"
+    process.env.AGENT_API_URL || "http://localhost:48751"
   ).replace(/\/$/, "");
   const serviceKey = process.env.SERVICE_API_KEY;
 
