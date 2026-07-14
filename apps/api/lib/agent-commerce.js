@@ -130,6 +130,24 @@ function buildStorefrontAgentCommerce(curator, slug) {
   };
 }
 
+/**
+ * Web app base URL — used to construct human-facing shareable URLs.
+ * Falls back to the production URL if not configured via env.
+ */
+function webBaseUrl() {
+  return process.env.WEB_BASE_URL?.replace(/\/$/, '') || 'https://beonpoint.netlify.app';
+}
+
+/** Human-browsable storefront URL for a curator. */
+function storefrontWebUrl(slug) {
+  return `${webBaseUrl()}/s/${slug}`;
+}
+
+/** Shareable polaroid page URL for an agent try-on (by payment ID). */
+function polaroidWebUrl(paymentId) {
+  return `${webBaseUrl()}/p/${paymentId}`;
+}
+
 module.exports = {
   kesToCusd,
   kesPerUsd,
@@ -139,4 +157,7 @@ module.exports = {
   tryOnPriceCusd,
   buildListingAgentCommerce,
   buildStorefrontAgentCommerce,
+  webBaseUrl,
+  storefrontWebUrl,
+  polaroidWebUrl,
 };

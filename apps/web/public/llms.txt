@@ -18,10 +18,15 @@ guide: https://github.com/thisyearnofear/onpoint/blob/master/AGENTS.md
 
 ## Quick start
 1. GET /api/curator/directory?agentPurchasable=1
-2. GET /api/curator/{slug}/storefront
-3. POST /api/agent/try-on (optional, 402 -> pay -> re-POST with txHash)
-4. POST /api/curator/{slug}/order (402 -> pay -> re-POST with txHash)
+2. GET /api/curator/{slug}/storefront (includes webUrl: /s/{slug})
+3. POST /api/agent/try-on (optional, 402 -> pay -> re-POST with txHash -> 200 with polaroid.webUrl)
+4. POST /api/curator/{slug}/order (402 -> pay -> re-POST with txHash -> 201 with storefrontUrl)
 5. GET /api/curator/{slug}/earnings (public ledger)
+
+## Viral loop
+- try-on returns polaroid.webUrl -> shareable branded page with fit score + on-chain proof
+- storefront + order responses include webUrl -> human-browsable links agents can share
+- polaroid page has OG meta tags -> social shares render OnPoint-branded cards
 
 ## Reference implementation
 buyer-script: https://github.com/thisyearnofear/onpoint/blob/master/scripts/agent-buyer.mjs

@@ -27,10 +27,11 @@ const { curators, listings, kitSkus, payments } = require('@repo/db');
 const sharedTypes = require('@onpoint/shared-types');
 const agentCore = require('@repo/agent-core');
 const logger = require('../lib/logger');
-const { curatorSplitAddress, tryOnPriceCusd } = require('../lib/agent-commerce');
+const { curatorSplitAddress, tryOnPriceCusd, storefrontWebUrl, polaroidWebUrl } = require('../lib/agent-commerce');
 const { getAttributionSuffix, getAttributionCode, getAssignedTag } = require('../lib/attribution');
 const x402Facilitator = require('../lib/x402-facilitator');
 const { engine } = require('./ai-virtual-tryon');
+const { upload: r2Upload, publicUrl: r2PublicUrl, keyFor: r2KeyFor } = require('@repo/storage');
 
 const router = express.Router();
 
@@ -434,6 +435,7 @@ Return ONLY valid JSON:
           imageUrl: r2KeyToUrl(m.photo_keys?.[0]),
           orderUrl: `/api/curator/${m.curator_slug}/order`,
           storefrontUrl: `/api/curator/${m.curator_slug}/storefront`,
+          webUrl: storefrontWebUrl(m.curator_slug),
         }));
       } catch (matchErr) {
         logger.warn('Failed to find similar physical items', { component: 'agent-tryon', listingId }, matchErr);
@@ -445,6 +447,50 @@ Return ONLY valid JSON:
         ? `This is a digital design by ${row.curator.name}. Want the real thing? Check similarPhysicalItems for physical listings from human curators, then POST the order endpoint.`
         : `This is a digital design by ${row.curator.name}. Browse the directory for human curators with similar items.`
       : 'Happy with the fit? POST the order endpoint with {listingId, size, quantity} to buy.';
+
+    // ── Persist polaroid to R2 for a shareable web URL ──
+    //
+    // Best-effort: if the upload fails, the try-on still succeeded.
+    // The agent gets the render inline; the polaroid URL is a bonus.
+    let polaroid = null;
+    try {
+      const imageData = render.value.generatedImage;
+      // Strip data-URL prefix to get raw base64
+      const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
+      const imageBuffer = Buffer.from(base64Data, 'base64');
+      const imageKey = r2KeyFor.agentPolaroid(String(paymentId));
+      await r2Upload(imageKey, imageBuffer, 'image/jpeg');
+      const imageUrl = r2PublicUrl(imageKey);
+
+      const meta = {
+        item: itemLabel,
+        curatorSlug: slug,
+        curatorName: row.curator.name,
+        listingId,
+        inventoryType: row.listing.inventoryType,
+        imageUrl,
+        fitSignal,
+        stylingTips: render.value.stylingTips || [],
+        payment: {
+          txHash: effectiveTxHash,
+          amountCusd: priceCusd.toFixed(2),
+          explorerUrl: agentCore.getExplorerUrl('celo', effectiveTxHash),
+        },
+        storefrontUrl: storefrontWebUrl(slug),
+        createdAt: new Date().toISOString(),
+      };
+      const metaKey = r2KeyFor.agentPolaroidMeta(String(paymentId));
+      await r2Upload(metaKey, Buffer.from(JSON.stringify(meta), 'utf-8'), 'application/json');
+
+      polaroid = {
+        imageUrl,
+        webUrl: polaroidWebUrl(String(paymentId)),
+      };
+    } catch (polaroidErr) {
+      logger.warn('Polaroid upload failed — try-on still succeeded', { component: 'agent-tryon', paymentId }, polaroidErr);
+    }
+
+    const storefrontWeb = storefrontWebUrl(slug);
 
     return res.status(200).json({
       success: true,
@@ -461,6 +507,7 @@ Return ONLY valid JSON:
         fitSignal,
         stylingTips: render.value.stylingTips || [],
       },
+      polaroid,
       payment: {
         id: paymentId,
         txHash: effectiveTxHash,
@@ -475,10 +522,12 @@ Return ONLY valid JSON:
         ? {
             hint: nextHint,
             directory: '/api/curator/directory',
+            webUrl: storefrontWeb,
           }
         : {
             order: `/api/curator/${slug}/order`,
             hint: nextHint,
+            webUrl: storefrontWeb,
           },
     });
   } catch (err) {

@@ -92,6 +92,21 @@ Content-Type: application/json
 
 Response: **HTTP 200** with try-on render + fit signal (recommended size, confidence).
 
+The response also includes a `polaroid` object — a shareable artifact for your human:
+
+```json
+{
+  "polaroid": {
+    "imageUrl": "https://cdn.../polaroids/42.jpg",
+    "webUrl": "https://beonpoint.netlify.app/p/42"
+  }
+}
+```
+
+Share `polaroid.webUrl` with your human — it opens a branded page with the try-on image, fit score, on-chain payment proof, and a "Shop" call-to-action.
+
+Every response also includes `webUrl` fields on `similarPhysicalItems` and `next` — human-browsable storefront URLs (`/s/{slug}`) alongside the API paths.
+
 For digital listings (Nia), the response also includes `similarPhysicalItems` — physical items from human curators that match the digital design's tags.
 
 ### Step 4: Buy a Physical Item

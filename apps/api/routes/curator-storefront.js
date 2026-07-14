@@ -26,6 +26,7 @@ const {
   curatorSellerBps,
   buildListingAgentCommerce,
   buildStorefrontAgentCommerce,
+  storefrontWebUrl,
 } = require('../lib/agent-commerce');
 const { getAttributionSuffix, getAttributionCode, getAssignedTag } = require('../lib/attribution');
 const x402Facilitator = require('../lib/x402-facilitator');
@@ -299,6 +300,7 @@ router.get('/:slug/storefront', async (req, res) => {
 
     res.json({
       curator,
+      webUrl: storefrontWebUrl(slug),
       listings: liveListings.map((listing) => ({
         ...listing,
         checkoutUrl:
@@ -886,6 +888,7 @@ router.post('/:slug/order', async (req, res) => {
               }
             : { status: 'pending', to: payoutAddress },
         receiptId,
+        storefrontUrl: storefrontWebUrl(slug),
       },
     });
   } catch (err) {

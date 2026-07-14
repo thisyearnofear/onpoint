@@ -296,4 +296,8 @@ export const keyFor = {
   polaroid: (slug: string, sessionId: string) =>
     `curators/${slug}/polaroids/${sessionId}.jpg`,
   avatar: (slug: string) => `curators/${slug}/avatars/main.jpg`,
+  /** Agent try-on polaroid — keyed by payment ID (globally unique). */
+  agentPolaroid: (paymentId: string) => `polaroids/${paymentId}.jpg`,
+  /** Agent try-on polaroid metadata (JSON) — paired with agentPolaroid image. */
+  agentPolaroidMeta: (paymentId: string) => `polaroids/${paymentId}.json`,
 } as const;
