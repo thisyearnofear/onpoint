@@ -1,27 +1,43 @@
 /**
  * @repo/storage — Cloudflare R2 helpers for OnPoint (ADR 0003).
  *
- * Uses the S3-compatible API via plain fetch + HMAC-SHA256 signing.
- * No AWS SDK dependency — saves ~50MB of node_modules.
+ * Supports two authentication paths:
+ *   1. Cloudflare API token (CF_API_TOKEN) — simpler, no S3 keys needed.
+ *   2. S3-compatible SigV4 (R2_ACCESS_KEY_ID + R2_SECRET_ACCESS_KEY) — legacy.
+ *
+ * If CF_API_TOKEN is set, uses the Cloudflare R2 REST API for uploads/deletes.
+ * Otherwise, falls back to S3 SigV4 signing (no AWS SDK dependency).
  *
  * R2 keys (not full URLs) are stored in Neon. URL construction lives here.
  *
  * Required env vars (loaded on Hetzner):
- *   R2_ACCOUNT_ID       — Cloudflare account ID (part of the endpoint)
- *   R2_ACCESS_KEY_ID    — S3-compatible access key
- *   R2_SECRET_ACCESS_KEY — S3-compatible secret key
- *   R2_BUCKET_NAME      — e.g. "onpoint-store"
+ *   R2_ACCOUNT_ID       — Cloudflare account ID
+ *   R2_BUCKET_NAME      — e.g. "onpointstore"
  *   R2_PUBLIC_URL       — optional CDN URL for public reads
+ *   CF_API_TOKEN        — Cloudflare API token with R2 edit permission (preferred)
+ *   R2_ACCESS_KEY_ID    — S3-compatible access key (alternative)
+ *   R2_SECRET_ACCESS_KEY — S3-compatible secret key (alternative)
  */
 
 import { createHash, createHmac } from "node:crypto";
 
-const ACCOUNT_ID = process.env.R2_ACCOUNT_ID!;
-const ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID!;
-const SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY!;
-const BUCKET = process.env.R2_BUCKET_NAME!;
+const ACCOUNT_ID = process.env.R2_ACCOUNT_ID || "";
+const ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID || "";
+const SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY || "";
+const BUCKET = process.env.R2_BUCKET_NAME || "";
 const PUBLIC_URL = process.env.R2_PUBLIC_URL;
+const CF_API_TOKEN = process.env.CF_API_TOKEN || "";
 const REGION = "auto";
+
+/** True when Cloudflare REST API auth is available. */
+function hasCfToken(): boolean {
+  return Boolean(CF_API_TOKEN && ACCOUNT_ID && BUCKET);
+}
+
+/** True when S3 SigV4 auth is available. */
+function hasS3Credentials(): boolean {
+  return Boolean(ACCESS_KEY_ID && SECRET_ACCESS_KEY && ACCOUNT_ID && BUCKET);
+}
 
 // Lazily computed on first use, cached for the lifetime of the process.
 let _endpoint: string | null = null;
@@ -196,6 +212,8 @@ function buildPresignedQueryParams(
 /**
  * upload — put bytes to R2 at the given key.
  *
+ * Uses Cloudflare REST API if CF_API_TOKEN is set, otherwise S3 SigV4.
+ *
  * @param key   R2 key, e.g. "curators/wanja/listings/abc-123/1.jpg"
  * @param body  Buffer or Blob of image data
  * @param contentType  MIME type for the object
@@ -206,6 +224,29 @@ export async function upload(
   contentType: string,
 ): Promise<{ key: string; etag?: string }> {
   const buffer = body instanceof Uint8Array ? Buffer.from(body) : Buffer.from(await new Response(body).arrayBuffer());
+
+  // Path 1: Cloudflare REST API (preferred when CF_API_TOKEN is set)
+  if (hasCfToken()) {
+    const url = `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/r2/buckets/${BUCKET}/objects/${encodeURIComponent(key)}`;
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: {
+        "Authorization": `Bearer ${CF_API_TOKEN}`,
+        "Content-Type": contentType,
+      },
+      body: buffer,
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "unknown");
+      throw new Error(`R2 upload failed (${res.status}): ${text}`);
+    }
+    return { key, etag: res.headers.get("etag") ?? undefined };
+  }
+
+  // Path 2: S3 SigV4 (legacy)
+  if (!hasS3Credentials()) {
+    throw new Error("R2 upload requires either CF_API_TOKEN or R2_ACCESS_KEY_ID+R2_SECRET_ACCESS_KEY");
+  }
   const url = `${endpoint()}/${key}`;
   const headers = buildAuthHeader(
     "PUT",
@@ -262,8 +303,28 @@ export function publicUrl(key: string): string {
 
 /**
  * remove — delete an object from R2 by key.
+ *
+ * Uses Cloudflare REST API if CF_API_TOKEN is set, otherwise S3 SigV4.
  */
 export async function remove(key: string): Promise<void> {
+  // Path 1: Cloudflare REST API
+  if (hasCfToken()) {
+    const url = `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/r2/buckets/${BUCKET}/objects/${encodeURIComponent(key)}`;
+    const res = await fetch(url, {
+      method: "DELETE",
+      headers: { "Authorization": `Bearer ${CF_API_TOKEN}` },
+    });
+    if (!res.ok && res.status !== 404) {
+      const text = await res.text().catch(() => "unknown");
+      throw new Error(`R2 delete failed (${res.status}): ${text}`);
+    }
+    return;
+  }
+
+  // Path 2: S3 SigV4
+  if (!hasS3Credentials()) {
+    throw new Error("R2 remove requires either CF_API_TOKEN or R2_ACCESS_KEY_ID+R2_SECRET_ACCESS_KEY");
+  }
   const url = `${endpoint()}/${key}`;
   const headers = buildAuthHeader("DELETE", key, {}, "");
 

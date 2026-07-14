@@ -4,6 +4,7 @@ import { ArrowRight, CheckCircle2, Sparkles, ShoppingBag } from "lucide-react";
 import { OnPointHeader, OnPointFooter } from "../../../components/OnPointHeader";
 import { TransitionLink } from "../../../components/ViewTransition";
 import { getApiBase } from "../../../lib/utils/api-base";
+import { PolaroidShareButtons } from "./PolaroidShareButtons";
 
 export const dynamic = "force-dynamic";
 
@@ -216,6 +217,13 @@ export default async function PolaroidPage({
                   </a>
                 </span>
               </div>
+
+              {/* Social share — drives viral loop */}
+              <PolaroidShareButtons
+                item={meta.item}
+                curatorName={meta.curatorName}
+                score={fit?.score ?? null}
+              />
 
               {/* CTA — shop the real thing */}
               <TransitionLink
