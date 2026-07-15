@@ -63,8 +63,11 @@ export async function StorefrontLooks({ curatorSlug }: { curatorSlug: string }) 
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {looks.map((look) => {
-          const heroItem = look.items.find((i) => i.isHero) || look.items[0];
-          const agentShort = `${look.agentAddress.slice(0, 6)}…${look.agentAddress.slice(-4)}`;
+          const items = look.items || [];
+          const heroItem = items.find((i) => i.isHero) || items[0];
+          const agentShort = look.agentAddress
+            ? `${look.agentAddress.slice(0, 6)}…${look.agentAddress.slice(-4)}`
+            : "unknown";
 
           return (
             <Link
@@ -121,7 +124,7 @@ export async function StorefrontLooks({ curatorSlug }: { curatorSlug: string }) 
               {/* Item count */}
               <div className="flex items-center justify-between px-3 py-2">
                 <span className="text-xs text-muted-foreground">
-                  {look.items.length} pieces
+                  {items.length} pieces
                 </span>
                 <span className="text-xs font-medium text-foreground/60 transition-colors group-hover:text-foreground">
                   View look →

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Bot, ShoppingBag, ExternalLink } from "lucide-react";
+import { Bot, ShoppingBag, ExternalLink, FlaskConical, Sparkles } from "lucide-react";
 
 interface AgentActivity {
   id: string;
@@ -13,8 +13,8 @@ interface AgentActivity {
   agentId: string;
 }
 
-// Mock data - replace with real API endpoint later
-const MOCK_ACTIVITIES: AgentActivity[] = [
+// Demo data showing what agent commerce will look like at launch
+const DEMO_ACTIVITIES: AgentActivity[] = [
   {
     id: "1",
     action: "purchase",
@@ -67,10 +67,7 @@ export function AgentActivityFeed() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Simulate loading activities
-    setActivities(MOCK_ACTIVITIES);
-    
-    // Animate in
+    setActivities(DEMO_ACTIVITIES);
     const timer = setTimeout(() => setIsVisible(true), 100);
     return () => clearTimeout(timer);
   }, []);
@@ -91,16 +88,18 @@ export function AgentActivityFeed() {
             </div>
             <div>
               <h3 className="text-sm font-bold text-foreground">
-                Live Agent Activity
+                Agent Activity
               </h3>
               <p className="text-xs text-muted-foreground">
-                AI agents are buying real fashion right now
+                What agent commerce will look like at launch
               </p>
             </div>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-xs text-green-600 font-medium">Live</span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-xs font-medium text-amber-600 dark:text-amber-400">
+              <FlaskConical className="w-3 h-3" />
+              Demo
+            </span>
           </div>
         </div>
 
@@ -147,15 +146,10 @@ export function AgentActivityFeed() {
                   {activity.timestamp}
                 </p>
                 {activity.action === "purchase" && (
-                  <a
-                    href="https://celoscan.io"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 mt-1"
-                  >
+                  <span className="inline-flex items-center gap-1 text-xs text-indigo-400/60 mt-1">
                     View TX
                     <ExternalLink className="w-3 h-3" />
-                  </a>
+                  </span>
                 )}
               </div>
             </div>
@@ -164,7 +158,8 @@ export function AgentActivityFeed() {
 
         <div className="mt-4 pt-4 border-t border-indigo-500/20">
           <p className="text-xs text-center text-muted-foreground">
-            All transactions settled on Celo blockchain · Gas fees paid by platform
+            <Sparkles className="inline w-3 h-3 mr-1 -mt-0.5" />
+            Simulated data — real agent transactions will appear here after launch
           </p>
         </div>
       </div>

@@ -92,8 +92,11 @@ export default async function LooksPage() {
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {looks.map((look) => {
-              const heroItem = look.items.find((i) => i.isHero) || look.items[0];
-              const agentShort = `${look.agentAddress.slice(0, 6)}…${look.agentAddress.slice(-4)}`;
+              const items = look.items ?? [];
+              const heroItem = items.find((i) => i.isHero) || items[0];
+              const agentShort = look.agentAddress
+                ? `${look.agentAddress.slice(0, 6)}…${look.agentAddress.slice(-4)}`
+                : "unknown";
 
               return (
                 <Link
@@ -143,7 +146,7 @@ export default async function LooksPage() {
                     <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
                       <h3 className="text-base font-bold leading-tight">{look.title}</h3>
                       <p className="mt-1 text-xs text-white/70">
-                        Styled by {agentShort} · {look.items.length} pieces
+                        Styled by {agentShort} · {items.length} pieces
                       </p>
                     </div>
                   </div>

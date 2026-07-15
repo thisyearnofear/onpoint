@@ -18,6 +18,7 @@ import { CuratorTracker } from "../../../components/CuratorTracker";
 import { ShareStorefront } from "../../../components/ShareStorefront";
 import { CrossCuratorRecommendations } from "../../../components/CrossCuratorRecommendations";
 import { AICuratorSection } from "../../../components/AICuratorSection";
+import { ComingSoonBadge } from "../../../components/ui/ComingSoonBadge";
 import { StorefrontLooks } from "../../../components/StorefrontLooks";
 import { MpesaPaymentPanel } from "./MpesaPaymentPanel";
 import { CuratorOwnerTools } from "../../../components/Curator/CuratorOwnerTools";
@@ -207,6 +208,7 @@ export default async function CuratorStorefrontPage({
                 <span className="inline-flex items-center gap-2">
                   <MessageCircle className="h-4 w-4" />
                   WhatsApp checkout
+                  <ComingSoonBadge size="xs" />
                 </span>
               )}
             </div>

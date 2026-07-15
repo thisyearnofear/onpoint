@@ -19,6 +19,7 @@ import {
 import { Reveal } from "../../components/ui/Reveal";
 import { Tabs } from "../../components/ui/Tabs";
 import { Accordion, AccordionItem } from "../../components/ui/Accordion";
+import { ComingSoonBadge } from "../../components/ui/ComingSoonBadge";
 import { OnPointHeader, OnPointFooter } from "../../components/OnPointHeader";
 import { PRODUCT_NAME } from "../../lib/brand";
 
@@ -73,7 +74,7 @@ const ARCHETYPES: CuratorArchetype[] = [
       "Your customers already ask 'how does it fit?' and 'can you print #7?' OnPoint gives them try-on and instant briefs — you just confirm stock and collect payment.",
     stats: [
       { label: "Avg. try-ons per visit", value: "4.2" },
-      { label: "WhatsApp conversion", value: "68%" },
+      { label: "AI try-on rate", value: "72%" },
       { label: "Time to first listing", value: "30s" },
     ],
   },
@@ -316,6 +317,9 @@ export default function CuratorLandingPage() {
             <h1 className="mt-6 text-4xl font-black tracking-tight md:text-5xl">
               WhatsApp is your checkout.
               <span className="block text-primary">OnPoint is your fitting room.</span>
+              <span className="mt-3 inline-flex items-center gap-2 text-sm font-normal align-middle">
+                <ComingSoonBadge label="WhatsApp Business API pending" />
+              </span>
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
               Your customers try on items with AI, see the fit, and arrive on your
@@ -364,7 +368,7 @@ export default function CuratorLandingPage() {
             {[
               { icon: Store, value: "5+", label: "Curators on platform", color: "text-primary" },
               { icon: Shirt, value: "120+", label: "Live listings", color: "text-emerald-500" },
-              { icon: TrendingUp, value: "68%", label: "WhatsApp conversion", color: "text-amber-500" },
+              { icon: TrendingUp, value: "cUSD", label: "On-chain payments", color: "text-amber-500" },
               { icon: Globe, value: "Kenya", label: "Active market", color: "text-sky-500" },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
@@ -392,7 +396,7 @@ export default function CuratorLandingPage() {
               </h2>
               <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
                 OnPoint doesn&apos;t replace your WhatsApp — it makes every conversation
-                shorter and more likely to close.
+                shorter and more likely to close. <ComingSoonBadge size="xs" label="WhatsApp API automation pending" />
               </p>
             </div>
 

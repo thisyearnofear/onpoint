@@ -72,9 +72,9 @@ export async function generateMetadata({
 
   return {
     title: `${look.title} | OnPoint Looks`,
-    description: look.description || `A styled look by ${look.agentAddress.slice(0, 8)}… on OnPoint`,
+    description: look.description || `A styled look by ${look.agentAddress ? look.agentAddress.slice(0, 8) + "…" : "an agent"} on OnPoint`,
     openGraph: {
-      images: look.coverImageUrl ? [look.coverImageUrl] : look.items.find((i) => i.imageUrl)?.imageUrl ? [look.items.find((i) => i.imageUrl)!.imageUrl!] : [],
+      images: look.coverImageUrl ? [look.coverImageUrl] : (look.items || []).find((i) => i.imageUrl)?.imageUrl ? [(look.items || []).find((i) => i.imageUrl)!.imageUrl!] : [],
     },
   };
 }
@@ -95,9 +95,12 @@ export default async function LookPage({
 
   if (!look) notFound();
 
-  const heroItem = look.items.find((i) => i.isHero) || look.items[0];
-  const otherItems = look.items.filter((i) => !i.isHero);
-  const agentShort = `${look.agentAddress.slice(0, 6)}…${look.agentAddress.slice(-4)}`;
+  const items = look.items || [];
+  const heroItem = items.find((i) => i.isHero) || items[0];
+  const otherItems = items.filter((i) => !i.isHero);
+  const agentShort = look.agentAddress
+    ? `${look.agentAddress.slice(0, 6)}…${look.agentAddress.slice(-4)}`
+    : "unknown";
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -215,10 +218,10 @@ export default async function LookPage({
           {/* Items list */}
           <div className="space-y-4">
             <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-              The Look ({look.items.length} pieces)
+              The Look ({items.length} pieces)
             </h2>
 
-            {look.items.map((item) => {
+            {items.map((item) => {
               const price = getLowestPrice(item.sizes);
               return (
                 <Link

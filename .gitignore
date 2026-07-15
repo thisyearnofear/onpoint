@@ -102,3 +102,6 @@ apps/api/.curator-payout-keys.json
 .testsprite/failure-*
 .testsprite/steps-*
 .testsprite/failure*/
+
+# Local Netlify folder
+.netlify

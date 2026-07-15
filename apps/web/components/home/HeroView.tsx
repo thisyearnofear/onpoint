@@ -15,6 +15,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { Reveal } from "../ui/Reveal";
+import { ComingSoonBadge } from "../ui/ComingSoonBadge";
 import { LiveCounter } from "../LiveCounter";
 import { trackHomepageCta } from "../../lib/utils/analytics";
 import { captureReferralFromURL } from "../../lib/utils/referral";
@@ -245,7 +246,10 @@ export function HeroView() {
                     3
                   </div>
                 </div>
-                <h3 className="text-lg font-bold mb-2">Order via WhatsApp</h3>
+                <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
+                  Order via WhatsApp
+                  <ComingSoonBadge size="xs" />
+                </h3>
                 <p className="text-sm text-muted-foreground">
                   Share your try-on with the curator. Confirm size, stock, and delivery.
                 </p>
