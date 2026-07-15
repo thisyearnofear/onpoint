@@ -99,6 +99,12 @@ export default async function CuratorStorefrontPage({
   const primary = curator.brand?.colors?.primary || "#111827";
   const acc = curator.brand?.colors?.accent || "#e94560";
 
+  // Human curators with platform-provisioned wallets haven't been onboarded yet —
+  // show a "Preview" badge so visitors know the curator hasn't claimed their storefront.
+  const isPreview =
+    curator.type !== "ai" &&
+    curator.commerce?.payoutWalletStatus === "platform_custodial";
+
   // Build listings summary for analytics (slim, no image data)
   const trackerListings = listings.map((l) => ({
     id: l.id,
@@ -170,10 +176,17 @@ export default async function CuratorStorefrontPage({
                 style={{ viewTransitionName: `curator-name-${slug}` }}
               >
                 {curator.name}
+                {isPreview && (
+                  <span className="ml-3 inline-flex items-center gap-1.5 align-middle rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                    <Sparkles className="h-3 w-3" />
+                    Preview
+                  </span>
+                )}
               </h1>
               <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
-                Real stock, fit-aware decisions, and a direct line to {curator.name}.
-                Choose a piece, try it on with AI, then confirm the details on WhatsApp.
+                {isPreview
+                  ? `A preview of ${curator.name}'s catalog — real stock and pricing, with AI try-on. This curator is in the process of joining OnPoint.`
+                  : `Real stock, fit-aware decisions, and a direct line to ${curator.name}. Choose a piece, try it on with AI, then confirm the details on WhatsApp.`}
               </p>
             </div>
 
@@ -429,6 +442,11 @@ export default async function CuratorStorefrontPage({
                     <div className="absolute left-3 top-3 rounded-full bg-background/90 px-3 py-1 text-xs font-bold shadow-sm">
                       {formatKitType(kit?.kitType ?? "")}
                     </div>
+                    {isPreview && listing.imageUrl && (
+                      <div className="absolute bottom-3 right-3 rounded-full bg-background/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground backdrop-blur">
+                        Concept image
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-4 p-4">
