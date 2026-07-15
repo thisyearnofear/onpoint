@@ -12,3 +12,4 @@ export * from "./schema/listings.js";
 export * from "./schema/orders.js";
 export * from "./schema/payments.js";
 export * from "./schema/sessions.js";
+export * from "./schema/agent-looks.js";

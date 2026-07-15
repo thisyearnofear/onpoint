@@ -102,11 +102,13 @@ export const orders = pgTable("orders", {
 export const agentReferrals = pgTable("agent_referrals", {
   id: uuid("id").primaryKey().defaultRandom(),
   agentAddress: text("agent_address").notNull(),
-  referralCode: text("referral_code").notNull().unique(),
+  referralCode: text("referral_code").notNull(),
   orderId: uuid("order_id")
     .notNull()
     .references(() => orders.id),
   commissionCusd: text("commission_cusd").notNull(),
+  orderAmountCusd: text("order_amount_cusd"),
+  curatorSlug: text("curator_slug"),
   payoutTxHash: text("payout_tx_hash"),
   status: text("status", {
     enum: ["pending", "paid", "failed"],
@@ -114,4 +116,5 @@ export const agentReferrals = pgTable("agent_referrals", {
     .notNull()
     .default("pending"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

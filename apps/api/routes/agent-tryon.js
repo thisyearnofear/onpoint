@@ -22,7 +22,7 @@
 const express = require('express');
 const { neon } = require('@neondatabase/serverless');
 const { drizzle } = require('drizzle-orm/neon-http');
-const { eq, and, ne, sql } = require('drizzle-orm');
+const { eq, and, ne, sql, inArray } = require('drizzle-orm');
 const { curators, listings, kitSkus, payments } = require('@repo/db');
 const sharedTypes = require('@onpoint/shared-types');
 const agentCore = require('@repo/agent-core');
@@ -113,7 +113,7 @@ function recommendSize(bodyAnalysis, sizes) {
 
 // ── POST /api/agent/try-on ───────────────────────────────────
 router.post('/', async (req, res) => {
-  const { curatorSlug, listingId, photoData, personDescription, paymentTxHash } =
+  const { curatorSlug, listingId, photoData, personDescription, paymentTxHash, lookSlug } =
     req.body || {};
   const slug = String(curatorSlug || '').toLowerCase();
 
@@ -492,6 +492,82 @@ Return ONLY valid JSON:
       logger.warn('Polaroid upload failed — try-on still succeeded', { component: 'agent-tryon', paymentId }, polaroidErr);
     }
 
+    // ── Share card: if this try-on came from a look, generate a collage ──
+    let shareCard = null;
+    if (lookSlug) {
+      try {
+        const { generateShareCard } = require('../lib/share-card');
+        const { neon } = require('@neondatabase/serverless');
+        const { drizzle } = require('drizzle-orm/neon-http');
+        const { eq: eqD } = require('drizzle-orm');
+        const { agentLooks, listings: listingsTable, kitSkus: kitTable } = require('@repo/db');
+
+        const dbLook = drizzle(neon(process.env.NEON_DATABASE_URL));
+        const [look] = await dbLook
+          .select()
+          .from(agentLooks)
+          .where(eqD(agentLooks.slug, lookSlug))
+          .limit(1);
+
+        if (look && look.status === 'live') {
+          // Resolve look items for the collage
+          const lookItems = await dbLook
+            .select({ listing: listingsTable, kit: kitTable })
+            .from(listingsTable)
+            .leftJoin(kitTable, eqD(listingsTable.skuId, kitTable.id))
+            .where(inArray(listingsTable.id, look.listingIds));
+
+          const { R2Storage } = require('@repo/storage');
+          const r2 = new R2Storage({
+            accountId: process.env.R2_ACCOUNT_ID,
+            accessKeyId: process.env.R2_ACCESS_KEY_ID,
+            secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+            bucketName: process.env.R2_BUCKET_NAME,
+            publicUrl: process.env.R2_PUBLIC_URL || '',
+          });
+
+          const itemsForCard = look.listingIds.map((id) => {
+            const row = lookItems.find((r) => r.listing.id === id);
+            if (!row) return null;
+            const photoKey = row.listing.photoKeys?.[0] || row.listing.officialImageKey;
+            return {
+              title: row.listing.title || (row.kit ? `${row.kit.club} ${row.kit.kitType}` : 'Item'),
+              imageUrl: photoKey ? r2.publicUrl(photoKey) : null,
+              isHero: row.listing.id === look.heroListingId,
+            };
+          }).filter(Boolean);
+
+          const cardResult = await generateShareCard({
+            tryOnImageBase64: render.value.generatedImage,
+            items: itemsForCard,
+            agentAddress: look.agentAddress,
+            lookSlug: look.slug,
+            lookTitle: look.title,
+          });
+
+          shareCard = {
+            imageUrl: cardResult.url,
+            r2Key: cardResult.r2Key,
+            lookSlug: look.slug,
+            lookUrl: `${webBaseUrl()}/look/${look.slug}`,
+          };
+
+          // Increment try-on count
+          await dbLook.execute(sql`UPDATE agent_looks SET try_on_count = try_on_count + 1, updated_at = now() WHERE slug = ${lookSlug}`);
+
+          logger.info('Share card generated for look', {
+            component: 'agent-tryon',
+            lookSlug,
+            r2Key: cardResult.r2Key,
+          });
+        }
+      } catch (cardErr) {
+        logger.warn('Share card generation failed — try-on still succeeded', {
+          component: 'agent-tryon', lookSlug,
+        }, cardErr);
+      }
+    }
+
     const storefrontWeb = storefrontWebUrl(slug);
 
     return res.status(200).json({
@@ -510,6 +586,7 @@ Return ONLY valid JSON:
         stylingTips: render.value.stylingTips || [],
       },
       polaroid,
+      ...(shareCard ? { shareCard } : {}),
       payment: {
         id: paymentId,
         txHash: effectiveTxHash,

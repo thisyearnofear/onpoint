@@ -48,6 +48,7 @@ const TASK_INTERVAL_MS = parseInt(process.env.TASK_INTERVAL_MS) || 5 * 60 * 1000
 const MARKET_SIGNAL_INTERVAL_MS = parseInt(process.env.MARKET_SIGNAL_INTERVAL_MS) || 15 * 60 * 1000; // 15 min
 const RETENTION_DIGEST_INTERVAL_MS = parseInt(process.env.RETENTION_DIGEST_INTERVAL_MS) || 7 * 24 * 60 * 60 * 1000; // 7 days
 const PAYOUT_RETRY_INTERVAL_MS = parseInt(process.env.PAYOUT_RETRY_INTERVAL_MS) || 30 * 60 * 1000; // 30 min
+const REFERRAL_PAYOUT_INTERVAL_MS = parseInt(process.env.REFERRAL_PAYOUT_INTERVAL_MS) || 30 * 60 * 1000; // 30 min
 
 // ── State ──
 let lastHeartbeat = {
@@ -85,6 +86,14 @@ let lastPayoutRetry = {
   succeeded: 0,
   failed: 0,
   autoReleased: 0,
+  error: null,
+};
+
+let lastReferralPayout = {
+  timestamp: null,
+  processed: 0,
+  succeeded: 0,
+  failed: 0,
   error: null,
 };
 
@@ -137,12 +146,20 @@ app.get('/health', (req, res) => {
       lastAutoReleased: lastPayoutRetry.autoReleased,
       lastError: lastPayoutRetry.error,
     },
+    referralPayout: {
+      lastRun: lastReferralPayout.timestamp,
+      lastProcessed: lastReferralPayout.processed,
+      lastSucceeded: lastReferralPayout.succeeded,
+      lastFailed: lastReferralPayout.failed,
+      lastError: lastReferralPayout.error,
+    },
     intervals: {
       heartbeatMs: HEARTBEAT_INTERVAL_MS,
       taskMs: TASK_INTERVAL_MS,
       marketSignalMs: MARKET_SIGNAL_INTERVAL_MS,
       retentionDigestMs: RETENTION_DIGEST_INTERVAL_MS,
       payoutRetryMs: PAYOUT_RETRY_INTERVAL_MS,
+      referralPayoutMs: REFERRAL_PAYOUT_INTERVAL_MS,
     },
     apiUrl: API_URL,
     sentry: !!process.env.SENTRY_DSN,
@@ -559,6 +576,63 @@ async function executePayoutRetry() {
 }
 
 /**
+ * Task 6: Referral payout — POST /api/cron/referral-payout
+ * Settles pending 2.5% referral commissions to agent wallets on-chain.
+ */
+async function executeReferralPayout() {
+  const startTime = Date.now();
+
+  if (!SERVICE_API_KEY) {
+    lastReferralPayout = {
+      timestamp: new Date().toISOString(),
+      processed: 0, succeeded: 0, failed: 0,
+      error: 'SERVICE_API_KEY not configured',
+    };
+    return;
+  }
+
+  try {
+    const { ok, data } = await apiPost('/api/cron/referral-payout');
+
+    if (ok && data?.success) {
+      lastReferralPayout = {
+        timestamp: new Date().toISOString(),
+        processed: data.processed || 0,
+        succeeded: data.succeeded || 0,
+        failed: data.failed || 0,
+        error: null,
+      };
+      logger.info('Referral payout completed', {
+        component: 'worker',
+        processed: data.processed,
+        succeeded: data.succeeded,
+        failed: data.failed,
+        elapsedMs: Date.now() - startTime,
+      });
+    } else {
+      lastReferralPayout = {
+        timestamp: new Date().toISOString(),
+        processed: 0, succeeded: 0, failed: 0,
+        error: data?.error || 'Referral payout failed',
+      };
+      logger.warn('Referral payout returned error', {
+        component: 'worker',
+        data,
+        elapsedMs: Date.now() - startTime,
+      });
+    }
+  } catch (err) {
+    lastReferralPayout = {
+      timestamp: new Date().toISOString(),
+      processed: 0, succeeded: 0, failed: 0,
+      error: err.message?.slice(0, 200) || 'Unknown error',
+    };
+    logger.error('Referral payout failed', { component: 'worker', elapsedMs: Date.now() - startTime }, err);
+    if (Sentry) Sentry.captureException(err, { tags: { component: 'worker', task: 'referral-payout' } });
+  }
+}
+
+/**
  * Full worker cycle: heartbeat → task processing → market signals
  */
 async function runCycle() {
@@ -627,6 +701,14 @@ setInterval(() => {
   });
 }, PAYOUT_RETRY_INTERVAL_MS);
 
+// Referral payout: every REFERRAL_PAYOUT_INTERVAL_MS (30 min)
+setInterval(() => {
+  executeReferralPayout().catch((err) => {
+    logger.error('Referral payout cycle error', { component: 'worker' }, err);
+    if (Sentry) Sentry.captureException(err);
+  });
+}, REFERRAL_PAYOUT_INTERVAL_MS);
+
 // Retention digest: every RETENTION_DIGEST_INTERVAL_MS (7 days by default)
 setInterval(() => {
   executeRetentionDigest().catch((err) => {
@@ -666,6 +748,14 @@ setTimeout(() => {
     if (Sentry) Sentry.captureException(err);
   });
 }, 150000);
+
+// Initial referral payout (staggered — runs 3 min after startup)
+setTimeout(() => {
+  executeReferralPayout().catch((err) => {
+    logger.error('Initial referral payout failed', { component: 'worker' }, err);
+    if (Sentry) Sentry.captureException(err);
+  });
+}, 180000);
 
 // ── Start Express Server ──
 app.listen(WORKER_PORT, '127.0.0.1', () => {

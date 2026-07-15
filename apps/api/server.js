@@ -288,6 +288,11 @@ app.use('/api/curator', json1k, generalRateLimit, require('./routes/curator-stor
 
 app.use('/api/referrals', json1k, generalRateLimit, require('./routes/referrals'));
 
+// ── Agent Looks (public read, agent-authed write) ───────────────
+// External agents compose OnPoint listings into shareable style boards.
+
+app.use('/api/looks', json10mb, generalRateLimit, require('./routes/agent-looks'));
+
 // ── Listing Routes (public, rate-limited) ───────────────────────
 // Similar physical items for digital listings (digital→physical funnel).
 

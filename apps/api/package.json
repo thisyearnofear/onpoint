@@ -27,6 +27,7 @@
     "express": "^4.18.2",
     "ioredis": "^5.3.2",
     "openai": "^4.73.0",
+    "sharp": "0.35.3",
     "viem": "^2.21.0"
   },
   "devDependencies": {

@@ -14,8 +14,8 @@
 const express = require('express');
 const { neon } = require('@neondatabase/serverless');
 const { drizzle } = require('drizzle-orm/neon-http');
-const { eq, and, isNull, lte, sql } = require('drizzle-orm');
-const { orders, curators } = require('@repo/db');
+const { eq, and, isNull, lte, sql, inArray } = require('drizzle-orm');
+const { orders, curators, agentReferrals } = require('@repo/db');
 const agentCore = require('@repo/agent-core');
 const sharedTypes = require('@onpoint/shared-types');
 const logger = require('../lib/logger');
@@ -225,6 +225,125 @@ router.post('/payout-retry', async (req, res) => {
       processed,
       succeeded,
       failed,
+    });
+  }
+});
+
+// ── POST /api/cron/referral-payout ──
+// Settle pending referral commissions (2.5% of order value) to agent wallets.
+// Finds agent_referrals with status='pending', sends cUSD to the agent's
+// wallet, and marks them as 'paid'.
+router.post('/referral-payout', async (req, res) => {
+  const startTime = Date.now();
+  let processed = 0;
+  let succeeded = 0;
+  let failed = 0;
+
+  try {
+    const db = getDb();
+
+    // Find pending referrals with a confirmed/delivered order
+    const pending = await db.execute(sql`
+      SELECT ar.*, o.status as order_status, o.amount_cusd
+      FROM agent_referrals ar
+      INNER JOIN orders o ON ar.order_id = o.id
+      WHERE ar.status = 'pending'
+        AND o.status IN ('confirmed', 'shipped', 'delivered')
+      ORDER BY ar.created_at ASC
+      LIMIT 50
+    `);
+
+    if (pending.length === 0) {
+      return res.json({
+        success: true,
+        processed: 0,
+        succeeded: 0,
+        failed: 0,
+        elapsedMs: Date.now() - startTime,
+      });
+    }
+
+    for (const referral of pending) {
+      processed++;
+      try {
+        const commissionWei = BigInt(Math.round(Number(referral.commissionCusd) * 1e18));
+        if (commissionWei === 0n) {
+          // Zero commission — mark as paid without a tx
+          await db.update(agentReferrals)
+            .set({ status: 'paid', updatedAt: new Date() })
+            .where(eq(agentReferrals.id, referral.id));
+          succeeded++;
+          continue;
+        }
+
+        const signerClient = agentCore.getSignerClient();
+        const payoutKey = !signerClient ? process.env.AGENT_PRIVATE_KEY : null;
+        if (!signerClient && !payoutKey) {
+          logger.error('No signing method for referral payout', { component: 'cron-payout' });
+          failed++;
+          break;
+        }
+
+        let txHash;
+        if (signerClient) {
+          const signerResult = await signerClient.signTransfer({
+            chain: 'celo',
+            tokenAddress: sharedTypes.X402_ASSET,
+            to: referral.agentAddress,
+            amountWei: commissionWei.toString(),
+            action: 'referral_payout',
+            agentId: 'system',
+            userId: `agent:${referral.agentAddress}`,
+            suggestionId: `referral_${referral.id}`,
+            description: `Referral commission payout for referral ${referral.id}`,
+          });
+          if (!signerResult.success) throw new Error(signerResult.error || 'Signer rejected');
+          txHash = signerResult.txHash;
+        } else {
+          const transferResult = await agentCore.ERC20.transfer({
+            chain: 'celo',
+            tokenAddress: sharedTypes.X402_ASSET,
+            to: referral.agentAddress,
+            amount: commissionWei,
+            privateKey: payoutKey,
+            dataSuffix: getAttributionSuffix(),
+          });
+          txHash = transferResult.hash;
+        }
+
+        await db.update(agentReferrals)
+          .set({ status: 'paid', payoutTxHash: txHash, updatedAt: new Date() })
+          .where(eq(agentReferrals.id, referral.id));
+
+        succeeded++;
+        logger.info('Referral payout succeeded', {
+          component: 'cron-payout',
+          referralId: referral.id,
+          agentAddress: referral.agentAddress,
+          commissionCusd: referral.commissionCusd,
+          txHash,
+        });
+      } catch (err) {
+        failed++;
+        logger.error('Referral payout failed', {
+          component: 'cron-payout',
+          referralId: referral.id,
+        }, err);
+      }
+    }
+
+    const elapsedMs = Date.now() - startTime;
+    logger.info('Referral payout cron complete', {
+      component: 'cron-payout', processed, succeeded, failed, elapsedMs,
+    });
+
+    res.json({ success: true, processed, succeeded, failed, elapsedMs });
+  } catch (err) {
+    logger.error('Referral payout cron failed', { component: 'cron-payout' }, err);
+    res.status(500).json({
+      success: false,
+      error: err.message?.slice(0, 200) || 'Unknown error',
+      processed, succeeded, failed,
     });
   }
 });
