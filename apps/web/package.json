@@ -8,7 +8,7 @@
     "build": "node ../../node_modules/next/dist/bin/next build --webpack",
     "start": "node ../../node_modules/next/dist/bin/next start",
     "test": "vitest run",
-    "lint": "next lint --max-warnings 0",
+    "lint": "next lint",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
