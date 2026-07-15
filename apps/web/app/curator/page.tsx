@@ -17,6 +17,8 @@ import {
   Zap,
 } from "lucide-react";
 import { Reveal } from "../../components/ui/Reveal";
+import { Tabs } from "../../components/ui/Tabs";
+import { Accordion, AccordionItem } from "../../components/ui/Accordion";
 import { OnPointHeader, OnPointFooter } from "../../components/OnPointHeader";
 import { PRODUCT_NAME } from "../../lib/brand";
 
@@ -482,10 +484,10 @@ export default function CuratorLandingPage() {
         </section>
       </Reveal>
 
-      {/* ── Archetypes ── */}
+      {/* ── Archetypes — tabbed, pick your vertical ── */}
       <Reveal>
         <section className="border-b border-border py-16 md:py-20">
-          <div className="mx-auto max-w-6xl px-4">
+          <div className="mx-auto max-w-4xl px-4">
           <div className="text-center">
             <p className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-4 py-1.5 text-xs font-medium text-muted-foreground">
               <Sparkles className="h-3.5 w-3.5 text-accent" />
@@ -495,154 +497,90 @@ export default function CuratorLandingPage() {
               Built for your vertical
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-              Whether you sell kits or kaftans, OnPoint adapts to how you work.
               Pick your lane — everything else is handled.
             </p>
           </div>
 
-          <div className="mt-10 space-y-6">
-            {ARCHETYPES.map((archetype) => (
-              <div
-                key={archetype.id}
-                className="group relative overflow-hidden rounded-2xl transition-all"
-              >
-                <ArchetypeGradient color={archetype.color} accent={archetype.accent} />
-
-                <div className="relative z-10 p-6 md:p-8">
-                  {/* Header row */}
-                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                    <div className="flex items-start gap-4">
+          <div className="mt-8">
+            <Tabs
+              items={ARCHETYPES.map((a) => ({
+                id: a.id,
+                label: a.title.split(" ")[0] ?? a.title,
+                icon: <span className="text-base">{a.emoji}</span>,
+                content: (
+                  <div className="rounded-2xl border border-border/40 bg-card p-6 md:p-8" style={{ borderColor: `${a.color}40` }}>
+                    <div className="flex items-start gap-4 mb-4">
                       <div
-                        className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-2xl shadow-sm"
-                        style={{
-                          background: `linear-gradient(135deg, ${archetype.color}20, ${archetype.accent}20)`,
-                        }}
+                        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl"
+                        style={{ background: `linear-gradient(135deg, ${a.color}20, ${a.accent}20)` }}
                       >
-                        {archetype.emoji}
+                        {a.emoji}
                       </div>
-                      <div>
-                        <h3 className="text-xl font-black tracking-tight">
-                          {archetype.title}
-                        </h3>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {archetype.tagline}
-                        </p>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-black tracking-tight">{a.title}</h3>
+                        <p className="text-sm text-muted-foreground">{a.tagline}</p>
                       </div>
                     </div>
 
-                    {/* Stats badges */}
-                    <div className="flex flex-wrap gap-2">
-                      {archetype.stats.map((stat) => (
-                        <div
-                          key={stat.label}
-                          className="rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-center"
-                        >
-                          <p
-                            className="text-sm font-black"
-                            style={{ color: archetype.color }}
-                          >
-                            {stat.value}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground whitespace-nowrap">
-                            {stat.label}
-                          </p>
+                    {/* Stats row — compact */}
+                    <div className="flex flex-wrap gap-3 mb-5">
+                      {a.stats.map((s) => (
+                        <div key={s.label} className="rounded-lg bg-muted/40 px-3 py-1.5">
+                          <span className="text-sm font-black" style={{ color: a.color }}>{s.value}</span>
+                          <span className="text-[10px] text-muted-foreground ml-1.5">{s.label}</span>
                         </div>
                       ))}
                     </div>
-                  </div>
 
-                  {/* Content grid */}
-                  <div className="mt-6 grid gap-6 md:grid-cols-2">
-                    <div className="space-y-4">
-                      <p className="text-sm leading-6 text-muted-foreground">
-                        {archetype.description}
-                      </p>
-
-                      <div>
-                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                          Example items
-                        </p>
-                        <ul className="mt-2 space-y-1">
-                          {archetype.exampleItems.map((item) => (
-                            <li
-                              key={item}
-                              className="flex items-center gap-2 text-sm"
-                            >
-                              <Check
-                                className="h-3.5 w-3.5 shrink-0"
-                                style={{ color: archetype.color }}
-                              />
+                    {/* Details — accordion for progressive disclosure */}
+                    <Accordion>
+                      <AccordionItem title="What you sell" subtitle={a.exampleItems.length + " example items"}>
+                        <ul className="space-y-1.5">
+                          {a.exampleItems.map((item) => (
+                            <li key={item} className="flex items-center gap-2 text-sm">
+                              <Check className="h-3.5 w-3.5 shrink-0" style={{ color: a.color }} />
                               {item}
                             </li>
                           ))}
                         </ul>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div>
-                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                          Why OnPoint
-                        </p>
-                        <p className="mt-2 text-sm leading-6 text-foreground">
-                          {archetype.whyOnPoint}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                          What you get
-                        </p>
-                        <ul className="mt-2 space-y-1.5">
-                          {archetype.valueProps.map((vp) => (
-                            <li
-                              key={vp}
-                              className="flex items-start gap-2 text-sm"
-                            >
+                      </AccordionItem>
+                      <AccordionItem title="Why OnPoint" subtitle="How it helps your vertical">
+                        <p className="text-sm leading-6">{a.whyOnPoint}</p>
+                      </AccordionItem>
+                      <AccordionItem title="What you get" subtitle={a.valueProps.length + " features"}>
+                        <ul className="space-y-1.5">
+                          {a.valueProps.map((vp) => (
+                            <li key={vp} className="flex items-start gap-2 text-sm">
                               <Zap className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
                               {vp}
                             </li>
                           ))}
                         </ul>
-                      </div>
+                      </AccordionItem>
+                    </Accordion>
 
-                      {/* Vertical tags */}
-                      <div className="flex flex-wrap gap-1.5">
-                        {archetype.verticals.map((v) => (
-                          <span
-                            key={v}
-                            className="rounded-full border border-border px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground"
-                          >
-                            {v.replaceAll("-", " ")}
-                          </span>
-                        ))}
-                      </div>
+                    {/* CTA */}
+                    <div className="mt-5 flex items-center gap-3 border-t border-border/30 pt-4">
+                      <Link
+                        href="/curator/onboard"
+                        className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white transition-all hover:shadow-md"
+                        style={{ background: `linear-gradient(135deg, ${a.color}, ${a.accent})` }}
+                      >
+                        <Sparkles className="h-4 w-4" />
+                        Create {a.title.split(" ")[0]} storefront
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                      <Link
+                        href="/s/wanja"
+                        className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        See an example →
+                      </Link>
                     </div>
                   </div>
-
-                  {/* CTA */}
-                  <div className="mt-6 flex items-center gap-3 border-t border-border pt-4">
-                    <Link
-                      href="/curator/onboard"
-                      className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white transition-all hover:shadow-md"
-                      style={{
-                        background: `linear-gradient(135deg, ${archetype.color}, ${archetype.accent})`,
-                      }}
-                    >
-                      <Sparkles className="h-4 w-4" />
-                      Create {archetype.title.split(" ")[0]} storefront
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                    <Link
-                      href={`/s/wanja`}
-                      className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                      See an example →
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ))}
+                ),
+              }))}
+            />
           </div>
         </div>
       </section>

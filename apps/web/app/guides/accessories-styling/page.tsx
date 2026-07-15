@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowLeft, Check, Sparkles, Star, Camera } from "lucide-react";
+import { ArrowLeft, Check, Sparkles, Star, Camera, Watch, Gem, Ruler, Zap } from "lucide-react";
 import { Reveal } from "../../../components/ui/Reveal";
+import { Accordion, AccordionItem } from "../../../components/ui/Accordion";
 
 export const metadata: Metadata = {
   title: "Accessories Styling Guide | OnPoint",
@@ -18,132 +19,171 @@ export default function AccessoriesStylingGuide() {
   return (
     <main className="min-h-screen bg-background text-foreground selection:bg-primary/30">
       <article className="mx-auto max-w-3xl px-4 py-12">
-        <Link href="/" className="mb-8 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
+        {/* Back link */}
+        <Link
+          href="/"
+          className="mb-8 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        >
           <ArrowLeft className="h-3.5 w-3.5" />
           Back to OnPoint
         </Link>
 
-        <header className="mb-10">
+        {/* Header */}
+        <header className="mb-8">
           <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-medium text-muted-foreground mb-4">
             <Sparkles className="h-3.5 w-3.5" />
             Style guide
           </div>
           <h1 className="text-3xl font-black tracking-tight md:text-4xl">Accessories Styling Guide</h1>
           <p className="mt-3 text-base text-muted-foreground leading-relaxed">
-            Accessories are the difference between a good outfit and a great one. The right
-            watch, bag, or pair of earrings can transform a simple look into a signature style.
+            The right watch, bag, or pair of earrings transforms a simple look into a signature style.
           </p>
         </header>
 
+        {/* Quick Takeaways */}
         <Reveal>
-        <section className="mb-10">
-          <h2 className="text-xl font-bold tracking-tight">The rule of three</h2>
-          <p className="mt-3 text-sm leading-7 text-muted-foreground">
-            A well-accessorised outfit follows the rule of three — no more than three visible
-            accessories at a time. This keeps the look intentional without overwhelming it.
-            For example: watch + ring + bag, or earrings + necklace + belt. When in doubt,
-            remove one and see if the outfit still works.
-          </p>
-        </section>
-        </Reveal>
-
-        <Reveal>
-        <section className="mb-10">
-          <h2 className="text-xl font-bold tracking-tight">Metal mixing: the new rules</h2>
-          <p className="mt-3 text-sm leading-7 text-muted-foreground">
-            The old rule that all jewellery must match in metal tone is outdated. Mixing metals
-            creates visual interest. Key principles:
-          </p>
-          <ul className="mt-4 space-y-2">
-            {[
-              "Silver and gold work together when there's intentional contrast. A gold watch with a silver ring is a look",
-              "Use one dominant metal (60%) and one accent metal (40%) for balance",
-              "Mixed metals look best when there's a connecting element — a strap, a stone, or a fabric that bridges the tones",
-              "Warm skin tones lean toward gold; cool skin tones lean toward silver. But personal preference trumps rules",
-              "Rose gold pairs well with both yellow gold (warm) and silver (contrast)",
-            ].map((tip) => (
-              <li key={tip} className="flex items-start gap-2 text-sm text-muted-foreground">
-                <Star className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-                <span>{tip}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-        </Reveal>
-
-        <Reveal>
-        <section className="mb-10">
-          <h2 className="text-xl font-bold tracking-tight">Building your accessories wardrobe</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {[
-              {
-                category: "Watches",
-                essentials: "A daily beater (metal or sports), a dress watch (leather strap), and a smartwatch for fitness days. One watch per context is enough.",
-              },
-              {
-                category: "Bags",
-                essentials: "A crossbody for daily use, a tote for work or travel, and a clutch or mini bag for evenings. Neutral colours (black, brown, cream) maximise versatility.",
-              },
-              {
-                category: "Jewellery",
-                essentials: "Everyday studs or small hoops, a signature ring or bracelet, and one statement piece for special occasions. Layer necklaces at varying lengths.",
-              },
-              {
-                category: "Belts & Hats",
-                essentials: "A 1-inch belt in black and brown covers most outfits. A structured cap, a beanie (winter), and a Panama or wide-brim (summer) round it out.",
-              },
-            ].map(({ category, essentials }) => (
-              <div key={category} className="pl-5 border-l-2 border-primary/20">
-                <h3 className="text-sm font-bold text-foreground">{category}</h3>
-                <p className="mt-1 text-xs text-muted-foreground leading-5">{essentials}</p>
-              </div>
-            ))}
+          <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.04] to-transparent p-5 mb-8">
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="w-4 h-4 text-primary" />
+              <h2 className="text-sm font-bold uppercase tracking-wider">Quick Takeaways</h2>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-2">
+              {[
+                "Stick to three visible accessories max — keep it intentional",
+                "Mix metals with one dominant (60%) and one accent (40%)",
+                "Build a core wardrobe: watch, bag, jewellery, belt, hat",
+                "Match accessories to the occasion — minimal for office, bold for evening",
+              ].map((tip) => (
+                <div key={tip} className="flex items-start gap-2 text-sm">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                  <span className="text-muted-foreground">{tip}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </section>
         </Reveal>
 
+        {/* Detailed sections — progressive disclosure via accordion */}
         <Reveal>
-        <section className="mb-10">
-          <h2 className="text-xl font-bold tracking-tight">Occasion matching</h2>
-          <ul className="mt-4 space-y-3">
-            {[
-              { occasion: "Professional / Office", tip: "Keep it minimal. A classic watch, small studs, and a structured bag. Avoid noisy bracelets or dangling earrings." },
-              { occasion: "Evening / Dinner", tip: "One statement piece (chandelier earrings, a cocktail ring, or a metallic clutch). Let the statement accessory lead." },
-              { occasion: "Casual / Weekend", tip: "Layer beaded bracelets, wear a fabric watch strap, use a canvas tote. This is where you experiment." },
-              { occasion: "Formal / Ceremony", tip: "Match metals to your outfit hardware. Pearl or diamond studs are always appropriate. A clutch or small structured bag." },
-            ].map(({ occasion, tip }) => (
-              <li key={occasion} className="pl-5 border-l-2 border-primary/20">
-                <p className="text-sm font-bold text-foreground">{occasion}</p>
-                <p className="mt-1 text-xs text-muted-foreground leading-5">{tip}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
-        </Reveal>
+          <div className="rounded-2xl border border-border/40 bg-card p-5 md:p-6">
+            <Accordion>
+              <AccordionItem
+                title="The rule of three"
+                subtitle="No more than three visible accessories at once"
+                icon={<Sparkles className="w-4 h-4" />}
+              >
+                <p className="text-sm leading-7 text-muted-foreground">
+                  A well-accessorised outfit follows the rule of three — no more than three visible
+                  accessories at a time. This keeps the look intentional without overwhelming it.
+                  For example: watch + ring + bag, or earrings + necklace + belt. When in doubt,
+                  remove one and see if the outfit still works.
+                </p>
+              </AccordionItem>
 
-        <Reveal>
-        <section className="mb-10">
-          <h2 className="text-xl font-bold tracking-tight">Proportion matters</h2>
-          <p className="mt-3 text-sm leading-7 text-muted-foreground">
-            Accessories should complement your body proportions, not overwhelm them. Petite frames
-            suit smaller bags and delicate jewellery. Taller frames can carry oversized totes and
-            bolder pieces. Your watch face should be proportional to your wrist — a general rule
-            is the lugs should not overhang your wrist.
-          </p>
-          <div className="mt-4 pl-5 border-l-2 border-primary/30 text-sm">
-            <p className="font-semibold text-foreground">Virtual try-on for accessories</p>
-            <p className="mt-1 text-muted-foreground">
-              Use OnPoint&rsquo;s virtual try-on to see how watches, bags, and jewellery look on your
-              body type before you buy. Upload a photo and see the proportions for yourself.
-            </p>
+              <AccordionItem
+                title="Metal mixing: the new rules"
+                subtitle="Silver + gold, balance, and skin tone"
+                icon={<Gem className="w-4 h-4" />}
+              >
+                <p className="text-sm leading-7 mb-3 text-muted-foreground">
+                  The old rule that all jewellery must match in metal tone is outdated. Mixing metals
+                  creates visual interest. Key principles:
+                </p>
+                <ul className="space-y-2">
+                  {[
+                    "Silver and gold work together when there's intentional contrast. A gold watch with a silver ring is a look",
+                    "Use one dominant metal (60%) and one accent metal (40%) for balance",
+                    "Mixed metals look best when there's a connecting element — a strap, a stone, or a fabric that bridges the tones",
+                    "Warm skin tones lean toward gold; cool skin tones lean toward silver. But personal preference trumps rules",
+                    "Rose gold pairs well with both yellow gold (warm) and silver (contrast)",
+                  ].map((tip) => (
+                    <li key={tip} className="flex items-start gap-2 text-sm">
+                      <Star className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                      <span>{tip}</span>
+                    </li>
+                  ))}
+                </ul>
+              </AccordionItem>
+
+              <AccordionItem
+                title="Building your accessories wardrobe"
+                subtitle="Watches, bags, jewellery, belts & hats"
+                icon={<Watch className="w-4 h-4" />}
+              >
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {[
+                    {
+                      category: "Watches",
+                      essentials: "A daily beater (metal or sports), a dress watch (leather strap), and a smartwatch for fitness days. One watch per context is enough.",
+                    },
+                    {
+                      category: "Bags",
+                      essentials: "A crossbody for daily use, a tote for work or travel, and a clutch or mini bag for evenings. Neutral colours (black, brown, cream) maximise versatility.",
+                    },
+                    {
+                      category: "Jewellery",
+                      essentials: "Everyday studs or small hoops, a signature ring or bracelet, and one statement piece for special occasions. Layer necklaces at varying lengths.",
+                    },
+                    {
+                      category: "Belts & Hats",
+                      essentials: "A 1-inch belt in black and brown covers most outfits. A structured cap, a beanie (winter), and a Panama or wide-brim (summer) round it out.",
+                    },
+                  ].map(({ category, essentials }) => (
+                    <div key={category} className="pl-5 border-l-2 border-primary/20">
+                      <h3 className="text-sm font-bold text-foreground">{category}</h3>
+                      <p className="mt-1 text-xs text-muted-foreground leading-5">{essentials}</p>
+                    </div>
+                  ))}
+                </div>
+              </AccordionItem>
+
+              <AccordionItem
+                title="Occasion matching"
+                subtitle="Office, evening, casual, and formal"
+                icon={<Star className="w-4 h-4" />}
+              >
+                <ul className="space-y-3">
+                  {[
+                    { occasion: "Professional / Office", tip: "Keep it minimal. A classic watch, small studs, and a structured bag. Avoid noisy bracelets or dangling earrings." },
+                    { occasion: "Evening / Dinner", tip: "One statement piece (chandelier earrings, a cocktail ring, or a metallic clutch). Let the statement accessory lead." },
+                    { occasion: "Casual / Weekend", tip: "Layer beaded bracelets, wear a fabric watch strap, use a canvas tote. This is where you experiment." },
+                    { occasion: "Formal / Ceremony", tip: "Match metals to your outfit hardware. Pearl or diamond studs are always appropriate. A clutch or small structured bag." },
+                  ].map(({ occasion, tip }) => (
+                    <li key={occasion} className="pl-5 border-l-2 border-primary/20">
+                      <p className="text-sm font-bold text-foreground">{occasion}</p>
+                      <p className="mt-1 text-xs text-muted-foreground leading-5">{tip}</p>
+                    </li>
+                  ))}
+                </ul>
+              </AccordionItem>
+
+              <AccordionItem
+                title="Proportion matters"
+                subtitle="Body frame, watch size, and virtual try-on"
+                icon={<Ruler className="w-4 h-4" />}
+              >
+                <p className="text-sm leading-7 mb-3 text-muted-foreground">
+                  Accessories should complement your body proportions, not overwhelm them. Petite frames
+                  suit smaller bags and delicate jewellery. Taller frames can carry oversized totes and
+                  bolder pieces. Your watch face should be proportional to your wrist — a general rule
+                  is the lugs should not overhang your wrist.
+                </p>
+                <div className="pl-5 border-l-2 border-primary/30 text-sm">
+                  <p className="font-semibold text-foreground">Virtual try-on for accessories</p>
+                  <p className="mt-1 text-muted-foreground">
+                    Use OnPoint&rsquo;s virtual try-on to see how watches, bags, and jewellery look on your
+                    body type before you buy. Upload a photo and see the proportions for yourself.
+                  </p>
+                </div>
+              </AccordionItem>
+            </Accordion>
           </div>
-        </section>
         </Reveal>
 
-        {/* Related guides */}
-        <div className="border-t border-border pt-8">
+        {/* Related guides + CTA */}
+        <div className="border-t border-border pt-6 mt-8">
           <h3 className="text-sm font-bold mb-3">Related guides</h3>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2 mb-4">
             <Link
               href="/guides/occasion-wear"
               className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"

@@ -221,6 +221,51 @@ Phases optimize the **supply graph**, not a single persona. Prerequisites are re
 | Protocol giants own checkout | Stay category + fit + local-pay specialist; expose offers cleanly |
 | Seller grind vs agent narrative | Co-primary metrics; don’t starve supply for DX cosplay |
 | Fraud / wallet drain | Spend limits, dead man's switch, anomaly detection ([ADR 0001](./adr/0001-backend-first-autonomy.md)) |
+| AI cost drain on free try-ons | Two-tier model + rate limits + funnel tracking (see below) |
+
+---
+
+## Two-Tier Try-On Model + Cost Protection
+
+**Added**: 2026-07-15
+**Review deadline**: 2026-08-15 (30 days) — decide whether to keep, kill, or adjust the free tier based on funnel data.
+
+### The problem
+
+Try-on costs ~$0.024-0.028 per call (Replicate IDM-VTON + Venice vision). The free web path used the same expensive model as the paid agent path, with no conversion tracking. A single IP could burn $100+/day.
+
+### The solution
+
+| Tier | Who | Model | Cost/call | Quality | Rate limit |
+|------|-----|-------|-----------|---------|------------|
+| **Free** | Web users | Venice SD35 | ~$0.015 | Text-to-image: "similar look" — not the actual garment on the person | 5/min, 20/day per IP |
+| **Paid** | Agents ($0.03-0.05) | Replicate IDM-VTON | ~$0.024 | Image-conditioned: actual garment on actual person's photo | 5/min, 20/day per IP |
+
+The quality gap is intentional — it's the reason to pay. Free shows "this is roughly how you'd look in this style." Paid shows "this is how THIS specific item fits YOUR specific body."
+
+### Funnel tracking
+
+Every try-on and purchase now logs to `funnel_events`:
+- `tryon_complete`: tier, source, provider, cost_usd, revenue_usd, curator_slug, listing_id
+- `purchase`: tier, source, revenue_usd, order details
+
+**Analytics endpoint**: `GET /api/status/funnel?days=7` (service-key auth)
+
+### Other cost protections
+
+- Text generation: Gemini Flash-Lite primary ($0.10/$0.40 per 1M tokens, 7x cheaper than Venice Llama 3.3 70B)
+- Render cache: 1-hour in-memory cache by `sha256(photo + listingId)` — eliminates duplicate Replicate calls
+- All `/api/ai/*` routes: API key auth + per-IP rate limits (5/min for expensive, 15/min for analysis)
+
+### Review criteria (2026-08-15)
+
+| Metric | Keep free tier | Kill free tier | Adjust |
+|--------|---------------|----------------|--------|
+| Free try-on to purchase conversion | > 5% | < 1% | 1-5% (reduce daily cap to 5) |
+| Free try-on cost vs revenue | Revenue > cost | Cost >> revenue | Close to break-even |
+| Agent try-on to purchase conversion | > 15% -> consider making agent free too | < 5% -> keep paid | -- |
+
+If we kill the free tier: require Auth0 login for web try-on, or gate behind curator storefront context only.
 
 ---
 

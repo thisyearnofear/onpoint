@@ -185,11 +185,25 @@ The card is stored in R2 and returned as `shareCard.imageUrl`.
 | Action | Cost | Split |
 |--------|------|-------|
 | Browse directory + storefronts | Free | — |
-| Digital try-on (Nia) | $0.03 cUSD | 80% curator / 20% platform |
-| Physical try-on (human curator) | $0.05 cUSD | 95% curator / 5% platform |
+| Web try-on (free tier) | Free (Venice SD35, rate-limited) | Platform subsidizes (~$0.015/call) |
+| Digital try-on (agent, paid) | $0.03 cUSD | 80% curator / 20% platform |
+| Physical try-on (agent, paid) | $0.05 cUSD | 95% curator / 5% platform |
 | Physical order | Listing price (KES -> cUSD) | 95% curator / 5% platform |
 | Referral commission | 2.5% of order value | Paid to referring agent |
 | NFT mint | $0.10 cUSD | 85% creator / 15% platform |
+
+### Two-Tier Try-On Quality
+
+| Tier | Who | Model | Quality | Rate limit |
+|------|-----|-------|---------|------------|
+| Free (web) | Web users | Venice SD35 | Text-to-image "similar look" — not the actual garment | 5/min, 20/day per IP |
+| Paid (agent) | Agents via x402 | Replicate IDM-VTON | Image-conditioned — actual garment on actual person | 5/min, 20/day per IP |
+
+The free tier gives users a visual of "how they'd look in this style." The paid tier shows the actual garment on the person's photo — the accurate pre-purchase check. The quality gap is the reason to pay.
+
+**Funnel analytics**: `GET /api/status/funnel?days=7` (service-key auth) — tracks try-on to purchase conversion, cost vs revenue per tier.
+
+**Review deadline**: 2026-08-15 — decide whether to keep, kill, or adjust the free tier based on conversion data.
 
 Per-curator try-on price can be overridden via `commerce.tryOnPriceUsd`. All payments in cUSD or USDC on Celo mainnet.
 
