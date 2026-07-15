@@ -532,7 +532,7 @@ router.put('/:slug/listings/:id', async (req, res) => {
     if (status) updateData.status = status;
     if (sizes) updateData.sizes = sizes;
     if (photoKeys) updateData.photoKeys = photoKeys;
-    updateData.updatedAt = new Date().toISOString();
+    updateData.updatedAt = new Date();
 
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json({ error: 'No fields to update' });
@@ -627,7 +627,7 @@ router.post('/:slug/listings/:id/photos', async (req, res) => {
       .update(listings)
       .set({
         photoKeys: updatedPhotoKeys,
-        updatedAt: new Date().toISOString(),
+        updatedAt: new Date(),
       })
       .where(eq(listings.id, id))
       .returning();
@@ -708,7 +708,7 @@ router.delete('/:slug/listings/:id/photos', async (req, res) => {
       .update(listings)
       .set({
         photoKeys: updatedPhotoKeys,
-        updatedAt: new Date().toISOString(),
+        updatedAt: new Date(),
       })
       .where(eq(listings.id, id))
       .returning();
