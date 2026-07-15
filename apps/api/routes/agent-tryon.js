@@ -518,7 +518,7 @@ Return ONLY valid JSON:
         paymentMethod: settlementTxHash ? 'x402_facilitator' : 'cusd',
       },
       receiptId,
-      receiptUrl: receiptId ? `${webBaseUrl()}/r/${receiptId}` : undefined,
+      receiptUrl: receiptId ? `${webBaseUrl()}/receipt/${receiptId}` : undefined,
       ...(isDigital ? { similarPhysicalItems } : {}),
       next: isDigital
         ? {

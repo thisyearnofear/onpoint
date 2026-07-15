@@ -95,6 +95,16 @@ export default function DevelopersPage() {
               <ExternalLink className="w-3 h-3" />
             </a>
             <a
+              href="https://beonpoint.netlify.app/openapi.json"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl border border-border px-5 py-2.5 text-sm font-bold transition-colors hover:bg-card"
+            >
+              <Code className="w-4 h-4" />
+              OpenAPI
+              <ExternalLink className="w-3 h-3" />
+            </a>
+            <a
               href="https://github.com/thisyearnofear/onpoint/blob/master/docs/guides/agent-commerce.md"
               target="_blank"
               rel="noopener noreferrer"
@@ -104,6 +114,13 @@ export default function DevelopersPage() {
               GitHub Guide
               <ExternalLink className="w-3 h-3" />
             </a>
+            <Link
+              href="/agent"
+              className="inline-flex items-center gap-2 rounded-xl border border-border px-5 py-2.5 text-sm font-bold transition-colors hover:bg-card"
+            >
+              <Shield className="w-4 h-4" />
+              Public proof
+            </Link>
           </div>
         </div>
 
@@ -124,6 +141,23 @@ export default function DevelopersPage() {
           <p className="mt-3 text-xs text-muted-foreground">
             Base URL: <code className="font-mono">{API_BASE}</code>. All responses include x402 payment requirements when auth is needed.
           </p>
+        </section>
+
+        <section className="mb-14">
+          <h2 className="text-2xl font-black tracking-tight mb-6 flex items-center gap-2">
+            <Zap className="w-5 h-5 text-primary" />
+            Verify Before You Pay
+          </h2>
+          <div className="grid gap-4 md:grid-cols-[1.4fr_1fr] md:items-center">
+            <CodeBlock
+              label="Read-only inventory check"
+              code={`curl -sS '${API_BASE}/api/curator/directory?agentPurchasable=1'`}
+            />
+            <div className="rounded-lg border border-border/40 bg-card p-5 text-sm leading-6 text-muted-foreground">
+              Discover stocked curator storefronts without credentials. Select an offer,
+              request a 402 challenge, and only then create a payment authorization.
+            </div>
+          </div>
         </section>
 
         {/* Payment Flow */}
@@ -205,17 +239,17 @@ export default function DevelopersPage() {
             Quick Start
           </h2>
           <CodeBlock
-            label="Agent buyer (Node.js)"
-            code={`import { ethers } from "ethers";
+            label="Request an order quote"
+            code={`// 1. Read a live storefront
+const store = await fetch("${API_BASE}/api/curator/wanja/storefront")
+  .then((response) => response.json());
 
-// 1. Get storefront
-const store = await fetch(
-  "${API_BASE}/api/curator/wanja/storefront"
-).then(r => r.json());
+const listing = store.listings.find(
+  (item) => item.agentCommerce?.offers?.length,
+);
+const offer = listing.agentCommerce.offers[0];
 
-const listing = store.listings[0];
-
-// 2. Request order (returns 402)
+// 2. Request an order quote. No payment happens here.
 const orderRes = await fetch(
   "${API_BASE}/api/curator/wanja/order",
   {
@@ -223,31 +257,15 @@ const orderRes = await fetch(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       listingId: listing.id,
-      size: listing.sizes[0].name,
+      size: offer.size,
+      quantity: 1,
     }),
   }
 );
 const challenge = await orderRes.json();
 
-// 3. Pay cUSD with attribution suffix
-const tx = await wallet.sendTransaction({
-  to: challenge.quote.payTo,
-  data: challenge.quote.attribution.dataSuffix,
-  value: 0, // cUSD is ERC-20
-});
-
-// 4. Confirm
-const confirm = await fetch(
-  "${API_BASE}/api/curator/wanja/order",
-  {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      listingId: listing.id,
-      paymentTxHash: tx.hash,
-    }),
-  }
-);`}
+if (orderRes.status !== 402) throw new Error("Expected a payment challenge");
+// challenge.quote and challenge.x402 now describe cUSD and gasless USDC paths.`}
           />
         </section>
 
@@ -305,7 +323,7 @@ const confirm = await fetch(
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Wallet</span>
-                    <code className="font-mono text-xs">0xC9A0...776b</code>
+                    <code className="font-mono text-xs">0x5b33...24fB</code>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Chain</span>
@@ -323,8 +341,8 @@ const confirm = await fetch(
                     <code className="font-mono text-xs">0x8004...a432</code>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Self Protocol</span>
-                    <span>onpoint-agent-9177</span>
+                    <span className="text-muted-foreground">Self verification</span>
+                    <span>Not published</span>
                   </div>
                 </div>
               </div>

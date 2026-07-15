@@ -157,4 +157,5 @@ console.log(`  Buyer payment:  ${order.payment.explorerUrl}`);
 console.log(order.payout.txHash
   ? `  Curator payout: ${order.payout.explorerUrl} (${order.payout.amountCusd} cUSD → ${order.payout.to})`
   : `  Curator payout: pending (to ${order.payout.to})`);
-if (order.receiptId) console.log(`  Receipt:        ${order.receiptId}`);
+if (order.receiptUrl) console.log(`  Receipt:        ${order.receiptUrl}`);
+else if (order.receiptId) console.log(`  Receipt:        ${order.receiptId}`);

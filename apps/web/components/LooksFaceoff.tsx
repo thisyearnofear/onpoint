@@ -6,7 +6,7 @@ import { Button } from "@repo/ui/button";
 import { Badge } from "@repo/ui/badge";
 import { Vote, RefreshCw, TrendingUp } from "lucide-react";
 import { useUser } from "@auth0/nextjs-auth0/client";
-import type { CommunityLook } from "../app/api/community/looks/route";
+import type { CommunityLook } from "../app/api/community/looks/types";
 
 interface FaceoffPair {
   lookA: CommunityLook & { votes: number };

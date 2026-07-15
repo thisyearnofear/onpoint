@@ -18,6 +18,7 @@ import {
 } from "../../../../lib/utils/redis-helpers";
 import { logger } from "../../../../lib/utils/logger";
 import { corsHeaders } from "../../ai/_utils/http";
+import type { CommunityLook } from "./types";
 
 const COMMUNITY_LOOKS_KEY = "community:looks";
 const COMMUNITY_LIKE_PREFIX = "community:like:";
@@ -55,21 +56,9 @@ const SubmitLookSchema = z.object({
 
 // ── Types ──
 
-export interface CommunityLook {
-  id: string;
-  score: number;
-  persona: string | null;
-  headline: string;
-  takeaways: string[];
-  topics: string[];
-  likes: number;
-  createdAt: string;
-  reactions: Record<string, number>;
-}
+type SortMode = "trending" | "latest";
 
-export type SortMode = "trending" | "latest";
-
-export const ALL_PERSONAS = [
+const ALL_PERSONAS = [
   "miranda",
   "edina",
   "shaft",
@@ -78,7 +67,7 @@ export const ALL_PERSONAS = [
   "sustainable",
 ] as const;
 
-export const REACTION_EMOJIS = ["🔥", "👍", "😍", "💯", "✨"] as const;
+const REACTION_EMOJIS = ["🔥", "👍", "😍", "💯", "✨"] as const;
 
 type ReactionEmoji = (typeof REACTION_EMOJIS)[number];
 

@@ -176,7 +176,7 @@ Start as an operator workflow that accepts a folder of curator/model photos and 
 ### View Transitions
 - `pnpm --filter web check-types` passes.
 - Direct ESLint on the touched TSX files reports no errors, with existing warnings for `<img>` usage and unescaped apostrophes.
-- Full `next build` and `next dev` currently stop on the existing ambiguous `/r/[receiptId]` and `/r/[referralCode]` route conflict, before these changes can be visually inspected.
+- Receipt pages now live at `/receipt/[receiptId]`; referral links remain at `/r/[referralCode]`, removing the dynamic route collision.
 - The package-level `web` scripts currently cannot resolve `next` from `apps/web/node_modules/.bin`; direct root binary invocation reaches Next.
 
 ### Clothing Extraction
@@ -211,10 +211,8 @@ Start as an operator workflow that accepts a folder of curator/model photos and 
 
 ## Next Actions
 
-1. Resolve the existing `/r/[receiptId]` vs `/r/[referralCode]` route conflict so build/dev can run.
+1. Verify the receipt and referral routes in a production build.
 2. Inspect the storefront transitions in Chrome/Safari.
 3. Select first curator photo batch.
 4. Run Phase 2 (Clothing Extraction Operator POC).
-5. 📊 Measure results
-6. 🚀 Ship to production
-7. 📈 Iterate based on feedback
+5. Measure results and iterate based on feedback.

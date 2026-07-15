@@ -13,6 +13,7 @@
 |-------------|-----|
 | Web app | https://beonpoint.netlify.app |
 | API (Hetzner) | https://api.onpoint.famile.xyz |
+| OpenAPI | https://beonpoint.netlify.app/openapi.json |
 | Chain | Celo mainnet (chainId 42220) |
 | Payment tokens | cUSD, USDC |
 | x402 facilitator | https://api.x402.celo.org (EIP-3009, gasless) |
@@ -70,7 +71,7 @@ POST /api/curator/{slug}/order
 { "listingId": "abc123", "size": "M", "quantity": 1 }
 ```
 
-Response: **HTTP 402** → transfer cUSD to `payTo` (append `dataSuffix` for attribution) → re-POST with `paymentTxHash` + `quoteId` → **HTTP 201** with order confirmation, Celoscan links, receipt URL, and storefront URL.
+Response: **HTTP 402** → transfer cUSD to `payTo` (append `dataSuffix` for attribution) → re-POST with `paymentTxHash` + `quoteId` → **HTTP 201** with order confirmation, Celoscan links, a receipt at `/receipt/{receiptId}`, and storefront URL.
 
 Also supports USDC via x402 facilitator (gasless) using `X-PAYMENT` header.
 
@@ -167,6 +168,7 @@ BUYER_PRIVATE_KEY=0x... node scripts/agent-buyer.mjs
 |----------|-----|
 | Strategy | [docs/STRATEGY.md](./docs/STRATEGY.md) |
 | Architecture | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) |
+| OpenAPI contract | [apps/web/public/openapi.json](./apps/web/public/openapi.json) |
 | Agent commerce guide | [docs/guides/agent-commerce.md](./docs/guides/agent-commerce.md) |
 | Referral tracking guide | [docs/guides/referral-tracking.md](./docs/guides/referral-tracking.md) |
 | Agent commerce ADR | [docs/adr/0010-agent-storefront-checkout.md](./docs/adr/0010-agent-storefront-checkout.md) |
@@ -175,4 +177,3 @@ BUYER_PRIVATE_KEY=0x... node scripts/agent-buyer.mjs
 | x402 facilitator ADR | [docs/adr/0012-x402-facilitator-integration.md](./docs/adr/0012-x402-facilitator-integration.md) |
 | Reference buyer | [scripts/agent-buyer.mjs](./scripts/agent-buyer.mjs) |
 | Supply readiness check | [scripts/agent-commerce-ready.mjs](./scripts/agent-commerce-ready.mjs) |
-

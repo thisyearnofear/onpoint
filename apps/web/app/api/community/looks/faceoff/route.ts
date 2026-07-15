@@ -16,7 +16,7 @@ import {
 } from "../../../../../lib/utils/redis-helpers";
 import { logger } from "../../../../../lib/utils/logger";
 import { corsHeaders } from "../../../ai/_utils/http";
-import type { CommunityLook } from "../route";
+import type { CommunityLook } from "../types";
 
 const FACEOFF_VOTE_PREFIX = "community:faceoff:votes:";
 const FACEOFF_HISTORY_PREFIX = "community:faceoff:history:";

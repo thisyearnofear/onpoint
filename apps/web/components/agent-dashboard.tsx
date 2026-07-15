@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getApiBase } from '../lib/utils/api-base';
-import { Wallet, TrendingUp, Users, ArrowUpRight, Copy, CheckCircle, Clock } from 'lucide-react';
+import { Wallet, TrendingUp, Users, ArrowUpRight, Copy, CheckCircle, Clock, FileCheck, ShieldCheck } from 'lucide-react';
 
 interface ReferralActivity {
   referralCode: string;
@@ -17,16 +17,20 @@ interface ReferralActivity {
 interface DashboardData {
   agent: {
     name: string;
-    agentId: string;
+    agentId: string | number;
     walletAddress: string;
     status: string;
   };
   wallet?: {
     address: string;
-    chain: string;
-    balance: string;
+    chains: string[];
+    balances: {
+      celo: string;
+      cUSD: string;
+    };
+    gasHealthy: boolean;
   };
-  referrals: {
+  referrals?: {
     totalReferrals: number;
     totalCommissionCusd: string;
     pendingCommissionCusd: string;
@@ -36,6 +40,14 @@ interface DashboardData {
   activity?: {
     totalReceipts: number;
     onChainReceipts: number;
+  };
+  identity?: {
+    erc8004?: {
+      registrationTxHash?: string | null;
+    };
+    self?: {
+      status?: string;
+    };
   };
 }
 
@@ -83,14 +95,30 @@ export function AgentDashboard() {
     );
   }
 
-  const { referrals } = data;
+  const referrals = data.referrals ?? {
+    totalReferrals: 0,
+    totalCommissionCusd: '0.00',
+    pendingCommissionCusd: '0.00',
+    paidCommissionCusd: '0.00',
+    recentActivity: [],
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 py-12 px-4">
+    <div className="min-h-screen bg-background py-10 px-4">
       <div className="max-w-6xl mx-auto space-y-8">
-        {/* Agent Identity */}
+        <div className="flex flex-col gap-2 border-b border-border pb-8 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Public agent proof</p>
+            <h1 className="mt-2 text-3xl font-black tracking-tight">OnPoint AI Stylist</h1>
+            <p className="mt-2 text-sm text-muted-foreground">Live identity, payment readiness, and referral activity on Celo.</p>
+          </div>
+          <a href="https://beonpoint.netlify.app/.well-known/agent.json" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:text-primary/80">
+            View agent manifest <ArrowUpRight className="h-4 w-4" />
+          </a>
+        </div>
+
         <div className="bg-card rounded-lg border p-6">
-          <h2 className="text-2xl font-bold mb-4">Agent Identity</h2>
+          <h2 className="text-xl font-bold mb-5">Identity</h2>
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <div className="text-sm text-muted-foreground">Name</div>
@@ -112,18 +140,42 @@ export function AgentDashboard() {
             </div>
           </div>
           {data.wallet && (
-            <div className="mt-6 pt-6 border-t">
-              <div className="flex items-center justify-between">
+            <div className="mt-6 grid gap-4 border-t pt-6 sm:grid-cols-3">
+              <div className="flex items-center justify-between rounded-lg bg-muted/40 p-4">
                 <div>
-                  <div className="text-sm text-muted-foreground">Wallet Balance</div>
-                  <div className="text-3xl font-bold mt-1">
-                    {parseFloat(data.wallet.balance).toFixed(2)} CELO
-                  </div>
+                  <div className="text-sm text-muted-foreground">CELO for gas</div>
+                  <div className="mt-1 text-2xl font-bold">{Number(data.wallet.balances.celo || 0).toFixed(2)}</div>
                 </div>
-                <Wallet className="w-12 h-12 text-primary/20" />
+                <Wallet className="h-8 w-8 text-primary/30" />
+              </div>
+              <div className="rounded-lg bg-muted/40 p-4">
+                <div className="text-sm text-muted-foreground">cUSD balance</div>
+                <div className="mt-1 text-2xl font-bold">{Number(data.wallet.balances.cUSD || 0).toFixed(2)}</div>
+              </div>
+              <div className="rounded-lg bg-muted/40 p-4">
+                <div className="text-sm text-muted-foreground">Gas status</div>
+                <div className="mt-1 flex items-center gap-2 font-bold">
+                  <span className={`h-2 w-2 rounded-full ${data.wallet.gasHealthy ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                  {data.wallet.gasHealthy ? 'Ready' : 'Needs funding'}
+                </div>
               </div>
             </div>
           )}
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-lg border bg-card p-5">
+            <div className="flex items-center justify-between text-sm text-muted-foreground"><span>On-chain receipts</span><FileCheck className="h-5 w-5" /></div>
+            <p className="mt-3 text-3xl font-black">{data.activity?.onChainReceipts ?? 0}</p>
+          </div>
+          <div className="rounded-lg border bg-card p-5">
+            <div className="flex items-center justify-between text-sm text-muted-foreground"><span>ERC-8004</span><ShieldCheck className="h-5 w-5" /></div>
+            <p className="mt-3 text-base font-bold">{data.identity?.erc8004?.registrationTxHash ? 'Registered' : 'Pending proof'}</p>
+          </div>
+          <div className="rounded-lg border bg-card p-5">
+            <div className="flex items-center justify-between text-sm text-muted-foreground"><span>Self verification</span><CheckCircle className="h-5 w-5" /></div>
+            <p className="mt-3 text-base font-bold capitalize">{data.identity?.self?.status || 'Unregistered'}</p>
+          </div>
         </div>
 
         {/* Referral Stats */}
@@ -164,16 +216,16 @@ export function AgentDashboard() {
         {/* Referral Link */}
         <div className="bg-card rounded-lg border p-6">
           <h2 className="text-2xl font-bold mb-4">Your Referral Link</h2>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <input
               type="text"
               readOnly
               value={`${typeof window !== 'undefined' ? window.location.origin : ''}/r/${data.agent.walletAddress}`}
-              className="flex-1 bg-muted/50 px-4 py-3 rounded-lg font-mono text-sm"
+              className="w-full min-w-0 flex-1 bg-muted/50 px-4 py-3 rounded-lg font-mono text-sm sm:w-auto"
             />
             <button
               onClick={copyReferralLink}
-              className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-lg font-semibold"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground hover:bg-primary/90 sm:w-auto"
             >
               <Copy className="w-4 h-4" />
               Copy

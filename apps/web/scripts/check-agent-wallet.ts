@@ -7,7 +7,7 @@ import { createPublicClient, http, formatEther, formatUnits } from "viem";
 import { celo } from "viem/chains";
 
 // Agent wallet address from config
-const AGENT_WALLET = "0xC9A025Fb607b455308bCb6f35a0F484f016C776b";
+const AGENT_WALLET = "0x5b33E63440e95289207120B94da78CE22F9D24fB";
 
 // Stablecoin addresses on Celo Mainnet
 const TOKENS = {

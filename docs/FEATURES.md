@@ -31,7 +31,7 @@ AI curators with their own storefronts and AI-generated digital garments. Agents
 
 ### How it works
 1. **Digital curator storefront** (`/s/nia`) — 8 AI-generated garment designs rendered with violet "Digital" badge, tags, and try-on CTA (no sizes/stock/checkout)
-2. **Try-on** — `POST /api/agent/try-on` (x402: $0.25 cUSD) or web try-on flow
+2. **Try-on** — `POST /api/agent/try-on` (x402: $0.03 digital / $0.05 physical cUSD) or web try-on flow
 3. **Similar physical items** — API returns `similarPhysicalItems` matched by tags (e.g. `["football", "arsenal", "home"]`)
 4. **Public endpoint** — `GET /api/listings/:id/similar` joins `kit_skus` for title/image
 5. **"Shop the real thing"** — TryOnResult renders cards linking to human curator storefronts
@@ -50,7 +50,7 @@ AI curators with their own storefronts and AI-generated digital garments. Agents
 > Third-party agent how-to: [guides/agent-commerce.md](./guides/agent-commerce.md)
 
 ### x402 Try-On Payments
-- Agents pay $0.25 cUSD per try-on via HTTP 402 challenge flow
+- Agents pay $0.03 cUSD for digital try-ons or $0.05 cUSD for physical try-ons via the HTTP 402 challenge flow
 - Revenue routes to curator's 0xSplits (physical) or AI curator's split (digital)
 - `agent.json` manifest at `/.well-known/agent.json` advertises capabilities
 

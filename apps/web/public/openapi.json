@@ -1,0 +1,51 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "OnPoint Agent Commerce API",
+    "version": "1.0.0",
+    "description": "Discover real curator inventory, request fit signals, and complete Celo x402 commerce. Paid endpoints return HTTP 402 before any payment is authorized."
+  },
+  "servers": [
+    { "url": "https://api.onpoint.famile.xyz" }
+  ],
+  "paths": {
+    "/api/curator/directory": {
+      "get": {
+        "summary": "Discover curator storefronts",
+        "parameters": [
+          { "name": "agentPurchasable", "in": "query", "schema": { "type": "boolean" }, "description": "Only curators with live physical offers and a payout wallet." }
+        ],
+        "responses": { "200": { "description": "Curator directory" } }
+      }
+    },
+    "/api/curator/{slug}/storefront": {
+      "get": {
+        "summary": "Load a curator's live inventory",
+        "parameters": [
+          { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Listings with agentCommerce offers" }, "404": { "description": "Curator not found" } }
+      }
+    },
+    "/api/agent/try-on": {
+      "post": {
+        "summary": "Request a paid fit render",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["curatorSlug", "listingId", "photoData"], "properties": { "curatorSlug": { "type": "string" }, "listingId": { "type": "string" }, "photoData": { "type": "string", "description": "data:image/... base64 payload" }, "paymentTxHash": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Try-on render and fit signal" }, "402": { "description": "cUSD or gasless USDC payment requirements" } }
+      }
+    },
+    "/api/curator/{slug}/order": {
+      "post": {
+        "summary": "Request or confirm a physical order",
+        "parameters": [
+          { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["listingId", "size"], "properties": { "listingId": { "type": "string" }, "size": { "type": "string" }, "quantity": { "type": "integer", "default": 1 }, "paymentTxHash": { "type": "string" }, "quoteId": { "type": "string" } } } } } },
+        "responses": { "201": { "description": "Order confirmation and receipt URL" }, "402": { "description": "cUSD or gasless USDC payment requirements" }, "409": { "description": "Digital listings are try-on only" } }
+      }
+    },
+    "/api/agent/dashboard": {
+      "get": { "summary": "Read public agent identity, receipts, and referral status", "responses": { "200": { "description": "Agent proof data" } } }
+    }
+  }
+}

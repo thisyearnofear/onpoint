@@ -84,7 +84,7 @@ const AGENT_CONFIG = {
   name: "OnPoint AI Stylist",
   description: "Autonomous AI fashion stylist with spending controls, transparent reasoning, and self-custodial payments. Provides real-time style analysis, personalized recommendations, and autonomous shopping with full user control.",
   image: "https://beonpoint.netlify.app/assets/1Product.png",
-  walletAddress: "0xC9A025Fb607b455308bCb6f35a0F484f016C776b",
+  walletAddress: "0x5b33E63440e95289207120B94da78CE22F9D24fB",
   endpoints: [
     {
       type: "a2a",
@@ -92,7 +92,7 @@ const AGENT_CONFIG = {
     },
     {
       type: "wallet",
-      address: "0xC9A025Fb607b455308bCb6f35a0F484f016C776b",
+      address: "0x5b33E63440e95289207120B94da78CE22F9D24fB",
       chainId: 42220
     }
   ],

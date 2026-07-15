@@ -1,11 +1,11 @@
+/* eslint-disable @next/next/no-img-element -- Curator inventory permits arbitrary remote image sources. */
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { CSSProperties } from "react";
 import {
   ArrowLeft,
-  BarChart3,
   Camera,
-  Handshake,
   MapPin,
   MessageCircle,
   PackageSearch,
@@ -19,14 +19,18 @@ import { ShareStorefront } from "../../../components/ShareStorefront";
 import { CrossCuratorRecommendations } from "../../../components/CrossCuratorRecommendations";
 import { AICuratorSection } from "../../../components/AICuratorSection";
 import { MpesaPaymentPanel } from "./MpesaPaymentPanel";
-import { GStreamPanel } from "../../../components/Curator/GStreamPanel";
 import { CuratorOwnerTools } from "../../../components/Curator/CuratorOwnerTools";
 import { TransitionLink } from "../../../components/ViewTransition";
 import { getApiBase } from "../../../lib/utils/api-base";
+import {
+  formatKitType,
+  formatMoney,
+  getInitials,
+  getLowestPrice,
+  getTotalStock,
+} from "./storefront-helpers";
 
 export const dynamic = "force-dynamic";
-
-type SizeOption = CuratorStorefrontResponse["listings"][number]["sizes"][number];
 
 async function loadStorefront(slug: string): Promise<CuratorStorefrontResponse | null> {
   const res = await fetch(
@@ -44,46 +48,10 @@ async function loadStorefront(slug: string): Promise<CuratorStorefrontResponse |
   return res.json();
 }
 
-function formatKitType(value: string) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
-function formatMoney(value: number) {
-  const locale = process.env.NEXT_PUBLIC_DEFAULT_LOCALE || "en-KE";
-  const currency = process.env.NEXT_PUBLIC_DEFAULT_CURRENCY || "KES";
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function getLowestPrice(sizes: SizeOption[]) {
-  const prices = sizes
-    .map((item) => Number(item.price))
-    .filter((price) => Number.isFinite(price) && price > 0);
-  return prices.length ? Math.min(...prices) : null;
-}
-
-function getTotalStock(sizes: SizeOption[]) {
-  return sizes.reduce((total, item) => total + Number(item.stock || 0), 0);
-}
-
-function getInitials(value: string) {
-  return value
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
-}
-
 function getViewTransitionName(prefix: string, value: string) {
   const safeValue = value.replace(/[^a-zA-Z0-9_-]/g, "-");
   return `${prefix}-${safeValue || "item"}`;
 }
-
-export const __test = { formatMoney, getLowestPrice, getTotalStock, formatKitType, getInitials };
 
 export async function generateMetadata({
   params,
@@ -168,13 +136,6 @@ export default async function CuratorStorefrontPage({
             OnPoint
           </Link>
           <div className="flex items-center gap-2">
-            <Link
-              href={`/s/${slug}/intel`}
-              className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <BarChart3 className="h-3.5 w-3.5" />
-              Intelligence
-            </Link>
             <ShareStorefront
               curatorSlug={slug}
               curatorName={curator.name}
@@ -211,9 +172,8 @@ export default async function CuratorStorefrontPage({
                 {curator.name}
               </h1>
               <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
-                Human curation connected to OnPoint try-on. Pick a piece,
-                test the fit with AI, then send {curator.name} a ready-to-act
-                brief on WhatsApp.
+                Real stock, fit-aware decisions, and a direct line to {curator.name}.
+                Choose a piece, try it on with AI, then confirm the details on WhatsApp.
               </p>
             </div>
 
@@ -235,15 +195,11 @@ export default async function CuratorStorefrontPage({
                   WhatsApp checkout
                 </span>
               )}
-              <span className="inline-flex items-center gap-2">
-                <Handshake className="h-4 w-4" />
-                Human style handoff
-              </span>
             </div>
           </div>
 
-          <aside className="pl-5 border-l-2" style={{ borderColor: "var(--curator-primary)" }}>
-            <div className="space-y-4">
+          <aside className="border-l-2 pl-5" style={{ borderColor: "var(--curator-primary)" }}>
+            <div className="space-y-5">
               <div
                 className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg text-2xl font-black text-white"
                 data-view-transition="curator-avatar"
@@ -263,18 +219,18 @@ export default async function CuratorStorefrontPage({
                 )}
               </div>
               <div>
-                <h2 className="text-lg font-bold">{curator.name}'s role</h2>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">How it works</p>
+                <h2 className="mt-2 text-lg font-bold">Fit first. Confirm with {curator.name}.</h2>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  OnPoint reads the look and prepares the brief. {curator.name}
-                  confirms the item, size, stock, and styling judgment before
-                  the shopper commits.
+                  OnPoint prepares the fit context; the curator confirms availability,
+                  size, and delivery before you pay.
                 </p>
               </div>
               <div className="grid gap-2 text-xs">
                 {[
-                  "Try on any stocked piece",
-                  "Send a fit brief to the curator",
-                  "Confirm size, stock, and delivery",
+                  "Choose from the live collection",
+                  "Try on a piece with AI",
+                  "Confirm size and delivery",
                 ].map((step, index) => (
                   <div key={step} className="flex items-center gap-2 rounded-md border border-border bg-muted/30 p-2">
                     <span
@@ -294,69 +250,30 @@ export default async function CuratorStorefrontPage({
                   style={{ background: "var(--curator-accent)" }}
                 >
                   <MessageCircle className="h-4 w-4" />
-                  Message {curator.name}
+                  Chat with {curator.name}
                 </a>
-              )}
-              {curator.commerce?.walletAddress && (
-                <GStreamPanel
-                  curatorAddress={curator.commerce.walletAddress}
-                  curatorName={curator.name}
-                />
               )}
             </div>
           </aside>
         </div>
       </section>
 
-      <section className="border-b border-border bg-muted/20">
-        <div className="mx-auto grid max-w-6xl gap-4 px-4 py-6 md:grid-cols-[1fr_1fr_1fr]">
-          <div className="pl-5 border-l-2 border-primary/20">
-            <div className="flex items-center gap-2 text-primary">
-              <Sparkles className="h-4 w-4" />
-              <p className="text-xs font-bold uppercase tracking-wider">{curator.name}'s take</p>
-            </div>
-            <p className="mt-3 text-sm leading-6 text-foreground">
-              Start with fit, then let the club color carry the statement. Send me the
-              OnPoint brief and I will confirm the cleanest size and available stock.
-            </p>
-          </div>
-          <div className="pl-5 border-l-2 border-primary/20">
-            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Demand loop
-            </p>
-            <p className="mt-3 text-sm leading-6 text-foreground">
-              Every try-on can become a curator lead: selected item, fit profile,
-              shopper intent, and the next action.
-            </p>
-          </div>
-          <div className="pl-5 border-l-2 border-primary/20">
-            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Live inventory
-            </p>
-            <p className="mt-3 text-sm leading-6 text-foreground">
-              {meta.listingCount} pieces are ready for AI try-on and WhatsApp confirmation.
-              Stock still stays with {curator.name}.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-4 py-10">
+      <section id="collection" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-10">
         {/* Curator inventory panel (only visible to the curator themselves) */}
         <CuratorOwnerTools curatorSlug={slug} curatorName={curator.name} />
 
         <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Curator edit
+              Available now
             </p>
             <h2 className="mt-1 text-2xl font-black tracking-tight">
-              Try the stock, then ask {curator.name}
+              Choose a piece, then decide with confidence
             </h2>
           </div>
           <p className="max-w-md text-sm leading-6 text-muted-foreground">
-            Each item can start as an AI try-on or go straight to a curator
-            message. The human decision stays visible throughout the flow.
+            Every listing shows its live sizes and price. Try it on first, or ask the
+            curator to confirm availability directly.
           </p>
         </div>
         {listings.length === 0 ? (
@@ -499,21 +416,13 @@ export default async function CuratorStorefrontPage({
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <div
-                        className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center text-white"
-                        style={{
-                          background:
-                            "linear-gradient(135deg, var(--curator-primary), var(--curator-accent))",
-                        }}
-                      >
-                        <div className="grid h-16 w-16 place-items-center rounded-full border border-white/25 bg-white/15 text-xl font-black backdrop-blur">
+                      <div className="flex h-full flex-col items-center justify-center gap-3 bg-muted/60 p-6 text-center">
+                        <div className="grid h-16 w-16 place-items-center rounded-full border border-border bg-background text-xl font-black text-muted-foreground">
                           {getInitials(kit?.club ?? "Item")}
                         </div>
                         <div>
-                          <p className="text-sm font-bold">{kit?.club ?? "Item"}</p>
-                          <p className="text-xs text-white/75">
-                            {formatKitType(kit?.kitType ?? "")} kit
-                          </p>
+                          <p className="text-sm font-bold text-foreground">Curator photo pending</p>
+                          <p className="mt-1 text-xs text-muted-foreground">Availability and price are live.</p>
                         </div>
                       </div>
                     )}

@@ -135,7 +135,7 @@ export async function DELETE(request: Request) {
 /**
  * Retrieve a push subscription for a given paymentId.
  */
-export async function getPushSubscription(
+async function getPushSubscription(
   paymentId: string,
 ): Promise<{ subscription: Record<string, unknown>; curatorSlug: string } | null> {
   const url = getRedisUrl();

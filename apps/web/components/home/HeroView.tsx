@@ -15,7 +15,6 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { Reveal } from "../ui/Reveal";
-import { OnPointHeader } from "../OnPointHeader";
 import { LiveCounter } from "../LiveCounter";
 import { trackHomepageCta } from "../../lib/utils/analytics";
 import { captureReferralFromURL } from "../../lib/utils/referral";
@@ -33,6 +32,7 @@ import { LookCrafter } from "./LookCrafter";
 import { EditorialStats } from "./EditorialStats";
 import { RecentlySavedSection } from "./RecentlySavedSection";
 import { AgentActivityFeed } from "../AgentActivityFeed";
+import { LiveCommerceProof } from "./LiveCommerceProof";
 
 export function HeroView() {
   const [showDemo, setShowDemo] = useState(false);
@@ -189,31 +189,7 @@ export function HeroView() {
         </div>
       </div>
 
-      {/* Live Platform Stats */}
-      <section className="border-t border-border/30 bg-gradient-to-b from-background to-muted/20">
-        <div className="container mx-auto px-4 py-12 md:py-16">
-          <div className="max-w-4xl mx-auto">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 text-center">
-              <div>
-                <div className="text-3xl md:text-4xl font-black text-primary">8</div>
-                <p className="text-sm text-muted-foreground mt-1">Active Curators</p>
-              </div>
-              <div>
-                <div className="text-3xl md:text-4xl font-black text-primary">55</div>
-                <p className="text-sm text-muted-foreground mt-1">Live Listings</p>
-              </div>
-              <div>
-                <div className="text-3xl md:text-4xl font-black text-primary">$0.03</div>
-                <p className="text-sm text-muted-foreground mt-1">Try-On Cost</p>
-              </div>
-              <div>
-                <div className="text-3xl md:text-4xl font-black text-primary">24/7</div>
-                <p className="text-sm text-muted-foreground mt-1">API Uptime</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <LiveCommerceProof />
 
       {/* How It Works — 30-second explainer */}
       <section className="border-t border-border/30 bg-background">
@@ -282,7 +258,7 @@ export function HeroView() {
                 className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white font-bold px-8 py-4 rounded-full text-base shadow-lg shadow-primary/25 transition-all"
               >
                 <Camera className="w-5 h-5" />
-                Try it now — it's free
+                Try it now — it&apos;s free
                 <ArrowRight className="w-5 h-5" />
               </Link>
               <p className="mt-3 text-xs text-muted-foreground">
@@ -396,7 +372,7 @@ export function HeroView() {
                       href="/s/nia"
                       className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white font-bold px-5 py-2.5 rounded-full text-sm transition-colors"
                     >
-                      Explore Nia's collection
+                      Explore Nia&apos;s collection
                       <ArrowRight className="w-4 h-4" />
                     </Link>
                   </div>
@@ -525,7 +501,7 @@ export function HeroView() {
             <Reveal delay={0.2}>
               <div className="mt-8 text-center">
                 <Link
-                  href="/guides/agents"
+                  href="/developers"
                   className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:text-primary/80 transition-colors"
                 >
                   Agent integration guide
@@ -546,7 +522,7 @@ export function HeroView() {
             </div>
             {PRODUCT_NAME}
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
             <Link
               href={CTA_SHOP.href}
               onClick={() => trackHomepageCta({ cta: "shop", placement: "footer" })}

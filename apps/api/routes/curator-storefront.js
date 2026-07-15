@@ -929,7 +929,7 @@ router.post('/:slug/order', async (req, res) => {
               }
             : { status: 'pending', to: payoutAddress },
         receiptId,
-        receiptUrl: receiptId ? `${webBaseUrl()}/r/${receiptId}` : undefined,
+        receiptUrl: receiptId ? `${webBaseUrl()}/receipt/${receiptId}` : undefined,
         storefrontUrl: storefrontWebUrl(slug),
       },
     });

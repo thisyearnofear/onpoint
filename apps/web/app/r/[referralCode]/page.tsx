@@ -28,6 +28,13 @@ export default function ReferralPage() {
         return;
       }
 
+      // Receipt links used this route before receipts moved under /receipt.
+      // Preserve those published links without treating a receipt ID as a referral.
+      if (referralCode.startsWith('receipt_')) {
+        router.replace(`/receipt/${encodeURIComponent(referralCode)}`);
+        return;
+      }
+
       // Store referral code in session storage for later use
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('referral_code', referralCode);

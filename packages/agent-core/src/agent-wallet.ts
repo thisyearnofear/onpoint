@@ -135,7 +135,7 @@ function getFallbackAddresses(): Record<string, string> {
     (process.env.AGENT_PRIVATE_KEY
       ? deriveAddressFromKey(process.env.AGENT_PRIVATE_KEY)
       : null) ||
-    "0xC9A025Fb607b455308bCb6f35a0F484f016C776b";
+    "0x5b33E63440e95289207120B94da78CE22F9D24fB";
   return {
     celo: addr,
     base: addr,

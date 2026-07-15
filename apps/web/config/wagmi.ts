@@ -92,9 +92,18 @@ const customStorage =
         },
       });
 
+const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
+const configuredWalletConnectProjectId =
+  walletConnectProjectId &&
+  walletConnectProjectId !== "your_walletconnect_project_id_here"
+    ? walletConnectProjectId
+    : "7aa79bf6d66752925a728eada5ce0762";
+
 export const config = getDefaultConfig({
   appName: "OnPoint",
-  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "7aa79bf6d66752925a728eada5ce0762",
+  projectId: configuredWalletConnectProjectId,
+  // RainbowKit requires a non-empty chain tuple while the shared registry is an array.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   chains: allConfiguredChains as any,
   transports: {
     [mainnet.id]: http("https://cloudflare-eth.com"),

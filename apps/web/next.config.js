@@ -89,6 +89,7 @@ const nextConfig = {
       { source: '/collage/:path*', destination: '/lab?tab=try-on', permanent: true },
       { source: '/social', destination: '/curators', permanent: true },
       { source: '/social/:path*', destination: '/curators', permanent: true },
+      { source: '/guides/agents', destination: '/developers', permanent: true },
     ];
   },
 };

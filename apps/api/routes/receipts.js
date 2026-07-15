@@ -2,7 +2,7 @@
  * Receipts Route — /api/receipts/:id
  *
  * Public read-only lookup for verifiable agent receipts (ERC-8004).
- * Powers the branded receipt page at /r/{receiptId}.
+ * Powers the branded receipt page at /receipt/{receiptId}.
  *
  * Auth: None (public — receipts are verifiable, transparent records).
  */
