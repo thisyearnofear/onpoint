@@ -81,6 +81,10 @@ const generalRateLimit = createRateLimiter(redis, 'general');
 const veniceRateLimit = createRateLimiter(redis, 'veniceFree');
 const veniceBurstLimit = createRateLimiter(redis, 'veniceBurst');
 const liveSessionRateLimit = createRateLimiter(redis, 'liveSession');
+const aiExpensiveRateLimit = createRateLimiter(redis, 'aiExpensive');
+const aiExpensiveDailyLimit = createRateLimiter(redis, 'aiExpensiveDaily');
+const aiAnalysisRateLimit = createRateLimiter(redis, 'aiAnalysis');
+const aiAnalysisDailyLimit = createRateLimiter(redis, 'aiAnalysisDaily');
 
 // Auth middleware
 const aiAuth = createApiKeyAuth();                 // External consumers: require VENICE_API_KEY
@@ -175,14 +179,14 @@ app.get('/api/status', (req, res) => {
 // These are direct implementations on Hetzner.
 // Body limit: 10MB (for image data), 1KB (for session mgmt)
 
-app.use('/api/ai/virtual-tryon', json10mb, aiAuth, veniceRateLimit, veniceBurstLimit, require('./routes/ai-virtual-tryon'));
-app.use('/api/ai/analyze-person', json10mb, aiAuth, veniceRateLimit, veniceBurstLimit, require('./routes/ai-analyze-person'));
-app.use('/api/ai/venice-analyze', json10mb, aiAuth, veniceRateLimit, veniceBurstLimit, require('./routes/ai-venice-analyze'));
-app.use('/api/ai/replicate-analyze', json10mb, aiAuth, veniceRateLimit, require('./routes/ai-replicate-analyze'));
-app.use('/api/ai/azure-analyze', json10mb, aiAuth, veniceRateLimit, require('./routes/ai-azure-analyze'));
-app.use('/api/ai/zerog-analyze', json10mb, aiAuth, veniceRateLimit, require('./routes/ai-zerog-analyze'));
+app.use('/api/ai/virtual-tryon', json10mb, aiAuth, aiExpensiveRateLimit, aiExpensiveDailyLimit, veniceBurstLimit, require('./routes/ai-virtual-tryon'));
+app.use('/api/ai/analyze-person', json10mb, aiAuth, aiAnalysisRateLimit, aiAnalysisDailyLimit, veniceBurstLimit, require('./routes/ai-analyze-person'));
+app.use('/api/ai/venice-analyze', json10mb, aiAuth, aiAnalysisRateLimit, aiAnalysisDailyLimit, veniceBurstLimit, require('./routes/ai-venice-analyze'));
+app.use('/api/ai/replicate-analyze', json10mb, aiAuth, aiAnalysisRateLimit, aiAnalysisDailyLimit, require('./routes/ai-replicate-analyze'));
+app.use('/api/ai/azure-analyze', json10mb, aiAuth, aiAnalysisRateLimit, aiAnalysisDailyLimit, require('./routes/ai-azure-analyze'));
+app.use('/api/ai/zerog-analyze', json10mb, aiAuth, aiAnalysisRateLimit, aiAnalysisDailyLimit, require('./routes/ai-zerog-analyze'));
 app.use('/api/ai/live-session', json1k, aiAuth, liveSessionRateLimit, require('./routes/ai-live-session'));
-app.use('/api/ai/agent', json10mb, aiAuth, veniceRateLimit, require('./routes/ai-agent'));
+app.use('/api/ai/agent', json10mb, aiAuth, aiAnalysisRateLimit, aiAnalysisDailyLimit, require('./routes/ai-agent'));
 
 // ── Agent Routes (service-to-service: SERVICE_API_KEY auth) ──────
 // Phase 3 (complete): All agent endpoints run directly on Hetzner,
@@ -274,7 +278,7 @@ app.use('/api/agent/whatsapp', json1k, serviceKeyAuth, generalRateLimit, require
 // External agents render a listing on their human before buying.
 // Large body limit: the person photo arrives as a base64 data URI.
 
-app.use('/api/agent/try-on', json10mb, veniceRateLimit, require('./routes/agent-tryon'));
+app.use('/api/agent/try-on', json10mb, aiExpensiveRateLimit, aiExpensiveDailyLimit, require('./routes/agent-tryon'));
 
 // ── Curator Routes (public, rate-limited) ───────────────────────
 // Self-serve curator onboarding (ADR 0002). No API key needed.

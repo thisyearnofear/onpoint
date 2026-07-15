@@ -126,7 +126,8 @@ async function generateVisionAnalysis({
 }
 
 // ---------------------------------------------------------------------------
-// generateText – tries Venice → Gemini → OpenAI based on availability
+// generateText – tries Gemini → Venice → OpenAI based on availability
+// (Gemini Flash-Lite is 7x cheaper than Venice Llama 3.3 70B for text)
 // ---------------------------------------------------------------------------
 
 async function generateText({
@@ -149,9 +150,9 @@ async function generateText({
   } else if (provider === 'openai') {
     selected = hasOpenAI ? 'openai' : null;
   } else {
-    // auto: Venice → Gemini → OpenAI
-    if (hasVenice) selected = 'venice';
-    else if (hasGemini) selected = 'gemini';
+    // auto: Gemini (cheapest) → Venice → OpenAI
+    if (hasGemini) selected = 'gemini';
+    else if (hasVenice) selected = 'venice';
     else if (hasOpenAI) selected = 'openai';
   }
 
@@ -162,7 +163,7 @@ async function generateText({
   }
 
   // Build ordered list of providers to try (selected first, then fallbacks)
-  const all = ['venice', 'gemini', 'openai'];
+  const all = ['gemini', 'venice', 'openai'];
   const available = { venice: hasVenice, gemini: hasGemini, openai: hasOpenAI };
   const order = [selected, ...all.filter((p) => p !== selected && available[p])];
 

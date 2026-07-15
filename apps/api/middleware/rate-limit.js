@@ -20,6 +20,14 @@ const TIERS = {
   veniceBurst: { maxRequests: 10, windowMs: 1_000, prefix: "venice-burst" },
   liveSession: { maxRequests: 10, windowMs: 3_600_000, prefix: "live-session" },
   general: { maxRequests: 100, windowMs: 60_000, prefix: "api" },
+  // Tighter limits for expensive AI routes (~$0.03/call)
+  aiExpensive: { maxRequests: 5, windowMs: 60_000, prefix: "ai-expensive" },
+  // Daily cap for expensive AI routes (20 try-ons/day per IP = ~$0.60 max)
+  aiExpensiveDaily: { maxRequests: 20, windowMs: 86_400_000, prefix: "ai-expensive-daily" },
+  // Analysis routes are cheaper (~$0.005/call) but still need control
+  aiAnalysis: { maxRequests: 15, windowMs: 60_000, prefix: "ai-analysis" },
+  // Daily cap for analysis routes (50/day per IP = ~$0.25 max)
+  aiAnalysisDaily: { maxRequests: 50, windowMs: 86_400_000, prefix: "ai-analysis-daily" },
 };
 
 // ── Factory: create rate limit middleware ──

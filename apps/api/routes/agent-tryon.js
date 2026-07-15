@@ -20,6 +20,7 @@
  */
 
 const express = require('express');
+const crypto = require('crypto');
 const { neon } = require('@neondatabase/serverless');
 const { drizzle } = require('drizzle-orm/neon-http');
 const { eq, and, ne, sql, inArray } = require('drizzle-orm');
@@ -34,6 +35,39 @@ const { engine } = require('./ai-virtual-tryon');
 const { upload: r2Upload, publicUrl: r2PublicUrl, keyFor: r2KeyFor } = require('@repo/storage');
 
 const router = express.Router();
+
+// ── Render cache: avoid duplicate Replicate calls for same (photo + listing) ──
+// TTL: 1 hour. Key: sha256(photoData + listingId). Value: generatedImage URL.
+const RENDER_CACHE_TTL_MS = 60 * 60 * 1000;
+const renderCache = new Map();
+
+function getRenderCacheKey(photoData, listingId) {
+  const hash = crypto.createHash('sha256');
+  hash.update(photoData.slice(0, 1000)); // hash first 1000 chars (enough uniqueness for photos)
+  hash.update(listingId);
+  return hash.digest('hex').slice(0, 32);
+}
+
+function getRenderCache(key) {
+  const entry = renderCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.ts > RENDER_CACHE_TTL_MS) {
+    renderCache.delete(key);
+    return null;
+  }
+  return entry.value;
+}
+
+function setRenderCache(key, value) {
+  renderCache.set(key, { value, ts: Date.now() });
+  // Evict expired entries periodically (keep map bounded)
+  if (renderCache.size > 200) {
+    const now = Date.now();
+    for (const [k, v] of renderCache) {
+      if (now - v.ts > RENDER_CACHE_TTL_MS) renderCache.delete(k);
+    }
+  }
+}
 
 const CONNECTION_STRING = process.env.NEON_DATABASE_URL;
 let _sql = null;
@@ -297,15 +331,30 @@ Return ONLY valid JSON:
   "confidence": 0-1
 }`;
 
+    // Check render cache — if the same person+listing was rendered recently,
+    // skip the expensive Replicate call (~$0.024) and reuse the cached result.
+    const renderCacheKey = getRenderCacheKey(photoData, listingId);
+    const cachedRender = getRenderCache(renderCacheKey);
+
+    const renderPromise = cachedRender
+      ? Promise.resolve({ status: 'fulfilled', value: { generatedImage: cachedRender, provider: 'cache', stylingTips: [], imageConditioned: true, fallbackReason: null } })
+      : engine.buildGeneratedOutfitImageResponse({
+          data: {
+            photoData,
+            personDescription: personDescription || '',
+            items: [{ name: itemLabel, imageUrl: garmentUrl, description: itemLabel }],
+          },
+          provider: 'auto',
+        }).then((result) => {
+          // Cache the render result (URL or data URI)
+          if (result?.generatedImage) {
+            setRenderCache(renderCacheKey, result.generatedImage);
+          }
+          return result;
+        });
+
     const [render, fitResult] = await Promise.allSettled([
-      engine.buildGeneratedOutfitImageResponse({
-        data: {
-          photoData,
-          personDescription: personDescription || '',
-          items: [{ name: itemLabel, imageUrl: garmentUrl, description: itemLabel }],
-        },
-        provider: 'auto',
-      }),
+      renderPromise,
       engine
         .generateVisionAnalysis({ prompt: fitPrompt, imageBase64: photoData })
         .then(({ text }) => engine.parseBodyAnalysisResponse(text)),
