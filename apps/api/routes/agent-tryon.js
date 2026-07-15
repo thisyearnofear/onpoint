@@ -226,6 +226,7 @@ router.post('/', async (req, res) => {
     // ── Step 2a: facilitator payment (X-PAYMENT header) ──
     let settlementTxHash = null;
     let payerAddress = null;
+    let verification = null;
     if (xPaymentHeader) {
       const result = await x402Facilitator.processFacilitatorPayment(
         xPaymentHeader,
@@ -249,7 +250,7 @@ router.post('/', async (req, res) => {
     } else {
       // ── Step 2b: verify cUSD payment, run try-on, then claim ──
     const minAmountWei = BigInt(requirements.maxAmountRequired);
-    const verification = await agentCore.ERC20.verifyTransfer({
+    verification = await agentCore.ERC20.verifyTransfer({
       chain: 'celo',
       tokenAddress: sharedTypes.X402_ASSET,
       txHash: paymentTxHash,
