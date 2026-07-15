@@ -39,7 +39,7 @@ Reference try-on: [`scripts/agent-tryon.mjs`](../../scripts/agent-tryon.mjs)
 | Digital curator (Nia) | Live | 8 digital listings with AI-generated garment images |
 | Physical orders | Ready | Flow verified via dry-run; no real purchase yet (needs funded buyer) |
 | Referral tracking | Ready | Schema + dashboard wired; no referred purchases yet |
-| Curator product imagery | Pending | 20 physical listings show "photo pending" — see [curator-imagery.md](./curator-imagery.md) |
+| Curator product imagery | Live | 20 physical listings now have product images (3 OSS + 17 AI-generated via Venice SD35). Human curator storefronts show a "Preview" badge with "Concept image" labels — see [curator-imagery.md](./curator-imagery.md) |
 
 ### Dashboard compliance flags
 

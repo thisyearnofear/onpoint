@@ -6,13 +6,13 @@
 
 | Curator | Listings | Photos | Notes |
 |---------|----------|--------|-------|
-| Zara | 5 physical | 0 | Streetwear/sneakers — no images at all |
-| Mo | 5 physical | 0 | Football kits — `officialImageKey` set in DB but files not in R2 |
-| Juma | 5 physical | 0 | Vintage/thrift — no images at all |
-| Grace | 5 physical | 0 | Luxury accessories — no images at all |
-| Nia | 8 digital | 8 | AI-generated garments — already have images |
+| Zara | 5 physical | 5 | AI-generated (Venice SD35) — sneakers, hoodie, tee |
+| Mo | 5 physical | 5 | AI-generated (Venice SD35) — football kit flat lays |
+| Juma | 5 physical | 5 | 1 OSS (astro-shop shirt) + 4 AI-generated — vintage/thrift |
+| Grace | 5 physical | 5 | 1 OSS (astro-shop shirt) + 4 AI-generated — luxury accessories |
+| Nia | 8 digital | 8 | AI-generated garments — already had images |
 
-**20 physical listings need photos.** The storefront page at `/s/{slug}` shows a "Curator photo pending" placeholder when `listing.imageUrl` is null.
+**All 20 physical listings now have product images.** Human curator storefronts show a "Preview" badge and "Concept image" labels since the curators haven't been onboarded yet. Images were seeded via `scripts/seed-listing-images.mjs`.
 
 ## How listing images work
 
