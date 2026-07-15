@@ -274,6 +274,54 @@ export default async function CuratorStorefrontPage({
         </div>
       </section>
 
+      {/* Quick Try strip — above the fold, no scrolling required */}
+      {listings.length > 0 && (
+        <section className="border-b border-border bg-muted/20">
+          <div className="mx-auto max-w-6xl px-4 py-6">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                Quick Try
+              </h2>
+              <a
+                href={`/lab?tab=try-on&from=${slug}`}
+                className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+              >
+                Try all →
+              </a>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x">
+              {listings.slice(0, 6).map((listing) => {
+                const img = listing.imageUrl || null;
+                return (
+                  <a
+                    key={listing.id}
+                    href={`/lab?tab=try-on&from=${slug}&item=${listing.id}`}
+                    className="group shrink-0 snap-start"
+                  >
+                    <div className="relative h-24 w-24 overflow-hidden rounded-xl border border-border bg-muted transition-all group-hover:border-primary/40 group-hover:ring-2 group-hover:ring-primary/20">
+                      {img ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={img} alt={listing.title || "Design"} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                      ) : (
+                        <div className="flex h-full items-center justify-center">
+                          <Camera className="h-6 w-6 text-muted-foreground/30" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                        <Camera className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </div>
+                    <p className="mt-1.5 max-w-[6rem] truncate text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                      {listing.title || "Untitled"}
+                    </p>
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
       <section id="collection" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-10">
         {/* Curator inventory panel (only visible to the curator themselves) */}
         <CuratorOwnerTools

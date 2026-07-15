@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useRef, useCallback } from "react";
+import React, { useRef, useCallback, useState } from "react";
 import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
-import { Camera, Upload, User, Sun, Eye, CheckCircle, AlertTriangle, XCircle, Loader2 } from "lucide-react";
+import { Camera, Upload, User, Sun, Eye, CheckCircle, AlertTriangle, XCircle, Loader2, Sparkles } from "lucide-react";
 import { usePhotoQualityCheck } from "./usePhotoQualityCheck";
 import type { QualityCheck, QualityCheckResult } from "./usePhotoQualityCheck";
 
@@ -18,8 +18,15 @@ function CheckIcon({ status }: { status: QualityCheck["status"] }) {
   return <XCircle className="h-3.5 w-3.5 text-red-500" />;
 }
 
+const SAMPLE_PHOTOS = [
+  { src: "/assets/1Model.png", label: "Model 1" },
+  { src: "/assets/2Model.png", label: "Model 2" },
+  { src: "/assets/3Model.png", label: "Model 3" },
+];
+
 export function PhotoUpload({ onPhotoSelect, disabled }: PhotoUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [loadingSample, setLoadingSample] = useState<string | null>(null);
   const { result: qualityResult, checking: qualityChecking, checkPhoto, reset } = usePhotoQualityCheck();
 
   const handleFile = useCallback(
@@ -49,6 +56,24 @@ export function PhotoUpload({ onPhotoSelect, disabled }: PhotoUploadProps) {
       }
     },
     [handleFile],
+  );
+
+  const handleSamplePhoto = useCallback(
+    async (sampleUrl: string) => {
+      if (disabled) return;
+      setLoadingSample(sampleUrl);
+      try {
+        const response = await fetch(sampleUrl);
+        const blob = await response.blob();
+        const file = new File([blob], "sample.jpg", { type: blob.type || "image/jpeg" });
+        await handleFile(file);
+      } catch {
+        // silent — user can still upload manually
+      } finally {
+        setLoadingSample(null);
+      }
+    },
+    [disabled, handleFile],
   );
 
   return (
@@ -89,6 +114,39 @@ export function PhotoUpload({ onPhotoSelect, disabled }: PhotoUploadProps) {
             disabled={disabled}
           />
         </div>
+
+        {/* Sample photos — try without uploading */}
+        {!qualityResult && !qualityChecking && (
+          <div className="mt-4">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              <span>No photo? Try a sample:</span>
+            </div>
+            <div className="flex gap-2">
+              {SAMPLE_PHOTOS.map((sample) => (
+                <button
+                  key={sample.src}
+                  type="button"
+                  disabled={disabled || loadingSample !== null}
+                  onClick={() => handleSamplePhoto(sample.src)}
+                  className="group relative h-16 w-16 overflow-hidden rounded-lg border border-border transition-all hover:border-primary/40 hover:ring-2 hover:ring-primary/20 disabled:opacity-50"
+                >
+                  {loadingSample === sample.src ? (
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/80">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    </div>
+                  ) : null}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={sample.src}
+                    alt={sample.label}
+                    className="h-full w-full object-cover transition-opacity group-hover:opacity-90"
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Static quality hints (shown before upload) */}
         {!qualityResult && !qualityChecking && (

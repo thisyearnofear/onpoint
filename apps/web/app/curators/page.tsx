@@ -156,7 +156,7 @@ export default async function CuratorsPage() {
                   </h2>
                 </div>
                 <Link
-                  href={`/s/${nia.slug}`}
+                  href={`/lab?tab=try-on&from=nia`}
                   className="group block rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/[0.04] to-transparent p-6 md:p-8 transition-all hover:border-primary/50 hover:shadow-lg"
                 >
                   <div className="flex flex-col md:flex-row gap-6">
