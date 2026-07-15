@@ -23,28 +23,17 @@ const { neon } = require('@neondatabase/serverless');
 const { drizzle } = require('drizzle-orm/neon-http');
 const { eq, and, desc, sql, ilike, inArray } = require('drizzle-orm');
 const { agentLooks, listings, curators, kitSkus } = require('@repo/db');
-const { R2Storage } = require('@repo/storage');
+const { upload: r2Upload, publicUrl: r2PublicUrl } = require('@repo/storage');
 const logger = require('../lib/logger');
 
 const router = express.Router();
 
 const CONNECTION_STRING = process.env.NEON_DATABASE_URL;
 const SERVICE_API_KEY = process.env.SERVICE_API_KEY;
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || '';
 
 function getDb() {
   if (!CONNECTION_STRING) throw new Error('NEON_DATABASE_URL not configured');
   return drizzle(neon(CONNECTION_STRING));
-}
-
-function getR2() {
-  return new R2Storage({
-    accountId: process.env.R2_ACCOUNT_ID,
-    accessKeyId: process.env.R2_ACCESS_KEY_ID,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-    bucketName: process.env.R2_BUCKET_NAME,
-    publicUrl: R2_PUBLIC_URL,
-  });
 }
 
 function slugify(text) {
@@ -81,12 +70,12 @@ async function resolveListings(db, listingIds) {
     .filter(Boolean);
 }
 
-function listingImageUrl(listing, r2) {
+function listingImageUrl(listing) {
   if (listing.photoKeys && listing.photoKeys.length > 0) {
-    return r2.publicUrl(listing.photoKeys[0]);
+    return r2PublicUrl(listing.photoKeys[0]);
   }
   if (listing.officialImageKey) {
-    return r2.publicUrl(listing.officialImageKey);
+    return r2PublicUrl(listing.officialImageKey);
   }
   return null;
 }
@@ -127,10 +116,9 @@ router.post('/', agentAuth, async (req, res) => {
     // Upload cover image if provided
     let coverImageKey = null;
     if (coverImage && coverImage.startsWith('data:')) {
-      const r2 = getR2();
       const ext = coverImage.match(/data:image\/(\w+)/)?.[1] || 'jpg';
       coverImageKey = `looks/${slug}/cover.${ext}`;
-      await r2.put(coverImageKey, Buffer.from(coverImage.split(',')[1], 'base64'), `image/${ext}`);
+      await r2Upload(coverImageKey, Buffer.from(coverImage.split(',')[1], 'base64'), `image/${ext}`);
     }
 
     const [look] = await db
@@ -199,7 +187,6 @@ router.get('/', async (req, res) => {
 router.get('/:slug', async (req, res) => {
   try {
     const db = getDb();
-    const r2 = getR2();
 
     const [look] = await db
       .select()
@@ -221,7 +208,7 @@ router.get('/:slug', async (req, res) => {
       id: listing.id,
       title: listing.title || (kit ? `${kit.club} ${kit.kitType}` : 'Item'),
       curatorSlug: listing.curatorSlug,
-      imageUrl: listingImageUrl(listing, r2),
+      imageUrl: listingImageUrl(listing),
       isHero: listing.id === look.heroListingId,
       sizes: listing.sizes,
       tags: listing.tags,
@@ -233,7 +220,7 @@ router.get('/:slug', async (req, res) => {
 
     res.json({
       ...look,
-      coverImageUrl: look.coverImageKey ? r2.publicUrl(look.coverImageKey) : null,
+      coverImageUrl: look.coverImageKey ? r2PublicUrl(look.coverImageKey) : null,
       items,
       referralCode,
       shareUrl: `https://beonpoint.netlify.app/look/${look.slug}`,
@@ -306,17 +293,16 @@ router.post('/:slug/image', agentAuth, async (req, res) => {
       return res.status(400).json({ error: 'image (data URI) required' });
     }
 
-    const r2 = getR2();
     const ext = image.match(/data:image\/(\w+)/)?.[1] || 'jpg';
     const key = `looks/${existing.slug}/cover.${ext}`;
-    await r2.put(key, Buffer.from(image.split(',')[1], 'base64'), `image/${ext}`);
+    await r2Upload(key, Buffer.from(image.split(',')[1], 'base64'), `image/${ext}`);
 
     await db
       .update(agentLooks)
       .set({ coverImageKey: key, updatedAt: new Date() })
       .where(eq(agentLooks.slug, existing.slug));
 
-    res.json({ coverImageKey: key, coverImageUrl: r2.publicUrl(key) });
+    res.json({ coverImageKey: key, coverImageUrl: r2PublicUrl(key) });
   } catch (err) {
     logger.error('Failed to upload look image', { component: 'agent-looks' }, err);
     res.status(500).json({ error: 'Failed to upload image' });

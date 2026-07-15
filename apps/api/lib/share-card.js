@@ -19,7 +19,7 @@
  */
 
 const sharp = require('sharp');
-const { R2Storage } = require('@repo/storage');
+const { upload: r2Upload, publicUrl: r2PublicUrl } = require('@repo/storage');
 
 const CARD_WIDTH = 1080;
 const CARD_HEIGHT = 1350;
@@ -134,20 +134,12 @@ async function generateShareCard(opts) {
     .toBuffer();
 
   // ── 5. Upload to R2 ──
-  const r2 = new R2Storage({
-    accountId: process.env.R2_ACCOUNT_ID,
-    accessKeyId: process.env.R2_ACCESS_KEY_ID,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-    bucketName: process.env.R2_BUCKET_NAME,
-    publicUrl: process.env.R2_PUBLIC_URL || '',
-  });
-
   const r2Key = `looks/${lookSlug}/share-card-${Date.now()}.webp`;
-  await r2.put(r2Key, card, 'image/webp');
+  await r2Upload(r2Key, card, 'image/webp');
 
   return {
     r2Key,
-    url: r2.publicUrl(r2Key),
+    url: r2PublicUrl(r2Key),
   };
 }
 

@@ -517,14 +517,7 @@ Return ONLY valid JSON:
             .leftJoin(kitTable, eqD(listingsTable.skuId, kitTable.id))
             .where(inArray(listingsTable.id, look.listingIds));
 
-          const { R2Storage } = require('@repo/storage');
-          const r2 = new R2Storage({
-            accountId: process.env.R2_ACCOUNT_ID,
-            accessKeyId: process.env.R2_ACCESS_KEY_ID,
-            secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-            bucketName: process.env.R2_BUCKET_NAME,
-            publicUrl: process.env.R2_PUBLIC_URL || '',
-          });
+          const { publicUrl: r2PubUrl } = require('@repo/storage');
 
           const itemsForCard = look.listingIds.map((id) => {
             const row = lookItems.find((r) => r.listing.id === id);
@@ -532,7 +525,7 @@ Return ONLY valid JSON:
             const photoKey = row.listing.photoKeys?.[0] || row.listing.officialImageKey;
             return {
               title: row.listing.title || (row.kit ? `${row.kit.club} ${row.kit.kitType}` : 'Item'),
-              imageUrl: photoKey ? r2.publicUrl(photoKey) : null,
+              imageUrl: photoKey ? r2PubUrl(photoKey) : null,
               isHero: row.listing.id === look.heroListingId,
             };
           }).filter(Boolean);
