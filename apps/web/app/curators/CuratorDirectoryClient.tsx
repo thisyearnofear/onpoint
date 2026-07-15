@@ -210,6 +210,7 @@ function CuratorCard({ curator }: { curator: DirectoryCurator }) {
     <TransitionLink
       href={`/s/${curator.slug}`}
       className="group relative flex flex-col rounded-2xl border border-border bg-card overflow-hidden hover:border-foreground/20 hover:shadow-lg transition-all"
+      data-view-transition="curator-card"
       style={{ viewTransitionName: `curator-card-${curator.slug}` }}
     >
       {/* Brand color strip */}
@@ -229,11 +230,13 @@ function CuratorCard({ curator }: { curator: DirectoryCurator }) {
               src={curator.brand.logo}
               alt={curator.name}
               className="w-12 h-12 rounded-xl object-cover border border-border"
+              data-view-transition="curator-avatar"
               style={{ viewTransitionName: `curator-avatar-${curator.slug}` }}
             />
           ) : (
             <div
               className="flex h-12 w-12 items-center justify-center rounded-xl text-white font-bold text-lg shrink-0"
+              data-view-transition="curator-avatar"
               style={{
                 background: `linear-gradient(135deg, ${primary}, ${accent})`,
                 viewTransitionName: `curator-avatar-${curator.slug}`,
@@ -245,6 +248,7 @@ function CuratorCard({ curator }: { curator: DirectoryCurator }) {
           <div className="min-w-0 flex-1">
             <h3
               className="font-bold text-foreground truncate group-hover:text-primary transition-colors"
+              data-view-transition="curator-name"
               style={{ viewTransitionName: `curator-name-${curator.slug}` }}
             >
               {curator.name}

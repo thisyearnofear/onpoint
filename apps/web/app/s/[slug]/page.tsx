@@ -78,6 +78,11 @@ function getInitials(value: string) {
     .join("");
 }
 
+function getViewTransitionName(prefix: string, value: string) {
+  const safeValue = value.replace(/[^a-zA-Z0-9_-]/g, "-");
+  return `${prefix}-${safeValue || "item"}`;
+}
+
 export const __test = { formatMoney, getLowestPrice, getTotalStock, formatKitType, getInitials };
 
 export async function generateMetadata({
@@ -200,6 +205,7 @@ export default async function CuratorStorefrontPage({
             <div className="space-y-4">
               <h1
                 className="max-w-3xl text-4xl font-black tracking-tight md:text-6xl"
+                data-view-transition="curator-name"
                 style={{ viewTransitionName: `curator-name-${slug}` }}
               >
                 {curator.name}
@@ -240,6 +246,7 @@ export default async function CuratorStorefrontPage({
             <div className="space-y-4">
               <div
                 className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg text-2xl font-black text-white"
+                data-view-transition="curator-avatar"
                 style={{
                   background: "var(--curator-primary)",
                   viewTransitionName: `curator-avatar-${slug}`,
@@ -388,9 +395,15 @@ export default async function CuratorStorefrontPage({
                   <article
                     key={listing.id}
                     data-listing-id={listing.id}
+                    data-view-transition="product-card"
+                    style={{ viewTransitionName: getViewTransitionName("product-card", listing.id) }}
                     className="overflow-hidden rounded-lg border border-border"
                   >
-                    <div className="relative aspect-[4/3] bg-muted">
+                    <div
+                      className="relative aspect-[4/3] bg-muted"
+                      data-view-transition="product-image"
+                      style={{ viewTransitionName: getViewTransitionName("product-image", listing.id) }}
+                    >
                       {listing.imageUrl ? (
                         <img
                           src={listing.imageUrl}
@@ -416,7 +429,11 @@ export default async function CuratorStorefrontPage({
                     </div>
                     <div className="space-y-3 p-4">
                       <div>
-                        <h2 className="text-lg font-bold">
+                        <h2
+                          className="text-lg font-bold"
+                          data-view-transition="product-title"
+                          style={{ viewTransitionName: getViewTransitionName("product-title", listing.id) }}
+                        >
                           {listing.title || "Digital Design"}
                         </h2>
                         {listing.tags && listing.tags.length > 0 && (
@@ -466,9 +483,15 @@ export default async function CuratorStorefrontPage({
                 <article
                   key={listing.id}
                   data-listing-id={listing.id}
+                  data-view-transition="product-card"
+                  style={{ viewTransitionName: getViewTransitionName("product-card", listing.id) }}
                   className="overflow-hidden rounded-lg border border-border"
                 >
-                  <div className="relative aspect-[4/3] bg-muted">
+                  <div
+                    className="relative aspect-[4/3] bg-muted"
+                    data-view-transition="product-image"
+                    style={{ viewTransitionName: getViewTransitionName("product-image", listing.id) }}
+                  >
                     {listing.imageUrl ? (
                       <img
                         src={listing.imageUrl}
@@ -501,7 +524,11 @@ export default async function CuratorStorefrontPage({
 
                   <div className="space-y-4 p-4">
                     <div>
-                      <h2 className="text-lg font-bold">
+                      <h2
+                        className="text-lg font-bold"
+                        data-view-transition="product-title"
+                        style={{ viewTransitionName: getViewTransitionName("product-title", listing.id) }}
+                      >
                         {kit?.club ?? "Item"}
                       </h2>
                       <p className="text-sm text-muted-foreground">

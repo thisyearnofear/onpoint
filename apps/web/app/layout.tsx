@@ -5,6 +5,7 @@ import { getBaseUrl } from "@/lib/base-url";
 import { META_DESCRIPTION, PRODUCT_NAME, TAGLINE } from "@/lib/brand";
 import "./globals.css";
 import "./mobile.css";
+import "./view-transitions.css";
 import { Providers } from "./providers";
 import '@rainbow-me/rainbowkit/styles.css';
 import { auth0 } from "@/lib/auth0";
