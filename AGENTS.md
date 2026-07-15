@@ -30,7 +30,7 @@
 
 ---
 
-## The Flow (5 Steps)
+## The Flow (6 Steps)
 
 ### Step 1: Discover Curators
 
@@ -40,14 +40,7 @@ GET /api/curator/directory?agentPurchasable=1
 
 Returns curators with `agentPurchasable: true` (payout wallet + live physical SKUs).
 
-Key fields per curator:
-- `slug` — use this for storefront/order endpoints
-- `agentPurchasable` — true = wallet + live physical listings (you can buy)
-- `agentCommerceEnabled` — true = wallet configured (may have zero offers)
-- `digitalTryOnEnabled` — true = has digital designs (try-on only, no purchase)
-- `liveListingCount`, `physicalListingCount`, `digitalListingCount`
-
-Without `?agentPurchasable=1`, the directory returns all curators visible to agents (includes digital curators like Nia).
+Key fields: `slug`, `agentPurchasable`, `agentCommerceEnabled`, `digitalTryOnEnabled`, `liveListingCount`.
 
 ### Step 2: Browse a Storefront
 
@@ -55,154 +48,35 @@ Without `?agentPurchasable=1`, the directory returns all curators visible to age
 GET /api/curator/{slug}/storefront
 ```
 
-Returns the curator profile + all live listings. Look for `agentCommerce` on each listing:
-
-```json
-{
-  "agentCommerce": {
-    "available": true,
-    "currency": "cUSD",
-    "offers": [
-      { "size": "M", "stock": 4, "priceKes": 2500, "priceCusd": 19.23 }
-    ]
-  }
-}
-```
-
-If `agentCommerce` is `null`, the curator has no wallet — you cannot buy from them via API. Digital listings have `inventoryType: "digital"` and no purchase offers (try-on only).
+Returns curator profile + live listings. Each listing includes `agentCommerce` with offers (size, stock, priceCusd). If `agentCommerce` is null, the curator has no wallet — cannot buy. Digital listings are try-on only.
 
 ### Step 3: Try On (Optional but Recommended)
 
 ```bash
 POST /api/agent/try-on
-Content-Type: application/json
-
 { "curatorSlug": "nia", "listingId": "abc123", "photoData": "data:image/jpeg;base64,..." }
 ```
 
-Response: **HTTP 402** (Payment Required) with payment requirements.
+Response: **HTTP 402** → pay cUSD fee → re-POST with `paymentTxHash` → **HTTP 200** with try-on render, fit signal, and polaroid (shareable artifact with `imageUrl` and `webUrl`).
 
-The 402 response includes a `revenueHint` showing the economics:
+Includes `revenueHint` showing economics. Digital listings also return `similarPhysicalItems`.
 
-```json
-{
-  "revenueHint": {
-    "youPay": "0.03 cUSD",
-    "curatorEarns": "0.02 cUSD",
-    "platformFee": "0.01 cUSD",
-    "agentMarkupNote": "Charge your human more than the try-on fee to earn a spread. OnPoint does not cap agent markups."
-  }
-}
-```
-
-Pay the cUSD fee to `payTo` on Celo, then re-POST with the transaction hash:
-
-```bash
-POST /api/agent/try-on
-Content-Type: application/json
-
-{ "curatorSlug": "nia", "listingId": "abc123", "photoData": "data:image/jpeg;base64,...", "paymentTxHash": "0x..." }
-```
-
-Response: **HTTP 200** with try-on render + fit signal (recommended size, confidence).
-
-The response also includes a `polaroid` object — a shareable artifact for your human:
-
-```json
-{
-  "polaroid": {
-    "imageUrl": "https://cdn.../polaroids/42.jpg",
-    "webUrl": "https://beonpoint.netlify.app/p/42"
-  }
-}
-```
-
-Share `polaroid.webUrl` with your human — it opens a branded page with the try-on image, fit score, on-chain payment proof, and a "Shop" call-to-action.
-
-Every response also includes `webUrl` fields on `similarPhysicalItems` and `next` — human-browsable storefront URLs (`/s/{slug}`) alongside the API paths.
-
-For digital listings (Nia), the response also includes `similarPhysicalItems` — physical items from human curators that match the digital design's tags.
+Full details: [docs/guides/agent-commerce.md](./docs/guides/agent-commerce.md)
 
 ### Step 4: Buy a Physical Item
 
 ```bash
 POST /api/curator/{slug}/order
-Content-Type: application/json
-
 { "listingId": "abc123", "size": "M", "quantity": 1 }
 ```
 
-Response: **HTTP 402** with payment requirements:
+Response: **HTTP 402** → transfer cUSD to `payTo` (append `dataSuffix` for attribution) → re-POST with `paymentTxHash` + `quoteId` → **HTTP 201** with order confirmation, Celoscan links, receipt URL, and storefront URL.
 
-```json
-{
-  "quote": {
-    "listingId": "abc123",
-    "size": "M",
-    "quantity": 1,
-    "totalCusd": 19.23,
-    "payTo": "0x...",
-    "chainId": 42220,
-    "quoteId": "..."
-  },
-  "accepts": [{
-    "asset": "0x... (cUSD contract)",
-    "maxAmountRequired": "19230000",
-    "payTo": "0x...",
-    "chainId": 42220,
-    "dataSuffix": "0x... (attribution tag — append to tx data)"
-  }]
-}
-```
+Also supports USDC via x402 facilitator (gasless) using `X-PAYMENT` header.
 
-**Two payment paths:**
+If purchase includes referral code (`X-Referral-Code` header or `?referral=` query param), referring agent earns 2.5% commission.
 
-**Path A — cUSD (direct transfer):**
-1. Transfer the exact cUSD amount to `payTo` on Celo
-2. Append the `dataSuffix` from the 402 response to the transaction data (attribution)
-3. Re-POST with the transaction hash:
-
-```bash
-POST /api/curator/{slug}/order
-{ "listingId": "abc123", "size": "M", "quantity": 1, "paymentTxHash": "0x...", "quoteId": "..." }
-```
-
-**Path B — USDC via x402 facilitator (gasless):**
-1. Sign an EIP-3009 `transferWithAuthorization` for USDC
-2. Encode the PaymentPayload as base64 JSON
-3. Send it in the `X-PAYMENT` header:
-
-```bash
-POST /api/curator/{slug}/order
-X-PAYMENT: <base64-encoded-payment-payload>
-{ "listingId": "abc123", "size": "M", "quantity": 1, "quoteId": "..." }
-```
-
-The facilitator settles on-chain and pays gas. No `paymentTxHash` needed.
-
-Response: **HTTP 201** with order confirmation + Celoscan links:
-
-```json
-{
-  "order": {
-    "id": "...",
-    "item": "Arsenal 24/25 Home Kit (M)",
-    "payment": { "explorerUrl": "https://celoscan.io/tx/..." },
-    "payout": { "to": "0x...", "amountCusd": 18.27, "txHash": "0x...", "explorerUrl": "..." },
-    "receiptId": "rec_abc123",
-    "receiptUrl": "https://beonpoint.netlify.app/r/rec_abc123",
-    "storefrontUrl": "https://beonpoint.netlify.app/s/wanja"
-  }
-}
-```
-
-Share `receiptUrl` with your human — it opens a branded receipt page with on-chain payment proof, curator payout proof, curator branding, product recommendations, and a "Shop" call-to-action.
-
-The 402 challenge for orders also includes a `revenueHint` with the same structure as the try-on hint, showing the curator share, platform fee, and agent markup note.
-
-**Referral tracking:** If the purchase was made through a referral link (via `X-Referral-Code` header or `?referral=` query param), the referring agent earns 2.5% commission. The referral is tracked on-chain and visible in the agent dashboard.
-
-Digital listings return **HTTP 409** (no physical product) with a redirect to the try-on endpoint.
+Full details: [docs/guides/agent-commerce.md](./docs/guides/agent-commerce.md)
 
 ### Step 5: Check Earnings (Public Ledger)
 
@@ -212,40 +86,11 @@ GET /api/curator/{slug}/earnings
 
 Public reconciled ledger — try-on fees, order payouts, attribution tags.
 
-### Step 6: Agent Referral Tracking & Dashboard
+### Step 6: Referral Tracking & Dashboard
 
-Agents can earn 2.5% commission by referring customers. Share your referral link or pass the code in order requests:
+Agents earn 2.5% commission on referred purchases. Include `X-Referral-Code` header or `?referral=` query param in order requests. View earnings at `/api/agent/dashboard` or the UI at `https://beonpoint.netlify.app/agent`.
 
-```bash
-# Option 1: Include referral code in order request
-POST /api/curator/{slug}/order
-X-Referral-Code: ref_0x1234...
-{ "listingId": "abc123", "size": "M", "quantity": 1 }
-
-# Option 2: Pass as query parameter
-POST /api/curator/{slug}/order?referral=ref_0x1234...
-```
-
-**Agent Dashboard** — view earnings, referral stats, and activity:
-
-```bash
-GET /api/agent/dashboard
-```
-
-Response includes:
-```json
-{
-  "referrals": {
-    "totalReferrals": 15,
-    "totalCommissionCusd": "125.50",
-    "pendingCommissionCusd": "45.20",
-    "paidCommissionCusd": "80.30",
-    "recentActivity": [...]
-  }
-}
-```
-
-Dashboard UI: `https://beonpoint.netlify.app/agent`
+Full details: [docs/guides/referral-tracking.md](./docs/guides/referral-tracking.md)
 
 ---
 
@@ -276,20 +121,14 @@ If you have your own attribution code, use `toDataSuffix(['your_code', 'celo_ce9
 
 ```bash
 POST /api/agent/mint
-Content-Type: application/json
-
 { "userAddress": "0x...", "metadataUri": "ipfs://...", "royaltyRecipient": "0x..." }
 ```
 
-Requires service auth (`x-service-key` header). Mints an OnPoint NFT (ERC-721A) with 0xSplits royalty (85% creator / 15% platform).
-
-Contract: `0x8e0a3BcF07Ec8133408A3837DD2DCe398A42f576` on Celo.
+Requires service auth (`x-service-key` header). Mints an OnPoint NFT (ERC-721A) with 0xSplits royalty (85% creator / 15% platform). Contract: `0x8e0a3BcF07Ec8133408A3837DD2DCe398A42f576` on Celo.
 
 ---
 
 ## Reference Implementation
-
-The [`scripts/agent-buyer.mjs`](./scripts/agent-buyer.mjs) script demonstrates the full buy flow end-to-end:
 
 ```bash
 # Dry run (no payment, just verifies the flow works)
@@ -328,9 +167,12 @@ BUYER_PRIVATE_KEY=0x... node scripts/agent-buyer.mjs
 |----------|-----|
 | Strategy | [docs/STRATEGY.md](./docs/STRATEGY.md) |
 | Architecture | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) |
+| Agent commerce guide | [docs/guides/agent-commerce.md](./docs/guides/agent-commerce.md) |
+| Referral tracking guide | [docs/guides/referral-tracking.md](./docs/guides/referral-tracking.md) |
 | Agent commerce ADR | [docs/adr/0010-agent-storefront-checkout.md](./docs/adr/0010-agent-storefront-checkout.md) |
 | Digital curators ADR | [docs/adr/0011-erc8004-registration-and-digital-curators.md](./docs/adr/0011-erc8004-registration-and-digital-curators.md) |
 | Pricing ADR | [docs/adr/0013-pricing-strategy-and-agent-revenue-model.md](./docs/adr/0013-pricing-strategy-and-agent-revenue-model.md) |
 | x402 facilitator ADR | [docs/adr/0012-x402-facilitator-integration.md](./docs/adr/0012-x402-facilitator-integration.md) |
 | Reference buyer | [scripts/agent-buyer.mjs](./scripts/agent-buyer.mjs) |
 | Supply readiness check | [scripts/agent-commerce-ready.mjs](./scripts/agent-commerce-ready.mjs) |
+
