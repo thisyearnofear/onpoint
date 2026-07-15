@@ -33,6 +33,8 @@ OnPoint is the **execution layer** for fashion intent that needs **fit + real st
 ### Demand — Agents
 - `/.well-known/agent.json` + curator directory with structured offers
 - x402 try-on ($0.25 cUSD) and storefront checkout with curator splits
+- Referral tracking — agents earn 2.5% commission on referred purchases
+- Agent dashboard at `/agent` — earnings, referral stats, activity feed
 - Verifiable receipts; ERC-8004 registration on Celo
 
 **Organizing primitive:** [ADR 0002 — Curator](./docs/adr/0002-curator-primitive.md).  

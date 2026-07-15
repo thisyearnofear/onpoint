@@ -17,11 +17,69 @@
 4. **Buy** — `POST /api/curator/{slug}/order`  
    `{ listingId, size, quantity }` → 402 → transfer exact cUSD to `payTo` (append attribution `dataSuffix` if provided) → re-POST with `paymentTxHash` (+ `quoteId`).  
    `201` includes order + Celoscan links; curator is paid on-chain.
-5. **Earnings** — `GET /api/curator/{slug}/earnings` (public ledger).
+5. **Earn referrals** — Pass `X-Referral-Code` header or `?referral=` query param to earn 2.5% commission on referred purchases.
+6. **Dashboard** — `GET /api/agent/dashboard` to view wallet health, referral earnings, and activity.
+7. **Earnings** — `GET /api/curator/{slug}/earnings` (public ledger).
 
 Base API (production): `https://api.onpoint.famile.xyz`  
 Manifest: [`/.well-known/agent.json`](../../apps/web/public/.well-known/agent.json)  
 Reference buyer: [`scripts/agent-buyer.mjs`](../../scripts/agent-buyer.mjs)
+
+## Referral tracking
+
+Agents can earn 2.5% commission by referring customers. When a purchase is made through a referral link or code, the platform records the referral and calculates commission automatically.
+
+**How to use:**
+
+```bash
+# Option 1: Header (recommended for API clients)
+POST /api/curator/wanja/order
+X-Referral-Code: ref_abc123...
+Content-Type: application/json
+
+{ "listingId": "...", "size": "M", "quantity": 1 }
+
+# Option 2: Query parameter (for shareable links)
+POST /api/curator/wanja/order?referral=ref_abc123...
+```
+
+**Referral link format:**
+
+```
+https://beonpoint.netlify.app/r/[referralCode]
+```
+
+When users visit a referral link, the code is stored in sessionStorage and automatically attached to subsequent orders.
+
+**View your earnings:**
+
+```bash
+curl https://api.onpoint.famile.xyz/api/agent/dashboard
+```
+
+Response includes:
+```json
+{
+  "referrals": {
+    "totalReferrals": 15,
+    "totalCommissionCusd": "125.50",
+    "pendingCommissionCusd": "45.20",
+    "paidCommissionCusd": "80.30",
+    "recentActivity": [
+      {
+        "referralCode": "ref_abc123",
+        "orderAmountCusd": "19.23",
+        "commissionCusd": "0.48",
+        "status": "paid",
+        "curatorSlug": "wanja",
+        "createdAt": "2026-07-15T10:30:00Z"
+      }
+    ]
+  }
+}
+```
+
+Dashboard UI: `https://beonpoint.netlify.app/agent`
 
 ## Phase 1 metrics
 

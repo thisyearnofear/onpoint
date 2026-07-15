@@ -24,8 +24,9 @@
 1. **Browse** curators and storefronts (free, no auth)
 2. **Try on** items before buying ($0.03 digital, $0.05 physical, cUSD via x402)
 3. **Buy** physical items from curator storefronts (cUSD on Celo)
-4. **Mint** fashion NFTs with 0xSplits royalties ($0.10)
-5. **Check earnings** — public reconciled ledger per curator
+4. **Earn referral commissions** — share links, earn 2.5% on purchases you drive
+5. **Mint** fashion NFTs with 0xSplits royalties ($0.10)
+6. **Check earnings** — public reconciled ledger per curator
 
 ---
 
@@ -195,9 +196,11 @@ Response: **HTTP 201** with order confirmation + Celoscan links:
 }
 ```
 
-Share `receiptUrl` with your human — it opens a branded receipt page with on-chain payment proof, curator payout proof, and a "Shop" call-to-action.
+Share `receiptUrl` with your human — it opens a branded receipt page with on-chain payment proof, curator payout proof, curator branding, product recommendations, and a "Shop" call-to-action.
 
 The 402 challenge for orders also includes a `revenueHint` with the same structure as the try-on hint, showing the curator share, platform fee, and agent markup note.
+
+**Referral tracking:** If the purchase was made through a referral link (via `X-Referral-Code` header or `?referral=` query param), the referring agent earns 2.5% commission. The referral is tracked on-chain and visible in the agent dashboard.
 
 Digital listings return **HTTP 409** (no physical product) with a redirect to the try-on endpoint.
 
@@ -209,6 +212,41 @@ GET /api/curator/{slug}/earnings
 
 Public reconciled ledger — try-on fees, order payouts, attribution tags.
 
+### Step 6: Agent Referral Tracking & Dashboard
+
+Agents can earn 2.5% commission by referring customers. Share your referral link or pass the code in order requests:
+
+```bash
+# Option 1: Include referral code in order request
+POST /api/curator/{slug}/order
+X-Referral-Code: ref_0x1234...
+{ "listingId": "abc123", "size": "M", "quantity": 1 }
+
+# Option 2: Pass as query parameter
+POST /api/curator/{slug}/order?referral=ref_0x1234...
+```
+
+**Agent Dashboard** — view earnings, referral stats, and activity:
+
+```bash
+GET /api/agent/dashboard
+```
+
+Response includes:
+```json
+{
+  "referrals": {
+    "totalReferrals": 15,
+    "totalCommissionCusd": "125.50",
+    "pendingCommissionCusd": "45.20",
+    "paidCommissionCusd": "80.30",
+    "recentActivity": [...]
+  }
+}
+```
+
+Dashboard UI: `https://beonpoint.netlify.app/agent`
+
 ---
 
 ## Pricing
@@ -219,6 +257,7 @@ Public reconciled ledger — try-on fees, order payouts, attribution tags.
 | Digital try-on (Nia) | $0.03 cUSD | 80% curator / 20% platform |
 | Physical try-on (human curator) | $0.05 cUSD | 95% curator / 5% platform |
 | Physical order | Listing price (KES -> cUSD) | 95% curator / 5% platform |
+| Referral commission | 2.5% of order value | Paid to referring agent |
 | NFT mint | $0.10 cUSD | 85% creator / 15% platform |
 
 Per-curator try-on price can be overridden via `commerce.tryOnPriceUsd`. All payments in cUSD or USDC on Celo mainnet.
