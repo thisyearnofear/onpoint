@@ -8,6 +8,7 @@ import {
   DollarSign,
   BookOpen,
   Info,
+  Sparkles,
 } from "lucide-react";
 import { PRODUCT_NAME } from "../lib/brand";
 import { Auth0HeaderButton } from "./auth/Auth0Components";
@@ -34,6 +35,13 @@ export function OnPointHeader() {
             >
               <Camera className="w-4 h-4" />
               Shop
+            </Link>
+            <Link
+              href="/looks"
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 px-3 py-1.5 rounded-full transition-colors"
+            >
+              <Sparkles className="w-4 h-4" />
+              Looks
             </Link>
             <Link
               href="/curator"
@@ -97,6 +105,13 @@ export function OnPointHeader() {
               Shop
             </Link>
             <Link
+              href="/looks"
+              className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground px-2 py-1 rounded-full hover:bg-muted/50 transition-colors"
+            >
+              <Sparkles className="w-3 h-3" />
+              Looks
+            </Link>
+            <Link
               href="/curator"
               className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground px-2 py-1 rounded-full hover:bg-muted/50 transition-colors"
             >
@@ -126,6 +141,9 @@ export function OnPointFooter() {
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
           <Link href="/curators" className="hover:text-foreground transition-colors">
             Shop
+          </Link>
+          <Link href="/looks" className="hover:text-foreground transition-colors">
+            Looks
           </Link>
           <Link href="/curator" className="hover:text-foreground transition-colors">
             Supply
