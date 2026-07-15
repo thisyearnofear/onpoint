@@ -72,7 +72,7 @@ router.get('/', async (req, res) => {
       }
     }
 
-    // Unified identity
+    // Unified identity (ERC-8004 + Self Protocol)
     const unifiedIdentity = await agentCore.getUnifiedAgentIdentity?.(
       celoAddress,
       erc8004Identity.agentId,
@@ -166,8 +166,8 @@ router.get('/', async (req, res) => {
       identity: {
         erc8004: {
           agentId: unifiedIdentity?.erc8004?.agentId || erc8004Identity.agentId,
-          registryAddress: unifiedIdentity?.erc8004?.registryAddress || '',
-          registrationTxHash: unifiedIdentity?.erc8004?.registrationTxHash || null,
+          registryAddress: unifiedIdentity?.erc8004?.registryAddress || erc8004Identity.registryAddress || '',
+          registrationTxHash: unifiedIdentity?.erc8004?.registrationTxHash || erc8004Identity.registrationTxHash || null,
           receiptCount: erc8004Identity.receiptCount || 0,
         },
         self: {
@@ -229,8 +229,8 @@ router.get('/', async (req, res) => {
       ],
       links: {
         celoscan: celoAddress ? `https://celoscan.io/address/${celoAddress}` : null,
-        erc8004Registry: unifiedIdentity?.erc8004?.registryAddress
-          ? `https://basescan.org/address/${unifiedIdentity.erc8004.registryAddress}`
+        erc8004Registry: (unifiedIdentity?.erc8004?.registryAddress || erc8004Identity.registryAddress)
+          ? `https://celoscan.io/address/${unifiedIdentity?.erc8004?.registryAddress || erc8004Identity.registryAddress}`
           : null,
       },
     });

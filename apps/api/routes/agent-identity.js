@@ -39,8 +39,8 @@ router.get('/', async (req, res) => {
       registrations: {
         erc8004: {
           agentId: unified?.erc8004?.agentId || erc8004Identity.agentId,
-          registryAddress: unified?.erc8004?.registryAddress || '',
-          registrationTxHash: unified?.erc8004?.registrationTxHash || null,
+          registryAddress: unified?.erc8004?.registryAddress || erc8004Identity.registryAddress || '',
+          registrationTxHash: unified?.erc8004?.registrationTxHash || erc8004Identity.registrationTxHash || null,
           receiptCount: erc8004Identity.receiptCount || 0,
         },
         self: {
@@ -55,8 +55,8 @@ router.get('/', async (req, res) => {
         walletOnchain: !!walletAddress,
       },
       links: {
-        erc8004Registry: unified?.erc8004?.registryAddress
-          ? `https://basescan.org/address/${unified.erc8004.registryAddress}`
+        erc8004Registry: (unified?.erc8004?.registryAddress || erc8004Identity.registryAddress)
+          ? `https://celoscan.io/address/${unified?.erc8004?.registryAddress || erc8004Identity.registryAddress}`
           : null,
         selfProtocol: 'https://self.xyz',
         celoscan: walletAddress ? `https://celoscan.io/address/${walletAddress}` : null,

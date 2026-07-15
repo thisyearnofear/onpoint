@@ -144,6 +144,16 @@ export {
   generateReceiptVerifiableData,
 } from "./agent-registry";
 
+// ── Self Protocol + Unified Agent Identity ──
+export {
+  type SelfAgentRegistration,
+  type SelfVerificationResult,
+  type UnifiedAgentIdentity,
+  registerSelfAgent,
+  verifySelfAgent,
+  getUnifiedAgentIdentity,
+} from "./self-protocol";
+
 // ── Fraud Detection ──
 export {
   type AgentHealthCheck,

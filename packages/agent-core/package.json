@@ -72,6 +72,10 @@
       "types": "./src/redis-helpers.ts",
       "import": "./src/redis-helpers.ts"
     },
+    "./self-protocol": {
+      "types": "./src/self-protocol.ts",
+      "import": "./src/self-protocol.ts"
+    },
     "./verifiable-agent-service": {
       "types": "./src/verifiable-agent-service.ts",
       "import": "./src/verifiable-agent-service.ts"
