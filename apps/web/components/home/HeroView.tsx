@@ -12,6 +12,7 @@ import {
   Wallet,
   Image as ImageIcon,
   Palette,
+  MessageCircle,
 } from "lucide-react";
 import { Reveal } from "../ui/Reveal";
 import { OnPointHeader } from "../OnPointHeader";
@@ -31,6 +32,7 @@ import { HeroVisual } from "./HeroVisual";
 import { LookCrafter } from "./LookCrafter";
 import { EditorialStats } from "./EditorialStats";
 import { RecentlySavedSection } from "./RecentlySavedSection";
+import { AgentActivityFeed } from "../AgentActivityFeed";
 
 export function HeroView() {
   const [showDemo, setShowDemo] = useState(false);
@@ -210,6 +212,91 @@ export function HeroView() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* How It Works — 30-second explainer */}
+      <section className="border-t border-border/30 bg-background">
+        <div className="container mx-auto px-4 py-16 md:py-20">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-black tracking-tight">
+                How it works
+              </h2>
+              <p className="mt-3 text-lg text-muted-foreground">
+                Try on before you buy — in 30 seconds
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-8">
+              <div className="text-center">
+                <div className="relative">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+                    <Camera className="w-8 h-8 text-white" />
+                  </div>
+                  <div className="absolute top-0 right-1/2 transform translate-x-16 -translate-y-2 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs font-bold">
+                    1
+                  </div>
+                </div>
+                <h3 className="text-lg font-bold mb-2">Upload your photo</h3>
+                <p className="text-sm text-muted-foreground">
+                  Take a selfie or upload a photo. No wallet or account needed.
+                </p>
+              </div>
+
+              <div className="text-center">
+                <div className="relative">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    <Sparkles className="w-8 h-8 text-white" />
+                  </div>
+                  <div className="absolute top-0 right-1/2 transform translate-x-16 -translate-y-2 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs font-bold">
+                    2
+                  </div>
+                </div>
+                <h3 className="text-lg font-bold mb-2">AI tries it on you</h3>
+                <p className="text-sm text-muted-foreground">
+                  See yourself in the outfit. Get fit recommendations and style notes.
+                </p>
+              </div>
+
+              <div className="text-center">
+                <div className="relative">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center">
+                    <MessageCircle className="w-8 h-8 text-white" />
+                  </div>
+                  <div className="absolute top-0 right-1/2 transform translate-x-16 -translate-y-2 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs font-bold">
+                    3
+                  </div>
+                </div>
+                <h3 className="text-lg font-bold mb-2">Order via WhatsApp</h3>
+                <p className="text-sm text-muted-foreground">
+                  Share your try-on with the curator. Confirm size, stock, and delivery.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-12 text-center">
+              <Link
+                href={CTA_SHOP.href}
+                onClick={() => trackHomepageCta({ cta: "shop", placement: "how_it_works" })}
+                className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white font-bold px-8 py-4 rounded-full text-base shadow-lg shadow-primary/25 transition-all"
+              >
+                <Camera className="w-5 h-5" />
+                Try it now — it's free
+                <ArrowRight className="w-5 h-5" />
+              </Link>
+              <p className="mt-3 text-xs text-muted-foreground">
+                No wallet required · Takes 30 seconds · Costs $0.03
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Agent Activity Feed — shows live proof of agent commerce */}
+      <section className="border-t border-border/30 bg-muted/20">
+        <div className="container mx-auto px-4 py-12 md:py-16">
+          <AgentActivityFeed />
         </div>
       </section>
 

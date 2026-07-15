@@ -225,6 +225,25 @@ export default async function PolaroidPage({
                 score={fit?.score ?? null}
               />
 
+              {/* Referral CTA — earn 2.5% when someone buys through your share */}
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500/20">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-amber-300">Earn 2.5% per purchase</p>
+                  <p className="text-[10px] text-amber-400/70 truncate">
+                    Share this polaroid — when someone buys through your link, you earn commission
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigator.clipboard.writeText(`${typeof window !== "undefined" ? window.location.origin : ""}/r/${meta.curatorSlug}`)}
+                  className="shrink-0 px-3 py-1.5 rounded-full bg-amber-500/20 hover:bg-amber-500/30 text-[10px] font-bold text-amber-300 transition-colors"
+                >
+                  Copy link
+                </button>
+              </div>
+
               {/* CTA — shop the real thing */}
               <TransitionLink
                 href={`/s/${meta.curatorSlug}`}

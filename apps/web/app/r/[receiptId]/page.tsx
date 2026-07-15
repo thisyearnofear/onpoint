@@ -395,7 +395,7 @@ export default async function ReceiptPage({
                   className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-full py-4 text-sm font-bold shadow-lg shadow-indigo-500/20 transition-all"
                 >
                   <ShoppingBag className="w-4 h-4" />
-                  Shop {curator.name || curatorSlug}
+                  Shop {curator?.name || curatorSlug}
                   <ArrowRight className="w-3.5 h-3.5 opacity-60" />
                 </TransitionLink>
               )}
