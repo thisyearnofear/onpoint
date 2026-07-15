@@ -37,6 +37,12 @@ import {
   CritiqueResult,
   TryOnResult,
 } from "./VirtualTryOn/index";
+import {
+  BodyCustomizer,
+  bodyProfileToDescription,
+  DEFAULT_BODY_PROFILE,
+  type BodyProfile,
+} from "./VirtualTryOn/BodyCustomizer";
 
 const LiveStylistView = dynamic(
   () => import("./VirtualTryOn/LiveStylistView").then((m) => ({ default: m.LiveStylistView })),
@@ -268,6 +274,8 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
   const [selectedPhotoData, setSelectedPhotoData] = useState<string | null>(null);
   const [selectedGarmentKey, setSelectedGarmentKey] = useState<string | null>(null);
   const [photoPrepStatus, setPhotoPrepStatus] = useState<"idle" | "optimizing">("idle");
+  const [selfieMode, setSelfieMode] = useState(false);
+  const [bodyProfile, setBodyProfile] = useState<BodyProfile>(DEFAULT_BODY_PROFILE);
 
   const { isPremium, loading: premiumLoading } = usePremiumStatus();
   const { preferences } = useUserPreferences();
@@ -407,6 +415,13 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
       const photoData = await imageFileToDataUrl(file);
       setSelectedPhotoData(photoData);
 
+      // Selfie mode: skip full-body quality check and auto-analysis.
+      // The body profile comes from user selections, not photo analysis.
+      if (selfieMode) {
+        setQualityWarning(null);
+        return;
+      }
+
       if (qualityResult.failCount > 0 || qualityResult.warnCount >= 2) {
         setQualityWarning("Photo quality may reduce accuracy. You can still analyze it, but a clearer full-body photo will produce better ratings.");
         return;
@@ -418,7 +433,7 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
     } finally {
       setPhotoPrepStatus("idle");
     }
-  }, [analyzePhoto, preferences]);
+  }, [analyzePhoto, preferences, selfieMode]);
 
   const handleAnalyzeAnyway = useCallback(async () => {
     if (!selectedPhoto) return;
@@ -600,12 +615,14 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
   // Derived state
   const canShowAnalysis = Boolean(analysis && !critiqueResult && !showPersonalitySelection);
   const canShowPersonaSelection = Boolean(analysis && showPersonalitySelection && !critiqueResult);
-  const personDescription = [
-    `Body type: ${analysis?.bodyType || "unknown"}`,
-    ...(analysis?.currentLook || []),
-    ...(analysis?.fitRecommendations || []),
-    ...(analysis?.styleAdjustments || []),
-  ].join("\n");
+  const personDescription = selfieMode
+    ? bodyProfileToDescription(bodyProfile)
+    : [
+        `Body type: ${analysis?.bodyType || "unknown"}`,
+        ...(analysis?.currentLook || []),
+        ...(analysis?.fitRecommendations || []),
+        ...(analysis?.styleAdjustments || []),
+      ].join("\n");
   const selectedGarment =
     garmentOptions.find((item) => item.selectionKey === selectedGarmentKey) || null;
   const isPreparingPhoto = photoPrepStatus === "optimizing";
@@ -663,6 +680,10 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
         providerLabel: getProviderLabel(enhancement),
       }
     : null;
+
+  // In selfie mode, skip analysis — user builds their body profile manually.
+  // Show garment picker as soon as a photo is uploaded.
+  const canShowSelfieTryOn = Boolean(selfieMode && selectedPhoto && !tryOnResult && !tryOnLoading && !critiqueResult);
 
   // Digital→physical funnel: fetch similar physical items when try-on
   // is initiated from a digital listing (via ?from=slug&item=listingId).
@@ -746,7 +767,7 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto">
           {/* Compact mode toggle */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <Button
                 variant={showLiveStylist ? "default" : "outline"}
@@ -767,6 +788,29 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                 Upload Photo
               </Button>
             </div>
+            {/* Selfie / Full body toggle — only relevant in upload mode */}
+            {!showLiveStylist && (
+              <div className="flex items-center gap-1.5 rounded-full border border-border p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setSelfieMode(false)}
+                  className={`rounded-full px-3 py-1 text-[11px] font-medium transition-colors ${
+                    !selfieMode ? "bg-primary text-white" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Full body
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelfieMode(true)}
+                  className={`rounded-full px-3 py-1 text-[11px] font-medium transition-colors ${
+                    selfieMode ? "bg-primary text-white" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Selfie
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Deep-link persona banner — fades out when critique arrives or user dismisses */}
@@ -790,10 +834,21 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
             </div>
           ) : (
             <div className="animate-fade-in max-w-2xl mx-auto space-y-6">
+                {/* Selfie mode: show body customizer before/after photo upload */}
+                {selfieMode && (
+                  <div className="rounded-xl border border-primary/20 bg-primary/[0.03] p-4">
+                    <BodyCustomizer
+                      profile={bodyProfile}
+                      onChange={setBodyProfile}
+                    />
+                  </div>
+                )}
+
                 {!selectedPhoto && (
                   <PhotoUpload
                     onPhotoSelect={handlePhotoSelect}
                     disabled={loading}
+                    selfieMode={selfieMode}
                   />
                 )}
 
@@ -957,6 +1012,28 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                           onShopRecommendations={handleShopRecommendations}
                           preferences={preferences}
                         />
+                        <GarmentPicker
+                          garmentOptions={garmentOptions}
+                          selectedGarmentKey={selectedGarmentKey}
+                          onSelectGarment={selectGarment}
+                          onGenerateTryOn={handleGenerateTryOn}
+                          tryOnLoading={tryOnLoading}
+                        />
+                      </div>
+                    )}
+
+                    {/* Selfie mode: show garment picker directly (no analysis step) */}
+                    {canShowSelfieTryOn && (
+                      <div className="animate-fade-in">
+                        <div className="rounded-xl border border-primary/20 bg-primary/[0.03] p-4 mb-4">
+                          <div className="flex items-center gap-2 text-sm font-bold mb-1">
+                            <Sparkles className="h-4 w-4 text-primary" />
+                            Your virtual body is ready
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {bodyProfileToDescription(bodyProfile).split("\n").join(" · ")}
+                          </p>
+                        </div>
                         <GarmentPicker
                           garmentOptions={garmentOptions}
                           selectedGarmentKey={selectedGarmentKey}

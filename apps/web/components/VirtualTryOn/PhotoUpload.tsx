@@ -10,6 +10,7 @@ import type { QualityCheck, QualityCheckResult } from "./usePhotoQualityCheck";
 interface PhotoUploadProps {
   onPhotoSelect: (file: File, qualityResult: QualityCheckResult) => void;
   disabled?: boolean;
+  selfieMode?: boolean;
 }
 
 function CheckIcon({ status }: { status: QualityCheck["status"] }) {
@@ -24,7 +25,7 @@ const SAMPLE_PHOTOS = [
   { src: "/assets/3Model.png", label: "Model 3" },
 ];
 
-export function PhotoUpload({ onPhotoSelect, disabled }: PhotoUploadProps) {
+export function PhotoUpload({ onPhotoSelect, disabled, selfieMode = false }: PhotoUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loadingSample, setLoadingSample] = useState<string | null>(null);
   const { result: qualityResult, checking: qualityChecking, checkPhoto, reset } = usePhotoQualityCheck();
@@ -82,9 +83,13 @@ export function PhotoUpload({ onPhotoSelect, disabled }: PhotoUploadProps) {
         <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
           <Camera className="h-8 w-8 text-primary" />
         </div>
-        <CardTitle className="text-center text-xl">Upload Photo</CardTitle>
+        <CardTitle className="text-center text-xl">
+          {selfieMode ? "Upload Selfie" : "Upload Photo"}
+        </CardTitle>
         <p className="text-muted-foreground text-center">
-          Use an existing photo for AI analysis
+          {selfieMode
+            ? "Just your face — we'll build the body from your selections above"
+            : "Use an existing photo for AI analysis"}
         </p>
       </CardHeader>
       <CardContent>
@@ -151,18 +156,37 @@ export function PhotoUpload({ onPhotoSelect, disabled }: PhotoUploadProps) {
         {/* Static quality hints (shown before upload) */}
         {!qualityResult && !qualityChecking && (
           <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-full px-2.5 py-1">
-              <User className="h-3 w-3" />
-              <span>Full body in frame</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-full px-2.5 py-1">
-              <Sun className="h-3 w-3" />
-              <span>Good, even lighting</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-full px-2.5 py-1">
-              <Eye className="h-3 w-3" />
-              <span>Face clearly visible</span>
-            </div>
+            {selfieMode ? (
+              <>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-full px-2.5 py-1">
+                  <Sun className="h-3 w-3" />
+                  <span>Good lighting</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-full px-2.5 py-1">
+                  <Eye className="h-3 w-3" />
+                  <span>Face clearly visible</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-full px-2.5 py-1">
+                  <User className="h-3 w-3" />
+                  <span>No sunglasses or hats</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-full px-2.5 py-1">
+                  <User className="h-3 w-3" />
+                  <span>Full body in frame</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-full px-2.5 py-1">
+                  <Sun className="h-3 w-3" />
+                  <span>Good, even lighting</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-full px-2.5 py-1">
+                  <Eye className="h-3 w-3" />
+                  <span>Face clearly visible</span>
+                </div>
+              </>
+            )}
           </div>
         )}
 
