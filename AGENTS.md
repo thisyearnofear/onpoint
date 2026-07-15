@@ -176,4 +176,6 @@ BUYER_PRIVATE_KEY=0x... node scripts/agent-buyer.mjs
 | Pricing ADR | [docs/adr/0013-pricing-strategy-and-agent-revenue-model.md](./docs/adr/0013-pricing-strategy-and-agent-revenue-model.md) |
 | x402 facilitator ADR | [docs/adr/0012-x402-facilitator-integration.md](./docs/adr/0012-x402-facilitator-integration.md) |
 | Reference buyer | [scripts/agent-buyer.mjs](./scripts/agent-buyer.mjs) |
+| Reference try-on | [scripts/agent-tryon.mjs](./scripts/agent-tryon.mjs) |
 | Supply readiness check | [scripts/agent-commerce-ready.mjs](./scripts/agent-commerce-ready.mjs) |
+| Curator imagery guide | [docs/guides/curator-imagery.md](./docs/guides/curator-imagery.md) |

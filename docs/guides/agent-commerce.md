@@ -23,7 +23,35 @@
 
 Base API (production): `https://api.onpoint.famile.xyz`  
 Manifest: [`/.well-known/agent.json`](../../apps/web/public/.well-known/agent.json)  
-Reference buyer: [`scripts/agent-buyer.mjs`](../../scripts/agent-buyer.mjs)
+Reference buyer: [`scripts/agent-buyer.mjs`](../../scripts/agent-buyer.mjs)  
+Reference try-on: [`scripts/agent-tryon.mjs`](../../scripts/agent-tryon.mjs)
+
+## Launch status (2026-07-15)
+
+| Capability | Status | Proof |
+|------------|--------|-------|
+| ERC-8004 registration | Live | agentId 9177, tx `0x536940e8…` on Celo |
+| Self Protocol identity | Live (mock) | `selfAgentId: onpoint-agent-9177`, `status: verified` — set `SELF_API_KEY` for real registration |
+| Agent wallet | Live | `0x5b33E63440e95289207120B94da78CE22F9D24fB` — CELO + cUSD funded |
+| Paid try-on | Live | First real try-on: tx `0x2e1ced72…` (0.03 cUSD), receipt `receipt_mrlzmdja_579151d4` |
+| Agent dashboard | Live | All compliance flags `true` at `/api/agent/dashboard` |
+| Curator directory | Live | 4 agent-purchasable curators (zara, mo, juma, grace) |
+| Digital curator (Nia) | Live | 8 digital listings with AI-generated garment images |
+| Physical orders | Ready | Flow verified via dry-run; no real purchase yet (needs funded buyer) |
+| Referral tracking | Ready | Schema + dashboard wired; no referred purchases yet |
+| Curator product imagery | Pending | 20 physical listings show "photo pending" — see [curator-imagery.md](./curator-imagery.md) |
+
+### Dashboard compliance flags
+
+```bash
+curl -s https://api.onpoint.famile.xyz/api/agent/dashboard | jq .compliance
+```
+
+All four flags must be `true` before driving paid agent traffic:
+- `erc8004Registered` — agent registered on ERC-8004 identity registry
+- `selfAgentIdRegistered` — Self Protocol agent ID verified
+- `walletOnchain` — agent wallet address resolves on Celo
+- `verifiableReceipts` — at least one receipt with an on-chain tx hash
 
 ## Referral tracking
 
