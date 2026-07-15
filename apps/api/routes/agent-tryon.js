@@ -33,6 +33,7 @@ const { getAttributionSuffix, getAttributionCode, getAssignedTag } = require('..
 const x402Facilitator = require('../lib/x402-facilitator');
 const { engine } = require('./ai-virtual-tryon');
 const { upload: r2Upload, publicUrl: r2PublicUrl, keyFor: r2KeyFor } = require('@repo/storage');
+const { logFunnelEvent } = require('../lib/funnel');
 
 const router = express.Router();
 
@@ -345,6 +346,7 @@ Return ONLY valid JSON:
             items: [{ name: itemLabel, imageUrl: garmentUrl, description: itemLabel }],
           },
           provider: 'auto',
+          tier: 'paid',
         }).then((result) => {
           // Cache the render result (URL or data URI)
           if (result?.generatedImage) {
@@ -456,6 +458,25 @@ Return ONLY valid JSON:
       caller,
       payerAddress: effectivePayer,
       paymentMethod: settlementTxHash ? 'x402_facilitator' : 'cusd',
+    });
+
+    // Log funnel event: tryon_complete (paid, agent)
+    logFunnelEvent(db, {
+      eventType: 'tryon_complete',
+      source: 'agent',
+      tier: 'paid',
+      curatorSlug: slug,
+      listingId,
+      payerAddress: effectivePayer,
+      provider: render.value.provider,
+      revenueUsd: priceCusd.toFixed(4),
+      metadata: {
+        paymentId,
+        isDigital,
+        fitScore: fitSignal?.score,
+        paymentMethod: settlementTxHash ? 'x402_facilitator' : 'cusd',
+      },
+      clientIp: req.ip,
     });
 
     // For digital listings, find similar physical items from human curators

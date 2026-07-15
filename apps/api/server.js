@@ -317,6 +317,7 @@ app.use('/api/cron', json1k, serviceKeyAuth, require('./routes/cron-payout'));
 // ── Status Dashboard ────────────────────────────────────────────
 
 app.use('/api/status', json1k, require('./routes/status-dashboard'));
+app.use('/api/status/funnel', json1k, serviceKeyAuth, require('./routes/funnel-analytics'));
 
 // Convenience alias for the HTML dashboard
 app.get('/status-ui', json1k, (req, res) => {

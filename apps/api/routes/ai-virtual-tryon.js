@@ -11,6 +11,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const OpenAI = require('openai');
 const crypto = require('crypto');
 const logger = require('../lib/logger');
+const { logFunnelEvent } = require('../lib/funnel');
 
 // ── Caching: fingerprint photo data to avoid redundant Venice API calls ──
 let redis = null;
@@ -615,7 +616,7 @@ function parseVirtualTryOnResponse(aiResponse, type, originalData) {
   return { analysis: aiResponse };
 }
 
-async function buildGeneratedOutfitImageResponse({ data, provider }) {
+async function buildGeneratedOutfitImageResponse({ data, provider, tier = 'paid' }) {
   const startedAt = Date.now();
   let fallbackReason = null;
   let errorClass = null;
@@ -629,7 +630,11 @@ async function buildGeneratedOutfitImageResponse({ data, provider }) {
     ? data.items.map((item) => `${item.name}: ${item.description || ''}`).join(', ')
     : '';
 
-  if (humanImage && garmentImage && process.env.REPLICATE_API_TOKEN) {
+  // tier: 'paid' (agent) → Replicate IDM-VTON first (accurate garment placement, ~$0.024)
+  //       'free' (web)   → Venice SD35 first (cheaper, ~$0.015, not garment-conditioned)
+  const useReplicateFirst = tier === 'paid';
+
+  if (useReplicateFirst && humanImage && garmentImage && process.env.REPLICATE_API_TOKEN) {
     try {
       const generatedImage = await runReplicatePrediction({
         version: IDM_VTON_VERSION,
@@ -689,14 +694,19 @@ async function buildGeneratedOutfitImageResponse({ data, provider }) {
         errorClass,
       });
     }
-  } else if (!process.env.REPLICATE_API_TOKEN) {
-    fallbackReason = 'replicate_not_configured';
-  } else {
-    fallbackReason = !humanImage
-      ? 'missing_person_image'
-      : !garmentImage
-        ? 'missing_garment_image'
-        : 'missing_conditioning_input';
+  } else if (useReplicateFirst) {
+    // Paid tier but Replicate couldn't run (no token or missing inputs)
+    fallbackReason = !process.env.REPLICATE_API_TOKEN
+      ? 'replicate_not_configured'
+      : !humanImage
+        ? 'missing_person_image'
+        : !garmentImage
+          ? 'missing_garment_image'
+          : 'missing_conditioning_input';
+  }
+  // Free tier: skip Replicate entirely, go straight to Venice SD35
+  if (!useReplicateFirst && !fallbackReason) {
+    fallbackReason = 'free_tier_venice_first';
   }
 
   const veniceApiKey = process.env.VENICE_API_KEY;
@@ -953,9 +963,20 @@ Be SPECIFIC. Reference what you see in the photo. Give actionable, personalized 
       }
     }
 
-    // -- generate-outfit-image (Replicate image-conditioned try-on, then Venice fallback) --
+    // -- generate-outfit-image (Venice SD35 for free web, Replicate for paid agent) --
     if (type === 'generate-outfit-image') {
-      const result = await buildGeneratedOutfitImageResponse({ data, provider });
+      const result = await buildGeneratedOutfitImageResponse({ data, provider, tier: 'free' });
+      // Log funnel event: tryon_complete (free, web)
+      logFunnelEvent(null, {
+        eventType: 'tryon_complete',
+        source: 'web',
+        tier: 'free',
+        curatorSlug: data?.curatorSlug || null,
+        listingId: data?.listingId || null,
+        provider: result.provider,
+        metadata: { imageConditioned: result.imageConditioned },
+        clientIp: req.ip,
+      });
       return res.json({ ...result, type });
     }
 

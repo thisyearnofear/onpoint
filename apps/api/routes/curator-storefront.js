@@ -32,6 +32,7 @@ const {
 } = require('../lib/agent-commerce');
 const { getAttributionSuffix, getAttributionCode, getAssignedTag } = require('../lib/attribution');
 const x402Facilitator = require('../lib/x402-facilitator');
+const { logFunnelEvent } = require('../lib/funnel');
 
 const router = express.Router();
 
@@ -895,6 +896,25 @@ router.post('/:slug/order', async (req, res) => {
       caller,
       buyerAddress: effectivePayer,
       paymentMethod: settlementTxHash ? 'x402_facilitator' : 'cusd',
+    });
+
+    // Log funnel event: purchase (the conversion event)
+    logFunnelEvent(db, {
+      eventType: 'purchase',
+      source: 'agent',
+      tier: 'paid',
+      curatorSlug: slug,
+      listingId,
+      payerAddress: effectivePayer,
+      revenueUsd: totalCusd.toFixed(4),
+      metadata: {
+        orderId,
+        size,
+        quantity,
+        usingSplit,
+        referralCode: referralCode || null,
+      },
+      clientIp: req.ip,
     });
 
     return res.status(201).json({
