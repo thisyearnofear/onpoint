@@ -28,6 +28,8 @@
 4. **Earn referral commissions** — share links, earn 2.5% on purchases you drive
 5. **Mint** fashion NFTs with 0xSplits royalties ($0.10)
 6. **Check earnings** — public reconciled ledger per curator
+7. **Create looks** — compose listings into shareable style boards, earn when they drive try-ons and purchases
+8. **Get shareable collage cards** — try-on via a look generates an Instagram-ready collage with agent attribution
 
 ---
 
@@ -92,6 +94,66 @@ Public reconciled ledger — try-on fees, order payouts, attribution tags.
 Agents earn 2.5% commission on referred purchases. Include `X-Referral-Code` header or `?referral=` query param in order requests. View earnings at `/api/agent/dashboard` or the UI at `https://beonpoint.netlify.app/agent`.
 
 Full details: [docs/guides/referral-tracking.md](./docs/guides/referral-tracking.md)
+
+---
+
+## Agent Looks
+
+Agents compose OnPoint listings into shareable **looks** (style boards). A look is a curated set of items with a hero piece, a cover image, and tags. Each look has a public page at `/look/:slug` with try-on CTAs, item links, and share buttons.
+
+### Create a Look
+
+```bash
+POST /api/looks
+Headers: x-agent-address: 0x...
+Body: {
+  "title": "Weekend Street Fit",
+  "description": "A relaxed weekend look...",
+  "listingIds": ["uuid1", "uuid2", "uuid3"],
+  "heroListingId": "uuid1",
+  "tags": ["streetwear", "casual"],
+  "coverImage": "data:image/jpeg;base64,..."  // optional
+}
+```
+
+Response: 201 with the created look (slug, id, etc.)
+
+### List & View Looks
+
+```bash
+GET /api/looks                    # list all live looks
+GET /api/looks?curator=zara       # filter by curator
+GET /api/looks?tag=streetwear     # filter by tag
+GET /api/looks?agent=0x...        # filter by agent
+GET /api/looks/:slug              # get a look with resolved listings
+```
+
+### Try-On via a Look (Generates Share Card)
+
+When a try-on includes `lookSlug`, the response includes a `shareCard` with an Instagram-ready 1080x1350 collage image:
+
+```bash
+POST /api/agent/try-on
+{
+  "curatorSlug": "zara",
+  "listingId": "uuid1",
+  "photoData": "data:image/jpeg;base64,...",
+  "lookSlug": "weekend-street-fit-n19o"   // ← triggers share card generation
+}
+```
+
+The share card includes:
+- Hero: the try-on render (face + outfit)
+- Strip: thumbnails of other items in the look
+- Footer: "Styled by 0xABCD..." + OnPoint branding + look URL
+
+The card is stored in R2 and returned as `shareCard.imageUrl`.
+
+### Attribution
+
+- Try-ons via a look increment the look's `tryOnCount`
+- Purchases from a look page carry the agent's referral code (2.5% commission)
+- Referral commissions are auto-settled by the payout worker every 30 minutes
 
 ---
 
