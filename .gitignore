@@ -105,3 +105,4 @@ apps/api/.curator-payout-keys.json
 
 # Local Netlify folder
 .netlify
+deno.lock

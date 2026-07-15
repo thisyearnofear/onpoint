@@ -10,7 +10,7 @@ import {
   Info,
   Sparkles,
 } from "lucide-react";
-import { PRODUCT_NAME } from "../lib/brand";
+import { PRODUCT_NAME, CTA_SHOP } from "../lib/brand";
 import { Auth0HeaderButton } from "./auth/Auth0Components";
 import { NotificationBell } from "./NotificationBell";
 import { ThemeToggle } from "./ThemeToggle";
@@ -30,7 +30,7 @@ export function OnPointHeader() {
 
           <nav className="flex items-center gap-1">
             <Link
-              href="/curators"
+              href={CTA_SHOP.href}
               className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 px-3 py-1.5 rounded-full transition-colors"
             >
               <Camera className="w-4 h-4" />
@@ -98,7 +98,7 @@ export function OnPointHeader() {
           </Link>
           <div className="flex items-center gap-1">
             <Link
-              href="/curators"
+              href={CTA_SHOP.href}
               className="inline-flex items-center gap-1 text-xs font-medium text-primary px-2 py-1 rounded-full bg-primary/10 hover:bg-primary/15 transition-colors"
             >
               <Camera className="w-3 h-3" />
@@ -139,7 +139,7 @@ export function OnPointFooter() {
           {PRODUCT_NAME}
         </div>
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-          <Link href="/curators" className="hover:text-foreground transition-colors">
+          <Link href={CTA_SHOP.href} className="hover:text-foreground transition-colors">
             Shop
           </Link>
           <Link href="/looks" className="hover:text-foreground transition-colors">

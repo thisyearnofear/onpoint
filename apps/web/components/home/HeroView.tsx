@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Reveal } from "../ui/Reveal";
 import { ComingSoonBadge } from "../ui/ComingSoonBadge";
+import { FeedbackLink } from "../ui/FeedbackLink";
 import { LiveCounter } from "../LiveCounter";
 import { trackHomepageCta } from "../../lib/utils/analytics";
 import { captureReferralFromURL } from "../../lib/utils/referral";
@@ -105,19 +106,19 @@ export function HeroView() {
                   className="flex flex-col sm:flex-row items-center lg:items-start gap-3"
                 >
                   <div className="flex flex-col items-center gap-1.5">
-                    <Link
+                    <FeedbackLink
                       href={CTA_SHOP.href}
                       onClick={() =>
                         trackHomepageCta({ cta: "shop", placement: "hero" })
                       }
-                      className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 active:bg-primary/80 active:scale-[0.98] text-white font-bold px-8 py-6 rounded-full text-lg shadow-lg shadow-primary/25 transition-[background-color,transform]"
+                      className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 active:bg-primary/80 text-white font-bold px-8 py-6 rounded-full text-lg shadow-lg shadow-primary/25 transition-[background-color,transform]"
                     >
                       <Camera className="w-5 h-5" />
                       {CTA_SHOP.label}
                       <ArrowRight className="w-5 h-5" />
-                    </Link>
+                    </FeedbackLink>
                     <p className="text-[11px] text-muted-foreground/70 text-center max-w-[280px]">
-                      Browse live storefronts — try on real stock, then WhatsApp checkout
+                      Try on AI designs from Nia — free, no wallet required
                     </p>
                   </div>
                   <Link
@@ -257,7 +258,7 @@ export function HeroView() {
             </div>
 
             <div className="mt-12 text-center">
-              <Link
+              <FeedbackLink
                 href={CTA_SHOP.href}
                 onClick={() => trackHomepageCta({ cta: "shop", placement: "how_it_works" })}
                 className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white font-bold px-8 py-4 rounded-full text-base shadow-lg shadow-primary/25 transition-all"
@@ -265,9 +266,9 @@ export function HeroView() {
                 <Camera className="w-5 h-5" />
                 Try it now — it&apos;s free
                 <ArrowRight className="w-5 h-5" />
-              </Link>
+              </FeedbackLink>
               <p className="mt-3 text-xs text-muted-foreground">
-                No wallet required · Takes 30 seconds · Costs $0.03
+                No wallet required · Takes 30 seconds · Free try-on
               </p>
             </div>
           </div>

@@ -269,6 +269,43 @@ If we kill the free tier: require Auth0 login for web try-on, or gate behind cur
 
 ---
 
+## Try-On Entry Point Rollout Strategy
+
+**Added**: 2026-07-15
+
+### The problem
+
+The "Try now — it's free" CTA on the home page sends users to `/curators`, a directory of 8 curators. Only 2 have real inventory (Nia Digital with 8 digital designs, Wanja with 20 football kits). The other 6 are placeholder curators with no listings. Users hit analysis paralysis, click a placeholder, see an empty storefront, and bounce.
+
+### Rollout phases
+
+**Phase 1 (now — 1 curator with try-on):**
+- CTA → `/s/nia` (direct to Nia's storefront, 8 digital designs ready to try)
+- Button has click feedback: scale-down + spinner during view transition
+- `/curators` redesigned: Nia featured (large card + "Try on now"), Wanja as "also live", other 6 as greyed "coming soon" teasers
+- Goal: fewest clicks to delight. No intermediate page when there's only one option.
+
+**Phase 2 (when Wanja's try-on is live — 2+ curators with try-on):**
+- Build `/try-on` as a dedicated "fitting room" page — visual grid of try-on-able items across all curators, one-tap per design
+- CTA → `/try-on`
+- This becomes the marketing URL (`beonpoint.netlify.app/try-on`) and the core product surface
+- `/curators` remains as a directory for people who want to browse by seller
+
+**Phase 3 (5+ curators with try-on):**
+- `/try-on` becomes filterable by vertical, curator, price
+- `/curators` becomes a full directory with search, filters, curator profiles
+- The "fitting room" and the "directory" are separate surfaces with different jobs
+
+### Why not `/lab?tab=try-on` now
+
+The lab is a power-user dashboard (bottom nav, tabs, settings, agent wallet). It's for returning users, not first-time visitors who just clicked "try now." It would overwhelm.
+
+### Why not build `/try-on` now
+
+With only Nia having try-on-able items, a `/try-on` page would be 8 items that all link to the same curator. `/s/nia` already does this. Build `/try-on` when there's a reason to aggregate across curators.
+
+---
+
 ## Doc Map (consolidation)
 
 | Doc | Owns |

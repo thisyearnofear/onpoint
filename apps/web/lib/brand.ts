@@ -15,9 +15,13 @@ export const TAGLINE_SHORT = "Fit before you buy." as const;
 export const META_DESCRIPTION =
   "OnPoint is the execution layer for fashion intent that needs fit, real stock, and local pay. Humans try on and check out via WhatsApp/M-Pesa; agents use the same inventory via API." as const;
 
-/** Demand — human shop / try-on entry (storefront directory). */
+/** Demand — human shop / try-on entry.
+ * Phase 1: goes straight to Nia's storefront (only curator with working try-on).
+ * Phase 2: will become /try-on (dedicated fitting room page) when 2+ curators have try-on.
+ * See: docs/STRATEGY.md → "Try-On Entry Point Rollout Strategy"
+ */
 export const CTA_SHOP = {
-  href: "/curators",
+  href: "/s/nia",
   label: "Try on & shop",
   mobileLabel: "Try on & shop",
 } as const;
