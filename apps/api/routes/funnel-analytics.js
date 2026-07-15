@@ -39,7 +39,7 @@ router.get('/', async (req, res) => {
         COALESCE(SUM(cost_usd::numeric), 0) as total_cost_usd,
         COALESCE(SUM(revenue_usd::numeric), 0) as total_revenue_usd
       FROM funnel_events
-      WHERE created_at > NOW() - INTERVAL '${days} days'
+      WHERE created_at > NOW() - make_interval(days => ${days})
       GROUP BY event_type, tier, source
       ORDER BY event_type, tier, source
     `;
@@ -50,13 +50,13 @@ router.get('/', async (req, res) => {
         SELECT DISTINCT listing_id, curator_slug, payer_address, session_id
         FROM funnel_events
         WHERE event_type = 'tryon_complete'
-          AND created_at > NOW() - INTERVAL '${days} days'
+          AND created_at > NOW() - make_interval(days => ${days})
       ),
       purchases AS (
         SELECT DISTINCT listing_id, curator_slug, payer_address
         FROM funnel_events
         WHERE event_type = 'purchase'
-          AND created_at > NOW() - INTERVAL '${days + 7} days'
+          AND created_at > NOW() - make_interval(days => ${days + 7})
       )
       SELECT
         COUNT(DISTINCT t.listing_id || COALESCE(t.payer_address, t.session_id, '')) as total_tryons,
@@ -75,7 +75,7 @@ router.get('/', async (req, res) => {
         COALESCE(SUM(cost_usd::numeric), 0) as cost_usd,
         COALESCE(SUM(revenue_usd::numeric), 0) as revenue_usd
       FROM funnel_events
-      WHERE created_at > NOW() - INTERVAL '${days} days'
+      WHERE created_at > NOW() - make_interval(days => ${days})
       GROUP BY DATE(created_at), event_type
       ORDER BY date DESC, event_type
     `;
@@ -89,7 +89,7 @@ router.get('/', async (req, res) => {
         COALESCE(SUM(cost_usd::numeric) FILTER (WHERE event_type = 'tryon_complete'), 0) as tryon_cost,
         COALESCE(SUM(revenue_usd::numeric) FILTER (WHERE event_type = 'purchase'), 0) as purchase_revenue
       FROM funnel_events
-      WHERE created_at > NOW() - INTERVAL '${days} days'
+      WHERE created_at > NOW() - make_interval(days => ${days})
         AND curator_slug IS NOT NULL
       GROUP BY curator_slug
       ORDER BY tryons DESC
