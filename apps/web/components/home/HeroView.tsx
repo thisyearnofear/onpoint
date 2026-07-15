@@ -33,6 +33,7 @@ import { EditorialStats } from "./EditorialStats";
 import { RecentlySavedSection } from "./RecentlySavedSection";
 import { AgentActivityFeed } from "../AgentActivityFeed";
 import { LiveCommerceProof } from "./LiveCommerceProof";
+import { NiaPreviewGrid } from "./NiaPreviewGrid";
 
 export function HeroView() {
   const [showDemo, setShowDemo] = useState(false);
@@ -396,13 +397,7 @@ export function HeroView() {
                         <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Live</span>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {["Jersey Dress", "Kit Remix", "Culture Set", "Match Day"].map((name, i) => (
-                        <div key={i} className="aspect-square rounded-lg bg-gradient-to-br from-accent/20 to-primary/20 border border-accent/10 flex items-center justify-center">
-                          <ImageIcon className="h-6 w-6 text-accent/40" />
-                        </div>
-                      ))}
-                    </div>
+                    <NiaPreviewGrid />
                     <div className="flex items-center justify-between pt-3 border-t border-accent/10">
                       <div>
                         <p className="text-xs text-muted-foreground">Royalty split</p>
