@@ -513,6 +513,10 @@ router.post('/:slug/order', async (req, res) => {
 
     const itemLabel = row.kit ? `${row.kit.club} ${row.kit.kitType} (${size}) x${quantity}` : `${row.listing.title || 'Item'} (${size}) x${quantity}`;
 
+    // ── Referral tracking ──
+    // Extract referral code from request (header or query param)
+    const referralCode = req.headers['x-referral-code'] || req.query.referral;
+
     // ── Payment routing ──
     // If the curator has a 0xSplits SplitV2 deployed, the buyer pays the
     // Split contract directly (non-custodial). The Split auto-distributes
@@ -672,6 +676,7 @@ router.post('/:slug/order', async (req, res) => {
         paymentTxHash: effectiveTxHash,
         source: 'agent',
         status: 'confirmed',
+        referralCode: referralCode || null,
       })
       .onConflictDoNothing({ target: orders.paymentTxHash })
       .returning({ id: orders.id });
@@ -745,6 +750,39 @@ router.post('/:slug/order', async (req, res) => {
         orderId,
         refundNote: 'Your payment was received; a refund will be issued automatically.',
       });
+    }
+
+    // ── Referral tracking ──
+    // If a referral code was provided, create an agent_referrals record
+    // to track the 2.5% commission owed to the referring agent.
+    if (referralCode) {
+      try {
+        // Look up the agent address from the referral code
+        const [referralRecord] = await db.execute(sql`
+          SELECT agent_address FROM agent_referrals 
+          WHERE referral_code = ${referralCode} 
+          LIMIT 1
+        `);
+        
+        const agentAddress = referralRecord?.agent_address || referralCode;
+        const commissionCusd = (totalCusd * 0.025).toFixed(4); // 2.5% commission
+        
+        await db.execute(sql`
+          INSERT INTO agent_referrals (agent_address, referral_code, order_id, commission_cusd, status)
+          VALUES (${agentAddress}, ${referralCode}, ${orderId}, ${commissionCusd}, 'pending')
+        `);
+        
+        logger.info('Referral commission recorded', {
+          component: 'curator-storefront',
+          orderId,
+          agentAddress,
+          referralCode,
+          commissionCusd,
+        });
+      } catch (referralErr) {
+        // Don't fail the order if referral tracking fails
+        logger.warn('Failed to record referral', { component: 'curator-storefront', orderId, referralCode }, referralErr);
+      }
     }
 
     // ── Curator payout ──

@@ -4,6 +4,7 @@ import {
   text,
   integer,
   timestamp,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { curators } from "./curators";
 import { listings } from "./listings";
@@ -19,6 +20,9 @@ import { listings } from "./listings";
  * 0xSplits SplitV2 contract for non-custodial flow). The curator's share
  * is either sent as a separate transfer (custodial) or distributed by the
  * Split contract (non-custodial). Both are Celoscan-verifiable.
+ *
+ * Referrals: when an agent shares a link with their referral code, any
+ * resulting order will have referral_code set to track who drove the sale.
  *
  * Fulfillment lifecycle:
  *   confirmed → shipped → delivered → (disputed → resolved)
@@ -58,6 +62,10 @@ export const orders = pgTable("orders", {
     enum: ["whatsapp_deeplink", "site_buy", "agent"],
   }).notNull(),
 
+  // Referral tracking
+  referralCode: text("referral_code"),
+  referralPayoutTxHash: text("referral_payout_tx_hash"),
+
   status: text("status", {
     enum: ["pending", "confirmed", "shipped", "delivered", "disputed", "resolved", "cancelled"],
   })
@@ -82,4 +90,28 @@ export const orders = pgTable("orders", {
 
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/**
+ * Agent Referrals — tracks agent earnings from referral commissions.
+ *
+ * When an agent shares a link with their referral code and someone makes
+ * a purchase, the platform pays a commission to the agent. This table
+ * tracks the referral relationship and payout status.
+ */
+export const agentReferrals = pgTable("agent_referrals", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  agentAddress: text("agent_address").notNull(),
+  referralCode: text("referral_code").notNull().unique(),
+  orderId: uuid("order_id")
+    .notNull()
+    .references(() => orders.id),
+  commissionCusd: text("commission_cusd").notNull(),
+  payoutTxHash: text("payout_tx_hash"),
+  status: text("status", {
+    enum: ["pending", "paid", "failed"],
+  })
+    .notNull()
+    .default("pending"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });

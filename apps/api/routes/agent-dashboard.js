@@ -87,6 +87,74 @@ router.get('/', async (req, res) => {
     const escrowBalances = agentCore.Metrics?.getEscrowBalances?.() || [];
     const proactiveMetrics = getLastProactiveMetrics();
 
+    // Referral tracking
+    let referralData = {
+      totalReferrals: 0,
+      totalCommissionCusd: '0.00',
+      pendingCommissionCusd: '0.00',
+      paidCommissionCusd: '0.00',
+      recentActivity: [],
+    };
+
+    if (celoAddress) {
+      try {
+        const { neon } = require('@neondatabase/serverless');
+        const { drizzle } = require('drizzle-orm/neon-http');
+        const { sql } = require('drizzle-orm');
+        const { agentReferrals, orders } = require('@repo/db');
+
+        const connectionString = process.env.NEON_DATABASE_URL;
+        if (connectionString) {
+          const neonSql = neon(connectionString);
+          const db = drizzle(neonSql, { schema: { agentReferrals, orders } });
+
+          // Get all referrals for this agent
+          const referrals = await db
+            .select({
+              referralCode: agentReferrals.referralCode,
+              commissionCusd: agentReferrals.commissionCusd,
+              status: agentReferrals.status,
+              createdAt: agentReferrals.createdAt,
+              payoutTxHash: agentReferrals.payoutTxHash,
+              orderAmountCusd: orders.amountCusd,
+              curatorSlug: orders.curatorSlug,
+            })
+            .from(agentReferrals)
+            .leftJoin(orders, sql`${agentReferrals.orderId} = ${orders.id}`)
+            .where(sql`${agentReferrals.agentAddress} = ${celoAddress}`)
+            .orderBy(sql`${agentReferrals.createdAt} DESC`)
+            .limit(50);
+
+          const pending = referrals.filter(r => r.status === 'pending');
+          const paid = referrals.filter(r => r.status === 'paid');
+
+          referralData = {
+            totalReferrals: referrals.length,
+            totalCommissionCusd: referrals
+              .reduce((sum, r) => sum + parseFloat(r.commissionCusd || 0), 0)
+              .toFixed(2),
+            pendingCommissionCusd: pending
+              .reduce((sum, r) => sum + parseFloat(r.commissionCusd || 0), 0)
+              .toFixed(2),
+            paidCommissionCusd: paid
+              .reduce((sum, r) => sum + parseFloat(r.commissionCusd || 0), 0)
+              .toFixed(2),
+            recentActivity: referrals.slice(0, 10).map(r => ({
+              referralCode: r.referralCode,
+              commissionCusd: r.commissionCusd,
+              status: r.status,
+              orderAmountCusd: r.orderAmountCusd,
+              curatorSlug: r.curatorSlug,
+              createdAt: r.createdAt,
+              payoutTxHash: r.payoutTxHash,
+            })),
+          };
+        }
+      } catch (e) {
+        logger.warn('Failed to fetch referral data', { component: 'dashboard' }, e);
+      }
+    }
+
     res.json({
       agent: {
         name: 'OnPoint AI Stylist',
@@ -94,6 +162,7 @@ router.get('/', async (req, res) => {
         walletAddress: celoAddress,
         status: 'active',
       },
+      referrals: referralData,
       identity: {
         erc8004: {
           agentId: unifiedIdentity?.erc8004?.agentId || erc8004Identity.agentId,

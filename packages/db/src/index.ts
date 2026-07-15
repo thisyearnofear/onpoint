@@ -2,6 +2,7 @@
  * @repo/db — Drizzle schema + migrations for Neon (ADR 0003)
  *
  * Six tables: curators, kit_skus, listings, orders, payments, sessions
+ * Plus: agent_referrals for tracking agent commission earnings
  * R2 keys (not URLs) stored in the DB — keeps the app portable.
  */
 

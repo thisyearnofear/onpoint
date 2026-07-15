@@ -6,6 +6,7 @@ import {
   ExternalLink,
   Sparkles,
   ShoppingBag,
+  Star,
 } from "lucide-react";
 import { OnPointHeader, OnPointFooter } from "../../../components/OnPointHeader";
 import { TransitionLink } from "../../../components/ViewTransition";
@@ -25,6 +26,26 @@ interface Receipt {
   chain?: string;
 }
 
+interface Curator {
+  slug: string;
+  name: string;
+  bio?: string;
+  avatar?: string;
+  bannerImage?: string;
+  channels?: {
+    instagram?: string;
+    tiktok?: string;
+    whatsapp?: string;
+  };
+}
+
+interface Listing {
+  id: string;
+  title?: string;
+  imageUrl?: string;
+  sizes?: Array<{ size: string; price: number; stock: number }>;
+}
+
 async function loadReceipt(id: string): Promise<Receipt | null> {
   try {
     const res = await fetch(`${getApiBase()}/api/receipts/${encodeURIComponent(id)}`, {
@@ -35,6 +56,32 @@ async function loadReceipt(id: string): Promise<Receipt | null> {
     return data.receipt ?? null;
   } catch {
     return null;
+  }
+}
+
+async function loadCurator(slug: string): Promise<Curator | null> {
+  try {
+    const res = await fetch(`${getApiBase()}/api/curator/${slug}/storefront`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.curator ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function loadCuratorListings(slug: string): Promise<Listing[]> {
+  try {
+    const res = await fetch(`${getApiBase()}/api/curator/${slug}/storefront`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.listings ?? []).slice(0, 4);
+  } catch {
+    return [];
   }
 }
 
@@ -97,6 +144,14 @@ export default async function ReceiptPage({
     : null;
 
   const amount = totalCusd ?? priceCusd;
+
+  // Load curator data and recommendations for purchase receipts
+  const [curator, recommendations] = curatorSlug && isPurchase
+    ? await Promise.all([
+        loadCurator(curatorSlug),
+        loadCuratorListings(curatorSlug),
+      ])
+    : [null, []];
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -245,6 +300,94 @@ export default async function ReceiptPage({
                 </div>
               )}
 
+              {/* Curator branding */}
+              {curator && (
+                <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20">
+                  <div className="flex items-center gap-3 mb-3">
+                    {curator.avatar ? (
+                      <img
+                        src={curator.avatar}
+                        alt={curator.name}
+                        className="w-12 h-12 rounded-full border-2 border-indigo-500/30"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
+                        {curator.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <h3 className="text-sm font-bold text-foreground">{curator.name}</h3>
+                      {curator.bio && (
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                          {curator.bio}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    {curator.channels?.instagram && (
+                      <a
+                        href={`https://instagram.com/${curator.channels.instagram}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-medium transition-colors"
+                      >
+                        <Star className="w-3 h-3" />
+                        Instagram
+                      </a>
+                    )}
+                    {curator.channels?.tiktok && (
+                      <a
+                        href={`https://tiktok.com/@${curator.channels.tiktok}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-medium transition-colors"
+                      >
+                        <Star className="w-3 h-3" />
+                        TikTok
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Product recommendations */}
+              {recommendations.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-xs font-bold text-muted-foreground/60 uppercase tracking-widest">
+                    You might also like
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {recommendations.map((listing) => (
+                      <TransitionLink
+                        key={listing.id}
+                        href={`/s/${curatorSlug}`}
+                        className="group relative rounded-xl overflow-hidden border border-border/50 hover:border-primary/30 transition-all"
+                      >
+                        {listing.imageUrl ? (
+                          <div className="aspect-square bg-muted">
+                            <img
+                              src={listing.imageUrl}
+                              alt={listing.title || "Product"}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            />
+                          </div>
+                        ) : (
+                          <div className="aspect-square bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
+                            <ShoppingBag className="w-8 h-8 text-muted-foreground/30" />
+                          </div>
+                        )}
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                          <p className="text-xs font-medium text-white line-clamp-1">
+                            {listing.title || "View product"}
+                          </p>
+                        </div>
+                      </TransitionLink>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* CTA — shop the curator */}
               {curatorSlug && (
                 <TransitionLink
@@ -252,7 +395,7 @@ export default async function ReceiptPage({
                   className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-full py-4 text-sm font-bold shadow-lg shadow-indigo-500/20 transition-all"
                 >
                   <ShoppingBag className="w-4 h-4" />
-                  Shop {curatorSlug}
+                  Shop {curator.name || curatorSlug}
                   <ArrowRight className="w-3.5 h-3.5 opacity-60" />
                 </TransitionLink>
               )}

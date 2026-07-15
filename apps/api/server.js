@@ -283,6 +283,11 @@ app.use('/api/curator/apply', json1k, generalRateLimit, require('./routes/curato
 app.use('/api/curator', json1k, generalRateLimit, require('./routes/curator-wallet'));
 app.use('/api/curator', json1k, generalRateLimit, require('./routes/curator-storefront'));
 
+// ── Referral Routes (public, rate-limited) ──────────────────────
+// Agent referral tracking and stats.
+
+app.use('/api/referrals', json1k, generalRateLimit, require('./routes/referrals'));
+
 // ── Listing Routes (public, rate-limited) ───────────────────────
 // Similar physical items for digital listings (digital→physical funnel).
 
