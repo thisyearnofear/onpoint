@@ -48,7 +48,19 @@ async function generateShareCard(opts) {
   if (!tryOnImageBase64) throw new Error('tryOnImageBase64 required');
 
   // ── 1. Prepare hero image (try-on render) ──
-  const heroBuffer = Buffer.from(tryOnImageBase64.replace(/^data:[^;]+;base64,/, ''), 'base64');
+  // The image might be a data URI (data:image/...;base64,...) or a URL (https://...)
+  let heroBuffer;
+  if (tryOnImageBase64.startsWith('data:')) {
+    heroBuffer = Buffer.from(tryOnImageBase64.replace(/^data:[^;]+;base64,/, ''), 'base64');
+  } else if (tryOnImageBase64.startsWith('http')) {
+    const resp = await fetch(tryOnImageBase64);
+    if (!resp.ok) throw new Error(`Failed to fetch hero image: ${resp.status}`);
+    heroBuffer = Buffer.from(await resp.arrayBuffer());
+  } else {
+    // Raw base64 — try directly
+    heroBuffer = Buffer.from(tryOnImageBase64, 'base64');
+  }
+
   const heroImg = await sharp(heroBuffer)
     .resize(CARD_WIDTH, HERO_HEIGHT, { fit: 'cover', position: 'attention' })
     .toBuffer();

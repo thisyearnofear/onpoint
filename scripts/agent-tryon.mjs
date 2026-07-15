@@ -33,6 +33,8 @@ const curatorArgIdx = process.argv.indexOf("--curator");
 const CURATOR_SLUG = curatorArgIdx > -1 ? process.argv[curatorArgIdx + 1] : "nia";
 const listingArgIdx = process.argv.indexOf("--listing");
 const LISTING_ID = listingArgIdx > -1 ? process.argv[listingArgIdx + 1] : null;
+const lookArgIdx = process.argv.indexOf("--look");
+const LOOK_SLUG = lookArgIdx > -1 ? process.argv[lookArgIdx + 1] : null;
 
 const account = privateKeyToAccount(PRIVATE_KEY);
 const walletClient = createWalletClient({ account, chain: celo, transport: http() });
@@ -78,10 +80,12 @@ if (!listingId) {
 }
 
 // ── 2. Request try-on → expect 402 ─────────────────────────────
-console.log(`\n→ Requesting try-on for ${CURATOR_SLUG}/${listingId}...`);
+console.log(`\n→ Requesting try-on for ${CURATOR_SLUG}/${listingId}${LOOK_SLUG ? ` (look: ${LOOK_SLUG})` : ""}...`);
+const tryOnBody = { curatorSlug: CURATOR_SLUG, listingId, photoData };
+if (LOOK_SLUG) tryOnBody.lookSlug = LOOK_SLUG;
 const tryOnRes = await api("/api/agent/try-on", {
   method: "POST",
-  body: JSON.stringify({ curatorSlug: CURATOR_SLUG, listingId, photoData }),
+  body: JSON.stringify(tryOnBody),
 });
 
 if (tryOnRes.status !== 402) {
@@ -140,9 +144,11 @@ console.log(`  Confirmed in block ${receipt.blockNumber}, status: ${receipt.stat
 
 // ── 5. Re-POST with paymentTxHash → expect 200 ─────────────────
 console.log(`\n→ Re-posting try-on with paymentTxHash...`);
+const confirmBody = { curatorSlug: CURATOR_SLUG, listingId, photoData, paymentTxHash: txHash };
+if (LOOK_SLUG) confirmBody.lookSlug = LOOK_SLUG;
 const result = await api("/api/agent/try-on", {
   method: "POST",
-  body: JSON.stringify({ curatorSlug: CURATOR_SLUG, listingId, photoData, paymentTxHash: txHash }),
+  body: JSON.stringify(confirmBody),
 });
 
 if (result.status === 200) {
@@ -151,6 +157,9 @@ if (result.status === 200) {
   console.log(`  Render URL: ${result.body.imageUrl || result.body.renderUrl || "n/a"}`);
   console.log(`  Polaroid: ${JSON.stringify(result.body.polaroid || "n/a")}`);
   console.log(`  Receipt: ${result.body.receiptId || result.body.receiptUrl || "n/a"}`);
+  if (result.body.shareCard) {
+    console.log(`  Share card: ${result.body.shareCard.imageUrl || "n/a"}`);
+  }
   console.log(`\n  Payment TX: https://celoscan.io/tx/${txHash}`);
 } else {
   console.error(`\n✗ Try-on failed (HTTP ${result.status})`);

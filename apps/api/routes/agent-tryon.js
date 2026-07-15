@@ -457,9 +457,17 @@ Return ONLY valid JSON:
     let polaroid = null;
     try {
       const imageData = render.value.generatedImage;
-      // Strip data-URL prefix to get raw base64
-      const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
-      const imageBuffer = Buffer.from(base64Data, 'base64');
+      // The image might be a data URI (data:image/...;base64,...) or a URL (https://...)
+      let imageBuffer;
+      if (imageData.startsWith('data:')) {
+        imageBuffer = Buffer.from(imageData.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+      } else if (imageData.startsWith('http')) {
+        const imgResp = await fetch(imageData);
+        if (!imgResp.ok) throw new Error(`Failed to fetch render image: ${imgResp.status}`);
+        imageBuffer = Buffer.from(await imgResp.arrayBuffer());
+      } else {
+        imageBuffer = Buffer.from(imageData, 'base64');
+      }
       const imageKey = r2KeyFor.agentPolaroid(String(paymentId));
       await r2Upload(imageKey, imageBuffer, 'image/jpeg');
       const imageUrl = r2PublicUrl(imageKey);
