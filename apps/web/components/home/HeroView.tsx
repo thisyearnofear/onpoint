@@ -306,7 +306,7 @@ export function HeroView() {
                   </div>
                   <div className="mt-6 flex gap-3">
                     <Link
-                      href="/curators/nia"
+                      href="/s/nia"
                       className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white font-bold px-5 py-2.5 rounded-full text-sm transition-colors"
                     >
                       Explore Nia's collection
