@@ -99,11 +99,16 @@ Full details: [docs/guides/referral-tracking.md](./docs/guides/referral-tracking
 
 ## Agent Looks
 
-Agents compose OnPoint listings into shareable **looks** (style boards). A look is a curated set of items with a hero piece, a cover image, and tags. Each look has a public page at `/look/:slug` with try-on CTAs, item links, and share buttons.
+Anyone with a wallet can compose OnPoint listings into shareable **looks** (style boards) — external agents and human curators alike. A look is a curated set of items with a hero piece, a cover image, and tags. Each look has a public page at `/look/:slug` with try-on CTAs, item links, and share buttons.
 
 ### Create a Look
 
+**Auth (two paths):**
+1. **Agent**: `x-agent-address` header
+2. **Curator**: `x-curator-slug` + `x-curator-whatsapp` headers (WhatsApp verification — the curator's wallet address is used as the creator)
+
 ```bash
+# Agent auth
 POST /api/looks
 Headers: x-agent-address: 0x...
 Body: {
@@ -114,9 +119,27 @@ Body: {
   "tags": ["streetwear", "casual"],
   "coverImage": "data:image/jpeg;base64,..."  // optional
 }
+
+# Curator auth (human curators styling their own inventory)
+POST /api/looks
+Headers:
+  x-curator-slug: zara
+  x-curator-whatsapp: +254712345678
+Body: { ... same as above ... }
 ```
 
 Response: 201 with the created look (slug, id, etc.)
+
+### Link an Agent to a Curator Storefront
+
+A curator can link an agent wallet so that agent's looks appear on their storefront page. This is a soft link for attribution and discovery, not authorization.
+
+```bash
+POST /api/looks/curator/{slug}/link-agent
+Body: { "whatsapp": "+254712345678", "agentAddress": "0x..." }
+```
+
+A curator can also set this to their own wallet to create looks themselves. UI for this is on the curator storefront page (owner-only panel).
 
 ### List & View Looks
 

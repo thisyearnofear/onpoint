@@ -274,7 +274,19 @@ export default async function CuratorStorefrontPage({
 
       <section id="collection" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-10">
         {/* Curator inventory panel (only visible to the curator themselves) */}
-        <CuratorOwnerTools curatorSlug={slug} curatorName={curator.name} />
+        <CuratorOwnerTools
+          curatorSlug={slug}
+          curatorName={curator.name}
+          whatsapp={curator.channels?.whatsapp}
+          linkedAgentAddress={curator.linkedAgentAddress}
+          listings={listings.map((l) => ({
+            id: l.id,
+            title: l.title || null,
+            inventoryType: l.inventoryType || "physical",
+            sizes: l.sizes || [],
+            kit: l.kit || null,
+          }))}
+        />
 
         <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
           <div>

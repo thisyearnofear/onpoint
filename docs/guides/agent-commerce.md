@@ -198,10 +198,30 @@ Response includes: shareCard.imageUrl (1080x1350 WebP collage)
 - Referral commissions are auto-settled by the payout worker (`POST /api/cron/referral-payout`, runs every 30 min)
 - The look page shows analytics: try-ons, purchases, shares
 
-### Human-agent vision (next step)
+### Human-agent linking
 
-Currently looks are agent-only (require `x-agent-address` header). The next step is to open look creation to anyone with a wallet — including human curators styling their own inventory. A curator who creates a look from their own catalog earns both the sale (95%) and the referral commission (2.5%).
+Look creation is now open to anyone with a wallet — including human curators styling their own inventory. A curator who creates a look from their own catalog earns both the sale (95%) and the referral commission (2.5%).
 
-A `linkedAgentAddress` field on the curator schema would let a human say "this agent creates looks for my storefront" — a soft link for attribution and discovery, not a complex auth system. Looks created by a linked agent would appear on the curator's storefront page as "Styled looks featuring [curator]'s collection."
+**Two auth paths:**
+1. **Agent**: `x-agent-address` header (wallet address)
+2. **Curator**: `x-curator-slug` + `x-curator-whatsapp` headers (WhatsApp verification) — the curator's wallet address (from `linkedAgentAddress`, `commerce.walletAddress`, or custodial wallet) is used as the creator address
 
-This bridges the two demand paths (human + agent) without merging them: curators bring taste and inventory, agents bring distribution, looks are the shared surface.
+**Linking an agent to a curator:**
+
+A curator can link an agent wallet address to their storefront. This is a soft link — not authorization. The agent still uses their own wallet. The link is for attribution and discovery: looks created by that agent appear on the curator's storefront page.
+
+```bash
+# Link an agent to a curator's storefront
+POST /api/looks/curator/{slug}/link-agent
+Body: { "whatsapp": "+254712345678", "agentAddress": "0x..." }
+```
+
+A curator can also set this to their own wallet to create looks themselves.
+
+**UI:**
+- Curator storefront page (`/s/[slug]`) shows a "Link an Agent" panel (owner-only) and a "Create a Styled Look" form (owner-only, appears when the curator has 2+ live physical listings)
+- Storefront page shows "Styled Looks" section with looks featuring this curator's items
+- `/looks` directory page shows all live looks
+
+**The bridge:**
+Curators bring taste and inventory. Agents bring distribution. Looks are the shared surface. A curator can style their own inventory, or they can let an agent do it — either way, the look drives try-ons and purchases back to the curator's storefront, and the creator earns referral commission.

@@ -1,21 +1,29 @@
 /**
  * Agent Looks API — /api/looks
  *
- * External agents compose OnPoint listings into shareable "looks" / style boards.
- * The look page at /look/:slug is public — anyone can view, try on, and share.
+ * Anyone with a wallet can compose OnPoint listings into shareable "looks" /
+ * style boards. The look page at /look/:slug is public — anyone can view, try
+ * on, and share.
  *
- * Revenue model: when a look drives a try-on or purchase, the creating agent
- * earns referral commission (2.5% of order value). The look's referral code
- * is auto-embedded in all try-on and order flows originating from the look page.
+ * Revenue model: when a look drives a try-on or purchase, the creator earns
+ * referral commission (2.5% of order value). The look's referral code is
+ * auto-embedded in all try-on and order flows originating from the look page.
+ *
+ * Auth (two paths):
+ *   1. Agent: x-agent-address header (wallet address)
+ *   2. Curator: x-curator-slug + x-curator-whatsapp headers (WhatsApp verification)
+ *      — the curator's wallet address (from commerce.walletAddress or their
+ *        linkedAgentAddress) is used as the look creator address
  *
  * Routes:
- *   POST   /api/looks              — create a look (agent auth)
+ *   POST   /api/looks              — create a look (agent or curator auth)
  *   GET    /api/looks              — list looks (public, filterable)
  *   GET    /api/looks/:slug        — get a look with resolved listings (public)
- *   PATCH  /api/looks/:slug        — update a look (agent auth, owner only)
- *   DELETE /api/looks/:slug        — archive a look (agent auth, owner only)
- *   POST   /api/looks/:slug/image  — upload cover image (agent auth, owner only)
+ *   PATCH  /api/looks/:slug        — update a look (creator only)
+ *   DELETE /api/looks/:slug        — archive a look (creator only)
+ *   POST   /api/looks/:slug/image  — upload cover image (creator only)
  *   POST   /api/looks/:slug/share  — record a share event (public, increments count)
+ *   POST   /api/looks/curator/:slug/link-agent — set linkedAgentAddress (curator auth)
  */
 
 const express = require('express');
@@ -80,18 +88,68 @@ function listingImageUrl(listing) {
   return null;
 }
 
-// ── Auth middleware: extract agent address from header ──
-function agentAuth(req, res, next) {
+// ── Auth middleware: accept either agent (wallet header) or curator (slug + WhatsApp) ──
+async function lookAuth(req, res, next) {
+  // Path 1: Agent wallet address
   const agentAddress = req.headers['x-agent-address'];
-  if (!agentAddress || !/^0x[a-fA-F0-9]{40}$/.test(agentAddress)) {
-    return res.status(401).json({ error: 'Valid x-agent-address header required' });
+  if (agentAddress && /^0x[a-fA-F0-9]{40}$/.test(agentAddress)) {
+    req.creatorAddress = agentAddress;
+    req.creatorType = 'agent';
+    return next();
   }
-  req.agentAddress = agentAddress;
-  next();
+
+  // Path 2: Curator slug + WhatsApp verification
+  const curatorSlug = req.headers['x-curator-slug'];
+  const curatorWhatsapp = req.headers['x-curator-whatsapp'];
+  if (curatorSlug && curatorWhatsapp) {
+    try {
+      const db = getDb();
+      const [curator] = await db
+        .select()
+        .from(curators)
+        .where(eq(curators.slug, curatorSlug))
+        .limit(1);
+
+      if (!curator) {
+        return res.status(401).json({ error: 'Curator not found' });
+      }
+
+      const storedWhatsapp = String(curator.channels?.whatsapp || '').replace(/\s/g, '');
+      const providedWhatsapp = String(curatorWhatsapp).replace(/\s/g, '');
+      if (!storedWhatsapp || storedWhatsapp !== providedWhatsapp) {
+        return res.status(401).json({ error: 'WhatsApp verification failed' });
+      }
+
+      // Use the curator's wallet address as the creator address
+      // If they have a linkedAgentAddress, use that; otherwise use commerce.walletAddress
+      // If neither, generate a deterministic address from their slug (for referral tracking)
+      const creatorAddress = curator.linkedAgentAddress
+        || curator.commerce?.walletAddress
+        || curator.commerce?.custodialWalletAddress;
+
+      if (!creatorAddress) {
+        return res.status(400).json({
+          error: 'No wallet address found. Set up a payout wallet or link an agent address first.',
+        });
+      }
+
+      req.creatorAddress = creatorAddress;
+      req.creatorType = 'curator';
+      req.curatorSlug = curatorSlug;
+      return next();
+    } catch (err) {
+      logger.error('Curator auth failed', { component: 'agent-looks' }, err);
+      return res.status(500).json({ error: 'Auth failed' });
+    }
+  }
+
+  return res.status(401).json({
+    error: 'Authentication required: x-agent-address header OR x-curator-slug + x-curator-whatsapp headers',
+  });
 }
 
 // ── POST /api/looks — create a look ──
-router.post('/', agentAuth, async (req, res) => {
+router.post('/', lookAuth, async (req, res) => {
   try {
     const db = getDb();
     const { title, description, listingIds, heroListingId, curatorSlug, tags, coverImage } = req.body;
@@ -124,7 +182,7 @@ router.post('/', agentAuth, async (req, res) => {
     const [look] = await db
       .insert(agentLooks)
       .values({
-        agentAddress: req.agentAddress,
+        agentAddress: req.creatorAddress,
         slug,
         title,
         description: description || null,
@@ -139,7 +197,7 @@ router.post('/', agentAuth, async (req, res) => {
     logger.info('Look created', {
       component: 'agent-looks',
       slug,
-      agentAddress: req.agentAddress,
+      agentAddress: req.creatorAddress,
       listingCount: listingIds.length,
     });
 
@@ -232,7 +290,7 @@ router.get('/:slug', async (req, res) => {
 });
 
 // ── PATCH /api/looks/:slug — update a look (owner only) ──
-router.patch('/:slug', agentAuth, async (req, res) => {
+router.patch('/:slug', lookAuth, async (req, res) => {
   try {
     const db = getDb();
 
@@ -243,7 +301,7 @@ router.patch('/:slug', agentAuth, async (req, res) => {
       .limit(1);
 
     if (!existing) return res.status(404).json({ error: 'Look not found' });
-    if (existing.agentAddress !== req.agentAddress) {
+    if (existing.agentAddress !== req.creatorAddress) {
       return res.status(403).json({ error: 'Not the look owner' });
     }
 
@@ -273,7 +331,7 @@ router.patch('/:slug', agentAuth, async (req, res) => {
 });
 
 // ── POST /api/looks/:slug/image — upload cover image (owner only) ──
-router.post('/:slug/image', agentAuth, async (req, res) => {
+router.post('/:slug/image', lookAuth, async (req, res) => {
   try {
     const db = getDb();
 
@@ -284,7 +342,7 @@ router.post('/:slug/image', agentAuth, async (req, res) => {
       .limit(1);
 
     if (!existing) return res.status(404).json({ error: 'Look not found' });
-    if (existing.agentAddress !== req.agentAddress) {
+    if (existing.agentAddress !== req.creatorAddress) {
       return res.status(403).json({ error: 'Not the look owner' });
     }
 
@@ -344,6 +402,55 @@ router.post('/:slug/try-on-count', async (req, res) => {
     // Non-fatal — don't fail the try-on
     logger.warn('Failed to increment try-on count', { component: 'agent-looks', slug: req.params.slug });
     res.status(200).json({ success: false });
+  }
+});
+
+// ── POST /api/looks/curator/:slug/link-agent — set linkedAgentAddress (curator auth) ──
+// A curator links an agent wallet so that agent's looks appear on their storefront.
+// They can also set this to their own wallet to create looks themselves.
+router.post('/curator/:slug/link-agent', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { whatsapp, agentAddress } = req.body;
+
+    if (!whatsapp || !agentAddress) {
+      return res.status(400).json({ error: 'whatsapp and agentAddress are required' });
+    }
+    if (!/^0x[a-fA-F0-9]{40}$/.test(agentAddress)) {
+      return res.status(400).json({ error: 'agentAddress must be a valid 0x address' });
+    }
+
+    const db = getDb();
+    const [curator] = await db
+      .select()
+      .from(curators)
+      .where(eq(curators.slug, slug))
+      .limit(1);
+
+    if (!curator) return res.status(404).json({ error: 'Curator not found' });
+
+    // WhatsApp verification
+    const storedWhatsapp = String(curator.channels?.whatsapp || '').replace(/\s/g, '');
+    const providedWhatsapp = String(whatsapp).replace(/\s/g, '');
+    if (!storedWhatsapp || storedWhatsapp !== providedWhatsapp) {
+      return res.status(401).json({ error: 'WhatsApp verification failed' });
+    }
+
+    await db
+      .update(curators)
+      .set({ linkedAgentAddress: agentAddress })
+      .where(eq(curators.slug, slug));
+
+    logger.info('Linked agent address set', {
+      component: 'agent-looks',
+      curatorSlug: slug,
+      agentAddress,
+    });
+
+    res.json({ success: true, slug, linkedAgentAddress: agentAddress });
+  } catch (err) {
+    logger.error('Failed to link agent', { component: 'agent-looks' }, err);
+    res.status(500).json({ error: 'Failed to link agent' });
   }
 });
 

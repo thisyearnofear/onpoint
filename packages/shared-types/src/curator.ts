@@ -75,6 +75,13 @@ export interface Curator {
     splitAddress?: `0x${string}`;
     splitTxHash?: string;
   };
+
+  /** Soft link: an agent wallet that creates looks for this curator's storefront.
+   *  Not authorization — the agent still uses their own wallet. This is for
+   *  attribution and discovery: looks created by this agent appear on the
+   *  curator's storefront page. A curator can also set this to their own
+   *  wallet to create looks themselves. */
+  linkedAgentAddress?: string | null;
 }
 
 /**

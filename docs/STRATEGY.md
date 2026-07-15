@@ -48,7 +48,7 @@ Intent (human or agent)
 
 | Role | Job in the system | Product implication |
 |------|-------------------|---------------------|
-| **Curators** (human / AI / digital) | Supply + taste + ops | Onboard density, stock truth, chat-ops, payout wallets. Future: create looks from own inventory, link agents for distribution |
+| **Curators** (human / AI / digital) | Supply + taste + ops + looks | Onboard density, stock truth, chat-ops, payout wallets. Can create looks from own inventory and link agents for distribution |
 | **Human shoppers** | Demand via storefront / try-on | No wallet/Auth0 before first try-on; WhatsApp/M-Pesa checkout |
 | **External agents** | Demand via API + looks | Discoverable offers, paid try-on, checkout success, look creation (style boards with shareable collage cards), third-party usage |
 | **OnPoint platform** | Match + fit + settlement + distribution | Take rate, try-on fees, attribution, referral payouts — not Lab demos |

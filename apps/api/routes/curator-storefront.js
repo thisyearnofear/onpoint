@@ -259,6 +259,7 @@ router.get('/:slug/storefront', async (req, res) => {
       channels: curatorRow.channels || {},
       brand: curatorRow.brand || {},
       commerce: curatorRow.commerce || {},
+      linkedAgentAddress: curatorRow.linkedAgentAddress || null,
       createdAt: curatorRow.createdAt,
     };
 
