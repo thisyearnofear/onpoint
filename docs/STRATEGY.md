@@ -48,10 +48,10 @@ Intent (human or agent)
 
 | Role | Job in the system | Product implication |
 |------|-------------------|---------------------|
-| **Curators** (human / AI / digital) | Supply + taste + ops | Onboard density, stock truth, chat-ops, payout wallets |
+| **Curators** (human / AI / digital) | Supply + taste + ops | Onboard density, stock truth, chat-ops, payout wallets. Future: create looks from own inventory, link agents for distribution |
 | **Human shoppers** | Demand via storefront / try-on | No wallet/Auth0 before first try-on; WhatsApp/M-Pesa checkout |
-| **External agents** | Demand via API | Discoverable offers, paid try-on, checkout success, third-party usage |
-| **OnPoint platform** | Match + fit + settlement | Take rate, try-on fees, attribution — not Lab demos |
+| **External agents** | Demand via API + looks | Discoverable offers, paid try-on, checkout success, look creation (style boards with shareable collage cards), third-party usage |
+| **OnPoint platform** | Match + fit + settlement + distribution | Take rate, try-on fees, attribution, referral payouts — not Lab demos |
 
 Own-agent wallet / missions / NFT chrome in `/lab` is **infrastructure and power-user tooling**, not the hero narrative.
 
@@ -66,6 +66,7 @@ Own-agent wallet / missions / NFT chrome in `/lab` is **infrastructure and power
 - Directory truth: `agentPurchasable` = wallet + live physical SKUs ([guides/agent-commerce.md](./guides/agent-commerce.md))
 - **Revenue without human curator wallets**: digital try-on ($0.03, Nia), NFT minting ($0.10), agent markup model. Human storefront pages (`/s/[slug]`) are browsable and WhatsApp-checkout-able even without a wallet — curators can share their link before going agent-live.
 - **Curator gating**: human curators are hidden from the agent directory until they self-serve and set up a payout wallet (`activatedAt` + `agentPurchasable`). `?includeInactive=1` shows all for admin/nudge purposes. Curator identity is currently trust-based (admin-seeded or self-applied via `/curator/onboard`); WhatsApp number is the primary trust signal. Production needs WhatsApp OTP / social proof verification.
+- **Agent looks + share cards live**: agents compose listings into shareable style boards (`/look/:slug`); try-on via a look generates an Instagram-ready 1080x1350 collage card; referral payout worker auto-settles 2.5% commissions every 30 min
 - Binding constraint: **payout wallets on stocked curators + third-party agent calls** (see [PHASE1_AUDIT.md](./PHASE1_AUDIT.md) prod snapshot)
 - Codebase hygiene: dead code removed, homepage decomposed, ADR 0014 filed for demand-side discovery component rewiring
 
@@ -79,10 +80,11 @@ Detail lives in [FEATURES.md](./FEATURES.md) and ADRs. Strategy-level map:
 |---------|------|
 | `/s/[slug]` + storefront API | **Canonical catalog** — human HTML + machine offers, one inventory |
 | Try-on (web + `POST /api/agent/try-on`) | **Fit rail** — size/fit signal; digital→physical matching |
+| `/look/[slug]` + `POST /api/looks` | **Distribution layer** — agent-composed style boards with shareable try-on collage cards. Viral loop: agent creates look → visitor tries on → gets Instagram-ready collage → shares → followers discover → try on / buy → agent earns 2.5% referral, curator earns 95% on sale |
 | `/curator`, onboard, admin, WhatsApp ingest | **Supply acquisition & ops** (admin wallet editor) |
 | `/.well-known/agent.json`, directory, x402 order | **Agent demand path** |
 | `/`, `/lab`, `/shop` | Marketing + power surfaces — Lab is not the hero; uses `OnPointHeader` |
-| `/style`, `/collage`, `/social` | **Removed** — redirects to Lab try-on or `/curators`. Demand-side discovery components (LooksFaceoff, CommunityPanel) quarantined per [ADR 0014](./adr/0014-demand-side-discovery-components.md) for Phase 2 rewiring |
+| `/style`, `/collage`, `/social` | **Removed** — redirects to Lab try-on or `/curators`. Demand-side discovery components (LooksFaceoff, CommunityPanel) quarantined per [ADR 0014](./adr/0014-demand-side-discovery-components.md) for Phase 2 rewiring. Agent looks (`/look/:slug`) is the successor — agent-driven distribution, not a user-facing design studio |
 
 Infrastructure: Vercel/Netlify (presentation) + Hetzner (API, worker, signer, bridge) — [ADR 0001](./adr/0001-backend-first-autonomy.md). Monitoring: [MONITORING.md](./MONITORING.md).
 
@@ -175,7 +177,7 @@ Phases optimize the **supply graph**, not a single persona. Prerequisites are re
 
 ## What We Will Not Build
 
-**Killed:** Calendar integration; design studio / collage (low engagement).
+**Killed:** Calendar integration; user-facing design studio / collage (low engagement — note: agent-driven looks with shareable collage cards is a different thing — it's distribution, not a design tool).
 
 **Lab only (power users):** NFT minting; advanced own-agent autonomy UI; missions complexity — keep wallet/spend basics if needed, never homepage hero.
 

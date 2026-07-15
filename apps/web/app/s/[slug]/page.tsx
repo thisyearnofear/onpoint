@@ -18,6 +18,7 @@ import { CuratorTracker } from "../../../components/CuratorTracker";
 import { ShareStorefront } from "../../../components/ShareStorefront";
 import { CrossCuratorRecommendations } from "../../../components/CrossCuratorRecommendations";
 import { AICuratorSection } from "../../../components/AICuratorSection";
+import { StorefrontLooks } from "../../../components/StorefrontLooks";
 import { MpesaPaymentPanel } from "./MpesaPaymentPanel";
 import { CuratorOwnerTools } from "../../../components/Curator/CuratorOwnerTools";
 import { TransitionLink } from "../../../components/ViewTransition";
@@ -562,6 +563,13 @@ export default async function CuratorStorefrontPage({
       <section className="border-t border-border bg-muted/10">
         <div className="mx-auto max-w-6xl px-4 py-10">
           <CrossCuratorRecommendations sourceCuratorSlug={slug} limit={6} />
+        </div>
+      </section>
+
+      {/* Styled looks featuring this curator's items */}
+      <section className="border-t border-border">
+        <div className="mx-auto max-w-6xl px-4 py-10">
+          <StorefrontLooks curatorSlug={slug} />
         </div>
       </section>
 
