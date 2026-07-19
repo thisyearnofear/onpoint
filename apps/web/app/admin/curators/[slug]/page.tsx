@@ -300,8 +300,8 @@ export default async function CuratorDetailPage({
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
-              <ShoppingBag className="h-5 w-5 text-emerald-500" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10">
+              <ShoppingBag className="h-5 w-5 text-success" />
             </div>
             <div>
               <p className="text-2xl font-black">{curator.listingCount}</p>
@@ -324,11 +324,11 @@ export default async function CuratorDetailPage({
 
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-500/10">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-info/10">
               {curator.channels?.whatsapp ? (
-                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                <CheckCircle2 className="h-5 w-5 text-success" />
               ) : (
-                <AlertCircle className="h-5 w-5 text-amber-500" />
+                <AlertCircle className="h-5 w-5 text-warning" />
               )}
             </div>
             <div>
@@ -354,7 +354,7 @@ export default async function CuratorDetailPage({
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div>
             <h2 className="flex items-center gap-2 font-bold">
-              <CreditCard className="h-4 w-4 text-emerald-500" />
+              <CreditCard className="h-4 w-4 text-success" />
               M-Pesa payments
             </h2>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -440,7 +440,7 @@ export default async function CuratorDetailPage({
       {/* Curator operator needs */}
       <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
         <div className="flex items-center gap-2">
-          <MessageCircle className="h-4 w-4 text-emerald-500" />
+          <MessageCircle className="h-4 w-4 text-success" />
           <h2 className="font-bold">{curator.name}'s operator needs</h2>
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -497,7 +497,7 @@ export default async function CuratorDetailPage({
         {/* Channels */}
         <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
           <h2 className="flex items-center gap-2 font-bold">
-            <MessageCircle className="h-4 w-4 text-emerald-500" />
+            <MessageCircle className="h-4 w-4 text-success" />
             Channels
           </h2>
           <div className="mt-4 space-y-3 text-sm">
@@ -508,7 +508,7 @@ export default async function CuratorDetailPage({
                   href={`https://wa.me/${curator.channels.whatsapp.replace(/^\+/, "")}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 font-medium text-emerald-600 hover:text-emerald-500"
+                  className="inline-flex items-center gap-1 font-medium text-success hover:text-success"
                 >
                   {curator.channels.whatsapp}
                   <ExternalLink className="h-3 w-3" />
@@ -558,8 +558,8 @@ export default async function CuratorDetailPage({
               <span
                 className={`font-medium ${
                   curator.commerce?.walletAddress
-                    ? "text-emerald-600"
-                    : "text-amber-600"
+                    ? "text-success"
+                    : "text-warning"
                 }`}
               >
                 {curator.commerce?.walletAddress
@@ -579,7 +579,7 @@ export default async function CuratorDetailPage({
         {/* Brand */}
         <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
           <h2 className="flex items-center gap-2 font-bold">
-            <Palette className="h-4 w-4 text-violet-500" />
+            <Palette className="h-4 w-4 text-info" />
             Brand
           </h2>
           <div className="mt-4 space-y-3 text-sm">

@@ -42,10 +42,10 @@ const signalLabels: Record<string, string> = {
 
 const signalStyles: Record<string, string> = {
   product_gap: "border-rose-500/20 bg-rose-500/10 text-rose-300",
-  competitor_price: "border-amber-500/20 bg-amber-500/10 text-amber-300",
+  competitor_price: "border-warning/20 bg-warning/10 text-amber-300",
   retailer_availability: "border-sky-500/20 bg-sky-500/10 text-sky-300",
-  trend_match: "border-violet-500/20 bg-violet-500/10 text-violet-300",
-  recommended_action: "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+  trend_match: "border-info/20 bg-info/10 text-violet-300",
+  recommended_action: "border-success/20 bg-success/10 text-emerald-300",
 };
 
 interface MarketIntelResponse {
@@ -86,10 +86,10 @@ function formatTimestamp(value?: string) {
 }
 
 const partnerStatusStyles: Record<string, string> = {
-  sent: "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+  sent: "border-success/20 bg-success/10 text-emerald-300",
   ready: "border-sky-500/20 bg-sky-500/10 text-sky-300",
   skipped: "border-border bg-muted text-muted-foreground",
-  failed: "border-amber-500/20 bg-amber-500/10 text-amber-300",
+  failed: "border-warning/20 bg-warning/10 text-amber-300",
 };
 
 export function MarketIntelPanel() {

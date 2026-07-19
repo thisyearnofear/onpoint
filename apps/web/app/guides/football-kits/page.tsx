@@ -58,7 +58,7 @@ export default function FootballKitsGuide() {
                 "Try on with AI before you order",
               ].map((tip) => (
                 <div key={tip} className="flex items-start gap-2 text-sm">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                   <span className="text-muted-foreground">{tip}</span>
                 </div>
               ))}
@@ -88,7 +88,7 @@ export default function FootballKitsGuide() {
                     "Player-version kits (Vapor, Authentic) are tighter and lighter than fan versions",
                   ].map((tip) => (
                     <li key={tip} className="flex items-start gap-2 text-sm">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                       <span>{tip}</span>
                     </li>
                   ))}

@@ -221,7 +221,7 @@ export function ChatInterface({
               })}
               className={`h-8 text-xs px-2 transition-colors ${
                 autoPlay
-                  ? "border-emerald-500/50 text-emerald-600 bg-emerald-500/10 hover:bg-emerald-500/15"
+                  ? "border-success/50 text-success bg-success/10 hover:bg-success/15"
                   : "border-muted-foreground/30 text-muted-foreground hover:bg-muted/5"
               }`}
               title={autoPlay ? "Auto-play is on — new responses will be read aloud" : "Auto-play persona voice for new responses"}
@@ -290,7 +290,7 @@ export function ChatInterface({
                 max="100"
                 value={Math.round(voiceVolume * 100)}
                 onChange={(e) => setVoiceVolume(Number(e.target.value) / 100)}
-                className="h-1 w-full cursor-pointer appearance-none rounded-full bg-muted-foreground/20 accent-emerald-500 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-500"
+                className="h-1 w-full cursor-pointer appearance-none rounded-full bg-muted-foreground/20 accent-emerald-500 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-success"
                 title={`Volume: ${Math.round(voiceVolume * 100)}%`}
               />
               <span className="text-xs tabular-nums text-muted-foreground w-8 text-right flex-shrink-0">

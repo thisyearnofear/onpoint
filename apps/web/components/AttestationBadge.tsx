@@ -81,7 +81,7 @@ export function AttestationBadge() {
         onClick={() => setOpen(!open)}
         className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
           isVerified
-            ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/15"
+            ? "bg-success/10 border-success/25 text-emerald-400 hover:bg-success/15"
             : "bg-muted/50 border-border text-muted-foreground hover:bg-muted"
         }`}
         title="Agent Identity Attestation"
@@ -138,7 +138,7 @@ export function AttestationBadge() {
                 <span className="text-[11px] font-bold text-foreground">
                   ERC-8004 Registry
                 </span>
-                <span className="ml-auto bg-emerald-500/15 text-emerald-300 text-[8px] font-bold px-1.5 py-0.5 rounded-full">
+                <span className="ml-auto bg-success/15 text-emerald-300 text-[8px] font-bold px-1.5 py-0.5 rounded-full">
                   registered
                 </span>
               </div>
@@ -198,10 +198,10 @@ export function AttestationBadge() {
                 <span
                   className={`ml-auto text-[8px] font-bold px-1.5 py-0.5 rounded-full ${
                     data.self.status === "verified"
-                      ? "bg-emerald-500/15 text-emerald-300"
+                      ? "bg-success/15 text-emerald-300"
                       : data.self.status === "pending"
-                      ? "bg-amber-500/15 text-amber-300"
-                      : "bg-red-500/15 text-red-300"
+                      ? "bg-warning/15 text-amber-300"
+                      : "bg-error/15 text-red-300"
                   }`}
                 >
                   {data.self.status}

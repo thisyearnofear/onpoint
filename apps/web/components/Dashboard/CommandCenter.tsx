@@ -86,7 +86,7 @@ export function CommandCenter() {
               <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-tighter">AI Reasoning Terminal</span>
             </div>
             <div className="flex gap-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-red-500/50" />
+              <div className="w-1.5 h-1.5 rounded-full bg-error/50" />
               <div className="w-1.5 h-1.5 rounded-full bg-yellow-500/50" />
               <div className="w-1.5 h-1.5 rounded-full bg-green-500/50" />
             </div>

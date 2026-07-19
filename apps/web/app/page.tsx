@@ -1,11 +1,10 @@
-import { OnPointHeader } from "../components/OnPointHeader";
+import { OnPointLayout } from "../components/OnPointLayout";
 import { HeroView } from "../components/home/HeroView";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary/30">
-      <OnPointHeader />
+    <OnPointLayout footer={false}>
       <HeroView />
-    </div>
+    </OnPointLayout>
   );
 }

@@ -22,7 +22,7 @@ const API_BASE = getApiBase();
 
 function Endpoint({ method, path, desc }: { method: string; path: string; desc: string }) {
   const colors: Record<string, string> = {
-    GET: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    GET: "bg-success/10 text-success dark:text-emerald-400",
     POST: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
   };
   return (

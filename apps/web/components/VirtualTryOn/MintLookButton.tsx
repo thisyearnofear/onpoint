@@ -227,10 +227,10 @@ export function MintLookButton({
 
     return (
       <Button
-        className="w-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 rounded-full py-6 text-sm font-bold gap-2"
+        className="w-full bg-success/20 hover:bg-success/30 text-emerald-400 border border-success/30 rounded-full py-6 text-sm font-bold gap-2"
         onClick={() => window.open(`${explorerUrl}/tx/${txHash}`, "_blank")}
       >
-        <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+        <CheckCircle2 className="w-5 h-5 text-success" />
         Minted on Celo
         <ArrowRight className="w-4 h-4 ml-auto opacity-50" />
       </Button>
@@ -253,11 +253,11 @@ export function MintLookButton({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-white font-bold text-sm">{mintError.title}</p>
-              <p className="text-slate-400 text-xs mt-0.5">
+              <p className="text-muted-foreground/70 text-xs mt-0.5">
                 {mintError.message}
               </p>
               {mintError.hint && (
-                <p className="text-slate-500 text-[10px] mt-1 font-mono truncate">
+                <p className="text-muted-foreground text-[10px] mt-1 font-mono truncate">
                   {mintError.hint}
                 </p>
               )}
@@ -266,7 +266,7 @@ export function MintLookButton({
               onClick={() => setMintError(null)}
               className="p-1 hover:bg-white/10 rounded-full shrink-0 self-start"
             >
-              <X className="w-4 h-4 text-slate-500" />
+              <X className="w-4 h-4 text-muted-foreground" />
             </button>
           </motion.div>
         )}
@@ -286,7 +286,7 @@ export function MintLookButton({
                 ? "Confirm in your wallet…"
                 : "Preparing your Proof of Style…"}
             </p>
-            <p className="text-slate-400 text-[10px]">
+            <p className="text-muted-foreground/70 text-[10px]">
               Saving your look…
             </p>
           </div>

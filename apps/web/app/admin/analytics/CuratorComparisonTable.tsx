@@ -41,7 +41,7 @@ export function CuratorComparisonTable({
     return (
       <div className="rounded-xl border border-border bg-card p-4">
         <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
-          <Sparkles className="h-4 w-4 text-violet-500" />
+          <Sparkles className="h-4 w-4 text-info" />
           Curator Comparison
         </h3>
         <p className="py-4 text-center text-xs text-muted-foreground">
@@ -55,7 +55,7 @@ export function CuratorComparisonTable({
     <div className="rounded-xl border border-border bg-card p-4">
       <div className="flex items-center justify-between mb-4">
         <h3 className="flex items-center gap-2 text-sm font-semibold">
-          <Sparkles className="h-4 w-4 text-violet-500" />
+          <Sparkles className="h-4 w-4 text-info" />
           Curator Comparison
         </h3>
         <span className="text-xs text-muted-foreground">
@@ -90,7 +90,7 @@ export function CuratorComparisonTable({
                 <tr key={r.slug} className="hover:bg-muted/30 transition-colors">
                   <td className="py-3 pr-3">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-500/10 text-[10px] font-bold text-violet-600 uppercase">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-info/10 text-[10px] font-bold text-violet-600 uppercase">
                         {displayName.charAt(0)}
                       </div>
                       <span className="font-medium capitalize">{displayName}</span>
@@ -123,9 +123,9 @@ export function CuratorComparisonTable({
                       <span
                         className={`inline-flex items-center gap-1 text-xs font-medium ${
                           wowDelta > 0
-                            ? "text-emerald-600"
+                            ? "text-success"
                             : wowDelta < 0
-                              ? "text-red-500"
+                              ? "text-error"
                               : "text-muted-foreground"
                         }`}
                       >
@@ -156,8 +156,8 @@ export function CuratorComparisonTable({
           SMA(3) trend
         </span>
         <span className="inline-flex items-center gap-1">
-          <TrendingUp className="h-2.5 w-2.5 text-emerald-600" />
-          <TrendingDown className="h-2.5 w-2.5 text-red-500" />
+          <TrendingUp className="h-2.5 w-2.5 text-success" />
+          <TrendingDown className="h-2.5 w-2.5 text-error" />
           Week-over-week change
         </span>
       </div>

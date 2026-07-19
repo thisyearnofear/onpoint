@@ -248,7 +248,7 @@ export function AddFundsButton() {
                 {step === "amount" && (
                   <div className="space-y-4">
                     {!address && (
-                      <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-center">
+                      <div className="bg-warning/10 border border-warning/30 rounded-xl p-3 text-center">
                         <p className="text-amber-200 text-sm">
                           Connect your wallet to add funds
                         </p>
@@ -259,9 +259,9 @@ export function AddFundsButton() {
                     {address && !showGClaim && (
                       <button
                         onClick={() => setShowGClaim(true)}
-                        className="flex w-full items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-left transition-colors hover:bg-emerald-500/10"
+                        className="flex w-full items-center gap-3 rounded-xl border border-success/20 bg-success/5 p-3 text-left transition-colors hover:bg-success/10"
                       >
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-success/10">
                           <Gift className="h-4 w-4 text-emerald-400" />
                         </div>
                         <div className="flex-1">
@@ -302,7 +302,7 @@ export function AddFundsButton() {
                             onClick={() => setFiat(opt.value)}
                             className={`flex-1 py-3 rounded-xl border text-sm font-bold transition-all ${
                               fiat === opt.value
-                                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                                ? "bg-success/10 border-success/30 text-emerald-300"
                                 : "bg-muted/30 border-border text-muted-foreground hover:bg-muted"
                             }`}
                           >
@@ -336,7 +336,7 @@ export function AddFundsButton() {
                             onClick={() => setAmount(a)}
                             className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${
                               amount === a
-                                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                                ? "bg-success/10 border-success/30 text-emerald-300"
                                 : "bg-muted/20 border-border text-muted-foreground hover:bg-muted"
                             }`}
                           >
@@ -348,7 +348,7 @@ export function AddFundsButton() {
                     </div>
 
                     <Button
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-full py-4 font-bold"
+                      className="w-full bg-success hover:bg-success active:bg-success text-white rounded-full py-4 font-bold"
                       disabled={!address || !amount}
                       loading={loading}
                       loadingIcon={<Loader2 className="w-4 h-4 animate-spin" />}
@@ -403,7 +403,7 @@ export function AddFundsButton() {
                         Cancel
                       </Button>
                       <Button
-                        className="flex-1 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-full font-bold"
+                        className="flex-1 bg-success hover:bg-success active:bg-success text-white rounded-full font-bold"
                         loading={loading}
                         loadingIcon={<Loader2 className="w-4 h-4 animate-spin" />}
                         onClick={handleCreateOrder}
@@ -416,7 +416,7 @@ export function AddFundsButton() {
 
                 {step === "order" && order && (
                   <div className="space-y-4">
-                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 text-center space-y-2">
+                    <div className="bg-success/10 border border-success/20 rounded-2xl p-4 text-center space-y-2">
                       <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
                       <p className="text-emerald-300 font-bold text-sm">
                         Order Created
@@ -500,7 +500,7 @@ export function AddFundsButton() {
                     )}
 
                     <Button
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-full py-4 font-bold"
+                      className="w-full bg-success hover:bg-success text-white rounded-full py-4 font-bold"
                       onClick={handleClose}
                     >
                       {closeLabel}
@@ -510,7 +510,7 @@ export function AddFundsButton() {
 
                 {step === "done" && (
                   <div className="space-y-4">
-                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-6 text-center space-y-3">
+                    <div className="bg-success/10 border border-success/20 rounded-2xl p-6 text-center space-y-3">
                       <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto" />
                       <p className="text-emerald-300 font-bold text-lg">
                         {gClaimTxHash ? "G$ Claimed!" : "Funds Added!"}

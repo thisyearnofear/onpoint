@@ -147,15 +147,15 @@ export function HeroView() {
               <Reveal delay={0.4}>
                 <div className="flex flex-wrap justify-center lg:justify-start gap-4 pt-2 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-emerald-500" />
+                    <Check className="w-4 h-4 text-success" />
                     <span>No wallet before first try-on</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-emerald-500" />
+                    <Check className="w-4 h-4 text-success" />
                     <span>WhatsApp / M-Pesa ready</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-emerald-500" />
+                    <Check className="w-4 h-4 text-success" />
                     <span>Same catalog for agents</span>
                   </div>
                   <LiveCounter />
@@ -176,9 +176,9 @@ export function HeroView() {
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-medium">✓ Color Harmony</span>
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-medium">✓ Fit</span>
-                    <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-[10px] font-medium">↑ Accessories</span>
+                    <span className="px-2 py-0.5 rounded-full bg-success/10 text-success text-[10px] font-medium">✓ Color Harmony</span>
+                    <span className="px-2 py-0.5 rounded-full bg-success/10 text-success text-[10px] font-medium">✓ Fit</span>
+                    <span className="px-2 py-0.5 rounded-full bg-warning/10 text-warning text-[10px] font-medium">↑ Accessories</span>
                   </div>
                 </div>
               </Reveal>
@@ -213,7 +213,7 @@ export function HeroView() {
                   <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
                     <Camera className="w-8 h-8 text-white" />
                   </div>
-                  <div className="absolute top-0 right-1/2 transform translate-x-16 -translate-y-2 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs font-bold">
+                  <div className="absolute top-0 right-1/2 transform translate-x-16 -translate-y-2 w-6 h-6 rounded-full bg-success flex items-center justify-center text-white text-xs font-bold">
                     1
                   </div>
                 </div>
@@ -228,7 +228,7 @@ export function HeroView() {
                   <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
                     <Sparkles className="w-8 h-8 text-white" />
                   </div>
-                  <div className="absolute top-0 right-1/2 transform translate-x-16 -translate-y-2 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs font-bold">
+                  <div className="absolute top-0 right-1/2 transform translate-x-16 -translate-y-2 w-6 h-6 rounded-full bg-success flex items-center justify-center text-white text-xs font-bold">
                     2
                   </div>
                 </div>
@@ -243,7 +243,7 @@ export function HeroView() {
                   <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center">
                     <MessageCircle className="w-8 h-8 text-white" />
                   </div>
-                  <div className="absolute top-0 right-1/2 transform translate-x-16 -translate-y-2 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs font-bold">
+                  <div className="absolute top-0 right-1/2 transform translate-x-16 -translate-y-2 w-6 h-6 rounded-full bg-success flex items-center justify-center text-white text-xs font-bold">
                     3
                   </div>
                 </div>
@@ -397,9 +397,9 @@ export function HeroView() {
                           <p className="text-xs text-muted-foreground">AI Curator · 8 listings</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Live</span>
+                      <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-success/10 border border-success/20">
+                        <div className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
+                        <span className="text-[10px] font-bold text-success dark:text-emerald-400">Live</span>
                       </div>
                     </div>
                     <NiaPreviewGrid />
@@ -481,7 +481,7 @@ export function HeroView() {
                 {/* Attribution & Leaderboard */}
                 <div className="rounded-xl border border-border/40 bg-gradient-to-br from-background to-emerald-500/[0.03] p-5 space-y-3">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-emerald-500" />
+                    <Sparkles className="w-5 h-5 text-success" />
                     <h3 className="text-sm font-bold">Hackathon Ready</h3>
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
@@ -490,8 +490,8 @@ export function HeroView() {
                   <div className="pt-2 border-t border-border/30">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Tracks</p>
                     <div className="flex gap-2 flex-wrap">
-                      <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 text-[10px] font-medium">x402 Payments</span>
-                      <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 text-[10px] font-medium">Revenue</span>
+                      <span className="px-2 py-0.5 rounded bg-success/10 text-success text-[10px] font-medium">x402 Payments</span>
+                      <span className="px-2 py-0.5 rounded bg-success/10 text-success text-[10px] font-medium">Revenue</span>
                     </div>
                   </div>
                 </div>

@@ -228,7 +228,7 @@ export function SessionEndingCard({
                     key={i}
                     className="flex items-start gap-2 px-2.5 py-1.5 rounded-lg bg-muted/20 border border-border/30"
                   >
-                    <div className="w-1 h-1 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                    <div className="w-1 h-1 rounded-full bg-success mt-1.5 shrink-0" />
                     <span className="text-[11px] text-foreground/60 leading-relaxed">
                       {evidence}
                     </span>
@@ -284,7 +284,7 @@ export function SessionEndingCard({
             >
               <Button
                 onClick={onTip}
-                className="flex-1 bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 text-amber-300 border border-amber-500/30 rounded-full py-4 text-sm font-bold gap-2"
+                className="flex-1 bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 text-amber-300 border border-warning/30 rounded-full py-4 text-sm font-bold gap-2"
               >
                 <Coins className="w-4 h-4" />
                 Tip Stylist
@@ -342,7 +342,7 @@ export function SessionEndingCard({
                           onClick={() => handleAddToCart(product, i)}
                           className={`flex items-center justify-center w-7 h-7 rounded-lg transition-all ${
                             isAdded
-                              ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                              ? "bg-success/20 text-emerald-400 border border-success/30"
                               : "bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20"
                           }`}
                           aria-label={isAdded ? "View cart" : "Add to cart"}
@@ -410,7 +410,7 @@ export function SessionEndingCard({
                 <Button
                   onClick={onMint}
                   variant="ghost"
-                  className="w-full text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-full py-4 text-xs font-bold border border-amber-500/15 gap-2"
+                  className="w-full text-amber-400 hover:text-amber-300 hover:bg-warning/10 rounded-full py-4 text-xs font-bold border border-warning/15 gap-2"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   Mint as Proof of Style NFT
@@ -445,7 +445,7 @@ export function SessionEndingCard({
                   new CustomEvent("onpoint:navigate", { detail: "my-looks" })
                 );
               }}
-              className="w-full text-center text-[10px] text-emerald-500/60 hover:text-emerald-400 transition-colors py-1"
+              className="w-full text-center text-[10px] text-success/60 hover:text-emerald-400 transition-colors py-1"
             >
               Saved to My Looks ✓ — View all →
             </button>

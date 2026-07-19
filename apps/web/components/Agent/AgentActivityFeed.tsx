@@ -34,11 +34,11 @@ const ICONS: Record<string, React.ElementType> = {
 };
 
 const STATUS: Record<string, { icon: React.ElementType; color: string }> = {
-  accepted: { icon: Check, color: "text-emerald-500" },
+  accepted: { icon: Check, color: "text-success" },
   executed: { icon: Check, color: "text-indigo-500" },
   rejected: { icon: X, color: "text-rose-500" },
-  expired: { icon: Clock, color: "text-slate-500" },
-  pending: { icon: Clock, color: "text-amber-500" },
+  expired: { icon: Clock, color: "text-muted-foreground" },
+  pending: { icon: Clock, color: "text-warning" },
 };
 
 function timeAgo(ts: number): string {

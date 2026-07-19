@@ -30,19 +30,19 @@ const NOTIF_ICONS: Record<string, typeof Bell> = {
 };
 
 const NOTIF_COLORS: Record<string, string> = {
-  new_payment: "text-emerald-500",
+  new_payment: "text-success",
   new_lead: "text-blue-500",
-  high_intent_view: "text-violet-500",
-  delivery_submitted: "text-amber-500",
-  payment_confirmed_stk: "text-emerald-600",
+  high_intent_view: "text-info",
+  delivery_submitted: "text-warning",
+  payment_confirmed_stk: "text-success",
 };
 
 const NOTIF_BG: Record<string, string> = {
-  new_payment: "bg-emerald-500/10",
+  new_payment: "bg-success/10",
   new_lead: "bg-blue-500/10",
-  high_intent_view: "bg-violet-500/10",
-  delivery_submitted: "bg-amber-500/10",
-  payment_confirmed_stk: "bg-emerald-500/10",
+  high_intent_view: "bg-info/10",
+  delivery_submitted: "bg-warning/10",
+  payment_confirmed_stk: "bg-success/10",
 };
 
 function timeAgo(iso: string): string {
@@ -76,7 +76,7 @@ export function NotificationsFeed({
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
         <div>
           <h2 className="flex items-center gap-2 font-bold">
-            <Bell className="h-4 w-4 text-amber-500" />
+            <Bell className="h-4 w-4 text-warning" />
             Notifications
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -84,7 +84,7 @@ export function NotificationsFeed({
           </p>
         </div>
         {unreadCount > 0 && (
-          <span className="inline-flex w-fit items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-600">
+          <span className="inline-flex w-fit items-center gap-1 rounded-full bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning">
             <Sparkles className="h-3.5 w-3.5" />
             {unreadCount} new
           </span>

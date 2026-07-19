@@ -65,7 +65,15 @@ export default {
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))'
-        }
+        },
+        success: 'rgb(var(--success) / <alpha-value>)',
+        'success-foreground': 'rgb(var(--success-foreground) / <alpha-value>)',
+        warning: 'rgb(var(--warning) / <alpha-value>)',
+        'warning-foreground': 'rgb(var(--warning-foreground) / <alpha-value>)',
+        error: 'rgb(var(--error) / <alpha-value>)',
+        'error-foreground': 'rgb(var(--error-foreground) / <alpha-value>)',
+        info: 'rgb(var(--info) / <alpha-value>)',
+        'info-foreground': 'rgb(var(--info-foreground) / <alpha-value>)'
       },
       borderRadius: {
         lg: 'var(--radius)',

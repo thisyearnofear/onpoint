@@ -157,13 +157,13 @@ export function TrackingTimeline({
                 <div
                   className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-300 ${
                     isDelivered && isPast
-                      ? "border-emerald-500 bg-emerald-500 text-white"
+                      ? "border-success bg-success text-white"
                       : isJustAdvanced
-                        ? "border-emerald-500 bg-emerald-500 text-white animate-step-activate shadow-lg shadow-emerald-500/30"
+                        ? "border-success bg-success text-white animate-step-activate shadow-lg shadow-emerald-500/30"
                         : isCurrent && isActive
-                          ? "border-emerald-500 bg-emerald-500/10 text-emerald-600 ring-4 ring-emerald-500/20 animate-glow-pulse"
+                          ? "border-success bg-success/10 text-success ring-4 ring-emerald-500/20 animate-glow-pulse"
                           : isPast
-                            ? "border-emerald-500 bg-emerald-500/10 text-emerald-500"
+                            ? "border-success bg-success/10 text-success"
                             : "border-muted-foreground/30 bg-muted text-muted-foreground/50"
                   }`}
                 >
@@ -187,7 +187,7 @@ export function TrackingTimeline({
                   >
                     {step.label}
                     {isCurrent && !isDelivered && (
-                      <span className="ml-2 inline-flex animate-fade-slide-in items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+                      <span className="ml-2 inline-flex animate-fade-slide-in items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-success">
                         <Clock className="h-2.5 w-2.5" />
                         Current
                       </span>
@@ -211,14 +211,14 @@ export function TrackingTimeline({
 
       {/* Payment pending notice */}
       {isPaymentPending && (
-        <div className="mt-2 animate-fade-slide-in rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+        <div className="mt-2 animate-fade-slide-in rounded-lg border border-warning/20 bg-warning/5 p-3">
           <div className="flex items-start gap-2">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
             <div>
-              <p className="text-xs font-semibold text-amber-700">
+              <p className="text-xs font-semibold text-warning">
                 Payment pending verification
               </p>
-              <p className="mt-0.5 text-[11px] text-amber-600/80">
+              <p className="mt-0.5 text-[11px] text-warning/80">
                 Your payment is being verified. This page will update automatically once confirmed.
               </p>
             </div>
@@ -229,11 +229,11 @@ export function TrackingTimeline({
       {/* Delivered celebration */}
       {isDelivered && (
         <div
-          className={`mt-2 rounded-lg border border-emerald-500/20 bg-gradient-to-r from-emerald-500/5 to-emerald-600/5 p-4 text-center ${
+          className={`mt-2 rounded-lg border border-success/20 bg-gradient-to-r from-emerald-500/5 to-emerald-600/5 p-4 text-center ${
             showCelebration ? "animate-celebration-bounce" : "animate-fade-slide-in"
           }`}
         >
-          <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-500" />
+          <CheckCircle2 className="mx-auto h-8 w-8 text-success" />
           <p className="mt-2 text-sm font-bold text-foreground">
             Delivered! 🎉
           </p>

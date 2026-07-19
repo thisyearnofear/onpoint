@@ -68,7 +68,7 @@ export function RichProductCard({
 
       {/* Best price indicator */}
       {isBestPrice && (
-        <div className="absolute top-2 right-2 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30">
+        <div className="absolute top-2 right-2 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-success/20 border border-success/30">
           <TrendingDown className="w-2.5 h-2.5 text-emerald-400" />
           <span className="text-[8px] text-emerald-300 font-bold">
             Best Price

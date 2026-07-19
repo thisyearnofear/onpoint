@@ -274,7 +274,7 @@ function SuccessState({ result, onClose }: { result: CheckoutResult; onClose: ()
           damping: 10,
           stiffness: 250,
         }}
-        className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto"
+        className="w-20 h-20 rounded-full bg-success/20 flex items-center justify-center mx-auto"
       >
         <motion.div
           initial={{ pathLength: 0 }}

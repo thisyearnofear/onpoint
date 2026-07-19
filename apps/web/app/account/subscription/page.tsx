@@ -612,7 +612,7 @@ export default function AccountSubscriptionPage() {
                           {getStatusLabel(currentStatus)}
                         </span>
                         {cancelAtPeriodEnd && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold text-amber-400 bg-amber-500/10 uppercase tracking-wider">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold text-amber-400 bg-warning/10 uppercase tracking-wider">
                             Canceling
                           </span>
                         )}
@@ -633,7 +633,7 @@ export default function AccountSubscriptionPage() {
                         size="sm"
                         onClick={handleCancel}
                         disabled={actionLoading === "cancel"}
-                        className="text-red-400 border-red-400/30 hover:bg-red-500/10"
+                        className="text-red-400 border-red-400/30 hover:bg-error/10"
                       >
                         {actionLoading === "cancel" ? (
                           <Loader2 className="w-3 h-3 mr-1 animate-spin" />
@@ -976,7 +976,7 @@ export default function AccountSubscriptionPage() {
                   {/* Subscription Status */}
                   <div className="rounded-xl border border-border bg-card p-5 space-y-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                      <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
                         <Clock className="w-4 h-4 text-amber-400" />
                       </div>
                       <div>
@@ -1116,8 +1116,8 @@ export default function AccountSubscriptionPage() {
                             order.status === "confirmed"
                               ? "bg-green-500/10"
                               : order.status === "failed"
-                              ? "bg-red-500/10"
-                              : "bg-amber-500/10"
+                              ? "bg-error/10"
+                              : "bg-warning/10"
                           }`}>
                             {order.status === "confirmed" ? (
                               <CheckCircle2 className="w-4 h-4 text-green-400" />

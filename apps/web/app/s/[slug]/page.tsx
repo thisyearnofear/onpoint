@@ -1,5 +1,5 @@
-import Image from "next/image";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import type { CSSProperties } from "react";
 import {
   ArrowLeft,
@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { CuratorStorefrontResponse } from "@onpoint/shared-types";
 import { OnPointLayout } from "../../../components/OnPointLayout";
+import { SafeImage } from "../../../components/SafeImage";
 import { CuratorTracker } from "../../../components/CuratorTracker";
 import { CrossCuratorRecommendations } from "../../../components/CrossCuratorRecommendations";
 import { AICuratorSection } from "../../../components/AICuratorSection";
@@ -134,6 +135,16 @@ export default async function CuratorStorefrontPage({
           } as CSSProperties
         }
       >
+      {/* Back link */}
+      <div className="mx-auto max-w-6xl px-4 pt-6">
+        <Link
+          href="/curators"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Browse all curators
+        </Link>
+      </div>
       <section className="border-b border-border">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 md:grid-cols-[1fr_360px] md:py-14">
           <div className="space-y-6">
@@ -156,7 +167,7 @@ export default async function CuratorStorefrontPage({
               >
                 {curator.name}
                 {isPreview && (
-                  <span className="ml-3 inline-flex items-center gap-1.5 align-middle rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                  <span className="ml-3 inline-flex items-center gap-1.5 align-middle rounded-full border border-warning/30 bg-warning/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-warning dark:text-amber-400">
                     <Sparkles className="h-3 w-3" />
                     Preview
                   </span>
@@ -202,8 +213,8 @@ export default async function CuratorStorefrontPage({
                 }}
               >
                 {curator.brand?.logo ? (
-                  <Image
-                    src={curator.brand.logo}
+                  <SafeImage
+                    sources={[curator.brand.logo]}
                     alt={`${curator.name} logo`}
                     fill
                     unoptimized
@@ -279,7 +290,7 @@ export default async function CuratorStorefrontPage({
                   >
                     <div className="relative h-24 w-24 overflow-hidden rounded-xl border border-border bg-muted transition-all group-hover:border-primary/40 group-hover:ring-2 group-hover:ring-primary/20">
                       {img ? (
-                        <Image src={img} alt={listing.title || "Design"} fill unoptimized className="object-cover transition-transform group-hover:scale-105" />
+                        <SafeImage sources={[img]} alt={listing.title || "Design"} fill unoptimized className="object-cover transition-transform group-hover:scale-105" />
                       ) : (
                         <div className="flex h-full items-center justify-center">
                           <Camera className="h-6 w-6 text-muted-foreground/30" />
@@ -344,7 +355,7 @@ export default async function CuratorStorefrontPage({
                 href={`https://wa.me/${curator.channels.whatsapp.replace(/^\+/, "")}?text=${encodeURIComponent(`Hi ${curator.name}, I see your OnPoint storefront is live but has no listings yet. You can add inventory by sending a message like "+ arsenal home M 2500 4" with a photo to the OnPoint agent. Let me know if you need help!`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-5 inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-5 py-3 text-sm font-bold text-white transition-all hover:bg-emerald-600 active:scale-[0.98]"
+                className="mt-5 inline-flex items-center gap-2 rounded-lg bg-success px-5 py-3 text-sm font-bold text-white transition-all hover:bg-success active:scale-[0.98]"
               >
                 <MessageCircle className="h-4 w-4" />
                 Message {curator.name} to add stock
@@ -377,8 +388,8 @@ export default async function CuratorStorefrontPage({
                       style={{ viewTransitionName: getViewTransitionName("product-image", listing.id) }}
                     >
                       {listing.imageUrl ? (
-                        <Image
-                          src={listing.imageUrl}
+                        <SafeImage
+                          sources={[listing.imageUrl]}
                           alt={listing.title || "Digital design"}
                           fill
                           unoptimized
@@ -423,7 +434,7 @@ export default async function CuratorStorefrontPage({
                           </div>
                         )}
                       </div>
-                      <p className="rounded-md bg-violet-500/10 px-3 py-2 text-xs text-violet-700 dark:text-violet-300">
+                      <p className="rounded-md bg-info/10 px-3 py-2 text-xs text-info dark:text-violet-300">
                         AI-generated design. Try it on virtually — no physical
                         item to ship. Agents are matched to similar physical
                         items from human curators after try-on.
@@ -467,8 +478,8 @@ export default async function CuratorStorefrontPage({
                     style={{ viewTransitionName: getViewTransitionName("product-image", listing.id) }}
                   >
                     {listing.imageUrl ? (
-                      <Image
-                        src={listing.imageUrl}
+                      <SafeImage
+                        sources={[listing.imageUrl]}
                         alt={`${kit?.club ?? "Item"} ${kit?.kitType ?? ""} kit`}
                         fill
                         unoptimized

@@ -125,9 +125,9 @@ export function InventoryForm({ curatorSlug, onCreated }: InventoryFormProps) {
 
   if (formState === "success") {
     return (
-      <div className="rounded-2xl border-2 border-emerald-500/30 bg-emerald-500/5 p-6 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
-          <Check className="h-6 w-6 text-emerald-500" />
+      <div className="rounded-2xl border-2 border-success/30 bg-success/5 p-6 text-center">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-success/10">
+          <Check className="h-6 w-6 text-success" />
         </div>
         <h3 className="mt-3 text-lg font-bold">Item added!</h3>
         <p className="mt-1 text-sm text-muted-foreground">

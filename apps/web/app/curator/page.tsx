@@ -344,19 +344,19 @@ export default function CuratorLandingPage() {
             </div>
             <div className="mt-6 flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
-                <Check className="h-4 w-4 text-emerald-500" />
+                <Check className="h-4 w-4 text-success" />
                 Free to create
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <Check className="h-4 w-4 text-emerald-500" />
+                <Check className="h-4 w-4 text-success" />
                 No credit card
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <Check className="h-4 w-4 text-emerald-500" />
+                <Check className="h-4 w-4 text-success" />
                 30-second setup
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <Check className="h-4 w-4 text-emerald-500" />
+                <Check className="h-4 w-4 text-success" />
                 Zero subscription fees
               </span>
             </div>
@@ -366,8 +366,8 @@ export default function CuratorLandingPage() {
           <div className="mt-12 grid grid-cols-2 gap-6 md:grid-cols-4">
             {[
               { icon: Store, value: "5+", label: "Curators on platform", color: "text-primary" },
-              { icon: Shirt, value: "120+", label: "Live listings", color: "text-emerald-500" },
-              { icon: TrendingUp, value: "cUSD", label: "On-chain payments", color: "text-amber-500" },
+              { icon: Shirt, value: "120+", label: "Live listings", color: "text-success" },
+              { icon: TrendingUp, value: "cUSD", label: "On-chain payments", color: "text-warning" },
               { icon: Globe, value: "Kenya", label: "Active market", color: "text-sky-500" },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
@@ -387,7 +387,7 @@ export default function CuratorLandingPage() {
           <div className="mx-auto max-w-6xl px-4">
             <div className="text-center">
               <p className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-4 py-1.5 text-xs font-medium text-muted-foreground">
-                <MessageCircle className="h-3.5 w-3.5 text-emerald-500" />
+                <MessageCircle className="h-3.5 w-3.5 text-success" />
                 Why OnPoint + WhatsApp beats WhatsApp alone
               </p>
               <h2 className="mt-4 text-3xl font-black tracking-tight md:text-4xl">
@@ -461,7 +461,7 @@ export default function CuratorLandingPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-[10px] font-bold text-emerald-600">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success/15 text-[10px] font-bold text-success">
                       <MessageCircle className="h-3 w-3" />
                     </span>
                     <span className="font-medium text-foreground">
@@ -554,7 +554,7 @@ export default function CuratorLandingPage() {
                         <ul className="space-y-1.5">
                           {a.valueProps.map((vp) => (
                             <li key={vp} className="flex items-start gap-2 text-sm">
-                              <Zap className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                              <Zap className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
                               {vp}
                             </li>
                           ))}
@@ -664,7 +664,7 @@ export default function CuratorLandingPage() {
         <div className="mx-auto max-w-6xl px-4">
           <div className="text-center">
             <p className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-4 py-1.5 text-xs font-medium text-muted-foreground">
-              <MessageCircle className="h-3.5 w-3.5 text-emerald-500" />
+              <MessageCircle className="h-3.5 w-3.5 text-success" />
               First curator
             </p>
             <h2 className="mt-4 text-2xl font-black tracking-tight md:text-3xl">
@@ -672,15 +672,15 @@ export default function CuratorLandingPage() {
             </h2>
           </div>
 
-          <div className="mx-auto mt-8 max-w-2xl pl-6 border-l-4 border-emerald-500/30">
+          <div className="mx-auto mt-8 max-w-2xl pl-6 border-l-4 border-success/30">
             <div className="flex items-start gap-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-sm font-black text-emerald-500">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success/10 text-sm font-black text-success">
                 W
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <p className="font-bold">Wanja</p>
-                  <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
+                  <span className="rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-medium text-success">
                     Sportswear Stylist
                   </span>
                 </div>
@@ -691,15 +691,15 @@ export default function CuratorLandingPage() {
                 </p>
                 <div className="mt-4 flex items-center gap-3 text-xs text-muted-foreground">
                   <span className="inline-flex items-center gap-1">
-                    <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+                    <TrendingUp className="h-3.5 w-3.5 text-success" />
                     Nairobi, Kenya
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <Shirt className="h-3.5 w-3.5 text-emerald-500" />
+                    <Shirt className="h-3.5 w-3.5 text-success" />
                     18 live listings
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <MessageCircle className="h-3.5 w-3.5 text-emerald-500" />
+                    <MessageCircle className="h-3.5 w-3.5 text-success" />
                     WhatsApp checkout
                   </span>
                 </div>
@@ -744,19 +744,19 @@ export default function CuratorLandingPage() {
             </div>
             <div className="mt-6 flex flex-wrap justify-center gap-4 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1">
-                <Check className="h-3.5 w-3.5 text-emerald-500" />
+                <Check className="h-3.5 w-3.5 text-success" />
                 Free to create
               </span>
               <span className="inline-flex items-center gap-1">
-                <Check className="h-3.5 w-3.5 text-emerald-500" />
+                <Check className="h-3.5 w-3.5 text-success" />
                 No subscription fees
               </span>
               <span className="inline-flex items-center gap-1">
-                <Check className="h-3.5 w-3.5 text-emerald-500" />
+                <Check className="h-3.5 w-3.5 text-success" />
                 WhatsApp checkout
               </span>
               <span className="inline-flex items-center gap-1">
-                <Check className="h-3.5 w-3.5 text-emerald-500" />
+                <Check className="h-3.5 w-3.5 text-success" />
                 AI try-on included
               </span>
             </div>

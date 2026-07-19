@@ -56,7 +56,7 @@ export default function PlusSizeFashionGuide() {
                 "Virtual try-on removes the guesswork from online sizing",
               ].map((tip) => (
                 <div key={tip} className="flex items-start gap-2 text-sm">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                   <span className="text-muted-foreground">{tip}</span>
                 </div>
               ))}
@@ -88,7 +88,7 @@ export default function PlusSizeFashionGuide() {
                     "If a garment gaps at the bust or waist, it&rsquo;s the wrong cut, not the wrong size",
                   ].map((tip) => (
                     <li key={tip} className="flex items-start gap-2 text-sm text-muted-foreground">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                       <span>{tip}</span>
                     </li>
                   ))}

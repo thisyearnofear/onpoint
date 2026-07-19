@@ -325,8 +325,8 @@ export function TipSheet({
           <div className="px-6 pb-8">
             {/* Wallet status */}
             {!isConnected && (
-              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-center mb-4">
-                <p className="text-amber-600 dark:text-amber-200 text-sm">
+              <div className="bg-warning/10 border border-warning/30 rounded-xl p-3 text-center mb-4">
+                <p className="text-warning dark:text-amber-200 text-sm">
                   Connect your wallet to send tips
                 </p>
               </div>
@@ -347,7 +347,7 @@ export function TipSheet({
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4"
+                  className="flex items-center gap-3 bg-success/10 border border-success/20 rounded-2xl p-4"
                 >
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shrink-0">
                     <CheckCircle2 className="w-5 h-5 text-white" />
@@ -374,7 +374,7 @@ export function TipSheet({
                   key="processing"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4"
+                  className="flex items-center gap-3 bg-warning/10 border border-warning/20 rounded-2xl p-4"
                 >
                   <Loader2 className="w-6 h-6 text-amber-400 animate-spin shrink-0" />
                   <div className="flex-1">
@@ -424,7 +424,7 @@ export function TipSheet({
                         key={`${selectedToken}-${tip.amount}`}
                         onClick={() => handleQuickTip(tip.amount)}
                         disabled={!isConnected || isProcessing}
-                        className="flex flex-col items-center gap-1.5 p-4 rounded-2xl bg-muted/30 border border-border hover:bg-muted hover:border-amber-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex flex-col items-center gap-1.5 p-4 rounded-2xl bg-muted/30 border border-border hover:bg-muted hover:border-warning/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <span className="text-2xl">{tip.icon}</span>
                         <span className="text-foreground font-bold">

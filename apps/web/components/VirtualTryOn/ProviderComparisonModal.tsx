@@ -160,7 +160,7 @@ export function ProviderComparisonModal({
                     {factories.map((f) => {
                       const providerBadgeColor = f.isPremium
                         ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/25"
-                        : "bg-emerald-500/15 text-emerald-300 border-emerald-500/25";
+                        : "bg-success/15 text-emerald-300 border-success/25";
                       return (
                         <th
                           key={f.name}

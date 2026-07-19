@@ -58,7 +58,7 @@ export default function AnkaraStyleGuide() {
                 "Virtual try-on shows how a print drapes before fabric is cut",
               ].map((tip) => (
                 <div key={tip} className="flex items-start gap-2 text-sm">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                   <span className="text-muted-foreground">{tip}</span>
                 </div>
               ))}
@@ -163,7 +163,7 @@ export default function AnkaraStyleGuide() {
                     "Any style reference photos (Pinterest, Instagram)",
                   ].map((tip) => (
                     <li key={tip} className="flex items-start gap-2 text-sm">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                       <span>{tip}</span>
                     </li>
                   ))}

@@ -317,7 +317,7 @@ export function MpesaPaymentPanel({
             href={checkoutUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-success px-3 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
           >
             <CreditCard className="h-4 w-4" />
             Checkout on {label}
@@ -343,7 +343,7 @@ export function MpesaPaymentPanel({
           setOpen((v) => !v);
           resetPayment();
         }}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-success px-3 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
       >
         <CreditCard className="h-4 w-4" />
         Pay with M-Pesa
@@ -358,7 +358,7 @@ export function MpesaPaymentPanel({
               onClick={() => { setMethod("stk"); resetPayment(); }}
               className={`flex-1 rounded-md px-3 py-2 text-xs font-bold transition-colors ${
                 method === "stk"
-                  ? "bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/30"
+                  ? "bg-success/10 text-success ring-1 ring-emerald-500/30"
                   : "bg-muted text-muted-foreground hover:bg-muted/60"
               }`}
             >
@@ -370,7 +370,7 @@ export function MpesaPaymentPanel({
               onClick={() => { setMethod("manual"); resetPayment(); }}
               className={`flex-1 rounded-md px-3 py-2 text-xs font-bold transition-colors ${
                 method === "manual"
-                  ? "bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/30"
+                  ? "bg-success/10 text-success ring-1 ring-emerald-500/30"
                   : "bg-muted text-muted-foreground hover:bg-muted/60"
               }`}
             >
@@ -392,43 +392,43 @@ export function MpesaPaymentPanel({
 
               {stkStatus === "sent" || stkStatus === "waiting" ? (
                 /* STK sent — waiting for customer to enter PIN */
-                <div className="rounded-md bg-amber-500/10 p-4 text-center">
-                  <Smartphone className="mx-auto h-8 w-8 text-amber-500" />
+                <div className="rounded-md bg-warning/10 p-4 text-center">
+                  <Smartphone className="mx-auto h-8 w-8 text-warning" />
                   <p className="mt-2 text-sm font-bold text-foreground">Check your phone</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     Enter your M-Pesa PIN on the Safaricom prompt to complete payment of <strong>KES {amount.toLocaleString("en-KE")}</strong>.
                   </p>
-                  <div className="mt-3 flex items-center justify-center gap-2 text-xs text-amber-600">
+                  <div className="mt-3 flex items-center justify-center gap-2 text-xs text-warning">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     Waiting for confirmation...
                   </div>
                 </div>
               ) : stkStatus === "paid" ? (
                 /* STK succeeded */
-                <div className="rounded-md bg-emerald-500/10 p-4 text-center">
-                  <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-500" />
+                <div className="rounded-md bg-success/10 p-4 text-center">
+                  <CheckCircle2 className="mx-auto h-8 w-8 text-success" />
                   <p className="mt-2 text-sm font-bold text-foreground">Payment received!</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     KES {amount.toLocaleString("en-KE")} confirmed.
                   </p>
                 </div>
               ) : stkStatus === "failed" ? (
-                <div className="rounded-md bg-red-500/10 p-3 text-center">
-                  <AlertTriangle className="mx-auto h-6 w-6 text-red-500" />
-                  <p className="mt-1 text-xs font-medium text-red-600">{stkError || "Payment failed"}</p>
+                <div className="rounded-md bg-error/10 p-3 text-center">
+                  <AlertTriangle className="mx-auto h-6 w-6 text-error" />
+                  <p className="mt-1 text-xs font-medium text-error">{stkError || "Payment failed"}</p>
                   <button
                     type="button"
                     onClick={startStkPush}
-                    className="mt-2 inline-flex items-center gap-1 rounded-md bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-500/20"
+                    className="mt-2 inline-flex items-center gap-1 rounded-md bg-error/10 px-3 py-1.5 text-xs font-medium text-error hover:bg-error/20"
                   >
                     <RefreshCcw className="h-3 w-3" />
                     Try again
                   </button>
                 </div>
               ) : stkStatus === "timeout" ? (
-                <div className="rounded-md bg-amber-500/10 p-3 text-center">
-                  <AlertTriangle className="mx-auto h-6 w-6 text-amber-500" />
-                  <p className="mt-1 text-xs font-medium text-amber-600">Payment request timed out</p>
+                <div className="rounded-md bg-warning/10 p-3 text-center">
+                  <AlertTriangle className="mx-auto h-6 w-6 text-warning" />
+                  <p className="mt-1 text-xs font-medium text-warning">Payment request timed out</p>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">
                     You can try the auto-pay again or use manual code entry below.
                   </p>
@@ -436,7 +436,7 @@ export function MpesaPaymentPanel({
                     <button
                       type="button"
                       onClick={startStkPush}
-                      className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-600 hover:bg-amber-500/20"
+                      className="inline-flex items-center gap-1 rounded-md bg-warning/10 px-3 py-1.5 text-xs font-medium text-warning hover:bg-warning/20"
                     >
                       <RefreshCcw className="h-3 w-3" />
                       Retry STK
@@ -488,7 +488,7 @@ export function MpesaPaymentPanel({
                     type="button"
                     onClick={startStkPush}
                     disabled={stkStatus === "sending" || !customerPhone.trim()}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-success px-3 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                   >
                     {stkStatus === "sending" ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -550,7 +550,7 @@ export function MpesaPaymentPanel({
 
               {manualError && <p className="text-xs font-medium text-destructive">{manualError}</p>}
               {manualStatus === "saved" && (
-                <p className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+                <p className="inline-flex items-center gap-1.5 text-xs font-medium text-success">
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   Payment submitted! Now add your delivery details below.
                 </p>
@@ -602,12 +602,12 @@ export function MpesaPaymentPanel({
             />
           ) : (
             <div className="mt-3 space-y-3">
-              <div className="rounded-md bg-emerald-500/10 p-3 text-xs leading-5">
-                <p className="flex items-center gap-1.5 font-semibold text-emerald-700">
+              <div className="rounded-md bg-success/10 p-3 text-xs leading-5">
+                <p className="flex items-center gap-1.5 font-semibold text-success">
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   Payment confirmed
                 </p>
-                <p className="mt-1 text-emerald-600">
+                <p className="mt-1 text-success">
                   Now tell {curatorName} where to send your item.
                 </p>
               </div>
@@ -720,7 +720,7 @@ export function MpesaPaymentPanel({
                   <button
                     type="button"
                     onClick={submitDelivery}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-success px-3 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
                   >
                     <CheckCircle2 className="h-4 w-4" />
                     Submit delivery details
@@ -728,7 +728,7 @@ export function MpesaPaymentPanel({
                 </>
               ) : deliveryStatus === "saving" ? (
                 <div className="flex items-center justify-center py-6">
-                  <Loader2 className="h-5 w-5 animate-spin text-emerald-500" />
+                  <Loader2 className="h-5 w-5 animate-spin text-success" />
                 </div>
               ) : null}
             </div>

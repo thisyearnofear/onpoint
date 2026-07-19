@@ -173,7 +173,7 @@ export function AgentPermissionDashboard() {
         <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-emerald-500/5" />
         <div className="relative p-8 flex items-center justify-center h-64">
           <div className="flex flex-col items-center gap-4">
-            <Loader2 className="w-10 h-10 text-violet-500 animate-spin" />
+            <Loader2 className="w-10 h-10 text-info animate-spin" />
             <p className="text-zinc-400 text-sm">Loading your permissions...</p>
           </div>
         </div>
@@ -186,11 +186,11 @@ export function AgentPermissionDashboard() {
       <div className="relative bg-zinc-900/90 border border-red-900/30 rounded-3xl overflow-hidden backdrop-blur-xl">
         <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent" />
         <div className="relative p-8 flex flex-col items-center justify-center h-64 gap-4">
-          <AlertCircle className="w-10 h-10 text-red-500" />
+          <AlertCircle className="w-10 h-10 text-error" />
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={fetchAuthStatus}
-            className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-sm transition-colors"
+            className="px-4 py-2 bg-error/10 hover:bg-error/20 text-red-400 rounded-lg text-sm transition-colors"
           >
             Retry
           </button>
@@ -225,14 +225,14 @@ export function AgentPermissionDashboard() {
                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-emerald-500 flex items-center justify-center">
                   <Shield className="w-6 h-6 text-white" />
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-zinc-900">
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-success rounded-full border-2 border-zinc-900">
                   <div className="w-full h-full rounded-full bg-emerald-400 animate-pulse" />
                 </div>
               </div>
               <div>
                 <h3 className="font-bold text-white text-lg">Token Vault</h3>
                 <p className="text-xs text-zinc-500 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-success" />
                   Auth0 Protected
                 </p>
               </div>
@@ -257,7 +257,7 @@ export function AgentPermissionDashboard() {
               onClick={() => setActiveTab("permissions")}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 activeTab === "permissions"
-                  ? "bg-violet-500/20 text-violet-400"
+                  ? "bg-info/20 text-violet-400"
                   : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50"
               }`}
             >
@@ -268,7 +268,7 @@ export function AgentPermissionDashboard() {
               onClick={() => setActiveTab("activity")}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 activeTab === "activity"
-                  ? "bg-violet-500/20 text-violet-400"
+                  ? "bg-info/20 text-violet-400"
                   : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50"
               }`}
             >
@@ -296,7 +296,7 @@ export function AgentPermissionDashboard() {
                     transition={{ delay: i * 0.1 }}
                     className="flex items-start gap-4"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-info/10 flex items-center justify-center shrink-0">
                       <step.icon className="w-5 h-5 text-violet-400" />
                     </div>
                     <div>
@@ -334,7 +334,7 @@ export function AgentPermissionDashboard() {
               {hasPermissions && (
                 <button
                   onClick={() => setShowConnectWizard(true)}
-                  className="w-full p-4 rounded-xl border border-dashed border-zinc-700 hover:border-violet-500/50 hover:bg-violet-500/5 transition-all group"
+                  className="w-full p-4 rounded-xl border border-dashed border-zinc-700 hover:border-info/50 hover:bg-info/5 transition-all group"
                 >
                   <div className="flex items-center justify-center gap-2 text-zinc-500 group-hover:text-violet-400">
                     <Globe className="w-4 h-4" />
@@ -413,7 +413,7 @@ function OnboardingView({ onComplete }: { onComplete: () => void }) {
               transition={{ delay: i * 0.15 }}
               className="flex items-center gap-4 p-4 rounded-xl bg-zinc-800/30"
             >
-              <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-info/10 flex items-center justify-center">
                 <s.icon className="w-5 h-5 text-violet-400" />
               </div>
               <div className="text-left">
@@ -452,7 +452,7 @@ function EmptyState({ onConnect }: { onConnect: () => void }) {
       </p>
       <button
         onClick={onConnect}
-        className="inline-flex items-center gap-2 px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-medium transition-all"
+        className="inline-flex items-center gap-2 px-6 py-3 bg-violet-600 hover:bg-info text-white rounded-xl font-medium transition-all"
       >
         <Globe className="w-4 h-4" />
         Connect Retailers
@@ -512,8 +512,8 @@ function RetailerCard({
 
         {permission.authorized ? (
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 text-emerald-500">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="flex items-center gap-1.5 text-success">
+              <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
               <span className="text-xs font-medium">Active</span>
             </div>
             {showConfirm ? (
@@ -526,7 +526,7 @@ function RetailerCard({
                 </button>
                 <button
                   onClick={onRevoke}
-                  className="px-3 py-1.5 text-xs text-white bg-red-600 hover:bg-red-500 rounded-lg"
+                  className="px-3 py-1.5 text-xs text-white bg-error hover:bg-error rounded-lg"
                 >
                   Confirm
                 </button>
@@ -541,7 +541,7 @@ function RetailerCard({
             )}
           </div>
         ) : (
-          <button className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-violet-400 hover:text-violet-300 bg-violet-500/10 hover:bg-violet-500/20 rounded-lg transition-colors">
+          <button className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-violet-400 hover:text-violet-300 bg-info/10 hover:bg-info/20 rounded-lg transition-colors">
             Connect
             <ExternalLink className="w-3 h-3" />
           </button>
@@ -569,18 +569,18 @@ function ActivityView({ logs }: { logs: ActivityLog[] }) {
           <div
             className={`w-8 h-8 rounded-lg flex items-center justify-center ${
               log.status === "success"
-                ? "bg-emerald-500/10"
+                ? "bg-success/10"
                 : log.status === "pending"
-                  ? "bg-amber-500/10"
-                  : "bg-red-500/10"
+                  ? "bg-warning/10"
+                  : "bg-error/10"
             }`}
           >
             {log.status === "success" ? (
-              <Check className="w-4 h-4 text-emerald-500" />
+              <Check className="w-4 h-4 text-success" />
             ) : log.status === "pending" ? (
-              <RefreshCw className="w-4 h-4 text-amber-500 animate-spin" />
+              <RefreshCw className="w-4 h-4 text-warning animate-spin" />
             ) : (
-              <X className="w-4 h-4 text-red-500" />
+              <X className="w-4 h-4 text-error" />
             )}
           </div>
           <div className="flex-1">
@@ -644,7 +644,7 @@ function ConnectWizard({
               }
               className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all ${
                 selected.includes(retailer.id)
-                  ? "bg-violet-500/10 border-violet-500/50"
+                  ? "bg-info/10 border-info/50"
                   : "bg-zinc-800/30 border-zinc-800 hover:border-zinc-700"
               }`}
             >
@@ -672,7 +672,7 @@ function ConnectWizard({
           </button>
           <button
             disabled={selected.length === 0}
-            className="flex-1 px-4 py-3 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all"
+            className="flex-1 px-4 py-3 bg-violet-600 hover:bg-info disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all"
           >
             Connect ({selected.length})
           </button>

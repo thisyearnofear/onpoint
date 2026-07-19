@@ -17,9 +17,9 @@ export function EngagementBanner({
       initial={{ opacity: 0, height: 0 }}
       animate={{ opacity: 1, height: "auto" }}
       exit={{ opacity: 0, height: 0 }}
-      className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 flex items-center justify-between"
+      className="rounded-xl border border-success/20 bg-success/10 px-4 py-3 flex items-center justify-between"
     >
-      <div className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-300">
+      <div className="flex items-center gap-2 text-xs text-success dark:text-emerald-300">
         <Bell className="w-3.5 h-3.5" />
         <span>
           Your submitted looks received new likes or reactions!
@@ -27,7 +27,7 @@ export function EngagementBanner({
       </div>
       <button
         onClick={onDismiss}
-        className="rounded-full p-1 text-emerald-600/50 hover:text-emerald-600 transition-colors"
+        className="rounded-full p-1 text-success/50 hover:text-success transition-colors"
       >
         <ChevronRight className="w-3.5 h-3.5 rotate-90" />
       </button>

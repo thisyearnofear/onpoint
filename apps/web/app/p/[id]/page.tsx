@@ -158,7 +158,7 @@ export default async function PolaroidPage({
               {fit && (
                 <div className="space-y-3">
                   {fit.recommendedSize && (
-                    <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                    <div className="flex items-center gap-2 p-3 rounded-xl bg-success/10 border border-success/20">
                       <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                       <span className="text-sm text-emerald-300">
                         Recommended size:{" "}
@@ -206,7 +206,7 @@ export default async function PolaroidPage({
 
               {/* On-chain proof */}
               <div className="flex items-center gap-2 p-3 rounded-xl bg-muted/30 border border-border/50">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                <div className="w-2 h-2 rounded-full bg-success shrink-0" />
                 <span className="text-xs text-muted-foreground">
                   Verified on Celo —{" "}
                   <a
@@ -228,8 +228,8 @@ export default async function PolaroidPage({
               />
 
               {/* Referral CTA — earn 2.5% when someone buys through your share */}
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500/20">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-warning/10 border border-warning/20">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-warning/20">
                   <Sparkles className="w-4 h-4 text-amber-400" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -240,7 +240,7 @@ export default async function PolaroidPage({
                 </div>
                 <button
                   onClick={() => navigator.clipboard.writeText(`${typeof window !== "undefined" ? window.location.origin : ""}/r/${meta.curatorSlug}`)}
-                  className="shrink-0 px-3 py-1.5 rounded-full bg-amber-500/20 hover:bg-amber-500/30 text-[10px] font-bold text-amber-300 transition-colors"
+                  className="shrink-0 px-3 py-1.5 rounded-full bg-warning/20 hover:bg-warning/30 text-[10px] font-bold text-amber-300 transition-colors"
                 >
                   Copy link
                 </button>

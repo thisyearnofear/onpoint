@@ -72,7 +72,7 @@ export function CommunityCardGrid({
                 {searchQuery ? highlightText(look.headline, searchQuery) : look.headline}
               </p>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-amber-500">
+                <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-warning">
                   <Sparkles className="w-2 h-2" />
                   {look.score}/10
                 </span>

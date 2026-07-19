@@ -204,14 +204,14 @@ describe("Button primitive", () => {
   describe("className merging", () => {
     it("merges user-provided className with variant classes", () => {
       const { container } = render(
-        <Button className="bg-emerald-600 hover:bg-emerald-500">
+        <Button className="bg-success hover:bg-success">
           Custom
         </Button>,
       );
       const btn = container.querySelector("button");
       // Both the default variant classes AND the user override should be present
-      // (twMerge handles conflicts, so default `bg-primary` is replaced by `bg-emerald-600`)
-      expect(btn?.className).toContain("bg-emerald-600");
+      // (twMerge handles conflicts, so default `bg-primary` is replaced by `bg-success`)
+      expect(btn?.className).toContain("bg-success");
       expect(btn?.className).toContain("active:scale-[0.98]");
     });
   });

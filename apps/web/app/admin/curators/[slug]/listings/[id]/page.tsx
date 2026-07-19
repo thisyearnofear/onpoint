@@ -337,7 +337,7 @@ export default function ListingDetailPage({
 
       {/* Success toast */}
       {successMsg && (
-        <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400">
+        <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-success dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400">
           <CheckCircle2 className="h-4 w-4" />
           {successMsg}
         </div>
@@ -412,7 +412,7 @@ export default function ListingDetailPage({
                         <div className="flex w-full gap-2 sm:w-auto">
                           <button
                             onClick={confirmDeletePhoto}
-                            className="flex-1 sm:flex-none rounded-md bg-red-500 px-4 py-1.5 text-xs font-bold text-white hover:bg-red-600"
+                            className="flex-1 sm:flex-none rounded-md bg-error px-4 py-1.5 text-xs font-bold text-white hover:bg-error"
                           >
                             Delete
                           </button>
@@ -460,7 +460,7 @@ export default function ListingDetailPage({
                               e.preventDefault();
                               setDeletingKey(key);
                             }}
-                            className="inline-flex items-center gap-1 rounded-full bg-red-500/80 px-2.5 py-1 text-[10px] font-medium text-white opacity-0 transition-all hover:bg-red-500 group-hover:opacity-100"
+                            className="inline-flex items-center gap-1 rounded-full bg-error/80 px-2.5 py-1 text-[10px] font-medium text-white opacity-0 transition-all hover:bg-error group-hover:opacity-100"
                             title="Delete photo"
                           >
                             <Trash2 className="h-3 w-3" />
@@ -521,9 +521,9 @@ export default function ListingDetailPage({
                   className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
                     status === opt.value
                       ? opt.value === "live"
-                        ? "border-emerald-500 bg-emerald-500/10 text-emerald-600"
+                        ? "border-success bg-success/10 text-success"
                         : opt.value === "paused"
-                          ? "border-amber-500 bg-amber-500/10 text-amber-600"
+                          ? "border-warning bg-warning/10 text-warning"
                           : "border-muted-foreground bg-muted text-foreground"
                       : "border-border text-muted-foreground hover:bg-muted"
                   }`}
@@ -638,7 +638,7 @@ export default function ListingDetailPage({
                     )}
                     <button
                       onClick={() => removeSize(i)}
-                      className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500"
+                      className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-error/10 hover:text-error"
                       title="Remove size"
                     >
                       <Trash2 className="h-4 w-4" />

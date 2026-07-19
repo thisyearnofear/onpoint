@@ -235,7 +235,7 @@ export default async function ReceiptPage({
                 </div>
               ) : curatorSlug ? (
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-muted/30 border border-border/50">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                  <div className="w-2 h-2 rounded-full bg-success shrink-0" />
                   <span className="text-xs text-muted-foreground">
                     Curator paid directly via OnPoint custodial payout
                   </span>
@@ -251,7 +251,7 @@ export default async function ReceiptPage({
                   className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50 hover:border-primary/30 transition-colors group"
                 >
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                    <div className="w-2 h-2 rounded-full bg-success shrink-0" />
                     <span className="text-xs text-muted-foreground">
                       Payment proof
                     </span>
@@ -274,7 +274,7 @@ export default async function ReceiptPage({
                   className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50 hover:border-primary/30 transition-colors group"
                 >
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                    <div className="w-2 h-2 rounded-full bg-warning shrink-0" />
                     <span className="text-xs text-muted-foreground">
                       Curator payout
                     </span>

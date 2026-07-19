@@ -34,10 +34,10 @@ export function LookOfTheWeekCard({
     <motion.div
       initial={{ opacity: 0, y: 20, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      className="relative overflow-hidden rounded-2xl border-2 border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-card to-amber-500/5 shadow-lg shadow-amber-500/10"
+      className="relative overflow-hidden rounded-2xl border-2 border-warning/30 bg-gradient-to-br from-amber-500/10 via-card to-amber-500/5 shadow-lg shadow-amber-500/10"
     >
       {/* Decorative glow */}
-      <div className="absolute -top-20 -right-20 w-40 h-40 bg-amber-500/20 blur-[60px] rounded-full" />
+      <div className="absolute -top-20 -right-20 w-40 h-40 bg-warning/20 blur-[60px] rounded-full" />
       <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-amber-400/10 blur-[40px] rounded-full" />
 
       <div className="relative p-5">
@@ -49,7 +49,7 @@ export function LookOfTheWeekCard({
               Look of the week
             </span>
           </div>
-          <span className="text-[10px] text-amber-600/70 dark:text-amber-400/70 font-medium">
+          <span className="text-[10px] text-warning/70 dark:text-amber-400/70 font-medium">
             {dateLabel}
           </span>
         </div>
@@ -61,7 +61,7 @@ export function LookOfTheWeekCard({
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-2xl font-black shadow-md shadow-amber-500/30">
               {look.persona ? look.persona[0]!.toUpperCase() : "?"}
             </div>
-            <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center shadow-sm">
+            <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-warning flex items-center justify-center shadow-sm">
               <Trophy className="w-3 h-3 text-white" />
             </div>
           </div>
@@ -72,7 +72,7 @@ export function LookOfTheWeekCard({
               {look.headline}
             </h3>
             <div className="flex items-center gap-2 mt-1">
-              <span className="inline-flex items-center gap-0.5 text-sm font-bold text-amber-500">
+              <span className="inline-flex items-center gap-0.5 text-sm font-bold text-warning">
                 <Sparkles className="w-3.5 h-3.5" />
                 {look.score}/10
               </span>
@@ -111,7 +111,7 @@ export function LookOfTheWeekCard({
                 {look.topics.slice(0, 4).map((topic, i) => (
                   <span
                     key={i}
-                    className="rounded-full bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400"
+                    className="rounded-full bg-warning/10 border border-warning/20 px-2.5 py-0.5 text-[11px] font-medium text-warning dark:text-amber-400"
                   >
                     {topic}
                   </span>
@@ -120,7 +120,7 @@ export function LookOfTheWeekCard({
             )}
 
             {/* Emoji reactions */}
-            <div className="mt-3 pt-3 border-t border-amber-500/20">
+            <div className="mt-3 pt-3 border-t border-warning/20">
               <EmojiBar lookId={look.id} reactions={look.reactions} onReact={onReact} />
             </div>
           </div>

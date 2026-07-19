@@ -551,8 +551,8 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
               <div className="flex items-center gap-3">
                 <div className="flex gap-1">
                   <div className="w-2 h-2 rounded-full bg-rose-500" />
-                  <div className="w-2 h-2 rounded-full bg-amber-500" />
-                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <div className="w-2 h-2 rounded-full bg-warning" />
+                  <div className="w-2 h-2 rounded-full bg-success" />
                 </div>
                 <div className="flex items-center gap-2">
                   <div
@@ -586,7 +586,7 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
                         ? "text-rose-400 animate-pulse"
                         : sessionTimeRemaining <= 60
                           ? "text-amber-400"
-                          : "text-slate-500"
+                          : "text-muted-foreground"
                     }`}
                   >
                     {Math.floor(sessionTimeRemaining / 60)}:
@@ -669,7 +669,7 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
                         ) : (
                           <div className="flex gap-2 items-center">
                             <span className={`text-${personaStyling.text}`}>&gt;</span>
-                            <span className="text-slate-500 flex items-center gap-2">
+                            <span className="text-muted-foreground flex items-center gap-2">
                               <span className="inline-block w-2 h-2 rounded-full bg-slate-500 animate-pulse" />
                               Awaiting visual telemetry…
                             </span>
@@ -925,7 +925,7 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
                         <span className="w-4 h-4 rounded-full bg-slate-100 border border-white/30" />
                         <span className="w-4 h-4 rounded-full bg-stone-500 border border-white/30" />
                         <span className="w-4 h-4 rounded-full bg-indigo-500 border border-white/30" />
-                        <span className="w-4 h-4 rounded-full bg-emerald-500 border border-white/30" />
+                        <span className="w-4 h-4 rounded-full bg-success border border-white/30" />
                       </div>
                       <p className="text-[10px] text-white/55 truncate">
                         Palette and catalog context update as frames arrive.
@@ -1154,10 +1154,10 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
               <span className="text-[10px] text-slate-300 font-medium">
                 Style Camera Active
               </span>
-              <span className="text-[9px] font-mono text-slate-500 uppercase tracking-wider">
+              <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-wider">
                 {isPremium ? "Premium" : "Quick"}
               </span>
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
             </motion.div>
           </div>
         )}
@@ -1170,8 +1170,8 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
               animate={{ opacity: 1, scale: 1 }}
               className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900/80 backdrop-blur-xl rounded-full border border-white/10"
             >
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[9px] text-slate-400 font-medium">
+              <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+              <span className="text-[9px] text-muted-foreground/70 font-medium">
                 {isPremium ? "PREMIUM" : "QUICK"}
               </span>
             </motion.div>
@@ -1324,7 +1324,7 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
               onClick={startTimerCapture}
               className={`w-14 h-14 sm:w-18 sm:h-18 rounded-full transition-all duration-300 shadow-xl ${
                 countdown !== null
-                  ? "bg-amber-600 scale-95 shadow-amber-500/20"
+                  ? "bg-warning scale-95 shadow-amber-500/20"
                   : capturesExhausted
                     ? "bg-white/20 cursor-not-allowed"
                     : "bg-white hover:bg-slate-200 shadow-white/10"
@@ -1335,7 +1335,7 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
                 className={`w-6 h-6 sm:w-8 sm:h-8 ${countdown !== null ? "text-white" : capturesExhausted ? "text-white/30" : "text-slate-950"}`}
               />
             </Button>
-            <span className="text-[9px] text-slate-500 font-medium">Timer</span>
+            <span className="text-[9px] text-muted-foreground font-medium">Timer</span>
             </div>
 
             <Button
@@ -1368,7 +1368,7 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
           <Button
             variant="ghost"
             onClick={openCart}
-            className="hidden sm:flex h-12 rounded-full bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-100 px-4 gap-2"
+            className="hidden sm:flex h-12 rounded-full bg-warning/10 hover:bg-warning/20 border border-warning/20 text-amber-100 px-4 gap-2"
           >
             <ShoppingBag className="w-4 h-4" />
             <span className="text-xs font-bold">Shop gaps</span>

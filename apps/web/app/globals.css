@@ -192,6 +192,16 @@
     --badge-new-to: hsl(180 100% 50%);
     --badge-new-bg-from: hsl(200 100% 96%);
     --badge-new-bg-to: hsl(180 100% 96%);
+
+    /* Semantic state colors */
+    --success: 16 185 129;      /* emerald-500 equivalent */
+    --success-foreground: 0 0 0;
+    --warning: 245 158 11;      /* amber-500 equivalent */
+    --warning-foreground: 0 0 0;
+    --error: 239 68 68;         /* red-500 equivalent */
+    --error-foreground: 255 255 255;
+    --info: 139 92 246;         /* violet-500 equivalent */
+    --info-foreground: 255 255 255;
   }
 
   .dark {
@@ -250,6 +260,16 @@
     --badge-new-to: hsl(180 100% 50%);
     --badge-new-bg-from: hsl(200 50% 8%);
     --badge-new-bg-to: hsl(180 50% 8%);
+
+    /* Semantic state colors — same RGB triplets work on dark backgrounds */
+    --success: 16 185 129;
+    --success-foreground: 255 255 255;
+    --warning: 245 158 11;
+    --warning-foreground: 255 255 255;
+    --error: 239 68 68;
+    --error-foreground: 255 255 255;
+    --info: 139 92 246;
+    --info-foreground: 255 255 255;
   }
 }
 

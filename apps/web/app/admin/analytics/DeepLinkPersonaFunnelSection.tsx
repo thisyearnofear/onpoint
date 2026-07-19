@@ -41,18 +41,18 @@ const PERSONA_COLORS: Record<string, string> = {
   miranda: "bg-slate-500",
   edina: "bg-purple-500",
   shaft: "bg-orange-500",
-  luxury: "bg-amber-500",
+  luxury: "bg-warning",
   streetwear: "bg-blue-500",
-  sustainable: "bg-emerald-500",
+  sustainable: "bg-success",
 };
 
 const PERSONA_TEXT_COLORS: Record<string, string> = {
-  miranda: "text-slate-500",
+  miranda: "text-muted-foreground",
   edina: "text-purple-500",
   shaft: "text-orange-500",
-  luxury: "text-amber-500",
+  luxury: "text-warning",
   streetwear: "text-blue-500",
-  sustainable: "text-emerald-500",
+  sustainable: "text-success",
 };
 
 const PERSONA_SVG_COLORS: Record<string, string> = {
@@ -194,7 +194,7 @@ export function DeepLinkPersonaFunnelSection() {
                 {rpt.totalCompleted} completed / {rpt.totalOutcomes} total
               </p>
             </div>
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-emerald-500">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-success">
               <CheckCircle2 className="h-4 w-4" />
             </div>
           </div>
@@ -208,7 +208,7 @@ export function DeepLinkPersonaFunnelSection() {
               </p>
               <p className="text-[11px] text-muted-foreground">Selection to critique</p>
             </div>
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-violet-500">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-info">
               <Sparkles className="h-4 w-4" />
             </div>
           </div>
@@ -222,7 +222,7 @@ export function DeepLinkPersonaFunnelSection() {
               </p>
               <p className="text-[11px] text-muted-foreground">Selected but no critique</p>
             </div>
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-amber-500">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-warning">
               <XCircle className="h-4 w-4" />
             </div>
           </div>
@@ -273,7 +273,7 @@ export function DeepLinkPersonaFunnelSection() {
                       />
                       {stats.selected > 0 && (
                         <div
-                          className="absolute top-0 h-1.5 rounded-full bg-emerald-500/60"
+                          className="absolute top-0 h-1.5 rounded-full bg-success/60"
                           style={{
                             width: `${(stats.completed / Math.max(stats.selected, 1)) * 100}%`,
                             maxWidth: `${(stats.selected / personaEntries[0]![1].selected) * 100}%`,
@@ -342,7 +342,7 @@ export function DeepLinkPersonaFunnelSection() {
                       />
                       {day.completed > 0 && (
                         <div
-                          className="absolute bottom-0 w-full rounded-t-md bg-emerald-500 transition-all duration-500"
+                          className="absolute bottom-0 w-full rounded-t-md bg-success transition-all duration-500"
                           style={{ height: `${Math.max(compH, 2)}%` }}
                         />
                       )}
@@ -360,7 +360,7 @@ export function DeepLinkPersonaFunnelSection() {
               <span className="inline-block h-2 w-2 rounded-sm bg-primary/30" /> Selected
             </span>
             <span className="flex items-center gap-1">
-              <span className="inline-block h-2 w-2 rounded-sm bg-emerald-500" /> Completed
+              <span className="inline-block h-2 w-2 rounded-sm bg-success" /> Completed
             </span>
           </div>
         </div>

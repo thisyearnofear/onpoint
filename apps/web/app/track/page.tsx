@@ -407,7 +407,7 @@ function TrackingPageInner() {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="text-center">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-emerald-500" />
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-success" />
           <p className="mt-3 text-sm text-muted-foreground">Loading tracking information...</p>
         </div>
       </div>
@@ -418,14 +418,14 @@ function TrackingPageInner() {
   if (error || !data) {
     return (
       <div className="mx-auto max-w-lg px-4 py-20">
-        <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-6 text-center">
+        <div className="rounded-xl border border-error/20 bg-error/5 p-6 text-center">
           <AlertTriangle className="mx-auto h-10 w-10 text-red-400" />
           <h2 className="mt-4 text-lg font-bold text-foreground">Unable to load tracking</h2>
           <p className="mt-2 text-sm text-muted-foreground">{error || "Something went wrong."}</p>
           <button
             type="button"
             onClick={() => router.push("/")}
-            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-success px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to OnPoint
@@ -463,17 +463,17 @@ function TrackingPageInner() {
           {payment.fulfilmentStatus !== "delivered" && (
             <div className="flex items-center gap-2">
               <div className="relative group" tabIndex={0}>
-                <span className="inline-flex cursor-default items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-600">
+                <span className="inline-flex cursor-default items-center gap-1.5 rounded-full border border-success/20 bg-success/10 px-2.5 py-0.5 text-[11px] font-medium text-success">
                   <span className="relative flex h-2 w-2">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
                   </span>
                   Live
                 </span>
 
                 {/* Live indicator tooltip */}
                 <div className="absolute right-0 top-full z-20 mt-1.5 w-56 rounded-lg border border-border bg-card p-3 shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 max-w-[calc(100vw-2rem)]">
-                  <p className="text-[11px] font-medium text-emerald-600">Auto-refreshing</p>
+                  <p className="text-[11px] font-medium text-success">Auto-refreshing</p>
                   <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
                     This page automatically refreshes every 15 seconds to check for order updates.
                   </p>
@@ -485,7 +485,7 @@ function TrackingPageInner() {
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-all duration-300 cursor-default ${
                     pushSubscribed
-                      ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600"
+                      ? "border-success/20 bg-success/10 text-success"
                       : swRegistered
                         ? "border-blue-500/20 bg-blue-500/10 text-blue-600"
                         : "border-border bg-muted/50 text-muted-foreground"
@@ -494,7 +494,7 @@ function TrackingPageInner() {
                   <span
                     className={`h-1.5 w-1.5 rounded-full ${
                       pushSubscribed
-                        ? "bg-emerald-500"
+                        ? "bg-success"
                         : swRegistered
                           ? "bg-blue-500"
                           : "bg-muted-foreground/40"
@@ -511,7 +511,7 @@ function TrackingPageInner() {
                 <div className="absolute right-0 top-full z-20 mt-1.5 w-64 rounded-lg border border-border bg-card p-3 shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 max-w-[calc(100vw-2rem)]">
                   {pushSubscribed ? (
                     <>
-                      <p className="text-[11px] font-medium text-emerald-600">Push active</p>
+                      <p className="text-[11px] font-medium text-success">Push active</p>
                       <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
                         Real-time notifications are active. You&apos;ll be notified instantly when your order status changes, even if this page is closed.
                       </p>
@@ -542,7 +542,7 @@ function TrackingPageInner() {
               >
                 <RefreshCw
                   className={`h-2.5 w-2.5 transition-all duration-500 ${
-                    justRefreshed ? "animate-spin-once text-emerald-500" : ""
+                    justRefreshed ? "animate-spin-once text-success" : ""
                   }`}
                 />
                 {justRefreshed
@@ -573,7 +573,7 @@ function TrackingPageInner() {
             }}
             className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium transition-all duration-300 ${
               copied
-                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600"
+                ? "border-success/30 bg-success/10 text-success"
                 : "border-border bg-background text-muted-foreground hover:border-muted-foreground/30 hover:text-foreground"
             }`}
           >
@@ -599,9 +599,9 @@ function TrackingPageInner() {
                 disabled={notifPermissionDenied}
                 className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium transition-all duration-300 ${
                   notificationsEnabled
-                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600"
+                    ? "border-success/30 bg-success/10 text-success"
                     : notifPermissionDenied
-                      ? "border-red-500/20 bg-red-500/5 text-muted-foreground/50 cursor-not-allowed"
+                      ? "border-error/20 bg-error/5 text-muted-foreground/50 cursor-not-allowed"
                       : "border-border bg-background text-muted-foreground hover:border-muted-foreground/30 hover:text-foreground"
                 }`}
               >
@@ -792,14 +792,14 @@ function TrackingPageInner() {
         <div
           className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 shadow-lg ${
             toast?.variant === "success"
-              ? "border-emerald-500/30 bg-emerald-500/10"
+              ? "border-success/30 bg-success/10"
               : "border-border bg-background"
           }`}
         >
-          {toast?.variant === "success" && <BellRing className="h-3 w-3 text-emerald-500" />}
+          {toast?.variant === "success" && <BellRing className="h-3 w-3 text-success" />}
           <span
             className={`text-xs ${
-              toast?.variant === "success" ? "font-medium text-emerald-600" : "text-foreground"
+              toast?.variant === "success" ? "font-medium text-success" : "text-foreground"
             }`}
           >
             {toast?.message}
@@ -845,7 +845,7 @@ export default function TrackingPage() {
       <Suspense
         fallback={
           <div className="flex min-h-[60vh] items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+            <Loader2 className="h-8 w-8 animate-spin text-success" />
           </div>
         }
       >

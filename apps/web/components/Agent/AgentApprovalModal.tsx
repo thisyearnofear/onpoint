@@ -119,7 +119,7 @@ export function AgentApprovalModal({
             {/* Header */}
             <div className="px-6 py-4 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-b border-border">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-amber-500/30 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-2xl bg-warning/30 flex items-center justify-center">
                   <Icon className="w-6 h-6 text-amber-400" />
                 </div>
                 <div>
@@ -179,7 +179,7 @@ export function AgentApprovalModal({
               )}
 
               {/* Security Notice */}
-              <div className="flex items-start gap-2 p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+              <div className="flex items-start gap-2 p-3 bg-success/10 rounded-xl border border-success/20">
                 <Shield className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                 <p className="text-emerald-300 text-xs">
                   This action will be recorded on-chain. You can revoke

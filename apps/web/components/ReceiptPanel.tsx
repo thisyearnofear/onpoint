@@ -212,9 +212,9 @@ export function ReceiptPanel({
 
       <div className="receipt-root space-y-3">
         {/* Success banner */}
-        <div className="receipt-banner receipt-card rounded-xl bg-gradient-to-br from-emerald-600/20 to-emerald-700/10 border border-emerald-500/30 p-4 sm:p-5 text-center">
-          <div className="receipt-icon-wrap mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20">
-            <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+        <div className="receipt-banner receipt-card rounded-xl bg-gradient-to-br from-emerald-600/20 to-emerald-700/10 border border-success/30 p-4 sm:p-5 text-center">
+          <div className="receipt-icon-wrap mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-success/20">
+            <CheckCircle2 className="h-6 w-6 text-success" />
           </div>
           <h3 className="receipt-heading mt-3 text-base font-bold text-foreground">
             {title}
@@ -262,9 +262,9 @@ export function ReceiptPanel({
               value={
                 <span className="inline-flex items-center gap-1">
                   {payment.method === "stk" ? (
-                    <Smartphone className="h-3 w-3 text-emerald-500" />
+                    <Smartphone className="h-3 w-3 text-success" />
                   ) : (
-                    <CreditCard className="h-3 w-3 text-emerald-500" />
+                    <CreditCard className="h-3 w-3 text-success" />
                   )}
                   {methodLabel}
                 </span>
@@ -367,7 +367,7 @@ export function ReceiptPanel({
               "You will be notified when the rider is on the way.",
             ].map((step, i) => (
               <li key={i} className="receipt-step flex items-start gap-2.5 text-xs leading-5 text-foreground">
-                <span className="receipt-step-num mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-[9px] font-bold text-emerald-600">
+                <span className="receipt-step-num mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-success/10 text-[9px] font-bold text-success">
                   {i + 1}
                 </span>
                 {step}
@@ -382,7 +382,7 @@ export function ReceiptPanel({
               rel="noopener noreferrer"
               className="receipt-whatsapp-btn mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
             >
-              <MessageCircle className="h-3.5 w-3.5 text-emerald-500" />
+              <MessageCircle className="h-3.5 w-3.5 text-success" />
               Message {curator.name} on WhatsApp
             </a>
           )}

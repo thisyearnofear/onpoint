@@ -469,7 +469,7 @@ export function AnalysisResults({
               disabled={saved}
               className={`inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition-all ${
                 saved
-                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  ? "border-success/30 bg-success/10 text-success dark:text-emerald-400"
                   : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
             >
@@ -564,9 +564,9 @@ function InsightCard({
   onToggle: () => void;
 }) {
   const colors = {
-    emerald: "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    emerald: "border-success/25 bg-success/10 text-success dark:text-emerald-300",
     indigo: "border-indigo-500/25 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
-    amber: "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+    amber: "border-warning/25 bg-warning/10 text-warning dark:text-amber-300",
   };
   const shown = expanded ? items : items.slice(0, 1);
   const fallback = title === "Fit move"

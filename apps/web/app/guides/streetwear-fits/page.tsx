@@ -58,7 +58,7 @@ export default function StreetwearGuide() {
                 "Vintage & deadstock pieces add real authenticity",
               ].map((tip) => (
                 <div key={tip} className="flex items-start gap-2 text-sm">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                   <span className="text-muted-foreground">{tip}</span>
                 </div>
               ))}
@@ -89,7 +89,7 @@ export default function StreetwearGuide() {
                     "Clean white sneakers — the cornerstone of any rotation",
                   ].map((item) => (
                     <li key={item} className="flex items-start gap-2 text-sm">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                       <span>{item}</span>
                     </li>
                   ))}

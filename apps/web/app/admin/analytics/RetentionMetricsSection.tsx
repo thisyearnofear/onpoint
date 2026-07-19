@@ -55,10 +55,10 @@ const METHOD_ICONS: Record<string, React.ElementType> = {
 };
 
 const METHOD_COLORS: Record<string, string> = {
-  farcaster: "bg-violet-500",
+  farcaster: "bg-info",
   twitter: "bg-sky-500",
-  download: "bg-emerald-500",
-  copy: "bg-amber-500",
+  download: "bg-success",
+  copy: "bg-warning",
   native_share: "bg-blue-500",
 };
 
@@ -237,7 +237,7 @@ export function RetentionMetricsSection() {
               </p>
               <p className="text-[11px] text-muted-foreground">Polaroid preview views</p>
             </div>
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-violet-500">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-info">
               <ImageIcon className="h-4 w-4" />
             </div>
           </div>
@@ -256,7 +256,7 @@ export function RetentionMetricsSection() {
                   : "No card opens yet"}
               </p>
             </div>
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-emerald-500">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-success">
               <Share2 className="h-4 w-4" />
             </div>
           </div>
@@ -271,7 +271,7 @@ export function RetentionMetricsSection() {
                 Shares ÷ style card opens
               </p>
             </div>
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-amber-500">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-warning">
               <TrendingUp className="h-4 w-4" />
             </div>
           </div>
@@ -309,7 +309,7 @@ export function RetentionMetricsSection() {
                       {/* Share overlay bar */}
                       {day.shares > 0 && (
                         <div
-                          className="absolute bottom-0 w-full rounded-t-md bg-emerald-500 transition-all duration-500"
+                          className="absolute bottom-0 w-full rounded-t-md bg-success transition-all duration-500"
                           style={{ height: `${Math.max(shareH, 2)}%` }}
                         />
                       )}
@@ -327,7 +327,7 @@ export function RetentionMetricsSection() {
               <span className="inline-block h-2 w-2 rounded-sm bg-primary/40" /> Saves
             </span>
             <span className="flex items-center gap-1">
-              <span className="inline-block h-2 w-2 rounded-sm bg-emerald-500" /> Shares
+              <span className="inline-block h-2 w-2 rounded-sm bg-success" /> Shares
             </span>
           </div>
         </div>
@@ -421,7 +421,7 @@ export function RetentionMetricsSection() {
                   <Bar
                     value={count}
                     max={savePersonaEntries[0]![1]}
-                    color="bg-violet-500"
+                    color="bg-info"
                     height="h-1.5"
                   />
                 </div>
@@ -449,7 +449,7 @@ export function RetentionMetricsSection() {
                   <Bar
                     value={count}
                     max={sharePersonaEntries[0]![1]}
-                    color="bg-emerald-500"
+                    color="bg-success"
                     height="h-1.5"
                   />
                 </div>
@@ -472,9 +472,9 @@ export function RetentionMetricsSection() {
 
       {/* Digest sent/error feedback */}
       {digestSent && (
-        <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3 flex items-center gap-2 text-sm">
-          <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-          <span className="text-emerald-700 dark:text-emerald-300">
+        <div className="rounded-lg bg-success/10 border border-success/20 p-3 flex items-center gap-2 text-sm">
+          <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+          <span className="text-success dark:text-emerald-300">
             Digest sent! Check your admin inbox.
           </span>
         </div>

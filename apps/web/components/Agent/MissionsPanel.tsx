@@ -67,14 +67,14 @@ const CATEGORY_STYLES: Record<
   collector: {
     label: "Collector",
     color: "text-amber-400",
-    bg: "bg-amber-500/10",
-    border: "border-amber-500/20",
+    bg: "bg-warning/10",
+    border: "border-warning/20",
   },
   economy: {
     label: "Economy",
     color: "text-emerald-400",
-    bg: "bg-emerald-500/10",
-    border: "border-emerald-500/20",
+    bg: "bg-success/10",
+    border: "border-success/20",
   },
   social: {
     label: "Social",
@@ -233,7 +233,7 @@ export function MissionsPanel({ userId, compact = false }: MissionsPanelProps) {
                   <div
                     className={`rounded-xl border p-3 cursor-pointer transition-all ${
                       isCompleted
-                        ? "bg-emerald-500/5 border-emerald-500/20"
+                        ? "bg-success/5 border-success/20"
                         : "bg-muted/30 border-border hover:border-muted-foreground/30"
                     }`}
                     onClick={() => setExpandedMission(isExpanded ? null : mission.id)}
@@ -243,7 +243,7 @@ export function MissionsPanel({ userId, compact = false }: MissionsPanelProps) {
                       <div
                         className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                           isCompleted
-                            ? "bg-emerald-500/20"
+                            ? "bg-success/20"
                             : catStyle.bg
                         }`}
                       >

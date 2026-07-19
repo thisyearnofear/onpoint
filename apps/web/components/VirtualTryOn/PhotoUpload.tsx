@@ -15,8 +15,8 @@ interface PhotoUploadProps {
 
 function CheckIcon({ status }: { status: QualityCheck["status"] }) {
   if (status === "pass") return <CheckCircle className="h-3.5 w-3.5 text-green-500" />;
-  if (status === "warn") return <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />;
-  return <XCircle className="h-3.5 w-3.5 text-red-500" />;
+  if (status === "warn") return <AlertTriangle className="h-3.5 w-3.5 text-warning" />;
+  return <XCircle className="h-3.5 w-3.5 text-error" />;
 }
 
 const SAMPLE_PHOTOS = [
@@ -209,7 +209,7 @@ export function PhotoUpload({ onPhotoSelect, disabled, selfieMode = false }: Pho
                     check.status === "pass"
                       ? "text-green-700 bg-green-50"
                       : check.status === "warn"
-                      ? "text-amber-700 bg-amber-50"
+                      ? "text-warning bg-amber-50"
                       : "text-red-700 bg-red-50"
                   }`}
                 >
@@ -219,7 +219,7 @@ export function PhotoUpload({ onPhotoSelect, disabled, selfieMode = false }: Pho
               ))}
             </div>
             {qualityResult.failCount >= 2 && (
-              <div className="text-xs text-center text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
+              <div className="text-xs text-center text-warning bg-amber-50 rounded-lg px-3 py-2">
                 For best results, consider re-uploading with a clearer, well-lit full-body photo.
               </div>
             )}

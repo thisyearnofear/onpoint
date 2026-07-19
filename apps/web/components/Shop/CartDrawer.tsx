@@ -106,7 +106,7 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
                       }}
                     />
                     <motion.div
-                      className="absolute bottom-8 left-1 w-2.5 h-2.5 rounded-full bg-amber-500/30"
+                      className="absolute bottom-8 left-1 w-2.5 h-2.5 rounded-full bg-warning/30"
                       animate={{
                         y: [4, -8, 4],
                         opacity: [0.3, 0.7, 0.3],
@@ -119,7 +119,7 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
                       }}
                     />
                     <motion.div
-                      className="absolute top-6 left-0 w-2 h-2 rounded-full bg-emerald-500/25"
+                      className="absolute top-6 left-0 w-2 h-2 rounded-full bg-success/25"
                       animate={{
                         x: [0, 8, 0],
                         y: [0, -4, 0],
@@ -165,7 +165,7 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
                         strokeWidth="2.5"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="text-slate-600"
+                        className="text-muted-foreground"
                         initial={{ pathLength: 0 }}
                         animate={{ pathLength: 1 }}
                         transition={{ duration: 1.5, ease: "easeOut" }}
@@ -177,7 +177,7 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
                         strokeWidth="2.5"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="text-slate-500"
+                        className="text-muted-foreground"
                         initial={{ pathLength: 0 }}
                         animate={{ pathLength: 1 }}
                         transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }}

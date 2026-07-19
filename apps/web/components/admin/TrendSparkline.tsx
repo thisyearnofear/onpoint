@@ -207,7 +207,7 @@ export function Sparkline({
 export function Bar({
   value,
   max,
-  color = "bg-violet-500",
+  color = "bg-info",
   height = "h-1.5",
 }: {
   value: number;
@@ -243,7 +243,7 @@ function TimeRangeToggle({
         onClick={() => onChange("7d")}
         className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${
           active === "7d"
-            ? "bg-violet-500/15 text-violet-600"
+            ? "bg-info/15 text-violet-600"
             : "text-muted-foreground hover:bg-muted"
         }`}
       >
@@ -254,7 +254,7 @@ function TimeRangeToggle({
         disabled={!has30}
         className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${
           active === "30d"
-            ? "bg-violet-500/15 text-violet-600"
+            ? "bg-info/15 text-violet-600"
             : "text-muted-foreground hover:bg-muted disabled:opacity-40"
         }`}
       >
@@ -362,9 +362,9 @@ export function TrendSparkline({
               <span
                 className={`inline-flex items-center gap-0.5 font-medium ${
                   wow.direction === "up"
-                    ? "text-emerald-600"
+                    ? "text-success"
                     : wow.direction === "down"
-                      ? "text-red-500"
+                      ? "text-error"
                       : "text-muted-foreground"
                 }`}
               >
@@ -435,7 +435,7 @@ export function TrendSparkline({
           return (
             <div key={i} className="group relative flex-1">
               <div
-                className="mx-auto w-full rounded-t-sm bg-violet-500/80 transition-all duration-300 group-hover:bg-violet-500"
+                className="mx-auto w-full rounded-t-sm bg-info/80 transition-all duration-300 group-hover:bg-info"
                 style={{
                   height: `${h}px`,
                   maxWidth: timeRange === "30d" ? 12 : 24,

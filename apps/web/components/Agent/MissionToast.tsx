@@ -69,11 +69,11 @@ export function MissionToast({
   const getRewardColor = () => {
     switch (rewardType) {
       case "xp":
-        return "from-amber-500/20 to-orange-500/20 border-amber-500/30";
+        return "from-amber-500/20 to-orange-500/20 border-warning/30";
       case "badge":
         return "from-purple-500/20 to-pink-500/20 border-purple-500/30";
       case "unlock":
-        return "from-emerald-500/20 to-green-500/20 border-emerald-500/30";
+        return "from-emerald-500/20 to-green-500/20 border-success/30";
       default:
         return "from-indigo-500/20 to-purple-500/20 border-indigo-500/30";
     }

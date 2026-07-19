@@ -21,7 +21,7 @@ export function CritiqueResult({ persona, critique, mode, onBack, onTryDifferent
       streetwear: { icon: Zap, label: "Streetwear Guru", color: "text-blue-600", bg: "bg-blue-50" },
       sustainable: { icon: Leaf, label: "Eco Stylist", color: "text-green-600", bg: "bg-green-50" },
       edina: { icon: Sparkles, label: "Edina Monsoon", color: "text-purple-600", bg: "bg-purple-50" },
-      miranda: { icon: Star, label: "Miranda Priestly", color: "text-red-600", bg: "bg-red-50" },
+      miranda: { icon: Star, label: "Miranda Priestly", color: "text-error", bg: "bg-red-50" },
       shaft: { icon: MessageCircle, label: "Shaft", color: "text-orange-600", bg: "bg-orange-50" }
     };
     return configs[persona] || configs.luxury;
@@ -29,7 +29,7 @@ export function CritiqueResult({ persona, critique, mode, onBack, onTryDifferent
 
   const getModeConfig = (mode: CritiqueMode) => {
     const configs = {
-      roast: { icon: Flame, label: "Roast Mode", color: "text-red-600", bg: "bg-red-50", border: "border-red-200" },
+      roast: { icon: Flame, label: "Roast Mode", color: "text-error", bg: "bg-red-50", border: "border-red-200" },
       flatter: { icon: Heart, label: "Flatter Mode", color: "text-pink-600", bg: "bg-pink-50", border: "border-pink-200" },
       real: { icon: Scale, label: "Real Mode", color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200" }
     };

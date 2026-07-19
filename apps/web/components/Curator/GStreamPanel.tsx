@@ -209,14 +209,14 @@ export function GStreamPanel({
   if (phase === "wrong-chain") {
     return (
       <Shell compact={compact} className={className}>
-        <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
+        <AlertCircle className="h-5 w-5 text-warning shrink-0" />
         <div className="flex-1">
           <p className="text-sm font-semibold text-foreground">Switch to Celo</p>
           <p className="text-xs text-muted-foreground">G$ streaming is on Celo.</p>
         </div>
         <button
           onClick={() => switchChain?.({ chainId: celo.id })}
-          className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-emerald-500"
+          className="rounded-lg bg-success px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-success"
         >
           Switch
         </button>
@@ -254,7 +254,7 @@ export function GStreamPanel({
   if (phase === "success" && txHash) {
     return (
       <Shell compact={compact} className={className}>
-        <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
+        <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
         <div className="flex-1">
           <p className="text-sm font-semibold text-foreground">Stream updated!</p>
           <a
@@ -274,7 +274,7 @@ export function GStreamPanel({
   if (phase === "pending") {
     return (
       <Shell compact={compact} className={className}>
-        <Loader2 className="h-5 w-5 animate-spin text-emerald-500 shrink-0" />
+        <Loader2 className="h-5 w-5 animate-spin text-success shrink-0" />
         <p className="text-sm text-muted-foreground">Confirm in wallet…</p>
       </Shell>
     );
@@ -284,8 +284,8 @@ export function GStreamPanel({
   if (phase === "active") {
     return (
       <Shell compact={compact} className={className}>
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 shrink-0">
-          <Activity className="h-4 w-4 text-emerald-500" />
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-success/10 shrink-0">
+          <Activity className="h-4 w-4 text-success" />
         </div>
         <div className="flex-1 space-y-1">
           <p className="text-sm font-semibold text-foreground">
@@ -299,7 +299,7 @@ export function GStreamPanel({
                 onClick={() => setSelectedMonthly(p.amount)}
                 className={`rounded-md px-2 py-0.5 text-[10px] font-bold transition-colors ${
                   selectedMonthly === p.amount
-                    ? "bg-emerald-500/20 text-emerald-300"
+                    ? "bg-success/20 text-emerald-300"
                     : "bg-muted/40 text-muted-foreground hover:bg-muted"
                 }`}
               >
@@ -312,7 +312,7 @@ export function GStreamPanel({
           <button
             onClick={handleUpdate}
             disabled={selectedMonthly === currentMonthly}
-            className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-emerald-500 disabled:opacity-40"
+            className="inline-flex items-center gap-1 rounded-lg bg-success px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-success disabled:opacity-40"
           >
             <RefreshCw className="h-3 w-3" />
             Update
@@ -382,7 +382,7 @@ export function GStreamPanel({
               onClick={() => setSelectedMonthly(p.amount)}
               className={`flex flex-col items-center rounded-md px-2.5 py-1 text-xs font-bold transition-colors ${
                 selectedMonthly === p.amount
-                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                  ? "bg-success/20 text-emerald-300 border border-success/30"
                   : "bg-muted/40 text-muted-foreground hover:bg-muted border border-transparent"
               }`}
             >

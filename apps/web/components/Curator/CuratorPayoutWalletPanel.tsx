@@ -174,9 +174,9 @@ export function CuratorPayoutWalletPanel({
         <span
           className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
             status === "curator_owned"
-              ? "bg-emerald-500/10 text-emerald-700"
+              ? "bg-success/10 text-success"
               : status === "platform_custodial"
-                ? "bg-amber-500/10 text-amber-700"
+                ? "bg-warning/10 text-warning"
                 : "bg-muted text-muted-foreground"
           }`}
         >
@@ -217,9 +217,9 @@ export function CuratorPayoutWalletPanel({
           type="button"
           onClick={connectMiniPay}
           disabled={Boolean(busy)}
-          className={`${optionClass} border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10`}
+          className={`${optionClass} border-success/20 bg-success/5 hover:bg-success/10`}
         >
-          <Smartphone className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+          <Smartphone className="mt-0.5 h-4 w-4 shrink-0 text-success" />
           <span>
             <span className="block text-sm font-bold">Use MiniPay</span>
             <span className="mt-1 block text-xs text-muted-foreground">
@@ -233,9 +233,9 @@ export function CuratorPayoutWalletPanel({
           type="button"
           onClick={provisionCustodial}
           disabled={Boolean(busy) || status === "curator_owned"}
-          className={`${optionClass} border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10`}
+          className={`${optionClass} border-warning/20 bg-warning/5 hover:bg-warning/10`}
         >
-          <Wallet className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+          <Wallet className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
           <span>
             <span className="block text-sm font-bold">Quick start (OnPoint holds funds)</span>
             <span className="mt-1 block text-xs text-muted-foreground">
@@ -292,7 +292,7 @@ export function CuratorPayoutWalletPanel({
         </p>
       )}
       {message && (
-        <p className="flex items-start gap-1.5 text-xs text-emerald-600">
+        <p className="flex items-start gap-1.5 text-xs text-success">
           <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0" />
           {message}
         </p>

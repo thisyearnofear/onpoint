@@ -309,7 +309,7 @@ export function SessionSummaryScreen({
           {/* Shop CTA — save analysis to sessionStorage and navigate */}
           <Button
             variant="outline"
-            className="w-full rounded-full py-5 text-sm font-bold gap-2 border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+            className="w-full rounded-full py-5 text-sm font-bold gap-2 border-warning/30 text-amber-400 hover:bg-warning/10"
             onClick={() => {
               if (typeof window !== "undefined") {
                 sessionStorage.setItem(
@@ -439,7 +439,7 @@ export function SessionSummaryScreen({
                 new CustomEvent("onpoint:navigate", { detail: "my-looks" }),
               );
             }}
-            className="w-full text-center text-[11px] text-emerald-500/70 hover:text-emerald-400 transition-colors py-2"
+            className="w-full text-center text-[11px] text-success/70 hover:text-emerald-400 transition-colors py-2"
           >
             Saved to My Looks — View all →
           </button>

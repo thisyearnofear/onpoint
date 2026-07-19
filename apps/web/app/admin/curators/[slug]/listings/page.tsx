@@ -195,9 +195,9 @@ export default async function ListingListPage({
                         <span
                           className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
                             isLive
-                              ? "bg-emerald-500/10 text-emerald-600"
+                              ? "bg-success/10 text-success"
                               : listing.status === "paused"
-                                ? "bg-amber-500/10 text-amber-600"
+                                ? "bg-warning/10 text-warning"
                                 : "bg-muted text-muted-foreground"
                           }`}
                         >

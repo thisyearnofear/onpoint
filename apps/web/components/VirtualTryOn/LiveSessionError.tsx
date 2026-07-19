@@ -112,7 +112,7 @@ function CameraRecovery({
     <div className="absolute inset-0 z-[80] flex flex-col items-center justify-center bg-slate-950/95 backdrop-blur-xl px-6 py-8">
       <div className="max-w-md w-full rounded-3xl bg-slate-900/80 border border-white/10 p-6 sm:p-8 shadow-2xl">
         <div className="flex items-start gap-4 mb-5">
-          <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+          <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-warning/10 border border-warning/20 flex items-center justify-center">
             <Icon className="w-6 h-6 text-amber-400" />
           </div>
           <div className="min-w-0">
@@ -127,7 +127,7 @@ function CameraRecovery({
 
         {error.steps.length > 0 && (
           <div className="mb-6">
-            <p className="text-[10px] uppercase tracking-wider text-slate-500 font-mono mb-2.5">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono mb-2.5">
               How to fix
             </p>
             <ol className="space-y-2">
@@ -136,7 +136,7 @@ function CameraRecovery({
                   key={i}
                   className="flex gap-3 text-sm text-slate-200 leading-relaxed"
                 >
-                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-white/5 border border-white/10 text-slate-400 text-[10px] font-bold flex items-center justify-center mt-0.5">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-white/5 border border-white/10 text-muted-foreground/70 text-[10px] font-bold flex items-center justify-center mt-0.5">
                     {i + 1}
                   </span>
                   <span>{step}</span>
@@ -150,7 +150,7 @@ function CameraRecovery({
           {onUseUploadPhoto && (
             <Button
               onClick={onUseUploadPhoto}
-              className="w-full bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-full font-bold gap-2"
+              className="w-full bg-success hover:bg-success active:bg-success text-white rounded-full font-bold gap-2"
             >
               <Upload className="w-4 h-4" />
               Upload a Photo instead
@@ -160,7 +160,7 @@ function CameraRecovery({
             <Button
               variant="ghost"
               onClick={onGoBack}
-              className="w-full text-slate-400 hover:text-white hover:bg-white/5 font-medium gap-2"
+              className="w-full text-muted-foreground/70 hover:text-white hover:bg-white/5 font-medium gap-2"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               Go Back
@@ -253,7 +253,7 @@ function GenericError({
         </div>
         <h2 className="text-xl font-bold text-white text-center mb-2">{title}</h2>
         <div className="text-center mb-8 space-y-3">
-          <p className="text-slate-400 text-sm">{error}</p>
+          <p className="text-muted-foreground/70 text-sm">{error}</p>
           {!isPremium && errorLower.includes("rate limit") && (() => {
             const premium = findPremiumProvider();
             if (!premium) return null;
@@ -274,7 +274,7 @@ function GenericError({
             );
           })()}
           {errorLower.includes("camera") && (
-            <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20">
+            <div className="p-3 bg-warning/10 rounded-xl border border-warning/20">
               <p className="text-amber-300 text-xs">
                 Please allow camera access in your browser settings.
               </p>
@@ -291,7 +291,7 @@ function GenericError({
                   />
                   <button
                     onClick={onShowByok}
-                    className="w-full text-xs text-slate-400 hover:text-white transition-colors py-1"
+                    className="w-full text-xs text-muted-foreground/70 hover:text-white transition-colors py-1"
                   >
                     Or use your own API key
                   </button>
@@ -304,7 +304,7 @@ function GenericError({
                     value={userApiKey}
                     onChange={(e) => onSetUserApiKey(e.target.value)}
                     placeholder="Enter your Gemini API key"
-                    className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50"
+                    className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-muted-foreground focus:outline-none focus:border-indigo-500/50"
                   />
                   <Button
                     className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-full font-bold"
@@ -321,7 +321,7 @@ function GenericError({
             <div className="flex flex-col gap-2">
               {isCameraError && onUseUploadPhoto && (
                 <Button
-                  className="w-full bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-full font-bold gap-2"
+                  className="w-full bg-success hover:bg-success active:bg-success text-white rounded-full font-bold gap-2"
                   onClick={onUseUploadPhoto}
                 >
                   <Upload className="w-4 h-4" />
@@ -330,7 +330,7 @@ function GenericError({
               )}
               <Button
                 variant="ghost"
-                className="text-slate-400 hover:text-white hover:bg-white/5 font-bold"
+                className="text-muted-foreground/70 hover:text-white hover:bg-white/5 font-bold"
                 onClick={onGoBack}
               >
                 Go Back

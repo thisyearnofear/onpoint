@@ -50,8 +50,8 @@ export default async function AdminDashboardPage() {
 
         <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10">
-              <TrendingUp className="h-5 w-5 text-emerald-500" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-success/10">
+              <TrendingUp className="h-5 w-5 text-success" />
             </div>
             <div className="min-w-0">
               <p className="text-2xl font-black">{stats.withListings}</p>
@@ -62,8 +62,8 @@ export default async function AdminDashboardPage() {
 
         <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-500/10">
-              <Users className="h-5 w-5 text-violet-500" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-info/10">
+              <Users className="h-5 w-5 text-info" />
             </div>
             <div className="min-w-0">
               <p className="text-2xl font-black">{stats.total > 0 ? Math.round((stats.withListings / stats.total) * 100) : 0}%</p>
@@ -96,7 +96,7 @@ export default async function AdminDashboardPage() {
             className="flex items-center justify-between rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50"
           >
             <div className="flex items-center gap-3">
-              <Users className="h-5 w-5 text-emerald-500" />
+              <Users className="h-5 w-5 text-success" />
               <div>
                 <p className="font-medium">Onboard new curator</p>
                 <p className="text-xs text-muted-foreground">Self-serve registration form</p>

@@ -59,7 +59,13 @@
           { "name": "season", "in": "query", "schema": { "type": "string" }, "description": "Filter by metadata.season (e.g. spring, summer, fall, winter, all-season)" },
           { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 }, "description": "Max results (capped at 100)" }
         ],
-        "responses": { "200": { "description": "List of looks with resolved images and metadata" } }
+        "responses": { "200": {
+          "description": "List of looks with resolved images and metadata",
+          "content": { "application/json": { "schema": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/LookListItem" }
+          } } }
+        } }
       },
       "post": {
         "summary": "Create a new look (agent or curator auth)",
@@ -73,14 +79,38 @@
           "curatorSlug": { "type": "string", "description": "Required for curator auth" },
           "status": { "type": "string", "enum": ["live", "draft"], "default": "live", "description": "Save as draft to publish later" }
         } } } } },
-        "responses": { "201": { "description": "Created look with slug, id, collageUrl, and metadata" }, "401": { "description": "Authentication required — see x-agent-address or x-curator-slug headers" } }
+        "responses": {
+          "201": {
+            "description": "Created look with slug, id, collageUrl, and metadata",
+            "content": { "application/json": { "schema": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string", "format": "uuid" },
+                "slug": { "type": "string", "description": "URL-safe slug, unique" },
+                "title": { "type": "string" },
+                "collageUrl": { "type": "string", "format": "uri", "nullable": true },
+                "coverImageUrl": { "type": "string", "format": "uri", "nullable": true },
+                "metadata": { "$ref": "#/components/schemas/LookMetadata" },
+                "status": { "type": "string", "enum": ["live", "draft"] },
+                "items": { "type": "array", "items": { "$ref": "#/components/schemas/LookItem" } }
+              }
+            } } }
+          },
+          "401": { "description": "Authentication required — see x-agent-address or x-curator-slug headers" }
+        }
       }
     },
     "/api/looks/{slug}": {
       "get": {
         "summary": "Get a look with resolved listings and metadata",
         "parameters": [ { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } } ],
-        "responses": { "200": { "description": "Look details with resolved listings, collageUrl, and metadata" }, "404": { "description": "Look not found" } }
+        "responses": {
+          "200": {
+            "description": "Look details with resolved listings, collageUrl, and metadata",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LookDetail" } } }
+          },
+          "404": { "description": "Look not found" }
+        }
       },
       "patch": {
         "summary": "Update a look (creator only)",
@@ -91,21 +121,50 @@
           "tags": { "type": "array", "items": { "type": "string" } },
           "status": { "type": "string", "enum": ["live", "paused", "archived", "draft"], "description": "Change status — e.g. publish a draft with 'live'" }
         } } } } },
-        "responses": { "200": { "description": "Updated look" }, "403": { "description": "Not the look creator — response includes { error, provided, expected, hint }" } }
+        "responses": {
+          "200": {
+            "description": "Updated look",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LookDetail" } } }
+          },
+          "403": {
+            "description": "Not the look creator — response includes diagnostic context",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error403" } } }
+          }
+        }
       }
     },
     "/api/looks/{slug}/collage": {
       "post": {
         "summary": "Generate or regenerate look collage (public, best-effort AI + sharp fallback)",
         "parameters": [ { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } } ],
-        "responses": { "200": { "description": "Collage generated with r2Key, url, and tier (1=sharp, 2=AI)" } }
+        "responses": { "200": {
+          "description": "Collage generated",
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "properties": {
+              "r2Key": { "type": "string", "description": "R2 storage key" },
+              "url": { "type": "string", "format": "uri" },
+              "tier": { "type": "integer", "enum": [1, 2], "description": "1=sharp (deterministic), 2=AI (Qwen Cloud)" },
+              "aiFallbackReason": { "type": "string", "nullable": true, "description": "Present when tier=1 due to AI failure" }
+            }
+          } } }
+        } }
       }
     },
     "/api/looks/{slug}/classify": {
       "post": {
         "summary": "Auto-classify look metadata (category, occasion, season) — rule-based + AI vision",
         "parameters": [ { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } } ],
-        "responses": { "200": { "description": "Classification result: { success, metadata: { category, occasion, season } }" } }
+        "responses": { "200": {
+          "description": "Classification result",
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "properties": {
+              "success": { "type": "boolean" },
+              "metadata": { "$ref": "#/components/schemas/LookMetadata" }
+            }
+          } } }
+        } }
       }
     },
     "/api/looks/{slug}/image": {
@@ -115,7 +174,16 @@
         "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["image"], "properties": {
           "image": { "type": "string", "description": "data:image/jpeg;base64,... payload" }
         } } } } },
-        "responses": { "200": { "description": "Cover image uploaded with coverImageKey and coverImageUrl" } }
+        "responses": { "200": {
+          "description": "Cover image uploaded",
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "properties": {
+              "coverImageKey": { "type": "string" },
+              "coverImageUrl": { "type": "string", "format": "uri" }
+            }
+          } } }
+        } }
       }
     },
     "/api/looks/{slug}/share": {
@@ -125,14 +193,26 @@
         "requestBody": { "required": false, "content": { "application/json": { "schema": { "type": "object", "properties": {
           "platform": { "type": "string", "enum": ["twitter", "facebook", "whatsapp", "copy", "native"], "description": "Sharing platform" }
         } } } } },
-        "responses": { "200": { "description": "{ ok: true, shareCount: N }" } }
+        "responses": { "200": {
+          "description": "Share recorded",
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "properties": { "ok": { "type": "boolean" }, "shareCount": { "type": "integer" } }
+          } } }
+        } }
       }
     },
     "/api/looks/{slug}/try-on-count": {
       "post": {
         "summary": "Increment try-on count for a look (called when try-on uses lookSlug)",
         "parameters": [ { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } } ],
-        "responses": { "200": { "description": "{ ok: true, tryOnCount: N }" } }
+        "responses": { "200": {
+          "description": "Try-on count incremented",
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "properties": { "ok": { "type": "boolean" }, "tryOnCount": { "type": "integer" } }
+          } } }
+        } }
       }
     },
     "/api/looks/bulk": {
@@ -142,7 +222,22 @@
           "action": { "type": "string", "enum": ["archive", "publish", "delete"], "description": "Bulk action to apply" },
           "slugs": { "type": "array", "items": { "type": "string" }, "description": "Look slugs to apply the action to" }
         } } } } },
-        "responses": { "200": { "description": "{ updated: N, failed: [{ slug, error }] }" }, "401": { "description": "Authentication required" } }
+        "responses": {
+          "200": {
+            "description": "Bulk action result",
+            "content": { "application/json": { "schema": {
+              "type": "object",
+              "properties": {
+                "updated": { "type": "integer" },
+                "failed": { "type": "array", "items": { "type": "object", "properties": {
+                  "slug": { "type": "string" },
+                  "error": { "type": "string" }
+                } } }
+              }
+            } } }
+          },
+          "401": { "description": "Authentication required" }
+        }
       }
     },
     "/api/looks/curator/{slug}/link-agent": {
@@ -154,6 +249,82 @@
           "agentAddress": { "type": "string", "description": "Agent wallet address to link" }
         } } } } },
         "responses": { "200": { "description": "Agent linked successfully" } }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "LookMetadata": {
+        "type": "object",
+        "properties": {
+          "category": { "type": "string", "enum": ["streetwear", "casual", "formal", "event", "sport", "vintage", "ankara", "sustainable"], "nullable": true },
+          "occasion": { "type": "string", "enum": ["casual", "formal", "event", "sport", "outdoor", "travel", "date-night"], "nullable": true },
+          "season": { "type": "string", "enum": ["spring", "summer", "fall", "winter", "all-season"], "nullable": true }
+        },
+        "description": "AI-classified metadata for filtering and discovery"
+      },
+      "LookItem": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "title": { "type": "string" },
+          "curatorSlug": { "type": "string" },
+          "imageUrl": { "type": "string", "format": "uri", "nullable": true },
+          "isHero": { "type": "boolean" },
+          "sizes": { "type": "array", "items": { "type": "object", "properties": {
+            "size": { "type": "string" },
+            "stock": { "type": "integer" },
+            "price": { "type": "number", "description": "Price in KES" }
+          } } },
+          "kit": { "type": "object", "nullable": true, "properties": {
+            "club": { "type": "string" },
+            "kitType": { "type": "string" },
+            "brand": { "type": "string" },
+            "season": { "type": "string" }
+          } }
+        }
+      },
+      "LookListItem": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "slug": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string", "nullable": true },
+          "curatorSlug": { "type": "string", "nullable": true },
+          "coverImageUrl": { "type": "string", "format": "uri", "nullable": true },
+          "collageUrl": { "type": "string", "format": "uri", "nullable": true },
+          "heroImageUrl": { "type": "string", "format": "uri", "nullable": true },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "metadata": { "$ref": "#/components/schemas/LookMetadata" },
+          "tryOnCount": { "type": "integer" },
+          "shareCount": { "type": "integer" },
+          "itemCount": { "type": "integer" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "LookDetail": {
+        "allOf": [
+          { "$ref": "#/components/schemas/LookListItem" },
+          {
+            "type": "object",
+            "properties": {
+              "items": { "type": "array", "items": { "$ref": "#/components/schemas/LookItem" } },
+              "agentAddress": { "type": "string", "description": "Creator wallet address" },
+              "referralCode": { "type": "string", "description": "Use in X-Referral-Code header for commission" },
+              "shareUrl": { "type": "string", "format": "uri", "description": "Public look page URL" }
+            }
+          }
+        ]
+      },
+      "Error403": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string", "example": "Not the look owner" },
+          "provided": { "type": "string", "description": "The wallet address from the request, or 'not provided'" },
+          "expected": { "type": "string", "description": "The look creator's wallet address" },
+          "hint": { "type": "string", "description": "How to fix the auth failure" }
+        }
       }
     }
   }

@@ -41,7 +41,7 @@ const STATUS_CONFIG: Record<
 > = {
   accepted: { icon: Check, color: "text-emerald-400", label: "Accepted" },
   rejected: { icon: X, color: "text-rose-400", label: "Rejected" },
-  expired: { icon: AlertCircle, color: "text-slate-500", label: "Expired" },
+  expired: { icon: AlertCircle, color: "text-muted-foreground", label: "Expired" },
   executed: { icon: Check, color: "text-indigo-400", label: "Executed" },
   pending: { icon: Clock, color: "text-amber-400", label: "Pending" },
 };

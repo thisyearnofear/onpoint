@@ -156,7 +156,7 @@ export function AgentDashboard() {
               <div className="rounded-lg bg-muted/40 p-4">
                 <div className="text-sm text-muted-foreground">Gas status</div>
                 <div className="mt-1 flex items-center gap-2 font-bold">
-                  <span className={`h-2 w-2 rounded-full ${data.wallet.gasHealthy ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                  <span className={`h-2 w-2 rounded-full ${data.wallet.gasHealthy ? 'bg-success' : 'bg-warning'}`} />
                   {data.wallet.gasHealthy ? 'Ready' : 'Needs funding'}
                 </div>
               </div>

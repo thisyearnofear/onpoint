@@ -43,16 +43,16 @@ interface PaymentRecord {
 }
 
 const PAYMENT_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  pending_verification: { label: "Pending verification", color: "text-amber-600", bg: "bg-amber-500/10" },
-  paid: { label: "Paid", color: "text-emerald-600", bg: "bg-emerald-500/10" },
-  rejected: { label: "Rejected", color: "text-red-600", bg: "bg-red-500/10" },
+  pending_verification: { label: "Pending verification", color: "text-warning", bg: "bg-warning/10" },
+  paid: { label: "Paid", color: "text-success", bg: "bg-success/10" },
+  rejected: { label: "Rejected", color: "text-error", bg: "bg-error/10" },
 };
 
 const FULFILMENT_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  awaiting_delivery_details: { label: "Awaiting delivery", color: "text-amber-600", bg: "bg-amber-500/10" },
+  awaiting_delivery_details: { label: "Awaiting delivery", color: "text-warning", bg: "bg-warning/10" },
   ready_for_pickup: { label: "Ready for pickup", color: "text-blue-600", bg: "bg-blue-500/10" },
-  rider_assigned: { label: "Rider assigned", color: "text-violet-600", bg: "bg-violet-500/10" },
-  delivered: { label: "Delivered", color: "text-emerald-600", bg: "bg-emerald-500/10" },
+  rider_assigned: { label: "Rider assigned", color: "text-violet-600", bg: "bg-info/10" },
+  delivered: { label: "Delivered", color: "text-success", bg: "bg-success/10" },
 };
 
 function formatDateTime(iso?: string) {
@@ -267,7 +267,7 @@ export function PaymentsTable({ curatorName, payments }: { curatorName: string; 
                                   e.stopPropagation();
                                   setReceiptPaymentId(payment.id);
                                 }}
-                                className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-medium text-emerald-600 transition-colors hover:bg-emerald-500/20"
+                                className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-success/10 px-2.5 py-1.5 text-[11px] font-medium text-success transition-colors hover:bg-success/20"
                               >
                                 <Receipt className="h-3 w-3" />
                                 View customer receipt
@@ -295,7 +295,7 @@ export function PaymentsTable({ curatorName, payments }: { curatorName: string; 
                                         paymentAction: "verify",
                                       });
                                     }}
-                                    className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-medium text-emerald-600 transition-colors hover:bg-emerald-500/20 disabled:opacity-50"
+                                    className="inline-flex items-center gap-1 rounded-md bg-success/10 px-2.5 py-1.5 text-[11px] font-medium text-success transition-colors hover:bg-success/20 disabled:opacity-50"
                                   >
                                     <CheckCircle2 className="h-3 w-3" />
                                     Verify & mark paid
@@ -311,7 +311,7 @@ export function PaymentsTable({ curatorName, payments }: { curatorName: string; 
                                         paymentAction: "reject",
                                       });
                                     }}
-                                    className="inline-flex items-center gap-1 rounded-md bg-red-500/10 px-2.5 py-1.5 text-[11px] font-medium text-red-600 transition-colors hover:bg-red-500/20 disabled:opacity-50"
+                                    className="inline-flex items-center gap-1 rounded-md bg-error/10 px-2.5 py-1.5 text-[11px] font-medium text-error transition-colors hover:bg-error/20 disabled:opacity-50"
                                   >
                                     <XCircle className="h-3 w-3" />
                                     Reject
@@ -352,7 +352,7 @@ export function PaymentsTable({ curatorName, payments }: { curatorName: string; 
                                           fulfilmentAction: "rider_assigned",
                                         });
                                       }}
-                                      className="inline-flex items-center gap-1 rounded-md bg-violet-500/10 px-2.5 py-1.5 text-[11px] font-medium text-violet-600 transition-colors hover:bg-violet-500/20 disabled:opacity-50"
+                                      className="inline-flex items-center gap-1 rounded-md bg-info/10 px-2.5 py-1.5 text-[11px] font-medium text-violet-600 transition-colors hover:bg-info/20 disabled:opacity-50"
                                     >
                                       <Bike className="h-3 w-3" />
                                       Rider assigned
@@ -370,7 +370,7 @@ export function PaymentsTable({ curatorName, payments }: { curatorName: string; 
                                           fulfilmentAction: "delivered",
                                         });
                                       }}
-                                      className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-medium text-emerald-600 transition-colors hover:bg-emerald-500/20 disabled:opacity-50"
+                                      className="inline-flex items-center gap-1 rounded-md bg-success/10 px-2.5 py-1.5 text-[11px] font-medium text-success transition-colors hover:bg-success/20 disabled:opacity-50"
                                     >
                                       <Handshake className="h-3 w-3" />
                                       Mark delivered
@@ -417,7 +417,7 @@ export function PaymentsTable({ curatorName, payments }: { curatorName: string; 
             </button>
 
             {/* Header badge */}
-            <div className="mb-3 flex items-center gap-2 rounded-full bg-amber-500/10 px-3 py-1 text-[11px] font-medium text-amber-600 w-fit">
+            <div className="mb-3 flex items-center gap-2 rounded-full bg-warning/10 px-3 py-1 text-[11px] font-medium text-warning w-fit">
               <Receipt className="h-3.5 w-3.5" />
               Customer view
             </div>

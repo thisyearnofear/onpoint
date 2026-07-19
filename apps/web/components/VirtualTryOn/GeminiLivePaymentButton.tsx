@@ -205,8 +205,8 @@ export function GeminiLivePaymentButton({
   // Success state
   if (paymentStatus === "success" || isSuccess) {
     return (
-      <div className="flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-emerald-500/20 to-green-500/20 rounded-2xl border border-emerald-500/30 animate-in fade-in zoom-in duration-300">
-        <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+      <div className="flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-emerald-500/20 to-green-500/20 rounded-2xl border border-success/30 animate-in fade-in zoom-in duration-300">
+        <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center">
           <CheckCircle2 className="w-6 h-6 text-emerald-400" />
         </div>
         <div>

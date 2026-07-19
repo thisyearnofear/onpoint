@@ -62,7 +62,7 @@ const FEEDBACK_TYPE_CONFIG: Record<
     color: "text-indigo-400",
     label: "Suggestion",
   },
-  observation: { icon: Eye, color: "text-slate-400", label: "Observation" },
+  observation: { icon: Eye, color: "text-muted-foreground/70", label: "Observation" },
 };
 
 // ── Component ──
@@ -297,7 +297,7 @@ export function StyleReportCard({
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
               <div className="absolute bottom-3 left-3 right-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
                   <span className="text-[10px] text-white/80 font-mono">
                     Proof of Style
                   </span>

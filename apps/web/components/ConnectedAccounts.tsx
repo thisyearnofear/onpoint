@@ -205,7 +205,7 @@ export function ConnectedAccounts() {
                 <div className="flex items-center gap-2">
                   <h4 className="font-semibold text-foreground">{config.name}</h4>
                   {isConnected && (
-                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-medium">
+                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-success/10 text-success text-xs font-medium">
                       <Check className="w-3 h-3" />
                       Connected
                     </span>

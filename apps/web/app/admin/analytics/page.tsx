@@ -334,21 +334,21 @@ export default function AnalyticsDashboardPage() {
           label="Success rate"
           value={successRate}
           sub={`${rpt.total - successCount} successful, ${successCount} errors`}
-          accent="text-emerald-500"
+          accent="text-success"
         />
         <StatCard
           icon={Clock}
           label="Avg latency"
           value={formatMs(rpt.avgLatencyMs)}
           sub="Across all providers"
-          accent="text-violet-500"
+          accent="text-info"
         />
         <StatCard
           icon={ImageIcon}
           label="Image-conditioned"
           value={pct(rpt.imageConditioned.yes, rpt.total)}
           sub={`${rpt.imageConditioned.yes} yes · ${rpt.imageConditioned.no} no`}
-          accent="text-amber-500"
+          accent="text-warning"
         />
       </div>
 
@@ -582,7 +582,7 @@ function CuratorFunnelAnalyticsSection() {
           label="Try-ons"
           value={ov.totalTryOns.toLocaleString()}
           sub={`${funnelRate(ov.totalTryOns, ov.totalPageViews)} of views`}
-          accent="text-violet-500"
+          accent="text-info"
         />
         <StatCard
           icon={Share2}
@@ -596,7 +596,7 @@ function CuratorFunnelAnalyticsSection() {
           label="Purchases"
           value={ov.totalPurchases.toLocaleString()}
           sub={`${ov.totalLeads.toLocaleString()} leads`}
-          accent="text-emerald-500"
+          accent="text-success"
         />
       </div>
 
@@ -606,11 +606,11 @@ function CuratorFunnelAnalyticsSection() {
           <h3 className="mb-4 text-sm font-semibold">Funnel conversion</h3>
           <div className="space-y-4">
             {[
-              { label: "View → Try-on", value: ov.totalTryOns, total: ov.totalPageViews, color: "bg-violet-500" },
-              { label: "Try-on → Purchase", value: ov.totalPurchases, total: ov.totalTryOns, color: "bg-emerald-500" },
+              { label: "View → Try-on", value: ov.totalTryOns, total: ov.totalPageViews, color: "bg-info" },
+              { label: "Try-on → Purchase", value: ov.totalPurchases, total: ov.totalTryOns, color: "bg-success" },
               { label: "View → Purchase", value: ov.totalPurchases, total: ov.totalPageViews, color: "bg-primary" },
               { label: "Share → Visit", value: ov.totalShareVisits, total: ov.totalShares, color: "bg-sky-500" },
-              { label: "Lead → Purchase", value: ov.totalPurchases, total: ov.totalLeads, color: "bg-amber-500" },
+              { label: "Lead → Purchase", value: ov.totalPurchases, total: ov.totalLeads, color: "bg-warning" },
             ].map((step) => {
               const pctVal = step.total > 0 ? (step.value / step.total) * 100 : 0;
               return (
@@ -658,7 +658,7 @@ function CuratorFunnelAnalyticsSection() {
                       />
                       {day.totalPurchases > 0 && (
                         <div
-                          className="absolute bottom-0 w-full rounded-t-md bg-emerald-500 transition-all duration-500"
+                          className="absolute bottom-0 w-full rounded-t-md bg-success transition-all duration-500"
                           style={{ height: `${Math.max(purchH, 2)}%` }}
                         />
                       )}

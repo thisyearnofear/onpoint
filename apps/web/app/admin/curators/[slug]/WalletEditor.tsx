@@ -168,7 +168,7 @@ export function WalletEditor({
     <div className="mt-4 space-y-3 border-t border-border pt-4">
       <div className="flex flex-wrap items-center gap-2">
         <label className="flex items-center gap-2 text-sm font-medium">
-          <Wallet className="h-4 w-4 text-amber-500" />
+          <Wallet className="h-4 w-4 text-warning" />
           Payout wallet (Celo / MiniPay)
         </label>
         <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
@@ -192,7 +192,7 @@ export function WalletEditor({
           type="button"
           onClick={provisionCustodial}
           disabled={busy}
-          className="inline-flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm font-bold text-amber-800 hover:bg-amber-500/15 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-xl border border-warning/30 bg-warning/10 px-4 py-2 text-sm font-bold text-amber-800 hover:bg-warning/15 disabled:opacity-50"
         >
           {uiStatus === "provisioning" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           Generate custodial
@@ -227,7 +227,7 @@ export function WalletEditor({
         </button>
       </div>
       {status === "platform_custodial" && (
-        <p className="text-xs text-amber-700">
+        <p className="text-xs text-warning">
           Custodial bootstrap — skip 0xSplit until the curator claims their own wallet.
         </p>
       )}
@@ -245,7 +245,7 @@ export function WalletEditor({
       {message && (
         <p
           className={`flex items-start gap-1.5 text-xs ${
-            uiStatus === "error" ? "text-destructive" : "text-emerald-600"
+            uiStatus === "error" ? "text-destructive" : "text-success"
           }`}
         >
           {uiStatus === "error" ? (

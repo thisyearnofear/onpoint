@@ -29,13 +29,13 @@ const TOKENS: Array<{
     id: "cUSD",
     label: "cUSD",
     icon: <Heart className="h-3.5 w-3.5" />,
-    activeClass: "bg-amber-500/20 text-amber-300 shadow-sm",
+    activeClass: "bg-warning/20 text-amber-300 shadow-sm",
   },
   {
     id: "G$",
     label: "G$ UBI",
     icon: <Coins className="h-3.5 w-3.5" />,
-    activeClass: "bg-emerald-500/20 text-emerald-300 shadow-sm",
+    activeClass: "bg-success/20 text-emerald-300 shadow-sm",
   },
 ];
 

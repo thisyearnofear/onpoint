@@ -62,7 +62,7 @@ export function LiveCounter() {
   if (count === null || count === 0) return null;
 
   return (
-    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-medium text-emerald-600 dark:text-emerald-400 animate-fade-in">
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-success/10 border border-success/20 text-xs font-medium text-success dark:text-emerald-400 animate-fade-in">
       <Users className="w-3 h-3" />
       <span>
         <span className="font-bold tabular-nums">{count}</span>{" "}

@@ -287,9 +287,9 @@ export function CuratorHomePanel({
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+        <div className="rounded-xl border border-success/20 bg-success/5 p-4">
           <div className="flex items-center gap-2">
-            <MessageCircle className="h-4 w-4 text-emerald-500" />
+            <MessageCircle className="h-4 w-4 text-success" />
             <p className="text-sm font-bold">Sample WhatsApp brief</p>
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
@@ -311,7 +311,7 @@ export function CuratorHomePanel({
         <div
           className={`rounded-xl border p-4 ${
             agent.tone === "ready"
-              ? "border-emerald-500/30 bg-emerald-500/5"
+              ? "border-success/30 bg-success/5"
               : agent.tone === "setup"
                 ? "border-primary/30 bg-primary/5"
                 : "border-border bg-muted/30"
@@ -339,12 +339,12 @@ export function CuratorHomePanel({
         <div
           className={`mt-4 flex items-center justify-between gap-3 rounded-xl border p-3 ${
             nudge.urgency === "high"
-              ? "border-amber-500/30 bg-amber-500/5"
+              ? "border-warning/30 bg-warning/5"
               : "border-primary/20 bg-primary/5"
           }`}
         >
           <div className="flex items-center gap-2">
-            <TrendingUp className={`h-4 w-4 ${nudge.urgency === "high" ? "text-amber-500" : "text-primary"}`} />
+            <TrendingUp className={`h-4 w-4 ${nudge.urgency === "high" ? "text-warning" : "text-primary"}`} />
             <div>
               <p className="text-sm font-bold">{nudge.headline}</p>
               <p className="text-xs text-muted-foreground">{nudge.detail}</p>
@@ -389,11 +389,11 @@ export function CuratorHomePanel({
               {drafts.map((look) => (
                 <div
                   key={look.slug}
-                  className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2"
+                  className="flex flex-col gap-3 rounded-lg border border-border bg-background px-3 py-2 sm:flex-row sm:items-center"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{look.title}</p>
-                    <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-600 dark:text-amber-400">
+                    <span className="rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-bold uppercase text-warning dark:text-amber-400">
                       Draft
                     </span>
                   </div>
@@ -465,7 +465,7 @@ export function CuratorHomePanel({
                   return (
                     <div
                       key={look.slug}
-                      className={`flex items-center gap-3 rounded-lg border px-3 py-2 transition-colors ${
+                      className={`flex flex-col gap-3 rounded-lg border px-3 py-2 transition-colors sm:flex-row sm:items-center ${
                         isSelected ? "border-foreground/30 bg-foreground/5" : "border-border bg-background"
                       }`}
                     >
@@ -494,7 +494,7 @@ export function CuratorHomePanel({
                             <Share2 className="h-3 w-3" />
                             {look.shareCount ?? 0}
                           </span>
-                          <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 font-bold uppercase text-emerald-600 dark:text-emerald-400">
+                          <span className="rounded-full bg-success/10 px-1.5 py-0.5 font-bold uppercase text-success dark:text-emerald-400">
                             Live
                           </span>
                         </div>
@@ -539,7 +539,7 @@ export function CuratorHomePanel({
                       type="button"
                       onClick={() => handleBulkAction("delete")}
                       disabled={bulkBusy}
-                      className="inline-flex items-center gap-1 rounded-lg border border-red-500/30 px-2.5 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-500/5 disabled:opacity-40 dark:text-red-400"
+                      className="inline-flex items-center gap-1 rounded-lg border border-error/30 px-2.5 py-1.5 text-xs font-medium text-error transition-colors hover:bg-error/5 disabled:opacity-40 dark:text-red-400"
                     >
                       {bulkBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
                       Delete ({selectedCount})
@@ -553,7 +553,7 @@ export function CuratorHomePanel({
       )}
 
       {lookError && (
-        <div className="mt-3 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-700 dark:text-red-400">
+        <div className="mt-3 rounded-lg bg-error/10 px-3 py-2 text-xs text-red-700 dark:text-red-400">
           {lookError}
         </div>
       )}

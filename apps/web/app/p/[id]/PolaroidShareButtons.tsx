@@ -44,7 +44,7 @@ export function PolaroidShareButtons({ item, curatorName, score }: Props) {
         href={waUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center justify-center w-10 h-10 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-full transition-colors"
+        className="flex items-center justify-center w-10 h-10 bg-success/10 hover:bg-success/20 text-emerald-400 border border-success/20 rounded-full transition-colors"
         aria-label="Share on WhatsApp"
       >
         <MessageCircle className="w-3.5 h-3.5" />

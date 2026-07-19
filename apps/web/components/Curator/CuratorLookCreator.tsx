@@ -231,7 +231,7 @@ export function CuratorLookCreator({
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-muted/20 p-5">
+    <div className="w-full max-w-2xl rounded-2xl border border-border bg-muted/20 p-5">
       {/* Header */}
       <button
         type="button"
@@ -472,7 +472,7 @@ export function CuratorLookCreator({
               </div>
 
               {/* Submit */}
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <button
                   type="button"
                   onClick={() => handleSubmit(false)}
@@ -510,7 +510,7 @@ export function CuratorLookCreator({
               {result && (
                 <div
                   className={`flex items-start gap-2 rounded-lg p-3 text-sm ${
-                    result.ok ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-red-500/10 text-red-700 dark:text-red-400"
+                    result.ok ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-error/10 text-red-700 dark:text-red-400"
                   }`}
                 >
                   {result.ok ? (

@@ -36,7 +36,7 @@ export function AnimatedScore({
   const isElite = score >= 8;
 
   const tierBgClass = isElite
-    ? "bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-amber-500/30"
+    ? "bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-warning/30"
     : "bg-white/20 border-white/30";
   const tierTextClass = isElite ? "text-amber-300" : "text-white";
 

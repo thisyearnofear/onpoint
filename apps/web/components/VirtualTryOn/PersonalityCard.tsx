@@ -125,7 +125,7 @@ export function PersonalityCard({
           </button>
         )}
         {config.tier === 'premium' && !isLocked && (
-          <span className="text-[10px] px-2 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">
+          <span className="text-[10px] px-2 py-0.5 rounded bg-amber-100 text-warning font-medium">
             PRO
           </span>
         )}
@@ -141,7 +141,7 @@ export function PersonalityCard({
         {isLocked && (
           <span className="text-[10px] text-center leading-tight">
             {gCost ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 font-bold text-emerald-700">
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 font-bold text-success">
                 {gCost.toLocaleString()} G$ / session
               </span>
             ) : (

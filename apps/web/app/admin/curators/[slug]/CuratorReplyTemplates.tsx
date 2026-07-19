@@ -31,7 +31,7 @@ export function CuratorReplyTemplates({
   return (
     <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
       <div className="flex items-center gap-2">
-        <MessageCircle className="h-4 w-4 text-emerald-500" />
+        <MessageCircle className="h-4 w-4 text-success" />
         <h2 className="font-bold">Reply templates</h2>
       </div>
       <p className="mt-1 text-xs text-muted-foreground">
@@ -57,7 +57,7 @@ export function CuratorReplyTemplates({
                 className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs font-medium transition-colors hover:bg-background"
               >
                 {copiedId === template.id ? (
-                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                  <CheckCircle2 className="h-3.5 w-3.5 text-success" />
                 ) : (
                   <Copy className="h-3.5 w-3.5" />
                 )}

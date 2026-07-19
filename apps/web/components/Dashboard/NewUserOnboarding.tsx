@@ -58,7 +58,7 @@ export function NewUserOnboarding() {
 
         <div className="space-y-6 p-6 pt-8">
           <div className="space-y-4 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-emerald-500/25 bg-emerald-500/15">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-success/25 bg-success/15">
               <Camera className="h-8 w-8 text-emerald-400" />
             </div>
             <div className="space-y-2">
@@ -96,7 +96,7 @@ export function NewUserOnboarding() {
           <div className="space-y-2">
             <Button
               onClick={startLiveScan}
-              className="h-12 w-full rounded-full bg-emerald-600 text-sm font-bold text-white hover:bg-emerald-500"
+              className="h-12 w-full rounded-full bg-success text-sm font-bold text-white hover:bg-success"
             >
               <Sparkles className="mr-2 h-4 w-4" />
               Start live outfit check

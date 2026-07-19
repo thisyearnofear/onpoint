@@ -80,7 +80,7 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
     return (
       <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-violet-500" />
+          <Sparkles className="h-4 w-4 text-info" />
           <h2 className="font-bold">Cross-curator recommendations</h2>
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -106,7 +106,7 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
     return (
       <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-violet-500" />
+          <Sparkles className="h-4 w-4 text-info" />
           <h2 className="font-bold">Cross-curator recommendations</h2>
         </div>
         <p className="mt-3 text-sm text-muted-foreground">
@@ -155,7 +155,7 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
     <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-violet-500" />
+          <Sparkles className="h-4 w-4 text-info" />
           <h2 className="font-bold">Cross-curator recommendations</h2>
         </div>
         <button
@@ -175,7 +175,7 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
         <div className="rounded-lg border border-border bg-muted/30 p-3">
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground">Reco clicks sent</p>
-            <Sparkles className="h-3.5 w-3.5 text-violet-500" />
+            <Sparkles className="h-3.5 w-3.5 text-info" />
           </div>
           <p className="mt-1 text-xl font-black tabular-nums">
             {report.crossRecoClicks.toLocaleString()}
@@ -205,7 +205,7 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
             <p className="text-xs text-muted-foreground">
               Attributed purchases
             </p>
-            <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+            <TrendingUp className="h-3.5 w-3.5 text-success" />
           </div>
           <p className="mt-1 text-xl font-black tabular-nums">
             {totalAttributedPurchases.toLocaleString()}
@@ -274,7 +274,7 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
                   key={sourceSlug}
                   className="flex items-center gap-2 rounded-lg border border-border bg-muted/25 px-3 py-2"
                 >
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-[10px] font-bold text-emerald-600">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-success/10 text-[10px] font-bold text-success">
                     {count}
                   </div>
                   <span className="text-xs font-medium capitalize">

@@ -69,7 +69,7 @@ export default async function CuratorListPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             {total} curator{total !== 1 ? "s" : ""} registered
             {" · "}
-            <span className={agentReady > 0 ? "text-emerald-600" : undefined}>
+            <span className={agentReady > 0 ? "text-success" : undefined}>
               {agentReady} agent-purchasable
             </span>
           </p>
@@ -179,7 +179,7 @@ export default async function CuratorListPage() {
                     <span
                       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
                         curator.listingCount > 0
-                          ? "bg-emerald-500/10 text-emerald-600"
+                          ? "bg-success/10 text-success"
                           : "bg-muted text-muted-foreground"
                       }`}
                     >
@@ -194,14 +194,14 @@ export default async function CuratorListPage() {
                   </td>
                   <td className="px-4 py-3">
                     {curator.agentPurchasable ? (
-                      <span className="inline-flex rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-600">
+                      <span className="inline-flex rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success">
                         Ready
                         {curator.commerce?.payoutWalletStatus === "platform_custodial" && (
                           <span className="ml-1 text-[10px] opacity-80">(custodial)</span>
                         )}
                       </span>
                     ) : curator.hasWallet ? (
-                      <span className="inline-flex rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+                      <span className="inline-flex rounded-full bg-warning/10 px-2.5 py-0.5 text-xs font-medium text-warning">
                         Wallet only
                       </span>
                     ) : (
@@ -212,7 +212,7 @@ export default async function CuratorListPage() {
                   </td>
                   <td className="px-4 py-3">
                     {curator.channels?.whatsapp ? (
-                      <span className="inline-flex items-center gap-1 text-xs text-emerald-600">
+                      <span className="inline-flex items-center gap-1 text-xs text-success">
                         <MessageCircle className="h-3 w-3" />
                         WhatsApp
                       </span>

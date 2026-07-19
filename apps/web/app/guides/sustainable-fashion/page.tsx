@@ -56,7 +56,7 @@ export default function SustainableFashionGuide() {
                 "Second-hand is the single most impactful sustainable choice",
               ].map((tip) => (
                 <div key={tip} className="flex items-start gap-2 text-sm">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                   <span className="text-muted-foreground">{tip}</span>
                 </div>
               ))}
@@ -82,7 +82,7 @@ export default function SustainableFashionGuide() {
                     { r: "Rent", body: "For one-off occasions (weddings, events), consider renting instead of buying. It saves money and closet space." },
                   ].map(({ r, body }) => (
                     <div key={r} className="pl-5 border-l-2 border-primary/20">
-                      <h3 className="text-sm font-bold text-emerald-600">{r}</h3>
+                      <h3 className="text-sm font-bold text-success">{r}</h3>
                       <p className="mt-1 text-xs text-muted-foreground leading-5">{body}</p>
                     </div>
                   ))}
@@ -95,8 +95,8 @@ export default function SustainableFashionGuide() {
                 icon={<Leaf className="w-4 h-4" />}
               >
                 <div className="space-y-3">
-                  <div className="pl-5 border-l-2 border-emerald-500/30">
-                    <h3 className="text-sm font-bold text-emerald-600">Choose these</h3>
+                  <div className="pl-5 border-l-2 border-success/30">
+                    <h3 className="text-sm font-bold text-success">Choose these</h3>
                     <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
                       <li>• Organic cotton — uses 91% less water than conventional cotton</li>
                       <li>• Linen — made from flax, requires minimal water and pesticides</li>
@@ -105,8 +105,8 @@ export default function SustainableFashionGuide() {
                       <li>• Wool — natural, renewable, biodegradable (look for responsible sourcing)</li>
                     </ul>
                   </div>
-                  <div className="pl-5 border-l-2 border-amber-500/30">
-                    <h3 className="text-sm font-bold text-amber-600">Reduce use of</h3>
+                  <div className="pl-5 border-l-2 border-warning/30">
+                    <h3 className="text-sm font-bold text-warning">Reduce use of</h3>
                     <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
                       <li>• Polyester — sheds microplastics in every wash, takes 200+ years to decompose</li>
                       <li>• Nylon — energy-intensive production, non-biodegradable</li>
@@ -135,7 +135,7 @@ export default function SustainableFashionGuide() {
                     "Spot clean — treat stains immediately rather than washing the entire garment",
                   ].map((tip) => (
                     <li key={tip} className="flex items-start gap-2 text-sm">
-                      <Leaf className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                      <Leaf className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                       <span>{tip}</span>
                     </li>
                   ))}
@@ -160,7 +160,7 @@ export default function SustainableFashionGuide() {
                     "Tailored pieces — vintage blazers and trousers offer craftsmanship rarely found at modern prices",
                   ].map((tip) => (
                     <li key={tip} className="flex items-start gap-2 text-sm">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                       <span>{tip}</span>
                     </li>
                   ))}

@@ -58,7 +58,7 @@ export default function FormalWearGuide() {
                 "Try on the finished garment virtually before the tailor cuts fabric",
               ].map((tip) => (
                 <div key={tip} className="flex items-start gap-2 text-sm">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                   <span className="text-muted-foreground">{tip}</span>
                 </div>
               ))}
@@ -117,7 +117,7 @@ export default function FormalWearGuide() {
                     "African prints (Ankara, Kente) — increasingly popular for formal blazers, stoles, and agbada trimmings",
                   ].map((fabric) => (
                     <li key={fabric} className="flex items-start gap-2 text-sm text-muted-foreground">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                       <span>{fabric}</span>
                     </li>
                   ))}
@@ -208,7 +208,7 @@ export default function FormalWearGuide() {
                     "Track your order from cut to delivery with real-time updates",
                   ].map((benefit) => (
                     <li key={benefit} className="flex items-start gap-2 text-sm text-muted-foreground">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                       <span>{benefit}</span>
                     </li>
                   ))}

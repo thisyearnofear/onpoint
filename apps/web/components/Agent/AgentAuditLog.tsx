@@ -95,11 +95,11 @@ export function AgentAuditLog() {
 
   return (
     <div className="mx-4 mb-3">
-      <div className="rounded-xl border border-violet-500/20 bg-violet-950/10 p-4">
+      <div className="rounded-xl border border-info/20 bg-violet-950/10 p-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/15">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-info/15">
               <ScrollText className="h-4 w-4 text-violet-300" />
             </div>
             <div>
@@ -187,10 +187,10 @@ export function AgentAuditLog() {
                     <span
                       className={`rounded-full px-1.5 py-0.5 text-[8px] font-bold flex-shrink-0 ${
                         entry.decision === "signed"
-                          ? "bg-emerald-500/15 text-emerald-300"
+                          ? "bg-success/15 text-emerald-300"
                           : entry.decision === "rejected"
-                          ? "bg-amber-500/15 text-amber-300"
-                          : "bg-red-500/15 text-red-300"
+                          ? "bg-warning/15 text-amber-300"
+                          : "bg-error/15 text-red-300"
                       }`}
                     >
                       {entry.decision}

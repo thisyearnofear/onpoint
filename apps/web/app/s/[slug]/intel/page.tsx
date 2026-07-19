@@ -181,10 +181,10 @@ export default function CuratorIntelPage() {
         </div>
 
         {/* WhatsApp comparison banner */}
-        <div className="mb-8 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5">
+        <div className="mb-8 rounded-xl border border-success/20 bg-success/5 p-5">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10">
-              <BarChart3 className="h-5 w-5 text-emerald-500" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-success/10">
+              <BarChart3 className="h-5 w-5 text-success" />
             </div>
             <div>
               <h3 className="font-bold text-sm">
@@ -204,7 +204,7 @@ export default function CuratorIntelPage() {
           <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
             <BarChart3 className="h-4 w-4" />
             Storefront Funnel
-            <span className="ml-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
+            <span className="ml-1 rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-medium text-success">
               OnPoint only
             </span>
           </h2>
@@ -410,9 +410,9 @@ export default function CuratorIntelPage() {
                         <span
                           className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                             p.status === "active"
-                              ? "bg-emerald-500/10 text-emerald-600"
+                              ? "bg-success/10 text-success"
                               : p.status === "ready"
-                                ? "bg-amber-500/10 text-amber-600"
+                                ? "bg-warning/10 text-warning"
                                 : "bg-muted text-muted-foreground"
                           }`}
                         >

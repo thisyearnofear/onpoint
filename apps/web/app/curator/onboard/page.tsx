@@ -246,8 +246,8 @@ export default function CuratorOnboardPage() {
     return (
       <OnPointLayout footer={false}>
         <div className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center px-6 py-16 text-center">
-          <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/10">
-            <CheckCircle2 className="h-10 w-10 text-emerald-500" />
+          <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-success/10">
+            <CheckCircle2 className="h-10 w-10 text-success" />
           </div>
 
           <h1 className="text-3xl font-black tracking-tight">
@@ -279,7 +279,7 @@ export default function CuratorOnboardPage() {
             >
               {linkCopied ? (
                 <>
-                  <Check className="h-4 w-4 text-emerald-500" />
+                  <Check className="h-4 w-4 text-success" />
                   Copied!
                 </>
               ) : (
@@ -292,7 +292,7 @@ export default function CuratorOnboardPage() {
             <button
               type="button"
               onClick={handleWhatsAppShare}
-              className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-bold text-white transition-all hover:bg-emerald-600 active:scale-[0.98]"
+              className="inline-flex items-center gap-2 rounded-lg bg-success px-4 py-2.5 text-sm font-bold text-white transition-all hover:bg-success active:scale-[0.98]"
             >
               <MessageCircle className="h-4 w-4" />
               Share on WhatsApp
@@ -340,8 +340,8 @@ export default function CuratorOnboardPage() {
                 </div>
               </div>
               <div className="flex items-start gap-3 rounded-lg border border-border bg-card p-4">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/10">
-                  <ShoppingBag className="h-4 w-4 text-emerald-500" />
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-success/10">
+                  <ShoppingBag className="h-4 w-4 text-success" />
                 </div>
                 <div>
                   <p className="font-semibold">Get paid directly</p>
@@ -477,7 +477,7 @@ export default function CuratorOnboardPage() {
             {/* WhatsApp */}
             <div>
               <label className="mb-1.5 flex items-center gap-2 text-sm font-medium">
-                <MessageCircle className="h-4 w-4 text-emerald-500" />
+                <MessageCircle className="h-4 w-4 text-success" />
                 WhatsApp number
                 <span className="text-xs font-normal text-muted-foreground">
                   (optional now, needed for checkout)
@@ -506,9 +506,9 @@ export default function CuratorOnboardPage() {
             {/* Payout wallet */}
             <div>
               <label className="mb-3 flex items-center gap-2 text-sm font-medium">
-                <Wallet className="h-4 w-4 text-amber-500" />
+                <Wallet className="h-4 w-4 text-warning" />
                 Payout wallet
-                <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                <span className="rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-warning">
                   Needed for agent sales
                 </span>
               </label>
@@ -677,8 +677,8 @@ export default function CuratorOnboardPage() {
               className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-left transition-colors hover:bg-muted/30"
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10">
-                  <Gift className="h-4 w-4 text-emerald-500" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-success/10">
+                  <Gift className="h-4 w-4 text-success" />
                 </div>
                 <div>
                   <h2 className="text-sm font-bold text-foreground">
@@ -699,7 +699,7 @@ export default function CuratorOnboardPage() {
             {gSectionOpen && (
               <div className="space-y-3 rounded-xl border border-border bg-card p-4">
                 {gClaimed && (
-                  <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
+                  <div className="flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2 text-sm text-emerald-300">
                     <CheckCircle className="h-4 w-4 shrink-0" />
                     G$ claimed! Funds are in your wallet on Celo.
                   </div>

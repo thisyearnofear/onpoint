@@ -177,7 +177,7 @@ export function OnboardingChecklist({ curatorSlug, storefrontUrl }: OnboardingCh
                 key={step.id}
                 className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${
                   step.done
-                    ? "border-emerald-500/20 bg-emerald-500/5"
+                    ? "border-success/20 bg-success/5"
                     : "border-border bg-background"
                 }`}
               >
@@ -185,7 +185,7 @@ export function OnboardingChecklist({ curatorSlug, storefrontUrl }: OnboardingCh
                 <div
                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
                     step.done
-                      ? "bg-emerald-500 text-white"
+                      ? "bg-success text-white"
                       : step.loading
                         ? "bg-muted text-muted-foreground"
                         : "bg-primary/10 text-primary"
@@ -225,7 +225,7 @@ export function OnboardingChecklist({ curatorSlug, storefrontUrl }: OnboardingCh
 
         {/* Completion message */}
         {completedCount === steps.length && (
-          <div className="mt-4 rounded-lg bg-emerald-500/10 p-3 text-center text-sm font-medium text-emerald-600">
+          <div className="mt-4 rounded-lg bg-success/10 p-3 text-center text-sm font-medium text-success">
             You&apos;re all set! Your storefront is live, stocked, and shared.
             Now wait for those try-on briefs to roll in.
           </div>

@@ -473,7 +473,7 @@ function CompareView({
                       key={i}
                       className={`flex items-start gap-3 rounded-xl border p-3 text-xs ${
                         inLeft && inRight
-                          ? "border-emerald-500/20 bg-emerald-500/5"
+                          ? "border-success/20 bg-success/5"
                           : inLeft
                             ? "border-l-4 border-l-primary bg-muted/30"
                             : "border-l-4 border-l-accent bg-muted/30"

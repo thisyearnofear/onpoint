@@ -55,7 +55,7 @@ function WalletPageContent() {
 
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <Wallet className="h-5 w-5 text-amber-500" />
+          <Wallet className="h-5 w-5 text-warning" />
           <h1 className="text-2xl font-black tracking-tight">Payout wallet</h1>
         </div>
         <p className="text-sm text-muted-foreground">

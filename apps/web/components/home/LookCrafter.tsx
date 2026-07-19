@@ -305,7 +305,7 @@ export function LookCrafter() {
                   <div className="grid grid-cols-3 gap-2">
                     {([
                       { id: "real" as CritiqueMode, label: "Real", icon: Scale, color: "text-blue-500" },
-                      { id: "roast" as CritiqueMode, label: "Roast", icon: Flame, color: "text-red-500" },
+                      { id: "roast" as CritiqueMode, label: "Roast", icon: Flame, color: "text-error" },
                       { id: "flatter" as CritiqueMode, label: "Flatter", icon: Heart, color: "text-pink-500" },
                     ]).map((mode) => {
                       const ModeIcon = mode.icon;
@@ -449,7 +449,7 @@ export function LookCrafter() {
                     onClick={handleShare}
                     className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-xs font-medium text-foreground hover:bg-muted active:bg-muted/80 active:scale-[0.98] transition-[background-color,transform]"
                   >
-                    {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Share2 className="w-3.5 h-3.5" />}
+                    {copied ? <Check className="w-3.5 h-3.5 text-success" /> : <Share2 className="w-3.5 h-3.5" />}
                     {copied ? "Copied!" : "Share"}
                   </button>
                   <button

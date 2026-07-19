@@ -123,7 +123,7 @@ export function ShareStorefront({
             className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition-colors hover:bg-muted"
           >
             {copied ? (
-              <Check className="h-4 w-4 shrink-0 text-emerald-500" />
+              <Check className="h-4 w-4 shrink-0 text-success" />
             ) : (
               <Copy className="h-4 w-4 shrink-0 text-muted-foreground" />
             )}
@@ -141,7 +141,7 @@ export function ShareStorefront({
             onClick={handleWhatsAppShare}
             className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition-colors hover:bg-muted"
           >
-            <MessageCircle className="h-4 w-4 shrink-0 text-emerald-500" />
+            <MessageCircle className="h-4 w-4 shrink-0 text-success" />
             <div className="min-w-0">
               <p className="font-medium">Share via WhatsApp</p>
               <p className="text-xs text-muted-foreground">Send to a friend</p>
@@ -172,7 +172,7 @@ export function ShareStorefront({
               onClick={handleDirectWhatsApp}
               className="flex w-full items-center gap-3 border-t border-border px-4 py-3 text-left text-sm transition-colors hover:bg-muted"
             >
-              <MessageCircle className="h-4 w-4 shrink-0 text-emerald-500" />
+              <MessageCircle className="h-4 w-4 shrink-0 text-success" />
               <div className="min-w-0">
                 <p className="font-medium">Message {curatorName}</p>
                 <p className="text-xs text-muted-foreground">Chat on WhatsApp</p>

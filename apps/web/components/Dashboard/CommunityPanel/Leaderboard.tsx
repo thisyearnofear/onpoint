@@ -9,9 +9,9 @@ export function Leaderboard({ looks }: { looks: CommunityLook[] }) {
   if (sorted.length < 3) return null;
 
   const podiumColors = [
-    { bg: "from-amber-400 to-yellow-500", border: "border-amber-400/40", text: "text-amber-500", medal: "🥇" },
-    { bg: "from-slate-300 to-slate-400", border: "border-slate-400/40", text: "text-slate-400", medal: "🥈" },
-    { bg: "from-amber-700 to-amber-800", border: "border-amber-700/40", text: "text-amber-700", medal: "🥉" },
+    { bg: "from-amber-400 to-yellow-500", border: "border-amber-400/40", text: "text-warning", medal: "🥇" },
+    { bg: "from-slate-300 to-slate-400", border: "border-slate-400/40", text: "text-muted-foreground/70", medal: "🥈" },
+    { bg: "from-amber-700 to-amber-800", border: "border-warning/40", text: "text-warning", medal: "🥉" },
   ];
 
   return (
@@ -21,7 +21,7 @@ export function Leaderboard({ looks }: { looks: CommunityLook[] }) {
       className="rounded-2xl border border-border bg-gradient-to-br from-card/80 to-card/40 p-4"
     >
       <div className="flex items-center gap-2 mb-4">
-        <Medal className="w-4 h-4 text-amber-500" />
+        <Medal className="w-4 h-4 text-warning" />
         <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
           Leaderboard
         </span>
@@ -55,7 +55,7 @@ export function Leaderboard({ looks }: { looks: CommunityLook[] }) {
                 {look.headline}
               </p>
               <div className="flex items-center justify-center gap-1">
-                <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-amber-500">
+                <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-warning">
                   <Sparkles className="w-2.5 h-2.5" />
                   {look.score}/10
                 </span>

@@ -44,7 +44,7 @@ const SEVERITY_COLORS = {
   low: { bg: "bg-green-500/10", text: "text-green-400", dot: "bg-green-400" },
   medium: { bg: "bg-yellow-500/10", text: "text-yellow-400", dot: "bg-yellow-400" },
   high: { bg: "bg-orange-500/10", text: "text-orange-400", dot: "bg-orange-400" },
-  critical: { bg: "bg-red-500/10", text: "text-red-400", dot: "bg-red-400" },
+  critical: { bg: "bg-error/10", text: "text-red-400", dot: "bg-red-400" },
 } as const;
 
 const ALERT_ICONS = {
@@ -160,7 +160,7 @@ export function FraudMonitor() {
           </div>
           <div className="flex items-center gap-2">
             {health?.status === "frozen" && (
-              <span className="px-2 py-0.5 text-[10px] font-bold bg-red-500/20 text-red-400 rounded-full uppercase tracking-wider animate-pulse">
+              <span className="px-2 py-0.5 text-[10px] font-bold bg-error/20 text-red-400 rounded-full uppercase tracking-wider animate-pulse">
                 FROZEN
               </span>
             )}
@@ -219,7 +219,7 @@ export function FraudMonitor() {
           <div className="h-2 bg-muted rounded-full overflow-hidden">
             <motion.div
               className={`h-full rounded-full ${
-                health && health.anomalyScore > 75 ? "bg-red-500" :
+                health && health.anomalyScore > 75 ? "bg-error" :
                 health && health.anomalyScore > 50 ? "bg-yellow-500" :
                 "bg-green-500"
               }`}
@@ -259,7 +259,7 @@ export function FraudMonitor() {
               size="sm"
               onClick={handleFreeze}
               disabled={actionLoading === "freeze"}
-              className="text-red-400 border-red-400/30 hover:bg-red-500/10 text-xs flex-1"
+              className="text-red-400 border-red-400/30 hover:bg-error/10 text-xs flex-1"
             >
               {actionLoading === "freeze" ? (
                 <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
@@ -297,7 +297,7 @@ export function FraudMonitor() {
             <Activity className="w-4 h-4 text-primary" />
             <span className="text-sm font-medium">Recent Alerts</span>
             {activeAlerts.length > 0 && (
-              <span className="px-1.5 py-0.5 text-[10px] font-bold bg-red-500/20 text-red-400 rounded-full">
+              <span className="px-1.5 py-0.5 text-[10px] font-bold bg-error/20 text-red-400 rounded-full">
                 {activeAlerts.length}
               </span>
             )}

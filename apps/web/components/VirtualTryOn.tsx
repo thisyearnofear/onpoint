@@ -53,7 +53,7 @@ const LiveStylistView = dynamic(
       <div className="flex items-center justify-center min-h-[400px] bg-slate-950 rounded-2xl">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
-          <p className="text-xs text-slate-500 font-mono tracking-wider">
+          <p className="text-xs text-muted-foreground font-mono tracking-wider">
             Loading Live Stylist…
           </p>
         </div>
@@ -947,8 +947,8 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                   )}
 
                   {qualityWarning && selectedPhoto && !analysis && (
-                    <div className="border border-amber-500/30 rounded-lg p-4 bg-amber-500/10">
-                      <p className="text-amber-700 dark:text-amber-300 text-sm">
+                    <div className="border border-warning/30 rounded-lg p-4 bg-warning/10">
+                      <p className="text-warning dark:text-amber-300 text-sm">
                         {qualityWarning}
                       </p>
                       <div className="mt-3 flex gap-2">
@@ -1078,7 +1078,7 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                           <div className="flex items-center justify-between mb-3">
                             <p className="text-xs font-medium text-muted-foreground">PREMIUM STYLISTS</p>
                             {!isPremium && (
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold">
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-success/20 text-emerald-400 font-bold">
                                 Unlock via XP, badge, G$, or Pro
                               </span>
                             )}
@@ -1116,7 +1116,7 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
 
                         {/* G$ per-session payment confirm */}
                         {gPaymentPersona && (
-                          <div className="mb-4 p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5">
+                          <div className="mb-4 p-4 rounded-xl border border-success/30 bg-success/5">
                             <div className="flex items-start gap-3">
                               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 shrink-0">
                                 <Gift className="h-4 w-4 text-white" />

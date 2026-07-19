@@ -83,7 +83,7 @@ function ThemeToggle() {
       {isDark ? (
         <Sun className="h-5 w-5 text-amber-400 group-hover:scale-110 transition-transform" />
       ) : (
-        <Moon className="h-5 w-5 text-slate-600 group-hover:scale-110 transition-transform" />
+        <Moon className="h-5 w-5 text-muted-foreground group-hover:scale-110 transition-transform" />
       )}
     </button>
   );

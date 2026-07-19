@@ -384,7 +384,7 @@ export function TryOnResult({
               variant="outline"
               onClick={handleSaveLook}
               disabled={saved}
-              className={`text-xs ${saved ? "border-emerald-500/30 text-emerald-600" : ""}`}
+              className={`text-xs ${saved ? "border-success/30 text-success" : ""}`}
             >
               {saved ? (
                 <><Bookmark className="h-3.5 w-3.5 mr-1 fill-current" /> Saved</>

@@ -66,7 +66,7 @@ export function GStreakPill({ compact, className }: GStreakPillProps) {
             return (
               <button
                 onClick={openConnectModal}
-                className={`flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-300 hover:bg-emerald-500/15 transition-colors ${className ?? ""}`}
+                className={`flex items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-3 py-1.5 text-xs font-medium text-emerald-300 hover:bg-success/15 transition-colors ${className ?? ""}`}
                 title="Claim free daily G$ to unlock premium stylists"
               >
                 <Gift className="h-3.5 w-3.5" />
@@ -99,13 +99,13 @@ export function GStreakPill({ compact, className }: GStreakPillProps) {
           onClick={() => setExpanded((v) => !v)}
           className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
             showProtectPrompt
-              ? "border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/15"
-              : "border-emerald-500/20 bg-emerald-500/5 text-emerald-300 hover:bg-emerald-500/10"
+              ? "border-warning/40 bg-warning/10 text-amber-300 hover:bg-warning/15"
+              : "border-success/20 bg-success/5 text-emerald-300 hover:bg-success/10"
           }`}
           title="G$ Style Streak"
         >
           <Flame
-            className={`h-3.5 w-3.5 ${streak >= 3 ? "text-amber-400" : "text-amber-500"}`}
+            className={`h-3.5 w-3.5 ${streak >= 3 ? "text-amber-400" : "text-warning"}`}
           />
           <span className="font-bold">{streak}</span>
           <span className="text-[10px] opacity-70 whitespace-nowrap">
@@ -139,15 +139,15 @@ export function GStreakPill({ compact, className }: GStreakPillProps) {
     <div
       className={`rounded-2xl border ${
         showProtectPrompt
-          ? "border-amber-500/30 bg-amber-500/5"
-          : "border-emerald-500/20 bg-emerald-500/5"
+          ? "border-warning/30 bg-warning/5"
+          : "border-success/20 bg-success/5"
       } p-4 ${className ?? ""}`}
     >
       <div className="flex items-center gap-3">
         <div
           className={`flex h-10 w-10 items-center justify-center rounded-xl ${
             showProtectPrompt
-              ? "bg-amber-500/15"
+              ? "bg-warning/15"
               : "bg-gradient-to-br from-emerald-500 to-teal-600"
           }`}
         >
@@ -163,7 +163,7 @@ export function GStreakPill({ compact, className }: GStreakPillProps) {
               {streak}-day G$ streak
             </p>
             {isProtectedToday && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9px] font-bold text-emerald-300">
+              <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[9px] font-bold text-emerald-300">
                 <ShieldCheck className="h-2.5 w-2.5" />
                 Protected
               </span>
@@ -178,7 +178,7 @@ export function GStreakPill({ compact, className }: GStreakPillProps) {
       </div>
 
       {showProtectPrompt && (
-        <div className="mt-3 flex items-center gap-2 rounded-lg bg-amber-500/10 px-3 py-2">
+        <div className="mt-3 flex items-center gap-2 rounded-lg bg-warning/10 px-3 py-2">
           <Gift className="h-3.5 w-3.5 text-amber-400 shrink-0" />
           <p className="text-xs text-amber-300/90">
             Claim today&apos;s G$ to protect your streak and keep your perks.
@@ -195,7 +195,7 @@ export function GStreakPill({ compact, className }: GStreakPillProps) {
               key={m.badge}
               title={`${m.days} days: ${m.rewardLabel}`}
               className={`h-1.5 flex-1 rounded-full transition-colors ${
-                reached ? "bg-emerald-500" : "bg-muted"
+                reached ? "bg-success" : "bg-muted"
               }`}
             />
           );
@@ -272,7 +272,7 @@ function DayZeroCard({
 }) {
   return (
     <div
-      className={`rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/8 via-teal-500/5 to-emerald-500/8 p-4 ${className ?? ""}`}
+      className={`rounded-2xl border border-success/20 bg-gradient-to-br from-emerald-500/8 via-teal-500/5 to-emerald-500/8 p-4 ${className ?? ""}`}
     >
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600">
@@ -326,7 +326,7 @@ function DayZeroCard({
             {({ chain, openChainModal }) => (
               <button
                 onClick={openChainModal}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500/90 px-4 py-2.5 text-sm font-bold text-white transition-transform active:scale-[0.98] hover:bg-amber-500"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-warning/90 px-4 py-2.5 text-sm font-bold text-white transition-transform active:scale-[0.98] hover:bg-warning"
               >
                 <Wallet className="h-4 w-4" />
                 Switch to Celo to Claim
@@ -334,7 +334,7 @@ function DayZeroCard({
             )}
           </ConnectButton.Custom>
         ) : (
-          <div className="flex items-center justify-center gap-2 rounded-xl bg-emerald-500/10 px-4 py-2.5 text-sm font-medium text-emerald-300">
+          <div className="flex items-center justify-center gap-2 rounded-xl bg-success/10 px-4 py-2.5 text-sm font-medium text-emerald-300">
             <Sparkles className="h-4 w-4" />
             Claim your first G$ above ↑
           </div>

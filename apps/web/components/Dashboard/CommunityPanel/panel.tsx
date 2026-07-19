@@ -494,7 +494,7 @@ export function CommunityPanel({ onNavigate, onNewLooksStatus }: CommunityPanelP
           ) : view === "saved" ? (
             <>
               <span className="flex items-center gap-1"><Bookmark className="w-3 h-3 text-sky-400" />{looks.length} saved look{looks.length !== 1 ? "s" : ""}</span>
-              <span className="flex items-center gap-1"><Flame className="w-3 h-3 text-amber-500" />{totalLikes} total likes</span>
+              <span className="flex items-center gap-1"><Flame className="w-3 h-3 text-warning" />{totalLikes} total likes</span>
             </>
           ) : view === "moderation" ? (
             <>
@@ -503,7 +503,7 @@ export function CommunityPanel({ onNavigate, onNewLooksStatus }: CommunityPanelP
             </>
           ) : (
             <>
-              <span className="flex items-center gap-1"><Flame className="w-3 h-3 text-amber-500" />{totalLikes} total likes</span>
+              <span className="flex items-center gap-1"><Flame className="w-3 h-3 text-warning" />{totalLikes} total likes</span>
               <span className="flex items-center gap-1"><Users className="w-3 h-3" />{displayLooks.length} look{displayLooks.length !== 1 ? "s" : ""}{searchQuery ? " found" : isGrid ? " in grid" : " trending"}</span>
             </>
           )}
@@ -515,7 +515,7 @@ export function CommunityPanel({ onNavigate, onNewLooksStatus }: CommunityPanelP
 
       {/* Error state */}
       {!loading && error && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-6 text-center">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-2xl border border-warning/20 bg-warning/5 p-6 text-center">
           <p className="text-sm text-muted-foreground mb-3">Couldn&apos;t load community looks right now.</p>
           <Button variant="outline" size="sm" onClick={fetchLooks}><RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Try Again</Button>
         </motion.div>
@@ -534,7 +534,7 @@ export function CommunityPanel({ onNavigate, onNewLooksStatus }: CommunityPanelP
 
       {/* Filter-aware empty state (browse) */}
       {!loading && !error && !hasDisplayLooks && view === "browse" && allFetchedLooks.length > 0 && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-6 text-center">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-2xl border border-warning/20 bg-warning/5 p-6 text-center">
           <Hash className="w-8 h-8 mx-auto text-muted-foreground/30 mb-3" />
           <h3 className="text-sm font-bold text-foreground mb-2">
             {searchQuery ? "No looks match your search" : activeTopic && showFollowedOnly ? "No looks match both filters" : activeTopic ? "No looks match this topic" : "No looks from followed personas"}

@@ -337,7 +337,7 @@ export function AgentStatus({
           <Button
             size="sm"
             variant="ghost"
-            className="text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
+            className="text-amber-400 hover:text-amber-300 hover:bg-warning/10"
             onClick={onTipClick}
           >
             <Coins className="w-4 h-4" />
@@ -468,7 +468,7 @@ export function AgentStatus({
               <span
                 className={`rounded-full px-2 py-1 text-[9px] font-bold ${
                   policy.autoBuy.enabled
-                    ? "bg-emerald-500/15 text-emerald-300"
+                    ? "bg-success/15 text-emerald-300"
                     : "bg-muted/40 text-muted-foreground"
                 }`}
               >
@@ -559,8 +559,8 @@ export function AgentStatus({
                   <span
                     className={`rounded-full px-1.5 py-0.5 text-[8px] font-bold ${
                       limit.requiresApproval
-                        ? "bg-amber-500/15 text-amber-300"
-                        : "bg-emerald-500/15 text-emerald-300"
+                        ? "bg-warning/15 text-amber-300"
+                        : "bg-success/15 text-emerald-300"
                     }`}
                   >
                     {limit.requiresApproval ? "approval" : "auto"}
@@ -581,7 +581,7 @@ export function AgentStatus({
       {/* Agent Discoveries — proactive market signal matches */}
       {isConnected && address && (matches.length > 0 || matchesLoading) && (
         <div className="mx-4">
-          <div className="bg-gradient-to-r from-amber-500/10 to-rose-500/10 rounded-xl p-4 border border-amber-500/20">
+          <div className="bg-gradient-to-r from-amber-500/10 to-rose-500/10 rounded-xl p-4 border border-warning/20">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-rose-600 flex items-center justify-center">
@@ -597,7 +597,7 @@ export function AgentStatus({
                 </div>
               </div>
               {pendingSignalCount > 0 && (
-                <span className="bg-amber-500/20 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                <span className="bg-warning/20 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full">
                   {pendingSignalCount} new
                 </span>
               )}
@@ -700,7 +700,7 @@ export function AgentStatus({
       {/* Hot Deals — Tier 3 autonomous commerce price drops */}
       {isConnected && address && (priceDrops.length > 0 || dropsLoading) && (
         <div className="mx-4 mb-2">
-          <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-xl p-4 border border-emerald-500/20">
+          <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-xl p-4 border border-success/20">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
@@ -772,7 +772,7 @@ export function AgentStatus({
                           <span className="text-muted-foreground text-[10px] line-through">
                             ${drop.oldPrice}
                           </span>
-                          <span className="bg-emerald-500/20 text-emerald-300 text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                          <span className="bg-success/20 text-emerald-300 text-[9px] font-bold px-1.5 py-0.5 rounded-full">
                             ↓{drop.dropPercent}%
                           </span>
                           <span className="text-muted-foreground text-[10px]">
@@ -796,8 +796,8 @@ export function AgentStatus({
                             }
                             className={`mt-1.5 text-[9px] px-2 py-0.5 rounded-md border transition-colors disabled:opacity-50 ${
                               justEnabledDropKey === `${drop.name}|${drop.source}`
-                                ? 'bg-emerald-500/25 text-emerald-300 border-emerald-500/30'
-                                : 'bg-emerald-500/15 text-emerald-300/80 border-emerald-500/20 hover:bg-emerald-500/25 hover:text-emerald-300'
+                                ? 'bg-success/25 text-emerald-300 border-success/30'
+                                : 'bg-success/15 text-emerald-300/80 border-success/20 hover:bg-success/25 hover:text-emerald-300'
                             }`}
                           >
                             {justEnabledDropKey === `${drop.name}|${drop.source}` ? (
@@ -854,9 +854,9 @@ export function AgentStatus({
 
             {/* Prompt to enable auto-buy when disabled and deals exist */}
             {!autoBuyEnabled && priceDrops.length > 0 && !dropsLoading && (
-              <div className="mt-2 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+              <div className="mt-2 bg-warning/10 border border-warning/20 rounded-lg p-3">
                 <div className="flex items-start gap-2">
-                  <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <div className="w-6 h-6 rounded-full bg-warning/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                     <TrendingDown className="w-3 h-3 text-amber-300" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -869,7 +869,7 @@ export function AgentStatus({
                     <div className="flex items-center gap-1.5 mt-2">
                       <button
                         onClick={() => updateAutoBuyPrice(25)}
-                        className="text-[9px] px-2.5 py-1 bg-emerald-500/20 text-emerald-300 rounded-lg border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors font-medium"
+                        className="text-[9px] px-2.5 py-1 bg-success/20 text-emerald-300 rounded-lg border border-success/30 hover:bg-success/30 transition-colors font-medium"
                       >
                         Enable at $25
                       </button>
@@ -886,7 +886,7 @@ export function AgentStatus({
             )}
 
             {/* Auto-buy settings toggle */}
-            <div className="mt-3 pt-3 border-t border-emerald-500/10">
+            <div className="mt-3 pt-3 border-t border-success/10">
               <button
                 onClick={() => setShowAutoBuySettings(!showAutoBuySettings)}
                 className="w-full flex items-center justify-between text-[10px] text-muted-foreground hover:text-foreground transition-colors"
@@ -895,7 +895,7 @@ export function AgentStatus({
                   <TrendingDown className="w-3 h-3" />
                   Auto-buy settings
                   {autoBuyEnabled && (
-                    <span className="bg-emerald-500/20 text-emerald-300 text-[8px] px-1.5 py-0.5 rounded-full font-bold">
+                    <span className="bg-success/20 text-emerald-300 text-[8px] px-1.5 py-0.5 rounded-full font-bold">
                       ${autoBuyMaxPrice} max
                     </span>
                   )}
@@ -926,7 +926,7 @@ export function AgentStatus({
                         onClick={() => { setCustomPriceInput(''); updateAutoBuyPrice(price); }}
                         className={`text-[10px] px-2.5 py-1 rounded-lg transition-colors ${
                           autoBuyMaxPrice === price && autoBuyEnabled === (price > 0)
-                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            ? 'bg-success/20 text-emerald-300 border border-success/30'
                             : 'bg-muted/30 text-muted-foreground border border-border/50 hover:bg-muted/50'
                         }`}
                       >
@@ -954,7 +954,7 @@ export function AgentStatus({
                         }}
                         placeholder="Custom max price"
                         disabled={prefsLoading}
-                        className="w-full bg-muted/30 border border-border/50 rounded-lg pl-5 pr-2 py-1.5 text-[11px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-emerald-500/30 disabled:opacity-50"
+                        className="w-full bg-muted/30 border border-border/50 rounded-lg pl-5 pr-2 py-1.5 text-[11px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-success/30 disabled:opacity-50"
                       />
                     </div>
                     <button
@@ -963,7 +963,7 @@ export function AgentStatus({
                         const val = parseFloat(customPriceInput);
                         if (val > 0) updateAutoBuyPrice(val);
                       }}
-                      className="text-[10px] px-3 py-1.5 bg-emerald-500/20 text-emerald-300 rounded-lg border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                      className="text-[10px] px-3 py-1.5 bg-success/20 text-emerald-300 rounded-lg border border-success/30 hover:bg-success/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                     >
                       Set
                     </button>

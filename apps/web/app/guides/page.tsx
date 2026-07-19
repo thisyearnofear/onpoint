@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Palette, ArrowRight, Shirt, Sparkles, ShoppingBag, Search, Scissors, Footprints, Leaf, Star, Heart, Calendar } from "lucide-react";
+import { ArrowRight, Shirt, Sparkles, ShoppingBag, Search, Scissors, Footprints, Leaf, Star, Heart, Calendar } from "lucide-react";
 import { OnPointLayout } from "../../components/OnPointLayout";
 
 export const metadata: Metadata = {
@@ -20,8 +20,8 @@ const GUIDES = [
     title: "Football Kit Buying Guide",
     description: "Sizing, printing names and numbers, authentic vs replica, and how to get the perfect fit for match day.",
     icon: Shirt,
-    color: "text-emerald-500",
-    bg: "bg-emerald-500/10",
+    color: "text-success",
+    bg: "bg-success/10",
     readTime: "5 min",
   },
   {
@@ -29,8 +29,8 @@ const GUIDES = [
     title: "Ankara & African Print Style Guide",
     description: "Fabrics, occasion matching, made-to-measure measurements, and virtual try-on for bold prints.",
     icon: Sparkles,
-    color: "text-amber-500",
-    bg: "bg-amber-500/10",
+    color: "text-warning",
+    bg: "bg-warning/10",
     readTime: "4 min",
   },
   {
@@ -74,8 +74,8 @@ const GUIDES = [
     title: "Sustainable & Ethical Fashion Guide",
     description: "The five R's of sustainable fashion, fabric choices, making clothes last longer, and smart second-hand shopping.",
     icon: Leaf,
-    color: "text-emerald-500",
-    bg: "bg-emerald-500/10",
+    color: "text-success",
+    bg: "bg-success/10",
     readTime: "5 min",
   },
   {
@@ -109,7 +109,7 @@ const GUIDES = [
 
 export default function GuidesIndexPage() {
   return (
-    <OnPointLayout footer={false}>
+    <OnPointLayout>
       {/* Hero */}
       <section className="border-b border-border bg-gradient-to-b from-card to-background">
         <div className="mx-auto max-w-3xl px-4 py-14 md:py-18 text-center">
@@ -171,24 +171,6 @@ export default function GuidesIndexPage() {
           </Link>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="border-t border-border py-8">
-        <div className="mx-auto flex max-w-4xl flex-col items-center justify-between gap-4 px-4 text-sm text-muted-foreground md:flex-row">
-          <div className="flex items-center gap-2">
-            <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-1 shadow-md">
-              <Palette className="h-3.5 w-3.5 text-white" />
-            </div>
-            OnPoint
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
-            <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
-            <Link href="/curator" className="hover:text-foreground transition-colors">For Curators</Link>
-          </div>
-          <p className="text-xs">10 style guides for smarter fashion shopping.</p>
-        </div>
-      </footer>
     </OnPointLayout>
   );
 }

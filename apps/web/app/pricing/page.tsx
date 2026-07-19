@@ -89,7 +89,7 @@ export default function PricingPage() {
               </div>
             ))}
             {error && (
-              <span className="text-xs text-amber-600 dark:text-amber-400">cached</span>
+              <span className="text-xs text-warning dark:text-amber-400">cached</span>
             )}
           </div>
         </div>
@@ -111,7 +111,7 @@ export default function PricingPage() {
             <ul className="space-y-1.5 text-sm">
               {["Directory access", "Storefront browsing", "Listing details"].map((f) => (
                 <li key={f} className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <Check className="w-4 h-4 text-success shrink-0 mt-0.5" />
                   <span>{f}</span>
                 </li>
               ))}
@@ -134,7 +134,7 @@ export default function PricingPage() {
             <ul className="space-y-1.5 text-sm">
               {["AI render in seconds", "Style preview", "Share polaroid", "No login required"].map((f) => (
                 <li key={f} className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <Check className="w-4 h-4 text-success shrink-0 mt-0.5" />
                   <span>{f}</span>
                 </li>
               ))}
@@ -165,7 +165,7 @@ export default function PricingPage() {
             <ul className="space-y-1.5 text-sm">
               {["AI render in seconds", "Fit signal + critique", "Similar physical items", "NFT minting ($0.10)"].map((f) => (
                 <li key={f} className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <Check className="w-4 h-4 text-success shrink-0 mt-0.5" />
                   <span>{f}</span>
                 </li>
               ))}
@@ -179,8 +179,8 @@ export default function PricingPage() {
 
           {/* Physical Try-On (Agent, Paid) */}
           <div className="rounded-2xl border border-border/40 bg-card p-6 space-y-3 hover:border-border/60 transition-colors">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
-              <Camera className="w-5 h-5 text-amber-500" />
+            <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center">
+              <Camera className="w-5 h-5 text-warning" />
             </div>
             <h2 className="text-sm font-bold uppercase tracking-wider">Physical Try-On</h2>
             <div className="flex items-baseline gap-1">
@@ -193,7 +193,7 @@ export default function PricingPage() {
             <ul className="space-y-1.5 text-sm">
               {["AI try-on render", "Size/fit signal", "WhatsApp brief", "Polaroid share"].map((f) => (
                 <li key={f} className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <Check className="w-4 h-4 text-success shrink-0 mt-0.5" />
                   <span>{f}</span>
                 </li>
               ))}
@@ -233,17 +233,17 @@ export default function PricingPage() {
                       <div className="space-y-2">
                         <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">What you get</p>
                         <ul className="space-y-1.5 text-sm">
-                          <li className="flex items-start gap-2"><Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /><span>A visual of how the style would look</span></li>
-                          <li className="flex items-start gap-2"><Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /><span>Good enough to decide if you like the vibe</span></li>
-                          <li className="flex items-start gap-2"><Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /><span>Shareable polaroid card</span></li>
+                          <li className="flex items-start gap-2"><Check className="w-4 h-4 text-success shrink-0 mt-0.5" /><span>A visual of how the style would look</span></li>
+                          <li className="flex items-start gap-2"><Check className="w-4 h-4 text-success shrink-0 mt-0.5" /><span>Good enough to decide if you like the vibe</span></li>
+                          <li className="flex items-start gap-2"><Check className="w-4 h-4 text-success shrink-0 mt-0.5" /><span>Shareable polaroid card</span></li>
                         </ul>
                       </div>
                       <div className="space-y-2">
                         <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Limitations</p>
                         <ul className="space-y-1.5 text-sm">
-                          <li className="flex items-start gap-2"><span className="text-amber-500 shrink-0 mt-0.5">—</span><span>Not the actual garment on your actual body</span></li>
-                          <li className="flex items-start gap-2"><span className="text-amber-500 shrink-0 mt-0.5">—</span><span>20 try-ons per day per IP</span></li>
-                          <li className="flex items-start gap-2"><span className="text-amber-500 shrink-0 mt-0.5">—</span><span>No size/fit signal</span></li>
+                          <li className="flex items-start gap-2"><span className="text-warning shrink-0 mt-0.5">—</span><span>Not the actual garment on your actual body</span></li>
+                          <li className="flex items-start gap-2"><span className="text-warning shrink-0 mt-0.5">—</span><span>20 try-ons per day per IP</span></li>
+                          <li className="flex items-start gap-2"><span className="text-warning shrink-0 mt-0.5">—</span><span>No size/fit signal</span></li>
                         </ul>
                       </div>
                     </div>
@@ -269,10 +269,10 @@ export default function PricingPage() {
                       <div className="space-y-2">
                         <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">What you get</p>
                         <ul className="space-y-1.5 text-sm">
-                          <li className="flex items-start gap-2"><Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /><span>The exact item on your exact body</span></li>
-                          <li className="flex items-start gap-2"><Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /><span>Size/fit signal + critique</span></li>
-                          <li className="flex items-start gap-2"><Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /><span>WhatsApp-ready brief to curator</span></li>
-                          <li className="flex items-start gap-2"><Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /><span>Shareable polaroid card</span></li>
+                          <li className="flex items-start gap-2"><Check className="w-4 h-4 text-success shrink-0 mt-0.5" /><span>The exact item on your exact body</span></li>
+                          <li className="flex items-start gap-2"><Check className="w-4 h-4 text-success shrink-0 mt-0.5" /><span>Size/fit signal + critique</span></li>
+                          <li className="flex items-start gap-2"><Check className="w-4 h-4 text-success shrink-0 mt-0.5" /><span>WhatsApp-ready brief to curator</span></li>
+                          <li className="flex items-start gap-2"><Check className="w-4 h-4 text-success shrink-0 mt-0.5" /><span>Shareable polaroid card</span></li>
                         </ul>
                       </div>
                       <div className="space-y-2">
@@ -438,19 +438,19 @@ export default function PricingPage() {
             >
               <ul className="space-y-2 text-sm">
                 <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <Check className="w-4 h-4 text-success shrink-0 mt-0.5" />
                   <span><span className="font-bold">Rate limits:</span> 5/min, 20/day per IP on all try-on routes</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <Check className="w-4 h-4 text-success shrink-0 mt-0.5" />
                   <span><span className="font-bold">Render cache:</span> 1-hour cache eliminates duplicate AI calls for same photo + listing</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <Check className="w-4 h-4 text-success shrink-0 mt-0.5" />
                   <span><span className="font-bold">Funnel tracking:</span> every try-on and purchase logged for conversion analysis</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <Check className="w-4 h-4 text-success shrink-0 mt-0.5" />
                   <span><span className="font-bold">Cheaper text gen:</span> Gemini Flash-Lite for styling tips (7x cheaper)</span>
                 </li>
               </ul>

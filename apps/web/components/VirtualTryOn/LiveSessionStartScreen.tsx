@@ -79,7 +79,7 @@ export function LiveSessionStartScreen({
       <div className="flex-1 overflow-y-auto">
         <div className="flex flex-col items-center gap-5 sm:gap-6 max-w-2xl mx-auto w-full px-5 sm:px-6 py-6 sm:py-8">
           <div className="w-full">
-            <div className="relative aspect-[4/5] sm:aspect-[16/10] w-full overflow-hidden rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950/30 shadow-2xl shadow-emerald-500/10">
+            <div className="relative aspect-[4/5] sm:aspect-[16/10] w-full overflow-hidden rounded-3xl border border-success/20 bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950/30 shadow-2xl shadow-emerald-500/10">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,_rgba(16,185,129,0.18),_transparent_60%)]" />
 
               <div className="absolute inset-0 flex items-end justify-center">
@@ -98,7 +98,7 @@ export function LiveSessionStartScreen({
                 </div>
               </div>
 
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 backdrop-blur-md border border-emerald-400/30 shadow-lg">
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1 rounded-full bg-success/20 backdrop-blur-md border border-emerald-400/30 shadow-lg">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
                 <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-200">
                   Good Position
@@ -143,7 +143,7 @@ export function LiveSessionStartScreen({
           </div>
 
           <div className="text-center space-y-2 max-w-lg">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success/10 border border-success/25">
               <ShieldCheck className="w-3 h-3 text-emerald-400" />
               <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300">
                 {isPremium ? "Live · Premium" : "On-device preview · No signup"}
@@ -169,7 +169,7 @@ export function LiveSessionStartScreen({
                 key={label}
                 className="flex flex-col items-center text-center p-2.5 sm:p-3 rounded-xl border border-border bg-card/50"
               >
-                <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-1.5">
+                <div className="w-8 h-8 rounded-full bg-success/10 border border-success/20 flex items-center justify-center mb-1.5">
                   <Icon className="w-4 h-4 text-emerald-400" />
                 </div>
                 <p className="text-xs font-bold">{label}</p>
@@ -213,7 +213,7 @@ export function LiveSessionStartScreen({
 
           <div className="w-full max-w-md space-y-2">
             <Button
-              className="w-full bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-full py-6 text-base sm:text-lg font-bold shadow-xl shadow-emerald-500/30 transition-all hover:shadow-emerald-500/50"
+              className="w-full bg-success hover:bg-success active:bg-success text-white rounded-full py-6 text-base sm:text-lg font-bold shadow-xl shadow-emerald-500/30 transition-all hover:shadow-emerald-500/50"
               loading={showSpinner}
               loadingIcon={
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -248,7 +248,7 @@ export function LiveSessionStartScreen({
           {hasStoredSession && onViewStoredSession && (
             <button
               onClick={onViewStoredSession}
-              className="text-[11px] text-emerald-500/60 hover:text-emerald-400 transition-colors inline-flex items-center gap-1.5"
+              className="text-[11px] text-success/60 hover:text-emerald-400 transition-colors inline-flex items-center gap-1.5"
             >
               View last analysis →
             </button>

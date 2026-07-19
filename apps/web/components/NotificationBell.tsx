@@ -73,27 +73,27 @@ function timeAgo(timestamp: number): string {
 function notificationIcon(type: NotificationType) {
   switch (type) {
     case "trial_ending":
-      return { icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10" };
+      return { icon: Clock, color: "text-warning", bg: "bg-warning/10" };
     case "payment_succeeded":
-      return { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10" };
+      return { icon: CheckCircle2, color: "text-success", bg: "bg-success/10" };
     case "payment_failed":
-      return { icon: AlertTriangle, color: "text-red-500", bg: "bg-red-500/10" };
+      return { icon: AlertTriangle, color: "text-error", bg: "bg-error/10" };
     case "subscription_past_due":
       return { icon: AlertTriangle, color: "text-orange-500", bg: "bg-orange-500/10" };
     case "subscription_canceled":
-      return { icon: X, color: "text-red-500", bg: "bg-red-500/10" };
+      return { icon: X, color: "text-error", bg: "bg-error/10" };
     case "subscription_renewed":
       return { icon: Crown, color: "text-primary", bg: "bg-primary/10" };
     case "subscription_upgraded":
       return { icon: Sparkles, color: "text-accent", bg: "bg-accent/10" };
     case "usage_limit_reached":
-      return { icon: CreditCard, color: "text-amber-500", bg: "bg-amber-500/10" };
+      return { icon: CreditCard, color: "text-warning", bg: "bg-warning/10" };
     case "score_milestone":
-      return { icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-500/10" };
+      return { icon: TrendingUp, color: "text-success", bg: "bg-success/10" };
     case "streak_reminder":
       return { icon: Flame, color: "text-orange-500", bg: "bg-orange-500/10" };
     case "persona_unlock":
-      return { icon: Users, color: "text-violet-500", bg: "bg-violet-500/10" };
+      return { icon: Users, color: "text-info", bg: "bg-info/10" };
     default:
       return { icon: Bell, color: "text-muted-foreground", bg: "bg-muted" };
   }
@@ -411,7 +411,7 @@ export function NotificationBell({ direction = "down" }: { direction?: "up" | "d
         <Bell className="w-5 h-5 text-muted-foreground" />
       )}
       {unreadCount > 0 && (
-        <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center w-[18px] h-[18px] text-[10px] font-bold text-white bg-red-500 rounded-full leading-none shadow-sm">
+        <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center w-[18px] h-[18px] text-[10px] font-bold text-white bg-error rounded-full leading-none shadow-sm">
           {unreadCount > 9 ? "9+" : unreadCount}
         </span>
       )}

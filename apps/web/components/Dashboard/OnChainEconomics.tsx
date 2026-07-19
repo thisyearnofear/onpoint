@@ -97,7 +97,7 @@ export function OnChainEconomics() {
         <span className="text-sm font-bold uppercase tracking-wider text-foreground">
           On-Chain Economics
         </span>
-        <span className="ml-auto rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-500">
+        <span className="ml-auto rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-bold text-success">
           Celo Mainnet
         </span>
       </div>
@@ -127,9 +127,9 @@ export function OnChainEconomics() {
 
         {/* Sub-cent proof */}
         {avgGas < 0.01 && (
-          <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 mb-4">
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-            <p className="text-xs font-medium text-emerald-600">
+          <div className="flex items-center gap-2 rounded-lg bg-success/10 border border-success/20 px-3 py-2 mb-4">
+            <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
+            <p className="text-xs font-medium text-success">
               Sub-cent transactions verified — avg {formatUsd(avgGas)} per action
             </p>
           </div>
@@ -162,7 +162,7 @@ export function OnChainEconomics() {
                   )}
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-xs font-bold text-emerald-500">
+                  <p className="text-xs font-bold text-success">
                     {action.gasCostUsd ? formatUsd(action.gasCostUsd) : "<$0.01"}
                   </p>
                   {action.txHash && (

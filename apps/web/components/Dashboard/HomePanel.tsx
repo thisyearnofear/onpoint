@@ -37,17 +37,17 @@ export function HomePanel({ onNavigate }: HomePanelProps) {
     >
       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
         {streak > 0 && (
-          <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-2">
-            <Flame className={`h-4 w-4 ${streak >= 3 ? "text-amber-500" : "text-amber-400"}`} />
-            <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{streak}</span>
-            <span className="text-[10px] text-amber-600/70 dark:text-amber-400/70 whitespace-nowrap">
+          <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-warning/20 bg-warning/10 px-3 py-2">
+            <Flame className={`h-4 w-4 ${streak >= 3 ? "text-warning" : "text-amber-400"}`} />
+            <span className="text-sm font-bold text-warning dark:text-amber-400">{streak}</span>
+            <span className="text-[10px] text-warning/70 dark:text-amber-400/70 whitespace-nowrap">
               G$ streak
             </span>
           </div>
         )}
         {[
           { label: "Try On", icon: Camera, mode: "try-on", color: "bg-accent/10 text-accent border-accent/20" },
-          { label: "Shop", icon: ShoppingBag, mode: "shop", color: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
+          { label: "Shop", icon: ShoppingBag, mode: "shop", color: "bg-warning/10 text-warning border-warning/20" },
           { label: "Stylist", icon: MessageCircle, mode: "stylist", color: "bg-primary/10 text-primary border-primary/20" },
           { label: "My Looks", icon: Palette, mode: "my-looks", color: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" },
         ].map((action) => (

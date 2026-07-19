@@ -83,7 +83,7 @@ export function CommunityCard({
                     : look.headline}
                 </p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-amber-500">
+                  <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-warning">
                     <Sparkles className="w-3 h-3" />
                     {look.score}/10
                   </span>

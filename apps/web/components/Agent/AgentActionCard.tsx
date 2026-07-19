@@ -42,7 +42,7 @@ export function AgentActionCard({
       <>
         <button
           onClick={() => setShowTipModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500/10 to-orange-500/10 hover:from-amber-500/20 hover:to-orange-500/20 rounded-full border border-amber-500/30 transition-all group"
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500/10 to-orange-500/10 hover:from-amber-500/20 hover:to-orange-500/20 rounded-full border border-warning/30 transition-all group"
         >
           <Coins className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
           <span className="text-amber-300 text-sm font-medium">
@@ -64,10 +64,10 @@ export function AgentActionCard({
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-600/20 via-orange-600/20 to-amber-600/20 border border-amber-500/30 p-6"
+          className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-600/20 via-orange-600/20 to-amber-600/20 border border-warning/30 p-6"
         >
           {/* Background decoration */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 blur-3xl rounded-full -mr-16 -mt-16" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-warning/10 blur-3xl rounded-full -mr-16 -mt-16" />
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-orange-500/10 blur-3xl rounded-full -ml-12 -mb-12" />
 
           <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-4">
@@ -95,7 +95,7 @@ export function AgentActionCard({
                 <Button
                   variant="outline"
                   onClick={onMintClick}
-                  className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10"
+                  className="border-warning/30 text-amber-300 hover:bg-warning/10"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
                   Mint Look
@@ -157,7 +157,7 @@ export function AgentActionCard({
             className="w-full flex items-center justify-between p-4 bg-muted/30 hover:bg-muted rounded-2xl border border-border transition-all group"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-warning/20 flex items-center justify-center">
                 <Coins className="w-5 h-5 text-amber-400" />
               </div>
               <div className="text-left">
@@ -212,7 +212,7 @@ export function AgentActionCard({
 
         {/* Footer */}
         <div className="px-6 pb-6 space-y-2">
-          <div className="flex items-center gap-2 p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+          <div className="flex items-center gap-2 p-3 bg-success/10 rounded-xl border border-success/20">
             <Shield className="w-4 h-4 text-emerald-400 shrink-0" />
             <p className="text-emerald-300 text-xs">
               Secured by Tether WDK — Self-custodial on Celo, Base, ETH &

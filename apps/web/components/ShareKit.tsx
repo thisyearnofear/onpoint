@@ -110,7 +110,7 @@ export function ShareKit({ storefrontUrl, curatorName }: ShareKitProps) {
         >
           {copied ? (
             <>
-              <Check className="h-4 w-4 text-emerald-500" />
+              <Check className="h-4 w-4 text-success" />
               Copied!
             </>
           ) : (
@@ -124,7 +124,7 @@ export function ShareKit({ storefrontUrl, curatorName }: ShareKitProps) {
         <button
           type="button"
           onClick={handleWhatsApp}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-3 text-sm font-bold text-white transition-all hover:bg-emerald-600 active:scale-[0.98]"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-success px-4 py-3 text-sm font-bold text-white transition-all hover:bg-success active:scale-[0.98]"
         >
           <MessageCircle className="h-4 w-4" />
           WhatsApp

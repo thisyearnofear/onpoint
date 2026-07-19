@@ -39,7 +39,7 @@ const AI_VOICES: AICuratorVoice[] = [
     personaKey: "miranda",
     name: "Miranda Priestly",
     description: "The truth, elegantly delivered.",
-    color: "text-slate-500",
+    color: "text-muted-foreground",
     bg: "bg-slate-500/10",
     ring: "hover:ring-slate-500/30",
     icon: Sparkles,

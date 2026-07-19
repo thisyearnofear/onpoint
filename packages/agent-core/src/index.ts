@@ -58,6 +58,25 @@ export {
   patchAgentApi,
 } from "./agent-api";
 
+// ── Looks SDK ──
+export {
+  type LookListItem,
+  type LookDetail,
+  type LookItem,
+  type BrowseLooksOptions,
+  type CreateLookOptions,
+  type UpdateLookOptions,
+  type ClassifyLookResult,
+  type RegenerateCollageResult,
+  browseLooks,
+  getLook,
+  createLook,
+  updateLook,
+  deleteLook,
+  classifyLook,
+  regenerateCollage,
+} from "./looks-api";
+
 // ── Agent Controls & Store ──
 export {
   type ActionType,

@@ -119,19 +119,19 @@ export default function AboutPage() {
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
-              <Check className="h-4 w-4 text-emerald-500" />
+              <Check className="h-4 w-4 text-success" />
               No subscription fees
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Check className="h-4 w-4 text-emerald-500" />
+              <Check className="h-4 w-4 text-success" />
               AI-powered
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Check className="h-4 w-4 text-emerald-500" />
+              <Check className="h-4 w-4 text-success" />
               Open-source ethos
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Check className="h-4 w-4 text-emerald-500" />
+              <Check className="h-4 w-4 text-success" />
               On Celo blockchain
             </span>
           </div>

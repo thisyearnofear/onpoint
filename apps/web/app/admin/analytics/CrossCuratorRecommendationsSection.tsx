@@ -279,7 +279,7 @@ export function CrossCuratorRecommendationsSection() {
                 Cards clicked across all storefronts
               </p>
             </div>
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-violet-500">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-info">
               <Sparkles className="h-4 w-4" />
             </div>
           </div>
@@ -318,7 +318,7 @@ export function CrossCuratorRecommendationsSection() {
                 Purchases traced to cross-curator referrals
               </p>
             </div>
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-emerald-500">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-success">
               <TrendingUp className="h-4 w-4" />
             </div>
           </div>
@@ -402,7 +402,7 @@ export function CrossCuratorRecommendationsSection() {
                     <Bar
                       value={r.crossRecoClicks || 0}
                       max={maxClicks}
-                      color="bg-violet-500"
+                      color="bg-info"
                       height="h-2"
                     />
                   </div>
@@ -471,7 +471,7 @@ export function CrossCuratorRecommendationsSection() {
                   key={slug}
                   className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-3"
                 >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-xs font-bold text-emerald-600">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-success/10 text-xs font-bold text-success">
                     {count}
                   </div>
                   <div>

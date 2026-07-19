@@ -102,8 +102,8 @@ export function GBalancePill({ className }: GBalancePillProps) {
         onClick={() => setExpanded((v) => !v)}
         className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
           isZeroBalance
-            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/15 animate-pulse"
-            : "border-emerald-500/20 bg-emerald-500/5 text-emerald-300 hover:bg-emerald-500/10"
+            ? "border-success/40 bg-success/10 text-emerald-300 hover:bg-success/15 animate-pulse"
+            : "border-success/20 bg-success/5 text-emerald-300 hover:bg-success/10"
         }`}
         title="GoodDollar G$ balance"
       >

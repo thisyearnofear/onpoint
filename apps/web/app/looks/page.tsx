@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Shirt } from "lucide-react";
+import { ArrowLeft, Shirt } from "lucide-react";
 import { getApiBase } from "../../lib/utils/api-base";
 import { OnPointLayout } from "../../components/OnPointLayout";
 import { LookCard, type LookCardData } from "../../components/LookCard";
@@ -65,6 +65,17 @@ export default async function LooksPage({
   return (
     <OnPointLayout footer={false}>
       <div className="mx-auto max-w-6xl px-4 py-10">
+        {/* Back link */}
+        <div className="mb-6">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Home
+          </Link>
+        </div>
+
         <div className="mb-8 space-y-2">
           <h1 className="text-3xl font-black tracking-tight md:text-4xl">
             Styled Looks
