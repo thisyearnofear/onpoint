@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getApiBase } from '@/lib/utils/api-base';
+import { OnPointLayout } from '../../../components/OnPointLayout';
 
 /**
  * Referral landing page - /r/[referralCode]
@@ -72,11 +73,13 @@ export default function ReferralPage() {
   }, [referralCode, router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted/20">
-      <div className="text-center space-y-4">
-        <div className="animate-pulse text-4xl">✨</div>
-        <p className="text-lg text-muted-foreground">Loading...</p>
+    <OnPointLayout footer={false}>
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/20">
+        <div className="text-center space-y-4">
+          <div className="animate-pulse text-4xl">✨</div>
+          <p className="text-lg text-muted-foreground">Loading...</p>
+        </div>
       </div>
-    </div>
+    </OnPointLayout>
   );
 }

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import {
@@ -12,7 +13,7 @@ import {
   Clock,
 } from "lucide-react";
 import { getApiBase } from "../../lib/utils/api-base";
-import { OnPointHeader } from "../../components/OnPointHeader";
+import { OnPointLayout } from "../../components/OnPointLayout";
 
 export const metadata: Metadata = {
   title: "Browse Curators | OnPoint",
@@ -71,9 +72,7 @@ export default async function CuratorsPage() {
   const totalListings = curators.reduce((sum, c) => sum + (c.liveListingCount || 0), 0);
 
   return (
-    <div className="min-h-screen bg-background">
-      <OnPointHeader />
-
+    <OnPointLayout footer={false}>
       {/* ── Header ── */}
       <header className="border-b border-border bg-gradient-to-b from-muted/30 to-background">
         <div className="container mx-auto px-4 py-10 md:py-14 max-w-4xl">
@@ -161,10 +160,9 @@ export default async function CuratorsPage() {
                 >
                   <div className="flex flex-col md:flex-row gap-6">
                     {/* Visual */}
-                    <div className="flex h-32 w-32 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-purple-500/20 text-4xl font-black text-primary">
+                    <div className="relative flex h-32 w-32 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-purple-500/20 text-4xl font-black text-primary">
                       {nia.brand?.logo ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={nia.brand.logo} alt={nia.name} className="h-full w-full rounded-2xl object-cover" />
+                        <Image src={nia.brand.logo} alt={nia.name} fill unoptimized className="rounded-2xl object-cover" />
                       ) : (
                         "ND"
                       )}
@@ -241,7 +239,7 @@ export default async function CuratorsPage() {
                     >
                       <div className="flex items-start gap-3">
                         <div
-                          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-lg font-black text-white"
+                          className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-lg font-black text-white"
                           style={{
                             background: curator!.brand?.colors?.primary
                               ? `linear-gradient(135deg, ${curator!.brand.colors.primary}, ${curator!.brand.colors.accent ?? curator!.brand.colors.primary})`
@@ -249,8 +247,7 @@ export default async function CuratorsPage() {
                           }}
                         >
                           {curator!.brand?.logo ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={curator!.brand.logo} alt={curator!.name} className="h-full w-full rounded-xl object-cover" />
+                            <Image src={curator!.brand.logo} alt={curator!.name} fill unoptimized className="rounded-xl object-cover" />
                           ) : (
                             curator!.name.charAt(0)
                           )}
@@ -299,7 +296,7 @@ export default async function CuratorsPage() {
                     >
                       <div className="flex items-start gap-3">
                         <div
-                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-muted-foreground grayscale"
+                          className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-muted-foreground grayscale"
                           style={{
                             background: curator.brand?.colors?.primary
                               ? `${curator.brand.colors.primary}30`
@@ -307,8 +304,7 @@ export default async function CuratorsPage() {
                           }}
                         >
                           {curator.brand?.logo ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={curator.brand.logo} alt={curator.name} className="h-full w-full rounded-lg object-cover grayscale" />
+                            <Image src={curator.brand.logo} alt={curator.name} fill unoptimized className="rounded-lg object-cover grayscale" />
                           ) : (
                             curator.name.charAt(0)
                           )}
@@ -356,6 +352,6 @@ export default async function CuratorsPage() {
           </div>
         )}
       </main>
-    </div>
+    </OnPointLayout>
   );
 }

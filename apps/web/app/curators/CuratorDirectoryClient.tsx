@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import Image from "next/image";
 import { flushSync } from "react-dom";
 import { MapPin, Package, Search, Sparkles, X } from "lucide-react";
 import {
@@ -226,13 +227,19 @@ function CuratorCard({ curator }: { curator: DirectoryCurator }) {
         {/* Avatar + name */}
         <div className="flex items-center gap-3">
           {curator.brand?.logo ? (
-            <img
-              src={curator.brand.logo}
-              alt={curator.name}
-              className="w-12 h-12 rounded-xl object-cover border border-border"
+            <div
+              className="relative w-12 h-12 shrink-0"
               data-view-transition="curator-avatar"
               style={{ viewTransitionName: `curator-avatar-${curator.slug}` }}
-            />
+            >
+              <Image
+                src={curator.brand.logo}
+                alt={curator.name}
+                fill
+                unoptimized
+                className="rounded-xl object-cover border border-border"
+              />
+            </div>
           ) : (
             <div
               className="flex h-12 w-12 items-center justify-center rounded-xl text-white font-bold text-lg shrink-0"

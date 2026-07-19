@@ -1,9 +1,8 @@
-/* eslint-disable @next/next/no-img-element */
-
+import Image from "next/image";
 import Link from "next/link";
 import { Eye, Shirt, Sparkles } from "lucide-react";
 import { getApiBase } from "../../lib/utils/api-base";
-import { OnPointHeader } from "../../components/OnPointHeader";
+import { OnPointLayout } from "../../components/OnPointLayout";
 
 export const dynamic = "force-dynamic";
 
@@ -55,9 +54,7 @@ export default async function LooksPage() {
   const looks = await loadLooks();
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <OnPointHeader />
-
+    <OnPointLayout footer={false}>
       <div className="mx-auto max-w-6xl px-4 py-10">
         <div className="mb-8 space-y-2">
           <h1 className="text-3xl font-black tracking-tight md:text-4xl">
@@ -94,22 +91,28 @@ export default async function LooksPage() {
                 >
                   <div className="relative aspect-[4/5] overflow-hidden bg-muted">
                     {look.coverImageUrl ? (
-                      <img
+                      <Image
                         src={look.coverImageUrl}
                         alt={look.title}
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        fill
+                        unoptimized
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                     ) : look.heroImageUrl ? (
-                      <img
+                      <Image
                         src={look.heroImageUrl}
                         alt={look.title}
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        fill
+                        unoptimized
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                     ) : heroItem?.imageUrl ? (
-                      <img
+                      <Image
                         src={heroItem.imageUrl}
                         alt={look.title}
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        fill
+                        unoptimized
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                     ) : (
                       <div className="flex h-full items-center justify-center">
@@ -150,6 +153,6 @@ export default async function LooksPage() {
           </div>
         )}
       </div>
-    </main>
+    </OnPointLayout>
   );
 }

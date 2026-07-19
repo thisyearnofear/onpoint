@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Palette, ArrowRight, Shirt, Sparkles, ShoppingBag, Search, Scissors, Footprints, Leaf, Star, Heart, Calendar } from "lucide-react";
-import { OnPointHeader } from "../../components/OnPointHeader";
+import { OnPointLayout } from "../../components/OnPointLayout";
 
 export const metadata: Metadata = {
   title: "Style Guides | OnPoint",
@@ -109,9 +109,7 @@ const GUIDES = [
 
 export default function GuidesIndexPage() {
   return (
-    <main className="min-h-screen bg-background text-foreground selection:bg-primary/30">
-      <OnPointHeader />
-
+    <OnPointLayout footer={false}>
       {/* Hero */}
       <section className="border-b border-border bg-gradient-to-b from-card to-background">
         <div className="mx-auto max-w-3xl px-4 py-14 md:py-18 text-center">
@@ -191,6 +189,6 @@ export default function GuidesIndexPage() {
           <p className="text-xs">10 style guides for smarter fashion shopping.</p>
         </div>
       </footer>
-    </main>
+    </OnPointLayout>
   );
 }

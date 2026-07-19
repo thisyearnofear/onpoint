@@ -1,6 +1,6 @@
-import Link from "next/link";
 import type { Metadata } from "next";
-import { Palette, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
+import { OnPointLayout } from "../../components/OnPointLayout";
 
 export const metadata: Metadata = {
   title: "Terms of Service | OnPoint",
@@ -10,24 +10,7 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <main className="min-h-screen bg-background text-foreground selection:bg-primary/30">
-      <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/95 backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2 text-sm font-bold">
-            <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-1.5 shadow-md">
-              <Palette className="h-4 w-4 text-white" />
-            </div>
-            OnPoint
-          </Link>
-          <Link
-            href="/privacy"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Privacy Policy
-          </Link>
-        </div>
-      </header>
-
+    <OnPointLayout>
       <article className="mx-auto max-w-3xl px-4 py-12">
         <div className="mb-8 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
@@ -175,24 +158,6 @@ export default function TermsPage() {
           </section>
         </div>
       </article>
-
-      <footer className="border-t border-border py-8">
-        <div className="mx-auto flex max-w-3xl flex-col items-center justify-between gap-4 px-4 text-sm text-muted-foreground md:flex-row">
-          <div className="flex items-center gap-2">
-            <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-1 shadow-md">
-              <Palette className="h-3.5 w-3.5 text-white" />
-            </div>
-            OnPoint
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
-            <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
-            <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
-            <Link href="/guides" className="hover:text-foreground transition-colors">Guides</Link>
-          </div>
-          <p className="text-xs">Your privacy matters.</p>
-        </div>
-      </footer>
-    </main>
+    </OnPointLayout>
   );
 }

@@ -22,6 +22,7 @@ import {
   BellOff,
 } from "lucide-react";
 import { TrackingTimeline } from "../../components/TrackingTimeline";
+import { OnPointLayout } from "../../components/OnPointLayout";
 
 type TrackingData = {
   found: boolean;
@@ -840,7 +841,7 @@ function Row({
 
 export default function TrackingPage() {
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <OnPointLayout footer={false}>
       <Suspense
         fallback={
           <div className="flex min-h-[60vh] items-center justify-center">
@@ -850,6 +851,6 @@ export default function TrackingPage() {
       >
         <TrackingPageInner />
       </Suspense>
-    </main>
+    </OnPointLayout>
   );
 }

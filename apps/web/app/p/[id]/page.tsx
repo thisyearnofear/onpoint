@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ArrowRight, CheckCircle2, Sparkles, ShoppingBag } from "lucide-react";
-import { OnPointHeader, OnPointFooter } from "../../../components/OnPointHeader";
+import { OnPointLayout } from "../../../components/OnPointLayout";
 import { TransitionLink } from "../../../components/ViewTransition";
 import { getApiBase } from "../../../lib/utils/api-base";
 import { PolaroidShareButtons } from "./PolaroidShareButtons";
@@ -99,9 +99,8 @@ export default async function PolaroidPage({
           : "text-orange-400";
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <OnPointHeader />
-      <main className="flex-1 flex items-center justify-center px-4 py-12">
+    <OnPointLayout className="flex flex-col">
+      <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
           {/* Polaroid card — branded, shareable */}
           <div className="bg-card rounded-3xl overflow-hidden shadow-2xl border border-border">
@@ -261,8 +260,7 @@ export default async function PolaroidPage({
             AI try-on powered by OnPoint. Not a perfect representation of fit.
           </p>
         </div>
-      </main>
-      <OnPointFooter />
-    </div>
+      </div>
+    </OnPointLayout>
   );
 }

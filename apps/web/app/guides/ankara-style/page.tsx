@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { ArrowLeft, Check, Sparkles, Camera, Scissors, Calendar, Ruler, Zap } from "lucide-react";
 import { Reveal } from "../../../components/ui/Reveal";
 import { Accordion, AccordionItem } from "../../../components/ui/Accordion";
-import { OnPointHeader } from "../../../components/OnPointHeader";
+import { OnPointLayout } from "../../../components/OnPointLayout";
 
 export const metadata: Metadata = {
   title: "Ankara & African Print Style Guide | OnPoint",
@@ -18,8 +18,7 @@ export const metadata: Metadata = {
 
 export default function AnkaraStyleGuide() {
   return (
-    <main className="min-h-screen bg-background text-foreground selection:bg-primary/30">
-      <OnPointHeader />
+    <OnPointLayout footer={false}>
       <article className="mx-auto max-w-3xl px-4 py-12">
         {/* Back link */}
         <Link
@@ -231,6 +230,6 @@ export default function AnkaraStyleGuide() {
           </Link>
         </div>
       </article>
-    </main>
+    </OnPointLayout>
   );
 }

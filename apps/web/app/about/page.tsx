@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import {
   ArrowRight,
@@ -11,14 +9,12 @@ import {
 } from "lucide-react";
 import { Reveal } from "../../components/ui/Reveal";
 import { ComingSoonBadge } from "../../components/ui/ComingSoonBadge";
-import { OnPointHeader, OnPointFooter } from "../../components/OnPointHeader";
+import { OnPointLayout } from "../../components/OnPointLayout";
 import { PRODUCT_NAME } from "../../lib/brand";
 
 export default function AboutPage() {
   return (
-    <main className="min-h-screen bg-background text-foreground selection:bg-primary/30">
-      <OnPointHeader />
-
+    <OnPointLayout>
       {/* Hero */}
       <Reveal>
         <section className="border-b border-border bg-gradient-to-b from-card to-background">
@@ -174,8 +170,6 @@ export default function AboutPage() {
       </section>
       </Reveal>
 
-      {/* Footer */}
-      <OnPointFooter />
-    </main>
+    </OnPointLayout>
   );
 }

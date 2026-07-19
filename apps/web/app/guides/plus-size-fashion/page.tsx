@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { ArrowLeft, Check, Sparkles, Heart, Camera, Ruler, Zap } from "lucide-react";
 import { Reveal } from "../../../components/ui/Reveal";
 import { Accordion, AccordionItem } from "../../../components/ui/Accordion";
-import { OnPointHeader } from "../../../components/OnPointHeader";
+import { OnPointLayout } from "../../../components/OnPointLayout";
 
 export const metadata: Metadata = {
   title: "Plus-Size Fashion & Fit Guide | OnPoint",
@@ -18,8 +18,7 @@ export const metadata: Metadata = {
 
 export default function PlusSizeFashionGuide() {
   return (
-    <main className="min-h-screen bg-background text-foreground selection:bg-primary/30">
-      <OnPointHeader />
+    <OnPointLayout footer={false}>
       <article className="mx-auto max-w-3xl px-4 py-12">
         {/* Back link */}
         <Link
@@ -189,6 +188,6 @@ export default function PlusSizeFashionGuide() {
           </Link>
         </div>
       </article>
-    </main>
+    </OnPointLayout>
   );
 }

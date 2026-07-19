@@ -1,14 +1,9 @@
-"use client";
-
 import Link from "next/link";
-import { useState } from "react";
 import {
   ArrowRight,
   Bot,
   Camera,
-  Check,
   Code,
-  Copy,
   ExternalLink,
   Globe,
   Image as ImageIcon,
@@ -18,7 +13,8 @@ import {
   Wallet,
   Zap,
 } from "lucide-react";
-import { OnPointHeader, OnPointFooter } from "../../components/OnPointHeader";
+import { OnPointLayout } from "../../components/OnPointLayout";
+import { CodeBlock } from "../../components/CodeBlock";
 import { getApiBase } from "../../lib/utils/api-base";
 import { getBaseUrl } from "../../lib/base-url";
 
@@ -40,37 +36,11 @@ function Endpoint({ method, path, desc }: { method: string; path: string; desc: 
   );
 }
 
-function CodeBlock({ code, label }: { code: string; label?: string }) {
-  const [copied, setCopied] = useState(false);
-  const handleCopy = () => {
-    navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-  return (
-    <div className="rounded-lg border border-border/40 bg-muted/30 overflow-hidden">
-      {label && (
-        <div className="flex items-center justify-between px-4 py-2 border-b border-border/30 bg-muted/40">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</span>
-          <button onClick={handleCopy} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-            {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
-            {copied ? "Copied" : "Copy"}
-          </button>
-        </div>
-      )}
-      <pre className="p-4 text-xs leading-relaxed overflow-x-auto">
-        <code>{code}</code>
-      </pre>
-    </div>
-  );
-}
-
 export default function DevelopersPage() {
   return (
-    <div className="min-h-screen bg-background">
-      <OnPointHeader />
+    <OnPointLayout>
 
-      <main className="container mx-auto px-4 py-12 md:py-16 max-w-5xl">
+      <div className="container mx-auto px-4 py-12 md:py-16 max-w-5xl">
         {/* Hero */}
         <div className="text-center mb-14">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-bold text-primary uppercase tracking-wider mb-4">
@@ -361,9 +331,7 @@ if (orderRes.status !== 402) throw new Error("Expected a payment challenge");
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
-      </main>
-
-      <OnPointFooter />
-    </div>
+      </div>
+    </OnPointLayout>
   );
 }

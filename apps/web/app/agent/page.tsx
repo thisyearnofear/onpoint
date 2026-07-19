@@ -1,12 +1,10 @@
 import { AgentDashboard } from '@/components/agent-dashboard';
-import { OnPointFooter, OnPointHeader } from '@/components/OnPointHeader';
+import { OnPointLayout } from '@/components/OnPointLayout';
 
 export default function AgentPage() {
   return (
-    <>
-      <OnPointHeader />
+    <OnPointLayout>
       <AgentDashboard />
-      <OnPointFooter />
-    </>
+    </OnPointLayout>
   );
 }

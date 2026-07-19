@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useState, useEffect, useCallback, useRef } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -426,12 +427,14 @@ export default function ListingDetailPage({
                     ) : (
                       <>
                         {photoUrl(key) ? (
-                          <img
+                          <Image
                             src={photoUrl(key)!}
                             alt={`Listing photo ${i + 1}`}
-                            className="h-full w-full object-cover"
+                            fill
+                            unoptimized
+                            className="object-cover"
                             onError={(e) => {
-                              (e.target as HTMLImageElement).src = `data:image/svg+xml,${encodeURIComponent(
+                              (e.currentTarget as HTMLImageElement).src = `data:image/svg+xml,${encodeURIComponent(
                                 `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect fill="#f0f0f0" width="100" height="100"/><text x="50" y="55" text-anchor="middle" fill="#999" font-size="10">Failed</text></svg>`
                               )}`;
                             }}

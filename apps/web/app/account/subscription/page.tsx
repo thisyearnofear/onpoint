@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   X,
   Crown,
-  ArrowLeft,
   Zap,
   Shield,
   Star,
@@ -30,6 +29,7 @@ import { Button } from "@repo/ui/button";
 import { useUser } from "@auth0/nextjs-auth0/client";
 import Link from "next/link";
 import { usePremiumStatus } from "@/hooks/use-premium-status";
+import { OnPointLayout } from "../../../components/OnPointLayout";
 
 // ============================================
 // Tier Configuration (mirrors subscription-service.ts)
@@ -520,33 +520,8 @@ export default function AccountSubscriptionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="glass-effect sticky top-0 z-50 w-full border-b">
-        <div className="container flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-4">
-            <Link href="/">
-              <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Back
-              </Button>
-            </Link>
-            <div className="flex items-center gap-2">
-              <Crown className="h-6 w-6 text-primary" />
-              <span className="text-lg font-bold">Subscription</span>
-            </div>
-          </div>
-
-          <Link href="/pricing">
-            <Button variant="outline" size="sm" className="flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5" />
-              View All Plans
-            </Button>
-          </Link>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
+    <OnPointLayout footer={false}>
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Error / Success Messages */}
         <AnimatePresence>
           {error && (
@@ -1223,7 +1198,7 @@ export default function AccountSubscriptionPage() {
             </Button>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </OnPointLayout>
   );
 }

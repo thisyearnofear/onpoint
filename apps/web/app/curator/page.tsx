@@ -20,7 +20,7 @@ import { Reveal } from "../../components/ui/Reveal";
 import { Tabs } from "../../components/ui/Tabs";
 import { Accordion, AccordionItem } from "../../components/ui/Accordion";
 import { ComingSoonBadge } from "../../components/ui/ComingSoonBadge";
-import { OnPointHeader, OnPointFooter } from "../../components/OnPointHeader";
+import { OnPointLayout } from "../../components/OnPointLayout";
 import { PRODUCT_NAME } from "../../lib/brand";
 
 export const metadata: Metadata = {
@@ -303,8 +303,7 @@ function ArchetypeGradient({ color, accent }: { color: string; accent: string })
 
 export default function CuratorLandingPage() {
   return (
-    <main className="min-h-screen bg-background text-foreground selection:bg-primary/30">
-      <OnPointHeader />
+    <OnPointLayout>
 
       {/* ── Hero ── */}
       <Reveal>
@@ -766,7 +765,6 @@ export default function CuratorLandingPage() {
       </section>
       </Reveal>
 
-      <OnPointFooter />
-    </main>
+    </OnPointLayout>
   );
 }

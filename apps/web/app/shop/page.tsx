@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
+import Image from "next/image";
 import { ShopGrid, EngagementBadge } from "@repo/shared-ui";
 import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import type { FashionItem } from "@onpoint/shared-types";
-import Link from "next/link";
-import { ArrowLeft, ShoppingBag, Sparkles, Loader2 } from "lucide-react";
-import { CartDrawer, CartButton } from "../../components/Shop/CartDrawer";
+import { ShoppingBag, Sparkles, Loader2 } from "lucide-react";
+import { OnPointLayout } from "../../components/OnPointLayout";
+import { CartDrawer } from "../../components/Shop/CartDrawer";
 import { FlyToCartOverlay, type FlyItem } from "../../components/Shop/FlyToCartOverlay";
 import { CheckoutModal } from "../../components/Shop/CheckoutModal";
 import { ExternalPickCard, LocalPickCard, ProvenanceBar } from "../../components/Shop/CuratedPickCard";
@@ -73,22 +74,7 @@ export default function ShopPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Navigation Bar */}
-      <div className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-md">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link
-            href="/"
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5" />
-            <span>Back</span>
-          </Link>
-          <h1 className="text-2xl font-bold text-foreground">Shop Collection</h1>
-          <CartButton />
-        </div>
-      </div>
-
+    <OnPointLayout footer={false}>
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
         {/* Personalization Context Banner */}
@@ -304,12 +290,14 @@ export default function ShopPage() {
             </div>
 
             {selectedItem.modelSrc && (
-              <div className="aspect-square rounded-xl overflow-hidden bg-muted">
-                <img
+              <div className="relative aspect-square rounded-xl overflow-hidden bg-muted">
+                <Image
                   data-fly-image
                   src={selectedItem.modelSrc}
                   alt={selectedItem.name}
-                  className="w-full h-full object-cover"
+                  fill
+                  unoptimized
+                  className="object-cover"
                 />
               </div>
             )}
@@ -361,6 +349,6 @@ export default function ShopPage() {
         isOpen={showCheckout}
         onClose={() => setShowCheckout(false)}
       />
-    </div>
+    </OnPointLayout>
   );
 }

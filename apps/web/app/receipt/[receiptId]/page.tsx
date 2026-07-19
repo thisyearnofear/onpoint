@@ -8,7 +8,7 @@ import {
   ShoppingBag,
   Star,
 } from "lucide-react";
-import { OnPointHeader, OnPointFooter } from "../../../components/OnPointHeader";
+import { OnPointLayout } from "../../../components/OnPointLayout";
 import { TransitionLink } from "../../../components/ViewTransition";
 import { getApiBase } from "../../../lib/utils/api-base";
 
@@ -154,9 +154,8 @@ export default async function ReceiptPage({
     : [null, []];
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <OnPointHeader />
-      <main className="flex-1 flex items-center justify-center px-4 py-12">
+    <OnPointLayout className="flex flex-col">
+      <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
           <div className="bg-card rounded-3xl overflow-hidden shadow-2xl border border-border">
             {/* Header — success gradient */}
@@ -407,8 +406,7 @@ export default async function ReceiptPage({
             Verifiable on-chain receipt powered by OnPoint (ERC-8004)
           </p>
         </div>
-      </main>
-      <OnPointFooter />
-    </div>
+      </div>
+    </OnPointLayout>
   );
 }

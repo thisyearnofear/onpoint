@@ -1,6 +1,4 @@
-/* eslint-disable @next/next/no-img-element -- Curator inventory permits arbitrary remote image sources. */
-
-import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { CSSProperties } from "react";
 import {
@@ -9,13 +7,12 @@ import {
   MapPin,
   MessageCircle,
   PackageSearch,
-  ShieldCheck,
   ShoppingBag,
   Sparkles,
 } from "lucide-react";
 import type { CuratorStorefrontResponse } from "@onpoint/shared-types";
+import { OnPointLayout } from "../../../components/OnPointLayout";
 import { CuratorTracker } from "../../../components/CuratorTracker";
-import { ShareStorefront } from "../../../components/ShareStorefront";
 import { CrossCuratorRecommendations } from "../../../components/CrossCuratorRecommendations";
 import { AICuratorSection } from "../../../components/AICuratorSection";
 import { ComingSoonBadge } from "../../../components/ui/ComingSoonBadge";
@@ -125,8 +122,8 @@ export default async function CuratorStorefrontPage({
         listingCount={listings.length}
         listings={trackerListings}
       />
-      <main
-        className="min-h-screen bg-background text-foreground"
+      <OnPointLayout footer={false}>
+      <div
         style={
           {
             "--curator-primary": primary,
@@ -134,29 +131,6 @@ export default async function CuratorStorefrontPage({
           } as CSSProperties
         }
       >
-      <header className="border-b border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            OnPoint
-          </Link>
-          <div className="flex items-center gap-2">
-            <ShareStorefront
-              curatorSlug={slug}
-              curatorName={curator.name}
-              whatsappNumber={curator.channels?.whatsapp}
-            />
-            <div className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">
-              <ShieldCheck className="h-3.5 w-3.5" />
-              Curator storefront
-            </div>
-          </div>
-        </div>
-      </header>
-
       <section className="border-b border-border">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 md:grid-cols-[1fr_360px] md:py-14">
           <div className="space-y-6">
@@ -217,7 +191,7 @@ export default async function CuratorStorefrontPage({
           <aside className="border-l-2 pl-5" style={{ borderColor: "var(--curator-primary)" }}>
             <div className="space-y-5">
               <div
-                className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg text-2xl font-black text-white"
+                className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg text-2xl font-black text-white"
                 data-view-transition="curator-avatar"
                 style={{
                   background: "var(--curator-primary)",
@@ -225,10 +199,12 @@ export default async function CuratorStorefrontPage({
                 }}
               >
                 {curator.brand?.logo ? (
-                  <img
+                  <Image
                     src={curator.brand.logo}
                     alt={`${curator.name} logo`}
-                    className="h-full w-full object-cover"
+                    fill
+                    unoptimized
+                    className="object-cover"
                   />
                 ) : (
                   curator.name.slice(0, 1).toUpperCase()
@@ -300,8 +276,7 @@ export default async function CuratorStorefrontPage({
                   >
                     <div className="relative h-24 w-24 overflow-hidden rounded-xl border border-border bg-muted transition-all group-hover:border-primary/40 group-hover:ring-2 group-hover:ring-primary/20">
                       {img ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={img} alt={listing.title || "Design"} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                        <Image src={img} alt={listing.title || "Design"} fill unoptimized className="object-cover transition-transform group-hover:scale-105" />
                       ) : (
                         <div className="flex h-full items-center justify-center">
                           <Camera className="h-6 w-6 text-muted-foreground/30" />
@@ -398,10 +373,12 @@ export default async function CuratorStorefrontPage({
                       style={{ viewTransitionName: getViewTransitionName("product-image", listing.id) }}
                     >
                       {listing.imageUrl ? (
-                        <img
+                        <Image
                           src={listing.imageUrl}
                           alt={listing.title || "Digital design"}
-                          className="h-full w-full object-cover"
+                          fill
+                          unoptimized
+                          className="object-cover"
                         />
                       ) : (
                         <div
@@ -486,10 +463,12 @@ export default async function CuratorStorefrontPage({
                     style={{ viewTransitionName: getViewTransitionName("product-image", listing.id) }}
                   >
                     {listing.imageUrl ? (
-                      <img
+                      <Image
                         src={listing.imageUrl}
                         alt={`${kit?.club ?? "Item"} ${kit?.kitType ?? ""} kit`}
-                        className="h-full w-full object-cover"
+                        fill
+                        unoptimized
+                        className="object-cover"
                       />
                     ) : (
                       <div className="flex h-full flex-col items-center justify-center gap-3 bg-muted/60 p-6 text-center">
@@ -647,7 +626,8 @@ export default async function CuratorStorefrontPage({
           </TransitionLink>
         </div>
       </section>
-    </main>
+      </div>
+      </OnPointLayout>
     </>
   );
 }

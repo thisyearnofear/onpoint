@@ -7,6 +7,7 @@ import { ArrowLeft, Loader2, Wallet } from "lucide-react";
 import { CuratorPayoutWalletPanel } from "../../../components/Curator/CuratorPayoutWalletPanel";
 import { fetchWalletStatus } from "../../../lib/services/curator-payout-wallet";
 import { getApiBase } from "../../../lib/utils/api-base";
+import { OnPointLayout } from "../../../components/OnPointLayout";
 
 function WalletPageContent() {
   const searchParams = useSearchParams();
@@ -121,14 +122,16 @@ function WalletPageContent() {
 
 export default function CuratorWalletPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-[40vh] items-center justify-center text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin" />
-        </div>
-      }
-    >
-      <WalletPageContent />
-    </Suspense>
+    <OnPointLayout footer={false}>
+      <Suspense
+        fallback={
+          <div className="flex min-h-[40vh] items-center justify-center text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+          </div>
+        }
+      >
+        <WalletPageContent />
+      </Suspense>
+    </OnPointLayout>
   );
 }

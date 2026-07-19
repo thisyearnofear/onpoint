@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { ArrowLeft, Check, Sparkles, ShoppingBag, Camera, Zap, Layers, ShieldCheck, Clock } from "lucide-react";
 import { Reveal } from "../../../components/ui/Reveal";
 import { Accordion, AccordionItem } from "../../../components/ui/Accordion";
-import { OnPointHeader } from "../../../components/OnPointHeader";
+import { OnPointLayout } from "../../../components/OnPointLayout";
 
 export const metadata: Metadata = {
   title: "Sneaker Collecting & Care Guide | OnPoint",
@@ -18,8 +18,7 @@ export const metadata: Metadata = {
 
 export default function SneakerCareGuide() {
   return (
-    <main className="min-h-screen bg-background text-foreground selection:bg-primary/30">
-      <OnPointHeader />
+    <OnPointLayout footer={false}>
       <article className="mx-auto max-w-3xl px-4 py-12">
         {/* Back link */}
         <Link
@@ -202,6 +201,6 @@ export default function SneakerCareGuide() {
           </Link>
         </div>
       </article>
-    </main>
+    </OnPointLayout>
   );
 }

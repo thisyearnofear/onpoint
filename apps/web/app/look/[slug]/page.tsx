@@ -1,5 +1,4 @@
-/* eslint-disable @next/next/no-img-element */
-
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { CSSProperties } from "react";
@@ -13,7 +12,7 @@ import {
   User,
 } from "lucide-react";
 import { getApiBase } from "../../../lib/utils/api-base";
-import { OnPointHeader } from "../../../components/OnPointHeader";
+import { OnPointLayout } from "../../../components/OnPointLayout";
 
 export const dynamic = "force-dynamic";
 
@@ -104,9 +103,7 @@ export default async function LookPage({
     : "unknown";
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <OnPointHeader />
-
+    <OnPointLayout footer={false}>
       <div className="mx-auto max-w-5xl px-4 py-8">
         {/* Look header */}
         <div className="mb-8 space-y-4">
@@ -161,16 +158,20 @@ export default async function LookPage({
           <div className="space-y-4">
             <div className="relative aspect-[4/5] overflow-hidden rounded-2xl border border-border bg-muted">
               {look.coverImageUrl ? (
-                <img
+                <Image
                   src={look.coverImageUrl}
                   alt={look.title}
-                  className="h-full w-full object-cover"
+                  fill
+                  unoptimized
+                  className="object-cover"
                 />
               ) : heroItem?.imageUrl ? (
-                <img
+                <Image
                   src={heroItem.imageUrl}
                   alt={heroItem.title}
-                  className="h-full w-full object-cover"
+                  fill
+                  unoptimized
+                  className="object-cover"
                 />
               ) : (
                 <div className="flex h-full items-center justify-center">
@@ -218,10 +219,12 @@ export default async function LookPage({
                   <div className="flex gap-3">
                     <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-muted">
                       {item.imageUrl ? (
-                        <img
+                        <Image
                           src={item.imageUrl}
                           alt={item.title}
-                          className="h-full w-full object-cover"
+                          fill
+                          unoptimized
+                          className="object-cover"
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center">
@@ -290,6 +293,6 @@ export default async function LookPage({
           </div>
         </div>
       </div>
-    </main>
+    </OnPointLayout>
   );
 }

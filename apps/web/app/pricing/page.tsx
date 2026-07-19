@@ -17,7 +17,7 @@ import {
   Code2,
   HelpCircle,
 } from "lucide-react";
-import { OnPointHeader, OnPointFooter } from "../../components/OnPointHeader";
+import { OnPointLayout } from "../../components/OnPointLayout";
 import { getApiBase } from "../../lib/utils/api-base";
 import { useState, useEffect } from "react";
 import { Accordion, AccordionItem } from "../../components/ui/Accordion";
@@ -54,10 +54,9 @@ export default function PricingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
-      <OnPointHeader />
+    <OnPointLayout>
 
-      <main className="container mx-auto px-4 py-12 md:py-16 max-w-5xl">
+      <div className="container mx-auto px-4 py-12 md:py-16 max-w-5xl">
         {/* Hero — short and punchy */}
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-bold text-primary uppercase tracking-wider mb-4">
@@ -480,9 +479,7 @@ export default function PricingPage() {
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
-      </main>
-
-      <OnPointFooter />
-    </div>
+      </div>
+    </OnPointLayout>
   );
 }

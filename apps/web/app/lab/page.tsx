@@ -1,13 +1,12 @@
 "use client";
 
 import { TacticalDashboard } from "../../components/Dashboard/TacticalDashboard";
-import { OnPointHeader } from "../../components/OnPointHeader";
+import { OnPointLayout } from "../../components/OnPointLayout";
 
 export default function LabPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary/30">
-      <OnPointHeader />
+    <OnPointLayout footer={false}>
       <TacticalDashboard onBack={() => window.history.back()} />
-    </div>
+    </OnPointLayout>
   );
 }

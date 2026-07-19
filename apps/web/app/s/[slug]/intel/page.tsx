@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Image from "next/image";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowLeft,
   BarChart3,
   Eye,
   ShoppingBag,
@@ -23,6 +23,7 @@ import {
   Package,
   ArrowUpRight,
 } from "lucide-react";
+import { OnPointLayout } from "../../../../components/OnPointLayout";
 import { StatCard } from "../../../../components/Curator/StatCard";
 
 interface FunnelStats {
@@ -168,30 +169,7 @@ export default function CuratorIntelPage() {
     : "0.0";
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            <Link
-              href={`/s/${slug}`}
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Storefront
-            </Link>
-            <span className="text-border">|</span>
-            <span className="text-sm font-bold capitalize">{slug} Intelligence</span>
-          </div>
-          <Link
-            href="/"
-            className="text-xs text-muted-foreground hover:text-foreground"
-          >
-            OnPoint
-          </Link>
-        </div>
-      </header>
-
+    <OnPointLayout footer={false}>
       <div className="mx-auto max-w-6xl px-4 py-8">
         {/* Page title */}
         <div className="mb-8">
@@ -354,11 +332,13 @@ export default function CuratorIntelPage() {
                         className="overflow-hidden rounded-lg border border-border"
                       >
                         {product.imageUrl && (
-                          <div className="aspect-square bg-muted">
-                            <img
+                          <div className="relative aspect-square bg-muted">
+                            <Image
                               src={product.imageUrl}
                               alt={product.name}
-                              className="h-full w-full object-cover"
+                              fill
+                              unoptimized
+                              className="object-cover"
                             />
                           </div>
                         )}
@@ -490,6 +470,6 @@ export default function CuratorIntelPage() {
           </div>
         </div>
       </div>
-    </div>
+    </OnPointLayout>
   );
 }

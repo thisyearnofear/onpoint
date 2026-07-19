@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Moon, Sun, Palette } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { CardEnhanced, EngagementBadge, ShopGrid, TransitionLink } from "@repo/shared-ui";
 import type { FashionItem } from "@onpoint/shared-types";
 import { FashionCategory } from "@onpoint/shared-types";
-import Link from "next/link";
 import { Button } from "@repo/ui/button";
 import { Badge } from "@repo/ui/badge";
+import { OnPointLayout } from "../../components/OnPointLayout";
 
 const MOCK_ITEMS: FashionItem[] = [
   {
@@ -110,21 +110,10 @@ export default function StyleGuidePage() {
   const [liked, setLiked] = useState<Set<string>>(new Set());
 
   return (
-    <div className="min-h-screen bg-background transition-colors duration-300">
+    <OnPointLayout footer={false}>
       <ThemeToggle />
 
-      {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md">
-        <div className="container mx-auto px-4 py-4 flex items-center gap-3">
-          <Palette className="h-6 w-6 text-primary" />
-          <h1 className="text-xl font-bold text-foreground">Design System</h1>
-          <span className="text-xs text-muted-foreground ml-auto">
-            All components rendered in both themes
-          </span>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-12 space-y-20">
+      <div className="container mx-auto px-4 py-12 space-y-20">
         {/* ===== Colors ===== */}
         <section>
           <SectionHeading>Theme Colors</SectionHeading>
@@ -342,7 +331,7 @@ export default function StyleGuidePage() {
             <code className="text-primary">@repo/ui</code>
           </p>
         </div>
-      </main>
-    </div>
+      </div>
+    </OnPointLayout>
   );
 }

@@ -10,7 +10,6 @@ import {
   Globe,
   Loader2,
   MessageCircle,
-  Palette,
   Sparkles,
   Store,
   X,
@@ -23,6 +22,7 @@ import {
   CheckCircle,
   Wallet,
 } from "lucide-react";
+import { OnPointLayout } from "../../../components/OnPointLayout";
 import { getApiBase } from "../../../lib/utils/api-base";
 import { GClaimCTA } from "../../../components/Curator/GClaimCTA";
 import { ShareKit } from "../../../components/ShareKit";
@@ -244,7 +244,7 @@ export default function CuratorOnboardPage() {
 
   if (submitState === "success") {
     return (
-      <main className="min-h-screen bg-background text-foreground selection:bg-primary/30">
+      <OnPointLayout footer={false}>
         <div className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center px-6 py-16 text-center">
           <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/10">
             <CheckCircle2 className="h-10 w-10 text-emerald-500" />
@@ -375,7 +375,7 @@ export default function CuratorOnboardPage() {
             </Link>
           </div>
         </div>
-      </main>
+      </OnPointLayout>
     );
   }
 
@@ -386,24 +386,7 @@ export default function CuratorOnboardPage() {
     : null;
 
   return (
-    <main className="min-h-screen bg-background text-foreground selection:bg-primary/30">
-      {/* Header */}
-      <header className="border-b border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            OnPoint
-          </Link>
-          <div className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">
-            <Sparkles className="h-3.5 w-3.5 text-accent" />
-            Curator onboarding
-          </div>
-        </div>
-      </header>
-
+    <OnPointLayout footer={false}>
       {/* Hero */}
       <section className="border-b border-border bg-gradient-to-b from-card to-background">
         <div className="mx-auto max-w-3xl px-4 py-12 md:py-16">
@@ -775,6 +758,6 @@ export default function CuratorOnboardPage() {
           </div>
         </form>
       </section>
-    </main>
+    </OnPointLayout>
   );
 }
