@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowRight, CheckCircle2, Sparkles, ShoppingBag } from "lucide-react";
 import { OnPointLayout } from "../../../components/OnPointLayout";
 import { TransitionLink } from "../../../components/ViewTransition";
+import { SafeImage } from "../../../components/SafeImage";
 import { getApiBase } from "../../../lib/utils/api-base";
 import { PolaroidShareButtons } from "./PolaroidShareButtons";
 
@@ -106,10 +107,12 @@ export default async function PolaroidPage({
           <div className="bg-card rounded-3xl overflow-hidden shadow-2xl border border-border">
             {/* Image */}
             <div className="relative aspect-[3/4] bg-muted/20">
-              <img
-                src={meta.imageUrl}
+              <SafeImage
+                sources={[meta.imageUrl]}
                 alt={`${meta.item} — AI try-on`}
-                className="w-full h-full object-cover"
+                fill
+                unoptimized
+                className="object-cover"
               />
               {/* Branding overlay */}
               <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent">

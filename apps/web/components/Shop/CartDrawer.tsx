@@ -5,6 +5,7 @@ import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import { X, Plus, Minus, Trash2, ShoppingBag, ArrowRight, ChevronLeft } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { useCartStore } from "../../lib/stores/cart-store";
+import { SafeImage } from "../SafeImage";
 
 interface CartDrawerProps {
   onCheckout?: () => void;
@@ -253,11 +254,13 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
                     index={index}
                   >
                     {/* Product image */}
-                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted shrink-0">
-                      <img
-                        src={item.product.cover}
+                    <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted shrink-0">
+                      <SafeImage
+                        sources={[item.product.cover]}
                         alt={item.product.name}
-                        className="w-full h-full object-cover"
+                        fill
+                        unoptimized
+                        className="object-cover"
                       />
                     </div>
 
@@ -530,11 +533,13 @@ export function CartButton() {
             className="absolute right-full mr-3 flex items-center gap-2.5 rounded-lg border border-border bg-card/95 backdrop-blur-md px-3 py-1.5 shadow-lg pointer-events-none"
           >
             {/* Thumbnail */}
-            <div className="w-7 h-7 rounded-md overflow-hidden bg-muted shrink-0">
-              <img
-                src={lastAddedItem.cover}
+            <div className="relative w-7 h-7 rounded-md overflow-hidden bg-muted shrink-0">
+              <SafeImage
+                sources={[lastAddedItem.cover]}
                 alt={lastAddedItem.name}
-                className="w-full h-full object-cover"
+                fill
+                unoptimized
+                className="object-cover"
               />
             </div>
             {/* Name + checkmark */}

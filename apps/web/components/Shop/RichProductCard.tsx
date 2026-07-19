@@ -3,6 +3,7 @@
 import React, { useRef, useState } from "react";
 import { ExternalLink, Star, TrendingDown } from "lucide-react";
 import type { ProductResult } from "@onpoint/shared-types";
+import { SafeImage } from "../SafeImage";
 
 interface RichProductCardProps {
   product: ProductResult;
@@ -76,13 +77,14 @@ export function RichProductCard({
       )}
 
       {/* Product image */}
-      <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted shrink-0 flex items-center justify-center">
+      <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted shrink-0 flex items-center justify-center">
         {product.image_url && !imgError ? (
-          <img
-            src={product.image_url}
+          <SafeImage
+            sources={[product.image_url]}
             alt={product.name}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-            onError={() => setImgError(true)}
+            fill
+            unoptimized
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-500/10 to-indigo-500/10">

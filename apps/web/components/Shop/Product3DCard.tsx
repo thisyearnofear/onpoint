@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
+import { SafeImage } from "../SafeImage";
 
 /**
  * Product card with CSS 3D perspective tilt on hover.
@@ -58,11 +59,13 @@ export function Product3DCard({ imageUrl, name, price, badge, reason, onClick }:
           transformStyle: "preserve-3d",
         }}
       >
-        <div className="aspect-[4/5] bg-muted overflow-hidden">
-          <img
-            src={imageUrl}
+        <div className="relative aspect-[4/5] bg-muted overflow-hidden">
+          <SafeImage
+            sources={[imageUrl]}
             alt={name}
-            className={`w-full h-full object-cover transition-all duration-300 ${isHovered ? "brightness-110" : ""}`}
+            fill
+            unoptimized
+            className={`object-cover transition-all duration-300 ${isHovered ? "brightness-110" : ""}`}
           />
           {/* Shine effect on hover */}
           <div

@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
+import { SafeImage } from "../SafeImage";
 
 export interface FlyItem {
   imageUrl: string;
@@ -87,11 +88,12 @@ export function FlyToCartOverlay({ item, onComplete }: FlyToCartOverlayProps) {
         }}
         onAnimationComplete={onComplete}
       >
-        <img
-          src={item.imageUrl}
+        <SafeImage
+          sources={[item.imageUrl]}
           alt=""
-          className="h-full w-full object-cover"
-          draggable={false}
+          fill
+          unoptimized
+          className="object-cover"
         />
       </motion.div>
     </AnimatePresence>,

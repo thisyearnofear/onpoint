@@ -22,6 +22,7 @@ import {
   trackLookSaved,
 } from "../../lib/utils/analytics";
 import { useAnalysisHistory } from "../../lib/stores/analysis-history-store";
+import { SafeImage } from "../SafeImage";
 
 interface StructuredTipAction {
   type: string;
@@ -441,11 +442,15 @@ export function TryOnResult({
                     className="flex items-center gap-3 rounded-lg border border-border p-2.5 transition-all hover:border-primary/40 hover:bg-muted/30"
                   >
                     {item.imageUrl && (
-                      <img
-                        src={item.imageUrl}
-                        alt={item.title}
-                        className="h-12 w-12 rounded-md object-cover flex-shrink-0"
-                      />
+                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md">
+                        <SafeImage
+                          sources={[item.imageUrl]}
+                          alt={item.title}
+                          fill
+                          unoptimized
+                          className="object-cover"
+                        />
+                      </div>
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{item.title}</p>

@@ -19,6 +19,7 @@ import { useAccount } from "wagmi";
 import { AgentAuditLog } from "./AgentAuditLog";
 import { MerchantAllowlist } from "./MerchantAllowlist";
 import { AddFundsButton } from "./AddFundsButton";
+import { SafeImage } from "../SafeImage";
 import { GBalancePill } from "../Curator/GBalancePill";
 import { GStreakPill } from "../Curator/GStreakPill";
 
@@ -632,14 +633,15 @@ export function AgentStatus({
                   >
                     <div className="flex items-start gap-2">
                       {match.signal?.image_url ? (
-                        <img
-                          src={match.signal.image_url}
-                          alt={match.signal.name}
-                          className="w-10 h-10 rounded-lg object-cover bg-muted flex-shrink-0"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
+                        <div className="relative w-10 h-10 flex-shrink-0">
+                          <SafeImage
+                            sources={[match.signal.image_url]}
+                            alt={match.signal.name}
+                            fill
+                            unoptimized
+                            className="rounded-lg object-cover"
+                          />
+                        </div>
                       ) : (
                         <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                           <Sparkles className="w-4 h-4 text-muted-foreground" />
@@ -745,14 +747,15 @@ export function AgentStatus({
                   >
                     <div className="flex items-start gap-2">
                       {drop.image_url ? (
-                        <img
-                          src={drop.image_url}
-                          alt={drop.name}
-                          className="w-10 h-10 rounded-lg object-cover bg-muted flex-shrink-0"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
+                        <div className="relative w-10 h-10 flex-shrink-0">
+                          <SafeImage
+                            sources={[drop.image_url]}
+                            alt={drop.name}
+                            fill
+                            unoptimized
+                            className="rounded-lg object-cover"
+                          />
+                        </div>
                       ) : (
                         <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                           <TrendingDown className="w-4 h-4 text-muted-foreground" />

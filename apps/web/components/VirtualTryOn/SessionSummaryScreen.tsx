@@ -25,6 +25,7 @@ import type {
   SessionFeedback,
 } from "./hooks/useLiveSession";
 import type { PersonaConfig } from "../../lib/utils/persona-config";
+import { SafeImage } from "../SafeImage";
 
 interface SessionSummaryScreenProps {
   sessionSummary: SessionSummary;
@@ -353,11 +354,13 @@ export function SessionSummaryScreen({
                       className="rounded-xl overflow-hidden border border-border bg-muted/30 text-left"
                     >
                       {catalogMatch?.modelSrc && (
-                        <div className="aspect-square bg-muted">
-                          <img
-                            src={catalogMatch.modelSrc}
+                        <div className="relative aspect-square overflow-hidden bg-muted">
+                          <SafeImage
+                            sources={[catalogMatch.modelSrc]}
                             alt={rec.name}
-                            className="w-full h-full object-cover"
+                            fill
+                            unoptimized
+                            className="object-cover"
                           />
                         </div>
                       )}

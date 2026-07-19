@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { useCartStore, type CartItem } from "../../lib/stores/cart-store";
+import { SafeImage } from "../SafeImage";
 
 interface CheckoutResult {
   success: boolean;
@@ -360,11 +361,13 @@ function SuccessState({ result, onClose }: { result: CheckoutResult; onClose: ()
 function CartItemRow({ item }: { item: CartItem }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted shrink-0">
-        <img
-          src={item.product.cover}
+      <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-muted shrink-0">
+        <SafeImage
+          sources={[item.product.cover]}
           alt={item.product.name}
-          className="w-full h-full object-cover"
+          fill
+          unoptimized
+          className="object-cover"
         />
       </div>
       <div className="flex-1 min-w-0">

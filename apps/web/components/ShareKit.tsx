@@ -10,6 +10,7 @@ import {
   QrCode,
   Download,
 } from "lucide-react";
+import { SafeImage } from "./SafeImage";
 
 interface ShareKitProps {
   storefrontUrl: string;
@@ -163,13 +164,15 @@ export function ShareKit({ storefrontUrl, curatorName }: ShareKitProps) {
       {/* QR code display */}
       {showQR && (
         <div className="mt-4 flex flex-col items-center gap-3 rounded-lg border border-border bg-background p-4">
-          <img
-            src={qrUrl}
-            alt="QR code for your storefront"
-            className="h-48 w-48 rounded-lg"
-            width={192}
-            height={192}
-          />
+          <div className="relative h-48 w-48">
+            <SafeImage
+              sources={[qrUrl]}
+              alt="QR code for your storefront"
+              fill
+              unoptimized
+              className="rounded-lg"
+            />
+          </div>
           <p className="text-center text-xs text-muted-foreground">
             Print this and put it in your shop. Customers scan it to visit your
             storefront and try on items.

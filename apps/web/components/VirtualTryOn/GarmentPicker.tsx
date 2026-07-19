@@ -6,6 +6,7 @@ import { Check, Search, Sparkles } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { TryOnSelection } from "../../lib/utils/try-on-selection";
 import { trackTryOnGarmentSelected } from "../../lib/utils/analytics";
+import { SafeImage } from "../SafeImage";
 
 type SelectableGarment = TryOnSelection & {
   selectionKey: string;
@@ -149,11 +150,15 @@ export function GarmentPicker({
       {selectedGarment ? (
         <div className="mt-2 flex gap-3">
           {selectedGarment.imageUrl && (
-            <img
-              src={selectedGarment.imageUrl}
-              alt={selectedGarment.name}
-              className="h-16 w-16 rounded-md object-cover"
-            />
+            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md">
+              <SafeImage
+                sources={[selectedGarment.imageUrl]}
+                alt={selectedGarment.name}
+                fill
+                unoptimized
+                className="object-cover"
+              />
+            </div>
           )}
           <div className="min-w-0">
             <p className="text-sm font-medium">{selectedGarment.name}</p>
@@ -219,12 +224,14 @@ export function GarmentPicker({
                       : "border-border hover:border-primary/40"
                   }`}
                 >
-                  <div className="aspect-square overflow-hidden rounded-md bg-muted">
+                  <div className="relative aspect-square overflow-hidden rounded-md bg-muted">
                     {item.imageUrl ? (
-                      <img
-                        src={item.imageUrl}
+                      <SafeImage
+                        sources={[item.imageUrl]}
                         alt={item.name}
-                        className="h-full w-full object-cover"
+                        fill
+                        unoptimized
+                        className="object-cover"
                       />
                     ) : null}
                   </div>

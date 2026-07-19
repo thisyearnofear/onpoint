@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { OnPointLayout } from "../../../components/OnPointLayout";
 import { TransitionLink } from "../../../components/ViewTransition";
+import { SafeImage } from "../../../components/SafeImage";
 import { getApiBase } from "../../../lib/utils/api-base";
 
 export const dynamic = "force-dynamic";
@@ -304,11 +305,15 @@ export default async function ReceiptPage({
                 <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20">
                   <div className="flex items-center gap-3 mb-3">
                     {curator.avatar ? (
-                      <img
-                        src={curator.avatar}
-                        alt={curator.name}
-                        className="w-12 h-12 rounded-full border-2 border-indigo-500/30"
-                      />
+                      <div className="relative w-12 h-12">
+                        <SafeImage
+                          sources={[curator.avatar]}
+                          alt={curator.name}
+                          fill
+                          unoptimized
+                          className="rounded-full border-2 border-indigo-500/30 object-cover"
+                        />
+                      </div>
                     ) : (
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
                         {curator.name.charAt(0).toUpperCase()}
@@ -364,11 +369,13 @@ export default async function ReceiptPage({
                         className="group relative rounded-xl overflow-hidden border border-border/50 hover:border-primary/30 transition-all"
                       >
                         {listing.imageUrl ? (
-                          <div className="aspect-square bg-muted">
-                            <img
-                              src={listing.imageUrl}
+                          <div className="relative aspect-square bg-muted">
+                            <SafeImage
+                              sources={[listing.imageUrl]}
                               alt={listing.title || "Product"}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                              fill
+                              unoptimized
+                              className="object-cover group-hover:scale-105 transition-transform"
                             />
                           </div>
                         ) : (

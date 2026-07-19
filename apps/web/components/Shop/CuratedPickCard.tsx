@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Globe, X, ExternalLink } from "lucide-react";
 import type { CuratedPick, PickProvenance } from "../../lib/utils/curated-picks";
 import type { FashionItem, ExternalProduct } from "@onpoint/shared-types";
+import { SafeImage } from "../SafeImage";
 
 function trackPickClick(pick: CuratedPick, position: number) {
   const item = pick.item;
@@ -61,11 +62,13 @@ export function ExternalPickCard({ pick, position, compact = false }: {
         className={`group flex items-start rounded-xl border border-border bg-card hover:border-primary/20 transition-all text-left w-full ${compact ? "gap-3 p-3" : "gap-4 p-4"}`}
       >
         {ext.imageUrl && (
-          <div className={`rounded-lg overflow-hidden bg-muted shrink-0 ${compact ? "w-16 h-16" : "w-20 h-20"}`}>
-            <img
-              src={ext.imageUrl}
+          <div className={`relative rounded-lg overflow-hidden bg-muted shrink-0 ${compact ? "w-16 h-16" : "w-20 h-20"}`}>
+            <SafeImage
+              sources={[ext.imageUrl]}
               alt={ext.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+              fill
+              unoptimized
+              className="object-cover group-hover:scale-105 transition-transform"
             />
           </div>
         )}
@@ -119,8 +122,8 @@ function ProductDetailModal({ pick, onClose }: {
         </div>
 
         {ext.imageUrl && (
-          <div className="aspect-square bg-muted">
-            <img src={ext.imageUrl} alt={ext.name} className="w-full h-full object-contain" />
+          <div className="relative aspect-square bg-muted">
+            <SafeImage sources={[ext.imageUrl]} alt={ext.name} fill unoptimized className="object-contain" />
           </div>
         )}
 
@@ -184,11 +187,13 @@ export function LocalPickCard({ pick, onClick }: {
       className="group rounded-xl overflow-hidden border border-border bg-card hover:border-primary/20 transition-all text-left"
     >
       {(item.modelSrc || item.productSrc) && (
-        <div className="aspect-square bg-muted">
-          <img
-            src={item.modelSrc || item.productSrc}
+        <div className="relative aspect-square bg-muted">
+          <SafeImage
+            sources={[item.modelSrc, item.productSrc]}
             alt={item.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+            fill
+            unoptimized
+            className="object-cover group-hover:scale-105 transition-transform"
           />
         </div>
       )}

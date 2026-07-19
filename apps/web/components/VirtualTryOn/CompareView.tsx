@@ -4,6 +4,7 @@ import React from "react";
 import { X } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import type { LookVersion } from "./LookVersionHistory";
+import { SafeImage } from "../SafeImage";
 
 interface CompareViewProps {
   versions: LookVersion[];
@@ -51,10 +52,12 @@ export function CompareView({ versions, originalPhotoUrl, onClose }: CompareView
             {items.map((item) => (
               <div key={item.id} className="space-y-2">
                 <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-muted">
-                  <img
-                    src={item.imageUrl}
+                  <SafeImage
+                    sources={[item.imageUrl]}
                     alt={item.label}
-                    className="w-full h-full object-cover"
+                    fill
+                    unoptimized
+                    className="object-cover"
                   />
                   <div className="absolute top-2 left-2 text-xs font-medium bg-background/90 text-foreground rounded-full px-2 py-0.5">
                     {item.label}

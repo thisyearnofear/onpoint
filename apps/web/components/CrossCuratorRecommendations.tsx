@@ -12,6 +12,7 @@ import React from "react";
 import Link from "next/link";
 import { Sparkles, ExternalLink } from "lucide-react";
 import { trackCuratorCrossRecommendationClick } from "../lib/utils/analytics";
+import { SafeImage } from "./SafeImage";
 
 interface Recommendation {
   listingId: string;
@@ -158,10 +159,12 @@ export function CrossCuratorRecommendations({
             {/* Image or placeholder */}
             <div className="relative aspect-[4/3] bg-muted">
               {rec.imageUrl ? (
-                <img
-                  src={rec.imageUrl}
+                <SafeImage
+                  sources={[rec.imageUrl]}
                   alt={rec.itemTitle}
-                  className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                  fill
+                  unoptimized
+                  className="object-cover transition-transform group-hover:scale-105"
                 />
               ) : (
                 <div
