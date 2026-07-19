@@ -1,15 +1,14 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   Eye,
-  Shirt,
   TrendingUp,
   Share2,
 } from "lucide-react";
 import { getApiBase } from "../../../lib/utils/api-base";
 import { OnPointLayout } from "../../../components/OnPointLayout";
+import { SafeImage } from "../../../components/SafeImage";
 import { ShareBar } from "./ShareBar";
 
 export const dynamic = "force-dynamic";
@@ -102,7 +101,12 @@ export default async function LookPage({
     ? `${look.agentAddress.slice(0, 6)}…${look.agentAddress.slice(-4)}`
     : "unknown";
 
-  const primaryImage = look.collageUrl || look.coverImageUrl || heroItem?.imageUrl;
+  const heroImageSources = [
+    look.collageUrl,
+    look.coverImageUrl,
+    heroItem?.imageUrl,
+  ];
+
   const totalPrice = items.reduce((sum, item) => {
     const price = getLowestPrice(item.sizes);
     return sum + (price || 0);
@@ -134,20 +138,15 @@ export default async function LookPage({
 
         {/* Hero collage — full-bleed on mobile, centered on desktop */}
         <div className="mb-6">
-          <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-muted md:aspect-[4/5] md:max-w-md md:mx-auto">
-            {primaryImage ? (
-              <Image
-                src={primaryImage}
-                alt={look.title}
-                fill
-                unoptimized
-                className="object-cover"
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center">
-                <Shirt className="h-16 w-16 text-muted-foreground/30" />
-              </div>
-            )}
+          <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-muted md:max-w-md md:mx-auto">
+            <SafeImage
+              sources={heroImageSources}
+              alt={look.title}
+              fill
+              unoptimized
+              className="object-cover"
+              fallbackIconSize={64}
+            />
           </div>
         </div>
 
@@ -217,19 +216,14 @@ export default async function LookPage({
                   className="group space-y-2"
                 >
                   <div className="relative aspect-square overflow-hidden rounded-xl border border-border bg-muted transition-all group-hover:border-foreground/20 group-hover:shadow-md">
-                    {item.imageUrl ? (
-                      <Image
-                        src={item.imageUrl}
-                        alt={item.title}
-                        fill
-                        unoptimized
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center">
-                        <Shirt className="h-8 w-8 text-muted-foreground/30" />
-                      </div>
-                    )}
+                    <SafeImage
+                      sources={[item.imageUrl]}
+                      alt={item.title}
+                      fill
+                      unoptimized
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      fallbackIconSize={32}
+                    />
                     {item.isHero && (
                       <span className="absolute left-2 top-2 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-bold uppercase text-background">
                         Hero

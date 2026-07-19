@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
-import { Eye, Shirt } from "lucide-react";
+import { Eye } from "lucide-react";
+import { SafeImage } from "./SafeImage";
 
 export interface LookCardItem {
   id: string;
@@ -46,8 +46,12 @@ export function LookCard({ look, compact = false }: LookCardProps) {
     ? `${look.agentAddress.slice(0, 6)}…${look.agentAddress.slice(-4)}`
     : "unknown";
 
-  const primaryImage =
-    look.collageUrl || look.coverImageUrl || look.heroImageUrl || heroItem?.imageUrl;
+  const imageSources = [
+    look.collageUrl,
+    look.coverImageUrl,
+    look.heroImageUrl,
+    heroItem?.imageUrl,
+  ];
 
   const maxTags = compact ? 2 : 3;
   const padding = compact ? "p-3" : "p-4";
@@ -58,21 +62,15 @@ export function LookCard({ look, compact = false }: LookCardProps) {
       href={`/look/${look.slug}`}
       className="group overflow-hidden rounded-2xl border border-border transition-all hover:border-foreground/20 hover:shadow-lg"
     >
-      {/* Image — collage or fallback */}
+      {/* Image — collage or fallback chain */}
       <div className="relative aspect-[4/5] overflow-hidden bg-muted">
-        {primaryImage ? (
-          <Image
-            src={primaryImage}
-            alt={look.title}
-            fill
-            unoptimized
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center">
-            <Shirt className="h-12 w-12 text-muted-foreground/20" />
-          </div>
-        )}
+        <SafeImage
+          sources={imageSources}
+          alt={look.title}
+          fill
+          unoptimized
+          className="object-cover transition-transform duration-300 group-hover:scale-105"
+        />
       </div>
 
       {/* Footer — title, attribution, tags, stats */}
