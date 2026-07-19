@@ -9,15 +9,8 @@
 
 const express = require('express');
 const router = express.Router();
-const { neon } = require('@neondatabase/serverless');
+const { getSql } = require('../lib/db');
 const logger = require('../lib/logger');
-
-const CONNECTION_STRING = process.env.NEON_DATABASE_URL;
-let _sql = null;
-function getSql() {
-  if (!_sql && CONNECTION_STRING) _sql = neon(CONNECTION_STRING);
-  return _sql;
-}
 
 // GET /api/status/funnel?days=7
 router.get('/', async (req, res) => {

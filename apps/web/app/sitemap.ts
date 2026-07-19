@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
+import { getBaseUrl } from "@/lib/base-url";
 
-const BASE_URL = "https://beonpoint.netlify.app";
+const BASE_URL = getBaseUrl();
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const currentDate = new Date();

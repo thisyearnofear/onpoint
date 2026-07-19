@@ -7,37 +7,11 @@
  */
 
 const express = require('express');
-const { neon } = require('@neondatabase/serverless');
 const logger = require('../lib/logger');
+const { getSql } = require('../lib/db');
+const { keyToUrl } = require('../lib/r2');
 
 const router = express.Router();
-
-let _sql = null;
-let _publicR2Url = null;
-
-function getSql() {
-  if (!_sql) {
-    const connectionString = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
-    if (!connectionString) throw new Error('NEON_DATABASE_URL not set');
-    _sql = neon(connectionString);
-  }
-  return _sql;
-}
-
-function getPublicR2Url() {
-  if (_publicR2Url === null) {
-    _publicR2Url = process.env.R2_PUBLIC_URL?.replace(/\/$/, '') || '';
-  }
-  return _publicR2Url;
-}
-
-function keyToUrl(key) {
-  if (!key) return null;
-  if (/^(https?:|ipfs:)/.test(key)) return key;
-  const url = getPublicR2Url();
-  if (!url) return null;
-  return `${url}/${String(key).replace(/^\/+/, '')}`;
-}
 
 router.get('/:id/similar', async (req, res) => {
   try {

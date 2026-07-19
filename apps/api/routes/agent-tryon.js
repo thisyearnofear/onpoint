@@ -34,6 +34,8 @@ const x402Facilitator = require('../lib/x402-facilitator');
 const { engine } = require('./ai-virtual-tryon');
 const { upload: r2Upload, publicUrl: r2PublicUrl, keyFor: r2KeyFor, mirrorTryOnArtifact: ossMirror, isOssConfigured: ossConfigured } = require('@repo/storage');
 const { logFunnelEvent } = require('../lib/funnel');
+const { getDb, CONNECTION_STRING } = require('../lib/db');
+const { keyToUrl, listingImageUrl } = require('../lib/r2');
 
 const router = express.Router();
 
@@ -70,18 +72,7 @@ function setRenderCache(key, value) {
   }
 }
 
-const CONNECTION_STRING = process.env.NEON_DATABASE_URL;
 let _sql = null;
-let _db = null;
-
-function getDb() {
-  if (!_db) {
-    if (!CONNECTION_STRING) throw new Error('NEON_DATABASE_URL not configured');
-    _sql = neon(CONNECTION_STRING);
-    _db = drizzle(_sql, { schema: { curators, listings, kitSkus, payments } });
-  }
-  return _db;
-}
 
 /** Raw neon SQL tagged template — for queries that drizzle can't express */
 function rawSql(strings, ...values) {
@@ -90,15 +81,6 @@ function rawSql(strings, ...values) {
     _sql = neon(CONNECTION_STRING);
   }
   return _sql(strings, ...values);
-}
-
-function r2KeyToUrl(key) {
-  if (!key) return null;
-  // Full URLs (https://, ipfs://) pass through as-is — used for digital listings
-  if (/^(https?:|ipfs:)/.test(key)) return key;
-  const base = process.env.R2_PUBLIC_URL?.replace(/\/$/, '');
-  if (!base) return null;
-  return `${base}/${String(key).replace(/^\/+/, '')}`;
 }
 
 /** Person photo must be an inline data URI — agents send it directly. */
@@ -169,7 +151,7 @@ router.post('/', async (req, res) => {
 
   let db;
   try {
-    db = getDb();
+    db = getDb({ curators, listings, kitSkus, payments });
   } catch (err) {
     logger.error('NEON_DATABASE_URL not configured', { component: 'agent-tryon' });
     return res.status(503).json({ error: 'Database not configured' });
@@ -190,7 +172,7 @@ router.post('/', async (req, res) => {
     }
 
     const isDigital = row.listing.inventoryType === 'digital';
-    const garmentUrl = r2KeyToUrl(
+    const garmentUrl = keyToUrl(
       row.listing.photoKeys?.[0] || row.kit?.officialImageKey,
     );
     if (!garmentUrl) {
@@ -504,7 +486,7 @@ Return ONLY valid JSON:
           curatorSlug: m.curator_slug,
           curatorName: m.curator_name,
           title: m.title || `${m.curator_name} listing`,
-          imageUrl: r2KeyToUrl(m.photo_keys?.[0]),
+          imageUrl: keyToUrl(m.photo_keys?.[0]),
           orderUrl: `/api/curator/${m.curator_slug}/order`,
           storefrontUrl: `/api/curator/${m.curator_slug}/storefront`,
           webUrl: storefrontWebUrl(m.curator_slug),

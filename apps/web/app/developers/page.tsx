@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { OnPointHeader, OnPointFooter } from "../../components/OnPointHeader";
 import { getApiBase } from "../../lib/utils/api-base";
+import { getBaseUrl } from "../../lib/base-url";
 
 const API_BASE = getApiBase();
 
@@ -85,7 +86,7 @@ export default function DevelopersPage() {
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <a
-              href="https://beonpoint.netlify.app/.well-known/agent.json"
+              href={`${getBaseUrl()}/.well-known/agent.json`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-primary/90"
@@ -95,7 +96,7 @@ export default function DevelopersPage() {
               <ExternalLink className="w-3 h-3" />
             </a>
             <a
-              href="https://beonpoint.netlify.app/openapi.json"
+              href={`${getBaseUrl()}/openapi.json`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-xl border border-border px-5 py-2.5 text-sm font-bold transition-colors hover:bg-card"

@@ -12,13 +12,14 @@
  */
 
 const express = require('express');
-const { neon } = require('@neondatabase/serverless');
-const { drizzle } = require('drizzle-orm/neon-http');
 const { eq, desc, count, sql } = require('drizzle-orm');
 const { curators, listings, kitSkus, orders, payments } = require('@repo/db');
 const sharedTypes = require('@onpoint/shared-types');
 const agentCore = require('@repo/agent-core');
 const logger = require('../lib/logger');
+const { getDb } = require('../lib/db');
+const { isValidSlug } = require('../lib/slugs');
+const { keyToUrl } = require('../lib/r2');
 const {
   kesToCusd,
   curatorPayoutAddress,
@@ -35,48 +36,6 @@ const x402Facilitator = require('../lib/x402-facilitator');
 const { logFunnelEvent } = require('../lib/funnel');
 
 const router = express.Router();
-
-let _sql = null;
-let _connectionString = null;
-let _publicR2Url = null;
-
-function getConnectionString() {
-  if (!_connectionString) {
-    _connectionString = process.env.NEON_DATABASE_URL;
-  }
-  return _connectionString;
-}
-
-function getPublicR2Url() {
-  if (!_publicR2Url) {
-    _publicR2Url = process.env.R2_PUBLIC_URL?.replace(/\/$/, '');
-  }
-  return _publicR2Url;
-}
-
-function getDb() {
-  if (!_sql) {
-    const cs = getConnectionString();
-    if (!cs) {
-      throw new Error('NEON_DATABASE_URL not configured');
-    }
-    _sql = neon(cs);
-  }
-  return drizzle(_sql, { schema: { curators, listings, kitSkus, orders, payments } });
-}
-
-function isValidSlug(slug) {
-  return /^[a-z0-9-]{2,48}$/.test(slug);
-}
-
-function keyToUrl(key) {
-  if (!key) return null;
-  // Full URLs (https://, ipfs://) pass through as-is — used for digital listings
-  if (/^(https?:|ipfs:)/.test(key)) return key;
-  const url = getPublicR2Url();
-  if (!url) return null;
-  return `${url}/${String(key).replace(/^\/+/, '')}`;
-}
 
 function firstAvailableSize(sizes) {
   if (!Array.isArray(sizes)) return null;
@@ -110,7 +69,7 @@ function buildWhatsAppUrl(curator, listing) {
 router.get('/directory', async (req, res) => {
   let db;
   try {
-    db = getDb();
+    db = getDb({ curators, listings, kitSkus, orders, payments });
   } catch (err) {
     logger.error('NEON_DATABASE_URL not configured', { component: 'curator-storefront' });
     return res.status(503).json({ error: 'Database not configured' });
@@ -222,7 +181,7 @@ router.get('/:slug/storefront', async (req, res) => {
 
   let db;
   try {
-    db = getDb();
+    db = getDb({ curators, listings, kitSkus, orders, payments });
   } catch (err) {
     logger.error('NEON_DATABASE_URL not configured', { component: 'curator-storefront' });
     return res.status(503).json({
@@ -341,7 +300,7 @@ router.get('/:slug/earnings', async (req, res) => {
 
   let db;
   try {
-    db = getDb();
+    db = getDb({ curators, listings, kitSkus, orders, payments });
   } catch (err) {
     return res.status(503).json({ error: 'Database not configured' });
   }
@@ -456,7 +415,7 @@ router.post('/:slug/order', async (req, res) => {
 
   let db;
   try {
-    db = getDb();
+    db = getDb({ curators, listings, kitSkus, orders, payments });
   } catch (err) {
     logger.error('NEON_DATABASE_URL not configured', { component: 'curator-storefront' });
     return res.status(503).json({ error: 'Database not configured' });
@@ -967,8 +926,6 @@ module.exports.__test = {
   buildWhatsAppUrl,
   keyToUrl,
   reset() {
-    _sql = null;
-    _connectionString = null;
-    _publicR2Url = null;
+    // DB/R2 state now managed by shared lib modules — no local state to reset.
   },
 };

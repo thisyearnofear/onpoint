@@ -10,27 +10,15 @@
  */
 
 const express = require('express');
-const { neon } = require('@neondatabase/serverless');
-const { drizzle } = require('drizzle-orm/neon-http');
 const { eq, and } = require('drizzle-orm');
 const { orders, curators } = require('@repo/db');
 const agentCore = require('@repo/agent-core');
 const sharedTypes = require('@onpoint/shared-types');
 const logger = require('../lib/logger');
 const { distributeSplit } = require('../lib/split-setup');
+const { getDb } = require('../lib/db');
 
 const router = express.Router();
-
-const CONNECTION_STRING = process.env.NEON_DATABASE_URL;
-let _sql = null;
-
-function getDb() {
-  if (!_sql) {
-    if (!CONNECTION_STRING) throw new Error('NEON_DATABASE_URL not configured');
-    _sql = neon(CONNECTION_STRING);
-  }
-  return drizzle(_sql, { schema: { orders, curators } });
-}
 
 // ── POST /api/orders/record — record a fiat (M-Pesa) order ──
 //
@@ -73,7 +61,7 @@ router.post('/record', async (req, res) => {
   }
 
   try {
-    const db = getDb();
+    const db = getDb({ orders, curators });
     const inserted = await db
       .insert(orders)
       .values({
@@ -121,7 +109,7 @@ router.post('/record', async (req, res) => {
 // ── GET /api/orders/:id — get order status ──
 router.get('/:id', async (req, res) => {
   try {
-    const db = getDb();
+    const db = getDb({ orders, curators });
     const [order] = await db.select().from(orders).where(eq(orders.id, req.params.id)).limit(1);
     if (!order) return res.status(404).json({ error: 'Order not found' });
     res.json({ order });
@@ -136,7 +124,7 @@ router.get('/:id', async (req, res) => {
 router.post('/:id/ship', async (req, res) => {
   const { trackingNumber } = req.body || {};
   try {
-    const db = getDb();
+    const db = getDb({ orders, curators });
     const [order] = await db.select().from(orders).where(eq(orders.id, req.params.id)).limit(1);
     if (!order) return res.status(404).json({ error: 'Order not found' });
     if (order.status !== 'confirmed') {
@@ -166,7 +154,7 @@ router.post('/:id/ship', async (req, res) => {
 // Can be called by curator, platform, or auto-released by the worker after N days.
 router.post('/:id/deliver', async (req, res) => {
   try {
-    const db = getDb();
+    const db = getDb({ orders, curators });
     const [order] = await db.select().from(orders).where(eq(orders.id, req.params.id)).limit(1);
     if (!order) return res.status(404).json({ error: 'Order not found' });
     if (order.status !== 'shipped') {
@@ -224,7 +212,7 @@ router.post('/:id/dispute', async (req, res) => {
     return res.status(400).json({ error: 'Dispute reason is required' });
   }
   try {
-    const db = getDb();
+    const db = getDb({ orders, curators });
     const [order] = await db.select().from(orders).where(eq(orders.id, req.params.id)).limit(1);
     if (!order) return res.status(404).json({ error: 'Order not found' });
     if (!['shipped', 'delivered'].includes(order.status)) {
@@ -259,7 +247,7 @@ router.post('/:id/resolve', async (req, res) => {
     return res.status(400).json({ error: `resolution must be one of: ${validResolutions.join(', ')}` });
   }
   try {
-    const db = getDb();
+    const db = getDb({ orders, curators });
     const [order] = await db.select().from(orders).where(eq(orders.id, req.params.id)).limit(1);
     if (!order) return res.status(404).json({ error: 'Order not found' });
     if (order.status !== 'disputed') {

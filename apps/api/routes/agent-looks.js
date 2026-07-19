@@ -27,30 +27,18 @@
  */
 
 const express = require('express');
-const { neon } = require('@neondatabase/serverless');
-const { drizzle } = require('drizzle-orm/neon-http');
 const { eq, and, desc, sql, ilike, inArray } = require('drizzle-orm');
 const { agentLooks, listings, curators, kitSkus } = require('@repo/db');
-const { upload: r2Upload, publicUrl: r2PublicUrl } = require('@repo/storage');
+const { upload: r2Upload } = require('@repo/storage');
 const logger = require('../lib/logger');
+const { getDb } = require('../lib/db');
+const { slugify } = require('../lib/slugs');
+const { keyToUrl, listingImageUrl } = require('../lib/r2');
+const { webBaseUrl } = require('../lib/agent-commerce');
 
 const router = express.Router();
 
-const CONNECTION_STRING = process.env.NEON_DATABASE_URL;
 const SERVICE_API_KEY = process.env.SERVICE_API_KEY;
-
-function getDb() {
-  if (!CONNECTION_STRING) throw new Error('NEON_DATABASE_URL not configured');
-  return drizzle(neon(CONNECTION_STRING));
-}
-
-function slugify(text) {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 60);
-}
 
 function generateUniqueSlug(base) {
   const slug = slugify(base);
@@ -76,16 +64,6 @@ async function resolveListings(db, listingIds) {
   return listingIds
     .map((id) => map.get(id))
     .filter(Boolean);
-}
-
-function listingImageUrl(listing) {
-  if (listing.photoKeys && listing.photoKeys.length > 0) {
-    return r2PublicUrl(listing.photoKeys[0]);
-  }
-  if (listing.officialImageKey) {
-    return r2PublicUrl(listing.officialImageKey);
-  }
-  return null;
 }
 
 // ── Auth middleware: accept either agent (wallet header) or curator (slug + WhatsApp) ──
@@ -250,7 +228,7 @@ router.get('/', async (req, res) => {
 
       return {
         ...look,
-        coverImageUrl: look.coverImageKey ? r2PublicUrl(look.coverImageKey) : null,
+        coverImageUrl: look.coverImageKey ? keyToUrl(look.coverImageKey) : null,
         heroImageUrl,
         // Include a minimal items array so the frontend's fallback logic works
         items: (look.listingIds || []).map((id) => {
@@ -310,10 +288,10 @@ router.get('/:slug', async (req, res) => {
 
     res.json({
       ...look,
-      coverImageUrl: look.coverImageKey ? r2PublicUrl(look.coverImageKey) : null,
+      coverImageUrl: look.coverImageKey ? keyToUrl(look.coverImageKey) : null,
       items,
       referralCode,
-      shareUrl: `https://beonpoint.netlify.app/look/${look.slug}`,
+      shareUrl: `${webBaseUrl()}/look/${look.slug}`,
     });
   } catch (err) {
     logger.error('Failed to get look', { component: 'agent-looks' }, err);
@@ -392,7 +370,7 @@ router.post('/:slug/image', lookAuth, async (req, res) => {
       .set({ coverImageKey: key, updatedAt: new Date() })
       .where(eq(agentLooks.slug, existing.slug));
 
-    res.json({ coverImageKey: key, coverImageUrl: r2PublicUrl(key) });
+    res.json({ coverImageKey: key, coverImageUrl: keyToUrl(key) });
   } catch (err) {
     logger.error('Failed to upload look image', { component: 'agent-looks' }, err);
     res.status(500).json({ error: 'Failed to upload image' });

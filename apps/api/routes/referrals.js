@@ -3,6 +3,7 @@ const { neon } = require('@neondatabase/serverless');
 const { drizzle } = require('drizzle-orm/neon-http');
 const { orders, agentReferrals } = require('@repo/db');
 const { eq, desc } = require('drizzle-orm');
+const logger = require('../lib/logger');
 
 const router = express.Router();
 
@@ -39,7 +40,7 @@ router.post('/capture', async (req, res) => {
       message: 'Referral captured'
     });
   } catch (error) {
-    console.error('Referral capture error:', error);
+    logger.error('Referral capture error:', error);
     res.status(500).json({ error: 'Failed to capture referral' });
   }
 });
@@ -84,7 +85,7 @@ router.get('/:agentAddress', async (req, res) => {
 
     res.json(stats);
   } catch (error) {
-    console.error('Referral stats error:', error);
+    logger.error('Referral stats error:', error);
     res.status(500).json({ error: 'Failed to fetch referral stats' });
   }
 });

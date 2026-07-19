@@ -12,8 +12,6 @@
  */
 
 const express = require('express');
-const { neon } = require('@neondatabase/serverless');
-const { drizzle } = require('drizzle-orm/neon-http');
 const { eq, and, isNull, lte, sql, inArray } = require('drizzle-orm');
 const { orders, curators, agentReferrals } = require('@repo/db');
 const agentCore = require('@repo/agent-core');
@@ -21,19 +19,9 @@ const sharedTypes = require('@onpoint/shared-types');
 const logger = require('../lib/logger');
 const { distributeSplit } = require('../lib/split-setup');
 const { getAttributionSuffix } = require('../lib/attribution');
+const { getDb } = require('../lib/db');
 
 const router = express.Router();
-
-const CONNECTION_STRING = process.env.NEON_DATABASE_URL;
-let _sql = null;
-
-function getDb() {
-  if (!_sql) {
-    if (!CONNECTION_STRING) throw new Error('NEON_DATABASE_URL not configured');
-    _sql = neon(CONNECTION_STRING);
-  }
-  return drizzle(_sql, { schema: { orders, curators } });
-}
 
 // ── POST /api/cron/payout-retry ──
 // Retry failed curator payouts (custodial model) and distribute
@@ -45,7 +33,7 @@ router.post('/payout-retry', async (req, res) => {
   let failed = 0;
 
   try {
-    const db = getDb();
+    const db = getDb({ orders, curators });
 
     // ── 1. Custodial payouts: orders with paymentTxHash but no payoutTxHash,
     //    status confirmed/shipped/delivered, and curator has no split ──
@@ -240,7 +228,7 @@ router.post('/referral-payout', async (req, res) => {
   let failed = 0;
 
   try {
-    const db = getDb();
+    const db = getDb({ orders, curators });
 
     // Find pending referrals with a confirmed/delivered order
     const pending = await db.execute(sql`

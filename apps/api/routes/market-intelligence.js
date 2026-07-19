@@ -11,24 +11,17 @@ const express = require('express');
 const router = express.Router();
 const logger = require('../lib/logger');
 const { searchViaBridge } = require('../lib/product-search');
-const Redis = require('ioredis');
+const { getRedis } = require('../lib/redis');
+const { slugify } = require('../lib/slugs');
 
 const MEMORY_TTL_SECONDS = 60 * 60 * 24 * 30;
 const AIML_API_BASE_URL = process.env.AIML_API_BASE_URL || 'https://api.aimlapi.com/v1';
 const AIML_API_MODEL = process.env.AIML_API_MODEL || 'gpt-4o-mini';
 
-let redis = null;
-function getRedis() {
-  if (!redis) {
-    redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-  }
-  return redis;
-}
-
 // ── Retail Signal Helpers ──
 
 function memoryKey(query) {
-  const normalized = query.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const normalized = slugify(query);
   return `market:intel:memory:${normalized || 'unknown'}`;
 }
 

@@ -11,11 +11,11 @@
  */
 
 const express = require('express');
-const { neon } = require('@neondatabase/serverless');
-const { drizzle } = require('drizzle-orm/neon-http');
 const { eq } = require('drizzle-orm');
 const { curators } = require('@repo/db');
 const logger = require('../lib/logger');
+const { getDb } = require('../lib/db');
+const { isValidSlug } = require('../lib/slugs');
 const {
   generateCustodialWallet,
   buildCommerceWithCustodialWallet,
@@ -26,21 +26,6 @@ const {
 } = require('../lib/curator-payout-wallets');
 
 const router = express.Router({ mergeParams: true });
-
-const CONNECTION_STRING = process.env.NEON_DATABASE_URL;
-let _sql = null;
-
-function getDb() {
-  if (!_sql) {
-    if (!CONNECTION_STRING) throw new Error('NEON_DATABASE_URL not configured');
-    _sql = neon(CONNECTION_STRING);
-  }
-  return drizzle(_sql, { schema: { curators } });
-}
-
-function isValidSlug(slug) {
-  return /^[a-z0-9-]{2,48}$/.test(slug);
-}
 
 function normalizePhone(value) {
   return String(value || '').replace(/\s/g, '').trim();
@@ -79,7 +64,7 @@ router.get('/:slug/wallet/status', async (req, res) => {
   }
 
   try {
-    const db = getDb();
+    const db = getDb({ curators });
     const [curator] = await db.select().from(curators).where(eq(curators.slug, slug)).limit(1);
     if (!curator) return res.status(404).json({ error: 'Curator not found' });
     return res.json(publicWalletStatus(curator));
@@ -101,7 +86,7 @@ router.post('/:slug/wallet/provision', async (req, res) => {
   }
 
   try {
-    const db = getDb();
+    const db = getDb({ curators });
     const [curator] = await db.select().from(curators).where(eq(curators.slug, slug)).limit(1);
     if (!curator) return res.status(404).json({ error: 'Curator not found' });
 
@@ -170,7 +155,7 @@ router.post('/:slug/wallet/migrate', async (req, res) => {
   }
 
   try {
-    const db = getDb();
+    const db = getDb({ curators });
     const [curator] = await db.select().from(curators).where(eq(curators.slug, slug)).limit(1);
     if (!curator) return res.status(404).json({ error: 'Curator not found' });
 

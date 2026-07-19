@@ -8,6 +8,7 @@
 const express = require('express');
 const router = express.Router();
 const OpenAI = require('openai');
+const logger = require('../lib/logger');
 
 const VENICE_BASE_URL = 'https://api.venice.ai/api/v1';
 const veniceKey = process.env.VENICE_API_KEY || null;
@@ -69,7 +70,7 @@ Provide a detailed but concise description suitable for AI fashion styling.`;
       type: 'analyze-person',
     });
   } catch (error) {
-    console.error('Person analysis error:', error);
+    logger.error('Person analysis error:', error);
     return res.status(error.status || 500).json({
       error: error.message || 'Failed to analyze person from photo',
       details: error.stack && process.env.NODE_ENV === 'development' ? error.stack : undefined,

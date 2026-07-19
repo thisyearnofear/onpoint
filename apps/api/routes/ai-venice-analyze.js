@@ -10,6 +10,8 @@ const express = require('express');
 const router = express.Router();
 const OpenAI = require('openai');
 const logger = require('../lib/logger');
+const { getRedis } = require('../lib/redis');
+const { checkFrameRate, PROMPTS_BY_GOAL } = require('../lib/frame-rate');
 
 const veniceClient = process.env.VENICE_API_KEY
   ? new OpenAI({
@@ -17,50 +19,6 @@ const veniceClient = process.env.VENICE_API_KEY
       baseURL: 'https://api.venice.ai/api/v1',
     })
   : null;
-
-// Redis-backed frame rate enforcement
-let redis = null;
-function getRedis() {
-  if (!redis) {
-    redis = require('ioredis')(
-      process.env.REDIS_URL || 'redis://localhost:6379',
-    );
-  }
-  return redis;
-}
-
-const FRAME_LIMITS = { max: 20, windowSecs: 60 };
-
-async function checkFrameRate(clientIp) {
-  const r = getRedis();
-  const key = `venice-frames:${clientIp}`;
-  const count = await r.incr(key);
-  await r.expire(key, FRAME_LIMITS.windowSecs);
-
-  if (count > FRAME_LIMITS.max) {
-    return { allowed: false, count: FRAME_LIMITS.max };
-  }
-  return { allowed: true, count };
-}
-
-// Goal-aware prompt templates
-const PROMPTS_BY_GOAL = {
-  event: [
-    "Analyze this outfit for a formal event. Focus on elegance, appropriateness, and sophistication.",
-    "Evaluate if this look works for a special occasion. Check dress code alignment.",
-    "Assess the silhouette and fit for evening wear standards.",
-  ],
-  daily: [
-    "Analyze this everyday outfit. Focus on comfort, coordination, and practicality.",
-    "Evaluate this casual look for daily wear. Check color harmony and balance.",
-    "Assess the overall aesthetic for everyday style.",
-  ],
-  critique: [
-    "Give an honest critique of this outfit. Be direct about what works and what doesn't.",
-    "Analyze this look critically. Point out specific issues and strengths.",
-    "Provide blunt fashion feedback. No sugarcoating.",
-  ],
-};
 
 // Track frame count per session for prompt rotation
 const sessionFrameCount = new Map();
@@ -79,11 +37,11 @@ router.post('/', async (req, res) => {
 
     // Enforce per-IP frame rate limit
     const clientIp = req.ip || req.headers['x-forwarded-for'] || 'unknown';
-    const frameCheck = await checkFrameRate(clientIp);
+    const frameCheck = await checkFrameRate(clientIp, 'venice-frames', 20);
     if (!frameCheck.allowed) {
       return res.status(429).json({
         error: 'Frame rate limit exceeded',
-        retryAfter: FRAME_LIMITS.windowSecs,
+        retryAfter: 60,
       });
     }
 

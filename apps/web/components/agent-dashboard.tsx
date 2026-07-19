@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getApiBase } from '../lib/utils/api-base';
+import { getBaseUrl } from '../lib/base-url';
 import { Wallet, TrendingUp, Users, ArrowUpRight, Copy, CheckCircle, Clock, FileCheck, ShieldCheck } from 'lucide-react';
 
 interface ReferralActivity {
@@ -112,7 +113,7 @@ export function AgentDashboard() {
             <h1 className="mt-2 text-3xl font-black tracking-tight">OnPoint AI Stylist</h1>
             <p className="mt-2 text-sm text-muted-foreground">Live identity, payment readiness, and referral activity on Celo.</p>
           </div>
-          <a href="https://beonpoint.netlify.app/.well-known/agent.json" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:text-primary/80">
+          <a href={`${getBaseUrl()}/.well-known/agent.json`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:text-primary/80">
             View agent manifest <ArrowUpRight className="h-4 w-4" />
           </a>
         </div>

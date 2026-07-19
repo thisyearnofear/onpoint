@@ -10,12 +10,12 @@
  */
 
 const express = require('express');
-const { neon } = require('@neondatabase/serverless');
-const { drizzle } = require('drizzle-orm/neon-http');
 const { eq, desc, count, sql } = require('drizzle-orm');
 const { curators, listings, kitSkus } = require('@repo/db');
 const { upload, keyFor, remove } = require('@repo/storage');
 const logger = require('../lib/logger');
+const { getDb } = require('../lib/db');
+const { isValidSlug } = require('../lib/slugs');
 const {
   generateCustodialWallet,
   buildCommerceWithCustodialWallet,
@@ -27,29 +27,12 @@ const {
 
 const router = express.Router();
 
-const CONNECTION_STRING = process.env.NEON_DATABASE_URL;
-let _sql = null;
-
-function getDb() {
-  if (!_sql) {
-    if (!CONNECTION_STRING) {
-      throw new Error('NEON_DATABASE_URL not configured');
-    }
-    _sql = neon(CONNECTION_STRING);
-  }
-  return drizzle(_sql, { schema: { curators, listings } });
-}
-
-function isValidSlug(slug) {
-  return /^[a-z0-9-]{2,48}$/.test(slug);
-}
-
 // ── GET /api/admin/curators — list all curators ────────────────
 
 router.get('/', async (req, res) => {
   let db;
   try {
-    db = getDb();
+    db = getDb({ curators, listings });
   } catch (err) {
     logger.error('NEON_DATABASE_URL not configured', { component: 'curator-admin' });
     return res.status(503).json({ error: 'Database not configured' });
@@ -140,7 +123,7 @@ router.get('/:slug', async (req, res) => {
 
   let db;
   try {
-    db = getDb();
+    db = getDb({ curators, listings });
   } catch (err) {
     logger.error('NEON_DATABASE_URL not configured', { component: 'curator-admin' });
     return res.status(503).json({ error: 'Database not configured' });
@@ -186,7 +169,7 @@ router.put('/:slug', async (req, res) => {
 
   let db;
   try {
-    db = getDb();
+    db = getDb({ curators, listings });
   } catch (err) {
     logger.error('NEON_DATABASE_URL not configured', { component: 'curator-admin' });
     return res.status(503).json({ error: 'Database not configured' });
@@ -257,7 +240,7 @@ router.patch('/:slug/commerce', async (req, res) => {
 
   let db;
   try {
-    db = getDb();
+    db = getDb({ curators, listings });
   } catch (err) {
     logger.error('NEON_DATABASE_URL not configured', { component: 'curator-admin' });
     return res.status(503).json({ error: 'Database not configured' });
@@ -351,7 +334,7 @@ router.delete('/:slug', async (req, res) => {
 
   let db;
   try {
-    db = getDb();
+    db = getDb({ curators, listings });
   } catch (err) {
     logger.error('NEON_DATABASE_URL not configured', { component: 'curator-admin' });
     return res.status(503).json({ error: 'Database not configured' });
@@ -386,7 +369,7 @@ router.get('/:slug/listings', async (req, res) => {
 
   let db;
   try {
-    db = getDb();
+    db = getDb({ curators, listings });
   } catch (err) {
     logger.error('NEON_DATABASE_URL not configured', { component: 'curator-admin' });
     return res.status(503).json({ error: 'Database not configured' });
@@ -464,7 +447,7 @@ router.get('/:slug/listings/:id', async (req, res) => {
 
   let db;
   try {
-    db = getDb();
+    db = getDb({ curators, listings });
   } catch (err) {
     logger.error('NEON_DATABASE_URL not configured', { component: 'curator-admin' });
     return res.status(503).json({ error: 'Database not configured' });
@@ -519,7 +502,7 @@ router.put('/:slug/listings/:id', async (req, res) => {
 
   let db;
   try {
-    db = getDb();
+    db = getDb({ curators, listings });
   } catch (err) {
     logger.error('NEON_DATABASE_URL not configured', { component: 'curator-admin' });
     return res.status(503).json({ error: 'Database not configured' });
@@ -576,7 +559,7 @@ router.post('/:slug/listings/:id/photos', async (req, res) => {
 
   let db;
   try {
-    db = getDb();
+    db = getDb({ curators, listings });
   } catch (err) {
     logger.error('NEON_DATABASE_URL not configured', { component: 'curator-admin' });
     return res.status(503).json({ error: 'Database not configured' });
@@ -667,7 +650,7 @@ router.delete('/:slug/listings/:id/photos', async (req, res) => {
 
   let db;
   try {
-    db = getDb();
+    db = getDb({ curators, listings });
   } catch (err) {
     logger.error('NEON_DATABASE_URL not configured', { component: 'curator-admin' });
     return res.status(503).json({ error: 'Database not configured' });
@@ -731,7 +714,7 @@ router.delete('/:slug/listings/:id/photos', async (req, res) => {
 router.get('/:slug/ledger', async (req, res) => {
   const slug = String(req.params.slug || '');
   try {
-    const db = getDb();
+    const db = getDb({ curators, listings });
     const { orders: ordersTable } = require('@repo/db');
     const { eq, sql, and, isNull } = require('drizzle-orm');
 
@@ -796,7 +779,7 @@ router.post('/:slug/setup-split', async (req, res) => {
   const slug = String(req.params.slug || '');
 
   try {
-    const db = getDb();
+    const db = getDb({ curators, listings });
     const [curator] = await db.select().from(curators).where(eq(curators.slug, slug)).limit(1);
 
     if (!curator) {
@@ -853,7 +836,7 @@ router.post('/provision-custodial-batch', async (req, res) => {
     : null;
 
   try {
-    const db = getDb();
+    const db = getDb({ curators, listings });
     const rows = await db
       .select({
         slug: curators.slug,
@@ -915,7 +898,7 @@ router.post('/:slug/provision-custodial-wallet', async (req, res) => {
   }
 
   try {
-    const db = getDb();
+    const db = getDb({ curators, listings });
     const [curator] = await db.select().from(curators).where(eq(curators.slug, slug)).limit(1);
     if (!curator) return res.status(404).json({ error: 'Curator not found' });
 
@@ -959,7 +942,7 @@ router.post('/:slug/migrate-payout-wallet', async (req, res) => {
   }
 
   try {
-    const db = getDb();
+    const db = getDb({ curators, listings });
     const [curator] = await db.select().from(curators).where(eq(curators.slug, slug)).limit(1);
     if (!curator) return res.status(404).json({ error: 'Curator not found' });
 

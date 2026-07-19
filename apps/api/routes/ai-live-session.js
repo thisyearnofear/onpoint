@@ -7,14 +7,12 @@
 
 const express = require('express');
 const router = express.Router();
-const Redis = require('ioredis');
 const logger = require('../lib/logger');
+const { getRedis } = require('../lib/redis');
 
 // ── Session tracking (prevent abuse) ──
 // Prefer Redis when configured, but keep live camera available with an
 // in-memory fallback if Redis is absent or temporarily unavailable.
-let redis = null;
-let redisUnavailable = false;
 const memoryStore = new Map();
 
 function memoryGet(key) {
@@ -44,37 +42,6 @@ function memoryIncr(key, ttlSecs) {
   return current;
 }
 
-function getRedis() {
-  if (redisUnavailable || !process.env.REDIS_URL) {
-    return null;
-  }
-  if (!redis) {
-    try {
-      redis = new Redis(process.env.REDIS_URL, {
-        lazyConnect: true,
-        maxRetriesPerRequest: 1,
-        enableOfflineQueue: false,
-        connectTimeout: 1000,
-      });
-      redis.on('error', (error) => {
-        redisUnavailable = true;
-        logger.warn?.('Redis unavailable for live sessions, using memory fallback', {
-          component: 'live-session',
-          error: error?.message,
-        });
-      });
-    } catch (error) {
-      redisUnavailable = true;
-      logger.warn?.('Failed to construct Redis client, using memory fallback', {
-        component: 'live-session',
-        error: error?.message,
-      });
-      return null;
-    }
-  }
-  return redis;
-}
-
 async function redisOrMemory(operation, fallback) {
   const r = getRedis();
   if (!r) return fallback();
@@ -84,7 +51,6 @@ async function redisOrMemory(operation, fallback) {
     }
     return await operation(r);
   } catch (error) {
-    redisUnavailable = true;
     logger.warn?.('Live session Redis operation failed, using memory fallback', {
       component: 'live-session',
       error: error?.message,

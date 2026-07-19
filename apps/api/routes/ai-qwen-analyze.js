@@ -22,6 +22,8 @@
 const express = require('express');
 const router = express.Router();
 const logger = require('../lib/logger');
+const { getRedis } = require('../lib/redis');
+const { checkFrameRate, PROMPTS_BY_GOAL } = require('../lib/frame-rate');
 
 // ── Spend controls (env-driven) ────────────────────────────────
 const QWEN_CLOUD_BASE_URL =
@@ -64,78 +66,7 @@ function estimateCost(model, promptTokens, completionTokens) {
   );
 }
 
-// ── Frame rate enforcement (Redis with in-memory fallback) ────
-let redis = null;
-let redisInitFailed = false;
-function getRedis() {
-  if (redis || redisInitFailed) return redis;
-  const url = process.env.REDIS_URL;
-  if (!url) {
-    redisInitFailed = true;
-    return null;
-  }
-  try {
-    const Redis = require('ioredis');
-    redis = new Redis(url, {
-      maxRetriesPerRequest: 1,
-      enableOfflineQueue: false,
-      lazyConnect: true,
-      connectTimeout: 1000,
-    });
-    redis.on('error', () => {
-      // Silent: frame rate is best-effort.
-    });
-  } catch (err) {
-    redisInitFailed = true;
-    return null;
-  }
-  return redis;
-}
-
-const FRAME_LIMITS = { max: 30, windowSecs: 60 };
-
-async function checkFrameRate(clientIp) {
-  const r = getRedis();
-  if (!r) return { allowed: true, count: 0, inMemory: true };
-  try {
-    const key = `qwen-cloud-frames:${clientIp}`;
-    const count = await r.incr(key);
-    await r.expire(key, FRAME_LIMITS.windowSecs);
-    if (count > FRAME_LIMITS.max) {
-      return { allowed: false, count: FRAME_LIMITS.max };
-    }
-    return { allowed: true, count };
-  } catch {
-    return { allowed: true, count: 0, inMemory: true };
-  }
-}
-
 // ── Goal-based prompts ────────────────────────────────────────
-const PROMPTS_BY_GOAL = {
-  event: [
-    'Analyze this outfit for a formal event. Focus on elegance, appropriateness, and sophistication.',
-    'Evaluate if this look works for a special occasion. Check dress code alignment.',
-    'Assess the silhouette and fit for evening wear standards.',
-  ],
-  daily: [
-    'Analyze this everyday outfit. Focus on comfort, coordination, and practicality.',
-    'Evaluate this casual look for daily wear. Check color harmony and balance.',
-    'Assess the overall aesthetic for everyday style.',
-  ],
-  critique: [
-    'Give an honest critique of this outfit. Be direct about what works and what does not.',
-    'Analyze this look critically. Point out specific issues and strengths.',
-    'Provide blunt fashion feedback. No sugarcoating.',
-  ],
-  // African Differentiation — pattern-aware prompts. This is the
-  // differentiated capability for the Qwen Cloud Hackathon.
-  african: [
-    'Identify any African textile patterns in this outfit (Ankara, Kente, Adire, Bogolan, Shweshwe, Kitenge, Wax Print). Note cultural context and styling.',
-    'Assess how well African fashion elements are integrated with the rest of the look.',
-    'Provide culturally-aware feedback on occasion-appropriateness and pattern coordination.',
-  ],
-};
-
 const sessionFrameCount = new Map();
 
 // ── POST / ─────────────────────────────────────────────────────
@@ -162,11 +93,11 @@ router.post('/', async (req, res) => {
     }
 
     const clientIp = req.ip || req.headers['x-forwarded-for'] || 'unknown';
-    const frameCheck = await checkFrameRate(clientIp);
+    const frameCheck = await checkFrameRate(clientIp, 'qwen-cloud-frames', 30);
     if (!frameCheck.allowed) {
       return res.status(429).json({
         error: 'Frame rate limit exceeded',
-        retryAfter: FRAME_LIMITS.windowSecs,
+        retryAfter: 60,
       });
     }
 

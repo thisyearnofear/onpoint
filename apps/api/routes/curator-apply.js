@@ -15,32 +15,17 @@
  */
 
 const express = require('express');
-const { neon } = require('@neondatabase/serverless');
-const { drizzle } = require('drizzle-orm/neon-http');
 const { eq } = require('drizzle-orm');
 const { curators } = require('@repo/db');
 const logger = require('../lib/logger');
+const { getDb } = require('../lib/db');
+const { isValidSlug } = require('../lib/slugs');
 const {
   generateCustodialWallet,
   buildCommerceWithCustodialWallet,
 } = require('../lib/curator-payout-wallets');
 
 const router = express.Router();
-
-// ── Database connection (lazy singleton — created once, reused for all requests) ──
-
-const CONNECTION_STRING = process.env.NEON_DATABASE_URL;
-let _sql = null;
-
-function getDb() {
-  if (!_sql) {
-    if (!CONNECTION_STRING) {
-      throw new Error('NEON_DATABASE_URL not configured');
-    }
-    _sql = neon(CONNECTION_STRING);
-  }
-  return { sql: _sql, db: drizzle(_sql, { schema: { curators } }) };
-}
 
 // ── Validation ────────────────────────────────────────────────
 
@@ -75,7 +60,7 @@ function validate(body) {
   // Required: slug
   if (!body.slug || typeof body.slug !== 'string') {
     errors.push('slug (string) is required');
-  } else if (!/^[a-z0-9-]{2,48}$/.test(body.slug)) {
+  } else if (!isValidSlug(body.slug)) {
     errors.push('slug must be 2-48 chars, lowercase alphanumeric + hyphens');
   }
 
@@ -142,9 +127,9 @@ router.post('/', async (req, res) => {
   }
 
   // Get DB connection (lazy singleton — initialized once)
-  let sql, db;
+  let db;
   try {
-    ({ sql, db } = getDb());
+    db = getDb({ curators });
   } catch (err) {
     logger.error('NEON_DATABASE_URL not configured', { component: 'curator-apply' });
     return res.status(503).json({
@@ -214,7 +199,7 @@ router.post('/', async (req, res) => {
       deployCuratorSplit(resolvedWalletAddress, 0.05)
         .then(async ({ splitAddress, txHash }) => {
           try {
-            const db2 = getDb();
+            const db2 = getDb({ curators });
             // Read current commerce, merge splitAddress, write back
             const [row] = await db2.select().from(curators).where(eq(curators.slug, slug)).limit(1);
             if (row) {
