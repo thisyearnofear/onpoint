@@ -22,6 +22,7 @@ interface Look {
   agentAddress: string;
   coverImageKey: string | null;
   coverImageUrl: string | null;
+  heroImageUrl: string | null;
   tags: string[];
   tryOnCount: number;
   purchaseCount: number;
@@ -108,6 +109,12 @@ export default async function LooksPage() {
                     {look.coverImageUrl ? (
                       <img
                         src={look.coverImageUrl}
+                        alt={look.title}
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    ) : look.heroImageUrl ? (
+                      <img
+                        src={look.heroImageUrl}
                         alt={look.title}
                         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />

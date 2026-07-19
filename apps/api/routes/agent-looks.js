@@ -215,13 +215,6 @@ router.get('/', async (req, res) => {
     const { curator, tag, agent, limit } = req.query;
     const lim = Math.min(parseInt(limit) || 20, 100);
 
-    let query = db
-      .select()
-      .from(agentLooks)
-      .where(eq(agentLooks.status, 'live'))
-      .orderBy(desc(agentLooks.createdAt))
-      .limit(lim);
-
     const conditions = [eq(agentLooks.status, 'live')];
     if (curator) conditions.push(eq(agentLooks.curatorSlug, curator));
     if (agent) conditions.push(eq(agentLooks.agentAddress, agent));
@@ -234,7 +227,46 @@ router.get('/', async (req, res) => {
       .orderBy(desc(agentLooks.createdAt))
       .limit(lim);
 
-    res.json({ looks, count: looks.length });
+    // Resolve hero listing image + cover image for each look so the
+    // /looks page can render thumbnails without a second round-trip.
+    // Collect all unique listing IDs to resolve in a single query.
+    const allListingIds = [...new Set(
+      looks.flatMap((l) => l.listingIds || []),
+    )];
+
+    let listingMap = new Map();
+    if (allListingIds.length > 0) {
+      const rows = await db
+        .select()
+        .from(listings)
+        .where(inArray(listings.id, allListingIds));
+      listingMap = new Map(rows.map((r) => [r.id, r]));
+    }
+
+    const looksWithImages = looks.map((look) => {
+      const heroId = look.heroListingId || look.listingIds?.[0];
+      const heroListing = heroId ? listingMap.get(heroId) : null;
+      const heroImageUrl = heroListing ? listingImageUrl(heroListing) : null;
+
+      return {
+        ...look,
+        coverImageUrl: look.coverImageKey ? r2PublicUrl(look.coverImageKey) : null,
+        heroImageUrl,
+        // Include a minimal items array so the frontend's fallback logic works
+        items: (look.listingIds || []).map((id) => {
+          const listing = listingMap.get(id);
+          return {
+            id,
+            title: listing?.title || 'Item',
+            curatorSlug: look.curatorSlug,
+            imageUrl: listing ? listingImageUrl(listing) : null,
+            isHero: id === look.heroListingId,
+          };
+        }),
+      };
+    });
+
+    res.json({ looks: looksWithImages, count: looksWithImages.length });
   } catch (err) {
     logger.error('Failed to list looks', { component: 'agent-looks' }, err);
     res.status(500).json({ error: 'Failed to list looks' });
