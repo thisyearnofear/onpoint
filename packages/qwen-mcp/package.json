@@ -1,0 +1,28 @@
+{
+  "name": "@repo/qwen-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Qwen Cloud MCP server — exposes OnPoint agent commerce tools (browse, try-on, buy, earnings, looks) to any Qwen-powered agent via the Model Context Protocol. Qwen Cloud Hackathon, Track 4: Autopilot Agent.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "bin": {
+    "onpoint-mcp": "./src/index.ts"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "start": "npx tsx src/index.ts",
+    "dev": "npx tsx watch src/index.ts",
+    "inspect": "npx @modelcontextprotocol/inspector npx tsx src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "zod": "3.25.28"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "22.10.10",
+    "tsx": "4.23.1",
+    "typescript": "5.9.2"
+  }
+}

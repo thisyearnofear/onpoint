@@ -19,8 +19,12 @@
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
+    "@types/ali-oss": "6.23.3",
+    "@types/node": "22.10.10",
     "tsup": "8.5.1",
     "typescript": "5.9.2"
   },
-  "dependencies": {}
+  "dependencies": {
+    "ali-oss": "6.23.0"
+  }
 }

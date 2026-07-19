@@ -10,6 +10,18 @@ OnPoint is the **execution layer** for fashion intent that needs **fit + real st
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-indigo)](https://beonpoint.netlify.app)
 [![ERC-8004](https://img.shields.io/badge/ERC--8004-Registered-blue)](https://8004scan.io/agents/celo/9177)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Qwen Cloud Hackathon](https://img.shields.io/badge/Qwen%20Cloud-Hackathon%20Track%204-orange)](./docs/QWEN-CLOUD-HACKATHON.md)
+
+> **Qwen Cloud Hackathon — Track 4: Autopilot Agent.**
+> OnPoint is an autopilot agent that turns a photo of an outfit into a verifiable on-chain purchase from a real African fashion curator — perceiving with **Qwen3-VL on Qwen Cloud (DashScope)**, reasoning about fit and cultural context (Ankara / Kente / Adire / Bogolan / Shweshwe), and acting through x402-paid try-on and Celo checkout, with a human-in-the-loop checkpoint above $5.
+>
+> - Submission writeup + architecture diagram: [`docs/QWEN-CLOUD-HACKATHON.md`](./docs/QWEN-CLOUD-HACKATHON.md)
+> - Alibaba Cloud deployment proof: [`packages/storage/src/oss.ts`](./packages/storage/src/oss.ts)
+> - Qwen Cloud client: [`packages/qwen-cloud/`](./packages/qwen-cloud/)
+> - Qwen Cloud MCP server: [`packages/qwen-mcp/`](./packages/qwen-mcp/)
+> - Autopilot demo script: [`scripts/qwen-autopilot.mjs`](./scripts/qwen-autopilot.mjs)
+> - Implementation plan: [`plans/qwen-cloud-hackathon.md`](./plans/qwen-cloud-hackathon.md)
 
 **Canonical strategy:** [`docs/STRATEGY.md`](./docs/STRATEGY.md) — north star, phases, metrics, kill list. Do not fork roadmap copy elsewhere.
 
@@ -60,11 +72,12 @@ See [Getting Started](docs/GETTING_STARTED.md) for env vars and full setup.
 ## Tech Stack
 
 - **Frontend**: Next.js, React, TypeScript, Tailwind, Zustand
-- **AI**: Venice, Gemini, OpenAI (+ fallbacks)
+- **AI**: **Qwen Cloud (DashScope)** — qwen-vl-max-latest, qwen-plus (primary); Venice, Gemini, 0G Compute Router (fallbacks)
 - **API / autonomy**: Hetzner (Express, worker, signer, Python bridge) — [ADR 0001](./docs/adr/0001-backend-first-autonomy.md)
-- **Data**: Neon Postgres, Redis, Cloudflare R2
+- **Data**: Neon Postgres, Redis, Cloudflare R2, **Alibaba Cloud OSS** (try-on artifact mirror)
 - **Payments**: M-Pesa (Daraja), cUSD on Celo (x402)
 - **Presentation**: Netlify / Vercel
+- **Agent runtime**: Qwen Cloud MCP server ([`packages/qwen-mcp/`](./packages/qwen-mcp/))
 
 **Monorepo:** `apps/web` · `apps/api` · `apps/bridge` · `packages/*`
 

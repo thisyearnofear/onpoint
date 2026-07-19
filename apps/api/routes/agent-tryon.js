@@ -32,7 +32,7 @@ const { curatorSplitAddress, tryOnPriceCusd, storefrontWebUrl, polaroidWebUrl, w
 const { getAttributionSuffix, getAttributionCode, getAssignedTag } = require('../lib/attribution');
 const x402Facilitator = require('../lib/x402-facilitator');
 const { engine } = require('./ai-virtual-tryon');
-const { upload: r2Upload, publicUrl: r2PublicUrl, keyFor: r2KeyFor } = require('@repo/storage');
+const { upload: r2Upload, publicUrl: r2PublicUrl, keyFor: r2KeyFor, mirrorTryOnArtifact: ossMirror, isOssConfigured: ossConfigured } = require('@repo/storage');
 const { logFunnelEvent } = require('../lib/funnel');
 
 const router = express.Router();
@@ -541,6 +541,19 @@ Return ONLY valid JSON:
       const imageKey = r2KeyFor.agentPolaroid(String(paymentId));
       await r2Upload(imageKey, imageBuffer, 'image/jpeg');
       const imageUrl = r2PublicUrl(imageKey);
+
+      // ── Mirror to Alibaba Cloud OSS (best-effort) ──
+      // Qwen Cloud Hackathon, Track 4: Autopilot Agent.
+      // This mirror satisfies the "Proof of Alibaba Cloud Deployment"
+      // requirement and provides a second-region backup of try-on
+      // artifacts. Failures are non-fatal — R2 remains the primary.
+      if (ossConfigured()) {
+        try {
+          await ossMirror(String(paymentId), 'polaroid', imageBuffer, 'image/jpeg');
+        } catch (ossErr) {
+          logger.warn('OSS mirror failed (non-fatal)', { component: 'agent-tryon', paymentId }, ossErr);
+        }
+      }
 
       const meta = {
         item: itemLabel,

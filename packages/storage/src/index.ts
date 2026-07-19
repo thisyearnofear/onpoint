@@ -234,7 +234,7 @@ export async function upload(
         "Authorization": `Bearer ${CF_API_TOKEN}`,
         "Content-Type": contentType,
       },
-      body: buffer,
+      body: new Uint8Array(buffer),
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "unknown");
@@ -261,7 +261,7 @@ export async function upload(
       ...headers,
       "content-type": contentType,
     },
-    body: buffer,
+    body: new Uint8Array(buffer),
   });
 
   if (!res.ok) {
@@ -362,3 +362,18 @@ export const keyFor = {
   /** Agent try-on polaroid metadata (JSON) — paired with agentPolaroid image. */
   agentPolaroidMeta: (paymentId: string) => `polaroids/${paymentId}.json`,
 } as const;
+
+// ── Alibaba Cloud OSS adapter ──────────────────────────────────
+// Qwen Cloud Hackathon, Track 4: Autopilot Agent.
+// Re-exported here so callers can import from "@repo/storage" directly.
+// See ./oss.ts for the full implementation.
+export {
+  isOssConfigured,
+  isOssAvailable,
+  putObject as ossPutObject,
+  getObject as ossGetObject,
+  signedUrl as ossSignedUrl,
+  deleteObject as ossDeleteObject,
+  publicUrlForKey as ossPublicUrlForKey,
+  mirrorTryOnArtifact,
+} from "./oss.js";

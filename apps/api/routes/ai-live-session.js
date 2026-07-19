@@ -98,6 +98,7 @@ const SESSION_LIMITS = {
   replicate: { maxDuration: 300, maxCaptures: 10 },
   azure: { maxDuration: 300, maxCaptures: 10 },
   '0g': { maxFrames: 30, windowSecs: 60, maxDuration: 300 },
+  'qwen-cloud': { maxFrames: 30, windowSecs: 60, maxDuration: 300 },
   gemini: { maxDuration: 1800 },
 };
 
@@ -137,6 +138,27 @@ async function enforceZeroGLimits(clientIp) {
   return {
     allowed: true,
     remaining: SESSION_LIMITS['0g'].maxFrames - count,
+  };
+}
+
+async function enforceQwenCloudLimits(clientIp) {
+  const frameKey = `qwen-cloud-frames:${clientIp}`;
+
+  const count = await redisOrMemory(
+    async (r) => {
+      const next = await r.incr(frameKey);
+      await r.expire(frameKey, SESSION_LIMITS['qwen-cloud'].windowSecs);
+      return next;
+    },
+    () => memoryIncr(frameKey, SESSION_LIMITS['qwen-cloud'].windowSecs),
+  );
+
+  if (count > SESSION_LIMITS['qwen-cloud'].maxFrames) {
+    return { allowed: false, remaining: 0 };
+  }
+  return {
+    allowed: true,
+    remaining: SESSION_LIMITS['qwen-cloud'].maxFrames - count,
   };
 }
 
@@ -340,6 +362,50 @@ router.post('/', async (req, res) => {
         limits: {
           framesPerMinute: SESSION_LIMITS['0g'].maxFrames,
           maxSessionDuration: SESSION_LIMITS['0g'].maxDuration,
+        },
+      });
+    }
+
+    // Qwen Cloud (DashScope) - Free tier, first-party Qwen Cloud integration.
+    // Qwen Cloud Hackathon, Track 4: Autopilot Agent.
+    if (provider === 'qwen-cloud') {
+      if (!process.env.DASHSCOPE_API_KEY) {
+        return res.status(503).json({
+          error: 'Qwen Cloud is not configured on the server (DASHSCOPE_API_KEY missing).',
+        });
+      }
+      if (process.env.QWEN_CLOUD_KILL_SWITCH === '1') {
+        return res.status(503).json({
+          error: 'Qwen Cloud kill switch is active (QWEN_CLOUD_KILL_SWITCH=1).',
+        });
+      }
+
+      const frameCheck = await enforceQwenCloudLimits(clientIp);
+      if (!frameCheck.allowed) {
+        return res.status(429).json({
+          error: 'Qwen Cloud frame rate exhausted',
+          retryAfter: 60,
+        });
+      }
+
+      await startSession(
+        clientIp,
+        'qwen-cloud',
+        SESSION_LIMITS['qwen-cloud'].maxDuration,
+      );
+
+      return res.json({
+        success: true,
+        provider: 'qwen-cloud',
+        config: {
+          pollingInterval: 2500,
+          model:
+            process.env.QWEN_CLOUD_VISION_MODEL || 'qwen3-vl-flash',
+          endpoint: '/api/ai/qwen-analyze',
+        },
+        limits: {
+          framesPerMinute: SESSION_LIMITS['qwen-cloud'].maxFrames,
+          maxSessionDuration: SESSION_LIMITS['qwen-cloud'].maxDuration,
         },
       });
     }

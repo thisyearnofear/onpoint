@@ -143,6 +143,9 @@ app.get('/health', json1k, async (req, res) => {
     redis: redisStatus,
     venice: !!process.env.VENICE_API_KEY,
     gemini: !!process.env.GOOGLE_GEMINI_API_KEY,
+    qwenCloud: !!process.env.DASHSCOPE_API_KEY,
+    qwenCloudKillSwitch: process.env.QWEN_CLOUD_KILL_SWITCH === '1',
+    alibabaOss: !!process.env.ALIBABA_OSS_ACCESS_KEY_ID && !!process.env.ALIBABA_OSS_BUCKET,
     serviceKey: !!process.env.SERVICE_API_KEY,
     agentWallet: !!process.env.AGENT_WALLET_ADDRESS,
     karmaGap: !!process.env.KARMA_GAP_API_KEY,
@@ -165,6 +168,7 @@ app.get('/api/status', (req, res) => {
     features: [
       'venice-vision',
       'gemini-live',
+      'qwen-cloud-vision',
       'virtual-tryon',
       'ai-agent',
       'catalog',
@@ -185,6 +189,7 @@ app.use('/api/ai/venice-analyze', json10mb, aiAuth, aiAnalysisRateLimit, aiAnaly
 app.use('/api/ai/replicate-analyze', json10mb, aiAuth, aiAnalysisRateLimit, aiAnalysisDailyLimit, require('./routes/ai-replicate-analyze'));
 app.use('/api/ai/azure-analyze', json10mb, aiAuth, aiAnalysisRateLimit, aiAnalysisDailyLimit, require('./routes/ai-azure-analyze'));
 app.use('/api/ai/zerog-analyze', json10mb, aiAuth, aiAnalysisRateLimit, aiAnalysisDailyLimit, require('./routes/ai-zerog-analyze'));
+app.use('/api/ai/qwen-analyze', json10mb, aiAuth, aiAnalysisRateLimit, aiAnalysisDailyLimit, require('./routes/ai-qwen-analyze'));
 app.use('/api/ai/live-session', json1k, aiAuth, liveSessionRateLimit, require('./routes/ai-live-session'));
 app.use('/api/ai/agent', json10mb, aiAuth, aiAnalysisRateLimit, aiAnalysisDailyLimit, require('./routes/ai-agent'));
 

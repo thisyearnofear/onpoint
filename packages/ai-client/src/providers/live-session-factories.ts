@@ -26,6 +26,7 @@ import { GeminiLiveProvider } from "./gemini-live-provider";
 import { ReplicateLiveProvider } from "./replicate-live-provider";
 import { AzureLiveProvider } from "./azure-live-provider";
 import { ZeroGLiveProvider } from "./zero-g-live-provider";
+import { QwenCloudLiveProvider } from "./qwen-cloud-live-provider";
 
 const VENICE_FREE_SESSION_SECONDS = 60;
 
@@ -64,7 +65,7 @@ const veniceFactory: LiveSessionFactory = {
     },
   ],
 
-  fallbackChain: ["replicate", "azure", "0g", "gemini"],
+  fallbackChain: ["qwen-cloud", "replicate", "azure", "0g", "gemini"],
 
   realTimeFrames: false,
   supportsAudio: () => false,
@@ -424,9 +425,110 @@ const zerogFactory: LiveSessionFactory = {
   },
 };
 
+// ── Qwen Cloud (DashScope) — Qwen Cloud Hackathon, Track 4 ─────────────────
+//
+// First-party Qwen Cloud integration. The API is OpenAI Chat Completions
+// compatible over HTTP, so we reuse the same polling-loop shape as
+// Venice / Replicate / Azure / 0G. The default vision model
+// (qwen3-vl-flash) is the cheapest vision-capable entry on the Qwen Cloud
+// catalog ($0.05/$0.40 per 1M tokens). Spend controls (kill switch, daily
+// budget, max_tokens caps, enable_thinking: false) are enforced on the
+// Hetzner backend route. There is intentionally no `connectLiveSession` —
+// Qwen Cloud is HTTP-only and the chain still terminates at Gemini for
+// the WebSocket premium experience.
+
+const qwenCloudFactory: LiveSessionFactory = {
+  name: "qwen-cloud",
+  displayName: "Qwen Cloud",
+  isPremium: false,
+  requiresPayment: false,
+  supportsByok: false,
+  cards: [
+    {
+      goal: "daily",
+      title: "Qwen Cloud Stylist",
+      description:
+        "Direct Qwen Cloud (DashScope) vision analysis. Cheapest vision model with African textile awareness.",
+      icon: "zap",
+      color: "violet",
+      badgeLabel: "Qwen",
+    },
+    {
+      goal: "african",
+      title: "African Fashion Insight",
+      description:
+        "Qwen3-VL identifies Ankara, Kente, Adire, Bogolan, Shweshwe patterns with cultural context.",
+      icon: "globe",
+      color: "amber",
+      badgeLabel: "African",
+    },
+    {
+      goal: "critique",
+      title: "Honest Critique",
+      description:
+        "Direct, blunt fashion feedback from Qwen Cloud. No sugarcoating.",
+      icon: "eye",
+      color: "rose",
+      badgeLabel: "Direct",
+    },
+  ],
+
+  // Qwen Cloud is the primary provider; fall through to the existing
+  // chain if it is unavailable.
+  fallbackChain: ["venice", "replicate", "azure", "0g", "gemini"],
+
+  realTimeFrames: false,
+  supportsAudio: () => false,
+
+  frameIntervalMs: () => 2500,
+
+  sendFramePixels: () => false,
+
+  hasSessionTimer: () => false,
+
+  maxSessionDurationMs: () => 300_000, // 5 min
+
+  maxCaptures: () => 10,
+
+  provisionSession: async (config: SessionConfig) => {
+    const response = await fetch("/api/ai/live-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        provider: "qwen-cloud",
+        goal: config.goal || "daily",
+        persona: config.persona,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.error || "Failed to connect to Qwen Cloud",
+      );
+    }
+
+    const data = await response.json();
+    return {
+      pollingInterval: data.config?.pollingInterval ?? 2500,
+      model: data.config?.model ?? "qwen3-vl-flash",
+    };
+  },
+
+  createSession: (provisionedConfig, goal) => {
+    const provider = new QwenCloudLiveProvider({
+      pollingIntervalMs:
+        (provisionedConfig.pollingInterval as number) ?? 2500,
+      model: (provisionedConfig.model as string) ?? "qwen3-vl-flash",
+    });
+    return provider.createSession(goal);
+  },
+};
+
 // ── Registry ──
 
 export const SESSION_FACTORIES: Record<string, LiveSessionFactory> = {
+  "qwen-cloud": qwenCloudFactory,
   venice: veniceFactory,
   replicate: replicateFactory,
   azure: azureFactory,

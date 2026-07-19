@@ -1,0 +1,24 @@
+{
+  "name": "@repo/qwen-cloud",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Qwen Cloud (DashScope) client — direct OpenAI-compatible integration for the Qwen Cloud Hackathon, Track 4: Autopilot Agent.",
+  "license": "MIT",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts",
+    "./types": "./src/types.ts",
+    "./models": "./src/models.ts"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "typescript": "5.9.2",
+    "vitest": "^3.2.6"
+  }
+}
