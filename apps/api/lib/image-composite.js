@@ -351,19 +351,40 @@ async function composeLookCollageAI(opts) {
   }
 
   // Build a styled flat-lay prompt from the item titles + look title.
-  const itemTitles = items
+  // The prompt is carefully structured to guide the model toward a
+  // professional editorial flat-lay composition.
+  const heroItem = items.find((i) => i.isHero) || items[0];
+  const otherItems = items.filter((i) => !i.isHero).slice(0, 5);
+  const itemDescriptions = items
     .slice(0, 6)
-    .map((i, idx) => `${idx + 1}. ${i.title}`)
+    .map((i, idx) => `${idx + 1}. ${i.title}${i.isHero ? ' (hero piece — place centrally, largest)' : ''}`)
     .join(', ');
 
+  // Derive a style mood from the look title for more targeted generation
+  const titleLower = lookTitle.toLowerCase();
+  let moodHint = 'clean, minimalist editorial';
+  if (titleLower.includes('street') || titleLower.includes('urban')) {
+    moodHint = 'edgy streetwear editorial, urban aesthetic';
+  } else if (titleLower.includes('formal') || titleLower.includes('business')) {
+    moodHint = 'refined, sophisticated formalwear editorial';
+  } else if (titleLower.includes('summer') || titleLower.includes('beach')) {
+    moodHint = 'bright, airy summer editorial with warm tones';
+  } else if (titleLower.includes('vintage') || titleLower.includes('retro')) {
+    moodHint = 'warm vintage editorial with film-like quality';
+  } else if (titleLower.includes('ankara') || titleLower.includes('african')) {
+    moodHint = 'vibrant African textile editorial with rich patterns';
+  }
+
   const prompt = [
-    `Create a professional fashion editorial flat-lay photograph for a look titled "${lookTitle}".`,
-    `The flat-lay should arrange these ${items.length} clothing items on a clean neutral off-white background:`,
-    itemTitles,
-    `Style: top-down editorial flat-lay, soft natural lighting, magazine-quality,`,
-    `items neatly arranged with spacing, no overlapping, no text or watermarks.`,
-    `The hero piece should be the most prominent. High resolution, sharp focus,`,
-    `fashion magazine aesthetic.`,
+    `Professional fashion editorial flat-lay photograph for "${lookTitle}".`,
+    `Arrange ${items.length} clothing items on a smooth off-white surface:`,
+    itemDescriptions,
+    `Composition: top-down flat-lay, ${moodHint}.`,
+    `Hero piece (${heroItem.title}) placed centrally and prominently.`,
+    `Other items arranged around it with generous spacing, no overlapping.`,
+    `Soft diffused lighting from upper left, subtle shadows beneath each item.`,
+    `No text, no watermarks, no human models, no mannequins.`,
+    `Magazine-quality, sharp focus, high resolution.`,
   ].join(' ');
 
   // Collect input image URLs — prefer cutouts (transparent backgrounds)

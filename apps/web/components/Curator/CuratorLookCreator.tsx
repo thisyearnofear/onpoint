@@ -135,7 +135,7 @@ export function CuratorLookCreator({
     heroImageUrl,
   ];
 
-  async function handleSubmit() {
+  async function handleSubmit(saveAsDraft = false) {
     if (!title.trim() || selectedIds.length < 2 || !heroId) return;
     setSubmitting(true);
     setResult(null);
@@ -158,6 +158,7 @@ export function CuratorLookCreator({
             title: title.trim(),
             description: description.trim() || undefined,
             tags: parsedTags,
+            ...(saveAsDraft ? { status: "draft" } : {}),
           }),
         });
 
@@ -204,6 +205,7 @@ export function CuratorLookCreator({
             curatorSlug,
             tags: parsedTags,
             coverImage: coverImage || undefined,
+            status: saveAsDraft ? "draft" : "live",
           }),
         });
 
@@ -479,7 +481,7 @@ export function CuratorLookCreator({
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={handleSubmit}
+                  onClick={() => handleSubmit(false)}
                   disabled={submitting || !title.trim() || selectedIds.length < 2 || !heroId}
                   className="inline-flex items-center gap-2 rounded-lg bg-foreground px-4 py-2 text-sm font-bold text-background transition-colors hover:bg-foreground/90 disabled:opacity-40"
                 >
@@ -494,6 +496,19 @@ export function CuratorLookCreator({
                       {isEditMode ? "Update Look" : "Create look"}
                     </>
                   )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSubmit(true)}
+                  disabled={submitting || !title.trim() || selectedIds.length < 2 || !heroId}
+                  className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-40"
+                >
+                  {submitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  Save draft
                 </button>
               </div>
 

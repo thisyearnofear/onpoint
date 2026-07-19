@@ -51,6 +51,7 @@ export function CuratorOwnerTools({
         curatorSlug={curatorSlug}
         curatorName={curatorName}
         storefrontUrl={storefrontUrl}
+        whatsapp={whatsapp}
       />
       <CuratorInventoryPanel curatorSlug={curatorSlug} skipOwnerCheck />
       {whatsapp && (

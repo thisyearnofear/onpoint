@@ -62,7 +62,7 @@ export const agentLooks = pgTable("agent_looks", {
   metadata: jsonb("metadata").notNull().default({}),
 
   status: text("status", {
-    enum: ["live", "paused", "archived"],
+    enum: ["live", "paused", "archived", "draft"],
   })
     .notNull()
     .default("live"),

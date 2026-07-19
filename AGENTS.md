@@ -148,7 +148,53 @@ GET /api/looks                    # list all live looks
 GET /api/looks?curator=zara       # filter by curator
 GET /api/looks?tag=streetwear     # filter by tag
 GET /api/looks?agent=0x...        # filter by agent
+GET /api/looks?category=streetwear  # filter by metadata.category
+GET /api/looks?occasion=formal    # filter by metadata.occasion
+GET /api/looks?season=summer      # filter by metadata.season
+GET /api/looks?limit=50           # max results (capped at 100)
 GET /api/looks/:slug              # get a look with resolved listings
+```
+
+### Look Metadata (Category, Occasion, Season)
+
+Each look has a `metadata` field with structured classification:
+
+```json
+{
+  "metadata": {
+    "category": "streetwear",    // streetwear, casual, formal, event, sport, vintage, ankara, sustainable
+    "occasion": "casual",        // casual, formal, event, sport, outdoor, travel, date-night
+    "season": "all-season"       // spring, summer, fall, winter, all-season
+  }
+}
+```
+
+Metadata is auto-classified on look creation using a rule-based tag mapping (instant) with optional Qwen Cloud vision enhancement (best-effort). Reclassify on demand:
+
+```bash
+POST /api/looks/:slug/classify   # re-run classification, returns { success, metadata }
+```
+
+### Look Collages
+
+Each look has a `collageUrl` — a composed image of all items in a styled flat-lay. The collage is generated automatically on look creation (fire-and-forget) and can be regenerated on demand:
+
+```bash
+POST /api/looks/:slug/collage    # regenerate collage, returns { r2Key, url, tier }
+```
+
+**Tier 2 (AI):** Uses Qwen Cloud `wan2.7-image-pro` for multi-image composition with a mood-aware prompt derived from the look title. Falls back to Tier 1 on any failure.
+
+**Tier 1 (deterministic):** Uses `sharp` for a grid layout on a neutral background with title and attribution. Always works.
+
+### Update & Manage Looks
+
+```bash
+PATCH /api/looks/:slug           # update title, description, tags, status (creator only)
+DELETE /api/looks/:slug          # archive a look (creator only)
+POST /api/looks/:slug/image      # upload cover image (creator only)
+POST /api/looks/:slug/collage    # regenerate collage (public)
+POST /api/looks/:slug/classify   # reclassify metadata (public)
 ```
 
 ### Try-On via a Look (Generates Share Card)

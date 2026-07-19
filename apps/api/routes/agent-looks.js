@@ -135,11 +135,15 @@ async function lookAuth(req, res, next) {
 router.post('/', lookAuth, async (req, res) => {
   try {
     const db = getDb();
-    const { title, description, listingIds, heroListingId, curatorSlug, tags, coverImage } = req.body;
+    const { title, description, listingIds, heroListingId, curatorSlug, tags, coverImage, status } = req.body;
 
     if (!title || !listingIds || !Array.isArray(listingIds) || listingIds.length === 0) {
       return res.status(400).json({ error: 'title and listingIds[] are required' });
     }
+
+    // Validate status if provided — must be one of the allowed enum values
+    const allowedStatuses = ['live', 'paused', 'archived', 'draft'];
+    const lookStatus = status && allowedStatuses.includes(status) ? status : 'live';
 
     // Validate listing IDs exist
     const valid = await db
@@ -174,6 +178,7 @@ router.post('/', lookAuth, async (req, res) => {
         curatorSlug: curatorSlug || null,
         coverImageKey,
         tags: tags || [],
+        status: lookStatus,
       })
       .returning();
 
@@ -256,13 +261,61 @@ router.post('/', lookAuth, async (req, res) => {
 });
 
 // ── GET /api/looks — list looks (public) ──
+// Public requests can only see live looks. Authenticated creators can
+// pass ?status=draft (or other non-live values) to see their own looks
+// in that status — the creator's address is resolved from auth headers.
 router.get('/', async (req, res) => {
   try {
     const db = getDb();
-    const { curator, tag, agent, limit, category, occasion, season } = req.query;
+    const { curator, tag, agent, limit, category, occasion, season, status } = req.query;
     const lim = Math.min(parseInt(limit) || 20, 100);
 
-    const conditions = [eq(agentLooks.status, 'live')];
+    // Resolve the requester's creator address from auth headers (best-effort).
+    // Used to gate non-live status queries to the creator's own looks.
+    let requesterAddress = null;
+    const agentAddressHeader = req.headers['x-agent-address'];
+    if (agentAddressHeader && /^0x[a-fA-F0-9]{40}$/.test(agentAddressHeader)) {
+      requesterAddress = agentAddressHeader;
+    } else {
+      const curatorSlugHeader = req.headers['x-curator-slug'];
+      const curatorWhatsappHeader = req.headers['x-curator-whatsapp'];
+      if (curatorSlugHeader && curatorWhatsappHeader) {
+        try {
+          const [curatorRow] = await db
+            .select()
+            .from(curators)
+            .where(eq(curators.slug, curatorSlugHeader))
+            .limit(1);
+          if (curatorRow) {
+            const storedWhatsapp = String(curatorRow.channels?.whatsapp || '').replace(/\s/g, '');
+            const providedWhatsapp = String(curatorWhatsappHeader).replace(/\s/g, '');
+            if (storedWhatsapp && storedWhatsapp === providedWhatsapp) {
+              requesterAddress = curatorRow.linkedAgentAddress
+                || curatorRow.commerce?.walletAddress
+                || curatorRow.commerce?.custodialWalletAddress
+                || null;
+            }
+          }
+        } catch {
+          // Non-fatal — fall through to public (live-only) behavior
+        }
+      }
+    }
+
+    // Determine the status filter.
+    // - Public requests (no auth): only 'live'
+    // - Authenticated creators requesting a non-live status: that status,
+    //   scoped to their own looks
+    const requestedStatus = typeof status === 'string' ? status : null;
+    let statusFilter = 'live';
+    let scopeToCreator = false;
+    if (requestedStatus && requestedStatus !== 'live' && requesterAddress) {
+      statusFilter = requestedStatus;
+      scopeToCreator = true;
+    }
+
+    const conditions = [eq(agentLooks.status, statusFilter)];
+    if (scopeToCreator) conditions.push(eq(agentLooks.agentAddress, requesterAddress));
     if (curator) conditions.push(eq(agentLooks.curatorSlug, curator));
     if (agent) conditions.push(eq(agentLooks.agentAddress, agent));
     if (tag) conditions.push(sql`${agentLooks.tags} @> ARRAY[${tag}]::text[]`);
@@ -325,6 +378,78 @@ router.get('/', async (req, res) => {
   } catch (err) {
     logger.error('Failed to list looks', { component: 'agent-looks' }, err);
     res.status(500).json({ error: 'Failed to list looks' });
+  }
+});
+
+// ── POST /api/looks/bulk — bulk action on multiple looks (creator only) ──
+// Applies an action (archive | publish | delete) to multiple slugs. The
+// requester must be the creator of each look — slugs owned by others are
+// reported as failures rather than applied.
+router.post('/bulk', lookAuth, async (req, res) => {
+  try {
+    const db = getDb();
+    const { action, slugs } = req.body;
+
+    if (!action || !['archive', 'publish', 'delete'].includes(action)) {
+      return res.status(400).json({ error: 'action must be one of: archive, publish, delete' });
+    }
+    if (!slugs || !Array.isArray(slugs) || slugs.length === 0) {
+      return res.status(400).json({ error: 'slugs[] is required' });
+    }
+
+    let updated = 0;
+    const failed = [];
+
+    for (const slug of slugs) {
+      try {
+        const [existing] = await db
+          .select()
+          .from(agentLooks)
+          .where(eq(agentLooks.slug, slug))
+          .limit(1);
+
+        if (!existing) {
+          failed.push({ slug, error: 'Look not found' });
+          continue;
+        }
+        if (existing.agentAddress !== req.creatorAddress) {
+          failed.push({ slug, error: 'Not the look owner' });
+          continue;
+        }
+
+        if (action === 'delete') {
+          await db
+            .delete(agentLooks)
+            .where(eq(agentLooks.slug, slug));
+        } else if (action === 'archive') {
+          await db
+            .update(agentLooks)
+            .set({ status: 'archived', updatedAt: new Date() })
+            .where(eq(agentLooks.slug, slug));
+        } else if (action === 'publish') {
+          await db
+            .update(agentLooks)
+            .set({ status: 'live', updatedAt: new Date() })
+            .where(eq(agentLooks.slug, slug));
+        }
+        updated += 1;
+      } catch (err) {
+        failed.push({ slug, error: err.message?.slice(0, 120) || 'Failed to apply action' });
+      }
+    }
+
+    logger.info('Bulk look action', {
+      component: 'agent-looks',
+      action,
+      updated,
+      failed: failed.length,
+      requester: req.creatorAddress,
+    });
+
+    res.json({ updated, failed });
+  } catch (err) {
+    logger.error('Failed bulk action', { component: 'agent-looks' }, err);
+    res.status(500).json({ error: 'Failed to apply bulk action' });
   }
 });
 
@@ -416,6 +541,39 @@ router.patch('/:slug', lookAuth, async (req, res) => {
   } catch (err) {
     logger.error('Failed to update look', { component: 'agent-looks' }, err);
     res.status(500).json({ error: 'Failed to update look' });
+  }
+});
+
+// ── DELETE /api/looks/:slug — delete a look (owner only) ──
+router.delete('/:slug', lookAuth, async (req, res) => {
+  try {
+    const db = getDb();
+
+    const [existing] = await db
+      .select()
+      .from(agentLooks)
+      .where(eq(agentLooks.slug, req.params.slug))
+      .limit(1);
+
+    if (!existing) return res.status(404).json({ error: 'Look not found' });
+    if (existing.agentAddress !== req.creatorAddress) {
+      return res.status(403).json({ error: 'Not the look owner' });
+    }
+
+    await db
+      .delete(agentLooks)
+      .where(eq(agentLooks.slug, req.params.slug));
+
+    logger.info('Look deleted', {
+      component: 'agent-looks',
+      slug: req.params.slug,
+      agentAddress: req.creatorAddress,
+    });
+
+    res.json({ success: true, slug: req.params.slug });
+  } catch (err) {
+    logger.error('Failed to delete look', { component: 'agent-looks' }, err);
+    res.status(500).json({ error: 'Failed to delete look' });
   }
 });
 
