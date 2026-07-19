@@ -318,9 +318,106 @@ async function composeLookCollage(opts) {
   return { r2Key, url: r2PublicUrl(r2Key) };
 }
 
+// ── 3. Look Collage — Tier 2 (AI-enhanced flat-lay via Qwen Cloud) ──
+
+/**
+ * Generate a Tier 2 AI-enhanced look collage using Qwen Cloud's
+ * wan2.7-image-pro image generation model.
+ *
+ * This composes the item cutouts into a styled editorial flat-lay using
+ * AI multi-image composition. The prompt is generated from the item
+ * titles and look title so the AI understands the styling intent.
+ *
+ * Falls back to composeLookCollage (Tier 1, sharp) if AI generation
+ * fails for any reason — network error, spend guard, kill switch, or
+ * the model returning no images.
+ *
+ * @param {Object} opts - same as composeLookCollage, plus:
+ * @param {object} opts.qwenClient - QwenCloudClient instance (required)
+ * @param {Array} opts.items - [{ imageUrl, title, isHero, cutoutUrl? }]
+ * @param {string} opts.lookTitle - look title
+ * @param {string} opts.agentAddress - agent's wallet address
+ * @param {string} opts.lookSlug - look slug
+ * @param {string} [opts.curatorSlug] - optional curator slug for attribution
+ * @returns {Promise<{ r2Key: string, url: string, tier: 1|2 }>}
+ */
+async function composeLookCollageAI(opts) {
+  const { items, lookTitle, agentAddress, lookSlug, curatorSlug, qwenClient } = opts;
+
+  if (!qwenClient || typeof qwenClient.generateImage !== 'function') {
+    // No Qwen client — go straight to Tier 1.
+    const result = await composeLookCollage({ items, lookTitle, agentAddress, lookSlug, curatorSlug });
+    return { ...result, tier: 1 };
+  }
+
+  // Build a styled flat-lay prompt from the item titles + look title.
+  const itemTitles = items
+    .slice(0, 6)
+    .map((i, idx) => `${idx + 1}. ${i.title}`)
+    .join(', ');
+
+  const prompt = [
+    `Create a professional fashion editorial flat-lay photograph for a look titled "${lookTitle}".`,
+    `The flat-lay should arrange these ${items.length} clothing items on a clean neutral off-white background:`,
+    itemTitles,
+    `Style: top-down editorial flat-lay, soft natural lighting, magazine-quality,`,
+    `items neatly arranged with spacing, no overlapping, no text or watermarks.`,
+    `The hero piece should be the most prominent. High resolution, sharp focus,`,
+    `fashion magazine aesthetic.`,
+  ].join(' ');
+
+  // Collect input image URLs — prefer cutouts (transparent backgrounds)
+  // so the model can composite them cleanly. Fall back to original images.
+  const inputImages = items
+    .slice(0, 6)
+    .map((i) => i.cutoutUrl || i.imageUrl)
+    .filter(Boolean);
+
+  try {
+    const result = await qwenClient.generateImage(prompt, inputImages, {
+      size: '1024*1024',
+      n: 1,
+    });
+
+    if (!result.urls || result.urls.length === 0) {
+      throw new Error('AI generation returned no image URLs');
+    }
+
+    // Download the generated image and re-upload to R2 so we own the
+    // copy (Qwen Cloud URLs are temporary and may expire).
+    const generatedUrl = result.urls[0];
+    const imgBuffer = await fetchImageBuffer(generatedUrl);
+    if (!imgBuffer) {
+      throw new Error('Failed to download AI-generated image');
+    }
+
+    // Re-encode as webp for consistency with Tier 1 output.
+    const webpBuffer = await sharp(imgBuffer)
+      .webp({ quality: 88 })
+      .toBuffer();
+
+    const r2Key = `looks/${lookSlug}/collage-${Date.now()}.webp`;
+    await r2Upload(r2Key, webpBuffer, 'image/webp');
+
+    return { r2Key, url: r2PublicUrl(r2Key), tier: 2 };
+  } catch (err) {
+    // AI generation failed — fall back to Tier 1 (sharp, always works).
+    // This is the core resilience pattern: Tier 2 is best-effort.
+    const result = await composeLookCollage({
+      items,
+      lookTitle,
+      agentAddress,
+      lookSlug,
+      curatorSlug,
+    });
+    return { ...result, tier: 1, aiFallbackReason: err?.message };
+  }
+}
+
 module.exports = {
   composeTryOnShareCard,
   composeLookCollage,
+  composeLookCollageAI,
   // Backward-compatible alias
   generateShareCard: composeTryOnShareCard,
 };

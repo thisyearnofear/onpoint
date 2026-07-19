@@ -4,6 +4,7 @@ import {
   text,
   integer,
   timestamp,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { curators } from "./curators";
 import { listings } from "./listings";
@@ -54,6 +55,11 @@ export const agentLooks = pgTable("agent_looks", {
 
   // Tags for discoverability (e.g. ["streetwear", "vintage", "summer"])
   tags: text("tags").array().notNull().default([]),
+
+  // Structured metadata derived from tags or AI classification.
+  // Stores { category, occasion, season } for filtering and badges.
+  // Populated by the auto-classification endpoint or set manually.
+  metadata: jsonb("metadata").notNull().default({}),
 
   status: text("status", {
     enum: ["live", "paused", "archived"],

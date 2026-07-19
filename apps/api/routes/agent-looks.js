@@ -24,6 +24,7 @@
  *   POST   /api/looks/:slug/image  — upload cover image (creator only)
  *   POST   /api/looks/:slug/share  — record a share event (public, increments count)
  *   POST   /api/looks/:slug/collage — generate/regenerate look collage (public)
+ *   POST   /api/looks/:slug/classify — auto-classify look metadata (public)
  *   POST   /api/looks/curator/:slug/link-agent — set linkedAgentAddress (curator auth)
  */
 
@@ -38,6 +39,7 @@ const { keyToUrl, listingImageUrl } = require('../lib/r2');
 const { webBaseUrl } = require('../lib/agent-commerce');
 const { composeLookCollage } = require('../lib/image-composite');
 const { removeBackground } = require('../lib/image-processing');
+const { classifyLook } = require('../lib/look-classify');
 
 const router = express.Router();
 
@@ -182,10 +184,9 @@ router.post('/', lookAuth, async (req, res) => {
       listingCount: listingIds.length,
     });
 
-    // Fire-and-forget collage generation — non-blocking, best-effort.
-    // The look works without a collage (falls back to coverImageUrl →
-    // heroImageUrl). If this fails, the collage can be regenerated on
-    // demand via POST /api/looks/:slug/collage.
+    // Fire-and-forget collage generation + auto-classification —
+    // non-blocking, best-effort. The look works without either (falls
+    // back to coverImageUrl → heroImageUrl, and metadata defaults to {}).
     setImmediate(async () => {
       try {
         const resolved = await resolveListings(db, look.listingIds);
@@ -201,7 +202,24 @@ router.post('/', lookAuth, async (req, res) => {
           })
           .filter(Boolean);
 
+        // Auto-classify the look (category, occasion, season)
         if (collageItems.length > 0) {
+          try {
+            const metadata = await classifyLook({
+              tags: tags || [],
+              items: collageItems,
+              lookTitle: look.title,
+            });
+            await db
+              .update(agentLooks)
+              .set({ metadata, updatedAt: new Date() })
+              .where(eq(agentLooks.slug, slug));
+            logger.info('Auto-classified look', { component: 'agent-looks', slug, metadata });
+          } catch {
+            // Non-fatal — metadata defaults to {}
+          }
+
+          // Generate collage
           await composeLookCollage({
             items: collageItems,
             lookTitle: look.title,
@@ -227,13 +245,16 @@ router.post('/', lookAuth, async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const db = getDb();
-    const { curator, tag, agent, limit } = req.query;
+    const { curator, tag, agent, limit, category, occasion, season } = req.query;
     const lim = Math.min(parseInt(limit) || 20, 100);
 
     const conditions = [eq(agentLooks.status, 'live')];
     if (curator) conditions.push(eq(agentLooks.curatorSlug, curator));
     if (agent) conditions.push(eq(agentLooks.agentAddress, agent));
     if (tag) conditions.push(sql`${agentLooks.tags} @> ARRAY[${tag}]::text[]`);
+    if (category) conditions.push(sql`${agentLooks.metadata}->>'category' = ${category}`);
+    if (occasion) conditions.push(sql`${agentLooks.metadata}->>'occasion' = ${occasion}`);
+    if (season) conditions.push(sql`${agentLooks.metadata}->>'season' = ${season}`);
 
     const looks = await db
       .select()
@@ -537,6 +558,51 @@ router.post('/:slug/collage', async (req, res) => {
   } catch (err) {
     logger.error('Failed to generate collage', { component: 'agent-looks' }, err);
     res.status(500).json({ error: 'Failed to generate collage' });
+  }
+});
+
+// ── POST /api/looks/:slug/classify — auto-classify look (category, occasion, season) ──
+// Public endpoint — runs AI classification (or rule-based fallback) and
+// stores the result in agent_looks.metadata. Can be called on-demand
+// to reclassify a look after tag changes.
+router.post('/:slug/classify', async (req, res) => {
+  try {
+    const db = getDb();
+
+    const [look] = await db
+      .select()
+      .from(agentLooks)
+      .where(eq(agentLooks.slug, req.params.slug))
+      .limit(1);
+
+    if (!look) {
+      return res.status(404).json({ error: 'Look not found' });
+    }
+
+    const resolvedListings = await resolveListings(db, look.listingIds);
+    const items = resolvedListings.map(({ listing, kit }) => ({
+      imageUrl: listingImageUrl(listing),
+      title: listing.title || (kit ? `${kit.club} ${kit.kitType}` : 'Item'),
+      isHero: listing.id === look.heroListingId,
+    })).filter((i) => i.imageUrl);
+
+    const metadata = await classifyLook({
+      tags: look.tags || [],
+      items,
+      lookTitle: look.title,
+    });
+
+    await db
+      .update(agentLooks)
+      .set({ metadata, updatedAt: new Date() })
+      .where(eq(agentLooks.slug, look.slug));
+
+    logger.info('Look classified', { component: 'agent-looks', slug: look.slug, metadata });
+
+    res.json({ success: true, metadata });
+  } catch (err) {
+    logger.error('Failed to classify look', { component: 'agent-looks' }, err);
+    res.status(500).json({ error: 'Failed to classify look' });
   }
 });
 

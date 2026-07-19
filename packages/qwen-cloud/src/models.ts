@@ -82,6 +82,19 @@ export const QWEN_CLOUD_MODEL_CATALOG: Record<string, QwenCloudModelCatalogEntry
     outputUsdPer1M: 7.5,
     bestFor: ["chat", "reasoning"],
   },
+  "wan2.7-image-pro": {
+    id: "wan2.7-image-pro",
+    name: "Wan2.7-Image-Pro",
+    description:
+      "Image generation model. Best for multi-image composition — arranges multiple input item cutouts into a styled flat-lay. Used for Tier 2 AI collage enhancement.",
+    vision: true,
+    contextLength: 32_000,
+    // Image generation is priced per image, not per token. We model it as
+    // a flat per-call cost — see IMAGE_GENERATION_FLAT_COST_USD in client.ts.
+    inputUsdPer1M: 0,
+    outputUsdPer1M: 0,
+    bestFor: ["design"],
+  },
 };
 
 /** Default model picks — cheapest first, spend control. */
@@ -92,6 +105,8 @@ export const QWEN_CLOUD_DEFAULT_PICKS = {
   chat: "qwen3.6-flash",
   /** generateDesign / high-stakes styling — better vision model. */
   design: "qwen3-vl-plus",
+  /** generateImage / Tier 2 AI collage — image generation model. */
+  image: "wan2.7-image-pro",
 } as const;
 
 /**

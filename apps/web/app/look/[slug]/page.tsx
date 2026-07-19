@@ -26,6 +26,12 @@ interface LookItem {
   kit: { club: string; kitType: string; brand: string } | null;
 }
 
+interface LookMetadata {
+  category?: string;
+  occasion?: string;
+  season?: string;
+}
+
 interface Look {
   id: string;
   agentAddress: string;
@@ -39,6 +45,7 @@ interface Look {
   coverImageUrl: string | null;
   collageUrl: string | null;
   tags: string[];
+  metadata?: LookMetadata | null;
   status: string;
   tryOnCount: number;
   purchaseCount: number;
@@ -155,6 +162,36 @@ export default async function LookPage({
             <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
               {look.description}
             </p>
+          )}
+
+          {/* Structured metadata badges */}
+          {look.metadata && (look.metadata.category || look.metadata.occasion || look.metadata.season) && (
+            <div className="flex flex-wrap gap-2">
+              {look.metadata.category && (
+                <Link
+                  href={`/looks?category=${look.metadata.category}`}
+                  className="rounded-full bg-foreground/5 px-3 py-1 text-xs font-semibold capitalize text-foreground/70 transition-colors hover:bg-foreground/10"
+                >
+                  {look.metadata.category}
+                </Link>
+              )}
+              {look.metadata.occasion && look.metadata.occasion !== 'casual' && (
+                <Link
+                  href={`/looks?occasion=${look.metadata.occasion}`}
+                  className="rounded-full bg-foreground/5 px-3 py-1 text-xs font-semibold capitalize text-foreground/70 transition-colors hover:bg-foreground/10"
+                >
+                  {look.metadata.occasion.replace('-', ' ')}
+                </Link>
+              )}
+              {look.metadata.season && look.metadata.season !== 'all-season' && (
+                <Link
+                  href={`/looks?season=${look.metadata.season}`}
+                  className="rounded-full bg-foreground/5 px-3 py-1 text-xs font-semibold capitalize text-foreground/70 transition-colors hover:bg-foreground/10"
+                >
+                  {look.metadata.season}
+                </Link>
+              )}
+            </div>
           )}
         </div>
 

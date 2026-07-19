@@ -10,6 +10,12 @@ export interface LookCardItem {
   isHero: boolean;
 }
 
+export interface LookMetadata {
+  category?: string;
+  occasion?: string;
+  season?: string;
+}
+
 export interface LookCardData {
   id: string;
   slug: string;
@@ -21,6 +27,7 @@ export interface LookCardData {
   heroImageUrl: string | null;
   collageUrl: string | null;
   tags: string[];
+  metadata?: LookMetadata | null;
   tryOnCount: number;
   purchaseCount: number;
   shareCount: number;
@@ -73,7 +80,7 @@ export function LookCard({ look, compact = false }: LookCardProps) {
         />
       </div>
 
-      {/* Footer — title, attribution, tags, stats */}
+      {/* Footer — title, attribution, badges, tags, stats */}
       <div className={`${padding} space-y-2`}>
         <div>
           <h3 className={`${titleSize} font-bold leading-tight`}>{look.title}</h3>
@@ -81,6 +88,27 @@ export function LookCard({ look, compact = false }: LookCardProps) {
             Styled by {agentShort} · {items.length} pieces
           </p>
         </div>
+
+        {/* Structured metadata badges (category, occasion, season) */}
+        {look.metadata && (look.metadata.category || look.metadata.occasion || look.metadata.season) && (
+          <div className="flex flex-wrap gap-1">
+            {look.metadata.category && (
+              <span className="rounded-full bg-foreground/5 px-2 py-0.5 text-[10px] font-semibold capitalize text-foreground/70">
+                {look.metadata.category}
+              </span>
+            )}
+            {look.metadata.occasion && look.metadata.occasion !== 'casual' && (
+              <span className="rounded-full bg-foreground/5 px-2 py-0.5 text-[10px] font-semibold capitalize text-foreground/70">
+                {look.metadata.occasion}
+              </span>
+            )}
+            {look.metadata.season && look.metadata.season !== 'all-season' && (
+              <span className="rounded-full bg-foreground/5 px-2 py-0.5 text-[10px] font-semibold capitalize text-foreground/70">
+                {look.metadata.season}
+              </span>
+            )}
+          </div>
+        )}
 
         <div className="flex items-center justify-between">
           <div className="flex flex-wrap gap-1">

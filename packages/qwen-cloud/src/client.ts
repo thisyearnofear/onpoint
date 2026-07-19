@@ -24,6 +24,8 @@ import type {
   QwenCloudClientConfig,
   QwenCloudAnalysisResult,
   QwenCloudChatResult,
+  QwenCloudImageGenerationOptions,
+  QwenCloudImageResult,
 } from "./types";
 import {
   QWEN_CLOUD_DEFAULT_PICKS,
@@ -41,6 +43,14 @@ const MAX_TOKENS_CEILINGS = {
   persona: 500,
   healthCheck: 1,
 } as const;
+
+/**
+ * Flat per-image cost for wan2.7-image-pro generation.
+ * Image generation is priced per output image, not per token, so we use a
+ * flat estimate for the spend guard. Re-verify on the pricing page.
+ * Docs: https://docs.qwencloud.com/developer-guides/getting-started/pricing
+ */
+const IMAGE_GENERATION_FLAT_COST_USD = 0.02;
 
 /** Error thrown when a spend control blocks a call. */
 export class QwenCloudSpendGuardError extends Error {
@@ -63,6 +73,7 @@ export class QwenCloudClient {
   private baseURL: string;
   private defaultVisionModel: string;
   private defaultChatModel: string;
+  private defaultImageModel: string;
   private timeoutMs: number;
   private dailyBudgetUsd: number;
   private killSwitch: boolean;
@@ -82,6 +93,7 @@ export class QwenCloudClient {
     this.baseURL = config.baseURL ?? DEFAULT_BASE_URL;
     this.defaultVisionModel = config.defaultVisionModel ?? QWEN_CLOUD_DEFAULT_PICKS.vision;
     this.defaultChatModel = config.defaultChatModel ?? QWEN_CLOUD_DEFAULT_PICKS.chat;
+    this.defaultImageModel = config.defaultImageModel ?? QWEN_CLOUD_DEFAULT_PICKS.image;
     this.timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.dailyBudgetUsd = config.dailyBudgetUsd ?? DEFAULT_DAILY_BUDGET_USD;
     this.killSwitch = config.killSwitch ?? false;
@@ -369,6 +381,118 @@ If no African textile patterns are present, return { "patterns": [], "overallAss
   }
 
   /**
+   * Generate an image from a text prompt, optionally conditioned on
+   * input images (multi-image composition). Uses the Qwen Cloud AIGC
+   * multimodal-generation endpoint with the wan2.7-image-pro model —
+   * best for arranging multiple item cutouts into a styled flat-lay.
+   *
+   * Endpoint: /services/aigc/multimodal-generation/generation
+   * Docs: https://docs.qwencloud.com/developer-guides/image-generation
+   *
+   * Spend controls (kill switch + daily budget) apply, same as chat().
+   * Image generation is priced per output image, so we use a flat
+   * cost estimate instead of per-token estimation.
+   *
+   * @param prompt - text description of the desired image
+   * @param inputImages - optional array of image URLs to condition on
+   * @param options - size, n (number of images)
+   * @returns generated image URL(s) + estimated cost
+   */
+  async generateImage(
+    prompt: string,
+    inputImages: string[] = [],
+    options: QwenCloudImageGenerationOptions = {},
+  ): Promise<QwenCloudImageResult> {
+    const model = this.defaultImageModel;
+    const n = Math.max(1, Math.min(options.n ?? 1, 4));
+    const size = options.size ?? "1024*1024";
+
+    // Flat per-image cost estimate for the spend guard.
+    const estimatedCostUsd = IMAGE_GENERATION_FLAT_COST_USD * n;
+    await this.checkSpendGuard(estimatedCostUsd);
+
+    // Build the AIGC multimodal-generation request body.
+    // The endpoint expects an "input" object with "prompt" and optional
+    // "image" (array of URLs), plus "parameters" for size/n.
+    const body: Record<string, unknown> = {
+      model,
+      input: {
+        prompt,
+        ...(inputImages.length > 0 ? { image: inputImages } : {}),
+      },
+      parameters: {
+        size,
+        n,
+      },
+    };
+
+    // The AIGC endpoint lives under a different base path than the
+    // OpenAI-compatible /chat/completions. We strip the /compatible-mode/v1
+    // suffix (if present) and use the raw DashScope base.
+    const aigcBase = this.baseURL.replace(/\/compatible-mode\/v1\/?$/, "");
+    const endpoint = `${aigcBase}/services/aigc/multimodal-generation/generation`;
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(this.timeoutMs),
+    });
+
+    if (!response.ok) {
+      const errBody = await response.text().catch(() => "");
+      throw new Error(
+        `Qwen Cloud image generation error ${response.status}: ${errBody.slice(0, 300)}`,
+      );
+    }
+
+    const data = (await response.json()) as {
+      output?: {
+        choices?: Array<{
+          message?: {
+            content?: Array<{ image?: string }> | string;
+          };
+        }>;
+      };
+      request_id?: string;
+    };
+
+    // Extract image URLs from the response. The AIGC endpoint returns
+    // choices[].message.content as an array of { image: "url" } objects.
+    const urls: string[] = [];
+    const choices = data.output?.choices ?? [];
+    for (const choice of choices) {
+      const content = choice.message?.content;
+      if (Array.isArray(content)) {
+        for (const part of content) {
+          if (part.image) urls.push(part.image);
+        }
+      } else if (typeof content === "string") {
+        // Some models return a bare URL string.
+        urls.push(content);
+      }
+    }
+
+    if (urls.length === 0) {
+      throw new Error(
+        "Qwen Cloud image generation returned no image URLs",
+      );
+    }
+
+    // Record the actual (flat) cost against the daily counter.
+    await this.recordSpend(estimatedCostUsd);
+
+    return {
+      urls,
+      model,
+      estimatedCostUsd,
+    };
+  }
+
+  /**
    * Cheap health check used by the live-session factories to decide
    * whether Qwen Cloud should be inserted into the runtime fallback chain.
    * Returns true if a 1-token completion succeeds within 3s.
@@ -395,6 +519,11 @@ If no African textile patterns are present, return { "patterns": [], "overallAss
   /** The configured default chat model. */
   getDefaultChatModel(): string {
     return this.defaultChatModel;
+  }
+
+  /** The configured default image generation model. */
+  getDefaultImageModel(): string {
+    return this.defaultImageModel;
   }
 
   /** Current in-memory daily spend (for dashboards / logs). */
@@ -427,6 +556,7 @@ export function getQwenCloudClient(): QwenCloudClient | null {
     baseURL: process.env.QWEN_CLOUD_BASE_URL,
     defaultVisionModel: process.env.QWEN_CLOUD_VISION_MODEL,
     defaultChatModel: process.env.QWEN_CLOUD_CHAT_MODEL,
+    defaultImageModel: process.env.QWEN_CLOUD_IMAGE_MODEL,
     timeoutMs: process.env.QWEN_CLOUD_TIMEOUT_MS
       ? Number(process.env.QWEN_CLOUD_TIMEOUT_MS)
       : undefined,

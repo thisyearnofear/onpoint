@@ -99,6 +99,8 @@ export interface QwenCloudClientConfig {
   defaultVisionModel?: string;
   /** Default model for text/persona calls. Default: qwen3.6-flash (cheapest). */
   defaultChatModel?: string;
+  /** Default model for image generation. Default: wan2.7-image-pro. */
+  defaultImageModel?: string;
   /** Hard request timeout in ms. Default: 20_000. */
   timeoutMs?: number;
   /**
@@ -136,5 +138,26 @@ export interface QwenCloudChatResult {
   content: string;
   model: string;
   usage?: QwenCloudChatResponse["usage"];
+  estimatedCostUsd: number;
+}
+
+/** Options for generateImage. */
+export interface QwenCloudImageGenerationOptions {
+  /**
+   * Output image size. Qwen Cloud accepts "1024*1024", "720*1280",
+   * "1280*720" (W*H). Default: "1024*1024".
+   */
+  size?: string;
+  /** Number of images to generate. Default: 1. */
+  n?: number;
+}
+
+/** Result of a generateImage call. */
+export interface QwenCloudImageResult {
+  /** Generated image URL(s) returned by Qwen Cloud. */
+  urls: string[];
+  /** The model used. */
+  model: string;
+  /** Estimated USD cost of this call (flat per-image rate). */
   estimatedCostUsd: number;
 }
