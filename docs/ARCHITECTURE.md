@@ -90,6 +90,11 @@ Three composable layers ([ADR 0002](./adr/0002-curator-primitive.md)):
 | `apps/web/components/Dashboard/TacticalDashboard.tsx` | Lab dashboard with 7 modes: try-on, shop, stylist, my-looks, dashboard, intel, settings |
 | `apps/web/app/admin/analytics/CuratorComparisonTable.tsx` | Cross-curator comparison table with sparklines |
 | `apps/web/components/admin/TrendSparkline.tsx` | Shared sparkline, Bar, CSV export, SMA trend components |
+| `apps/api/routes/agent-looks.js` | Agent looks CRUD + bulk + share + try-on-count + link-agent + collage + classify + image upload |
+| `apps/api/lib/image-composite.js` | Look collage generation — Tier 1 sharp (deterministic grid), Tier 2 Qwen Cloud wan2.7-image-pro (AI flat-lay) |
+| `apps/api/lib/look-classify.js` | Look classification — rule-based + AI vision (qwen-vl-max) for category/occasion/season |
+| `packages/agent-core/src/looks-api.ts` | Typed SDK helpers for the looks API (browse, get, create, classify, update, delete) |
+| `scripts/agent-looks.mjs` | Reference CLI script for the looks API |
 
 ## Data Flow
 
@@ -124,6 +129,16 @@ Three composable layers ([ADR 0002](./adr/0002-curator-primitive.md)):
 4. **Persist** → insert/update Neon `listings` row; R2 keys (not URLs) stored
 5. **Agent reply** → confirmation with `/s/{slug}/{listing-id}` short URL to share with her customer
 6. **Customer storefront reflects change immediately** → Hetzner API serves fresh reads; Vercel/Netlify never writes
+
+### Agent Looks
+1. **Database** → `agent_looks` table in Neon (slug, title, description, curator_slug, agent_address, listing_ids jsonb, hero_listing_id, tags text[], metadata jsonb, cover_image_key, collage_key, status, try_on_count, share_count, created_at)
+2. **API routes** → `apps/api/routes/agent-looks.js` — CRUD + bulk + share + try-on-count + link-agent + collage + classify + image upload
+3. **Image generation** → `apps/api/lib/image-composite.js` — Tier 1 sharp (deterministic grid), Tier 2 Qwen Cloud wan2.7-image-pro (AI flat-lay)
+4. **Classification** → `apps/api/lib/look-classify.js` — rule-based + AI vision (qwen-vl-max) for category/occasion/season
+5. **Storefront integration** → `apps/api/routes/curator-storefront.js` includes a `looks` array in the response (10 most recent live looks per curator)
+6. **Web pages** → `/looks` (browse), `/look/[slug]` (detail with try-on CTA, shop CTA, share), curator tools (CuratorLookCreator, CuratorHomePanel with drafts + bulk)
+7. **SDK** → `packages/agent-core/src/looks-api.ts` — typed SDK helpers (browse, get, create, classify, update, delete)
+8. **Reference script** → `scripts/agent-looks.mjs`
 
 ## Agent Loop Architecture
 

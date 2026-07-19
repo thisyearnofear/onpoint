@@ -141,6 +141,52 @@ Body: { "whatsapp": "+254712345678", "agentAddress": "0x..." }
 
 A curator can also set this to their own wallet to create looks themselves. UI for this is on the curator storefront page (owner-only panel).
 
+### Discover Looks
+
+Looks are discoverable through multiple paths:
+
+1. **Storefront response** — `GET /api/curator/{slug}/storefront` now includes a `looks` array with the curator's 10 most recent live looks (slug, title, coverImageUrl, collageUrl, heroImageUrl, tags, metadata, tryOnCount, shareCount, itemCount). Single-call discovery — no separate API call needed.
+
+2. **Agent manifest** — `/.well-known/agent.json` lists `"look_composition"` as a capability. Agents reading the manifest know looks exist.
+
+3. **Direct API** — `GET /api/looks` with filters (see below).
+
+### SDK Helpers
+
+The `@repo/agent-core` package exports typed SDK functions for the looks API:
+
+```typescript
+import { browseLooks, getLook, createLook, classifyLook } from '@repo/agent-core';
+
+// Browse with filters
+const looks = await browseLooks({ category: 'streetwear', season: 'summer', limit: 10 });
+
+// Get a single look with resolved items
+const look = await getLook('weekend-street-fit-n19o');
+
+// Create a look (requires auth headers on the agent-api client)
+const { id, slug } = await createLook({
+  title: 'Weekend Street Fit',
+  listingIds: ['uuid1', 'uuid2', 'uuid3'],
+  heroListingId: 'uuid1',
+  tags: ['streetwear', 'casual'],
+});
+
+// Reclassify metadata
+const { metadata } = await classifyLook('weekend-street-fit-n19o');
+```
+
+Also available: `updateLook`, `deleteLook`, `regenerateCollage`. See [`packages/agent-core/src/looks-api.ts`](./packages/agent-core/src/looks-api.ts) for full type definitions.
+
+### Reference Script
+
+```bash
+node scripts/agent-looks.mjs browse --category=streetwear
+node scripts/agent-looks.mjs get weekend-street-fit-n19o
+node scripts/agent-looks.mjs create --title="..." --curator=zara --listings=u1,u2,u3 --dry-run
+node scripts/agent-looks.mjs classify weekend-street-fit-n19o
+```
+
 ### List & View Looks
 
 ```bash
@@ -350,5 +396,7 @@ BUYER_PRIVATE_KEY=0x... node scripts/agent-buyer.mjs
 | x402 facilitator ADR | [docs/adr/0012-x402-facilitator-integration.md](./docs/adr/0012-x402-facilitator-integration.md) |
 | Reference buyer | [scripts/agent-buyer.mjs](./scripts/agent-buyer.mjs) |
 | Reference try-on | [scripts/agent-tryon.mjs](./scripts/agent-tryon.mjs) |
+| Reference looks CLI | [scripts/agent-looks.mjs](./scripts/agent-looks.mjs) |
+| Looks SDK | [packages/agent-core/src/looks-api.ts](./packages/agent-core/src/looks-api.ts) |
 | Supply readiness check | [scripts/agent-commerce-ready.mjs](./scripts/agent-commerce-ready.mjs) |
 | Curator imagery guide | [docs/guides/curator-imagery.md](./docs/guides/curator-imagery.md) |

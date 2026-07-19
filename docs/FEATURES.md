@@ -151,6 +151,7 @@ Bright Data integration (ADR 0004): SERP API + Web Unlocker, gated by `BRIGHTDAT
 - Referral links with base62-encoded tracking codes
 - `SocialActivity` type retained in `shared-types` for future social proof on storefronts
 - Demand-side discovery components (`LooksFaceoff`, `CommunityPanel`) quarantined per [ADR 0014](./adr/0014-demand-side-discovery-components.md) — retained for Phase 2 rewiring to Curator/polaroid schema
+- **Note:** These quarantined components are separate from the live **Agent Looks** feature (see Feature Matrix), which is a complete, shipped system for composing listings into shareable style boards
 
 ---
 
@@ -206,4 +207,5 @@ Package: `@repo/gooddollar` — single source of truth for contract addresses, A
 | Score Progression | ✅ | Complete |
 | Style Recap Email | ✅ | Complete |
 | GoodDollar G$ Integration | ✅ | Complete |
+| Agent Looks | ✅ | Complete |
 | Auth0 Token Vault | ⏸️ | Paused |
