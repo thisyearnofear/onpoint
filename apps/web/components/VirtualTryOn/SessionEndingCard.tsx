@@ -25,6 +25,7 @@ import type { SessionSummary, CaptureOption } from "./hooks/useLiveSession";
 import { getScoreConfig, generateShareText } from "../../lib/utils/score-utils";
 import { SocialUtils } from "../../lib/utils/social";
 import { AnimatedScore } from "./AnimatedScore";
+import { SafeImage } from "../SafeImage";
 
 interface SessionEndingCardProps {
   summary: SessionSummary;
@@ -252,11 +253,13 @@ export function SessionEndingCard({
               transition={{ delay: 0.8 }}
               className="flex items-center gap-3"
             >
-              <div className="w-12 h-16 rounded-lg overflow-hidden border border-border">
-                <img
-                  src={captures[0]!.image}
+              <div className="relative w-12 h-16 rounded-lg overflow-hidden border border-border">
+                <SafeImage
+                  sources={[captures[0]!.image]}
                   alt="Style capture"
-                  className="w-full h-full object-cover"
+                  fill
+                  unoptimized
+                  className="object-cover"
                 />
               </div>
               <div>

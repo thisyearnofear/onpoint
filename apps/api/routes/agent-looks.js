@@ -516,7 +516,12 @@ router.patch('/:slug', lookAuth, async (req, res) => {
 
     if (!existing) return res.status(404).json({ error: 'Look not found' });
     if (existing.agentAddress !== req.creatorAddress) {
-      return res.status(403).json({ error: 'Not the look owner' });
+      return res.status(403).json({
+        error: 'Not the look owner',
+        provided: req.creatorAddress || 'not provided',
+        expected: existing.agentAddress,
+        hint: 'Use x-agent-address header with the wallet address that created this look, or use x-curator-slug + x-curator-whatsapp headers for curator auth.',
+      });
     }
 
     const { title, description, tags, status } = req.body;
@@ -557,7 +562,12 @@ router.delete('/:slug', lookAuth, async (req, res) => {
 
     if (!existing) return res.status(404).json({ error: 'Look not found' });
     if (existing.agentAddress !== req.creatorAddress) {
-      return res.status(403).json({ error: 'Not the look owner' });
+      return res.status(403).json({
+        error: 'Not the look owner',
+        provided: req.creatorAddress || 'not provided',
+        expected: existing.agentAddress,
+        hint: 'Use x-agent-address header with the wallet address that created this look, or use x-curator-slug + x-curator-whatsapp headers for curator auth.',
+      });
     }
 
     await db
@@ -590,7 +600,12 @@ router.post('/:slug/image', lookAuth, async (req, res) => {
 
     if (!existing) return res.status(404).json({ error: 'Look not found' });
     if (existing.agentAddress !== req.creatorAddress) {
-      return res.status(403).json({ error: 'Not the look owner' });
+      return res.status(403).json({
+        error: 'Not the look owner',
+        provided: req.creatorAddress || 'not provided',
+        expected: existing.agentAddress,
+        hint: 'Use x-agent-address header with the wallet address that created this look, or use x-curator-slug + x-curator-whatsapp headers for curator auth.',
+      });
     }
 
     const { image } = req.body;

@@ -25,6 +25,7 @@ import { getPersonaConfig } from "../../lib/utils/persona-config";
 import { AnalysisSkeleton } from "./AnalysisSkeleton";
 import { useAnalysisHistory } from "../../lib/stores/analysis-history-store";
 import { StyleReportCard } from "./StyleReportCard";
+import { SafeImage } from "../SafeImage";
 import {
   trackLookSaved,
   trackStyleCardOpened,
@@ -266,10 +267,12 @@ export function AnalysisResults({
       <div className="grid gap-0 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
         <div className="relative min-h-[420px] bg-muted">
           {previewUrl ? (
-            <img
-              src={previewUrl}
+            <SafeImage
+              sources={[previewUrl]}
               alt="Your analyzed look"
-              className="absolute inset-0 h-full w-full object-cover"
+              fill
+              unoptimized
+              className="object-cover"
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center bg-muted">

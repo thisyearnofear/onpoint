@@ -3,6 +3,7 @@
 import React from "react";
 import { ChevronLeft, ChevronRight, Columns2 } from "lucide-react";
 import { Button } from "@repo/ui/button";
+import { SafeImage } from "../SafeImage";
 
 export interface LookVersion {
   id: string;
@@ -86,20 +87,22 @@ export function LookVersionHistory({
               <button
                 key={version.id}
                 onClick={() => onToggleSelect(version.id)}
-                className={`flex-shrink-0 relative group rounded-lg overflow-hidden border-2 transition-all ${
+                className={`flex-shrink-0 relative group rounded-lg overflow-hidden border-2 w-24 h-32 transition-all ${
                   isSelected
                     ? "border-primary ring-2 ring-primary/20"
                     : "border-transparent hover:border-muted-foreground/30"
                 }`}
               >
-                <img
-                  src={
+                <SafeImage
+                  sources={[
                     version.imageUrl.startsWith("data:")
                       ? version.imageUrl
-                      : `data:image/webp;base64,${version.imageUrl}`
-                  }
+                      : `data:image/webp;base64,${version.imageUrl}`,
+                  ]}
                   alt={version.label || `Look ${i + 1}`}
-                  className="w-24 h-32 object-cover"
+                  fill
+                  unoptimized
+                  className="object-cover"
                 />
                 {/* Selection indicator */}
                 {isSelected && (

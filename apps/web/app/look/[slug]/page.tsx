@@ -6,6 +6,7 @@ import {
   TrendingUp,
   Share2,
   Sparkles,
+  ShoppingBag,
 } from "lucide-react";
 import { getApiBase } from "../../../lib/utils/api-base";
 import { OnPointLayout } from "../../../components/OnPointLayout";
@@ -263,9 +264,18 @@ export default async function LookPage({
               The Look ({items.length} pieces)
             </h2>
             {totalPrice > 0 && (
-              <span className="text-sm font-bold">
-                Total: KES {totalPrice.toLocaleString()}
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-bold">
+                  Total: KES {totalPrice.toLocaleString()}
+                </span>
+                <Link
+                  href={`/s/${look.curatorSlug}?referral=${look.referralCode}&look=${look.slug}`}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-foreground px-3 py-1.5 text-xs font-bold text-background transition-colors hover:bg-foreground/90"
+                >
+                  <ShoppingBag className="h-3.5 w-3.5" />
+                  Shop this look
+                </Link>
+              </div>
             )}
           </div>
 

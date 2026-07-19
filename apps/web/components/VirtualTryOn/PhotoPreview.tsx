@@ -4,6 +4,7 @@ import React from "react";
 import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { Camera, RefreshCw, Sparkles } from "lucide-react";
+import { SafeImage } from "../SafeImage";
 
 interface PhotoPreviewProps {
   previewUrl: string | null;
@@ -30,11 +31,13 @@ export function PhotoPreview({ previewUrl, loading, analysis, onReset, onReanaly
       </CardHeader>
       <CardContent>
         <div className="flex flex-col items-center gap-4">
-          <div className="relative max-w-md">
-            <img
-              src={previewUrl}
+          <div className="relative max-w-md w-full aspect-[3/4] rounded-lg overflow-hidden shadow-lg">
+            <SafeImage
+              sources={[previewUrl]}
               alt="Selected for AI analysis and virtual try-on"
-              className="w-full h-auto rounded-lg shadow-lg"
+              fill
+              unoptimized
+              className="object-cover"
             />
             {loading && (
               <div className="absolute inset-0 bg-black/20 rounded-lg flex items-center justify-center">

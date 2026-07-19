@@ -5,6 +5,7 @@ import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { Camera, RefreshCw, X } from "lucide-react";
 import { getUserMediaWithTimeout } from "@repo/ai-client";
+import { SafeImage } from "./SafeImage";
 
 interface CameraCaptureProps {
   onCapture: (file: File) => void;
@@ -227,11 +228,15 @@ export function CameraCapture({ onCapture, onCancel }: CameraCaptureProps) {
           </div>
         ) : capturedImage ? (
           <div className="flex flex-col items-center gap-4">
-            <img 
-              src={capturedImage} 
-              alt="Captured" 
-              className="max-w-full h-auto rounded-lg"
-            />
+            <div className="relative w-full max-w-sm aspect-[3/4] rounded-lg overflow-hidden">
+              <SafeImage
+                sources={[capturedImage]}
+                alt="Captured"
+                fill
+                unoptimized
+                className="object-cover"
+              />
+            </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={retakeImage}>
                 Retake

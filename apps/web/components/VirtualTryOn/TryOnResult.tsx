@@ -245,14 +245,16 @@ export function TryOnResult({
               <StagedProgress />
             ) : image ? (
               <>
-                <img
-                  src={
-                    showOriginal && originalPhotoUrl ? originalPhotoUrl : imageSrc
-                  }
+                <SafeImage
+                  sources={[
+                    showOriginal && originalPhotoUrl ? originalPhotoUrl : imageSrc,
+                  ]}
                   alt={
                     showOriginal ? "Original photo" : "Virtual try-on result"
                   }
-                  className="w-full h-full object-cover mx-auto transition-opacity duration-300"
+                  fill
+                  unoptimized
+                  className="object-cover transition-opacity duration-300"
                 />
                 {originalPhotoUrl && (
                   <button

@@ -315,19 +315,13 @@ export function CuratorLookCreator({
                 </label>
                 <div className="flex items-center gap-3">
                   <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
-                    {coverImage ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={coverImage}
+                    {coverImage || existingCoverUrl ? (
+                      <SafeImage
+                        sources={[coverImage, existingCoverUrl]}
                         alt="Cover preview"
-                        className="h-full w-full object-cover"
-                      />
-                    ) : existingCoverUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={existingCoverUrl}
-                        alt="Current cover"
-                        className="h-full w-full object-cover"
+                        fill
+                        unoptimized
+                        className="object-cover"
                       />
                     ) : (
                       <div className="flex h-full items-center justify-center">

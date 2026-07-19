@@ -11,6 +11,7 @@ import { CartDrawer } from "../../components/Shop/CartDrawer";
 import { FlyToCartOverlay, type FlyItem } from "../../components/Shop/FlyToCartOverlay";
 import { CheckoutModal } from "../../components/Shop/CheckoutModal";
 import { ExternalPickCard, LocalPickCard, ProvenanceBar } from "../../components/Shop/CuratedPickCard";
+import { SafeImage } from "../../components/SafeImage";
 import { useCartStore } from "../../lib/stores/cart-store";
 import { useCuratedPicksStore } from "../../lib/stores/curated-picks-store";
 import { useStyleContext } from "@/lib/context/StyleContext";
@@ -101,7 +102,15 @@ export default function ShopPage() {
           <div className="mb-8 bg-gradient-to-r from-primary/10 to-accent/10 border-2 border-primary/30 rounded-2xl p-6 shadow-lg">
             <div className="flex items-start gap-4">
               {stylistAnalysis.userPhoto ? (
-                <img src={stylistAnalysis.userPhoto} alt="Your look" className="w-12 h-12 rounded-full object-cover shrink-0 ring-2 ring-primary/20" />
+                <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0 ring-2 ring-primary/20">
+                  <SafeImage
+                    sources={[stylistAnalysis.userPhoto]}
+                    alt="Your look"
+                    fill
+                    unoptimized
+                    className="object-cover"
+                  />
+                </div>
               ) : (
                 <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                   <ShoppingBag className="w-6 h-6 text-primary" />

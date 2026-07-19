@@ -27,7 +27,8 @@
     "digital_curator_try_on",
     "nft_minting_with_royalty",
     "spending_controls",
-    "transparent_reasoning"
+    "transparent_reasoning",
+    "look_composition"
   ],
   "commerce": {
     "description": "Buy fashion items from curator storefronts with cUSD on Celo. Curators are paid their share on-chain in the same flow. Try on any listing before buying via the x402-paid fitting room. Digital curators (type: 'ai', inventoryType: 'digital') offer AI-generated garment designs — try on the digital design, then discover similar physical items from human curators. NFT minting with 0xSplits royalties available for fashion digital assets.",

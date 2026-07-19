@@ -64,15 +64,16 @@
       "post": {
         "summary": "Create a new look (agent or curator auth)",
         "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["title", "listingIds"], "properties": {
-          "title": { "type": "string" },
-          "description": { "type": "string" },
-          "listingIds": { "type": "array", "items": { "type": "string" }, "description": "Listing UUIDs, hero first" },
-          "heroListingId": { "type": "string" },
-          "tags": { "type": "array", "items": { "type": "string" } },
-          "coverImage": { "type": "string", "description": "data:image/jpeg;base64,... (optional)" },
-          "curatorSlug": { "type": "string", "description": "Required for curator auth" }
+          "title": { "type": "string", "description": "Look title (1-120 chars)" },
+          "description": { "type": "string", "description": "Optional description / styling notes" },
+          "listingIds": { "type": "array", "items": { "type": "string" }, "description": "Listing UUIDs from a curator storefront (2-10 items)", "minItems": 2, "maxItems": 10 },
+          "heroListingId": { "type": "string", "description": "UUID of the hero piece (must be in listingIds). Defaults to first." },
+          "tags": { "type": "array", "items": { "type": "string" }, "description": "Free-form tags for discovery" },
+          "coverImage": { "type": "string", "description": "data:image/jpeg;base64,... (optional, max 5MB)" },
+          "curatorSlug": { "type": "string", "description": "Required for curator auth" },
+          "status": { "type": "string", "enum": ["live", "draft"], "default": "live", "description": "Save as draft to publish later" }
         } } } } },
-        "responses": { "201": { "description": "Created look with slug and items" } }
+        "responses": { "201": { "description": "Created look with slug, id, collageUrl, and metadata" }, "401": { "description": "Authentication required — see x-agent-address or x-curator-slug headers" } }
       }
     },
     "/api/looks/{slug}": {
@@ -88,9 +89,9 @@
           "title": { "type": "string" },
           "description": { "type": "string" },
           "tags": { "type": "array", "items": { "type": "string" } },
-          "status": { "type": "string", "enum": ["live", "paused", "archived"] }
+          "status": { "type": "string", "enum": ["live", "paused", "archived", "draft"], "description": "Change status — e.g. publish a draft with 'live'" }
         } } } } },
-        "responses": { "200": { "description": "Updated look" }, "403": { "description": "Not the look creator" } }
+        "responses": { "200": { "description": "Updated look" }, "403": { "description": "Not the look creator — response includes { error, provided, expected, hint }" } }
       }
     },
     "/api/looks/{slug}/collage": {
@@ -115,6 +116,44 @@
           "image": { "type": "string", "description": "data:image/jpeg;base64,... payload" }
         } } } } },
         "responses": { "200": { "description": "Cover image uploaded with coverImageKey and coverImageUrl" } }
+      }
+    },
+    "/api/looks/{slug}/share": {
+      "post": {
+        "summary": "Record a share event (increments shareCount)",
+        "parameters": [ { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "requestBody": { "required": false, "content": { "application/json": { "schema": { "type": "object", "properties": {
+          "platform": { "type": "string", "enum": ["twitter", "facebook", "whatsapp", "copy", "native"], "description": "Sharing platform" }
+        } } } } },
+        "responses": { "200": { "description": "{ ok: true, shareCount: N }" } }
+      }
+    },
+    "/api/looks/{slug}/try-on-count": {
+      "post": {
+        "summary": "Increment try-on count for a look (called when try-on uses lookSlug)",
+        "parameters": [ { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "{ ok: true, tryOnCount: N }" } }
+      }
+    },
+    "/api/looks/bulk": {
+      "post": {
+        "summary": "Bulk archive, publish, or delete looks (creator only)",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["action", "slugs"], "properties": {
+          "action": { "type": "string", "enum": ["archive", "publish", "delete"], "description": "Bulk action to apply" },
+          "slugs": { "type": "array", "items": { "type": "string" }, "description": "Look slugs to apply the action to" }
+        } } } } },
+        "responses": { "200": { "description": "{ updated: N, failed: [{ slug, error }] }" }, "401": { "description": "Authentication required" } }
+      }
+    },
+    "/api/looks/curator/{slug}/link-agent": {
+      "post": {
+        "summary": "Link an agent wallet to a curator storefront for look attribution",
+        "parameters": [ { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["whatsapp", "agentAddress"], "properties": {
+          "whatsapp": { "type": "string", "description": "Curator WhatsApp number for verification" },
+          "agentAddress": { "type": "string", "description": "Agent wallet address to link" }
+        } } } } },
+        "responses": { "200": { "description": "Agent linked successfully" } }
       }
     }
   }

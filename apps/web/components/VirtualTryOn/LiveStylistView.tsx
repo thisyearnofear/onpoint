@@ -34,6 +34,7 @@ import { LiveSessionStartScreen } from "./LiveSessionStartScreen";
 import { LiveSessionError } from "./LiveSessionError";
 import { AutoDismissTimer } from "./hooks/AutoDismissTimer";
 import { CaptureProgressRing } from "./hooks/CaptureProgressRing";
+import { SafeImage } from "../SafeImage";
 
 
 const SessionSummaryScreen = dynamic(
@@ -1117,12 +1118,14 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
                   key={i}
                   initial={{ scale: 0, x: -20 }}
                   animate={{ scale: 1, x: 0 }}
-                  className="w-12 h-16 rounded-lg border-2 border-white/10 overflow-hidden shadow-xl"
+                  className="relative w-12 h-16 rounded-lg border-2 border-white/10 overflow-hidden shadow-xl"
                 >
-                  <img
-                    src={cap.image}
+                  <SafeImage
+                    sources={[cap.image]}
                     alt={`Recent capture ${i + 1}`}
-                    className="w-full h-full object-cover"
+                    fill
+                    unoptimized
+                    className="object-cover"
                   />
               </motion.div>
             ))}

@@ -13,6 +13,8 @@ interface SafeImageProps {
   className?: string;
   /** Fallback icon size when all sources fail */
   fallbackIconSize?: number;
+  /** Referrer policy passed to next/image (e.g. "no-referrer" for Auth0 avatars) */
+  referrerPolicy?: React.HTMLAttributeReferrerPolicy;
 }
 
 /**
@@ -32,6 +34,7 @@ export function SafeImage({
   unoptimized = false,
   className,
   fallbackIconSize = 48,
+  referrerPolicy,
 }: SafeImageProps) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [allFailed, setAllFailed] = useState(false);
@@ -76,6 +79,7 @@ export function SafeImage({
       fill={fill}
       unoptimized={unoptimized}
       className={className}
+      referrerPolicy={referrerPolicy}
       onError={() => {
         if (currentIdx < validSources.length - 1) {
           setCurrentIdx(currentIdx + 1);

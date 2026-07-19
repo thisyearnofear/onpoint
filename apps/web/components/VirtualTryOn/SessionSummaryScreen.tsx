@@ -275,10 +275,12 @@ export function SessionSummaryScreen({
                       : "border-border grayscale-[0.8] opacity-60"
                   }`}
                 >
-                  <img
-                    src={cap.image}
+                  <SafeImage
+                    sources={[cap.image]}
                     alt={`Style capture ${i + 1} of ${captures.length}`}
-                    className="w-full h-full object-cover"
+                    fill
+                    unoptimized
+                    className="object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-3">
                     <p className="text-[10px] text-white/50 font-mono">

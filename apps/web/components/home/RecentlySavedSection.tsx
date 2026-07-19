@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Bookmark, ArrowRight, Camera, Sparkles } from "lucide-react";
 import { Reveal } from "../ui/Reveal";
+import { SafeImage } from "../SafeImage";
 import { useAnalysisHistory } from "../../lib/stores/analysis-history-store";
 import { trackRecentlySavedClicked } from "../../lib/utils/analytics";
 
@@ -58,10 +59,12 @@ export function RecentlySavedSection() {
                   style={{ minWidth: 0 }}
                 >
                   {session.coverImage ? (
-                    <img
-                      src={session.coverImage}
+                    <SafeImage
+                      sources={[session.coverImage]}
                       alt={session.headline}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      fill
+                      unoptimized
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-muted">

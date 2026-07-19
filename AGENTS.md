@@ -191,10 +191,38 @@ POST /api/looks/:slug/collage    # regenerate collage, returns { r2Key, url, tie
 
 ```bash
 PATCH /api/looks/:slug           # update title, description, tags, status (creator only)
-DELETE /api/looks/:slug          # archive a look (creator only)
+DELETE /api/looks/:slug          # delete a look (creator only)
 POST /api/looks/:slug/image      # upload cover image (creator only)
 POST /api/looks/:slug/collage    # regenerate collage (public)
 POST /api/looks/:slug/classify   # reclassify metadata (public)
+POST /api/looks/:slug/share      # record a share event (public)
+POST /api/looks/:slug/try-on-count  # increment try-on count (public)
+POST /api/looks/bulk             # bulk archive/publish/delete (creator only)
+```
+
+**Bulk actions** — apply an action to multiple looks at once:
+```bash
+POST /api/looks/bulk
+Headers: x-agent-address: 0x...
+Body: { "action": "archive", "slugs": ["slug1", "slug2", "slug3"] }
+# Response: { "updated": 3, "failed": [] }
+```
+
+**Drafts** — save incomplete looks and publish later:
+```bash
+POST /api/looks  Body: { ..., "status": "draft" }   # save as draft
+PATCH /api/looks/:slug  Body: { "status": "live" }   # publish a draft
+GET /api/looks?status=draft                          # list your drafts (auth-scoped)
+```
+
+**403 error format** — includes diagnostic context for self-correction:
+```json
+{
+  "error": "Not the look owner",
+  "provided": "0x123...",
+  "expected": "0xabc...",
+  "hint": "Use x-agent-address header with the wallet address that created this look, or use x-curator-slug + x-curator-whatsapp headers for curator auth."
+}
 ```
 
 ### Try-On via a Look (Generates Share Card)

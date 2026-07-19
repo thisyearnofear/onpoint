@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { SafeImage } from "./SafeImage";
 
 // ── Types ────────────────────────────────────────────
 
@@ -137,13 +138,13 @@ export default async function ArchetypeAvatarPreview() {
               />
 
               {/* Avatar */}
-              <div className="mx-auto mt-2 flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-muted">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={archetype.avatar}
+              <div className="relative mx-auto mt-2 flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-muted">
+                <SafeImage
+                  sources={[archetype.avatar]}
                   alt={archetype.name}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
+                  fill
+                  unoptimized
+                  className="object-cover"
                 />
               </div>
 

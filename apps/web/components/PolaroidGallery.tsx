@@ -27,6 +27,7 @@ import {
   type AnalysisSession,
 } from "../lib/stores/analysis-history-store";
 import { StyleReportCard } from "./VirtualTryOn/StyleReportCard";
+import { SafeImage } from "./SafeImage";
 import type { StylistPersona } from "@repo/ai-client";
 import type { SessionFeedback } from "./VirtualTryOn/hooks/useLiveSession";
 
@@ -125,11 +126,12 @@ function PolaroidCard({
         {/* Photo */}
         <div className="relative aspect-[3/4] rounded-sm overflow-hidden bg-zinc-200">
           {session.coverImage ? (
-            <img
-              src={session.coverImage}
+            <SafeImage
+              sources={[session.coverImage]}
               alt={`Style analysis from ${dateLabel}`}
-              className="w-full h-full object-cover"
-              loading="lazy"
+              fill
+              unoptimized
+              className="object-cover"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-zinc-400">
@@ -201,11 +203,12 @@ function ParallaxHero({ sessions }: { sessions: AnalysisSession[] }) {
       >
         {covers.map((src, i) => (
           <div key={i} className="relative overflow-hidden">
-            <img
-              src={src}
+            <SafeImage
+              sources={[src]}
               alt=""
-              className="w-full h-full object-cover"
-              loading="lazy"
+              fill
+              unoptimized
+              className="object-cover"
             />
           </div>
         ))}
@@ -396,10 +399,12 @@ function CompareView({
                 <div key={i} className="space-y-2">
                   <div className="relative aspect-[4/5] rounded-xl overflow-hidden bg-muted border border-border">
                     {session.coverImage ? (
-                      <img
-                        src={session.coverImage}
+                      <SafeImage
+                        sources={[session.coverImage]}
                         alt={session.headline}
-                        className="w-full h-full object-cover"
+                        fill
+                        unoptimized
+                        className="object-cover"
                       />
                     ) : (
                       <div className="flex h-full items-center justify-center">

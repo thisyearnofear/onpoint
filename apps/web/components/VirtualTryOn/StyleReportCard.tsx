@@ -36,6 +36,7 @@ import { getPersonaConfig } from "../../lib/utils/persona-config";
 import { SocialUtils } from "../../lib/utils/social";
 import { trackStyleCardShare } from "../../lib/utils/analytics";
 import { fireConfetti } from "../../lib/utils/confetti";
+import { SafeImage } from "../SafeImage";
 
 // ── Types ──
 
@@ -285,11 +286,13 @@ export function StyleReportCard({
 
           {/* Capture Image */}
           {captureImage && (
-            <div className="relative rounded-2xl overflow-hidden border border-white/10">
-              <img
-                src={captureImage}
+            <div className="relative rounded-2xl overflow-hidden border border-white/10 h-40">
+              <SafeImage
+                sources={[captureImage]}
                 alt="Style capture"
-                className="w-full h-40 object-cover"
+                fill
+                unoptimized
+                className="object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
               <div className="absolute bottom-3 left-3 right-3">

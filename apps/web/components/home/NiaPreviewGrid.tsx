@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Image as ImageIcon, Camera } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getApiBase } from "../../lib/utils/api-base";
+import { SafeImage } from "../SafeImage";
 
 interface NiaListing {
   id: string;
@@ -63,12 +64,12 @@ export function NiaPreviewGrid() {
         >
           {listing?.imageUrl ? (
             <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={listing.imageUrl}
+              <SafeImage
+                sources={[listing.imageUrl]}
                 alt={listing.title || listing.kit?.club || "Nia design"}
-                className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                loading="lazy"
+                fill
+                unoptimized
+                className="object-cover transition-transform group-hover:scale-105"
               />
               {/* Hover overlay with try-on CTA */}
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">

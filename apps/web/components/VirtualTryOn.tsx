@@ -19,6 +19,7 @@ import { useMissionState } from "../hooks/use-mission-state";
 import { useGStreak } from "../lib/hooks/use-g-streak";
 import { useGSessionPayment } from "../lib/hooks/use-g-session-payment";
 import { GStreakPill } from "./Curator/GStreakPill";
+import { SafeImage } from "./SafeImage";
 import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import type { TryOnSelection } from "../lib/utils/try-on-selection";
 import {
@@ -92,11 +93,12 @@ function StyleScanLoadingCard({
     <div className="overflow-hidden rounded-xl border border-primary/20 bg-card">
       <div className="grid gap-0 sm:grid-cols-[180px_1fr]">
         <div className="relative min-h-[220px] overflow-hidden bg-muted">
-          <img
-            src={previewUrl}
+          <SafeImage
+            sources={[previewUrl]}
             alt=""
-            aria-hidden="true"
-            className="absolute inset-0 h-full w-full object-cover"
+            fill
+            unoptimized
+            className="object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/70" />
           <div className="absolute inset-x-3 top-4 h-px bg-primary/80 shadow-[0_0_22px_rgba(255,255,255,0.75)] animate-pulse" />
@@ -859,10 +861,12 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                     isBusy ? "border-primary/25 shadow-sm shadow-primary/10" : "border-border"
                   }`}>
                     <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg">
-                      <img
-                        src={previewUrl}
+                      <SafeImage
+                        sources={[previewUrl]}
                         alt="Your photo"
-                        className="h-full w-full object-cover"
+                        fill
+                        unoptimized
+                        className="object-cover"
                       />
                       {isBusy && (
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center">

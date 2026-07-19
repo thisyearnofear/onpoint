@@ -4,6 +4,7 @@ import { useUser } from "@auth0/nextjs-auth0/client";
 import { useEffect } from "react";
 import { Button } from "@repo/ui/button";
 import { LogIn, LogOut, User } from "lucide-react";
+import { SafeImage } from "../SafeImage";
 
 export function Auth0LoginButton() {
   return (
@@ -61,12 +62,16 @@ export function Auth0HeaderButton() {
         <Button variant="ghost" size="sm" className="rounded-full gap-2" asChild>
           <a href="/auth/logout">
             {user.picture ? (
-              <img
-                src={user.picture}
-                alt=""
-                className="w-5 h-5 rounded-full"
-                referrerPolicy="no-referrer"
-              />
+              <div className="relative w-5 h-5 rounded-full overflow-hidden">
+                <SafeImage
+                  sources={[user.picture]}
+                  alt=""
+                  fill
+                  unoptimized
+                  referrerPolicy="no-referrer"
+                  className="object-cover"
+                />
+              </div>
             ) : (
               <User className="w-4 h-4" />
             )}
@@ -92,12 +97,16 @@ export function Auth0Profile() {
   return (
     <div className="flex items-center space-x-3">
       {user.picture && (
-        <img
-          src={user.picture}
-          alt={user.name || "User"}
-          className="w-8 h-8 rounded-full"
-          referrerPolicy="no-referrer"
-        />
+        <div className="relative w-8 h-8 rounded-full overflow-hidden">
+          <SafeImage
+            sources={[user.picture]}
+            alt={user.name || "User"}
+            fill
+            unoptimized
+            referrerPolicy="no-referrer"
+            className="object-cover"
+          />
+        </div>
       )}
       <div>
         <p className="font-medium">{user.name}</p>

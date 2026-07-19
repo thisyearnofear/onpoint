@@ -11,6 +11,7 @@ import {
   getChainIcon,
 } from "../components/chains";
 import { Button } from "@repo/ui/button";
+import { SafeImage } from "./SafeImage";
 import {
   ChevronDown,
   Wallet,
@@ -204,12 +205,15 @@ export function EnhancedConnectButton({
                   >
                     <div className="flex items-center gap-2">
                       {ensAvatar ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={ensAvatar}
-                          alt={ensName ?? "ENS avatar"}
-                          className="h-5 w-5 rounded-full"
-                        />
+                        <div className="relative h-5 w-5 rounded-full overflow-hidden">
+                          <SafeImage
+                            sources={[ensAvatar]}
+                            alt={ensName ?? "ENS avatar"}
+                            fill
+                            unoptimized
+                            className="object-cover"
+                          />
+                        </div>
                       ) : (
                         <Wallet className="h-4 w-4 text-primary" />
                       )}

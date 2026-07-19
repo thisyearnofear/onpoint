@@ -12,8 +12,8 @@
  */
 
 const express = require('express');
-const { eq, desc, count, sql } = require('drizzle-orm');
-const { curators, listings, kitSkus, orders, payments } = require('@repo/db');
+const { eq, desc, count, sql, and, inArray } = require('drizzle-orm');
+const { curators, listings, kitSkus, orders, payments, agentLooks } = require('@repo/db');
 const sharedTypes = require('@onpoint/shared-types');
 const agentCore = require('@repo/agent-core');
 const logger = require('../lib/logger');
@@ -181,7 +181,7 @@ router.get('/:slug/storefront', async (req, res) => {
 
   let db;
   try {
-    db = getDb({ curators, listings, kitSkus, orders, payments });
+    db = getDb({ curators, listings, kitSkus, orders, payments, agentLooks });
   } catch (err) {
     logger.error('NEON_DATABASE_URL not configured', { component: 'curator-storefront' });
     return res.status(503).json({
@@ -264,6 +264,54 @@ router.get('/:slug/storefront', async (req, res) => {
         };
       });
 
+    // ── Fetch live looks for this curator (10 most recent) ──
+    const lookRows = await db
+      .select({
+        slug: agentLooks.slug,
+        title: agentLooks.title,
+        description: agentLooks.description,
+        coverImageKey: agentLooks.coverImageKey,
+        tags: agentLooks.tags,
+        metadata: agentLooks.metadata,
+        tryOnCount: agentLooks.tryOnCount,
+        shareCount: agentLooks.shareCount,
+        listingIds: agentLooks.listingIds,
+        heroListingId: agentLooks.heroListingId,
+      })
+      .from(agentLooks)
+      .where(and(eq(agentLooks.curatorSlug, slug), eq(agentLooks.status, 'live')))
+      .orderBy(desc(agentLooks.createdAt))
+      .limit(10);
+
+    // Resolve hero listing images so the storefront can render look thumbnails
+    const heroListingIds = [...new Set(lookRows.map((l) => l.heroListingId).filter(Boolean))];
+    let heroImageMap = new Map();
+    if (heroListingIds.length > 0) {
+      const heroRows = await db
+        .select({ listing: listings, kit: kitSkus })
+        .from(listings)
+        .leftJoin(kitSkus, eq(listings.skuId, kitSkus.id))
+        .where(inArray(listings.id, heroListingIds));
+      for (const { listing, kit } of heroRows) {
+        const imageKey = listing.photoKeys?.[0] || kit?.officialImageKey || null;
+        heroImageMap.set(listing.id, keyToUrl(imageKey));
+      }
+    }
+
+    const looks = lookRows.map((look) => ({
+      slug: look.slug,
+      title: look.title,
+      description: look.description,
+      coverImageUrl: look.coverImageKey ? keyToUrl(look.coverImageKey) : null,
+      collageUrl: keyToUrl(`looks/${look.slug}/collage-latest.webp`),
+      heroImageUrl: look.heroListingId ? (heroImageMap.get(look.heroListingId) || null) : null,
+      tags: look.tags || [],
+      metadata: look.metadata || {},
+      tryOnCount: look.tryOnCount || 0,
+      shareCount: look.shareCount || 0,
+      itemCount: (look.listingIds || []).length,
+    }));
+
     res.json({
       curator,
       webUrl: storefrontWebUrl(slug),
@@ -275,8 +323,10 @@ router.get('/:slug/storefront', async (req, res) => {
             : curator.commerce?.checkoutUrl || null,
         agentCommerce: buildListingAgentCommerce(curator, listing),
       })),
+      looks,
       meta: {
         listingCount: liveListings.length,
+        lookCount: looks.length,
         checkout: curator.commerce?.checkout || 'whatsapp',
         agentCommerce: buildStorefrontAgentCommerce(curator, slug),
         generatedAt: new Date().toISOString(),
