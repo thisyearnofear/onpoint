@@ -20,6 +20,8 @@ interface CuratorOwnerToolsProps {
   whatsapp?: string;
   listings?: StorefrontListing[];
   linkedAgentAddress?: string | null;
+  /** When provided, opens the look creator in edit mode for this look */
+  editLookSlug?: string;
 }
 
 /**
@@ -32,6 +34,7 @@ export function CuratorOwnerTools({
   whatsapp,
   listings = [],
   linkedAgentAddress = null,
+  editLookSlug,
 }: CuratorOwnerToolsProps) {
   const isOwner = useCuratorOwner(curatorSlug);
 
@@ -63,6 +66,7 @@ export function CuratorOwnerTools({
           curatorName={curatorName}
           whatsapp={whatsapp}
           listings={listings}
+          editSlug={editLookSlug}
         />
       )}
     </div>

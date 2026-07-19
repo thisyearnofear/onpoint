@@ -36,6 +36,7 @@ export function CuratorLookCreator({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [heroId, setHeroId] = useState<string | null>(null);
   const [tags, setTags] = useState("");
+  const [itemSearch, setItemSearch] = useState("");
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [existingCoverUrl, setExistingCoverUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -45,6 +46,17 @@ export function CuratorLookCreator({
 
   const liveListings = listings.filter((l) => l.inventoryType !== "digital");
   const hasEnough = liveListings.length >= 2;
+
+  // Filter listings by search query (title or kit club)
+  const filteredListings = itemSearch.trim()
+    ? liveListings.filter((l) => {
+        const q = itemSearch.toLowerCase();
+        const title = (l.title || "").toLowerCase();
+        const club = (l.kit?.club || "").toLowerCase();
+        const kitType = (l.kit?.kitType || "").toLowerCase();
+        return title.includes(q) || club.includes(q) || kitType.includes(q);
+      })
+    : liveListings;
 
   // ── Edit mode: fetch existing look and pre-fill the form ──
   useEffect(() => {
@@ -361,8 +373,17 @@ export function CuratorLookCreator({
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">
                   Select items ({selectedIds.length} selected) *
                 </label>
+                {liveListings.length > 5 && (
+                  <input
+                    type="text"
+                    value={itemSearch}
+                    onChange={(e) => setItemSearch(e.target.value)}
+                    placeholder="Search items..."
+                    className="mb-2 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:outline-none"
+                  />
+                )}
                 <div className="space-y-1.5">
-                  {liveListings.map((listing) => {
+                  {filteredListings.map((listing) => {
                     const selected = selectedIds.includes(listing.id);
                     const isHero = heroId === listing.id;
                     const label = listing.title || (listing.kit ? `${listing.kit.club} ${listing.kit.kitType}` : "Item");
@@ -405,6 +426,11 @@ export function CuratorLookCreator({
                       </div>
                     );
                   })}
+                  {filteredListings.length === 0 && (
+                    <p className="py-2 text-xs text-muted-foreground">
+                      No items match &ldquo;{itemSearch}&rdquo;
+                    </p>
+                  )}
                 </div>
                 <p className="mt-1.5 text-[11px] text-muted-foreground">
                   Pick at least 2 items. The hero piece gets the try-on render.

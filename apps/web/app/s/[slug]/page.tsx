@@ -82,10 +82,13 @@ export async function generateMetadata({
 
 export default async function CuratorStorefrontPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ editLook?: string }>;
 }) {
   const { slug } = await params;
+  const { editLook } = await searchParams;
   const storefront = await loadStorefront(slug);
 
   if (!storefront) {
@@ -304,6 +307,7 @@ export default async function CuratorStorefrontPage({
           curatorName={curator.name}
           whatsapp={curator.channels?.whatsapp}
           linkedAgentAddress={curator.linkedAgentAddress}
+          editLookSlug={editLook}
           listings={listings.map((l) => ({
             id: l.id,
             title: l.title || null,

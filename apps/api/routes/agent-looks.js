@@ -37,7 +37,7 @@ const { getDb } = require('../lib/db');
 const { slugify } = require('../lib/slugs');
 const { keyToUrl, listingImageUrl } = require('../lib/r2');
 const { webBaseUrl } = require('../lib/agent-commerce');
-const { composeLookCollage } = require('../lib/image-composite');
+const { composeLookCollage, composeLookCollageAI } = require('../lib/image-composite');
 const { removeBackground } = require('../lib/image-processing');
 const { classifyLook } = require('../lib/look-classify');
 
@@ -219,13 +219,27 @@ router.post('/', lookAuth, async (req, res) => {
             // Non-fatal — metadata defaults to {}
           }
 
-          // Generate collage
-          await composeLookCollage({
+          // Generate collage (Tier 2 AI if Qwen Cloud available, else Tier 1 sharp)
+          let qwenClient = null;
+          if (!process.env.QWEN_CLOUD_KILL_SWITCH) {
+            try {
+              const { default: QwenCloudClient } = require('@repo/qwen-cloud');
+              const client = new QwenCloudClient();
+              if (await client.isAvailable()) {
+                qwenClient = client;
+              }
+            } catch {
+              // Non-fatal — Tier 1 fallback
+            }
+          }
+
+          await composeLookCollageAI({
             items: collageItems,
             lookTitle: look.title,
             agentAddress: look.agentAddress,
             lookSlug: look.slug,
             curatorSlug: look.curatorSlug,
+            qwenClient,
           });
           logger.info('Auto-generated collage for look', { component: 'agent-looks', slug });
         }
@@ -535,25 +549,51 @@ router.post('/:slug/collage', async (req, res) => {
       return res.status(400).json({ error: 'No item images available for collage' });
     }
 
-    // Generate the collage (Tier 1: sharp, always works)
-    const result = await composeLookCollage({
+    // Generate the collage.
+    //
+    // Tier 2 (AI): If Qwen Cloud is available and not kill-switched, try
+    //   composeLookCollageAI first — it uses wan2.7-image-pro to generate
+    //   a styled editorial flat-lay from the item images. This is best-effort;
+    //   any failure (network, spend guard, model error) falls back to Tier 1.
+    //
+    // Tier 1 (sharp): Deterministic grid composition — always works, no AI
+    //   dependency. composeLookCollageAI handles this fallback internally.
+    let qwenClient = null;
+    if (!process.env.QWEN_CLOUD_KILL_SWITCH) {
+      try {
+        const { default: QwenCloudClient } = require('@repo/qwen-cloud');
+        const client = new QwenCloudClient();
+        if (await client.isAvailable()) {
+          qwenClient = client;
+        }
+      } catch {
+        // Qwen Cloud package not available or misconfigured — use Tier 1.
+      }
+    }
+
+    const result = await composeLookCollageAI({
       items,
       lookTitle: look.title,
       agentAddress: look.agentAddress,
       lookSlug: look.slug,
       curatorSlug: look.curatorSlug,
+      qwenClient,
     });
 
     logger.info('Look collage generated', {
       component: 'agent-looks',
       slug: look.slug,
       r2Key: result.r2Key,
+      tier: result.tier,
+      ...(result.aiFallbackReason ? { aiFallbackReason: result.aiFallbackReason } : {}),
     });
 
     res.json({
       success: true,
       collageUrl: result.url,
       r2Key: result.r2Key,
+      tier: result.tier,
+      ...(result.aiFallbackReason ? { aiFallbackReason: result.aiFallbackReason } : {}),
     });
   } catch (err) {
     logger.error('Failed to generate collage', { component: 'agent-looks' }, err);

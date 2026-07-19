@@ -12,6 +12,7 @@ import { OnPointLayout } from "../../../components/OnPointLayout";
 import { SafeImage } from "../../../components/SafeImage";
 import { LookCard, type LookCardData } from "../../../components/LookCard";
 import { ShareBar } from "./ShareBar";
+import { EditLookButton } from "./EditLookButton";
 
 export const dynamic = "force-dynamic";
 
@@ -144,14 +145,17 @@ export default async function LookPage({
   return (
     <OnPointLayout footer={false}>
       <div className="mx-auto max-w-5xl px-4 py-8">
-        {/* Back link */}
-        <Link
-          href="/looks"
-          className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          All looks
-        </Link>
+        {/* Back link + edit button */}
+        <div className="mb-6 flex items-center justify-between">
+          <Link
+            href="/looks"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            All looks
+          </Link>
+          <EditLookButton curatorSlug={look.curatorSlug} lookSlug={look.slug} />
+        </div>
 
         {/* Title + description — editorial header */}
         <div className="mb-6 space-y-3">

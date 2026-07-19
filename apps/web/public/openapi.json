@@ -46,6 +46,76 @@
     },
     "/api/agent/dashboard": {
       "get": { "summary": "Read public agent identity, receipts, and referral status", "responses": { "200": { "description": "Agent proof data" } } }
+    },
+    "/api/looks": {
+      "get": {
+        "summary": "List live looks with optional filters",
+        "parameters": [
+          { "name": "curator", "in": "query", "schema": { "type": "string" }, "description": "Filter by curator slug" },
+          { "name": "tag", "in": "query", "schema": { "type": "string" }, "description": "Filter by tag (array contains)" },
+          { "name": "agent", "in": "query", "schema": { "type": "string" }, "description": "Filter by agent wallet address" },
+          { "name": "category", "in": "query", "schema": { "type": "string" }, "description": "Filter by metadata.category (e.g. streetwear, casual, formal, event, sport, vintage, ankara, sustainable)" },
+          { "name": "occasion", "in": "query", "schema": { "type": "string" }, "description": "Filter by metadata.occasion (e.g. casual, formal, event, sport, outdoor, travel, date-night)" },
+          { "name": "season", "in": "query", "schema": { "type": "string" }, "description": "Filter by metadata.season (e.g. spring, summer, fall, winter, all-season)" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 }, "description": "Max results (capped at 100)" }
+        ],
+        "responses": { "200": { "description": "List of looks with resolved images and metadata" } }
+      },
+      "post": {
+        "summary": "Create a new look (agent or curator auth)",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["title", "listingIds"], "properties": {
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "listingIds": { "type": "array", "items": { "type": "string" }, "description": "Listing UUIDs, hero first" },
+          "heroListingId": { "type": "string" },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "coverImage": { "type": "string", "description": "data:image/jpeg;base64,... (optional)" },
+          "curatorSlug": { "type": "string", "description": "Required for curator auth" }
+        } } } } },
+        "responses": { "201": { "description": "Created look with slug and items" } }
+      }
+    },
+    "/api/looks/{slug}": {
+      "get": {
+        "summary": "Get a look with resolved listings and metadata",
+        "parameters": [ { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "Look details with resolved listings, collageUrl, and metadata" }, "404": { "description": "Look not found" } }
+      },
+      "patch": {
+        "summary": "Update a look (creator only)",
+        "parameters": [ { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": {
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "status": { "type": "string", "enum": ["live", "paused", "archived"] }
+        } } } } },
+        "responses": { "200": { "description": "Updated look" }, "403": { "description": "Not the look creator" } }
+      }
+    },
+    "/api/looks/{slug}/collage": {
+      "post": {
+        "summary": "Generate or regenerate look collage (public, best-effort AI + sharp fallback)",
+        "parameters": [ { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "Collage generated with r2Key, url, and tier (1=sharp, 2=AI)" } }
+      }
+    },
+    "/api/looks/{slug}/classify": {
+      "post": {
+        "summary": "Auto-classify look metadata (category, occasion, season) — rule-based + AI vision",
+        "parameters": [ { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "Classification result: { success, metadata: { category, occasion, season } }" } }
+      }
+    },
+    "/api/looks/{slug}/image": {
+      "post": {
+        "summary": "Upload cover image for a look (creator only)",
+        "parameters": [ { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["image"], "properties": {
+          "image": { "type": "string", "description": "data:image/jpeg;base64,... payload" }
+        } } } } },
+        "responses": { "200": { "description": "Cover image uploaded with coverImageKey and coverImageUrl" } }
+      }
     }
   }
 }
