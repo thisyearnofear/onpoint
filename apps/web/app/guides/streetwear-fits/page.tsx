@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { ArrowLeft, Check, Sparkles, ShoppingBag, Camera, Shirt, Footprints, Layers, Zap } from "lucide-react";
 import { Reveal } from "../../../components/ui/Reveal";
 import { Accordion, AccordionItem } from "../../../components/ui/Accordion";
+import { OnPointHeader } from "../../../components/OnPointHeader";
 
 export const metadata: Metadata = {
   title: "Streetwear Style Guide | OnPoint",
@@ -18,6 +19,7 @@ export const metadata: Metadata = {
 export default function StreetwearGuide() {
   return (
     <main className="min-h-screen bg-background text-foreground selection:bg-primary/30">
+      <OnPointHeader />
       <article className="mx-auto max-w-3xl px-4 py-12">
         {/* Back link */}
         <Link

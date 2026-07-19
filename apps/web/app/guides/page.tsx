@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Palette, ArrowRight, Shirt, Sparkles, ShoppingBag, Search, Scissors, Footprints, Leaf, Star, Heart, Calendar } from "lucide-react";
+import { OnPointHeader } from "../../components/OnPointHeader";
 
 export const metadata: Metadata = {
   title: "Style Guides | OnPoint",
@@ -109,23 +110,7 @@ const GUIDES = [
 export default function GuidesIndexPage() {
   return (
     <main className="min-h-screen bg-background text-foreground selection:bg-primary/30">
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/95 backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2 text-sm font-bold">
-            <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-1.5 shadow-md">
-              <Palette className="h-4 w-4 text-white" />
-            </div>
-            OnPoint
-          </Link>
-          <Link
-            href="/lab"
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-primary/90"
-          >
-            Try It Free
-          </Link>
-        </div>
-      </header>
+      <OnPointHeader />
 
       {/* Hero */}
       <section className="border-b border-border bg-gradient-to-b from-card to-background">

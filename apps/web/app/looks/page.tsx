@@ -1,8 +1,9 @@
 /* eslint-disable @next/next/no-img-element */
 
 import Link from "next/link";
-import { Eye, Shirt, Sparkles, ArrowLeft } from "lucide-react";
+import { Eye, Shirt, Sparkles } from "lucide-react";
 import { getApiBase } from "../../lib/utils/api-base";
+import { OnPointHeader } from "../../components/OnPointHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -55,21 +56,7 @@ export default async function LooksPage() {
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            OnPoint
-          </Link>
-          <div className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">
-            <Sparkles className="h-3.5 w-3.5" />
-            Styled Looks
-          </div>
-        </div>
-      </header>
+      <OnPointHeader />
 
       <div className="mx-auto max-w-6xl px-4 py-10">
         <div className="mb-8 space-y-2">

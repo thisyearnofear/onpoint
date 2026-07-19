@@ -13,6 +13,7 @@ import {
   User,
 } from "lucide-react";
 import { getApiBase } from "../../../lib/utils/api-base";
+import { OnPointHeader } from "../../../components/OnPointHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -104,22 +105,7 @@ export default async function LookPage({
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-      {/* Header */}
-      <header className="border-b border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            OnPoint
-          </Link>
-          <div className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">
-            <Sparkles className="h-3.5 w-3.5" />
-            Agent Look
-          </div>
-        </div>
-      </header>
+      <OnPointHeader />
 
       <div className="mx-auto max-w-5xl px-4 py-8">
         {/* Look header */}
