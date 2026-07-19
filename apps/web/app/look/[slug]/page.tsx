@@ -5,10 +5,12 @@ import {
   Eye,
   TrendingUp,
   Share2,
+  Sparkles,
 } from "lucide-react";
 import { getApiBase } from "../../../lib/utils/api-base";
 import { OnPointLayout } from "../../../components/OnPointLayout";
 import { SafeImage } from "../../../components/SafeImage";
+import { LookCard, type LookCardData } from "../../../components/LookCard";
 import { ShareBar } from "./ShareBar";
 
 export const dynamic = "force-dynamic";
@@ -56,6 +58,23 @@ async function loadLook(slug: string): Promise<Look | null> {
   return res.json();
 }
 
+async function loadMoreFromCurator(
+  curatorSlug: string,
+  excludeSlug: string,
+): Promise<LookCardData[]> {
+  try {
+    const res = await fetch(
+      `${getApiBase()}/api/looks?curator=${encodeURIComponent(curatorSlug)}&limit=4`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.looks || []).filter((l: LookCardData) => l.slug !== excludeSlug);
+  } catch {
+    return [];
+  }
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -97,6 +116,9 @@ export default async function LookPage({
 
   const items = look.items || [];
   const heroItem = items.find((i) => i.isHero) || items[0];
+  const moreLooks = look.curatorSlug
+    ? await loadMoreFromCurator(look.curatorSlug, look.slug)
+    : [];
   const agentShort = look.agentAddress
     ? `${look.agentAddress.slice(0, 6)}…${look.agentAddress.slice(-4)}`
     : "unknown";
@@ -249,6 +271,29 @@ export default async function LookPage({
             })}
           </div>
         </div>
+
+        {/* More from this curator */}
+        {moreLooks.length > 0 && (
+          <div className="mb-8">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                <Sparkles className="h-4 w-4" />
+                More from {look.curatorSlug}
+              </h2>
+              <Link
+                href={`/looks?curator=${look.curatorSlug}`}
+                className="text-sm font-medium text-foreground/60 transition-colors hover:text-foreground"
+              >
+                View all →
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {moreLooks.map((otherLook) => (
+                <LookCard key={otherLook.id} look={otherLook} compact />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Tags + Share — bottom section */}
         <div className="flex flex-col gap-6 border-t border-border pt-6 sm:flex-row sm:items-start sm:justify-between">
