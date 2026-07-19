@@ -1,38 +1,16 @@
-import Image from "next/image";
 import Link from "next/link";
-import { Eye, Shirt, Sparkles } from "lucide-react";
+import { Shirt } from "lucide-react";
 import { getApiBase } from "../../lib/utils/api-base";
 import { OnPointLayout } from "../../components/OnPointLayout";
+import { LookCard, type LookCardData } from "../../components/LookCard";
 
 export const dynamic = "force-dynamic";
 
-interface LookItem {
-  id: string;
-  title: string;
-  curatorSlug: string;
-  imageUrl: string | null;
-  isHero: boolean;
-}
-
-interface Look {
-  id: string;
-  slug: string;
-  title: string;
-  description: string | null;
-  agentAddress: string;
-  coverImageKey: string | null;
-  coverImageUrl: string | null;
-  heroImageUrl: string | null;
-  tags: string[];
-  tryOnCount: number;
-  purchaseCount: number;
-  shareCount: number;
-  items: LookItem[];
-}
-
-async function loadLooks(): Promise<Look[]> {
+async function loadLooks(tag?: string): Promise<LookCardData[]> {
   try {
-    const res = await fetch(`${getApiBase()}/api/looks?limit=24`, {
+    const params = new URLSearchParams({ limit: "24" });
+    if (tag) params.set("tag", tag);
+    const res = await fetch(`${getApiBase()}/api/looks?${params}`, {
       cache: "no-store",
     });
     if (!res.ok) return [];
@@ -50,8 +28,15 @@ export async function generateMetadata() {
   };
 }
 
-export default async function LooksPage() {
-  const looks = await loadLooks();
+const POPULAR_TAGS = ["streetwear", "casual", "event", "ankara", "vintage", "formal"];
+
+export default async function LooksPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tag?: string }>;
+}) {
+  const { tag } = await searchParams;
+  const looks = await loadLooks(tag);
 
   return (
     <OnPointLayout footer={false}>
@@ -66,90 +51,58 @@ export default async function LooksPage() {
           </p>
         </div>
 
+        {/* Tag filter chips */}
+        <div className="mb-8 flex flex-wrap gap-2">
+          <Link
+            href="/looks"
+            className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
+              !tag
+                ? "bg-foreground text-background"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
+            }`}
+          >
+            All
+          </Link>
+          {POPULAR_TAGS.map((t) => (
+            <Link
+              key={t}
+              href={`/looks?tag=${t}`}
+              className={`rounded-full px-3 py-1 text-sm font-medium capitalize transition-colors ${
+                tag === t
+                  ? "bg-foreground text-background"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
+            >
+              {t}
+            </Link>
+          ))}
+        </div>
+
         {looks.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-20 text-center">
             <Shirt className="mb-4 h-12 w-12 text-muted-foreground/30" />
-            <h2 className="text-lg font-bold">No looks yet</h2>
+            <h2 className="text-lg font-bold">
+              {tag ? `No looks tagged "${tag}"` : "No looks yet"}
+            </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Agent-composed style boards will appear here.
+              {tag
+                ? "Try a different tag or browse all looks."
+                : "Agent-composed style boards will appear here."}
             </p>
+            {tag && (
+              <Link
+                href="/looks"
+                className="mt-4 text-sm font-medium text-foreground underline"
+              >
+                Browse all looks →
+              </Link>
+            )}
           </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {looks.map((look) => {
-              const items = look.items ?? [];
-              const heroItem = items.find((i) => i.isHero) || items[0];
-              const agentShort = look.agentAddress
-                ? `${look.agentAddress.slice(0, 6)}…${look.agentAddress.slice(-4)}`
-                : "unknown";
-
-              return (
-                <Link
-                  key={look.id}
-                  href={`/look/${look.slug}`}
-                  className="group overflow-hidden rounded-2xl border border-border transition-all hover:border-foreground/20 hover:shadow-lg"
-                >
-                  <div className="relative aspect-[4/5] overflow-hidden bg-muted">
-                    {look.coverImageUrl ? (
-                      <Image
-                        src={look.coverImageUrl}
-                        alt={look.title}
-                        fill
-                        unoptimized
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                    ) : look.heroImageUrl ? (
-                      <Image
-                        src={look.heroImageUrl}
-                        alt={look.title}
-                        fill
-                        unoptimized
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                    ) : heroItem?.imageUrl ? (
-                      <Image
-                        src={heroItem.imageUrl}
-                        alt={look.title}
-                        fill
-                        unoptimized
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center">
-                        <Shirt className="h-12 w-12 text-muted-foreground/20" />
-                      </div>
-                    )}
-
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-
-                    <div className="absolute top-3 left-3 flex flex-wrap gap-1">
-                      {look.tags.slice(0, 3).map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium capitalize text-white backdrop-blur"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className="absolute top-3 right-3 rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur">
-                      <span className="inline-flex items-center gap-1">
-                        <Eye className="h-3 w-3" />
-                        {look.tryOnCount}
-                      </span>
-                    </div>
-
-                    <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                      <h3 className="text-base font-bold leading-tight">{look.title}</h3>
-                      <p className="mt-1 text-xs text-white/70">
-                        Styled by {agentShort} · {items.length} pieces
-                      </p>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
+            {looks.map((look) => (
+              <LookCard key={look.id} look={look} />
+            ))}
           </div>
         )}
       </div>

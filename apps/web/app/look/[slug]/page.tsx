@@ -1,18 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import type { CSSProperties } from "react";
 import {
   ArrowLeft,
   Eye,
-  Share2,
   Shirt,
-  Sparkles,
   TrendingUp,
-  User,
+  Share2,
 } from "lucide-react";
 import { getApiBase } from "../../../lib/utils/api-base";
 import { OnPointLayout } from "../../../components/OnPointLayout";
+import { ShareBar } from "./ShareBar";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +36,7 @@ interface Look {
   heroListingId: string | null;
   coverImageKey: string | null;
   coverImageUrl: string | null;
+  collageUrl: string | null;
   tags: string[];
   status: string;
   tryOnCount: number;
@@ -70,11 +69,13 @@ export async function generateMetadata({
     return { title: "Look not found | OnPoint" };
   }
 
+  const ogImage = look.collageUrl || look.coverImageUrl || look.items?.find((i) => i.imageUrl)?.imageUrl;
+
   return {
     title: `${look.title} | OnPoint Looks`,
     description: look.description || `A styled look by ${look.agentAddress ? look.agentAddress.slice(0, 8) + "…" : "an agent"} on OnPoint`,
     openGraph: {
-      images: look.coverImageUrl ? [look.coverImageUrl] : (look.items || []).find((i) => i.imageUrl)?.imageUrl ? [(look.items || []).find((i) => i.imageUrl)!.imageUrl!] : [],
+      images: ogImage ? [ogImage] : [],
     },
   };
 }
@@ -97,199 +98,188 @@ export default async function LookPage({
 
   const items = look.items || [];
   const heroItem = items.find((i) => i.isHero) || items[0];
-  const otherItems = items.filter((i) => !i.isHero);
   const agentShort = look.agentAddress
     ? `${look.agentAddress.slice(0, 6)}…${look.agentAddress.slice(-4)}`
     : "unknown";
 
+  const primaryImage = look.collageUrl || look.coverImageUrl || heroItem?.imageUrl;
+  const totalPrice = items.reduce((sum, item) => {
+    const price = getLowestPrice(item.sizes);
+    return sum + (price || 0);
+  }, 0);
+
   return (
     <OnPointLayout footer={false}>
       <div className="mx-auto max-w-5xl px-4 py-8">
-        {/* Look header */}
-        <div className="mb-8 space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            {look.tags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium capitalize text-muted-foreground"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
+        {/* Back link */}
+        <Link
+          href="/looks"
+          className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          All looks
+        </Link>
 
+        {/* Title + description — editorial header */}
+        <div className="mb-6 space-y-3">
           <h1 className="text-3xl font-black tracking-tight md:text-5xl">
             {look.title}
           </h1>
-
           {look.description && (
             <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
               {look.description}
             </p>
           )}
+        </div>
 
-          {/* Agent attribution */}
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-            <span className="inline-flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Styled by{" "}
-              <span className="font-mono font-medium text-foreground">
-                {agentShort}
-              </span>
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <Eye className="h-4 w-4" />
-              {look.tryOnCount} try-ons
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              {look.purchaseCount} purchases
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <Share2 className="h-4 w-4" />
-              {look.shareCount} shares
-            </span>
+        {/* Hero collage — full-bleed on mobile, centered on desktop */}
+        <div className="mb-6">
+          <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-muted md:aspect-[4/5] md:max-w-md md:mx-auto">
+            {primaryImage ? (
+              <Image
+                src={primaryImage}
+                alt={look.title}
+                fill
+                unoptimized
+                className="object-cover"
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <Shirt className="h-16 w-16 text-muted-foreground/30" />
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Hero + items grid */}
-        <div className="grid gap-6 md:grid-cols-[1fr_360px]">
-          {/* Hero image / try-on CTA */}
-          <div className="space-y-4">
-            <div className="relative aspect-[4/5] overflow-hidden rounded-2xl border border-border bg-muted">
-              {look.coverImageUrl ? (
-                <Image
-                  src={look.coverImageUrl}
-                  alt={look.title}
-                  fill
-                  unoptimized
-                  className="object-cover"
-                />
-              ) : heroItem?.imageUrl ? (
-                <Image
-                  src={heroItem.imageUrl}
-                  alt={heroItem.title}
-                  fill
-                  unoptimized
-                  className="object-cover"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center">
-                  <Shirt className="h-16 w-16 text-muted-foreground/30" />
-                </div>
-              )}
+        {/* Stats bar — subtle, below the image */}
+        <div className="mb-8 flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5">
+            Styled by{" "}
+            <span className="font-mono font-medium text-foreground">
+              {agentShort}
+            </span>
+          </span>
+          <span className="text-border">·</span>
+          <span className="inline-flex items-center gap-1.5">
+            <Eye className="h-4 w-4" />
+            {look.tryOnCount} try-ons
+          </span>
+          <span className="text-border">·</span>
+          <span className="inline-flex items-center gap-1.5">
+            <TrendingUp className="h-4 w-4" />
+            {look.purchaseCount} purchases
+          </span>
+          <span className="text-border">·</span>
+          <span className="inline-flex items-center gap-1.5">
+            <Share2 className="h-4 w-4" />
+            {look.shareCount} shares
+          </span>
+        </div>
 
-              {/* Agent watermark */}
-              <div className="absolute bottom-3 left-3 rounded-full bg-background/80 px-3 py-1 text-xs font-medium backdrop-blur">
-                Styled by {agentShort}
-              </div>
-            </div>
-
-            {/* Try-on CTA */}
-            <div className="rounded-xl border border-border bg-muted/50 p-4">
-              <h3 className="mb-2 font-bold">Try on this look</h3>
-              <p className="mb-3 text-sm text-muted-foreground">
-                Upload a photo and see how the hero piece ({heroItem?.title}) looks on you.
-                Get a shareable collage card for Instagram.
-              </p>
-              <Link
-                href={`/s/${heroItem?.curatorSlug}?tryOn=${heroItem?.id}&referral=${look.referralCode}&look=${look.slug}`}
-                className="inline-flex items-center gap-2 rounded-lg bg-foreground px-4 py-2 text-sm font-bold text-background transition-colors hover:bg-foreground/90"
-              >
-                <Eye className="h-4 w-4" />
-                Try on {heroItem?.title}
-              </Link>
-            </div>
+        {/* Try-on CTA — prominent */}
+        {heroItem && (
+          <div className="mb-8 rounded-2xl border border-border bg-muted/50 p-6 text-center">
+            <h2 className="mb-2 text-xl font-bold">Try on this look</h2>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Upload a photo and see how {heroItem.title} looks on you.
+              Get a shareable collage card for Instagram.
+            </p>
+            <Link
+              href={`/s/${heroItem.curatorSlug}?tryOn=${heroItem.id}&referral=${look.referralCode}&look=${look.slug}`}
+              className="inline-flex items-center gap-2 rounded-lg bg-foreground px-6 py-3 text-sm font-bold text-background transition-colors hover:bg-foreground/90"
+            >
+              <Eye className="h-4 w-4" />
+              Try on {heroItem.title}
+            </Link>
           </div>
+        )}
 
-          {/* Items list */}
-          <div className="space-y-4">
+        {/* Items — visual grid of cutouts */}
+        <div className="mb-8">
+          <div className="mb-4 flex items-center justify-between">
             <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
               The Look ({items.length} pieces)
             </h2>
+            {totalPrice > 0 && (
+              <span className="text-sm font-bold">
+                Total: KES {totalPrice.toLocaleString()}
+              </span>
+            )}
+          </div>
 
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {items.map((item) => {
               const price = getLowestPrice(item.sizes);
               return (
                 <Link
                   key={item.id}
                   href={`/s/${item.curatorSlug}?referral=${look.referralCode}&look=${look.slug}#${item.id}`}
-                  className="block rounded-xl border border-border p-3 transition-colors hover:border-foreground/20 hover:bg-muted/50"
+                  className="group space-y-2"
                 >
-                  <div className="flex gap-3">
-                    <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-muted">
-                      {item.imageUrl ? (
-                        <Image
-                          src={item.imageUrl}
-                          alt={item.title}
-                          fill
-                          unoptimized
-                          className="object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center">
-                          <Shirt className="h-6 w-6 text-muted-foreground/30" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 space-y-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <h3 className="text-sm font-bold leading-tight">
-                          {item.title}
-                        </h3>
-                        {item.isHero && (
-                          <span className="shrink-0 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-bold uppercase text-background">
-                            Hero
-                          </span>
-                        )}
+                  <div className="relative aspect-square overflow-hidden rounded-xl border border-border bg-muted transition-all group-hover:border-foreground/20 group-hover:shadow-md">
+                    {item.imageUrl ? (
+                      <Image
+                        src={item.imageUrl}
+                        alt={item.title}
+                        fill
+                        unoptimized
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center">
+                        <Shirt className="h-8 w-8 text-muted-foreground/30" />
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        by{" "}
-                        <span className="capitalize">{item.curatorSlug}</span>
-                        {item.kit?.brand && ` · ${item.kit.brand}`}
+                    )}
+                    {item.isHero && (
+                      <span className="absolute left-2 top-2 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-bold uppercase text-background">
+                        Hero
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-0.5">
+                    <h3 className="text-xs font-bold leading-tight line-clamp-2">
+                      {item.title}
+                    </h3>
+                    <p className="text-[11px] capitalize text-muted-foreground">
+                      {item.curatorSlug}
+                      {item.kit?.brand && ` · ${item.kit.brand}`}
+                    </p>
+                    {price && (
+                      <p className="text-xs font-bold">
+                        KES {price.toLocaleString()}
                       </p>
-                      {price && (
-                        <p className="text-sm font-bold text-foreground">
-                          KES {price.toLocaleString()}
-                        </p>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </Link>
               );
             })}
+          </div>
+        </div>
 
-            {/* Share buttons */}
-            <div className="space-y-2 pt-4">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                Share this look
-              </h3>
-              <div className="flex gap-2">
-                <button
-                  className="flex-1 rounded-lg border border-border px-3 py-2 text-xs font-medium transition-colors hover:bg-muted"
-                  onClick={() => {
-                    if (navigator.share) {
-                      navigator.share({
-                        title: look.title,
-                        url: look.shareUrl,
-                      });
-                    } else {
-                      navigator.clipboard.writeText(look.shareUrl);
-                    }
-                  }}
+        {/* Tags + Share — bottom section */}
+        <div className="flex flex-col gap-6 border-t border-border pt-6 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-2">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Tags
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {look.tags.map((tag) => (
+                <Link
+                  key={tag}
+                  href={`/looks?tag=${tag}`}
+                  className="rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium capitalize text-muted-foreground transition-colors hover:bg-muted/80"
                 >
-                  Copy link
-                </button>
-                <a
-                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(look.title)}&url=${encodeURIComponent(look.shareUrl)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 rounded-lg border border-border px-3 py-2 text-center text-xs font-medium transition-colors hover:bg-muted"
-                >
-                  Tweet
-                </a>
-              </div>
+                  {tag}
+                </Link>
+              ))}
             </div>
+          </div>
+
+          <div className="space-y-2 sm:w-64">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Share
+            </h3>
+            <ShareBar title={look.title} shareUrl={look.shareUrl} />
           </div>
         </div>
       </div>

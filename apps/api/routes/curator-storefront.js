@@ -242,6 +242,9 @@ router.get('/:slug/storefront', async (req, res) => {
           updatedAt: listing.updatedAt,
           imageKey,
           imageUrl: keyToUrl(imageKey),
+          // Cutout URL — cached background-removed version if available.
+          // Frontend should use this with fallback to imageUrl.
+          cutoutUrl: keyToUrl(`listings/${listing.id}/cutout.png`),
           ...(kit ? {
             kit: {
               id: kit.id,

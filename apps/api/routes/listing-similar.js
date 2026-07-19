@@ -64,6 +64,7 @@ router.get('/:id/similar', async (req, res) => {
         curatorName: m.curator_name,
         title,
         imageUrl: keyToUrl(imageKey),
+        cutoutUrl: keyToUrl(`listings/${m.id}/cutout.png`),
         orderUrl: `/api/curator/${m.curator_slug}/order`,
         storefrontUrl: `/api/curator/${m.curator_slug}/storefront`,
       };

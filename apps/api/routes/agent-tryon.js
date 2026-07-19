@@ -21,8 +21,6 @@
 
 const express = require('express');
 const crypto = require('crypto');
-const { neon } = require('@neondatabase/serverless');
-const { drizzle } = require('drizzle-orm/neon-http');
 const { eq, and, ne, sql, inArray } = require('drizzle-orm');
 const { curators, listings, kitSkus, payments } = require('@repo/db');
 const sharedTypes = require('@onpoint/shared-types');
@@ -34,7 +32,7 @@ const x402Facilitator = require('../lib/x402-facilitator');
 const { engine } = require('./ai-virtual-tryon');
 const { upload: r2Upload, publicUrl: r2PublicUrl, keyFor: r2KeyFor, mirrorTryOnArtifact: ossMirror, isOssConfigured: ossConfigured } = require('@repo/storage');
 const { logFunnelEvent } = require('../lib/funnel');
-const { getDb, CONNECTION_STRING } = require('../lib/db');
+const { getDb, getSql } = require('../lib/db');
 const { keyToUrl, listingImageUrl } = require('../lib/r2');
 
 const router = express.Router();
@@ -72,15 +70,9 @@ function setRenderCache(key, value) {
   }
 }
 
-let _sql = null;
-
 /** Raw neon SQL tagged template — for queries that drizzle can't express */
 function rawSql(strings, ...values) {
-  if (!_sql) {
-    if (!CONNECTION_STRING) throw new Error('NEON_DATABASE_URL not configured');
-    _sql = neon(CONNECTION_STRING);
-  }
-  return _sql(strings, ...values);
+  return getSql()(strings, ...values);
 }
 
 /** Person photo must be an inline data URI — agents send it directly. */
@@ -569,17 +561,14 @@ Return ONLY valid JSON:
     let shareCard = null;
     if (lookSlug) {
       try {
-        const { generateShareCard } = require('../lib/share-card');
-        const { neon } = require('@neondatabase/serverless');
-        const { drizzle } = require('drizzle-orm/neon-http');
-        const { eq: eqD } = require('drizzle-orm');
+        const { composeTryOnShareCard } = require('../lib/image-composite');
         const { agentLooks, listings: listingsTable, kitSkus: kitTable } = require('@repo/db');
 
-        const dbLook = drizzle(neon(process.env.NEON_DATABASE_URL));
+        const dbLook = getDb({ agentLooks, listings: listingsTable, kitSkus: kitTable });
         const [look] = await dbLook
           .select()
           .from(agentLooks)
-          .where(eqD(agentLooks.slug, lookSlug))
+          .where(eq(agentLooks.slug, lookSlug))
           .limit(1);
 
         if (look && look.status === 'live') {
@@ -587,10 +576,8 @@ Return ONLY valid JSON:
           const lookItems = await dbLook
             .select({ listing: listingsTable, kit: kitTable })
             .from(listingsTable)
-            .leftJoin(kitTable, eqD(listingsTable.skuId, kitTable.id))
+            .leftJoin(kitTable, eq(listingsTable.skuId, kitTable.id))
             .where(inArray(listingsTable.id, look.listingIds));
-
-          const { publicUrl: r2PubUrl } = require('@repo/storage');
 
           const itemsForCard = look.listingIds.map((id) => {
             const row = lookItems.find((r) => r.listing.id === id);
@@ -598,12 +585,12 @@ Return ONLY valid JSON:
             const photoKey = row.listing.photoKeys?.[0] || row.listing.officialImageKey;
             return {
               title: row.listing.title || (row.kit ? `${row.kit.club} ${row.kit.kitType}` : 'Item'),
-              imageUrl: photoKey ? r2PubUrl(photoKey) : null,
+              imageUrl: photoKey ? keyToUrl(photoKey) : null,
               isHero: row.listing.id === look.heroListingId,
             };
           }).filter(Boolean);
 
-          const cardResult = await generateShareCard({
+          const cardResult = await composeTryOnShareCard({
             tryOnImageBase64: render.value.generatedImage,
             items: itemsForCard,
             agentAddress: look.agentAddress,

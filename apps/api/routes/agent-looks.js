@@ -23,6 +23,7 @@
  *   DELETE /api/looks/:slug        — archive a look (creator only)
  *   POST   /api/looks/:slug/image  — upload cover image (creator only)
  *   POST   /api/looks/:slug/share  — record a share event (public, increments count)
+ *   POST   /api/looks/:slug/collage — generate/regenerate look collage (public)
  *   POST   /api/looks/curator/:slug/link-agent — set linkedAgentAddress (curator auth)
  */
 
@@ -35,6 +36,8 @@ const { getDb } = require('../lib/db');
 const { slugify } = require('../lib/slugs');
 const { keyToUrl, listingImageUrl } = require('../lib/r2');
 const { webBaseUrl } = require('../lib/agent-commerce');
+const { composeLookCollage } = require('../lib/image-composite');
+const { removeBackground } = require('../lib/image-processing');
 
 const router = express.Router();
 
@@ -179,6 +182,40 @@ router.post('/', lookAuth, async (req, res) => {
       listingCount: listingIds.length,
     });
 
+    // Fire-and-forget collage generation — non-blocking, best-effort.
+    // The look works without a collage (falls back to coverImageUrl →
+    // heroImageUrl). If this fails, the collage can be regenerated on
+    // demand via POST /api/looks/:slug/collage.
+    setImmediate(async () => {
+      try {
+        const resolved = await resolveListings(db, look.listingIds);
+        const collageItems = resolved
+          .map(({ listing, kit }) => {
+            const imageUrl = listingImageUrl(listing);
+            if (!imageUrl) return null;
+            return {
+              imageUrl,
+              title: listing.title || (kit ? `${kit.club} ${kit.kitType}` : 'Item'),
+              isHero: listing.id === look.heroListingId,
+            };
+          })
+          .filter(Boolean);
+
+        if (collageItems.length > 0) {
+          await composeLookCollage({
+            items: collageItems,
+            lookTitle: look.title,
+            agentAddress: look.agentAddress,
+            lookSlug: look.slug,
+            curatorSlug: look.curatorSlug,
+          });
+          logger.info('Auto-generated collage for look', { component: 'agent-looks', slug });
+        }
+      } catch {
+        // Non-fatal — collage can be regenerated on demand
+      }
+    });
+
     res.status(201).json(look);
   } catch (err) {
     logger.error('Failed to create look', { component: 'agent-looks' }, err);
@@ -225,11 +262,16 @@ router.get('/', async (req, res) => {
       const heroId = look.heroListingId || look.listingIds?.[0];
       const heroListing = heroId ? listingMap.get(heroId) : null;
       const heroImageUrl = heroListing ? listingImageUrl(heroListing) : null;
+      const coverImageUrl = look.coverImageKey ? keyToUrl(look.coverImageKey) : null;
 
       return {
         ...look,
-        coverImageUrl: look.coverImageKey ? keyToUrl(look.coverImageKey) : null,
+        coverImageUrl,
         heroImageUrl,
+        // Collage URL: check if a collage exists in R2, otherwise fall back
+        // to coverImageUrl → heroImageUrl. The frontend uses this as the
+        // primary card image when available.
+        collageUrl: keyToUrl(`looks/${look.slug}/collage-latest.webp`) || coverImageUrl || heroImageUrl,
         // Include a minimal items array so the frontend's fallback logic works
         items: (look.listingIds || []).map((id) => {
           const listing = listingMap.get(id);
@@ -285,10 +327,12 @@ router.get('/:slug', async (req, res) => {
 
     // Generate referral code for the look's agent
     const referralCode = `ref_${look.agentAddress.slice(2, 10)}`;
+    const coverImageUrl = look.coverImageKey ? keyToUrl(look.coverImageKey) : null;
 
     res.json({
       ...look,
-      coverImageUrl: look.coverImageKey ? keyToUrl(look.coverImageKey) : null,
+      coverImageUrl,
+      collageUrl: keyToUrl(`looks/${look.slug}/collage-latest.webp`) || coverImageUrl,
       items,
       referralCode,
       shareUrl: `${webBaseUrl()}/look/${look.slug}`,
@@ -412,6 +456,87 @@ router.post('/:slug/try-on-count', async (req, res) => {
     // Non-fatal — don't fail the try-on
     logger.warn('Failed to increment try-on count', { component: 'agent-looks', slug: req.params.slug });
     res.status(200).json({ success: false });
+  }
+});
+
+// ── POST /api/looks/:slug/collage — generate (or regenerate) the look collage ──
+// Public endpoint — generates a sharp-based collage from item images and
+// stores it in R2. Optionally removes backgrounds from item images first
+// (if REPLICATE_API_TOKEN is configured). The collage is cached in R2
+// and served on subsequent list/detail requests via the collageUrl field.
+router.post('/:slug/collage', async (req, res) => {
+  try {
+    const db = getDb();
+
+    const [look] = await db
+      .select()
+      .from(agentLooks)
+      .where(eq(agentLooks.slug, req.params.slug))
+      .limit(1);
+
+    if (!look) {
+      return res.status(404).json({ error: 'Look not found' });
+    }
+
+    // Resolve listings for item images
+    const resolvedListings = await resolveListings(db, look.listingIds);
+    if (resolvedListings.length === 0) {
+      return res.status(400).json({ error: 'Look has no items to collage' });
+    }
+
+    // Build items array for the collage composer
+    const items = [];
+    for (const { listing, kit } of resolvedListings) {
+      const imageUrl = listingImageUrl(listing);
+      if (!imageUrl) continue;
+
+      // Best-effort background removal (Tier 2: Replicate, Tier 3: null)
+      // This is optional — the collage looks good with or without cutouts.
+      let cutoutUrl = null;
+      try {
+        cutoutUrl = await removeBackground(
+          imageUrl,
+          `listings/${listing.id}/cutout.png`,
+        );
+      } catch {
+        // Non-fatal — collage uses original image
+      }
+
+      items.push({
+        imageUrl,
+        cutoutUrl,
+        title: listing.title || (kit ? `${kit.club} ${kit.kitType}` : 'Item'),
+        isHero: listing.id === look.heroListingId,
+      });
+    }
+
+    if (items.length === 0) {
+      return res.status(400).json({ error: 'No item images available for collage' });
+    }
+
+    // Generate the collage (Tier 1: sharp, always works)
+    const result = await composeLookCollage({
+      items,
+      lookTitle: look.title,
+      agentAddress: look.agentAddress,
+      lookSlug: look.slug,
+      curatorSlug: look.curatorSlug,
+    });
+
+    logger.info('Look collage generated', {
+      component: 'agent-looks',
+      slug: look.slug,
+      r2Key: result.r2Key,
+    });
+
+    res.json({
+      success: true,
+      collageUrl: result.url,
+      r2Key: result.r2Key,
+    });
+  } catch (err) {
+    logger.error('Failed to generate collage', { component: 'agent-looks' }, err);
+    res.status(500).json({ error: 'Failed to generate collage' });
   }
 });
 
