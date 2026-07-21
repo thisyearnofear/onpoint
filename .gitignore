@@ -66,6 +66,8 @@ scripts/*
 !scripts/test-routes.sh
 !scripts/agent-commerce-ready.mjs
 !scripts/agent-buyer.mjs
+!scripts/agent-mcp-buyer.mjs
+!scripts/agent-mcp-referral.mjs
 !scripts/bootstrap-curator-payout-wallets.mjs
 !scripts/setup-digital-curator-wallet.mjs
 !apps/web/scripts/test-upstash.mjs

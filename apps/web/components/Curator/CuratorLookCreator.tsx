@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Sparkles, ChevronDown, ChevronUp, Loader2, Check, X, Upload, ImageIcon } from "lucide-react";
 import { getApiBase } from "../../lib/utils/api-base";
 import { SafeImage } from "../SafeImage";
+import { TagEditor } from "../ui/TagEditor";
 
 interface StorefrontListing {
   id: string;
@@ -35,7 +36,7 @@ export function CuratorLookCreator({
   const [description, setDescription] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [heroId, setHeroId] = useState<string | null>(null);
-  const [tags, setTags] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [itemSearch, setItemSearch] = useState("");
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [existingCoverUrl, setExistingCoverUrl] = useState<string | null>(null);
@@ -73,7 +74,7 @@ export function CuratorLookCreator({
           setDescription(data.description || "");
           setSelectedIds(data.listingIds || []);
           setHeroId(data.heroListingId || (data.listingIds?.[0] ?? null));
-          setTags(Array.isArray(data.tags) ? data.tags.join(", ") : "");
+          setTags(Array.isArray(data.tags) ? data.tags : []);
           setExistingCoverUrl(data.coverImageUrl || null);
           setOpen(true);
         } else {
@@ -122,7 +123,6 @@ export function CuratorLookCreator({
   }
 
   const parsedTags = tags
-    .split(",")
     .map((t) => t.trim().toLowerCase())
     .filter(Boolean);
 
@@ -216,7 +216,7 @@ export function CuratorLookCreator({
           setDescription("");
           setSelectedIds([]);
           setHeroId(null);
-          setTags("");
+          setTags([]);
           setCoverImage(null);
           if (fileInputRef.current) fileInputRef.current.value = "";
         } else {
@@ -297,15 +297,18 @@ export function CuratorLookCreator({
               {/* Tags */}
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Tags (comma-separated)
+                  Tags
                 </label>
-                <input
-                  type="text"
+                <TagEditor
                   value={tags}
-                  onChange={(e) => setTags(e.target.value)}
+                  onChange={setTags}
                   placeholder="streetwear, casual, summer"
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-foreground/20"
+                  ariaLabel="Add look tag"
+                  maxTags={8}
                 />
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  Press Enter or comma to add a tag. Used for filtering on the /looks page.
+                </p>
               </div>
 
               {/* Cover image upload */}

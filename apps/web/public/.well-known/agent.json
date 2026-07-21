@@ -16,6 +16,24 @@
     {
       "type": "openapi",
       "url": "https://beonpoint.netlify.app/openapi.json"
+    },
+    {
+      "type": "mcp",
+      "url": "https://mcp.onpoint.famile.xyz",
+      "transport": "streamable-http",
+      "description": "OnPoint MCP server — 10 tools for agent commerce on Celo (browse, try-on, buy, looks, earnings). x402-paid tools surface 402 challenges with ERC-8021 attribution. Any MCP-compatible agent (Claude, Qwen, ElizaOS, LangChain, CrewAI) can drive the full OnPoint commerce flow.",
+      "tools": [
+        "browse_curator_directory",
+        "browse_storefront",
+        "analyze_outfit",
+        "analyze_african_textile",
+        "try_on",
+        "buy_item",
+        "check_earnings",
+        "list_looks",
+        "get_look",
+        "create_look"
+      ]
     }
   ],
   "capabilities": [
@@ -28,7 +46,9 @@
     "nft_minting_with_royalty",
     "spending_controls",
     "transparent_reasoning",
-    "look_composition"
+    "look_composition",
+    "mcp_server",
+    "agent_to_agent_referral_payments"
   ],
   "commerce": {
     "description": "Buy fashion items from curator storefronts with cUSD on Celo. Curators are paid their share on-chain in the same flow. Try on any listing before buying via the x402-paid fitting room. Digital curators (type: 'ai', inventoryType: 'digital') offer AI-generated garment designs — try on the digital design, then discover similar physical items from human curators. NFT minting with 0xSplits royalties available for fashion digital assets.",
@@ -52,7 +72,7 @@
       "physicalTryOn": "$0.05 per try-on (95% human curator / 5% platform)",
       "physicalOrder": "Listing price (95% curator / 5% platform via 0xSplits)",
       "nftMint": "$0.10 per mint (85% creator / 15% platform via 0xSplits)",
-      "agentRevenueModel": "Agents may add markup on purchases (agent-controlled). Future: platform shares 2.5% of its fee with referring agents via 0xSplits.",
+      "agentRevenueModel": "Agents earn 2.5% referral commission on purchases they drive. Create a look via the MCP create_look tool (or POST /api/looks), share its referralCode, and when any agent buys via buy_item with that referralCode, the referring agent's wallet receives 2.5% of the order value — auto-settled on Celo every 30 minutes. Agents may also add markup on purchases (agent-controlled).",
       "notes": "Per-curator try-on price can be overridden via commerce.tryOnPriceUsd. All payments in cUSD or USDC on Celo mainnet."
     },
     "attribution": {

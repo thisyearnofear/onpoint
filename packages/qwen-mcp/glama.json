@@ -1,0 +1,68 @@
+{
+  "displayName": "OnPoint Agent Commerce",
+  "description": "Agent-commerce-ready African fashion inventory on Celo. Browse curators, try on items with x402-paid AI try-on, buy physical items with cUSD on Celo, compose looks, and earn 2.5% referral commissions. ERC-8021 attribution tags for hackathon leaderboard credit.",
+  "category": "commerce",
+  "tags": ["celo", "x402", "agent-commerce", "fashion", "payments", "stablecoin", "erc-8021", "referral"],
+  "website": "https://beonpoint.netlify.app",
+  "repo": "https://github.com/thisyearnofear/onpoint",
+  "environmentVariables": [
+    {
+      "name": "ONPOINT_API_BASE",
+      "description": "OnPoint API base URL",
+      "default": "https://api.onpoint.famile.xyz",
+      "required": false
+    },
+    {
+      "name": "MCP_HTTP_PORT",
+      "description": "Port for HTTP transport (stdio is default). Set to enable remote agents.",
+      "required": false
+    },
+    {
+      "name": "DASHSCOPE_API_KEY",
+      "description": "Qwen Cloud API key for analyze_outfit / analyze_african_textile tools. Optional — only needed for vision analysis.",
+      "required": false
+    }
+  ],
+  "tools": [
+    {
+      "name": "browse_curator_directory",
+      "description": "Discover OnPoint curators with agent-purchasable inventory on Celo."
+    },
+    {
+      "name": "browse_storefront",
+      "description": "Browse a curator's storefront with agent commerce offers (size, stock, priceCusd)."
+    },
+    {
+      "name": "analyze_outfit",
+      "description": "Analyze an outfit photo with Qwen3-VL vision model."
+    },
+    {
+      "name": "analyze_african_textile",
+      "description": "Identify African textile patterns (Ankara, Kente, Adire, etc.) with cultural context."
+    },
+    {
+      "name": "try_on",
+      "description": "x402-paid virtual try-on on Celo. $0.03 digital / $0.05 physical cUSD. Returns 402 challenge → pay → re-POST with txHash."
+    },
+    {
+      "name": "buy_item",
+      "description": "x402-paid checkout for physical items on Celo. Returns 402 challenge → pay cUSD → confirm order with Celoscan links."
+    },
+    {
+      "name": "check_earnings",
+      "description": "Public reconciled earnings ledger for a curator — all settlements on Celo mainnet."
+    },
+    {
+      "name": "list_looks",
+      "description": "Browse curated style boards composed from OnPoint listings."
+    },
+    {
+      "name": "get_look",
+      "description": "Get a single look with resolved items and referral code for agent-to-agent commission."
+    },
+    {
+      "name": "create_look",
+      "description": "Compose listings into a shareable look. The look's referralCode earns 2.5% commission when other agents buy via buy_item."
+    }
+  ]
+}
