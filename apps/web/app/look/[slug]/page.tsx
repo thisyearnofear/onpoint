@@ -14,6 +14,7 @@ import { SafeImage } from "../../../components/SafeImage";
 import { LookCard, type LookCardData } from "../../../components/LookCard";
 import { ShareBar } from "./ShareBar";
 import { EditLookButton } from "./EditLookButton";
+import { LookItemGrid } from "./LookItemGrid";
 
 export const dynamic = "force-dynamic";
 
@@ -107,12 +108,6 @@ export async function generateMetadata({
   };
 }
 
-function getLowestPrice(sizes: LookItem["sizes"]): number | null {
-  if (!sizes || sizes.length === 0) return null;
-  const prices = sizes.map((s) => s.price).filter((p) => p > 0);
-  return prices.length > 0 ? Math.min(...prices) : null;
-}
-
 export default async function LookPage({
   params,
 }: {
@@ -137,11 +132,6 @@ export default async function LookPage({
     look.coverImageUrl,
     heroItem?.imageUrl,
   ];
-
-  const totalPrice = items.reduce((sum, item) => {
-    const price = getLowestPrice(item.sizes);
-    return sum + (price || 0);
-  }, 0);
 
   return (
     <OnPointLayout footer={false}>
@@ -239,88 +229,41 @@ export default async function LookPage({
           </span>
         </div>
 
-        {/* Try-on CTA — prominent */}
+        {/* Try-on CTA — prominent and action-oriented */}
         {heroItem && (
-          <div className="mb-8 rounded-2xl border border-border bg-muted/50 p-6 text-center">
-            <h2 className="mb-2 text-xl font-bold">Try on this look</h2>
-            <p className="mb-4 text-sm text-muted-foreground">
-              Upload a photo and see how {heroItem.title} looks on you.
-              Get a shareable collage card for Instagram.
+          <div className="mb-8 rounded-2xl border border-border bg-muted/50 p-6 text-center md:p-8">
+            <h2 className="mb-2 text-2xl font-black tracking-tight">Try on this look</h2>
+            <p className="mx-auto mb-5 max-w-lg text-sm text-muted-foreground">
+              Upload a photo and see how the hero piece looks on you. We’ll use it
+              to render an AI try-on and create a shareable collage card.
             </p>
-            <Link
-              href={`/s/${heroItem.curatorSlug}?tryOn=${heroItem.id}&referral=${look.referralCode}&look=${look.slug}`}
-              className="inline-flex items-center gap-2 rounded-lg bg-foreground px-6 py-3 text-sm font-bold text-background transition-colors hover:bg-foreground/90"
-            >
-              <Eye className="h-4 w-4" />
-              Try on {heroItem.title}
-            </Link>
+            <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Link
+                href={`/s/${heroItem.curatorSlug}?tryOn=${heroItem.id}&referral=${look.referralCode}&look=${look.slug}`}
+                className="inline-flex items-center gap-2 rounded-full bg-foreground px-8 py-3 text-sm font-bold text-background transition-colors hover:bg-foreground/90 active:scale-[0.98]"
+              >
+                <Eye className="h-4 w-4" />
+                Try it on
+              </Link>
+              <Link
+                href={`/s/${look.curatorSlug}?referral=${look.referralCode}&look=${look.slug}`}
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-6 py-3 text-sm font-bold transition-colors hover:bg-muted active:scale-[0.98]"
+              >
+                <ShoppingBag className="h-4 w-4" />
+                Shop the pieces
+              </Link>
+            </div>
           </div>
         )}
 
-        {/* Items — visual grid of cutouts */}
+        {/* Items — visual grid of cutouts with swap */}
         <div className="mb-8">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-              The Look ({items.length} pieces)
-            </h2>
-            {totalPrice > 0 && (
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-bold">
-                  Total: KES {totalPrice.toLocaleString()}
-                </span>
-                <Link
-                  href={`/s/${look.curatorSlug}?referral=${look.referralCode}&look=${look.slug}`}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-foreground px-3 py-1.5 text-xs font-bold text-background transition-colors hover:bg-foreground/90"
-                >
-                  <ShoppingBag className="h-3.5 w-3.5" />
-                  Shop this look
-                </Link>
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {items.map((item) => {
-              const price = getLowestPrice(item.sizes);
-              return (
-                <Link
-                  key={item.id}
-                  href={`/s/${item.curatorSlug}?referral=${look.referralCode}&look=${look.slug}#${item.id}`}
-                  className="group space-y-2"
-                >
-                  <div className="relative aspect-square overflow-hidden rounded-xl border border-border bg-muted transition-all group-hover:border-foreground/20 group-hover:shadow-md">
-                    <SafeImage
-                      sources={[item.imageUrl]}
-                      alt={item.title}
-                      fill
-                      unoptimized
-                      className="object-cover transition-transform duration-300 group-hover:scale-105"
-                      fallbackIconSize={32}
-                    />
-                    {item.isHero && (
-                      <span className="absolute left-2 top-2 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-bold uppercase text-background">
-                        Hero
-                      </span>
-                    )}
-                  </div>
-                  <div className="space-y-0.5">
-                    <h3 className="text-xs font-bold leading-tight line-clamp-2">
-                      {item.title}
-                    </h3>
-                    <p className="text-[11px] capitalize text-muted-foreground">
-                      {item.curatorSlug}
-                      {item.kit?.brand && ` · ${item.kit.brand}`}
-                    </p>
-                    {price && (
-                      <p className="text-xs font-bold">
-                        KES {price.toLocaleString()}
-                      </p>
-                    )}
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+          <LookItemGrid
+            items={items}
+            referralCode={look.referralCode}
+            lookSlug={look.slug}
+            curatorSlug={look.curatorSlug}
+          />
         </div>
 
         {/* More from this curator */}

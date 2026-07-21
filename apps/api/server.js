@@ -307,6 +307,11 @@ app.use('/api/looks', json10mb, generalRateLimit, require('./routes/agent-looks'
 
 app.use('/api/listings', generalRateLimit, require('./routes/listing-similar'));
 
+// ── Item Routes (public, rate-limited) ────────────────────────────
+// Similar marketplace items for look item swapping.
+
+app.use('/api/items', generalRateLimit, require('./routes/items-similar'));
+
 // ── Admin Routes (service-to-service: SERVICE_API_KEY auth) ─────
 
 app.use('/api/admin/curators', json10mb, serviceKeyAuth, generalRateLimit, require('./routes/curator-admin'));

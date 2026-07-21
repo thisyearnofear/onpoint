@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Eye } from "lucide-react";
+import { Eye, Sparkles } from "lucide-react";
 import { SafeImage } from "./SafeImage";
 
 export interface LookCardItem {
@@ -22,6 +22,7 @@ export interface LookCardData {
   title: string;
   description: string | null;
   agentAddress: string;
+  curatorSlug: string | null;
   coverImageKey: string | null;
   coverImageUrl: string | null;
   heroImageUrl: string | null;
@@ -29,8 +30,10 @@ export interface LookCardData {
   tags: string[];
   metadata?: LookMetadata | null;
   tryOnCount: number;
-  purchaseCount: number;
+  purchaseCount?: number;
   shareCount: number;
+  itemCount?: number;
+  createdAt: string;
   items: LookCardItem[];
 }
 
@@ -44,14 +47,10 @@ interface LookCardProps {
  * Shared look card — used on /looks, curator storefronts, and "more looks" sections.
  *
  * Image priority: collageUrl → coverImageUrl → heroImageUrl → first item image → placeholder.
- * Tags and stats are shown in a subtle footer below the image (no gradient overlay).
  */
 export function LookCard({ look, compact = false }: LookCardProps) {
   const items = look.items ?? [];
   const heroItem = items.find((i) => i.isHero) || items[0];
-  const agentShort = look.agentAddress
-    ? `${look.agentAddress.slice(0, 6)}…${look.agentAddress.slice(-4)}`
-    : "unknown";
 
   const imageSources = [
     look.collageUrl,
@@ -64,10 +63,15 @@ export function LookCard({ look, compact = false }: LookCardProps) {
   const padding = compact ? "p-3" : "p-4";
   const titleSize = compact ? "text-sm" : "text-base";
 
+  // Prefer curator name; fall back to a friendly default.
+  const curatorLabel = look.curatorSlug
+    ? `From ${look.curatorSlug}`
+    : "OnPoint Stylist";
+
   return (
     <Link
       href={`/look/${look.slug}`}
-      className="group overflow-hidden rounded-2xl border border-border transition-all hover:border-foreground/20 hover:shadow-lg"
+      className="group relative overflow-hidden rounded-2xl border border-border bg-card transition-all hover:border-foreground/20 hover:shadow-xl"
     >
       {/* Image — collage or fallback chain */}
       <div className="relative aspect-[4/5] overflow-hidden bg-muted">
@@ -78,6 +82,13 @@ export function LookCard({ look, compact = false }: LookCardProps) {
           unoptimized
           className="object-cover transition-transform duration-300 group-hover:scale-105"
         />
+        {/* Hover overlay CTA */}
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+          <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-black shadow-lg">
+            <Sparkles className="h-4 w-4" />
+            Try this look
+          </span>
+        </div>
       </div>
 
       {/* Footer — title, attribution, badges, tags, stats */}
@@ -85,7 +96,7 @@ export function LookCard({ look, compact = false }: LookCardProps) {
         <div>
           <h3 className={`${titleSize} font-bold leading-tight`}>{look.title}</h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Styled by {agentShort} · {items.length} pieces
+            {curatorLabel} · {items.length || look.itemCount || 0} pieces
           </p>
         </div>
 
