@@ -34,6 +34,18 @@
         "get_look",
         "create_look"
       ]
+    },
+    {
+      "type": "a2mcp-okx",
+      "url": "https://api.onpoint.famile.xyz/okx",
+      "marketplace": "OKX.AI",
+      "agentId": 9874,
+      "description": "OKX A2MCP facade — same OnPoint inventory, payments settle in USD₮0 on XLayer (eip155:196). Listed as an Agent Service Provider on OKX.AI. Two endpoints: POST /okx/browse (free, zero-fee x402) and POST /okx/try-on ($0.05 USD₮0). Both return 402 + PAYMENT-REQUIRED header (base64 v2 challenge). The OKX Agentic Wallet handles signing + settlement automatically.",
+      "endpoints": {
+        "browse": "https://api.onpoint.famile.xyz/okx/browse",
+        "tryOn": "https://api.onpoint.famile.xyz/okx/try-on",
+        "health": "https://api.onpoint.famile.xyz/okx/health"
+      }
     }
   ],
   "capabilities": [
@@ -48,7 +60,8 @@
     "transparent_reasoning",
     "look_composition",
     "mcp_server",
-    "agent_to_agent_referral_payments"
+    "agent_to_agent_referral_payments",
+    "okx_marketplace_a2mcp"
   ],
   "commerce": {
     "description": "Buy fashion items from curator storefronts with cUSD on Celo. Curators are paid their share on-chain in the same flow. Try on any listing before buying via the x402-paid fitting room. Digital curators (type: 'ai', inventoryType: 'digital') offer AI-generated garment designs — try on the digital design, then discover similar physical items from human curators. NFT minting with 0xSplits royalties available for fashion digital assets.",
@@ -98,6 +111,42 @@
       "GET earnings — public reconciled ledger per curator",
       "POST mint {userAddress, metadataUri, royaltyRecipient} — mints an OnPoint NFT with a 0xSplits royalty (85% creator / 15% platform). Requires service auth."
     ]
+  },
+  "okx": {
+    "marketplace": "OKX.AI",
+    "agentId": 9874,
+    "role": "asp",
+    "status": "listed",
+    "category": "LIFESTYLE",
+    "chain": {
+      "name": "XLayer",
+      "chainId": 196,
+      "caip2": "eip155:196"
+    },
+    "token": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+    "tokenSymbol": "USD₮0",
+    "tokenDecimals": 6,
+    "payTo": "0x5e32740122999bb98a50055d68593f94d2a0711e",
+    "protocol": "x402 v2 (exact scheme)",
+    "facade": "https://api.onpoint.famile.xyz/okx",
+    "services": [
+      {
+        "name": "Browse Curator Directory",
+        "type": "A2MCP",
+        "fee": "0",
+        "endpoint": "https://api.onpoint.famile.xyz/okx/browse",
+        "description": "Free zero-fee x402 service. POST to browse OnPoint curator directory."
+      },
+      {
+        "name": "Virtual Try-On",
+        "type": "A2MCP",
+        "fee": "0.05",
+        "endpoint": "https://api.onpoint.famile.xyz/okx/try-on",
+        "description": "Paid x402 try-on. POST {curatorSlug, listingId, photoData} to render a garment on a person photo."
+      }
+    ],
+    "health": "https://api.onpoint.famile.xyz/okx/health",
+    "docs": "https://github.com/thisyearnofear/onpoint/blob/master/AGENTS.md#okxai-marketplace-a2mcp-facade"
   },
   "supportedTrust": ["reputation", "validation"],
   "version": "1.0.0",

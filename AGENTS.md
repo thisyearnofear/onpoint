@@ -4,6 +4,8 @@
 > Humans shop on branded storefronts with AI try-on. Agents hit the **same inventory** via API, x402 try-on, and on-chain checkout.
 >
 > **Live:** https://beonpoint.netlify.app · **API:** https://api.onpoint.famile.xyz · **Manifest:** https://beonpoint.netlify.app/.well-known/agent.json
+>
+> **Also listed on OKX.AI** as an Agent Service Provider (ASP ID 9874, A2MCP type, XLayer USD₮0 payments).
 
 ---
 
@@ -14,9 +16,12 @@
 | Web app | https://beonpoint.netlify.app |
 | API (Hetzner) | https://api.onpoint.famile.xyz |
 | OpenAPI | https://beonpoint.netlify.app/openapi.json |
-| Chain | Celo mainnet (chainId 42220) |
-| Payment tokens | cUSD, USDC |
-| x402 facilitator | https://api.x402.celo.org (EIP-3009, gasless) |
+| Chain (primary) | Celo mainnet (chainId 42220) |
+| Chain (OKX facade) | XLayer mainnet (chainId 196, `eip155:196`) |
+| Payment tokens | cUSD, USDC (Celo) · USD₮0 (XLayer) |
+| x402 facilitator (Celo) | https://api.x402.celo.org (EIP-3009, gasless) |
+| x402 facilitator (OKX) | https://web3.okx.com/api/v6/pay/x402 (OKX SDK, HMAC auth) |
+| OKX marketplace | Listed as ASP on OKX.AI (agent ID 9874) |
 
 ---
 
@@ -325,7 +330,88 @@ The free tier gives users a visual of "how they'd look in this style." The paid 
 
 **Review deadline**: 2026-08-15 — decide whether to keep, kill, or adjust the free tier based on conversion data.
 
-Per-curator try-on price can be overridden via `commerce.tryOnPriceUsd`. All payments in cUSD or USDC on Celo mainnet.
+Per-curator try-on price can be overridden via `commerce.tryOnPriceUsd`. All payments in cUSD or USDC on Celo mainnet, or USD₮0 on XLayer (via the OKX facade — see below).
+
+---
+
+## OKX.AI Marketplace (A2MCP Facade)
+
+OnPoint is registered as an **Agent Service Provider (ASP)** on [OKX.AI](https://okx.ai) — agent ID `9874`, category `LIFESTYLE`. OKX Agentic Wallet users can browse and try-on without bridging to Celo: payments settle in **USD₮0** on **XLayer** (`eip155:196`).
+
+### Two Payment Worlds, Same Inventory
+
+| Path | Chain | Token | Endpoint | Who uses it |
+|------|-------|-------|----------|-------------|
+| **Celo direct** (default) | Celo (42220) | cUSD / USDC | `/api/agent/try-on` | Agents with Celo wallets |
+| **OKX facade** (A2MCP) | XLayer (196) | USD₮0 | `/okx/try-on` | OKX Agentic Wallet users |
+
+The OKX facade (`/okx/*`) relays to the same Celo backend — same inventory, same try-on engine, same fit signal. The only difference is the payment rail.
+
+### OKX Facade Endpoints
+
+```bash
+# Browse curator directory (free, zero-fee x402)
+POST /okx/browse
+# → 402 with amount="0" (zero-fee challenge)
+# After zero-amount payment signature → 200 with curator directory JSON
+
+# Virtual try-on ($0.05 USD₮0)
+POST /okx/try-on
+{ "curatorSlug": "nia", "listingId": "abc123", "photoData": "data:image/jpeg;base64,..." }
+# → 402 with PAYMENT-REQUIRED header (v2 challenge, base64-encoded)
+# After payment → 200 with try-on render, fit signal, polaroid
+```
+
+### How the 402 Challenge Works (OKX Facade)
+
+Every `POST /okx/*` returns `HTTP 402` with a `PAYMENT-REQUIRED` response header. The header is a base64-encoded JSON object:
+
+```json
+{
+  "x402Version": 2,
+  "resource": {
+    "url": "https://api.onpoint.famile.xyz/okx/try-on",
+    "description": "OnPoint virtual try-on — ...",
+    "mimeType": "application/json"
+  },
+  "accepts": [{
+    "scheme": "exact",
+    "network": "eip155:196",
+    "asset": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+    "amount": "50000",
+    "payTo": "0x5e32740122999bb98a50055d68593f94d2a0711e",
+    "maxTimeoutSeconds": 300,
+    "extra": { "name": "USD₮0", "version": "1", "decimals": 6 }
+  }]
+}
+```
+
+- `amount` is in atomic units (USD₮0 has 6 decimals, so `50000` = $0.05)
+- `payTo` is OnPoint's XLayer wallet (`0x5e32740122999bb98a50055d68593f94d2a0711e`)
+- The OKX Agentic Wallet handles signing + settlement automatically
+
+### Self-Check (No Credentials)
+
+The facade runs in **self-check mode** when OKX facilitator credentials (`OKX_API_KEY`/`OKX_SECRET_KEY`/`OKX_PASSPHRASE`) are not set. In this mode:
+- 402 challenges are valid and spec-compliant (pass `onchainos agent x402-check`)
+- Payment verification + on-chain settlement are not performed
+- The ASP is listed and discoverable on OKX.AI
+
+To enable **live mode** (full verify + settle), set the three OKX env vars on the server and reload. The facade auto-detects credentials at startup.
+
+### Health Check
+
+```bash
+GET /okx/health
+# → {"status":"ok","mode":"self-check|live","network":"eip155:196","payTo":"0x...","payToConfigured":true,"facilitatorConfigured":false|true}
+```
+
+### Validate an Endpoint
+
+```bash
+onchainos agent x402-check --endpoint "https://api.onpoint.famile.xyz/okx/try-on" --body '{"curatorSlug":"nia","listingId":"x"}'
+# → {"valid":true,"amountHuman":0.05,"network":"eip155:196",...}
+```
 
 ---
 
@@ -394,6 +480,8 @@ BUYER_PRIVATE_KEY=0x... node scripts/agent-buyer.mjs
 | Digital curators ADR | [docs/adr/0011-erc8004-registration-and-digital-curators.md](./docs/adr/0011-erc8004-registration-and-digital-curators.md) |
 | Pricing ADR | [docs/adr/0013-pricing-strategy-and-agent-revenue-model.md](./docs/adr/0013-pricing-strategy-and-agent-revenue-model.md) |
 | x402 facilitator ADR | [docs/adr/0012-x402-facilitator-integration.md](./docs/adr/0012-x402-facilitator-integration.md) |
+| OKX A2MCP facade ADR | [docs/adr/0016-okx-a2mcp-facade.md](./docs/adr/0016-okx-a2mcp-facade.md) |
+| OKX facade route | [apps/api/routes/okx-facade.js](./apps/api/routes/okx-facade.js) |
 | Reference buyer | [scripts/agent-buyer.mjs](./scripts/agent-buyer.mjs) |
 | Reference try-on | [scripts/agent-tryon.mjs](./scripts/agent-tryon.mjs) |
 | Reference looks CLI | [scripts/agent-looks.mjs](./scripts/agent-looks.mjs) |

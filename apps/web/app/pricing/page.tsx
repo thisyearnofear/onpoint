@@ -68,7 +68,7 @@ export default function PricingPage() {
             <span className="block text-primary">No subscription.</span>
           </h1>
           <p className="mt-3 text-base text-muted-foreground max-w-xl mx-auto">
-            Try before you buy. USD-pegged via cUSD on Celo. No gas fees for buyers.
+            Try before you buy. USD-pegged via cUSD on Celo or USD₮0 on XLayer. No gas fees for buyers.
           </p>
         </div>
 
@@ -288,7 +288,7 @@ export default function PricingPage() {
                           </div>
                           <div className="flex justify-between text-sm pt-2 border-t border-border/20">
                             <span>Payment</span>
-                            <span className="font-bold text-primary">cUSD / USDC</span>
+                            <span className="font-bold text-primary">cUSD / USDC / USD₮0</span>
                           </div>
                         </div>
                       </div>
@@ -310,7 +310,7 @@ export default function PricingPage() {
             {[
               { step: "1", icon: <Store className="w-5 h-5" />, title: "Browse", desc: "Explore storefronts" },
               { step: "2", icon: <ImageIcon className="w-5 h-5" />, title: "Try-On", desc: "Free or $0.03+" },
-              { step: "3", icon: <Wallet className="w-5 h-5" />, title: "Pay", desc: "cUSD via x402" },
+              { step: "3", icon: <Wallet className="w-5 h-5" />, title: "Pay", desc: "cUSD or USD₮0" },
               { step: "4", icon: <Sparkles className="w-5 h-5" />, title: "Earn", desc: "Attribution tags" },
             ].map((item, i) => (
               <div key={i} className="relative">
@@ -369,12 +369,13 @@ export default function PricingPage() {
                     Payment methods
                   </h4>
                   <div className="flex flex-wrap gap-2">
-                    <span className="px-3 py-1.5 rounded-lg bg-muted/60 text-sm font-medium">cUSD</span>
-                    <span className="px-3 py-1.5 rounded-lg bg-muted/60 text-sm font-medium">USDC (facilitator)</span>
-                    <span className="px-3 py-1.5 rounded-lg bg-muted/60 text-sm font-medium">USDT (facilitator)</span>
+                    <span className="px-3 py-1.5 rounded-lg bg-muted/60 text-sm font-medium">cUSD (Celo)</span>
+                    <span className="px-3 py-1.5 rounded-lg bg-muted/60 text-sm font-medium">USDC (Celo facilitator)</span>
+                    <span className="px-3 py-1.5 rounded-lg bg-muted/60 text-sm font-medium">USDT (Celo facilitator)</span>
+                    <span className="px-3 py-1.5 rounded-lg bg-primary/10 text-sm font-medium text-primary">USD₮0 (XLayer via OKX)</span>
                   </div>
                   <p className="mt-3 text-xs text-muted-foreground">
-                    All payments on Celo mainnet (chain ID 42220). Gasless for buyers via EIP-3009.
+                    Celo mainnet (chain ID 42220): gasless for buyers via EIP-3009. XLayer (chain ID 196): USD₮0 via OKX A2MCP facade — for OKX Agentic Wallet users.
                   </p>
                 </div>
               </div>

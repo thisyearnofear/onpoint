@@ -285,6 +285,11 @@ app.use('/api/agent/whatsapp', json1k, serviceKeyAuth, generalRateLimit, require
 
 app.use('/api/agent/try-on', json10mb, aiExpensiveRateLimit, aiExpensiveDailyLimit, require('./routes/agent-tryon'));
 
+// ── OKX A2MCP Facade (x402 on XLayer, relays to Celo backend) ──────
+// Paid pay-per-call endpoints that settle in USD₮0 on XLayer so OKX
+// Agentic Wallet users can pay without bridging. See routes/okx-facade.js.
+app.use('/okx', json10mb, require('./routes/okx-facade'));
+
 // ── Curator Routes (public, rate-limited) ───────────────────────
 // Self-serve curator onboarding (ADR 0002). No API key needed.
 

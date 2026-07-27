@@ -52,7 +52,7 @@ export default function DevelopersPage() {
             <span className="block text-primary">Your agent, your logic.</span>
           </h1>
           <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-            OnPoint exposes a machine-readable API for AI agents. Browse curators, try on items, and buy from the same inventory humans use. Pay with cUSD or gasless USDC.
+            OnPoint exposes a machine-readable API for AI agents. Browse curators, try on items, and buy from the same inventory humans use. Pay with cUSD or gasless USDC on Celo, or USD₮0 on XLayer via the OKX.AI marketplace.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <a
@@ -114,6 +114,35 @@ export default function DevelopersPage() {
           </p>
         </section>
 
+        {/* OKX A2MCP Endpoints */}
+        <section className="mb-14">
+          <h2 className="text-2xl font-black tracking-tight mb-3 flex items-center gap-2">
+            <Zap className="w-5 h-5 text-primary" />
+            OKX.AI Marketplace (A2MCP)
+          </h2>
+          <div className="rounded-xl border-2 border-primary/20 bg-gradient-to-br from-primary/[0.03] to-transparent p-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-1 rounded-full bg-primary text-white text-xs font-bold">Listed as ASP</span>
+              <span className="text-sm text-muted-foreground">Agent ID 9874 · Category: Lifestyle · XLayer USD₮0</span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Same inventory, same try-on engine — payments settle in USD₮0 on XLayer (eip155:196) for OKX Agentic Wallet users.
+              Both endpoints return 402 + <code className="font-mono text-xs">PAYMENT-REQUIRED</code> header (base64 v2 challenge).
+            </p>
+            <div className="rounded-xl border border-border/40 bg-card p-4 space-y-1">
+              <Endpoint method="POST" path="/okx/browse" desc="Free directory (zero-fee x402)" />
+              <Endpoint method="POST" path="/okx/try-on" desc="$0.05 USD₮0 per try-on" />
+              <Endpoint method="GET" path="/okx/health" desc="Facade status + mode" />
+            </div>
+            <div className="flex flex-wrap gap-2 pt-2">
+              <code className="px-2.5 py-1 rounded-lg bg-muted/60 text-xs">network: eip155:196</code>
+              <code className="px-2.5 py-1 rounded-lg bg-muted/60 text-xs">asset: USD₮0</code>
+              <code className="px-2.5 py-1 rounded-lg bg-muted/60 text-xs">scheme: exact</code>
+              <code className="px-2.5 py-1 rounded-lg bg-muted/60 text-xs">x402Version: 2</code>
+            </div>
+          </div>
+        </section>
+
         <section className="mb-14">
           <h2 className="text-2xl font-black tracking-tight mb-6 flex items-center gap-2">
             <Zap className="w-5 h-5 text-primary" />
@@ -135,9 +164,9 @@ export default function DevelopersPage() {
         <section className="mb-14">
           <h2 className="text-2xl font-black tracking-tight mb-6 flex items-center gap-2">
             <Wallet className="w-5 h-5 text-primary" />
-            Two Payment Paths
+            Three Payment Paths
           </h2>
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-3 gap-6">
             {/* cUSD path */}
             <div className="rounded-xl border border-border/40 bg-gradient-to-br from-background to-primary/[0.03] p-6 space-y-4">
               <div className="flex items-center gap-2">
@@ -198,6 +227,36 @@ export default function DevelopersPage() {
               </ol>
               <div className="pt-3 border-t border-border/30 text-xs text-muted-foreground">
                 Facilitator: api.x402.celo.org. Tokens: USDC, USDT.
+              </div>
+            </div>
+
+            {/* OKX XLayer path */}
+            <div className="rounded-xl border border-border/40 bg-gradient-to-br from-background to-primary/[0.03] p-6 space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                  <Globe className="w-4 h-4 text-primary" />
+                </div>
+                <h3 className="font-bold">USD₮0 via OKX</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                XLayer-native payments for OKX Agentic Wallet users. Facade relays to Celo backend.
+              </p>
+              <ol className="space-y-2 text-sm">
+                <li className="flex gap-2">
+                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">1</span>
+                  <span>POST /okx/try-on → 402 + PAYMENT-REQUIRED header</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">2</span>
+                  <span>OKX Agentic Wallet signs + settles USD₮0</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">3</span>
+                  <span>200 with try-on render + fit signal</span>
+                </li>
+              </ol>
+              <div className="pt-3 border-t border-border/30 text-xs text-muted-foreground">
+                Chain: XLayer (196). Token: USD₮0. ASP ID: 9874.
               </div>
             </div>
           </div>

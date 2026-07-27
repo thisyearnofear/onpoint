@@ -3,7 +3,7 @@
   "info": {
     "title": "OnPoint Agent Commerce API",
     "version": "1.0.0",
-    "description": "Discover real curator inventory, request fit signals, and complete Celo x402 commerce. Paid endpoints return HTTP 402 before any payment is authorized."
+    "description": "Discover real curator inventory, request fit signals, and complete Celo x402 commerce. Paid endpoints return HTTP 402 before any payment is authorized. OKX A2MCP facade endpoints (/okx/*) settle in USD₮0 on XLayer."
   },
   "servers": [
     { "url": "https://api.onpoint.famile.xyz" }
@@ -29,9 +29,39 @@
     },
     "/api/agent/try-on": {
       "post": {
-        "summary": "Request a paid fit render",
+        "summary": "Request a paid fit render (Celo)",
         "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["curatorSlug", "listingId", "photoData"], "properties": { "curatorSlug": { "type": "string" }, "listingId": { "type": "string" }, "photoData": { "type": "string", "description": "data:image/... base64 payload" }, "paymentTxHash": { "type": "string" } } } } } },
         "responses": { "200": { "description": "Try-on render and fit signal" }, "402": { "description": "cUSD or gasless USDC payment requirements" } }
+      }
+    },
+    "/okx/try-on": {
+      "post": {
+        "summary": "OKX A2MCP try-on — paid fit render in USD₮0 on XLayer",
+        "description": "OKX facade endpoint. Same try-on engine as /api/agent/try-on but settles in USD₮0 on XLayer (eip155:196). Returns 402 with PAYMENT-REQUIRED header (base64-encoded v2 challenge). The OKX Agentic Wallet handles signing + settlement automatically. Relays to the Celo backend with a service-key bypass.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["curatorSlug", "listingId", "photoData"], "properties": { "curatorSlug": { "type": "string" }, "listingId": { "type": "string" }, "photoData": { "type": "string", "description": "data:image/... base64 payload" } } } } } },
+        "responses": {
+          "200": { "description": "Try-on render and fit signal (after payment verified)" },
+          "402": { "description": "Payment required — PAYMENT-REQUIRED header contains base64 v2 challenge with network=eip155:196, asset=USD₮0, amount=50000 ($0.05)", "headers": { "PAYMENT-REQUIRED": { "schema": { "type": "string" }, "description": "Base64-encoded x402 v2 PaymentRequired JSON" } } }
+        },
+        "x402": { "version": 2, "scheme": "exact", "network": "eip155:196", "asset": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736", "assetSymbol": "USD₮0", "amount": "50000", "amountHuman": "$0.05", "payTo": "0x5e32740122999bb98a50055d68593f94d2a0711e" }
+      }
+    },
+    "/okx/browse": {
+      "post": {
+        "summary": "OKX A2MCP browse — free curator directory (zero-fee x402)",
+        "description": "OKX facade endpoint. Zero-fee x402 service — returns 402 with amount=0. After zero-amount payment signature, returns the curator directory JSON (same data as GET /api/curator/directory?agentPurchasable=1).",
+        "requestBody": { "required": false, "content": { "application/json": { "schema": { "type": "object", "properties": {} } } } },
+        "responses": {
+          "200": { "description": "Curator directory JSON (after zero-amount payment verified)" },
+          "402": { "description": "Payment required — PAYMENT-REQUIRED header contains base64 v2 challenge with amount=0 (zero-fee)", "headers": { "PAYMENT-REQUIRED": { "schema": { "type": "string" }, "description": "Base64-encoded x402 v2 PaymentRequired JSON" } } }
+        },
+        "x402": { "version": 2, "scheme": "exact", "network": "eip155:196", "asset": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736", "assetSymbol": "USD₮0", "amount": "0", "amountHuman": "Free", "payTo": "0x5e32740122999bb98a50055d68593f94d2a0711e" }
+      }
+    },
+    "/okx/health": {
+      "get": {
+        "summary": "OKX facade health + mode check",
+        "responses": { "200": { "description": "Facade status: mode (self-check|live), network, payTo, facilitatorConfigured", "content": { "application/json": { "schema": { "type": "object", "properties": { "status": { "type": "string" }, "mode": { "type": "string", "enum": ["self-check", "live"] }, "network": { "type": "string" }, "asset": { "type": "string" }, "priceUsd": { "type": "number" }, "payTo": { "type": "string" }, "payToConfigured": { "type": "boolean" }, "facilitatorConfigured": { "type": "boolean" }, "tryOnEndpoint": { "type": "string" } } } } } } }
       }
     },
     "/api/curator/{slug}/order": {

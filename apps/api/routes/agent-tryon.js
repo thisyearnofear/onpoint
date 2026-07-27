@@ -195,6 +195,27 @@ router.post('/', async (req, res) => {
       `OnPoint try-on: ${itemLabel} from ${row.curator.name}`,
     );
 
+    // ── OKX facade bypass: internal relay from /okx/try-on ──
+    // The OKX x402 payment was already verified on XLayer by the OKX
+    // facilitator. Skip the Celo 402 + cUSD verification; ledger with a
+    // synthetic tx and paymentMethod 'okx_facade'. The real XLayer
+    // settlement is tracked by the OKX facilitator independently.
+    const okxBypass =
+      req.headers['x-okx-paid'] === '1' &&
+      !!process.env.SERVICE_API_KEY &&
+      req.headers['x-service-key'] === process.env.SERVICE_API_KEY;
+
+    let settlementTxHash = null;
+    let payerAddress = null;
+    let verification = null;
+
+    if (okxBypass) {
+      settlementTxHash =
+        req.headers['x-okx-internal-tx'] || `okx_${crypto.randomUUID()}`;
+      payerAddress =
+        req.headers['x-okx-payer'] ||
+        '0x0000000000000000000000000000000000000000';
+    } else {
     // ── Check for x402 facilitator payment (X-PAYMENT header) ──
     const xPaymentHeader = req.headers['x-payment'];
 
@@ -233,9 +254,6 @@ router.post('/', async (req, res) => {
     }
 
     // ── Step 2a: facilitator payment (X-PAYMENT header) ──
-    let settlementTxHash = null;
-    let payerAddress = null;
-    let verification = null;
     if (xPaymentHeader) {
       const result = await x402Facilitator.processFacilitatorPayment(
         xPaymentHeader,
@@ -284,6 +302,7 @@ router.post('/', async (req, res) => {
       return res.status(409).json({ error: 'Payment transaction already used' });
     }
     } // end cUSD verification path
+    } // end else (not okxBypass)
 
     // The effective tx hash and payer for this request
     const effectiveTxHash = settlementTxHash || paymentTxHash;
@@ -362,7 +381,7 @@ Return ONLY valid JSON:
         amountCusd: priceCusd.toFixed(2),
         txHash: effectiveTxHash,
         resource: '/api/agent/try-on',
-        metadata: { listingId, item: itemLabel, payTo, splitAddress: splitAddress || null, paymentMethod: settlementTxHash ? 'x402_facilitator' : 'cusd' },
+        metadata: { listingId, item: itemLabel, payTo, splitAddress: splitAddress || null, paymentMethod: okxBypass ? 'okx_facade' : (settlementTxHash ? 'x402_facilitator' : 'cusd') },
       })
       .onConflictDoNothing({ target: payments.txHash })
       .returning({ id: payments.id });
@@ -408,7 +427,7 @@ Return ONLY valid JSON:
           priceCusd,
           payerAddress: effectivePayer,
           renderProvider: render.value.provider,
-          paymentMethod: settlementTxHash ? 'x402_facilitator' : 'cusd',
+          paymentMethod: okxBypass ? 'okx_facade' : (settlementTxHash ? 'x402_facilitator' : 'cusd'),
         },
         txHash: effectiveTxHash,
         chain: 'celo',
@@ -431,7 +450,7 @@ Return ONLY valid JSON:
       isDigital,
       caller,
       payerAddress: effectivePayer,
-      paymentMethod: settlementTxHash ? 'x402_facilitator' : 'cusd',
+      paymentMethod: okxBypass ? 'okx_facade' : (settlementTxHash ? 'x402_facilitator' : 'cusd'),
     });
 
     // Log funnel event: tryon_complete (paid, agent)
@@ -448,7 +467,7 @@ Return ONLY valid JSON:
         paymentId,
         isDigital,
         fitScore: fitSignal?.score,
-        paymentMethod: settlementTxHash ? 'x402_facilitator' : 'cusd',
+        paymentMethod: okxBypass ? 'okx_facade' : (settlementTxHash ? 'x402_facilitator' : 'cusd'),
       },
       clientIp: req.ip,
     });
@@ -646,7 +665,7 @@ Return ONLY valid JSON:
         amountCusd: priceCusd.toFixed(2),
         explorerUrl: agentCore.getExplorerUrl('celo', effectiveTxHash),
         payoutModel: splitAddress ? '0xSplits (curator earns a share)' : 'platform',
-        paymentMethod: settlementTxHash ? 'x402_facilitator' : 'cusd',
+        paymentMethod: okxBypass ? 'okx_facade' : (settlementTxHash ? 'x402_facilitator' : 'cusd'),
       },
       receiptId,
       receiptUrl: receiptId ? `${webBaseUrl()}/receipt/${receiptId}` : undefined,
