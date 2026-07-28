@@ -6,6 +6,8 @@
 > **Live:** https://beonpoint.netlify.app · **API:** https://api.onpoint.famile.xyz · **Manifest:** https://beonpoint.netlify.app/.well-known/agent.json
 >
 > **Also listed on OKX.AI** as an Agent Service Provider (ASP ID 9874, A2MCP type, XLayer USD₮0 payments).
+>
+> **Celo Builders hackathon:** Published submission to the [Agentic Payments and DeFAI Hackathon](https://celobuilders.xyz/hackathons/agentic-payments-defai) — 4 tracks, deadline Aug 3 2026. Attribution tag `celo_ce9e004195d5` is active on every Celo tx. Full details: [docs/CELO-BUILDERS-HACKATHON.md](./docs/CELO-BUILDERS-HACKATHON.md).
 
 ---
 
@@ -482,6 +484,8 @@ BUYER_PRIVATE_KEY=0x... node scripts/agent-buyer.mjs
 | x402 facilitator ADR | [docs/adr/0012-x402-facilitator-integration.md](./docs/adr/0012-x402-facilitator-integration.md) |
 | OKX A2MCP facade ADR | [docs/adr/0016-okx-a2mcp-facade.md](./docs/adr/0016-okx-a2mcp-facade.md) |
 | OKX facade route | [apps/api/routes/okx-facade.js](./apps/api/routes/okx-facade.js) |
+| Celo Builders hackathon | [docs/CELO-BUILDERS-HACKATHON.md](./docs/CELO-BUILDERS-HACKATHON.md) |
+| Qwen Cloud hackathon | [docs/QWEN-CLOUD-HACKATHON.md](./docs/QWEN-CLOUD-HACKATHON.md) |
 | Reference buyer | [scripts/agent-buyer.mjs](./scripts/agent-buyer.mjs) |
 | Reference try-on | [scripts/agent-tryon.mjs](./scripts/agent-tryon.mjs) |
 | Reference looks CLI | [scripts/agent-looks.mjs](./scripts/agent-looks.mjs) |
