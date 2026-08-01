@@ -191,6 +191,72 @@ const FIXTURE = {
   }),
 };
 
+// ── Normalizers: map real CLI JSON → canonical facade shape ──────────
+// The live `@prava-sdk/cli` returns fields named/shaped differently from the
+// self-check fixtures. These normalize the live output so every caller (the
+// facade, the iMessage card, the activity feed) sees one consistent shape:
+//   search result → { product_id, title, merchant, image, price_estimate, price }
+//   product       → { product_id, merchant, description, image, offers[] }
+//   offer         → { variant_id, description, unit_price, currency, available }
+
+/** Normalize a price that may be a string ("$98.00 USD") or object
+ *  ({ amount, currency }) into { amount, currency, display }. */
+function normPrice(raw, fallbackCurrency = 'USD') {
+  if (raw == null) return { amount: null, currency: fallbackCurrency, display: null };
+  if (typeof raw === 'object') {
+    const amount = raw.amount != null ? String(raw.amount) : null;
+    const currency = raw.currency || fallbackCurrency;
+    return { amount, currency, display: amount ? `$${amount} ${currency}` : null };
+  }
+  // String like "$98.00 USD".
+  const s = String(raw);
+  const m = s.match(/([\d,]+(?:\.\d+)?)/);
+  const amt = m ? m[1].replace(/,/g, '') : null;
+  const cur = (s.match(/[A-Z]{3}/) || [fallbackCurrency])[0];
+  return { amount: amt, currency: cur, display: s };
+}
+
+function normSearchResult(r) {
+  const price = normPrice(r.price_estimate);
+  return {
+    product_id: r.product_id || r.id || null,
+    title: r.title || null,
+    merchant: r.merchant || r.merchantDomain || null,
+    // Live uses image_url; fixtures use image.
+    image: r.image || r.image_url || (Array.isArray(r.images) && r.images[0]) || null,
+    price_estimate: price.display,
+    price,
+  };
+}
+
+function normOffer(v, productImage) {
+  return {
+    variant_id: v.variant_id || v.id || null,
+    description: v.description || v.label || (Array.isArray(v.options) ? v.options.join(' · ') : null) || null,
+    // Live uses priceAmount in integer cents; fixtures use unit_price as a decimal string.
+    unit_price: v.unit_price != null
+      ? String(v.unit_price)
+      : (v.priceAmount != null ? (Number(v.priceAmount) / 100).toFixed(2) : null),
+    currency: v.currency || 'USD',
+    available: v.available !== false,
+    image: v.image || productImage || null,
+  };
+}
+
+function normProduct(raw, productId, merchant) {
+  const p = raw?.product || raw || {};
+  const productImage = (Array.isArray(p.images) && p.images[0]) || p.image || null;
+  const variants = p.variants || raw?.variants || raw?.offers || [];
+  return {
+    product_id: p.id || productId || null,
+    merchant: p.merchant || merchant || null,
+    description: p.description || null,
+    image: productImage,
+    offers: variants.map((v) => normOffer(v, productImage)),
+    raw,
+  };
+}
+
 // ── Public buy-flow API (transport-agnostic) ─────────────────────────
 
 /** shop_search — discover products across UCP fashion merchants.
@@ -202,7 +268,8 @@ async function shopSearch({ query, intent, merchant, limit } = {}) {
     if (intent) args.push('--intent', intent);
     if (merchant) args.push('--merchant', merchant);
     if (limit) args.push('--limit', String(limit));
-    return runCli(args);
+    const r = await runCli(args);
+    return { ...r, results: (r.results || []).map(normSearchResult) };
   }
   return FIXTURE.search(query);
 }
@@ -212,7 +279,8 @@ async function shopProduct({ productId, merchant } = {}) {
   if (await cliAvailable()) {
     const args = ['shop', 'product', '--product-id', productId, '--json'];
     if (merchant) args.push('--merchant', merchant);
-    return runCli(args);
+    const raw = await runCli(args);
+    return normProduct(raw, productId, merchant);
   }
   return FIXTURE.product(productId, merchant);
 }

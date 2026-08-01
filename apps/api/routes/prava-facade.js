@@ -201,7 +201,7 @@ router.post('/order', async (req, res, next) => {
 
     // Discover if no variant pinned.
     if (!chosenVariant && query) {
-      const search = await prava.shopSearch({ query });
+      const search = await prava.shopSearch({ query, intent: query });
       const top = search.results?.[0];
       if (!top) return res.status(404).json({ error: 'No products found for query', query });
       chosenProduct = top;
