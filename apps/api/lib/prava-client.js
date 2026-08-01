@@ -73,7 +73,8 @@ async function cliAvailable() {
 }
 
 function selfCheck() {
-  return _cliAvailable === false;
+  // Safe default: undetermined (null) means self-check, not live.
+  return _cliAvailable !== true;
 }
 
 // ── Live: shell to the prava CLI with --json ─────────────────────────
