@@ -62,6 +62,14 @@ const nextConfig = {
       { source: '/api/agent/identity', destination: `${hetzner}/api/agent/identity` },
       { source: '/api/market-intelligence/search', destination: `${hetzner}/api/market-intelligence/search` },
       { source: '/api/curator/:slug/storefront', destination: `${hetzner}/api/curator/:slug/storefront` },
+      // Prava agent checkout (ADR 0017) — public-facing endpoints proxied to the API.
+      { source: '/prava/search', destination: `${hetzner}/prava/search` },
+      { source: '/prava/order', destination: `${hetzner}/prava/order` },
+      { source: '/prava/order/:id', destination: `${hetzner}/prava/order/:id` },
+      { source: '/prava/order/:id/try-on', destination: `${hetzner}/prava/order/:id/try-on` },
+      { source: '/prava/order/:id/approve', destination: `${hetzner}/prava/order/:id/approve` },
+      { source: '/prava/order/:id/checkout', destination: `${hetzner}/prava/order/:id/checkout` },
+      { source: '/prava/orders/recent', destination: `${hetzner}/prava/orders/recent` },
     ];
   },
   async headers() {

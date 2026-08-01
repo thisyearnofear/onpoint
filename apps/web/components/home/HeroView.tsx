@@ -34,8 +34,95 @@ import { LookCrafter } from "./LookCrafter";
 import { EditorialStats } from "./EditorialStats";
 import { RecentlySavedSection } from "./RecentlySavedSection";
 import { AgentActivityFeed } from "../AgentActivityFeed";
+import { AgentFlow } from "../Agent/AgentFlow";
 import { LiveCommerceProof } from "./LiveCommerceProof";
 import { NiaPreviewGrid } from "./NiaPreviewGrid";
+
+/**
+ * HowItWorks — the 3-step "try on before you buy" explainer content.
+ * Extracted so the home page can render it open on desktop and as a
+ * collapsed <details> accordion on mobile (progressive disclosure: shoppers
+ * see merchandise first, the story on demand).
+ */
+function HowItWorks() {
+  return (
+    <div className="max-w-4xl mx-auto">
+      <div className="text-center mb-12">
+        <h2 className="text-3xl md:text-4xl font-black tracking-tight">
+          How it works
+        </h2>
+        <p className="mt-3 text-lg text-muted-foreground">
+          Try on before you buy — in 30 seconds
+        </p>
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-8">
+        <div className="text-center">
+          <div className="relative">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+              <Camera className="w-8 h-8 text-white" />
+            </div>
+            <div className="absolute top-0 right-1/2 transform translate-x-16 -translate-y-2 w-6 h-6 rounded-full bg-success flex items-center justify-center text-white text-xs font-bold">
+              1
+            </div>
+          </div>
+          <h3 className="text-lg font-bold mb-2">Upload your photo</h3>
+          <p className="text-sm text-muted-foreground">
+            Take a selfie or upload a photo. No wallet or account needed.
+          </p>
+        </div>
+
+        <div className="text-center">
+          <div className="relative">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+              <Sparkles className="w-8 h-8 text-white" />
+            </div>
+            <div className="absolute top-0 right-1/2 transform translate-x-16 -translate-y-2 w-6 h-6 rounded-full bg-success flex items-center justify-center text-white text-xs font-bold">
+              2
+            </div>
+          </div>
+          <h3 className="text-lg font-bold mb-2">AI tries it on you</h3>
+          <p className="text-sm text-muted-foreground">
+            See yourself in the outfit. Get fit recommendations and style notes.
+          </p>
+        </div>
+
+        <div className="text-center">
+          <div className="relative">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center">
+              <MessageCircle className="w-8 h-8 text-white" />
+            </div>
+            <div className="absolute top-0 right-1/2 transform translate-x-16 -translate-y-2 w-6 h-6 rounded-full bg-success flex items-center justify-center text-white text-xs font-bold">
+              3
+            </div>
+          </div>
+          <h3 className="text-lg font-bold mb-2 flex items-center justify-center gap-2">
+            Order via WhatsApp
+            <ComingSoonBadge size="xs" />
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Share your try-on with the curator. Confirm size, stock, and delivery.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-12 text-center">
+        <FeedbackLink
+          href={CTA_SHOP.href}
+          onClick={() => trackHomepageCta({ cta: "shop", placement: "how_it_works" })}
+          className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white font-bold px-8 py-4 rounded-full text-base shadow-lg shadow-primary/25 transition-all"
+        >
+          <Camera className="w-5 h-5" />
+          Try it now — it&apos;s free
+          <ArrowRight className="w-5 h-5" />
+        </FeedbackLink>
+        <p className="mt-3 text-xs text-muted-foreground">
+          No wallet required · Takes 30 seconds · Free try-on
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export function HeroView() {
   const [showDemo, setShowDemo] = useState(false);
@@ -117,9 +204,10 @@ export function HeroView() {
                       {CTA_SHOP.label}
                       <ArrowRight className="w-5 h-5" />
                     </FeedbackLink>
-                    <p className="text-[11px] text-muted-foreground/70 text-center max-w-[280px]">
-                      Try on AI designs from Nia — free, no wallet required
-                    </p>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-success/10 border border-success/20 text-success text-sm font-medium">
+                      <Check className="w-4 h-4" />
+                      Free · No wallet required
+                    </span>
                   </div>
                   <Link
                     href="/developers"
@@ -194,86 +282,44 @@ export function HeroView() {
 
       <LiveCommerceProof />
 
-      {/* How It Works — 30-second explainer */}
-      <section className="border-t border-border/30 bg-background">
-        <div className="container mx-auto px-4 py-16 md:py-20">
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-black tracking-tight">
-                How it works
+      {/* Agent flow — the front door. Search real UCP brands, try on, approve,
+          and buy — all inline. Not a demo page; the product itself. */}
+      <section className="border-t border-border/30 bg-gradient-to-b from-background to-muted/10">
+        <div className="container mx-auto px-4 py-10 md:py-14">
+          <div className="mx-auto max-w-2xl">
+            <div className="mb-6 text-center">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-bold text-primary uppercase tracking-wider mb-3">
+                <Bot className="w-3.5 h-3.5" />
+                Agent Stylist
+              </div>
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight">
+                Your AI stylist shops for you
               </h2>
-              <p className="mt-3 text-lg text-muted-foreground">
-                Try on before you buy — in 30 seconds
+              <p className="mt-2 text-sm text-muted-foreground">
+                Search a style. The agent discovers real brands, tries them on you, and buys with a scoped card you approve.
               </p>
             </div>
-
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="text-center">
-                <div className="relative">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
-                    <Camera className="w-8 h-8 text-white" />
-                  </div>
-                  <div className="absolute top-0 right-1/2 transform translate-x-16 -translate-y-2 w-6 h-6 rounded-full bg-success flex items-center justify-center text-white text-xs font-bold">
-                    1
-                  </div>
-                </div>
-                <h3 className="text-lg font-bold mb-2">Upload your photo</h3>
-                <p className="text-sm text-muted-foreground">
-                  Take a selfie or upload a photo. No wallet or account needed.
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="relative">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                    <Sparkles className="w-8 h-8 text-white" />
-                  </div>
-                  <div className="absolute top-0 right-1/2 transform translate-x-16 -translate-y-2 w-6 h-6 rounded-full bg-success flex items-center justify-center text-white text-xs font-bold">
-                    2
-                  </div>
-                </div>
-                <h3 className="text-lg font-bold mb-2">AI tries it on you</h3>
-                <p className="text-sm text-muted-foreground">
-                  See yourself in the outfit. Get fit recommendations and style notes.
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="relative">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center">
-                    <MessageCircle className="w-8 h-8 text-white" />
-                  </div>
-                  <div className="absolute top-0 right-1/2 transform translate-x-16 -translate-y-2 w-6 h-6 rounded-full bg-success flex items-center justify-center text-white text-xs font-bold">
-                    3
-                  </div>
-                </div>
-                <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
-                  Order via WhatsApp
-                  <ComingSoonBadge size="xs" />
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Share your try-on with the curator. Confirm size, stock, and delivery.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-12 text-center">
-              <FeedbackLink
-                href={CTA_SHOP.href}
-                onClick={() => trackHomepageCta({ cta: "shop", placement: "how_it_works" })}
-                className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white font-bold px-8 py-4 rounded-full text-base shadow-lg shadow-primary/25 transition-all"
-              >
-                <Camera className="w-5 h-5" />
-                Try it now — it&apos;s free
-                <ArrowRight className="w-5 h-5" />
-              </FeedbackLink>
-              <p className="mt-3 text-xs text-muted-foreground">
-                No wallet required · Takes 30 seconds · Free try-on
-              </p>
-            </div>
+            <AgentFlow />
           </div>
         </div>
       </section>
+
+      {/* How It Works — desktop: always open. Mobile: collapsed <details>
+          (progressive disclosure — shoppers see items first, the story on demand). */}
+      <section className="hidden lg:block border-t border-border/30 bg-background">
+        <div className="container mx-auto px-4 py-16 md:py-20">
+          <HowItWorks />
+        </div>
+      </section>
+      <details className="group lg:hidden border-t border-border/30 bg-background">
+        <summary className="container mx-auto px-4 py-5 flex items-center justify-between cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+          <span className="text-base font-bold">How it works — try on before you buy</span>
+          <ArrowRight className="w-5 h-5 text-muted-foreground transition-transform group-open:rotate-90" />
+        </summary>
+        <div className="container mx-auto px-4 pb-12">
+          <HowItWorks />
+        </div>
+      </details>
 
       {/* Agent Activity Feed — shows live proof of agent commerce */}
       <section className="border-t border-border/30 bg-muted/20">
@@ -284,41 +330,6 @@ export function HeroView() {
 
       {/* Recently Saved — shown when user has saved looks */}
       <RecentlySavedSection />
-
-      {/* Dual-client pitch — supply + demand before LookCrafter */}
-      <Reveal>
-        <section className="border-t border-border/30">
-          <div className="container mx-auto px-4 py-10 md:py-14">
-            <div className="max-w-3xl mx-auto text-center space-y-4">
-              <p className="text-lg md:text-xl font-light tracking-tight text-foreground">
-                Sell on WhatsApp?{" "}
-                <Link
-                  href={CTA_SUPPLY.href}
-                  onClick={() =>
-                    trackHomepageCta({ cta: "supply", placement: "pitch" })
-                  }
-                  className="font-bold text-primary hover:text-primary/80 transition-colors underline underline-offset-4 decoration-primary/30"
-                >
-                  Put your inventory on OnPoint
-                </Link>
-                {" "}— AI try-on, polaroids, M-Pesa. Agents can buy the same stock.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Prefer to shop first?{" "}
-                <Link
-                  href={CTA_SHOP.href}
-                  onClick={() =>
-                    trackHomepageCta({ cta: "shop", placement: "pitch" })
-                  }
-                  className="font-medium text-foreground underline underline-offset-2"
-                >
-                  Browse live storefronts
-                </Link>
-              </p>
-            </div>
-          </div>
-        </section>
-      </Reveal>
 
       {/* Craft a Look — interactive lead magnet */}
       <LookCrafter />
@@ -421,98 +432,6 @@ export function HeroView() {
         </div>
       </section>
 
-      {/* Agent Commerce Section */}
-      <section className="bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.06),transparent_60%)] border-t border-border/30">
-        <div className="container mx-auto px-4 py-16 md:py-20">
-          <div className="max-w-4xl mx-auto">
-            <Reveal>
-              <div className="text-center mb-10">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-bold text-primary uppercase tracking-wider mb-4">
-                  <Bot className="w-3.5 h-3.5" />
-                  Agent Commerce
-                </div>
-                <h2 className="text-3xl md:text-4xl font-black tracking-tight">
-                  Same inventory for humans and agents
-                </h2>
-                <p className="mt-3 text-sm md:text-base text-muted-foreground max-w-2xl mx-auto">
-                  Agents browse the same curator storefronts, try on the same items, and pay via x402 facilitator with gasless USDC on Celo.
-                </p>
-              </div>
-            </Reveal>
-
-            <Reveal delay={0.1}>
-              <div className="grid md:grid-cols-3 gap-4">
-                {/* x402 Payment Flow */}
-                <div className="rounded-xl border border-border/40 bg-gradient-to-br from-background to-primary/[0.03] p-5 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Wallet className="w-5 h-5 text-primary" />
-                    <h3 className="text-sm font-bold">x402 Payment</h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Agents sign EIP-3009 authorization. Facilitator settles on-chain (gasless for buyer). Attribution tags on every transaction.
-                  </p>
-                  <div className="pt-2 border-t border-border/30">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Tokens</p>
-                    <div className="flex gap-2">
-                      <span className="px-2 py-0.5 rounded bg-muted text-[10px] font-medium">cUSD</span>
-                      <span className="px-2 py-0.5 rounded bg-muted text-[10px] font-medium">USDC</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Digital Fashion */}
-                <div className="rounded-xl border border-border/40 bg-gradient-to-br from-background to-accent/[0.03] p-5 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <ImageIcon className="w-5 h-5 text-accent" />
-                    <h3 className="text-sm font-bold">Digital Fashion</h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    AI curators like Nia generate digital-only designs. Try-on renders via Venice API. NFT minting with 85/15 royalty split.
-                  </p>
-                  <div className="pt-2 border-t border-border/30">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Pricing</p>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-lg font-black text-primary">$0.03</span>
-                      <span className="text-[10px] text-muted-foreground">/ try-on</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Attribution & Leaderboard */}
-                <div className="rounded-xl border border-border/40 bg-gradient-to-br from-background to-emerald-500/[0.03] p-5 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-success" />
-                    <h3 className="text-sm font-bold">Hackathon Ready</h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Dual attribution tags on every transaction. Agent registry integration. Live leaderboard tracking.
-                  </p>
-                  <div className="pt-2 border-t border-border/30">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Tracks</p>
-                    <div className="flex gap-2 flex-wrap">
-                      <span className="px-2 py-0.5 rounded bg-success/10 text-success text-[10px] font-medium">x402 Payments</span>
-                      <span className="px-2 py-0.5 rounded bg-success/10 text-success text-[10px] font-medium">Revenue</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Reveal>
-
-            <Reveal delay={0.2}>
-              <div className="mt-8 text-center">
-                <Link
-                  href="/developers"
-                  className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:text-primary/80 transition-colors"
-                >
-                  Agent integration guide
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-            </Reveal>
-          </div>
-        </div>
-      </section>
-
       {/* Footer */}
       <footer className="border-t border-border/60 py-8">
         <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 text-sm text-muted-foreground md:flex-row">
@@ -562,15 +481,15 @@ export function HeroView() {
         }`}
         aria-hidden={heroCtaInView}
       >
-        <Link
-          href={CTA_SHOP.href}
+        <a
+          href="#agent-search"
           onClick={() =>
             trackHomepageCta({ cta: "shop", placement: "mobile_sticky" })
           }
           className="block w-full bg-primary text-white font-bold py-4 rounded-full shadow-lg text-center active:bg-primary/80 active:scale-[0.98] transition-[background-color,transform]"
         >
-          {CTA_SHOP.mobileLabel}
-        </Link>
+          Try the agent
+        </a>
       </div>
     </div>
   );

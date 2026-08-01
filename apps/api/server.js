@@ -290,6 +290,30 @@ app.use('/api/agent/try-on', json10mb, aiExpensiveRateLimit, aiExpensiveDailyLim
 // Agentic Wallet users can pay without bridging. See routes/okx-facade.js.
 app.use('/okx', json10mb, require('./routes/okx-facade'));
 
+// ── Prava iMessage App card (rendered inside the Linq bubble) ─────
+// The mutating card HTML keyed by order id. PUBLIC (no service key) — it is
+// the card content Linq fetches into the bubble; the order id is an
+// unguessable UUID and carries no card data. Mounted BEFORE the /prava
+// facade so the facade's service-key auth doesn't gate it. ADR 0017.
+app.use('/prava/card', require('./routes/prava-card'));
+
+// ── Prava Sandbox Fallback (REST session flow — live-demo safety net) ─
+// session → passkey → credential → report-status → completed, via Prava's
+// REST API. Self-check by default; live with PRAVA_SECRET_KEY. ADR 0017.
+app.use('/prava/sandbox', json1k, require('./routes/prava-sandbox'));
+
+// ── Prava Agent Checkout Facade (Agentic Commerce Hackathon) ──────
+// Agent buy-flow rail: discover → quote → scoped-card session → passkey
+// approval → real order at a UCP fashion merchant. Drives the Linq iMessage
+// card. Self-check mode by default; live via the prava CLI. ADR 0017.
+app.use('/prava', json1k, require('./routes/prava-facade'));
+
+// ── Linq iMessage Agent (Agentic Commerce Hackathon, Linq track) ───
+// Receives Linq iMessage webhooks and orchestrates the buy-flow: inbound
+// text → prava quote+session → mutating card → 👍 approval → checkout →
+// confirmed. Mock mode by default. ADR 0017, docs/PRAVA-HACKATHON.md.
+app.use('/linq', require('./routes/linq-agent'));
+
 // ── Curator Routes (public, rate-limited) ───────────────────────
 // Self-serve curator onboarding (ADR 0002). No API key needed.
 

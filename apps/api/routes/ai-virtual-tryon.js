@@ -1019,6 +1019,11 @@ module.exports.engine = {
   buildGeneratedOutfitImageResponse,
   generateVisionAnalysis,
   parseBodyAnalysisResponse,
+  // Exposed for the Prava agent-checkout flow (ADR 0017) so a UCP fashion
+  // merchant product image can be tried on a person photo without a curator
+  // listing or x402 payment — the "try-on-before-agent-buys" demo leg.
+  runReplicatePrediction,
+  IDM_VTON_VERSION,
 };
 module.exports.__test = {
   parseJsonObject,
