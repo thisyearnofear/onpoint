@@ -89,33 +89,33 @@ export function OnPointHeader() {
 
       {/* Mobile header */}
       <div className="md:hidden sticky top-0 z-50 w-full border-b border-border/60 bg-background/95 backdrop-blur-xl">
-        <div className="flex items-center justify-between px-4 h-12">
+        <div className="flex items-center justify-between px-3 h-14">
           <Link href="/" className="flex items-center gap-2">
             <div className="p-1 rounded-lg bg-gradient-to-br from-primary to-accent shadow-sm">
-              <Palette className="h-3.5 w-3.5 text-white" />
+              <Palette className="h-4 w-4 text-white" />
             </div>
             <span className="text-sm font-bold tracking-tight">{PRODUCT_NAME}</span>
           </Link>
           <div className="flex items-center gap-1">
             <Link
               href={CTA_SHOP.href}
-              className="inline-flex items-center gap-1 text-xs font-medium text-primary px-2 py-1 rounded-full bg-primary/10 hover:bg-primary/15 transition-colors"
+              className="inline-flex min-h-[44px] items-center gap-1.5 text-sm font-semibold text-primary px-3 rounded-full bg-primary/10 hover:bg-primary/15 active:scale-[0.98] transition-[background-color,transform]"
             >
-              <Camera className="w-3 h-3" />
+              <Camera className="w-4 h-4" />
               Shop
             </Link>
             <Link
               href="/looks"
-              className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground px-2 py-1 rounded-full hover:bg-muted/50 transition-colors"
+              className="inline-flex min-h-[44px] items-center gap-1.5 text-sm font-medium text-muted-foreground px-3 rounded-full hover:bg-muted/50 active:scale-[0.98] transition-[background-color,transform]"
             >
-              <Sparkles className="w-3 h-3" />
+              <Sparkles className="w-4 h-4" />
               Looks
             </Link>
             <Link
               href="/curator"
-              className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground px-2 py-1 rounded-full hover:bg-muted/50 transition-colors"
+              className="inline-flex min-h-[44px] items-center gap-1.5 text-sm font-medium text-muted-foreground px-3 rounded-full hover:bg-muted/50 active:scale-[0.98] transition-[background-color,transform]"
             >
-              <Store className="w-3 h-3" />
+              <Store className="w-4 h-4" />
               Supply
             </Link>
             <NotificationBell direction="up" />

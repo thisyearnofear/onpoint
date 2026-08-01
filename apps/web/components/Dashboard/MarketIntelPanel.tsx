@@ -282,7 +282,7 @@ export function MarketIntelPanel() {
               setQuery(item);
               runSearch(item);
             }}
-            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+            className={`inline-flex min-h-[44px] items-center rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
               activeQuery === item
                 ? "border-primary/30 bg-primary/10 text-primary"
                 : "border-border bg-card text-muted-foreground hover:text-foreground"

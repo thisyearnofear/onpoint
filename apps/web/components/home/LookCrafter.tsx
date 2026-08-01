@@ -440,21 +440,21 @@ export function LookCrafter() {
                 <div className="flex gap-2 justify-center">
                   <button
                     onClick={handleDownload}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-xs font-medium text-foreground hover:bg-muted active:bg-muted/80 active:scale-[0.98] transition-[background-color,transform]"
+                    className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-border px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted active:bg-muted/80 active:scale-[0.98] transition-[background-color,transform]"
                   >
                     <Download className="w-3.5 h-3.5" />
                     Download
                   </button>
                   <button
                     onClick={handleShare}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-xs font-medium text-foreground hover:bg-muted active:bg-muted/80 active:scale-[0.98] transition-[background-color,transform]"
+                    className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-border px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted active:bg-muted/80 active:scale-[0.98] transition-[background-color,transform]"
                   >
                     {copied ? <Check className="w-3.5 h-3.5 text-success" /> : <Share2 className="w-3.5 h-3.5" />}
                     {copied ? "Copied!" : "Share"}
                   </button>
                   <button
                     onClick={handleReset}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-xs font-medium text-foreground hover:bg-muted active:bg-muted/80 active:scale-[0.98] transition-[background-color,transform]"
+                    className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-border px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted active:bg-muted/80 active:scale-[0.98] transition-[background-color,transform]"
                   >
                     <Shirt className="w-3.5 h-3.5" />
                     New Look
@@ -464,7 +464,7 @@ export function LookCrafter() {
                 {/* CTA to lab — secondary action, the hero CTA above is the primary */}
                 <Link
                   href={`/lab?persona=${persona}`}
-                  className="flex items-center justify-center gap-2 w-full rounded-full border border-border bg-transparent py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/50 active:bg-muted active:scale-[0.98] transition-[background-color,transform,color]"
+                  className="flex min-h-[44px] items-center justify-center gap-2 w-full rounded-full border border-border bg-transparent py-3 text-sm font-bold text-muted-foreground hover:text-foreground hover:bg-muted/50 active:bg-muted active:scale-[0.98] transition-[background-color,transform,color]"
                 >
                   Try this look
                   <ArrowRight className="w-3.5 h-3.5" />

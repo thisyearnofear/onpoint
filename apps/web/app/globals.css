@@ -350,3 +350,27 @@
     animation: none !important;
   }
 }
+
+/* ============ Mobile Type Floor (legibility) ============
+   On phone-width screens, nothing a user must read to transact should sit
+   below 14px. This bumps the sub-14px text utilities (text-xs, the
+   .text-fashion-label component, and the common arbitrary text-[9/10/11px])
+   up to 14px (text-sm) below the sm breakpoint, restoring their smaller
+   sizes on ≥640px screens. Plain (un-layered) CSS so it overrides Tailwind's
+   layered utilities by cascade. Touches every surface at once — the systemic
+   fix rather than editing ~700 call sites. */
+@media (max-width: 639px) {
+  .text-xs,
+  .text-fashion-label,
+  .text-\[9px\],
+  .text-\[10px\],
+  .text-\[11px\] {
+    font-size: 0.875rem;   /* 14px */
+    line-height: 1.25rem;  /* 20px */
+  }
+  /* Eyebrow/label uppercase tracking stays readable but not oversized. */
+  .text-fashion-label {
+    letter-spacing: 0.08em;
+  }
+}
+

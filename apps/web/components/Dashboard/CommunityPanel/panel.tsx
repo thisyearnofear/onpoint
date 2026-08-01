@@ -404,20 +404,20 @@ export function CommunityPanel({ onNavigate, onNewLooksStatus }: CommunityPanelP
       {/* View toggle */}
       <div className="flex items-center gap-1.5 flex-wrap">
         <button onClick={() => setView("browse")}
-          className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${view === "browse" ? "bg-primary/20 text-primary ring-1 ring-primary/30" : "bg-muted/40 text-muted-foreground hover:text-foreground"}`}
+          className={`flex min-h-[44px] items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-all ${view === "browse" ? "bg-primary/20 text-primary ring-1 ring-primary/30" : "bg-muted/40 text-muted-foreground hover:text-foreground"}`}
         ><Globe className="w-3.5 h-3.5" /> Browse</button>
         <button onClick={() => setView("reactions")}
-          className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${view === "reactions" ? "bg-rose-500/20 text-rose-500 ring-1 ring-rose-500/30" : "bg-muted/40 text-muted-foreground hover:text-foreground"}`}
+          className={`flex min-h-[44px] items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-all ${view === "reactions" ? "bg-rose-500/20 text-rose-500 ring-1 ring-rose-500/30" : "bg-muted/40 text-muted-foreground hover:text-foreground"}`}
         ><BookHeart className="w-3.5 h-3.5" /> Reactions
           {allLikedIds.size + allReactedIds.size > 0 && <span className="ml-0.5 rounded-full bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-bold text-rose-500 tabular-nums">{allLikedIds.size + allReactedIds.size}</span>}
         </button>
         <button onClick={() => setView("saved")}
-          className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${view === "saved" ? "bg-sky-500/20 text-sky-500 ring-1 ring-sky-500/30" : "bg-muted/40 text-muted-foreground hover:text-foreground"}`}
+          className={`flex min-h-[44px] items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-all ${view === "saved" ? "bg-sky-500/20 text-sky-500 ring-1 ring-sky-500/30" : "bg-muted/40 text-muted-foreground hover:text-foreground"}`}
         ><Bookmark className="w-3.5 h-3.5" /> Saved
           {bookmarkedIds.size > 0 && <span className="ml-0.5 rounded-full bg-sky-500/20 px-1.5 py-0.5 text-[10px] font-bold text-sky-500 tabular-nums">{bookmarkedIds.size}</span>}
         </button>
         <button onClick={() => setView("moderation")}
-          className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${view === "moderation" ? "bg-rose-500/20 text-rose-500 ring-1 ring-rose-500/30" : "bg-muted/40 text-muted-foreground hover:text-foreground"}`}
+          className={`flex min-h-[44px] items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-all ${view === "moderation" ? "bg-rose-500/20 text-rose-500 ring-1 ring-rose-500/30" : "bg-muted/40 text-muted-foreground hover:text-foreground"}`}
         ><Flag className="w-3.5 h-3.5" /> Reports
           {reportedIds.size > 0 && <span className="ml-0.5 rounded-full bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-bold text-rose-500 tabular-nums">{reportedIds.size}</span>}
         </button>

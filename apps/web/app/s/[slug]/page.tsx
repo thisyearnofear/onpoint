@@ -500,7 +500,7 @@ export default async function CuratorStorefrontPage({
                       {formatKitType(kit?.kitType ?? "")}
                     </div>
                     {isPreview && listing.imageUrl && (
-                      <div className="absolute bottom-3 right-3 rounded-full bg-background/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground backdrop-blur">
+                      <div className="absolute bottom-3 right-3 rounded-full bg-background/80 px-2 py-0.5 text-xs font-medium text-muted-foreground backdrop-blur">
                         Concept image
                       </div>
                     )}
@@ -520,9 +520,9 @@ export default async function CuratorStorefrontPage({
                       </p>
                     </div>
 
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">From</span>
-                      <span className="font-bold">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">From</span>
+                      <span className="text-base font-bold text-foreground">
                         {lowestPrice ? formatMoney(lowestPrice) : "Ask"}
                       </span>
                     </div>
@@ -531,7 +531,7 @@ export default async function CuratorStorefrontPage({
                       {listing.sizes.map((size) => (
                         <span
                           key={`${listing.id}-${size.size}`}
-                          className="rounded-md border border-border px-2 py-1 text-xs"
+                          className="rounded-md border border-border px-2 py-1 text-sm font-medium"
                         >
                           {size.size} · {size.stock}
                           {size.printingAvailable ? " · print" : ""}

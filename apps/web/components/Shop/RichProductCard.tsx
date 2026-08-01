@@ -61,7 +61,7 @@ export function RichProductCard({
     >
       {/* Badge */}
       {badge && (
-        <div className="absolute top-2 left-2 z-10 px-1.5 py-0.5 rounded-full bg-purple-500/90 text-white text-[8px] font-bold shadow-lg">
+        <div className="absolute top-2 left-2 z-10 px-1.5 py-0.5 rounded-full bg-purple-500/90 text-white text-xs font-bold shadow-lg">
           {badge}
         </div>
       )}
@@ -70,7 +70,7 @@ export function RichProductCard({
       {isBestPrice && (
         <div className="absolute top-2 right-2 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-success/20 border border-success/30">
           <TrendingDown className="w-2.5 h-2.5 text-emerald-400" />
-          <span className="text-[8px] text-emerald-300 font-bold">
+          <span className="text-xs text-emerald-300 font-bold">
             Best Price
           </span>
         </div>
@@ -95,19 +95,19 @@ export function RichProductCard({
 
       {/* Product info */}
       <div className="flex-1 min-w-0 space-y-1">
-        <p className="text-xs font-medium text-foreground line-clamp-2 leading-snug">
+        <p className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
           {product.name}
         </p>
         <div className="flex items-center gap-2">
           <span
-            className={`text-sm font-bold ${isBestPrice ? "text-emerald-400" : "text-amber-400"}`}
+            className={`text-base font-bold ${isBestPrice ? "text-emerald-400" : "text-amber-400"}`}
           >
             {product.currency === "USD" || !product.currency
               ? "$"
               : `${product.currency} `}
             {product.price.toFixed(2)}
           </span>
-          <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border">
+          <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border">
             {product.source}
           </span>
         </div>
@@ -145,7 +145,7 @@ export function RichProductGroup({
       <div className="flex items-center justify-between">
         <p className="text-xs font-medium text-foreground line-clamp-1">{title}</p>
         {hasRange && (
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             ${lowestPrice.toFixed(0)}–${highestPrice.toFixed(0)} across{" "}
             {sorted.length} stores
           </span>
