@@ -11,8 +11,8 @@
  *   2. Try on    — POST /prava/order/:id/try-on  (IDM-VTON on the garment + person)
  *   3. Quote     — (folded into POST /prava/order — binding total + checkout_session)
  *   4. Authorize — (folded into POST /prava/order — payment session + payment_url)
- *   5. Approve   — POST /prava/order/:id/approve  (passkey approval; self-check)
- *   6. Checkout — POST /prava/order/:id/checkout → real order id (shop_checkout)
+ *   5. Approve   — POST /prava/order/:id/poll  (passkey approval → single-use token+cryptogram)
+ *   6. Checkout — POST /prava/order/:id/checkout → real order id (shop_checkout w/ creds)
  *   7. Prove     — GET  /prava/card/:id           (mutating iMessage App card)
  *
  * Then the SDK/API REST sandbox fallback (live-demo safety net):
@@ -114,12 +114,14 @@ async function main() {
   sub("state", tr.order?.state);
 
   // ── 5. Approve (passkey) ──────────────────────────────────────────
-  log("4 · Approve — owner passkey (self-check marks the session approved)");
-  const ap = await post(`/prava/order/${order.orderId}/approve`, {});
+  log("4 · Approve — owner passkey (poll returns single-use tokenized credentials)");
+  const ap = await post(`/prava/order/${order.orderId}/poll`, {});
   ok("state", ap.state);
+  ok("payment status", ap.paymentStatus);
+  sub("credentials captured", ap.state === "approved" ? "yes (token + cryptogram held server-side)" : "no");
 
   // ── 6. Checkout (shop_checkout — places the real order) ──────────
-  log("5 · Checkout — agent completes the purchase (Prava shop_checkout)");
+  log("5 · Checkout — agent completes the purchase with the captured credentials (Prava shop_checkout)");
   const co = await post(`/prava/order/${order.orderId}/checkout`, {});
   ok("state", co.state);
   ok("Prava order id", co.order?.orderIdPrava || "(none)");

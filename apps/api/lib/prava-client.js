@@ -172,27 +172,34 @@ const FIXTURE = {
     currency,
     replayed: false,
   }),
-  paymentStatus: (sessionId) => ({
-    // self-check: pretend the user approved after a short delay handled by the facade
+  // poll: self-check approves immediately and returns fake single-use creds,
+  // shaped like the real CLI's Token/Cryptogram/Expiry output.
+  poll: (sessionId) => ({
     session_id: sessionId,
     status: 'completed',
+    token: '4323126882557932',
+    cryptogram: '957',
+    expiryMonth: '12',
+    expiryYear: '2028',
   }),
-  checkout: (checkoutSessionId, paymentSessionId) => ({
+  checkout: (checkoutSessionId) => ({
     status: 'completed',
     order_id: 'ord_fixture_' + Math.random().toString(36).slice(2, 10),
     amount: '108.84',
     currency: 'USD',
     checkout_session_id: checkoutSessionId,
-    payment_session_id: paymentSessionId,
   }),
 };
 
 // ── Public buy-flow API (transport-agnostic) ─────────────────────────
 
-/** shop_search — discover products across UCP fashion merchants. */
-async function shopSearch({ query, merchant, limit } = {}) {
+/** shop_search — discover products across UCP fashion merchants.
+ *  `intent` carries the user's full natural-language ask (occasion, budget,
+ *  vibe) to UCP for better ranking — pass it whenever it's available. */
+async function shopSearch({ query, intent, merchant, limit } = {}) {
   if (await cliAvailable()) {
     const args = ['shop', 'search', '--query', query, '--json'];
+    if (intent) args.push('--intent', intent);
     if (merchant) args.push('--merchant', merchant);
     if (limit) args.push('--limit', String(limit));
     return runCli(args);
@@ -242,38 +249,59 @@ async function createPaymentSession({ totalAmount, currency, merchantName, merch
   return FIXTURE.paymentSession(totalAmount, currency, merchantName);
 }
 
-/** get_payment_status — pending | completed | failed. Credentials never leave Prava. */
-async function getPaymentStatus({ sessionId } = {}) {
+/** poll_payment_session — wait for the owner to approve the payment session
+ *  and return the single-use tokenized card credentials.
+ *
+ *  Real CLI: `prava sessions poll --session-id S` blocks (up to ~10 min) while
+ *  the owner approves in the browser, then returns a Visa network Token, a
+ *  one-time Cryptogram (dynamic CVV), and an Expiry (MM/YYYY). Those creds are
+ *  what `shop_checkout` needs to actually place the order — nothing leaves
+ *  Prava except single-use, merchant-bound credentials.
+ *
+ *  Returns { session_id, status, token?, cryptogram?, expiryMonth?, expiryYear? }.
+ *  `status` is 'completed' once creds are available, 'pending' otherwise. */
+async function pollPaymentSession({ sessionId, timeoutMs = 620000 } = {}) {
   if (await cliAvailable()) {
-    // The CLI surfaces this via `prava sessions poll`; for a non-blocking
-    // status check the MCP `get_payment_status` tool is preferred. We poll
-    // once with a short timeout and read the resulting status.
     try {
-      const r = await runCli(['sessions', 'poll', '--session-id', sessionId], { timeoutMs: 15000 });
-      return { session_id: sessionId, status: 'completed', ...r };
+      const r = await runCli(['sessions', 'poll', '--session-id', sessionId], { timeoutMs });
+      if (r && r.token) {
+        const [mm, yyyy] = String(r.expiry || '').split('/');
+        return {
+          session_id: sessionId,
+          status: 'completed',
+          token: String(r.token),
+          cryptogram: String(r.cryptogram),
+          expiryMonth: mm || undefined,
+          expiryYear: yyyy || undefined,
+        };
+      }
+      return { session_id: sessionId, status: 'pending' };
     } catch (e) {
       if (e.code === 'not_linked') throw e;
       return { session_id: sessionId, status: 'pending' };
     }
   }
-  return FIXTURE.paymentStatus(sessionId);
+  return FIXTURE.poll(sessionId);
 }
 
-/** shop_checkout — places the real order against an approved session + prior quote. */
-async function shopCheckout({ checkoutSessionId, paymentSessionId } = {}) {
+/** shop_checkout — place the real order against a quoted session using the
+ *  single-use credentials obtained from poll_payment_session.
+ *
+ *  Real CLI: `prava shop checkout --checkout-session-id CS --token T
+ *  --cryptogram C --expiry-month MM --expiry-year YYYY --yes`. On success it
+ *  prints "✓ Paid" + an order id. The wallet binds the charge to the quoted
+ *  amount, so no amount is passed here. */
+async function shopCheckout({ checkoutSessionId, token, cryptogram, expiryMonth, expiryYear } = {}) {
   if (await cliAvailable()) {
-    // CLI path needs the token/cryptogram (from sessions poll); the MCP
-    // path takes only the payment_session_id. For live mode here we drive
-    // `prava shop checkout` which, when given an approved session, resolves
-    // the credential server-side. Swapping to the MCP SDK makes this exact.
-    return runCli([
-      'shop', 'checkout',
-      '--checkout-session-id', checkoutSessionId,
-      '--payment-session-id', paymentSessionId,
-      '--yes', '--json',
-    ], { timeoutMs: 120000 });
+    const args = ['shop', 'checkout', '--checkout-session-id', checkoutSessionId];
+    if (token) args.push('--token', token);
+    if (cryptogram) args.push('--cryptogram', cryptogram);
+    if (expiryMonth) args.push('--expiry-month', String(expiryMonth));
+    if (expiryYear) args.push('--expiry-year', String(expiryYear));
+    args.push('--yes', '--json');
+    return runCli(args, { timeoutMs: 120000 });
   }
-  return FIXTURE.checkout(checkoutSessionId, paymentSessionId);
+  return FIXTURE.checkout(checkoutSessionId);
 }
 
 /** shop_list_addresses — masked delivery addresses on the owner's account. */
@@ -294,7 +322,9 @@ module.exports = {
   shopProduct,
   shopQuote,
   createPaymentSession,
-  getPaymentStatus,
+  pollPaymentSession,
+  // Back-compat alias for older callers.
+  getPaymentStatus: pollPaymentSession,
   shopCheckout,
   shopListAddresses,
   cliAvailable,

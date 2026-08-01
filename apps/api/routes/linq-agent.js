@@ -223,12 +223,11 @@ async function handleApproval(chatId, _tapback) {
   if (!active) return;
   const { orderId } = active;
 
-  // The owner approves the passkey out-of-band; poll the facade once to flip
-  // to approved (in live mode, real passkey; in self-check, the /approve step).
+  // Poll the facade: this detects the owner's passkey approval and stores the
+  // single-use tokenized credentials on the order. In self-check it returns
+  // fake creds immediately; in live it reflects the real approved session.
+  // Once approved, checkout places the order with those credentials.
   await pravaPollOrder(orderId);
-  // Self-check: mark approved so checkout can run.
-  await pravaApproveOrder(orderId);
-
   const result = await pravaCheckoutOrder(orderId);
   const state = result.state === 'confirmed' ? 'confirmed' : 'awaiting_approval';
 
@@ -280,11 +279,6 @@ async function pravaTryOn(orderId, photo) {
 async function pravaPollOrder(orderId) {
   const r = await fetch(`${internalBase()}/order/${orderId}/poll`, { method: 'POST', headers });
   return r.json();
-}
-async function pravaApproveOrder(orderId) {
-  // Self-check only; no-op in live (owner approves via passkey).
-  const r = await fetch(`${internalBase()}/order/${orderId}/approve`, { method: 'POST', headers });
-  return r.json().catch(() => ({}));
 }
 async function pravaCheckoutOrder(orderId) {
   const r = await fetch(`${internalBase()}/order/${orderId}/checkout`, { method: 'POST', headers });

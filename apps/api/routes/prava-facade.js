@@ -126,7 +126,7 @@ router.get('/health', async (_req, res) => {
     transport: prava.selfCheck() ? 'mock-fixtures' : `cli:${process.env.PRAVA_CLI_PATH || 'prava'}`,
     agentLinked: process.env.PRAVA_AGENT_LINKED === '1',
     cliAvailable: cliOk,
-    buyFlow: ['shop_search', 'shop_product', 'shop_quote', 'create_payment_session', 'get_payment_status', 'shop_checkout'],
+    buyFlow: ['shop_search', 'shop_product', 'shop_quote', 'create_payment_session', 'poll_payment_session', 'shop_checkout'],
     note: prava.selfCheck()
       ? 'Self-check mode — walkable mock. Set PRAVA_CLI_PATH + PRAVA_AGENT_LINKED=1 (and `prava setup`) for live orders.'
       : 'Live mode — real orders via the prava CLI (production, real card).',
@@ -246,6 +246,13 @@ router.post('/order', async (req, res, next) => {
       checkoutSessionId: quote.checkout_session_id,
       paymentSessionId: session.session_id,
       paymentUrl: session.payment_url,
+      // Single-use tokenized card credentials, populated once the owner
+      // approves the payment session (poll_payment_session). Used by
+      // shop_checkout to place the real order. Null until approved.
+      token: null,
+      cryptogram: null,
+      expiryMonth: null,
+      expiryYear: null,
       // UCP product image used for the try-on-before-agent-buys leg.
       garmentImageUrl: chosenProduct?.image || null,
       tryOnUrl: null,
@@ -308,9 +315,14 @@ router.post('/order/:id/poll', async (req, res, next) => {
     if (o.state !== 'awaiting_approval' && o.state !== 'try_on_ready' && o.state !== 'approved') {
       return res.status(409).json({ error: `Cannot poll in state ${o.state}`, order: orderView(o) });
     }
-    const status = await prava.getPaymentStatus({ sessionId: o.paymentSessionId });
+    const status = await prava.pollPaymentSession({ sessionId: o.paymentSessionId });
     if (status.status === 'completed') {
       o.state = 'approved';
+      // Store the single-use tokenized credentials so checkout can use them.
+      o.token = status.token || null;
+      o.cryptogram = status.cryptogram || null;
+      o.expiryMonth = status.expiryMonth || null;
+      o.expiryYear = status.expiryYear || null;
       o.updatedAt = Date.now();
       orders.set(o.id, o);
     } else if (status.status === 'failed') {
@@ -362,7 +374,10 @@ router.post('/order/:id/checkout', async (req, res, next) => {
 
     const result = await prava.shopCheckout({
       checkoutSessionId: o.checkoutSessionId,
-      paymentSessionId: o.paymentSessionId,
+      token: o.token,
+      cryptogram: o.cryptogram,
+      expiryMonth: o.expiryMonth,
+      expiryYear: o.expiryYear,
     });
 
     if (result.status === 'completed' && result.order_id) {
