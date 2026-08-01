@@ -31,9 +31,9 @@ export function LiveCommerceProof() {
   const listings = data?.curators?.reduce((total, curator) => total + (curator.liveListingCount || 0), 0);
 
   const facts = [
-    { icon: Store, value: storefronts ?? "Live", label: "storefronts" },
-    { icon: Box, value: listings ?? "Stocked", label: "physical listings" },
-    { icon: BadgeCheck, value: agentReady ?? "Ready", label: "agent-ready curators" },
+    { icon: Store, value: storefronts ?? "—", label: "storefronts" },
+    { icon: Box, value: listings ?? "—", label: "physical listings" },
+    { icon: BadgeCheck, value: agentReady ?? "—", label: "agent-ready curators" },
     { icon: Zap, value: "$0.03", label: "digital try-on" },
   ];
 

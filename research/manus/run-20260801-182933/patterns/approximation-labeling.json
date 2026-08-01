@@ -1,0 +1,44 @@
+{
+  "slug": "approximation-labeling",
+  "status": "stopped",
+  "task_url": "https://manus.im/app/iH2ppo37ML4BrkNGKsSshG",
+  "structured_success": true,
+  "value": {
+    "examples": [
+      {
+        "product": "Google Shopping Try-On",
+        "screenshot": "google_tryon_approximation_disclosure.webp",
+        "what_they_do": "Copy/badge: The tool emphasizes an explicit approximation and a helpful vibe; placement: near the top of the “Understanding generated images” section in the help article; balance: frames the output as a visual aid not a guarantee, with direct caveats about accuracy and fit."
+      },
+      {
+        "product": "L’Oréal Virtual Try-On",
+        "screenshot": "loreal_vto_illustrative_results_disclaimer.webp",
+        "what_they_do": "Copy/badge: “Represented results are for illustrative purposes only. Individual results will vary.”; placement: within the VTO/terms area, not on the live result card; balance: uses concise, direct language to set expectations while still enabling exploration."
+      },
+      {
+        "product": "Sephora Virtual Artist (historical material)",
+        "screenshot": "sephora_virtual_artist_interface_gallery.webp",
+        "what_they_do": "Copy/badge: no explicit approximation badge observed in the historical gallery; placement: product-specific controls (Tap Bar, Product Filter, Shade Comparison) presented as functional UI; balance: confidence grounded in product-specific shade matching and controls rather than a generic “similar look” substitute."
+      },
+      {
+        "product": "IKEA Place (AR furniture)",
+        "screenshot": "ikea_place_true_to_scale_claim.webp",
+        "what_they_do": "Copy/badge: claims like “3D representations” and “true to scale” with explicit catalog-item linkage; placement: on official AR-placement announcements; balance: relies on named SKU and catalog identity to support confidence without implying generated content."
+      },
+      {
+        "product": "Meta (AI-generated images)",
+        "screenshot": "meta_imagined_with_ai_label_policy.webp",
+        "what_they_do": "Copy/badge: on-image label “Imagined with AI” with visible markers + metadata; placement: on the image itself as a provenance cue; balance: concise, affirmative provenance rather than warning-heavy language."
+      }
+    ],
+    "recommendations": [
+      "AI SIMILAR-LOOK PREVIEW: Use a persistent, on-image badge that clearly marks generated content as a preview (e.g., AI SIMILAR-LOOK PREVIEW).",
+      "Style inspiration only — this AI-generated preview, not the actual garment: Place an immediately visible, one-line caption under or beside the preview image to disambiguate content from purchasable inventory.",
+      "Shop real matching pieces: Under the preview, include a visually distinct inventory divider with a note that fabric, print, drape, color, and size may differ from the preview; link to real SKUs from local curators.",
+      "Find a verified match: Provide a prominent CTA near the preview (and again in WhatsApp/M-Pesa handoff) that clarifies the user is selecting a real item from live stock (SKU, price, size, and stock shown) rather than purchasing the AI image.",
+      "No exact item available: If no exact item exists, show a clear fallback like “No exact item available. Here are real pieces with a similar style you can buy now,” ensuring users are steered toward verifiable inventory with local payment options."
+    ],
+    "task_url": "https://onpoint.local/reports/similar-look-labeling",
+    "topic": "Labeling AI-generated approximations in consumer interfaces (fashion/beauty/AR) to maintain trust and conversion while avoiding misleading representations."
+  }
+}

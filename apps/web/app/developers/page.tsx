@@ -3,6 +3,7 @@ import {
   ArrowRight,
   Bot,
   Camera,
+  Check,
   Code,
   ExternalLink,
   Globe,
@@ -297,6 +298,66 @@ const challenge = await orderRes.json();
 if (orderRes.status !== 402) throw new Error("Expected a payment challenge");
 // challenge.quote and challenge.x402 now describe cUSD and gasless USDC paths.`}
           />
+        </section>
+
+        {/* Competitive Differentiation — evidence-based, from teardown research */}
+        <section className="mb-14">
+          <h2 className="text-2xl font-black tracking-tight mb-3 flex items-center gap-2">
+            <Shield className="w-5 h-5 text-primary" />
+            Why OnPoint, Not Another API
+          </h2>
+          <p className="text-sm text-muted-foreground mb-6 max-w-2xl">
+            Most fashion APIs are demand-side wrappers over generic catalogs. OnPoint is the supply
+            side — fit-aware, locally payable, agent-addressable inventory that no one else has.
+          </p>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="rounded-xl border border-border/40 bg-card p-5 space-y-3">
+              <h3 className="text-sm font-bold flex items-center gap-2">
+                <Check className="w-4 h-4 text-success" />
+                Fit signal, not just search
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Image-conditioned try-on (Replicate IDM-VTON) shows the actual garment on the
+                buyer&apos;s photo — not a &ldquo;similar look&rdquo; approximation. Jumia and Kilimall
+                have local payments but zero fit signal. Amazon and Walmart have try-on but no
+                African inventory or local settlement.
+              </p>
+            </div>
+            <div className="rounded-xl border border-border/40 bg-card p-5 space-y-3">
+              <h3 className="text-sm font-bold flex items-center gap-2">
+                <Check className="w-4 h-4 text-success" />
+                Same inventory, two clients
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Every curator listing serves humans (storefront + WhatsApp/M-Pesa) and agents (API +
+                x402/cUSD) from one source of truth. Competitors serve one or the other; none serve
+                both from the same catalog with agent payouts.
+              </p>
+            </div>
+            <div className="rounded-xl border border-border/40 bg-card p-5 space-y-3">
+              <h3 className="text-sm font-bold flex items-center gap-2">
+                <Check className="w-4 h-4 text-success" />
+                Local payment rails
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                WhatsApp/M-Pesa for humans, cUSD/USDC on Celo and USD₮0 on XLayer for agents. Doji
+                and StyleAI have no checkout rails at all. Zeekit requires a Walmart account. OnPoint
+                closes the loop in the markets others ignore.
+              </p>
+            </div>
+            <div className="rounded-xl border border-border/40 bg-card p-5 space-y-3">
+              <h3 className="text-sm font-bold flex items-center gap-2">
+                <Check className="w-4 h-4 text-success" />
+                Curator provenance, not generic catalog
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Every item traces to a named curator with a wallet, stock truth, and payout split.
+                Vue.ai and StyleAI sit on top of retailer catalogs. OnPoint&apos;s supply graph is
+                built from African fashion curators (Ankara, Kente, Adire, Bogolan, Shweshwe) —
+                inventory no horizontal platform has.
+              </p>
+            </div>
+          </div>
         </section>
 
         {/* Capabilities */}

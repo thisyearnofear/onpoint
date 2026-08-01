@@ -15,7 +15,6 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { Reveal } from "../ui/Reveal";
-import { ComingSoonBadge } from "../ui/ComingSoonBadge";
 import { FeedbackLink } from "../ui/FeedbackLink";
 import { LiveCounter } from "../LiveCounter";
 import { trackHomepageCta } from "../../lib/utils/analytics";
@@ -98,7 +97,6 @@ function HowItWorks() {
           </div>
           <h3 className="text-lg font-bold mb-2 flex items-center justify-center gap-2">
             Order via WhatsApp
-            <ComingSoonBadge size="xs" />
           </h3>
           <p className="text-sm text-muted-foreground">
             Share your try-on with the curator. Confirm size, stock, and delivery.
@@ -255,18 +253,18 @@ export function HeroView() {
                 <div className="mt-4 rounded-2xl border border-primary/10 bg-gradient-to-br from-primary/[0.04] to-accent/[0.03] p-4 space-y-3">
                   <div className="flex items-center gap-2 text-xs text-primary font-bold uppercase tracking-wider">
                     <Sparkles className="w-3.5 h-3.5" />
-                    Sample fit signal
+                    How try-on works
                   </div>
                   <div className="flex items-center gap-4">
-                    <div className="text-3xl font-black text-primary">8/10</div>
+                    <div className="text-3xl font-black text-primary">1-2-3</div>
                     <div className="flex-1 text-xs text-muted-foreground leading-relaxed">
-                      &ldquo;Strong color coordination. The oversized silhouette works well with your frame. Consider a structured bag to balance the proportions.&rdquo;
+                      Upload a photo, see yourself in the outfit, then order via WhatsApp. No wallet needed to start.
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    <span className="px-2 py-0.5 rounded-full bg-success/10 text-success text-[10px] font-medium">✓ Color Harmony</span>
-                    <span className="px-2 py-0.5 rounded-full bg-success/10 text-success text-[10px] font-medium">✓ Fit</span>
-                    <span className="px-2 py-0.5 rounded-full bg-warning/10 text-warning text-[10px] font-medium">↑ Accessories</span>
+                    <span className="px-2 py-0.5 rounded-full bg-success/10 text-success text-[10px] font-medium">✓ Free try-on</span>
+                    <span className="px-2 py-0.5 rounded-full bg-success/10 text-success text-[10px] font-medium">✓ Fit signal</span>
+                    <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium">→ WhatsApp order</span>
                   </div>
                 </div>
               </Reveal>
@@ -290,10 +288,10 @@ export function HeroView() {
             <div className="mb-6 text-center">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-bold text-primary uppercase tracking-wider mb-3">
                 <Bot className="w-3.5 h-3.5" />
-                Agent Stylist
+                Agent Commerce
               </div>
               <h2 className="text-2xl md:text-3xl font-black tracking-tight">
-                Your AI stylist shops for you
+                Search, try on, and buy — via API
               </h2>
               <p className="mt-2 text-sm text-muted-foreground">
                 Search a style. The agent discovers real brands, tries them on you, and buys with a scoped card you approve.
@@ -330,9 +328,6 @@ export function HeroView() {
 
       {/* Recently Saved — shown when user has saved looks */}
       <RecentlySavedSection />
-
-      {/* Craft a Look — interactive lead magnet */}
-      <LookCrafter />
 
       {/* Editorial Stats */}
       <EditorialStats />
@@ -431,6 +426,11 @@ export function HeroView() {
           </div>
         </div>
       </section>
+
+      {/* Style Explorer — secondary interactive, not a hero feature.
+          Lives below the digital fashion showcase for users who want
+          to play with vibes and personas before trying real inventory. */}
+      <LookCrafter />
 
       {/* Footer */}
       <footer className="border-t border-border/60 py-8">

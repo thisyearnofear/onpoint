@@ -170,6 +170,10 @@ export function TryOnResult({
       ? image
       : `data:image/webp;base64,${image}`
     : "";
+  const isApproximation = !loading && Boolean(imageSrc) && !(
+    providerLabel?.toLowerCase().includes("image-conditioned") ||
+    providerLabel?.toLowerCase().includes("actual garment")
+  );
 
   // Merge structured tips into a lookup for fast access when rendering plain tips
   const structuredByTip = React.useMemo(() => {
@@ -256,6 +260,11 @@ export function TryOnResult({
                   unoptimized
                   className="object-cover transition-opacity duration-300"
                 />
+                {isApproximation && (
+                  <div className="absolute top-2 left-2 rounded-md bg-black/70 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-300 backdrop-blur-sm">
+                    AI Similar-Look Preview
+                  </div>
+                )}
                 {originalPhotoUrl && (
                   <button
                     className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs font-medium bg-black/60 text-white rounded-full px-3 py-1 backdrop-blur-sm hover:bg-black/80 transition-colors select-none"
@@ -470,7 +479,11 @@ export function TryOnResult({
           {/* AI Model Transparency Label */}
           <div className="text-xs text-gray-500 text-center mt-3 flex items-center justify-center gap-1">
             <Sparkles className="h-3 w-3" />
-            <span>{providerLabel || "AI generated visualization"}</span>
+            <span>
+              {isApproximation
+                ? "Style inspiration only — this is an AI-generated preview, not the actual garment. Fabric, print, and fit may differ."
+                : providerLabel || "AI generated visualization"}
+            </span>
           </div>
         </div>
       </CardContent>

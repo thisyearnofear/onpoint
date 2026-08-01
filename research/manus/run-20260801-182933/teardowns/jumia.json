@@ -1,0 +1,49 @@
+{
+  "slug": "jumia",
+  "status": "stopped",
+  "task_url": "https://manus.im/app/UZ7T4ygX4zWcEYDdF5wspd",
+  "structured_success": true,
+  "value": {
+    "checkout_rails": [
+      "M-Pesa / Mobile Money",
+      "Visa",
+      "Mastercard",
+      "Cash on Delivery",
+      "Jumia Pay"
+    ],
+    "expectation_copy": null,
+    "gap_vs_onpoint": "What public evidence shows: Jumia Kenya presents a broad, price-led marketplace with local payments (M-Pesa/mobile money, Jumia Pay) and seller/API maturity via Vendor Center, but there is no publicly observable, shopper-facing try-on or fit-visualization feature. A Cloudflare CAPTCHA blocks end-to-end browsing to product pages and cart, and there is no explicit UI copy labeling any try-on as real or a generic/approximation. This creates a gap for OnPoint’s positioning: OnPoint should provide a clearly identified SKUs-based, fit-aware try-on with real stock linkage and local-pay-enabled checkout, exposed to both human shoppers and agent-facing clients via a documented supply graph and a programmable checkout surface. In addition, OnPoint should map curated African fashion categories (e.g., Ankara, Kente, Adire, Bogolan, Shweshwe) into a semantically rich, curator-led inventory graph that enables agent purchase intent with real-time stock and price signals. Evidence: landing blocker screenshot (01_jumia_landing_cloudflare_blocker_annotated.webp), try-on blocker (02_jumia_tryon_search_entry_blocked_annotated.webp), JumiaPay mobile-money guidance (03_jumia_mobile_money_checkout_annotated.webp), JumiaPay pricing language (04_jumiapay_free_pricing_annotated.webp), and mobile-app listing (05_jumia_android_app_listing_annotated.webp).",
+    "has_agent_or_api_surface": true,
+    "mobile_ux_quality": "good",
+    "pricing_tiers": null,
+    "product": "Jumia Kenya fashion storefront (Men''s clothing) with Jumia Pay integration",
+    "screenshots": [
+      {
+        "caption": "Landing page blocked by Cloudflare CAPTCHA; annotated evidence of access friction",
+        "filename": "01_jumia_landing_cloudflare_blocker_annotated.webp"
+      },
+      {
+        "caption": "Try-on search entry blocked by CAPTCHA; annotated evidence of blocker",
+        "filename": "02_jumia_tryon_search_entry_blocked_annotated.webp"
+      },
+      {
+        "caption": "Mobile Money/JumiaPay checkout guidance from JumiaPay FAQ; annotated",
+        "filename": "03_jumia_mobile_money_checkout_annotated.webp"
+      },
+      {
+        "caption": "JumiaPay FAQ describes JumiaPay as a new and free online payment service; annotated",
+        "filename": "04_jumiapay_free_pricing_annotated.webp"
+      },
+      {
+        "caption": "Jumia Android app listing showing mobile-shopping and CTA positioning",
+        "filename": "05_jumia_android_app_listing_annotated.webp"
+      }
+    ],
+    "task_url": "https://www.jumia.co.ke/",
+    "try_on_reached": false,
+    "try_on_render_type": "none",
+    "url": "https://www.jumia.co.ke/",
+    "value_proposition": "Africa''s leading online marketplace for fashion and general goods, with broad catalog, buyer protections, and local payments (M-Pesa, Jumia Pay); however, no publicly observable try-on/fit experience or SKU-level stock-visibility surfaced in the observed flow.",
+    "what_onpoint_should_copy": "Copy should clearly bind an exact SKU/variant shown in the visual to real stock, size/color/fit context, and local payment options (e.g., M-Pesa/Jumia Pay). It should present a fit-aware try-on or trusted alternative with explicit stock availability, delivery windows, and an agent-facing API surface for real-time inventory and checkout. It should also reflect culturally-curated African fashion supply (Ankara, Kente, Adire, Bogolan, Shweshwe) via a structured supply graph that supports both human shoppers and agent purchases."
+  }
+}

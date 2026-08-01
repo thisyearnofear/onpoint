@@ -1,0 +1,45 @@
+{
+  "slug": "doji",
+  "status": "stopped",
+  "task_url": "https://manus.im/app/ZhigdtB3aXcJ65zRvB6a2i",
+  "structured_success": true,
+  "value": {
+    "checkout_rails": [
+      "No public in-site checkout rails observed on Doji site or App Store; public surfaces show app download and extension-based flow but no runnable web checkout or merchant-facing cart/checkout UI."
+    ],
+    "expectation_copy": "\"Upload a few photos, create your photorealistic AI likeness and try on real fashion products effortlessly.\"  and \"Try on clothes with your likeness\" appear in Doji's marketing/App Store materials. These lines state a real-fashion try-on promise but do not guarantee SKU-level fidelity or fit accuracy in public outputs.",
+    "gap_vs_onpoint": "Doji input flow exhibits named garment inputs and a Try On action, plus a Safari extension promise, but public-facing output does not reveal SKU-level fidelity, real-time stock, local-pay rails, or an agent/API surface. There is no observable supply-graph of local curators, no public inventory/price/fulfillment data, and no public agent/OpenAPI surface. Doji’s mobile-first, iPhone-only path and invite-only extension imply limited reach and transactional surface, which leaves a gap relative to OnPoint’s model of fit-aware, stock-specific, locally-payable, agent-addressable supply graph.",
+    "has_agent_or_api_surface": false,
+    "mobile_ux_quality": "excellent",
+    "pricing_tiers": "Free to download on App Store; no public paid tier surfaced during this review; iOS 18+ required; no in-app purchases observed in the public view.",
+    "product": "Doji AI-powered virtual try-on platform (US market) with named garment inputs and an AI-likeness-based output; marketing emphasizes extension for browser-based try-on, and an iPhone-only app.",
+    "screenshots": [
+      {
+        "caption": "Landing page – value proposition and first CTA",
+        "filename": "01_landing_value_proposition_annotated.jpg"
+      },
+      {
+        "caption": "Try-on entry – named garment inputs and 'Try On' path",
+        "filename": "02_tryon_entry_product_specificity_annotated.jpg"
+      },
+      {
+        "caption": "Likeness-based result – output with product attribution (truncated)",
+        "filename": "03_tryon_result_likeness_output_annotated.jpg"
+      },
+      {
+        "caption": "Pricing/checkout boundary – iPhone-only, no public checkout rails",
+        "filename": "04_pricing_checkout_and_desktop_blocker_annotated.jpg"
+      },
+      {
+        "caption": "Safari extension surface – invite-gated public extension",
+        "filename": "05_safari_extension_surface_annotated.jpg"
+      }
+    ],
+    "task_url": "file:///home/ubuntu/doji_teardown/Doji_Teardown_For_OnPoint.md",
+    "try_on_reached": true,
+    "try_on_render_type": "similar_look_approximation",
+    "url": "https://www.doji.com",
+    "value_proposition": "Create your AI likeness, explore a personalized feed of looks, try on real fashion items through named product inputs, and save/sharable looks.",
+    "what_onpoint_should_copy": "OnPoint should leverage a concise emotional hook akin to Doji's: 'See it in your world. Buy it from a real local curator.' Build a product-input flow with concrete item cards (SKU, variant, stock provenance) and a local, curator-driven payment/fulfillment path (e.g., WhatsApp + M-Pesa, local currency, etc.). Emphasize curators and cultural supply (e.g., Ankara, Kente, Adire, Bogolan, Shweshwe) with provenance and locality. Distinguish clearly between likeness-based outputs and exact garment fidelity, and provide a visible supply-graph behind the UI showing stock, origin, and payment options to support trust and conversion."
+  }
+}

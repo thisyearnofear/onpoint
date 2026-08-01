@@ -1,0 +1,56 @@
+{
+  "slug": "walmart-be-your-own-model",
+  "status": "stopped",
+  "task_url": "https://manus.im/app/YZx7hQcdgZ4yWdSyQTAEXU",
+  "structured_success": true,
+  "value": {
+    "checkout_rails": [
+      "Anonymous cart flow surfaced with add-to-cart and sign-in prompt; direct checkout blocked by a generic Walmart error page while no payment methods surfaced.",
+      "Checkout flow blocked in anonymous session; no card/wallet/networks presented before the page error.",
+      "Walmart documentation lists accepted consumer payment rails (Debit, Credit, Pay by bank, Gift cards, Walmart Balance, PayPal, EBT/HSA/FSA) with region caveats; no Africa-specific rails (M-Pesa/WhatsApp/crypto) surfaced in docs or live flow.",
+      "Observed that first-party developer surfaces exist (Walmart Developer Portal; Affiliate API) but there is no public buyer-agent checkout endpoint surfaced in the tested pathways."
+    ],
+    "expectation_copy": "Verbatim UI copy that labels the try-on as real vs approximation: \"Virtual try-on gives you a quick way to preview styles before you buy.\" and \"Treat it as a helpful visual guide.\"",
+    "gap_vs_onpoint": "Gaps relative to OnPoint: Walmart Be Your Own Model is SKU-specific and uses a proxy-model visualization; it does not expose a SKU-to-model-accurate fit graph or a universally accessible agent/buyer checkout surface. Walmart’s pathway relies on first-party catalog/stock data and a visually guided experience labeled as a visual aid rather than a guaranteed fit, with a dense mass-retailer UX that can bury the try-on CTA for non-eligible SKUs. OnPoint could outperform by delivering a true, supply-graph-backed, locally-pay-enabled agent purchase flow that uses a transparent fit model with explicit sizing, stock-location metadata, and ready-made proxies (or privacy-preserving personal-model uploads) that integrate with WhatsApp/M-Pesa in target markets; plus a public API for quote/reserve/pay that aligns with local currencies and payment rails.",
+    "has_agent_or_api_surface": true,
+    "mobile_ux_quality": "fair",
+    "pricing_tiers": "Free to use for try-on; no tiered pricing observed; Walmart+ upsell unrelated to try-on access.",
+    "product": "No Boundaries Ribbed Strappy Maxi Dress, Women's and Women's Plus XXS-4X",
+    "screenshots": [
+      {
+        "caption": "Landing page annotated view showing first-visit value props (delivery/membership)",
+        "filename": "01_walmart_landing_annotated.webp"
+      },
+      {
+        "caption": "Try-on entry annotated: product page showing Choose my model CTA overlay",
+        "filename": "02_tryon_entry_choose_my_model_annotated.webp"
+      },
+      {
+        "caption": "Proxy-model selection annotated: anonymous Bethany model with size/height",
+        "filename": "03_proxy_model_selection_annotated.webp"
+      },
+      {
+        "caption": "Try-on result annotated: exact garment on proxy model (Black Soot)",
+        "filename": "04_tryon_result_state_annotated.webp"
+      },
+      {
+        "caption": "Pricing/freedom of try-on annotated: FAQ confirms free usage",
+        "filename": "05_tryon_pricing_free_annotated.webp"
+      },
+      {
+        "caption": "Checkout blocker annotated: direct checkout shows technical error (no rails surfaced)",
+        "filename": "06_checkout_blocker_annotated.webp"
+      },
+      {
+        "caption": "Official payment methods annotated: Walmart help page shows supported rails",
+        "filename": "07_official_payment_methods_annotated.webp"
+      }
+    ],
+    "task_url": "/home/ubuntu/onpoint_walmart_teardown/Walmart_Zeekit_Be_Your_Own_Model_Teardown.md",
+    "try_on_reached": true,
+    "try_on_render_type": "actual_garment",
+    "url": "https://www.walmart.com/ip/NB-STRAPPY-MAXI-DRES/19623404790?classType=VARIANT&athbdg=L1200",
+    "value_proposition": "Walmart Be Your Own Model offers a SKU-specific virtual try-on using a proxy-model (no personal photo required) that renders the exact eligible garment on a model for free; it is framed as a visual guide rather than a guarantee of fit.",
+    "what_onpoint_should_copy": "Adopt Walmart’s pattern of placing a clear Try-On CTA on the product image for eligible SKUs, enable a proxy-model flow with provided size/height data, and label the experience as a free, visual guide rather than a guaranteed fit. Additionally, expose model metadata alongside SKU to improve perceived fidelity, and pursue local-pay handoffs (e.g., WhatsApp/M-Pesa) and explicit inventory/stock visibility to empower agent purchases."
+  }
+}

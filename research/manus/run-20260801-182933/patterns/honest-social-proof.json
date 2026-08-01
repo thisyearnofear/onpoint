@@ -1,0 +1,18 @@
+{
+  "slug": "honest-social-proof",
+  "status": "stopped",
+  "task_url": "https://manus.im/app/SQ6xACJk8bWpuTzsEvTqc7",
+  "structured_success": true,
+  "value": {
+    "examples": [],
+    "recommendations": [
+      "Replace the hardcoded streaming feed with a bounded Supply Graph Snapshot that shows verified active looks, fit notes, and local payment coverage, accompanied by an explicit as‑of date and a clear link to explore verified collections.",
+      "Display a small set of Featured Verified Collections with curator identities and collection-level verification (limit to 3 cards at launch), each card showing curator name, culture/category, stock/purchase status, and a direct link to the collection.",
+      "Publish a concise Recently Strengthened supply-graph log (3 cards max) that highlights real milestones (e.g., new curator verifications, new payment rails, updated fit standards) with dates and source links, avoiding any real‑time ticker.",
+      "Provide Buyer-Ready by Market as an architectural proof: show how humans and agents resolve against the same inventory graph, including stock status, market availability, and local payment rails, with a simple status legend (Available, In verification, Pilot, Planned) and a link to the underlying details.",
+      "Conclude with Founding Curator & Agent Access: two invitation panels (Curator and Agent) that state gating criteria, review cadence, and next steps, avoiding any public waitlist counts and explaining what happens after submission."
+    ],
+    "task_url": "file:///home/ubuntu/onpoint_social_proof_research/onpoint_honest_social_proof_report.md",
+    "topic": "Honest Social Proof Patterns for Low-Volume Products: OnPoint homepage design"
+  }
+}

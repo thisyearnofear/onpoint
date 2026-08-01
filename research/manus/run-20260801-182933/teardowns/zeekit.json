@@ -1,0 +1,50 @@
+{
+  "slug": "zeekit",
+  "status": "stopped",
+  "task_url": "https://manus.im/app/FB6zQo286uFBySKE4gX4zE",
+  "structured_success": true,
+  "value": {
+    "checkout_rails": [
+      "Identity gate blocks checkout; unauthenticated flow shows sign-in to continue, not immediate payment options.",
+      "Public payment-method documentation lists debit/credit cards, PayPal, Walmart Pay, Walmart Gift Cards, Walmart Balance, and HSAs/FSAs; some methods may not be available for international shipping."
+    ],
+    "expectation_copy": "On the Try-On UI, the shopper is prompted with model-selection copy such as “We will find models that are the closest match” and “See this on a different model,” plus an explicit entry point labeled “Choose my model.” In the garment render path the PDP continues to show the exact SKU, color, and price (e.g., “No Boundaries Knit Ruched Collared Shirt, Women’s XXS-XXL,” color “Blue Magic,” price “$12.98”), indicating the try-on output is tied to the specific garment but uses a stock-model proxy. This creates an inferred distinction: the system renders an actual garment on a matched stock model rather than a shopper’s own photo, yet it conservatively labels model-fit as an approximation rather than guaranteed personal-fit. Verbatim UI cues include: “We will find models that are the closest match.” and “See this on a different model.”",
+    "gap_vs_onpoint": "Gap vs OnPoint: Zeekit-Walmart VTO delivers SKU-specific garment visualization on a stock-model proxy with explicit model-selection language, but it lacks (a) shopper-body personalization beyond a stock proxy, (b) visible local-supply/stock graph integration, and (c) a public, developer-facing surface for programmatic access to VTO, inventory, and local-pay flows. The public surface is primarily an affiliate/catalog API (no public Zeekit agent.json or OpenAPI for try-on), plus a Walmart identity-driven checkout that requires sign-in before payment. In markets like Nairobi/Lagos/Accra, the absence of local rails (M-Pesa/WhatsApp) and localized supply-graph integration is a strategic gap. The actionable evidence: SKU-bound render on a stock model (03_try_on_result_annotated.webp), the sign-in gate before checkout (05_checkout_signin_blocker_annotated.webp), and lack of public Zeekit/OpenAPI surfaces (04_cart_pricing_annotated.webp and  public Walmart Affiliate API docs).",
+    "has_agent_or_api_surface": true,
+    "mobile_ux_quality": "poor",
+    "pricing_tiers": null,
+    "product": "Zeekit virtual try-on visualization on Walmart PDP (No Boundaries Knit Ruched Collared Shirt, Women’s XXS-XXL — Blue Magic)",
+    "screenshots": [
+      {
+        "caption": "Landing page evidence: Walmart Virtual Try-On landing with hero copy and Try it on CTA (01_landing_annotated.webp)",
+        "filename": "01_landing_annotated.webp"
+      },
+      {
+        "caption": "Try-on entry: exact PDP with price and stock-model entry (02_try_on_entry_annotated.webp)",
+        "filename": "02_try_on_entry_annotated.webp"
+      },
+      {
+        "caption": "Rendered try-on result: garment rendered on stock-model with explicit SKU, color, and price (03_try_on_result_annotated.webp)",
+        "filename": "03_try_on_result_annotated.webp"
+      },
+      {
+        "caption": "Cart/pricing: subtotal, shipping, estimated total, and Continue to checkout (04_cart_pricing_annotated.webp)",
+        "filename": "04_cart_pricing_annotated.webp"
+      },
+      {
+        "caption": "Checkout blocker: sign-in required before payment selection (05_checkout_signin_blocker_annotated.webp)",
+        "filename": "05_checkout_signin_blocker_annotated.webp"
+      },
+      {
+        "caption": "Mobile gate: anti-bot verification blocking mobile entry (06_mobile_bot_gate.png)",
+        "filename": "06_mobile_bot_gate.png"
+      }
+    ],
+    "task_url": "https://www.walmart.com/cp/virtual-try-on/4556767",
+    "try_on_reached": true,
+    "try_on_render_type": "actual_garment",
+    "url": "https://www.zeekit.co",
+    "value_proposition": "Live, SKU-bound garment visualization integrated into PDPs with stock-model proxies to aid conversion, followed by a standard Walmart checkout flow (identity gate before payment). This is strong for item fidelity but weak for shopper-body personalization and local-pay/local-supply integration in emerging markets.",
+    "what_onpoint_should_copy": "OnPoint should copy Zeekit’s discipline of tying the VTO to the exact SKU and variant, including the color and price, and to present a clear model-selection path with non-personal, generic test inputs (size/height) to protect privacy. It should also copy the explicit language about model proxies (e.g., “closest match”) to manage expectations about fit. Additionally, OnPoint should mirror the end-to-end flow where possible but supplement it with: (a) a transparent fit graph showing body measurements and garment-silhouette metrics, (b) public surface surfaces for agent/API access to inventory/try-on/render results, and (c) pre-authorization of local payment rails (e.g., M-Pesa/WhatsApp) before try-on completion in relevant markets. Finally, OnPoint should maintain SKU-level fidelity in render outputs and avoid implying shopper-body personalization without explicit consent or data-sharing steps."
+  }
+}

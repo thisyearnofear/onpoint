@@ -9,6 +9,9 @@ import {
   ArrowDownRight,
   Radio,
   Wallet,
+  CheckCircle2,
+  Link2,
+  Zap,
 } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -35,42 +38,43 @@ interface FeedItem {
   pravaOrder?: string;
 }
 
-// Seed rows so the feed reads as a living stream before real flows land.
-const SEED_ITEMS: FeedItem[] = [
+// Honest system facts shown when no real agent activity has landed yet.
+// These are verifiable architectural truths — not fabricated transactions.
+const SYSTEM_FACTS: FeedItem[] = [
   {
-    id: "seed-1",
-    action: "purchase",
-    label: "Agent placed order",
-    detail: "Wanja · Arsenal 24/25 Home Kit (M)",
-    amount: "$19.23",
-    timestamp: Date.now() - 2 * 60_000,
-    live: false,
-  },
-  {
-    id: "seed-2",
-    action: "try_on",
-    label: "Try-on rendered",
-    detail: "Nia Digital · Jersey Dress · IDM-VTON",
-    amount: "$0.03",
-    timestamp: Date.now() - 5 * 60_000,
-    live: false,
-  },
-  {
-    id: "seed-3",
-    action: "purchase",
-    label: "Agent placed order",
-    detail: "Grace · Manchester United Away Kit (L)",
-    amount: "$22.50",
-    timestamp: Date.now() - 12 * 60_000,
-    live: false,
-  },
-  {
-    id: "seed-4",
+    id: "fact-celo",
     action: "session",
-    label: "Scoped card issued",
-    detail: "Celo · gasless USDC · x402",
-    amount: "—",
-    timestamp: Date.now() - 18 * 60_000,
+    label: "Celo mainnet",
+    detail: "cUSD settlements · gasless x402 · ERC-8021 attribution",
+    amount: "live",
+    timestamp: 0,
+    live: false,
+  },
+  {
+    id: "fact-api",
+    action: "search",
+    label: "Agent API",
+    detail: "Same inventory as storefronts · /api/agent/try-on · /api/curator",
+    amount: "open",
+    timestamp: 0,
+    live: false,
+  },
+  {
+    id: "fact-whatsapp",
+    action: "session",
+    label: "WhatsApp / M-Pesa",
+    detail: "Human checkout on every storefront · /s/[slug]",
+    amount: "ready",
+    timestamp: 0,
+    live: false,
+  },
+  {
+    id: "fact-okx",
+    action: "try_on",
+    label: "OKX marketplace",
+    detail: "ASP ID 9874 · USD₮0 on XLayer · /okx/try-on",
+    amount: "listed",
+    timestamp: 0,
     live: false,
   },
 ];
@@ -141,7 +145,7 @@ function orderToItems(o: PravaOrder): FeedItem[] {
 }
 
 export function AgentActivityFeed() {
-  const [items, setItems] = useState<FeedItem[]>(SEED_ITEMS);
+  const [liveItems, setLiveItems] = useState<FeedItem[]>([]);
   const [isLive, setIsLive] = useState(false); // true once a real flow is seen
 
   const poll = useCallback(async () => {
@@ -152,17 +156,13 @@ export function AgentActivityFeed() {
       const orders: PravaOrder[] = data.orders || [];
       if (!orders.length) return;
 
-      const liveItems = orders.flatMap(orderToItems);
-      if (liveItems.length) setIsLive(true);
-
-      setItems(() => {
-        // Merge: live items first (they sort by recency), seeds fill in after.
-        const merged = [...liveItems, ...SEED_ITEMS];
-        merged.sort((a, b) => b.timestamp - a.timestamp);
-        return merged.slice(0, 8);
-      });
+      const mapped = orders.flatMap(orderToItems);
+      if (mapped.length) {
+        setIsLive(true);
+        setLiveItems(mapped.slice(0, 8));
+      }
     } catch {
-      // network hiccup — keep seeds
+      // network hiccup — keep current state
     }
   }, []);
 
@@ -172,7 +172,7 @@ export function AgentActivityFeed() {
     return () => clearInterval(interval);
   }, [poll]);
 
-  const latest = items[0];
+  const latest = liveItems[0];
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -183,81 +183,129 @@ export function AgentActivityFeed() {
             <Radio className="h-4 w-4 text-primary" />
           </div>
           <div>
-            <h3 className="text-lg font-black tracking-tight">Live agent feed</h3>
+            <h3 className="text-lg font-black tracking-tight">
+              {isLive ? "Agent activity" : "Agent commerce rails"}
+            </h3>
             <p className="text-xs text-muted-foreground">
-              Autonomous commerce happening right now
+              {isLive
+                ? "Recent agent transactions on OnPoint"
+                : "Live infrastructure — agent transactions will appear here"}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1">
+        <div
+          className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 ${
+            isLive
+              ? "border border-emerald-500/30 bg-emerald-500/10"
+              : "border border-border/40 bg-muted/40"
+          }`}
+        >
           <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            {isLive && (
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+            )}
+            <span
+              className={`relative inline-flex h-1.5 w-1.5 rounded-full ${
+                isLive ? "bg-emerald-500" : "bg-muted-foreground/40"
+              }`}
+            />
           </span>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-            {isLive ? "Live" : "Streaming"}
+          <span
+            className={`text-[11px] font-bold uppercase tracking-wider ${
+              isLive
+                ? "text-emerald-600 dark:text-emerald-400"
+                : "text-muted-foreground"
+            }`}
+          >
+            {isLive ? "Live" : "Ready"}
           </span>
         </div>
       </div>
 
-      {/* Stream */}
+      {/* Stream — real activity when available, honest system facts otherwise */}
       <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
         <div className="divide-y divide-border/40">
-          {items.map((item, i) => {
-            const isLatest = latest?.id === item.id && i === 0;
-            return (
-              <div
-                key={item.id}
-                className={`group relative flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40 ${
-                  isLatest ? "bg-primary/[0.03]" : ""
-                }`}
-              >
-                {/* action icon */}
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-muted/50 transition-transform group-hover:scale-105">
-                  {ACTION_ICON[item.action]}
-                </div>
-
-                {/* text */}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-foreground">
-                      {item.label}
-                    </p>
-                    {item.live && (
-                      <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
-                        Prava
+          {isLive && liveItems.length > 0
+            ? liveItems.map((item, i) => {
+                const isLatest = latest?.id === item.id && i === 0;
+                return (
+                  <div
+                    key={item.id}
+                    className={`group relative flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40 ${
+                      isLatest ? "bg-primary/[0.03]" : ""
+                    }`}
+                  >
+                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-muted/50 transition-transform group-hover:scale-105">
+                      {ACTION_ICON[item.action]}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-foreground">
+                          {item.label}
+                        </p>
+                        <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                          Verified
+                        </span>
+                      </div>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {item.detail}
+                      </p>
+                    </div>
+                    <div className="flex flex-shrink-0 flex-col items-end">
+                      <span className="font-mono text-sm font-bold text-foreground">
+                        {item.amount}
                       </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {timeAgo(item.timestamp)}
+                      </span>
+                    </div>
+                    {item.pravaOrder && (
+                      <ArrowDownRight className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/40" />
                     )}
                   </div>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {item.detail}
-                  </p>
+                );
+              })
+            : SYSTEM_FACTS.map((fact) => (
+                <div
+                  key={fact.id}
+                  className="group relative flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40"
+                >
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-muted/50">
+                    {ACTION_ICON[fact.action]}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-foreground">
+                      {fact.label}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {fact.detail}
+                    </p>
+                  </div>
+                  <div className="flex flex-shrink-0 flex-col items-end">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                      <CheckCircle2 className="h-3 w-3 text-success" />
+                      {fact.amount}
+                    </span>
+                  </div>
                 </div>
-
-                {/* amount + time */}
-                <div className="flex flex-shrink-0 flex-col items-end">
-                  <span className="font-mono text-sm font-bold text-foreground">
-                    {item.amount}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">
-                    {timeAgo(item.timestamp)}
-                  </span>
-                </div>
-
-                {item.pravaOrder && (
-                  <ArrowDownRight className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/40" />
-                )}
-              </div>
-            );
-          })}
+              ))}
         </div>
 
         {/* Footer */}
         <div className="border-t border-border/40 bg-muted/20 px-4 py-2.5 text-center">
           <p className="text-[10px] text-muted-foreground">
-            <Sparkles className="-mt-0.5 mr-1 inline h-3 w-3" />
-            Each purchase uses a single-use, merchant-locked, amount-scoped card
-            credential
+            {isLive ? (
+              <>
+                <Sparkles className="-mt-0.5 mr-1 inline h-3 w-3" />
+                Each purchase uses a single-use, merchant-locked, amount-scoped
+                card credential
+              </>
+            ) : (
+              <>
+                <Link2 className="-mt-0.5 mr-1 inline h-3 w-3" />
+                Rails are live — agent transactions will appear here in real time
+              </>
+            )}
           </p>
         </div>
       </div>

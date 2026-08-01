@@ -1,0 +1,18 @@
+{
+  "slug": "tryon-to-purchase",
+  "status": "stopped",
+  "task_url": "https://manus.im/app/MFjoLZmgPVXoJLPLZKjihE",
+  "structured_success": true,
+  "value": {
+    "examples": [],
+    "recommendations": [
+      "1) Produce a stock-bound try-on card immediately after rendering that shows exact item (curator, SKU), selected size, fit confidence with reasons, real-time stock state, hold expiry, price in local currency, delivery ETA, and explicit return eligibility; place a clear CTA such as 'Reserve this size on WhatsApp' to anchor the next step in the purchase flow.",
+      "2) Implement a four-layer confidence stack for African garments and tailoring: (i) visual/contextual evidence (render + context), (ii) measurable fit evidence (garment measurements, cut, fabric notes, when available), (iii) maker/curator evidence (stock provenance, production status), (iv) a concise boundary statement that explains what the render can and cannot guarantee; include an easily digestible fit summary next to the render.",
+      "3) Offer a low-friction model-first/private try-on path before photo upload (e.g., anonymous body-shape/height ranges) and clearly explain data handling: what is stored, what is shared with curators, and how to delete stored data; allow continued shopping even if the user declines photo-based personalization.",
+      "4) Design WhatsApp and M-Pesa as a structured commitment screen: after the shopper selects the item, present a stock reservation, an item-level order draft in WhatsApp with price, delivery terms, and return/refund policy, and only then trigger the M-Pesa payment request; ensure the refund path is explicit and tied to the specific SKU/curator before payment.",
+      "5) Define and enforce a fit-aware supply-graph contract as the single source of truth for storefront, WhatsApp, and agent purchases: create a canonical TryOnPurchaseResult object containing sku, curator_id, variant_id, fit_profile_version, garment_measurements, fit_confidence, stock_state, hold_until, price, currency, delivery_terms, return_eligibility, refund_method, image_consent, and policy_snapshot_id; use this object to render the try-on card, compose the WhatsApp order, and bind the M-Pesa payment, ensuring alignment across channels."
+    ],
+    "task_url": "/home/ubuntu/onpoint_vto_research/OnPoint_VTO_Research_Report.md",
+    "topic": "OnPoint storefront try-on-to-WhatsApp/M-Pesa flow: synthesis of benchmark journeys (Sephora, Warby Parker, IKEA Kreativ, Walmart Zeekit) with actionable recommendations for Africa-market supply graph and local payments"
+  }
+}

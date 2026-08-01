@@ -1,0 +1,41 @@
+{
+  "slug": "amazon",
+  "status": "stopped",
+  "task_url": "https://manus.im/app/Y9doUYrbiYbMmBGsyRcL6z",
+  "structured_success": true,
+  "value": {
+    "checkout_rails": [
+      "No live Amazon.com checkout UI was rendered due to storefront access restrictions in the browser environment; evidence relies on official payment-method documentation and observed app-store/marketplace disclosures rather than a live checkout sequence."
+    ],
+    "expectation_copy": "“See It On Your Model” (UI label) and the accompanying descriptive copy that the feature can simulate how clothing looks on real models; official guidance also states shoppers can choose from multiple real models and see garments on a model of their choice.",
+    "gap_vs_onpoint": "Gaps identified relative to OnPoint’s positioning include: (1) lack of a local African-fashion supply graph with authentic stock metadata, (2) absence of native local-pay rails (e.g., M-Pesa, WhatsApp commerce) in a buyer-agent workflow, (3) no public buyer-facing agent.json/OpenAPI-like surface for agent-driven, inventory-aware purchases, and (4) a heavy reliance on proxy-model visualization (See It On Your Model) rather than body-scanning or uploader-based personal-fit visualization. Amazon’s evidence shows a model-gallery, a single “Change model” control, and product-identity fidelity via model-rendered garments, but no shopper-body personalization through uploads. See annotated screenshots and source passages cited in the References for the exact UI and messaging observed.",
+    "has_agent_or_api_surface": true,
+    "mobile_ux_quality": "good",
+    "pricing_tiers": "Free download; In-app purchases",
+    "product": "Amazon Shopping (Rufus AI assistant; See It On Your Model; Virtual Try-On for fashion)",
+    "screenshots": [
+      {
+        "caption": "01_amazon_rufus_landing_annotated.png — Landing: Rufus landing with value proposition and AI‑assisted shopping narrative",
+        "filename": "01_amazon_rufus_landing_annotated.png"
+      },
+      {
+        "caption": "02_amazon_tryon_entry_annotated.png — Try-on entry: See It On Your Model entry with Change Model control",
+        "filename": "02_amazon_tryon_entry_annotated.png"
+      },
+      {
+        "caption": "03_amazon_tryon_result_annotated.png — Try-on result: model-rendered garment with Change Model",
+        "filename": "03_amazon_tryon_result_annotated.png"
+      },
+      {
+        "caption": "04_amazon_pricing_annotated.png — Pricing: App Store listing shows Free download; In‑App Purchases",
+        "filename": "04_amazon_pricing_annotated.png"
+      }
+    ],
+    "task_url": "https://www.amazon.com",
+    "try_on_reached": true,
+    "try_on_render_type": "actual_garment",
+    "url": "https://www.amazon.com",
+    "value_proposition": "OnPoint should position as a fit-aware supply graph for African fashion that ties real stock to local-pay-enabled agent workflows, enabling humans and AI agents to transact on the same inventory through a curator-driven model gallery and a transparent, regionally relevant payment/fulfillment flow (e.g., M-Pesa/WhatsApp in target markets) with explicit model-selection control and deterministic stock metadata.",
+    "what_onpoint_should_copy": "Copy should emphasize: (a) the shopper can see the exact listed garment on a model chosen from a gallery of up to 40 real models, with a persistent selected-model state, (b) the system uses curator-supplied stock data and material specifics to support fit signals rather than uploading personal photos, (c) local payment and fulfillment options are integral to the confidence signal (e.g., M-Pesa/WhatsApp) and (d) a clear differentiation from generic ‘similar look’ generators by anchoring the experience to real SKUs, real stock, and real models tied to local supply ecosystems."
+  }
+}

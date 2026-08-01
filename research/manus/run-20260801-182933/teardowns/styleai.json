@@ -1,0 +1,45 @@
+{
+  "slug": "styleai",
+  "status": "stopped",
+  "task_url": "https://manus.im/app/37JQyrmoBq9qAAPkQbwSfM",
+  "structured_success": true,
+  "value": {
+    "checkout_rails": [
+      "No native checkout flow on StyleAI's product; checkout occurs on retailer's e-commerce stack; integration via catalog feed and payment gateway."
+    ],
+    "expectation_copy": "First-time visitors are greeted with a value proposition centered on AI-driven fashion styling (StyleAI) and brand-consistent recommendations, e.g., \"AI That Sells The Way You Would\" and \"Fashion-Native AI Agents\". Copy should emphasize measurable ROI, easy deployment, and brand-safe, privacy-first design. For OnPoint, adapt this to highlight fit-aware stock, real stock verification, and local pay rails (e.g., mobile payments in Africa) within a supply graph that connects fashion curators to shoppers.",
+    "gap_vs_onpoint": "Gaps to address: StyleAI focuses on AI-driven styling, brand personalization, and an agentic commerce layer for catalog-based retailers; it does not provide a West/East Africa–specific supply graph or local-monetary rails. OnPoint should copy and adapt: (1) an explicit African-curated supply graph with vetted fit-ready stock, (2) native local payment integration (WhatsApp/M-Pesa) and agent-based procurement, (3) a concrete, production-ready checkout flow that ties inventory to local partners, and (4) a clear articulation of how AI styling ties to real-stock fulfillment in Nairobi/Lagos/Accra. ",
+    "has_agent_or_api_surface": true,
+    "mobile_ux_quality": "good",
+    "pricing_tiers": "Public enterprise pricing for StyleAI is not openly listed; industry context cites $50,000–$200,000/yr for enterprise styling solutions; StyleAI.art (consumer-oriented) shows Free and paid tiers (Mini/Plus/Pro/Max) for image/creative tools. For OnPoint, propose tiers tied to catalog size, stock-availability, and activation of local-pay rails.",
+    "product": "AI commerce platform for fashion retailers that transforms catalogs into Fashion-Native AI Agents with brand-specific styling logic, real-time analytics, and deployment tooling; designed for reliable, privacy-first, production-grade experiences and human-in-the-loop control.",
+    "screenshots": [
+      {
+        "caption": "StyleAI landing hero and value proposition (first visit)",
+        "filename": "styleai_me_2026-08-01_16-57-01_2020.webp"
+      },
+      {
+        "caption": "Product section: Fashion-Native AI Agents and branding copy",
+        "filename": "styleai_me_2026-08-01_16-57-09_5251.webp"
+      },
+      {
+        "caption": "Pricing page snapshot (pricing variants)",
+        "filename": "styleai_me_2026-08-01_16-57-16_2193.webp"
+      },
+      {
+        "caption": "FAQ/Agentic Commerce blocks on StyleAI.me",
+        "filename": "styleai_me_2026-08-01_16-57-38_6443.webp"
+      },
+      {
+        "caption": "Mobile responsiveness snapshot (simulated)",
+        "filename": "styleai_me_2026-08-01_16-58-16_6509.webp"
+      }
+    ],
+    "task_url": "https://www.styleai.me/",
+    "try_on_reached": true,
+    "try_on_render_type": "similar_look_approximation",
+    "url": "https://www.styleai.me/",
+    "value_proposition": "AI That Sells The Way You Would: Fashion-Native AI Agents that personalize shopping and reduce returns, anchored by brand-personalized styling logic and measurable ROI.",
+    "what_onpoint_should_copy": "Copy should anchor OnPoint around a robust African fashion supply graph, emphasizing stock-verified, fit-aware inventory, and locally payable flows. Highlight agent-driven procurement, real-time analytics, and brand-safe, privacy-first deployment. Emphasize a closed-loop path from curation to checkout with local payment rails (e.g., mobile money) and governance by human-in-the-loop partners."
+  }
+}

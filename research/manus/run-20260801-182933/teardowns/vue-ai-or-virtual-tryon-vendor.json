@@ -1,0 +1,53 @@
+{
+  "slug": "vue-ai-or-virtual-tryon-vendor",
+  "status": "stopped",
+  "task_url": "https://manus.im/app/XGpEiC3oWZqgawZ2GYiw54",
+  "structured_success": true,
+  "value": {
+    "checkout_rails": [
+      "No shopper checkout observed; lead/demo gate only on product pages."
+    ],
+    "expectation_copy": null,
+    "gap_vs_onpoint": "Vue.ai presents an enterprise AI platform with a fashion-forward capability (virtual dressing room and on-model imagery) that is gated behind a work-email/demo flow. Public evidence confirms a strong emphasis on model diversity, outfit composition, and retailer customization, but there is no public, self-serve try-on, no consumer-upload flow, no observable stock/price/checkout connected to the try-on experience, and pricing is not shown on the main site (pricing appears on a separate Shopify listing by a different developer). This creates a gap for OnPoint: whereas OnPoint can directly tie fit-aware visualization to live stock, local-pay, and agent-enabled procurement, Vue.ai remains anchored to an enterprise-clarity narrative with gated access and a separate commerce path. A concrete OnPoint-oriented rewrite would emphasize verifiable stock provenance, local-pay rails, and agent-driven purchasing that bridges the visualization to actual checkout. See annotated evidence: landing/o-model entry/blocker/pricing/mobile/dev-docs/api-reference images. ",
+    "has_agent_or_api_surface": true,
+    "mobile_ux_quality": "fair",
+    "pricing_tiers": "Public pricing visible only on a separate Shopify listing (Starter $20/mo, Professional $35/mo, Business $75/mo); enterprise Vue.ai pricing not published on the main site. The Shopify listing lists a 3-day trial and identifies the developer as Duma, indicating adjacent-but-separate pricing surfaces.",
+    "product": "Vue.ai Virtual Dressing Room and On-Model Imagery suite (Virtual Fitting Rooms family) with enterprise AI platform branding",
+    "screenshots": [
+      {
+        "caption": "Landing page annotated evidence (value proposition vs. lead gate)",
+        "filename": "01_landing_value_proposition_annotated.png"
+      },
+      {
+        "caption": "Try-on entry via On-model imagery (marketing vs. shopper flow)",
+        "filename": "02_tryon_entry_on_model_imagery_annotated.png"
+      },
+      {
+        "caption": "Blocker: work email gate on Virtual Dressing Room (no output)",
+        "filename": "03_tryon_blocker_work_email_annotated.png"
+      },
+      {
+        "caption": "Public pricing captured on Shopify listing (not Vue.ai main site)",
+        "filename": "04_public_pricing_shopify_listing_annotated.png"
+      },
+      {
+        "caption": "Mobile viewport assessment (lead gate remains; no self-serve try-on)",
+        "filename": "05_mobile_virtual_dressing_room_annotated.png"
+      },
+      {
+        "caption": "Developer surface exposure (Docs, Agent Builder, SDK/APIs)",
+        "filename": "06_developer_docs_machine_surface_annotated.png"
+      },
+      {
+        "caption": "API reference exposure (auth pattern, endpoints)",
+        "filename": "07_api_reference_auth_annotated.png"
+      }
+    ],
+    "task_url": "https://vue.ai/competitive-teardown",
+    "try_on_reached": false,
+    "try_on_render_type": "none",
+    "url": "https://www.vue.ai/products/virtual-dressing-room/",
+    "value_proposition": "Vue.ai markets an enterprise AI platform for orchestration with a focus on virtual dressing room capabilities. Public shopper-facing proof of a real try-on is blocked by a demo gate, reducing verifiability of exact garment-on-you outputs. The platform emphasizes model diversity, real-time styling, and retailer customization, but lacks a public, self-serve consumer trial path and integrated stock/pay flow—limiting direct evidence of in-stock purchasability tied to the try-on experience.",
+    "what_onpoint_should_copy": "OnPoint should emphasize: (1) verifiable stock provenance and catalog linkage for each garment shown in a try-on, (2) a direct, local-pay-enabled checkout path (e.g., WhatsApp/M-Pesa) integrated to the same experience, (3) an Africa-curator graph (Ankara, Kente, Adire, Bogolan, Shweshwe, football-kit culture) that maps to real stock and fulfillment, and (4) a clear, consumer-appropriate try-on proof that does not misrepresent fit certainty."
+  }
+}

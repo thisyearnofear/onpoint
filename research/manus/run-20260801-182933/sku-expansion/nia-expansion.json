@@ -1,0 +1,222 @@
+{
+  "slug": "nia-expansion",
+  "status": "stopped",
+  "task_url": "https://manus.im/app/6hMz5mXqfFzTaMQAbYhyLb",
+  "structured_success": true,
+  "value": {
+    "collection_drops": [
+      {
+        "concept_names": [
+          "Lagos Adire Street",
+          "Accra Kente Matchday",
+          "Cape Town Shweshwe Matchday",
+          "Kano Adire Gym",
+          "Abidjan Ankara Street"
+        ],
+        "rationale": "Launch the essential matchday and street-forward silhouettes to anchor the catalog.",
+        "title": "The Starting XI"
+      },
+      {
+        "concept_names": [
+          "Dakar Bogolan Festival",
+          "Jozi Shweshwe Rooftop Brunch",
+          "Kumasi Kente Festival",
+          "Kampala Kitenge Rooftop Brunch",
+          "Soweto Ndebele Festival"
+        ],
+        "rationale": "Festival and rooftop brunch energy; high-contrast color stories to boost social visibility.",
+        "title": "Rhythm & Heat"
+      },
+      {
+        "concept_names": [
+          "Bamako Bogolan Date-Night",
+          "Ibadan Adire Date-Night",
+          "Timbuktu Bogolan Date-Night"
+        ],
+        "rationale": "Date-night silhouettes with darker, luxe palettes and refined finishes.",
+        "title": "Midnight Canvas"
+      },
+      {
+        "concept_names": [
+          "Pretoria Ndebele Gym",
+          "Luanda Ankara Gym",
+          "Kigali Kitenge Gym"
+        ],
+        "rationale": "Gym-focused pieces that fuse heritage patterns with performance fabrics.",
+        "title": "Active Ancestry"
+      },
+      {
+        "concept_names": [
+          "Nairobi Kitenge Date-Night",
+          "Mombasa Kitenge Street",
+          "Gaborone Shweshwe Street"
+        ],
+        "rationale": "Low-barrier entry items for daily digital wear and brand visibility.",
+        "title": "Accessories Pack"
+      }
+    ],
+    "concepts": [
+      {
+        "design_brief": "Deep indigo base with white Adire resist-dye triangles and circular motifs, neon-pink piping, oversized silhouette.",
+        "garment": "Bomber Jacket",
+        "motif": "Adire",
+        "name": "Lagos Adire Street",
+        "occasion": "street",
+        "price_band": "Try-on $0.03 / NFT mint $0.10"
+      },
+      {
+        "design_brief": "Gold, emerald, and crimson Kente stripes in bold horizontal bands across a sleek black-trim jersey.",
+        "garment": "Football Kit (Home)",
+        "motif": "Kente",
+        "name": "Accra Kente Matchday",
+        "occasion": "matchday",
+        "price_band": "Try-on $0.03 / NFT mint $0.10"
+      },
+      {
+        "design_brief": "Earthy brown base with black mudcloth glyphs and symbols forming concentric circles around crown.",
+        "garment": "Bucket Hat",
+        "motif": "Bogolan",
+        "name": "Dakar Bogolan Festival",
+        "occasion": "festival",
+        "price_band": "Try-on $0.03 / NFT mint $0.10"
+      },
+      {
+        "design_brief": "Indigo and white Shweshwe lattice with circular motifs, A-line midi silhouette, airy jersey fabric.",
+        "garment": "Jersey Dress",
+        "motif": "Shweshwe",
+        "name": "Jozi Shweshwe Rooftop Brunch",
+        "occasion": "rooftop brunch",
+        "price_band": "Try-on $0.03 / NFT mint $0.10"
+      },
+      {
+        "design_brief": "Vibrant teal base with magenta and orange floral blocks on a sleek, tapered tracksuit with black piping.",
+        "garment": "Tracksuit",
+        "motif": "Kitenge",
+        "name": "Nairobi Kitenge Date-Night",
+        "occasion": "date-night",
+        "price_band": "Try-on $0.03 / NFT mint $0.10"
+      },
+      {
+        "design_brief": "High-contrast Ndebele color blocks in red, blue, yellow on a performance sneaker skin with reflective accents.",
+        "garment": "Sneaker Skin",
+        "motif": "Ndebele",
+        "name": "Pretoria Ndebele Gym",
+        "occasion": "gym",
+        "price_band": "Try-on $0.03 / NFT mint $0.10"
+      },
+      {
+        "design_brief": "Vibrant wax-print motif in magenta and lime on a matte phone skin, large-scale leaf shapes.",
+        "garment": "Phone-case Skin",
+        "motif": "Ankara",
+        "name": "Abidjan Ankara Street",
+        "occasion": "street",
+        "price_band": "Try-on $0.03 / NFT mint $0.10"
+      },
+      {
+        "design_brief": "Crisp white jersey with lilac Shweshwe geometries along sleeves and collar.",
+        "garment": "Football Kit (Away)",
+        "motif": "Shweshwe",
+        "name": "Cape Town Shweshwe Matchday",
+        "occasion": "matchday",
+        "price_band": "Try-on $0.03 / NFT mint $0.10"
+      },
+      {
+        "design_brief": "Earthy cocoa base with beige mudcloth glyphs, asymmetric hem, subtle sheen.",
+        "garment": "Jersey Dress",
+        "motif": "Bogolan",
+        "name": "Bamako Bogolan Date-Night",
+        "occasion": "date-night",
+        "price_band": "Try-on $0.03 / NFT mint $0.10"
+      },
+      {
+        "design_brief": "Royal gold and emerald Kente weaves on a black bomber with quilted shoulders and red piping.",
+        "garment": "Bomber Jacket",
+        "motif": "Kente",
+        "name": "Kumasi Kente Festival",
+        "occasion": "festival",
+        "price_band": "Try-on $0.03 / NFT mint $0.10"
+      },
+      {
+        "design_brief": "Midnight blue with tonal Adire swirls, asymmetrical hem, satin finish.",
+        "garment": "Jersey Dress",
+        "motif": "Adire",
+        "name": "Ibadan Adire Date-Night",
+        "occasion": "date-night",
+        "price_band": "Try-on $0.03 / NFT mint $0.10"
+      },
+      {
+        "design_brief": "Neon pink and lime Kitenge blocks on reversible bucket hat, black base on reverse.",
+        "garment": "Bucket Hat",
+        "motif": "Kitenge",
+        "name": "Mombasa Kitenge Street",
+        "occasion": "street",
+        "price_band": "Try-on $0.03 / NFT mint $0.10"
+      },
+      {
+        "design_brief": "White nylon tracksuit with bold multi-color Ndebele chevrons down arms and legs.",
+        "garment": "Tracksuit",
+        "motif": "Ndebele",
+        "name": "Soweto Ndebele Festival",
+        "occasion": "festival",
+        "price_band": "Try-on $0.03 / NFT mint $0.10"
+      },
+      {
+        "design_brief": "Red and yellow Ankara wax print across sneaker skins, black outsole, white side stripes.",
+        "garment": "Sneaker Skin",
+        "motif": "Ankara",
+        "name": "Luanda Ankara Gym",
+        "occasion": "gym",
+        "price_band": "Try-on $0.03 / NFT mint $0.10"
+      },
+      {
+        "design_brief": "Pastel Kitenge blocks in mint and peach on phone skin with gradient border.",
+        "garment": "Phone-case Skin",
+        "motif": "Kitenge",
+        "name": "Kampala Kitenge Rooftop Brunch",
+        "occasion": "rooftop brunch",
+        "price_band": "Try-on $0.03 / NFT mint $0.10"
+      },
+      {
+        "design_brief": "Lightweight infinity scarf in sky blue with tonal Adire resist-dye motifs, breathable viscose.",
+        "garment": "Scarf",
+        "motif": "Adire",
+        "name": "Kano Adire Gym",
+        "occasion": "gym",
+        "price_band": "Try-on $0.03 / NFT mint $0.10"
+      },
+      {
+        "design_brief": "Abstract kinetic Kitenge pattern in neon orange on high-top sneaker skins, black base.",
+        "garment": "Sneaker Skin",
+        "motif": "Kitenge",
+        "name": "Kigali Kitenge Gym",
+        "occasion": "gym",
+        "price_band": "Try-on $0.03 / NFT mint $0.10"
+      },
+      {
+        "design_brief": "Sunset gradient with bold Ndebele borders in magenta and cobalt on a sleek jersey dress.",
+        "garment": "Jersey Dress",
+        "motif": "Ndebele",
+        "name": "Bulawayo Ndebele Rooftop Brunch",
+        "occasion": "rooftop brunch",
+        "price_band": "Try-on $0.03 / NFT mint $0.10"
+      },
+      {
+        "design_brief": "Indigo Shweshwe with crisp white panels along arms and legs, technical fabric.",
+        "garment": "Tracksuit",
+        "motif": "Shweshwe",
+        "name": "Gaborone Shweshwe Street",
+        "occasion": "street",
+        "price_band": "Try-on $0.03 / NFT mint $0.10"
+      },
+      {
+        "design_brief": "Earthy browns with subtle mudcloth symbols across back and shoulders on a luxe leather bomber.",
+        "garment": "Bomber Jacket",
+        "motif": "Bogolan",
+        "name": "Timbuktu Bogolan Date-Night",
+        "occasion": "date-night",
+        "price_band": "Try-on $0.03 / NFT mint $0.10"
+      }
+    ],
+    "task_url": "https://onpoint.example.com/nia-digital-expansion-plan"
+  }
+}

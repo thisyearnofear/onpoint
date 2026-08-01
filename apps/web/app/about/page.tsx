@@ -8,7 +8,6 @@ import {
   Store,
 } from "lucide-react";
 import { Reveal } from "../../components/ui/Reveal";
-import { ComingSoonBadge } from "../../components/ui/ComingSoonBadge";
 import { OnPointLayout } from "../../components/OnPointLayout";
 import { PRODUCT_NAME } from "../../lib/brand";
 
@@ -71,16 +70,14 @@ export default function AboutPage() {
                 icon: <MessageCircle className="h-6 w-6" />,
                 title: "Local + agent settlement",
                 body: "Humans close on WhatsApp and M-Pesa. Agents pay via x402/cUSD with curator payouts.",
-                badge: <ComingSoonBadge size="xs" label="WhatsApp API" />,
               },
             ].map((pillar) => (
               <div key={pillar.title} className="relative pl-6 border-l-2 border-primary/20">
                 <div className="absolute -left-3 top-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white shadow-sm">
                   {pillar.icon}
                 </div>
-                <h3 className="font-bold flex items-center gap-2">
+                <h3 className="font-bold">
                   {pillar.title}
-                  {pillar.badge}
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">{pillar.body}</p>
               </div>
@@ -151,7 +148,7 @@ export default function AboutPage() {
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
-              href="/lab?tab=try-on&from=nia"
+              href="/s/nia"
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl"
             >
               <Camera className="h-4 w-4" />
