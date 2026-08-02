@@ -109,6 +109,9 @@ apps/api/.curator-payout-keys.json
 .testsprite/steps-*
 .testsprite/failure*/
 
+# Local design-review screenshots (agent-generated review artifacts)
+plans/design-review/
+
 # Local Netlify folder
 .netlify
 deno.lock
