@@ -78,6 +78,10 @@ const { createApiKeyAuth } = require('./middleware/api-key-auth');
 
 // Rate limit tiers
 const generalRateLimit = createRateLimiter(redis, 'general');
+const pravaRateLimit = createRateLimiter(redis, 'general', {
+  maxRequests: 60,
+  prefix: 'prava',
+});
 const veniceRateLimit = createRateLimiter(redis, 'veniceFree');
 const veniceBurstLimit = createRateLimiter(redis, 'veniceBurst');
 const liveSessionRateLimit = createRateLimiter(redis, 'liveSession');
@@ -306,7 +310,7 @@ app.use('/prava/sandbox', json1k, require('./routes/prava-sandbox'));
 // Agent buy-flow rail: discover → quote → scoped-card session → hosted
 // verification → server-owned checkout when approved. Drives the Linq iMessage
 // card. Self-check mode by default; live via the prava CLI. ADR 0017.
-app.use('/prava', json1k, generalRateLimit, require('./routes/prava-facade'));
+app.use('/prava', json1k, pravaRateLimit, require('./routes/prava-facade'));
 
 // ── Linq iMessage Agent (Agentic Commerce Hackathon, Linq track) ───
 // Receives Linq iMessage webhooks and orchestrates the buy-flow: inbound
