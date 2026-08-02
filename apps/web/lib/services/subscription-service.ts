@@ -1,8 +1,15 @@
 /**
  * Subscription Service - Phase 6.3
- * 
+ *
  * Advanced subscription management with tiered permissions and billing.
  * Supports both fiat (Stripe) and on-chain (Superfluid) payment methods.
+ *
+ * DEFERRED (ADR 0018, 2026-08-02): no UI references this service at launch.
+ * All consumer monetization is x402 pay-per-use; subscriptions, if ever,
+ * return as a curator-side tier. The deleted UI is recoverable from git
+ * (`git show 1e46a71:apps/web/app/account/subscription/page.tsx`).
+ * Keep this file compiling, but do not wire it into new surfaces without
+ * revisiting ADR 0018.
  */
 
 import { parseEther } from "viem";

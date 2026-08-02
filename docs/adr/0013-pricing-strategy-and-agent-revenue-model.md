@@ -2,7 +2,8 @@
 
 **Status**: Accepted  
 **Date**: 2026-07-13  
-**Deployed**: 2026-07-14 (frontend /pricing page live)
+**Deployed**: 2026-07-14 (frontend /pricing page live)  
+**Related**: ADR 0018 — x402-first monetization; subscription surfaces deferred pre-launch (2026-08-02). This ADR's pay-per-use model is the only pricing story at launch; subscriptions are curator-side-only if ever revisited.
 
 ## Context
 
