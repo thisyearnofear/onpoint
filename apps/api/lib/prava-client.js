@@ -57,6 +57,7 @@ const REST_SECRET = process.env.PRAVA_SECRET_KEY || '';
 const REST_BASE = REST_SECRET.startsWith('sk_live_')
   ? (process.env.PRAVA_PRODUCTION_BASE || 'https://api.prava.space')
   : (process.env.PRAVA_SANDBOX_BASE || 'https://sandbox.api.prava.space');
+const RESPONSE_ID = Symbol('pravaResponseId');
 
 /** True when the REST sandbox/live transport is configured (key present). */
 function restMode() {
@@ -76,8 +77,17 @@ async function restCall(method, path, body) {
   const text = await r.text();
   let json;
   try { json = JSON.parse(text); } catch { json = { raw: text }; }
+  const responseId = r.headers?.get?.('x-response-id') || null;
   if (!r.ok) {
-    throw new PravaError('rest_error', `Prava REST ${method} ${path} failed ${r.status}: ${text}`, { status: r.status });
+    const providerError = json?.error || {};
+    throw new PravaError(
+      providerError.code || 'rest_error',
+      providerError.message || `Prava REST ${method} ${path} failed with HTTP ${r.status}`,
+      { status: r.status, details: providerError.details, responseId, method, path },
+    );
+  }
+  if (json && typeof json === 'object') {
+    Object.defineProperty(json, RESPONSE_ID, { value: responseId });
   }
   return json;
 }
@@ -135,7 +145,17 @@ async function runCli(args, { timeoutMs = 60000 } = {}) {
     if (code === 2) {
       throw new PravaError('not_linked', 'Prava agent not linked. Run `prava setup --name "<name>"`.');
     }
-    throw new PravaError('cli_error', `prava CLI failed: ${err.message}`, { code, stderr: err.stderr });
+    logger.error('Prava CLI command failed', {
+      component: 'prava-client',
+      code,
+      killed: !!err.killed,
+      signal: err.signal || null,
+    });
+    throw new PravaError('cli_error', 'Prava CLI request failed.', {
+      code,
+      killed: !!err.killed,
+      signal: err.signal || null,
+    });
   }
 }
 
@@ -145,6 +165,7 @@ class PravaError extends Error {
     this.name = 'PravaError';
     this.code = code;
     this.context = context;
+    this.status = context.status;
   }
 }
 
@@ -382,7 +403,10 @@ async function pollPaymentSession({ sessionId, timeoutMs = 620000 } = {}) {
       return { session_id: sessionId, status: 'pending' };
     } catch (e) {
       if (e.code === 'not_linked') throw e;
-      return { session_id: sessionId, status: 'pending' };
+      const timedOut = e.code === 'cli_error'
+        && (e.context?.killed || e.context?.code === 'ETIMEDOUT');
+      if (timedOut) return { session_id: sessionId, status: 'pending' };
+      throw e;
     }
   }
   return FIXTURE.poll(sessionId);
@@ -462,6 +486,14 @@ function humanizeMerchant(raw) {
 // Fashion/apparel merchant category (MCC 5691) for this fashion-only flow.
 const FASHION_MCC = '5691';
 const FASHION_CATEGORY = "Men's and Women's Clothing Stores";
+const SUPPORTED_CURRENCIES = new Set([
+  'USD', 'EUR', 'GBP', 'INR', 'CAD', 'AUD', 'JPY', 'SGD', 'AED', 'HKD',
+  'MXN', 'BRL', 'CHF', 'CNY', 'NZD', 'SEK', 'NOK', 'DKK', 'ZAR', 'THB',
+  'KRW', 'PLN', 'TWD', 'PHP', 'IDR', 'MYR', 'CZK', 'ILS', 'CLP', 'ARS',
+  'COP', 'PEN', 'SAR', 'QAR', 'KWD', 'BHD', 'OMR', 'EGP', 'NGN', 'KES',
+  'GHS', 'TZS', 'UGX', 'PKR', 'BDT', 'LKR', 'VND', 'MMK', 'NPR',
+]);
+const DECIMAL_AMOUNT = /^\d+(?:\.\d{1,2})?$/;
 
 /** create_rest_session — open a hosted payment session. Returns a payment_url
  *  (the Prava-hosted card-entry iframe URL) the owner opens to enter their
@@ -469,24 +501,59 @@ const FASHION_CATEGORY = "Men's and Women's Clothing Stores";
  *  return shape: { session_id, payment_url, ... }. */
 async function createRestSession({ totalAmount, currency = 'USD', merchantName, merchantUrl, merchantCountry, products } = {}) {
   const displayName = humanizeMerchant(merchantName);
-  const productList = (products || []).map((p) => ({
-    description: p.description,
-    unit_price: String(p.unit_price),
-    quantity: p.quantity || 1,
-  }));
+  const amount = String(totalAmount || '');
+  const currencyCode = String(currency || '').toUpperCase();
+  const countryCode = String(merchantCountry || '').toUpperCase();
+  const callbackUrl = process.env.PUBLIC_BASE_URL || 'https://beonpoint.netlify.app/agent';
+  let parsedMerchantUrl;
+  let parsedCallbackUrl;
+  try { parsedMerchantUrl = new URL(merchantUrl); } catch {}
+  try { parsedCallbackUrl = new URL(callbackUrl); } catch {}
+  if (!DECIMAL_AMOUNT.test(amount) || Number(amount) <= 0) {
+    throw new PravaError('invalid_session_body', 'totalAmount must be a positive decimal string with at most two decimal places.', { status: 400 });
+  }
+  if (!SUPPORTED_CURRENCIES.has(currencyCode)) {
+    throw new PravaError('invalid_session_body', `Unsupported Prava currency: ${currencyCode}`, { status: 400 });
+  }
+  if (!displayName || parsedMerchantUrl?.protocol !== 'https:' || !/^[A-Z]{2}$/.test(countryCode)) {
+    throw new PravaError('invalid_session_body', 'Merchant name, HTTPS URL, and two-letter country code are required.', { status: 400 });
+  }
+  if (parsedCallbackUrl?.protocol !== 'https:') {
+    throw new PravaError('invalid_session_body', 'Prava hosted checkout callback URL must use HTTPS.', { status: 400 });
+  }
+  if (!Array.isArray(products) || products.length === 0) {
+    throw new PravaError('invalid_session_body', 'At least one product is required.', { status: 400 });
+  }
+  const productList = products.map((p) => {
+    const description = String(p?.description || '').trim();
+    const unitPrice = String(p?.unit_price || '');
+    const quantity = p?.quantity == null ? 1 : Number(p.quantity);
+    if (!description || !DECIMAL_AMOUNT.test(unitPrice) || Number(unitPrice) < 0 || !Number.isInteger(quantity) || quantity <= 0) {
+      throw new PravaError('invalid_session_body', 'Each product requires a description, decimal unit price, and positive integer quantity.', { status: 400 });
+    }
+    const product = { description, unit_price: unitPrice, quantity };
+    if (p.product_id != null) {
+      const productId = String(p.product_id);
+      if (!productId || productId.length > 50) {
+        throw new PravaError('invalid_session_body', 'product_id must be between 1 and 50 characters.', { status: 400 });
+      }
+      product.product_id = productId;
+    }
+    return product;
+  });
   const r = await restCall('POST', '/v1/sessions', {
     user_id: 'onpoint_agent',
     user_email: 'agent@onpoint.famile.xyz',
-    total_amount: String(totalAmount),
-    currency,
+    total_amount: amount,
+    currency: currencyCode,
     description: `${displayName} order via OnPoint`,
     integration_type: 'full_checkout',
-    callback_url: process.env.PUBLIC_BASE_URL || 'https://beonpoint.netlify.app/agent',
+    callback_url: callbackUrl,
     purchase_context: [{
       merchant_details: {
         name: displayName,
         url: merchantUrl,
-        country_code_iso2: merchantCountry,
+        country_code_iso2: countryCode,
         category_code: FASHION_MCC,
         category: FASHION_CATEGORY,
       },
@@ -508,13 +575,30 @@ async function createRestSession({ totalAmount, currency = 'USD', merchantName, 
  *  same shape as pollPaymentSession. */
 async function pollRestSession({ sessionId } = {}) {
   const r = await restCall('GET', '/v1/sessions/' + sessionId + '/payment-result');
-  if (r.status === 'failed') return { session_id: sessionId, status: 'failed' };
+  if (r.status === 'failed') {
+    const failedTransaction = r.transactions?.find((txn) => txn?.status === 'failed');
+    const failedLineItem = failedTransaction?.line_items?.find((item) => item?.error);
+    const providerFailure = failedTransaction?.error || failedLineItem?.error || r.error;
+    const error = providerFailure && typeof providerFailure === 'object'
+      ? { ...providerFailure, responseId: r[RESPONSE_ID] || null }
+      : {
+          message: providerFailure ? String(providerFailure) : 'Prava hosted flow failed.',
+          responseId: r[RESPONSE_ID] || null,
+        };
+    return {
+      session_id: sessionId,
+      status: 'failed',
+      providerRecordId: r.order_id || null,
+      error,
+    };
+  }
   const li = r.transactions?.[0]?.line_items?.[0];
   if (r.status === 'awaiting_result') {
     if (!li?.token || !li?.dynamic_cvv || !li?.expiry_month || !li?.expiry_year || !li?.txn_ref_id) {
       throw new PravaError(
         'incomplete_credential_response',
         'Prava returned awaiting_result without the complete credential and transaction reference fields.',
+        { responseId: r[RESPONSE_ID] || null },
       );
     }
     return {

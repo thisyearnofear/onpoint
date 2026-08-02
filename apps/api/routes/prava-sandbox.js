@@ -3,15 +3,13 @@
  *
  * The live-demo safety net (ADR 0017). The headline demo path is the live
  * UCP + Browser Harness order (production, real card). If a live Shopify
- * checkout hiccups mid-demo, this route runs the **same trust story** via
- * Prava's REST session API in sandbox: create session → cardholder enters
- * card + passkey → poll for the one-time credential → report APPROVED →
- * `completed`. No real money, fully under our control.
+ * checkout hiccups mid-demo, this route exposes the REST sandbox contract:
+ * create session → hosted verification → poll. It stops before external
+ * checkout/reporting because no processor adapter is configured.
  *
  * Unlike the /prava facade (which drives the CLI/MCP buy-flow), this path
- * uses the REST `POST /v1/sessions` + `payment-result` + `report-status`
- * endpoints directly. It is the "sandbox/test flow" the hackathon brief
- * explicitly allows.
+ * uses the same canonical Prava client as the /prava facade so request bodies
+ * and error handling cannot drift.
  *
  * Self-check (PRAVA_SECRET_KEY unset): returns correctly-shaped mock
  * responses so the fallback is walkable without Prava sandbox keys.
@@ -27,19 +25,19 @@
 const express = require('express');
 const crypto = require('crypto');
 const logger = require('../lib/logger');
-const { humanizeMerchant } = require('../lib/prava-client');
+const prava = require('../lib/prava-client');
 
 const router = express.Router();
 
-const SB_BASE = process.env.PRAVA_SANDBOX_BASE || 'https://sandbox.api.prava.space';
-const PROD_BASE = process.env.PRAVA_PRODUCTION_BASE || 'https://api.prava.space';
 const SECRET = process.env.PRAVA_SECRET_KEY;
 const PUBLISHABLE = process.env.PRAVA_PUBLISHABLE_KEY;
-const live = !!SECRET;
+const live = prava.restMode();
 const isLiveKeys = (SECRET || '').startsWith('sk_live_');
 
 function base() {
-  return isLiveKeys ? PROD_BASE : SB_BASE;
+  return isLiveKeys
+    ? (process.env.PRAVA_PRODUCTION_BASE || 'https://api.prava.space')
+    : (process.env.PRAVA_SANDBOX_BASE || 'https://sandbox.api.prava.space');
 }
 
 // In-memory session store (hackathon scope).
@@ -60,22 +58,6 @@ function serviceKeyAuth(req, res, next) {
 }
 router.use(serviceKeyAuth);
 
-// ── Prava REST call ──────────────────────────────────────────────────
-async function pravaRest(method, path, body) {
-  const r = await fetch(base() + path, {
-    method,
-    headers: {
-      Authorization: 'Bearer ' + SECRET,
-      'Content-Type': 'application/json',
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const text = await r.text();
-  let json; try { json = JSON.parse(text); } catch { json = { raw: text }; }
-  if (!r.ok) throw new Error('Prava REST ' + method + ' ' + path + ' failed ' + r.status + ': ' + text);
-  return json;
-}
-
 // ── GET /prava/sandbox/health ────────────────────────────────────────
 router.get('/health', (_req, res) => {
   res.json({
@@ -91,16 +73,24 @@ router.get('/health', (_req, res) => {
 });
 
 // ── POST /prava/sandbox/order — create a Prava payment session ───────
-// Body: { userId, email, totalAmount, currency, merchantName, merchantUrl,
-//         merchantCountry, products }
-// Charges nothing. Returns { sessionId, iframeUrl, sessionToken, expiresAt }.
+// Body: { totalAmount, currency, merchantName, merchantUrl, merchantCountry,
+//         products }. Customer identity and callback URL come from the canonical
+// Prava client rather than caller-provided overrides.
+// Charges nothing. Returns { sessionId, iframeUrl, orderId, expiresAt }.
 router.post('/order', async (req, res, next) => {
   try {
-    const { userId, email, totalAmount, currency = 'USD', merchantName, merchantUrl, merchantCountry = 'US', products, callbackUrl } = req.body || {};
+    const { totalAmount, currency = 'USD', merchantName, merchantUrl, merchantCountry = 'US', products } = req.body || {};
     if (!totalAmount || !merchantName || !merchantUrl) {
       return res.status(400).json({ error: 'totalAmount, merchantName, merchantUrl are required' });
     }
-    const displayName = humanizeMerchant(merchantName);
+    const displayName = prava.humanizeMerchant(merchantName);
+
+    if (live && !prava.restSandboxMode()) {
+      return res.status(501).json({
+        error: 'Live REST checkout is disabled until an external merchant checkout adapter is configured.',
+        code: 'EXTERNAL_CHECKOUT_NOT_CONFIGURED',
+      });
+    }
 
     if (!live) {
       // Self-check mock shaped like the real Create Session response.
@@ -108,7 +98,6 @@ router.post('/order', async (req, res, next) => {
       const session = {
         sessionId: id,
         iframeUrl: 'https://sandbox.collect.prava.space?session=' + id,
-        sessionToken: 'mock.jwt.' + id,
         orderId: 'ord_mock_' + crypto.randomUUID().slice(0, 8),
         expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
         merchantName: displayName, totalAmount, currency,
@@ -118,29 +107,17 @@ router.post('/order', async (req, res, next) => {
       return res.status(201).json(session);
     }
 
-    const r = await pravaRest('POST', '/v1/sessions', {
-      user_id: userId || 'onpoint_demo',
-      user_email: email || 'demo@onpoint.famile.xyz',
-      total_amount: String(totalAmount),
+    const r = await prava.createRestSession({
+      totalAmount,
       currency,
-      description: `${displayName} order via OnPoint`,
-      integration_type: 'full_checkout',
-      callback_url: callbackUrl || 'https://beonpoint.netlify.app/agent',
-      purchase_context: [{
-        merchant_details: {
-          name: displayName,
-          url: merchantUrl,
-          country_code_iso2: merchantCountry,
-          category_code: '5691',
-          category: "Men's and Women's Clothing Stores",
-        },
-        product_details: (products || [{ description: 'Fashion item', unit_price: String(totalAmount), quantity: 1 }]),
-      }],
+      merchantName,
+      merchantUrl,
+      merchantCountry,
+      products: products || [{ description: 'Fashion item', unit_price: String(totalAmount), quantity: 1 }],
     });
     const session = {
       sessionId: r.session_id,
-      iframeUrl: r.iframe_url,
-      sessionToken: r.session_token,
+      iframeUrl: r.payment_url,
       orderId: r.order_id,
       expiresAt: r.expires_at,
       merchantName: displayName, totalAmount, currency,
@@ -153,37 +130,55 @@ router.post('/order', async (req, res, next) => {
 // ── GET /prava/sandbox/order/:id/result — poll payment result ────────
 // Returns the session status + one-time credentials when ready (awaiting_result).
 router.get('/order/:id/result', async (req, res, next) => {
+  let local;
   try {
-    const local = sessions.get(req.params.id);
+    local = sessions.get(req.params.id);
     if (!local) return res.status(404).json({ error: 'Session not found' });
-
-    if (!live) {
-      // Self-check: pretend the cardholder completed card entry + passkey.
-      local.state = 'awaiting_result';
+    if (local.state === 'failed' && local.failure) {
       return res.json({
-        status: 'awaiting_result',
-        transactions: [{
-          txn_id: 'txn_mock_001',
-          status: 'awaiting_result',
-          line_items: [{
-            txn_ref_id: 'tli_mock_001',
-            merchant_name: local.merchantName,
-            total_amount: String(local.totalAmount),
-            status: 'awaiting_result',
-            token: '4323126882557932',
-            dynamic_cvv: '957',
-            expiry_month: '12',
-            expiry_year: '2028',
-            products: [{ name: 'Fashion item', unit_price: String(local.totalAmount), quantity: 1 }],
-          }],
-        }],
+        session_id: req.params.id,
+        status: 'failed',
+        providerRecordId: local.providerRecordId || null,
+        error: local.failure,
       });
     }
 
-    const r = await pravaRest('GET', '/v1/sessions/' + req.params.id + '/payment-result');
-    if (r.status === 'completed' || r.status === 'failed') local.state = r.status;
-    res.json(r);
-  } catch (e) { next(e); }
+    if (!live) {
+      local.state = 'self_check_credential_ready';
+      return res.json({
+        status: 'self_check_credential_ready',
+        selfCheck: true,
+      });
+    }
+
+    const r = await prava.pollRestSession({ sessionId: req.params.id });
+    if (r.status === 'credential_ready' || r.status === 'failed') local.state = r.status;
+    if (r.status === 'failed') {
+      local.failure = r.error;
+      local.providerRecordId = r.providerRecordId || null;
+      return res.json({
+        session_id: r.session_id,
+        status: r.status,
+        providerRecordId: r.providerRecordId,
+        error: r.error,
+      });
+    }
+    res.json({ session_id: r.session_id, status: r.status });
+  } catch (e) {
+    const definitive = e.code === 'incomplete_credential_response'
+      || (e.status >= 400 && e.status < 500 && ![408, 425, 429].includes(e.status));
+    if (local && definitive) {
+      local.state = 'failed';
+      local.failure = {
+        code: e.code,
+        message: e.message,
+        status: e.status || null,
+        details: e.context?.details || null,
+        responseId: e.context?.responseId || null,
+      };
+    }
+    next(e);
+  }
 });
 
 // ── POST /prava/sandbox/order/:id/report — report outcome ────────────
@@ -221,7 +216,7 @@ router.post('/order/:id/report', async (req, res, next) => {
 
 router.use((err, _req, res, _next) => {
   logger.error('Prava sandbox error', { component: 'prava-sandbox' }, err);
-  res.status(500).json({ error: err.message });
+  res.status(err.status || 500).json({ error: err.message, code: err.code, context: err.context });
 });
 
 module.exports = router;

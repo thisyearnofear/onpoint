@@ -29,6 +29,7 @@ interface OrderData {
   selfCheckOrderId: string | null;
   paymentUrl: string | null;
   selfCheck: boolean;
+  failure: { code?: string; message?: string; status?: number | null; details?: unknown; responseId?: string | null } | null;
   // true when the order uses Prava's REST sandbox rail (hosted card entry
   // + test card) rather than the CLI passkey flow.
   restMode: boolean;
@@ -60,6 +61,7 @@ const STATE_LABELS: Record<string, string> = {
   approved: "Approved",
   credential_ready: "Test credential ready",
   checking_out: "Placing order",
+  checkout_unknown: "Checkout outcome unknown",
   confirmed: "✓ Order placed",
   sandbox_completed: "✓ Sandbox completed",
   self_check_completed: "✓ Self-check completed",
@@ -74,6 +76,7 @@ const STATE_COLORS: Record<string, string> = {
   approved: "bg-primary/10 text-primary",
   credential_ready: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
   checking_out: "bg-primary/10 text-primary",
+  checkout_unknown: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
   confirmed: "bg-green-500/10 text-green-600 dark:text-green-400",
   sandbox_completed: "bg-green-500/10 text-green-600 dark:text-green-400",
   self_check_completed: "bg-muted text-muted-foreground",
@@ -106,8 +109,9 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
     const doPoll = async () => {
       try {
         const r = await fetch(`/prava/order/${orderId}`);
-        if (!r.ok || !active) return;
         const data = await r.json();
+        if (!r.ok) throw new Error(data.error || `Order refresh failed (${r.status})`);
+        if (!active) return;
         setOrder(data);
         setLoading(false);
 
@@ -126,7 +130,9 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
         ) {
           pollInFlight.current = true;
           try {
-            await fetch(`/prava/order/${orderId}/poll`, { method: "POST" });
+            const pr = await fetch(`/prava/order/${orderId}/poll`, { method: "POST" });
+            const pdata = await pr.json();
+            if (!pr.ok) throw new Error(pdata.error || `Payment poll failed (${pr.status})`);
           } finally {
             pollInFlight.current = false;
           }
@@ -139,15 +145,19 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
           try {
             const cr = await fetch(`/prava/order/${orderId}/checkout`, { method: "POST" });
             const cdata = await cr.json();
+            if (!cr.ok) throw new Error(cdata.error || `Checkout failed (${cr.status})`);
             if (active) setOrder(cdata.order || cdata);
-          } catch {
-            // transient — retry next tick
+          } catch (e: unknown) {
+            if (active) setError(e instanceof Error ? e.message : "Checkout failed");
           } finally {
             checkoutInFlight.current = false;
           }
         }
-      } catch {
-        if (active) setLoading(false);
+      } catch (e: unknown) {
+        if (active) {
+          setError(e instanceof Error ? e.message : "Order refresh failed");
+          setLoading(false);
+        }
       }
     };
     doPoll();
@@ -213,7 +223,7 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
   const isConfirmed = state === "confirmed";
   const isSandboxCompleted = state === "sandbox_completed";
   const isSelfCheckCompleted = state === "self_check_completed";
-  const isFailed = state === "failed";
+  const isFailed = state === "failed" || state === "checkout_unknown";
   const isCredentialReady = state === "credential_ready";
   const isProcessing = state === "approved" || state === "checking_out" || state === "searching";
   const productImage = showTryOn ? order.tryOnUrl : order.garmentImageUrl;
@@ -436,7 +446,12 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
         {isFailed && (
           <div className="space-y-2">
             <div className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-400">
-              Checkout failed. The payment session may have expired.
+              {order.failure?.code
+                ? `${order.failure.code}: ${order.failure.message || "Prava hosted flow failed"}`
+                : "Prava hosted flow failed before credential issuance."}
+              {order.failure?.responseId && (
+                <span className="mt-1 block text-xs">Support reference: {order.failure.responseId}</span>
+              )}
             </div>
             {onReset && (
               <button

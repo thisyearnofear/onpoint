@@ -12,9 +12,11 @@ interface Props {
 
 export function AgentResults({ results, query, onSelectOrder }: Props) {
   const [creating, setCreating] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSelect = async (result: SearchResult) => {
     setCreating(result.product_id);
+    setError(null);
     try {
       const offer = result.offers?.find((o) => o.available) || result.offers?.[0];
       const r = await fetch("/prava/order", {
@@ -22,14 +24,16 @@ export function AgentResults({ results, query, onSelectOrder }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           query,
+          productId: result.product_id,
           variantId: offer?.variant_id,
           merchant: result.merchant,
         }),
       });
       const data = await r.json();
+      if (!r.ok) throw new Error(data.error || `Session creation failed (${r.status})`);
       if (data.orderId) onSelectOrder(data.orderId);
-    } catch {
-      // network error
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Session creation failed");
     } finally {
       setCreating(null);
     }
@@ -47,7 +51,9 @@ export function AgentResults({ results, query, onSelectOrder }: Props) {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+    <div>
+      {error && <p className="mb-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
       {results.map((r) => {
         const price = r.offers?.find((o) => o.available)?.price || r.offers?.[0]?.price;
         const isCreating = creating === r.product_id;
@@ -94,6 +100,7 @@ export function AgentResults({ results, query, onSelectOrder }: Props) {
           </button>
         );
       })}
+      </div>
     </div>
   );
 }

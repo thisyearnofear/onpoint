@@ -26,9 +26,11 @@ interface Props {
 
 export function AgentSearchBar({ onResults, loading }: Props) {
   const [query, setQuery] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const search = async (q: string) => {
     if (!q.trim()) return;
+    setError(null);
     try {
       const r = await fetch("/prava/search", {
         method: "POST",
@@ -36,8 +38,10 @@ export function AgentSearchBar({ onResults, loading }: Props) {
         body: JSON.stringify({ query: q }),
       });
       const data = await r.json();
+      if (!r.ok) throw new Error(data.error || `Search failed (${r.status})`);
       onResults(data.results || [], q);
-    } catch {
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Search failed");
       onResults([], q);
     }
   };
@@ -70,6 +74,7 @@ export function AgentSearchBar({ onResults, loading }: Props) {
           </button>
         </div>
       </form>
+      {error && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
       {/* Suggestion chips */}
       <div className="mt-3 flex flex-wrap gap-2">

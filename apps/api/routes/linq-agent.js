@@ -291,27 +291,39 @@ function internalBase() {
 }
 const headers = { 'x-service-key': SERVICE_KEY || '', 'Content-Type': 'application/json' };
 
+async function readPravaResponse(response) {
+  const body = await response.json();
+  if (!response.ok) {
+    const err = new Error(body.error || `Prava facade failed with HTTP ${response.status}`);
+    err.code = body.code;
+    err.context = body.context;
+    err.status = response.status;
+    throw err;
+  }
+  return body;
+}
+
 async function pravaOrderFromIntent(text) {
   const r = await fetch(internalBase() + '/order', {
     method: 'POST', headers,
     body: JSON.stringify({ query: text }),
   });
-  return r.json();
+  return readPravaResponse(r);
 }
 async function pravaTryOn(orderId, photo) {
   const r = await fetch(`${internalBase()}/order/${orderId}/try-on`, {
     method: 'POST', headers,
     body: JSON.stringify(photo), // { photoData } | { photoUrl }
   });
-  return r.json();
+  return readPravaResponse(r);
 }
 async function pravaPollOrder(orderId) {
   const r = await fetch(`${internalBase()}/order/${orderId}/poll`, { method: 'POST', headers });
-  return r.json();
+  return readPravaResponse(r);
 }
 async function pravaCheckoutOrder(orderId) {
   const r = await fetch(`${internalBase()}/order/${orderId}/checkout`, { method: 'POST', headers });
-  return r.json();
+  return readPravaResponse(r);
 }
 
 async function safeGetChat(chatId) {

@@ -196,7 +196,7 @@ async function main() {
     sub("fixture iframe_url present", !!session.iframeUrl);
     const result = await get(`/prava/sandbox/order/${session.sessionId}/result`);
     ok("fixture payment-result state", result.status);
-    sub("fixture line-item shape", Array.isArray(result.transactions?.[0]?.line_items));
+    sub("credential material remains server-side", !result.token && !result.transactions);
     const report = await post(`/prava/sandbox/order/${session.sessionId}/report`, { status: "APPROVED" });
     ok("fixture report state", report.status);
   } else {

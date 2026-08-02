@@ -298,15 +298,15 @@ app.use('/okx', json10mb, require('./routes/okx-facade'));
 app.use('/prava/card', require('./routes/prava-card'));
 
 // ── Prava Sandbox Fallback (REST session flow — live-demo safety net) ─
-// session → passkey → credential → report-status → completed, via Prava's
-// REST API. Self-check by default; live with PRAVA_SECRET_KEY. ADR 0017.
+// session → hosted verification → credential readiness via Prava's REST API.
+// It does not synthesize an external checkout or report-status. ADR 0017.
 app.use('/prava/sandbox', json1k, require('./routes/prava-sandbox'));
 
 // ── Prava Agent Checkout Facade (Agentic Commerce Hackathon) ──────
 // Agent buy-flow rail: discover → quote → scoped-card session → passkey
 // approval → real order at a UCP fashion merchant. Drives the Linq iMessage
 // card. Self-check mode by default; live via the prava CLI. ADR 0017.
-app.use('/prava', json1k, require('./routes/prava-facade'));
+app.use('/prava', json1k, generalRateLimit, require('./routes/prava-facade'));
 
 // ── Linq iMessage Agent (Agentic Commerce Hackathon, Linq track) ───
 // Receives Linq iMessage webhooks and orchestrates the buy-flow: inbound
