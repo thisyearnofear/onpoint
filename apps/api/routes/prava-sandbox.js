@@ -27,6 +27,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const logger = require('../lib/logger');
+const { humanizeMerchant } = require('../lib/prava-client');
 
 const router = express.Router();
 
@@ -99,6 +100,7 @@ router.post('/order', async (req, res, next) => {
     if (!totalAmount || !merchantName || !merchantUrl) {
       return res.status(400).json({ error: 'totalAmount, merchantName, merchantUrl are required' });
     }
+    const displayName = humanizeMerchant(merchantName);
 
     if (!live) {
       // Self-check mock shaped like the real Create Session response.
@@ -109,7 +111,7 @@ router.post('/order', async (req, res, next) => {
         sessionToken: 'mock.jwt.' + id,
         orderId: 'ord_mock_' + crypto.randomUUID().slice(0, 8),
         expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-        merchantName, totalAmount, currency,
+        merchantName: displayName, totalAmount, currency,
       };
       sessions.set(id, { ...session, state: 'pending', createdAt: Date.now() });
       logger.info('Prava sandbox session created (self-check)', { component: 'prava-sandbox', sessionId: id });
@@ -121,10 +123,17 @@ router.post('/order', async (req, res, next) => {
       user_email: email || 'demo@onpoint.famile.xyz',
       total_amount: String(totalAmount),
       currency,
+      description: `${displayName} order via OnPoint`,
       integration_type: 'full_checkout',
       callback_url: callbackUrl || 'https://beonpoint.netlify.app/agent',
       purchase_context: [{
-        merchant_details: { name: merchantName, url: merchantUrl, country_code_iso2: merchantCountry },
+        merchant_details: {
+          name: displayName,
+          url: merchantUrl,
+          country_code_iso2: merchantCountry,
+          category_code: '5691',
+          category: "Men's and Women's Clothing Stores",
+        },
         product_details: (products || [{ description: 'Fashion item', unit_price: String(totalAmount), quantity: 1 }]),
       }],
     });
@@ -134,7 +143,7 @@ router.post('/order', async (req, res, next) => {
       sessionToken: r.session_token,
       orderId: r.order_id,
       expiresAt: r.expires_at,
-      merchantName, totalAmount, currency,
+      merchantName: displayName, totalAmount, currency,
     };
     sessions.set(r.session_id, { ...session, state: 'pending', createdAt: Date.now() });
     res.status(201).json(session);
@@ -197,6 +206,11 @@ router.post('/order/:id/report', async (req, res, next) => {
     const r = await pravaRest('POST', '/v1/sessions/' + req.params.id + '/report-status', {
       txn_ref_id: txnRefId,
       txn_status: status,
+      txn_type: 'PURCHASE',
+      response_code: status === 'APPROVED' ? '00' : '05',
+      authorization_code: status === 'APPROVED'
+        ? 'OK' + crypto.randomBytes(3).toString('hex').toUpperCase()
+        : undefined,
     });
     local.state = status === 'APPROVED' ? 'completed' : 'failed';
     res.json({ ...r, status: local.state });

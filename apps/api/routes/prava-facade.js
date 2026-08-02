@@ -270,7 +270,7 @@ router.post('/order', async (req, res, next) => {
       session = await prava.createPaymentSession({
         totalAmount,
         currency,
-        merchantName: chosenMerchant,
+        merchantName: prava.humanizeMerchant(chosenMerchant),
         merchantUrl: `https://${chosenMerchant}`,
         merchantCountry: 'US',
         products,

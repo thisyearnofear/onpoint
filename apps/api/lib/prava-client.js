@@ -421,25 +421,73 @@ async function shopListAddresses() {
 // Used by the facade when restMode() is true. Return shapes are normalizedized
 // to match the CLI-path counterparts so the facade can treat them alike.
 
+/** Humanize a merchant identifier/domain into a Visa-safe display name.
+ *
+ *  UCP discovery hands us merchants as bare domains (e.g.
+ *  `eliteelevensporting.com`). Prava forwards `merchant_details.name` to Visa
+ *  as the merchant of record and renders it as the checkout header, so a raw
+ *  domain is wrong — it must be a readable name. This turns a domain into a
+ *  title-cased display name:
+ *    eliteelevensporting.com → "Elite Eleven Sporting"
+ *    alo-yoga.com            → "Alo Yoga"
+ *
+ *  Idempotent: running it on an already-humanized name is a no-op, so callers
+ *  can apply it defensively. Falls back to the raw input if nothing usable is
+ *  produced. */
+function humanizeMerchant(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return s;
+  let base = s
+    .replace(/^https?:\/\//i, '') // strip scheme
+    .replace(/\/.*$/, '')         // strip path
+    .replace(/\.(com|net|org|io|co|shop|store|us|uk|ca|au)$/i, '') // strip common TLD
+    .replace(/^www\./i, '');      // strip www
+  // Split camelCase runs, then break on any non-alphanumeric separator.
+  base = base
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .split(/[^A-Za-z0-9]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+  // Prava sanitizes to a Visa-safe set anyway; keep it conservative here.
+  base = base.replace(/[^A-Za-z0-9 &.'-]/g, '').trim();
+  return base || String(raw);
+}
+
+// Fashion/apparel merchant category (MCC 5691) — every UCP merchant we
+// discover is a clothing brand. Prava's provisioning/lookup keys on this, and
+// the spec example bodies omit it to their detriment.
+const FASHION_MCC = '5691';
+const FASHION_CATEGORY = "Men's and Women's Clothing Stores";
+
 /** create_rest_session — open a hosted payment session. Returns a payment_url
  *  (the Prava-hosted card-entry iframe URL) the owner opens to enter their
  *  (test) card + passkey. Charges nothing. Mirrors createPaymentSession's
  *  return shape: { session_id, payment_url, ... }. */
-async function createRestSession({ totalAmount, currency, merchantName, merchantUrl, merchantCountry, products } = {}) {
+async function createRestSession({ totalAmount, currency = 'USD', merchantName, merchantUrl, merchantCountry, products } = {}) {
+  const displayName = humanizeMerchant(merchantName);
+  const productList = (products || []).map((p) => ({
+    description: p.description,
+    unit_price: String(p.unit_price),
+    quantity: p.quantity || 1,
+  }));
   const r = await restCall('POST', '/v1/sessions', {
     user_id: 'onpoint_agent',
     user_email: 'agent@onpoint.famile.xyz',
     total_amount: String(totalAmount),
     currency,
+    description: `${displayName} order via OnPoint`,
     integration_type: 'full_checkout',
     callback_url: process.env.PUBLIC_BASE_URL || 'https://beonpoint.netlify.app/agent',
     purchase_context: [{
-      merchant_details: { name: merchantName, url: merchantUrl, country_code_iso2: merchantCountry },
-      product_details: (products || []).map((p) => ({
-        description: p.description,
-        unit_price: String(p.unit_price),
-        quantity: p.quantity || 1,
-      })),
+      merchant_details: {
+        name: displayName,
+        url: merchantUrl,
+        country_code_iso2: merchantCountry,
+        category_code: FASHION_MCC,
+        category: FASHION_CATEGORY,
+      },
+      product_details: productList,
     }],
   });
   return {
@@ -477,13 +525,21 @@ async function pollRestSession({ sessionId } = {}) {
  *  sandbox this flips the session to completed (APPROVED) or failed (DECLINED).
  *  Returns { status, order_id }. */
 async function reportRestSession({ sessionId, txnRefId, status, orderId } = {}) {
+  const approved = status === 'APPROVED';
   await restCall('POST', '/v1/sessions/' + sessionId + '/report-status', {
     txn_ref_id: txnRefId,
     txn_status: status,
+    txn_type: 'PURCHASE',
+    // Spec examples canonically include a processor response/authorization
+    // code; "00" = approved, "05" = declined. OnPoint is the reporting party.
+    response_code: approved ? '00' : '05',
+    authorization_code: approved
+      ? 'OK' + Math.random().toString(36).slice(2, 8).toUpperCase()
+      : undefined,
   });
   return {
-    status: status === 'APPROVED' ? 'completed' : 'failed',
-    order_id: status === 'APPROVED' ? (orderId || sessionId) : null,
+    status: approved ? 'completed' : 'failed',
+    order_id: approved ? (orderId || sessionId) : null,
   };
 }
 
@@ -502,6 +558,7 @@ module.exports = {
   createRestSession,
   pollRestSession,
   reportRestSession,
+  humanizeMerchant,
   cliAvailable,
   selfCheck,
   PravaError,
