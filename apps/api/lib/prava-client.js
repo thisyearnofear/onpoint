@@ -464,14 +464,14 @@ const FASHION_CATEGORY = "Men's and Women's Clothing Stores";
  *  (the Prava-hosted card-entry iframe URL) the owner opens to enter their
  *  (test) card + passkey. Charges nothing. Mirrors createPaymentSession's
  *  return shape: { session_id, payment_url, ... }. */
-async function createRestSession({ totalAmount, currency = 'USD', merchantName, merchantUrl, merchantCountry, products } = {}) {
+async function createRestSession({ totalAmount, currency = 'USD', merchantName, merchantUrl, merchantCountry, products, cardId } = {}) {
   const displayName = humanizeMerchant(merchantName);
   const productList = (products || []).map((p) => ({
     description: p.description,
     unit_price: String(p.unit_price),
     quantity: p.quantity || 1,
   }));
-  const r = await restCall('POST', '/v1/sessions', {
+  const body = {
     user_id: 'onpoint_agent',
     user_email: 'agent@onpoint.famile.xyz',
     total_amount: String(totalAmount),
@@ -489,7 +489,13 @@ async function createRestSession({ totalAmount, currency = 'USD', merchantName, 
       },
       product_details: productList,
     }],
-  });
+  };
+  // Pre-select an already-enrolled card (from /v1/listCards). This skips the
+  // addCard/provisioning step in the hosted surface and goes straight to
+  // passkey verification. Per the create-session spec, send card_id OR
+  // vault_ref_id — card_id wins if both are present.
+  if (cardId) body.card = { card_id: cardId };
+  const r = await restCall('POST', '/v1/sessions', body);
   return {
     session_id: r.session_id,
     payment_url: r.iframe_url,

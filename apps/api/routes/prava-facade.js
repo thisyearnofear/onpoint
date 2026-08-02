@@ -260,6 +260,10 @@ router.post('/order', async (req, res, next) => {
         merchantUrl: `https://${chosenMerchant}`,
         merchantCountry: 'US',
         products,
+        // Pre-select the enrolled sandbox card (skips the addCard/device-binding
+        // step that 409s in Prava's hosted surface). Set PRAVA_CARD_ID from
+        // GET /v1/listCards?customer_id=onpoint_agent.
+        cardId: process.env.PRAVA_CARD_ID || undefined,
       });
     } else {
       // Lock the binding total via the CLI quote.

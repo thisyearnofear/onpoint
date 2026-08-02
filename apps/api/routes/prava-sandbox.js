@@ -96,7 +96,7 @@ router.get('/health', (_req, res) => {
 // Charges nothing. Returns { sessionId, iframeUrl, sessionToken, expiresAt }.
 router.post('/order', async (req, res, next) => {
   try {
-    const { userId, email, totalAmount, currency = 'USD', merchantName, merchantUrl, merchantCountry = 'US', products, callbackUrl } = req.body || {};
+    const { userId, email, totalAmount, currency = 'USD', merchantName, merchantUrl, merchantCountry = 'US', products, callbackUrl, cardId } = req.body || {};
     if (!totalAmount || !merchantName || !merchantUrl) {
       return res.status(400).json({ error: 'totalAmount, merchantName, merchantUrl are required' });
     }
@@ -118,7 +118,7 @@ router.post('/order', async (req, res, next) => {
       return res.status(201).json(session);
     }
 
-    const r = await pravaRest('POST', '/v1/sessions', {
+    const restBody = {
       user_id: userId || 'onpoint_demo',
       user_email: email || 'demo@onpoint.famile.xyz',
       total_amount: String(totalAmount),
@@ -136,7 +136,11 @@ router.post('/order', async (req, res, next) => {
         },
         product_details: (products || [{ description: 'Fashion item', unit_price: String(totalAmount), quantity: 1 }]),
       }],
-    });
+    };
+    // Pre-select an enrolled card to skip the addCard/device-binding step.
+    const preCard = cardId || process.env.PRAVA_CARD_ID;
+    if (preCard) restBody.card = { card_id: preCard };
+    const r = await pravaRest('POST', '/v1/sessions', restBody);
     const session = {
       sessionId: r.session_id,
       iframeUrl: r.iframe_url,
