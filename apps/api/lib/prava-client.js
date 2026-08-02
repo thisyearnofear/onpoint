@@ -63,6 +63,10 @@ function restMode() {
   return !!REST_SECRET;
 }
 
+function restSandboxMode() {
+  return REST_SECRET.startsWith('sk_test_');
+}
+
 async function restCall(method, path, body) {
   const r = await fetch(REST_BASE + path, {
     method,
@@ -464,14 +468,14 @@ const FASHION_CATEGORY = "Men's and Women's Clothing Stores";
  *  (the Prava-hosted card-entry iframe URL) the owner opens to enter their
  *  (test) card + passkey. Charges nothing. Mirrors createPaymentSession's
  *  return shape: { session_id, payment_url, ... }. */
-async function createRestSession({ totalAmount, currency = 'USD', merchantName, merchantUrl, merchantCountry, products, cardId } = {}) {
+async function createRestSession({ totalAmount, currency = 'USD', merchantName, merchantUrl, merchantCountry, products } = {}) {
   const displayName = humanizeMerchant(merchantName);
   const productList = (products || []).map((p) => ({
     description: p.description,
     unit_price: String(p.unit_price),
     quantity: p.quantity || 1,
   }));
-  const body = {
+  const r = await restCall('POST', '/v1/sessions', {
     user_id: 'onpoint_agent',
     user_email: 'agent@onpoint.famile.xyz',
     total_amount: String(totalAmount),
@@ -489,13 +493,7 @@ async function createRestSession({ totalAmount, currency = 'USD', merchantName, 
       },
       product_details: productList,
     }],
-  };
-  // Pre-select an already-enrolled card (from /v1/listCards). This skips the
-  // addCard/provisioning step in the hosted surface and goes straight to
-  // passkey verification. Per the create-session spec, send card_id OR
-  // vault_ref_id — card_id wins if both are present.
-  if (cardId) body.card = { card_id: cardId };
-  const r = await restCall('POST', '/v1/sessions', body);
+  });
   return {
     session_id: r.session_id,
     payment_url: r.iframe_url,
@@ -531,21 +529,26 @@ async function pollRestSession({ sessionId } = {}) {
  *  sandbox this flips the session to completed (APPROVED) or failed (DECLINED).
  *  Returns { status, order_id }. */
 async function reportRestSession({ sessionId, txnRefId, status, orderId } = {}) {
+  if (!restSandboxMode()) {
+    throw new PravaError(
+      'external_checkout_required',
+      'A production REST credential must be charged at the merchant before its outcome can be reported.',
+    );
+  }
   const approved = status === 'APPROVED';
   await restCall('POST', '/v1/sessions/' + sessionId + '/report-status', {
     txn_ref_id: txnRefId,
     txn_status: status,
     txn_type: 'PURCHASE',
-    // Spec examples canonically include a processor response/authorization
-    // code; "00" = approved, "05" = declined. OnPoint is the reporting party.
+    // This endpoint is only used for the documented sandbox lifecycle. It
+    // simulates the processor outcome; it is not evidence of a merchant order.
     response_code: approved ? '00' : '05',
-    authorization_code: approved
-      ? 'OK' + Math.random().toString(36).slice(2, 8).toUpperCase()
-      : undefined,
+    authorization_code: approved ? 'SANDBOX' : undefined,
   });
   return {
     status: approved ? 'completed' : 'failed',
     order_id: approved ? (orderId || sessionId) : null,
+    sandbox: true,
   };
 }
 
@@ -561,6 +564,7 @@ module.exports = {
   shopListAddresses,
   // REST sandbox transport.
   restMode,
+  restSandboxMode,
   createRestSession,
   pollRestSession,
   reportRestSession,

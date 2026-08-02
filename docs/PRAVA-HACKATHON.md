@@ -2,7 +2,7 @@
 
 > **OnPoint** submission to the [Agentic Commerce Hackathon](https://docs.prava.space)
 > on Prava / Devfolio. Build window: **Aug 1–2, 2026**. Hard deadline:
-> **Aug 2, 3:00 PM PT / Aug 3, 3:30 AM IST**. Results by Aug 8.
+> **Aug 2, 7:00 PM PT / Aug 3, 7:30 AM IST**. Results by Aug 8.
 > Competing in 4 tracks. See ADR [0017](./adr/0017-prava-agent-checkout.md).
 
 ## Submission Summary
@@ -189,21 +189,25 @@ guidelines above. We run it against `apps/api/lib/linq-client.js` +
 - **Live UCP discovery**: real Shopify merchants (Alo Yoga, Beyond Yoga,
   Blakely, Elite Eleven) returned with real product IDs + CDN images.
 
-### Known blocker (Prava infra, not ours)
+### Known blocker (escalated to Prava)
 
-- **Sandbox card provisioning returns 403.** On the hosted card-entry page,
-  entering the team test card (`4622 9431 2323 2523`) fails with
-  `PROVISION_ERROR: Request failed with status code 403` and
-  "Card check skipped — Lookup not configured" (order
-  `ord_01KZ1ZCE20N75VA9XM5MCJ8ND1`, 2 attempts). Prava's dashboard confirms
-  our session, merchant, product, and total rendered correctly — the failure
-  is inside their sandbox Visa tokenization pipeline. Emailed the Prava team;
-  awaiting their fix or a corrected test card.
+- **Sandbox device binding returns 409 before WebAuthn.** Real sessions are
+  accepted and Prava's dashboard renders the merchant, MCC 5691, product,
+  currency, and amount correctly. The team-provided card first produced a
+  provisioning 403; Prava's documented card and a second card supplied by the
+  team progressed further but failed with `DEVICE_BINDING_FAILED: 409` before
+  any passkey prompt. Reproduced in Brave and Safari, with fresh-card and
+  saved-card paths. Evidence orders include `ord_01KZ23CV1DW03DXAZY8FKR548S`
+  and `ord_01KZ24K86N8JS5K8C5PVQC8KH2`. The issue is escalated to Prava.
+- **Honesty boundary:** deterministic self-check validates orchestration only.
+  A REST sandbox lifecycle is labeled completed only after Prava issues a test
+  credential and accepts `report-status`; only the production CLI path may say
+  a merchant order was placed.
 
 ### Remaining before submission
 
-1. **Prava sandbox fix** (on Prava) — provisioning 403 resolved, or a working
-   test card. Then re-run the sandbox E2E to land a `completed` order.
+1. **Prava sandbox fix** (on Prava) — device binding 409 resolved. Then re-run
+   the sandbox E2E to land a real sandbox `completed` lifecycle.
 2. **Production access** — application submitted (Dashboard → API Key →
    Production → Hackathon). If approved, set `sk_live_*` (or rely on linked
    CLI agent) to run a real-card order. One env-var flip; architecture already

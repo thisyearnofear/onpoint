@@ -96,7 +96,7 @@ router.get('/health', (_req, res) => {
 // Charges nothing. Returns { sessionId, iframeUrl, sessionToken, expiresAt }.
 router.post('/order', async (req, res, next) => {
   try {
-    const { userId, email, totalAmount, currency = 'USD', merchantName, merchantUrl, merchantCountry = 'US', products, callbackUrl, cardId } = req.body || {};
+    const { userId, email, totalAmount, currency = 'USD', merchantName, merchantUrl, merchantCountry = 'US', products, callbackUrl } = req.body || {};
     if (!totalAmount || !merchantName || !merchantUrl) {
       return res.status(400).json({ error: 'totalAmount, merchantName, merchantUrl are required' });
     }
@@ -118,7 +118,7 @@ router.post('/order', async (req, res, next) => {
       return res.status(201).json(session);
     }
 
-    const restBody = {
+    const r = await pravaRest('POST', '/v1/sessions', {
       user_id: userId || 'onpoint_demo',
       user_email: email || 'demo@onpoint.famile.xyz',
       total_amount: String(totalAmount),
@@ -136,11 +136,7 @@ router.post('/order', async (req, res, next) => {
         },
         product_details: (products || [{ description: 'Fashion item', unit_price: String(totalAmount), quantity: 1 }]),
       }],
-    };
-    // Pre-select an enrolled card to skip the addCard/device-binding step.
-    const preCard = cardId || process.env.PRAVA_CARD_ID;
-    if (preCard) restBody.card = { card_id: preCard };
-    const r = await pravaRest('POST', '/v1/sessions', restBody);
+    });
     const session = {
       sessionId: r.session_id,
       iframeUrl: r.iframe_url,
@@ -207,14 +203,19 @@ router.post('/order/:id/report', async (req, res, next) => {
       return res.json({ status: local.state, reported: status });
     }
 
+    if (isLiveKeys) {
+      return res.status(409).json({
+        error: 'Production outcomes must come from a real merchant checkout; this sandbox helper cannot synthesize one.',
+      });
+    }
+
     const r = await pravaRest('POST', '/v1/sessions/' + req.params.id + '/report-status', {
       txn_ref_id: txnRefId,
       txn_status: status,
       txn_type: 'PURCHASE',
       response_code: status === 'APPROVED' ? '00' : '05',
-      authorization_code: status === 'APPROVED'
-        ? 'OK' + crypto.randomBytes(3).toString('hex').toUpperCase()
-        : undefined,
+      // Explicitly a sandbox processor simulation, not a merchant auth code.
+      authorization_code: status === 'APPROVED' ? 'SANDBOX' : undefined,
     });
     local.state = status === 'APPROVED' ? 'completed' : 'failed';
     res.json({ ...r, status: local.state });

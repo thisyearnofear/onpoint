@@ -33,12 +33,13 @@ function stateLabel(state) {
     approved: 'Approved',
     checking_out: 'Placing order',
     confirmed: '✓ Order placed',
+    sandbox_completed: '✓ Sandbox completed',
     failed: 'Checkout failed',
   })[state] || state;
 }
 
 function stateColor(state) {
-  if (state === 'confirmed') return '#1a7f37';
+  if (state === 'confirmed' || state === 'sandbox_completed') return '#1a7f37';
   if (state === 'failed') return '#d1242f';
   if (state === 'awaiting_approval' || state === 'approved' || state === 'checking_out') return '#0a66c2';
   return '#6e6e73';
@@ -53,6 +54,7 @@ function renderCard(orderId, order) {
   const currency = order?.currency || 'USD';
   const ceiling = order?.trust?.spendCeilingUsd;
   const pravaOrder = order?.orderIdPrava;
+  const sandboxOrder = order?.sandboxOrderId;
   const paymentUrl = order?.paymentUrl;
   const color = stateColor(state);
 
@@ -79,6 +81,27 @@ function renderCard(orderId, order) {
       <div class="orderno">Prava order ${pravaOrder}</div>
       <div class="receipt"><a href="${PUBLIC_BASE}/receipt/prava/${orderId}">View receipt</a></div>
     </div>` : '';
+
+  const sandboxBlock = state === 'sandbox_completed' ? `
+    <div class="confirmed">
+      <div class="orderno">Prava sandbox lifecycle completed</div>
+      <div class="sub">Test credential issued and outcome reported. No merchant charge.</div>
+      ${sandboxOrder ? `<div class="sub">Sandbox order ${sandboxOrder}</div>` : ''}
+    </div>` : '';
+
+  const title = state === 'confirmed'
+    ? 'Your stylist bought it for you'
+    : state === 'sandbox_completed'
+      ? 'Sandbox payment verified'
+      : 'Your stylist is finishing the job';
+  const priceNote = order?.restMode
+    ? 'listed item price · sandbox session amount'
+    : 'incl. shipping &amp; tax · binding quote';
+  const footer = state === 'confirmed'
+    ? 'Paid via Prava · scoped card · network-level controls'
+    : state === 'sandbox_completed'
+      ? 'Prava sandbox · test lifecycle · no real charge'
+      : 'Protected by Prava · scoped credential · user approval required';
 
   return `<!doctype html>
 <html lang="en"><head>
@@ -136,20 +159,21 @@ function renderCard(orderId, order) {
   <div class="card">
     <div class="hero">
       <div class="brand">OnPoint · Agent Outfitter</div>
-      <div class="title">Your stylist bought it for you</div>
+      <div class="title">${title}</div>
       <div class="state"><span class="dot ${state==='awaiting_approval'||state==='checking_out'||state==='searching'?'pulse':''}"></span>${stateLabel(state)}</div>
     </div>
     <div class="body">
       <div class="skeleton">
         <div class="merchant" style="color:#a1a1a6">Composing your look…</div>
       </div>
-      ${merchant ? `<div class="merchant">${merchant}</div><div class="total">$${total} ${currency}</div><div class="sub">incl. shipping &amp; tax · binding quote</div>` : ''}
+      ${merchant ? `<div class="merchant">${merchant}</div><div class="total">$${total} ${currency}</div><div class="sub">${priceNote}</div>` : ''}
       ${tryOnBlock}
       ${trustBlock}
       ${paymentBlock}
       ${confirmedBlock}
+      ${sandboxBlock}
     </div>
-    <div class="footer">Paid via Prava · scoped card · network-level controls</div>
+    <div class="footer">${footer}</div>
   </div>
   <script>
     // Re-render from the live order state if the card is re-opened.
@@ -186,6 +210,7 @@ router.get('/:orderId/state', (req, res) => {
     totalAmount: order?.totalAmount || null,
     currency: order?.currency || 'USD',
     orderIdPrava: order?.orderIdPrava || null,
+    sandboxOrderId: order?.sandboxOrderId || null,
     paymentUrl: order?.paymentUrl || null,
     tryOnUrl: order?.tryOnUrl || null,
   });

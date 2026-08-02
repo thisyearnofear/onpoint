@@ -25,6 +25,7 @@ interface OrderData {
   garmentImageUrl: string | null;
   tryOnUrl: string | null;
   orderIdPrava: string | null;
+  sandboxOrderId: string | null;
   paymentUrl: string | null;
   // true when the order uses Prava's REST sandbox rail (hosted card entry
   // + test card) rather than the CLI passkey flow.
@@ -57,6 +58,7 @@ const STATE_LABELS: Record<string, string> = {
   approved: "Approved",
   checking_out: "Placing order",
   confirmed: "✓ Order placed",
+  sandbox_completed: "✓ Sandbox completed",
   failed: "Checkout failed",
 };
 
@@ -68,6 +70,7 @@ const STATE_COLORS: Record<string, string> = {
   approved: "bg-primary/10 text-primary",
   checking_out: "bg-primary/10 text-primary",
   confirmed: "bg-green-500/10 text-green-600 dark:text-green-400",
+  sandbox_completed: "bg-green-500/10 text-green-600 dark:text-green-400",
   failed: "bg-red-500/10 text-red-600 dark:text-red-400",
 };
 
@@ -102,7 +105,7 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
         setOrder(data);
         setLoading(false);
 
-        if (data.state === "confirmed") {
+        if (data.state === "confirmed" || data.state === "sandbox_completed") {
           if (!confirmedFired.current) {
             confirmedFired.current = true;
             onConfirmedRef.current?.();
@@ -202,6 +205,7 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
   const showTryOn = !!order.tryOnUrl;
   const canApprove = state === "awaiting_approval" || state === "try_on_ready";
   const isConfirmed = state === "confirmed";
+  const isSandboxCompleted = state === "sandbox_completed";
   const isFailed = state === "failed";
   const isProcessing = state === "approved" || state === "checking_out" || state === "searching";
   const productImage = showTryOn ? order.tryOnUrl : order.garmentImageUrl;
@@ -306,7 +310,11 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
               </div>
               <div className="text-right">
                 <p className="text-sm font-medium text-foreground">{order.merchant.name}</p>
-                <p className="text-xs text-muted-foreground">incl. shipping & tax · binding quote</p>
+                <p className="text-xs text-muted-foreground">
+                  {order.restMode
+                    ? "listed item price · sandbox session amount"
+                    : "incl. shipping & tax · binding quote"}
+                </p>
               </div>
             </div>
           </div>
@@ -369,17 +377,23 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
         )}
 
         {/* Confirmed */}
-        {isConfirmed && (
+        {(isConfirmed || isSandboxCompleted) && (
           <div className="space-y-3">
             <div className="flex items-center gap-2 rounded-lg bg-green-500/10 px-3 py-2.5 text-green-600 dark:text-green-400">
               <Check className="h-5 w-5 flex-shrink-0" />
               <div>
-                <p className="text-sm font-bold">Order placed</p>
-                {order.orderIdPrava && (
+                <p className="text-sm font-bold">
+                  {isSandboxCompleted ? "Prava sandbox lifecycle completed" : "Order placed"}
+                </p>
+                {isSandboxCompleted ? (
+                  <p className="text-xs text-green-600/80 dark:text-green-400/80">
+                    Test credential issued and outcome reported. No merchant charge.
+                  </p>
+                ) : order.orderIdPrava ? (
                   <p className="text-xs text-green-600/80 dark:text-green-400/80">
                     Prava order {order.orderIdPrava}
                   </p>
-                )}
+                ) : null}
               </div>
             </div>
             {onReset && (
@@ -415,7 +429,11 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
 
       {/* Footer */}
       <div className="border-t border-border/40 px-5 py-3 text-center text-[10px] text-muted-foreground">
-        Paid via Prava · scoped card · network-level controls
+        {isConfirmed
+          ? "Paid via Prava · scoped card · network-level controls"
+          : isSandboxCompleted
+            ? "Prava sandbox · test lifecycle · no real charge"
+            : "Protected by Prava · scoped credential · user approval required"}
       </div>
     </div>
   );

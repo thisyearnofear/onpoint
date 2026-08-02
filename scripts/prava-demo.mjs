@@ -12,7 +12,8 @@
  *   3. Quote     — (folded into POST /prava/order — binding total + checkout_session)
  *   4. Authorize — (folded into POST /prava/order — payment session + payment_url)
  *   5. Approve   — POST /prava/order/:id/poll  (passkey approval → single-use token+cryptogram)
- *   6. Checkout — POST /prava/order/:id/checkout → real order id (shop_checkout w/ creds)
+ *   6. Checkout — POST /prava/order/:id/checkout → fixture order id in self-check;
+ *                 real order id only when run against the production CLI
  *   7. Prove     — GET  /prava/card/:id           (mutating iMessage App card)
  *
  * Then the SDK/API REST sandbox fallback (live-demo safety net):
@@ -82,6 +83,9 @@ async function main() {
   const lh = await get("/linq/health");
   ok("Prava mode", ph.mode);
   sub("transport", ph.transport);
+  if (ph.mode === "self-check") {
+    sub("evidence level", "deterministic fixture — validates orchestration, not a transaction");
+  }
   ok("Linq mode", lh.mode);
   sub("prava (from Linq lens)", lh.pravaMode);
 
@@ -120,11 +124,13 @@ async function main() {
   ok("payment status", ap.paymentStatus);
   sub("credentials captured", ap.state === "approved" ? "yes (token + cryptogram held server-side)" : "no");
 
-  // ── 6. Checkout (shop_checkout — places the real order) ──────────
-  log("5 · Checkout — agent completes the purchase with the captured credentials (Prava shop_checkout)");
+  // ── 6. Checkout ──────────────────────────────────────────────────
+  log(ph.mode === "self-check"
+    ? "5 · Checkout — deterministic shop_checkout fixture (no transaction)"
+    : "5 · Checkout — agent completes the purchase with Prava shop_checkout");
   const co = await post(`/prava/order/${order.orderId}/checkout`, {});
   ok("state", co.state);
-  ok("Prava order id", co.order?.orderIdPrava || "(none)");
+  ok(ph.mode === "self-check" ? "fixture order id" : "Prava order id", co.order?.orderIdPrava || "(none)");
   sub("credential scope", co.order?.trust?.credentialScope);
 
   // ── 7. Prove — the mutating iMessage App card ────────────────────
@@ -132,12 +138,12 @@ async function main() {
   const card = await getText(`/prava/card/${order.orderId}`);
   ok("card renders try-on", card.includes("How it looks on you"));
   ok("card shows spend ceiling", card.includes(`up to $${order.trust.spendCeilingUsd}`));
-  ok("card shows confirmed order", card.includes("Order placed"));
-  ok("card shows Prava order no", card.includes(co.order.orderIdPrava));
+  ok("card shows fixture completion", card.includes("Order placed"));
+  ok("card shows fixture order no", card.includes(co.order.orderIdPrava));
   console.log(`\n  🔗 iMessage App card URL:  ${process.env.PUBLIC_BASE_URL || "https://api.onpoint.famile.xyz"}/prava/card/${order.orderId}`);
 
   // ── Sandbox fallback (live-demo safety net) ──────────────────────
-  log("7 · Sandbox fallback — REST session → passkey → credential → report → completed");
+  log("7 · Sandbox contract self-check — mocked session shape only");
   const sh = await get("/prava/sandbox/health");
   sub("sandbox mode", sh.mode);
   const session = await post("/prava/sandbox/order", {
@@ -195,8 +201,9 @@ async function main() {
   }
 
   console.log("\n═══════════════════════════════════════════════════════════════");
-  console.log("Demo complete — end-to-end agent checkout: discover → try-on →");
-  console.log("quote → authorize → approve → checkout → confirmed + card.");
+  console.log(ph.mode === "self-check"
+    ? "Self-check complete — orchestration validated with deterministic fixtures; no transaction claimed."
+    : "Demo complete — Prava checkout executed through the configured transport.");
   console.log("═══════════════════════════════════════════════════════════════\n");
 
   server.close(() => process.exit(0));

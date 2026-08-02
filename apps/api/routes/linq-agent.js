@@ -229,7 +229,9 @@ async function handleApproval(chatId, _tapback) {
   // Once approved, checkout places the order with those credentials.
   await pravaPollOrder(orderId);
   const result = await pravaCheckoutOrder(orderId);
-  const state = result.state === 'confirmed' ? 'confirmed' : 'awaiting_approval';
+  const state = result.state === 'confirmed' || result.state === 'sandbox_completed'
+    ? result.state
+    : 'awaiting_approval';
 
   // Mutate the card in place — the bubble flips to "Order placed".
   if (active.messageId) {
@@ -240,14 +242,18 @@ async function handleApproval(chatId, _tapback) {
       caption: 'OnPoint Stylist',
       subcaption: state === 'confirmed' && result.order?.orderIdPrava
         ? `✓ Order placed — Prava ${result.order.orderIdPrava}`
-        : 'Awaiting approval',
+        : state === 'sandbox_completed'
+          ? '✓ Prava sandbox completed — no merchant charge'
+          : 'Awaiting approval',
     });
   }
 
-  if (state === 'confirmed') {
+  if (state === 'confirmed' || state === 'sandbox_completed') {
     await linq.sendMessage({
       to: active.from,
-      text: result.order?.orderIdPrava
+      text: state === 'sandbox_completed'
+        ? '✓ Prava sandbox lifecycle completed: test credential issued and outcome reported. No merchant charge was made.'
+        : result.order?.orderIdPrava
         ? `✓ Ordered. Prava order ${result.order.orderIdPrava}. Receipt: ${PUBLIC_BASE}/receipt/prava/${orderId}`
         : '✓ Confirmed.',
     });

@@ -83,7 +83,7 @@ function trustView(o) {
 function orderView(o) {
   return {
     orderId: o.id,
-    state: o.state, // searching|quoted|awaiting_approval|approved|checking_out|confirmed|failed
+    state: o.state, // searching|quoted|awaiting_approval|approved|checking_out|confirmed|sandbox_completed|failed
     query: o.query || null,
     items: o.items || null,
     merchant: o.merchantName
@@ -96,6 +96,7 @@ function orderView(o) {
     paymentSessionId: o.paymentSessionId || null,
     checkoutSessionId: o.checkoutSessionId || null,
     orderIdPrava: o.orderIdPrava || null,
+    sandboxOrderId: o.sandboxOrderId || null,
     // Which payment rail this order uses — lets the client render the right
     // approval UX (hosted card-entry link for REST sandbox vs passkey button).
     restMode: !!o.restMode,
@@ -124,9 +125,13 @@ function serviceKeyAuth(req, res, next) {
 router.get('/health', async (_req, res) => {
   const cliOk = await prava.cliAvailable();
   const rest = prava.restMode();
-  const mode = rest ? 'sandbox-rest' : (prava.selfCheck() ? 'self-check' : 'live');
+  const mode = rest
+    ? (prava.restSandboxMode() ? 'sandbox-rest' : 'live-rest')
+    : (prava.selfCheck() ? 'self-check' : 'live');
   const transport = rest
-    ? 'rest:' + (process.env.PRAVA_SANDBOX_BASE || 'https://sandbox.api.prava.space')
+    ? 'rest:' + (prava.restSandboxMode()
+        ? (process.env.PRAVA_SANDBOX_BASE || 'https://sandbox.api.prava.space')
+        : (process.env.PRAVA_PRODUCTION_BASE || 'https://api.prava.space'))
     : (prava.selfCheck() ? 'mock-fixtures' : `cli:${process.env.PRAVA_CLI_PATH || 'prava'}`);
   res.json({
     status: 'ok',
@@ -139,7 +144,9 @@ router.get('/health', async (_req, res) => {
       ? ['shop_search', 'shop_product', 'create_rest_session', 'poll_rest_session', 'report_rest_session']
       : ['shop_search', 'shop_product', 'shop_quote', 'create_payment_session', 'poll_payment_session', 'shop_checkout'],
     note: rest
-      ? 'Sandbox REST mode — real Prava session with a test card (no real money). Discovery via CLI/UCP.'
+      ? (prava.restSandboxMode()
+          ? 'Sandbox REST mode — real Prava session with a test card (no real money). Discovery via CLI/UCP.'
+          : 'Live REST session mode — a separate merchant checkout must charge the credential before report-status.')
       : prava.selfCheck()
         ? 'Self-check mode — walkable mock. Set PRAVA_SECRET_KEY (sk_test_*) for sandbox, or PRAVA_CLI_PATH + PRAVA_AGENT_LINKED=1 for live.'
         : 'Live mode — real orders via the prava CLI (production, real card).',
@@ -260,10 +267,6 @@ router.post('/order', async (req, res, next) => {
         merchantUrl: `https://${chosenMerchant}`,
         merchantCountry: 'US',
         products,
-        // Pre-select the enrolled sandbox card (skips the addCard/device-binding
-        // step that 409s in Prava's hosted surface). Set PRAVA_CARD_ID from
-        // GET /v1/listCards?customer_id=onpoint_agent.
-        cardId: process.env.PRAVA_CARD_ID || undefined,
       });
     } else {
       // Lock the binding total via the CLI quote.
@@ -454,14 +457,16 @@ router.post('/order/:id/checkout', async (req, res, next) => {
         });
 
     if (result.status === 'completed' && result.order_id) {
-      o.state = 'confirmed';
-      o.orderIdPrava = result.order_id;
+      o.state = result.sandbox ? 'sandbox_completed' : 'confirmed';
+      if (result.sandbox) o.sandboxOrderId = result.order_id;
+      else o.orderIdPrava = result.order_id;
       o.updatedAt = Date.now();
       orders.set(o.id, o);
-      logger.info('Prava order confirmed', {
-        component: 'prava-facade', orderId: o.id, pravaOrder: result.order_id, amount: result.amount,
+      logger.info(result.sandbox ? 'Prava sandbox lifecycle completed' : 'Prava order confirmed', {
+        component: 'prava-facade', orderId: o.id, pravaOrder: result.order_id,
+        amount: result.amount, sandbox: !!result.sandbox,
       });
-      return res.json({ state: 'confirmed', order: orderView(o), result });
+      return res.json({ state: o.state, order: orderView(o), result });
     }
     // Not yet approved or pending — stay pending for retry.
     o.state = 'awaiting_approval';

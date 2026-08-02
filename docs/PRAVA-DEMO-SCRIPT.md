@@ -1,9 +1,9 @@
-# Prava Demo Video — Narration Script (two variants)
+# Prava Demo Video — Narration Script
 
 Record with `node scripts/prava-demo.mjs` (self-check) or `--live` + `LINQ_DEMO_TO`.
 Target length: ~100 seconds. Pick **Variant A** if production access landed and a
-real merchant order completed; **Variant B** otherwise. Never mix claims between
-variants.
+real merchant order completed; **Variant B** only if the real Prava sandbox
+lifecycle reached `completed`; otherwise use **Variant C**. Never mix claims.
 
 ## Recording rules (both variants)
 
@@ -78,9 +78,37 @@ Same timing. Replace the payment-claim lines:
 > transaction stages Prava performed, and the production path is one approved
 > flag away."
 
+---
+
+## Variant C — Prava sandbox provider incident still open
+
+Use this only if Prava has not fixed device binding before recording:
+
+> **(0:52 — hosted payment surface)** "This is a real Prava sandbox session,
+> created from a live UCP product and opened on Prava's hosted card surface.
+> Prava accepted and rendered the order, merchant, MCC, amount, and product."
+>
+> **(1:02 — dashboard evidence)** "The team-provided and documented test cards
+> both reach Prava, but device binding returns `409` before any passkey prompt,
+> identically in Safari and Brave. Here is the failed sandbox order and provider
+> error. We reported the reproducible incident to Prava rather than replacing it
+> with a fake success."
+>
+> **(1:18 — product UI + self-check)** "The complete product state machine and
+> trust UX remain judge-runnable with deterministic fixtures, explicitly labeled
+> self-check. The live sandbox session creation and failure evidence are separate
+> and never presented as a completed transaction."
+>
+> **(1:34 — closing)** "OnPoint's new Prava workflow is implemented and deployed;
+> the final credential issuance is blocked at Prava's hosted device-binding
+> service. Production access is requested, and the real merchant checkout path
+> remains ready behind the linked Prava CLI."
+
 ## Do NOT say (either variant)
 
 - "real order / real purchase / completed order at a merchant" — unless the
   completed checkout result (real `ord_…`) is on screen. The rules treat a
   mocked payment presented as a transaction as disqualification-grade.
+- "sandbox completed" — unless `payment-result` reached `awaiting_result` and
+  `report-status` produced a final `completed` state on Prava's real sandbox.
 - Dates or claims about multi-merchant checkout (v1 is one merchant per look).
