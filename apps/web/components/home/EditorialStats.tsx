@@ -16,11 +16,11 @@ export function EditorialStats() {
         { value: String(totalLooks), label: "looks you've analyzed", suffix: "", prefix: "" },
         { value: avgScore!, label: "your avg. score", suffix: "/10", prefix: "" },
         { value: String(bestScore), label: "your best score", suffix: "/10", prefix: "" },
-        { value: "$0.03", label: "try-on fee (agents)", suffix: "", prefix: "$" },
+        { value: "0.03", label: "try-on fee (agents)", suffix: "", prefix: "$" },
       ]
     : [
         { value: "8", label: "digital designs to try", suffix: "", prefix: "" },
-        { value: "$0.03", label: "agent try-on fee", suffix: "", prefix: "$" },
+        { value: "0.03", label: "agent try-on fee", suffix: "", prefix: "$" },
         { value: "95/5", label: "curator payout split", suffix: "", prefix: "" },
         { value: "2.5%", label: "referral commission", suffix: "", prefix: "" },
       ];

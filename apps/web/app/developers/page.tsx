@@ -381,7 +381,7 @@ if (orderRes.status !== 402) throw new Error("Expected a payment challenge");
               {
                 icon: <Key className="w-5 h-5" />,
                 title: "Attribution",
-                desc: "ERC-8021 dataSuffix on every tx. Dual tags for hackathon credit. Agent codes supported.",
+                desc: "ERC-8021 dataSuffix on every tx. Dual attribution tags. Agent codes supported.",
               },
             ].map((cap) => (
               <div key={cap.title} className="rounded-xl border border-border/40 bg-card p-5 space-y-3">

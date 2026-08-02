@@ -841,7 +841,7 @@ function Row({
 
 export default function TrackingPage() {
   return (
-    <OnPointLayout footer={false}>
+    <OnPointLayout>
       <Suspense
         fallback={
           <div className="flex min-h-[60vh] items-center justify-center">

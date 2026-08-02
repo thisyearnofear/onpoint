@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import {
   Sparkles,
@@ -27,7 +27,6 @@ import {
   PRODUCT_NAME,
 } from "../../lib/brand";
 import { WelcomeBackBanner } from "./WelcomeBackBanner";
-import { DemoWalkthrough } from "./DemoWalkthrough";
 import { HeroVisual } from "./HeroVisual";
 import { LookCrafter } from "./LookCrafter";
 import { EditorialStats } from "./EditorialStats";
@@ -123,8 +122,6 @@ function HowItWorks() {
 }
 
 export function HeroView() {
-  const [showDemo, setShowDemo] = useState(false);
-
   useEffect(() => {
     captureReferralFromURL();
   }, []);
@@ -154,9 +151,6 @@ export function HeroView() {
       <div className="container mx-auto px-4 pt-6">
         <WelcomeBackBanner />
       </div>
-
-      {/* Demo Walkthrough */}
-      {showDemo && <DemoWalkthrough onClose={() => setShowDemo(false)} />}
 
       <div className="relative container mx-auto px-4 py-12 md:py-20 lg:py-24 bg-gradient-to-b from-primary/[0.03] via-background to-background bg-[length:200%_200%] animate-gradient-shift">
         <div className="max-w-5xl mx-auto">
@@ -282,7 +276,7 @@ export function HeroView() {
 
       {/* Agent flow — the front door. Search real UCP brands, try on, approve,
           and buy — all inline. Not a demo page; the product itself. */}
-      <section className="border-t border-border/30 bg-gradient-to-b from-background to-muted/10">
+      <section id="agent-search" className="scroll-mt-20 border-t border-border/30 bg-gradient-to-b from-background to-muted/10">
         <div className="container mx-auto px-4 py-10 md:py-14">
           <div className="mx-auto max-w-2xl">
             <div className="mb-6 text-center">

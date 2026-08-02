@@ -93,12 +93,12 @@ export default function AboutPage() {
           <div className="mx-auto max-w-3xl px-4">
             <h2 className="text-2xl font-black tracking-tight md:text-3xl">Our story</h2>
           <p className="mt-4 text-base leading-7 text-muted-foreground">
-            OnPoint started as hackathon experiments — AI try-on, on-chain agent wallets on Celo,
+            OnPoint started as experiments — AI try-on, on-chain agent wallets on Celo,
             IPFS storage. The breakthrough was the curator primitive: the same AI styling session
             that serves a shopper also generates structured intelligence for the seller. Today,
             {" "}{PRODUCT_NAME} is live with curators in Kenya across sportswear, streetwear, Ankara,
-            vintage, and formal wear. We&rsquo;re developer-owned, fee-free, and focused on making
-            fashion commerce work for the markets that legacy platforms ignore.
+            vintage, and formal wear. We&rsquo;re developer-owned, free to browse,
+            and focused on making fashion commerce work for the markets that legacy platforms ignore.
           </p>
         </div>
       </section>
@@ -112,12 +112,12 @@ export default function AboutPage() {
           <p className="mx-auto mt-4 max-w-lg text-base leading-7 text-muted-foreground">
             {PRODUCT_NAME} is an independent, developer-owned project. We believe the best
             tools for emerging-market commerce come from builders who understand the
-            constraints: mobile-first, fee-free, and built for the seller who hustles.
+            constraints: mobile-first, pay-per-use, and built for the seller who hustles.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
               <Check className="h-4 w-4 text-success" />
-              No subscription fees
+              Browsing and curating are free — you only pay for try-ons and orders
             </span>
             <span className="inline-flex items-center gap-1.5">
               <Check className="h-4 w-4 text-success" />

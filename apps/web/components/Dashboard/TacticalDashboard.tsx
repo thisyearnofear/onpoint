@@ -69,6 +69,12 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
       }
       // Clean the URL so bookmarking doesn't persist a transient tab
       window.history.replaceState(null, "", window.location.pathname);
+    } else if (persona) {
+      // Persona deep-links (e.g. from the look crafter) go straight to try-on,
+      // even without an explicit tab param.
+      setMode("try-on");
+      setDeepLinkContext({ persona });
+      window.history.replaceState(null, "", window.location.pathname);
     }
   }, []);
 

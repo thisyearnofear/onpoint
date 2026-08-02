@@ -41,8 +41,8 @@ export function HeroVisual() {
       grid: [
         {
           type: "text" as const,
-          title: "STYLE SCORE",
-          lines: ["Color harmony: 8/10", "Fit: 9/10", "Silhouette: 7/10"],
+          title: "SYSTEM FACTS",
+          lines: ["Real color & fit read", "No fabricated scores", "You make the call"],
           color: "primary",
         },
         {

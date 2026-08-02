@@ -4,17 +4,14 @@ import React from "react";
 import { motion } from "framer-motion";
 import {
   ChevronRight,
-  Crown,
   ShieldAlert,
   Target,
 } from "lucide-react";
-import { Button } from "@repo/ui/button";
 import { EnhancedConnectButton } from "../EnhancedConnectButton";
 import { FarcasterSignInButton } from "../FarcasterSignInButton";
 import { ConnectedAccounts } from "../ConnectedAccounts";
 import { FraudMonitor } from "../FraudMonitor";
 import { AuthAccountCTA } from "./AuthAccountCTA";
-import Link from "next/link";
 
 export function SettingsPanel() {
   return (
@@ -56,30 +53,6 @@ export function SettingsPanel() {
       </details>
 
       <ConnectedAccounts />
-
-      {/* Subscription Management */}
-      <details className="group rounded-2xl border border-border bg-card/40 overflow-hidden" open>
-        <summary className="cursor-pointer p-4 flex items-center justify-between hover:bg-muted/30 transition-colors list-none">
-          <div className="flex items-center gap-2 text-foreground">
-            <Crown className="w-4 h-4 text-primary" />
-            <span className="text-sm font-bold uppercase tracking-wider">
-              Subscription
-            </span>
-          </div>
-          <ChevronRight className="w-4 h-4 text-muted-foreground group-open:rotate-90 transition-transform" />
-        </summary>
-        <div className="px-4 pb-4">
-          <p className="text-xs text-muted-foreground mb-3">
-            View your current plan, track usage, compare tiers, and manage billing.
-          </p>
-          <Link href="/account/subscription">
-            <Button variant="outline" size="sm" className="w-full">
-              <Crown className="w-3.5 h-3.5 mr-2" />
-              Manage Subscription
-            </Button>
-          </Link>
-        </div>
-      </details>
 
       {/* Fraud Monitoring Dashboard */}
       <details className="group rounded-2xl border border-border bg-card/40 overflow-hidden">

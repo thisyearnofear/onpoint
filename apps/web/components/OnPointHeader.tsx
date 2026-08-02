@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { PRODUCT_NAME, CTA_SHOP } from "../lib/brand";
 import { Auth0HeaderButton } from "./auth/Auth0Components";
+import { MobileNavigation } from "./mobile-navigation";
 import { NotificationBell } from "./NotificationBell";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -121,6 +122,7 @@ export function OnPointHeader() {
             <NotificationBell direction="up" />
             <Auth0HeaderButton />
             <ThemeToggle />
+            <MobileNavigation />
           </div>
         </div>
       </div>

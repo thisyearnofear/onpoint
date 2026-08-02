@@ -71,6 +71,12 @@ export default function PrivacyPage() {
               are not influenced by affiliate relationships. We only recommend products
               and curators we believe provide value to our users.
             </p>
+            <p className="mt-3">
+              This site also includes an affiliate monetization script (Skimlinks) on some
+              outbound fashion links. Where such links appear, Skimlinks may convert them
+              into affiliate links that earn OnPoint a commission on qualifying purchases,
+              at no additional cost to you.
+            </p>
           </section>
 
           <section>

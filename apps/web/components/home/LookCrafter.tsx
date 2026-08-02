@@ -463,7 +463,7 @@ export function LookCrafter() {
 
                 {/* CTA to lab — secondary action, the hero CTA above is the primary */}
                 <Link
-                  href={`/lab?persona=${persona}`}
+                  href={`/lab?tab=try-on&persona=${persona}`}
                   className="flex min-h-[44px] items-center justify-center gap-2 w-full rounded-full border border-border bg-transparent py-3 text-sm font-bold text-muted-foreground hover:text-foreground hover:bg-muted/50 active:bg-muted active:scale-[0.98] transition-[background-color,transform,color]"
                 >
                   Try this look

@@ -43,10 +43,6 @@ interface CuratorArchetype {
   exampleItems: string[];
   valueProps: string[];
   whyOnPoint: string;
-  stats: {
-    label: string;
-    value: string;
-  }[];
 }
 
 const ARCHETYPES: CuratorArchetype[] = [
@@ -72,11 +68,6 @@ const ARCHETYPES: CuratorArchetype[] = [
     ],
     whyOnPoint:
       "Your customers already ask 'how does it fit?' and 'can you print #7?' OnPoint gives them try-on and instant briefs — you just confirm stock and collect payment.",
-    stats: [
-      { label: "Avg. try-ons per visit", value: "4.2" },
-      { label: "AI try-on rate", value: "72%" },
-      { label: "Time to first listing", value: "30s" },
-    ],
   },
   {
     id: "streetwear",
@@ -100,11 +91,6 @@ const ARCHETYPES: CuratorArchetype[] = [
     ],
     whyOnPoint:
       "Your brand lives on Instagram and WhatsApp — not a website you maintain. OnPoint gives you a storefront that feels like your brand, with try-on that closes the 'will this fit?' hesitation.",
-    stats: [
-      { label: "Share rate", value: "23%" },
-      { label: "Avg. session time", value: "4m 12s" },
-      { label: "Items per curator", value: "18" },
-    ],
   },
   {
     id: "ankara",
@@ -128,11 +114,6 @@ const ARCHETYPES: CuratorArchetype[] = [
     ],
     whyOnPoint:
       "Every piece is made-to-order, which means every inquiry needs back-and-forth on fabric, fit, and style. OnPoint replaces 5 WhatsApp messages with one try-on and brief — you go straight to cutting fabric.",
-    stats: [
-      { label: "Brief-to-order rate", value: "72%" },
-      { label: "Avg. piece value", value: "KES 4,500" },
-      { label: "Returning customers", value: "41%" },
-    ],
   },
   {
     id: "vintage",
@@ -156,11 +137,6 @@ const ARCHETYPES: CuratorArchetype[] = [
     ],
     whyOnPoint:
       "You source unique pieces that need to be seen on a body to sell. OnPoint turns every listing into a virtual fitting experience — your customers try it on from home, and you ship when they confirm.",
-    stats: [
-      { label: "Try-on to inquiry", value: "55%" },
-      { label: "Sell-through rate", value: "3.2×" },
-      { label: "Avg. listing views", value: "142" },
-    ],
   },
   {
     id: "tailor",
@@ -184,11 +160,6 @@ const ARCHETYPES: CuratorArchetype[] = [
     ],
     whyOnPoint:
       "Your business runs on consultations — each taking 30+ minutes before a single stitch. OnPoint captures the brief, style preference, and body profile upfront. You walk into the fitting with everything you need.",
-    stats: [
-      { label: "Avg. order value", value: "KES 8,200" },
-      { label: "Brief detail score", value: "89%" },
-      { label: "Repeat custom rate", value: "53%" },
-    ],
   },
   {
     id: "luxury",
@@ -212,11 +183,6 @@ const ARCHETYPES: CuratorArchetype[] = [
     ],
     whyOnPoint:
       "Your customers aren't browsing open markets — they buy from you because of your eye and your access. OnPoint gives them a private showroom with try-on context, so they see how that bag works with their wardrobe before they commit.",
-    stats: [
-      { label: "Avg. item value", value: "KES 22,000" },
-      { label: "Inquiry conversion", value: "31%" },
-      { label: "Share-to-visit rate", value: "4.1×" },
-    ],
   },
 ];
 
@@ -523,16 +489,6 @@ export default function CuratorLandingPage() {
                         <h3 className="text-lg font-black tracking-tight">{a.title}</h3>
                         <p className="text-sm text-muted-foreground">{a.tagline}</p>
                       </div>
-                    </div>
-
-                    {/* Stats row — compact */}
-                    <div className="flex flex-wrap gap-3 mb-5">
-                      {a.stats.map((s) => (
-                        <div key={s.label} className="rounded-lg bg-muted/40 px-3 py-1.5">
-                          <span className="text-sm font-black" style={{ color: a.color }}>{s.value}</span>
-                          <span className="text-[10px] text-muted-foreground ml-1.5">{s.label}</span>
-                        </div>
-                      ))}
                     </div>
 
                     {/* Details — accordion for progressive disclosure */}

@@ -157,6 +157,11 @@ export function LiveSessionStartScreen({
                 ? "Real-time AI feedback as you move. Get fit, palette, and voice-led styling."
                 : "Tap to capture. Get fit, palette, and shopping matches in seconds."}
             </p>
+            {!isPremium && (
+              <p className="text-[11px] text-muted-foreground/70 max-w-md mx-auto leading-relaxed">
+                Free tier is an AI style preview — not the exact garment. The $0.03 paid try-on renders the actual item on your photo.
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-3 gap-2 w-full max-w-md">

@@ -98,6 +98,9 @@ const nextConfig = {
       { source: '/social', destination: '/curators', permanent: true },
       { source: '/social/:path*', destination: '/curators', permanent: true },
       { source: '/guides/agents', destination: '/developers', permanent: true },
+      // Pricing model is pay-per-use; the legacy subscription page is dead.
+      { source: '/account/subscription', destination: '/pricing', permanent: true },
+      { source: '/account/subscription/:path*', destination: '/pricing', permanent: true },
     ];
   },
 };

@@ -72,7 +72,7 @@ export default async function CuratorsPage() {
   const totalListings = curators.reduce((sum, c) => sum + (c.liveListingCount || 0), 0);
 
   return (
-    <OnPointLayout footer={false}>
+    <OnPointLayout>
       {/* ── Header ── */}
       <header className="border-b border-border bg-gradient-to-b from-muted/30 to-background">
         <div className="container mx-auto px-4 py-10 md:py-14 max-w-4xl">

@@ -410,11 +410,11 @@ export default function PricingPage() {
             {/* Attribution */}
             <AccordionItem
               title="Attribution Tags (ERC-8021)"
-              subtitle="On-chain attribution for hackathon credit"
+              subtitle="On-chain attribution via ERC-8021"
               icon={<Sparkles className="w-4 h-4" />}
             >
               <p className="text-sm mb-4">
-                Every transaction carries attribution tags for hackathon leaderboard credit. Agents can append their own code alongside the platform tag.
+                Every transaction carries on-chain attribution tags (ERC-8021), so platforms can credit agent-driven volume. Agents can append their own code alongside the platform tag.
               </p>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="rounded-lg bg-muted/40 p-4">

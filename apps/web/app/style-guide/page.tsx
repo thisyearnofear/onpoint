@@ -235,7 +235,7 @@ export default function StyleGuidePage() {
           <VariantLabel>Links with view transition metadata (requires item prop)</VariantLabel>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {MOCK_ITEMS.map((item) => (
-              <TransitionLink key={item.id} href={`/item/${item.slug}`} item={item} className="block p-4 rounded-lg bg-card border border-border hover:border-primary/50 transition-colors">
+              <TransitionLink key={item.id} href="/curators" item={item} className="block p-4 rounded-lg bg-card border border-border hover:border-primary/50 transition-colors">
                 <p className="text-sm font-medium text-foreground">{item.name}</p>
                 <p className="text-xs text-muted-foreground mt-1">View →</p>
               </TransitionLink>

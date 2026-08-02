@@ -126,7 +126,7 @@ export default async function CuratorStorefrontPage({
         listingCount={listings.length}
         listings={trackerListings}
       />
-      <OnPointLayout footer={false}>
+      <OnPointLayout>
       <div
         style={
           {
@@ -176,7 +176,9 @@ export default async function CuratorStorefrontPage({
               <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
                 {isPreview
                   ? `A preview of ${curator.name}'s catalog — real stock and pricing, with AI try-on. This curator is in the process of joining OnPoint.`
-                  : `Real stock, fit-aware decisions, and a direct line to ${curator.name}. Choose a piece, try it on with AI, then confirm the details on WhatsApp.`}
+                  : physicalListings.length > 0
+                    ? `Real stock, fit-aware decisions, and a direct line to ${curator.name}. Choose a piece, try it on with AI, then confirm the details on WhatsApp.`
+                    : `Try on digital pieces from ${curator.name}, mint what you love, and see where they lead.`}
               </p>
             </div>
 

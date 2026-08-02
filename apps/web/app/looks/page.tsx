@@ -41,7 +41,7 @@ export default async function LooksPage({
   const hasActiveFilters = Boolean(category || occasion || season);
 
   return (
-    <OnPointLayout footer={false}>
+    <OnPointLayout>
       <div className="mx-auto max-w-6xl px-4 py-10">
         <LooksHeader />
 
