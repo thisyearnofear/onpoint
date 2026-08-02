@@ -442,7 +442,19 @@ async function shopCheckout({ checkoutSessionId, token, cryptogram, expiryMonth,
     if (expiryMonth) args.push('--expiry-month', String(expiryMonth));
     if (expiryYear) args.push('--expiry-year', String(expiryYear));
     args.push('--yes', '--json');
-    return runCli(args, { timeoutMs: 120000, classifyProcessorOutcome: true });
+    const raw = await runCli(args, { timeoutMs: 120000, classifyProcessorOutcome: true });
+    const data = raw?.data && typeof raw.data === 'object' ? raw.data : raw;
+    if (raw?.success === false || data?.status === 'failed') {
+      const outcome = classifyProcessorDiagnostic(`${raw?.error || ''}\n${data?.failure_reason || ''}`);
+      if (outcome.processorDeclined) {
+        throw new PravaError('processor_declined', 'The merchant declined the sandbox credential.', outcome);
+      }
+      return {
+        status: 'unknown',
+        failure_reason: 'Browser Harness returned no definitive processor outcome.',
+      };
+    }
+    return data;
   }
   return FIXTURE.checkout(checkoutSessionId);
 }
