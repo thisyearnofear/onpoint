@@ -6,7 +6,7 @@
  * server-rendered, self-updating HTML page that reflects the live order
  * state from the /prava facade and mutates through:
  *
- *   look → searching → quote+trust → awaiting_approval → confirmed
+ *   look → searching → quote+fit → permission → observed outcome
  *
  * Linq renders this URL inside the iMessage App part; in-place updates are
  * driven by PATCH /v3/messages (see lib/linq-client.js) and the card also
@@ -29,6 +29,8 @@ function stateLabel(state) {
   return ({
     searching: 'Finding your fit',
     quoted: 'Quote ready',
+    try_on_ready: 'Fit checked · quote ready',
+    creating_session: 'Requesting permission',
     awaiting_approval: 'Awaiting your passkey',
     approved: 'Approved',
     credential_ready: 'Test credential ready',
@@ -66,8 +68,8 @@ function renderCard(orderId, order) {
   const trustBlock = total ? `
     <div class="trust">
       <div class="row"><span>Requested ceiling</span><b>$${ceiling} ${currency}</b></div>
-      <div class="row"><span>Merchant request</span><b>${merchant}</b></div>
-      <div class="row"><span>If issued</span><b>single-use, merchant-scoped</b></div>
+      <div class="row"><span>Merchant requested</span><b>${merchant}</b></div>
+      <div class="row"><span>${state === 'credential_ready' ? 'Observed credential' : 'If issued'}</span><b>${state === 'credential_ready' ? 'single-use, scoped, server-held' : 'single-use, merchant-scoped'}</b></div>
       <div class="row"><span>Required step</span><b>${order?.selfCheck ? 'fixture only' : order?.restMode ? 'hosted card/device verification' : 'passkey on your device'}</b></div>
     </div>` : '';
 
@@ -114,6 +116,10 @@ function renderCard(orderId, order) {
 
   const title = order?.selfCheck
     ? 'Orchestration self-check'
+    : state === 'quoted'
+    ? 'Your binding quote is ready'
+    : state === 'try_on_ready'
+    ? 'Fit checked. Permission is next.'
     : state === 'confirmed'
     ? 'Your stylist bought it for you'
     : state === 'sandbox_completed'
@@ -132,7 +138,9 @@ function renderCard(orderId, order) {
       ? 'Prava sandbox · test lifecycle · no real charge'
       : state === 'self_check_completed'
         ? 'Self-check fixture · no transaction'
-        : 'Prava session requested · user approval required';
+        : state === 'quoted' || state === 'try_on_ready'
+          ? 'Binding quote · permission not requested'
+          : 'Prava session requested · user approval required';
 
   return `<!doctype html>
 <html lang="en"><head>

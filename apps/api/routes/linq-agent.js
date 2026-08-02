@@ -32,6 +32,7 @@ const crypto = require('crypto');
 const logger = require('../lib/logger');
 const linq = require('../lib/linq-client');
 const prava = require('../lib/prava-client');
+const { getRedis } = require('../lib/redis');
 
 const router = express.Router();
 
@@ -39,10 +40,12 @@ const router = express.Router();
 // Maps linq chatId → active prava orderId, so inbound tapbacks/approvals
 // route to the right order.
 const chatOrders = new Map();
+const processedEventIds = new Map();
 const ORDER_TTL_MS = 30 * 60 * 1000;
 setInterval(() => {
   const now = Date.now();
   for (const [k, v] of chatOrders) if (now - v.ts > ORDER_TTL_MS) chatOrders.delete(k);
+  for (const [k, ts] of processedEventIds) if (now - ts > 24 * 60 * 60 * 1000) processedEventIds.delete(k);
 }, 5 * 60 * 1000).unref();
 
 const PUBLIC_BASE = (process.env.PUBLIC_BASE_URL || 'https://api.onpoint.famile.xyz').replace(/\/$/, '');
@@ -51,6 +54,24 @@ const SERVICE_KEY = process.env.SERVICE_API_KEY;
 function cardUrlFor(orderId, state) {
   // The iMessage App renders this URL; state is server-driven from the order.
   return `${PUBLIC_BASE}/prava/card/${orderId}`;
+}
+
+// Linq delivers webhooks at least once. Claim each event before processing so
+// a retry cannot create a second binding quote or Prava payment session. Redis
+// makes this durable across API restarts; the in-memory set is a safe fallback.
+async function claimEvent(eventId) {
+  if (!eventId) return true;
+  const redis = getRedis();
+  if (redis) {
+    try {
+      return await redis.set(`linq:event:${eventId}`, '1', 'EX', 86_400, 'NX') === 'OK';
+    } catch {
+      // Fall through to process-local protection.
+    }
+  }
+  if (processedEventIds.has(eventId)) return false;
+  processedEventIds.set(eventId, Date.now());
+  return true;
 }
 
 // ── GET /linq/health ─────────────────────────────────────────────────
@@ -81,8 +102,12 @@ router.post('/webhook', async (req, res) => {
   catch { return res.status(400).json({ error: 'invalid json' }); }
 
   const type = event.event_type;
-  const eventId = event.event_id; // for dedup (at-least-once delivery)
+  const eventId = event.event_id;
   logger.info('Linq webhook', { component: 'linq-agent', type, eventId });
+
+  if (!(await claimEvent(eventId))) {
+    return res.status(200).json({ received: true, duplicate: true });
+  }
 
   // Always 200 fast; process async so Linq doesn't retry (10s timeout).
   res.status(200).json({ received: true });
@@ -162,7 +187,28 @@ async function handleLinqEvent(event) {
       return;
     }
 
-    // Otherwise treat the text as a style intent → start the buy-flow.
+    const active = chatOrders.get(p.chatId);
+    if (active) {
+      if (p.photo) {
+        await continueActiveOrder(active, { photo: p.photo, fitDecision: 'try_on_completed' });
+        return;
+      }
+      if (/^(skip(?:\s+(?:fit|try-?on))?|continue without try-?on)$/i.test(p.text || '')) {
+        await continueActiveOrder(active, { fitDecision: 'continue_without_try_on' });
+        return;
+      }
+      if (!/^new\s*:/i.test(p.text || '')) {
+        await linq.sendMessage({
+          to: p.from,
+          text: 'Your binding quote is ready. Send a photo for a fit check, or reply SKIP FIT to request Prava permission without one.',
+        });
+        return;
+      }
+      chatOrders.delete(p.chatId);
+      p.text = p.text.replace(/^new\s*:\s*/i, '');
+    }
+
+    // Otherwise treat the text as a new style intent.
     await handleStyleIntent(p.chatId, p.from, p.text || 'style this for me', p.photo);
     return;
   }
@@ -179,8 +225,7 @@ async function handleStyleIntent(chatId, from, text, photo) {
     return;
   }
 
-  // Create the order via the /prava facade (internal call). Self-check mode
-  // resolves a fixture merchant+total automatically.
+  // Prepare a binding quote first. No Prava payment session exists yet.
   const order = await pravaOrderFromIntent(text);
 
   // If the inbound message carried a person photo (Linq media part), run
@@ -197,6 +242,11 @@ async function handleStyleIntent(chatId, from, text, photo) {
 
   chatOrders.set(chatId, { orderId: order.orderId, from, messageId: null, ts: Date.now() });
 
+  if (order.tryOnUrl) {
+    const sessionOrder = await pravaStartSession(order.orderId, 'try_on_completed');
+    Object.assign(order, sessionOrder);
+  }
+
   // Send the amount + requested-controls card (with try-on render if available)
   // and the relevant hosted-flow URL.
   const cardUrl = cardUrlFor(order.orderId, order.state);
@@ -204,6 +254,8 @@ async function handleStyleIntent(chatId, from, text, photo) {
   // intro first, then the card bubble as a second message.
   const approvalCopy = order.selfCheck
     ? 'This is a deterministic fixture; no credential, payment, or merchant order will occur.'
+    : !order.paymentUrl
+      ? 'Send a photo for a fit check, or reply SKIP FIT. No Prava permission session has been created yet.'
     : order.restMode
       ? 'Open Prava’s hosted sandbox flow, then 👍 the card to refresh its status. No real money is used.'
       : 'Approve the spend with your passkey, then 👍 the card to refresh its status.';
@@ -222,6 +274,32 @@ async function handleStyleIntent(chatId, from, text, photo) {
   if (sent?.messageId) chatOrders.get(chatId).messageId = sent.messageId;
 }
 
+async function continueActiveOrder(active, { photo, fitDecision }) {
+  let order = await pravaGetOrder(active.orderId);
+  if (photo) {
+    const tr = await pravaTryOn(active.orderId, photo);
+    order = tr.order || tr;
+  }
+  order = await pravaStartSession(active.orderId, fitDecision);
+  active.ts = Date.now();
+  if (active.messageId) {
+    const updated = await linq.updateMessage({
+      messageId: active.messageId,
+      cardUrl: cardUrlFor(active.orderId, order.state),
+      cardImageUrl: order.tryOnUrl || undefined,
+      caption: 'OnPoint Stylist',
+      subcaption: `${order.merchant?.name || 'Merchant'} · $${order.totalAmount} ${order.currency} — Prava permission requested`,
+    });
+    active.messageId = updated?.chat?.message?.id || updated?.message?.id || updated?.id || active.messageId;
+  }
+  await linq.sendMessage({
+    to: active.from,
+    text: order.restMode
+      ? 'Fit choice recorded. Open the Prava hosted sandbox flow from the status card, then tap 👍 to refresh.'
+      : 'Fit choice recorded. Approve the exact merchant and ceiling with your passkey, then tap 👍 to refresh.',
+  });
+}
+
 // 👍 tapback refreshes observed Prava state. Hosted verification/passkey—not
 // the reaction—is the payment authorization.
 async function handleStatusRefresh(chatId, tapback) {
@@ -232,6 +310,21 @@ async function handleStatusRefresh(chatId, tapback) {
     return;
   }
   const { orderId } = active;
+
+  const current = await pravaGetOrder(orderId);
+  if (!current.paymentUrl && (current.state === 'quoted' || current.state === 'try_on_ready')) {
+    if (active.messageId) {
+      const updated = await linq.updateMessage({
+        messageId: active.messageId,
+        cardUrl: cardUrlFor(orderId, current.state),
+        cardImageUrl: current.tryOnUrl || undefined,
+        caption: 'OnPoint Stylist',
+        subcaption: 'Quote ready — send a photo or reply SKIP FIT before permission',
+      });
+      active.messageId = updated?.chat?.message?.id || updated?.message?.id || updated?.id || active.messageId;
+    }
+    return;
+  }
 
   // Poll the facade. Production CLI checkout proceeds only after real approval.
   // REST sandbox stops at credential_ready until an external checkout supplies
@@ -322,6 +415,17 @@ async function pravaOrderFromIntent(text) {
   const r = await fetch(internalBase() + '/order', {
     method: 'POST', headers,
     body: JSON.stringify({ query: text }),
+  });
+  return readPravaResponse(r);
+}
+async function pravaGetOrder(orderId) {
+  const r = await fetch(`${internalBase()}/order/${orderId}`, { headers });
+  return readPravaResponse(r);
+}
+async function pravaStartSession(orderId, fitDecision) {
+  const r = await fetch(`${internalBase()}/order/${orderId}/session`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ fitDecision }),
   });
   return readPravaResponse(r);
 }

@@ -20,9 +20,10 @@ OnPoint is the **execution layer** for fashion intent that needs **fit + real st
 > and requests the narrowest useful payment permission through Prava. Linq is
 > the message-native control plane; one-time credentials remain server-side.
 
-**Validated sandbox evidence:** a live Alo Yoga SKU produced a binding `$117.32
+**Validated sandbox transaction:** a live Alo Yoga SKU produced a binding `$117.32
 USD` quote (`$108.00` item + `$0.00` shipping + `$9.32` tax). Prava reached
-`Creds_Generated`, and OnPoint's poll reached `credential_ready`. One subsequent
+`Creds_Generated`—which Prava confirmed is a successful Prava transaction—and
+OnPoint's poll reached `credential_ready`. One subsequent
 Browser Harness attempt timed out with an unknown outcome, so OnPoint stopped,
 did not retry, and reported no invented approval or decline. **No Alo Yoga order,
 charge, approval, or decline is claimed.**
@@ -40,6 +41,9 @@ during the Agentic Commerce Hackathon.
 
 ---
 
+<details>
+<summary><strong>Prior Qwen Cloud Hackathon work</strong></summary>
+
 > **Qwen Cloud Hackathon — Track 4: Autopilot Agent.**
 > OnPoint is an autopilot agent that turns a photo of an outfit into a verifiable on-chain purchase from a real African fashion curator — perceiving with **Qwen3-VL on Qwen Cloud (DashScope)**, reasoning about fit and cultural context (Ankara / Kente / Adire / Bogolan / Shweshwe), and acting through x402-paid try-on and Celo checkout, with a human-in-the-loop checkpoint above $5.
 >
@@ -49,6 +53,8 @@ during the Agentic Commerce Hackathon.
 > - Qwen Cloud MCP server: [`packages/qwen-mcp/`](./packages/qwen-mcp/)
 > - Autopilot demo script: [`scripts/qwen-autopilot.mjs`](./scripts/qwen-autopilot.mjs)
 > - Implementation plan: [`plans/qwen-cloud-hackathon.md`](./plans/qwen-cloud-hackathon.md)
+
+</details>
 
 **Canonical strategy:** [`docs/STRATEGY.md`](./docs/STRATEGY.md) — north star, phases, metrics, kill list. Do not fork roadmap copy elsewhere.
 
@@ -71,7 +77,7 @@ during the Agentic Commerce Hackathon.
 
 ### Demand — Agents
 - `/.well-known/agent.json` + curator directory with structured offers
-- x402 try-on ($0.25 cUSD) and storefront checkout with curator splits
+- x402 try-on ($0.03 digital / $0.05 physical, cUSD) and storefront checkout with curator splits
 - **Agent looks** — compose curator inventory into shareable style boards with AI-generated collages, auto-classified metadata (category/occasion/season), and try-on share cards. SDK helpers in `@repo/agent-core` (`browseLooks`, `createLook`, `getLook`). Reference script: `scripts/agent-looks.mjs`
 - Referral tracking — agents earn 2.5% commission on referred purchases
 - Agent dashboard at `/agent` — earnings, referral stats, activity feed

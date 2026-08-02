@@ -310,7 +310,12 @@ app.use('/prava/sandbox', json1k, require('./routes/prava-sandbox'));
 // Agent buy-flow rail: discover → quote → scoped-card session → hosted
 // verification → server-owned checkout when approved. Drives the Linq iMessage
 // card. Self-check mode by default; live via the prava CLI. ADR 0017.
-app.use('/prava', json1k, pravaRateLimit, require('./routes/prava-facade'));
+app.use('/prava/order/:id/try-on', aiExpensiveRateLimit, aiExpensiveDailyLimit);
+// Body parsing is route-aware inside the facade: ordinary commerce requests
+// stay capped at 1 KB, while the explicit try-on endpoint accepts a photo data
+// URI up to 10 MB. Applying json1k here made normal image uploads fail before
+// the try-on handler could run.
+app.use('/prava', pravaRateLimit, require('./routes/prava-facade'));
 
 // ── Linq iMessage Agent (Agentic Commerce Hackathon, Linq track) ───
 // Receives Linq iMessage webhooks and orchestrates the buy-flow: inbound

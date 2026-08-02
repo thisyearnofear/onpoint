@@ -5,7 +5,7 @@
  *
  *   1. POST message.received (text + media photo) → style intent → order +
  *      mock iMessage card
- *   2. POST reaction.added (👍 like) → approval → checkout → card mutated
+ *   2. POST reaction.added (👍 like) → status refresh → checkout when approved
  *
  * Runs self-contained (ephemeral Express, self-check). No LINQ_WEBHOOK_SECRET
  * → signature verification is skipped (dev mode). Uses realistic payloads
@@ -95,7 +95,7 @@ async function main() {
   // linq-agent's express.raw on /webhook captures the raw body for HMAC).
   app.use("/prava/card", pravaCard);
   app.use("/prava/sandbox", express.json({ limit: "1mb" }), pravaSandbox);
-  app.use("/prava", express.json({ limit: "1mb" }), pravaFacade);
+  app.use("/prava", pravaFacade);
   app.use("/linq", linqAgent);
 
   // The linq-agent reads process.env.PORT lazily for its internal relay to
@@ -136,6 +136,8 @@ async function main() {
 
   const r1 = await post("/linq/webhook", msgReceived);
   ok("webhook accepted", r1.received ? "200" : JSON.stringify(r1));
+  const duplicate = await post("/linq/webhook", msgReceived);
+  ok("duplicate event suppressed", duplicate.duplicate === true);
   // The handler processes async; give it a tick to run the style intent.
   await new Promise((r) => setTimeout(r, 600));
 
@@ -147,6 +149,7 @@ async function main() {
     ok("order created from inbound", stashed.orderId);
     sub("from", stashed.from);
     sub("card messageId (mock)", stashed.messageId || "(pending)");
+    reactionAdded.data.message_id = stashed.messageId;
 
     // Verify the order + card via the facade (shared in-memory store).
     const order = await get(`/prava/order/${stashed.orderId}`);
@@ -157,10 +160,10 @@ async function main() {
 
     const card = await getText(`/prava/card/${stashed.orderId}`);
     ok("card renders try-on", card.includes("How it looks on you"));
-    ok("card shows spend ceiling", card.includes(`up to $${order.trust.spendCeilingUsd}`));
+    ok("card shows spend ceiling", card.includes(`$${order.trust.spendCeilingUsd}`));
 
     // ── 2. Reaction.added (👍 like) → approval + checkout ──────────
-    log("2 · POST /linq/webhook — reaction.added (👍 like → approve + checkout)");
+    log("2 · POST /linq/webhook — reaction.added (👍 like → refresh + checkout when approved)");
     const r2 = await post("/linq/webhook", reactionAdded);
     ok("webhook accepted", r2.received ? "200" : JSON.stringify(r2));
     await new Promise((r) => setTimeout(r, 1000));

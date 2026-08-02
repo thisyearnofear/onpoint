@@ -19,14 +19,14 @@
  *   POST /prava/search                 — shop_search across UCP merchants
  *   POST /prava/product                — shop_product (variants/offers)
  *   POST /prava/quote                  — shop_quote (binding total + checkout_session_id)
- *   POST /prava/order                  — create a pending order: quote + create_payment_session
- *                                        → returns {orderId, state:"awaiting_approval", paymentUrl, total, merchant}
+ *   POST /prava/order                  — discover + lock a binding quote (no payment session)
+ *   POST /prava/order/:id/session      — after fit/explicit skip, create_payment_session
  *   GET  /prava/order/:id              — order state + trust fields (spend ceiling, merchant scope)
  *   POST /prava/order/:id/approve      — (demo) mark the session approved so checkout can run
  *   POST /prava/order/:id/checkout     — run shop_checkout once the session is approved → confirmed
  *
- * Auth: service-key (these endpoints orchestrate paid actions on behalf of
- * the linked Prava agent). Mirrors the OKX facade's reliance on SERVICE_API_KEY.
+ * Auth: discovery, quote preparation, fit, and status are public and
+ * rate-limited. The spend-capable checkout transition is service-key gated.
  *
  * In-memory order store (hackathon scope; swap for Redis/DB for production).
  */
@@ -38,6 +38,16 @@ const prava = require('../lib/prava-client');
 const tryOn = require('../lib/prava-tryon');
 
 const router = express.Router();
+
+// Keep the public commerce surface tight without breaking photo uploads.
+// The web client sends uploaded person images as base64 data URIs; every other
+// Prava request is small and remains limited to 1 KB.
+const json1k = express.json({ limit: '1kb' });
+const json10mb = express.json({ limit: '10mb' });
+router.use((req, res, next) => {
+  const isTryOnUpload = req.method === 'POST' && /^\/order\/[^/]+\/try-on$/.test(req.path);
+  return (isTryOnUpload ? json10mb : json1k)(req, res, next);
+});
 
 // ── In-memory order store (TTL 30 min) ───────────────────────────────
 const ORDER_TTL_MS = 30 * 60 * 1000;
@@ -75,6 +85,14 @@ function failureView(err) {
 // Trust fields surfaced to the user (the Visa "controls + protections" story).
 function trustView(o) {
   const selfCheck = !o.restMode && prava.selfCheck();
+  const credentialObserved = [
+    'credential_ready',
+    'checking_out',
+    'checkout_unknown',
+    'sandbox_completed',
+    'sandbox_declined',
+    'confirmed',
+  ].includes(o.state);
   const approvalMethod = selfCheck
     ? 'not applicable: deterministic fixture only'
     : o.restMode
@@ -83,11 +101,19 @@ function trustView(o) {
   return {
     spendCeilingUsd: o.totalAmount,
     currency: o.currency,
-    merchantScope: { merchant: o.merchantName, url: o.merchantUrl, locked: false },
-    credentialScope: 'expected if issued: single-use, merchant-locked, amount-scoped',
+    merchantScope: {
+      merchant: o.merchantName,
+      url: o.merchantUrl,
+      locked: !!o.paymentSessionId,
+    },
+    credentialScope: credentialObserved
+      ? 'observed issued credential: single-use, merchant-scoped, amount-scoped'
+      : 'requested if issued: single-use, merchant-scoped, amount-scoped',
     approvalMethod,
     guardrails: [
-      'session requests this amount and merchant metadata',
+      o.paymentSessionId
+        ? 'Prava session requests this amount and merchant metadata'
+        : 'binding quote prepared; no Prava permission session yet',
       approvalMethod,
       'credential controls follow Prava’s documented model if issuance succeeds',
       '15-minute session window',
@@ -138,6 +164,7 @@ function orderView(o) {
     createdAt: o.createdAt,
     updatedAt: o.updatedAt,
     selfCheck: !o.restMode && prava.selfCheck(),
+    fitDecision: o.fitDecision || null,
   };
 }
 
@@ -252,12 +279,13 @@ router.post('/quote', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// ── POST /prava/order — initiate: quote + create payment session ────
+// ── POST /prava/order — discover + lock quote (no payment session) ──
 // Body: { query?, productId?, variantId?, merchant?, addressId? }
 //   - If productId+variantId+merchant are given, reload and verify the offer.
 //   - Else if query given, search first and pick the top product/variant.
-// Creates a payment session (charges nothing) and returns the payment_url
-// for the owner to approve with a passkey.
+// Payment-session creation is intentionally deferred to /order/:id/session.
+// That endpoint is reachable only after try-on or an explicit skip decision,
+// making Product → Fit → Permission true at the system boundary as well as UI.
 router.post('/order', async (req, res, next) => {
   try {
     const { query, productId, variantId, merchant, addressId } = req.body || {};
@@ -333,7 +361,6 @@ router.post('/order', async (req, res, next) => {
     let quote = null;
     let totalAmount;
     let products;
-    let session;
 
     if (useRest) {
       // Browser Harness owns the merchant checkout, so create the REST
@@ -345,7 +372,6 @@ router.post('/order', async (req, res, next) => {
         addressId,
       });
       const quoteAmount = quote.total || quote.final_price?.amount;
-      const quoteCurrency = quote.currency || quote.final_price?.currency || selectedOffer.currency || 'USD';
       if (!quote.checkout_session_id || !quoteAmount) {
         return res.status(409).json({ error: 'Prava did not return a binding checkout quote.' });
       }
@@ -356,36 +382,18 @@ router.post('/order', async (req, res, next) => {
         unit_price: String(selectedOffer.unit_price),
         quantity: 1,
       }];
-      session = await prava.createRestSession({
-        totalAmount,
-        currency: quoteCurrency,
-        merchantName: chosenMerchant,
-        merchantUrl: `https://${chosenMerchant}`,
-        merchantCountry: 'US',
-        products,
-      });
     } else {
       // Lock the binding total via the CLI quote.
       quote = await prava.shopQuote({ variantId: chosenVariant, merchant: chosenMerchant, addressId });
       totalAmount = quote.total;
       products = [{ description: chosenProduct.title || chosenProduct.description || selectedOffer.description || 'Fashion item', unit_price: quote.subtotal, quantity: 1 }];
-      const currency = quote.currency || selectedOffer.currency || 'USD';
-      // Authorize payment (charges nothing). User approves via payment_url.
-      session = await prava.createPaymentSession({
-        totalAmount,
-        currency,
-        merchantName: prava.humanizeMerchant(chosenMerchant),
-        merchantUrl: `https://${chosenMerchant}`,
-        merchantCountry: 'US',
-        products,
-      });
     }
 
     const id = 'op_' + crypto.randomUUID();
     const now = Date.now();
     const order = {
       id,
-      state: 'awaiting_approval',
+      state: 'quoted',
       query,
       items: products,
       merchantName: chosenMerchant,
@@ -397,11 +405,11 @@ router.post('/order', async (req, res, next) => {
       // Which payment rail this order uses (drives poll/checkout routing).
       restMode: useRest,
       checkoutSessionId: quote?.checkout_session_id || null,
-      paymentSessionId: session.session_id,
-      paymentUrl: session.payment_url,
+      paymentSessionId: null,
+      paymentUrl: null,
       // REST session carries Prava's sandbox session-order record id. It is
       // not a merchant order confirmation.
-      pravaOrderId: session.order_id || null,
+      pravaOrderId: null,
       // txn_ref_id captured on poll; needed to report the charge outcome.
       txnRefId: null,
       // Single-use tokenized card credentials, populated once the owner
@@ -413,16 +421,13 @@ router.post('/order', async (req, res, next) => {
       // UCP product image used for the pre-checkout try-on leg.
       garmentImageUrl: chosenProduct?.image || null,
       tryOnUrl: null,
+      fitDecision: null,
       createdAt: now,
       updatedAt: now,
     };
     orders.set(id, order);
 
-    logger.info(useRest
-      ? 'Prava sandbox order initiated — awaiting hosted card flow'
-      : prava.selfCheck()
-        ? 'Prava self-check order fixture initiated'
-        : 'Prava order initiated — awaiting passkey approval', {
+    logger.info('Prava binding quote prepared — permission not requested yet', {
       component: 'prava-facade',
       orderId: id,
       merchant: chosenMerchant,
@@ -452,11 +457,100 @@ router.post('/order/:id/try-on', async (req, res, next) => {
     o.tryOnUrl = renderUrl;
     o.tryOnProvider = provider;
     // Surface a try-on-ready state until approval happens.
-    if (o.state === 'awaiting_approval') o.state = 'try_on_ready';
+    if (o.state === 'quoted') o.state = 'try_on_ready';
     o.updatedAt = Date.now();
     orders.set(o.id, o);
     res.json({ tryOnUrl: renderUrl, provider, order: orderView(o) });
   } catch (e) { next(e); }
+});
+
+// ── POST /prava/order/:id/session — request payment permission ───────
+// Body: { fitDecision: "try_on_completed" | "continue_without_try_on" }
+// Creates no charge. It requests a Prava-hosted authorization only after the
+// shopper has either completed fit verification or explicitly skipped it.
+router.post('/order/:id/session', async (req, res, next) => {
+  let o;
+  let previousState;
+  try {
+    o = getOrder(req.params.id);
+    const { fitDecision } = req.body || {};
+    if (o.paymentSessionId) {
+      return res.json(orderView(o));
+    }
+    if (o.state !== 'quoted' && o.state !== 'try_on_ready') {
+      return res.status(409).json({
+        error: `Cannot request permission in state ${o.state}`,
+        code: 'INVALID_PERMISSION_STATE',
+        order: orderView(o),
+      });
+    }
+    if (fitDecision !== 'try_on_completed' && fitDecision !== 'continue_without_try_on') {
+      return res.status(400).json({
+        error: 'fitDecision must be try_on_completed or continue_without_try_on',
+        code: 'FIT_DECISION_REQUIRED',
+      });
+    }
+    if (fitDecision === 'try_on_completed' && !o.tryOnUrl) {
+      return res.status(409).json({
+        error: 'Complete try-on before requesting permission, or explicitly continue without try-on.',
+        code: 'TRY_ON_REQUIRED',
+      });
+    }
+    const quoteExpiresAt = Date.parse(o.quote?.expires_at || o.quote?.expiresAt || '');
+    if (Number.isFinite(quoteExpiresAt) && quoteExpiresAt <= Date.now()) {
+      return res.status(409).json({
+        error: 'The binding quote expired. Search again to obtain a fresh total.',
+        code: 'QUOTE_EXPIRED',
+      });
+    }
+
+    previousState = o.state;
+    o.state = 'creating_session';
+    o.updatedAt = Date.now();
+    orders.set(o.id, o);
+
+    const session = o.restMode
+      ? await prava.createRestSession({
+          totalAmount: o.totalAmount,
+          currency: o.currency,
+          merchantName: o.merchantName,
+          merchantUrl: o.merchantUrl,
+          merchantCountry: o.merchantCountry,
+          products: o.items,
+        })
+      : await prava.createPaymentSession({
+          totalAmount: o.totalAmount,
+          currency: o.currency,
+          merchantName: prava.humanizeMerchant(o.merchantName),
+          merchantUrl: o.merchantUrl,
+          merchantCountry: o.merchantCountry,
+          products: o.items,
+        });
+
+    o.state = 'awaiting_approval';
+    o.fitDecision = fitDecision;
+    o.paymentSessionId = session.session_id;
+    o.paymentUrl = session.payment_url;
+    o.pravaOrderId = session.order_id || null;
+    o.updatedAt = Date.now();
+    orders.set(o.id, o);
+    logger.info('Prava permission session requested after fit decision', {
+      component: 'prava-facade',
+      orderId: o.id,
+      merchant: o.merchantName,
+      total: o.totalAmount,
+      fitDecision,
+    });
+    res.status(201).json(orderView(o));
+  } catch (e) {
+    if (o && o.state === 'creating_session') {
+      o.state = previousState || (o.tryOnUrl ? 'try_on_ready' : 'quoted');
+      o.failure = failureView(e);
+      o.updatedAt = Date.now();
+      orders.set(o.id, o);
+    }
+    next(e);
+  }
 });
 
 // ── GET /prava/order/:id ─────────────────────────────────────────────
@@ -474,7 +568,7 @@ router.post('/order/:id/poll', async (req, res, next) => {
   let o;
   try {
     o = getOrder(req.params.id);
-    if (o.state !== 'awaiting_approval' && o.state !== 'try_on_ready' && o.state !== 'approved') {
+    if (!o.paymentSessionId || (o.state !== 'awaiting_approval' && o.state !== 'approved')) {
       return res.status(409).json({ error: `Cannot poll in state ${o.state}`, order: orderView(o) });
     }
     const status = o.restMode
@@ -522,7 +616,7 @@ router.post('/order/:id/poll', async (req, res, next) => {
 router.post('/order/:id/approve', (req, res) => {
   try {
     const o = getOrder(req.params.id);
-    if (o.state !== 'awaiting_approval' && o.state !== 'try_on_ready') {
+    if (!o.paymentSessionId || o.state !== 'awaiting_approval') {
       return res.status(409).json({ error: `Cannot approve in state ${o.state}`, order: orderView(o) });
     }
     if (!prava.selfCheck()) {

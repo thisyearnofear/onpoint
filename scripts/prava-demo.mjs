@@ -10,7 +10,7 @@
  *   1. Discover  — POST /prava/search        (UCP fashion merchants)
  *   2. Try on    — POST /prava/order/:id/try-on  (IDM-VTON on the garment + person)
  *   3. Amount    — binding quote in production CLI; fixture amount in self-check
- *   4. Authorize — (folded into POST /prava/order — payment session + payment_url)
+ *   4. Authorize — POST /prava/order/:id/session after fit/explicit skip
  *   5. Approve   — POST /prava/order/:id/poll  (passkey approval → single-use token+cryptogram)
  *   6. Checkout — POST /prava/order/:id/checkout → fixture order id in self-check;
  *                 real order id only when run against the production CLI
@@ -85,7 +85,7 @@ async function main() {
 
   console.log("╔══════════════════════════════════════════════════════════════╗");
   console.log("║  OnPoint × Prava × Linq — Agent Outfitter demo               ║");
-  console.log("║  “Discover, try on, and prepare a scoped checkout.”        ║");
+  console.log("║  “The fashion agent that earns permission to buy.”         ║");
   console.log("╚══════════════════════════════════════════════════════════════╝");
 
   // ── Health ────────────────────────────────────────────────────────
@@ -109,19 +109,19 @@ async function main() {
   const top = search.results?.[0];
   sub("top result", `${top?.title} — ${top?.merchant}`);
 
-  // ── 2+3+4. Order (quote + payment session) ───────────────────────
+  // ── 2. Order (binding quote only) ────────────────────────────────
   log(selfCheck
-    ? "2 · Create self-check order — deterministic quote + session fixtures"
+    ? "2 · Create self-check order — deterministic quote fixture"
     : restRail
-      ? "2 · Create real Prava REST session from a binding merchant quote"
-    : "2 · Create order — binding quote + payment session");
+      ? "2 · Prepare a binding Browser Harness quote"
+      : "2 · Prepare a binding quote");
   const order = await post("/prava/order", { query: "black legging rooftop brunch" });
   ok("order", order.orderId);
   sub("merchant", order.merchant?.name);
   sub(selfCheck ? "fixture total" : "binding total", `${order.totalAmount} ${order.currency}`);
   sub("requested ceiling", `$${order.trust?.spendCeilingUsd}`);
   sub("requested merchant", order.trust?.merchantScope?.merchant);
-  sub("payment_url present", !!order.paymentUrl);
+  sub("payment session created", !!order.paymentUrl);
   sub("checkout_session_id", order.checkoutSessionId);
 
   // ── 2b. Try on (IDM-VTON on the UCP garment + person photo) ──────
@@ -134,12 +134,21 @@ async function main() {
   sub("provider", tr.provider);
   sub("state", tr.order?.state);
 
+  // ── 4. Request permission only after fit ─────────────────────────
+  log("4 · Request exact-scope permission after fit");
+  const permission = await post(`/prava/order/${order.orderId}/session`, {
+    fitDecision: "try_on_completed",
+  });
+  ok("Prava session created", !!permission.paymentUrl);
+  sub("state", permission.state);
+  sub("fit decision", "try_on_completed");
+
   // ── 5. Approve (passkey) ──────────────────────────────────────────
   log(selfCheck
-    ? "4 · Approval fixture — no passkey or credential"
+    ? "5 · Approval fixture — no passkey or credential"
     : restRail
-      ? "4 · Poll hosted card/device flow"
-      : "4 · Approve — owner passkey returns single-use tokenized credentials");
+      ? "5 · Poll hosted card/device flow"
+      : "5 · Approve — owner passkey returns single-use tokenized credentials");
   const ap = await post(`/prava/order/${order.orderId}/poll`, {});
   ok("state", ap.state);
   ok("payment status", ap.paymentStatus);
@@ -152,25 +161,25 @@ async function main() {
   // ── 6. Checkout ──────────────────────────────────────────────────
   let co = { order };
   if (restRail) {
-    log("5 · REST boundary — external checkout required");
+    log("6 · REST boundary — external checkout required");
     sub("state", ap.state);
     sub("result", "no checkout or report-status call made");
   } else if (ap.state === "approved" || (selfCheck && ap.state === "self_check_approved")) {
     log(selfCheck
-      ? "5 · Checkout — deterministic shop_checkout fixture (no transaction)"
-      : "5 · Checkout — production CLI shop_checkout");
+      ? "6 · Checkout — deterministic shop_checkout fixture (no transaction)"
+      : "6 · Checkout — production CLI shop_checkout");
     co = await post(`/prava/order/${order.orderId}/checkout`, {});
     ok("state", co.state);
     ok(selfCheck ? "fixture id" : "Prava order id",
       selfCheck ? co.order?.selfCheckOrderId : co.order?.orderIdPrava);
     sub("credential scope", co.order?.trust?.credentialScope);
   } else {
-    log("5 · Checkout not run");
+    log("6 · Checkout not run");
     sub("reason", `session state is ${ap.state}`);
   }
 
   // ── 7. Prove — the mutating iMessage App card ────────────────────
-  log("6 · Prove — the mutating iMessage App card");
+  log("7 · Prove — the mutating iMessage App card");
   const card = await getText(`/prava/card/${order.orderId}`);
   ok("card renders try-on", card.includes("How it looks on you"));
   ok("card shows requested ceiling", card.includes(`$${order.trust.spendCeilingUsd}`));
@@ -184,7 +193,7 @@ async function main() {
 
   // ── Sandbox fallback (live-demo safety net) ──────────────────────
   if (selfCheck) {
-    log("7 · Sandbox contract self-check — mocked response shape only");
+    log("8 · Sandbox contract self-check — mocked response shape only");
     const sh = await get("/prava/sandbox/health");
     sub("sandbox mode", sh.mode);
     const session = await post("/prava/sandbox/order", {
@@ -200,13 +209,13 @@ async function main() {
     const report = await post(`/prava/sandbox/order/${session.sessionId}/report`, { status: "APPROVED" });
     ok("fixture report state", report.status);
   } else {
-    log("7 · Sandbox fixture contract");
+    log("8 · Sandbox fixture contract");
     sub("skipped", "live mode never reports a fabricated processor outcome");
   }
 
   // ── Live Linq send (optional) ────────────────────────────────────
   if (LIVE && LINQ_DEMO_TO) {
-    log("8 · Live Linq send — real iMessage App card to your phone");
+    log("9 · Live Linq send — real iMessage App card to your phone");
     const linq = require("../apps/api/lib/linq-client.js");
     if (!linq.live) {
       sub("skipped", "LINQ_API_KEY not set — run with the key in env to send live");
@@ -238,7 +247,7 @@ async function main() {
       sub("line health", card.healthStatus);
     }
   } else {
-    log("8 · Live Linq send");
+    log("9 · Live Linq send");
     sub("skipped", "pass --live + LINQ_DEMO_TO=+1... to send a real iMessage card");
   }
 

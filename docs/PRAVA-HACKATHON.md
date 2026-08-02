@@ -9,9 +9,9 @@
 
 | Field | Value |
 |-------|-------|
-| **Status** | Building (hackathon window) |
+| **Status** | Submission-ready |
 | **Project name** | OnPoint |
-| **Tagline** | Your iMessage stylist: discover live fashion products, try them on, and prepare a tightly scoped Prava checkout. |
+| **Tagline** | The fashion agent that earns permission to buy. |
 | **GitHub** | https://github.com/thisyearnofear/onpoint |
 | **Demo** | https://beonpoint.netlify.app |
 | **API** | https://api.onpoint.famile.xyz |
@@ -21,15 +21,15 @@
 
 ## The Product (one paragraph)
 
-An AI stylist agent on iMessage. A user texts a style intent ("outfit me for a
-rooftop brunch, $120 budget"); OnPoint discovers live UCP fashion products,
-runs IDM-VTON try-on, obtains a binding merchant quote, and creates a real Prava
-sandbox session for the selected merchant and exact quoted total. A
-Prava-recommended card ending 2119 produced `Creds_Generated`; OnPoint confirmed
-`credential_ready` while keeping the credential server-side. One authorized
-Browser Harness checkout attempt returned an unknown automation timeout, so it
-was not retried and no processor status was fabricated. No charge or merchant
-order is claimed.
+OnPoint turns fashion intent into controlled action. It discovers live UCP
+inventory, checks the garment on the shopper, locks item, shipping, and tax into
+a binding quote, then asks Prava for the narrowest useful permission: one
+merchant and one spending ceiling. A validated Prava sandbox transaction reached
+`Creds_Generated`; OnPoint reached `credential_ready` without exposing the
+credential. Linq makes intent and status message-native. When the subsequent
+merchant outcome became unknowable, OnPoint stopped without retrying or
+inventing success. Prava confirmed that `Creds_Generated` is a successful Prava
+transaction; no Alo Yoga merchant order or charge is claimed.
 
 ### The original insight
 
@@ -54,7 +54,7 @@ session. Multi-merchant sequencing is target architecture, not shipped behavior.
 
 | Axis | How we score |
 |------|-------------|
-| **End-to-end functionality** | Live UCP discovery → binding quote → try-on → real Prava sandbox session → hosted verification → credential readiness; the single Browser Harness attempt ended with an honestly handled unknown outcome. |
+| **End-to-end functionality** | Live UCP discovery → binding quote → fit decision → explicit Prava permission request → hosted verification → successful `Creds_Generated` transaction → truthful merchant-outcome boundary. |
 | **Creativity / novelty** | Try-on-before-agent-checkout + explicit requested controls + message-native status card. |
 | **User value / market feasibility** | Live fashion products and pre-purchase visualization solve a clear fit-confidence problem. |
 | **Prava implementation** | Prava discovery, hosted verification, and credential issuance are central—not a payment button added afterward. A successful Prava sandbox transaction is claimed; no merchant order is claimed. |
@@ -137,9 +137,10 @@ completed Prava lifecycle is implemented but has not been observed end to end.
   webhook for STOP/UNSUBSCRIBE/OPTOUT/CANCEL/END/QUIT + clear "stop messaging me"
   intent → immediately halt all outbound. Treat `health_status: OPTED_OUT` as
   terminal until Linq clears it (don't track opt-in keywords ourselves).
-- **Send with `to`, no `from`:** `POST /v3/messages` with `to` only; Linq
-  load-balances across the pool, reuses the recipient's healthy line, and
-  fails over off flagged lines. Do NOT call `GET /v3/available_number` per send.
+- **Validated sandbox transport:** the hackathon sandbox pins the assigned line
+  through `POST /v3/chats` with `from` + `to`, matching the Linq playground
+  contract used in the live validation. A multi-line production rollout will
+  move to `POST /v3/messages` with `to` only for Linq-managed load balancing.
 - **Inbound-first onboarding:** let the recipient message first; share the
   contact card only after ≥1 outbound message, re-share ~once/day.
 - **Engagement cadence:** aim for 3+ replies early and ~1:2 inbound:outbound;
@@ -156,7 +157,7 @@ guidelines above. We run it against `apps/api/lib/linq-client.js` +
 `apps/api/routes/linq-agent.js` before go-live. Linq docs index:
 `https://docs.linqapp.com/llms.txt`.
 
-## Build Status (as of Aug 2, 2026)
+## Build Status (as of Aug 3, 2026)
 
 ### Built + deployed (live on api.onpoint.famile.xyz)
 
@@ -168,14 +169,24 @@ guidelines above. We run it against `apps/api/lib/linq-client.js` +
 | Production CLI credential/checkout contract | `apps/api/lib/prava-client.js` | ⚠️ implemented and linked; checkout unvalidated |
 | Decoupled IDM-VTON try-on for UCP garment images | `apps/api/lib/prava-tryon.js` | ✅ placeholder + Replicate modes |
 | Linq REST client (real `/v3/chats`, Standard Webhooks) | `apps/api/lib/linq-client.js` | ✅ live send + signature verify |
-| Linq webhook receiver (envelope parsing, media, reactions) | `apps/api/routes/linq-agent.js` | ✅ live, all events subscribed |
+| Linq webhook receiver (envelope parsing, media, reactions) | `apps/api/routes/linq-agent.js` | ✅ live, all events subscribed; Redis-backed event deduplication |
 | iMessage App status card | `apps/api/routes/prava-card.js` | ✅ render states implemented; completed mutation unobserved |
-| Frontend session/status card | `apps/web/components/Agent/AgentCheckoutCard.tsx` | ✅ REST + explicitly labeled self-check |
+| Frontend session/status card | `apps/web/components/Agent/AgentCheckoutCard.tsx` | ✅ Product → Fit → Permission → Outcome; photo uploads fixed; session creation fit-gated |
+
+### Verification after submission hardening
+
+- **Prava integration tests:** 11/11 passed, including a 64 KB base64 photo
+  upload and proof that no session is created without an explicit fit decision.
+- **Web typecheck:** passed.
+- **Production web build:** passed.
+- **Fixture-only Product → Fit → Permission walkthrough:** passed.
+- **Linq webhook smoke:** passed, including duplicate-event suppression and
+  reaction-driven status refresh. Fixture output remains explicitly non-transactional.
 
 ### Live-validated on production
 
 - **Deployed**: all `/prava` and `/linq` routes live (rsync + atomic symlink
-  deploy, release `20260802-*`). Not git-pull on server.
+  deploy, release `20260803-022243`). Not git-pull on server.
 - **Prava sandbox-REST active**: `GET /prava/health` → `mode: "sandbox-rest"`,
   `restMode: true`. Real sandbox sessions create against
   `sandbox.api.prava.space` (e.g. order `op_dd1889ae…` → hosted payment URL
@@ -214,7 +225,7 @@ guidelines above. We run it against `apps/api/lib/linq-client.js` +
   real processor outcome via `report-status`; only the production CLI path may
   say a merchant order was placed.
 
-### Remaining before submission
+### Submission handoff
 
 1. **Record and submit the demo** using the existing successful Prava record;
    do not consume another sandbox-card transaction for recording.
@@ -229,19 +240,19 @@ guidelines above. We run it against `apps/api/lib/linq-client.js` +
 
 **Project name:** OnPoint
 
-**Tagline:** Your iMessage stylist: discover live fashion products, try them on,
-and prepare a tightly scoped Prava checkout.
+**Tagline:** The fashion agent that earns permission to buy.
 
 **One-paragraph description:**
 
-OnPoint is an AI stylist agent on iMessage. It discovers live UCP fashion
-products, runs virtual try-on, locks a binding quote, and creates a real Prava
-sandbox session for the selected merchant and exact total. A real sandbox run
-with Prava's card ending 2119 reached `Creds_Generated`, and OnPoint recorded
-`credential_ready` without exposing the credential. Prava confirmed this as a
-successful sandbox transaction. A later Browser Harness attempt timed out with
-an unknown outcome; we did not retry, fabricate a status, claim a charge, or
-claim a merchant order.
+OnPoint turns fashion intent into controlled action. It discovers live UCP
+inventory, checks the garment on the shopper, locks item, shipping, and tax into
+a binding quote, then asks Prava for the narrowest useful permission: one
+merchant and one spending ceiling. A validated Prava sandbox transaction reached
+`Creds_Generated`; OnPoint reached `credential_ready` without exposing the
+credential. Linq makes intent and status message-native. When the subsequent
+merchant outcome became unknowable, OnPoint stopped without retrying or
+inventing success. Prava confirmed that `Creds_Generated` is a successful Prava
+transaction; no Alo Yoga merchant order or charge is claimed.
 
 **How Prava is used:**
 

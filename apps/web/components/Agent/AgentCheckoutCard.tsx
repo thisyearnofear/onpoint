@@ -65,7 +65,8 @@ const SAMPLE_PHOTO =
 const STATE_LABELS: Record<string, string> = {
   searching: "Finding your fit",
   quoted: "Quote ready",
-  awaiting_approval: "Awaiting payment",
+  creating_session: "Requesting permission",
+  awaiting_approval: "Awaiting Prava approval",
   try_on_ready: "Try-on ready",
   approved: "Approved",
   credential_ready: "Test credential ready",
@@ -98,6 +99,7 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
   const [order, setOrder] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState(true);
   const [photoLoading, setPhotoLoading] = useState(false);
+  const [permissionLoading, setPermissionLoading] = useState(false);
   const [continueWithoutTryOn, setContinueWithoutTryOn] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -136,7 +138,8 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
 
         // Detect the cardholder's payment completion while waiting.
         if (
-          (data.state === "awaiting_approval" || data.state === "try_on_ready") &&
+          data.state === "awaiting_approval" &&
+          data.paymentUrl &&
           !pollInFlight.current
         ) {
           pollInFlight.current = true;
@@ -182,6 +185,27 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
     }
   };
 
+  const requestPermission = async () => {
+    setPermissionLoading(true);
+    setError(null);
+    try {
+      const r = await fetch(`/prava/order/${orderId}/session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fitDecision: order?.tryOnUrl ? "try_on_completed" : "continue_without_try_on",
+        }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || "Permission request failed");
+      setOrder(data);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Permission request failed");
+    } finally {
+      setPermissionLoading(false);
+    }
+  };
+
   const handleFile = async (file: File) => {
     try {
       const photoData = await imageFileToDataUrl(file);
@@ -216,7 +240,8 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
 
   const state = order.state || "searching";
   const showTryOn = !!order.tryOnUrl;
-  const canApprove = state === "awaiting_approval" || state === "try_on_ready";
+  const canCheckFit = state === "quoted" || state === "try_on_ready";
+  const canApprove = state === "awaiting_approval";
   const isConfirmed = state === "confirmed";
   const isSandboxCompleted = state === "sandbox_completed";
   const isSandboxDeclined = state === "sandbox_declined";
@@ -224,7 +249,7 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
   const isFailed = state === "failed";
   const isCheckoutUnknown = state === "checkout_unknown";
   const isCredentialReady = state === "credential_ready";
-  const isProcessing = state === "approved" || state === "checking_out" || state === "searching";
+  const isProcessing = state === "approved" || state === "checking_out" || state === "searching" || state === "creating_session";
   const productImage = showTryOn ? order.tryOnUrl : order.garmentImageUrl;
 
   return (
@@ -276,7 +301,7 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
         ) : null}
 
         {/* Try-on upload (awaiting approval, no try-on yet) */}
-        {canApprove && !showTryOn && !photoLoading && (
+        {canCheckFit && !showTryOn && !photoLoading && !continueWithoutTryOn && (
           <div className="space-y-2">
             <p className="text-sm font-medium text-foreground">Try it on before checkout</p>
             <div className="flex gap-2">
@@ -351,8 +376,12 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
             </div>
             <div className="space-y-1.5 text-sm">
               <TrustRow icon={<Lock className="h-3.5 w-3.5" />} label="Requested ceiling" value={`$${order.trust.spendCeilingUsd} ${order.trust.currency}`} />
-              <TrustRow icon={<Lock className="h-3.5 w-3.5" />} label="Merchant request" value={order.trust.merchantScope.merchant} />
-              <TrustRow icon={<KeyRound className="h-3.5 w-3.5" />} label="If issued" value="single-use, merchant-scoped" />
+              <TrustRow icon={<Lock className="h-3.5 w-3.5" />} label="Merchant requested" value={order.trust.merchantScope.merchant} />
+              <TrustRow
+                icon={<KeyRound className="h-3.5 w-3.5" />}
+                label={isCredentialReady ? "Observed credential" : "If issued"}
+                value={isCredentialReady ? "single-use · scoped · server-held" : "single-use · merchant-scoped"}
+              />
               <TrustRow icon={<ScanFace className="h-3.5 w-3.5" />} label="Required step" value={order.selfCheck ? "fixture only" : order.restMode ? "hosted card/device verification" : "passkey on your device"} />
             </div>
             <ul className="ml-5 list-disc space-y-0.5 text-xs text-muted-foreground">
@@ -364,7 +393,7 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
         )}
 
         {/* Approve action — differs by payment rail */}
-        {canApprove && !showTryOn && !continueWithoutTryOn && (
+        {canCheckFit && !showTryOn && !continueWithoutTryOn && (
           <button
             type="button"
             onClick={() => setContinueWithoutTryOn(true)}
@@ -374,7 +403,24 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
           </button>
         )}
 
-        {canApprove && (showTryOn || continueWithoutTryOn) && order.restMode && order.paymentUrl ? (
+        {canCheckFit && (showTryOn || continueWithoutTryOn) && !order.paymentUrl && (
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={requestPermission}
+              disabled={permissionLoading}
+              className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-bold text-white transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-60"
+            >
+              {permissionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
+              Request exact-scope permission
+            </button>
+            <p className="text-center text-[11px] text-muted-foreground">
+              This is the step that creates the Prava session. Nothing has been charged.
+            </p>
+          </div>
+        )}
+
+        {canApprove && order.restMode && order.paymentUrl ? (
           <div className="space-y-2">
             <a
               href={order.paymentUrl}
@@ -389,7 +435,7 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
               an external checkout outcome is still required.
             </p>
           </div>
-        ) : canApprove && (showTryOn || continueWithoutTryOn) ? (
+        ) : canApprove && order.paymentUrl ? (
           <button
             disabled
             className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-bold text-white opacity-90"
@@ -403,7 +449,11 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
           <div className="flex items-center justify-center py-4">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
             <span className="ml-2 text-sm text-muted-foreground">
-              {state === "searching" ? "Composing your look…" : "Placing your order…"}
+              {state === "searching"
+                ? "Composing your look…"
+                : state === "creating_session"
+                  ? "Requesting permission…"
+                  : "Placing your order…"}
             </span>
           </div>
         )}
@@ -501,7 +551,9 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
             ? "Prava sandbox · test lifecycle · no real charge"
             : isSelfCheckCompleted
               ? "Self-check fixture · no transaction"
-              : "Prava session requested · user approval required"}
+              : state === "quoted" || state === "try_on_ready"
+                ? "Binding quote · permission not requested"
+                : "Prava session requested · user approval required"}
       </div>
     </div>
   );

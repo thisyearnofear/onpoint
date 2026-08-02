@@ -13,7 +13,7 @@
  *
  * Compliance baked in:
  *   - scanOptOut() on every inbound; OPTED_OUT chats are terminal.
- *   - send() uses `to` only (no `from`) — Linq load-balances the pool.
+ *   - sandbox sends pin the validated hackathon line via `/v3/chats`.
  *   - gateSend() checks health_status + line reputation before sending.
  *   - Inbound-first + contact-card sharing helpers.
  *
@@ -29,9 +29,8 @@ const BASE = process.env.LINQ_API_BASE || 'https://api.linqapp.com/api/partner';
 const API_KEY = process.env.LINQ_API_KEY;
 const WEBHOOK_SECRET = process.env.LINQ_WEBHOOK_SECRET; // for HMAC verification
 // The Linq virtual number that sends. Sandbox: +1 424 394 5528.
-// In production, prefer POST /v3/messages with `to` only (no `from`) so Linq
-// load-balances the pool; /v3/chats pins a line (used for the first/onboarding
-// send and the playground). See best practices.
+// The validated hackathon flow uses /v3/chats and pins this sandbox line.
+// A multi-line production rollout should move to /v3/messages with `to` only.
 const FROM_NUMBER = process.env.LINQ_FROM_NUMBER || '+14243945528';
 
 // iMessage app identity for the OnPoint Stylist Messages extension. The card

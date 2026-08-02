@@ -3,7 +3,8 @@ import { Check, Clock3, KeyRound, Lock, ShieldCheck } from "lucide-react";
 const steps = [
   { icon: Check, label: "Live product", value: "Alo Yoga · $108.00" },
   { icon: ShieldCheck, label: "Binding quote", value: "$108.00 + $9.32 tax = $117.32" },
-  { icon: KeyRound, label: "Prava result", value: "Creds_Generated · credential_ready" },
+  { icon: KeyRound, label: "Prava transaction", value: "Successful sandbox · Creds_Generated" },
+  { icon: ShieldCheck, label: "OnPoint state", value: "credential_ready" },
   { icon: Lock, label: "Credential", value: "Retained server-side" },
   { icon: Clock3, label: "Merchant outcome", value: "Unknown timeout · not retried" },
 ];
@@ -16,7 +17,7 @@ export function PravaEvidenceReceipt() {
           <p className="text-xs font-semibold uppercase tracking-wider text-primary">Captured sandbox proof</p>
           <h3 id="prava-proof-title" className="mt-1 text-lg font-bold text-foreground">One permission. One credential. No invented outcome.</h3>
         </div>
-        <p className="text-xs text-muted-foreground">Prava record · ord_01KZ…ZT1P</p>
+        <p className="break-all text-xs text-muted-foreground">Prava record · ord_01KZ2A6YCE9HJGZ97C8CD5ZT1P</p>
       </div>
       <div className="divide-y divide-border/40 px-5">
         {steps.map(({ icon: Icon, label, value }) => (
@@ -30,7 +31,7 @@ export function PravaEvidenceReceipt() {
         ))}
       </div>
       <p className="border-t border-border/50 px-5 py-3 text-xs leading-relaxed text-muted-foreground">
-        Historical evidence from the validated Prava sandbox run. No Alo Yoga order, merchant approval, decline, or charge is claimed.
+        Historical evidence from the validated Prava sandbox transaction. Prava confirmed that Creds_Generated is successful on Prava. No Alo Yoga merchant order, approval, decline, or charge is claimed.
       </p>
     </aside>
   );

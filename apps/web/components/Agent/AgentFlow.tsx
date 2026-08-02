@@ -55,8 +55,8 @@ export function AgentFlow({ onOrderConfirmed }: Props) {
 
   return (
     <div className="space-y-6">
-      <ol className="mx-auto grid max-w-md grid-cols-3 gap-2" aria-label="Agent checkout steps">
-        {["Product", "Fit", "Permission"].map((step, index) => (
+      <ol className="mx-auto grid max-w-lg grid-cols-4 gap-2" aria-label="Agent checkout steps">
+        {["Product", "Fit", "Permission", "Outcome"].map((step, index) => (
           <li key={step} className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
             <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full border border-primary/25 bg-primary/[0.04] text-primary">
               {index + 1}

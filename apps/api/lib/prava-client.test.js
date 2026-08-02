@@ -227,6 +227,7 @@ describe('Prava REST integration', () => {
       .expect(201);
 
     expect(created.body).toMatchObject({
+      state: 'quoted',
       totalAmount: '111.24',
       currency: 'USD',
       quoteBreakdown: {
@@ -240,6 +241,18 @@ describe('Prava REST integration', () => {
       },
     });
     expect(created.body.checkoutSessionId).toMatch(/^ches_fixture_/);
+    expect(created.body.paymentUrl).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    const permission = await supertest(app)
+      .post(`/prava/order/${created.body.orderId}/session`)
+      .send({ fitDecision: 'continue_without_try_on' })
+      .expect(201);
+
+    expect(permission.body).toMatchObject({
+      state: 'awaiting_approval',
+      paymentUrl: 'https://sandbox.collect.prava.space?session=ses_route_test',
+    });
     expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: 'POST' });
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({
       total_amount: '111.24',
@@ -267,6 +280,52 @@ describe('Prava REST integration', () => {
         responseId: 'resp_route_test',
       },
     });
+  });
+
+  it('accepts a normal-sized base64 photo on the dedicated try-on route', async () => {
+    const app = express();
+    app.use('/prava', pravaFacade);
+
+    const created = await supertest(app)
+      .post('/prava/order')
+      .send({
+        query: 'black leggings',
+        productId: 'prod_fixture_alo',
+        variantId: 'var_fixture__alo',
+        merchant: 'aloyoga.com',
+      })
+      .expect(201);
+
+    const photoData = `data:image/jpeg;base64,${'A'.repeat(64 * 1024)}`;
+    const triedOn = await supertest(app)
+      .post(`/prava/order/${created.body.orderId}/try-on`)
+      .send({ photoData })
+      .expect(200);
+
+    expect(triedOn.body).toMatchObject({
+      provider: 'self-check-placeholder',
+      order: { state: 'try_on_ready' },
+    });
+  });
+
+  it('does not create a Prava session without an explicit fit decision', async () => {
+    const app = express();
+    app.use('/prava', pravaFacade);
+
+    const created = await supertest(app)
+      .post('/prava/order')
+      .send({ query: 'black leggings' })
+      .expect(201);
+
+    await supertest(app)
+      .post(`/prava/order/${created.body.orderId}/session`)
+      .send({})
+      .expect(400);
+
+    const unchanged = await supertest(app)
+      .get(`/prava/order/${created.body.orderId}`)
+      .expect(200);
+    expect(unchanged.body).toMatchObject({ state: 'quoted', paymentUrl: null });
   });
 
   it('keeps hosted-session and credential material out of sandbox responses', async () => {
