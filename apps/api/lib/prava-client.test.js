@@ -9,7 +9,9 @@ const require = createRequire(import.meta.url);
 const {
   createRestSession,
   pollRestSession,
+  reportRestSession,
   humanizeMerchant,
+  classifyProcessorDiagnostic,
   PravaError,
 } = require('./prava-client');
 const pravaFacade = require('../routes/prava-facade');
@@ -89,6 +91,51 @@ describe('Prava REST integration', () => {
       }],
     });
     expect(humanizeMerchant('alo-yoga.com')).toBe('Alo Yoga');
+  });
+
+  it('classifies only definitive processor declines from checkout diagnostics', () => {
+    expect(classifyProcessorDiagnostic('Payment was declined: insufficient funds; response_code=51')).toEqual({
+      processorDeclined: true,
+      responseCode: '51',
+    });
+    expect(classifyProcessorDiagnostic('The merchant rejected this test card')).toMatchObject({
+      processorDeclined: true,
+    });
+    expect(classifyProcessorDiagnostic('Browser timed out while filling the shipping address')).toEqual({
+      processorDeclined: false,
+      responseCode: null,
+    });
+    expect(classifyProcessorDiagnostic('Inventory lookup failed; test card instructions unavailable')).toEqual({
+      processorDeclined: false,
+      responseCode: null,
+    });
+  });
+
+  it('reports a real sandbox decline without inventing processor codes', async () => {
+    const requests = [];
+    vi.stubGlobal('fetch', vi.fn(async (url, init = {}) => {
+      requests.push({ url, method: init.method, body: init.body ? JSON.parse(init.body) : null });
+      if (init.method === 'POST') return jsonResponse({ success: true });
+      return jsonResponse({ status: 'failed', order_id: 'ord_test' });
+    }));
+
+    await expect(reportRestSession({
+      sessionId: 'ses_test',
+      txnRefId: 'txn_test',
+      status: 'DECLINED',
+    })).resolves.toMatchObject({ status: 'failed', sandbox: true });
+
+    expect(requests[0]).toMatchObject({
+      url: 'https://sandbox.api.prava.space/v1/sessions/ses_test/report-status',
+      method: 'POST',
+      body: {
+        txn_ref_id: 'txn_test',
+        txn_status: 'DECLINED',
+        txn_type: 'PURCHASE',
+      },
+    });
+    expect(requests[0].body).not.toHaveProperty('response_code');
+    expect(requests[0].body).not.toHaveProperty('authorization_code');
   });
 
   it('preserves the provider error code, status, details, and response ID', async () => {
@@ -178,6 +225,17 @@ describe('Prava REST integration', () => {
         merchant: 'aloyoga.com',
       })
       .expect(201);
+
+    expect(created.body).toMatchObject({
+      totalAmount: '111.24',
+      currency: 'USD',
+    });
+    expect(created.body.checkoutSessionId).toMatch(/^ches_fixture_/);
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: 'POST' });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({
+      total_amount: '111.24',
+      currency: 'USD',
+    });
 
     await supertest(app)
       .post(`/prava/order/${created.body.orderId}/poll`)

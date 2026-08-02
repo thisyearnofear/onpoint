@@ -98,7 +98,7 @@ function trustView(o) {
 function orderView(o) {
   return {
     orderId: o.id,
-    state: o.state, // searching|quoted|awaiting_approval|approved|credential_ready|checking_out|checkout_unknown|confirmed|self_check_completed|failed
+    state: o.state, // searching|quoted|awaiting_approval|approved|credential_ready|checking_out|checkout_unknown|confirmed|sandbox_completed|sandbox_declined|self_check_completed|failed
     query: o.query || null,
     items: o.items || null,
     merchant: o.merchantName
@@ -309,9 +309,9 @@ router.post('/order', async (req, res, next) => {
     }
 
     // Two payment rails:
-    //  • REST sandbox (PRAVA_SECRET_KEY set) — Prava's SDK/API path, the only
-    //    path with a sandbox + test card. Skip the CLI quote (needs a delivery
-    //    address) and use the discovered product price as the sandbox session amount.
+    //  • REST sandbox (PRAVA_SECRET_KEY set) — use Browser Harness for a
+    //    binding merchant quote, then Prava's SDK/API path for the sandbox
+    //    card credential tied to that exact total.
     //  • CLI / self-check — full quote → createPaymentSession (real-card prod
     //    or deterministic fixtures).
     const useRest = prava.restMode();
@@ -321,22 +321,29 @@ router.post('/order', async (req, res, next) => {
     let session;
 
     if (useRest) {
-      // Session amount from the discovered offer price (no address-gated quote).
-      const priceStr = selectedOffer.unit_price || null;
-      if (!priceStr) {
-        return res.status(409).json({ error: 'Could not resolve a price for the selected item.' });
+      // Browser Harness owns the merchant checkout, so create the REST
+      // credential for its binding total (item + shipping + tax), not the
+      // discovery/listed price.
+      quote = await prava.shopQuote({
+        variantId: chosenVariant,
+        merchant: chosenMerchant,
+        addressId,
+      });
+      const quoteAmount = quote.total || quote.final_price?.amount;
+      const quoteCurrency = quote.currency || quote.final_price?.currency || selectedOffer.currency || 'USD';
+      if (!quote.checkout_session_id || !quoteAmount) {
+        return res.status(409).json({ error: 'Prava did not return a binding checkout quote.' });
       }
-      totalAmount = String(priceStr);
+      totalAmount = String(quoteAmount);
       products = [{
         product_id: chosenProduct.product_id,
         description: chosenProduct.title || chosenProduct.description || selectedOffer.description || 'Fashion item',
-        unit_price: totalAmount,
+        unit_price: String(selectedOffer.unit_price),
         quantity: 1,
       }];
-      const currency = selectedOffer.currency || 'USD';
       session = await prava.createRestSession({
         totalAmount,
-        currency,
+        currency: quoteCurrency,
         merchantName: chosenMerchant,
         merchantUrl: `https://${chosenMerchant}`,
         merchantCountry: 'US',
@@ -370,7 +377,7 @@ router.post('/order', async (req, res, next) => {
       merchantUrl: `https://${chosenMerchant}`,
       merchantCountry: 'US',
       totalAmount,
-      currency: quote?.currency || selectedOffer.currency || 'USD',
+      currency: quote?.currency || quote?.final_price?.currency || selectedOffer.currency || 'USD',
       quote,
       // Which payment rail this order uses (drives poll/checkout routing).
       restMode: useRest,
@@ -528,14 +535,14 @@ router.post('/order/:id/checkout', async (req, res, next) => {
   let o;
   try {
     o = getOrder(req.params.id);
-    if (o.restMode) {
+    if (o.restMode && o.state !== 'credential_ready') {
       return res.status(409).json({
-        error: 'REST credentials must be used in an external checkout before its real processor outcome can be reported. This endpoint will not synthesize approval.',
-        code: 'EXTERNAL_CHECKOUT_REQUIRED',
+        error: `REST order must have a credential before checkout (state=${o.state}).`,
+        code: 'CREDENTIAL_NOT_READY',
         order: orderView(o),
       });
     }
-    if (o.state !== 'approved') {
+    if (!o.restMode && o.state !== 'approved') {
       return res.status(409).json({
         error: `Order must be approved before checkout (state=${o.state}). POST /prava/order/:id/poll first.`,
         order: orderView(o),
@@ -545,15 +552,54 @@ router.post('/order/:id/checkout', async (req, res, next) => {
     o.updatedAt = Date.now();
     orders.set(o.id, o);
 
-    const result = await prava.shopCheckout({
-      checkoutSessionId: o.checkoutSessionId,
-      token: o.token,
-      cryptogram: o.cryptogram,
-      expiryMonth: o.expiryMonth,
-      expiryYear: o.expiryYear,
-    });
+    let result;
+    try {
+      result = await prava.shopCheckout({
+        checkoutSessionId: o.checkoutSessionId,
+        token: o.token,
+        cryptogram: o.cryptogram,
+        expiryMonth: o.expiryMonth,
+        expiryYear: o.expiryYear,
+      });
+    } catch (e) {
+      if (o.restMode && e.context?.processorDeclined) {
+        const reported = await prava.reportRestSession({
+          sessionId: o.paymentSessionId,
+          txnRefId: o.txnRefId,
+          status: 'DECLINED',
+          responseCode: e.context.responseCode || undefined,
+        });
+        o.state = 'sandbox_declined';
+        o.failure = {
+          code: 'EXPECTED_SANDBOX_DECLINE',
+          message: 'The end merchant declined the sandbox/test credential as expected.',
+          status: null,
+          details: null,
+          responseId: null,
+        };
+        o.updatedAt = Date.now();
+        orders.set(o.id, o);
+        return res.json({ state: o.state, order: orderView(o), result: reported });
+      }
+      throw e;
+    }
 
     if (result.status === 'completed' && result.order_id) {
+      if (o.restMode) {
+        const reported = await prava.reportRestSession({
+          sessionId: o.paymentSessionId,
+          txnRefId: o.txnRefId,
+          status: 'APPROVED',
+          orderId: result.order_id,
+          authorizationCode: result.authorization_code,
+          responseCode: result.response_code,
+        });
+        o.state = 'sandbox_completed';
+        o.sandboxOrderId = result.order_id;
+        o.updatedAt = Date.now();
+        orders.set(o.id, o);
+        return res.json({ state: o.state, order: orderView(o), result: reported });
+      }
       o.state = result.sandbox
         ? 'sandbox_completed'
         : result.self_check

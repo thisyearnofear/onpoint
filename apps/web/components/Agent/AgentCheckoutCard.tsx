@@ -64,6 +64,7 @@ const STATE_LABELS: Record<string, string> = {
   checkout_unknown: "Checkout outcome unknown",
   confirmed: "✓ Order placed",
   sandbox_completed: "✓ Sandbox completed",
+  sandbox_declined: "✓ Sandbox decline verified",
   self_check_completed: "✓ Self-check completed",
   failed: "Checkout failed",
 };
@@ -79,6 +80,7 @@ const STATE_COLORS: Record<string, string> = {
   checkout_unknown: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
   confirmed: "bg-green-500/10 text-green-600 dark:text-green-400",
   sandbox_completed: "bg-green-500/10 text-green-600 dark:text-green-400",
+  sandbox_declined: "bg-green-500/10 text-green-600 dark:text-green-400",
   self_check_completed: "bg-muted text-muted-foreground",
   failed: "bg-red-500/10 text-red-600 dark:text-red-400",
 };
@@ -222,6 +224,7 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
   const canApprove = state === "awaiting_approval" || state === "try_on_ready";
   const isConfirmed = state === "confirmed";
   const isSandboxCompleted = state === "sandbox_completed";
+  const isSandboxDeclined = state === "sandbox_declined";
   const isSelfCheckCompleted = state === "self_check_completed";
   const isFailed = state === "failed" || state === "checkout_unknown";
   const isCredentialReady = state === "credential_ready";
@@ -399,6 +402,12 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
         {isCredentialReady && (
           <div className="rounded-lg bg-amber-500/10 px-3 py-2.5 text-sm text-amber-700 dark:text-amber-300">
             Prava issued a sandbox credential. An external checkout must now be attempted before its real processor outcome can be reported. No merchant order or charge is claimed.
+          </div>
+        )}
+
+        {isSandboxDeclined && (
+          <div className="rounded-lg bg-green-500/10 px-3 py-2.5 text-sm text-green-700 dark:text-green-300">
+            End-merchant checkout was attempted with the sandbox credential and declined as expected. The real decline was reported to Prava; no charge or merchant order is claimed.
           </div>
         )}
 

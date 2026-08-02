@@ -123,7 +123,14 @@ function selfCheck() {
 }
 
 // ── Live: shell to the prava CLI with --json ─────────────────────────
-async function runCli(args, { timeoutMs = 60000 } = {}) {
+function classifyProcessorDiagnostic(diagnostic) {
+  const text = String(diagnostic || '');
+  const processorDeclined = /\binsufficient (?:funds|balance)\b|\b(?:card|payment|transaction|processor|issuer)(?: was| is)? declined\b|\bdeclined by (?:the )?(?:merchant|processor|issuer)\b|\btest card\b[^\n]{0,80}\b(?:declined|rejected|blocked|insufficient)\b|\b(?:declined|rejected|blocked)\b[^\n]{0,80}\btest card\b/i.test(text);
+  const responseCode = text.match(/response[_\s-]*code\s*[:=]\s*([A-Z0-9]{2})/i)?.[1] || null;
+  return { processorDeclined, responseCode };
+}
+
+async function runCli(args, { timeoutMs = 60000, classifyProcessorOutcome = false } = {}) {
   try {
     const { stdout } = await execFileAsync(CLI_PATH, args, {
       timeout: timeoutMs,
@@ -141,6 +148,10 @@ async function runCli(args, { timeoutMs = 60000 } = {}) {
     }
   } catch (err) {
     const code = err.code === 1 || err.code ? err.code : null;
+    const diagnostic = `${err.stdout || ''}\n${err.stderr || ''}\n${err.message || ''}`;
+    const processorOutcome = classifyProcessorOutcome
+      ? classifyProcessorDiagnostic(diagnostic)
+      : { processorDeclined: false, responseCode: null };
     // Exit code 2 = not linked; surface distinctly.
     if (code === 2) {
       throw new PravaError('not_linked', 'Prava agent not linked. Run `prava setup --name "<name>"`.');
@@ -150,11 +161,15 @@ async function runCli(args, { timeoutMs = 60000 } = {}) {
       code,
       killed: !!err.killed,
       signal: err.signal || null,
+      processorDeclined: processorOutcome.processorDeclined,
+      responseCode: processorOutcome.responseCode,
     });
     throw new PravaError('cli_error', 'Prava CLI request failed.', {
       code,
       killed: !!err.killed,
       signal: err.signal || null,
+      processorDeclined: processorOutcome.processorDeclined,
+      responseCode: processorOutcome.responseCode,
     });
   }
 }
@@ -427,7 +442,7 @@ async function shopCheckout({ checkoutSessionId, token, cryptogram, expiryMonth,
     if (expiryMonth) args.push('--expiry-month', String(expiryMonth));
     if (expiryYear) args.push('--expiry-year', String(expiryYear));
     args.push('--yes', '--json');
-    return runCli(args, { timeoutMs: 120000 });
+    return runCli(args, { timeoutMs: 120000, classifyProcessorOutcome: true });
   }
   return FIXTURE.checkout(checkoutSessionId);
 }
@@ -624,10 +639,10 @@ async function reportRestSession({ sessionId, txnRefId, status, orderId, authori
       'A production REST credential must be charged at the merchant before its outcome can be reported.',
     );
   }
-  if (!responseCode || (status === 'APPROVED' && !authorizationCode)) {
+  if (!sessionId || !txnRefId || !['APPROVED', 'DECLINED'].includes(status)) {
     throw new PravaError(
       'processor_outcome_required',
-      'Report status requires a processor response code and, for approval, its authorization code from an attempted external checkout.',
+      'Reporting requires a session, transaction reference, and actual APPROVED or DECLINED processor outcome.',
     );
   }
   const approved = status === 'APPROVED';
@@ -663,6 +678,7 @@ module.exports = {
   pollRestSession,
   reportRestSession,
   humanizeMerchant,
+  classifyProcessorDiagnostic,
   cliAvailable,
   selfCheck,
   PravaError,
