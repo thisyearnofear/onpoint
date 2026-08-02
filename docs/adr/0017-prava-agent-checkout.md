@@ -1,7 +1,7 @@
 # ADR 0017: Prava Agent Checkout — Scoped-Card Cross-Merchant Purchases
 
-**Status**: Partially implemented — live discovery and real sandbox session
-creation validated; blocked before credential issuance; no merchant order completed
+**Status**: Partially implemented — live discovery, real sandbox session creation,
+and credential issuance validated; no external checkout or merchant order completed
 **Date**: 2026-08-01
 **Integration**: `prava` CLI (UCP discovery) + REST `POST /v1/sessions` (payment rail)
 
@@ -84,7 +84,8 @@ reviewed case-by-case) and a real card for a small real charge.
 Build toward **OnPoint as an AI stylist agent that can fulfill a style intent
 through Prava**, surfaced with a Linq iMessage App status card. The hackathon
 build currently reaches live UCP discovery and real Prava sandbox-session
-creation; hosted device binding blocks credential issuance before WebAuthn.
+creation plus credential readiness; external sandbox checkout/reporting remains
+unimplemented.
 
 ### The original insight
 
@@ -135,18 +136,18 @@ calls the REST API directly, and is a **Linq sender to iMessage** + the
   rendered as a mutating iMessage App card. Lands before any stretch work.
 - **Unshipped stretch**: multi-item look across 2 merchants (2 scoped checkouts — the
   "shop across merchants" insight) + 👍-tapback group-chat voting.
-- **Sandbox/demo rail (active but blocked)**: REST SDK/API session flow (`POST /v1/sessions`
+- **Sandbox/demo rail (active through credential readiness)**: REST SDK/API session flow (`POST /v1/sessions`
   + hosted card entry + `payment-result` + `report-status`) against
   `sandbox.api.prava.space` with `sk_test_*` keys. No real money. This is the
   primary active path on production (the only path with a sandbox). Session
-  creation works; device binding fails before WebAuthn and credential issuance.
+  creation and credential issuance work; external checkout/reporting is absent.
 
 ### Tracks targeted
 
 | Track | Reward | How |
 |-------|--------|-----|
 | Prava finalists | $10k credits | Prava IS the checkout (central) |
-| Visa Intelligent Commerce | $5k cash | requested merchant/amount + documented expected controls; issuance not yet observed |
+| Visa Intelligent Commerce | $5k cash | requested merchant/amount + hosted verification + observed credential readiness |
 | Linq iMessage Agent | $1k + $5k credits | live send and signed webhook validated; completed mutation unobserved |
 | Localhost startup-ready | $5k Anthropic | existing live product + credible continuation |
 | OpenAI / Senso | (optional) | styling reasoning / verified merchant context — only if core is green |
@@ -173,11 +174,12 @@ calls the REST API directly, and is a **Linq sender to iMessage** + the
 - **External checkout dependency** — Browser Harness drives a live Shopify
   checkout that can change. Mitigation: recorded video for the real order;
   sandbox fallback for live judge demo.
-- **Observed sandbox blocker** — supplied/documented cards returned
+- **Resolved credential blocker / remaining checkout boundary** — earlier cards returned
   `DEVICE_BINDING_FAILED: 409` before WebAuthn in Brave and Safari. A later
   team-recommended card reached issuer OTP but then returned
-  `FETCH_AGENTIC_CREDS_ERROR: Visa 400 — Fetching cryptogram failed`. Escalate
-  with the sandbox session record IDs; no credential was issued.
+  `FETCH_AGENTIC_CREDS_ERROR: Visa 400 — Fetching cryptogram failed`. Prava's
+  subsequent card ending 2119 produced `Creds_Generated`; OnPoint confirmed
+  `credential_ready`. No external checkout or processor outcome followed.
 - **UCP image → OnPoint try-on compatibility** — IDM-VTON must render a
   UCP product image on a person photo. Validate on day 1; fall back to the
   free-tier "similar style" render or skip try-on for that item if it fails.

@@ -25,10 +25,10 @@ An AI stylist agent on iMessage. A user texts a style intent ("outfit me for a
 rooftop brunch, $120 budget"); OnPoint discovers live UCP fashion products,
 runs IDM-VTON try-on, and creates a real Prava sandbox session containing the
 selected merchant, item, and requested amount. The user continues on Prava's
-hosted card surface. Current sandbox testing is blocked before WebAuthn and
-credential issuance by `DEVICE_BINDING_FAILED: 409`; no Prava credential or
-merchant order has completed. The production CLI checkout path is implemented
-but remains unvalidated pending access.
+hosted card surface. A Prava-recommended card ending 2119 completed hosted
+verification and produced a real sandbox `Creds_Generated` record; OnPoint
+confirmed `credential_ready` while keeping the credential server-side. No
+external checkout, charge, `report-status`, or merchant order has completed.
 
 ### The original insight
 
@@ -41,8 +41,8 @@ session. Multi-merchant sequencing is target architecture, not shipped behavior.
 
 | Track | Reward | Decision |
 |-------|--------|----------|
-| **Prava finalists** | $10k Prava credits | **Enter.** Prava is central: real UCP discovery + real sandbox session creation; credential issuance currently provider-blocked. |
-| **Visa Intelligent Commerce** | $5k cash | **Enter.** The UI exposes the requested merchant, amount, required passkey, and expected scoped credential model without claiming issuance. |
+| **Prava finalists** | $10k Prava credits | **Enter.** Prava is central: real UCP discovery + real sandbox session and credential issuance. |
+| **Visa Intelligent Commerce** | $5k cash | **Enter.** The UI exposes the requested merchant, amount, hosted verification, and observed scoped-credential readiness. |
 | **Linq iMessage Agent** | $1k cash + $5k Linq credits | **Enter.** Live iMessage send and signed inbound webhooks are validated; status-card mutation is implemented but not observed after a completed Prava lifecycle. |
 | **Localhost startup-ready** | $5k Anthropic credits | **Enter.** OnPoint is an existing live product; this new workflow is a credible continuation if the payment-provider blocker is resolved. |
 | ~~OpenAI~~ | $10k | **Skip.** No OpenAI in the stack; bolting it on = explicitly deprecated ("partner technology added only to qualify") |
@@ -53,7 +53,7 @@ session. Multi-merchant sequencing is target architecture, not shipped behavior.
 
 | Axis | How we score |
 |------|-------------|
-| **End-to-end functionality** | Live UCP discovery → try-on → real Prava sandbox session → hosted card surface; blocked before WebAuthn with reproducible provider evidence. |
+| **End-to-end functionality** | Live UCP discovery → try-on → real Prava sandbox session → hosted verification → credential readiness; external checkout remains unimplemented. |
 | **Creativity / novelty** | Try-on-before-agent-checkout + explicit requested controls + message-native status card. |
 | **User value / market feasibility** | Live fashion products and pre-purchase visualization solve a clear fit-confidence problem. |
 | **Prava implementation** | Prava session creation is central to the new workflow, not a payment button added afterward. No completed transaction is claimed. |
@@ -163,7 +163,7 @@ guidelines above. We run it against `apps/api/lib/linq-client.js` +
 |-----------|------|--------|
 | Prava transport — self-check + sandbox REST + production CLI branches | `apps/api/lib/prava-client.js` | ✅ implemented; only discovery + session creation live-validated |
 | Prava state machine and requested-control view | `apps/api/routes/prava-facade.js` | ✅ implemented; completion branches unvalidated |
-| REST sandbox lifecycle (session→poll→report) | `prava-facade.js` + `prava-client.js` | ⚠️ session creation validated; blocked before credential issuance |
+| REST sandbox lifecycle (session→poll→external checkout→report) | `prava-facade.js` + `prava-client.js` | ⚠️ real credential issuance validated; external checkout/report not attempted |
 | Production CLI credential/checkout contract | `apps/api/lib/prava-client.js` | ⚠️ implemented and linked; checkout unvalidated |
 | Decoupled IDM-VTON try-on for UCP garment images | `apps/api/lib/prava-tryon.js` | ✅ placeholder + Replicate modes |
 | Linq REST client (real `/v3/chats`, Standard Webhooks) | `apps/api/lib/linq-client.js` | ✅ live send + signature verify |
@@ -191,18 +191,16 @@ guidelines above. We run it against `apps/api/lib/linq-client.js` +
 - **Live UCP discovery**: real Shopify merchants (Alo Yoga, Beyond Yoga,
   Blakely, Elite Eleven) returned with real product IDs + CDN images.
 
-### Known blocker (ready for Prava support)
+### Sandbox evidence and remaining boundary
 
-- **Sandbox credential issuance fails inside Prava/Visa.** Real sessions are
-  accepted and Prava's dashboard renders the merchant, MCC 5691, product,
-  currency, and amount correctly. The team-provided card first produced a
-  provisioning 403; Prava's documented card failed with
-  `DEVICE_BINDING_FAILED: 409` before any passkey prompt in Brave and Safari.
-  A later team-recommended card ending 2127 reached the issuer OTP step, then
-  failed with `FETCH_AGENTIC_CREDS_ERROR: Visa 400 — Fetching cryptogram failed`
-  while the dashboard still logged `Card check skipped — Lookup not configured`.
-  The latest evidence record is `ord_01KZ273SD0AYP5MY9G8SAZF06D`. These are
-  Prava sandbox session records, not merchant-order confirmations.
+- **Sandbox credential issuance now succeeds.** Earlier cards produced a
+  provisioning 403, `DEVICE_BINDING_FAILED: 409`, and
+  `FETCH_AGENTIC_CREDS_ERROR: Visa 400`. Prava then supplied a card ending 2119;
+  it produced `Creds_Generated` on dashboard record
+  `ord_01KZ28VR8A8ZKB3XETHEXY61YH` and session
+  `ses_01KZ28VR8A8ZKB3XETHEXY61YG`. OnPoint's poll reached
+  `credential_ready`; no credential material was exposed by the public API.
+  This is credential proof, not a merchant-order confirmation.
 - **Honesty boundary:** deterministic self-check validates orchestration only.
   A REST sandbox lifecycle is labeled completed only after Prava issues a test
   credential, an external sandbox checkout is attempted, and Prava accepts its
@@ -211,8 +209,8 @@ guidelines above. We run it against `apps/api/lib/linq-client.js` +
 
 ### Remaining before submission
 
-1. **Prava sandbox fix** (on Prava) — device binding 409 resolved. Then re-run
-   the sandbox E2E to land a real sandbox `completed` lifecycle.
+1. **External sandbox checkout adapter** — attempt a real sandbox processor
+   checkout with the server-side credential, then report that actual outcome.
 2. **Production access** — application submitted. The production CLI path is
    implemented and the agent is linked, but a real checkout remains unvalidated.
    Production REST would additionally require an actual merchant checkout before
@@ -235,9 +233,10 @@ and prepare a tightly scoped Prava checkout.
 OnPoint is an AI stylist agent on iMessage. It discovers live UCP fashion
 products, runs virtual try-on, and creates a real Prava sandbox session with the
 selected merchant, product, and requested amount. The user continues on Prava's
-hosted card surface. Current sandbox testing is reproducibly blocked before
-WebAuthn by `DEVICE_BINDING_FAILED: 409`, so we do not claim credential issuance,
-a completed sandbox lifecycle, or a merchant order.
+hosted card surface. A real sandbox run with Prava's card ending 2119 reached
+`Creds_Generated`, and OnPoint recorded `credential_ready` without exposing the
+credential. We do not claim an external checkout, completed lifecycle, charge,
+or merchant order.
 
 **How Prava is used:**
 
@@ -245,9 +244,10 @@ Prava is central, not a bolt-on. Discovery uses `prava shop search/product`.
 REST sandbox mode uses the discovered listed price as the session amount; it
 does not obtain a binding merchant quote or charge a merchant. The intended
 remainder is hosted card entry → passkey → `payment-result` credential →
-external test outcome → `report-status`. The current provider error occurs
-before passkey and credential issuance. The production CLI checkout branch is
-implemented and linked but unvalidated pending access.
+external test outcome → `report-status`. Earlier cards failed before issuance;
+Prava's card ending 2119 now validates credential issuance. The external
+checkout/reporting leg is not implemented, and the production CLI checkout
+branch remains unvalidated with a real merchant order.
 
 **How Linq is used:**
 
@@ -300,9 +300,9 @@ node scripts/prava-webhook-smoke.mjs
 
 **Didn't:**
 
-- Prava's hosted sandbox flow currently fails at device binding before WebAuthn
-  and credential issuance. Therefore sandbox currently proves session creation
-  and provider failure evidence—not credential or transaction completion.
+- The external sandbox checkout/reporting leg is not implemented. Sandbox now
+  proves session creation and credential issuance, but not a processor outcome,
+  completed lifecycle, charge, or merchant order.
 - The Prava CLI is production-only — there is no CLI sandbox — so live
   merchant checkout depends on temporary hackathon production access, which is
   human-reviewed. We sequenced sandbox-excellence first, then requested

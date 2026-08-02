@@ -80,29 +80,29 @@ Same timing. Replace the payment-claim lines:
 
 ---
 
-## Variant C — Prava sandbox provider incident still open
+## Variant C — sandbox credential issued; external checkout not implemented
 
-Use this only if Prava has not fixed device binding before recording:
+Use this when Prava reaches credential readiness but OnPoint has not attempted
+an external sandbox checkout or called `report-status`:
 
 > **(0:52 — hosted payment surface)** "This is a real Prava sandbox session,
 > created from a live UCP product and opened on Prava's hosted card surface.
 > Prava accepted and rendered the order, merchant, MCC, amount, and product."
 >
-> **(1:02 — dashboard evidence)** "Earlier cards failed device binding before
-> WebAuthn in Safari and Brave. Prava's later recommended card reached issuer
-> OTP, then Visa returned `FETCH_AGENTIC_CREDS_ERROR` while fetching the
-> cryptogram. Here is the failed sandbox session record. We reported the
-> reproducible incident rather than replacing it with a fake success."
+> **(1:02 — dashboard evidence)** "Earlier cards failed during device binding
+> and cryptogram retrieval. With Prava's recommended card ending 2119, the
+> hosted flow generated credentials successfully. Here is the real
+> `Creds_Generated` sandbox record and OnPoint's `credential_ready` state."
 >
-> **(1:18 — product UI + self-check)** "The planned orchestration states and
-> trust UX remain judge-runnable with deterministic fixtures, explicitly labeled
-> self-check. The live sandbox session creation and failure evidence are separate
-> and never presented as a completed transaction."
+> **(1:18 — product UI + self-check)** "The credential remains server-side and
+> is not shown in the API response. OnPoint stops here because no external
+> sandbox merchant-checkout adapter is configured; it does not invent an
+> approval or call `report-status`."
 >
-> **(1:34 — closing)** "OnPoint's new Prava workflow is implemented and deployed;
-> final credential issuance is blocked inside the hosted Prava/Visa flow.
-> Production access is requested; the linked CLI checkout branch is
-> implemented but has not been validated with a real merchant order."
+> **(1:34 — closing)** "OnPoint's new Prava workflow is implemented and deployed
+> through real sandbox credential issuance. No merchant checkout, charge, or
+> completed order is claimed. The linked production CLI checkout branch remains
+> unvalidated with a real merchant order."
 
 ## Do NOT say (either variant)
 
