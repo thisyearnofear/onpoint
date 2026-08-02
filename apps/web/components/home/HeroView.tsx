@@ -33,6 +33,7 @@ import { EditorialStats } from "./EditorialStats";
 import { RecentlySavedSection } from "./RecentlySavedSection";
 import { AgentActivityFeed } from "../AgentActivityFeed";
 import { AgentFlow } from "../Agent/AgentFlow";
+import { PravaEvidenceReceipt } from "../Agent/PravaEvidenceReceipt";
 import { LiveCommerceProof } from "./LiveCommerceProof";
 import { NiaPreviewGrid } from "./NiaPreviewGrid";
 
@@ -285,13 +286,14 @@ export function HeroView() {
                 Agent Commerce
               </div>
               <h2 className="text-2xl md:text-3xl font-black tracking-tight">
-                Search, try on, and prepare checkout — via API
+                Find the fit. Then grant permission.
               </h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                Search a style. The agent discovers live products, tries them on you, and prepares a scoped Prava session for your approval.
+                Search live inventory, preview the garment on you, then approve an exact merchant and spending ceiling through Prava.
               </p>
             </div>
             <AgentFlow />
+            <PravaEvidenceReceipt />
           </div>
         </div>
       </section>

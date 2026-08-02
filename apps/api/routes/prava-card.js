@@ -33,6 +33,7 @@ function stateLabel(state) {
     approved: 'Approved',
     credential_ready: 'Test credential ready',
     checking_out: 'Placing order',
+    checkout_unknown: 'Checkout outcome unknown',
     confirmed: '✓ Order placed',
     sandbox_completed: '✓ Sandbox completed',
     self_check_completed: '✓ Self-check completed',
@@ -43,7 +44,8 @@ function stateLabel(state) {
 function stateColor(state) {
   if (state === 'confirmed' || state === 'sandbox_completed') return '#1a7f37';
   if (state === 'failed') return '#d1242f';
-  if (state === 'awaiting_approval' || state === 'approved' || state === 'credential_ready' || state === 'checking_out') return '#0a66c2';
+  if (state === 'credential_ready' || state === 'checkout_unknown') return '#9a6700';
+  if (state === 'awaiting_approval' || state === 'approved' || state === 'checking_out') return '#0a66c2';
   return '#6e6e73';
 }
 
@@ -104,6 +106,12 @@ function renderCard(orderId, order) {
       <div class="sub">External checkout and a real processor outcome are required before report-status. No merchant order or charge is claimed.</div>
     </div>` : '';
 
+  const checkoutUnknownBlock = state === 'checkout_unknown' ? `
+    <div class="confirmed">
+      <div class="orderno" style="color:#9a6700">Checkout outcome unknown</div>
+      <div class="sub">The automation attempt timed out. OnPoint stopped, did not retry, and reported no processor status. No merchant order or charge is claimed.</div>
+    </div>` : '';
+
   const title = order?.selfCheck
     ? 'Orchestration self-check'
     : state === 'confirmed'
@@ -116,7 +124,7 @@ function renderCard(orderId, order) {
   const priceNote = order?.selfCheck
     ? 'deterministic fixture amount'
     : order?.restMode
-    ? 'listed item price · sandbox session amount'
+    ? 'incl. shipping &amp; tax · binding quote'
     : 'incl. shipping &amp; tax · binding quote';
   const footer = state === 'confirmed'
     ? 'Paid via Prava · scoped card · network-level controls'
@@ -196,6 +204,7 @@ function renderCard(orderId, order) {
       ${sandboxBlock}
       ${selfCheckBlock}
       ${credentialReadyBlock}
+  ${checkoutUnknownBlock}
     </div>
     <div class="footer">${footer}</div>
   </div>

@@ -55,6 +55,17 @@ export function AgentFlow({ onOrderConfirmed }: Props) {
 
   return (
     <div className="space-y-6">
+      <ol className="mx-auto grid max-w-md grid-cols-3 gap-2" aria-label="Agent checkout steps">
+        {["Product", "Fit", "Permission"].map((step, index) => (
+          <li key={step} className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full border border-primary/25 bg-primary/[0.04] text-primary">
+              {index + 1}
+            </span>
+            <span>{step}</span>
+          </li>
+        ))}
+      </ol>
+
       {/* Search */}
       <div id="agent-search">
         <AgentSearchBar onResults={handleResults} />
@@ -65,7 +76,7 @@ export function AgentFlow({ onOrderConfirmed }: Props) {
         <div>
           <p className="mb-3 text-sm text-muted-foreground">
             {results.length > 0
-              ? `${results.length} brand ${results.length === 1 ? "item" : "items"} found via Prava UCP`
+              ? `${results.length} live ${results.length === 1 ? "product" : "products"} · Prava UCP discovery`
               : "No items found"}
           </p>
           <AgentResults results={results} query={query} onSelectOrder={handleSelectOrder} />

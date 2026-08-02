@@ -138,12 +138,12 @@ async function handleLinqEvent(event) {
     return;
   }
 
-  // ── reaction.added: 👍 tapback on a card → approval ────────────────
+  // ── reaction.added: 👍 tapback on the active card → status refresh ─
   if (type === 'reaction.added') {
     const p = parseInbound(event);
     if (p.reactionType === 'like' && !p.isFromMe) {
-      logger.info('👍 tapback received — approving order', { component: 'linq-agent', chatId: p.chatId });
-      await handleApproval(p.chatId, p);
+      logger.info('👍 tapback received — refreshing order status', { component: 'linq-agent', chatId: p.chatId });
+      await handleStatusRefresh(p.chatId, p);
     }
     return;
   }
@@ -205,8 +205,8 @@ async function handleStyleIntent(chatId, from, text, photo) {
   const approvalCopy = order.selfCheck
     ? 'This is a deterministic fixture; no credential, payment, or merchant order will occur.'
     : order.restMode
-      ? 'Open Prava’s hosted sandbox flow, then 👍 the card to continue. No real money is used.'
-      : 'Approve the spend with your passkey, then 👍 the card to confirm.';
+      ? 'Open Prava’s hosted sandbox flow, then 👍 the card to refresh its status. No real money is used.'
+      : 'Approve the spend with your passkey, then 👍 the card to refresh its status.';
   await linq.sendMessage({
     to: from,
     text: ` Styled "${text}" — found ${order.merchant?.name}. Requested total ${order.totalAmount} ${order.currency}. ${approvalCopy}`,
@@ -216,16 +216,21 @@ async function handleStyleIntent(chatId, from, text, photo) {
     cardUrl,
     cardImageUrl: order.tryOnUrl || undefined,
     caption: 'OnPoint Stylist',
-    subcaption: `${order.merchant?.name || '—'} · $${order.totalAmount} ${order.currency} — tap 👍 to approve`,
+    subcaption: `${order.merchant?.name || '—'} · $${order.totalAmount} ${order.currency} — tap 👍 to refresh`,
   });
   // Stash the iMessage message id so a 👍 tapback can mutate this card in place.
   if (sent?.messageId) chatOrders.get(chatId).messageId = sent.messageId;
 }
 
-// 👍 tapback → run checkout on the (approved) order, mutate card to confirmed.
-async function handleApproval(chatId, _tapback) {
+// 👍 tapback refreshes observed Prava state. Hosted verification/passkey—not
+// the reaction—is the payment authorization.
+async function handleStatusRefresh(chatId, tapback) {
   const active = chatOrders.get(chatId);
   if (!active) return;
+  if (active.messageId && tapback.messageId !== active.messageId) {
+    logger.info('Ignoring reaction on a stale Linq card', { component: 'linq-agent', chatId });
+    return;
+  }
   const { orderId } = active;
 
   // Poll the facade. Production CLI checkout proceeds only after real approval.
@@ -234,27 +239,32 @@ async function handleApproval(chatId, _tapback) {
   const poll = await pravaPollOrder(orderId);
   if (poll.state !== 'approved' && poll.state !== 'self_check_approved') {
     if (active.messageId) {
-      await linq.updateMessage({
+      const updated = await linq.updateMessage({
         messageId: active.messageId,
         cardUrl: cardUrlFor(orderId, poll.state),
         caption: 'OnPoint Stylist',
         subcaption: poll.state === 'credential_ready'
           ? 'Test credential ready — external checkout outcome required'
-          : 'Awaiting approval',
+          : poll.state === 'checkout_unknown'
+            ? 'Checkout outcome unknown — stopped without retry'
+            : 'Awaiting hosted verification',
       });
+      active.messageId = updated?.chat?.message?.id || updated?.message?.id || updated?.id || active.messageId;
     }
     return;
   }
   const result = await pravaCheckoutOrder(orderId);
   const state = result.state === 'confirmed' ||
     result.state === 'sandbox_completed' ||
-    result.state === 'self_check_completed'
+    result.state === 'self_check_completed' ||
+    result.state === 'checkout_unknown' ||
+    result.state === 'failed'
     ? result.state
-    : 'awaiting_approval';
+    : result.state;
 
   // Mutate the card in place — the bubble flips to "Order placed".
   if (active.messageId) {
-    await linq.updateMessage({
+    const updated = await linq.updateMessage({
       messageId: active.messageId,
       cardUrl: cardUrlFor(orderId, state),
       cardImageUrl: result.order?.tryOnUrl || undefined,
@@ -265,8 +275,13 @@ async function handleApproval(chatId, _tapback) {
           ? '✓ Prava sandbox completed — no merchant charge'
           : state === 'self_check_completed'
             ? '✓ Self-check completed — no transaction'
-          : 'Awaiting approval',
+          : state === 'checkout_unknown'
+            ? 'Checkout outcome unknown — stopped without retry'
+            : state === 'failed'
+              ? 'Checkout failed'
+              : 'Awaiting hosted verification',
     });
+    active.messageId = updated?.chat?.message?.id || updated?.message?.id || updated?.id || active.messageId;
   }
 
   if (state === 'confirmed' || state === 'sandbox_completed' || state === 'self_check_completed') {

@@ -93,7 +93,7 @@ export function AgentResults({ results, query, onSelectOrder }: Props) {
                 <p className="text-sm font-bold text-foreground">${price}</p>
               )}
               <div className="flex items-center gap-1 text-xs text-primary">
-                Style this
+                Check fit &amp; quote
                 <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
               </div>
             </div>

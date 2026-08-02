@@ -287,7 +287,7 @@ node scripts/prava-webhook-smoke.mjs
 - Live app: https://beonpoint.netlify.app
 - API: https://api.onpoint.famile.xyz
 - ADR: [docs/adr/0017-prava-agent-checkout.md](./adr/0017-prava-agent-checkout.md)
-- Demo video script (two variants): [docs/PRAVA-DEMO-SCRIPT.md](./PRAVA-DEMO-SCRIPT.md)
+- Demo video script: [docs/PRAVA-DEMO-SCRIPT.md](./PRAVA-DEMO-SCRIPT.md)
 
 ## What worked, what didn't, what we learned (submission section draft)
 

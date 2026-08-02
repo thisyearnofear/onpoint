@@ -22,6 +22,15 @@ interface OrderData {
   merchant: { name: string; url: string; country: string } | null;
   totalAmount: string | null;
   currency: string | null;
+  quoteBreakdown: {
+    source: string;
+    subtotal: string | null;
+    shipping: string | null;
+    tax: string | null;
+    total: string;
+    currency: string;
+    binding: boolean;
+  } | null;
   garmentImageUrl: string | null;
   tryOnUrl: string | null;
   orderIdPrava: string | null;
@@ -89,6 +98,7 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
   const [order, setOrder] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState(true);
   const [photoLoading, setPhotoLoading] = useState(false);
+  const [continueWithoutTryOn, setContinueWithoutTryOn] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -103,7 +113,6 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
   const onConfirmedRef = useRef(onConfirmed);
   onConfirmedRef.current = onConfirmed;
   const pollInFlight = useRef(false);
-  const checkoutInFlight = useRef(false);
   const confirmedFired = useRef(false);
 
   useEffect(() => {
@@ -141,20 +150,6 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
           return; // re-read state next tick
         }
 
-        // Payment approved → place the order automatically.
-        if (data.state === "approved" && !checkoutInFlight.current) {
-          checkoutInFlight.current = true;
-          try {
-            const cr = await fetch(`/prava/order/${orderId}/checkout`, { method: "POST" });
-            const cdata = await cr.json();
-            if (!cr.ok) throw new Error(cdata.error || `Checkout failed (${cr.status})`);
-            if (active) setOrder(cdata.order || cdata);
-          } catch (e: unknown) {
-            if (active) setError(e instanceof Error ? e.message : "Checkout failed");
-          } finally {
-            checkoutInFlight.current = false;
-          }
-        }
       } catch (e: unknown) {
         if (active) {
           setError(e instanceof Error ? e.message : "Order refresh failed");
@@ -226,7 +221,8 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
   const isSandboxCompleted = state === "sandbox_completed";
   const isSandboxDeclined = state === "sandbox_declined";
   const isSelfCheckCompleted = state === "self_check_completed";
-  const isFailed = state === "failed" || state === "checkout_unknown";
+  const isFailed = state === "failed";
+  const isCheckoutUnknown = state === "checkout_unknown";
   const isCredentialReady = state === "credential_ready";
   const isProcessing = state === "approved" || state === "checking_out" || state === "searching";
   const productImage = showTryOn ? order.tryOnUrl : order.garmentImageUrl;
@@ -319,27 +315,30 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
           </div>
         )}
 
-        {/* Quote */}
+        {/* Binding quote */}
         {order.totalAmount && order.merchant && (
           <div className="rounded-lg border border-border/40 bg-muted/20 p-3">
-            <div className="flex items-baseline justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">From</p>
-                <p className="text-lg font-bold text-foreground">
-                  ${order.totalAmount} <span className="text-sm font-normal text-muted-foreground">{order.currency}</span>
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-medium text-foreground">{order.merchant.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {order.restMode
-                    ? "listed item price · sandbox session amount"
-                    : order.selfCheck
-                      ? "deterministic fixture amount"
-                    : "incl. shipping & tax · binding quote"}
-                </p>
-              </div>
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {order.quoteBreakdown?.binding ? "Binding quote" : "Prepared quote"}
+              </p>
+              <p className="text-xs text-muted-foreground">{order.quoteBreakdown?.source || order.merchant.name}</p>
             </div>
+            {order.quoteBreakdown?.subtotal && (
+              <div className="space-y-1 text-sm">
+                <QuoteRow label="Item" value={order.quoteBreakdown.subtotal} />
+                {order.quoteBreakdown.shipping != null && <QuoteRow label="Shipping" value={order.quoteBreakdown.shipping} />}
+                {order.quoteBreakdown.tax != null && <QuoteRow label="Tax" value={order.quoteBreakdown.tax} />}
+              </div>
+            )}
+            <div className="mt-2 flex items-baseline justify-between border-t border-border/40 pt-2">
+              <p className="text-sm font-medium text-foreground">Requested ceiling</p>
+              <p className="text-lg font-bold text-foreground">
+                ${order.quoteBreakdown?.total || order.totalAmount}{" "}
+                <span className="text-sm font-normal text-muted-foreground">{order.currency}</span>
+              </p>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">Quote prepared · nothing charged</p>
           </div>
         )}
 
@@ -365,7 +364,17 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
         )}
 
         {/* Approve action — differs by payment rail */}
-        {canApprove && order.restMode && order.paymentUrl ? (
+        {canApprove && !showTryOn && !continueWithoutTryOn && (
+          <button
+            type="button"
+            onClick={() => setContinueWithoutTryOn(true)}
+            className="min-h-[44px] w-full text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Continue without try-on
+          </button>
+        )}
+
+        {canApprove && (showTryOn || continueWithoutTryOn) && order.restMode && order.paymentUrl ? (
           <div className="space-y-2">
             <a
               href={order.paymentUrl}
@@ -380,7 +389,7 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
               an external checkout outcome is still required.
             </p>
           </div>
-        ) : canApprove ? (
+        ) : canApprove && (showTryOn || continueWithoutTryOn) ? (
           <button
             disabled
             className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-bold text-white opacity-90"
@@ -390,7 +399,7 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
         ) : null}
 
         {/* Processing state */}
-        {isProcessing && !canApprove && !isConfirmed && !isFailed && (
+        {isProcessing && !canApprove && !isConfirmed && !isFailed && !isCheckoutUnknown && (
           <div className="flex items-center justify-center py-4">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
             <span className="ml-2 text-sm text-muted-foreground">
@@ -402,6 +411,15 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
         {isCredentialReady && (
           <div className="rounded-lg bg-amber-500/10 px-3 py-2.5 text-sm text-amber-700 dark:text-amber-300">
             Prava issued a sandbox credential. An external checkout must now be attempted before its real processor outcome can be reported. No merchant order or charge is claimed.
+          </div>
+        )}
+
+        {isCheckoutUnknown && (
+          <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-700 dark:text-amber-300">
+            <p className="font-semibold">Checkout outcome unknown</p>
+            <p className="mt-1 text-xs leading-relaxed">
+              The automation attempt timed out after credential issuance. OnPoint stopped, did not retry, and reported no processor status. No merchant order or charge is claimed.
+            </p>
           </div>
         )}
 
@@ -497,6 +515,15 @@ function TrustRow({ icon, label, value }: { icon: React.ReactNode; label: string
         {label}
       </span>
       <span className="font-medium text-foreground">{value}</span>
+    </div>
+  );
+}
+
+function QuoteRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between text-muted-foreground">
+      <span>{label}</span>
+      <span>${value}</span>
     </div>
   );
 }

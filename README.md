@@ -13,6 +13,33 @@ OnPoint is the **execution layer** for fashion intent that needs **fit + real st
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Qwen Cloud Hackathon](https://img.shields.io/badge/Qwen%20Cloud-Hackathon%20Track%204-orange)](./docs/QWEN-CLOUD-HACKATHON.md)
 
+## Agentic Commerce Hackathon — Prava × Visa × Linq
+
+> **OnPoint is the fashion agent that earns permission to buy.** It discovers
+> live merchant inventory, checks fit on the shopper, locks a binding quote,
+> and requests the narrowest useful payment permission through Prava. Linq is
+> the message-native control plane; one-time credentials remain server-side.
+
+**Validated sandbox evidence:** a live Alo Yoga SKU produced a binding `$117.32
+USD` quote (`$108.00` item + `$0.00` shipping + `$9.32` tax). Prava reached
+`Creds_Generated`, and OnPoint's poll reached `credential_ready`. One subsequent
+Browser Harness attempt timed out with an unknown outcome, so OnPoint stopped,
+did not retry, and reported no invented approval or decline. **No Alo Yoga order,
+charge, approval, or decline is claimed.**
+
+- Submission evidence and track mapping: [`docs/PRAVA-HACKATHON.md`](./docs/PRAVA-HACKATHON.md)
+- 105-second recording script: [`docs/PRAVA-DEMO-SCRIPT.md`](./docs/PRAVA-DEMO-SCRIPT.md)
+- Architecture decision: [`docs/adr/0017-prava-agent-checkout.md`](./docs/adr/0017-prava-agent-checkout.md)
+- Reproducible fixture-only walkthrough: `node scripts/prava-demo.mjs`
+
+**Hackathon disclosure:** OnPoint's storefronts, try-on, inventory APIs,
+referrals, and public agent identity existed before this event. The Prava UCP
+discovery/quote/session state machine, server-held credential flow, Linq signed
+webhook/status-card interface, safety boundaries, and demo evidence were built
+during the Agentic Commerce Hackathon.
+
+---
+
 > **Qwen Cloud Hackathon — Track 4: Autopilot Agent.**
 > OnPoint is an autopilot agent that turns a photo of an outfit into a verifiable on-chain purchase from a real African fashion curator — perceiving with **Qwen3-VL on Qwen Cloud (DashScope)**, reasoning about fit and cultural context (Ankara / Kente / Adire / Bogolan / Shweshwe), and acting through x402-paid try-on and Celo checkout, with a human-in-the-loop checkpoint above $5.
 >

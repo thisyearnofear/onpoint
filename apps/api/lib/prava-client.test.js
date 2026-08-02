@@ -229,6 +229,15 @@ describe('Prava REST integration', () => {
     expect(created.body).toMatchObject({
       totalAmount: '111.24',
       currency: 'USD',
+      quoteBreakdown: {
+        source: 'Browser Harness',
+        subtotal: '98.00',
+        shipping: '5.00',
+        tax: '8.24',
+        total: '111.24',
+        currency: 'USD',
+        binding: true,
+      },
     });
     expect(created.body.checkoutSessionId).toMatch(/^ches_fixture_/);
     expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: 'POST' });
@@ -236,6 +245,10 @@ describe('Prava REST integration', () => {
       total_amount: '111.24',
       currency: 'USD',
     });
+
+    await supertest(app)
+      .post(`/prava/order/${created.body.orderId}/checkout`)
+      .expect(401);
 
     await supertest(app)
       .post(`/prava/order/${created.body.orderId}/poll`)

@@ -95,6 +95,20 @@ function trustView(o) {
   };
 }
 
+function quoteBreakdownView(o) {
+  if (!o.quote || !o.totalAmount) return null;
+  const amount = (value) => value == null ? null : String(value);
+  return {
+    source: o.restMode ? 'Browser Harness' : 'Prava shop_quote',
+    subtotal: amount(o.quote.subtotal || o.quote.item_subtotal),
+    shipping: amount(o.quote.shipping || o.quote.shipping_total),
+    tax: amount(o.quote.tax || o.quote.tax_total),
+    total: amount(o.quote.total || o.quote.final_price?.amount || o.totalAmount),
+    currency: o.currency || o.quote.currency || o.quote.final_price?.currency || 'USD',
+    binding: !!o.checkoutSessionId,
+  };
+}
+
 function orderView(o) {
   return {
     orderId: o.id,
@@ -107,6 +121,7 @@ function orderView(o) {
     totalAmount: o.totalAmount || null,
     currency: o.currency || null,
     quote: o.quote || null,
+    quoteBreakdown: quoteBreakdownView(o),
     paymentUrl: o.paymentUrl || null,
     paymentSessionId: o.paymentSessionId || null,
     checkoutSessionId: o.checkoutSessionId || null,
@@ -127,9 +142,9 @@ function orderView(o) {
 }
 
 // ── Auth ─────────────────────────────────────────────────────────────
-// Most facade endpoints are public (order IDs are unguessable UUIDs; in
-// self-check mode there are no real credentials). The /orders/recent admin
-// endpoint is service-key gated — see below.
+// Read and approval-status endpoints are public because order IDs are
+// unguessable UUIDs and responses never contain credential material. The
+// spend-capable checkout endpoint is service-key gated.
 function serviceKeyAuth(req, res, next) {
   const key = req.header('x-service-key') || req.header('authorization')?.replace(/^Bearer\s+/i, '');
   if (!process.env.SERVICE_API_KEY || key !== process.env.SERVICE_API_KEY) {
@@ -531,7 +546,7 @@ router.post('/order/:id/approve', (req, res) => {
 
 // ── POST /prava/order/:id/checkout — place the real order ───────────
 // Requires the payment session to be approved first.
-router.post('/order/:id/checkout', async (req, res, next) => {
+router.post('/order/:id/checkout', serviceKeyAuth, async (req, res, next) => {
   let o;
   try {
     o = getOrder(req.params.id);

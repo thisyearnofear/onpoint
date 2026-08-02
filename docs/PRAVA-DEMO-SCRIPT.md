@@ -1,11 +1,11 @@
 # Prava Demo Video — Narration Script
 
-Target length: 100–120 seconds. **Use Variant C for the submission recording.**
+Target length: 105–110 seconds. This is the only submission recording script.
 Prava confirmed that `Creds_Generated` is a successful Prava sandbox
 transaction; the later Browser Harness checkout attempt timed out without a
 definitive merchant outcome. Never mix those two claims.
 
-## Recording rules (both variants)
+## Recording rules
 
 - Do not create another Prava transaction for the recording. Sandbox cards have
   a 30-transaction daily limit. Use the existing successful dashboard record
@@ -14,116 +14,56 @@ definitive merchant outcome. Never mix those two claims.
   values. Crop or blur the passkey/payment surface when recording Step 5.
 - Show the trust block (spend ceiling, merchant scope, guardrails) prominently at
   Steps 3–4 — the Visa judges score controls explicitly.
-- Show the 👍 tapback → card flip only if it was observed against a completed
-  Prava lifecycle; otherwise show the implemented state card and label it so.
+- Label cuts explicitly: `LIVE UCP`, `LIVE LINQ — INDEPENDENTLY VALIDATED`, and
+  `CAPTURED PRAVA SANDBOX RUN`.
+- Do not imply that the independently validated Linq thread and successful
+  Prava record were captured as one uninterrupted conversation.
 - Phone screen recordings should be clean; no notifications enabled.
 
 ---
 
-## Variant A — production access granted, real order completed
-
-> **(0:00 — demo banner)** "Most AI shopping stops at a recommendation. This is
-> OnPoint: an agent that discovers fashion, tries it on *you*, and completes the
-> purchase — with Prava as the payments and trust layer."
->
-> **(0:12 — Step 1, Discover)** "A user texts a style intent. The agent searches
-> real fashion merchants through Prava's universal catalog protocol — live SKUs,
-> live prices."
->
-> **(0:24 — Step 2, Try-on)** "Before any money moves, it renders the actual
-> garment on the user's photo. Fit first, buy second."
->
-> **(0:36 — Steps 3+4, Quote & Authorize)** "The agent locks a binding quote and
-> opens a Prava payment session. Note the trust block: spend ceiling, merchant
-> scope, single-use credential. The user's card is never exposed to the agent."
->
-> **(0:52 — Step 5, Approve)** "The user approves with a passkey on the iMessage
-> card. Prava mints a one-time credential — merchant-locked, amount-scoped, live
-> for 15 minutes." *(blur the passkey surface in edit)*
->
-> **(1:08 — Step 6, Checkout)** "The agent checks out at the merchant. Here is the
-> completed order result — `{real ord id}`." *(show `GET
-> /prava/order/:id` with the real id on screen)*
->
-> **(1:22 — Step 7, Card)** "Every state change mutates live in the iMessage
-> thread — discovery, approval, confirmation."
->
-> **(1:34 — closing)** "The deterministic self-check is available with `node
-> scripts/prava-demo.mjs`; it validates orchestration shape and is explicitly
-> labeled fixture-only. This production order is the separate transaction proof."
-
----
-
-## Variant B — sandbox only (production access not granted in time)
-
-Same timing. Replace the payment-claim lines:
-
-> **(0:36 — Steps 3+4)** "The agent obtains a binding Browser Harness quote,
-> including shipping and tax, then opens a real Prava session for that exact
-> total. The UI shows the requested merchant, ceiling, and credential controls."
->
-> **(0:52 — Step 5)** "The user approves with a passkey. Prava issues a one-time,
-> merchant-locked, amount-scoped credential."
->
-> **(1:08 — Step 6)** "Prava's real sandbox lifecycle completed: session created,
-> test credential issued, an external sandbox checkout was attempted, and its
-> processor result was reported `APPROVED`.
-> No merchant was charged. The production CLI branch is implemented and linked
-> but remains unvalidated pending production access."
->
-> **(1:22 — Step 7)** "The status card distinguishes sandbox completion from a
-> merchant order and states that no real charge occurred."
->
-> **(1:34 — closing)** "We do not claim a merchant payment: this is Prava's real
-> sandbox credential and `report-status` lifecycle. The separate deterministic
-> script validates orchestration shape only and is labeled fixture-only."
-
----
-
-## Variant C — current submission recording
+## Submission recording
 
 ### Shot list and narration
 
-> **(0:00 — live OnPoint homepage)** "Most AI shopping stops at a
+> **(0:00–0:10 — live OnPoint homepage)** "Most AI shopping stops at a
 > recommendation. OnPoint is an iMessage stylist that discovers live fashion,
-> checks fit before spend, and uses Prava to turn a user's permission into a
+> checks fit before spend, and turns a user's narrow permission into a
 > one-time payment credential."
 >
-> **(0:12 — live search results)** Search `black Alo Yoga leggings under $130`.
+> **(0:10–0:24 — LIVE UCP search)** Search `black Alo Yoga leggings under $130`.
 > "This is live UCP discovery, not a hard-coded catalog: real Alo Yoga products,
 > variants, prices, and images."
 >
-> **(0:27 — try-on or existing try-on capture)** "Before asking for money,
-> OnPoint can render the garment on the shopper. Our insight is fit first,
-> permission second."
+> **(0:24–0:36 — existing try-on capture)** "OnPoint can render the garment on
+> the shopper before approval. Fit is not decoration—it is the reason to grant
+> or withhold permission."
 >
-> **(0:40 — quote/trust capture)** "Browser Harness produced a binding quote:
-> $108 subtotal, free shipping, $9.32 tax, and a $117.32 ceiling. The permission
-> is for Alo Yoga and that exact total."
+> **(0:36–0:52 — quote and trust contract)** "Browser Harness produced a binding
+> quote: $108 subtotal, free shipping, $9.32 tax, and a $117.32 ceiling. The
+> session requested Alo Yoga and that exact ceiling; nothing was charged."
 >
-> **(0:55 — Linq thread and status card)** "Linq makes this message-native. A
+> **(0:52–1:06 — LIVE LINQ — INDEPENDENTLY VALIDATED)** "Linq makes the intent,
+> status, and Prava handoff message-native. A
 > real inbound iMessage triggers discovery and a status card; signed webhooks,
-> replies, reactions, and the hosted Prava handoff are handled by OnPoint."
+> replies, and reactions are handled by OnPoint. The tapback refreshes status;
+> authorization remains on Prava's hosted surface."
 >
-> **(1:10 — Prava dashboard record)** "On Prava's hosted surface, the
+> **(1:06–1:24 — CAPTURED PRAVA SANDBOX RUN)** "On Prava's hosted surface, the
 > team-provided card completed verification. This real sandbox record is
 > `Creds_Generated` for $117.32. Prava confirmed that this is a successful
-> sandbox transaction."
+> sandbox transaction. OnPoint's matching poll reached `credential_ready`; the
+> one-time credential stayed server-side."
 >
-> **(1:26 — sanitized poll response or code view)** "OnPoint then polled
-> `payment-result` and reached `credential_ready`. The one-time credential stayed
-> server-side; no card number, cryptogram, API key, or personal data appears in
-> the application response or recording."
->
-> **(1:41 — outcome disclosure)** "We made one authorized Browser Harness
+> **(1:24–1:37 — safety outcome)** "We made one authorized Browser Harness
 > checkout attempt. It returned an unknown automation timeout, so OnPoint did
-> not retry and did not fabricate an approval or decline. We claim successful
-> Prava credential generation—not an Alo Yoga order or charge."
+> not retry or report an invented result. We claim successful Prava credential
+> generation—not an Alo Yoga order or charge."
 >
-> **(1:55 — product/public agent screen)** "OnPoint was already a live fashion
+> **(1:37–1:48 — live product close)** "OnPoint was already a live fashion
 > commerce platform. During the hackathon we added this Prava and Linq workflow:
 > live discovery, fit verification, explicit permission, and safe credential
-> handling. Fit before you buy—for people and agents."
+> handling. The fashion agent that earns permission to buy."
 
 ### Evidence to keep on screen
 

@@ -303,15 +303,15 @@ app.use('/prava/card', require('./routes/prava-card'));
 app.use('/prava/sandbox', json1k, require('./routes/prava-sandbox'));
 
 // ── Prava Agent Checkout Facade (Agentic Commerce Hackathon) ──────
-// Agent buy-flow rail: discover → quote → scoped-card session → passkey
-// approval → real order at a UCP fashion merchant. Drives the Linq iMessage
+// Agent buy-flow rail: discover → quote → scoped-card session → hosted
+// verification → server-owned checkout when approved. Drives the Linq iMessage
 // card. Self-check mode by default; live via the prava CLI. ADR 0017.
 app.use('/prava', json1k, generalRateLimit, require('./routes/prava-facade'));
 
 // ── Linq iMessage Agent (Agentic Commerce Hackathon, Linq track) ───
 // Receives Linq iMessage webhooks and orchestrates the buy-flow: inbound
-// text → prava quote+session → mutating card → 👍 approval → checkout →
-// confirmed. Mock mode by default. ADR 0017, docs/PRAVA-HACKATHON.md.
+// text → Prava quote+session → hosted authorization → 👍 status refresh →
+// server-owned checkout. Mock mode by default. ADR 0017.
 app.use('/linq', require('./routes/linq-agent'));
 
 // ── Curator Routes (public, rate-limited) ───────────────────────
