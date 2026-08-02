@@ -1,8 +1,28 @@
 # ADR 0017: Prava Agent Checkout — Scoped-Card Cross-Merchant Purchases
 
-**Status**: Proposed (hackathon build — Agentic Commerce Hackathon, Aug 1–2 2026)
+**Status**: Implemented (hackathon build — Agentic Commerce Hackathon, Aug 1–2 2026)
 **Date**: 2026-08-01
-**Integration**: Prava MCP (`https://mcp.pay.prava.space/mcp`) + REST `POST /v1/sessions`
+**Integration**: `prava` CLI (UCP discovery) + REST `POST /v1/sessions` (payment rail)
+
+> **Implementation outcome (updated 2026-08-02).** The integration landed as a
+> **CLI + REST hybrid**, not the pure-MCP client proposed below. Discovery
+> (`shop_search` → `shop_product`) shells to the `prava` CLI against production
+> UCP; the payment rail runs through REST `POST /v1/sessions` (sandbox) with a
+> fallback to CLI `sessions create/poll` + `shop checkout` (live). Key facts
+> learned during the build:
+> - **Prava's CLI has no sandbox host.** Their docs state sandbox applies only
+>   to the SDK/API path, so the sandbox demo necessarily runs on REST.
+> - **The real CLI's `sessions poll` returns single-use tokenized credentials**
+>   (token + cryptogram + expiry), and `shop checkout` consumes those flags — it
+>   does not take a `--payment-session-id`. The facade's credential handling was
+>   rebuilt to match this contract (commit `1ee4d36`).
+> - **Live quote requires a delivery address on file**, so the REST sandbox path
+>   skips the address-gated CLI quote and uses the discovered product price as
+>   the binding total.
+> - **The Linq webhook is live and verified** (Standard Webhooks signature,
+>   line `+14243945528`, all events), and the Prava CLI agent is linked
+>   (`aa_01KYZ4G7D34207F74VJSDKBEMM`, active).
+> The original MCP-client proposal is retained below for historical context.
 
 ## Context
 
@@ -97,12 +117,17 @@ prava shop checkout (per merchant, real card, production)
 ord_abc (Alo) · ord_def (Everlane)  →  OnPoint receipt + attribution ledger
 ```
 
-**Integration choice: MCP.** UCP search/quote/checkout is exposed via the
-`prava` CLI / MCP (`https://mcp.pay.prava.space/mcp`), **not** the REST
-API. Per Prava's decision tree, "an agent that operates through chat" → MCP.
-OnPoint's backend is an **MCP client to Prava** + a **Linq sender to
-iMessage** + the **OnPoint try-on/styling engine**. MCP is production-only,
-which is consistent with the real-card production headline path.
+**Integration choice: CLI for discovery + REST for payment.** UCP product
+discovery (`shop_search` → `shop_product`) runs through the `prava` CLI
+against production UCP (free, no payment). The payment rail has two
+transports behind one facade: (a) the CLI path (`sessions create` → `poll` →
+`shop checkout`) for live production with a real card, and (b) the REST SDK/API
+path (`POST /v1/sessions` → `payment-result` → `report-status`) for sandbox
+with a test card. Prava's CLI has **no sandbox host** (their docs: "agent-linked
+payments use real cards; sandbox applies to the SDK/API path"), so the sandbox
+demo necessarily runs on REST. OnPoint's backend shells to the `prava` CLI +
+calls the REST API directly, and is a **Linq sender to iMessage** + the
+**OnPoint try-on/styling engine**.
 
 ### Calibrated ambition
 
@@ -111,9 +136,10 @@ which is consistent with the real-card production headline path.
   rendered as a mutating iMessage App card. Lands before any stretch work.
 - **Stretch**: multi-item look across 2 merchants (2 scoped checkouts — the
   "shop across merchants" insight) + 👍-tapback group-chat voting.
-- **Fallback**: SDK/API sandbox session (`POST /v1/sessions` + `@prava-sdk/core`
-  iframe + `payment-result` + `report-status`) for the live judge demo if a
-  live Shopify checkout hiccups; the recorded demo video uses the real order.
+- **Sandbox/demo rail (active)**: REST SDK/API session flow (`POST /v1/sessions`
+  + hosted card entry + `payment-result` + `report-status`) against
+  `sandbox.api.prava.space` with `sk_test_*` keys. No real money. This is the
+  primary active path on production (the only path with a sandbox).
 
 ### Tracks targeted
 

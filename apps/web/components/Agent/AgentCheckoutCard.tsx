@@ -52,7 +52,7 @@ const SAMPLE_PHOTO =
 const STATE_LABELS: Record<string, string> = {
   searching: "Finding your fit",
   quoted: "Quote ready",
-  awaiting_approval: "Awaiting your passkey",
+  awaiting_approval: "Awaiting payment",
   try_on_ready: "Try-on ready",
   approved: "Approved",
   checking_out: "Placing order",
@@ -323,7 +323,7 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
               <TrustRow icon={<Lock className="h-3.5 w-3.5" />} label="Agent may spend" value={`up to $${order.trust.spendCeilingUsd} ${order.trust.currency}`} />
               <TrustRow icon={<Lock className="h-3.5 w-3.5" />} label="Locked to" value={order.trust.merchantScope.merchant} />
               <TrustRow icon={<KeyRound className="h-3.5 w-3.5" />} label="Credential" value="single-use, merchant-scoped" />
-              <TrustRow icon={<ScanFace className="h-3.5 w-3.5" />} label="Approval" value="passkey on your device" />
+              <TrustRow icon={<ScanFace className="h-3.5 w-3.5" />} label="Approval" value={order.restMode ? "card entry + passkey" : "passkey on your device"} />
             </div>
             <ul className="ml-5 list-disc space-y-0.5 text-xs text-muted-foreground">
               {order.trust.guardrails.map((g) => (

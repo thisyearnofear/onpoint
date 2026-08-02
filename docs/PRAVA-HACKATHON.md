@@ -15,7 +15,7 @@
 | **GitHub** | https://github.com/thisyearnofear/onpoint |
 | **Demo** | https://beonpoint.netlify.app |
 | **API** | https://api.onpoint.famile.xyz |
-| **Prava integration** | MCP (`https://mcp.pay.prava.space/mcp`) + REST `POST /v1/sessions` |
+| **Prava integration** | `prava` CLI (UCP discovery) + REST `POST /v1/sessions` (payment rail) |
 | **Linq** | iMessage App card (sandbox: linqapp.com/hackathon) |
 | **Existing product** | Live storefront + agent APIs + IDM-VTON try-on + cUSD/x402 + USD₮0 OKX facade |
 
@@ -153,57 +153,65 @@ guidelines above. We run it against `apps/api/lib/linq-client.js` +
 `apps/api/routes/linq-agent.js` before go-live. Linq docs index:
 `https://docs.linqapp.com/llms.txt`.
 
-## Build Status (as of Aug 1, 2026)
+## Build Status (as of Aug 2, 2026)
 
-### Built + validated (self-check)
+### Built + deployed (live on api.onpoint.famile.xyz)
 
 | Component | File | Status |
 |-----------|------|--------|
-| Prava buy-flow transport (self-check + live CLI modes) | `apps/api/lib/prava-client.js` | ✅ 6-step chain validated |
-| Prava order state machine (trust fields, spend ceiling) | `apps/api/routes/prava-facade.js` | ✅ search→order→try-on→approve→checkout |
+| Prava transport — self-check + sandbox-REST + live CLI modes | `apps/api/lib/prava-client.js` | ✅ all three modes |
+| Prava order state machine (trust fields, spend ceiling) | `apps/api/routes/prava-facade.js` | ✅ search→order→try-on→poll→checkout |
+| REST sandbox payment rail (session→poll→report) | `prava-facade.js` + `prava-client.js` | ✅ active on production |
+| Live-CLI credential contract (token/cryptogram from poll) | `apps/api/lib/prava-client.js` | ✅ aligned to real CLI |
 | Decoupled IDM-VTON try-on for UCP garment images | `apps/api/lib/prava-tryon.js` | ✅ placeholder + Replicate modes |
-| Linq REST client (real `/v3/chats` shape, Standard Webhooks) | `apps/api/lib/linq-client.js` | ✅ live send validated |
-| Linq webhook receiver (envelope parsing, media, reactions) | `apps/api/routes/linq-agent.js` | ✅ smoke test validated |
+| Linq REST client (real `/v3/chats`, Standard Webhooks) | `apps/api/lib/linq-client.js` | ✅ live send + signature verify |
+| Linq webhook receiver (envelope parsing, media, reactions) | `apps/api/routes/linq-agent.js` | ✅ live, all events subscribed |
 | Mutating iMessage App card (try-on + trust + confirmed) | `apps/api/routes/prava-card.js` | ✅ all states render |
-| SDK/API REST sandbox fallback | `apps/api/routes/prava-sandbox.js` | ✅ session→result→report |
-| E2E demo script (judge-runnable, self-contained) | `scripts/prava-demo.mjs` | ✅ 15/15 assertions pass |
-| Webhook smoke test (inbound-first flow) | `scripts/prava-webhook-smoke.mjs` | ✅ 11/11 assertions pass |
+| Frontend agent checkout card (poll-driven auto-checkout) | `apps/web/components/Agent/AgentCheckoutCard.tsx` | ✅ REST + self-check |
 
-### Live-validated
+### Live-validated on production
 
-- **Linq iMessage send**: real iMessage delivered to a sandbox test number
-  via `POST /v3/chats`. Text intro + iMessage App card (static captions,
-  merchant + price). Line health `AT_RISK` (sandbox line, warn-but-allow).
-- **Linq env on production server**: `LINQ_API_KEY`, `LINQ_FROM_NUMBER`,
-  `LINQ_APP_NAME`, `LINQ_APP_TEAM_ID`, `LINQ_APP_BUNDLE_ID` set on
-  `snel-bot` (`/opt/onpoint/shared/api/.env`). PM2 restarted.
-  `REPLICATE_API_TOKEN` already present.
-- **Code NOT yet deployed**: the `/linq` and `/prava` routes return 404 on
-  the live server — the route files are local, uncommitted. Deploy requires
-  commit + push + `git pull` on the server.
+- **Deployed**: all `/prava` and `/linq` routes live (rsync + atomic symlink
+  deploy, release `20260802-*`). Not git-pull on server.
+- **Prava sandbox-REST active**: `GET /prava/health` → `mode: "sandbox-rest"`,
+  `restMode: true`. Real sandbox sessions create against
+  `sandbox.api.prava.space` (e.g. order `op_dd1889ae…` → hosted payment URL
+  `sandbox.collect.prava.space?session=ses_01KZ…`).
+- **Prava CLI agent linked**: `OnPoint Stylist`
+  (`aa_01KYZ4G7D34207F74VJSDKBEMM`), status active. `PRAVA_AGENT_LINKED=1`,
+  CLI installed at `/opt/onpoint/tools/npm-global/bin/prava` (deploy-owned,
+  no sudo).
+- **Linq webhook live + verified**: subscription at
+  `https://api.onpoint.famile.xyz/linq/webhook?version=2026-02-03`, line
+  `+14243945528`, all events, `whsec_` secret set. Forged/unsigned webhooks
+  rejected (401); valid signed events accepted (200) and fire the full
+  inbound flow.
+- **Live UCP discovery**: real Shopify merchants (Alo Yoga, Beyond Yoga,
+  Blakely, Elite Eleven) returned with real product IDs + CDN images.
 
-### Still needed before submission
+### Known blocker (Prava infra, not ours)
 
-1. **Deploy the code**: commit the new route files + `server.js` mount changes,
-   push, `ssh snel-bot "cd /opt/onpoint && git pull && pm2 restart onpoint-api"`.
-   Verify `GET /prava/health` and `GET /linq/health` on api.onpoint.famile.xyz.
-2. **Register the Linq webhook**: create a webhook subscription in the Linq
-   dashboard pointing to
-   `https://api.onpoint.famile.xyz/linq/webhook?version=2026-02-03`,
-   set the returned `whsec_` secret as `LINQ_WEBHOOK_SECRET` on the server.
-3. **Walk the sandbox E2E first**: the brief reviews the sandbox implementation
-   before approving temporary production access. Make `/prava/sandbox` and the
-   self-check spine reliable on the deployed server, THEN submit the production
-   application (Dashboard → API Key → Production tab → Hackathon form) pointing at it.
-4. **Wire live Prava buy-flow** (once production access lands): install the
-   `prava` CLI on the server, run `prava setup` + `prava link`, set
-   `PRAVA_CLI_PATH` + `PRAVA_AGENT_LINKED=1`. (Self-check is solid; live is
-   the demo-day headline.)
-5. **Record the demo video** with the two-variant script in
-   [docs/PRAVA-DEMO-SCRIPT.md](./PRAVA-DEMO-SCRIPT.md): variant A if a real
-   order completed, variant B (sandbox, no "real order" claims) otherwise.
-   `node scripts/prava-demo.mjs --live` with `LINQ_DEMO_TO` captures real
-   iMessage delivery + card mutation.
+- **Sandbox card provisioning returns 403.** On the hosted card-entry page,
+  entering the team test card (`4622 9431 2323 2523`) fails with
+  `PROVISION_ERROR: Request failed with status code 403` and
+  "Card check skipped — Lookup not configured" (order
+  `ord_01KZ1ZCE20N75VA9XM5MCJ8ND1`, 2 attempts). Prava's dashboard confirms
+  our session, merchant, product, and total rendered correctly — the failure
+  is inside their sandbox Visa tokenization pipeline. Emailed the Prava team;
+  awaiting their fix or a corrected test card.
+
+### Remaining before submission
+
+1. **Prava sandbox fix** (on Prava) — provisioning 403 resolved, or a working
+   test card. Then re-run the sandbox E2E to land a `completed` order.
+2. **Production access** — application submitted (Dashboard → API Key →
+   Production → Hackathon). If approved, set `sk_live_*` (or rely on linked
+   CLI agent) to run a real-card order. One env-var flip; architecture already
+   handles all three modes.
+3. **Record the demo video** — self-check spine (`node scripts/prava-demo.mjs`)
+   plus the live sandbox REST session as evidence. Use
+   [docs/PRAVA-DEMO-SCRIPT.md](./PRAVA-DEMO-SCRIPT.md) variants: A if a real
+   order completed, B (sandbox, no "real order" claims) otherwise.
 
 ## Devfolio Submission Content
 
@@ -225,13 +233,18 @@ look board → try-on render → quote+trust → confirmed order.
 
 **How Prava is used:**
 
-Prava IS the checkout, not a bolt-on. The agent walks the full Prava buy-flow:
-`shop_search` (discover UCP fashion merchants) → `shop_product` (resolve
-variants) → `shop_quote` (binding total + checkout_session) →
-`create_payment_session` (owner passkey, charges nothing) → `shop_checkout`
-(real order at a real Shopify merchant). Each credential is single-use,
-merchant-locked, and amount-scoped — surfaced to the user as trust fields
-(spend ceiling, merchant scope, guardrails) before they approve.
+Prava IS the checkout, not a bolt-on. The agent walks the full Prava buy-flow
+as a CLI + REST hybrid. Discovery runs through the `prava` CLI against
+production UCP: `shop_search` (discover UCP fashion merchants) → `shop_product`
+(resolve variants + binding price). The payment rail runs through Prava's REST
+API in sandbox: `POST /v1/sessions` (open a hosted card-entry session, charges
+nothing) → the owner enters their card + approves with a passkey → poll
+`payment-result` for a single-use tokenized credential → `report-status`
+(APPROVED) → confirmed order. (With temporary production access, the same rail
+runs through the CLI's `sessions create/poll` + `shop checkout` against a real
+card.) Each credential is single-use, merchant-locked, and amount-scoped —
+surfaced to the user as trust fields (spend ceiling, merchant scope, guardrails)
+before they approve.
 
 **How Linq is used:**
 

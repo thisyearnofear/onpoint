@@ -198,7 +198,6 @@ export default async function CuratorStorefrontPage({
                 <span className="inline-flex items-center gap-2">
                   <MessageCircle className="h-4 w-4" />
                   WhatsApp checkout
-                  <ComingSoonBadge size="xs" />
                 </span>
               )}
             </div>
