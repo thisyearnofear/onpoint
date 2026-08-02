@@ -47,6 +47,37 @@ const execFileAsync = promisify(execFile);
 const CLI_PATH = process.env.PRAVA_CLI_PATH || 'prava';
 const AGENT_LINKED = process.env.PRAVA_AGENT_LINKED === '1';
 
+// ── REST sandbox transport (SDK/API integration path) ────────────────
+// Per Prava docs, the CLI has NO sandbox host — agent-linked payments use
+// real cards. Sandbox applies to the SDK/API path only. So when a REST key
+// (sk_test_*) is configured, the payment steps (session → poll → checkout)
+// run against Prava's REST sandbox, while discovery (search/product) can
+// still use the CLI against production UCP (free, no payment).
+const REST_SECRET = process.env.PRAVA_SECRET_KEY || '';
+const REST_BASE = REST_SECRET.startsWith('sk_live_')
+  ? (process.env.PRAVA_PRODUCTION_BASE || 'https://api.prava.space')
+  : (process.env.PRAVA_SANDBOX_BASE || 'https://sandbox.api.prava.space');
+
+/** True when the REST sandbox/live transport is configured (key present). */
+function restMode() {
+  return !!REST_SECRET;
+}
+
+async function restCall(method, path, body) {
+  const r = await fetch(REST_BASE + path, {
+    method,
+    headers: { Authorization: 'Bearer ' + REST_SECRET, 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await r.text();
+  let json;
+  try { json = JSON.parse(text); } catch { json = { raw: text }; }
+  if (!r.ok) {
+    throw new PravaError('rest_error', `Prava REST ${method} ${path} failed ${r.status}: ${text}`, { status: r.status });
+  }
+  return json;
+}
+
 // ── Mode detection ───────────────────────────────────────────────────
 // Live mode requires the CLI to be resolvable AND the agent to be linked.
 // We probe lazily on first use rather than at import time so a missing CLI
@@ -385,6 +416,77 @@ async function shopListAddresses() {
   };
 }
 
+// ── REST sandbox payment transport ───────────────────────────────────
+// These drive Prava's SDK/API payment path (the only path with a sandbox).
+// Used by the facade when restMode() is true. Return shapes are normalizedized
+// to match the CLI-path counterparts so the facade can treat them alike.
+
+/** create_rest_session — open a hosted payment session. Returns a payment_url
+ *  (the Prava-hosted card-entry iframe URL) the owner opens to enter their
+ *  (test) card + passkey. Charges nothing. Mirrors createPaymentSession's
+ *  return shape: { session_id, payment_url, ... }. */
+async function createRestSession({ totalAmount, currency, merchantName, merchantUrl, merchantCountry, products } = {}) {
+  const r = await restCall('POST', '/v1/sessions', {
+    user_id: 'onpoint_agent',
+    user_email: 'agent@onpoint.famile.xyz',
+    total_amount: String(totalAmount),
+    currency,
+    integration_type: 'full_checkout',
+    callback_url: process.env.PUBLIC_BASE_URL || 'https://beonpoint.netlify.app/agent',
+    purchase_context: [{
+      merchant_details: { name: merchantName, url: merchantUrl, country_code_iso2: merchantCountry },
+      product_details: (products || []).map((p) => ({
+        description: p.description,
+        unit_price: String(p.unit_price),
+        quantity: p.quantity || 1,
+      })),
+    }],
+  });
+  return {
+    session_id: r.session_id,
+    payment_url: r.iframe_url,
+    session_token: r.session_token,
+    order_id: r.order_id,
+    expires_at: r.expires_at,
+  };
+}
+
+/** poll_rest_session — check whether the cardholder has completed card entry
+ *  + passkey. When ready, the line item carries a one-time token + dynamic_cvv
+ *  (the sandbox equivalent of the CLI's Token/Cryptogram). Normalized to the
+ *  same shape as pollPaymentSession. */
+async function pollRestSession({ sessionId } = {}) {
+  const r = await restCall('GET', '/v1/sessions/' + sessionId + '/payment-result');
+  if (r.status === 'failed') return { session_id: sessionId, status: 'failed' };
+  const li = r.transactions?.[0]?.line_items?.[0];
+  if (li && li.token) {
+    return {
+      session_id: sessionId,
+      status: 'completed',
+      token: String(li.token),
+      cryptogram: String(li.dynamic_cvv),
+      expiryMonth: li.expiry_month ? String(li.expiry_month) : undefined,
+      expiryYear: li.expiry_year ? String(li.expiry_year) : undefined,
+      txnRefId: li.txn_ref_id,
+    };
+  }
+  return { session_id: sessionId, status: 'pending' };
+}
+
+/** report_rest_session — close the loop by reporting the charge outcome. In
+ *  sandbox this flips the session to completed (APPROVED) or failed (DECLINED).
+ *  Returns { status, order_id }. */
+async function reportRestSession({ sessionId, txnRefId, status, orderId } = {}) {
+  await restCall('POST', '/v1/sessions/' + sessionId + '/report-status', {
+    txn_ref_id: txnRefId,
+    txn_status: status,
+  });
+  return {
+    status: status === 'APPROVED' ? 'completed' : 'failed',
+    order_id: status === 'APPROVED' ? (orderId || sessionId) : null,
+  };
+}
+
 module.exports = {
   shopSearch,
   shopProduct,
@@ -395,6 +497,11 @@ module.exports = {
   getPaymentStatus: pollPaymentSession,
   shopCheckout,
   shopListAddresses,
+  // REST sandbox transport.
+  restMode,
+  createRestSession,
+  pollRestSession,
+  reportRestSession,
   cliAvailable,
   selfCheck,
   PravaError,

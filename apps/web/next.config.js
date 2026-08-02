@@ -67,6 +67,7 @@ const nextConfig = {
       { source: '/prava/order', destination: `${hetzner}/prava/order` },
       { source: '/prava/order/:id', destination: `${hetzner}/prava/order/:id` },
       { source: '/prava/order/:id/try-on', destination: `${hetzner}/prava/order/:id/try-on` },
+      { source: '/prava/order/:id/poll', destination: `${hetzner}/prava/order/:id/poll` },
       { source: '/prava/order/:id/approve', destination: `${hetzner}/prava/order/:id/approve` },
       { source: '/prava/order/:id/checkout', destination: `${hetzner}/prava/order/:id/checkout` },
       { source: '/prava/orders/recent', destination: `${hetzner}/prava/orders/recent` },

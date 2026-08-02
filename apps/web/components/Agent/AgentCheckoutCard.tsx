@@ -26,6 +26,9 @@ interface OrderData {
   tryOnUrl: string | null;
   orderIdPrava: string | null;
   paymentUrl: string | null;
+  // true when the order uses Prava's REST sandbox rail (hosted card entry
+  // + test card) rather than the CLI passkey flow.
+  restMode: boolean;
   trust: {
     spendCeilingUsd: string;
     currency: string;
@@ -72,27 +75,68 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
   const [order, setOrder] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState(true);
   const [photoLoading, setPhotoLoading] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Poll for order state changes (same pattern as the iMessage card's
-  // self-polling JS, but from the client). Calls onConfirmed when the order
-  // flips to confirmed.
+  // Poll-driven order loop. The client drives the whole payment flow:
+  //   1. GET  the order for its current state.
+  //   2. While awaiting approval (or try-on ready), POST /poll — for a REST
+  //      sandbox order this detects when the cardholder has entered their
+  //      test card + passkey on Prava's hosted page; for self-check it
+  //      completes instantly.
+  //   3. Once approved, POST /checkout to place the order (auto — no second
+  //      click). The loop then sees state=confirmed and fires onConfirmed.
   const onConfirmedRef = useRef(onConfirmed);
   onConfirmedRef.current = onConfirmed;
+  const pollInFlight = useRef(false);
+  const checkoutInFlight = useRef(false);
+  const confirmedFired = useRef(false);
 
   useEffect(() => {
     let active = true;
     const doPoll = async () => {
       try {
         const r = await fetch(`/prava/order/${orderId}`);
-        if (!r.ok) return;
+        if (!r.ok || !active) return;
         const data = await r.json();
-        if (!active) return;
         setOrder(data);
         setLoading(false);
-        if (data.state === "confirmed") onConfirmedRef.current?.();
+
+        if (data.state === "confirmed") {
+          if (!confirmedFired.current) {
+            confirmedFired.current = true;
+            onConfirmedRef.current?.();
+          }
+          return;
+        }
+
+        // Detect the cardholder's payment completion while waiting.
+        if (
+          (data.state === "awaiting_approval" || data.state === "try_on_ready") &&
+          !pollInFlight.current
+        ) {
+          pollInFlight.current = true;
+          try {
+            await fetch(`/prava/order/${orderId}/poll`, { method: "POST" });
+          } finally {
+            pollInFlight.current = false;
+          }
+          return; // re-read state next tick
+        }
+
+        // Payment approved → place the order automatically.
+        if (data.state === "approved" && !checkoutInFlight.current) {
+          checkoutInFlight.current = true;
+          try {
+            const cr = await fetch(`/prava/order/${orderId}/checkout`, { method: "POST" });
+            const cdata = await cr.json();
+            if (active) setOrder(cdata.order || cdata);
+          } catch {
+            // transient — retry next tick
+          } finally {
+            checkoutInFlight.current = false;
+          }
+        }
       } catch {
         if (active) setLoading(false);
       }
@@ -129,29 +173,6 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
     } catch {
       setError("Could not read that image. Try a JPG or PNG.");
       setPhotoLoading(false);
-    }
-  };
-
-  // ── Approve + checkout ─────────────────────────────────────────────
-  const handleApprove = async () => {
-    setActionLoading(true);
-    setError(null);
-    try {
-      const r = await fetch(`/prava/order/${orderId}/approve`, { method: "POST" });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error || "Approval failed");
-      setOrder(data.order || data);
-      // Auto-checkout after approval (self-check: instant; live: would
-      // wait for the real passkey approval via /poll).
-      const r2 = await fetch(`/prava/order/${orderId}/checkout`, { method: "POST" });
-      const data2 = await r2.json();
-      if (r2.ok) setOrder(data2.order || data2);
-      else if (data2.state === "awaiting_approval")
-        setError("Payment session not yet approved. Approve via the passkey link, then 👍 to retry.");
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Checkout failed");
-    } finally {
-      setActionLoading(false);
     }
   };
 
@@ -312,20 +333,30 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
           </div>
         )}
 
-        {/* Approve button */}
-        {canApprove && (
+        {/* Approve action — differs by payment rail */}
+        {canApprove && order.restMode && order.paymentUrl ? (
+          <div className="space-y-2">
+            <a
+              href={order.paymentUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-bold text-white transition-all hover:bg-primary/90 active:scale-[0.98]"
+            >
+              <KeyRound className="h-4 w-4" /> Enter test card on Prava <ArrowRight className="h-4 w-4" />
+            </a>
+            <p className="text-center text-[11px] text-muted-foreground">
+              Sandbox — no real money. Enter the test card + passkey, then this card
+              completes automatically.
+            </p>
+          </div>
+        ) : canApprove ? (
           <button
-            onClick={handleApprove}
-            disabled={actionLoading}
-            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-bold text-white transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
+            disabled
+            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-bold text-white opacity-90"
           >
-            {actionLoading ? (
-              <><Loader2 className="h-4 w-4 animate-spin" /> Placing your order…</>
-            ) : (
-              <><KeyRound className="h-4 w-4" /> Approve with passkey <ArrowRight className="h-4 w-4" /></>
-            )}
+            <KeyRound className="h-4 w-4" /> Approve with passkey
           </button>
-        )}
+        ) : null}
 
         {/* Processing state */}
         {isProcessing && !canApprove && !isConfirmed && !isFailed && (

@@ -96,6 +96,9 @@ function orderView(o) {
     paymentSessionId: o.paymentSessionId || null,
     checkoutSessionId: o.checkoutSessionId || null,
     orderIdPrava: o.orderIdPrava || null,
+    // Which payment rail this order uses — lets the client render the right
+    // approval UX (hosted card-entry link for REST sandbox vs passkey button).
+    restMode: !!o.restMode,
     garmentImageUrl: o.garmentImageUrl || null,
     tryOnUrl: o.tryOnUrl || null,
     trust: o.totalAmount ? trustView(o) : null,
@@ -120,16 +123,26 @@ function serviceKeyAuth(req, res, next) {
 // ── GET /prava/health ────────────────────────────────────────────────
 router.get('/health', async (_req, res) => {
   const cliOk = await prava.cliAvailable();
+  const rest = prava.restMode();
+  const mode = rest ? 'sandbox-rest' : (prava.selfCheck() ? 'self-check' : 'live');
+  const transport = rest
+    ? 'rest:' + (process.env.PRAVA_SANDBOX_BASE || 'https://sandbox.api.prava.space')
+    : (prava.selfCheck() ? 'mock-fixtures' : `cli:${process.env.PRAVA_CLI_PATH || 'prava'}`);
   res.json({
     status: 'ok',
-    mode: prava.selfCheck() ? 'self-check' : 'live',
-    transport: prava.selfCheck() ? 'mock-fixtures' : `cli:${process.env.PRAVA_CLI_PATH || 'prava'}`,
+    mode,
+    transport,
+    restMode: rest,
     agentLinked: process.env.PRAVA_AGENT_LINKED === '1',
     cliAvailable: cliOk,
-    buyFlow: ['shop_search', 'shop_product', 'shop_quote', 'create_payment_session', 'poll_payment_session', 'shop_checkout'],
-    note: prava.selfCheck()
-      ? 'Self-check mode — walkable mock. Set PRAVA_CLI_PATH + PRAVA_AGENT_LINKED=1 (and `prava setup`) for live orders.'
-      : 'Live mode — real orders via the prava CLI (production, real card).',
+    buyFlow: rest
+      ? ['shop_search', 'shop_product', 'create_rest_session', 'poll_rest_session', 'report_rest_session']
+      : ['shop_search', 'shop_product', 'shop_quote', 'create_payment_session', 'poll_payment_session', 'shop_checkout'],
+    note: rest
+      ? 'Sandbox REST mode — real Prava session with a test card (no real money). Discovery via CLI/UCP.'
+      : prava.selfCheck()
+        ? 'Self-check mode — walkable mock. Set PRAVA_SECRET_KEY (sk_test_*) for sandbox, or PRAVA_CLI_PATH + PRAVA_AGENT_LINKED=1 for live.'
+        : 'Live mode — real orders via the prava CLI (production, real card).',
   });
 });
 
@@ -215,20 +228,54 @@ router.post('/order', async (req, res, next) => {
       return res.status(400).json({ error: 'Provide variantId+merchant, or a query to discover.' });
     }
 
-    // Lock the binding total.
-    const quote = await prava.shopQuote({ variantId: chosenVariant, merchant: chosenMerchant, addressId });
-    const totalAmount = quote.total;
-    const products = items || [{ description: chosenProduct?.title || 'Fashion item', unit_price: quote.subtotal, quantity: 1 }];
+    // Two payment rails:
+    //  • REST sandbox (PRAVA_SECRET_KEY set) — Prava's SDK/API path, the only
+    //    path with a sandbox + test card. Skip the CLI quote (needs a delivery
+    //    address) and use the discovered product price as the binding total.
+    //  • CLI / self-check — full quote → createPaymentSession (real-card prod
+    //    or deterministic fixtures).
+    const useRest = prava.restMode();
+    let quote = null;
+    let totalAmount;
+    let products;
+    let session;
 
-    // Authorize payment (charges nothing). User approves via payment_url.
-    const session = await prava.createPaymentSession({
-      totalAmount,
-      currency,
-      merchantName: chosenMerchant,
-      merchantUrl: `https://${chosenMerchant}`,
-      merchantCountry: 'US',
-      products,
-    });
+    if (useRest) {
+      // Binding total from the discovered offer price (no address-gated quote).
+      const prod = chosenProduct
+        ? { offers: [] }
+        : await prava.shopProduct({ productId: chosenVariant, merchant: chosenMerchant });
+      const priceStr = chosenProduct?.price?.amount
+        || (prod.offers?.find((o) => o.variant_id === chosenVariant) || prod.offers?.[0])?.unit_price
+        || null;
+      if (!priceStr) {
+        return res.status(409).json({ error: 'Could not resolve a price for the selected item.' });
+      }
+      totalAmount = String(priceStr);
+      products = items || [{ description: chosenProduct?.title || 'Fashion item', unit_price: totalAmount, quantity: 1 }];
+      session = await prava.createRestSession({
+        totalAmount,
+        currency,
+        merchantName: chosenMerchant,
+        merchantUrl: `https://${chosenMerchant}`,
+        merchantCountry: 'US',
+        products,
+      });
+    } else {
+      // Lock the binding total via the CLI quote.
+      quote = await prava.shopQuote({ variantId: chosenVariant, merchant: chosenMerchant, addressId });
+      totalAmount = quote.total;
+      products = items || [{ description: chosenProduct?.title || 'Fashion item', unit_price: quote.subtotal, quantity: 1 }];
+      // Authorize payment (charges nothing). User approves via payment_url.
+      session = await prava.createPaymentSession({
+        totalAmount,
+        currency,
+        merchantName: chosenMerchant,
+        merchantUrl: `https://${chosenMerchant}`,
+        merchantCountry: 'US',
+        products,
+      });
+    }
 
     const id = 'op_' + crypto.randomUUID();
     const now = Date.now();
@@ -243,12 +290,18 @@ router.post('/order', async (req, res, next) => {
       totalAmount,
       currency,
       quote,
-      checkoutSessionId: quote.checkout_session_id,
+      // Which payment rail this order uses (drives poll/checkout routing).
+      restMode: useRest,
+      checkoutSessionId: quote?.checkout_session_id || null,
       paymentSessionId: session.session_id,
       paymentUrl: session.payment_url,
+      // REST session carries a Prava order id from creation (used as the
+      // confirmed order id on checkout).
+      pravaOrderId: session.order_id || null,
+      // txn_ref_id captured on poll; needed to report the charge outcome.
+      txnRefId: null,
       // Single-use tokenized card credentials, populated once the owner
-      // approves the payment session (poll_payment_session). Used by
-      // shop_checkout to place the real order. Null until approved.
+      // approves the payment session (poll). Used by checkout. Null until approved.
       token: null,
       cryptogram: null,
       expiryMonth: null,
@@ -315,7 +368,9 @@ router.post('/order/:id/poll', async (req, res, next) => {
     if (o.state !== 'awaiting_approval' && o.state !== 'try_on_ready' && o.state !== 'approved') {
       return res.status(409).json({ error: `Cannot poll in state ${o.state}`, order: orderView(o) });
     }
-    const status = await prava.pollPaymentSession({ sessionId: o.paymentSessionId });
+    const status = o.restMode
+      ? await prava.pollRestSession({ sessionId: o.paymentSessionId })
+      : await prava.pollPaymentSession({ sessionId: o.paymentSessionId });
     if (status.status === 'completed') {
       o.state = 'approved';
       // Store the single-use tokenized credentials so checkout can use them.
@@ -323,6 +378,8 @@ router.post('/order/:id/poll', async (req, res, next) => {
       o.cryptogram = status.cryptogram || null;
       o.expiryMonth = status.expiryMonth || null;
       o.expiryYear = status.expiryYear || null;
+      // REST sessions carry a txn_ref_id needed to report the charge outcome.
+      o.txnRefId = status.txnRefId || null;
       o.updatedAt = Date.now();
       orders.set(o.id, o);
     } else if (status.status === 'failed') {
@@ -346,6 +403,11 @@ router.post('/order/:id/approve', (req, res) => {
     if (!prava.selfCheck()) {
       return res.status(400).json({
         error: 'Live mode: approval happens out-of-band via the payment_url passkey. Use /poll to detect it.',
+      });
+    }
+    if (o.restMode) {
+      return res.status(400).json({
+        error: 'Sandbox REST order: enter your test card via the payment_url, then use /poll to detect approval.',
       });
     }
     o.state = 'approved';
@@ -372,13 +434,20 @@ router.post('/order/:id/checkout', async (req, res, next) => {
     o.updatedAt = Date.now();
     orders.set(o.id, o);
 
-    const result = await prava.shopCheckout({
-      checkoutSessionId: o.checkoutSessionId,
-      token: o.token,
-      cryptogram: o.cryptogram,
-      expiryMonth: o.expiryMonth,
-      expiryYear: o.expiryYear,
-    });
+    const result = o.restMode
+      ? await prava.reportRestSession({
+          sessionId: o.paymentSessionId,
+          txnRefId: o.txnRefId,
+          status: 'APPROVED',
+          orderId: o.pravaOrderId,
+        })
+      : await prava.shopCheckout({
+          checkoutSessionId: o.checkoutSessionId,
+          token: o.token,
+          cryptogram: o.cryptogram,
+          expiryMonth: o.expiryMonth,
+          expiryYear: o.expiryYear,
+        });
 
     if (result.status === 'completed' && result.order_id) {
       o.state = 'confirmed';
