@@ -223,6 +223,7 @@ const FIXTURE = {
     amount: '108.84',
     currency: 'USD',
     checkout_session_id: checkoutSessionId,
+    self_check: true,
   }),
 };
 
@@ -458,9 +459,7 @@ function humanizeMerchant(raw) {
   return base || String(raw);
 }
 
-// Fashion/apparel merchant category (MCC 5691) — every UCP merchant we
-// discover is a clothing brand. Prava's provisioning/lookup keys on this, and
-// the spec example bodies omit it to their detriment.
+// Fashion/apparel merchant category (MCC 5691) for this fashion-only flow.
 const FASHION_MCC = '5691';
 const FASHION_CATEGORY = "Men's and Women's Clothing Stores";
 
@@ -511,14 +510,20 @@ async function pollRestSession({ sessionId } = {}) {
   const r = await restCall('GET', '/v1/sessions/' + sessionId + '/payment-result');
   if (r.status === 'failed') return { session_id: sessionId, status: 'failed' };
   const li = r.transactions?.[0]?.line_items?.[0];
-  if (li && li.token) {
+  if (r.status === 'awaiting_result') {
+    if (!li?.token || !li?.dynamic_cvv || !li?.expiry_month || !li?.expiry_year || !li?.txn_ref_id) {
+      throw new PravaError(
+        'incomplete_credential_response',
+        'Prava returned awaiting_result without the complete credential and transaction reference fields.',
+      );
+    }
     return {
       session_id: sessionId,
-      status: 'completed',
+      status: 'credential_ready',
       token: String(li.token),
       cryptogram: String(li.dynamic_cvv),
-      expiryMonth: li.expiry_month ? String(li.expiry_month) : undefined,
-      expiryYear: li.expiry_year ? String(li.expiry_year) : undefined,
+      expiryMonth: String(li.expiry_month),
+      expiryYear: String(li.expiry_year),
       txnRefId: li.txn_ref_id,
     };
   }
@@ -528,11 +533,17 @@ async function pollRestSession({ sessionId } = {}) {
 /** report_rest_session — close the loop by reporting the charge outcome. In
  *  sandbox this flips the session to completed (APPROVED) or failed (DECLINED).
  *  Returns { status, order_id }. */
-async function reportRestSession({ sessionId, txnRefId, status, orderId } = {}) {
+async function reportRestSession({ sessionId, txnRefId, status, orderId, authorizationCode, responseCode } = {}) {
   if (!restSandboxMode()) {
     throw new PravaError(
       'external_checkout_required',
       'A production REST credential must be charged at the merchant before its outcome can be reported.',
+    );
+  }
+  if (!responseCode || (status === 'APPROVED' && !authorizationCode)) {
+    throw new PravaError(
+      'processor_outcome_required',
+      'Report status requires a processor response code and, for approval, its authorization code from an attempted external checkout.',
     );
   }
   const approved = status === 'APPROVED';
@@ -540,14 +551,13 @@ async function reportRestSession({ sessionId, txnRefId, status, orderId } = {}) 
     txn_ref_id: txnRefId,
     txn_status: status,
     txn_type: 'PURCHASE',
-    // This endpoint is only used for the documented sandbox lifecycle. It
-    // simulates the processor outcome; it is not evidence of a merchant order.
-    response_code: approved ? '00' : '05',
-    authorization_code: approved ? 'SANDBOX' : undefined,
+    response_code: responseCode,
+    authorization_code: authorizationCode || undefined,
   });
+  const final = await restCall('GET', '/v1/sessions/' + sessionId + '/payment-result');
   return {
-    status: approved ? 'completed' : 'failed',
-    order_id: approved ? (orderId || sessionId) : null,
+    status: final.status,
+    provider_session_record_id: orderId || null,
     sandbox: true,
   };
 }

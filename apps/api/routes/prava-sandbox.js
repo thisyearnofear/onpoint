@@ -187,20 +187,24 @@ router.get('/order/:id/result', async (req, res, next) => {
 });
 
 // ── POST /prava/sandbox/order/:id/report — report outcome ────────────
-// Body: { txnRefId, status: "APPROVED" | "DECLINED" }
-// Closes the loop → status becomes completed/failed.
+// Fixture-only in self-check. Live reporting is disabled until an external
+// checkout adapter can provide a processor-authenticated outcome.
 router.post('/order/:id/report', async (req, res, next) => {
   try {
     const local = sessions.get(req.params.id);
     if (!local) return res.status(404).json({ error: 'Session not found' });
-    const { txnRefId, status } = req.body || {};
+    const { status } = req.body || {};
     if (status !== 'APPROVED' && status !== 'DECLINED') {
       return res.status(400).json({ error: 'status must be APPROVED or DECLINED' });
     }
 
     if (!live) {
       local.state = status === 'APPROVED' ? 'completed' : 'failed';
-      return res.json({ status: local.state, reported: status });
+      return res.json({
+        status: status === 'APPROVED' ? 'self_check_completed' : 'self_check_failed',
+        reportedFixture: status,
+        selfCheck: true,
+      });
     }
 
     if (isLiveKeys) {
@@ -208,17 +212,10 @@ router.post('/order/:id/report', async (req, res, next) => {
         error: 'Production outcomes must come from a real merchant checkout; this sandbox helper cannot synthesize one.',
       });
     }
-
-    const r = await pravaRest('POST', '/v1/sessions/' + req.params.id + '/report-status', {
-      txn_ref_id: txnRefId,
-      txn_status: status,
-      txn_type: 'PURCHASE',
-      response_code: status === 'APPROVED' ? '00' : '05',
-      // Explicitly a sandbox processor simulation, not a merchant auth code.
-      authorization_code: status === 'APPROVED' ? 'SANDBOX' : undefined,
+    return res.status(501).json({
+      error: 'External sandbox checkout adapter is not configured. Report the processor outcome only after a real checkout attempt.',
+      code: 'EXTERNAL_CHECKOUT_REQUIRED',
     });
-    local.state = status === 'APPROVED' ? 'completed' : 'failed';
-    res.json({ ...r, status: local.state });
   } catch (e) { next(e); }
 });
 

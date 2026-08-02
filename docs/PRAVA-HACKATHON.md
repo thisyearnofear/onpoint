@@ -11,7 +11,7 @@
 |-------|-------|
 | **Status** | Building (hackathon window) |
 | **Project name** | OnPoint |
-| **Tagline** | Your iMessage stylist: an agent that dresses you, tries it on you, and buys it for you — across real fashion brands, with a card it can only spend the way you approved. |
+| **Tagline** | Your iMessage stylist: discover live fashion products, try them on, and prepare a tightly scoped Prava checkout. |
 | **GitHub** | https://github.com/thisyearnofear/onpoint |
 | **Demo** | https://beonpoint.netlify.app |
 | **API** | https://api.onpoint.famile.xyz |
@@ -22,29 +22,29 @@
 ## The Product (one paragraph)
 
 An AI stylist agent on iMessage. A user texts a style intent ("outfit me for a
-rooftop brunch, $120 budget"); OnPoint composes a look from **real UCP fashion
-brands** (SKIMS, Alo Yoga, Everlane, Glossier…), runs **IDM-VTON try-on** to
-render the actual garments on the user's photo, then the agent **completes
-real purchases across merchants** via Prava — each merchant paid with a
-separate, merchant-locked, amount-scoped one-time card credential the user
-approved with a passkey. The whole flow lives in one **mutating Linq iMessage
-App card**: look board → try-on → quote+trust → confirmed orders.
+rooftop brunch, $120 budget"); OnPoint discovers live UCP fashion products,
+runs IDM-VTON try-on, and creates a real Prava sandbox session containing the
+selected merchant, item, and requested amount. The user continues on Prava's
+hosted card surface. Current sandbox testing is blocked before WebAuthn and
+credential issuance by `DEVICE_BINDING_FAILED: 409`; no Prava credential or
+merchant order has completed. The production CLI checkout path is implemented
+but remains unvalidated pending access.
 
 ### The original insight
 
-The agent doesn't buy one item — it **fulfills a style intent across multiple
-merchants**, issuing a separate scoped Prava credential per brand. One look →
-several real orders → one coherent outcome, surfaced in a single iMessage
-bubble. No competitor can replicate this (they lack OnPoint's try-on + looks).
+The product insight is **fit verification before agent checkout**: combine live
+merchant discovery with OnPoint's existing try-on engine, then request the
+narrowest possible payment permission. The shipped v1 prepares one merchant
+session. Multi-merchant sequencing is target architecture, not shipped behavior.
 
 ## Tracks & Rewards
 
 | Track | Reward | Decision |
 |-------|--------|----------|
-| **Prava finalists** | $10k Prava credits | **Enter.** Prava IS the checkout (central, not a bolt-on) — real order at a real merchant |
-| **Visa Intelligent Commerce** | $5k cash | **Enter.** Scoped one-time credential + amount limits + passkey + layered guardrails = Visa IC verbatim ("credentials, controls, transaction protections"). Visa judges on panel. |
-| **Linq iMessage Agent** | $1k cash + $5k Linq credits | **Enter.** The iMessage App card is the entire interface; messaging primitives as UI (👍 tapback = approval, mutating bubble = state machine). Linq staff engineer on panel. |
-| **Localhost startup-ready** | $5k Anthropic credits | **Enter.** Live product + real users + distribution; OnPoint continues after the event |
+| **Prava finalists** | $10k Prava credits | **Enter.** Prava is central: real UCP discovery + real sandbox session creation; credential issuance currently provider-blocked. |
+| **Visa Intelligent Commerce** | $5k cash | **Enter.** The UI exposes the requested merchant, amount, required passkey, and expected scoped credential model without claiming issuance. |
+| **Linq iMessage Agent** | $1k cash + $5k Linq credits | **Enter.** Live iMessage send and signed inbound webhooks are validated; status-card mutation is implemented but not observed after a completed Prava lifecycle. |
+| **Localhost startup-ready** | $5k Anthropic credits | **Enter.** OnPoint is an existing live product; this new workflow is a credible continuation if the payment-provider blocker is resolved. |
 | ~~OpenAI~~ | $10k | **Skip.** No OpenAI in the stack; bolting it on = explicitly deprecated ("partner technology added only to qualify") |
 | ~~Senso~~ | $7.5k | **Skip.** Same bolt-on problem |
 | ~~NANDA Town~~ | $1k | **Skip.** Adapter/simulation track doesn't fit the product |
@@ -53,12 +53,12 @@ bubble. No competitor can replicate this (they lack OnPoint's try-on + looks).
 
 | Axis | How we score |
 |------|-------------|
-| **End-to-end functionality** | Real completed order at a real Shopify fashion merchant (`ord_…`) — not a sandbox session that stops at "credential issued." |
-| **Creativity / novelty** | Try-on-before-agent-buys + per-merchant scoped credential + message-native mutating card. |
-| **User value / market feasibility** | Real fashion brands, real try-on, real purchases — a product people would use. |
-| **Prava implementation** | Prava IS the checkout: UCP discover → quote → scoped-card checkout → confirmed order. Central, reliable, meaningful. |
-| **Track implementation** | Linq card = the interface; Visa IC = the credential/guardrail model. |
-| **Product experience** | One coherent mutating iMessage bubble, no long explanation. |
+| **End-to-end functionality** | Live UCP discovery → try-on → real Prava sandbox session → hosted card surface; blocked before WebAuthn with reproducible provider evidence. |
+| **Creativity / novelty** | Try-on-before-agent-checkout + explicit requested controls + message-native status card. |
+| **User value / market feasibility** | Live fashion products and pre-purchase visualization solve a clear fit-confidence problem. |
+| **Prava implementation** | Prava session creation is central to the new workflow, not a payment button added afterward. No completed transaction is claimed. |
+| **Track implementation** | Linq send/webhook are live; Visa-style controls are shown as requested/expected until Prava issues a credential. |
+| **Product experience** | An intro message plus status card, with approval on Prava's hosted surface. |
 | **What happens next** | OnPoint is already a live product; this adds a card-rail agent checkout it continues with. |
 
 ## Timeline
@@ -107,9 +107,10 @@ bubble. No competitor can replicate this (they lack OnPoint's try-on + looks).
 engine, cUSD/x402 checkout, USD₮0 OKX A2MCP facade, attribution ledger, looks,
 curators, MCP server.
 
-**Built during the 48h window:** Prava MCP integration as the agent checkout rail;
-UCP discover→quote→checkout orchestration; the mutating Linq iMessage App card;
-spend-transparency trust UI; Prava-order → receipt/ledger integration.
+**Built during the 48h window:** Prava CLI UCP discovery; REST sandbox-session
+creation and polling/reporting state machine; Linq intro + iMessage App status
+card; signed webhook handling; try-on-to-session orchestration; and explicit
+requested-control UI. Prava receipt/ledger integration was not shipped.
 
 ## Top Risks & Mitigations
 
@@ -124,9 +125,10 @@ spend-transparency trust UI; Prava-order → receipt/ledger integration.
 
 ## Linq integration (iMessage Agent track)
 
-Linq gives the agent a real iMessage number + **iMessage Apps** — interactive,
-in-place-updatable cards rendered inside the blue bubble. Our mutating card
-(look → try-on → quote+trust → confirmed order) lives entirely in one bubble.
+Linq gives the agent a real iMessage number + **iMessage Apps**. OnPoint sends an
+intro message followed by a status card; approval opens Prava's hosted surface.
+Live send and signed webhook handling are validated. Updating the card after a
+completed Prava lifecycle is implemented but has not been observed end to end.
 
 **Best practices baked into the integration** (see
 [Linq best practices](https://docs.linqapp.com/getting-started/best-practices/)):
@@ -159,15 +161,15 @@ guidelines above. We run it against `apps/api/lib/linq-client.js` +
 
 | Component | File | Status |
 |-----------|------|--------|
-| Prava transport — self-check + sandbox-REST + live CLI modes | `apps/api/lib/prava-client.js` | ✅ all three modes |
-| Prava order state machine (trust fields, spend ceiling) | `apps/api/routes/prava-facade.js` | ✅ search→order→try-on→poll→checkout |
-| REST sandbox payment rail (session→poll→report) | `prava-facade.js` + `prava-client.js` | ✅ active on production |
-| Live-CLI credential contract (token/cryptogram from poll) | `apps/api/lib/prava-client.js` | ✅ aligned to real CLI |
+| Prava transport — self-check + sandbox REST + production CLI branches | `apps/api/lib/prava-client.js` | ✅ implemented; only discovery + session creation live-validated |
+| Prava state machine and requested-control view | `apps/api/routes/prava-facade.js` | ✅ implemented; completion branches unvalidated |
+| REST sandbox lifecycle (session→poll→report) | `prava-facade.js` + `prava-client.js` | ⚠️ session creation validated; blocked before credential issuance |
+| Production CLI credential/checkout contract | `apps/api/lib/prava-client.js` | ⚠️ implemented and linked; checkout unvalidated |
 | Decoupled IDM-VTON try-on for UCP garment images | `apps/api/lib/prava-tryon.js` | ✅ placeholder + Replicate modes |
 | Linq REST client (real `/v3/chats`, Standard Webhooks) | `apps/api/lib/linq-client.js` | ✅ live send + signature verify |
 | Linq webhook receiver (envelope parsing, media, reactions) | `apps/api/routes/linq-agent.js` | ✅ live, all events subscribed |
-| Mutating iMessage App card (try-on + trust + confirmed) | `apps/api/routes/prava-card.js` | ✅ all states render |
-| Frontend agent checkout card (poll-driven auto-checkout) | `apps/web/components/Agent/AgentCheckoutCard.tsx` | ✅ REST + self-check |
+| iMessage App status card | `apps/api/routes/prava-card.js` | ✅ render states implemented; completed mutation unobserved |
+| Frontend session/status card | `apps/web/components/Agent/AgentCheckoutCard.tsx` | ✅ REST + explicitly labeled self-check |
 
 ### Live-validated on production
 
@@ -198,77 +200,68 @@ guidelines above. We run it against `apps/api/lib/linq-client.js` +
   team progressed further but failed with `DEVICE_BINDING_FAILED: 409` before
   any passkey prompt. Reproduced in Brave and Safari, with fresh-card and
   saved-card paths. Evidence orders include `ord_01KZ23CV1DW03DXAZY8FKR548S`
-  and `ord_01KZ24K86N8JS5K8C5PVQC8KH2`. The issue is escalated to Prava.
+  and `ord_01KZ24K86N8JS5K8C5PVQC8KH2`. These are Prava sandbox session
+  records, not merchant-order confirmations. The issue is ready for escalation.
 - **Honesty boundary:** deterministic self-check validates orchestration only.
   A REST sandbox lifecycle is labeled completed only after Prava issues a test
-  credential and accepts `report-status`; only the production CLI path may say
-  a merchant order was placed.
+  credential, an external sandbox checkout is attempted, and Prava accepts its
+  real processor outcome via `report-status`; only the production CLI path may
+  say a merchant order was placed.
 
 ### Remaining before submission
 
 1. **Prava sandbox fix** (on Prava) — device binding 409 resolved. Then re-run
    the sandbox E2E to land a real sandbox `completed` lifecycle.
-2. **Production access** — application submitted (Dashboard → API Key →
-   Production → Hackathon). If approved, set `sk_live_*` (or rely on linked
-   CLI agent) to run a real-card order. One env-var flip; architecture already
-   handles all three modes.
+2. **Production access** — application submitted. The production CLI path is
+   implemented and the agent is linked, but a real checkout remains unvalidated.
+   Production REST would additionally require an actual merchant checkout before
+   `report-status`.
 3. **Record the demo video** — self-check spine (`node scripts/prava-demo.mjs`)
    plus the live sandbox REST session as evidence. Use
    [docs/PRAVA-DEMO-SCRIPT.md](./PRAVA-DEMO-SCRIPT.md) variants: A if a real
-   order completed, B (sandbox, no "real order" claims) otherwise.
+   order completed, B only if the sandbox lifecycle completed, or C while the
+   provider blocker remains.
 
 ## Devfolio Submission Content
 
 **Project name:** OnPoint
 
-**Tagline:** Your iMessage stylist: an agent that discovers real fashion brands,
-tries them on you, and buys them — with a card it can only spend the way you approved.
+**Tagline:** Your iMessage stylist: discover live fashion products, try them on,
+and prepare a tightly scoped Prava checkout.
 
 **One-paragraph description:**
 
-OnPoint is an AI stylist agent that lives on iMessage. A user texts a style
-intent ("outfit me for a rooftop brunch, $120 budget"); the agent composes a
-look from real UCP fashion brands (Alo Yoga, Everlane, Glossier…), runs
-IDM-VTON virtual try-on to render the actual garments on the user's photo,
-then completes a purchase at the merchant via Prava — paid with a
-merchant-locked, amount-scoped, one-time card credential the user approved
-with a passkey. The entire flow lives in one mutating Linq iMessage App card:
-look board → try-on render → quote+trust → confirmed order.
+OnPoint is an AI stylist agent on iMessage. It discovers live UCP fashion
+products, runs virtual try-on, and creates a real Prava sandbox session with the
+selected merchant, product, and requested amount. The user continues on Prava's
+hosted card surface. Current sandbox testing is reproducibly blocked before
+WebAuthn by `DEVICE_BINDING_FAILED: 409`, so we do not claim credential issuance,
+a completed sandbox lifecycle, or a merchant order.
 
 **How Prava is used:**
 
-Prava IS the checkout, not a bolt-on. The agent walks the full Prava buy-flow
-as a CLI + REST hybrid. Discovery runs through the `prava` CLI against
-production UCP: `shop_search` (discover UCP fashion merchants) → `shop_product`
-(resolve variants + binding price). The payment rail runs through Prava's REST
-API in sandbox: `POST /v1/sessions` (open a hosted card-entry session, charges
-nothing) → the owner enters their card + approves with a passkey → poll
-`payment-result` for a single-use tokenized credential → `report-status`
-(APPROVED) → confirmed order. (With temporary production access, the same rail
-runs through the CLI's `sessions create/poll` + `shop checkout` against a real
-card.) Each credential is single-use, merchant-locked, and amount-scoped —
-surfaced to the user as trust fields (spend ceiling, merchant scope, guardrails)
-before they approve.
+Prava is central, not a bolt-on. Discovery uses `prava shop search/product`.
+REST sandbox mode uses the discovered listed price as the session amount; it
+does not obtain a binding merchant quote or charge a merchant. The intended
+remainder is hosted card entry → passkey → `payment-result` credential →
+external test outcome → `report-status`. The current provider error occurs
+before passkey and credential issuance. The production CLI checkout branch is
+implemented and linked but unvalidated pending access.
 
 **How Linq is used:**
 
-The entire interface is a Linq iMessage App card. The agent sends a text intro
-then an `imessage_app` card bubble that mutates in place via
-`POST /v3/messages/{id}/update`: try-on render + quote+trust → (user approves
-passkey) → 👍 tapback (`reaction.added`, `reaction_type: "like"`) triggers
-checkout → card flips to "✓ Order placed — Prava {order_id}". The webhook
-receiver parses the real Standard Webhooks envelope, extracts inbound media
-(person photos for try-on), and routes reactions to approval.
+The Linq experience sends an intro message plus an `imessage_app` status card.
+Approval happens on Prava's hosted surface. Live send and signed Standard
+Webhooks handling are validated. The 👍 reaction handler and card update are
+implemented, but confirmation mutation has not been observed because no Prava
+credential lifecycle has completed.
 
-**Try-on-before-agent-buys (original insight):**
+**Try-on-before-agent-checkout (original insight):**
 
-No other agent in this hackathon does this. OnPoint's existing IDM-VTON
-engine renders the actual UCP garment image on the user's actual photo
-*before* the agent buys — the accurate pre-purchase check, surfaced in the
-iMessage card. That's the moat: fit verification + looks composition +
-scoped-credential checkout. (v1 completes one merchant per look; sequencing
-multiple merchant-scoped credentials from one look is the documented
-next step, not shipped behavior.)
+OnPoint combines its existing try-on engine with live UCP product discovery so
+fit can be checked before payment permission is requested. The shipped v1
+prepares one merchant session. Multi-merchant sequencing is documented future
+work, not shipped behavior.
 
 **Demo:**
 
@@ -294,33 +287,27 @@ node scripts/prava-webhook-smoke.mjs
 
 **Worked:**
 
-- The self-check spine: the full seven-step agent checkout (discover → try-on
-  → quote → authorize → approve → checkout → mutating card) runs with 15/15
-  assertions from one script, so judges can verify the flow without our
-  credentials.
-- The Linq iMessage App card as the entire UI. Treating messaging primitives
-  as state (👍 tapback = approval, bubble mutation = order state machine)
-  meant building no web checkout at all for this flow.
-- The trust-first presentation. Spend ceiling, merchant scope, and guardrail
-  states are rendered everywhere the credential is mentioned — this made the
-  "what can the agent do / what may it spend / what happened" questions
-  answerable at a glance.
-- Designing for honesty-by-default: the facade refuses to claim a live order
-  when Prava CLI status is undetermined (selfCheck safe mode), and the
-  homepage feed says "Ready," not "Live," until a real order lands.
+- The deterministic self-check walkthrough exercises orchestration shape and
+  labels itself fixture-only; it is not transaction proof.
+- Real Linq sends, signed webhook verification, live UCP discovery, and real
+  Prava sandbox-session creation are independently validated.
+- The trust-first presentation distinguishes requested amount and merchant,
+  expected credential controls, and observed outcome, so the user can see what
+  was requested and what actually happened.
+- Designing for honesty-by-default: self-check, sandbox lifecycle, and merchant
+  order use distinct states and claims.
 
 **Didn't:**
 
-- Prava sandbox test cards are non-standard PANs; a test PSP (e.g. Stripe test
-  mode) declines them, so a "full sandbox charge" is not the demo path —
-  sandbox proves session → credential → report-status, and the real merchant
-  charge is a production path.
+- Prava's hosted sandbox flow currently fails at device binding before WebAuthn
+  and credential issuance. Therefore sandbox currently proves session creation
+  and provider failure evidence—not credential or transaction completion.
 - The Prava CLI is production-only — there is no CLI sandbox — so live
   merchant checkout depends on temporary hackathon production access, which is
   human-reviewed. We sequenced sandbox-excellence first, then requested
   production access with that evidence.
 - Multi-merchant sequencing (one look → several merchant-scoped orders) is
-  designed but not shipped; v1 completes one merchant per look.
+  designed but not shipped; v1 prepares one merchant session per look.
 
 **Learned:**
 
@@ -328,7 +315,7 @@ node scripts/prava-webhook-smoke.mjs
   once the user approves a ceiling and a merchant, the agent can be trusted
   with the boring middle of a purchase. Approval UX is the product.
 - Fit verification before payment is the difference between a demo and a
-  reason to exist — users forgive a simulated sandbox, not a wrong-size order.
+  reason to exist — users forgive a clearly labeled sandbox demo, not a wrong-size order.
 
 ## Links
 

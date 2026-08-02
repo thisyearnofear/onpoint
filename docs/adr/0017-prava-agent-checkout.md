@@ -1,6 +1,7 @@
 # ADR 0017: Prava Agent Checkout — Scoped-Card Cross-Merchant Purchases
 
-**Status**: Implemented (hackathon build — Agentic Commerce Hackathon, Aug 1–2 2026)
+**Status**: Partially implemented — live discovery and real sandbox session
+creation validated; blocked before credential issuance; no merchant order completed
 **Date**: 2026-08-01
 **Integration**: `prava` CLI (UCP discovery) + REST `POST /v1/sessions` (payment rail)
 
@@ -17,8 +18,8 @@
 >   does not take a `--payment-session-id`. The facade's credential handling was
 >   rebuilt to match this contract (commit `1ee4d36`).
 > - **Live quote requires a delivery address on file**, so the REST sandbox path
->   skips the address-gated CLI quote and uses the discovered product price as
->   the binding total.
+>   skips the address-gated CLI quote and uses the discovered listed price as
+>   the session amount. It is not a binding merchant quote.
 > - **The Linq webhook is live and verified** (Standard Webhooks signature,
 >   line `+14243945528`, all events), and the Prava CLI agent is linked
 >   (`aa_01KYZ4G7D34207F74VJSDKBEMM`, active).
@@ -55,7 +56,8 @@ an OKX-style 402 facade. Prava is a **programmable card-payment proxy**:
 4. Prava returns a **one-time card credential** (`token` + `dynamic_cvv` +
    expiry) — single-use, **merchant-locked, amount-scoped**.
 5. **The merchant charges that credential at checkout**, then the caller
-   reports `APPROVED`/`DECLINED` via `report-status`. Re-poll → `completed`.
+   reports the processor's actual `APPROVED`/`DECLINED` outcome via
+   `report-status`. Re-poll → `completed` or `failed`.
 
 Two integration families behave very differently around "sandbox" vs
 "a completed order":
@@ -64,7 +66,7 @@ Two integration families behave very differently around "sandbox" vs
 |---|---|---|
 | Flow | session → card entry → passkey → poll token → **you charge at your checkout** → report | `prava shop search → product → quote → checkout` — **Prava completes the real Shopify checkout** → `ord_…` |
 | Sandbox | ✅ self-serve, no real money | ❌ CLI/MCP is **production-only**, real cards |
-| OnPoint builds a PSP? | Yes — and Prava sandbox test cards (`4622 9431…`) are non-standard; a test PSP (Stripe test mode) declines them | **No** — Prava charges the merchant itself |
+| OnPoint builds a PSP? | Yes — Prava sandbox cards are test credentials and do not prove a merchant charge | **No** — Prava charges the merchant itself |
 | "Completed order" strength | Weak: sandbox run stops at credential + your `report-status`; no real merchant charge | **Strong**: a real order placed at a real merchant |
 
 ### The decision constraint
@@ -77,23 +79,20 @@ OnPoint. The catch: UCP/CLI/MCP is **production-only with real cards**, so
 the demo needs the hackathon's temporary production access (Aug 1–8,
 reviewed case-by-case) and a real card for a small real charge.
 
-## Decision
+## Decision (target product direction)
 
-Build **OnPoint as an AI stylist agent that fulfills a style intent across
-real fashion merchants via Prava**, surfaced as a mutating **Linq iMessage
-App card**. Prava becomes the **agent checkout rail** (central, not a
-bolt-on); OnPoint's existing crypto rails and inventory are disclosed as
-pre-existing and untouched.
+Build toward **OnPoint as an AI stylist agent that can fulfill a style intent
+through Prava**, surfaced with a Linq iMessage App status card. The hackathon
+build currently reaches live UCP discovery and real Prava sandbox-session
+creation; hosted device binding blocks credential issuance before WebAuthn.
 
 ### The original insight
 
-The agent does not buy one item — it **fulfills a style intent across
-multiple merchants**, issuing a separate merchant-locked, amount-scoped
-Prava credential per brand. One look → several real orders → one coherent
-outcome, in a single mutating iMessage bubble. No competitor can replicate
-this (they lack OnPoint's try-on + looks).
+The target architecture fulfills one style intent across multiple merchants,
+with separate scoped credentials per brand. The shipped v1 prepares one
+merchant session; multi-merchant sequencing and completed orders are unshipped.
 
-### Architecture
+### Target architecture (not all stages shipped or validated)
 
 ```
 User (iMessage, via Linq number)
@@ -129,38 +128,37 @@ demo necessarily runs on REST. OnPoint's backend shells to the `prava` CLI +
 calls the REST API directly, and is a **Linq sender to iMessage** + the
 **OnPoint try-on/styling engine**.
 
-### Calibrated ambition
+### Original delivery plan and current result
 
-- **Must-land core**: one real completed UCP order at one fashion brand,
+- **Planned must-land core**: one real completed UCP order at one fashion brand,
   flowing styling → try-on → quote → scoped-card checkout → confirmation,
   rendered as a mutating iMessage App card. Lands before any stretch work.
-- **Stretch**: multi-item look across 2 merchants (2 scoped checkouts — the
+- **Unshipped stretch**: multi-item look across 2 merchants (2 scoped checkouts — the
   "shop across merchants" insight) + 👍-tapback group-chat voting.
-- **Sandbox/demo rail (active)**: REST SDK/API session flow (`POST /v1/sessions`
+- **Sandbox/demo rail (active but blocked)**: REST SDK/API session flow (`POST /v1/sessions`
   + hosted card entry + `payment-result` + `report-status`) against
   `sandbox.api.prava.space` with `sk_test_*` keys. No real money. This is the
-  primary active path on production (the only path with a sandbox).
+  primary active path on production (the only path with a sandbox). Session
+  creation works; device binding fails before WebAuthn and credential issuance.
 
 ### Tracks targeted
 
 | Track | Reward | How |
 |-------|--------|-----|
 | Prava finalists | $10k credits | Prava IS the checkout (central) |
-| Visa Intelligent Commerce | $5k cash | merchant-of-record + amount-scoped token + passkey + layered guardrails = Visa IC verbatim |
-| Linq iMessage Agent | $1k + $5k credits | the iMessage App card is the entire interface |
-| Localhost startup-ready | $5k Anthropic | live product + real users + distribution |
+| Visa Intelligent Commerce | $5k cash | requested merchant/amount + documented expected controls; issuance not yet observed |
+| Linq iMessage Agent | $1k + $5k credits | live send and signed webhook validated; completed mutation unobserved |
+| Localhost startup-ready | $5k Anthropic | existing live product + credible continuation |
 | OpenAI / Senso | (optional) | styling reasoning / verified merchant context — only if core is green |
 
 ## Consequences
 
-### Positive
+### Intended benefits (not transaction evidence)
 
-- **A real completed transaction** — the bar the brief sets and most
-  competitors will miss by stopping at "payment session created."
-- **Original, unreplicable insight** — try-on-before-agent-buys +
-  multi-merchant scoped checkout + message-native UX.
-- **Trust surface** — explicit spend ceiling, per-merchant scoping, passkey,
-  receipt — tailored to the brief's "trust" and the Visa track.
+- **Clear completion target** — progress from recommendation to merchant order.
+- **Differentiated insight** — try-on before requesting payment permission.
+- **Trust surface** — explicit requested amount and merchant, required passkey,
+  expected credential controls, and observed outcome.
 - **Non-destructive** — OnPoint's cUSD/x402 + OKX rails and inventory are
   untouched and disclosed as pre-existing; Prava is a new rail, not a
   replacement.
@@ -175,6 +173,9 @@ calls the REST API directly, and is a **Linq sender to iMessage** + the
 - **External checkout dependency** — Browser Harness drives a live Shopify
   checkout that can change. Mitigation: recorded video for the real order;
   sandbox fallback for live judge demo.
+- **Observed sandbox blocker** — Prava's hosted surface returns
+  `DEVICE_BINDING_FAILED: 409` before WebAuthn across supplied/documented cards
+  in Brave and Safari. Escalate with sandbox session record IDs.
 - **UCP image → OnPoint try-on compatibility** — IDM-VTON must render a
   UCP product image on a person photo. Validate on day 1; fall back to the
   free-tier "similar style" render or skip try-on for that item if it fails.

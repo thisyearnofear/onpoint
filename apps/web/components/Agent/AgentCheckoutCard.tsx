@@ -26,7 +26,9 @@ interface OrderData {
   tryOnUrl: string | null;
   orderIdPrava: string | null;
   sandboxOrderId: string | null;
+  selfCheckOrderId: string | null;
   paymentUrl: string | null;
+  selfCheck: boolean;
   // true when the order uses Prava's REST sandbox rail (hosted card entry
   // + test card) rather than the CLI passkey flow.
   restMode: boolean;
@@ -56,9 +58,11 @@ const STATE_LABELS: Record<string, string> = {
   awaiting_approval: "Awaiting payment",
   try_on_ready: "Try-on ready",
   approved: "Approved",
+  credential_ready: "Test credential ready",
   checking_out: "Placing order",
   confirmed: "✓ Order placed",
   sandbox_completed: "✓ Sandbox completed",
+  self_check_completed: "✓ Self-check completed",
   failed: "Checkout failed",
 };
 
@@ -68,9 +72,11 @@ const STATE_COLORS: Record<string, string> = {
   awaiting_approval: "bg-primary/10 text-primary",
   try_on_ready: "bg-primary/10 text-primary",
   approved: "bg-primary/10 text-primary",
+  credential_ready: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
   checking_out: "bg-primary/10 text-primary",
   confirmed: "bg-green-500/10 text-green-600 dark:text-green-400",
   sandbox_completed: "bg-green-500/10 text-green-600 dark:text-green-400",
+  self_check_completed: "bg-muted text-muted-foreground",
   failed: "bg-red-500/10 text-red-600 dark:text-red-400",
 };
 
@@ -85,10 +91,10 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
   //   1. GET  the order for its current state.
   //   2. While awaiting approval (or try-on ready), POST /poll — for a REST
   //      sandbox order this detects when the cardholder has entered their
-  //      test card + passkey on Prava's hosted page; for self-check it
+  //      test card + device verification on Prava's hosted page; for self-check it
   //      completes instantly.
-  //   3. Once approved, POST /checkout to place the order (auto — no second
-  //      click). The loop then sees state=confirmed and fires onConfirmed.
+  //   3. Production CLI approval proceeds to checkout. REST sandbox stops at
+  //      credential_ready until a real external processor outcome exists.
   const onConfirmedRef = useRef(onConfirmed);
   onConfirmedRef.current = onConfirmed;
   const pollInFlight = useRef(false);
@@ -105,7 +111,7 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
         setOrder(data);
         setLoading(false);
 
-        if (data.state === "confirmed" || data.state === "sandbox_completed") {
+        if (data.state === "confirmed") {
           if (!confirmedFired.current) {
             confirmedFired.current = true;
             onConfirmedRef.current?.();
@@ -206,7 +212,9 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
   const canApprove = state === "awaiting_approval" || state === "try_on_ready";
   const isConfirmed = state === "confirmed";
   const isSandboxCompleted = state === "sandbox_completed";
+  const isSelfCheckCompleted = state === "self_check_completed";
   const isFailed = state === "failed";
+  const isCredentialReady = state === "credential_ready";
   const isProcessing = state === "approved" || state === "checking_out" || state === "searching";
   const productImage = showTryOn ? order.tryOnUrl : order.garmentImageUrl;
 
@@ -220,7 +228,7 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
             <span className="text-sm font-semibold">OnPoint · Agent Outfitter</span>
           </div>
           <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATE_COLORS[state] || STATE_COLORS.searching}`}>
-            {STATE_LABELS[state] || state}
+            {order.selfCheck && !isSelfCheckCompleted ? "Self-check fixture" : STATE_LABELS[state] || state}
           </span>
         </div>
       </div>
@@ -261,7 +269,7 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
         {/* Try-on upload (awaiting approval, no try-on yet) */}
         {canApprove && !showTryOn && !photoLoading && (
           <div className="space-y-2">
-            <p className="text-sm font-medium text-foreground">Try it on before you buy</p>
+            <p className="text-sm font-medium text-foreground">Try it on before checkout</p>
             <div className="flex gap-2">
               <button
                 onClick={() => fileInputRef.current?.click()}
@@ -313,6 +321,8 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
                 <p className="text-xs text-muted-foreground">
                   {order.restMode
                     ? "listed item price · sandbox session amount"
+                    : order.selfCheck
+                      ? "deterministic fixture amount"
                     : "incl. shipping & tax · binding quote"}
                 </p>
               </div>
@@ -325,13 +335,13 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
           <div className="space-y-2 rounded-lg border border-primary/20 bg-primary/[0.03] p-3">
             <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-primary">
               <Shield className="h-3.5 w-3.5" />
-              Agent spending controls
+              Requested payment controls
             </div>
             <div className="space-y-1.5 text-sm">
-              <TrustRow icon={<Lock className="h-3.5 w-3.5" />} label="Agent may spend" value={`up to $${order.trust.spendCeilingUsd} ${order.trust.currency}`} />
-              <TrustRow icon={<Lock className="h-3.5 w-3.5" />} label="Locked to" value={order.trust.merchantScope.merchant} />
-              <TrustRow icon={<KeyRound className="h-3.5 w-3.5" />} label="Credential" value="single-use, merchant-scoped" />
-              <TrustRow icon={<ScanFace className="h-3.5 w-3.5" />} label="Approval" value={order.restMode ? "card entry + passkey" : "passkey on your device"} />
+              <TrustRow icon={<Lock className="h-3.5 w-3.5" />} label="Requested ceiling" value={`$${order.trust.spendCeilingUsd} ${order.trust.currency}`} />
+              <TrustRow icon={<Lock className="h-3.5 w-3.5" />} label="Merchant request" value={order.trust.merchantScope.merchant} />
+              <TrustRow icon={<KeyRound className="h-3.5 w-3.5" />} label="If issued" value="single-use, merchant-scoped" />
+              <TrustRow icon={<ScanFace className="h-3.5 w-3.5" />} label="Required step" value={order.selfCheck ? "fixture only" : order.restMode ? "hosted card/device verification" : "passkey on your device"} />
             </div>
             <ul className="ml-5 list-disc space-y-0.5 text-xs text-muted-foreground">
               {order.trust.guardrails.map((g) => (
@@ -353,8 +363,8 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
               <KeyRound className="h-4 w-4" /> Enter test card on Prava <ArrowRight className="h-4 w-4" />
             </a>
             <p className="text-center text-[11px] text-muted-foreground">
-              Sandbox — no real money. Enter the test card + passkey, then this card
-              completes automatically.
+              Sandbox — no real money. The hosted flow advances to credential readiness;
+              an external checkout outcome is still required.
             </p>
           </div>
         ) : canApprove ? (
@@ -362,7 +372,7 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
             disabled
             className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-bold text-white opacity-90"
           >
-            <KeyRound className="h-4 w-4" /> Approve with passkey
+            <KeyRound className="h-4 w-4" /> {order.selfCheck ? "Self-check fixture" : "Approve with passkey"}
           </button>
         ) : null}
 
@@ -376,18 +386,32 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
           </div>
         )}
 
+        {isCredentialReady && (
+          <div className="rounded-lg bg-amber-500/10 px-3 py-2.5 text-sm text-amber-700 dark:text-amber-300">
+            Prava issued a sandbox credential. An external checkout must now be attempted before its real processor outcome can be reported. No merchant order or charge is claimed.
+          </div>
+        )}
+
         {/* Confirmed */}
-        {(isConfirmed || isSandboxCompleted) && (
+        {(isConfirmed || isSandboxCompleted || isSelfCheckCompleted) && (
           <div className="space-y-3">
             <div className="flex items-center gap-2 rounded-lg bg-green-500/10 px-3 py-2.5 text-green-600 dark:text-green-400">
               <Check className="h-5 w-5 flex-shrink-0" />
               <div>
                 <p className="text-sm font-bold">
-                  {isSandboxCompleted ? "Prava sandbox lifecycle completed" : "Order placed"}
+                  {isSandboxCompleted
+                    ? "Prava sandbox lifecycle completed"
+                    : isSelfCheckCompleted
+                      ? "Self-check completed"
+                      : "Order placed"}
                 </p>
                 {isSandboxCompleted ? (
                   <p className="text-xs text-green-600/80 dark:text-green-400/80">
                     Test credential issued and outcome reported. No merchant charge.
+                  </p>
+                ) : isSelfCheckCompleted ? (
+                  <p className="text-xs text-muted-foreground">
+                    Deterministic fixture only. No credential, payment, or merchant order.
                   </p>
                 ) : order.orderIdPrava ? (
                   <p className="text-xs text-green-600/80 dark:text-green-400/80">
@@ -433,7 +457,9 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
           ? "Paid via Prava · scoped card · network-level controls"
           : isSandboxCompleted
             ? "Prava sandbox · test lifecycle · no real charge"
-            : "Protected by Prava · scoped credential · user approval required"}
+            : isSelfCheckCompleted
+              ? "Self-check fixture · no transaction"
+              : "Prava session requested · user approval required"}
       </div>
     </div>
   );

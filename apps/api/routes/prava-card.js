@@ -13,8 +13,8 @@
  * polls its own order state so it stays correct if re-rendered.
  *
  * Public (no service key) — it's the card content Linq fetches. The order
- * id is unguessable (UUID) and carries no card data (credentials never leave
- * Prava).
+ * id is unguessable (UUID) and the public card payload carries no credential
+ * data; credentials returned by REST remain server-side.
  */
 
 const express = require('express');
@@ -31,9 +31,11 @@ function stateLabel(state) {
     quoted: 'Quote ready',
     awaiting_approval: 'Awaiting your passkey',
     approved: 'Approved',
+    credential_ready: 'Test credential ready',
     checking_out: 'Placing order',
     confirmed: '✓ Order placed',
     sandbox_completed: '✓ Sandbox completed',
+    self_check_completed: '✓ Self-check completed',
     failed: 'Checkout failed',
   })[state] || state;
 }
@@ -41,7 +43,7 @@ function stateLabel(state) {
 function stateColor(state) {
   if (state === 'confirmed' || state === 'sandbox_completed') return '#1a7f37';
   if (state === 'failed') return '#d1242f';
-  if (state === 'awaiting_approval' || state === 'approved' || state === 'checking_out') return '#0a66c2';
+  if (state === 'awaiting_approval' || state === 'approved' || state === 'credential_ready' || state === 'checking_out') return '#0a66c2';
   return '#6e6e73';
 }
 
@@ -55,18 +57,19 @@ function renderCard(orderId, order) {
   const ceiling = order?.trust?.spendCeilingUsd;
   const pravaOrder = order?.orderIdPrava;
   const sandboxOrder = order?.sandboxOrderId;
+  const selfCheckOrder = order?.selfCheckOrderId;
   const paymentUrl = order?.paymentUrl;
   const color = stateColor(state);
 
   const trustBlock = total ? `
     <div class="trust">
-      <div class="row"><span>Agent may spend</span><b>up to $${ceiling} ${currency}</b></div>
-      <div class="row"><span>Locked to</span><b>${merchant}</b></div>
-      <div class="row"><span>Credential</span><b>single-use, merchant-scoped</b></div>
-      <div class="row"><span>Approval</span><b>passkey on your device</b></div>
+      <div class="row"><span>Requested ceiling</span><b>$${ceiling} ${currency}</b></div>
+      <div class="row"><span>Merchant request</span><b>${merchant}</b></div>
+      <div class="row"><span>If issued</span><b>single-use, merchant-scoped</b></div>
+      <div class="row"><span>Required step</span><b>${order?.selfCheck ? 'fixture only' : order?.restMode ? 'hosted card/device verification' : 'passkey on your device'}</b></div>
     </div>` : '';
 
-  // Try-on render — the "see yourself in it before the agent buys" hero.
+  // Pre-checkout try-on render.
   const tryOnBlock = order?.tryOnUrl ? `
     <div class="tryon">
       <img src="${order.tryOnUrl}" alt="Try-on render"/>
@@ -74,12 +77,11 @@ function renderCard(orderId, order) {
     </div>` : '';
 
   const paymentBlock = ((state === 'awaiting_approval' || state === 'try_on_ready') && paymentUrl) ? `
-    <a class="pay" href="${paymentUrl}">Approve with passkey →</a>` : '';
+    <a class="pay" href="${paymentUrl}">${order?.restMode ? 'Open Prava test-card flow' : order?.selfCheck ? 'Open self-check fixture' : 'Approve with passkey'} →</a>` : '';
 
   const confirmedBlock = state === 'confirmed' && pravaOrder ? `
     <div class="confirmed">
       <div class="orderno">Prava order ${pravaOrder}</div>
-      <div class="receipt"><a href="${PUBLIC_BASE}/receipt/prava/${orderId}">View receipt</a></div>
     </div>` : '';
 
   const sandboxBlock = state === 'sandbox_completed' ? `
@@ -89,19 +91,40 @@ function renderCard(orderId, order) {
       ${sandboxOrder ? `<div class="sub">Sandbox order ${sandboxOrder}</div>` : ''}
     </div>` : '';
 
-  const title = state === 'confirmed'
+  const selfCheckBlock = state === 'self_check_completed' ? `
+    <div class="confirmed">
+      <div class="orderno" style="color:#6e6e73">Self-check completed</div>
+      <div class="sub">Deterministic fixture only. No credential, payment, or merchant order.</div>
+      ${selfCheckOrder ? `<div class="sub">Fixture ${selfCheckOrder}</div>` : ''}
+    </div>` : '';
+
+  const credentialReadyBlock = state === 'credential_ready' ? `
+    <div class="confirmed">
+      <div class="orderno" style="color:#9a6700">Sandbox credential ready</div>
+      <div class="sub">External checkout and a real processor outcome are required before report-status. No merchant order or charge is claimed.</div>
+    </div>` : '';
+
+  const title = order?.selfCheck
+    ? 'Orchestration self-check'
+    : state === 'confirmed'
     ? 'Your stylist bought it for you'
     : state === 'sandbox_completed'
-      ? 'Sandbox payment verified'
+      ? 'Sandbox lifecycle completed'
+      : state === 'self_check_completed'
+        ? 'Orchestration self-check'
       : 'Your stylist is finishing the job';
-  const priceNote = order?.restMode
+  const priceNote = order?.selfCheck
+    ? 'deterministic fixture amount'
+    : order?.restMode
     ? 'listed item price · sandbox session amount'
     : 'incl. shipping &amp; tax · binding quote';
   const footer = state === 'confirmed'
     ? 'Paid via Prava · scoped card · network-level controls'
     : state === 'sandbox_completed'
       ? 'Prava sandbox · test lifecycle · no real charge'
-      : 'Protected by Prava · scoped credential · user approval required';
+      : state === 'self_check_completed'
+        ? 'Self-check fixture · no transaction'
+        : 'Prava session requested · user approval required';
 
   return `<!doctype html>
 <html lang="en"><head>
@@ -148,7 +171,6 @@ function renderCard(orderId, order) {
   }
   .confirmed { margin-top: 16px; text-align: center; }
   .orderno { font-size: 13px; color: #1a7f37; font-weight: 700; }
-  .receipt a { color: #0a66c2; font-size: 13px; text-decoration: none; }
   .footer { font-size: 11px; color: #a1a1a6; text-align: center; padding: 0 20px 18px; }
   .tryon { margin-top: 14px; }
   .tryon img { width: 100%; border-radius: 13px; display: block; background: #f0f0f2; }
@@ -172,6 +194,8 @@ function renderCard(orderId, order) {
       ${paymentBlock}
       ${confirmedBlock}
       ${sandboxBlock}
+      ${selfCheckBlock}
+      ${credentialReadyBlock}
     </div>
     <div class="footer">${footer}</div>
   </div>
@@ -211,6 +235,7 @@ router.get('/:orderId/state', (req, res) => {
     currency: order?.currency || 'USD',
     orderIdPrava: order?.orderIdPrava || null,
     sandboxOrderId: order?.sandboxOrderId || null,
+    selfCheckOrderId: order?.selfCheckOrderId || null,
     paymentUrl: order?.paymentUrl || null,
     tryOnUrl: order?.tryOnUrl || null,
   });

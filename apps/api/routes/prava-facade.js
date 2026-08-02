@@ -1,17 +1,17 @@
 /**
  * Prava Facade — /prava/*
  *
- * Exposes Prava's agent buy-flow as HTTP endpoints so the OnPoint agent
- * backend and the Linq iMessage App card can drive a real purchase at a
- * real UCP fashion merchant. This is the agent checkout rail for the
- * Agentic Commerce Hackathon (ADR 0017, docs/PRAVA-HACKATHON.md).
+ * Exposes Prava orchestration as HTTP endpoints. The production CLI rail can
+ * drive a merchant checkout; REST sandbox stops at credential readiness until
+ * an external checkout adapter supplies a real processor outcome; self-check
+ * is fixture-only.
  *
  * The flow is an async state machine because the user approves the spend
  * with a passkey on their device (out-of-band), which can take seconds to
  * minutes. The Linq card mutates through states:
  *
- *   look → search → product → quote → session(payment_url) →
- *     [user approves passkey] → checkout → confirmed(order_id)
+ *   look → search → product → session(payment_url) → hosted verification →
+ *     credential_ready (REST) OR checkout → confirmed(order_id) (production CLI)
  *
  * Endpoints:
  *   GET  /prava/health                 — mode + transport liveness
@@ -64,18 +64,23 @@ function getOrder(id) {
 
 // Trust fields surfaced to the user (the Visa "controls + protections" story).
 function trustView(o) {
+  const selfCheck = !o.restMode && prava.selfCheck();
+  const approvalMethod = selfCheck
+    ? 'not applicable: deterministic fixture only'
+    : o.restMode
+      ? 'hosted card and device verification required before issuance'
+      : 'passkey (WebAuthn) required on the owner device before issuance';
   return {
     spendCeilingUsd: o.totalAmount,
     currency: o.currency,
-    merchantScope: { merchant: o.merchantName, url: o.merchantUrl, locked: true },
-    credentialScope: 'single-use, merchant-locked, amount-scoped',
-    approvalMethod: 'passkey (WebAuthn) on the owner device',
+    merchantScope: { merchant: o.merchantName, url: o.merchantUrl, locked: false },
+    credentialScope: 'expected if issued: single-use, merchant-locked, amount-scoped',
+    approvalMethod,
     guardrails: [
-      'owner account controls',
-      'passkey approval',
-      'mandate amount cap (enforced at card-network level)',
+      'session requests this amount and merchant metadata',
+      approvalMethod,
+      'credential controls follow Prava’s documented model if issuance succeeds',
       '15-minute session window',
-      'one-time credential',
     ],
   };
 }
@@ -83,7 +88,7 @@ function trustView(o) {
 function orderView(o) {
   return {
     orderId: o.id,
-    state: o.state, // searching|quoted|awaiting_approval|approved|checking_out|confirmed|sandbox_completed|failed
+    state: o.state, // searching|quoted|awaiting_approval|approved|credential_ready|checking_out|confirmed|sandbox_completed|self_check_completed|failed
     query: o.query || null,
     items: o.items || null,
     merchant: o.merchantName
@@ -97,6 +102,7 @@ function orderView(o) {
     checkoutSessionId: o.checkoutSessionId || null,
     orderIdPrava: o.orderIdPrava || null,
     sandboxOrderId: o.sandboxOrderId || null,
+    selfCheckOrderId: o.selfCheckOrderId || null,
     // Which payment rail this order uses — lets the client render the right
     // approval UX (hosted card-entry link for REST sandbox vs passkey button).
     restMode: !!o.restMode,
@@ -105,7 +111,7 @@ function orderView(o) {
     trust: o.totalAmount ? trustView(o) : null,
     createdAt: o.createdAt,
     updatedAt: o.updatedAt,
-    selfCheck: prava.selfCheck(),
+    selfCheck: !o.restMode && prava.selfCheck(),
   };
 }
 
@@ -141,7 +147,7 @@ router.get('/health', async (_req, res) => {
     agentLinked: process.env.PRAVA_AGENT_LINKED === '1',
     cliAvailable: cliOk,
     buyFlow: rest
-      ? ['shop_search', 'shop_product', 'create_rest_session', 'poll_rest_session', 'report_rest_session']
+      ? ['shop_search', 'shop_product', 'create_rest_session', 'poll_rest_session', 'external_checkout_required']
       : ['shop_search', 'shop_product', 'shop_quote', 'create_payment_session', 'poll_payment_session', 'shop_checkout'],
     note: rest
       ? (prava.restSandboxMode()
@@ -153,13 +159,27 @@ router.get('/health', async (_req, res) => {
   });
 });
 
-// ── GET /prava/orders/recent — activity feed (public — same data as the card) ─
+// ── GET /prava/orders/recent — privacy-safe public activity projection ─
 router.get('/orders/recent', async (_req, res) => {
   const limit = Math.min(parseInt(_req.query.limit) || 10, 50);
   const recent = [...orders.values()]
     .sort((a, b) => b.createdAt - a.createdAt)
     .slice(0, limit)
-    .map(orderView);
+    .map((o) => ({
+      orderId: crypto.createHash('sha256').update(o.id).digest('hex').slice(0, 16),
+      state: o.state,
+      query: null,
+      merchant: o.merchantName ? { name: o.merchantName, url: '', country: o.merchantCountry } : null,
+      totalAmount: o.totalAmount || null,
+      currency: o.currency || null,
+      hasTryOn: !!o.tryOnUrl,
+      orderIdPrava: o.state === 'confirmed' ? o.orderIdPrava || null : null,
+      sandboxOrderId: o.state === 'sandbox_completed' ? o.sandboxOrderId || null : null,
+      selfCheckOrderId: null,
+      restMode: !!o.restMode,
+      selfCheck: !o.restMode && prava.selfCheck(),
+      createdAt: o.createdAt,
+    }));
   res.json({ orders: recent });
 });
 
@@ -238,7 +258,7 @@ router.post('/order', async (req, res, next) => {
     // Two payment rails:
     //  • REST sandbox (PRAVA_SECRET_KEY set) — Prava's SDK/API path, the only
     //    path with a sandbox + test card. Skip the CLI quote (needs a delivery
-    //    address) and use the discovered product price as the binding total.
+    //    address) and use the discovered product price as the sandbox session amount.
     //  • CLI / self-check — full quote → createPaymentSession (real-card prod
     //    or deterministic fixtures).
     const useRest = prava.restMode();
@@ -248,7 +268,7 @@ router.post('/order', async (req, res, next) => {
     let session;
 
     if (useRest) {
-      // Binding total from the discovered offer price (no address-gated quote).
+      // Session amount from the discovered offer price (no address-gated quote).
       const prod = chosenProduct
         ? { offers: [] }
         : await prava.shopProduct({ productId: chosenVariant, merchant: chosenMerchant });
@@ -302,8 +322,8 @@ router.post('/order', async (req, res, next) => {
       checkoutSessionId: quote?.checkout_session_id || null,
       paymentSessionId: session.session_id,
       paymentUrl: session.payment_url,
-      // REST session carries a Prava order id from creation (used as the
-      // confirmed order id on checkout).
+      // REST session carries Prava's sandbox session-order record id. It is
+      // not a merchant order confirmation.
       pravaOrderId: session.order_id || null,
       // txn_ref_id captured on poll; needed to report the charge outcome.
       txnRefId: null,
@@ -313,7 +333,7 @@ router.post('/order', async (req, res, next) => {
       cryptogram: null,
       expiryMonth: null,
       expiryYear: null,
-      // UCP product image used for the try-on-before-agent-buys leg.
+      // UCP product image used for the pre-checkout try-on leg.
       garmentImageUrl: chosenProduct?.image || null,
       tryOnUrl: null,
       createdAt: now,
@@ -321,7 +341,11 @@ router.post('/order', async (req, res, next) => {
     };
     orders.set(id, order);
 
-    logger.info('Prava order initiated — awaiting passkey approval', {
+    logger.info(useRest
+      ? 'Prava sandbox order initiated — awaiting hosted card flow'
+      : prava.selfCheck()
+        ? 'Prava self-check order fixture initiated'
+        : 'Prava order initiated — awaiting passkey approval', {
       component: 'prava-facade',
       orderId: id,
       merchant: chosenMerchant,
@@ -333,7 +357,7 @@ router.post('/order', async (req, res, next) => {
 });
 
 // ── POST /prava/order/:id/try-on — IDM-VTON on the garment + user photo ─
-// The "try-on-before-agent-buys" leg. Takes the person photo (base64 data
+// The pre-checkout try-on leg. Takes the person photo (base64 data
 // URI), runs the UCP garment image through Replicate IDM-VTON, stores the
 // render on the order. Self-check placeholder when no REPLICATE_API_TOKEN.
 router.post('/order/:id/try-on', async (req, res, next) => {
@@ -378,8 +402,8 @@ router.post('/order/:id/poll', async (req, res, next) => {
     const status = o.restMode
       ? await prava.pollRestSession({ sessionId: o.paymentSessionId })
       : await prava.pollPaymentSession({ sessionId: o.paymentSessionId });
-    if (status.status === 'completed') {
-      o.state = 'approved';
+    if (status.status === 'completed' || status.status === 'credential_ready') {
+      o.state = status.status === 'credential_ready' ? 'credential_ready' : 'approved';
       // Store the single-use tokenized credentials so checkout can use them.
       o.token = status.token || null;
       o.cryptogram = status.cryptogram || null;
@@ -394,7 +418,12 @@ router.post('/order/:id/poll', async (req, res, next) => {
       o.updatedAt = Date.now();
       orders.set(o.id, o);
     }
-    res.json({ state: o.state, paymentStatus: status.status, order: orderView(o) });
+    const fixtureApproved = !o.restMode && prava.selfCheck() && o.state === 'approved';
+    res.json({
+      state: fixtureApproved ? 'self_check_approved' : o.state,
+      paymentStatus: fixtureApproved ? 'self_check_completed' : status.status,
+      order: orderView(o),
+    });
   } catch (e) { next(e); }
 });
 
@@ -420,7 +449,7 @@ router.post('/order/:id/approve', (req, res) => {
     o.state = 'approved';
     o.updatedAt = Date.now();
     orders.set(o.id, o);
-    res.json({ state: o.state, order: orderView(o) });
+    res.json({ state: 'self_check_approved', order: orderView(o) });
   } catch (e) {
     res.status(e.status || 500).json({ error: e.message });
   }
@@ -431,6 +460,13 @@ router.post('/order/:id/approve', (req, res) => {
 router.post('/order/:id/checkout', async (req, res, next) => {
   try {
     const o = getOrder(req.params.id);
+    if (o.restMode) {
+      return res.status(409).json({
+        error: 'REST credentials must be used in an external checkout before its real processor outcome can be reported. This endpoint will not synthesize approval.',
+        code: 'EXTERNAL_CHECKOUT_REQUIRED',
+        order: orderView(o),
+      });
+    }
     if (o.state !== 'approved') {
       return res.status(409).json({
         error: `Order must be approved before checkout (state=${o.state}). POST /prava/order/:id/poll first.`,
@@ -441,30 +477,32 @@ router.post('/order/:id/checkout', async (req, res, next) => {
     o.updatedAt = Date.now();
     orders.set(o.id, o);
 
-    const result = o.restMode
-      ? await prava.reportRestSession({
-          sessionId: o.paymentSessionId,
-          txnRefId: o.txnRefId,
-          status: 'APPROVED',
-          orderId: o.pravaOrderId,
-        })
-      : await prava.shopCheckout({
-          checkoutSessionId: o.checkoutSessionId,
-          token: o.token,
-          cryptogram: o.cryptogram,
-          expiryMonth: o.expiryMonth,
-          expiryYear: o.expiryYear,
-        });
+    const result = await prava.shopCheckout({
+      checkoutSessionId: o.checkoutSessionId,
+      token: o.token,
+      cryptogram: o.cryptogram,
+      expiryMonth: o.expiryMonth,
+      expiryYear: o.expiryYear,
+    });
 
     if (result.status === 'completed' && result.order_id) {
-      o.state = result.sandbox ? 'sandbox_completed' : 'confirmed';
+      o.state = result.sandbox
+        ? 'sandbox_completed'
+        : result.self_check
+          ? 'self_check_completed'
+          : 'confirmed';
       if (result.sandbox) o.sandboxOrderId = result.order_id;
+      else if (result.self_check) o.selfCheckOrderId = result.order_id;
       else o.orderIdPrava = result.order_id;
       o.updatedAt = Date.now();
       orders.set(o.id, o);
-      logger.info(result.sandbox ? 'Prava sandbox lifecycle completed' : 'Prava order confirmed', {
+      logger.info(result.sandbox
+        ? 'Prava sandbox lifecycle completed'
+        : result.self_check
+          ? 'Prava self-check fixture completed'
+          : 'Prava order confirmed', {
         component: 'prava-facade', orderId: o.id, pravaOrder: result.order_id,
-        amount: result.amount, sandbox: !!result.sandbox,
+        amount: result.amount, sandbox: !!result.sandbox, selfCheck: !!result.self_check,
       });
       return res.json({ state: o.state, order: orderView(o), result });
     }

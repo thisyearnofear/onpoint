@@ -22,8 +22,12 @@ interface PravaOrder {
   merchant: { name: string; url: string; country: string } | null;
   totalAmount: string | null;
   currency: string | null;
-  tryOnUrl: string | null;
+  hasTryOn: boolean;
   orderIdPrava: string | null;
+  sandboxOrderId: string | null;
+  selfCheckOrderId: string | null;
+  restMode: boolean;
+  selfCheck: boolean;
   createdAt: number;
 }
 
@@ -35,6 +39,7 @@ interface FeedItem {
   amount: string;
   timestamp: number;
   live: boolean; // true when sourced from a real Prava flow
+  badge: "Merchant order" | "Sandbox" | "Session" | "Try-on" | "Fixture";
   pravaOrder?: string;
 }
 
@@ -49,6 +54,7 @@ const SYSTEM_FACTS: FeedItem[] = [
     amount: "live",
     timestamp: 0,
     live: false,
+    badge: "Session",
   },
   {
     id: "fact-api",
@@ -58,6 +64,7 @@ const SYSTEM_FACTS: FeedItem[] = [
     amount: "open",
     timestamp: 0,
     live: false,
+    badge: "Session",
   },
   {
     id: "fact-whatsapp",
@@ -67,6 +74,7 @@ const SYSTEM_FACTS: FeedItem[] = [
     amount: "ready",
     timestamp: 0,
     live: false,
+    badge: "Session",
   },
   {
     id: "fact-okx",
@@ -76,6 +84,7 @@ const SYSTEM_FACTS: FeedItem[] = [
     amount: "listed",
     timestamp: 0,
     live: false,
+    badge: "Session",
   },
 ];
 
@@ -108,9 +117,43 @@ function orderToItems(o: PravaOrder): FeedItem[] {
       amount,
       timestamp: o.createdAt,
       live: true,
+      badge: "Merchant order",
       pravaOrder: o.orderIdPrava,
     });
-  } else if (o.tryOnUrl) {
+  } else if (o.selfCheck) {
+    items.push({
+      id: `${o.orderId}-fixture`,
+      action: "session",
+      label: "Self-check fixture",
+      detail: `${merchant} · no credential, payment, or merchant order`,
+      amount,
+      timestamp: o.createdAt,
+      live: false,
+      badge: "Fixture",
+    });
+  } else if (o.state === "sandbox_completed") {
+    items.push({
+      id: `${o.orderId}-sandbox`,
+      action: "session",
+      label: "Sandbox lifecycle completed",
+      detail: `${merchant} · no merchant order`,
+      amount,
+      timestamp: o.createdAt,
+      live: true,
+      badge: "Sandbox",
+    });
+  } else if (o.state === "credential_ready") {
+    items.push({
+      id: `${o.orderId}-credential`,
+      action: "session",
+      label: "Sandbox credential ready",
+      detail: `${merchant} · external checkout not attempted`,
+      amount,
+      timestamp: o.createdAt,
+      live: true,
+      badge: "Sandbox",
+    });
+  } else if (o.hasTryOn) {
     items.push({
       id: `${o.orderId}-tryon`,
       action: "try_on",
@@ -119,16 +162,18 @@ function orderToItems(o: PravaOrder): FeedItem[] {
       amount,
       timestamp: o.createdAt,
       live: true,
+      badge: "Try-on",
     });
   } else if (o.merchant) {
     items.push({
       id: `${o.orderId}-session`,
       action: "session",
-      label: "Scoped card issued",
-      detail: `${merchant} · merchant-locked`,
+      label: o.restMode && o.state === "failed" ? "Prava sandbox flow failed" : "Prava session requested",
+      detail: `${merchant} · ${o.state}`,
       amount,
       timestamp: o.createdAt,
       live: true,
+      badge: o.restMode ? "Sandbox" : "Session",
     });
   } else {
     items.push({
@@ -139,6 +184,7 @@ function orderToItems(o: PravaOrder): FeedItem[] {
       amount: "—",
       timestamp: o.createdAt,
       live: true,
+      badge: "Session",
     });
   }
   return items;
@@ -158,7 +204,7 @@ export function AgentActivityFeed() {
 
       const mapped = orders.flatMap(orderToItems);
       if (mapped.length) {
-        setIsLive(true);
+        setIsLive(mapped.some((item) => item.live));
         setLiveItems(mapped.slice(0, 8));
       }
     } catch {
@@ -188,7 +234,7 @@ export function AgentActivityFeed() {
             </h3>
             <p className="text-xs text-muted-foreground">
               {isLive
-                ? "Recent agent transactions on OnPoint"
+                ? "Recent Prava workflow activity on OnPoint"
                 : "Live infrastructure — agent transactions will appear here"}
             </p>
           </div>
@@ -244,7 +290,7 @@ export function AgentActivityFeed() {
                           {item.label}
                         </p>
                         <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
-                          Verified
+                          {item.badge}
                         </span>
                       </div>
                       <p className="truncate text-xs text-muted-foreground">

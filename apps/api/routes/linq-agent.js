@@ -3,12 +3,12 @@
  *
  * The message-native surface of the OnPoint agent for the Agentic Commerce
  * Hackathon (ADR 0017, docs/PRAVA-HACKATHON.md). Receives Linq iMessage
- * webhooks and orchestrates the buy-flow against the /prava facade, sending
- * and mutating an iMessage App card in place.
+ * webhooks and orchestrates the rail-specific /prava flow, sending and
+ * mutating an iMessage App status card in place.
  *
  * The card mutates through states in one iMessage bubble:
- *   inbound text → "searching" card → "quote+trust" card (payment_url) →
- *   [user approves passkey out-of-band] → "confirmed order" card
+ *   inbound text → session/status card → hosted approval or verification →
+ *   credential_ready (REST) or confirmed merchant order (production CLI)
  *
  * Endpoints:
  *   POST /linq/webhook        — Linq inbound (message.received / message.updated
@@ -184,7 +184,7 @@ async function handleStyleIntent(chatId, from, text, photo) {
   const order = await pravaOrderFromIntent(text);
 
   // If the inbound message carried a person photo (Linq media part), run
-  // IDM-VTON on the UCP garment image — the "try-on-before-agent-buys" leg.
+  // IDM-VTON on the UCP garment image before checkout.
   if (photo) {
     try {
       const tr = await pravaTryOn(order.orderId, photo);
@@ -197,14 +197,19 @@ async function handleStyleIntent(chatId, from, text, photo) {
 
   chatOrders.set(chatId, { orderId: order.orderId, from, messageId: null, ts: Date.now() });
 
-  // Send the "quote + trust" card (with try-on render if available) + the
-  // payment_url for passkey approval.
+  // Send the amount + requested-controls card (with try-on render if available)
+  // and the relevant hosted-flow URL.
   const cardUrl = cardUrlFor(order.orderId, order.state);
   // Linq requires an imessage_app part to be the only part, so send a text
   // intro first, then the card bubble as a second message.
+  const approvalCopy = order.selfCheck
+    ? 'This is a deterministic fixture; no credential, payment, or merchant order will occur.'
+    : order.restMode
+      ? 'Open Prava’s hosted sandbox flow, then 👍 the card to continue. No real money is used.'
+      : 'Approve the spend with your passkey, then 👍 the card to confirm.';
   await linq.sendMessage({
     to: from,
-    text: ` Styled "${text}" — found ${order.merchant?.name}. Total ${order.totalAmount} ${order.currency}. Approve the spend with your passkey, then 👍 the card to confirm. Agent may spend up to $${order.trust?.spendCeilingUsd}, locked to ${order.merchant?.name}.`,
+    text: ` Styled "${text}" — found ${order.merchant?.name}. Requested total ${order.totalAmount} ${order.currency}. ${approvalCopy}`,
   });
   const sent = await linq.sendMessage({
     to: from,
@@ -223,13 +228,27 @@ async function handleApproval(chatId, _tapback) {
   if (!active) return;
   const { orderId } = active;
 
-  // Poll the facade: this detects the owner's passkey approval and stores the
-  // single-use tokenized credentials on the order. In self-check it returns
-  // fake creds immediately; in live it reflects the real approved session.
-  // Once approved, checkout places the order with those credentials.
-  await pravaPollOrder(orderId);
+  // Poll the facade. Production CLI checkout proceeds only after real approval.
+  // REST sandbox stops at credential_ready until an external checkout supplies
+  // a real processor outcome; self-check remains explicitly fixture-only.
+  const poll = await pravaPollOrder(orderId);
+  if (poll.state !== 'approved' && poll.state !== 'self_check_approved') {
+    if (active.messageId) {
+      await linq.updateMessage({
+        messageId: active.messageId,
+        cardUrl: cardUrlFor(orderId, poll.state),
+        caption: 'OnPoint Stylist',
+        subcaption: poll.state === 'credential_ready'
+          ? 'Test credential ready — external checkout outcome required'
+          : 'Awaiting approval',
+      });
+    }
+    return;
+  }
   const result = await pravaCheckoutOrder(orderId);
-  const state = result.state === 'confirmed' || result.state === 'sandbox_completed'
+  const state = result.state === 'confirmed' ||
+    result.state === 'sandbox_completed' ||
+    result.state === 'self_check_completed'
     ? result.state
     : 'awaiting_approval';
 
@@ -244,17 +263,21 @@ async function handleApproval(chatId, _tapback) {
         ? `✓ Order placed — Prava ${result.order.orderIdPrava}`
         : state === 'sandbox_completed'
           ? '✓ Prava sandbox completed — no merchant charge'
+          : state === 'self_check_completed'
+            ? '✓ Self-check completed — no transaction'
           : 'Awaiting approval',
     });
   }
 
-  if (state === 'confirmed' || state === 'sandbox_completed') {
+  if (state === 'confirmed' || state === 'sandbox_completed' || state === 'self_check_completed') {
     await linq.sendMessage({
       to: active.from,
       text: state === 'sandbox_completed'
         ? '✓ Prava sandbox lifecycle completed: test credential issued and outcome reported. No merchant charge was made.'
+        : state === 'self_check_completed'
+          ? '✓ Self-check completed with deterministic fixtures. No credential, payment, or merchant order occurred.'
         : result.order?.orderIdPrava
-        ? `✓ Ordered. Prava order ${result.order.orderIdPrava}. Receipt: ${PUBLIC_BASE}/receipt/prava/${orderId}`
+        ? `✓ Ordered. Prava order ${result.order.orderIdPrava}.`
         : '✓ Confirmed.',
     });
     chatOrders.delete(chatId);

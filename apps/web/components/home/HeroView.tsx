@@ -274,8 +274,8 @@ export function HeroView() {
 
       <LiveCommerceProof />
 
-      {/* Agent flow — the front door. Search real UCP brands, try on, approve,
-          and buy — all inline. Not a demo page; the product itself. */}
+      {/* Agent flow — the front door. Search live UCP products, try on, and
+          open a scoped Prava payment session inline. */}
       <section id="agent-search" className="scroll-mt-20 border-t border-border/30 bg-gradient-to-b from-background to-muted/10">
         <div className="container mx-auto px-4 py-10 md:py-14">
           <div className="mx-auto max-w-2xl">
@@ -285,10 +285,10 @@ export function HeroView() {
                 Agent Commerce
               </div>
               <h2 className="text-2xl md:text-3xl font-black tracking-tight">
-                Search, try on, and buy — via API
+                Search, try on, and prepare checkout — via API
               </h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                Search a style. The agent discovers real brands, tries them on you, and buys with a scoped card you approve.
+                Search a style. The agent discovers live products, tries them on you, and prepares a scoped Prava session for your approval.
               </p>
             </div>
             <AgentFlow />

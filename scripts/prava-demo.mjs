@@ -9,15 +9,14 @@
  * Flow:
  *   1. Discover  — POST /prava/search        (UCP fashion merchants)
  *   2. Try on    — POST /prava/order/:id/try-on  (IDM-VTON on the garment + person)
- *   3. Quote     — (folded into POST /prava/order — binding total + checkout_session)
+ *   3. Amount    — binding quote in production CLI; fixture amount in self-check
  *   4. Authorize — (folded into POST /prava/order — payment session + payment_url)
  *   5. Approve   — POST /prava/order/:id/poll  (passkey approval → single-use token+cryptogram)
  *   6. Checkout — POST /prava/order/:id/checkout → fixture order id in self-check;
  *                 real order id only when run against the production CLI
  *   7. Prove     — GET  /prava/card/:id           (mutating iMessage App card)
  *
- * Then the SDK/API REST sandbox fallback (live-demo safety net):
- *   create session → poll result → report APPROVED → completed.
+ * In self-check only, it also validates the REST fixture response shape.
  *
  * If LINQ_API_KEY + LINQ_DEMO_TO are set, it also sends a REAL iMessage App
  * card to that number (the live Linq leg). Otherwise the Linq send is skipped.
@@ -35,6 +34,13 @@ import express from "express";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
+const LIVE = process.argv.includes("--live");
+// Default runs must be deterministic even when the shell has Prava credentials.
+if (!LIVE) {
+  delete process.env.PRAVA_SECRET_KEY;
+  delete process.env.PRAVA_PUBLISHABLE_KEY;
+  delete process.env.PRAVA_AGENT_LINKED;
+}
 // CommonJS route modules from the API.
 const pravaCard = require("../apps/api/routes/prava-card.js");
 const pravaSandbox = require("../apps/api/routes/prava-sandbox.js");
@@ -46,7 +52,6 @@ const linqAgent = require("../apps/api/routes/linq-agent.js");
 process.env.SERVICE_API_KEY = process.env.SERVICE_API_KEY || "demo-key";
 const SERVICE_KEY = process.env.SERVICE_API_KEY;
 
-const LIVE = process.argv.includes("--live");
 const LINQ_DEMO_TO = process.env.LINQ_DEMO_TO || null;
 
 const log = (step, ...rest) => console.log(`\n— ${step} —`);
@@ -67,23 +72,31 @@ async function main() {
   });
   const base = `http://localhost:${server.address().port}`;
   const headers = { "x-service-key": SERVICE_KEY, "Content-Type": "application/json" };
-  const post = (p, body) =>
-    fetch(`${base}${p}`, { method: "POST", headers, body: JSON.stringify(body || {}) }).then((r) => r.json());
-  const get = (p) => fetch(`${base}${p}`, { headers }).then((r) => r.json());
-  const getText = (p) => fetch(`${base}${p}`).then((r) => r.text());
+  const read = async (r, path, text = false) => {
+    const body = text ? await r.text() : await r.json();
+    if (!r.ok) throw new Error(`${path} failed ${r.status}: ${text ? body : JSON.stringify(body)}`);
+    return body;
+  };
+  const post = (p, body) => fetch(`${base}${p}`, {
+    method: "POST", headers, body: JSON.stringify(body || {}),
+  }).then((r) => read(r, p));
+  const get = (p) => fetch(`${base}${p}`, { headers }).then((r) => read(r, p));
+  const getText = (p) => fetch(`${base}${p}`).then((r) => read(r, p, true));
 
   console.log("╔══════════════════════════════════════════════════════════════╗");
   console.log("║  OnPoint × Prava × Linq — Agent Outfitter demo               ║");
-  console.log("║  “Your iMessage stylist: discovers, tries on, and buys.”   ║");
+  console.log("║  “Discover, try on, and prepare a scoped checkout.”        ║");
   console.log("╚══════════════════════════════════════════════════════════════╝");
 
   // ── Health ────────────────────────────────────────────────────────
   log("0 · Health");
   const ph = await get("/prava/health");
+  const selfCheck = ph.mode === "self-check";
+  const restRail = ph.mode === "sandbox-rest" || ph.mode === "live-rest";
   const lh = await get("/linq/health");
   ok("Prava mode", ph.mode);
   sub("transport", ph.transport);
-  if (ph.mode === "self-check") {
+  if (selfCheck) {
     sub("evidence level", "deterministic fixture — validates orchestration, not a transaction");
   }
   ok("Linq mode", lh.mode);
@@ -97,18 +110,22 @@ async function main() {
   sub("top result", `${top?.title} — ${top?.merchant}`);
 
   // ── 2+3+4. Order (quote + payment session) ───────────────────────
-  log("2 · Create order — quote (binding total) + payment session (passkey)");
+  log(selfCheck
+    ? "2 · Create self-check order — deterministic quote + session fixtures"
+    : restRail
+      ? "2 · Create real Prava REST session from the discovered listed price"
+    : "2 · Create order — binding quote + payment session");
   const order = await post("/prava/order", { query: "black legging rooftop brunch" });
   ok("order", order.orderId);
   sub("merchant", order.merchant?.name);
-  sub("total (binding)", `${order.totalAmount} ${order.currency}`);
-  sub("spend ceiling", `$${order.trust?.spendCeilingUsd}`);
-  sub("merchant-locked", order.trust?.merchantScope?.locked);
+  sub(selfCheck ? "fixture total" : restRail ? "sandbox session amount" : "binding total", `${order.totalAmount} ${order.currency}`);
+  sub("requested ceiling", `$${order.trust?.spendCeilingUsd}`);
+  sub("requested merchant", order.trust?.merchantScope?.merchant);
   sub("payment_url present", !!order.paymentUrl);
   sub("checkout_session_id", order.checkoutSessionId);
 
   // ── 2b. Try on (IDM-VTON on the UCP garment + person photo) ──────
-  log("3 · Try-on — IDM-VTON on the garment + your photo (try-on-before-agent-buys)");
+  log("3 · Try-on — IDM-VTON on the garment + your photo (before checkout)");
   const tr = await post(`/prava/order/${order.orderId}/try-on`, {
     photoUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b1293a.jpg?auto=format&fit=crop&w=600&q=60",
   });
@@ -118,49 +135,74 @@ async function main() {
   sub("state", tr.order?.state);
 
   // ── 5. Approve (passkey) ──────────────────────────────────────────
-  log("4 · Approve — owner passkey (poll returns single-use tokenized credentials)");
+  log(selfCheck
+    ? "4 · Approval fixture — no passkey or credential"
+    : restRail
+      ? "4 · Poll hosted card/device flow"
+      : "4 · Approve — owner passkey returns single-use tokenized credentials");
   const ap = await post(`/prava/order/${order.orderId}/poll`, {});
   ok("state", ap.state);
   ok("payment status", ap.paymentStatus);
-  sub("credentials captured", ap.state === "approved" ? "yes (token + cryptogram held server-side)" : "no");
+  sub("evidence", selfCheck
+    ? "fixture state only — no passkey or credential"
+    : ap.state === "credential_ready"
+      ? "sandbox credential held server-side; external checkout not attempted"
+      : ap.state === "approved" ? "credential held server-side" : "no credential issued");
 
   // ── 6. Checkout ──────────────────────────────────────────────────
-  log(ph.mode === "self-check"
-    ? "5 · Checkout — deterministic shop_checkout fixture (no transaction)"
-    : "5 · Checkout — agent completes the purchase with Prava shop_checkout");
-  const co = await post(`/prava/order/${order.orderId}/checkout`, {});
-  ok("state", co.state);
-  ok(ph.mode === "self-check" ? "fixture order id" : "Prava order id", co.order?.orderIdPrava || "(none)");
-  sub("credential scope", co.order?.trust?.credentialScope);
+  let co = { order };
+  if (restRail) {
+    log("5 · REST boundary — external checkout required");
+    sub("state", ap.state);
+    sub("result", "no checkout or report-status call made");
+  } else if (ap.state === "approved" || (selfCheck && ap.state === "self_check_approved")) {
+    log(selfCheck
+      ? "5 · Checkout — deterministic shop_checkout fixture (no transaction)"
+      : "5 · Checkout — production CLI shop_checkout");
+    co = await post(`/prava/order/${order.orderId}/checkout`, {});
+    ok("state", co.state);
+    ok(selfCheck ? "fixture id" : "Prava order id",
+      selfCheck ? co.order?.selfCheckOrderId : co.order?.orderIdPrava);
+    sub("credential scope", co.order?.trust?.credentialScope);
+  } else {
+    log("5 · Checkout not run");
+    sub("reason", `session state is ${ap.state}`);
+  }
 
   // ── 7. Prove — the mutating iMessage App card ────────────────────
   log("6 · Prove — the mutating iMessage App card");
   const card = await getText(`/prava/card/${order.orderId}`);
   ok("card renders try-on", card.includes("How it looks on you"));
-  ok("card shows spend ceiling", card.includes(`up to $${order.trust.spendCeilingUsd}`));
-  ok("card shows fixture completion", card.includes("Order placed"));
-  ok("card shows fixture order no", card.includes(co.order.orderIdPrava));
+  ok("card shows requested ceiling", card.includes(`$${order.trust.spendCeilingUsd}`));
+  if (selfCheck) {
+    ok("card labels self-check", card.includes("Self-check completed"));
+    ok("card disclaims transaction", card.includes("No credential, payment, or merchant order"));
+  } else {
+    ok("card avoids merchant confirmation", !card.includes("Your stylist bought it for you"));
+  }
   console.log(`\n  🔗 iMessage App card URL:  ${process.env.PUBLIC_BASE_URL || "https://api.onpoint.famile.xyz"}/prava/card/${order.orderId}`);
 
   // ── Sandbox fallback (live-demo safety net) ──────────────────────
-  log("7 · Sandbox contract self-check — mocked session shape only");
-  const sh = await get("/prava/sandbox/health");
-  sub("sandbox mode", sh.mode);
-  const session = await post("/prava/sandbox/order", {
-    totalAmount: order.totalAmount,
-    merchantName: order.merchant?.name,
-    merchantUrl: order.merchant?.url,
-  });
-  ok("session", session.sessionId);
-  sub("iframe_url present", !!session.iframeUrl);
-  const result = await get(`/prava/sandbox/order/${session.sessionId}/result`);
-  ok("payment result", result.status);
-  sub("one-time token", result.transactions?.[0]?.line_items?.[0]?.token);
-  const report = await post(`/prava/sandbox/order/${session.sessionId}/report`, {
-    txnRefId: "tli_mock_001",
-    status: "APPROVED",
-  });
-  ok("final status", report.status);
+  if (selfCheck) {
+    log("7 · Sandbox contract self-check — mocked response shape only");
+    const sh = await get("/prava/sandbox/health");
+    sub("sandbox mode", sh.mode);
+    const session = await post("/prava/sandbox/order", {
+      totalAmount: order.totalAmount,
+      merchantName: order.merchant?.name,
+      merchantUrl: order.merchant?.url,
+    });
+    ok("fixture session", session.sessionId);
+    sub("fixture iframe_url present", !!session.iframeUrl);
+    const result = await get(`/prava/sandbox/order/${session.sessionId}/result`);
+    ok("fixture payment-result state", result.status);
+    sub("fixture line-item shape", Array.isArray(result.transactions?.[0]?.line_items));
+    const report = await post(`/prava/sandbox/order/${session.sessionId}/report`, { status: "APPROVED" });
+    ok("fixture report state", report.status);
+  } else {
+    log("7 · Sandbox fixture contract");
+    sub("skipped", "live mode never reports a fabricated processor outcome");
+  }
 
   // ── Live Linq send (optional) ────────────────────────────────────
   if (LIVE && LINQ_DEMO_TO) {
@@ -174,7 +216,7 @@ async function main() {
       // text intro first, then the card bubble as a second message.
       const intro = await linq.sendMessage({
         to: LINQ_DEMO_TO,
-        text: `Your OnPoint stylist styled "${"black legging rooftop brunch"}" — found ${order.merchant?.name}. Total ${order.totalAmount} ${order.currency}. Approve the spend with your passkey, then 👍 the card to confirm.`,
+        text: `Your OnPoint stylist found ${order.merchant?.name}. Requested total ${order.totalAmount} ${order.currency}. Open the status card for the next step.`,
       });
       ok("intro iMessage sent", intro.messageId ? `message ${intro.messageId}` : "(mock)");
       sub("chat id", intro.chatId);
@@ -188,7 +230,7 @@ async function main() {
         // valid card.
         cardImageUrl: tr.provider && tr.provider !== 'self-check-placeholder' ? tryOnUrl : undefined,
         caption: "OnPoint Stylist",
-        subcaption: `${order.merchant?.name} · $${order.totalAmount} ${order.currency} — tap 👍 to approve`,
+        subcaption: `${order.merchant?.name} · $${order.totalAmount} ${order.currency} — Prava status`,
       });
       ok("card iMessage sent", card.messageId ? `message ${card.messageId}` : "(mock)");
       sub("card url", cardUrl);
@@ -201,9 +243,11 @@ async function main() {
   }
 
   console.log("\n═══════════════════════════════════════════════════════════════");
-  console.log(ph.mode === "self-check"
+  console.log(selfCheck
     ? "Self-check complete — orchestration validated with deterministic fixtures; no transaction claimed."
-    : "Demo complete — Prava checkout executed through the configured transport.");
+    : restRail
+      ? "Live check complete — real session path exercised; no checkout, processor outcome, or merchant order claimed."
+      : "Live CLI check complete — see the state and order evidence above.");
   console.log("═══════════════════════════════════════════════════════════════\n");
 
   server.close(() => process.exit(0));
