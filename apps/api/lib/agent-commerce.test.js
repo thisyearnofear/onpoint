@@ -9,6 +9,7 @@ const {
   curatorSellerBps,
   buildListingAgentCommerce,
   buildStorefrontAgentCommerce,
+  tryOnPriceCusd,
 } = require('./agent-commerce');
 
 const WALLET = '0x1111111111111111111111111111111111111111';
@@ -17,10 +18,16 @@ const SPLIT = '0x2222222222222222222222222222222222222222';
 describe('agent-commerce helpers', () => {
   beforeEach(() => {
     delete process.env.KES_PER_USD;
+    delete process.env.X402_TRYON_PRICE_USD;
+    delete process.env.X402_TRYON_PRICE_USD_DIGITAL;
+    delete process.env.X402_TRYON_PRICE_USD_PHYSICAL;
   });
 
   afterEach(() => {
     delete process.env.KES_PER_USD;
+    delete process.env.X402_TRYON_PRICE_USD;
+    delete process.env.X402_TRYON_PRICE_USD_DIGITAL;
+    delete process.env.X402_TRYON_PRICE_USD_PHYSICAL;
   });
 
   describe('kesToCusd', () => {
@@ -122,6 +129,48 @@ describe('agent-commerce helpers', () => {
           sizes: [{ size: 'M', stock: 3, price: 2500 }],
         }),
       ).toBeNull();
+    });
+  });
+
+  describe('tryOnPriceCusd', () => {
+    it('defaults to $0.03 for digital listings', () => {
+      expect(tryOnPriceCusd(undefined, 'digital')).toBe(0.03);
+    });
+
+    it('defaults to $0.05 for physical listings', () => {
+      expect(tryOnPriceCusd(undefined, 'physical')).toBe(0.05);
+      expect(tryOnPriceCusd(undefined, undefined)).toBe(0.05);
+    });
+
+    it('per-curator override wins for both types', () => {
+      const curator = { commerce: { tryOnPriceUsd: 0.07 } };
+      expect(tryOnPriceCusd(curator, 'digital')).toBe(0.07);
+      expect(tryOnPriceCusd(curator, 'physical')).toBe(0.07);
+    });
+
+    it('ignores non-positive per-curator overrides', () => {
+      const curator = { commerce: { tryOnPriceUsd: -1 } };
+      expect(tryOnPriceCusd(curator, 'digital')).toBe(0.03);
+      expect(tryOnPriceCusd(curator, 'physical')).toBe(0.05);
+    });
+
+    it('type-specific env vars override the matching tier only', () => {
+      process.env.X402_TRYON_PRICE_USD_DIGITAL = '0.02';
+      process.env.X402_TRYON_PRICE_USD_PHYSICAL = '0.08';
+      expect(tryOnPriceCusd(undefined, 'digital')).toBe(0.02);
+      expect(tryOnPriceCusd(undefined, 'physical')).toBe(0.08);
+    });
+
+    it('shared env var applies to both tiers when no type-specific var is set', () => {
+      process.env.X402_TRYON_PRICE_USD = '0.04';
+      expect(tryOnPriceCusd(undefined, 'digital')).toBe(0.04);
+      expect(tryOnPriceCusd(undefined, 'physical')).toBe(0.04);
+    });
+
+    it('falls back to type defaults when env vars are garbage', () => {
+      process.env.X402_TRYON_PRICE_USD = 'garbage';
+      expect(tryOnPriceCusd(undefined, 'digital')).toBe(0.03);
+      expect(tryOnPriceCusd(undefined, 'physical')).toBe(0.05);
     });
   });
 

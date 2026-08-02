@@ -26,6 +26,7 @@ import {
   createPublicClient,
   http,
   parseAbi,
+  encodeFunctionData,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { celo } from "viem/chains";
@@ -54,18 +55,18 @@ function fail(message) {
   process.exit(1);
 }
 
-// ── 1. Discover ──────────────────────────────────────────────
-console.log(`→ Discovering curators via ${API_BASE}/api/curator/directory`);
-const directory = await api("/api/curator/directory");
+// ── 1. Discover (server-side agent-purchasable filter) ───────
+console.log(`→ Discovering curators via ${API_BASE}/api/curator/directory?agentPurchasable=1`);
+const directory = await api("/api/curator/directory?agentPurchasable=1");
 if (directory.status !== 200) fail(`Directory unavailable (HTTP ${directory.status})`);
 
 const candidates = (directory.body.curators || []).filter((c) =>
-  CURATOR_SLUG ? c.slug === CURATOR_SLUG : c.agentCommerceEnabled,
+  CURATOR_SLUG ? c.slug === CURATOR_SLUG : c.agentPurchasable !== false,
 );
 if (candidates.length === 0) {
   fail(CURATOR_SLUG
-    ? `Curator "${CURATOR_SLUG}" not found in directory`
-    : "No curators with agent commerce enabled — a curator needs a payout wallet first");
+    ? `Curator "${CURATOR_SLUG}" not found in the agent-purchasable directory`
+    : "No agent-purchasable curators — a curator needs a payout wallet and live physical SKUs first");
 }
 
 // ── 2. Browse — first curator with a purchasable offer ───────
@@ -105,7 +106,9 @@ if (quoteRes.status !== 402) {
 }
 const quote = quoteRes.body.quote;
 const requirements = quoteRes.body.accepts?.[0];
+const dataSuffix = quote?.attribution?.dataSuffix;
 console.log(`→ 402 challenge: pay ${quote.totalCusd} cUSD to ${quote.payTo} on chain ${quote.chainId}`);
+console.log(`→ Attribution dataSuffix: ${dataSuffix || "(none)"}`);
 
 if (DRY_RUN) {
   console.log("✓ Dry run complete — storefront is agent-purchasable. Set BUYER_PRIVATE_KEY and re-run to buy.");
@@ -132,11 +135,18 @@ if (balance < amountWei) {
 }
 
 console.log(`→ Paying from ${account.address}…`);
-const txHash = await wallet.writeContract({
-  address: requirements.asset,
+
+// Append the ERC-8021 attribution dataSuffix to the transfer's calldata —
+// this is how the payment is tagged as OnPoint activity on Celo.
+const txData = encodeFunctionData({
   abi: ERC20_ABI,
   functionName: "transfer",
   args: [quote.payTo, amountWei],
+}) + (dataSuffix ? dataSuffix.replace(/^0x/, "") : "");
+
+const txHash = await wallet.sendTransaction({
+  to: requirements.asset,
+  data: txData,
 });
 console.log(`→ Payment sent: https://celoscan.io/tx/${txHash} — waiting for confirmation`);
 await publicClient.waitForTransactionReceipt({ hash: txHash });
@@ -144,7 +154,7 @@ await publicClient.waitForTransactionReceipt({ hash: txHash });
 // ── 5. Confirm — re-POST with payment proof ──────────────────
 const confirmRes = await api(`/api/curator/${curator.slug}/order`, {
   method: "POST",
-  body: JSON.stringify({ ...orderBody, paymentTxHash: txHash }),
+  body: JSON.stringify({ ...orderBody, paymentTxHash: txHash, quoteId: quote.quoteId }),
 });
 if (confirmRes.status !== 201) {
   fail(`Order confirmation failed (HTTP ${confirmRes.status}): ${JSON.stringify(confirmRes.body)}`);

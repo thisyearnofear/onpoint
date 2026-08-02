@@ -81,26 +81,40 @@ function buildListingAgentCommerce(curator, listing) {
 /**
  * Price of one agent try-on call in cUSD.
  *
- * Per-curator override: if the curator's commerce config has
- * tryOnPriceUsd, use it. Otherwise fall back to the env var
- * X402_TRYON_PRICE_USD (default: 0.03 — see ADR 0013).
+ * Tiered by listing inventory type: digital try-ons default to $0.03,
+ * physical try-ons default to $0.05 (see ADR 0013). Precedence:
+ * per-curator `commerce.tryOnPriceUsd` → env var
+ * (X402_TRYON_PRICE_USD applies to both, optionally tiered via
+ * X402_TRYON_PRICE_USD_DIGITAL / X402_TRYON_PRICE_USD_PHYSICAL) →
+ * type-based default.
  *
  * @param {object} [curator] — optional curator record for per-curator pricing
+ * @param {string} [inventoryType] — 'digital' | 'physical' (default: physical)
  */
-function tryOnPriceCusd(curator) {
+function tryOnPriceCusd(curator, inventoryType) {
   // Per-curator override
   const perCurator = Number(curator?.commerce?.tryOnPriceUsd);
   if (Number.isFinite(perCurator) && perCurator > 0) return perCurator;
 
-  // Global env var
+  const isDigital = inventoryType === 'digital';
+  const defaultPrice = isDigital ? 0.03 : 0.05;
+
+  // Type-specific env var, then the shared env var
+  const typedEnv = Number(
+    process.env[isDigital ? 'X402_TRYON_PRICE_USD_DIGITAL' : 'X402_TRYON_PRICE_USD_PHYSICAL'],
+  );
+  if (Number.isFinite(typedEnv) && typedEnv > 0) return typedEnv;
+
   const price = Number(process.env.X402_TRYON_PRICE_USD);
-  return Number.isFinite(price) && price > 0 ? price : 0.03;
+  return Number.isFinite(price) && price > 0 ? price : defaultPrice;
 }
 
 /** Storefront-level agent commerce metadata (chain, token, order endpoint). */
 function buildStorefrontAgentCommerce(curator, slug) {
   const enabled = Boolean(curatorPayoutAddress(curator));
   const splitAddr = curatorSplitAddress(curator);
+  // Storefront-level advertises the physical tier; actual price is resolved
+  // per-listing at POST /api/agent/try-on ($0.03 digital / $0.05 physical).
   const tryOnPrice = tryOnPriceCusd(curator);
   return {
     enabled,
@@ -116,7 +130,7 @@ function buildStorefrontAgentCommerce(curator, slug) {
       endpoint: '/api/agent/try-on',
       priceCusd: tryOnPrice,
       description:
-        'x402-paid fitting room: POST {curatorSlug, listingId, photoData} to render this catalog on your human and get a fit signal before buying.',
+        'x402-paid fitting room: POST {curatorSlug, listingId, photoData} to render this catalog on your human and get a fit signal before buying. Tiered pricing: $0.03 digital listings, $0.05 physical listings (defaults; per-curator override may apply).',
     },
     earningsEndpoint: `/api/curator/${slug}/earnings`,
     flow: enabled

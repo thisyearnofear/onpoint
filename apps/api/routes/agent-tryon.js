@@ -174,7 +174,7 @@ router.post('/', async (req, res) => {
     const itemLabel = isDigital
       ? row.listing.title || 'Digital garment'
       : `${row.kit.club} ${row.kit.kitType} kit (${row.kit.season})`;
-    const priceCusd = tryOnPriceCusd(row.curator);
+    const priceCusd = tryOnPriceCusd(row.curator, row.listing.inventoryType);
     const splitAddress = curatorSplitAddress(row.curator);
     const payTo = splitAddress || agentCore.PLATFORM_WALLET;
     const resourceUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;

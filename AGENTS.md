@@ -332,7 +332,7 @@ The free tier gives users a visual of "how they'd look in this style." The paid 
 
 **Review deadline**: 2026-08-15 — decide whether to keep, kill, or adjust the free tier based on conversion data.
 
-Per-curator try-on price can be overridden via `commerce.tryOnPriceUsd`. All payments in cUSD or USDC on Celo mainnet, or USD₮0 on XLayer (via the OKX facade — see below).
+Per-curator try-on price can be overridden via `commerce.tryOnPriceUsd`. Server-side env overrides: `X402_TRYON_PRICE_USD` (both tiers), optionally `X402_TRYON_PRICE_USD_DIGITAL` / `X402_TRYON_PRICE_USD_PHYSICAL` per tier. All payments in cUSD or USDC on Celo mainnet, or USD₮0 on XLayer (via the OKX facade — see below).
 
 ---
 
@@ -363,6 +363,8 @@ POST /okx/try-on
 # → 402 with PAYMENT-REQUIRED header (v2 challenge, base64-encoded)
 # After payment → 200 with try-on render, fit signal, polaroid
 ```
+
+The v1 facade charges a **flat $0.05 USD₮0 for both digital and physical try-ons** — unlike the Celo path's tiered pricing ($0.03 digital / $0.05 physical). Tiered pricing may land on the facade in a later version.
 
 ### How the 402 Challenge Works (OKX Facade)
 
@@ -483,6 +485,7 @@ BUYER_PRIVATE_KEY=0x... node scripts/agent-buyer.mjs
 | Pricing ADR | [docs/adr/0013-pricing-strategy-and-agent-revenue-model.md](./docs/adr/0013-pricing-strategy-and-agent-revenue-model.md) |
 | x402 facilitator ADR | [docs/adr/0012-x402-facilitator-integration.md](./docs/adr/0012-x402-facilitator-integration.md) |
 | OKX A2MCP facade ADR | [docs/adr/0016-okx-a2mcp-facade.md](./docs/adr/0016-okx-a2mcp-facade.md) |
+| Monetization ADR (x402-first) | [docs/adr/0018-x402-first-monetization-and-deferred-subscriptions.md](./docs/adr/0018-x402-first-monetization-and-deferred-subscriptions.md) |
 | OKX facade route | [apps/api/routes/okx-facade.js](./apps/api/routes/okx-facade.js) |
 | Celo Builders hackathon | [docs/CELO-BUILDERS-HACKATHON.md](./docs/CELO-BUILDERS-HACKATHON.md) |
 | Qwen Cloud hackathon | [docs/QWEN-CLOUD-HACKATHON.md](./docs/QWEN-CLOUD-HACKATHON.md) |

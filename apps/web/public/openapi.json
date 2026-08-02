@@ -30,8 +30,22 @@
     "/api/agent/try-on": {
       "post": {
         "summary": "Request a paid fit render (Celo)",
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["curatorSlug", "listingId", "photoData"], "properties": { "curatorSlug": { "type": "string" }, "listingId": { "type": "string" }, "photoData": { "type": "string", "description": "data:image/... base64 payload" }, "paymentTxHash": { "type": "string" } } } } } },
-        "responses": { "200": { "description": "Try-on render and fit signal" }, "402": { "description": "cUSD or gasless USDC payment requirements" } }
+        "description": "Tiered pricing: $0.03 cUSD for digital listings, $0.05 cUSD for physical listings (per-curator override may apply). Two payment paths: (1) cUSD — transfer to payTo from the 402 challenge, re-POST with paymentTxHash; (2) gasless USDC via the Celo x402 facilitator — sign an EIP-3009 transferWithAuthorization and send it in the X-PAYMENT header.",
+        "parameters": [
+          { "name": "X-PAYMENT", "in": "header", "required": false, "schema": { "type": "string" }, "description": "Optional base64-encoded x402 payment payload (EIP-3009 transferWithAuthorization for USDC). Facilitator path — gasless for the buyer." }
+        ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["curatorSlug", "listingId", "photoData"], "properties": {
+          "curatorSlug": { "type": "string" },
+          "listingId": { "type": "string" },
+          "photoData": { "type": "string", "description": "data:image/... base64 payload" },
+          "personDescription": { "type": "string", "description": "Optional free-text description of the person (e.g. build, height) to refine the fit analysis" },
+          "lookSlug": { "type": "string", "description": "Optional look slug — attributes the try-on to the look (increments its tryOnCount) and triggers a 1080x1350 Instagram-ready shareCard collage in the 200 response" },
+          "paymentTxHash": { "type": "string", "description": "0x-prefixed cUSD transfer hash (payment path 1)" }
+        } } } } },
+        "responses": {
+          "200": { "description": "Try-on render and fit signal. Includes a shareCard (imageUrl, lookUrl) when lookSlug was provided and the look is live." },
+          "402": { "description": "cUSD or gasless USDC payment requirements" }
+        }
       }
     },
     "/okx/try-on": {
@@ -68,10 +82,89 @@
       "post": {
         "summary": "Request or confirm a physical order",
         "parameters": [
-          { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } }
+          { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "X-Referral-Code", "in": "header", "required": false, "schema": { "type": "string" }, "description": "Referral code — referring agent earns 2.5% commission on this purchase" },
+          { "name": "referral", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Referral code via query param (alternative to the header, for shareable links)" },
+          { "name": "X-PAYMENT", "in": "header", "required": false, "schema": { "type": "string" }, "description": "Optional base64-encoded x402 payment payload (EIP-3009 transferWithAuthorization for USDC). Facilitator path — gasless for the buyer." }
         ],
         "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["listingId", "size"], "properties": { "listingId": { "type": "string" }, "size": { "type": "string" }, "quantity": { "type": "integer", "default": 1 }, "paymentTxHash": { "type": "string" }, "quoteId": { "type": "string" } } } } } },
         "responses": { "201": { "description": "Order confirmation and receipt URL" }, "402": { "description": "cUSD or gasless USDC payment requirements" }, "409": { "description": "Digital listings are try-on only" } }
+      }
+    },
+    "/api/curator/{slug}/earnings": {
+      "get": {
+        "summary": "Public reconciled earnings ledger for a curator",
+        "description": "One query surface for everything the curator has earned across channels: agent orders (cUSD, on-chain), M-Pesa orders (KES, receipt-backed), and try-on fees (cUSD, on-chain). Every line item links to its proof — a Celoscan tx or an M-Pesa receipt code. No PII.",
+        "parameters": [
+          { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Earnings ledger",
+            "content": { "application/json": { "schema": {
+              "type": "object",
+              "properties": {
+                "curator": { "type": "object", "properties": { "slug": { "type": "string" }, "name": { "type": "string" } } },
+                "payoutModel": { "type": "string", "enum": ["0xSplits (non-custodial)", "custodial"] },
+                "splitAddress": { "type": "string", "description": "0xSplits SplitV2 address (absent when custodial)" },
+                "summary": { "type": "object", "properties": {
+                  "totalOrders": { "type": "integer" },
+                  "agentOrders": { "type": "integer" },
+                  "fiatOrders": { "type": "integer" },
+                  "tryOns": { "type": "integer" },
+                  "gmvCusd": { "type": "number", "description": "Agent order GMV in cUSD" },
+                  "gmvKes": { "type": "number", "description": "Fiat order GMV in KES" },
+                  "tryOnRevenueCusd": { "type": "number" }
+                } },
+                "orders": { "type": "array", "description": "Up to 50 most recent non-cancelled orders", "items": { "type": "object", "properties": {
+                  "id": { "type": "string" },
+                  "source": { "type": "string", "enum": ["agent", "web", "whatsapp"] },
+                  "status": { "type": "string" },
+                  "size": { "type": "string" },
+                  "quantity": { "type": "integer" },
+                  "amountCusd": { "type": "number", "description": "Present for agent orders" },
+                  "amountKes": { "type": "number", "description": "Present for fiat orders" },
+                  "proof": { "type": "object", "description": "Celoscan tx links for agent orders, or { type: 'mpesa', receipt } for fiat orders" },
+                  "createdAt": { "type": "string", "format": "date-time" }
+                } } },
+                "tryOns": { "type": "array", "description": "Up to 50 most recent paid try-on fees", "items": { "type": "object", "properties": {
+                  "id": { "type": "string" },
+                  "amountCusd": { "type": "number" },
+                  "paymentTx": { "type": "string" },
+                  "paymentUrl": { "type": "string", "format": "uri", "nullable": true },
+                  "createdAt": { "type": "string", "format": "date-time" }
+                } } },
+                "meta": { "type": "object", "properties": { "generatedAt": { "type": "string", "format": "date-time" } } }
+              }
+            } } }
+          },
+          "404": { "description": "Curator not found" }
+        }
+      }
+    },
+    "/api/agent/mint": {
+      "post": {
+        "summary": "Mint an OnPoint fashion NFT with 0xSplits royalties (service auth)",
+        "description": "Mints an ERC-721A NFT on Celo with a 0xSplits royalty split (85% creator / 15% platform). Requires the x-service-key header. Cost: $0.10 cUSD plus gas.",
+        "parameters": [
+          { "name": "x-service-key", "in": "header", "required": true, "schema": { "type": "string" }, "description": "Service API key" }
+        ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["userAddress", "metadataUri"], "properties": {
+          "userAddress": { "type": "string", "description": "0x wallet address receiving the NFT" },
+          "metadataUri": { "type": "string", "description": "ipfs:// or HTTPS URI of the NFT metadata" },
+          "royaltyRecipient": { "type": "string", "description": "0x address for the 85% creator royalty share (defaults to userAddress)" },
+          "royaltyBps": { "type": "integer", "default": 500 },
+          "chain": { "type": "string", "enum": ["celo", "celoSepolia"], "default": "celo" },
+          "agentId": { "type": "string", "description": "Agent ID for spending-limit accounting (defaults to onpoint-stylist)" },
+          "approvalId": { "type": "string", "description": "ID of an approved spending-limit approval request, when one was required" }
+        } } } } },
+        "responses": {
+          "200": { "description": "Mint result with transaction hash, tokenId, and Celoscan explorer URL" },
+          "400": { "description": "Invalid request body" },
+          "402": { "description": "Spending-limit approval required" },
+          "403": { "description": "Action not allowed by spending limits" },
+          "503": { "description": "Agent signing not configured" }
+        }
       }
     },
     "/api/agent/dashboard": {
@@ -87,6 +180,7 @@
           { "name": "category", "in": "query", "schema": { "type": "string" }, "description": "Filter by metadata.category (e.g. streetwear, casual, formal, event, sport, vintage, ankara, sustainable)" },
           { "name": "occasion", "in": "query", "schema": { "type": "string" }, "description": "Filter by metadata.occasion (e.g. casual, formal, event, sport, outdoor, travel, date-night)" },
           { "name": "season", "in": "query", "schema": { "type": "string" }, "description": "Filter by metadata.season (e.g. spring, summer, fall, winter, all-season)" },
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["live", "draft", "paused", "archived"] }, "description": "Filter by status. Public requests only see live looks; non-live values are scoped to the authenticated creator's own looks (x-agent-address or x-curator-slug + x-curator-whatsapp headers)" },
           { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 }, "description": "Max results (capped at 100)" }
         ],
         "responses": { "200": {
@@ -156,6 +250,27 @@
             "description": "Updated look",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LookDetail" } } }
           },
+          "403": {
+            "description": "Not the look creator — response includes diagnostic context",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error403" } } }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a look (creator only)",
+        "parameters": [ { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": {
+          "200": {
+            "description": "Look deleted",
+            "content": { "application/json": { "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean" },
+                "slug": { "type": "string" }
+              }
+            } } }
+          },
+          "404": { "description": "Look not found" },
           "403": {
             "description": "Not the look creator — response includes diagnostic context",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error403" } } }
