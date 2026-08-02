@@ -2,9 +2,9 @@
 /**
  * Prava + Linq End-to-End Demo — Agentic Commerce Hackathon (ADR 0017).
  *
- * Walks the full agent-checkout spine in one run, so it doubles as:
- *   • the demo-video script (each step prints a narrative line), and
- *   • a judge-runnable proof (no external deps; self-check mode by default).
+ * Walks the full agent-checkout spine as a judge-runnable self-check with no
+ * external dependencies. Real transaction evidence is recorded separately in
+ * Prava's dashboard; this script labels its default fixtures explicitly.
  *
  * Flow:
  *   1. Discover  — POST /prava/search        (UCP fashion merchants)
@@ -113,12 +113,12 @@ async function main() {
   log(selfCheck
     ? "2 · Create self-check order — deterministic quote + session fixtures"
     : restRail
-      ? "2 · Create real Prava REST session from the discovered listed price"
+      ? "2 · Create real Prava REST session from a binding merchant quote"
     : "2 · Create order — binding quote + payment session");
   const order = await post("/prava/order", { query: "black legging rooftop brunch" });
   ok("order", order.orderId);
   sub("merchant", order.merchant?.name);
-  sub(selfCheck ? "fixture total" : restRail ? "sandbox session amount" : "binding total", `${order.totalAmount} ${order.currency}`);
+  sub(selfCheck ? "fixture total" : "binding total", `${order.totalAmount} ${order.currency}`);
   sub("requested ceiling", `$${order.trust?.spendCeilingUsd}`);
   sub("requested merchant", order.trust?.merchantScope?.merchant);
   sub("payment_url present", !!order.paymentUrl);
@@ -146,7 +146,7 @@ async function main() {
   sub("evidence", selfCheck
     ? "fixture state only — no passkey or credential"
     : ap.state === "credential_ready"
-      ? "sandbox credential held server-side; external checkout not attempted"
+      ? "sandbox credential held server-side; no credential material exposed"
       : ap.state === "approved" ? "credential held server-side" : "no credential issued");
 
   // ── 6. Checkout ──────────────────────────────────────────────────
@@ -246,7 +246,7 @@ async function main() {
   console.log(selfCheck
     ? "Self-check complete — orchestration validated with deterministic fixtures; no transaction claimed."
     : restRail
-      ? "Live check complete — real session path exercised; no checkout, processor outcome, or merchant order claimed."
+      ? "Live check complete — real session path exercised; inspect the recorded Prava outcome before making any merchant-order claim."
       : "Live CLI check complete — see the state and order evidence above.");
   console.log("═══════════════════════════════════════════════════════════════\n");
 

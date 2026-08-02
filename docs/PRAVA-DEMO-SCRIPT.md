@@ -1,14 +1,15 @@
 # Prava Demo Video — Narration Script
 
-Record with `node scripts/prava-demo.mjs` (self-check) or `--live` + `LINQ_DEMO_TO`.
-Target length: ~100 seconds. Pick **Variant A** if production access landed and a
-real merchant order completed; **Variant B** only if the real Prava sandbox
-lifecycle reached `completed`; otherwise use **Variant C**. Never mix claims.
+Target length: 100–120 seconds. **Use Variant C for the submission recording.**
+Prava confirmed that `Creds_Generated` is a successful Prava sandbox
+transaction; the later Browser Harness checkout attempt timed out without a
+definitive merchant outcome. Never mix those two claims.
 
 ## Recording rules (both variants)
 
-- Rehearse the whole run in self-check mode first (free). Sandbox card allows
-  **30 transactions/day** — batch all real transactions into one take.
+- Do not create another Prava transaction for the recording. Sandbox cards have
+  a 30-transaction daily limit. Use the existing successful dashboard record
+  `ord_01KZ2A6YCE9HJGZ97C8CD5ZT1P` and pre-recorded hosted-flow evidence.
 - **Never show** API keys, the sandbox card number/CVV, or `PRAVA_*`/`LINQ_*` env
   values. Crop or blur the passkey/payment surface when recording Step 5.
 - Show the trust block (spend ceiling, merchant scope, guardrails) prominently at
@@ -57,10 +58,9 @@ lifecycle reached `completed`; otherwise use **Variant C**. Never mix claims.
 
 Same timing. Replace the payment-claim lines:
 
-> **(0:36 — Steps 3+4)** "The agent uses the discovered listed price as the
-> sandbox session amount and opens a real Prava session. This is not a binding
-> merchant quote. The UI shows the requested merchant and amount plus the
-> controls Prava documents for a credential if issuance succeeds."
+> **(0:36 — Steps 3+4)** "The agent obtains a binding Browser Harness quote,
+> including shipping and tax, then opens a real Prava session for that exact
+> total. The UI shows the requested merchant, ceiling, and credential controls."
 >
 > **(0:52 — Step 5)** "The user approves with a passkey. Prava issues a one-time,
 > merchant-locked, amount-scoped credential."
@@ -80,29 +80,60 @@ Same timing. Replace the payment-claim lines:
 
 ---
 
-## Variant C — sandbox credential issued; external checkout not implemented
+## Variant C — current submission recording
 
-Use this when Prava reaches credential readiness but OnPoint has not attempted
-an external sandbox checkout or called `report-status`:
+### Shot list and narration
 
-> **(0:52 — hosted payment surface)** "This is a real Prava sandbox session,
-> created from a live UCP product and opened on Prava's hosted card surface.
-> Prava accepted and rendered the order, merchant, MCC, amount, and product."
+> **(0:00 — live OnPoint homepage)** "Most AI shopping stops at a
+> recommendation. OnPoint is an iMessage stylist that discovers live fashion,
+> checks fit before spend, and uses Prava to turn a user's permission into a
+> one-time payment credential."
 >
-> **(1:02 — dashboard evidence)** "Earlier cards failed during device binding
-> and cryptogram retrieval. With Prava's recommended card ending 2119, the
-> hosted flow generated credentials successfully. Here is the real
-> `Creds_Generated` sandbox record and OnPoint's `credential_ready` state."
+> **(0:12 — live search results)** Search `black Alo Yoga leggings under $130`.
+> "This is live UCP discovery, not a hard-coded catalog: real Alo Yoga products,
+> variants, prices, and images."
 >
-> **(1:18 — product UI + self-check)** "The credential remains server-side and
-> is not shown in the API response. OnPoint stops here because no external
-> sandbox merchant-checkout adapter is configured; it does not invent an
-> approval or call `report-status`."
+> **(0:27 — try-on or existing try-on capture)** "Before asking for money,
+> OnPoint can render the garment on the shopper. Our insight is fit first,
+> permission second."
 >
-> **(1:34 — closing)** "OnPoint's new Prava workflow is implemented and deployed
-> through real sandbox credential issuance. No merchant checkout, charge, or
-> completed order is claimed. The linked production CLI checkout branch remains
-> unvalidated with a real merchant order."
+> **(0:40 — quote/trust capture)** "Browser Harness produced a binding quote:
+> $108 subtotal, free shipping, $9.32 tax, and a $117.32 ceiling. The permission
+> is for Alo Yoga and that exact total."
+>
+> **(0:55 — Linq thread and status card)** "Linq makes this message-native. A
+> real inbound iMessage triggers discovery and a status card; signed webhooks,
+> replies, reactions, and the hosted Prava handoff are handled by OnPoint."
+>
+> **(1:10 — Prava dashboard record)** "On Prava's hosted surface, the
+> team-provided card completed verification. This real sandbox record is
+> `Creds_Generated` for $117.32. Prava confirmed that this is a successful
+> sandbox transaction."
+>
+> **(1:26 — sanitized poll response or code view)** "OnPoint then polled
+> `payment-result` and reached `credential_ready`. The one-time credential stayed
+> server-side; no card number, cryptogram, API key, or personal data appears in
+> the application response or recording."
+>
+> **(1:41 — outcome disclosure)** "We made one authorized Browser Harness
+> checkout attempt. It returned an unknown automation timeout, so OnPoint did
+> not retry and did not fabricate an approval or decline. We claim successful
+> Prava credential generation—not an Alo Yoga order or charge."
+>
+> **(1:55 — product/public agent screen)** "OnPoint was already a live fashion
+> commerce platform. During the hackathon we added this Prava and Linq workflow:
+> live discovery, fit verification, explicit permission, and safe credential
+> handling. Fit before you buy—for people and agents."
+
+### Evidence to keep on screen
+
+- Prava order: `ord_01KZ2A6YCE9HJGZ97C8CD5ZT1P`
+- Amount: `$117.32 USD` (`$108.00` subtotal + `$9.32` tax)
+- State: `Creds_Generated`; OnPoint state: `credential_ready`
+- Merchant/category: Aloyoga; clothing stores (`5691`)
+- Linq: real thread/card plus the OnPoint iMessage number; do not show secrets
+- Browser Harness attempt: describe the unknown timeout verbally or with a
+  cropped sanitized result; never present it as a merchant decline
 
 ## Do NOT say (either variant)
 
@@ -113,4 +144,6 @@ an external sandbox checkout or called `report-status`:
 - "sandbox completed" — unless `payment-result` reached `awaiting_result` and
   an external sandbox checkout was attempted before `report-status` produced a
   final `completed` state on Prava's real sandbox.
+- "the payment succeeded at Alo Yoga" or "the merchant declined" — the one
+  checkout attempt had an unknown automation outcome.
 - Dates or claims about multi-merchant checkout (v1 is one merchant per look).

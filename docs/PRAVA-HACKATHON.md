@@ -23,12 +23,13 @@
 
 An AI stylist agent on iMessage. A user texts a style intent ("outfit me for a
 rooftop brunch, $120 budget"); OnPoint discovers live UCP fashion products,
-runs IDM-VTON try-on, and creates a real Prava sandbox session containing the
-selected merchant, item, and requested amount. The user continues on Prava's
-hosted card surface. A Prava-recommended card ending 2119 completed hosted
-verification and produced a real sandbox `Creds_Generated` record; OnPoint
-confirmed `credential_ready` while keeping the credential server-side. No
-external checkout, charge, `report-status`, or merchant order has completed.
+runs IDM-VTON try-on, obtains a binding merchant quote, and creates a real Prava
+sandbox session for the selected merchant and exact quoted total. A
+Prava-recommended card ending 2119 produced `Creds_Generated`; OnPoint confirmed
+`credential_ready` while keeping the credential server-side. One authorized
+Browser Harness checkout attempt returned an unknown automation timeout, so it
+was not retried and no processor status was fabricated. No charge or merchant
+order is claimed.
 
 ### The original insight
 
@@ -45,7 +46,7 @@ session. Multi-merchant sequencing is target architecture, not shipped behavior.
 | **Visa Intelligent Commerce** | $5k cash | **Enter.** The UI exposes the requested merchant, amount, hosted verification, and observed scoped-credential readiness. |
 | **Linq iMessage Agent** | $1k cash + $5k Linq credits | **Enter.** Live iMessage send and signed inbound webhooks are validated; status-card mutation is implemented but not observed after a completed Prava lifecycle. |
 | **Localhost startup-ready** | $5k Anthropic credits | **Enter.** OnPoint is an existing live product; this new workflow is a credible continuation if the payment-provider blocker is resolved. |
-| ~~OpenAI~~ | $10k | **Skip.** No OpenAI in the stack; bolting it on = explicitly deprecated ("partner technology added only to qualify") |
+| ~~OpenAI~~ | $10k | **Skip.** Existing generic style-assistance usage did not materially drive this new transaction; bolting it on now would violate the spirit of the track. |
 | ~~Senso~~ | $7.5k | **Skip.** Same bolt-on problem |
 | ~~NANDA Town~~ | $1k | **Skip.** Adapter/simulation track doesn't fit the product |
 
@@ -53,10 +54,10 @@ session. Multi-merchant sequencing is target architecture, not shipped behavior.
 
 | Axis | How we score |
 |------|-------------|
-| **End-to-end functionality** | Live UCP discovery → try-on → real Prava sandbox session → hosted verification → credential readiness; external checkout remains unimplemented. |
+| **End-to-end functionality** | Live UCP discovery → binding quote → try-on → real Prava sandbox session → hosted verification → credential readiness; the single Browser Harness attempt ended with an honestly handled unknown outcome. |
 | **Creativity / novelty** | Try-on-before-agent-checkout + explicit requested controls + message-native status card. |
 | **User value / market feasibility** | Live fashion products and pre-purchase visualization solve a clear fit-confidence problem. |
-| **Prava implementation** | Prava session creation is central to the new workflow, not a payment button added afterward. No completed transaction is claimed. |
+| **Prava implementation** | Prava discovery, hosted verification, and credential issuance are central—not a payment button added afterward. A successful Prava sandbox transaction is claimed; no merchant order is claimed. |
 | **Track implementation** | Linq send/webhook are live; Visa-style controls are shown as requested/expected until Prava issues a credential. |
 | **Product experience** | An intro message plus status card, with approval on Prava's hosted surface. |
 | **What happens next** | OnPoint is already a live product; this adds a card-rail agent checkout it continues with. |
@@ -161,9 +162,9 @@ guidelines above. We run it against `apps/api/lib/linq-client.js` +
 
 | Component | File | Status |
 |-----------|------|--------|
-| Prava transport — self-check + sandbox REST + production CLI branches | `apps/api/lib/prava-client.js` | ✅ implemented; only discovery + session creation live-validated |
-| Prava state machine and requested-control view | `apps/api/routes/prava-facade.js` | ✅ implemented; completion branches unvalidated |
-| REST sandbox lifecycle (session→poll→external checkout→report) | `prava-facade.js` + `prava-client.js` | ⚠️ real credential issuance validated; external checkout/report not attempted |
+| Prava transport — self-check + sandbox REST + production CLI branches | `apps/api/lib/prava-client.js` | ✅ implemented; discovery, quote, session, and credential issuance live-validated |
+| Prava state machine and requested-control view | `apps/api/routes/prava-facade.js` | ✅ implemented; credential-ready and unknown-outcome branches live-validated |
+| REST sandbox lifecycle (session→poll→external checkout→report) | `prava-facade.js` + `prava-client.js` | ⚠️ real credential issuance validated; one checkout attempt timed out with unknown outcome, so no status was reported |
 | Production CLI credential/checkout contract | `apps/api/lib/prava-client.js` | ⚠️ implemented and linked; checkout unvalidated |
 | Decoupled IDM-VTON try-on for UCP garment images | `apps/api/lib/prava-tryon.js` | ✅ placeholder + Replicate modes |
 | Linq REST client (real `/v3/chats`, Standard Webhooks) | `apps/api/lib/linq-client.js` | ✅ live send + signature verify |
@@ -193,14 +194,20 @@ guidelines above. We run it against `apps/api/lib/linq-client.js` +
 
 ### Sandbox evidence and remaining boundary
 
-- **Sandbox credential issuance now succeeds.** Earlier cards produced a
+- **Sandbox credential issuance now succeeds at the binding total.** Earlier cards produced a
   provisioning 403, `DEVICE_BINDING_FAILED: 409`, and
   `FETCH_AGENTIC_CREDS_ERROR: Visa 400`. Prava then supplied a card ending 2119;
-  it produced `Creds_Generated` on dashboard record
-  `ord_01KZ28VR8A8ZKB3XETHEXY61YH` and session
-  `ses_01KZ28VR8A8ZKB3XETHEXY61YG`. OnPoint's poll reached
+  a final run produced `Creds_Generated` on dashboard record
+  `ord_01KZ2A6YCE9HJGZ97C8CD5ZT1P` and session
+  `ses_01KZ2A6YCE9HJGZ97C8CD5ZT1N`. The binding total was `$117.32`
+  (`$108.00` subtotal, free shipping, `$9.32` tax). OnPoint's poll reached
   `credential_ready`; no credential material was exposed by the public API.
-  This is credential proof, not a merchant-order confirmation.
+  Prava confirmed that `Creds_Generated` counts as a successful Prava sandbox
+  transaction. It is not a merchant-order confirmation.
+- **One Browser Harness attempt was made, once.** Checkout session
+  `checkout_c6257f76587ae40c` returned `checkout payment agent fallback timed
+  out after 5000ms`. OnPoint preserved the outcome as unknown, did not retry the
+  one-time credential, and did not report a fabricated `APPROVED` or `DECLINED`.
 - **Honesty boundary:** deterministic self-check validates orchestration only.
   A REST sandbox lifecycle is labeled completed only after Prava issues a test
   credential, an external sandbox checkout is attempted, and Prava accepts its
@@ -209,17 +216,14 @@ guidelines above. We run it against `apps/api/lib/linq-client.js` +
 
 ### Remaining before submission
 
-1. **External sandbox checkout adapter** — attempt a real sandbox processor
-   checkout with the server-side credential, then report that actual outcome.
+1. **Record and submit the demo** using the existing successful Prava record;
+   do not consume another sandbox-card transaction for recording.
 2. **Production access** — application submitted. The production CLI path is
    implemented and the agent is linked, but a real checkout remains unvalidated.
    Production REST would additionally require an actual merchant checkout before
    `report-status`.
-3. **Record the demo video** — self-check spine (`node scripts/prava-demo.mjs`)
-   plus the live sandbox REST session as evidence. Use
-   [docs/PRAVA-DEMO-SCRIPT.md](./PRAVA-DEMO-SCRIPT.md) variants: A if a real
-   order completed, B only if the sandbox lifecycle completed, or C while the
-   provider blocker remains.
+3. **After submission**, ask Prava to reconcile the unknown Browser Harness
+   attempt. Do not block the hackathon recording on it.
 
 ## Devfolio Submission Content
 
@@ -231,31 +235,32 @@ and prepare a tightly scoped Prava checkout.
 **One-paragraph description:**
 
 OnPoint is an AI stylist agent on iMessage. It discovers live UCP fashion
-products, runs virtual try-on, and creates a real Prava sandbox session with the
-selected merchant, product, and requested amount. The user continues on Prava's
-hosted card surface. A real sandbox run with Prava's card ending 2119 reached
-`Creds_Generated`, and OnPoint recorded `credential_ready` without exposing the
-credential. We do not claim an external checkout, completed lifecycle, charge,
-or merchant order.
+products, runs virtual try-on, locks a binding quote, and creates a real Prava
+sandbox session for the selected merchant and exact total. A real sandbox run
+with Prava's card ending 2119 reached `Creds_Generated`, and OnPoint recorded
+`credential_ready` without exposing the credential. Prava confirmed this as a
+successful sandbox transaction. A later Browser Harness attempt timed out with
+an unknown outcome; we did not retry, fabricate a status, claim a charge, or
+claim a merchant order.
 
 **How Prava is used:**
 
-Prava is central, not a bolt-on. Discovery uses `prava shop search/product`.
-REST sandbox mode uses the discovered listed price as the session amount; it
-does not obtain a binding merchant quote or charge a merchant. The intended
-remainder is hosted card entry → passkey → `payment-result` credential →
-external test outcome → `report-status`. Earlier cards failed before issuance;
-Prava's card ending 2119 now validates credential issuance. The external
-checkout/reporting leg is not implemented, and the production CLI checkout
-branch remains unvalidated with a real merchant order.
+Prava is central, not a bolt-on. Discovery uses `prava shop search/product` and
+Browser Harness locks the item, shipping, tax, and final total. REST sandbox
+then performs hosted card entry → device verification → `payment-result` →
+one-time credential. The card ending 2119 validated credential issuance at the
+binding `$117.32` total. The credential stayed server-side. One external
+checkout attempt returned an unknown Browser Harness timeout, so OnPoint did
+not retry or call `report-status` with an invented outcome.
 
 **How Linq is used:**
 
 The Linq experience sends an intro message plus an `imessage_app` status card.
 Approval happens on Prava's hosted surface. Live send and signed Standard
 Webhooks handling are validated. The 👍 reaction handler and card update are
-implemented, but confirmation mutation has not been observed because no Prava
-credential lifecycle has completed.
+implemented, but confirmation mutation has not been observed as one continuous
+Linq-to-Prava recording. Live Linq and successful Prava evidence are presented
+as independently validated parts of the same deployed workflow.
 
 **Try-on-before-agent-checkout (original insight):**
 
@@ -290,8 +295,8 @@ node scripts/prava-webhook-smoke.mjs
 
 - The deterministic self-check walkthrough exercises orchestration shape and
   labels itself fixture-only; it is not transaction proof.
-- Real Linq sends, signed webhook verification, live UCP discovery, and real
-  Prava sandbox-session creation are independently validated.
+- Real Linq sends, signed webhook verification, live UCP discovery, a binding
+  quote, and successful Prava sandbox credential generation are validated.
 - The trust-first presentation distinguishes requested amount and merchant,
   expected credential controls, and observed outcome, so the user can see what
   was requested and what actually happened.
@@ -300,9 +305,9 @@ node scripts/prava-webhook-smoke.mjs
 
 **Didn't:**
 
-- The external sandbox checkout/reporting leg is not implemented. Sandbox now
-  proves session creation and credential issuance, but not a processor outcome,
-  completed lifecycle, charge, or merchant order.
+- The single Browser Harness checkout attempt returned an unknown five-second
+  automation timeout. Following Prava's unknown-outcome guidance, OnPoint did
+  not retry the credential or report an invented processor outcome.
 - The Prava CLI is production-only — there is no CLI sandbox — so live
   merchant checkout depends on temporary hackathon production access, which is
   human-reviewed. We sequenced sandbox-excellence first, then requested

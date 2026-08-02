@@ -1,7 +1,8 @@
 # ADR 0017: Prava Agent Checkout — Scoped-Card Cross-Merchant Purchases
 
-**Status**: Partially implemented — live discovery, real sandbox session creation,
-and credential issuance validated; no external checkout or merchant order completed
+**Status**: Partially implemented — live discovery, binding quote, real sandbox
+session, and credential issuance validated; one Browser Harness attempt ended
+with an unknown timeout and no merchant order is claimed
 **Date**: 2026-08-01
 **Integration**: `prava` CLI (UCP discovery) + REST `POST /v1/sessions` (payment rail)
 
@@ -17,9 +18,9 @@ and credential issuance validated; no external checkout or merchant order comple
 >   (token + cryptogram + expiry), and `shop checkout` consumes those flags — it
 >   does not take a `--payment-session-id`. The facade's credential handling was
 >   rebuilt to match this contract (commit `1ee4d36`).
-> - **Live quote requires a delivery address on file**, so the REST sandbox path
->   skips the address-gated CLI quote and uses the discovered listed price as
->   the session amount. It is not a binding merchant quote.
+> - **A delivery address is stored for Browser Harness quoting.** The REST
+>   sandbox path now authorizes the binding total, including shipping and tax,
+>   rather than the discovered listed price.
 > - **The Linq webhook is live and verified** (Standard Webhooks signature,
 >   line `+14243945528`, all events), and the Prava CLI agent is linked
 >   (`aa_01KYZ4G7D34207F74VJSDKBEMM`, active).
@@ -83,9 +84,9 @@ reviewed case-by-case) and a real card for a small real charge.
 
 Build toward **OnPoint as an AI stylist agent that can fulfill a style intent
 through Prava**, surfaced with a Linq iMessage App status card. The hackathon
-build currently reaches live UCP discovery and real Prava sandbox-session
-creation plus credential readiness; external sandbox checkout/reporting remains
-unimplemented.
+build reaches live UCP discovery, a binding quote, and real Prava sandbox
+credential readiness. One external Browser Harness checkout attempt timed out
+without a definitive processor outcome, so it was not retried or reported.
 
 ### The original insight
 
@@ -136,11 +137,12 @@ calls the REST API directly, and is a **Linq sender to iMessage** + the
   rendered as a mutating iMessage App card. Lands before any stretch work.
 - **Unshipped stretch**: multi-item look across 2 merchants (2 scoped checkouts — the
   "shop across merchants" insight) + 👍-tapback group-chat voting.
-- **Sandbox/demo rail (active through credential readiness)**: REST SDK/API session flow (`POST /v1/sessions`
+- **Sandbox/demo rail (validated through credential readiness)**: REST SDK/API session flow (`POST /v1/sessions`
   + hosted card entry + `payment-result` + `report-status`) against
   `sandbox.api.prava.space` with `sk_test_*` keys. No real money. This is the
   primary active path on production (the only path with a sandbox). Session
-  creation and credential issuance work; external checkout/reporting is absent.
+  creation and credential issuance work. Browser Harness checkout was attempted
+  once; its unknown timeout was preserved without fabricating `report-status`.
 
 ### Tracks targeted
 
@@ -179,7 +181,8 @@ calls the REST API directly, and is a **Linq sender to iMessage** + the
   team-recommended card reached issuer OTP but then returned
   `FETCH_AGENTIC_CREDS_ERROR: Visa 400 — Fetching cryptogram failed`. Prava's
   subsequent card ending 2119 produced `Creds_Generated`; OnPoint confirmed
-  `credential_ready`. No external checkout or processor outcome followed.
+  `credential_ready`. The exact-total Browser Harness attempt then timed out
+  without a definitive processor outcome; it was not retried or reported.
 - **UCP image → OnPoint try-on compatibility** — IDM-VTON must render a
   UCP product image on a person photo. Validate on day 1; fall back to the
   free-tier "similar style" render or skip try-on for that item if it fails.

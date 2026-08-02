@@ -158,11 +158,11 @@ router.get('/health', async (_req, res) => {
     agentLinked: process.env.PRAVA_AGENT_LINKED === '1',
     cliAvailable: cliOk,
     buyFlow: rest
-      ? ['shop_search', 'shop_product', 'create_rest_session', 'poll_rest_session', 'external_checkout_required']
+      ? ['shop_search', 'shop_product', 'shop_quote', 'create_rest_session', 'poll_rest_session', 'shop_checkout', 'report_real_outcome']
       : ['shop_search', 'shop_product', 'shop_quote', 'create_payment_session', 'poll_payment_session', 'shop_checkout'],
     note: rest
       ? (prava.restSandboxMode()
-          ? 'Sandbox REST mode — real Prava session with a test card (no real money). Discovery via CLI/UCP.'
+          ? 'Sandbox REST mode — binding Browser Harness quote plus a real Prava test-card session (no real money).'
           : 'Live REST session mode — a separate merchant checkout must charge the credential before report-status.')
       : prava.selfCheck()
         ? 'Self-check mode — walkable mock. Set PRAVA_SECRET_KEY (sk_test_*) for sandbox, or PRAVA_CLI_PATH + PRAVA_AGENT_LINKED=1 for live.'
