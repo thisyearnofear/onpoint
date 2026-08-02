@@ -173,9 +173,11 @@ calls the REST API directly, and is a **Linq sender to iMessage** + the
 - **External checkout dependency** — Browser Harness drives a live Shopify
   checkout that can change. Mitigation: recorded video for the real order;
   sandbox fallback for live judge demo.
-- **Observed sandbox blocker** — Prava's hosted surface returns
-  `DEVICE_BINDING_FAILED: 409` before WebAuthn across supplied/documented cards
-  in Brave and Safari. Escalate with sandbox session record IDs.
+- **Observed sandbox blocker** — supplied/documented cards returned
+  `DEVICE_BINDING_FAILED: 409` before WebAuthn in Brave and Safari. A later
+  team-recommended card reached issuer OTP but then returned
+  `FETCH_AGENTIC_CREDS_ERROR: Visa 400 — Fetching cryptogram failed`. Escalate
+  with the sandbox session record IDs; no credential was issued.
 - **UCP image → OnPoint try-on compatibility** — IDM-VTON must render a
   UCP product image on a person photo. Validate on day 1; fall back to the
   free-tier "similar style" render or skip try-on for that item if it fails.

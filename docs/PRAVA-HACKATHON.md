@@ -191,17 +191,18 @@ guidelines above. We run it against `apps/api/lib/linq-client.js` +
 - **Live UCP discovery**: real Shopify merchants (Alo Yoga, Beyond Yoga,
   Blakely, Elite Eleven) returned with real product IDs + CDN images.
 
-### Known blocker (escalated to Prava)
+### Known blocker (ready for Prava support)
 
-- **Sandbox device binding returns 409 before WebAuthn.** Real sessions are
+- **Sandbox credential issuance fails inside Prava/Visa.** Real sessions are
   accepted and Prava's dashboard renders the merchant, MCC 5691, product,
   currency, and amount correctly. The team-provided card first produced a
-  provisioning 403; Prava's documented card and a second card supplied by the
-  team progressed further but failed with `DEVICE_BINDING_FAILED: 409` before
-  any passkey prompt. Reproduced in Brave and Safari, with fresh-card and
-  saved-card paths. Evidence orders include `ord_01KZ23CV1DW03DXAZY8FKR548S`
-  and `ord_01KZ24K86N8JS5K8C5PVQC8KH2`. These are Prava sandbox session
-  records, not merchant-order confirmations. The issue is ready for escalation.
+  provisioning 403; Prava's documented card failed with
+  `DEVICE_BINDING_FAILED: 409` before any passkey prompt in Brave and Safari.
+  A later team-recommended card ending 2127 reached the issuer OTP step, then
+  failed with `FETCH_AGENTIC_CREDS_ERROR: Visa 400 — Fetching cryptogram failed`
+  while the dashboard still logged `Card check skipped — Lookup not configured`.
+  The latest evidence record is `ord_01KZ273SD0AYP5MY9G8SAZF06D`. These are
+  Prava sandbox session records, not merchant-order confirmations.
 - **Honesty boundary:** deterministic self-check validates orchestration only.
   A REST sandbox lifecycle is labeled completed only after Prava issues a test
   credential, an external sandbox checkout is attempted, and Prava accepts its

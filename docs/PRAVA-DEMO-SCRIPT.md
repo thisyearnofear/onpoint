@@ -88,11 +88,11 @@ Use this only if Prava has not fixed device binding before recording:
 > created from a live UCP product and opened on Prava's hosted card surface.
 > Prava accepted and rendered the order, merchant, MCC, amount, and product."
 >
-> **(1:02 — dashboard evidence)** "The team-provided and documented test cards
-> both reach Prava, but device binding returns `409` before any passkey prompt,
-> identically in Safari and Brave. Here is the failed sandbox session record and provider
-> error. We prepared the reproducible incident for Prava rather than replacing it
-> with a fake success."
+> **(1:02 — dashboard evidence)** "Earlier cards failed device binding before
+> WebAuthn in Safari and Brave. Prava's later recommended card reached issuer
+> OTP, then Visa returned `FETCH_AGENTIC_CREDS_ERROR` while fetching the
+> cryptogram. Here is the failed sandbox session record. We reported the
+> reproducible incident rather than replacing it with a fake success."
 >
 > **(1:18 — product UI + self-check)** "The planned orchestration states and
 > trust UX remain judge-runnable with deterministic fixtures, explicitly labeled
@@ -100,8 +100,8 @@ Use this only if Prava has not fixed device binding before recording:
 > and never presented as a completed transaction."
 >
 > **(1:34 — closing)** "OnPoint's new Prava workflow is implemented and deployed;
-> the final credential issuance is blocked at Prava's hosted device-binding
-> service. Production access is requested; the linked CLI checkout branch is
+> final credential issuance is blocked inside the hosted Prava/Visa flow.
+> Production access is requested; the linked CLI checkout branch is
 > implemented but has not been validated with a real merchant order."
 
 ## Do NOT say (either variant)
