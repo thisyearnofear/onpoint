@@ -17,6 +17,13 @@ describe('commerce intent compiler', () => {
     if (previous) process.env.OPENAI_API_KEY = previous;
   });
 
+  it('does not treat the documented placeholder as an OpenAI integration', async () => {
+    process.env.OPENAI_API_KEY = 'your_openai_api_key_here';
+    const intent = await compileCommerceIntent('placeholder key query');
+    expect(intent.provider).toBe('direct');
+    delete process.env.OPENAI_API_KEY;
+  });
+
   it('credits OpenAI only when a valid compiled intent is returned', async () => {
     const create = vi.fn().mockResolvedValue({
       choices: [

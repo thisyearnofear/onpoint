@@ -174,7 +174,7 @@ guidelines above. We run it against `apps/api/lib/linq-client.js` +
 | iMessage App status card | `apps/api/routes/prava-card.js` | ✅ render states implemented; completed mutation unobserved |
 | Prava hosted return | `apps/web/app/prava/return` | ✅ order-aware handoff; no redirect to the unrelated Celo agent dashboard |
 | Frontend session/status card | `apps/web/components/Agent/AgentCheckoutCard.tsx` | ✅ Product → Fit → Permission → Outcome; compact UCP/fit/Prava-Visa/Linq evidence rail |
-| OpenAI intent compiler | `apps/api/lib/commerce-intent.js` | ✅ integrated; production key configured; UI credits OpenAI only after an actual API-produced intent |
+| OpenAI intent compiler | `apps/api/lib/commerce-intent.js` | ⚠️ integrated with truthful direct-query fallback; production key still required before claiming live OpenAI evidence |
 
 ### Verification after submission hardening
 

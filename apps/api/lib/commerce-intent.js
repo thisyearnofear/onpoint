@@ -47,7 +47,9 @@ async function compileCommerceIntent(rawQuery, options = {}) {
   const cached = cache.get(query);
   if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.intent;
 
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your_openai_api_key_here'
+    ? process.env.OPENAI_API_KEY
+    : null;
   const model =
     options.model || process.env.OPENAI_COMMERCE_MODEL || 'gpt-4o-mini';
   const client = options.client || (apiKey ? new OpenAI({ apiKey }) : null);
