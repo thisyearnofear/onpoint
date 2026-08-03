@@ -51,6 +51,10 @@ setInterval(() => {
 const PUBLIC_BASE = (process.env.PUBLIC_BASE_URL || 'https://api.onpoint.famile.xyz').replace(/\/$/, '');
 const SERVICE_KEY = process.env.SERVICE_API_KEY;
 
+function parseTrackCommand(text) {
+  return /^track\s+(op_[0-9a-f-]+)$/i.exec(String(text || '').trim())?.[1] || null;
+}
+
 function cardUrlFor(orderId, state) {
   // The iMessage App renders this URL; state is server-driven from the order.
   return `${PUBLIC_BASE}/prava/card/${orderId}`;
@@ -82,6 +86,7 @@ router.get('/health', (_req, res) => {
     webhookSecretConfigured: !!process.env.LINQ_WEBHOOK_SECRET,
     pravaMode: prava.selfCheck() ? 'self-check' : 'live',
     publicBase: PUBLIC_BASE,
+    phoneNumber: linq.fromNumber,
     note: linq.live ? 'Live iMessage sends via Linq.' : 'Mock mode — sends log to console. Set LINQ_API_KEY + LINQ_WEBHOOK_SECRET for live.',
   });
 });
@@ -187,6 +192,23 @@ async function handleLinqEvent(event) {
       return;
     }
 
+    // Link the exact web mission only after the shopper explicitly sends the
+    // prefilled TRACK command. This stays inbound-first and creates no second
+    // quote or Prava permission session.
+    const trackedOrderId = parseTrackCommand(p.text);
+    if (trackedOrderId) {
+      try {
+        await attachExistingOrder(p.chatId, p.from, trackedOrderId);
+      } catch (error) {
+        logger.warn('Linq mission handoff could not resolve order', { component: 'linq-agent', orderId: trackedOrderId }, error);
+        await linq.sendMessage({
+          to: p.from,
+          text: 'That mission link is unavailable or expired. Start a new search on OnPoint and open Messages from its live commerce stack.',
+        });
+      }
+      return;
+    }
+
     const active = chatOrders.get(p.chatId);
     if (active) {
       if (p.photo) {
@@ -213,6 +235,24 @@ async function handleLinqEvent(event) {
     return;
   }
 
+}
+
+async function attachExistingOrder(chatId, from, orderId) {
+  const order = await pravaGetOrder(orderId);
+  chatOrders.set(chatId, { orderId, from, messageId: null, ts: Date.now() });
+
+  await linq.sendMessage({
+    to: from,
+    text: `Mission linked. ${order.merchant?.name || 'Merchant'} · ${order.totalAmount} ${order.currency}. Prava approval remains on its hosted surface; 👍 refreshes status only.`,
+  });
+  const sent = await linq.sendMessage({
+    to: from,
+    cardUrl: cardUrlFor(orderId, order.state),
+    cardImageUrl: order.tryOnUrl || undefined,
+    caption: 'OnPoint Stylist',
+    subcaption: `${order.merchant?.name || 'Merchant'} · ${order.totalAmount} ${order.currency} — 👍 refreshes status`,
+  });
+  if (sent?.messageId) chatOrders.get(chatId).messageId = sent.messageId;
 }
 
 // ── Style intent → search → quote → payment session → (try-on) → card ─
@@ -453,3 +493,4 @@ async function safeGetChat(chatId) {
 module.exports = router;
 // Test helper: read the active order for a chat (shared in-memory store).
 module.exports.getChatOrder = function (chatId) { return chatOrders.get(chatId) || null; };
+module.exports.parseTrackCommand = parseTrackCommand;

@@ -36,8 +36,10 @@ const crypto = require('crypto');
 const logger = require('../lib/logger');
 const prava = require('../lib/prava-client');
 const tryOn = require('../lib/prava-tryon');
+const { compileCommerceIntent } = require('../lib/commerce-intent');
 
 const router = express.Router();
+const PRAVA_WEB_BASE = (process.env.PRAVA_WEB_BASE_URL || 'https://beonpoint.netlify.app').replace(/\/$/, '');
 
 // Keep the public commerce surface tight without breaking photo uploads.
 // The web client sends uploaded person images as base64 data URIs; every other
@@ -152,6 +154,7 @@ function orderView(o) {
     updatedAt: o.updatedAt,
     selfCheck: !o.restMode && prava.selfCheck(),
     fitDecision: o.fitDecision || null,
+    intent: o.intent || null,
   };
 }
 
@@ -237,8 +240,9 @@ router.post('/search', async (req, res, next) => {
   try {
     const { query, merchant, limit } = req.body || {};
     if (!query) return res.status(400).json({ error: 'query is required' });
-    const r = await prava.shopSearch({ query, merchant, limit });
-    res.json(r);
+    const intent = await compileCommerceIntent(query);
+    const r = await prava.shopSearch({ query: intent.searchQuery, merchant, limit });
+    res.json({ ...r, intent });
   } catch (e) {
     next(e);
   }
@@ -287,6 +291,8 @@ router.post('/quote', async (req, res, next) => {
 router.post('/order', async (req, res, next) => {
   try {
     const { query, productId, variantId, merchant, addressId } = req.body || {};
+    const intent = query ? await compileCommerceIntent(query) : null;
+    const searchQuery = intent?.searchQuery || query;
     if (prava.restMode() && !prava.restSandboxMode()) {
       return res.status(501).json({
         error: 'Live REST checkout is disabled until an external merchant checkout adapter is configured.',
@@ -305,7 +311,7 @@ router.post('/order', async (req, res, next) => {
       if (!query) {
         return res.status(400).json({ error: 'query is required when selecting a productId.' });
       }
-      const search = await prava.shopSearch({ query, intent: query });
+      const search = await prava.shopSearch({ query: searchQuery, intent: searchQuery });
       const matched = search.results?.find((result) => result.product_id === productId);
       if (!matched) {
         return res.status(409).json({
@@ -336,7 +342,7 @@ router.post('/order', async (req, res, next) => {
 
     // Discover from natural-language intent when no product is pinned.
     if (!chosenVariant && query) {
-      const search = await prava.shopSearch({ query, intent: query });
+      const search = await prava.shopSearch({ query: searchQuery, intent: searchQuery });
       const top = search.results?.[0];
       if (!top) return res.status(404).json({ error: 'No products found for query', query });
       chosenMerchant = top.merchant;
@@ -422,6 +428,7 @@ router.post('/order', async (req, res, next) => {
       id,
       state: 'quoted',
       query,
+      intent,
       items: products,
       merchantName: chosenMerchant,
       merchantUrl: `https://${chosenMerchant}`,
@@ -553,6 +560,7 @@ router.post('/order/:id/session', async (req, res, next) => {
           merchantUrl: o.merchantUrl,
           merchantCountry: o.merchantCountry,
           products: o.items,
+          callbackUrl: `${PRAVA_WEB_BASE}/prava/return?orderId=${encodeURIComponent(o.id)}`,
         })
       : await prava.createPaymentSession({
           totalAmount: o.totalAmount,

@@ -170,8 +170,11 @@ guidelines above. We run it against `apps/api/lib/linq-client.js` +
 | Decoupled IDM-VTON try-on for UCP garment images | `apps/api/lib/prava-tryon.js` | ✅ placeholder + Replicate modes |
 | Linq REST client (real `/v3/chats`, Standard Webhooks) | `apps/api/lib/linq-client.js` | ✅ live send + signature verify |
 | Linq webhook receiver (envelope parsing, media, reactions) | `apps/api/routes/linq-agent.js` | ✅ live, all events subscribed; Redis-backed event deduplication |
+| Web → Linq same-order handoff | `AgentCheckoutCard.tsx` + `linq-agent.js` | ✅ inbound-first `TRACK op_…` handoff reuses the current order; live end-to-end observation pending |
 | iMessage App status card | `apps/api/routes/prava-card.js` | ✅ render states implemented; completed mutation unobserved |
-| Frontend session/status card | `apps/web/components/Agent/AgentCheckoutCard.tsx` | ✅ Product → Fit → Permission → Outcome; photo uploads fixed; session creation fit-gated |
+| Prava hosted return | `apps/web/app/prava/return` | ✅ order-aware handoff; no redirect to the unrelated Celo agent dashboard |
+| Frontend session/status card | `apps/web/components/Agent/AgentCheckoutCard.tsx` | ✅ Product → Fit → Permission → Outcome; compact UCP/fit/Prava-Visa/Linq evidence rail |
+| OpenAI intent compiler | `apps/api/lib/commerce-intent.js` | ✅ integrated; production key configured; UI credits OpenAI only after an actual API-produced intent |
 
 ### Verification after submission hardening
 
@@ -179,6 +182,8 @@ guidelines above. We run it against `apps/api/lib/linq-client.js` +
   upload and proof that no session is created without an explicit fit decision.
 - **Web typecheck:** passed.
 - **Production web build:** passed.
+- **Focused commerce regressions:** 18/18 passed.
+- **Web tests:** 313/313 passed.
 - **Fixture-only Product → Fit → Permission walkthrough:** passed.
 - **Linq webhook smoke:** passed, including duplicate-event suppression and
   reaction-driven status refresh. Fixture output remains explicitly non-transactional.
@@ -268,10 +273,12 @@ not retry or call `report-status` with an invented outcome.
 
 The Linq experience sends an intro message plus an `imessage_app` status card.
 Approval happens on Prava's hosted surface. Live send and signed Standard
-Webhooks handling are validated. The 👍 reaction handler and card update are
-implemented, but confirmation mutation has not been observed as one continuous
-Linq-to-Prava recording. Live Linq and successful Prava evidence are presented
-as independently validated parts of the same deployed workflow.
+Webhooks handling are validated. A web shopper can now open Messages with an
+inbound `TRACK op_…` command, attaching the exact current order rather than
+creating a duplicate quote or permission session. The 👍 reaction handler and
+card update are implemented, but this new same-order handoff and confirmation
+mutation have not yet been observed as one continuous recording. Until then,
+live Linq and successful Prava evidence remain independently validated.
 
 **Try-on-before-agent-checkout (original insight):**
 

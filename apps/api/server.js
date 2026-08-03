@@ -155,6 +155,7 @@ app.get('/health', json1k, async (req, res) => {
     version: '2.1.0',
     redis: redisStatus,
     venice: !!process.env.VENICE_API_KEY,
+    openai: !!process.env.OPENAI_API_KEY,
     gemini: !!process.env.GOOGLE_GEMINI_API_KEY,
     qwenCloud: !!process.env.DASHSCOPE_API_KEY,
     qwenCloudKillSwitch: process.env.QWEN_CLOUD_KILL_SWITCH === '1',

@@ -24,7 +24,7 @@ export function AgentResults({ results, query, onSelectOrder }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          query,
+          query: result.searchQuery || query,
           productId: result.product_id,
           variantId: offer?.variant_id,
           merchant: result.merchant,

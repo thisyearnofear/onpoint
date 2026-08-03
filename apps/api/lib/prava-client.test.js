@@ -29,14 +29,14 @@ function jsonResponse(body, { status = 200, responseId } = {}) {
 
 describe('Prava REST integration', () => {
   beforeEach(() => {
-    process.env.PUBLIC_BASE_URL = 'https://beonpoint.netlify.app/agent';
     process.env.SERVICE_API_KEY = 'prava-audit-service-key';
+    delete process.env.OPENAI_API_KEY;
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
-    delete process.env.PUBLIC_BASE_URL;
     delete process.env.SERVICE_API_KEY;
+    delete process.env.OPENAI_API_KEY;
   });
 
   it('creates the documented hosted-checkout session body', async () => {
@@ -62,6 +62,7 @@ describe('Prava REST integration', () => {
         unit_price: '108.00',
         quantity: 1,
       }],
+      callbackUrl: 'https://beonpoint.netlify.app/prava/return?orderId=op_test',
     });
 
     expect(request.url).toBe('https://sandbox.api.prava.space/v1/sessions');
@@ -73,7 +74,7 @@ describe('Prava REST integration', () => {
       currency: 'USD',
       description: 'Aloyoga order via OnPoint',
       integration_type: 'full_checkout',
-      callback_url: 'https://beonpoint.netlify.app/agent',
+      callback_url: 'https://beonpoint.netlify.app/prava/return?orderId=op_test',
       purchase_context: [{
         merchant_details: {
           name: 'Aloyoga',
@@ -257,6 +258,7 @@ describe('Prava REST integration', () => {
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({
       total_amount: '111.24',
       currency: 'USD',
+      callback_url: `https://beonpoint.netlify.app/prava/return?orderId=${created.body.orderId}`,
     });
 
     await supertest(app)

@@ -16,6 +16,7 @@ export interface SearchResult {
   product_id: string;
   image?: string;
   offers?: { variant_id: string; price: number; available: boolean }[];
+  searchQuery?: string;
 }
 
 interface Props {
@@ -41,7 +42,11 @@ export function AgentSearchBar({ onResults, loading }: Props) {
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || `Search failed (${r.status})`);
-      onResults(data.results || [], q);
+      const results = (data.results || []).map((result: SearchResult) => ({
+        ...result,
+        searchQuery: data.intent?.searchQuery || q,
+      }));
+      onResults(results, q);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Search failed");
     } finally {

@@ -252,6 +252,7 @@ async function getAvailableNumber() {
 
 module.exports = {
   live,
+  fromNumber: FROM_NUMBER,
   scanOptOut,
   scanOptIn,
   verifyWebhook,

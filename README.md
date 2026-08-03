@@ -18,7 +18,8 @@ OnPoint is the **execution layer** for fashion intent that needs **fit + real st
 > **OnPoint is the fashion agent that earns permission to buy.** It discovers
 > live merchant inventory, checks fit on the shopper, locks a binding quote,
 > and requests the narrowest useful payment permission through Prava. Linq is
-> the message-native control plane; one-time credentials remain server-side.
+> the message-native control plane: a web mission can move into Messages
+> without creating a second order. One-time credentials remain server-side.
 
 **Validated sandbox transaction:** a live Alo Yoga SKU produced a binding `$117.32
 USD` quote (`$108.00` item + `$0.00` shipping + `$9.32` tax). Prava reached
@@ -35,9 +36,11 @@ charge, approval, or decline is claimed.**
 
 **Hackathon disclosure:** OnPoint's storefronts, try-on, inventory APIs,
 referrals, and public agent identity existed before this event. The Prava UCP
-discovery/quote/session state machine, server-held credential flow, Linq signed
-webhook/status-card interface, safety boundaries, and demo evidence were built
-during the Agentic Commerce Hackathon.
+discovery/quote/session state machine, server-held credential flow, order-aware
+Prava return, Linq signed webhook/same-mission status-card interface, OpenAI
+intent compiler, safety boundaries, and demo evidence were built during the
+Agentic Commerce Hackathon. The OpenAI compiler falls back losslessly and is
+credited in the UI only when the OpenAI API actually runs.
 
 ---
 

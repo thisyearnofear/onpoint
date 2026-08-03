@@ -526,16 +526,16 @@ const DECIMAL_AMOUNT = /^\d+(?:\.\d{1,2})?$/;
  *  (the Prava-hosted card-entry iframe URL) the owner opens to enter their
  *  (test) card + passkey. Charges nothing. Mirrors createPaymentSession's
  *  return shape: { session_id, payment_url, ... }. */
-async function createRestSession({ totalAmount, currency = 'USD', merchantName, merchantUrl, merchantCountry, products } = {}) {
+async function createRestSession({ totalAmount, currency = 'USD', merchantName, merchantUrl, merchantCountry, products, callbackUrl } = {}) {
   const displayName = humanizeMerchant(merchantName);
   const amount = String(totalAmount || '');
   const currencyCode = String(currency || '').toUpperCase();
   const countryCode = String(merchantCountry || '').toUpperCase();
-  const callbackUrl = process.env.PUBLIC_BASE_URL || 'https://beonpoint.netlify.app/agent';
+  const hostedCallbackUrl = callbackUrl || process.env.PRAVA_CALLBACK_URL || 'https://beonpoint.netlify.app/prava/return';
   let parsedMerchantUrl;
   let parsedCallbackUrl;
   try { parsedMerchantUrl = new URL(merchantUrl); } catch {}
-  try { parsedCallbackUrl = new URL(callbackUrl); } catch {}
+  try { parsedCallbackUrl = new URL(hostedCallbackUrl); } catch {}
   if (!DECIMAL_AMOUNT.test(amount) || Number(amount) <= 0) {
     throw new PravaError('invalid_session_body', 'totalAmount must be a positive decimal string with at most two decimal places.', { status: 400 });
   }
@@ -575,7 +575,7 @@ async function createRestSession({ totalAmount, currency = 'USD', merchantName, 
     currency: currencyCode,
     description: `${displayName} order via OnPoint`,
     integration_type: 'full_checkout',
-    callback_url: callbackUrl,
+    callback_url: hostedCallbackUrl,
     purchase_context: [{
       merchant_details: {
         name: displayName,

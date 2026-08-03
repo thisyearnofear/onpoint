@@ -16,6 +16,8 @@ import {
   KeyRound,
   ScanFace,
   UserRound,
+  MessageCircle,
+  Radio,
   X,
 } from "lucide-react";
 import type { SearchResult } from "./AgentSearchBar";
@@ -61,6 +63,10 @@ interface OrderData {
     approvalMethod: string;
     guardrails: string[];
   } | null;
+  intent: {
+    provider: "openai" | "direct";
+    model: string | null;
+  } | null;
 }
 
 interface Props {
@@ -69,6 +75,11 @@ interface Props {
   onProgressChange?: (progress: { state: string; hasTryOn: boolean }) => void;
   onConfirmed?: () => void;
   onReset?: () => void;
+}
+
+interface LinqHealth {
+  mode: "live" | "mock";
+  phoneNumber?: string;
 }
 
 // A sample person photo for judges who don't want to upload their own.
@@ -202,6 +213,110 @@ function OutcomeLedger({
   );
 }
 
+function CommerceEvidence({
+  orderId,
+  state,
+  hasTryOn,
+  linq,
+  openAiIntent,
+}: {
+  orderId: string;
+  state: string;
+  hasTryOn: boolean;
+  linq: LinqHealth | null;
+  openAiIntent: boolean;
+}) {
+  const credentialObserved = [
+    "credential_ready",
+    "checking_out",
+    "checkout_unknown",
+    "sandbox_completed",
+    "sandbox_declined",
+    "confirmed",
+  ].includes(state);
+  const number = linq?.phoneNumber || "+14243945528";
+  const message = `TRACK ${orderId}`;
+  const messagesHref = `sms:${number}?&body=${encodeURIComponent(message)}`;
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border/60 bg-background">
+      <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
+        <div>
+          <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-primary">
+            Live commerce stack
+          </p>
+          <p className="mt-0.5 text-sm font-bold">
+            One mission, four boundaries
+          </p>
+        </div>
+        <Radio className="h-4 w-4 text-emerald-500" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-px bg-border/50">
+        <EvidenceCell eyebrow="LIVE UCP" value="Inventory + quote" active />
+        <EvidenceCell
+          eyebrow={openAiIntent ? "OPENAI + REPLICATE" : "AI FIT · REPLICATE"}
+          value={
+            openAiIntent
+              ? hasTryOn
+                ? "Intent + fit observed"
+                : "Intent compiled"
+              : hasTryOn
+                ? "Render observed"
+                : "Optional"
+          }
+          active={hasTryOn || openAiIntent}
+        />
+        <EvidenceCell
+          eyebrow="VISA IC VIA PRAVA"
+          value={
+            credentialObserved ? "Credential scoped" : "Controls requested"
+          }
+          active={credentialObserved}
+        />
+        <a
+          href={messagesHref}
+          className="group bg-card px-3 py-3 transition-colors hover:bg-muted/40"
+          aria-label="Continue this mission in Messages through Linq"
+        >
+          <p className="font-mono text-[8px] font-bold uppercase tracking-[0.14em] text-primary">
+            LINQ · {linq?.mode === "live" ? "LIVE" : "MESSAGES"}
+          </p>
+          <p className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-foreground">
+            Track this mission
+            <MessageCircle className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+          </p>
+        </a>
+      </div>
+      <p className="border-t border-border/40 px-4 py-2.5 text-[10px] leading-relaxed text-muted-foreground">
+        Messages opens with a prefilled tracking code. Nothing is sent until you
+        send it; 👍 refreshes status and never authorizes payment.
+      </p>
+    </div>
+  );
+}
+
+function EvidenceCell({
+  eyebrow,
+  value,
+  active,
+}: {
+  eyebrow: string;
+  value: string;
+  active?: boolean;
+}) {
+  return (
+    <div className="bg-card px-3 py-3">
+      <p
+        className={`font-mono text-[8px] font-bold uppercase tracking-[0.14em] ${active ? "text-emerald-600 dark:text-emerald-300" : "text-muted-foreground"}`}
+      >
+        {eyebrow}
+      </p>
+      <p className="mt-1 text-xs font-semibold text-foreground">{value}</p>
+    </div>
+  );
+}
+
 type ViewerMode = "product" | "person" | "try-on";
 
 function FashionImageViewer({
@@ -328,6 +443,8 @@ export function AgentCheckoutCard({
   const [viewerMode, setViewerMode] = useState<"product" | "person" | "try-on">(
     "product",
   );
+  const [linqHealth, setLinqHealth] = useState<LinqHealth | null>(null);
+  const [returnSignal, setReturnSignal] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const onConfirmedRef = useRef(onConfirmed);
@@ -370,6 +487,31 @@ export function AgentCheckoutCard({
       active = false;
       controller.abort();
     };
+  }, [orderId]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/linq/health", { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) return;
+        setLinqHealth(await response.json());
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const handlePravaReturn = (event: MessageEvent) => {
+      if (
+        event.origin === window.location.origin &&
+        event.data?.type === "onpoint:prava-return" &&
+        event.data?.orderId === orderId
+      ) {
+        setReturnSignal((signal) => signal + 1);
+      }
+    };
+    window.addEventListener("message", handlePravaReturn);
+    return () => window.removeEventListener("message", handlePravaReturn);
   }, [orderId]);
 
   // Only states that can change outside this tab are refreshed. The loop is
@@ -474,7 +616,7 @@ export function AgentCheckoutCard({
       controller?.abort();
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [order?.paymentUrl, order?.state, orderId]);
+  }, [order?.paymentUrl, order?.state, orderId, returnSignal]);
 
   useEffect(() => {
     if (!order) return;
@@ -985,6 +1127,14 @@ export function AgentCheckoutCard({
             <OutcomeLedger state={state} hasTryOn={showTryOn} />
           )}
 
+          <CommerceEvidence
+            orderId={orderId}
+            state={state}
+            hasTryOn={showTryOn}
+            linq={linqHealth}
+            openAiIntent={order.intent?.provider === "openai"}
+          />
+
           {isCredentialReady && (
             <div className="rounded-lg bg-amber-500/10 px-3 py-2.5 text-sm text-amber-700 dark:text-amber-300">
               Prava issued a sandbox credential. An external checkout must now
@@ -1090,7 +1240,11 @@ export function AgentCheckoutCard({
                 ? "Self-check fixture · no transaction"
                 : state === "quoted" || state === "try_on_ready"
                   ? "Binding quote · permission not requested"
-                  : "Prava session requested · user approval required"}
+                  : isCredentialReady
+                    ? "Successful Prava sandbox transaction · credential generated · no merchant order"
+                    : state === "awaiting_approval"
+                      ? "Prava session requested · hosted verification required"
+                      : "Prava mission in progress"}
         </div>
       </div>
       <FashionImageViewer
