@@ -15,16 +15,9 @@ const express = require('express');
 const router = express.Router();
 const logger = require('../lib/logger');
 const { searchViaBridge, searchViaVenice } = require('../lib/product-search');
+const { canvasItems } = require('../lib/canvas-catalog');
 
-let CANVAS_ITEMS;
-try {
-  CANVAS_ITEMS = require('@onpoint/shared-types').CANVAS_ITEMS || [];
-} catch {
-  CANVAS_ITEMS = [];
-  logger.warn('CANVAS_ITEMS unavailable — @onpoint/shared-types not built', {
-    component: 'curated-shop',
-  });
-}
+const CANVAS_ITEMS = canvasItems();
 
 // ── Curation constants (ported from apps/web/lib/utils/curated-picks.ts) ──
 

@@ -1,7 +1,17 @@
 import { createRequire } from 'node:module';
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
+
+// Keep this unit test hermetic when a developer shell has live Linq
+// credentials. The production client still uses live mode by default.
+const previousLinqMock = process.env.LINQ_MOCK;
+process.env.LINQ_MOCK = '1';
+afterAll(() => {
+  if (previousLinqMock === undefined) delete process.env.LINQ_MOCK;
+  else process.env.LINQ_MOCK = previousLinqMock;
+});
+
 const { maskHandle, parseTrackCommand } = require('./linq-agent');
 const linq = require('../lib/linq-client');
 

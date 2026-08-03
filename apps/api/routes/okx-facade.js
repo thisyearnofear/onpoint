@@ -58,6 +58,23 @@ const hasOkxCreds =
   !!process.env.OKX_SECRET_KEY &&
   !!process.env.OKX_PASSPHRASE;
 
+// ── Self-check guardrail ─────────────────────────────────────────────
+// In self-check mode (no OKX facilitator creds) the /okx/try-on 402
+// challenge is spec-valid but payment is NOT verified or settled. That is
+// fine for local dev and the A2MCP listing self-check, but it is a footgun
+// in production: a deploy without creds would happily return 402 and never
+// confirm a real payment. Refuse to serve the PAID endpoint in any
+// production-like environment unless explicitly allowed via
+// OKX_ALLOW_SELFCHECK=1. Treat anything that is not explicitly dev/test as
+// production (a *missing* NODE_ENV fails closed, not open).
+const isProdLike =
+  process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test';
+const allowSelfCheck =
+  process.env.OKX_ALLOW_SELFCHECK === '1' ||
+  process.env.NODE_ENV === 'development' ||
+  process.env.NODE_ENV === 'test';
+const selfCheckBlocked = isProdLike && !hasOkxCreds && !allowSelfCheck;
+
 // USD amount → smallest on-chain unit (USD₮0 has 6 decimals)
 function usdToAtomic(usd) {
   return BigInt(Math.round(usd * 1_000_000)).toString();
@@ -240,6 +257,17 @@ if (hasOkxCreds) {
   );
 
   router.post('/try-on', (req, res) => {
+    // Production guardrail: in self-check mode payment is never verified or
+    // settled, so serving the PAID endpoint would silently accept unpaid
+    // try-ons. Refuse unless explicitly allowed (dev/test or
+    // OKX_ALLOW_SELFCHECK=1). The health endpoint still reports the mode.
+    if (selfCheckBlocked) {
+      return res.status(503).json({
+        error:
+          'OKX facilitator not configured and self-check is blocked in production. The 402 challenge is valid for listing/self-check only; set OKX_API_KEY/OKX_SECRET_KEY/OKX_PASSPHRASE to enable live verify+settle, or OKX_ALLOW_SELFCHECK=1 to explicitly run unpaid in this environment.',
+        code: 'SELFCHECK_BLOCKED',
+      });
+    }
     const hasPaymentHeader =
       req.header('payment-signature') || req.header('x-payment');
     // Always set the PAYMENT-REQUIRED header (v2 challenge, base64).

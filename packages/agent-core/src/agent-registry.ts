@@ -7,6 +7,7 @@
 
 import { logger } from "./logger";
 import { readPersistentState, writePersistentState } from "./persistent-state";
+import { AGENT_WALLET } from "./chains";
 
 // ============================================
 // Types
@@ -59,9 +60,9 @@ const AGENT_REGISTRY_ADDRESS = "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432";
 const ONPOINT_AGENT: AgentIdentity = {
   agentId: 9177,
   name: "OnPoint AI Stylist",
-  walletAddress:
-    process.env.AGENT_WALLET_ADDRESS ||
-    "0x5b33E63440e95289207120B94da78CE22F9D24fB",
+  // Single source of truth: packages/agent-core/src/chains.ts AGENT_WALLET
+  // (env-driven, fail-loud in production via assertWalletsConfigured).
+  walletAddress: AGENT_WALLET,
   registryAddress: AGENT_REGISTRY_ADDRESS,
   registrationTxHash:
     "0x536940e8b9167776a7e2951c9f427ee0a519736f4470cf10065e127b0d14abe3",

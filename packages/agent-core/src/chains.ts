@@ -32,11 +32,34 @@ export type ChainName =
  * Also receives platform fees (15% of NFT sales).
  *
  * Private key lives in AGENT_PRIVATE_KEY env var (server-side only).
- * This address is derived from that key. To rotate, generate a new keypair
- * and update both this address and AGENT_PRIVATE_KEY in .env.
+ * This address is the public counterpart of that key. To rotate, generate a
+ * new keypair and set AGENT_WALLET_ADDRESS (and AGENT_PRIVATE_KEY) in env.
+ *
+ * Resolution: AGENT_WALLET_ADDRESS env var first, then this compiled-in
+ * default. The default exists ONLY for local dev/test — the API money layer
+ * (apps/api/lib/wallets.js) refuses to route funds to a default in
+ * production-like environments and fails loud instead. Never depend on the
+ * default for a live money path.
  */
-export const AGENT_WALLET =
-  "0x5b33E63440e95289207120B94da78CE22F9D24fB" as Address;
+export const AGENT_WALLET: Address =
+  (process.env.AGENT_WALLET_ADDRESS as Address | undefined) ??
+  ("0x5b33E63440e95289207120B94da78CE22F9D24fB" as Address);
+
+/**
+ * Asserts that the agent wallet is explicitly configured via env in
+ * production-like environments. Call from server startup so a misconfigured
+ * deploy fails fast instead of routing funds to a compiled-in default.
+ * In development/test, logs a warning and continues.
+ */
+export function assertWalletsConfigured(): void {
+  const isProdLike =
+    process.env.NODE_ENV !== "development" && process.env.NODE_ENV !== "test";
+  if (isProdLike && !process.env.AGENT_WALLET_ADDRESS) {
+    throw new Error(
+      "AGENT_WALLET_ADDRESS env var is required in production — refusing to route funds to a compiled-in default wallet.",
+    );
+  }
+}
 
 /** @deprecated Platform fee wallet — now routed to AGENT_WALLET */
 export const PLATFORM_WALLET = AGENT_WALLET;

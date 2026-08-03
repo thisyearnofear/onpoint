@@ -73,6 +73,20 @@ redis.on('connect', () => {
 const etherfuse = require('@repo/etherfuse');
 etherfuse.setTopUpRedisClient(redis);
 
+// ── Money-config assertion ───────────────────────────────────────
+// Fail fast at boot if the agent/platform wallet is not explicitly
+// configured in production. Money routes (checkout, purchase, payouts,
+// try-on) resolve wallets fail-loud at request time too, but surfacing
+// the misconfiguration at startup is far better than discovering it mid-
+// purchase. In dev/test this is a no-op (the dev default wallet is used).
+const { assertWalletsConfigured } = require('./lib/wallets');
+try {
+  assertWalletsConfigured();
+} catch (walletErr) {
+  console.error('[FATAL] Wallet configuration error:', walletErr.message);
+  process.exit(1);
+}
+
 // ── Middleware ──────────────────────────────────────────────────
 const { createRateLimiter } = require('./middleware/rate-limit');
 const { createApiKeyAuth } = require('./middleware/api-key-auth');

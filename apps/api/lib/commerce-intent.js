@@ -1,8 +1,13 @@
 const OpenAI = require('openai');
 const logger = require('./logger');
+const { cacheGet, cacheSet } = require('./cache');
 
 const CACHE_TTL_MS = 10 * 60 * 1000;
-const cache = new Map();
+const CACHE_PREFIX = 'commerce-intent:';
+// Per-process overflow cache for when Redis is unavailable. This is a
+// best-effort cost saving only (identical to the old behavior); correctness
+// does not depend on it. Redis is the shared, durable store.
+const localCache = new Map();
 
 function directIntent(query) {
   return {
@@ -44,7 +49,11 @@ async function compileCommerceIntent(rawQuery, options = {}) {
     .slice(0, 500);
   if (!query) return directIntent('');
 
-  const cached = cache.get(query);
+  const cacheKey = CACHE_PREFIX + query;
+  // Try Redis first (shared across instances), then fall back to the
+  // per-process overflow cache.
+  let cached = await cacheGet(cacheKey);
+  if (!cached) cached = localCache.get(cacheKey);
   if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.intent;
 
   const apiKey = process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your_openai_api_key_here'
@@ -71,8 +80,11 @@ async function compileCommerceIntent(rawQuery, options = {}) {
     });
     const content = response.choices?.[0]?.message?.content || '{}';
     const intent = sanitizeIntent(JSON.parse(content), query, model);
-    if (intent.provider === 'openai')
-      cache.set(query, { at: Date.now(), intent });
+    if (intent.provider === 'openai') {
+      const entry = { at: Date.now(), intent };
+      await cacheSet(cacheKey, entry, CACHE_TTL_MS);
+      localCache.set(cacheKey, entry);
+    }
     return intent;
   } catch (error) {
     logger.warn(

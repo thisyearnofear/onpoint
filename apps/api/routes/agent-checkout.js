@@ -20,27 +20,14 @@
 const express = require('express');
 const router = express.Router();
 const { parseEther } = require('viem');
-const sharedTypes = require('@onpoint/shared-types');
 const agentCore = require('@repo/agent-core');
 const logger = require('../lib/logger');
 const { forwardedUser } = require('../middleware/forwarded-user');
+const { getProductById } = require('../lib/canvas-catalog');
+const { getAgentWallet, getPlatformWallet } = require('../lib/wallets');
 
-const PLATFORM_WALLET = agentCore.PLATFORM_WALLET || '0x5b33E63440e95289207120B94da78CE22F9D24fB';
-const AGENT_WALLET = agentCore.AGENT_WALLET || PLATFORM_WALLET;
-
-const PRODUCT_MAP = Object.fromEntries(
-  (sharedTypes.CANVAS_ITEMS || []).map((item) => [
-    item.id,
-    {
-      id: item.id,
-      slug: item.slug,
-      name: item.name,
-      price: item.price,
-      category: item.category,
-      seller: PLATFORM_WALLET,
-    },
-  ]),
-);
+// Wallets resolved fail-loud at request time via lib/wallets — no hardcoded
+// `|| '0x5b33...'` fallback that could silently misroute funds.
 
 router.use(forwardedUser);
 
@@ -82,7 +69,7 @@ router.post('/', async (req, res) => {
     let totalAmount = 0;
 
     for (const item of items) {
-      const product = PRODUCT_MAP[item.productId];
+      const product = getProductById(item.productId);
       if (!product) {
         return res.status(404).json({ success: false, error: `Product not found: ${item.productId}` });
       }
@@ -112,11 +99,11 @@ router.post('/', async (req, res) => {
     }
 
     if (referringAgentId) {
-      agentAddress = AGENT_WALLET;
+      agentAddress = getAgentWallet();
     }
 
     // Calculate commission split
-    const split = agentCore.calculateSplit(totalWei, PLATFORM_WALLET, {
+    const split = agentCore.calculateSplit(totalWei, getPlatformWallet(), {
       affiliateAddress,
       agentAddress,
     });
@@ -129,7 +116,7 @@ router.post('/', async (req, res) => {
       amount: totalWei,
       amountFormatted: totalFormatted,
       description: `Checkout: ${resolvedItems.map((i) => `${i.quantity}x ${i.name}`).join(', ')}`,
-      recipient: PLATFORM_WALLET,
+      recipient: getPlatformWallet(),
     });
 
     if (validation.requiresApproval) {

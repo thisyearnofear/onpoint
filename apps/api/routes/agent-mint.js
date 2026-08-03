@@ -14,6 +14,7 @@ const router = express.Router();
 const agentCore = require('@repo/agent-core');
 const logger = require('../lib/logger');
 const { forwardedUser } = require('../middleware/forwarded-user');
+const { getPlatformWallet } = require('../lib/wallets');
 
 router.use(forwardedUser);
 
@@ -114,7 +115,7 @@ router.post('/', async (req, res) => {
         metadataUri,
         recipients: [
           { address: royaltyAddr, percentAllocation: 85 },
-          { address: agentCore.PLATFORM_WALLET || agentCore.AGENT_WALLET, percentAllocation: 15 },
+          { address: getPlatformWallet(), percentAllocation: 15 },
         ],
         agentId,
         userId,
@@ -165,7 +166,7 @@ router.post('/', async (req, res) => {
         {
           recipients: [
             { address: royaltyAddr, percentAllocation: 85 },
-            { address: agentCore.PLATFORM_WALLET || agentCore.AGENT_WALLET, percentAllocation: 15 },
+            { address: getPlatformWallet(), percentAllocation: 15 },
           ],
         },
         splitsClient,

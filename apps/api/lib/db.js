@@ -12,10 +12,24 @@
 const { neon } = require('@neondatabase/serverless');
 const { drizzle } = require('drizzle-orm/neon-http');
 
-const CONNECTION_STRING = process.env.NEON_DATABASE_URL;
-
 let _sql = null;
+let _connectionString = null;
 let _dbCache = new Map(); // keyed by schema keys
+
+/**
+ * Resolve the connection string at call time rather than module load time.
+ * This keeps long-lived processes honest when configuration is injected or
+ * rotated, and lets tests isolate configured/unconfigured database states.
+ */
+function getConnectionString() {
+  const connectionString = process.env.NEON_DATABASE_URL || null;
+  if (connectionString !== _connectionString) {
+    _connectionString = connectionString;
+    _sql = null;
+    _dbCache = new Map();
+  }
+  return connectionString;
+}
 
 /**
  * Get a Drizzle ORM instance backed by Neon serverless.
@@ -23,11 +37,12 @@ let _dbCache = new Map(); // keyed by schema keys
  * @returns {import('drizzle-orm/neon-http').NeonHttpDatabase}
  */
 function getDb(schema) {
-  if (!CONNECTION_STRING) {
+  const connectionString = getConnectionString();
+  if (!connectionString) {
     throw new Error('NEON_DATABASE_URL not configured');
   }
   if (!_sql) {
-    _sql = neon(CONNECTION_STRING);
+    _sql = neon(connectionString);
   }
   if (!schema) {
     // No schema → return a bare drizzle instance (cached once)
@@ -51,13 +66,14 @@ function getDb(schema) {
  * @returns {import('@neondatabase/serverless').NeonQueryFunction}
  */
 function getSql() {
-  if (!CONNECTION_STRING) {
+  const connectionString = getConnectionString();
+  if (!connectionString) {
     throw new Error('NEON_DATABASE_URL not configured');
   }
   if (!_sql) {
-    _sql = neon(CONNECTION_STRING);
+    _sql = neon(connectionString);
   }
   return _sql;
 }
 
-module.exports = { getDb, getSql, CONNECTION_STRING };
+module.exports = { getDb, getSql, getConnectionString };

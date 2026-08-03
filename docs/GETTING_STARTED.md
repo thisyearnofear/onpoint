@@ -37,11 +37,26 @@ Copy `.env.example` to `.env.local` and configure:
 | `AZURE_CV_API_KEY`     | Azure Computer Vision API key (F0 free tier)     |
 | `VERTEX_API_KEY`       | Gemini Live sessions (Google Cloud)              |
 
+### API Infrastructure
+
+The Express API uses these server-only variables in `apps/api/.env`:
+
+| Variable | Purpose |
+| --- | --- |
+| `NEON_DATABASE_URL` | Neon Postgres for curator/storefront, order, and try-on routes |
+| `REDIS_URL` | Shared cache, rate limiting, and durable API state; local state fallbacks keep development walkable when unavailable |
+| `AGENT_WALLET_ADDRESS` | Explicit agent/platform money destination; required in production-like environments |
+| `PLATFORM_WALLET_ADDRESS` | Optional explicit legacy platform-wallet alias; otherwise the agent wallet is used |
+
+`NEON_DATABASE_URL` is resolved when the DB helper is called, so changing or
+removing it takes effect for new connections and tests without restarting the
+module cache.
+
 ### Agent Infrastructure
 
 | Variable                   | Purpose                                            |
 | -------------------------- | -------------------------------------------------- |
-| `UPSTASH_REDIS_REST_URL`   | Agent state persistence (optional — works without) |
+| `UPSTASH_REDIS_REST_URL`   | Web/agent-core state persistence (optional — works without) |
 | `UPSTASH_REDIS_REST_TOKEN` | Redis auth token                                   |
 | `LIGHTHOUSE_API_KEY`       | IPFS/Filecoin decentralized storage                |
 | `AGENT_PRIVATE_KEY`        | Agent wallet for demo transactions                 |
@@ -137,7 +152,17 @@ pnpm build        # Build all packages and apps
 pnpm lint         # Run ESLint across the monorepo
 pnpm check-types  # TypeScript type checking
 pnpm format       # Prettier formatting
+pnpm --filter @onpoint/api test  # API tests (139 tests; no live DB required)
 ```
+
+### API test modes
+
+API tests are hermetic by default. Curator route tests exercise both missing
+and fake database configuration without contacting Neon. Linq tests force the
+mock transport with `LINQ_MOCK=1`, so a developer shell with live
+`LINQ_API_KEY` credentials cannot accidentally send a real message. The
+production Linq client remains live whenever `LINQ_API_KEY` is configured;
+`LINQ_MOCK=1` is test/demo-only and must not be set in production.
 
 ## Deployment
 

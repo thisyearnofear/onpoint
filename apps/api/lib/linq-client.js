@@ -65,7 +65,11 @@ function imessageAppPart({ cardUrl, cardImageUrl, caption, subcaption }) {
   };
 }
 
-const live = !!API_KEY;
+// Tests and local demos can force deterministic mock behavior even when a
+// developer shell has a real LINQ_API_KEY exported. Production remains live
+// whenever credentials are present unless this explicit opt-in is set.
+const mock = process.env.LINQ_MOCK === '1' || !API_KEY;
+const live = !!API_KEY && !mock;
 
 // ── Opt-out compliance ──────────────────────────────────────────────
 // Linq does NOT suppress these for us — we scan every inbound ourselves.

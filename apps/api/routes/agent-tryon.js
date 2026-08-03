@@ -34,40 +34,35 @@ const { upload: r2Upload, publicUrl: r2PublicUrl, keyFor: r2KeyFor, mirrorTryOnA
 const { logFunnelEvent } = require('../lib/funnel');
 const { getDb, getSql } = require('../lib/db');
 const { keyToUrl, listingImageUrl } = require('../lib/r2');
+const { getPlatformWallet } = require('../lib/wallets');
 
 const router = express.Router();
 
 // ── Render cache: avoid duplicate Replicate calls for same (photo + listing) ──
-// TTL: 1 hour. Key: sha256(photoData + listingId). Value: generatedImage URL.
+// TTL: 1 hour. Key: sha256(photoData + listingId). Value: render result.
+//
+// Redis-backed (lib/cache.js) so the cache survives restarts and is shared
+// across instances — critical on serverless / multi-instance deploys where
+// a per-process Map would silently re-run paid ($0.03–$0.05) Replicate calls
+// for the same photo. When Redis is unavailable the cache misses and the
+// try-on still runs (correctness is preserved; only the cost saving is lost).
+const { cacheGet, cacheSet } = require('../lib/cache');
 const RENDER_CACHE_TTL_MS = 60 * 60 * 1000;
-const renderCache = new Map();
+const RENDER_CACHE_PREFIX = 'tryon:render:';
 
 function getRenderCacheKey(photoData, listingId) {
   const hash = crypto.createHash('sha256');
   hash.update(photoData.slice(0, 1000)); // hash first 1000 chars (enough uniqueness for photos)
   hash.update(listingId);
-  return hash.digest('hex').slice(0, 32);
+  return RENDER_CACHE_PREFIX + hash.digest('hex').slice(0, 32);
 }
 
-function getRenderCache(key) {
-  const entry = renderCache.get(key);
-  if (!entry) return null;
-  if (Date.now() - entry.ts > RENDER_CACHE_TTL_MS) {
-    renderCache.delete(key);
-    return null;
-  }
-  return entry.value;
+async function getRenderCache(key) {
+  return cacheGet(key);
 }
 
-function setRenderCache(key, value) {
-  renderCache.set(key, { value, ts: Date.now() });
-  // Evict expired entries periodically (keep map bounded)
-  if (renderCache.size > 200) {
-    const now = Date.now();
-    for (const [k, v] of renderCache) {
-      if (now - v.ts > RENDER_CACHE_TTL_MS) renderCache.delete(k);
-    }
-  }
+async function setRenderCache(key, value) {
+  await cacheSet(key, value, RENDER_CACHE_TTL_MS);
 }
 
 /** Raw neon SQL tagged template — for queries that drizzle can't express */
@@ -176,7 +171,7 @@ router.post('/', async (req, res) => {
       : `${row.kit.club} ${row.kit.kitType} kit (${row.kit.season})`;
     const priceCusd = tryOnPriceCusd(row.curator, row.listing.inventoryType);
     const splitAddress = curatorSplitAddress(row.curator);
-    const payTo = splitAddress || agentCore.PLATFORM_WALLET;
+    const payTo = splitAddress || getPlatformWallet();
     const resourceUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
     const requirements = sharedTypes.buildPaymentRequirements(
       priceCusd,
@@ -328,7 +323,7 @@ Return ONLY valid JSON:
     // Check render cache — if the same person+listing was rendered recently,
     // skip the expensive Replicate call (~$0.024) and reuse the cached result.
     const renderCacheKey = getRenderCacheKey(photoData, listingId);
-    const cachedRender = getRenderCache(renderCacheKey);
+    const cachedRender = await getRenderCache(renderCacheKey);
 
     const renderPromise = cachedRender
       ? Promise.resolve({ status: 'fulfilled', value: { generatedImage: cachedRender, provider: 'cache', stylingTips: [], imageConditioned: true, fallbackReason: null } })
@@ -340,10 +335,11 @@ Return ONLY valid JSON:
           },
           provider: 'auto',
           tier: 'paid',
-        }).then((result) => {
-          // Cache the render result (URL or data URI)
+        }).then(async (result) => {
+          // Cache the render result (URL or data URI) in Redis so it survives
+          // restarts and is shared across instances.
           if (result?.generatedImage) {
-            setRenderCache(renderCacheKey, result.generatedImage);
+            await setRenderCache(renderCacheKey, result.generatedImage);
           }
           return result;
         });

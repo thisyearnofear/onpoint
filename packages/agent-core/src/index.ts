@@ -12,6 +12,7 @@ export {
   type ChainName,
   AGENT_WALLET,
   PLATFORM_WALLET,
+  assertWalletsConfigured,
   base,
   celo,
   celoSepolia,

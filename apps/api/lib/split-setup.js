@@ -19,6 +19,7 @@ const { createPublicClient, createWalletClient, http } = require('viem');
 const { celo } = require('viem/chains');
 const agentCore = require('@repo/agent-core');
 const logger = require('./logger');
+const { getPlatformWallet } = require('./wallets');
 
 // Lazy-load blockchain-client — it has native deps that may not be built
 // in all environments. Only needed for split deployment/distribution.
@@ -45,7 +46,7 @@ function buildSplitRecipients(curatorWallet, revShare = 0.05) {
   return {
     recipients: [
       { address: curatorWallet, percentAllocation: curatorBps / 10_000 }, // SDK expects percent (0-100)
-      { address: agentCore.PLATFORM_WALLET, percentAllocation: platformBps / 10_000 },
+      { address: getPlatformWallet(), percentAllocation: platformBps / 10_000 },
     ],
     distributorFeePercent: 0, // no distributor fee — anyone can distribute for free
   };
@@ -92,8 +93,8 @@ async function deployCuratorSplit(curatorWallet, revShare = 0.05) {
   const result = await splitsClient.splitV2.createSplit({
     recipients,
     distributorFeePercent,
-    ownerAddress: agentCore.PLATFORM_WALLET, // platform can update allocations if revShare changes
-    creatorAddress: agentCore.PLATFORM_WALLET,
+    ownerAddress: getPlatformWallet(), // platform can update allocations if revShare changes
+    creatorAddress: getPlatformWallet(),
   });
 
   logger.info('SplitV2 deployed', {

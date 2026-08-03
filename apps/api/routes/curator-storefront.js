@@ -34,6 +34,7 @@ const {
 const { getAttributionSuffix, getAttributionCode, getAssignedTag } = require('../lib/attribution');
 const x402Facilitator = require('../lib/x402-facilitator');
 const { logFunnelEvent } = require('../lib/funnel');
+const { getPlatformWallet } = require('../lib/wallets');
 
 const router = express.Router();
 
@@ -539,7 +540,7 @@ router.post('/:slug/order', async (req, res) => {
     // wallet, and the API sends a separate payout tx to the curator.
     const splitAddress = curatorSplitAddress(row.curator);
     const usingSplit = Boolean(splitAddress);
-    const payTo = splitAddress || agentCore.PLATFORM_WALLET;
+    const payTo = splitAddress || getPlatformWallet();
     const resourceUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
     const requirements = sharedTypes.buildPaymentRequirements(
       totalCusd,

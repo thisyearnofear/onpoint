@@ -1,12 +1,15 @@
 /**
  * Mission Service — Gamified Style Challenges
  *
- * Directs user behavior toward valuable features (Agent Economy, Live AR)
- * in a fun, rewarding way. Tracks progress via Redis-backed state.
+ * NOTE: This is the web/client prototype. The canonical, Redis-backed
+ * live service is apps/api/lib/mission-service.js (used by the
+ * /api/agent/missions route). This client module keeps gamification state
+ * in-process per browser session — which is fine for a single tab, but it
+ * is NOT a durable store. Do not rely on it for cross-device or persisted
+ * progress; call the API service for authoritative state.
  *
- * Design: DRY (single source), MODULAR (composable missions), PERFORMANT
- * (Redis with in-memory fallback), ENHANCEMENT FIRST (builds on existing
- * agent-controls infrastructure).
+ * Directs user behavior toward valuable features (Agent Economy, Live AR)
+ * in a fun, rewarding way.
  */
 
 // ── Types ──

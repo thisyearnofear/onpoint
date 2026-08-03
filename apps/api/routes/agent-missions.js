@@ -31,9 +31,9 @@ router.get('/', async (req, res) => {
       ? MissionService.getMissionsByCategory(category)
       : MissionService.getAllMissions();
 
-    const userState = MissionService.getUserMissionState(userId);
-    const completedMissions = MissionService.getCompletedMissions(userId);
-    const inProgressMissions = MissionService.getInProgressMissions(userId);
+    const userState = await MissionService.getUserMissionState(userId);
+    const completedMissions = await MissionService.getCompletedMissions(userId);
+    const inProgressMissions = await MissionService.getInProgressMissions(userId);
 
     res.json({
       success: true,
@@ -67,7 +67,7 @@ router.post('/', async (req, res) => {
       });
     }
 
-    const updates = MissionService.updateMissionProgress(userId, eventType, metadata);
+    const updates = await MissionService.updateMissionProgress(userId, eventType, metadata);
 
     res.json({
       success: true,
@@ -95,7 +95,7 @@ router.put('/', async (req, res) => {
       });
     }
 
-    const result = MissionService.claimMissionReward(userId, missionId);
+    const result = await MissionService.claimMissionReward(userId, missionId);
 
     if (!result.success) {
       return res.status(400).json({

@@ -10,6 +10,12 @@
  */
 
 function createApiKeyAuth({ required = true } = {}) {
+  // Treat anything that is not explicitly development/test as production so
+  // a *missing* NODE_ENV (the footgun) fails closed, not open. A payments API
+  // must never silently bypass auth because an env var was unset.
+  const isProdLike = () =>
+    process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test';
+
   return function apiKeyAuthMiddleware(req, res, next) {
     const apiKey =
       req.headers["x-api-key"] ||
@@ -19,9 +25,10 @@ function createApiKeyAuth({ required = true } = {}) {
 
     const configuredKey = process.env.VENICE_API_KEY;
 
-    // No API key configured anywhere — fail closed in prod, open in dev
+    // No API key configured anywhere — fail closed in any non-dev
+    // environment. Local dev (NODE_ENV=development|test) still passes.
     if (!configuredKey) {
-      if (process.env.NODE_ENV === "production" && required) {
+      if (isProdLike() && required) {
         return res.status(500).json({ error: "API key not configured on server" });
       }
       return next();

@@ -4,6 +4,7 @@
  */
 
 const agentCore = require('@repo/agent-core');
+const { getAgentWallet, getPlatformWallet } = require('./wallets');
 
 function normalizeAddress(addr) {
   if (!addr || typeof addr !== 'string') return '';
@@ -14,9 +15,8 @@ function normalizeAddress(addr) {
 function ownAgentAddresses() {
   const set = new Set();
   const candidates = [
-    agentCore.AGENT_WALLET,
-    agentCore.PLATFORM_WALLET,
-    process.env.AGENT_WALLET_ADDRESS,
+    getAgentWallet(),
+    getPlatformWallet(),
   ];
   for (const a of candidates) {
     const n = normalizeAddress(a);

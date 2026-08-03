@@ -26,6 +26,7 @@ const express = require('express');
 const crypto = require('crypto');
 const logger = require('../lib/logger');
 const prava = require('../lib/prava-client');
+const { cacheGet, cacheSet } = require('../lib/cache');
 
 const router = express.Router();
 
@@ -40,13 +41,35 @@ function base() {
     : (process.env.PRAVA_SANDBOX_BASE || 'https://sandbox.api.prava.space');
 }
 
-// In-memory session store (hackathon scope).
+// Redis-backed session store (was an in-process Map — "hackathon scope").
+// Moving to Redis so sessions survive restarts and work across instances;
+// the /prava/sandbox fallback stays walkable without Prava sandbox keys.
 const SESSION_TTL_MS = 20 * 60 * 1000;
-const sessions = new Map();
-setInterval(() => {
+const SESSION_PREFIX = 'prava-sandbox:session:';
+const localSessions = new Map();
+
+function pruneLocalSessions() {
   const now = Date.now();
-  for (const [k, v] of sessions) if (now - v.createdAt > SESSION_TTL_MS) sessions.delete(k);
-}, 5 * 60 * 1000).unref();
+  for (const [id, session] of localSessions) {
+    if (now - session.createdAt > SESSION_TTL_MS) localSessions.delete(id);
+  }
+}
+setInterval(pruneLocalSessions, 5 * 60 * 1000).unref();
+
+async function getSession(id) {
+  const stored = await cacheGet(SESSION_PREFIX + id);
+  if (stored) {
+    localSessions.set(id, stored);
+    return stored;
+  }
+  return localSessions.get(id) || null;
+}
+
+async function setSession(id, value) {
+  localSessions.set(id, value);
+  await cacheSet(SESSION_PREFIX + id, value, SESSION_TTL_MS);
+}
+
 
 // ── Service-key auth ─────────────────────────────────────────────────
 function serviceKeyAuth(req, res, next) {
@@ -102,7 +125,7 @@ router.post('/order', async (req, res, next) => {
         expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
         merchantName: displayName, totalAmount, currency,
       };
-      sessions.set(id, { ...session, state: 'pending', createdAt: Date.now() });
+      await setSession(id, { ...session, state: 'pending', createdAt: Date.now() });
       logger.info('Prava sandbox session created (self-check)', { component: 'prava-sandbox', sessionId: id });
       return res.status(201).json(session);
     }
@@ -122,7 +145,7 @@ router.post('/order', async (req, res, next) => {
       expiresAt: r.expires_at,
       merchantName: displayName, totalAmount, currency,
     };
-    sessions.set(r.session_id, { ...session, state: 'pending', createdAt: Date.now() });
+    await setSession(r.session_id, { ...session, state: 'pending', createdAt: Date.now() });
     res.status(201).json(session);
   } catch (e) { next(e); }
 });
@@ -132,7 +155,7 @@ router.post('/order', async (req, res, next) => {
 router.get('/order/:id/result', async (req, res, next) => {
   let local;
   try {
-    local = sessions.get(req.params.id);
+    local = await getSession(req.params.id);
     if (!local) return res.status(404).json({ error: 'Session not found' });
     if (local.state === 'failed' && local.failure) {
       return res.json({
@@ -145,6 +168,7 @@ router.get('/order/:id/result', async (req, res, next) => {
 
     if (!live) {
       local.state = 'self_check_credential_ready';
+      await setSession(req.params.id, local);
       return res.json({
         status: 'self_check_credential_ready',
         selfCheck: true,
@@ -156,6 +180,7 @@ router.get('/order/:id/result', async (req, res, next) => {
     if (r.status === 'failed') {
       local.failure = r.error;
       local.providerRecordId = r.providerRecordId || null;
+      await setSession(req.params.id, local);
       return res.json({
         session_id: r.session_id,
         status: r.status,
@@ -176,6 +201,7 @@ router.get('/order/:id/result', async (req, res, next) => {
         details: e.context?.details || null,
         responseId: e.context?.responseId || null,
       };
+      await setSession(req.params.id, local);
     }
     next(e);
   }
@@ -186,7 +212,7 @@ router.get('/order/:id/result', async (req, res, next) => {
 // checkout adapter can provide a processor-authenticated outcome.
 router.post('/order/:id/report', async (req, res, next) => {
   try {
-    const local = sessions.get(req.params.id);
+    const local = await getSession(req.params.id);
     if (!local) return res.status(404).json({ error: 'Session not found' });
     const { status } = req.body || {};
     if (status !== 'APPROVED' && status !== 'DECLINED') {
@@ -195,6 +221,7 @@ router.post('/order/:id/report', async (req, res, next) => {
 
     if (!live) {
       local.state = status === 'APPROVED' ? 'completed' : 'failed';
+      await setSession(req.params.id, local);
       return res.json({
         status: status === 'APPROVED' ? 'self_check_completed' : 'self_check_failed',
         reportedFixture: status,

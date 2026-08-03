@@ -2,9 +2,12 @@
  * Mission Service — Gamified Style Challenges
  *
  * Directs user behavior toward valuable features in a fun, rewarding way.
- * In-memory state (Redis-backed in production).
  *
- * Ported from apps/web/lib/services/mission-service.ts
+ * State is Redis-backed (lib/cache.js) so progress survives restarts and is
+ * consistent across instances. Previously this was a per-process Map that
+ * silently reset on every redeploy — fine for a single dev instance, broken
+ * for any multi-instance / serverless deploy. Reads/writes are async; the
+ * thin route wrapper (agent-missions.js) awaits them.
  *
  * Usage: require('../lib/mission-service')
  */
@@ -138,26 +141,23 @@ const MISSIONS = [
   },
 ];
 
-// ── In-Memory Store ──
+// ── Redis-backed user state store ──
 
-const userStates = new Map();
+const { cacheGet, cacheSet } = require('./cache');
+const STATE_PREFIX = 'mission:state:';
+const STATE_TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 days — long-lived gamification
+const localStates = new Map();
 
-// ── Core Functions ──
-
-function getAllMissions() {
-  return MISSIONS.filter((m) => !m.isHidden);
-}
-
-function getMissionsByCategory(category) {
-  return MISSIONS.filter((m) => m.category === category && !m.isHidden);
-}
-
-function getUserMissionState(userId) {
-  if (userStates.has(userId)) {
-    return userStates.get(userId);
+function pruneLocalStates() {
+  const now = Date.now();
+  for (const [userId, state] of localStates) {
+    if (now - state.lastUpdated > STATE_TTL_MS) localStates.delete(userId);
   }
+}
+setInterval(pruneLocalStates, 60 * 60 * 1000).unref();
 
-  const state = {
+function defaultState(userId) {
+  return {
     userId,
     missions: MISSIONS.map((m) => ({
       missionId: m.id,
@@ -169,13 +169,41 @@ function getUserMissionState(userId) {
     badges: [],
     lastUpdated: Date.now(),
   };
+}
 
-  userStates.set(userId, state);
+async function getUserMissionState(userId) {
+  const stored = await cacheGet(STATE_PREFIX + userId);
+  if (stored) {
+    localStates.set(userId, stored);
+    return stored;
+  }
+  const local = localStates.get(userId);
+  if (local) return local;
+  const state = defaultState(userId);
+  localStates.set(userId, state);
+  await cacheSet(STATE_PREFIX + userId, state, STATE_TTL_MS);
   return state;
 }
 
-function updateMissionProgress(userId, eventType, metadata) {
-  const state = getUserMissionState(userId);
+async function persistState(state) {
+  state.lastUpdated = Date.now();
+  localStates.set(state.userId, state);
+  await cacheSet(STATE_PREFIX + state.userId, state, STATE_TTL_MS);
+  return state;
+}
+
+// ── Core Functions ──
+
+function getAllMissions() {
+  return MISSIONS.filter((m) => !m.isHidden);
+}
+
+function getMissionsByCategory(category) {
+  return MISSIONS.filter((m) => m.category === category && !m.isHidden);
+}
+
+async function updateMissionProgress(userId, eventType, metadata) {
+  const state = await getUserMissionState(userId);
   const updates = [];
 
   for (const mission of MISSIONS) {
@@ -216,13 +244,12 @@ function updateMissionProgress(userId, eventType, metadata) {
     });
   }
 
-  state.lastUpdated = Date.now();
-  userStates.set(userId, state);
+  await persistState(state);
   return updates;
 }
 
-function claimMissionReward(userId, missionId) {
-  const state = getUserMissionState(userId);
+async function claimMissionReward(userId, missionId) {
+  const state = await getUserMissionState(userId);
   const progress = state.missions.find((m) => m.missionId === missionId);
 
   if (!progress || !progress.completed || progress.claimedReward) {
@@ -230,20 +257,19 @@ function claimMissionReward(userId, missionId) {
   }
 
   progress.claimedReward = true;
-  state.lastUpdated = Date.now();
-  userStates.set(userId, state);
+  await persistState(state);
 
   const mission = MISSIONS.find((m) => m.id === missionId);
   return { success: true, reward: mission?.reward };
 }
 
-function getCompletedMissions(userId) {
-  const state = getUserMissionState(userId);
+async function getCompletedMissions(userId) {
+  const state = await getUserMissionState(userId);
   return state.missions.filter((m) => m.completed);
 }
 
-function getInProgressMissions(userId) {
-  const state = getUserMissionState(userId);
+async function getInProgressMissions(userId) {
+  const state = await getUserMissionState(userId);
   return state.missions.filter((m) => !m.completed && m.currentProgress > 0);
 }
 

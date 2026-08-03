@@ -6,6 +6,16 @@
  * instead of Upstash REST API.
  */
 
+// Treat anything that is not explicitly development/test as production so
+// a *missing* NODE_ENV (the footgun) fails closed, not open. A payments API
+// must never silently allow-all because an env var was unset.
+function isProdLike() {
+  return (
+    process.env.NODE_ENV !== 'development' &&
+    process.env.NODE_ENV !== 'test'
+  );
+}
+
 // Keyed by IP (x-forwarded-for or connection remoteAddress)
 function getClientIp(req) {
   const forwarded = req.headers['x-forwarded-for'];
@@ -80,8 +90,11 @@ function createRateLimiter(redis, tier, overrides = {}) {
       // exec() returns [ [err, result], [err, result] ]
       const countResult = results ? results[0] : null;
       if (!countResult || countResult[0]) {
-        // Redis error — fail open in dev, closed in prod
-        if (process.env.NODE_ENV === 'production') {
+        // Redis error — fail closed in any non-dev environment so a
+        // missing/unreachable Redis never silently disables rate limiting
+        // on a payments API. Local dev (NODE_ENV=development|test) still
+        // allows the request through.
+        if (isProdLike()) {
           return res.status(503).json({ error: 'Rate limit service unavailable' });
         }
         return next();
@@ -106,7 +119,8 @@ function createRateLimiter(redis, tier, overrides = {}) {
       next();
     } catch (err) {
       console.error('[RateLimit] Redis error:', err.message);
-      if (process.env.NODE_ENV === 'production') {
+      // Same fail-closed policy as the INCR error path above.
+      if (isProdLike()) {
         return res.status(503).json({ error: 'Rate limit service unavailable' });
       }
       next();

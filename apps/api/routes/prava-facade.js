@@ -28,7 +28,7 @@
  * Auth: discovery, quote preparation, fit, and status are public and
  * rate-limited. The spend-capable checkout transition is service-key gated.
  *
- * In-memory order store (hackathon scope; swap for Redis/DB for production).
+ * Redis-backed order store with a process-local mirror for synchronous card rendering.
  */
 
 const express = require('express');
@@ -37,6 +37,7 @@ const logger = require('../lib/logger');
 const prava = require('../lib/prava-client');
 const tryOn = require('../lib/prava-tryon');
 const { compileCommerceIntent } = require('../lib/commerce-intent');
+const { cacheGet, cacheSet, cacheScanJson } = require('../lib/cache');
 
 const router = express.Router();
 const PRAVA_WEB_BASE = (process.env.PRAVA_WEB_BASE_URL || 'https://beonpoint.netlify.app').replace(/\/$/, '');
@@ -51,20 +52,58 @@ router.use((req, res, next) => {
   return (isTryOnUpload ? json10mb : json1k)(req, res, next);
 });
 
-// ── In-memory order store (TTL 30 min) ───────────────────────────────
+// ── Order store ──────────────────────────────────────────────────────
+// Was an in-process Map ("hackathon scope"). Now Redis-backed so the order
+// state machine survives restarts and is consistent across instances. A
+// process-local mirror is kept so the same-process iMessage card renderer
+// (prava-card.js) can read state synchronously without an HTTP round-trip;
+// the HTTP path always reads from Redis first (source of truth across
+// instances) and falls back to the mirror when Redis is unavailable.
 const ORDER_TTL_MS = 30 * 60 * 1000;
-const orders = new Map();
+const ORDER_PREFIX = 'prava:order:';
+const localOrders = new Map();
 
-function pruneOrders() {
+function pruneLocalOrders() {
   const now = Date.now();
-  for (const [id, o] of orders) {
-    if (now - o.createdAt > ORDER_TTL_MS) orders.delete(id);
+  for (const [id, o] of localOrders) {
+    if (now - o.createdAt > ORDER_TTL_MS) localOrders.delete(id);
   }
 }
-setInterval(pruneOrders, 5 * 60 * 1000).unref();
+setInterval(pruneLocalOrders, 5 * 60 * 1000).unref();
 
-function getOrder(id) {
-  const o = orders.get(id);
+async function loadOrder(id) {
+  const fromRedis = await cacheGet(ORDER_PREFIX + id);
+  if (fromRedis) {
+    localOrders.set(id, fromRedis); // keep mirror fresh
+    return fromRedis;
+  }
+  return localOrders.get(id) || null;
+}
+
+async function saveOrder(o) {
+  if (!o) return;
+  localOrders.set(o.id, o);
+  await cacheSet(ORDER_PREFIX + o.id, o, ORDER_TTL_MS);
+}
+
+async function listRecentOrders(limit) {
+  const redisOrders = await cacheScanJson(ORDER_PREFIX, limit);
+  const merged = new Map(redisOrders.map((order) => [order.id, order]));
+  for (const order of localOrders.values()) {
+    const existing = merged.get(order.id);
+    if (!existing || (order.updatedAt || order.createdAt || 0) > (existing.updatedAt || existing.createdAt || 0)) {
+      merged.set(order.id, order);
+    }
+  }
+  return [...merged.values()]
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+    .slice(0, limit);
+}
+
+// Async variant for the HTTP path — prefers Redis so an order created on a
+// different instance is still reachable. Throws the same NOT_FOUND error.
+async function getOrderAsync(id) {
+  const o = await loadOrder(id);
   if (!o) {
     const err = new Error('Order not found');
     err.code = 'NOT_FOUND';
@@ -203,9 +242,7 @@ router.get('/health', async (_req, res) => {
 // ── GET /prava/orders/recent — privacy-safe public activity projection ─
 router.get('/orders/recent', async (_req, res) => {
   const limit = Math.min(parseInt(_req.query.limit) || 10, 50);
-  const recent = [...orders.values()]
-    .sort((a, b) => b.createdAt - a.createdAt)
-    .slice(0, limit)
+  const recent = (await listRecentOrders(limit))
     .map((o) => ({
       orderId: crypto.createHash('sha256').update(o.id).digest('hex').slice(0, 16),
       state: o.state,
@@ -460,7 +497,7 @@ router.post('/order', async (req, res, next) => {
       createdAt: now,
       updatedAt: now,
     };
-    orders.set(id, order);
+    await saveOrder(order);
 
     logger.info('Prava binding quote prepared — permission not requested yet', {
       component: 'prava-facade',
@@ -481,7 +518,7 @@ router.post('/order', async (req, res, next) => {
 // render on the order. Self-check placeholder when no REPLICATE_API_TOKEN.
 router.post('/order/:id/try-on', async (req, res, next) => {
   try {
-    const o = getOrder(req.params.id);
+    const o = await getOrderAsync(req.params.id);
     const { photoData, photoUrl } = req.body || {};
     if (!o.garmentImageUrl) {
       return res.status(409).json({
@@ -500,7 +537,7 @@ router.post('/order/:id/try-on', async (req, res, next) => {
     // Surface a try-on-ready state until approval happens.
     if (o.state === 'quoted') o.state = 'try_on_ready';
     o.updatedAt = Date.now();
-    orders.set(o.id, o);
+    await saveOrder(o);
     res.json({ tryOnUrl: renderUrl, provider, order: orderView(o) });
   } catch (e) {
     next(e);
@@ -515,7 +552,7 @@ router.post('/order/:id/session', async (req, res, next) => {
   let o;
   let previousState;
   try {
-    o = getOrder(req.params.id);
+    o = await getOrderAsync(req.params.id);
     const { fitDecision } = req.body || {};
     if (o.paymentSessionId) {
       return res.json(orderView(o));
@@ -550,7 +587,7 @@ router.post('/order/:id/session', async (req, res, next) => {
     previousState = o.state;
     o.state = 'creating_session';
     o.updatedAt = Date.now();
-    orders.set(o.id, o);
+    await saveOrder(o);
 
     const session = o.restMode
       ? await prava.createRestSession({
@@ -577,7 +614,7 @@ router.post('/order/:id/session', async (req, res, next) => {
     o.paymentUrl = session.payment_url;
     o.pravaOrderId = session.order_id || null;
     o.updatedAt = Date.now();
-    orders.set(o.id, o);
+    await saveOrder(o);
     logger.info('Prava permission session requested after fit decision', {
       component: 'prava-facade',
       orderId: o.id,
@@ -591,16 +628,16 @@ router.post('/order/:id/session', async (req, res, next) => {
       o.state = previousState || (o.tryOnUrl ? 'try_on_ready' : 'quoted');
       o.failure = failureView(e);
       o.updatedAt = Date.now();
-      orders.set(o.id, o);
+      await saveOrder(o);
     }
     next(e);
   }
 });
 
 // ── GET /prava/order/:id ─────────────────────────────────────────────
-router.get('/order/:id', (req, res) => {
+router.get('/order/:id', async (req, res) => {
   try {
-    res.json(orderView(getOrder(req.params.id)));
+    res.json(orderView(await getOrderAsync(req.params.id)));
   } catch (e) {
     res.status(e.status || 500).json({ error: e.message, code: e.code });
   }
@@ -611,7 +648,7 @@ router.get('/order/:id', (req, res) => {
 router.post('/order/:id/poll', async (req, res, next) => {
   let o;
   try {
-    o = getOrder(req.params.id);
+    o = await getOrderAsync(req.params.id);
     if (!o.paymentSessionId || (o.state !== 'awaiting_approval' && o.state !== 'approved')) {
       return res.status(409).json({
         error: `Cannot poll in state ${o.state}`,
@@ -629,12 +666,12 @@ router.post('/order/:id/poll', async (req, res, next) => {
       // REST sessions carry a txn_ref_id needed to report the charge outcome.
       o.txnRefId = status.txnRefId || null;
       o.updatedAt = Date.now();
-      orders.set(o.id, o);
+      await saveOrder(o);
     } else if (status.status === 'failed') {
       o.state = 'failed';
       o.failure = status.error || null;
       o.updatedAt = Date.now();
-      orders.set(o.id, o);
+      await saveOrder(o);
     }
     const fixtureApproved = !o.restMode && prava.selfCheck() && o.state === 'approved';
     res.json({
@@ -648,7 +685,7 @@ router.post('/order/:id/poll', async (req, res, next) => {
       o.state = 'failed';
       o.failure = failureView(e);
       o.updatedAt = Date.now();
-      orders.set(o.id, o);
+      await saveOrder(o);
     }
     next(e);
   }
@@ -657,9 +694,9 @@ router.post('/order/:id/poll', async (req, res, next) => {
 // ── POST /prava/order/:id/approve — (demo only) force approval ───────
 // In self-check mode there is no real passkey; this lets the spine be
 // walked end-to-end. In live mode the owner approves via paymentUrl.
-router.post('/order/:id/approve', (req, res) => {
+router.post('/order/:id/approve', async (req, res) => {
   try {
-    const o = getOrder(req.params.id);
+    const o = await getOrderAsync(req.params.id);
     if (!o.paymentSessionId || o.state !== 'awaiting_approval') {
       return res.status(409).json({
         error: `Cannot approve in state ${o.state}`,
@@ -678,7 +715,7 @@ router.post('/order/:id/approve', (req, res) => {
     }
     o.state = 'approved';
     o.updatedAt = Date.now();
-    orders.set(o.id, o);
+    await saveOrder(o);
     res.json({ state: 'self_check_approved', order: orderView(o) });
   } catch (e) {
     res.status(e.status || 500).json({ error: e.message });
@@ -690,7 +727,7 @@ router.post('/order/:id/approve', (req, res) => {
 router.post('/order/:id/checkout', serviceKeyAuth, async (req, res, next) => {
   let o;
   try {
-    o = getOrder(req.params.id);
+    o = await getOrderAsync(req.params.id);
     if (o.restMode && o.state !== 'credential_ready') {
       return res.status(409).json({
         error: `REST order must have a credential before checkout (state=${o.state}).`,
@@ -706,7 +743,7 @@ router.post('/order/:id/checkout', serviceKeyAuth, async (req, res, next) => {
     }
     o.state = 'checking_out';
     o.updatedAt = Date.now();
-    orders.set(o.id, o);
+    await saveOrder(o);
 
     let result;
     try {
@@ -734,7 +771,7 @@ router.post('/order/:id/checkout', serviceKeyAuth, async (req, res, next) => {
           responseId: null,
         };
         o.updatedAt = Date.now();
-        orders.set(o.id, o);
+        await saveOrder(o);
         return res.json({
           state: o.state,
           order: orderView(o),
@@ -757,7 +794,7 @@ router.post('/order/:id/checkout', serviceKeyAuth, async (req, res, next) => {
         o.state = 'sandbox_completed';
         o.sandboxOrderId = result.order_id;
         o.updatedAt = Date.now();
-        orders.set(o.id, o);
+        await saveOrder(o);
         return res.json({
           state: o.state,
           order: orderView(o),
@@ -769,7 +806,7 @@ router.post('/order/:id/checkout', serviceKeyAuth, async (req, res, next) => {
       else if (result.self_check) o.selfCheckOrderId = result.order_id;
       else o.orderIdPrava = result.order_id;
       o.updatedAt = Date.now();
-      orders.set(o.id, o);
+      await saveOrder(o);
       logger.info(result.sandbox ? 'Prava sandbox lifecycle completed' : result.self_check ? 'Prava self-check fixture completed' : 'Prava order confirmed', {
         component: 'prava-facade',
         orderId: o.id,
@@ -789,7 +826,7 @@ router.post('/order/:id/checkout', serviceKeyAuth, async (req, res, next) => {
       responseId: null,
     };
     o.updatedAt = Date.now();
-    orders.set(o.id, o);
+    await saveOrder(o);
     return res.status(explicitlyFailed ? 502 : 202).json({ state: o.state, order: orderView(o), result });
   } catch (e) {
     if (o?.state === 'checking_out') {
@@ -797,7 +834,7 @@ router.post('/order/:id/checkout', serviceKeyAuth, async (req, res, next) => {
       o.state = ambiguous ? 'checkout_unknown' : 'failed';
       o.failure = failureView(e);
       o.updatedAt = Date.now();
-      orders.set(o.id, o);
+      await saveOrder(o);
     }
     next(e);
   }
@@ -816,7 +853,14 @@ router.use((err, _req, res, _next) => {
 module.exports = router;
 // Allow same-process readers (the iMessage card renderer) to read order
 // state without an HTTP round-trip. Returns null if not found (no throw).
+// Synchronous: reads the process-local mirror, which loadOrder() keeps
+// fresh on every HTTP read. The HTTP path itself uses getOrderAsync()
+// (Redis-first) so cross-instance orders are reachable.
 module.exports.getOrderForCard = function getOrderForCard(id) {
-  const o = orders.get(id);
+  const o = localOrders.get(id);
+  return o ? orderView(o) : null;
+};
+module.exports.getOrderForCardAsync = async function getOrderForCardAsync(id) {
+  const o = await loadOrder(id);
   return o ? orderView(o) : null;
 };

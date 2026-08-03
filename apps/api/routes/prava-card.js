@@ -231,20 +231,9 @@ function renderCard(orderId, order) {
 </body></html>`;
 }
 
-// ── GET /prava/card/:orderId — the card HTML ─────────────────────────
-// (Mounted at /prava/card, so the route path is /:orderId.)
-router.get('/:orderId', (req, res) => {
-  // Read from the facade's in-memory store via the prava-client's exported
-  // state. The facade owns the store; we reach for it through a shared
-  // accessor to avoid an HTTP round-trip within the same process.
-  const order = getOrderForCard(req.params.orderId);
-  res.set('Content-Type', 'text/html; charset=utf-8');
-  res.send(renderCard(req.params.orderId, order));
-});
-
 // ── GET /prava/card/:orderId/state — lightweight JSON for client poll ─
-router.get('/:orderId/state', (req, res) => {
-  const order = getOrderForCard(req.params.orderId);
+router.get('/:orderId/state', async (req, res) => {
+  const order = await getOrderForCardAsync(req.params.orderId);
   res.json({
     state: order?.state || 'searching',
     merchant: order?.merchant?.name || null,
@@ -258,6 +247,16 @@ router.get('/:orderId/state', (req, res) => {
   });
 });
 
+// ── GET /prava/card/:orderId — the card HTML ─────────────────────────
+// (Mounted at /prava/card, so the route path is /:orderId.)
+router.get('/:orderId', async (req, res) => {
+  // Prefer the Redis-backed accessor so a card reopened on another API
+  // instance still reflects the order. It falls back to the local mirror.
+  const order = await getOrderForCardAsync(req.params.orderId);
+  res.set('Content-Type', 'text/html; charset=utf-8');
+  res.send(renderCard(req.params.orderId, order));
+});
+
 // The order store lives in routes/prava-facade.js. Rather than duplicate it,
 // we look it up via the facade's exported accessor if present, else return
 // null (card renders in "searching" skeleton). This keeps the card correct on
@@ -267,6 +266,14 @@ function getOrderForCard(orderId) {
   return typeof facade.getOrderForCard === 'function'
     ? facade.getOrderForCard(orderId)
     : null;
+}
+
+async function getOrderForCardAsync(orderId) {
+  const facade = require('./prava-facade');
+  if (typeof facade.getOrderForCardAsync === 'function') {
+    return facade.getOrderForCardAsync(orderId);
+  }
+  return getOrderForCard(orderId);
 }
 
 module.exports = router;

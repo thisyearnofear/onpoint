@@ -12,25 +12,14 @@
 const express = require('express');
 const router = express.Router();
 const { parseEther } = require('viem');
-const sharedTypes = require('@onpoint/shared-types');
 const agentCore = require('@repo/agent-core');
 const logger = require('../lib/logger');
 const { forwardedUser } = require('../middleware/forwarded-user');
+const { getProductBySlug, allProducts } = require('../lib/canvas-catalog');
 
-// Build product catalog from CANVAS_ITEMS
-const PLATFORM_WALLET = agentCore.PLATFORM_WALLET || '0x5b33E63440e95289207120B94da78CE22F9D24fB';
-const PRODUCTS = Object.fromEntries(
-  (sharedTypes.CANVAS_ITEMS || []).map((item) => [
-    item.slug,
-    {
-      id: item.slug,
-      name: item.name,
-      price: item.price.toString(),
-      seller: PLATFORM_WALLET,
-      category: item.category,
-    },
-  ]),
-);
+// Product catalog + seller wallet come from the shared canvas-catalog /
+// wallets libs — no duplicated Object.fromEntries and no hardcoded
+// `PLATFORM_WALLET || '0x5b33...'` fallback here.
 
 router.use(forwardedUser);
 
@@ -113,7 +102,7 @@ router.post('/', async (req, res) => {
     }
 
     // CASE 2: Internal Product Purchase
-    const product = PRODUCTS[productId.toLowerCase()];
+    const product = getProductBySlug(productId) || getProductBySlug(productId.toLowerCase());
     if (!product) {
       return res.status(404).json({ success: false, error: `Product not found: ${productId}` });
     }
@@ -254,10 +243,7 @@ router.post('/', async (req, res) => {
 // GET /api/agent/purchase — List available products
 router.get('/', async (req, res) => {
   const category = req.query.category;
-  let products = Object.values(PRODUCTS);
-  if (category) {
-    products = products.filter((p) => p.category === category);
-  }
+  const products = allProducts(category);
   res.json({ products });
 });
 
