@@ -18,7 +18,8 @@
  *
  * Compliance (best practices, docs.linqapp.com/getting-started/best-practices):
  *   - Every inbound is opt-out scanned; OPTED_OUT chats are terminal.
- *   - Sends use `to` only; Linq load-balances the pool.
+ *   - New users get Linq's available-number assignment; replies stay in the
+ *     exact inbound chat instead of opening a second conversation.
  *   - Inbound-first: the agent only acts after the user messages first.
  *
  * This is the orchestration glue. The actual Linq REST calls live in
@@ -36,15 +37,19 @@ const { getRedis } = require('../lib/redis');
 
 const router = express.Router();
 
-// ── In-memory conversation state (hackathon scope; Redis/DB for prod) ──
-// Maps linq chatId → active prava orderId, so inbound tapbacks/approvals
-// route to the right order.
+// Redis-backed mission state with a process-local fallback. A Linq chat is
+// linked only after the shopper sends the inbound TRACK command. Keeping both
+// chat → order and order → public handoff state makes the connection survive
+// API restarts and lets the web surface confirm that the phone received it.
 const chatOrders = new Map();
+const missionStates = new Map();
 const processedEventIds = new Map();
 const ORDER_TTL_MS = 30 * 60 * 1000;
+const ORDER_TTL_SECONDS = Math.floor(ORDER_TTL_MS / 1000);
 setInterval(() => {
   const now = Date.now();
   for (const [k, v] of chatOrders) if (now - v.ts > ORDER_TTL_MS) chatOrders.delete(k);
+  for (const [k, v] of missionStates) if (now - v.ts > ORDER_TTL_MS) missionStates.delete(k);
   for (const [k, ts] of processedEventIds) if (now - ts > 24 * 60 * 60 * 1000) processedEventIds.delete(k);
 }, 5 * 60 * 1000).unref();
 
@@ -58,6 +63,122 @@ function parseTrackCommand(text) {
 function cardUrlFor(orderId, state) {
   // The iMessage App renders this URL; state is server-driven from the order.
   return `${PUBLIC_BASE}/prava/card/${orderId}`;
+}
+
+function missionArtifact({ service, cardUrl }) {
+  // iMessage App parts are iMessage-only. RCS/SMS recipients receive the same
+  // live mission URL as a rich preview instead of an unsupported app part.
+  return service === 'iMessage' ? { cardUrl } : { linkUrl: cardUrl };
+}
+
+function maskHandle(handle) {
+  const value = String(handle || '');
+  const suffix = value.replace(/\D/g, '').slice(-4);
+  return suffix ? `•••• ${suffix}` : null;
+}
+
+async function readRedisJson(key) {
+  const redis = getRedis();
+  if (!redis) return null;
+  try {
+    const value = await redis.get(key);
+    return value ? JSON.parse(value) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function writeRedisJson(key, value) {
+  const redis = getRedis();
+  if (!redis) return;
+  try {
+    await redis.set(key, JSON.stringify(value), 'EX', ORDER_TTL_SECONDS);
+  } catch {
+    // Process-local state remains available as a best-effort fallback.
+  }
+}
+
+async function deleteRedisKey(key) {
+  const redis = getRedis();
+  if (!redis) return;
+  try { await redis.del(key); } catch {}
+}
+
+async function getActiveChat(chatId) {
+  const stored = await readRedisJson(`linq:chat:${chatId}`);
+  if (stored) {
+    chatOrders.set(chatId, stored);
+    return stored;
+  }
+  return chatOrders.get(chatId) || null;
+}
+
+async function setActiveChat(chatId, value) {
+  const record = { ...value, ts: Date.now() };
+  chatOrders.set(chatId, record);
+  await writeRedisJson(`linq:chat:${chatId}`, record);
+  return record;
+}
+
+async function deleteActiveChat(chatId) {
+  chatOrders.delete(chatId);
+  await deleteRedisKey(`linq:chat:${chatId}`);
+}
+
+async function getMission(orderId) {
+  const stored = await readRedisJson(`linq:mission:${orderId}`);
+  if (stored) {
+    missionStates.set(orderId, stored);
+    return stored;
+  }
+  return missionStates.get(orderId) || null;
+}
+
+async function setMission(orderId, value) {
+  const record = { ...value, orderId, ts: Date.now() };
+  missionStates.set(orderId, record);
+  await writeRedisJson(`linq:mission:${orderId}`, record);
+  return record;
+}
+
+async function ensureMission(orderId) {
+  const existing = await getMission(orderId);
+  if (existing?.phoneNumber) return existing;
+
+  let assignment;
+  try {
+    assignment = await linq.getAvailableNumber();
+  } catch (error) {
+    logger.warn('Linq available-number assignment failed; using configured fallback line', {
+      component: 'linq-agent',
+      orderId,
+      error: error.message,
+    });
+  }
+  return setMission(orderId, {
+    status: 'ready',
+    phoneNumber: assignment?.phone_number || linq.fromNumber,
+    vcfUrl: assignment?.vcf_url || null,
+    connected: false,
+    maskedHandle: null,
+    service: null,
+    messageDelivered: false,
+  });
+}
+
+function missionView(mission) {
+  return {
+    status: mission.status,
+    mode: linq.live ? 'live' : 'mock',
+    phoneNumber: mission.phoneNumber,
+    vcfUrl: mission.vcfUrl || null,
+    message: `TRACK ${mission.orderId}`,
+    connected: !!mission.connected,
+    maskedHandle: mission.maskedHandle || null,
+    service: mission.service || null,
+    messageDelivered: !!mission.messageDelivered,
+    updatedAt: new Date(mission.ts).toISOString(),
+  };
 }
 
 // Linq delivers webhooks at least once. Claim each event before processing so
@@ -89,6 +210,22 @@ router.get('/health', (_req, res) => {
     phoneNumber: linq.fromNumber,
     note: linq.live ? 'Live iMessage sends via Linq.' : 'Mock mode — sends log to console. Set LINQ_API_KEY + LINQ_WEBHOOK_SECRET for live.',
   });
+});
+
+// ── GET /linq/mission/:orderId — inbound-first phone handoff ────────
+// Validates the unguessable order, asks Linq for the healthiest available
+// onboarding line once, and returns only public/masked connection state.
+router.get('/mission/:orderId', async (req, res) => {
+  try {
+    await pravaGetOrder(req.params.orderId);
+    const mission = await ensureMission(req.params.orderId);
+    res.set('Cache-Control', 'no-store');
+    return res.json(missionView(mission));
+  } catch (error) {
+    return res.status(error.status === 404 ? 404 : 502).json({
+      error: error.status === 404 ? 'Mission not found or expired' : 'Linq handoff is temporarily unavailable',
+    });
+  }
 });
 
 // ── POST /linq/webhook — Linq inbound ───────────────────────────────
@@ -145,6 +282,7 @@ function parseInbound(event) {
   // message.received / message.sent / message.delivered / message.read
   const chatId = d.chat?.id || d.chat_id;
   const from = d.sender_handle?.handle || d.from;
+  const ownerNumber = d.chat?.owner_handle?.handle || d.recipient_handle?.handle || null;
   const parts = d.parts || d.message?.parts || [];
   const text = parts.filter((p) => p.type === 'text').map((p) => p.value).join(' ').trim();
   const mediaParts = parts.filter((p) => p.type === 'media' && /^image\//i.test(p.mime_type || ''));
@@ -152,7 +290,18 @@ function parseInbound(event) {
     ? { photoUrl: mediaParts[0].url, mime: mediaParts[0].mime_type }
     : null;
   const direction = d.direction || (d.is_from_me === false ? 'inbound' : 'outbound');
-  return { type, chatId, from, text, photo, direction, version: v };
+  return {
+    type,
+    chatId,
+    messageId: d.id || d.message?.id || null,
+    from,
+    ownerNumber,
+    text,
+    photo,
+    direction,
+    service: d.service || null,
+    version: v,
+  };
 }
 
 async function handleLinqEvent(event) {
@@ -178,6 +327,22 @@ async function handleLinqEvent(event) {
     return;
   }
 
+  // Delivery truth comes from Linq's asynchronous lifecycle webhooks, not
+  // from the send request being accepted.
+  if (type === 'message.delivered' || type === 'message.failed') {
+    const p = parseInbound(event);
+    const active = await getActiveChat(p.chatId);
+    if (!active || !p.messageId || active.messageId !== p.messageId) return;
+    const mission = await getMission(active.orderId);
+    if (!mission) return;
+    await setMission(active.orderId, {
+      ...mission,
+      status: type === 'message.delivered' ? 'delivered' : 'delivery_failed',
+      messageDelivered: type === 'message.delivered',
+    });
+    return;
+  }
+
   // ── message.received: inbound text + optional photo ───────────────
   if (type === 'message.received') {
     const p = parseInbound(event);
@@ -188,7 +353,12 @@ async function handleLinqEvent(event) {
     // Opt-out compliance — terminal.
     if (p.text && linq.scanOptOut(p.text)) {
       logger.warn('Opt-out detected — halting outbound', { component: 'linq-agent', chatId: p.chatId, from: p.from });
-      chatOrders.delete(p.chatId);
+      const active = await getActiveChat(p.chatId);
+      if (active?.orderId) {
+        const mission = await getMission(active.orderId);
+        if (mission) await setMission(active.orderId, { ...mission, status: 'opted_out' });
+      }
+      await deleteActiveChat(p.chatId);
       return;
     }
 
@@ -198,68 +368,108 @@ async function handleLinqEvent(event) {
     const trackedOrderId = parseTrackCommand(p.text);
     if (trackedOrderId) {
       try {
-        await attachExistingOrder(p.chatId, p.from, trackedOrderId);
+        await attachExistingOrder(p, trackedOrderId);
       } catch (error) {
         logger.warn('Linq mission handoff could not resolve order', { component: 'linq-agent', orderId: trackedOrderId }, error);
-        await linq.sendMessage({
-          to: p.from,
+        await linq.sendToChat({
+          chatId: p.chatId,
           text: 'That mission link is unavailable or expired. Start a new search on OnPoint and open Messages from its live commerce stack.',
+          idempotencyKey: `onpoint:${trackedOrderId}:unavailable`,
         });
       }
       return;
     }
 
-    const active = chatOrders.get(p.chatId);
+    const active = await getActiveChat(p.chatId);
     if (active) {
       if (p.photo) {
-        await continueActiveOrder(active, { photo: p.photo, fitDecision: 'try_on_completed' });
+        await continueActiveOrder(p.chatId, active, { photo: p.photo, fitDecision: 'try_on_completed' });
         return;
       }
       if (/^(skip(?:\s+(?:fit|try-?on))?|continue without try-?on)$/i.test(p.text || '')) {
-        await continueActiveOrder(active, { fitDecision: 'continue_without_try_on' });
+        await continueActiveOrder(p.chatId, active, { fitDecision: 'continue_without_try_on' });
         return;
       }
       if (!/^new\s*:/i.test(p.text || '')) {
-        await linq.sendMessage({
-          to: p.from,
+        await linq.sendToChat({
+          chatId: p.chatId,
           text: 'Your binding quote is ready. Send a photo for a fit check, or reply SKIP FIT to request Prava permission without one.',
         });
         return;
       }
-      chatOrders.delete(p.chatId);
+      await deleteActiveChat(p.chatId);
       p.text = p.text.replace(/^new\s*:\s*/i, '');
     }
 
     // Otherwise treat the text as a new style intent.
-    await handleStyleIntent(p.chatId, p.from, p.text || 'style this for me', p.photo);
+    await handleStyleIntent(p.chatId, p.from, p.text || 'style this for me', p.photo, p.service);
     return;
   }
 
 }
 
-async function attachExistingOrder(chatId, from, orderId) {
+async function attachExistingOrder(inbound, orderId) {
+  const { chatId, messageId: inboundMessageId, from, ownerNumber, service } = inbound;
+  const handoffAttempt = inboundMessageId || orderId;
   const order = await pravaGetOrder(orderId);
-  chatOrders.set(chatId, { orderId, from, messageId: null, ts: Date.now() });
+  const mission = await ensureMission(orderId);
+  if (mission.phoneNumber && ownerNumber && mission.phoneNumber !== ownerNumber) {
+    const error = new Error('Mission was opened with a different OnPoint line');
+    error.status = 409;
+    throw error;
+  }
 
-  await linq.sendMessage({
-    to: from,
-    text: `Mission linked. ${order.merchant?.name || 'Merchant'} · ${order.totalAmount} ${order.currency}. Prava approval remains on its hosted surface; 👍 refreshes status only.`,
+  const health = await safeGetChat(chatId);
+  const gate = await sendGate(health);
+  if (!gate.ok) {
+    logger.warn('Linq mission link gated by chat health', { component: 'linq-agent', chatId, reason: gate.reason });
+    return;
+  }
+
+  let active = await setActiveChat(chatId, {
+    orderId,
+    messageId: null,
+    service: service || health?.service || null,
+    maskedHandle: maskHandle(from),
   });
-  const sent = await linq.sendMessage({
-    to: from,
-    cardUrl: cardUrlFor(orderId, order.state),
+  await setMission(orderId, {
+    ...mission,
+    status: 'connected',
+    connected: true,
+    maskedHandle: maskHandle(from),
+    service: service || health?.service || null,
+    messageDelivered: false,
+  });
+
+  await linq.sendToChat({
+    chatId,
+    text: `Mission linked. ${order.merchant?.name || 'Merchant'} · ${order.totalAmount} ${order.currency}. Prava approval remains on its hosted surface; 👍 refreshes status only.`,
+    idempotencyKey: `onpoint:${orderId}:${handoffAttempt}:linked`,
+  });
+  const sent = await linq.sendToChat({
+    chatId,
+    ...missionArtifact({
+      service: active.service,
+      cardUrl: cardUrlFor(orderId, order.state),
+    }),
     cardImageUrl: order.tryOnUrl || undefined,
     caption: 'OnPoint Stylist',
     subcaption: `${order.merchant?.name || 'Merchant'} · ${order.totalAmount} ${order.currency} — 👍 refreshes status`,
+    idempotencyKey: `onpoint:${orderId}:${handoffAttempt}:card:${order.state}`,
   });
-  if (sent?.messageId) chatOrders.get(chatId).messageId = sent.messageId;
+  if (sent?.messageId) active = await setActiveChat(chatId, { ...active, messageId: sent.messageId });
+  await setMission(orderId, {
+    ...(await getMission(orderId)),
+    status: 'sent',
+    messageDelivered: false,
+  });
 }
 
 // ── Style intent → search → quote → payment session → (try-on) → card ─
-async function handleStyleIntent(chatId, from, text, photo) {
+async function handleStyleIntent(chatId, from, text, photo, service) {
   // Gate on chat health.
   const health = await safeGetChat(chatId);
-  const gate = linq.canSendToChat(health);
+  const gate = await sendGate(health);
   if (!gate.ok) {
     logger.warn('Send gated by health', { component: 'linq-agent', chatId, reason: gate.reason });
     return;
@@ -280,7 +490,12 @@ async function handleStyleIntent(chatId, from, text, photo) {
     }
   }
 
-  chatOrders.set(chatId, { orderId: order.orderId, from, messageId: null, ts: Date.now() });
+  let active = await setActiveChat(chatId, {
+    orderId: order.orderId,
+    messageId: null,
+    service: service || health?.service || null,
+    maskedHandle: maskHandle(from),
+  });
 
   if (order.tryOnUrl) {
     const sessionOrder = await pravaStartSession(order.orderId, 'try_on_completed');
@@ -299,30 +514,32 @@ async function handleStyleIntent(chatId, from, text, photo) {
     : order.restMode
       ? 'Open Prava’s hosted sandbox flow, then 👍 the card to refresh its status. No real money is used.'
       : 'Approve the spend with your passkey, then 👍 the card to refresh its status.';
-  await linq.sendMessage({
-    to: from,
+  await linq.sendToChat({
+    chatId,
     text: ` Styled "${text}" — found ${order.merchant?.name}. Requested total ${order.totalAmount} ${order.currency}. ${approvalCopy}`,
+    idempotencyKey: `onpoint:${order.orderId}:quote`,
   });
-  const sent = await linq.sendMessage({
-    to: from,
-    cardUrl,
+  const sent = await linq.sendToChat({
+    chatId,
+    ...missionArtifact({ service: active.service, cardUrl }),
     cardImageUrl: order.tryOnUrl || undefined,
     caption: 'OnPoint Stylist',
     subcaption: `${order.merchant?.name || '—'} · $${order.totalAmount} ${order.currency} — tap 👍 to refresh`,
+    idempotencyKey: `onpoint:${order.orderId}:card:${order.state}`,
   });
   // Stash the iMessage message id so a 👍 tapback can mutate this card in place.
-  if (sent?.messageId) chatOrders.get(chatId).messageId = sent.messageId;
+  if (sent?.messageId) active = await setActiveChat(chatId, { ...active, messageId: sent.messageId });
 }
 
-async function continueActiveOrder(active, { photo, fitDecision }) {
+async function continueActiveOrder(chatId, active, { photo, fitDecision }) {
   let order = await pravaGetOrder(active.orderId);
   if (photo) {
     const tr = await pravaTryOn(active.orderId, photo);
     order = tr.order || tr;
   }
   order = await pravaStartSession(active.orderId, fitDecision);
-  active.ts = Date.now();
-  if (active.messageId) {
+  active = await setActiveChat(chatId, active);
+  if (active.messageId && active.service === 'iMessage') {
     const updated = await linq.updateMessage({
       messageId: active.messageId,
       cardUrl: cardUrlFor(active.orderId, order.state),
@@ -331,9 +548,10 @@ async function continueActiveOrder(active, { photo, fitDecision }) {
       subcaption: `${order.merchant?.name || 'Merchant'} · $${order.totalAmount} ${order.currency} — Prava permission requested`,
     });
     active.messageId = updated?.chat?.message?.id || updated?.message?.id || updated?.id || active.messageId;
+    active = await setActiveChat(chatId, active);
   }
-  await linq.sendMessage({
-    to: active.from,
+  await linq.sendToChat({
+    chatId,
     text: order.restMode
       ? 'Fit choice recorded. Open the Prava hosted sandbox flow from the status card, then tap 👍 to refresh.'
       : 'Fit choice recorded. Approve the exact merchant and ceiling with your passkey, then tap 👍 to refresh.',
@@ -343,7 +561,7 @@ async function continueActiveOrder(active, { photo, fitDecision }) {
 // 👍 tapback refreshes observed Prava state. Hosted verification/passkey—not
 // the reaction—is the payment authorization.
 async function handleStatusRefresh(chatId, tapback) {
-  const active = chatOrders.get(chatId);
+  let active = await getActiveChat(chatId);
   if (!active) return;
   if (active.messageId && tapback.messageId !== active.messageId) {
     logger.info('Ignoring reaction on a stale Linq card', { component: 'linq-agent', chatId });
@@ -353,7 +571,7 @@ async function handleStatusRefresh(chatId, tapback) {
 
   const current = await pravaGetOrder(orderId);
   if (!current.paymentUrl && (current.state === 'quoted' || current.state === 'try_on_ready')) {
-    if (active.messageId) {
+    if (active.messageId && active.service === 'iMessage') {
       const updated = await linq.updateMessage({
         messageId: active.messageId,
         cardUrl: cardUrlFor(orderId, current.state),
@@ -362,6 +580,7 @@ async function handleStatusRefresh(chatId, tapback) {
         subcaption: 'Quote ready — send a photo or reply SKIP FIT before permission',
       });
       active.messageId = updated?.chat?.message?.id || updated?.message?.id || updated?.id || active.messageId;
+      active = await setActiveChat(chatId, active);
     }
     return;
   }
@@ -371,7 +590,7 @@ async function handleStatusRefresh(chatId, tapback) {
   // a real processor outcome; self-check remains explicitly fixture-only.
   const poll = await pravaPollOrder(orderId);
   if (poll.state !== 'approved' && poll.state !== 'self_check_approved') {
-    if (active.messageId) {
+    if (active.messageId && active.service === 'iMessage') {
       const updated = await linq.updateMessage({
         messageId: active.messageId,
         cardUrl: cardUrlFor(orderId, poll.state),
@@ -383,6 +602,7 @@ async function handleStatusRefresh(chatId, tapback) {
             : 'Awaiting hosted verification',
       });
       active.messageId = updated?.chat?.message?.id || updated?.message?.id || updated?.id || active.messageId;
+      active = await setActiveChat(chatId, active);
     }
     return;
   }
@@ -396,7 +616,7 @@ async function handleStatusRefresh(chatId, tapback) {
     : result.state;
 
   // Mutate the card in place — the bubble flips to "Order placed".
-  if (active.messageId) {
+  if (active.messageId && active.service === 'iMessage') {
     const updated = await linq.updateMessage({
       messageId: active.messageId,
       cardUrl: cardUrlFor(orderId, state),
@@ -415,11 +635,12 @@ async function handleStatusRefresh(chatId, tapback) {
               : 'Awaiting hosted verification',
     });
     active.messageId = updated?.chat?.message?.id || updated?.message?.id || updated?.id || active.messageId;
+    active = await setActiveChat(chatId, active);
   }
 
   if (state === 'confirmed' || state === 'sandbox_completed' || state === 'self_check_completed') {
-    await linq.sendMessage({
-      to: active.from,
+    await linq.sendToChat({
+      chatId,
       text: state === 'sandbox_completed'
         ? '✓ Prava sandbox lifecycle completed: test credential issued and outcome reported. No merchant charge was made.'
         : state === 'self_check_completed'
@@ -428,7 +649,9 @@ async function handleStatusRefresh(chatId, tapback) {
         ? `✓ Ordered. Prava order ${result.order.orderIdPrava}.`
         : '✓ Confirmed.',
     });
-    chatOrders.delete(chatId);
+    const mission = await getMission(orderId);
+    if (mission) await setMission(orderId, { ...mission, status: 'completed', messageDelivered: true });
+    await deleteActiveChat(chatId);
   }
 }
 
@@ -490,7 +713,29 @@ async function safeGetChat(chatId) {
   try { return await linq.getChat({ chatId }); } catch { return {}; }
 }
 
+async function sendGate(chat = {}) {
+  let reputation;
+  if (linq.live) {
+    try {
+      const owner = chat?.handles?.find((handle) => handle.is_me)?.handle;
+      const response = await linq.listPhoneNumbers();
+      const numbers = response?.phone_numbers || response?.data || [];
+      const line = numbers.find((entry) =>
+        (entry.phone_number || entry.number || entry.handle) === owner,
+      );
+      reputation = line?.reputation;
+    } catch {
+      // Chat health remains the authoritative per-conversation safety gate.
+    }
+  }
+  return linq.canSendToChat({
+    health_status: chat?.health_status,
+    reputation,
+  });
+}
+
 module.exports = router;
-// Test helper: read the active order for a chat (shared in-memory store).
-module.exports.getChatOrder = function (chatId) { return chatOrders.get(chatId) || null; };
+// Test helpers.
+module.exports.getChatOrder = getActiveChat;
 module.exports.parseTrackCommand = parseTrackCommand;
+module.exports.maskHandle = maskHandle;

@@ -137,10 +137,12 @@ completed Prava lifecycle is implemented but has not been observed end to end.
   webhook for STOP/UNSUBSCRIBE/OPTOUT/CANCEL/END/QUIT + clear "stop messaging me"
   intent → immediately halt all outbound. Treat `health_status: OPTED_OUT` as
   terminal until Linq clears it (don't track opt-in keywords ourselves).
-- **Validated sandbox transport:** the hackathon sandbox pins the assigned line
-  through `POST /v3/chats` with `from` + `to`, matching the Linq playground
-  contract used in the live validation. A multi-line production rollout will
-  move to `POST /v3/messages` with `to` only for Linq-managed load balancing.
+- **V3-documented transport:** onboarding asks Linq for the healthiest line
+  (`GET /v3/available_number`, with a temporary vCard); outbound goes through
+  `POST /v3/messages` with `to` only (no pinned `from`); replies to inbound
+  webhooks stay inside the exact chat via `POST /v3/chats/:id/messages`. The
+  original live validation used `POST /v3/chats` with `from` + `to`, matching
+  the Linq playground contract.
 - **Inbound-first onboarding:** let the recipient message first; share the
   contact card only after ≥1 outbound message, re-share ~once/day.
 - **Engagement cadence:** aim for 3+ replies early and ~1:2 inbound:outbound;
@@ -168,9 +170,9 @@ guidelines above. We run it against `apps/api/lib/linq-client.js` +
 | REST sandbox lifecycle (session→poll→external checkout→report) | `prava-facade.js` + `prava-client.js` | ⚠️ real credential issuance validated; one checkout attempt timed out with unknown outcome, so no status was reported |
 | Production CLI credential/checkout contract | `apps/api/lib/prava-client.js` | ⚠️ implemented and linked; checkout unvalidated |
 | Decoupled IDM-VTON try-on for UCP garment images | `apps/api/lib/prava-tryon.js` | ✅ placeholder + Replicate modes |
-| Linq REST client (real `/v3/chats`, Standard Webhooks) | `apps/api/lib/linq-client.js` | ✅ live send + signature verify |
-| Linq webhook receiver (envelope parsing, media, reactions) | `apps/api/routes/linq-agent.js` | ✅ live, all events subscribed; Redis-backed event deduplication |
-| Web → Linq same-order handoff | `AgentCheckoutCard.tsx` + `linq-agent.js` | ✅ inbound-first `TRACK op_…` handoff reuses the current order; live end-to-end observation pending |
+| Linq REST client (`/v3/messages`, `/v3/available_number`, Standard Webhooks) | `apps/api/lib/linq-client.js` | ✅ live send + signature verify; V3 docs alignment pending redeploy |
+| Linq webhook receiver (envelope parsing, media, reactions) | `apps/api/routes/linq-agent.js` | ✅ live, all events subscribed; Redis-backed event deduplication and chat↔mission persistence |
+| Web → Linq same-order handoff | `LinqMissionHandoff.tsx` + `linq-agent.js` | ✅ judge-facing handoff: available-line assignment, QR/copy/open-Messages, connected + delivered confirmation; pending redeploy and live iPhone revalidation |
 | iMessage App status card | `apps/api/routes/prava-card.js` | ✅ render states implemented; completed mutation unobserved |
 | Prava hosted return | `apps/web/app/prava/return` | ✅ order-aware handoff; no redirect to the unrelated Celo agent dashboard |
 | Frontend session/status card | `apps/web/components/Agent/AgentCheckoutCard.tsx` | ✅ Product → Fit → Permission → Outcome; compact UCP/fit/Prava-Visa/Linq evidence rail |
@@ -271,14 +273,22 @@ not retry or call `report-status` with an invented outcome.
 
 **How Linq is used:**
 
-The Linq experience sends an intro message plus an `imessage_app` status card.
-Approval happens on Prava's hosted surface. Live send and signed Standard
-Webhooks handling are validated. A web shopper can now open Messages with an
-inbound `TRACK op_…` command, attaching the exact current order rather than
-creating a duplicate quote or permission session. The 👍 reaction handler and
-card update are implemented, but this new same-order handoff and confirmation
-mutation have not yet been observed as one continuous recording. Until then,
-live Linq and successful Prava evidence remain independently validated.
+The Linq experience follows the documented inbound-first model. The web
+mission card asks Linq for the healthiest onboarding line
+(`GET /v3/available_number`), then offers three handoff paths: open Messages
+with a prefilled `TRACK op_…` code (mobile), scan a locally generated QR code
+(desktop), or copy the line + code. The shopper's first message is their
+consent; no phone number is typed on the web. Replies stay inside the exact
+inbound chat (`/v3/chats/:id/messages`), the chat↔mission link persists in
+Redis, and the web card polls `GET /linq/mission/:orderId` to flip from
+"ready" to "connected" to "delivered" (confirmed by Linq's delivery webhooks,
+not by send acceptance). iMessage recipients get the `imessage_app` status
+card; RCS/SMS recipients get the same mission URL as a rich link preview.
+Approval happens on Prava's hosted surface. The 👍 reaction handler and card
+update are implemented. This upgraded handoff is built and locally verified
+but not yet redeployed, and the same-order handoff plus confirmation mutation
+have not yet been observed as one continuous recording. Until then, live Linq
+and successful Prava evidence remain independently validated.
 
 **Try-on-before-agent-checkout (original insight):**
 

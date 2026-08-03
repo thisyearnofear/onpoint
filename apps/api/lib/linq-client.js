@@ -13,8 +13,9 @@
  *
  * Compliance baked in:
  *   - scanOptOut() on every inbound; OPTED_OUT chats are terminal.
- *   - sandbox sends pin the validated hackathon line via `/v3/chats`.
- *   - gateSend() checks health_status + line reputation before sending.
+ *   - new contacts are assigned with `/v3/available_number`.
+ *   - replies stay inside the inbound chat via `/v3/chats/:id/messages`.
+ *   - canSendToChat() checks health_status + line reputation before sending.
  *   - Inbound-first + contact-card sharing helpers.
  *
  * NOTE: exact field shapes for the `imessage_app` part and webhook payloads
@@ -28,9 +29,8 @@ const logger = require('./logger');
 const BASE = process.env.LINQ_API_BASE || 'https://api.linqapp.com/api/partner';
 const API_KEY = process.env.LINQ_API_KEY;
 const WEBHOOK_SECRET = process.env.LINQ_WEBHOOK_SECRET; // for HMAC verification
-// The Linq virtual number that sends. Sandbox: +1 424 394 5528.
-// The validated hackathon flow uses /v3/chats and pins this sandbox line.
-// A multi-line production rollout should move to /v3/messages with `to` only.
+// Fallback for mock mode and temporary API failures. Live onboarding asks Linq
+// for the healthiest available line rather than pinning this value.
 const FROM_NUMBER = process.env.LINQ_FROM_NUMBER || '+14243945528';
 
 // iMessage app identity for the OnPoint Stylist Messages extension. The card
@@ -74,16 +74,17 @@ const OPT_IN_KEYWORDS = ['START', 'OPTIN', 'UNSTOP'];
 
 function scanOptOut(text) {
   if (!text) return false;
-  const upper = text.toUpperCase();
-  if (OPT_OUT_KEYWORDS.some((k) => upper.includes(k))) return true;
+  const trimmed = text.trim();
+  // Linq's health model matches these exact, case-sensitive whole messages.
+  // Avoid substring checks: "weekend" must not become an accidental END.
+  if (OPT_OUT_KEYWORDS.includes(trimmed)) return true;
   const intent = /(stop|don't|do not|quit)\s+(messag|text|contact)|leave me alone|stop messaging/i.test(text);
   return intent;
 }
 
 function scanOptIn(text) {
   if (!text) return false;
-  const upper = text.toUpperCase();
-  return OPT_IN_KEYWORDS.some((k) => upper.includes(k));
+  return OPT_IN_KEYWORDS.includes(text.trim());
 }
 
 // ── Webhook signature verification (Standard Webhooks) ──────────────
@@ -152,9 +153,23 @@ function canSendToChat({ health_status, reputation } = {}) {
 async function v3(method, path, body) {
   if (!live) {
     logger.info('[linq mock] ' + method + ' ' + path, { component: 'linq-client', body });
-    // Deterministic mock ids, shaped like the real /v3/chats response so
-    // orchestration can chain (messageId stashing for in-place updates).
     const id = 'msg_mock_' + Math.random().toString(36).slice(2, 10);
+    if (method === 'GET' && path === '/v3/available_number') {
+      return { phone_number: FROM_NUMBER, vcf_url: null, mocked: true };
+    }
+    if (method === 'GET' && /^\/v3\/chats\//.test(path)) {
+      return { id: path.split('/').pop(), health_status: { status: 'HEALTHY' }, service: 'iMessage', mocked: true };
+    }
+    if (method === 'GET' && path === '/v3/phone_numbers') {
+      return { phone_numbers: [{ phone_number: FROM_NUMBER, reputation: 'HEALTHY' }], mocked: true };
+    }
+    if (method === 'POST' && /^\/v3\/chats\/[^/]+\/messages$/.test(path)) {
+      return { chat_id: path.split('/')[3], message: { id }, mocked: true };
+    }
+    if (method === 'POST' && path === '/v3/messages') {
+      return { chat_id: 'chat_mock_' + Math.random().toString(36).slice(2, 8), messages: [{ id }], mocked: true };
+    }
+    // Create-chat/update-card compatibility for focused unit tests.
     return { chat: { id: 'chat_mock_' + Math.random().toString(36).slice(2, 8), health_status: { status: 'OK' }, message: { id } }, mocked: true };
   }
   const r = await fetch(BASE + path, {
@@ -175,9 +190,9 @@ async function v3(method, path, body) {
 }
 
 // ── Send a message (text and/or iMessage App card) ───────────────────
-// Uses POST /v3/chats with `from` (pins the line — matches the confirmed
-// playground shape). For production load-balancing across a pool, switch to
-// POST /v3/messages with `to` only (no `from`); Linq picks the best line.
+// Uses POST /v3/messages with `to` and no `from`, allowing Linq to reuse a
+// healthy chat or select/fail over to the best line. Inbound webhook handlers
+// should prefer sendToChat() because they already have the exact chat ID.
 // Parts use { type, value } — text value is the string; the iMessage App
 // value is the card URL (exact imessage_app field set confirmed from docs).
 // Returns { chatId, messageId, healthStatus, raw } so callers can mutate the
@@ -186,27 +201,48 @@ async function v3(method, path, body) {
 // Linq constraint: an imessage_app part MUST be the only part in a message.
 // So when cardUrl is given we send the card alone; otherwise we send text.
 // Callers that want a text intro + a card should send two messages.
-async function sendMessage({ to, text, cardUrl, cardImageUrl, caption, subcaption } = {}) {
+async function sendMessage({ to, text, linkUrl, cardUrl, cardImageUrl, caption, subcaption, idempotencyKey } = {}) {
   let parts;
   if (cardUrl) {
     parts = [imessageAppPart({ cardUrl, cardImageUrl, caption, subcaption })];
+  } else if (linkUrl) {
+    parts = [{ type: 'link', value: linkUrl }];
   } else if (text) {
     parts = [{ type: 'text', value: text }];
   } else {
     throw new Error('sendMessage requires either text or cardUrl');
   }
-  const body = {
-    from: FROM_NUMBER,
-    to: [to],
-    message: { parts },
-  };
-  const raw = await v3('POST', '/v3/chats', body);
-  // Normalize: the response is { chat: { id, health_status, message: { id, ... } } }.
-  const chat = raw?.chat || {};
+  const message = { parts };
+  if (idempotencyKey) message.idempotency_key = idempotencyKey;
+  const raw = await v3('POST', '/v3/messages', { to: [to], message });
   return {
-    chatId: chat.id || null,
-    messageId: chat.message?.id || null,
-    healthStatus: chat.health_status?.status || chat.health_status || null,
+    chatId: raw?.chat_id || raw?.chat?.id || null,
+    messageId: raw?.messages?.[0]?.id || raw?.message?.id || raw?.chat?.message?.id || null,
+    healthStatus: raw?.chat?.health_status?.status || raw?.chat?.health_status || null,
+    raw,
+  };
+}
+
+// Reply inside the chat that produced an inbound webhook. This preserves the
+// user's chosen line/protocol and avoids opening a second conversation.
+async function sendToChat({ chatId, text, linkUrl, cardUrl, cardImageUrl, caption, subcaption, idempotencyKey } = {}) {
+  if (!chatId) throw new Error('sendToChat requires chatId');
+  let parts;
+  if (cardUrl) {
+    parts = [imessageAppPart({ cardUrl, cardImageUrl, caption, subcaption })];
+  } else if (linkUrl) {
+    parts = [{ type: 'link', value: linkUrl }];
+  } else if (text) {
+    parts = [{ type: 'text', value: text }];
+  } else {
+    throw new Error('sendToChat requires either text or cardUrl');
+  }
+  const message = { parts };
+  if (idempotencyKey) message.idempotency_key = idempotencyKey;
+  const raw = await v3('POST', `/v3/chats/${encodeURIComponent(chatId)}/messages`, { message });
+  return {
+    chatId: raw?.chat_id || chatId,
+    messageId: raw?.message?.id || null,
     raw,
   };
 }
@@ -258,6 +294,7 @@ module.exports = {
   verifyWebhook,
   canSendToChat,
   sendMessage,
+  sendToChat,
   updateMessage,
   shareContactCard,
   getChat,

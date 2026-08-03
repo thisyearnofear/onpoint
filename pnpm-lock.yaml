@@ -257,6 +257,9 @@ importers:
       posthog-js:
         specifier: 1.369.3
         version: 1.369.3
+      qrcode:
+        specifier: 1.5.3
+        version: 1.5.3
       react:
         specifier: ^19.2.6
         version: 19.2.6

@@ -73,6 +73,7 @@ const nextConfig = {
       { source: '/prava/order/:id/checkout', destination: `${hetzner}/prava/order/:id/checkout` },
       { source: '/prava/orders/recent', destination: `${hetzner}/prava/orders/recent` },
       { source: '/linq/health', destination: `${hetzner}/linq/health` },
+      { source: '/linq/mission/:id', destination: `${hetzner}/linq/mission/:id` },
     ];
   },
   async headers() {

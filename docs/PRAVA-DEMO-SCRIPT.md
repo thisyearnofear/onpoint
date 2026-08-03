@@ -18,6 +18,14 @@ definitive merchant outcome. Never mix those two claims.
   `CAPTURED PRAVA SANDBOX RUN`.
 - Do not imply that the independently validated Linq thread and successful
   Prava record were captured as one uninterrupted conversation.
+- The upgraded judge-facing handoff (available-line assignment, QR/open-Messages
+  handoff, connected/delivered confirmation on the web card) is built in
+  `LinqMissionHandoff.tsx` + `GET /linq/mission/:orderId` but is **not yet
+  deployed**. Until it is redeployed and revalidated live from an iPhone
+  (TRACK → connected → delivered → 👍 refresh, no duplicate quote/session),
+  keep the `INDEPENDENTLY VALIDATED` labels above. After a successful live
+  pass, the Linq segment can be re-recorded as one continuous web → phone
+  handoff and the labels can drop the caveat.
 - Phone screen recordings should be clean; no notifications enabled.
 
 ---

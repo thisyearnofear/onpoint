@@ -16,11 +16,11 @@ import {
   KeyRound,
   ScanFace,
   UserRound,
-  MessageCircle,
   Radio,
   X,
 } from "lucide-react";
 import type { SearchResult } from "./AgentSearchBar";
+import { LinqMissionHandoff } from "./LinqMissionHandoff";
 
 // ── Types (mirrors orderView from prava-facade.js) ──────────────────
 interface OrderData {
@@ -75,11 +75,6 @@ interface Props {
   onProgressChange?: (progress: { state: string; hasTryOn: boolean }) => void;
   onConfirmed?: () => void;
   onReset?: () => void;
-}
-
-interface LinqHealth {
-  mode: "live" | "mock";
-  phoneNumber?: string;
 }
 
 // A sample person photo for judges who don't want to upload their own.
@@ -217,13 +212,11 @@ function CommerceEvidence({
   orderId,
   state,
   hasTryOn,
-  linq,
   openAiIntent,
 }: {
   orderId: string;
   state: string;
   hasTryOn: boolean;
-  linq: LinqHealth | null;
   openAiIntent: boolean;
 }) {
   const credentialObserved = [
@@ -234,10 +227,6 @@ function CommerceEvidence({
     "sandbox_declined",
     "confirmed",
   ].includes(state);
-  const number = linq?.phoneNumber || "+14243945528";
-  const message = `TRACK ${orderId}`;
-  const messagesHref = `sms:${number}?&body=${encodeURIComponent(message)}`;
-
   return (
     <div className="overflow-hidden rounded-2xl border border-border/60 bg-background">
       <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
@@ -274,19 +263,7 @@ function CommerceEvidence({
           }
           active={credentialObserved}
         />
-        <a
-          href={messagesHref}
-          className="group bg-card px-3 py-3 transition-colors hover:bg-muted/40"
-          aria-label="Continue this mission in Messages through Linq"
-        >
-          <p className="font-mono text-[8px] font-bold uppercase tracking-[0.14em] text-primary">
-            LINQ · {linq?.mode === "live" ? "LIVE" : "MESSAGES"}
-          </p>
-          <p className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-foreground">
-            Track this mission
-            <MessageCircle className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
-          </p>
-        </a>
+        <LinqMissionHandoff orderId={orderId} />
       </div>
       <p className="border-t border-border/40 px-4 py-2.5 text-[10px] leading-relaxed text-muted-foreground">
         Messages opens with a prefilled tracking code. Nothing is sent until you
@@ -443,7 +420,6 @@ export function AgentCheckoutCard({
   const [viewerMode, setViewerMode] = useState<"product" | "person" | "try-on">(
     "product",
   );
-  const [linqHealth, setLinqHealth] = useState<LinqHealth | null>(null);
   const [returnSignal, setReturnSignal] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -488,17 +464,6 @@ export function AgentCheckoutCard({
       controller.abort();
     };
   }, [orderId]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetch("/linq/health", { signal: controller.signal })
-      .then(async (response) => {
-        if (!response.ok) return;
-        setLinqHealth(await response.json());
-      })
-      .catch(() => undefined);
-    return () => controller.abort();
-  }, []);
 
   useEffect(() => {
     const handlePravaReturn = (event: MessageEvent) => {
@@ -1131,7 +1096,6 @@ export function AgentCheckoutCard({
             orderId={orderId}
             state={state}
             hasTryOn={showTryOn}
-            linq={linqHealth}
             openAiIntent={order.intent?.provider === "openai"}
           />
 
