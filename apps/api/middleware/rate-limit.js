@@ -8,26 +8,34 @@
 
 // Keyed by IP (x-forwarded-for or connection remoteAddress)
 function getClientIp(req) {
-  const forwarded = req.headers["x-forwarded-for"];
-  if (forwarded) return String(forwarded).split(",")[0].trim();
-  return req.ip || req.connection?.remoteAddress || "unknown";
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) return String(forwarded).split(',')[0].trim();
+  return req.ip || req.connection?.remoteAddress || 'unknown';
 }
 
 // ── Pre-configured tiers (aligned with Next.js RateLimits) ──
 
 const TIERS = {
-  veniceFree: { maxRequests: 60, windowMs: 60_000, prefix: "venice-free" },
-  veniceBurst: { maxRequests: 10, windowMs: 1_000, prefix: "venice-burst" },
-  liveSession: { maxRequests: 10, windowMs: 3_600_000, prefix: "live-session" },
-  general: { maxRequests: 100, windowMs: 60_000, prefix: "api" },
+  veniceFree: { maxRequests: 60, windowMs: 60_000, prefix: 'venice-free' },
+  veniceBurst: { maxRequests: 10, windowMs: 1_000, prefix: 'venice-burst' },
+  liveSession: { maxRequests: 10, windowMs: 3_600_000, prefix: 'live-session' },
+  general: { maxRequests: 100, windowMs: 60_000, prefix: 'api' },
   // Tighter limits for expensive AI routes (~$0.03/call)
-  aiExpensive: { maxRequests: 5, windowMs: 60_000, prefix: "ai-expensive" },
+  aiExpensive: { maxRequests: 5, windowMs: 60_000, prefix: 'ai-expensive' },
   // Daily cap for expensive AI routes (20 try-ons/day per IP = ~$0.60 max)
-  aiExpensiveDaily: { maxRequests: 20, windowMs: 86_400_000, prefix: "ai-expensive-daily" },
+  aiExpensiveDaily: {
+    maxRequests: 20,
+    windowMs: 86_400_000,
+    prefix: 'ai-expensive-daily',
+  },
   // Analysis routes are cheaper (~$0.005/call) but still need control
-  aiAnalysis: { maxRequests: 15, windowMs: 60_000, prefix: "ai-analysis" },
+  aiAnalysis: { maxRequests: 15, windowMs: 60_000, prefix: 'ai-analysis' },
   // Daily cap for analysis routes (50/day per IP = ~$0.25 max)
-  aiAnalysisDaily: { maxRequests: 50, windowMs: 86_400_000, prefix: "ai-analysis-daily" },
+  aiAnalysisDaily: {
+    maxRequests: 50,
+    windowMs: 86_400_000,
+    prefix: 'ai-analysis-daily',
+  },
 };
 
 // ── Factory: create rate limit middleware ──
@@ -51,15 +59,21 @@ function createRateLimiter(redis, tier, overrides = {}) {
    */
   return async function rateLimitMiddleware(req, res, next) {
     const ip = getClientIp(req);
-    const key = `${config.prefix}:${ip}`;
     const now = Date.now();
     const windowSecs = Math.ceil(config.windowMs / 1000);
+    // Fixed-window bucket keys ensure a client always gets a fresh allowance
+    // when the window rolls over. The previous single key refreshed EXPIRE on
+    // every request, so a continuously polling client could lock itself out
+    // forever once it crossed the limit.
+    const bucket = Math.floor(now / config.windowMs);
+    const key = `${config.prefix}:${ip}:${bucket}`;
+    const resetAt = (bucket + 1) * config.windowMs;
 
     try {
       const results = await redis
         .multi()
         .incr(key)
-        .expire(key, windowSecs)
+        .expire(key, windowSecs * 2)
         .exec();
 
       // ioredis returns [[null, "OK"], [null, "OK"], [null, "3"]]
@@ -67,8 +81,8 @@ function createRateLimiter(redis, tier, overrides = {}) {
       const countResult = results ? results[0] : null;
       if (!countResult || countResult[0]) {
         // Redis error — fail open in dev, closed in prod
-        if (process.env.NODE_ENV === "production") {
-          return res.status(503).json({ error: "Rate limit service unavailable" });
+        if (process.env.NODE_ENV === 'production') {
+          return res.status(503).json({ error: 'Rate limit service unavailable' });
         }
         return next();
       }
@@ -76,24 +90,24 @@ function createRateLimiter(redis, tier, overrides = {}) {
       const count = Number(countResult[1]) || 0;
       const allowed = count <= config.maxRequests;
       const remaining = Math.max(0, config.maxRequests - count);
-      const resetAt = now + config.windowMs;
-
-      res.setHeader("X-RateLimit-Limit", String(config.maxRequests));
-      res.setHeader("X-RateLimit-Remaining", String(remaining));
-      res.setHeader("X-RateLimit-Reset", Math.ceil(resetAt / 1000));
+      res.setHeader('X-RateLimit-Limit', String(config.maxRequests));
+      res.setHeader('X-RateLimit-Remaining', String(remaining));
+      res.setHeader('X-RateLimit-Reset', Math.ceil(resetAt / 1000));
 
       if (!allowed) {
+        const retryAfter = Math.max(1, Math.ceil((resetAt - now) / 1000));
+        res.setHeader('Retry-After', String(retryAfter));
         return res.status(429).json({
-          error: "Too Many Requests",
-          retryAfter: Math.ceil(config.windowMs / 1000),
+          error: 'Too Many Requests',
+          retryAfter,
         });
       }
 
       next();
     } catch (err) {
-      console.error("[RateLimit] Redis error:", err.message);
-      if (process.env.NODE_ENV === "production") {
-        return res.status(503).json({ error: "Rate limit service unavailable" });
+      console.error('[RateLimit] Redis error:', err.message);
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(503).json({ error: 'Rate limit service unavailable' });
       }
       next();
     }

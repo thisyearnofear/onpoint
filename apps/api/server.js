@@ -38,13 +38,14 @@ if (Sentry) {
 
 // ── Static files (digital garment images) ────────────────────────
 // Uses shared directory so images survive releases without re-upload.
-const digitalGarmentsPath = process.env.NODE_ENV === 'production'
-  ? '/opt/onpoint/shared/api/public/digital-garments'
-  : 'public/digital-garments';
-app.use('/digital-garments', express.static(digitalGarmentsPath, {
-  maxAge: '7d',
-  immutable: true,
-}));
+const digitalGarmentsPath = process.env.NODE_ENV === 'production' ? '/opt/onpoint/shared/api/public/digital-garments' : 'public/digital-garments';
+app.use(
+  '/digital-garments',
+  express.static(digitalGarmentsPath, {
+    maxAge: '7d',
+    immutable: true,
+  }),
+);
 
 // ── Per-route body parsing with size limits ──────────────────────
 // No global parser — each route group controls its own memory ceiling.
@@ -78,10 +79,19 @@ const { createApiKeyAuth } = require('./middleware/api-key-auth');
 
 // Rate limit tiers
 const generalRateLimit = createRateLimiter(redis, 'general');
-const pravaRateLimit = createRateLimiter(redis, 'general', {
+const pravaMutationRateLimit = createRateLimiter(redis, 'general', {
   maxRequests: 60,
-  prefix: 'prava',
+  prefix: 'prava-mutation',
 });
+const pravaStatusRateLimit = createRateLimiter(redis, 'general', {
+  maxRequests: 180,
+  prefix: 'prava-status',
+});
+const pravaRateLimit = (req, res, next) => {
+  const path = req.originalUrl.split('?')[0];
+  const isOrderStatusRead = req.method === 'GET' && /^\/prava\/order\/[^/]+\/?$/.test(path);
+  return (isOrderStatusRead ? pravaStatusRateLimit : pravaMutationRateLimit)(req, res, next);
+};
 const veniceRateLimit = createRateLimiter(redis, 'veniceFree');
 const veniceBurstLimit = createRateLimiter(redis, 'veniceBurst');
 const liveSessionRateLimit = createRateLimiter(redis, 'liveSession');
@@ -91,8 +101,8 @@ const aiAnalysisRateLimit = createRateLimiter(redis, 'aiAnalysis');
 const aiAnalysisDailyLimit = createRateLimiter(redis, 'aiAnalysisDaily');
 
 // Auth middleware
-const aiAuth = createApiKeyAuth();                 // External consumers: require VENICE_API_KEY
-const serviceKeyAuth = createServiceApiKeyAuth();  // Internal services: require SERVICE_API_KEY
+const aiAuth = createApiKeyAuth(); // External consumers: require VENICE_API_KEY
+const serviceKeyAuth = createServiceApiKeyAuth(); // Internal services: require SERVICE_API_KEY
 
 // Mount serviceKeyAuth on the heartbeat router for POST only
 // (The heartbeat router's POST handler checks SERVICE_API_KEY internally)
@@ -113,10 +123,7 @@ function createServiceApiKeyAuth() {
       return next();
     }
 
-    const provided =
-      req.headers['x-service-key'] ??
-      req.headers['authorization']?.replace('Bearer ', '')?.trim() ??
-      null;
+    const provided = req.headers['x-service-key'] ?? req.headers['authorization']?.replace('Bearer ', '')?.trim() ?? null;
 
     if (!provided) {
       return res.status(401).json({
@@ -139,7 +146,9 @@ app.get('/health', json1k, async (req, res) => {
   try {
     await redis.ping();
     redisStatus = 'connected';
-  } catch { /* already disconnected */ }
+  } catch {
+    /* already disconnected */
+  }
 
   res.json({
     status: 'healthy',
@@ -169,17 +178,7 @@ app.get('/api/status', (req, res) => {
     version: '2.1.0',
     status: 'running',
     port: process.env.PORT || 48751,
-    features: [
-      'venice-vision',
-      'gemini-live',
-      'qwen-cloud-vision',
-      'virtual-tryon',
-      'ai-agent',
-      'catalog',
-      'agent-heartbeat',
-      'agent-proxy',
-      'karmagap',
-    ],
+    features: ['venice-vision', 'gemini-live', 'qwen-cloud-vision', 'virtual-tryon', 'ai-agent', 'catalog', 'agent-heartbeat', 'agent-proxy', 'karmagap'],
   });
 });
 

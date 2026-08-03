@@ -18,9 +18,7 @@ let redis = null;
 function getRedis() {
   if (!redis) {
     const Redis = require('ioredis');
-    redis = new Redis(
-      process.env.REDIS_URL || 'redis://localhost:6379',
-    );
+    redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
   }
   return redis;
 }
@@ -67,36 +65,21 @@ async function setCachedAnalysis(fingerprint, type, data) {
 // ---------------------------------------------------------------------------
 
 const VENICE_BASE_URL = 'https://api.venice.ai/api/v1';
-const IDM_VTON_VERSION =
-  '0513734a452173b8173e907e3a59d19a36266e55b48528559432bd21c7d7e985';
+const IDM_VTON_VERSION = '0513734a452173b8173e907e3a59d19a36266e55b48528559432bd21c7d7e985';
 
-const geminiKey =
-  process.env.GEMINI_API_KEY &&
-  process.env.GEMINI_API_KEY !== 'your_gemini_api_key_here'
-    ? process.env.GEMINI_API_KEY
-    : null;
-const openaiKey =
-  process.env.OPENAI_API_KEY &&
-  process.env.OPENAI_API_KEY !== 'your_openai_api_key_here'
-    ? process.env.OPENAI_API_KEY
-    : null;
+const geminiKey = process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_gemini_api_key_here' ? process.env.GEMINI_API_KEY : null;
+const openaiKey = process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your_openai_api_key_here' ? process.env.OPENAI_API_KEY : null;
 const veniceKey = process.env.VENICE_API_KEY || null;
 
 const geminiClient = geminiKey ? new GoogleGenerativeAI(geminiKey) : null;
 const openaiClient = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
-const veniceClient = veniceKey
-  ? new OpenAI({ apiKey: veniceKey, baseURL: VENICE_BASE_URL })
-  : null;
+const veniceClient = veniceKey ? new OpenAI({ apiKey: veniceKey, baseURL: VENICE_BASE_URL }) : null;
 
 // ---------------------------------------------------------------------------
 // generateVisionAnalysis – uses Venice vision model for image analysis
 // ---------------------------------------------------------------------------
 
-async function generateVisionAnalysis({
-  prompt,
-  imageBase64,
-  veniceModel = 'qwen3-vl-235b-a22b',
-}) {
+async function generateVisionAnalysis({ prompt, imageBase64, veniceModel = 'qwen3-vl-235b-a22b' }) {
   if (!veniceClient) {
     throw new Error('Venice API key required for vision analysis');
   }
@@ -119,7 +102,10 @@ async function generateVisionAnalysis({
         },
       ],
     });
-    return { text: response.choices[0]?.message?.content ?? '', usedProvider: 'venice-vision' };
+    return {
+      text: response.choices[0]?.message?.content ?? '',
+      usedProvider: 'venice-vision',
+    };
   } catch (err) {
     logger.veniceError('vision-analysis', 'Venice vision generation failed', err);
     throw err;
@@ -131,14 +117,7 @@ async function generateVisionAnalysis({
 // (Gemini Flash-Lite is 7x cheaper than Venice Llama 3.3 70B for text)
 // ---------------------------------------------------------------------------
 
-async function generateText({
-  prompt,
-  provider = 'auto',
-  veniceModel = 'llama-3.3-70b',
-  geminiModel = 'gemini-3.1-flash-lite-preview',
-  openaiModel = 'gpt-4o',
-  openaiOptions = {},
-}) {
+async function generateText({ prompt, provider = 'auto', veniceModel = 'llama-3.3-70b', geminiModel = 'gemini-3.1-flash-lite-preview', openaiModel = 'gpt-4o', openaiOptions = {} }) {
   const hasVenice = !!veniceClient;
   const hasGemini = !!geminiClient;
   const hasOpenAI = !!openaiClient;
@@ -158,9 +137,7 @@ async function generateText({
   }
 
   if (!selected) {
-    throw new Error(
-      'No AI provider available. Configure VENICE_API_KEY, GEMINI_API_KEY or OPENAI_API_KEY.',
-    );
+    throw new Error('No AI provider available. Configure VENICE_API_KEY, GEMINI_API_KEY or OPENAI_API_KEY.');
   }
 
   // Build ordered list of providers to try (selected first, then fallbacks)
@@ -176,7 +153,10 @@ async function generateText({
           messages: [{ role: 'user', content: prompt }],
           ...openaiOptions,
         });
-        return { text: response.choices[0]?.message?.content ?? '', usedProvider: 'venice' };
+        return {
+          text: response.choices[0]?.message?.content ?? '',
+          usedProvider: 'venice',
+        };
       }
       if (prov === 'gemini') {
         const model = geminiClient.getGenerativeModel({ model: geminiModel });
@@ -189,7 +169,10 @@ async function generateText({
           messages: [{ role: 'user', content: prompt }],
           ...openaiOptions,
         });
-        return { text: response.choices[0]?.message?.content ?? '', usedProvider: 'openai' };
+        return {
+          text: response.choices[0]?.message?.content ?? '',
+          usedProvider: 'openai',
+        };
       }
     } catch (err) {
       logger.warn(`Text generation fallback`, { component: 'virtual-tryon', provider: prov }, err);
@@ -216,17 +199,27 @@ async function runReplicatePrediction({ version, input, timeoutMs = 120000 }) {
   });
 
   if (!createResponse.ok) {
-    throw new Error(`Replicate prediction create failed: ${createResponse.status}`);
+    let body = '';
+    if (typeof createResponse.text === 'function') {
+      body = await createResponse.text().catch(() => '');
+    } else if (typeof createResponse.json === 'function') {
+      const payload = await createResponse.json().catch(() => null);
+      body = payload ? JSON.stringify(payload) : '';
+    }
+    const error = new Error(`Replicate prediction create failed: ${createResponse.status}`);
+    error.code = 'REPLICATE_CREATE_FAILED';
+    error.status = createResponse.status === 429 ? 429 : 502;
+    error.context = {
+      providerStatus: createResponse.status,
+      detail: body.slice(0, 500) || null,
+    };
+    throw error;
   }
 
   let prediction = await createResponse.json();
   const startedAt = Date.now();
 
-  while (
-    prediction.status !== 'succeeded' &&
-    prediction.status !== 'failed' &&
-    prediction.status !== 'canceled'
-  ) {
+  while (prediction.status !== 'succeeded' && prediction.status !== 'failed' && prediction.status !== 'canceled') {
     if (Date.now() - startedAt > timeoutMs) {
       throw new Error('Replicate prediction timed out');
     }
@@ -237,14 +230,30 @@ async function runReplicatePrediction({ version, input, timeoutMs = 120000 }) {
     });
 
     if (!pollResponse.ok) {
-      throw new Error(`Replicate prediction poll failed: ${pollResponse.status}`);
+      const error = new Error(`Replicate prediction poll failed: ${pollResponse.status}`);
+      error.code = 'REPLICATE_POLL_FAILED';
+      error.status = pollResponse.status === 429 ? 429 : 502;
+      error.context = {
+        predictionId: prediction.id || null,
+        providerStatus: pollResponse.status,
+      };
+      throw error;
     }
 
     prediction = await pollResponse.json();
   }
 
   if (prediction.status !== 'succeeded') {
-    throw new Error(`Replicate prediction ${prediction.status}`);
+    const detail = typeof prediction.error === 'string' ? prediction.error.slice(0, 500) : prediction.error ? JSON.stringify(prediction.error).slice(0, 500) : null;
+    const error = new Error(`Replicate prediction ${prediction.status}${detail ? `: ${detail}` : ''}`);
+    error.code = 'REPLICATE_PREDICTION_FAILED';
+    error.status = 422;
+    error.context = {
+      predictionId: prediction.id || null,
+      providerStatus: prediction.status,
+      detail,
+    };
+    throw error;
   }
 
   const output = prediction.output;
@@ -262,16 +271,17 @@ async function runReplicatePrediction({ version, input, timeoutMs = 120000 }) {
 function extractSection(text, startMarker, endMarker) {
   const startIdx = text.indexOf(startMarker);
   if (startIdx === -1) return [];
-  
+
   const contentStart = startIdx + startMarker.length;
   const endIdx = endMarker ? text.indexOf(endMarker, contentStart) : text.length;
   const section = text.substring(contentStart, endIdx === -1 ? text.length : endIdx).trim();
-  
+
   // Split into bullet points or lines
-  const lines = section.split('\n')
-    .map(line => line.replace(/^[-•*]\s*/, '').trim())
-    .filter(line => line.length > 15 && !line.match(/^(CURRENT|BODY|FIT|STYLE|PERSONALIZATION)/));
-  
+  const lines = section
+    .split('\n')
+    .map((line) => line.replace(/^[-•*]\s*/, '').trim())
+    .filter((line) => line.length > 15 && !line.match(/^(CURRENT|BODY|FIT|STYLE|PERSONALIZATION)/));
+
   return lines.length > 0 ? lines : [section];
 }
 
@@ -293,19 +303,19 @@ function extractMeasurementsStructured(text) {
     shoulders: 'medium',
     chest: 'medium',
     waist: 'medium',
-    hips: 'medium'
+    hips: 'medium',
   };
-  
+
   const shouldersMatch = text.match(/Shoulders:\s*(small|medium|large)/i);
   const chestMatch = text.match(/Chest:\s*(small|medium|large)/i);
   const waistMatch = text.match(/Waist:\s*(small|medium|large)/i);
   const hipsMatch = text.match(/Hips:\s*(small|medium|large)/i);
-  
+
   if (shouldersMatch) measurements.shoulders = shouldersMatch[1].toLowerCase();
   if (chestMatch) measurements.chest = chestMatch[1].toLowerCase();
   if (waistMatch) measurements.waist = waistMatch[1].toLowerCase();
   if (hipsMatch) measurements.hips = hipsMatch[1].toLowerCase();
-  
+
   return measurements;
 }
 
@@ -345,57 +355,34 @@ function normalizeStructuredBodyAnalysis(parsed, rawText) {
   const measurements = parsed.measurements || {};
   return {
     currentLook: asStringArray(parsed.currentLook),
-    bodyType:
-      typeof parsed.bodyType === 'string' && parsed.bodyType.trim()
-        ? parsed.bodyType.trim().toLowerCase()
-        : 'average',
+    bodyType: typeof parsed.bodyType === 'string' && parsed.bodyType.trim() ? parsed.bodyType.trim().toLowerCase() : 'average',
     measurements: {
-      shoulders:
-        typeof measurements.shoulders === 'string'
-          ? measurements.shoulders.trim().toLowerCase()
-          : 'medium',
-      chest:
-        typeof measurements.chest === 'string'
-          ? measurements.chest.trim().toLowerCase()
-          : 'medium',
-      waist:
-        typeof measurements.waist === 'string'
-          ? measurements.waist.trim().toLowerCase()
-          : 'medium',
-      hips:
-        typeof measurements.hips === 'string'
-          ? measurements.hips.trim().toLowerCase()
-          : 'medium',
+      shoulders: typeof measurements.shoulders === 'string' ? measurements.shoulders.trim().toLowerCase() : 'medium',
+      chest: typeof measurements.chest === 'string' ? measurements.chest.trim().toLowerCase() : 'medium',
+      waist: typeof measurements.waist === 'string' ? measurements.waist.trim().toLowerCase() : 'medium',
+      hips: typeof measurements.hips === 'string' ? measurements.hips.trim().toLowerCase() : 'medium',
     },
-    fitRecommendations: asStringArray(parsed.fitRecommendations, [
-      'Use a clearer full-body photo for more precise fit recommendations.',
-    ]),
-    styleRecommendations: asStringArray(parsed.styleRecommendations, [
-      'Try a well-lit full-body photo for more specific style guidance.',
-    ]),
+    fitRecommendations: asStringArray(parsed.fitRecommendations, ['Use a clearer full-body photo for more precise fit recommendations.']),
+    styleRecommendations: asStringArray(parsed.styleRecommendations, ['Try a well-lit full-body photo for more specific style guidance.']),
     personalization: asStringArray(parsed.personalization),
-    score:
-      typeof parsed.score === 'number'
-        ? Math.min(10, Math.max(1, Math.round(parsed.score)))
-        : undefined,
-    confidence:
-      typeof parsed.confidence === 'number'
-        ? Math.min(1, Math.max(0, parsed.confidence > 1 ? parsed.confidence / 100 : parsed.confidence))
-        : undefined,
+    score: typeof parsed.score === 'number' ? Math.min(10, Math.max(1, Math.round(parsed.score))) : undefined,
+    confidence: typeof parsed.confidence === 'number' ? Math.min(1, Math.max(0, parsed.confidence > 1 ? parsed.confidence / 100 : parsed.confidence)) : undefined,
     rawAnalysis: rawText,
   };
 }
 
 function parseBodyAnalysisResponse(text) {
-  return normalizeStructuredBodyAnalysis(parseJsonObject(text), text) || {
-    currentLook: extractSection(text, 'CURRENT LOOK:', 'BODY ANALYSIS:'),
-    bodyType: extractBodyType(text),
-    measurements: extractMeasurementsStructured(text),
-    fitRecommendations: extractSection(text, 'FIT RECOMMENDATIONS:', 'STYLE RECOMMENDATIONS:'),
-    styleRecommendations: extractSection(text, 'STYLE RECOMMENDATIONS:', 'PERSONALIZATION:'),
-    personalization: extractSection(text, 'PERSONALIZATION:', null),
-    rawAnalysis: text,
-  };
+  return (
+    normalizeStructuredBodyAnalysis(parseJsonObject(text), text) || {
+      currentLook: extractSection(text, 'CURRENT LOOK:', 'BODY ANALYSIS:'),
+      bodyType: extractBodyType(text),
+      measurements: extractMeasurementsStructured(text),
+      fitRecommendations: extractSection(text, 'FIT RECOMMENDATIONS:', 'STYLE RECOMMENDATIONS:'),
+      styleRecommendations: extractSection(text, 'STYLE RECOMMENDATIONS:', 'PERSONALIZATION:'),
+      personalization: extractSection(text, 'PERSONALIZATION:', null),
+      rawAnalysis: text,
+    }
+  );
 }
 
 function createPhotoAnalysisFallback(error) {
@@ -418,9 +405,7 @@ function createPhotoAnalysisFallback(error) {
       'Use neutral base layers and add one stronger color or texture accent.',
       'Compare multiple sizes when the garment is structured or closely fitted.',
     ],
-    personalization: [
-      'Photo analysis is temporarily using a conservative fallback profile.',
-    ],
+    personalization: ['Photo analysis is temporarily using a conservative fallback profile.'],
     score: 5,
     confidence: 0.35,
     provider: 'photo-analysis-fallback',
@@ -439,9 +424,7 @@ function extractMeasurement(text, bodyPart) {
 
   if (match && match[1]) {
     const measurementValue = match[1];
-    const found = sizeWords.find((size) =>
-      measurementValue.toLowerCase().includes(size),
-    );
+    const found = sizeWords.find((size) => measurementValue.toLowerCase().includes(size));
     return found || 'medium';
   }
   return null;
@@ -452,12 +435,7 @@ function extractRecommendations(text) {
   const lines = text.split('\n');
 
   for (const line of lines) {
-    if (
-      line.includes('recommend') ||
-      line.includes('suggest') ||
-      line.includes('try') ||
-      line.includes('consider')
-    ) {
+    if (line.includes('recommend') || line.includes('suggest') || line.includes('try') || line.includes('consider')) {
       const cleaned = line.replace(/^\d+\.?\s*/, '').trim();
       if (cleaned.length > 10) {
         recommendations.push(cleaned);
@@ -473,12 +451,7 @@ function extractStyleAdjustments(text) {
   const lines = text.split('\n');
 
   for (const line of lines) {
-    if (
-      line.includes('adjust') ||
-      line.includes('balance') ||
-      line.includes('enhance') ||
-      line.includes('flatter')
-    ) {
+    if (line.includes('adjust') || line.includes('balance') || line.includes('enhance') || line.includes('flatter')) {
       const cleaned = line.replace(/^\d+\.?\s*/, '').trim();
       if (cleaned.length > 10) {
         adjustments.push(cleaned);
@@ -497,20 +470,12 @@ function extractStructuredStylingTips(text) {
       .trim();
     const parsed = JSON.parse(cleaned);
     if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]?.text) {
-      const valid = parsed
-        .slice(0, 4)
-        .filter((item) => typeof item.text === 'string');
+      const valid = parsed.slice(0, 4).filter((item) => typeof item.text === 'string');
       return {
         textTips: valid.map((item) => item.text),
         structuredTips: valid.map((item) => ({
           text: item.text,
-          action:
-            item.action &&
-            item.action.type &&
-            item.action.label &&
-            item.action.payload
-              ? item.action
-              : undefined,
+          action: item.action && item.action.type && item.action.label && item.action.payload ? item.action : undefined,
         })),
       };
     }
@@ -521,12 +486,7 @@ function extractStructuredStylingTips(text) {
   const tips = [];
   const lines = text.split('\n');
   for (const line of lines) {
-    const isTipLine =
-      /^\d+\./.test(line) ||
-      /^[-•*]/.test(line) ||
-      /\b(tip|style|wear|pair|color|accessory|fit|flatter|enhance|complement)\b/i.test(
-        line,
-      );
+    const isTipLine = /^\d+\./.test(line) || /^[-•*]/.test(line) || /\b(tip|style|wear|pair|color|accessory|fit|flatter|enhance|complement)\b/i.test(line);
     if (isTipLine) {
       const cleaned = line
         .replace(/^\d+\.?\s*/, '')
@@ -538,9 +498,7 @@ function extractStructuredStylingTips(text) {
     }
   }
   if (tips.length === 0) {
-    const sentences = text
-      .split(/[.!?]+/)
-      .filter((s) => s.trim().length > 20 && s.trim().length < 150);
+    const sentences = text.split(/[.!?]+/).filter((s) => s.trim().length > 20 && s.trim().length < 150);
     tips.push(...sentences.slice(0, 4));
   }
   const textTips =
@@ -564,13 +522,7 @@ function extractOutfitRecommendations(text) {
   const lines = text.split('\n');
   for (let i = 0; i < lines.length && recommendations.length < 5; i++) {
     const line = lines[i];
-    if (
-      line &&
-      (line.includes('recommend') ||
-        line.includes('suggest') ||
-        line.includes('add') ||
-        line.includes('try'))
-    ) {
+    if (line && (line.includes('recommend') || line.includes('suggest') || line.includes('add') || line.includes('try'))) {
       const cleaned = line.replace(/^\d+\.?\s*/, '').trim();
       if (cleaned.length > 10) {
         recommendations.push({
@@ -584,9 +536,21 @@ function extractOutfitRecommendations(text) {
   return recommendations.length > 0
     ? recommendations
     : [
-        { item: 'Consider color coordination', reason: 'Enhances overall look', priority: 1 },
-        { item: 'Add complementary accessories', reason: 'Completes the outfit', priority: 2 },
-        { item: 'Pay attention to fit and proportions', reason: 'Ensures flattering silhouette', priority: 3 },
+        {
+          item: 'Consider color coordination',
+          reason: 'Enhances overall look',
+          priority: 1,
+        },
+        {
+          item: 'Add complementary accessories',
+          reason: 'Completes the outfit',
+          priority: 2,
+        },
+        {
+          item: 'Pay attention to fit and proportions',
+          reason: 'Ensures flattering silhouette',
+          priority: 3,
+        },
       ];
 }
 
@@ -602,7 +566,13 @@ function parseVirtualTryOnResponse(aiResponse, type, originalData) {
     };
     const fitRecommendations = extractRecommendations(aiResponse);
     const styleAdjustments = extractStyleAdjustments(aiResponse);
-    return { bodyType, measurements, fitRecommendations, styleAdjustments, analysis: aiResponse };
+    return {
+      bodyType,
+      measurements,
+      fitRecommendations,
+      styleAdjustments,
+      analysis: aiResponse,
+    };
   } else if (type === 'outfit-fit' || type === 'enhancement') {
     const stylingTips = extractStylingTips(aiResponse);
     const recommendations = extractOutfitRecommendations(aiResponse);
@@ -622,13 +592,8 @@ async function buildGeneratedOutfitImageResponse({ data, provider, tier = 'paid'
   let errorClass = null;
   const personDescription = (data && data.personDescription) || '';
   const humanImage = data && data.photoData;
-  const garmentImage =
-    data && data.items && data.items[0]
-      ? data.items[0].imageUrl || data.items[0].productSrc || data.items[0].cover
-      : null;
-  const outfitDescription = data && data.items
-    ? data.items.map((item) => `${item.name}: ${item.description || ''}`).join(', ')
-    : '';
+  const garmentImage = data && data.items && data.items[0] ? data.items[0].imageUrl || data.items[0].productSrc || data.items[0].cover : null;
+  const outfitDescription = data && data.items ? data.items.map((item) => `${item.name}: ${item.description || ''}`).join(', ') : '';
 
   // tier: 'paid' (agent) → Replicate IDM-VTON first (accurate garment placement, ~$0.024)
   //       'free' (web)   → Venice SD35 first (cheaper, ~$0.015, not garment-conditioned)
@@ -696,13 +661,7 @@ async function buildGeneratedOutfitImageResponse({ data, provider, tier = 'paid'
     }
   } else if (useReplicateFirst) {
     // Paid tier but Replicate couldn't run (no token or missing inputs)
-    fallbackReason = !process.env.REPLICATE_API_TOKEN
-      ? 'replicate_not_configured'
-      : !humanImage
-        ? 'missing_person_image'
-        : !garmentImage
-          ? 'missing_garment_image'
-          : 'missing_conditioning_input';
+    fallbackReason = !process.env.REPLICATE_API_TOKEN ? 'replicate_not_configured' : !humanImage ? 'missing_person_image' : !garmentImage ? 'missing_garment_image' : 'missing_conditioning_input';
   }
   // Free tier: skip Replicate entirely, go straight to Venice SD35
   if (!useReplicateFirst && !fallbackReason) {
@@ -756,9 +715,7 @@ async function buildGeneratedOutfitImageResponse({ data, provider, tier = 'paid'
   const result = {
     generatedImage: veniceData.images[0],
     enhancedOutfit: (data && data.items) || [],
-    stylingTips: personalizedTips.length
-      ? personalizedTips
-      : ['Layer up', 'Accessorize', 'Check fit', 'Color harmony'],
+    stylingTips: personalizedTips.length ? personalizedTips : ['Layer up', 'Accessorize', 'Check fit', 'Color harmony'],
     structuredTips,
     provider: 'venice-image',
     imageConditioned: false,
@@ -790,7 +747,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Analysis type is required' });
     }
 
-    const prefContext = stylePreferences 
+    const prefContext = stylePreferences
       ? `\n\nUSER PREFERENCES TO CONSIDER:
 - Favored Aesthetics: ${stylePreferences.styleAesthetics?.join(', ') || 'Not specified'}
 - Budget Level: ${stylePreferences.budgetTier || 'Not specified'}
@@ -898,17 +855,17 @@ Be specific and actionable. Reference what you actually see.${prefContext}`;
           prompt,
           imageBase64: data.photoData,
         });
-        
+
         // Prefer strict JSON, fall back to section parsing for provider drift.
         const sections = parseBodyAnalysisResponse(text);
-        
+
         await setCachedAnalysis(fingerprint, 'body-analysis', sections);
 
-        return res.json({ 
+        return res.json({
           ...sections,
-          provider: 'venice-vision', 
+          provider: 'venice-vision',
           type,
-          rawAnalysis: text 
+          rawAnalysis: text,
         });
       } catch (error) {
         logger.tryonError('body-analysis', 'Body analysis from photo failed', error, {
@@ -927,9 +884,7 @@ Be specific and actionable. Reference what you actually see.${prefContext}`;
         return res.status(500).json({ error: 'Venice API key required for vision analysis' });
       }
 
-      const outfitDescription = data.items
-        ? data.items.map((item) => `${item.name}: ${item.description || item.type || ''}`).join(', ')
-        : '';
+      const outfitDescription = data.items ? data.items.map((item) => `${item.name}: ${item.description || item.type || ''}`).join(', ') : '';
 
       const prompt = `You are a personal stylist. Look at this person in the photo and analyze how these outfit items would work for them: ${outfitDescription}
 
@@ -965,7 +920,11 @@ Be SPECIFIC. Reference what you see in the photo. Give actionable, personalized 
 
     // -- generate-outfit-image (Venice SD35 for free web, Replicate for paid agent) --
     if (type === 'generate-outfit-image') {
-      const result = await buildGeneratedOutfitImageResponse({ data, provider, tier: 'free' });
+      const result = await buildGeneratedOutfitImageResponse({
+        data,
+        provider,
+        tier: 'free',
+      });
       // Log funnel event: tryon_complete (free, web)
       logFunnelEvent(null, {
         eventType: 'tryon_complete',

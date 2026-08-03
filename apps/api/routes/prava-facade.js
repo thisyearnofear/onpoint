@@ -85,14 +85,7 @@ function failureView(err) {
 // Trust fields surfaced to the user (the Visa "controls + protections" story).
 function trustView(o) {
   const selfCheck = !o.restMode && prava.selfCheck();
-  const credentialObserved = [
-    'credential_ready',
-    'checking_out',
-    'checkout_unknown',
-    'sandbox_completed',
-    'sandbox_declined',
-    'confirmed',
-  ].includes(o.state);
+  const credentialObserved = ['credential_ready', 'checking_out', 'checkout_unknown', 'sandbox_completed', 'sandbox_declined', 'confirmed'].includes(o.state);
   const approvalMethod = selfCheck
     ? 'not applicable: deterministic fixture only'
     : o.restMode
@@ -106,14 +99,10 @@ function trustView(o) {
       url: o.merchantUrl,
       locked: !!o.paymentSessionId,
     },
-    credentialScope: credentialObserved
-      ? 'observed issued credential: single-use, merchant-scoped, amount-scoped'
-      : 'requested if issued: single-use, merchant-scoped, amount-scoped',
+    credentialScope: credentialObserved ? 'observed issued credential: single-use, merchant-scoped, amount-scoped' : 'requested if issued: single-use, merchant-scoped, amount-scoped',
     approvalMethod,
     guardrails: [
-      o.paymentSessionId
-        ? 'Prava session requests this amount and merchant metadata'
-        : 'binding quote prepared; no Prava permission session yet',
+      o.paymentSessionId ? 'Prava session requests this amount and merchant metadata' : 'binding quote prepared; no Prava permission session yet',
       approvalMethod,
       'credential controls follow Prava’s documented model if issuance succeeds',
       '15-minute session window',
@@ -123,7 +112,7 @@ function trustView(o) {
 
 function quoteBreakdownView(o) {
   if (!o.quote || !o.totalAmount) return null;
-  const amount = (value) => value == null ? null : String(value);
+  const amount = (value) => (value == null ? null : String(value));
   return {
     source: o.restMode ? 'Browser Harness' : 'Prava shop_quote',
     subtotal: amount(o.quote.subtotal || o.quote.item_subtotal),
@@ -141,9 +130,7 @@ function orderView(o) {
     state: o.state, // searching|quoted|awaiting_approval|approved|credential_ready|checking_out|checkout_unknown|confirmed|sandbox_completed|sandbox_declined|self_check_completed|failed
     query: o.query || null,
     items: o.items || null,
-    merchant: o.merchantName
-      ? { name: o.merchantName, url: o.merchantUrl, country: o.merchantCountry }
-      : null,
+    merchant: o.merchantName ? { name: o.merchantName, url: o.merchantUrl, country: o.merchantCountry } : null,
     totalAmount: o.totalAmount || null,
     currency: o.currency || null,
     quote: o.quote || null,
@@ -184,14 +171,12 @@ function serviceKeyAuth(req, res, next) {
 router.get('/health', async (_req, res) => {
   const cliOk = await prava.cliAvailable();
   const rest = prava.restMode();
-  const mode = rest
-    ? (prava.restSandboxMode() ? 'sandbox-rest' : 'live-rest')
-    : (prava.selfCheck() ? 'self-check' : 'live');
+  const mode = rest ? (prava.restSandboxMode() ? 'sandbox-rest' : 'live-rest') : prava.selfCheck() ? 'self-check' : 'live';
   const transport = rest
-    ? 'rest:' + (prava.restSandboxMode()
-        ? (process.env.PRAVA_SANDBOX_BASE || 'https://sandbox.api.prava.space')
-        : (process.env.PRAVA_PRODUCTION_BASE || 'https://api.prava.space'))
-    : (prava.selfCheck() ? 'mock-fixtures' : `cli:${process.env.PRAVA_CLI_PATH || 'prava'}`);
+    ? 'rest:' + (prava.restSandboxMode() ? process.env.PRAVA_SANDBOX_BASE || 'https://sandbox.api.prava.space' : process.env.PRAVA_PRODUCTION_BASE || 'https://api.prava.space')
+    : prava.selfCheck()
+      ? 'mock-fixtures'
+      : `cli:${process.env.PRAVA_CLI_PATH || 'prava'}`;
   res.json({
     status: 'ok',
     mode,
@@ -203,9 +188,9 @@ router.get('/health', async (_req, res) => {
       ? ['shop_search', 'shop_product', 'shop_quote', 'create_rest_session', 'poll_rest_session', 'shop_checkout', 'report_real_outcome']
       : ['shop_search', 'shop_product', 'shop_quote', 'create_payment_session', 'poll_payment_session', 'shop_checkout'],
     note: rest
-      ? (prava.restSandboxMode()
-          ? 'Sandbox REST mode — binding Browser Harness quote plus a real Prava test-card session (no real money).'
-          : 'Live REST session mode — a separate merchant checkout must charge the credential before report-status.')
+      ? prava.restSandboxMode()
+        ? 'Sandbox REST mode — binding Browser Harness quote plus a real Prava test-card session (no real money).'
+        : 'Live REST session mode — a separate merchant checkout must charge the credential before report-status.'
       : prava.selfCheck()
         ? 'Self-check mode — walkable mock. Set PRAVA_SECRET_KEY (sk_test_*) for sandbox, or PRAVA_CLI_PATH + PRAVA_AGENT_LINKED=1 for live.'
         : 'Live mode — real orders via the prava CLI (production, real card).',
@@ -241,7 +226,9 @@ router.get('/addresses', async (_req, res, next) => {
   try {
     const r = await prava.shopListAddresses();
     res.json(r);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 });
 
 // ── POST /prava/search ───────────────────────────────────────────────
@@ -252,7 +239,9 @@ router.post('/search', async (req, res, next) => {
     if (!query) return res.status(400).json({ error: 'query is required' });
     const r = await prava.shopSearch({ query, merchant, limit });
     res.json(r);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 });
 
 // ── POST /prava/product ──────────────────────────────────────────────
@@ -263,7 +252,9 @@ router.post('/product', async (req, res, next) => {
     if (!productId) return res.status(400).json({ error: 'productId is required' });
     const r = await prava.shopProduct({ productId, merchant });
     res.json(r);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 });
 
 // ── POST /prava/quote ───────────────────────────────────────────────
@@ -274,9 +265,16 @@ router.post('/quote', async (req, res, next) => {
     if (!variantId || !merchant) {
       return res.status(400).json({ error: 'variantId and merchant are required' });
     }
-    const r = await prava.shopQuote({ variantId, merchant, quantity, addressId });
+    const r = await prava.shopQuote({
+      variantId,
+      merchant,
+      quantity,
+      addressId,
+    });
     res.json(r);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 });
 
 // ── POST /prava/order — discover + lock quote (no payment session) ──
@@ -310,16 +308,21 @@ router.post('/order', async (req, res, next) => {
       const search = await prava.shopSearch({ query, intent: query });
       const matched = search.results?.find((result) => result.product_id === productId);
       if (!matched) {
-        return res.status(409).json({ error: 'Selected product could not be verified against Prava search results.' });
+        return res.status(409).json({
+          error: 'Selected product could not be verified against Prava search results.',
+        });
       }
       if (matched.merchant !== chosenMerchant) {
-        return res.status(400).json({ error: 'Merchant does not match the selected Prava search result.' });
+        return res.status(400).json({
+          error: 'Merchant does not match the selected Prava search result.',
+        });
       }
       chosenMerchant = matched.merchant;
-      const prod = await prava.shopProduct({ productId, merchant: chosenMerchant });
-      const offer = chosenVariant
-        ? prod.offers?.find((o) => o.variant_id === chosenVariant && o.available)
-        : (prod.offers?.find((o) => o.available) || prod.offers?.[0]);
+      const prod = await prava.shopProduct({
+        productId,
+        merchant: chosenMerchant,
+      });
+      const offer = chosenVariant ? prod.offers?.find((o) => o.variant_id === chosenVariant && o.available) : prod.offers?.find((o) => o.available) || prod.offers?.[0];
       if (!offer) return res.status(409).json({ error: 'No available variant', product: prod });
       chosenProduct = {
         ...prod,
@@ -337,18 +340,30 @@ router.post('/order', async (req, res, next) => {
       const top = search.results?.[0];
       if (!top) return res.status(404).json({ error: 'No products found for query', query });
       chosenMerchant = top.merchant;
-      const prod = await prava.shopProduct({ productId: top.product_id, merchant: chosenMerchant });
+      const prod = await prava.shopProduct({
+        productId: top.product_id,
+        merchant: chosenMerchant,
+      });
       const offer = prod.offers?.find((o) => o.available) || prod.offers?.[0];
       if (!offer) return res.status(409).json({ error: 'No available variant', product: prod });
-      chosenProduct = { ...prod, title: top.title, image: top.image || prod.image, product_id: top.product_id };
+      chosenProduct = {
+        ...prod,
+        title: top.title,
+        image: top.image || prod.image,
+        product_id: top.product_id,
+      };
       selectedOffer = offer;
       chosenVariant = offer.variant_id;
     }
     if (chosenVariant && !chosenProduct) {
-      return res.status(400).json({ error: 'query and productId are required to verify a selected variant.' });
+      return res.status(400).json({
+        error: 'query and productId are required to verify a selected variant.',
+      });
     }
     if (!chosenVariant || !chosenMerchant || !chosenProduct || !selectedOffer) {
-      return res.status(400).json({ error: 'Provide productId+variantId+merchant, or a query to discover.' });
+      return res.status(400).json({
+        error: 'Provide productId+variantId+merchant, or a query to discover.',
+      });
     }
 
     // Two payment rails:
@@ -376,17 +391,29 @@ router.post('/order', async (req, res, next) => {
         return res.status(409).json({ error: 'Prava did not return a binding checkout quote.' });
       }
       totalAmount = String(quoteAmount);
-      products = [{
-        product_id: chosenProduct.product_id,
-        description: chosenProduct.title || chosenProduct.description || selectedOffer.description || 'Fashion item',
-        unit_price: String(selectedOffer.unit_price),
-        quantity: 1,
-      }];
+      products = [
+        {
+          product_id: chosenProduct.product_id,
+          description: chosenProduct.title || chosenProduct.description || selectedOffer.description || 'Fashion item',
+          unit_price: String(selectedOffer.unit_price),
+          quantity: 1,
+        },
+      ];
     } else {
       // Lock the binding total via the CLI quote.
-      quote = await prava.shopQuote({ variantId: chosenVariant, merchant: chosenMerchant, addressId });
+      quote = await prava.shopQuote({
+        variantId: chosenVariant,
+        merchant: chosenMerchant,
+        addressId,
+      });
       totalAmount = quote.total;
-      products = [{ description: chosenProduct.title || chosenProduct.description || selectedOffer.description || 'Fashion item', unit_price: quote.subtotal, quantity: 1 }];
+      products = [
+        {
+          description: chosenProduct.title || chosenProduct.description || selectedOffer.description || 'Fashion item',
+          unit_price: quote.subtotal,
+          quantity: 1,
+        },
+      ];
     }
 
     const id = 'op_' + crypto.randomUUID();
@@ -420,6 +447,7 @@ router.post('/order', async (req, res, next) => {
       expiryYear: null,
       // UCP product image used for the pre-checkout try-on leg.
       garmentImageUrl: chosenProduct?.image || null,
+      garmentDescription: chosenProduct?.title || chosenProduct?.description || 'fashion garment',
       tryOnUrl: null,
       fitDecision: null,
       createdAt: now,
@@ -435,7 +463,9 @@ router.post('/order', async (req, res, next) => {
     });
 
     res.status(201).json(orderView(order));
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 });
 
 // ── POST /prava/order/:id/try-on — IDM-VTON on the garment + user photo ─
@@ -447,10 +477,14 @@ router.post('/order/:id/try-on', async (req, res, next) => {
     const o = getOrder(req.params.id);
     const { photoData, photoUrl } = req.body || {};
     if (!o.garmentImageUrl) {
-      return res.status(409).json({ error: 'Order has no garment image to try on', order: orderView(o) });
+      return res.status(409).json({
+        error: 'Order has no garment image to try on',
+        order: orderView(o),
+      });
     }
     const { renderUrl, provider } = await tryOn.tryOnGarment({
       garmentImageUrl: o.garmentImageUrl,
+      garmentDescription: o.garmentDescription,
       photoData,
       photoUrl,
     });
@@ -461,7 +495,9 @@ router.post('/order/:id/try-on', async (req, res, next) => {
     o.updatedAt = Date.now();
     orders.set(o.id, o);
     res.json({ tryOnUrl: renderUrl, provider, order: orderView(o) });
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 });
 
 // ── POST /prava/order/:id/session — request payment permission ───────
@@ -569,11 +605,12 @@ router.post('/order/:id/poll', async (req, res, next) => {
   try {
     o = getOrder(req.params.id);
     if (!o.paymentSessionId || (o.state !== 'awaiting_approval' && o.state !== 'approved')) {
-      return res.status(409).json({ error: `Cannot poll in state ${o.state}`, order: orderView(o) });
+      return res.status(409).json({
+        error: `Cannot poll in state ${o.state}`,
+        order: orderView(o),
+      });
     }
-    const status = o.restMode
-      ? await prava.pollRestSession({ sessionId: o.paymentSessionId })
-      : await prava.pollPaymentSession({ sessionId: o.paymentSessionId });
+    const status = o.restMode ? await prava.pollRestSession({ sessionId: o.paymentSessionId }) : await prava.pollPaymentSession({ sessionId: o.paymentSessionId });
     if (status.status === 'completed' || status.status === 'credential_ready') {
       o.state = status.status === 'credential_ready' ? 'credential_ready' : 'approved';
       // Store the single-use tokenized credentials so checkout can use them.
@@ -598,8 +635,7 @@ router.post('/order/:id/poll', async (req, res, next) => {
       order: orderView(o),
     });
   } catch (e) {
-    const definitive = e.code === 'incomplete_credential_response'
-      || (e.status >= 400 && e.status < 500 && ![408, 425, 429].includes(e.status));
+    const definitive = e.code === 'incomplete_credential_response' || (e.status >= 400 && e.status < 500 && ![408, 425, 429].includes(e.status));
     if (o && definitive) {
       o.state = 'failed';
       o.failure = failureView(e);
@@ -617,7 +653,10 @@ router.post('/order/:id/approve', (req, res) => {
   try {
     const o = getOrder(req.params.id);
     if (!o.paymentSessionId || o.state !== 'awaiting_approval') {
-      return res.status(409).json({ error: `Cannot approve in state ${o.state}`, order: orderView(o) });
+      return res.status(409).json({
+        error: `Cannot approve in state ${o.state}`,
+        order: orderView(o),
+      });
     }
     if (!prava.selfCheck()) {
       return res.status(400).json({
@@ -688,7 +727,11 @@ router.post('/order/:id/checkout', serviceKeyAuth, async (req, res, next) => {
         };
         o.updatedAt = Date.now();
         orders.set(o.id, o);
-        return res.json({ state: o.state, order: orderView(o), result: reported });
+        return res.json({
+          state: o.state,
+          order: orderView(o),
+          result: reported,
+        });
       }
       throw e;
     }
@@ -707,25 +750,25 @@ router.post('/order/:id/checkout', serviceKeyAuth, async (req, res, next) => {
         o.sandboxOrderId = result.order_id;
         o.updatedAt = Date.now();
         orders.set(o.id, o);
-        return res.json({ state: o.state, order: orderView(o), result: reported });
+        return res.json({
+          state: o.state,
+          order: orderView(o),
+          result: reported,
+        });
       }
-      o.state = result.sandbox
-        ? 'sandbox_completed'
-        : result.self_check
-          ? 'self_check_completed'
-          : 'confirmed';
+      o.state = result.sandbox ? 'sandbox_completed' : result.self_check ? 'self_check_completed' : 'confirmed';
       if (result.sandbox) o.sandboxOrderId = result.order_id;
       else if (result.self_check) o.selfCheckOrderId = result.order_id;
       else o.orderIdPrava = result.order_id;
       o.updatedAt = Date.now();
       orders.set(o.id, o);
-      logger.info(result.sandbox
-        ? 'Prava sandbox lifecycle completed'
-        : result.self_check
-          ? 'Prava self-check fixture completed'
-          : 'Prava order confirmed', {
-        component: 'prava-facade', orderId: o.id, pravaOrder: result.order_id,
-        amount: result.amount, sandbox: !!result.sandbox, selfCheck: !!result.self_check,
+      logger.info(result.sandbox ? 'Prava sandbox lifecycle completed' : result.self_check ? 'Prava self-check fixture completed' : 'Prava order confirmed', {
+        component: 'prava-facade',
+        orderId: o.id,
+        pravaOrder: result.order_id,
+        amount: result.amount,
+        sandbox: !!result.sandbox,
+        selfCheck: !!result.self_check,
       });
       return res.json({ state: o.state, order: orderView(o), result });
     }
@@ -733,9 +776,7 @@ router.post('/order/:id/checkout', serviceKeyAuth, async (req, res, next) => {
     o.state = explicitlyFailed ? 'failed' : 'checkout_unknown';
     o.failure = {
       code: explicitlyFailed ? 'CHECKOUT_FAILED' : 'CHECKOUT_OUTCOME_UNKNOWN',
-      message: explicitlyFailed
-        ? 'Prava reported that the merchant checkout failed.'
-        : 'The merchant checkout returned no definitive outcome; do not retry automatically.',
+      message: explicitlyFailed ? 'Prava reported that the merchant checkout failed.' : 'The merchant checkout returned no definitive outcome; do not retry automatically.',
       status: null,
       responseId: null,
     };
@@ -744,8 +785,7 @@ router.post('/order/:id/checkout', serviceKeyAuth, async (req, res, next) => {
     return res.status(explicitlyFailed ? 502 : 202).json({ state: o.state, order: orderView(o), result });
   } catch (e) {
     if (o?.state === 'checking_out') {
-      const ambiguous = e.code === 'cli_error'
-        && (e.context?.killed || e.context?.code === 'ETIMEDOUT');
+      const ambiguous = e.code === 'cli_error' && (e.context?.killed || e.context?.code === 'ETIMEDOUT');
       o.state = ambiguous ? 'checkout_unknown' : 'failed';
       o.failure = failureView(e);
       o.updatedAt = Date.now();

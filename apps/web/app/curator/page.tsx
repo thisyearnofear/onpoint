@@ -26,7 +26,7 @@ import { PRODUCT_NAME } from "../../lib/brand";
 export const metadata: Metadata = {
   title: `Become a Curator | ${PRODUCT_NAME}`,
   description:
-    "Turn your fashion eye into a storefront. Get AI try-on, branded polaroids, WhatsApp checkout, and analytics — free to join.",
+    "Turn your fashion eye into a storefront. Give customers AI try-on, branded polaroids, and a ready-to-act WhatsApp handoff — free to join.",
 };
 
 // ── Archetype definitions ──────────────────────────────
@@ -212,8 +212,8 @@ const BENEFITS: Benefit[] = [
   },
   {
     icon: <MessageCircle className="h-5 w-5" />,
-    title: "WhatsApp checkout",
-    body: "Orders come through as ready-to-act briefs on WhatsApp. You confirm stock, they pay, you ship.",
+    title: "WhatsApp handoff",
+    body: "Customers arrive with a ready-to-act brief on WhatsApp. You confirm stock, collect payment, and ship.",
   },
   {
     icon: <ChartNoAxesCombined className="h-5 w-5" />,
@@ -223,7 +223,7 @@ const BENEFITS: Benefit[] = [
   {
     icon: <Zap className="h-5 w-5" />,
     title: "30-second inventory via chat",
-    body: "Text '+' and a photo — the agent creates a listing with sizes, pricing, and stock. No dashboard.",
+    body: "Text '+' and a photo in chat — the inventory assistant creates a listing with sizes, pricing, and stock. No dashboard.",
   },
 ];
 
@@ -238,23 +238,29 @@ const STEPS = [
   {
     step: 2,
     title: "Get your storefront",
-    body: "You get a branded /s/yourslug page with try-on, polaroid sharing, and WhatsApp checkout built in.",
+    body: "You get a branded /s/yourslug page with try-on, polaroid sharing, and a WhatsApp handoff built in.",
   },
   {
     step: 3,
     title: "Add inventory via chat",
-    body: "Send '+' and a photo to our WhatsApp agent. It creates a live listing; you set the price and sizes.",
+    body: "Send '+' and a photo in chat. The inventory assistant creates a live listing; you set the price and sizes.",
   },
   {
     step: 4,
     title: "Share & sell",
-    body: "Share your link. Customers try on, send briefs, and buy on WhatsApp — you handle fulfilment your way.",
+    body: "Share your link. Customers try on, send briefs, and continue on WhatsApp — you handle payment and fulfilment your way.",
   },
 ];
 
 // ── Archetype gradient backgrounds ──────────────────────
 
-function ArchetypeGradient({ color, accent }: { color: string; accent: string }) {
+function ArchetypeGradient({
+  color,
+  accent,
+}: {
+  color: string;
+  accent: string;
+}) {
   return (
     <div
       className="absolute inset-0 rounded-2xl opacity-[0.07] pointer-events-none"
@@ -270,81 +276,108 @@ function ArchetypeGradient({ color, accent }: { color: string; accent: string })
 export default function CuratorLandingPage() {
   return (
     <OnPointLayout>
-
       {/* ── Hero ── */}
       <Reveal>
         <section className="border-b border-border bg-gradient-to-b from-card to-background">
           <div className="mx-auto max-w-6xl px-4 py-16 md:py-24">
-          <div className="mx-auto max-w-3xl text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/20">
-              <Store className="h-7 w-7 text-white" />
-            </div>
-            <h1 className="mt-6 text-4xl font-black tracking-tight md:text-5xl">
-              WhatsApp is your checkout.
-              <span className="block text-primary">OnPoint is your fitting room.</span>
-              <span className="mt-3 inline-flex items-center gap-2 text-sm font-normal align-middle">
-                <ComingSoonBadge label="WhatsApp Business API pending" />
-              </span>
-            </h1>
-            <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
-              Your customers try on items with AI, see the fit, and arrive on your
-              WhatsApp with a ready-to-act brief. You stop answering &ldquo;will this fit?&rdquo;
-              and start confirming orders.
-            </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Link
-                href="/curator/onboard"
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl"
-              >
-                <Sparkles className="h-4 w-4" />
-                Create your storefront
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link
-                href="/s/wanja"
-                className="inline-flex items-center gap-2 rounded-xl border border-border px-6 py-3.5 text-sm font-bold transition-colors hover:bg-card"
-              >
-                <Store className="h-4 w-4" />
-                See an example
-              </Link>
-            </div>
-            <div className="mt-6 flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5">
-                <Check className="h-4 w-4 text-success" />
-                Free to create
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <Check className="h-4 w-4 text-success" />
-                No credit card
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <Check className="h-4 w-4 text-success" />
-                30-second setup
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <Check className="h-4 w-4 text-success" />
-                Zero subscription fees
-              </span>
-            </div>
-          </div>
-
-          {/* ── Live stats bar ── */}
-          <div className="mt-12 grid grid-cols-2 gap-6 md:grid-cols-4">
-            {[
-              { icon: Store, value: "5+", label: "Curators on platform", color: "text-primary" },
-              { icon: Shirt, value: "120+", label: "Live listings", color: "text-success" },
-              { icon: TrendingUp, value: "cUSD", label: "On-chain payments", color: "text-warning" },
-              { icon: Globe, value: "Kenya", label: "Active market", color: "text-sky-500" },
-            ].map((stat) => (
-              <div key={stat.label} className="text-center">
-                <stat.icon className={`mx-auto h-5 w-5 ${stat.color}`} />
-                <p className={`mt-2 text-xl font-black ${stat.color}`}>{stat.value}</p>
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
+            <div className="mx-auto max-w-3xl text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/20">
+                <Store className="h-7 w-7 text-white" />
               </div>
-            ))}
+              <h1 className="mt-6 text-4xl font-black tracking-tight md:text-5xl">
+                Your storefront turns fit questions into orders.
+                <span className="block text-primary">
+                  OnPoint is your fitting room. WhatsApp is where the
+                  conversation closes.
+                </span>
+              </h1>
+              <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
+                Customers try on your pieces, see the fit, and arrive on
+                WhatsApp with the item, size, and intent already clear. You
+                spend less time answering &ldquo;will this fit?&rdquo; and more
+                time confirming orders.
+              </p>
+              <div className="mt-3 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                <MessageCircle className="h-3.5 w-3.5 text-success" />
+                WhatsApp handoff is live today · Business API automation is in
+                progress
+              </div>
+              <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+                <Link
+                  href="/curator/onboard"
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Create your storefront
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  href="/s/wanja"
+                  className="inline-flex items-center gap-2 rounded-xl border border-border px-6 py-3.5 text-sm font-bold transition-colors hover:bg-card"
+                >
+                  <Store className="h-4 w-4" />
+                  See an example
+                </Link>
+              </div>
+              <div className="mt-6 flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5">
+                  <Check className="h-4 w-4 text-success" />
+                  Free to create
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Check className="h-4 w-4 text-success" />
+                  No credit card
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Check className="h-4 w-4 text-success" />
+                  30-second setup
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Check className="h-4 w-4 text-success" />
+                  Zero subscription fees
+                </span>
+              </div>
+            </div>
+
+            {/* ── Live stats bar ── */}
+            <div className="mt-12 grid grid-cols-2 gap-6 md:grid-cols-4">
+              {[
+                {
+                  icon: Store,
+                  value: "5+",
+                  label: "Curators on platform",
+                  color: "text-primary",
+                },
+                {
+                  icon: Shirt,
+                  value: "120+",
+                  label: "Live listings",
+                  color: "text-success",
+                },
+                {
+                  icon: TrendingUp,
+                  value: "cUSD",
+                  label: "On-chain payments",
+                  color: "text-warning",
+                },
+                {
+                  icon: Globe,
+                  value: "Nairobi",
+                  label: "Launch market",
+                  color: "text-sky-500",
+                },
+              ].map((stat) => (
+                <div key={stat.label} className="text-center">
+                  <stat.icon className={`mx-auto h-5 w-5 ${stat.color}`} />
+                  <p className={`mt-2 text-xl font-black ${stat.color}`}>
+                    {stat.value}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{stat.label}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
       </Reveal>
 
       {/* ── Before/After WhatsApp comparison ── */}
@@ -360,8 +393,9 @@ export default function CuratorLandingPage() {
                 Same customer. Half the messages.
               </h2>
               <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-                OnPoint doesn&apos;t replace your WhatsApp — it makes every conversation
-                shorter and more likely to close. <ComingSoonBadge size="xs" label="WhatsApp API automation pending" />
+                OnPoint doesn&apos;t replace your WhatsApp — it makes every
+                conversation shorter and more likely to close. WhatsApp handoff
+                is live today.
               </p>
             </div>
 
@@ -372,7 +406,9 @@ export default function CuratorLandingPage() {
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
                     <MessageCircle className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <h3 className="font-bold text-muted-foreground">WhatsApp alone</h3>
+                  <h3 className="font-bold text-muted-foreground">
+                    WhatsApp alone
+                  </h3>
                 </div>
                 <div className="space-y-2.5">
                   {[
@@ -391,13 +427,15 @@ export default function CuratorLandingPage() {
                       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
                         {i + 1}
                       </span>
-                      <span className="text-muted-foreground italic">{msg}</span>
+                      <span className="text-muted-foreground italic">
+                        {msg}
+                      </span>
                     </div>
                   ))}
                 </div>
                 <div className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground">
-                  <span className="font-bold">10 messages</span> before the customer is ready to buy.
-                  Now multiply by 20 customers a day.
+                  <span className="font-bold">10 messages</span> before the
+                  customer is ready to buy. Now multiply by 20 customers a day.
                 </div>
               </div>
 
@@ -415,7 +453,8 @@ export default function CuratorLandingPage() {
                       1
                     </span>
                     <span className="text-foreground">
-                      Customer visits your storefront, tries on the Arsenal home kit with AI
+                      Customer visits your storefront, tries on the Arsenal home
+                      kit with AI
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
@@ -423,7 +462,8 @@ export default function CuratorLandingPage() {
                       2
                     </span>
                     <span className="text-foreground">
-                      Sees it fits in M, gets a polaroid, clicks &ldquo;Ask the curator&rdquo;
+                      Sees it fits in M, gets a polaroid, clicks &ldquo;Ask the
+                      curator&rdquo;
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
@@ -431,22 +471,29 @@ export default function CuratorLandingPage() {
                       <MessageCircle className="h-3 w-3" />
                     </span>
                     <span className="font-medium text-foreground">
-                      &ldquo;Hi, I tried on the Arsenal home kit in M on OnPoint, it fits. I want #7 printed. Ready to pay.&rdquo;
+                      &ldquo;Hi, I tried on the Arsenal home kit in M on
+                      OnPoint, it fits. I want #7 printed. Ready to pay.&rdquo;
                     </span>
                   </div>
                 </div>
                 <div className="mt-4 border-t border-primary/20 pt-3 text-xs">
-                  <span className="font-bold text-primary">1 message</span> on WhatsApp. The customer
-                  already knows the item, the size, and the fit. You confirm stock and collect payment.
+                  <span className="font-bold text-primary">
+                    One ready-to-act brief
+                  </span>{" "}
+                  on WhatsApp. The customer already knows the item, the size,
+                  and the fit. You confirm stock and collect payment.
                 </div>
               </div>
             </div>
 
             <div className="mt-8 text-center">
               <p className="text-sm text-muted-foreground">
-                <span className="font-bold text-foreground">That&apos;s the difference.</span>
-                OnPoint collapses 10 questions into 1 ready-to-act brief. Your WhatsApp
-                becomes a checkout, not a consultation.
+                <span className="font-bold text-foreground">
+                  That&apos;s the difference.
+                </span>
+                OnPoint can collapse the fit conversation into one ready-to-act
+                brief. Your WhatsApp becomes the handoff to checkout, not a
+                sizing consultation.
               </p>
             </div>
           </div>
@@ -457,270 +504,327 @@ export default function CuratorLandingPage() {
       <Reveal>
         <section className="border-b border-border py-16 md:py-20">
           <div className="mx-auto max-w-4xl px-4">
-          <div className="text-center">
-            <p className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-4 py-1.5 text-xs font-medium text-muted-foreground">
-              <Sparkles className="h-3.5 w-3.5 text-accent" />
-              Curator profiles
-            </p>
-            <h2 className="mt-4 text-3xl font-black tracking-tight md:text-4xl">
-              Built for your vertical
-            </h2>
-            <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-              Pick your lane — everything else is handled.
-            </p>
-          </div>
+            <div className="text-center">
+              <p className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-4 py-1.5 text-xs font-medium text-muted-foreground">
+                <Sparkles className="h-3.5 w-3.5 text-accent" />
+                Curator profiles
+              </p>
+              <h2 className="mt-4 text-3xl font-black tracking-tight md:text-4xl">
+                Built for your vertical
+              </h2>
+              <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
+                Pick your lane — everything else is handled.
+              </p>
+            </div>
 
-          <div className="mt-8">
-            <Tabs
-              items={ARCHETYPES.map((a) => ({
-                id: a.id,
-                label: a.title.split(" ")[0] ?? a.title,
-                icon: <span className="text-base">{a.emoji}</span>,
-                content: (
-                  <div className="rounded-2xl border border-border/40 bg-card p-6 md:p-8" style={{ borderColor: `${a.color}40` }}>
-                    <div className="flex items-start gap-4 mb-4">
-                      <div
-                        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl"
-                        style={{ background: `linear-gradient(135deg, ${a.color}20, ${a.accent}20)` }}
-                      >
-                        {a.emoji}
+            <div className="mt-8">
+              <Tabs
+                items={ARCHETYPES.map((a) => ({
+                  id: a.id,
+                  label: a.title.split(" ")[0] ?? a.title,
+                  icon: <span className="text-base">{a.emoji}</span>,
+                  content: (
+                    <div
+                      className="rounded-2xl border border-border/40 bg-card p-6 md:p-8"
+                      style={{ borderColor: `${a.color}40` }}
+                    >
+                      <div className="flex items-start gap-4 mb-4">
+                        <div
+                          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl"
+                          style={{
+                            background: `linear-gradient(135deg, ${a.color}20, ${a.accent}20)`,
+                          }}
+                        >
+                          {a.emoji}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-black tracking-tight">
+                            {a.title}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {a.tagline}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <h3 className="text-lg font-black tracking-tight">{a.title}</h3>
-                        <p className="text-sm text-muted-foreground">{a.tagline}</p>
+
+                      {/* Details — accordion for progressive disclosure */}
+                      <Accordion>
+                        <AccordionItem
+                          title="What you sell"
+                          subtitle={a.exampleItems.length + " example items"}
+                        >
+                          <ul className="space-y-1.5">
+                            {a.exampleItems.map((item) => (
+                              <li
+                                key={item}
+                                className="flex items-center gap-2 text-sm"
+                              >
+                                <Check
+                                  className="h-3.5 w-3.5 shrink-0"
+                                  style={{ color: a.color }}
+                                />
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        </AccordionItem>
+                        <AccordionItem
+                          title="Why OnPoint"
+                          subtitle="How it helps your vertical"
+                        >
+                          <p className="text-sm leading-6">{a.whyOnPoint}</p>
+                        </AccordionItem>
+                        <AccordionItem
+                          title="What you get"
+                          subtitle={a.valueProps.length + " features"}
+                        >
+                          <ul className="space-y-1.5">
+                            {a.valueProps.map((vp) => (
+                              <li
+                                key={vp}
+                                className="flex items-start gap-2 text-sm"
+                              >
+                                <Zap className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
+                                {vp}
+                              </li>
+                            ))}
+                          </ul>
+                        </AccordionItem>
+                      </Accordion>
+
+                      {/* CTA */}
+                      <div className="mt-5 flex items-center gap-3 border-t border-border/30 pt-4">
+                        <Link
+                          href="/curator/onboard"
+                          className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white transition-all hover:shadow-md"
+                          style={{
+                            background: `linear-gradient(135deg, ${a.color}, ${a.accent})`,
+                          }}
+                        >
+                          <Sparkles className="h-4 w-4" />
+                          Create {a.title.split(" ")[0]} storefront
+                          <ArrowRight className="h-4 w-4" />
+                        </Link>
+                        <Link
+                          href="/s/wanja"
+                          className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          See an example →
+                        </Link>
                       </div>
                     </div>
-
-                    {/* Details — accordion for progressive disclosure */}
-                    <Accordion>
-                      <AccordionItem title="What you sell" subtitle={a.exampleItems.length + " example items"}>
-                        <ul className="space-y-1.5">
-                          {a.exampleItems.map((item) => (
-                            <li key={item} className="flex items-center gap-2 text-sm">
-                              <Check className="h-3.5 w-3.5 shrink-0" style={{ color: a.color }} />
-                              {item}
-                            </li>
-                          ))}
-                        </ul>
-                      </AccordionItem>
-                      <AccordionItem title="Why OnPoint" subtitle="How it helps your vertical">
-                        <p className="text-sm leading-6">{a.whyOnPoint}</p>
-                      </AccordionItem>
-                      <AccordionItem title="What you get" subtitle={a.valueProps.length + " features"}>
-                        <ul className="space-y-1.5">
-                          {a.valueProps.map((vp) => (
-                            <li key={vp} className="flex items-start gap-2 text-sm">
-                              <Zap className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
-                              {vp}
-                            </li>
-                          ))}
-                        </ul>
-                      </AccordionItem>
-                    </Accordion>
-
-                    {/* CTA */}
-                    <div className="mt-5 flex items-center gap-3 border-t border-border/30 pt-4">
-                      <Link
-                        href="/curator/onboard"
-                        className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white transition-all hover:shadow-md"
-                        style={{ background: `linear-gradient(135deg, ${a.color}, ${a.accent})` }}
-                      >
-                        <Sparkles className="h-4 w-4" />
-                        Create {a.title.split(" ")[0]} storefront
-                        <ArrowRight className="h-4 w-4" />
-                      </Link>
-                      <Link
-                        href="/s/wanja"
-                        className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                      >
-                        See an example →
-                      </Link>
-                    </div>
-                  </div>
-                ),
-              }))}
-            />
+                  ),
+                }))}
+              />
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
       </Reveal>
 
       {/* ── Benefits ── */}
       <Reveal>
         <section className="border-b border-border bg-gradient-to-b from-card to-background py-16 md:py-20">
-        <div className="mx-auto max-w-6xl px-4">
-          <div className="text-center">
-            <h2 className="text-3xl font-black tracking-tight md:text-4xl">
-              Every curator gets
-            </h2>
-            <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-              One storefront. Everything you need to sell more with less back-and-forth.
-            </p>
-          </div>
+          <div className="mx-auto max-w-6xl px-4">
+            <div className="text-center">
+              <h2 className="text-3xl font-black tracking-tight md:text-4xl">
+                Every curator gets
+              </h2>
+              <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
+                One storefront. Everything you need to sell more with less
+                back-and-forth.
+              </p>
+            </div>
 
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {BENEFITS.map((benefit) => (
-              <div
-                key={benefit.title}
-                className="relative pl-6 border-l-2 border-primary/20"
-              >
-                <div className="absolute -left-3 top-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white shadow-sm">
-                  {benefit.icon}
+            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {BENEFITS.map((benefit) => (
+                <div
+                  key={benefit.title}
+                  className="relative pl-6 border-l-2 border-primary/20"
+                >
+                  <div className="absolute -left-3 top-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white shadow-sm">
+                    {benefit.icon}
+                  </div>
+                  <h3 className="font-bold">{benefit.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    {benefit.body}
+                  </p>
                 </div>
-                <h3 className="font-bold">{benefit.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {benefit.body}
+              ))}
+            </div>
+          </div>
+        </section>
+      </Reveal>
+
+      {/* ── Local-first, agent-ready ── */}
+      <Reveal>
+        <section className="border-b border-border bg-muted/20 py-14 md:py-16">
+          <div className="mx-auto max-w-5xl px-4">
+            <div className="grid gap-6 rounded-3xl border border-border/60 bg-card p-6 md:grid-cols-[0.8fr_1.2fr] md:items-center md:p-8">
+              <div>
+                <p className="inline-flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+                  <Globe className="h-3.5 w-3.5" /> Local-first, agent-ready
+                </p>
+                <h2 className="mt-3 text-2xl font-black tracking-tight md:text-3xl">
+                  Start with the channels your customers already use.
+                </h2>
+              </div>
+              <div className="space-y-3 text-sm leading-6 text-muted-foreground">
+                <p>
+                  OnPoint launches with a WhatsApp handoff for curators in
+                  Nairobi and beyond. Your storefront and inventory are not
+                  locked to one country or one conversation channel.
+                </p>
+                <p>
+                  The same supply graph is being made discoverable to agents and
+                  message-native surfaces such as Linq, with international
+                  payment rails following the customer.
                 </p>
               </div>
-            ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
       </Reveal>
 
       {/* ── How it works ── */}
       <Reveal>
         <section className="border-b border-border py-16 md:py-20">
-        <div className="mx-auto max-w-6xl px-4">
-          <div className="text-center">
-            <h2 className="text-3xl font-black tracking-tight md:text-4xl">
-              You do the selling.
-              <span className="block text-primary">We handle the tech.</span>
-            </h2>
-          </div>
+          <div className="mx-auto max-w-6xl px-4">
+            <div className="text-center">
+              <h2 className="text-3xl font-black tracking-tight md:text-4xl">
+                You do the selling.
+                <span className="block text-primary">We handle the tech.</span>
+              </h2>
+            </div>
 
-          <div className="mt-10 grid gap-8 md:grid-cols-4">
-            {STEPS.map(({ step, title, body }) => (
-              <div
-                key={step}
-                className="relative text-center md:text-left"
-              >
-                <div className="mx-auto md:mx-0 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-black text-primary">
-                  {step}
-                </div>
-                <h3 className="mt-4 font-bold">{title}</h3>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {body}
-                </p>
-                {step < STEPS.length && (
-                  <div className="absolute -right-4 top-4 hidden md:block">
-                    <ArrowRight className="h-5 w-5 text-muted-foreground/20" />
+            <div className="mt-10 grid gap-8 md:grid-cols-4">
+              {STEPS.map(({ step, title, body }) => (
+                <div key={step} className="relative text-center md:text-left">
+                  <div className="mx-auto md:mx-0 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-black text-primary">
+                    {step}
                   </div>
-                )}
-              </div>
-            ))}
+                  <h3 className="mt-4 font-bold">{title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    {body}
+                  </p>
+                  {step < STEPS.length && (
+                    <div className="absolute -right-4 top-4 hidden md:block">
+                      <ArrowRight className="h-5 w-5 text-muted-foreground/20" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
       </Reveal>
 
       {/* ── What curators say ── */}
       <Reveal>
         <section className="border-b border-border bg-card/50 py-16 md:py-20">
-        <div className="mx-auto max-w-6xl px-4">
-          <div className="text-center">
-            <p className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-4 py-1.5 text-xs font-medium text-muted-foreground">
-              <MessageCircle className="h-3.5 w-3.5 text-success" />
-              First curator
-            </p>
-            <h2 className="mt-4 text-2xl font-black tracking-tight md:text-3xl">
-              What Wanja says
-            </h2>
-          </div>
+          <div className="mx-auto max-w-6xl px-4">
+            <div className="text-center">
+              <p className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-4 py-1.5 text-xs font-medium text-muted-foreground">
+                <MessageCircle className="h-3.5 w-3.5 text-success" />
+                First curator
+              </p>
+              <h2 className="mt-4 text-2xl font-black tracking-tight md:text-3xl">
+                What Wanja says
+              </h2>
+            </div>
 
-          <div className="mx-auto mt-8 max-w-2xl pl-6 border-l-4 border-success/30">
-            <div className="flex items-start gap-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success/10 text-sm font-black text-success">
-                W
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="font-bold">Wanja</p>
-                  <span className="rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-medium text-success">
-                    Sportswear Stylist
-                  </span>
+            <div className="mx-auto mt-8 max-w-2xl pl-6 border-l-4 border-success/30">
+              <div className="flex items-start gap-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success/10 text-sm font-black text-success">
+                  W
                 </div>
-                <p className="mt-3 text-sm leading-7 text-muted-foreground italic">
-                  &ldquo;My customers used to send me screenshots from other apps and ask
-                  'will this fit?' — now they try it on themselves and send me a ready brief.
-                  I just check stock and collect payment.&rdquo;
-                </p>
-                <div className="mt-4 flex items-center gap-3 text-xs text-muted-foreground">
-                  <span className="inline-flex items-center gap-1">
-                    <TrendingUp className="h-3.5 w-3.5 text-success" />
-                    Nairobi, Kenya
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <Shirt className="h-3.5 w-3.5 text-success" />
-                    18 live listings
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <MessageCircle className="h-3.5 w-3.5 text-success" />
-                    WhatsApp checkout
-                  </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold">Wanja</p>
+                    <span className="rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-medium text-success">
+                      Sportswear Stylist
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm leading-7 text-muted-foreground italic">
+                    &ldquo;My customers used to send me screenshots from other
+                    apps and ask 'will this fit?' — now they try it on
+                    themselves and send me a ready brief. I just check stock and
+                    collect payment.&rdquo;
+                  </p>
+                  <div className="mt-4 flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-1">
+                      <TrendingUp className="h-3.5 w-3.5 text-success" />
+                      Nairobi, Kenya
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <Shirt className="h-3.5 w-3.5 text-success" />
+                      18 live listings
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <MessageCircle className="h-3.5 w-3.5 text-success" />
+                      WhatsApp handoff
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
       </Reveal>
 
       {/* ── Final CTA ── */}
       <Reveal>
         <section className="py-16 md:py-20">
-        <div className="mx-auto max-w-6xl px-4">
-          <div className="mx-auto max-w-2xl text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/20">
-              <Store className="h-8 w-8 text-white" />
-            </div>
-            <h2 className="mt-6 text-3xl font-black tracking-tight md:text-4xl">
-              Ready to open your storefront?
-            </h2>
-            <p className="mx-auto mt-3 max-w-md text-muted-foreground">
-              Free to create. No credit card. Takes 30 seconds.
-              Join Wanja and start selling with AI-powered try-on today.
-            </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Link
-                href="/curator/onboard"
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-4 text-base font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl"
-              >
-                <Sparkles className="h-5 w-5" />
-                Create your storefront
-                <ArrowRight className="h-5 w-5" />
-              </Link>
-              <Link
-                href="/s/wanja"
-                className="inline-flex items-center gap-2 rounded-xl border border-border px-8 py-4 text-base font-bold transition-colors hover:bg-card"
-              >
-                <Store className="h-5 w-5" />
-                See Wanja's storefront
-              </Link>
-            </div>
-            <div className="mt-6 flex flex-wrap justify-center gap-4 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1">
-                <Check className="h-3.5 w-3.5 text-success" />
-                Free to create
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <Check className="h-3.5 w-3.5 text-success" />
-                No subscription fees
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <Check className="h-3.5 w-3.5 text-success" />
-                WhatsApp checkout
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <Check className="h-3.5 w-3.5 text-success" />
-                AI try-on included
-              </span>
+          <div className="mx-auto max-w-6xl px-4">
+            <div className="mx-auto max-w-2xl text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/20">
+                <Store className="h-8 w-8 text-white" />
+              </div>
+              <h2 className="mt-6 text-3xl font-black tracking-tight md:text-4xl">
+                Ready to open your storefront?
+              </h2>
+              <p className="mx-auto mt-3 max-w-md text-muted-foreground">
+                Free to create. No credit card. Takes 30 seconds. Join Wanja and
+                start selling with AI-powered try-on today.
+              </p>
+              <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+                <Link
+                  href="/curator/onboard"
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-4 text-base font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl"
+                >
+                  <Sparkles className="h-5 w-5" />
+                  Create your storefront
+                  <ArrowRight className="h-5 w-5" />
+                </Link>
+                <Link
+                  href="/s/wanja"
+                  className="inline-flex items-center gap-2 rounded-xl border border-border px-8 py-4 text-base font-bold transition-colors hover:bg-card"
+                >
+                  <Store className="h-5 w-5" />
+                  See Wanja's storefront
+                </Link>
+              </div>
+              <div className="mt-6 flex flex-wrap justify-center gap-4 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1">
+                  <Check className="h-3.5 w-3.5 text-success" />
+                  Free to create
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Check className="h-3.5 w-3.5 text-success" />
+                  No subscription fees
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Check className="h-3.5 w-3.5 text-success" />
+                  WhatsApp handoff
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Check className="h-3.5 w-3.5 text-success" />
+                  AI try-on included
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
       </Reveal>
-
     </OnPointLayout>
   );
 }
