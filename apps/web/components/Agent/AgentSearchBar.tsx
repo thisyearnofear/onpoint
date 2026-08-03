@@ -72,12 +72,27 @@ export function AgentSearchBar({ onResults, loading }: Props) {
             disabled={isLoading || !query.trim()}
             className="absolute right-2 inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-primary px-5 text-sm font-bold text-white transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
           >
-            {isLoading ? <Sparkles className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            Find
+            <Sparkles
+              className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+            />
+            {isLoading ? "Searching" : "Find"}
           </button>
         </div>
       </form>
-      {error && <p role="alert" className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
+      {isLoading && (
+        <p
+          className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"
+          aria-live="polite"
+        >
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+          Searching live merchant inventory · no payment session created
+        </p>
+      )}
+      {error && (
+        <p role="alert" className="mt-2 text-sm text-red-600 dark:text-red-400">
+          {error}
+        </p>
+      )}
 
       {/* Suggestion chips */}
       <div className="mt-3 flex flex-wrap gap-2">

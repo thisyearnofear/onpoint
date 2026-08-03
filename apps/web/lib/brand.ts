@@ -47,5 +47,5 @@ export const HERO = {
   headline: "The fashion agent that",
   headlineAccent: "earns permission to buy.",
   subcopy:
-    "Search live products. Check the fit. Lock a binding quote. Then approve one merchant and one spending ceiling. OnPoint keeps the credential server-side and reports only what actually happened.",
+    "Agents shouldn’t buy on intent alone. OnPoint finds live fashion, checks the fit, then asks you to approve one merchant and one exact ceiling.",
 } as const;
