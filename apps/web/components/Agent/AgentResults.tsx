@@ -30,10 +30,10 @@ export function AgentResults({ results, query, onSelectOrder }: Props) {
         }),
       });
       const data = await r.json();
-      if (!r.ok) throw new Error(data.error || `Session creation failed (${r.status})`);
+      if (!r.ok) throw new Error(data.error || `Quote preparation failed (${r.status})`);
       if (data.orderId) onSelectOrder(data.orderId);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Session creation failed");
+      setError(e instanceof Error ? e.message : "Quote preparation failed");
     } finally {
       setCreating(null);
     }
@@ -93,7 +93,7 @@ export function AgentResults({ results, query, onSelectOrder }: Props) {
                 <p className="text-sm font-bold text-foreground">${price}</p>
               )}
               <div className="flex items-center gap-1 text-xs text-primary">
-                Check fit &amp; quote
+                Review quote &amp; fit
                 <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
               </div>
             </div>

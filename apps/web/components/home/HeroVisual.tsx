@@ -1,219 +1,128 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles } from "lucide-react";
-import type { StylistPersona } from "@repo/ai-client";
-import { PersonaChip } from "./PersonaChip";
+import { motion } from "framer-motion";
+import {
+  Check,
+  Clock3,
+  KeyRound,
+  Lock,
+  ScanFace,
+  Search,
+  ShieldCheck,
+} from "lucide-react";
+
+const stages = [
+  {
+    icon: Search,
+    label: "PRODUCT",
+    title: "Alo Yoga · Airlift legging",
+    detail: "$108.00 · live UCP inventory",
+    tone: "text-sky-300 bg-sky-400/10 border-sky-300/20",
+  },
+  {
+    icon: ScanFace,
+    label: "FIT",
+    title: "Try-on checked",
+    detail: "Permission remains locked until this decision",
+    tone: "text-fuchsia-300 bg-fuchsia-400/10 border-fuchsia-300/20",
+  },
+  {
+    icon: ShieldCheck,
+    label: "PERMISSION",
+    title: "$117.32 ceiling · Alo only",
+    detail: "$108.00 item · $0 shipping · $9.32 tax",
+    tone: "text-amber-200 bg-amber-300/10 border-amber-200/20",
+  },
+  {
+    icon: Clock3,
+    label: "OUTCOME",
+    title: "Credential ready · merchant unknown",
+    detail: "Stopped safely · no retry · no invented result",
+    tone: "text-orange-200 bg-orange-300/10 border-orange-200/20",
+  },
+];
 
 export function HeroVisual() {
-  const [step, setStep] = useState(0);
-  const cyclingPersonas: StylistPersona[] = ["miranda", "edina", "shaft", "luxury", "streetwear"];
-
-  useEffect(() => {
-    const id = setInterval(() => setStep((s) => (s + 1) % 5), 5000);
-    return () => clearInterval(id);
-  }, []);
-
-  const steps = [
-    {
-      mainImage: "/assets/1Model.png",
-      mainLabel: "1. Upload Your Look",
-      grid: [
-        {
-          type: "text" as const,
-          title: "SNAP & ANALYZE",
-          lines: ["Take a photo", "AI scans instantly", "Any outfit works"],
-          color: "primary",
-        },
-        {
-          type: "image" as const,
-          image: "/assets/1Product.png",
-          label: "Detected items",
-          color: "accent",
-        },
-      ],
-    },
-    {
-      mainImage: "/assets/2Model.png",
-      mainLabel: "2. AI Reads Your Style",
-      grid: [
-        {
-          type: "text" as const,
-          title: "SYSTEM FACTS",
-          lines: ["Real color & fit read", "No fabricated scores", "You make the call"],
-          color: "primary",
-        },
-        {
-          type: "image" as const,
-          image: "/assets/2Product.png",
-          label: "Palette match",
-          color: "accent",
-        },
-      ],
-    },
-    {
-      mainImage: "/assets/3Model.png",
-      mainLabel: "3. Get Your Verdict",
-      grid: [
-        {
-          type: "text" as const,
-          title: "CRITIQUE",
-          lines: ["Strong proportions", "Elevate accessories", "Great layering"],
-          color: "accent",
-        },
-        {
-          type: "image" as const,
-          image: "/assets/3Product.png",
-          label: "Suggested fix",
-          color: "primary",
-        },
-      ],
-    },
-    {
-      mainImage: "/assets/1Product.png",
-      mainLabel: "4. Agent Finds Matches",
-      grid: [
-        {
-          type: "text" as const,
-          title: "SHOPPING",
-          lines: ["3 items found", "Within budget", "Ready to buy"],
-          color: "primary",
-        },
-        {
-          type: "image" as const,
-          image: "/assets/2Model.png",
-          label: "Best match",
-          color: "accent",
-        },
-      ],
-    },
-    {
-      mainImage: "/assets/2Product.png",
-      mainLabel: "5. Share Your Look",
-      grid: [
-        {
-          type: "text" as const,
-          title: "SHARE",
-          lines: ["Polaroid card", "Farcaster cast", "Download PNG"],
-          color: "accent",
-        },
-        {
-          type: "image" as const,
-          image: "/assets/3Model.png",
-          label: "Your style",
-          color: "primary",
-        },
-      ],
-    },
-  ];
-
-  const current = steps[step]!;
-
   return (
-    <div className="relative rounded-2xl overflow-hidden border border-border/40 bg-gradient-to-br from-primary/[0.06] to-accent/[0.04] shadow-xl shadow-primary/10 p-6">
-      <div className="absolute top-4 left-4 z-10 px-3 py-1 rounded-full bg-primary/90 text-white text-xs font-bold shadow-sm flex items-center gap-1">
-        <Sparkles className="w-3 h-3" />
-        AI Vision
-      </div>
+    <div className="relative mx-auto max-w-xl">
+      <div className="absolute -inset-8 -z-10 bg-[radial-gradient(circle_at_55%_45%,hsl(var(--primary)/0.18),transparent_62%)] blur-2xl" />
+      <div className="overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#111218] text-white shadow-2xl shadow-black/25">
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/45">
+              OnPoint commerce run
+            </p>
+            <p className="mt-1 text-sm font-semibold">Permission ledger</p>
+          </div>
+          <div className="flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1.5">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-70" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-300" />
+            </span>
+            <span className="font-mono text-[10px] font-bold tracking-wider text-emerald-200">
+              LIVE UCP
+            </span>
+          </div>
+        </div>
 
-      <div className="absolute top-4 right-4 z-10">
-        <PersonaChip persona={cyclingPersonas[step % cyclingPersonas.length]!} />
-      </div>
-
-      <div className="space-y-3">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={`main-${step}`}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.4, ease: "easeInOut" }}
-            className="relative aspect-[4/3] rounded-lg overflow-hidden border border-border"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
-            <Image
-              src={current.mainImage}
-              alt={current.mainLabel}
-              fill
-              className="object-cover opacity-90"
-              unoptimized
-            />
-            <div className="absolute bottom-2 left-2 px-2 py-1 rounded bg-background/90 text-[10px] font-bold">
-              {current.mainLabel}
-            </div>
-          </motion.div>
-        </AnimatePresence>
-
-        <div className="grid grid-cols-2 gap-2">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`grid-left-${step}`}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.4, delay: 0.05, ease: "easeInOut" }}
-              className="relative aspect-square rounded-lg overflow-hidden border border-primary/20 bg-primary/5"
-            >
-              {current.grid[0]!.type === "text" && (
-                <div className="p-3 space-y-1">
-                  <div className="text-[10px] font-bold text-primary">
-                    {current.grid[0]!.title}
-                  </div>
-                  {current.grid[0]!.lines.map((line, i) => (
-                    <div key={i} className="text-[11px] text-muted-foreground">
-                      {line}
-                    </div>
-                  ))}
+        <div className="relative p-4 sm:p-5">
+          <div className="absolute bottom-10 left-[2.15rem] top-10 w-px bg-gradient-to-b from-sky-300/50 via-amber-200/40 to-orange-200/20" />
+          <div className="space-y-2.5">
+            {stages.map(({ icon: Icon, label, title, detail, tone }, index) => (
+              <motion.div
+                key={label}
+                initial={{ opacity: 0, x: 14 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.45, delay: 0.16 + index * 0.12 }}
+                className="relative grid grid-cols-[2.5rem_1fr] gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.035] p-3.5"
+              >
+                <div
+                  className={`relative z-10 flex h-9 w-9 items-center justify-center rounded-xl border ${tone}`}
+                >
+                  <Icon className="h-4 w-4" />
                 </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
+                <div className="min-w-0">
+                  <p className="font-mono text-[9px] font-bold tracking-[0.2em] text-white/40">
+                    {label}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold leading-tight text-white/95">
+                    {title}
+                  </p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-white/48">
+                    {detail}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`grid-right-${step}`}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.4, delay: 0.1, ease: "easeInOut" }}
-              className="relative aspect-square rounded-lg overflow-hidden border"
-              style={{ borderColor: `hsl(var(--${current.grid[1]!.color}) / 0.2)` }}
-            >
-              {current.grid[1]!.type === "image" && (
-                <>
-                  <Image
-                    src={current.grid[1]!.image}
-                    alt={current.grid[1]!.label}
-                    fill
-                    className="object-cover"
-                    unoptimized
-                  />
-                  <div
-                    className="absolute bottom-2 left-2 px-2 py-1 rounded text-white text-[10px] font-bold"
-                    style={{ backgroundColor: `hsl(var(--${current.grid[1]!.color}) / 0.9)` }}
-                  >
-                    {current.grid[1]!.label}
-                  </div>
-                </>
-              )}
-            </motion.div>
-          </AnimatePresence>
+        <div className="grid grid-cols-2 gap-px border-t border-white/10 bg-white/10">
+          <div className="bg-[#111218] px-5 py-4">
+            <div className="flex items-center gap-2 text-white/45">
+              <KeyRound className="h-3.5 w-3.5" />
+              <span className="font-mono text-[9px] tracking-wider">PRAVA</span>
+            </div>
+            <div className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-emerald-200">
+              <Check className="h-3.5 w-3.5" /> Creds_Generated
+            </div>
+          </div>
+          <div className="bg-[#111218] px-5 py-4">
+            <div className="flex items-center gap-2 text-white/45">
+              <Lock className="h-3.5 w-3.5" />
+              <span className="font-mono text-[9px] tracking-wider">
+                CREDENTIAL
+              </span>
+            </div>
+            <p className="mt-2 text-xs font-semibold text-white/80">
+              Server-held · single use
+            </p>
+          </div>
         </div>
       </div>
-
-      {/* Step dots */}
-      <div className="flex justify-center gap-1.5 mt-3">
-        {steps.map((_, i) => (
-          <span
-            key={i}
-            className={`h-1.5 rounded-full transition-all duration-300 ${
-              i === step ? "w-4 bg-primary" : "w-1.5 bg-primary/30"
-            }`}
-          />
-        ))}
-      </div>
+      <p className="mt-3 text-center font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+        Captured sandbox values · no merchant order claimed
+      </p>
     </div>
   );
 }

@@ -1,15 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {
-  Camera,
-  Palette,
-  Store,
-  DollarSign,
-  BookOpen,
-  Info,
-  Sparkles,
-} from "lucide-react";
+import { Palette, Store, BookOpen, ShieldCheck } from "lucide-react";
 import { PRODUCT_NAME, CTA_SHOP } from "../lib/brand";
 import { Auth0HeaderButton } from "./auth/Auth0Components";
 import { MobileNavigation } from "./mobile-navigation";
@@ -31,56 +23,47 @@ export function OnPointHeader() {
 
           <nav className="flex items-center gap-1">
             <Link
-              href={CTA_SHOP.href}
+              href="/#agent-search"
               className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 px-3 py-1.5 rounded-full transition-colors"
             >
-              <Camera className="w-4 h-4" />
-              Shop
+              Product
             </Link>
             <Link
-              href="/looks"
+              href="/#how-it-works"
               className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 px-3 py-1.5 rounded-full transition-colors"
             >
-              <Sparkles className="w-4 h-4" />
-              Looks
+              How it works
             </Link>
             <Link
-              href="/curator"
+              href="/#proof"
               className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 px-3 py-1.5 rounded-full transition-colors"
             >
-              <Store className="w-4 h-4" />
-              Supply
-            </Link>
-            <Link
-              href="/pricing"
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 px-3 py-1.5 rounded-full transition-colors"
-            >
-              <DollarSign className="w-4 h-4" />
-              Pricing
+              <ShieldCheck className="w-4 h-4" />
+              Proof
             </Link>
             <Link
               href="/developers"
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 px-3 py-1.5 rounded-full transition-colors"
+              className="hidden lg:inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 px-3 py-1.5 rounded-full transition-colors"
             >
               <BookOpen className="w-4 h-4" />
               Developers
             </Link>
             <Link
-              href="/guides"
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 px-3 py-1.5 rounded-full transition-colors"
+              href="/curator"
+              className="hidden lg:inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 px-3 py-1.5 rounded-full transition-colors"
             >
-              Guides
-            </Link>
-            <Link
-              href="/about"
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 px-3 py-1.5 rounded-full transition-colors"
-            >
-              <Info className="w-4 h-4" />
-              About
+              <Store className="w-4 h-4" />
+              Supply
             </Link>
           </nav>
 
           <div className="flex items-center gap-1">
+            <Link
+              href={CTA_SHOP.href}
+              className="mr-1 inline-flex min-h-9 items-center rounded-full bg-primary px-4 text-sm font-bold text-white transition-colors hover:bg-primary/90"
+            >
+              Try the agent
+            </Link>
             <NotificationBell />
             <Auth0HeaderButton />
             <ThemeToggle />
@@ -95,32 +78,21 @@ export function OnPointHeader() {
             <div className="p-1 rounded-lg bg-gradient-to-br from-primary to-accent shadow-sm">
               <Palette className="h-4 w-4 text-white" />
             </div>
-            <span className="text-sm font-bold tracking-tight">{PRODUCT_NAME}</span>
+            <span className="text-sm font-bold tracking-tight">
+              {PRODUCT_NAME}
+            </span>
           </Link>
           <div className="flex items-center gap-1">
             <Link
               href={CTA_SHOP.href}
-              className="inline-flex min-h-[44px] items-center gap-1.5 text-sm font-semibold text-primary px-3 rounded-full bg-primary/10 hover:bg-primary/15 active:scale-[0.98] transition-[background-color,transform]"
+              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-primary px-3 text-sm font-semibold text-white hover:bg-primary/90 active:scale-[0.98] transition-[background-color,transform]"
             >
-              <Camera className="w-4 h-4" />
-              Shop
+              Try agent
             </Link>
-            <Link
-              href="/looks"
-              className="inline-flex min-h-[44px] items-center gap-1.5 text-sm font-medium text-muted-foreground px-3 rounded-full hover:bg-muted/50 active:scale-[0.98] transition-[background-color,transform]"
-            >
-              <Sparkles className="w-4 h-4" />
-              Looks
-            </Link>
-            <Link
-              href="/curator"
-              className="inline-flex min-h-[44px] items-center gap-1.5 text-sm font-medium text-muted-foreground px-3 rounded-full hover:bg-muted/50 active:scale-[0.98] transition-[background-color,transform]"
-            >
-              <Store className="w-4 h-4" />
-              Supply
-            </Link>
-            <NotificationBell direction="up" />
-            <Auth0HeaderButton />
+            <div className="hidden sm:contents">
+              <NotificationBell direction="up" />
+              <Auth0HeaderButton />
+            </div>
             <ThemeToggle />
             <MobileNavigation />
           </div>
@@ -141,36 +113,63 @@ export function OnPointFooter() {
           {PRODUCT_NAME}
         </div>
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-          <Link href={CTA_SHOP.href} className="hover:text-foreground transition-colors">
-            Shop
+          <Link
+            href={CTA_SHOP.href}
+            className="hover:text-foreground transition-colors"
+          >
+            Product
           </Link>
-          <Link href="/looks" className="hover:text-foreground transition-colors">
+          <Link
+            href="/looks"
+            className="hover:text-foreground transition-colors"
+          >
             Looks
           </Link>
-          <Link href="/curator" className="hover:text-foreground transition-colors">
+          <Link
+            href="/curator"
+            className="hover:text-foreground transition-colors"
+          >
             Supply
           </Link>
-          <Link href="/pricing" className="hover:text-foreground transition-colors">
+          <Link
+            href="/pricing"
+            className="hover:text-foreground transition-colors"
+          >
             Pricing
           </Link>
-          <Link href="/developers" className="hover:text-foreground transition-colors">
+          <Link
+            href="/developers"
+            className="hover:text-foreground transition-colors"
+          >
             Developers
           </Link>
-          <Link href="/guides" className="hover:text-foreground transition-colors">
+          <Link
+            href="/guides"
+            className="hover:text-foreground transition-colors"
+          >
             Guides
           </Link>
-          <Link href="/about" className="hover:text-foreground transition-colors">
+          <Link
+            href="/about"
+            className="hover:text-foreground transition-colors"
+          >
             About
           </Link>
-          <Link href="/privacy" className="hover:text-foreground transition-colors">
+          <Link
+            href="/privacy"
+            className="hover:text-foreground transition-colors"
+          >
             Privacy
           </Link>
-          <Link href="/terms" className="hover:text-foreground transition-colors">
+          <Link
+            href="/terms"
+            className="hover:text-foreground transition-colors"
+          >
             Terms
           </Link>
         </div>
         <div className="flex items-center gap-4 text-xs">
-          <span>Fit before you buy.</span>
+          <span>Earn permission. Report truth.</span>
         </div>
       </div>
     </footer>

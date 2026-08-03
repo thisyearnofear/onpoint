@@ -4,11 +4,10 @@ import { useState } from "react";
 import { Search, Sparkles } from "lucide-react";
 
 const SUGGESTIONS = [
-  "Rooftop brunch",
-  "Date night",
-  "Gym fit",
-  "Weekend casual",
-  "Black legging",
+  "Black Alo Yoga leggings under $130",
+  "Black leggings under $130",
+  "Women's running jacket",
+  "Neutral yoga set",
 ];
 
 export interface SearchResult {

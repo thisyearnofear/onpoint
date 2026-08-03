@@ -106,7 +106,7 @@ export function AgentCheckoutCard({ orderId, onConfirmed, onReset }: Props) {
 
   // Poll-driven order loop. The client drives the whole payment flow:
   //   1. GET  the order for its current state.
-  //   2. While awaiting approval (or try-on ready), POST /poll — for a REST
+  //   2. While awaiting approval, POST /poll — for a REST
   //      sandbox order this detects when the cardholder has entered their
   //      test card + device verification on Prava's hosted page; for self-check it
   //      completes instantly.

@@ -67,7 +67,7 @@ export function AgentFlow({ onOrderConfirmed }: Props) {
       </ol>
 
       {/* Search */}
-      <div id="agent-search">
+      <div id="agent-search-form">
         <AgentSearchBar onResults={handleResults} />
       </div>
 
