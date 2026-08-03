@@ -191,7 +191,7 @@ guidelines above. We run it against `apps/api/lib/linq-client.js` +
 ### Live-validated on production
 
 - **Deployed**: all `/prava` and `/linq` routes live (rsync + atomic symlink
-  deploy, release `20260803-025119`). Not git-pull on server.
+  deploy, release `20260803-044459`). Not git-pull on server.
 - **Prava sandbox-REST active**: `GET /prava/health` → `mode: "sandbox-rest"`,
   `restMode: true`. Real sandbox sessions create against
   `sandbox.api.prava.space` (e.g. order `op_dd1889ae…` → hosted payment URL
