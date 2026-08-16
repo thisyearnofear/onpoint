@@ -330,6 +330,7 @@ async function upsertListing({ curatorSlug, skuId, listingId, existing, size, pr
         photoKeys,
         status: 'live',
         updatedAt: new Date().toISOString(),
+        lastVerifiedAt: new Date().toISOString(),
       })
       .where(eq(listings.id, existing.id));
 
@@ -364,6 +365,7 @@ async function upsertListing({ curatorSlug, skuId, listingId, existing, size, pr
     status: 'live',
     createdAt: now,
     updatedAt: now,
+    lastVerifiedAt: now,
   });
 
   const [created] = await db
@@ -431,8 +433,8 @@ async function ingestMedia({
   if (price == null || isNaN(Number(price)) || Number(price) <= 0) {
     errors.push('price must be a positive number');
   }
-  if (qty == null || isNaN(Number(qty)) || Number(qty) < 0) {
-    errors.push('qty must be a non-negative number');
+  if (qty == null || isNaN(Number(qty)) || !Number.isInteger(Number(qty)) || Number(qty) < 0) {
+    errors.push('qty must be a non-negative integer');
   }
   if (!token) errors.push('WA_ACCESS_TOKEN not configured');
 

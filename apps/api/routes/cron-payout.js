@@ -20,6 +20,13 @@ const logger = require('../lib/logger');
 const { distributeSplit } = require('../lib/split-setup');
 const { getAttributionSuffix } = require('../lib/attribution');
 const { getDb } = require('../lib/db');
+const {
+  CUSD_PAYMENT_METHOD,
+  SPLIT_PAYMENT_METHOD,
+  REFUND_STATUS,
+  isAutomaticCusdRefundEligible,
+  decimalToAtomic,
+} = require('../lib/order-refunds');
 
 const router = express.Router();
 
@@ -35,6 +42,140 @@ router.post('/payout-retry', async (req, res) => {
   try {
     const db = getDb({ orders, curators });
 
+    // ── 0. Refund cancelled stock-race orders ──
+    // Only platform-custodied cUSD is handled automatically. Split and
+    // facilitator payments remain manual_review until their rail-specific
+    // refund paths are implemented. Legacy cancelled rows are quarantined so
+    // they remain visible instead of silently disappearing from the queue.
+    await db.update(orders).set({
+      refundStatus: REFUND_STATUS.MANUAL_REVIEW,
+      refundLastError: 'Legacy cancelled order requires payment-rail reconciliation',
+      updatedAt: new Date(),
+    }).where(and(
+      eq(orders.status, 'cancelled'),
+      sql`${orders.refundStatus} IS NULL`,
+    ));
+
+    // Verified payments can leave a pending claim if the API process dies
+    // between the insert and stock update. Quarantine after a short window;
+    // never auto-confirm or auto-refund an ambiguous reservation because the
+    // stock update may have committed immediately before the crash.
+    await db.update(orders).set({
+      refundStatus: REFUND_STATUS.MANUAL_REVIEW,
+      refundLastError: 'Pending payment claim timed out; verify stock reservation before resolving',
+      updatedAt: new Date(),
+    }).where(and(
+      eq(orders.status, 'pending'),
+      sql`${orders.source} = 'agent'`,
+      sql`${orders.createdAt} < now() - interval '15 minutes'`,
+    ));
+
+    await db.update(orders).set({
+      refundStatus: REFUND_STATUS.MANUAL_REVIEW,
+      refundLastError: 'Refund transfer may have committed; verify on-chain before retrying',
+      updatedAt: new Date(),
+    }).where(and(
+      eq(orders.status, 'cancelled'),
+      eq(orders.refundStatus, REFUND_STATUS.PROCESSING),
+      sql`${orders.updatedAt} < now() - interval '15 minutes'`,
+    ));
+
+    const refundCandidates = await db
+      .select()
+      .from(orders)
+      .where(
+        and(
+          eq(orders.status, 'cancelled'),
+          sql`${orders.refundStatus} IN ('pending', 'failed')`,
+          eq(orders.paymentMethod, CUSD_PAYMENT_METHOD),
+        ),
+      )
+      .limit(20);
+
+    for (const candidate of refundCandidates) {
+      processed++;
+      if (!isAutomaticCusdRefundEligible(candidate, { cusdAsset: sharedTypes.X402_ASSET })) {
+        continue;
+      }
+
+      const [claimed] = await db
+        .update(orders)
+        .set({
+          refundStatus: REFUND_STATUS.PROCESSING,
+          refundAttempts: sql`${orders.refundAttempts} + 1`,
+          refundLastError: null,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(orders.id, candidate.id),
+            eq(orders.status, 'cancelled'),
+            sql`${orders.refundStatus} IN ('pending', 'failed')`,
+            eq(orders.paymentMethod, CUSD_PAYMENT_METHOD),
+            sql`${orders.refundTxHash} IS NULL`,
+          ),
+        )
+        .returning();
+
+      // Another worker may have claimed this refund between SELECT and UPDATE.
+      if (!claimed) continue;
+
+      try {
+        const signerClient = agentCore.getSignerClient();
+        const payoutKey = !signerClient ? process.env.AGENT_PRIVATE_KEY : null;
+        if (!signerClient && !payoutKey) throw new Error('No signing method for refund');
+
+        const amountWei = decimalToAtomic(claimed.amountCusd, 18);
+        let refundTxHash;
+        if (signerClient) {
+          const result = await signerClient.signTransfer({
+            chain: 'celo',
+            tokenAddress: sharedTypes.X402_ASSET,
+            to: claimed.buyerAddress,
+            amountWei: amountWei.toString(),
+            action: 'order_refund',
+            agentId: 'system',
+            userId: `buyer:${claimed.buyerAddress}`,
+            suggestionId: `refund_${claimed.id}`,
+            description: `Automatic cUSD refund for cancelled order ${claimed.id}`,
+          });
+          if (!result.success) throw new Error(result.error || 'Signer rejected refund');
+          refundTxHash = result.txHash;
+        } else {
+          const result = await agentCore.ERC20.transfer({
+            chain: 'celo',
+            tokenAddress: sharedTypes.X402_ASSET,
+            to: claimed.buyerAddress,
+            amount: amountWei,
+            privateKey: payoutKey,
+            dataSuffix: getAttributionSuffix(),
+          });
+          refundTxHash = result.hash;
+        }
+
+        await db.update(orders).set({
+          refundStatus: REFUND_STATUS.PAID,
+          refundTxHash,
+          refundLastError: null,
+          updatedAt: new Date(),
+        }).where(eq(orders.id, claimed.id));
+        succeeded++;
+        logger.info('Cancelled order refund succeeded', {
+          component: 'cron-payout', orderId: claimed.id, refundTxHash,
+        });
+      } catch (refundErr) {
+        failed++;
+        await db.update(orders).set({
+          refundStatus: REFUND_STATUS.FAILED,
+          refundLastError: String(refundErr?.message || 'Refund failed').slice(0, 500),
+          updatedAt: new Date(),
+        }).where(eq(orders.id, claimed.id));
+        logger.error('Cancelled order refund failed', {
+          component: 'cron-payout', orderId: claimed.id,
+        }, refundErr);
+      }
+    }
+
     // ── 1. Custodial payouts: orders with paymentTxHash but no payoutTxHash,
     //    status confirmed/shipped/delivered, and curator has no split ──
     const pendingCustodial = await db
@@ -46,6 +187,8 @@ router.post('/payout-retry', async (req, res) => {
           isNull(orders.payoutTxHash),
           sql`${orders.paymentTxHash} IS NOT NULL`,
           sql`${orders.status} IN ('confirmed', 'shipped', 'delivered')`,
+          sql`${orders.paymentMethod} = ${CUSD_PAYMENT_METHOD}`,
+          sql`${orders.paymentAsset} = ${sharedTypes.X402_ASSET}`,
         ),
       )
       .limit(20);
@@ -127,6 +270,8 @@ router.post('/payout-retry', async (req, res) => {
           isNull(orders.payoutTxHash),
           sql`${orders.paymentTxHash} IS NOT NULL`,
           sql`${orders.status} IN ('confirmed', 'shipped', 'delivered')`,
+          sql`${orders.paymentMethod} = ${SPLIT_PAYMENT_METHOD}`,
+          sql`${orders.paymentAsset} = ${sharedTypes.X402_ASSET}`,
           sql`${curators.commerce}->>'splitAddress' IS NOT NULL`,
         ),
       )

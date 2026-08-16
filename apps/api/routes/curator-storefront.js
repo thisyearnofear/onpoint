@@ -26,15 +26,21 @@ const {
   curatorSplitAddress,
   curatorSellerBps,
   buildListingAgentCommerce,
+  evaluateTrustedOffer,
+  offerFreshnessMaxDays,
+  normalizeSize,
   buildStorefrontAgentCommerce,
   storefrontWebUrl,
   webBaseUrl,
   buildRevenueHint,
 } = require('../lib/agent-commerce');
 const { getAttributionSuffix, getAttributionCode, getAssignedTag } = require('../lib/attribution');
-const x402Facilitator = require('../lib/x402-facilitator');
 const { logFunnelEvent } = require('../lib/funnel');
 const { getPlatformWallet } = require('../lib/wallets');
+const {
+  paymentMethodForOrder,
+  paymentAssetForOrder,
+} = require('../lib/order-refunds');
 
 const router = express.Router();
 
@@ -104,6 +110,62 @@ router.get('/directory', async (req, res) => {
           AND ${listings.status} = 'live'
           AND (${listings.inventoryType} IS DISTINCT FROM 'digital')
         )`.as('physical_listing_count'),
+        trustedPhysicalListingCount: sql`(
+          SELECT COUNT(*)::int
+          FROM ${listings}
+          LEFT JOIN ${kitSkus} ON ${listings.skuId} = ${kitSkus.id}
+          WHERE ${listings.curatorSlug} = ${curators.slug}
+          AND ${listings.status} = 'live'
+          AND (${listings.inventoryType} IS DISTINCT FROM 'digital')
+          AND ${listings.lastVerifiedAt} >= now() - (${offerFreshnessMaxDays()} * interval '1 day')
+          AND ${listings.lastVerifiedAt} <= now()
+          AND (${listings.skuId} IS NOT NULL OR NULLIF(${listings.title}, '') IS NOT NULL)
+          AND (
+            COALESCE(cardinality(${listings.photoKeys}), 0) > 0
+            OR ${kitSkus.officialImageKey} IS NOT NULL
+          )
+          AND EXISTS (
+            SELECT 1
+            FROM jsonb_array_elements(
+              CASE
+                WHEN jsonb_typeof(${listings.sizes}) = 'array' THEN ${listings.sizes}
+                ELSE '[]'::jsonb
+              END
+            ) AS size_entry
+            WHERE NULLIF(btrim(size_entry->>'size'), '') IS NOT NULL
+            AND CASE
+            WHEN (size_entry->>'stock') ~ '^[0-9]+$'
+            THEN (size_entry->>'stock')::numeric > 0
+              ELSE false
+            END
+            AND CASE
+              WHEN (size_entry->>'price') ~ '^-?([0-9]+(\\.[0-9]+)?|\\.[0-9]+)$'
+              THEN (size_entry->>'price')::numeric > 0
+              ELSE false
+            END
+          )
+          AND NOT EXISTS (
+            SELECT 1
+            FROM jsonb_array_elements(
+              CASE
+                WHEN jsonb_typeof(${listings.sizes}) = 'array' THEN ${listings.sizes}
+                ELSE '[]'::jsonb
+              END
+            ) WITH ORDINALITY AS first_size(entry, first_idx)
+            WHERE NULLIF(btrim(first_size.entry->>'size'), '') IS NOT NULL
+            AND EXISTS (
+              SELECT 1
+              FROM jsonb_array_elements(
+                CASE
+                  WHEN jsonb_typeof(${listings.sizes}) = 'array' THEN ${listings.sizes}
+                  ELSE '[]'::jsonb
+                END
+              ) WITH ORDINALITY AS second_size(entry, second_idx)
+              WHERE second_size.second_idx > first_size.first_idx
+              AND lower(btrim(second_size.entry->>'size')) = lower(btrim(first_size.entry->>'size'))
+            )
+          )
+        )`.as('trusted_physical_listing_count'),
       })
       .from(curators)
       .orderBy(desc(curators.createdAt));
@@ -123,15 +185,19 @@ router.get('/directory', async (req, res) => {
     const mapped = rows.map(({ commerce, ...row }) => {
       const hasWallet = Boolean(curatorPayoutAddress({ commerce }));
       const physicalListingCount = Number(row.physicalListingCount) || 0;
+      const trustedPhysicalListingCount = Number(row.trustedPhysicalListingCount) || 0;
       const activatedAt = commerce?.activatedAt;
       return {
         ...row,
         physicalListingCount,
+        trustedPhysicalListingCount,
         activatedAt,
         // Backward-compatible: wallet configured (may still have zero offers).
         agentCommerceEnabled: hasWallet,
-        // Phase 1 metric: wallet + at least one live physical listing.
-        agentPurchasable: hasWallet && physicalListingCount > 0,
+        // Trusted execution gate: wallet + at least one fresh, valid,
+        // media-backed physical offer. Legacy physical counts remain visible
+        // separately for operators but do not advertise checkout readiness.
+        agentPurchasable: hasWallet && trustedPhysicalListingCount > 0,
         digitalTryOnEnabled: row.digitalListingCount > 0,
       };
     });
@@ -227,8 +293,10 @@ router.get('/:slug/storefront', async (req, res) => {
     const liveListings = rows
       .filter(({ listing }) => listing.status === 'live')
       .map(({ listing, kit }) => {
+        const offerListing = { ...listing, kit };
         const isDigital = listing.inventoryType === 'digital';
         const imageKey = listing.photoKeys?.[0] || kit?.officialImageKey || null;
+        const trustedOffer = evaluateTrustedOffer(curator, offerListing);
         return {
           id: listing.id,
           curatorSlug: listing.curatorSlug,
@@ -262,6 +330,8 @@ router.get('/:slug/storefront', async (req, res) => {
             digital: true,
             tryOnUrl: `/api/agent/try-on`,
           } : {}),
+          agentCommerce: buildListingAgentCommerce(curator, offerListing),
+          trustedOffer,
         };
       });
 
@@ -322,7 +392,6 @@ router.get('/:slug/storefront', async (req, res) => {
           curator.commerce?.checkout === 'whatsapp' || curator.channels?.whatsapp
             ? buildWhatsAppUrl(curator, listing)
             : curator.commerce?.checkoutUrl || null,
-        agentCommerce: buildListingAgentCommerce(curator, listing),
       })),
       looks,
       meta: {
@@ -504,6 +573,15 @@ router.post('/:slug/order', async (req, res) => {
       });
     }
 
+    const trustedOffer = evaluateTrustedOffer(row.curator, { ...row.listing, kit: row.kit });
+    if (!trustedOffer.readiness) {
+      return res.status(409).json({
+        error: 'Listing is not ready for agent purchase',
+        code: 'OFFER_NOT_READY',
+        trustedOffer,
+      });
+    }
+
     const payoutAddress = curatorPayoutAddress(row.curator);
     if (!payoutAddress) {
       return res.status(409).json({
@@ -511,12 +589,15 @@ router.post('/:slug/order', async (req, res) => {
       });
     }
 
-    const sizeEntry = (row.listing.sizes || []).find((entry) => entry.size === size);
+    const requestedSize = normalizeSize(size);
+    const sizeEntry = (row.listing.sizes || []).find(
+      (entry) => normalizeSize(entry.size) === requestedSize,
+    );
     if (!sizeEntry) {
-      return res.status(404).json({ error: `Size not found: ${size}` });
+      return res.status(404).json({ error: `Size not found: ${requestedSize}` });
     }
     if (Number(sizeEntry.stock) < quantity) {
-      return res.status(409).json({ error: `Insufficient stock for size ${size}` });
+      return res.status(409).json({ error: `Insufficient stock for size ${requestedSize}` });
     }
 
     const unitCusd = kesToCusd(sizeEntry.price);
@@ -526,7 +607,9 @@ router.post('/:slug/order', async (req, res) => {
     // Integer cents math — no float drift on quantity multiplication
     const totalCusd = (Math.round(unitCusd * 100) * quantity) / 100;
 
-    const itemLabel = row.kit ? `${row.kit.club} ${row.kit.kitType} (${size}) x${quantity}` : `${row.listing.title || 'Item'} (${size}) x${quantity}`;
+    const itemLabel = row.kit
+      ? `${row.kit.club} ${row.kit.kitType} (${requestedSize}) x${quantity}`
+      : `${row.listing.title || 'Item'} (${requestedSize}) x${quantity}`;
 
     // ── Referral tracking ──
     // Extract referral code from request (header or query param)
@@ -549,15 +632,6 @@ router.post('/:slug/order', async (req, res) => {
       `OnPoint order from ${row.curator.name}: ${itemLabel}`,
     );
 
-    // Build facilitator-compatible requirements (USDC via Celo x402 facilitator).
-    const facilitatorRequirements = x402Facilitator.buildFacilitatorRequirements(
-      totalCusd,
-      payTo,
-      resourceUrl,
-      `OnPoint order from ${row.curator.name}: ${itemLabel}`,
-    );
-
-    // Check for x402 facilitator payment (X-PAYMENT header)
     const xPaymentHeader = req.headers['x-payment'];
 
     // Deterministic quote ID — same listing+size+quantity+price produces the
@@ -566,26 +640,19 @@ router.post('/:slug/order', async (req, res) => {
     // within its validity window but rotates over time.
     const QUOTE_TTL_SECONDS = parseInt(process.env.QUOTE_TTL_SECONDS || '900', 10); // 15 min
     const quoteBucket = Math.floor(Date.now() / 1000 / 60); // minute bucket
-    const quoteId = `${listingId.slice(0, 8)}-${size}-${quantity}-${quoteBucket}`;
+    const quoteId = `${listingId.slice(0, 8)}-${requestedSize}-${quantity}-${quoteBucket}`;
     const quoteExpiresAt = new Date(Date.now() + QUOTE_TTL_SECONDS * 1000).toISOString();
 
     // ── Step 1: no payment proof yet → 402 challenge with quote ──
     if (!paymentTxHash && !xPaymentHeader) {
       return res.status(402).json({
         ...sharedTypes.build402Body([requirements]),
-        // Facilitator path: USDC via Celo x402 facilitator (x402 v2)
-        x402: {
-          x402Version: 2,
-          accepts: [facilitatorRequirements],
-          facilitatorUrl: x402Facilitator.FACILITATOR_URL,
-          instructions: 'Sign an EIP-3009 transferWithAuthorization for USDC and send it in the X-PAYMENT header. The facilitator settles on-chain (gasless for buyer).',
-        },
         quote: {
           quoteId,
           quoteExpiresAt,
           curatorSlug: slug,
           listingId,
-          size,
+          size: requestedSize,
           quantity,
           unitCusd,
           totalCusd,
@@ -599,36 +666,21 @@ router.post('/:slug/order', async (req, res) => {
             instructions: 'Append the dataSuffix to your transfer transaction data to tag it as OnPoint activity on Celo.',
           },
           instructions:
-            'Two payment paths: (1) cUSD — transfer to payTo, re-POST with paymentTxHash and quoteId. (2) USDC via x402 facilitator — sign EIP-3009 auth, send in X-PAYMENT header.',
+            'Transfer the exact cUSD amount to payTo on Celo, then re-POST with paymentTxHash and quoteId.',
         },
         revenueHint: buildRevenueHint('order', { totalCusd, curator: row.curator }),
       });
     }
 
-    // ── Step 2a: facilitator payment (X-PAYMENT header) ──
-    let settlementTxHash = null;
-    let facilitatorPayer = null;
+    // ── Step 2: payment proof supplied → verify quote, claim, pay out ──
+    // USDC facilitator checkout is intentionally disabled for orders until
+    // the treasury has an explicit conversion/liquidity policy.
     if (xPaymentHeader) {
-      const result = await x402Facilitator.processFacilitatorPayment(
-        xPaymentHeader,
-        facilitatorRequirements,
-      );
-      if (!result.success) {
-        return res.status(402).json({
-          error: `Facilitator payment failed: ${result.error}`,
-          ...sharedTypes.build402Body([requirements]),
-          x402: {
-            x402Version: 2,
-            accepts: [facilitatorRequirements],
-            facilitatorUrl: x402Facilitator.FACILITATOR_URL,
-          },
-        });
-      }
-      settlementTxHash = result.txHash;
-      facilitatorPayer = '0x0000000000000000000000000000000000000000';
+      return res.status(409).json({
+        error: 'USDC facilitator checkout is temporarily unavailable for orders; use the cUSD payment path.',
+        code: 'PAYMENT_RAIL_UNAVAILABLE',
+      });
     }
-
-    // ── Step 2b: payment proof supplied → verify quote, claim, pay out ──
 
     // Validate quote expiry if the client provides a quoteId
     if (clientQuoteId && typeof clientQuoteId === 'string') {
@@ -644,7 +696,7 @@ router.post('/:slug/order', async (req, res) => {
       }
     }
 
-    // ── Step 2c: verify cUSD payment (skip for facilitator path) ──
+    // ── Step 2c: verify cUSD payment ──
     const signerClient = agentCore.getSignerClient();
     const payoutKey = !signerClient ? process.env.AGENT_PRIVATE_KEY : null;
     if (!signerClient && !payoutKey) {
@@ -655,7 +707,7 @@ router.post('/:slug/order', async (req, res) => {
     }
 
     let verification = null;
-    if (!settlementTxHash) {
+    {
       const minAmountWei = BigInt(requirements.maxAmountRequired);
       verification = await agentCore.ERC20.verifyTransfer({
         chain: 'celo',
@@ -674,40 +726,50 @@ router.post('/:slug/order', async (req, res) => {
     }
 
     // The effective tx hash and payer for this request
-    const effectiveTxHash = settlementTxHash || paymentTxHash;
-    const effectivePayer = settlementTxHash ? facilitatorPayer : verification.from;
+    const effectiveTxHash = paymentTxHash;
+    const effectivePayer = verification.from;
+    const paymentMethod = paymentMethodForOrder({ usingSplit, settlementTxHash: null });
+    const paymentAsset = paymentAssetForOrder({
+      usingSplit,
+      settlementTxHash: null,
+      cusdAsset: sharedTypes.X402_ASSET,
+      usdcAsset: null,
+    });
 
-    // Claim the payment tx atomically — the unique constraint on
-    // payment_tx_hash makes replays and double-payout races impossible.
+    // Claim the verified payment before touching inventory. Neon HTTP does not
+    // provide an interactive transaction, so the order stays pending until
+    // the guarded stock update succeeds; a retry cannot claim the same tx a
+    // second time, and cron quarantines stale pending claims for recovery.
     const inserted = await db
       .insert(orders)
       .values({
         curatorSlug: slug,
         listingId,
-        size,
+        size: requestedSize,
         quantity,
         amountCusd: totalCusd.toFixed(2),
         buyerAddress: effectivePayer,
         paymentTxHash: effectiveTxHash,
+        paymentMethod,
+        paymentAsset,
         source: 'agent',
-        status: 'confirmed',
+        status: 'pending',
         referralCode: referralCode || null,
       })
       .onConflictDoNothing({ target: orders.paymentTxHash })
       .returning({ id: orders.id });
 
     if (inserted.length === 0) {
-      // Idempotent retry — the payment tx was already claimed. Return the
-      // existing order so the agent doesn't think the retry failed.
       const [existing] = await db
         .select()
         .from(orders)
         .where(eq(orders.paymentTxHash, effectiveTxHash))
         .limit(1);
       if (existing) {
-        return res.status(200).json({
+        return res.status(existing.status === 'pending' ? 202 : 200).json({
           success: true,
           idempotent: true,
+          pending: existing.status === 'pending',
           order: {
             id: existing.id,
             curatorSlug: existing.curatorSlug,
@@ -728,42 +790,86 @@ router.post('/:slug/order', async (req, res) => {
     const orderId = inserted[0].id;
 
     // Decrement stock atomically — prevents oversell on concurrent orders.
-    // Uses a single UPDATE with a WHERE guard on the JSONB stock field.
-    // Done BEFORE payout so a stock race doesn't pay a curator for items
-    // that can't be fulfilled.
+    // This is a single guarded UPDATE; the database re-evaluates the JSONB
+    // stock value while acquiring the listing row lock.
     const stockResult = await db.execute(sql`
-      WITH target AS (
-        SELECT idx, (elem->>'stock')::int AS current_stock
-        FROM ${listings}, jsonb_array_elements(sizes) WITH ORDINALITY AS t(elem, idx)
-        WHERE ${listings.id} = ${listingId} AND elem->>'size' = ${size}
-      )
-      UPDATE ${listings}
-      SET sizes = jsonb_set(
-        sizes,
-        ARRAY[(SELECT idx FROM target)],
-        to_jsonb((SELECT current_stock FROM target) - ${quantity}),
-        true
+      UPDATE ${listings} AS inventory
+      SET sizes = (
+        SELECT jsonb_agg(
+          CASE
+            WHEN btrim(size_entry->>'size') = ${requestedSize}
+            THEN jsonb_set(
+              size_entry,
+              '{stock}',
+              to_jsonb((size_entry->>'stock')::int - ${quantity}),
+              true
+            )
+            ELSE size_entry
+          END
+          ORDER BY ordinal
+        )
+        FROM jsonb_array_elements(
+          CASE
+            WHEN jsonb_typeof(inventory.sizes) = 'array' THEN inventory.sizes
+            ELSE '[]'::jsonb
+          END
+        ) WITH ORDINALITY AS entries(size_entry, ordinal)
       ),
-      updated_at = now()
-      WHERE ${listings.id} = ${listingId}
-        AND (SELECT current_stock FROM target) >= ${quantity}
-      RETURNING id
+      updated_at = now(),
+      last_verified_at = now()
+      WHERE inventory.id = ${listingId}
+        AND EXISTS (
+          SELECT 1
+          FROM jsonb_array_elements(
+            CASE
+              WHEN jsonb_typeof(inventory.sizes) = 'array' THEN inventory.sizes
+              ELSE '[]'::jsonb
+            END
+          ) AS entries(size_entry)
+          WHERE btrim(size_entry->>'size') = ${requestedSize}
+            AND (size_entry->>'stock') ~ '^[0-9]+$'
+            AND (size_entry->>'stock')::int >= ${quantity}
+        )
+      RETURNING inventory.id
     `);
 
     if (stockResult.rows.length === 0) {
-      // Stock was sufficient at quote time but not at confirmation —
-      // another order won the race. The buyer's cUSD is in the agent
-      // wallet; mark the order as cancelled so the payout retry worker
-      // can issue a refund.
-      await db.update(orders).set({ status: 'cancelled' }).where(eq(orders.id, orderId));
-      logger.warn('Stock race lost — order cancelled, buyer needs refund', {
-        component: 'curator-storefront', slug, orderId, size, quantity,
+      const refundStatus = paymentMethod === 'cusd' && /^0x[0-9a-fA-F]{40}$/.test(String(effectivePayer || ''))
+        ? 'pending'
+        : 'manual_review';
+      await db.update(orders).set({
+        status: 'cancelled',
+        refundStatus,
+        refundLastError: refundStatus === 'manual_review'
+          ? `Automatic refund unavailable for payment method: ${paymentMethod}`
+          : null,
+        updatedAt: new Date(),
+      }).where(and(eq(orders.id, orderId), eq(orders.status, 'pending')));
+      logger.warn('Stock race lost — order cancelled, refund recovery queued', {
+        component: 'curator-storefront', slug, orderId, size: requestedSize, quantity,
       });
       return res.status(409).json({
         error: 'Insufficient stock — another order claimed the last units',
         code: 'STOCK_RACE',
         orderId,
-        refundNote: 'Your payment was received; a refund will be issued automatically.',
+        refundNote: refundStatus === 'pending'
+          ? 'Your cUSD payment was received; an automatic refund has been queued.'
+          : 'Your payment was received; this payment rail requires operator reconciliation before refund.',
+        refundStatus,
+      });
+    }
+
+    const [confirmedOrder] = await db.update(orders).set({
+      status: 'confirmed',
+      updatedAt: new Date(),
+    }).where(and(eq(orders.id, orderId), eq(orders.status, 'pending'))).returning({ id: orders.id });
+    if (!confirmedOrder) {
+      return res.status(202).json({
+        success: true,
+        pending: true,
+        orderId,
+        status: 'pending',
+        note: 'Payment is claimed and stock was reserved; order confirmation is pending reconciliation.',
       });
     }
 
@@ -878,7 +984,7 @@ router.post('/:slug/order', async (req, res) => {
           totalCusd,
           buyerAddress: effectivePayer,
           payoutTxHash,
-          paymentMethod: settlementTxHash ? 'x402_facilitator' : 'cusd',
+          paymentMethod,
           curatorPayout: sellerShare
             ? `${(Number(sellerShare.amount) / 1e18).toFixed(2)} cUSD`
             : usingSplit
@@ -908,7 +1014,7 @@ router.post('/:slug/order', async (req, res) => {
       splitAddress: usingSplit ? splitAddress : undefined,
       caller,
       buyerAddress: effectivePayer,
-      paymentMethod: settlementTxHash ? 'x402_facilitator' : 'cusd',
+      paymentMethod,
     });
 
     // Log funnel event: purchase (the conversion event)
@@ -922,7 +1028,7 @@ router.post('/:slug/order', async (req, res) => {
       revenueUsd: totalCusd.toFixed(4),
       metadata: {
         orderId,
-        size,
+        size: requestedSize,
         quantity,
         usingSplit,
         referralCode: referralCode || null,
@@ -937,7 +1043,7 @@ router.post('/:slug/order', async (req, res) => {
         curatorSlug: slug,
         listingId,
         item: itemLabel,
-        size,
+        size: requestedSize,
         quantity,
         totalCusd,
         status: 'confirmed',
@@ -945,7 +1051,7 @@ router.post('/:slug/order', async (req, res) => {
           txHash: effectiveTxHash,
           from: effectivePayer,
           explorerUrl: agentCore.getExplorerUrl('celo', effectiveTxHash),
-          paymentMethod: settlementTxHash ? 'x402_facilitator' : 'cusd',
+          paymentMethod,
         },
         payout: payoutTxHash
           ? {

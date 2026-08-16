@@ -10,12 +10,19 @@
  */
 
 const express = require('express');
-const { eq, desc, count, sql } = require('drizzle-orm');
+const { eq, and, desc, count, sql } = require('drizzle-orm');
 const { curators, listings, kitSkus } = require('@repo/db');
 const { upload, keyFor, remove } = require('@repo/storage');
 const logger = require('../lib/logger');
 const { getDb } = require('../lib/db');
 const { isValidSlug } = require('../lib/slugs');
+const {
+  evaluateTrustedOffer,
+  inventoryVerificationBlockers,
+  isNumericValue,
+  isIntegerValue,
+  offerFreshnessMaxDays,
+} = require('../lib/agent-commerce');
 const {
   generateCustodialWallet,
   buildCommerceWithCustodialWallet,
@@ -65,6 +72,61 @@ router.get('/', async (req, res) => {
         AND ${listings.status} = 'live'
         AND (${listings.inventoryType} IS DISTINCT FROM 'digital')
       )`.as('physical_live_count'),
+      trustedPhysicalListingCount: sql`(
+        SELECT COUNT(*)::int
+        FROM ${listings}
+        LEFT JOIN ${kitSkus} ON ${listings.skuId} = ${kitSkus.id}
+        WHERE ${listings.curatorSlug} = ${curators.slug}
+        AND ${listings.status} = 'live'
+        AND (${listings.inventoryType} IS DISTINCT FROM 'digital')
+        AND ${listings.lastVerifiedAt} >= now() - (${offerFreshnessMaxDays()} * interval '1 day')
+        AND ${listings.lastVerifiedAt} <= now()
+        AND (${listings.skuId} IS NOT NULL OR NULLIF(${listings.title}, '') IS NOT NULL)
+        AND (
+          COALESCE(cardinality(${listings.photoKeys}), 0) > 0
+          OR ${kitSkus.officialImageKey} IS NOT NULL
+        )
+        AND EXISTS (
+          SELECT 1            FROM jsonb_array_elements(
+              CASE
+                WHEN jsonb_typeof(${listings.sizes}) = 'array' THEN ${listings.sizes}
+                ELSE '[]'::jsonb
+              END
+            ) AS size_entry
+            WHERE NULLIF(btrim(size_entry->>'size'), '') IS NOT NULL
+            AND CASE
+            WHEN (size_entry->>'stock') ~ '^[0-9]+$'
+            THEN (size_entry->>'stock')::numeric > 0
+            ELSE false
+          END
+          AND CASE
+            WHEN (size_entry->>'price') ~ '^-?([0-9]+(\\.[0-9]+)?|\\.[0-9]+)$'
+            THEN (size_entry->>'price')::numeric > 0
+            ELSE false
+          END
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM jsonb_array_elements(
+            CASE
+              WHEN jsonb_typeof(${listings.sizes}) = 'array' THEN ${listings.sizes}
+              ELSE '[]'::jsonb
+            END
+          ) WITH ORDINALITY AS first_size(entry, first_idx)
+          WHERE NULLIF(btrim(first_size.entry->>'size'), '') IS NOT NULL
+          AND EXISTS (
+            SELECT 1
+            FROM jsonb_array_elements(
+              CASE
+                WHEN jsonb_typeof(${listings.sizes}) = 'array' THEN ${listings.sizes}
+                ELSE '[]'::jsonb
+              END
+            ) WITH ORDINALITY AS second_size(entry, second_idx)
+            WHERE second_size.second_idx > first_size.first_idx
+            AND lower(btrim(second_size.entry->>'size')) = lower(btrim(first_size.entry->>'size'))
+          )
+        )
+      )`.as('trusted_physical_listing_count'),
     };
 
     let rows;
@@ -88,11 +150,13 @@ router.get('/', async (req, res) => {
         && /^0x[0-9a-fA-F]{40}$/.test(String(row.commerce.walletAddress)),
       );
       const physicalLiveCount = Number(row.physicalLiveCount) || 0;
+      const trustedPhysicalListingCount = Number(row.trustedPhysicalListingCount) || 0;
       return {
         ...row,
         physicalLiveCount,
+        trustedPhysicalListingCount,
         hasWallet,
-        agentPurchasable: hasWallet && physicalLiveCount > 0,
+        agentPurchasable: hasWallet && trustedPhysicalListingCount > 0,
       };
     });
 
@@ -312,7 +376,7 @@ router.patch('/:slug/commerce', async (req, res) => {
     res.json({
       curator: updated,
       agentPurchasableHint:
-        'Wallet alone is not enough — curator also needs live physical listings with stock for agentPurchasable=true',
+        'Wallet alone is not enough — curator also needs a live physical listing with valid media, stock, price, and a fresh inventory verification for agentPurchasable=true',
       setupSplit: hasWallet && !updated.commerce?.splitAddress
         ? `POST /api/admin/curators/${slug}/setup-split`
         : undefined,
@@ -461,7 +525,7 @@ router.get('/:slug/listings/:id', async (req, res) => {
       })
       .from(listings)
       .innerJoin(kitSkus, eq(listings.skuId, kitSkus.id))
-      .where(eq(listings.id, id))
+      .where(and(eq(listings.id, id), eq(listings.curatorSlug, slug)))
       .limit(1);
 
     if (!row) {
@@ -484,6 +548,99 @@ router.get('/:slug/listings/:id', async (req, res) => {
   } catch (err) {
     logger.error('Failed to get listing', { component: 'curator-admin', slug, listingId: id }, err);
     res.status(500).json({ error: 'Failed to get listing' });
+  }
+});
+
+// ── POST /:slug/listings/:id/verify — explicitly reverify inventory ──
+// Reverification certifies the current physical stock/price snapshot only.
+// It never changes sizes, prices, status, or payout configuration.
+router.post('/:slug/listings/:id/verify', async (req, res) => {
+  const slug = String(req.params.slug || '').toLowerCase();
+  const id = String(req.params.id || '');
+
+  if (!isValidSlug(slug)) {
+    return res.status(400).json({ error: 'Invalid curator slug' });
+  }
+  if (!id || id.length < 8) {
+    return res.status(400).json({ error: 'Invalid listing ID' });
+  }
+
+  let db;
+  try {
+    db = getDb({ curators, listings, kitSkus });
+  } catch (err) {
+    logger.error('NEON_DATABASE_URL not configured', { component: 'curator-admin' });
+    return res.status(503).json({ error: 'Database not configured' });
+  }
+
+  try {
+    const [row] = await db
+      .select({ listing: listings, kit: kitSkus, curator: curators })
+      .from(listings)
+      .innerJoin(curators, eq(listings.curatorSlug, curators.slug))
+      .leftJoin(kitSkus, eq(listings.skuId, kitSkus.id))
+      .where(and(eq(listings.id, id), eq(listings.curatorSlug, slug)))
+      .limit(1);
+
+    if (!row) {
+      return res.status(404).json({ error: 'Listing not found' });
+    }
+    if (row.listing.inventoryType === 'digital') {
+      return res.status(409).json({
+        error: 'Digital listings do not have physical inventory to verify',
+        code: 'DIGITAL_LISTING',
+      });
+    }
+
+    const trustedOffer = evaluateTrustedOffer(row.curator, {
+      ...row.listing,
+      kit: row.kit,
+    });
+    const blockers = inventoryVerificationBlockers(trustedOffer);
+    if (blockers.length > 0) {
+      return res.status(409).json({
+        error: 'Listing inventory is not verifiable',
+        code: 'INVENTORY_NOT_VERIFIABLE',
+        blockers,
+        trustedOffer,
+      });
+    }
+
+    const verifiedAt = new Date();
+    const [updated] = await db
+      .update(listings)
+      .set({ lastVerifiedAt: verifiedAt, updatedAt: verifiedAt })
+      .where(and(eq(listings.id, id), eq(listings.curatorSlug, slug)))
+      .returning();
+
+    if (!updated) {
+      return res.status(404).json({ error: 'Listing not found' });
+    }
+
+    const updatedContract = evaluateTrustedOffer(row.curator, {
+      ...updated,
+      kit: row.kit,
+    });
+    logger.info('Listing inventory reverified', {
+      component: 'curator-admin',
+      slug,
+      listingId: id,
+      verifiedAt: verifiedAt.toISOString(),
+    });
+
+    return res.json({
+      success: true,
+      listing: updated,
+      verifiedAt: verifiedAt.toISOString(),
+      trustedOffer: updatedContract,
+    });
+  } catch (err) {
+    logger.error('Failed to reverify listing inventory', {
+      component: 'curator-admin',
+      slug,
+      listingId: id,
+    }, err);
+    return res.status(500).json({ error: 'Failed to verify listing inventory' });
   }
 });
 
@@ -513,7 +670,28 @@ router.put('/:slug/listings/:id', async (req, res) => {
   try {
     const updateData = {};
     if (status) updateData.status = status;
-    if (sizes) updateData.sizes = sizes;
+    if (sizes !== undefined) {
+      if (!Array.isArray(sizes) || sizes.length === 0 || sizes.some((entry) => (
+        typeof entry?.size !== 'string'
+        || entry.size.trim().length === 0
+        || !isIntegerValue(entry.stock)
+        || Number(entry.stock) < 0
+        || !isNumericValue(entry.price)
+        || Number(entry.price) <= 0
+      ))) {
+        return res.status(400).json({
+          error: 'sizes must be a non-empty array with non-empty size names, integer stock, and positive prices',
+        });
+      }
+      const normalizedSizes = sizes.map((entry) => ({ ...entry, size: entry.size.trim() }));
+      const normalizedSizeNames = normalizedSizes.map((entry) => entry.size.toLowerCase());
+      if (new Set(normalizedSizeNames).size !== normalizedSizeNames.length) {
+        return res.status(400).json({ error: 'sizes must not contain duplicate size names' });
+      }
+      updateData.sizes = normalizedSizes;
+      // A size/stock/price edit is an explicit inventory verification.
+      updateData.lastVerifiedAt = new Date();
+    }
     if (photoKeys) updateData.photoKeys = photoKeys;
     updateData.updatedAt = new Date();
 
@@ -524,7 +702,7 @@ router.put('/:slug/listings/:id', async (req, res) => {
     const [updated] = await db
       .update(listings)
       .set(updateData)
-      .where(eq(listings.id, id))
+      .where(and(eq(listings.id, id), eq(listings.curatorSlug, slug)))
       .returning();
 
     if (!updated) {
@@ -591,7 +769,7 @@ router.post('/:slug/listings/:id/photos', async (req, res) => {
     const [current] = await db
       .select()
       .from(listings)
-      .where(eq(listings.id, id))
+      .where(and(eq(listings.id, id), eq(listings.curatorSlug, slug)))
       .limit(1);
 
     if (!current) {
@@ -612,7 +790,7 @@ router.post('/:slug/listings/:id/photos', async (req, res) => {
         photoKeys: updatedPhotoKeys,
         updatedAt: new Date(),
       })
-      .where(eq(listings.id, id))
+      .where(and(eq(listings.id, id), eq(listings.curatorSlug, slug)))
       .returning();
 
     logger.info('Listing photo uploaded', {
@@ -661,7 +839,7 @@ router.delete('/:slug/listings/:id/photos', async (req, res) => {
     const [current] = await db
       .select()
       .from(listings)
-      .where(eq(listings.id, id))
+      .where(and(eq(listings.id, id), eq(listings.curatorSlug, slug)))
       .limit(1);
 
     if (!current) {
@@ -693,7 +871,7 @@ router.delete('/:slug/listings/:id/photos', async (req, res) => {
         photoKeys: updatedPhotoKeys,
         updatedAt: new Date(),
       })
-      .where(eq(listings.id, id))
+      .where(and(eq(listings.id, id), eq(listings.curatorSlug, slug)))
       .returning();
 
     logger.info('Listing photo deleted', {
@@ -874,7 +1052,8 @@ router.post('/provision-custodial-batch', async (req, res) => {
         name: row.name,
         address,
         alreadyExisted,
-        agentPurchasable: true,
+        agentPurchasable: false,
+        nextStep: 'Verify each valid physical listing inventory before advertising agentPurchasable=true',
       });
     }
 

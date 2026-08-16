@@ -9,6 +9,12 @@
 const sharedTypes = require('@onpoint/shared-types');
 
 const DEFAULT_KES_PER_USD = 130;
+const DEFAULT_OFFER_FRESHNESS_DAYS = 30;
+
+function offerFreshnessMaxDays() {
+  const days = Number(process.env.OFFER_FRESHNESS_MAX_DAYS);
+  return Number.isFinite(days) && days > 0 ? Math.floor(days) : DEFAULT_OFFER_FRESHNESS_DAYS;
+}
 
 function kesPerUsd() {
   const rate = Number(process.env.KES_PER_USD);
@@ -54,28 +60,156 @@ function curatorSellerBps(curator) {
 }
 
 /**
- * Build the agent-facing commerce block for a storefront listing.
- * Returns null when the curator has no payout wallet — the listing is
- * then browsable but not agent-purchasable.
+ * Evaluate whether a listing is a trusted executable offer.
+ *
+ * This is deliberately separate from `agentPurchasable`: the legacy flag
+ * means wallet + physical inventory, while this contract also checks the
+ * fields an agent needs to act safely (identity, media, stocked size,
+ * price, and freshness). The result is exposed even when the listing is not
+ * currently purchasable so operators can fix the specific blockers.
  */
-function buildListingAgentCommerce(curator, listing) {
-  if (!curatorPayoutAddress(curator)) return null;
-  // Digital designs are try-on only — never expose purchase offers.
-  if (listing?.inventoryType === 'digital') return null;
+function normalizeSize(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
 
-  const offers = (Array.isArray(listing.sizes) ? listing.sizes : [])
-    .filter((entry) => Number(entry.stock) > 0)
+function isNumericValue(value) {
+  if (typeof value === 'boolean' || value === null || value === undefined) return false;
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (typeof value !== 'string' || value.trim() === '') return false;
+  return /^-?([0-9]+(\\.[0-9]+)?|\\.[0-9]+)$/.test(value)
+    && Number.isFinite(Number(value));
+}
+
+function isIntegerValue(value) {
+  if (typeof value === 'number') return Number.isInteger(value) && Number.isFinite(value);
+  return typeof value === 'string' && /^[0-9]+$/.test(value);
+}
+
+function validPriceOffers(listing) {
+  return (Array.isArray(listing?.sizes) ? listing.sizes : [])
+    .filter((entry) => (
+      normalizeSize(entry?.size).length > 0
+      && isNumericValue(entry.price)
+      && kesToCusd(entry.price) !== null
+    ));
+}
+
+function validStockOffers(listing) {
+  return validPriceOffers(listing)
+    .filter((entry) => isIntegerValue(entry.stock)
+      && Number(entry.stock) > 0)
     .map((entry) => ({
-      size: entry.size,
+      size: normalizeSize(entry.size),
       stock: Number(entry.stock),
       priceKes: Number(entry.price),
       priceCusd: kesToCusd(entry.price),
-    }))
-    .filter((offer) => offer.priceCusd !== null);
+    }));
+}
 
+// These blockers describe the inventory facts that an operator can certify.
+// Wallet and freshness are deliberately excluded: verification records the
+// current stock/price snapshot, while payout configuration and the timestamp
+// are separate readiness concerns.
+const REVERIFICATION_IGNORED_BLOCKERS = new Set([
+  'missing_payout_wallet',
+  'missing_freshness',
+  'stale_inventory',
+  'future_freshness_timestamp',
+]);
+
+function inventoryVerificationBlockers(contract) {
+  return (contract?.blockers || []).filter(
+    (blocker) => !REVERIFICATION_IGNORED_BLOCKERS.has(blocker),
+  );
+}
+
+function evaluateTrustedOffer(curator, listing, now = new Date()) {
+  const isDigital = listing?.inventoryType === 'digital';
+  const validOffers = validStockOffers(listing);
+  const normalizedSizeNames = (Array.isArray(listing?.sizes) ? listing.sizes : [])
+    .map((entry) => normalizeSize(entry?.size).toLowerCase())
+    .filter(Boolean);
+  const hasDuplicateSizeNames = new Set(normalizedSizeNames).size !== normalizedSizeNames.length;
+  const hasMedia = Boolean(
+    (Array.isArray(listing?.photoKeys) && listing.photoKeys.length > 0)
+    || listing?.kit?.officialImageKey,
+  );
+  const hasIdentity = Boolean(listing?.skuId || listing?.kit?.id || listing?.title);
+  // Only an explicit inventory verification can certify stock/price truth.
+  // `updatedAt` is deliberately ignored because photo/status/metadata edits
+  // must not make an old inventory snapshot look fresh.
+  const freshnessSource = 'last_verified_at';
+  const lastVerifiedDate = listing?.lastVerifiedAt ? new Date(listing.lastVerifiedAt) : null;
+  const maxAgeDays = offerFreshnessMaxDays();
+  const validTimestamp = lastVerifiedDate && !Number.isNaN(lastVerifiedDate.getTime());
+  const ageMs = validTimestamp ? now.getTime() - lastVerifiedDate.getTime() : null;
+  const freshnessStatus = ageMs === null || ageMs < 0
+    ? 'unknown'
+    : ageMs <= maxAgeDays * 24 * 60 * 60 * 1000 ? 'fresh' : 'stale';
+  const checks = {
+    identity: hasIdentity,
+    media: hasMedia,
+    sizeStock: isDigital ? false : validOffers.length > 0,
+    price: isDigital ? false : validPriceOffers(listing).length > 0,
+    payout: Boolean(curatorPayoutAddress(curator)),
+    freshness: freshnessStatus === 'fresh',
+  };
+  const completenessKeys = isDigital
+    ? ['identity', 'media', 'freshness']
+    : Object.keys(checks);
+  const completeness = Math.round(
+    (completenessKeys.filter((key) => checks[key]).length / completenessKeys.length) * 100,
+  ) / 100;
+  const blockers = [];
+  if (!checks.identity) blockers.push('missing_product_identity');
+  if (!checks.media) blockers.push('missing_product_media');
+  if (!isDigital && !checks.sizeStock) blockers.push('missing_in_stock_size');
+  if (!isDigital && !checks.price) blockers.push('missing_valid_price');
+  if (!isDigital && hasDuplicateSizeNames) blockers.push('duplicate_size_names');
+  if (!isDigital && !checks.payout) blockers.push('missing_payout_wallet');
+  if (freshnessStatus === 'unknown') {
+    blockers.push(ageMs !== null && ageMs < 0 ? 'future_freshness_timestamp' : 'missing_freshness');
+  }
+  if (freshnessStatus === 'stale') blockers.push('stale_inventory');
+
+  return {
+    version: 1,
+    kind: isDigital ? 'try_on' : 'purchase',
+    scope: isDigital ? 'try_on' : 'purchase',
+    completeness,
+    readiness: blockers.length === 0,
+    freshness: {
+      status: freshnessStatus,
+      source: freshnessSource,
+      lastVerifiedAt: lastVerifiedDate && validTimestamp ? lastVerifiedDate.toISOString() : null,
+      maxAgeDays,
+    },
+    checks,
+    blockers,
+  };
+}
+
+/**
+ * Build the agent-facing commerce block for a storefront listing.
+ * Returns null when the curator has no payout wallet or no valid offer —
+ * the listing remains browsable and exposes its contract separately.
+ */
+function buildListingAgentCommerce(curator, listing) {
+  // Digital designs are try-on only — never expose purchase offers.
+  if (listing?.inventoryType === 'digital') return null;
+
+  const contract = evaluateTrustedOffer(curator, listing);
+  if (!contract.readiness) return null;
+
+  const offers = validStockOffers(listing);
   if (offers.length === 0) return null;
 
-  return { available: true, currency: 'cUSD', offers };
+  return {
+    available: true,
+    currency: 'cUSD',
+    offers,
+    contract,
+  };
 }
 
 /**
@@ -187,6 +321,13 @@ function buildRevenueHint(type, { totalCusd, curator }) {
 module.exports = {
   kesToCusd,
   kesPerUsd,
+  offerFreshnessMaxDays,
+  validPriceOffers,
+  validStockOffers,
+  isNumericValue,
+  isIntegerValue,
+  inventoryVerificationBlockers,
+  evaluateTrustedOffer,
   curatorPayoutAddress,
   curatorSplitAddress,
   curatorSellerBps,
@@ -196,5 +337,6 @@ module.exports = {
   webBaseUrl,
   storefrontWebUrl,
   polaroidWebUrl,
+  normalizeSize,
   buildRevenueHint,
 };

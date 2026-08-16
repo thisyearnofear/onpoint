@@ -283,8 +283,8 @@ async function main() {
 
     // Insert digital listing
     await sql.query(`
-      INSERT INTO listings (id, curator_slug, sku_id, inventory_type, sizes, photo_keys, title, tags, status)
-      VALUES ($1, $2, NULL, 'digital', '[]', $3, $4, $5, 'live')
+      INSERT INTO listings (id, curator_slug, sku_id, inventory_type, sizes, photo_keys, title, tags, status, last_verified_at)
+      VALUES ($1, $2, NULL, 'digital', '[]', $3, $4, $5, 'live', NOW())
       ON CONFLICT (id) DO NOTHING
     `, [listingId, CURATOR.slug, [publicUrl], garment.title, garment.tags]);
     console.log(`  Listing created: ${listingId} — ${garment.title}`);

@@ -123,6 +123,8 @@ export interface Listing {
   status: "live" | "paused" | "archived";
   createdAt: string;
   updatedAt: string;
+  /** Timestamp when stock/price was explicitly verified; legacy APIs may omit it. */
+  lastVerifiedAt?: string | null;
 }
 
 /**
@@ -154,9 +156,32 @@ export interface Session {
 
 /**
  * Agent Commerce — machine-readable purchase offer on a storefront listing.
- * Present only when the Curator has a payout wallet (commerce.walletAddress).
- * Agents buy via POST /api/curator/:slug/order (x402 402-challenge flow).
+ * Present only when the listing passes the trusted-offer contract. Agents
+ * buy via POST /api/curator/:slug/order (x402 402-challenge flow).
  */
+export interface TrustedOfferContract {
+  version: 1;
+  kind: "purchase" | "try_on";
+  scope: "purchase" | "try_on";
+  completeness: number;
+  readiness: boolean;
+  freshness: {
+    status: "fresh" | "stale" | "unknown";
+    source: "last_verified_at";
+    lastVerifiedAt: string | null;
+    maxAgeDays: number;
+  };
+  checks: {
+    identity: boolean;
+    media: boolean;
+    sizeStock: boolean;
+    price: boolean;
+    payout: boolean;
+    freshness: boolean;
+  };
+  blockers: string[];
+}
+
 export interface ListingAgentCommerce {
   available: true;
   currency: "cUSD";
@@ -166,6 +191,7 @@ export interface ListingAgentCommerce {
     priceKes: number;
     priceCusd: number;
   }>;
+  contract: TrustedOfferContract;
 }
 
 export interface StorefrontAgentCommerce {
@@ -199,6 +225,7 @@ export interface CuratorStorefrontResponse {
     imageUrl: string | null;
     checkoutUrl: string | null;
     agentCommerce: ListingAgentCommerce | null;
+    trustedOffer: TrustedOfferContract;
     digital?: boolean;
     tryOnUrl?: string;
     kit?: {

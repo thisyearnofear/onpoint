@@ -98,8 +98,8 @@ export async function POST(request: Request) {
     if (!s.size || typeof s.size !== "string") {
       return Response.json({ error: "Each size must have a size name" }, { status: 400 });
     }
-    if (typeof s.stock !== "number" || s.stock < 0) {
-      return Response.json({ error: "stock must be a non-negative number" }, { status: 400 });
+    if (typeof s.stock !== "number" || !Number.isInteger(s.stock) || s.stock < 0) {
+      return Response.json({ error: "stock must be a non-negative integer" }, { status: 400 });
     }
     if (typeof s.price !== "number" || s.price <= 0) {
       return Response.json({ error: "price must be a positive number" }, { status: 400 });
@@ -159,7 +159,9 @@ export async function POST(request: Request) {
 
       await db`
         UPDATE listings
-        SET sizes = ${JSON.stringify(mergedSizes)}, updated_at = NOW()
+        SET sizes = ${JSON.stringify(mergedSizes)},
+            updated_at = NOW(),
+            last_verified_at = NOW()
         WHERE id = ${listingId}
       `;
 
@@ -174,8 +176,8 @@ export async function POST(request: Request) {
 
     // 4. Create new listing
     const newListing = await db`
-      INSERT INTO listings (curator_slug, sku_id, sizes, status)
-      VALUES (${curatorSlug}, ${skuId}, ${JSON.stringify(sizes)}, 'live')
+      INSERT INTO listings (curator_slug, sku_id, sizes, status, last_verified_at)
+      VALUES (${curatorSlug}, ${skuId}, ${JSON.stringify(sizes)}, 'live', NOW())
       RETURNING id
     ` as Array<{ id: string }>;
 

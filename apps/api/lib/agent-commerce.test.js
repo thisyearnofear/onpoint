@@ -8,6 +8,11 @@ const {
   curatorSplitAddress,
   curatorSellerBps,
   buildListingAgentCommerce,
+  evaluateTrustedOffer,
+  inventoryVerificationBlockers,
+  validStockOffers,
+  isIntegerValue,
+  normalizeSize,
   buildStorefrontAgentCommerce,
   tryOnPriceCusd,
 } = require('./agent-commerce');
@@ -21,6 +26,7 @@ describe('agent-commerce helpers', () => {
     delete process.env.X402_TRYON_PRICE_USD;
     delete process.env.X402_TRYON_PRICE_USD_DIGITAL;
     delete process.env.X402_TRYON_PRICE_USD_PHYSICAL;
+    delete process.env.OFFER_FRESHNESS_MAX_DAYS;
   });
 
   afterEach(() => {
@@ -28,6 +34,7 @@ describe('agent-commerce helpers', () => {
     delete process.env.X402_TRYON_PRICE_USD;
     delete process.env.X402_TRYON_PRICE_USD_DIGITAL;
     delete process.env.X402_TRYON_PRICE_USD_PHYSICAL;
+    delete process.env.OFFER_FRESHNESS_MAX_DAYS;
   });
 
   describe('kesToCusd', () => {
@@ -98,15 +105,24 @@ describe('agent-commerce helpers', () => {
     it('exposes in-stock sizes as cUSD offers', () => {
       process.env.KES_PER_USD = '125';
       const block = buildListingAgentCommerce(curator, {
+        skuId: 'arsenal-home',
+        photoKeys: ['listings/arsenal.jpg'],
+        updatedAt: new Date().toISOString(),
+        lastVerifiedAt: new Date().toISOString(),
         sizes: [
           { size: 'M', stock: 3, price: 2500 },
           { size: 'L', stock: 0, price: 2500 },
         ],
       });
-      expect(block).toEqual({
-        available: true,
-        currency: 'cUSD',
-        offers: [{ size: 'M', stock: 3, priceKes: 2500, priceCusd: 20 }],
+      expect(block.available).toBe(true);
+      expect(block.currency).toBe('cUSD');
+      expect(block.offers).toEqual([{ size: 'M', stock: 3, priceKes: 2500, priceCusd: 20 }]);
+      expect(block.contract).toMatchObject({
+        kind: 'purchase',
+        completeness: 1,
+        readiness: true,
+        freshness: { status: 'fresh' },
+        blockers: [],
       });
     });
 
@@ -129,6 +145,155 @@ describe('agent-commerce helpers', () => {
           sizes: [{ size: 'M', stock: 3, price: 2500 }],
         }),
       ).toBeNull();
+    });
+  });
+
+  describe('inventory verification', () => {
+    it('ignores freshness and payout blockers while preserving inventory blockers', () => {
+      const contract = evaluateTrustedOffer(
+        {},
+        {
+          skuId: 'legacy-sku',
+          photoKeys: ['legacy.jpg'],
+          sizes: [{ size: 'M', stock: 2, price: 2500 }],
+        },
+      );
+
+      expect(inventoryVerificationBlockers(contract)).toEqual([]);
+      expect(contract.readiness).toBe(false);
+      expect(contract.blockers).toEqual(expect.arrayContaining([
+        'missing_payout_wallet',
+        'missing_freshness',
+      ]));
+    });
+
+    it('uses strict integer stock validation', () => {
+      expect(isIntegerValue(1)).toBe(true);
+      expect(isIntegerValue('1')).toBe(true);
+      expect(isIntegerValue('1.0')).toBe(false);
+      expect(isIntegerValue(true)).toBe(false);
+    });
+
+    it('rejects duplicate normalized size names as an inventory blocker', () => {
+      const contract = evaluateTrustedOffer(
+        { commerce: { walletAddress: WALLET } },
+        {
+          skuId: 'duplicate-sku',
+          photoKeys: ['item.jpg'],
+          lastVerifiedAt: new Date().toISOString(),
+          sizes: [
+            { size: 'M', stock: 1, price: 2500 },
+            { size: ' M ', stock: 2, price: 2600 },
+          ],
+        },
+      );
+      expect(contract.readiness).toBe(false);
+      expect(contract.blockers).toContain('duplicate_size_names');
+      expect(inventoryVerificationBlockers(contract)).toContain('duplicate_size_names');
+    });
+
+    it('keeps malformed stock out of the executable offer set', () => {
+      expect(validStockOffers({
+        sizes: [
+          { size: 'S', stock: 1.5, price: 2500 },
+          { size: 'M', stock: 2, price: 2500 },
+          { size: 'L', stock: 1, price: 0 },
+        ],
+      })).toEqual([{ size: 'M', stock: 2, priceKes: 2500, priceCusd: 19.23 }]);
+    });
+  });
+
+  describe('evaluateTrustedOffer', () => {
+    it('normalizes size names and rejects fractional stock', () => {
+      expect(normalizeSize(' M ')).toBe('M');
+      const contract = evaluateTrustedOffer(
+        { commerce: { walletAddress: WALLET } },
+        {
+          skuId: 'malformed-sku',
+          photoKeys: ['item.jpg'],
+          lastVerifiedAt: new Date().toISOString(),
+          sizes: [{ size: ' M ', stock: 1.5, price: 2500 }],
+        },
+      );
+      expect(contract.readiness).toBe(false);
+      expect(contract.blockers).toContain('missing_in_stock_size');
+      expect(contract.blockers).not.toContain('missing_valid_price');
+    });
+
+    it('reports actionable blockers for an incomplete and stale listing', () => {
+      process.env.OFFER_FRESHNESS_MAX_DAYS = '7';
+      const contract = evaluateTrustedOffer(
+        {},
+        {
+          skuId: null,
+          photoKeys: [],
+          lastVerifiedAt: '2020-01-01T00:00:00.000Z',
+          sizes: [{ size: 'M', stock: 0, price: null }],
+        },
+        new Date('2026-08-10T00:00:00.000Z'),
+      );
+      expect(contract.readiness).toBe(false);
+      expect(contract.completeness).toBe(0);
+      expect(contract.freshness).toMatchObject({ status: 'stale', maxAgeDays: 7 });
+      expect(contract.blockers).toEqual(expect.arrayContaining([
+        'missing_product_identity',
+        'missing_product_media',
+        'missing_in_stock_size',
+        'missing_valid_price',
+        'missing_payout_wallet',
+        'stale_inventory',
+      ]));
+    });
+
+    it('treats a digital listing as a complete try-on offer without making it purchasable', () => {
+      const contract = evaluateTrustedOffer(
+        { commerce: { walletAddress: WALLET } },
+        {
+          inventoryType: 'digital',
+          title: 'Digital Arsenal look',
+          photoKeys: ['digital/look.png'],
+          updatedAt: new Date().toISOString(),
+          lastVerifiedAt: new Date().toISOString(),
+          sizes: [],
+        },
+      );
+      expect(contract.kind).toBe('try_on');
+      expect(contract.readiness).toBe(true);
+      expect(contract.scope).toBe('try_on');
+      expect(contract.blockers).toEqual([]);
+      expect(contract.completeness).toBe(1);
+    });
+
+    it('does not use updatedAt as a freshness guarantee', () => {
+      const contract = evaluateTrustedOffer(
+        { commerce: { walletAddress: WALLET } },
+        {
+          skuId: 'legacy-sku',
+          title: 'Legacy item',
+          photoKeys: ['legacy.jpg'],
+          updatedAt: new Date().toISOString(),
+          sizes: [{ size: 'M', stock: 1, price: 2500 }],
+        },
+      );
+      expect(contract.readiness).toBe(false);
+      expect(contract.freshness).toMatchObject({ status: 'unknown', source: 'last_verified_at', lastVerifiedAt: null });
+      expect(contract.blockers).toContain('missing_freshness');
+    });
+
+    it('rejects a future freshness timestamp', () => {
+      const contract = evaluateTrustedOffer(
+        { commerce: { walletAddress: WALLET } },
+        {
+          skuId: 'future-sku',
+          photoKeys: ['future.jpg'],
+          lastVerifiedAt: '2026-08-11T00:00:00.000Z',
+          sizes: [{ size: 'M', stock: 1, price: 2500 }],
+        },
+        new Date('2026-08-10T00:00:00.000Z'),
+      );
+      expect(contract.readiness).toBe(false);
+      expect(contract.freshness.status).toBe('unknown');
+      expect(contract.blockers).toContain('future_freshness_timestamp');
     });
   });
 

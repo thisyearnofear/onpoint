@@ -11,9 +11,26 @@
  * Ports: 48751 (API), 48752 (Bridge), 48753 (Agent server), 48755 (Signer)
  */
 
-require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
+const dotenv = require('dotenv');
 const express = require('express');
 const Redis = require('ioredis');
+
+// PM2 runs from /opt/onpoint while releases live under /opt/onpoint/releases.
+// Load the release-local shared env symlink explicitly. Fill empty PM2
+// placeholders (for example AGENT_WALLET_ADDRESS: ''), but preserve explicit
+// runtime values such as the isolated preflight PORT or PM2's PORT.
+const releaseEnvPath = path.join(__dirname, '.env');
+if (fs.existsSync(releaseEnvPath)) {
+  const releaseEnv = dotenv.parse(fs.readFileSync(releaseEnvPath));
+  for (const [key, value] of Object.entries(releaseEnv)) {
+    if (!process.env[key]) process.env[key] = value;
+  }
+} else if (process.env.NODE_ENV !== 'production') {
+  // Local development only: use the conventional cwd .env.
+  dotenv.config();
+}
 
 // ── Sentry (optional, if SENTRY_DSN is configured) ──
 let Sentry;

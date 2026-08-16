@@ -28,7 +28,6 @@ const agentCore = require('@repo/agent-core');
 const logger = require('../lib/logger');
 const { curatorSplitAddress, tryOnPriceCusd, storefrontWebUrl, polaroidWebUrl, webBaseUrl, buildRevenueHint } = require('../lib/agent-commerce');
 const { getAttributionSuffix, getAttributionCode, getAssignedTag } = require('../lib/attribution');
-const x402Facilitator = require('../lib/x402-facilitator');
 const { engine } = require('./ai-virtual-tryon');
 const { upload: r2Upload, publicUrl: r2PublicUrl, keyFor: r2KeyFor, mirrorTryOnArtifact: ossMirror, isOssConfigured: ossConfigured } = require('@repo/storage');
 const { logFunnelEvent } = require('../lib/funnel');
@@ -180,16 +179,6 @@ router.post('/', async (req, res) => {
       `OnPoint try-on: ${itemLabel} from ${row.curator.name}`,
     );
 
-    // Build facilitator-compatible requirements (USDC via Celo x402 facilitator).
-    // The facilitator settles EIP-3009 transferWithAuthorization on-chain
-    // (gasless for the buyer) and counts toward the Most x402 Payments track.
-    const facilitatorRequirements = x402Facilitator.buildFacilitatorRequirements(
-      priceCusd,
-      payTo,
-      resourceUrl,
-      `OnPoint try-on: ${itemLabel} from ${row.curator.name}`,
-    );
-
     // ── OKX facade bypass: internal relay from /okx/try-on ──
     // The OKX x402 payment was already verified on XLayer by the OKX
     // facilitator. Skip the Celo 402 + cUSD verification; ledger with a
@@ -218,13 +207,6 @@ router.post('/', async (req, res) => {
     if (!paymentTxHash && !xPaymentHeader) {
       return res.status(402).json({
         ...sharedTypes.build402Body([requirements]),
-        // Facilitator path: USDC via Celo x402 facilitator (x402 v2)
-        x402: {
-          x402Version: 2,
-          accepts: [facilitatorRequirements],
-          facilitatorUrl: x402Facilitator.FACILITATOR_URL,
-          instructions: 'Sign an EIP-3009 transferWithAuthorization for USDC and send it in the X-PAYMENT header. The facilitator settles on-chain (gasless for buyer).',
-        },
         quote: {
           purpose: 'try_on',
           curatorSlug: slug,
@@ -242,34 +224,22 @@ router.post('/', async (req, res) => {
             instructions: 'Append the dataSuffix to your transfer transaction data to tag it as OnPoint activity on Celo.',
           },
           instructions:
-            'Two payment paths: (1) cUSD — transfer to payTo, re-POST with paymentTxHash. (2) USDC via x402 facilitator — sign EIP-3009 auth, send in X-PAYMENT header.',
+            'Transfer the exact cUSD amount to payTo on Celo, then re-POST with paymentTxHash.',
         },
         revenueHint: buildRevenueHint('try_on', { totalCusd: priceCusd, curator: row.curator }),
       });
     }
 
     // ── Step 2a: facilitator payment (X-PAYMENT header) ──
+    // USDC facilitator settlement is disabled until the payout treasury has
+    // an explicit conversion/liquidity policy for try-on fees.
     if (xPaymentHeader) {
-      const result = await x402Facilitator.processFacilitatorPayment(
-        xPaymentHeader,
-        facilitatorRequirements,
-      );
-      if (!result.success) {
-        return res.status(402).json({
-          error: `Facilitator payment failed: ${result.error}`,
-          ...sharedTypes.build402Body([requirements]),
-          x402: {
-            x402Version: 2,
-            accepts: [facilitatorRequirements],
-            facilitatorUrl: x402Facilitator.FACILITATOR_URL,
-          },
-        });
-      }
-      settlementTxHash = result.txHash;
-      // The facilitator settled on-chain; we don't have the payer's address
-      // from the facilitator response, but the tx hash is the proof.
-      payerAddress = '0x0000000000000000000000000000000000000000'; // facilitator-settled
-    } else {
+      return res.status(409).json({
+        error: 'USDC facilitator try-on is temporarily unavailable; use the cUSD payment path.',
+        code: 'PAYMENT_RAIL_UNAVAILABLE',
+      });
+    }
+    {
       // ── Step 2b: verify cUSD payment, run try-on, then claim ──
     const minAmountWei = BigInt(requirements.maxAmountRequired);
     verification = await agentCore.ERC20.verifyTransfer({

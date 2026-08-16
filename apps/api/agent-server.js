@@ -388,6 +388,7 @@ async function handleRemoveStock(curator, parsed, from) {
       sizes: newSizes,
       status,
       updatedAt: new Date().toISOString(),
+      lastVerifiedAt: new Date().toISOString(),
     })
     .where(eq(listings.id, listing.id));
 

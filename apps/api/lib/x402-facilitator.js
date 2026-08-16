@@ -191,10 +191,21 @@ async function processFacilitatorPayment(xPaymentHeader, paymentRequirements) {
     };
   }
 
+  // x402 v2 carries the payer in the signed authorization. Preserve it so
+  // operational recovery (for example a stock-race refund) can return funds
+  // to the actual buyer rather than relying on an unavailable facilitator
+  // identity lookup.
+  const payerAddress =
+    paymentPayload?.payload?.authorization?.from
+    || paymentPayload?.payload?.from
+    || paymentPayload?.authorization?.from
+    || null;
+
   return {
     success: true,
     txHash: settleResult.transaction,
     network: settleResult.network,
+    payerAddress,
   };
 }
 

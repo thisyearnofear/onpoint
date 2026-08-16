@@ -101,6 +101,7 @@ async function main() {
           sizes: item.sizes,
           photoKeys: [],
           status: "live",
+          lastVerifiedAt: new Date(),
         })
       console.log(`  ✓ ${item.skuId} — ${item.sizes.length} sizes, from KES ${Math.min(...item.sizes.map(s => s.price))}`);
       inserted++;
