@@ -32,8 +32,10 @@ KEEP_RELEASES=2
 SIZE_WARN_MB=350
 SIZE_FAIL_MB=450
 HEALTH_URL="http://localhost:48751/health"
-HEALTH_RETRIES=6
-HEALTH_DELAY=3
+# Allow cold Node/PM2 starts (especially after creating a previously missing process)
+# enough time to bind before declaring a release unhealthy.
+HEALTH_RETRIES="${ONPOINT_HEALTH_RETRIES:-12}"
+HEALTH_DELAY="${ONPOINT_HEALTH_DELAY:-5}"
 # Bridge health check (Python web-bridge — see ADR 0008).
 # The API proxies external_search → bridge, so the bridge must be up
 # for any Tier 3 search to work. deploy-api.sh does not deploy bridge
@@ -46,6 +48,7 @@ BRIDGE_HEALTH_DELAY=2
 NPM_CACHE_DIR="/tmp/onpoint-npm-cache"
 ISOLATED_DIR="/tmp/onpoint-isolated-build"
 
+API_EXPECTED_INSTANCES=$(node -e "const config = require('./deploy/ecosystem.config.js'); const api = config.apps.find((app) => app.name === 'onpoint-api'); process.stdout.write(String(api?.instances || 1));")
 TS=$(date +%Y%m%d-%H%M%S)
 RELEASE_DIR="releases/api/$TS"
 REMOTE_RELEASE="$REMOTE_BASE/$RELEASE_DIR"
@@ -68,6 +71,24 @@ info()  { echo -e "${GREEN}${BOLD}==>${NC} ${GREEN}$1${NC}"; }
 warn()  { echo -e "${YELLOW}${BOLD}==>${NC} ${YELLOW}$1${NC}"; }
 fail()  { echo -e "${RED}${BOLD}==>${NC} ${RED}$1${NC}"; exit 1; }
 cmd()   { echo -e "  ${BOLD}\$${NC} $1"; }
+
+verify_api_recovery() {
+  local health_ok=false
+  local cluster_ok=false
+  for i in $(seq 1 "$HEALTH_RETRIES"); do
+    if ssh "$SSH_HOST" "curl -sf ${HEALTH_URL}" &>/dev/null; then
+      health_ok=true
+      break
+    fi
+    sleep 1
+  done
+  for i in $(seq 1 "$HEALTH_RETRIES"); do
+    cluster_ok=$(ssh "$SSH_HOST" "pm2 pid onpoint-api 2>/dev/null | tr ',' '\\n' | awk 'NF && \$1 > 0 { count++ } END { print (count == ${API_EXPECTED_INSTANCES} ? \"true\" : \"false\") }'" || echo false)
+    [[ "$cluster_ok" == true ]] && break
+    sleep 1
+  done
+  [[ "$health_ok" == true && "$cluster_ok" == true ]]
+}
 
 cleanup_failed_release() {
   rm -rf "$BUILD_DIR"
@@ -126,6 +147,8 @@ if [[ ! -f "$TSUP" ]]; then
   fail "tsup not found at $TSUP — run pnpm install first"
 fi
 
+node scripts/check-db-migrations.mjs
+
 if [[ "$DRY_RUN" == false ]]; then
   # Build all workspace packages in parallel
   pids=()
@@ -150,6 +173,7 @@ if [[ "$DRY_RUN" == false ]]; then
   fi
 
   echo "   All workspace packages built successfully"
+  node scripts/check-db-runtime.mjs
 fi
 
 # ── Step 2: Create deployment bundle ────────────────────────────────
@@ -193,6 +217,7 @@ if [[ "$DRY_RUN" == false ]]; then
   mkdir -p "$BUILD_DIR/lib/db"
   cp packages/db/package.json "$BUILD_DIR/lib/db/"
   cp -R packages/db/dist "$BUILD_DIR/lib/db/"
+  cp -R packages/db/drizzle "$BUILD_DIR/lib/db/"
 
   # storage
   mkdir -p "$BUILD_DIR/lib/storage"
@@ -355,6 +380,76 @@ if [[ "$DRY_RUN" == false ]]; then
   rsync deploy/ecosystem.config.js "${SSH_HOST}:${REMOTE_BASE}/deploy/ecosystem.config.js"
 fi
 
+# ── Step 5.7: Candidate startup preflight ───────────────────────────
+# Start the staged release directly on an isolated port before PM2 touches
+# the live process. This catches missing bundle assets/imports and fatal
+# production configuration errors without risking the current release.
+info "🧪 Preflighting staged API release..."
+if [[ "$DRY_RUN" == false ]]; then
+  PREFLIGHT_LOG="/tmp/onpoint-preflight-${TS}.log"
+  ssh "$SSH_HOST" "set +e
+    cd '${REMOTE_RELEASE}'
+    if (ss -ltn 2>/dev/null || netstat -ltn 2>/dev/null) | grep -q ':48756 '; then
+      echo 'preflight_port=occupied'
+      exit 1
+    fi
+    setsid env NODE_ENV=production PORT=48756 node server.js > '${PREFLIGHT_LOG}' 2>&1 &
+    pid=\$!
+    status=1
+    for i in \$(seq 1 25); do
+      if curl -sf --max-time 2 http://127.0.0.1:48756/health > /dev/null 2>&1; then
+        status=0
+        break
+      fi
+      if ! kill -0 \"\$pid\" 2>/dev/null; then
+        break
+      fi
+      sleep 1
+    done
+    if kill -0 \"\$pid\" 2>/dev/null; then
+      kill -TERM -- -\"\$pid\" 2>/dev/null || kill -TERM \"\$pid\" 2>/dev/null || true
+      sleep 1
+      kill -KILL -- -\"\$pid\" 2>/dev/null || kill -KILL \"\$pid\" 2>/dev/null || true
+    fi
+    if [ \"\$status\" -ne 0 ]; then
+      echo 'preflight_status=failed'
+      sed -E \"s#(postgres(ql)?://[^[:space:]\\\"'\''<>]+|https?://[^[:space:]\\\"'\''<>]+|0x[a-fA-F0-9]{20,}|[A-Za-z_]*(API|SECRET|TOKEN|PASSWORD|PRIVATE|DSN|KEY)[A-Za-z_]*[=:][^[:space:]\\\"'\''<>]+)#<redacted>#g\" '${PREFLIGHT_LOG}' | tail -120
+    else
+      echo 'preflight_status=healthy'
+    fi
+    rm -f '${PREFLIGHT_LOG}'
+    exit \"\$status\"
+  " || fail "❌ Staged API release failed startup preflight"
+fi
+
+# ── Step 5.8: Verify independently managed bridge before flip ────────
+# The bridge is not part of this API release. Validate both its HTTP
+# endpoint and PM2 ownership while the current API is still untouched.
+info "🌉 Verifying independently managed bridge..."
+if [[ "$DRY_RUN" == false ]]; then
+  BRIDGE_OK=false
+  for i in $(seq 1 "$BRIDGE_HEALTH_RETRIES"); do
+    if ssh "$SSH_HOST" "curl -sf ${BRIDGE_HEALTH_URL}" &>/dev/null; then
+      BRIDGE_OK=true
+      echo -e "   ${GREEN}✅${NC} Bridge health check passed (attempt ${i}/${BRIDGE_HEALTH_RETRIES})"
+      break
+    fi
+    echo -e "   ${YELLOW}⏳${NC} Waiting for bridge... (${i}/${BRIDGE_HEALTH_RETRIES})"
+    sleep "$BRIDGE_HEALTH_DELAY"
+  done
+  [[ "$BRIDGE_OK" == true ]] || fail "❌ Bridge (${BRIDGE_HEALTH_URL}) is unreachable; aborting before symlink flip"
+
+  BRIDGE_PM2_OK=false
+  for j in $(seq 1 "$BRIDGE_HEALTH_RETRIES"); do
+    if ssh "$SSH_HOST" "test -n \"\$(pm2 pid onpoint-bridge 2>/dev/null)\" && test \"\$(pm2 pid onpoint-bridge 2>/dev/null)\" -gt 0 && pm2 describe onpoint-bridge --no-color 2>/dev/null | grep -q online"; then
+      BRIDGE_PM2_OK=true
+      break
+    fi
+    sleep 1
+  done
+  [[ "$BRIDGE_PM2_OK" == true ]] || fail "❌ Bridge responds but PM2 does not report onpoint-bridge online; refusing deployment"
+fi
+
 # ── Step 6: Atomic symlink flip ─────────────────────────────────────
 info "🔗 Flipping symlink: apps/api → ${RELEASE_DIR}"
 
@@ -384,20 +479,22 @@ cmd "ssh ${SSH_HOST} \"ln -sfn ${REMOTE_RELEASE} ${REMOTE_CURRENT}\""
 
 # ── Step 7: PM2 reload (zero-downtime) ──────────────────────────────
 info "🔄 Reloading PM2 process: onpoint-api"
-cmd "ssh ${SSH_HOST} \"cd ${REMOTE_BASE} && pm2 reload onpoint-api\""
+cmd "ssh ${SSH_HOST} \"cd ${REMOTE_BASE} && pm2 startOrGracefulReload deploy/ecosystem.config.js --only onpoint-api\""
 
 if [[ "$DRY_RUN" == false ]]; then
-  ssh "$SSH_HOST" "cd ${REMOTE_BASE} && pm2 reload onpoint-api" || {
+  ssh "$SSH_HOST" "cd ${REMOTE_BASE} && pm2 startOrGracefulReload deploy/ecosystem.config.js --only onpoint-api" || {
     if [[ -n "${PREV_RELEASE:-}" ]]; then
       warn "↩ PM2 reload failed; rolling symlink back to ${PREV_RELEASE}"
       PREV_ABSOLUTE="${REMOTE_BASE}/${PREV_RELEASE#/}"
       if [[ "$PREV_RELEASE" = /* ]]; then
         PREV_ABSOLUTE="$PREV_RELEASE"
       fi
-      ssh "$SSH_HOST" "ln -sfn ${PREV_ABSOLUTE} ${REMOTE_CURRENT}"
+      ssh "$SSH_HOST" "ln -sfn ${PREV_ABSOLUTE} ${REMOTE_CURRENT} && cd ${REMOTE_BASE} && pm2 startOrGracefulReload deploy/ecosystem.config.js --only onpoint-api"
+      verify_api_recovery || fail "PM2 reload failed and rollback validation failed"
     elif [[ "${HAS_BAK:-false}" == true ]]; then
       warn "↩ PM2 reload failed; restoring original apps/api from backup"
-      ssh "$SSH_HOST" "rm -f ${REMOTE_CURRENT} && mv ${REMOTE_CURRENT}.bak ${REMOTE_CURRENT}"
+      ssh "$SSH_HOST" "rm -f ${REMOTE_CURRENT} && mv ${REMOTE_CURRENT}.bak ${REMOTE_CURRENT} && cd ${REMOTE_BASE} && pm2 startOrGracefulReload deploy/ecosystem.config.js --only onpoint-api"
+      verify_api_recovery || fail "PM2 reload failed and rollback validation failed"
     fi
     fail "PM2 reload failed"
   }
@@ -406,27 +503,7 @@ fi
 # ── Step 8: Health check with automatic rollback ────────────────────
 info "🏥 Running health checks..."
 
-# ── 8a. Bridge health check (ADR 0008 deploy gap) ──────────────────
-# A down bridge makes every external_search fail. Catch it before we
-# flip the API symlink so a green API deploy doesn't leave Tier 3 broken.
-if [[ "$DRY_RUN" == false ]]; then
-  BRIDGE_OK=false
-  for i in $(seq 1 "$BRIDGE_HEALTH_RETRIES"); do
-    sleep "$BRIDGE_HEALTH_DELAY"
-    if ssh "$SSH_HOST" "curl -sf ${BRIDGE_HEALTH_URL}" &>/dev/null; then
-      BRIDGE_OK=true
-      echo -e "   ${GREEN}✅${NC} Bridge health check passed (attempt ${i}/${BRIDGE_HEALTH_RETRIES})"
-      break
-    fi
-    echo -e "   ${YELLOW}⏳${NC} Waiting for bridge... (${i}/${BRIDGE_HEALTH_RETRIES})"
-  done
-
-  if [[ "$BRIDGE_OK" != true ]]; then
-    fail "❌ Bridge (${BRIDGE_HEALTH_URL}) is unreachable after ${BRIDGE_HEALTH_RETRIES} attempts. Aborting before symlink flip. Diagnose with: ssh ${SSH_HOST} \"pm2 logs onpoint-bridge\". Start it with: ssh ${SSH_HOST} \"pm2 start deploy/ecosystem.config.js --only onpoint-bridge\"."
-  fi
-fi
-
-# ── 8b. API health check (existing behaviour, unchanged) ───────────
+# ── 8a. API health check (existing behaviour, unchanged) ───────────
 if [[ "$DRY_RUN" == false ]]; then
   HEALTH_OK=false
   for i in $(seq 1 "$HEALTH_RETRIES"); do
@@ -439,10 +516,48 @@ if [[ "$DRY_RUN" == false ]]; then
     echo -e "   ${YELLOW}⏳${NC} Waiting for API... (${i}/${HEALTH_RETRIES})"
   done
 
+  # Require every expected API cluster worker to be online, not just one
+  # successful HTTP response through the shared cluster listener. PM2 can
+  # briefly report a worker as launching during a graceful reload, so poll
+  # the process state before declaring the release unhealthy.
+  API_CLUSTER_OK=false
+  for j in $(seq 1 "$HEALTH_RETRIES"); do
+    API_CLUSTER_OK=$(ssh "$SSH_HOST" "pm2 pid onpoint-api 2>/dev/null | tr ',' '\\n' | awk 'NF && \$1 > 0 { count++ } END { print (count == ${API_EXPECTED_INSTANCES} ? \"true\" : \"false\") }'" || echo false)
+    [[ "$API_CLUSTER_OK" == true ]] && break
+    sleep "$HEALTH_DELAY"
+  done
+  if [[ "$API_CLUSTER_OK" != true ]]; then
+    HEALTH_OK=false
+    warn "⚠️  API cluster is not fully online"
+  fi
+
   if [[ "$HEALTH_OK" != true ]]; then
     echo -e "${RED}❌ Health check failed after ${HEALTH_RETRIES} attempts${NC}"
+    warn "🔎 Capturing redacted API diagnostics before rollback"
+    ssh "$SSH_HOST" 'set +e
+      echo "--- PM2 API state ---"
+      pm2 jlist 2>/dev/null | node -e '\''
+        let input=""; process.stdin.on("data", c => input += c); process.stdin.on("end", () => {
+          try {
+            const apps = JSON.parse(input).filter((app) => app.name === "onpoint-api");
+            console.log(JSON.stringify(apps.map((app) => ({
+              name: app.name,
+              pid: app.pid,
+              status: app.pm2_env?.status,
+              restartTime: app.pm2_env?.restart_time,
+              uptime: app.pm2_env?.pm_uptime,
+              execPath: app.pm2_env?.pm_exec_path,
+            }))));
+          } catch { console.log("<pm2-state-unavailable>"); }
+        });
+      '\''
+      echo "--- listener ---"
+      (ss -ltnp 2>/dev/null || netstat -ltnp 2>/dev/null) | grep -E "48751|48752" || true
+      echo "--- API log tail ---"
+      (tail -80 /var/log/pm2/onpoint-api-error.log 2>/dev/null; tail -80 /var/log/pm2/onpoint-api-out.log 2>/dev/null) | sed -E "s#(postgres(ql)?://[^[:space:]\\\"'\''<>]+|https?://[^[:space:]\\\"'\''<>]+|0x[a-fA-F0-9]{20,}|(API|SECRET|TOKEN|KEY|PASSWORD|PRIVATE)[A-Z_]*[=:][^[:space:]\\\"'\''<>]+)#<redacted>#g"
+    ' || warn "⚠️  Could not capture remote API diagnostics"
 
-    # Attempt rollback to previous release
+    # Attempt rollback
     if [[ -n "${PREV_RELEASE:-}" ]]; then
       echo -e "   ${YELLOW}↩ Rolling back to ${PREV_RELEASE}${NC}"
       # PREV_RELEASE might be relative, ensure absolute path
@@ -450,24 +565,22 @@ if [[ "$DRY_RUN" == false ]]; then
       if [[ "$PREV_RELEASE" = /* ]]; then
         PREV_ABSOLUTE="$PREV_RELEASE"
       fi
-      ssh "$SSH_HOST" "ln -sfn ${PREV_ABSOLUTE} ${REMOTE_CURRENT} && cd ${REMOTE_BASE} && pm2 reload onpoint-api"
+      ssh "$SSH_HOST" "ln -sfn ${PREV_ABSOLUTE} ${REMOTE_CURRENT} && cd ${REMOTE_BASE} && pm2 startOrGracefulReload deploy/ecosystem.config.js --only onpoint-api"
 
-      sleep "$HEALTH_DELAY"
-      if ssh "$SSH_HOST" "curl -sf ${HEALTH_URL}" &>/dev/null; then
+      if verify_api_recovery; then
         echo -e "   ${GREEN}✅${NC} Rollback successful — running ${PREV_ABSOLUTE}"
       else
-        fail "Rollback also failed — manual intervention required"
+        fail "Rollback also failed — API health or cluster validation failed"
       fi
     elif [[ "${HAS_BAK:-false}" == true ]]; then
       # First deploy fallback: restore original directory
       echo -e "   ${YELLOW}↩ Restoring original apps/api from backup${NC}"
-      ssh "$SSH_HOST" "rm -f ${REMOTE_CURRENT} && mv ${REMOTE_CURRENT}.bak ${REMOTE_CURRENT} && cd ${REMOTE_BASE} && pm2 reload onpoint-api"
+      ssh "$SSH_HOST" "rm -f ${REMOTE_CURRENT} && mv ${REMOTE_CURRENT}.bak ${REMOTE_CURRENT} && cd ${REMOTE_BASE} && pm2 startOrGracefulReload deploy/ecosystem.config.js --only onpoint-api"
 
-      sleep "$HEALTH_DELAY"
-      if ssh "$SSH_HOST" "curl -sf ${HEALTH_URL}" &>/dev/null; then
+      if verify_api_recovery; then
         echo -e "   ${GREEN}✅${NC} Rollback successful — restored original directory"
       else
-        fail "Rollback also failed — manual intervention required"
+        fail "Rollback also failed — API health or cluster validation failed"
       fi
     else
       fail "No previous release to roll back to"
@@ -509,23 +622,6 @@ cmd "ssh ${SSH_HOST} \"cd ${REMOTE_BASE} && pm2 startOrGracefulReload deploy/eco
 if [[ "$DRY_RUN" == false ]]; then
   ssh "$SSH_HOST" "cd ${REMOTE_BASE} && pm2 startOrGracefulReload deploy/ecosystem.config.js --only onpoint-signer" || {
     warn "⚠️  Signer start/reload failed — API deploy succeeded"
-  }
-fi
-
-# ── Step 9.7: Start/reload onpoint-bridge ────────────────────────────
-# Python web-bridge (ADR 0008). Bridge code is NOT rsynced by this
-# deploy — it reads live from the working tree — so a reload here is
-# only useful for picking up env changes. The pre-flight bridge health
-# check (Step 8a) ensures the process is up before we get here, so a
-# failed reload surfaces a clear warning rather than a silent outage.
-# To roll bridge code changes: ssh snel-bot "cd /opt/onpoint && git pull"
-# first, then run this script.
-info "🔄 Starting/reloading PM2 process: onpoint-bridge"
-cmd "ssh ${SSH_HOST} \"cd ${REMOTE_BASE} && pm2 startOrGracefulReload deploy/ecosystem.config.js --only onpoint-bridge\""
-
-if [[ "$DRY_RUN" == false ]]; then
-  ssh "$SSH_HOST" "cd ${REMOTE_BASE} && pm2 startOrGracefulReload deploy/ecosystem.config.js --only onpoint-bridge" || {
-    warn "⚠️  Bridge start/reload failed — API deploy succeeded; external_search will return 503 until the bridge is back. Run: ssh ${SSH_HOST} \"pm2 logs onpoint-bridge\""
   }
 fi
 
