@@ -1,10 +1,10 @@
 import { createRequire } from 'node:module';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import express from 'express';
 
 const require = createRequire(import.meta.url);
 const router = require('./agent-tryon');
-const { isValidPhotoData, recommendSize } = router.__test;
+const { isValidPhotoData, recommendSize, inferGarmentCategory, ensureDataUri, getRenderCacheKey } = router.__test;
 
 const PHOTO = `data:image/jpeg;base64,${'a'.repeat(100)}`;
 
@@ -53,6 +53,101 @@ describe('agent-tryon helpers', () => {
       expect(recommendSize({}, sizes)).toBeNull();
       expect(recommendSize({ measurements: { chest: 'medium' } }, [])).toBeNull();
       expect(recommendSize(null, sizes)).toBeNull();
+    });
+  });
+
+  describe('inferGarmentCategory', () => {
+    it('classifies sports kits as upper_body', () => {
+      expect(inferGarmentCategory({ title: 'Arsenal Home Kit' }, { kitType: 'home' })).toBe('upper_body');
+    });
+
+    it('maps title keywords with full-body priority', () => {
+      expect(inferGarmentCategory({ title: 'Jersey Dress — Nairobi Sunrise' }, null)).toBe('full_body');
+      expect(inferGarmentCategory({ title: 'Ankara Shirt' }, null)).toBe('upper_body');
+      expect(inferGarmentCategory({ title: 'Slim Jeans' }, null)).toBe('lower_body');
+      expect(inferGarmentCategory({ title: 'Leather Boots' }, null)).toBe('shoes');
+      expect(inferGarmentCategory({ title: 'Winter Jacket' }, null)).toBe('outer');
+    });
+
+    it('falls back to tags when the title has no hint', () => {
+      expect(inferGarmentCategory({ title: 'Sunset Vibes', tags: ['dress', 'summer'] }, null)).toBe('full_body');
+    });
+
+    it('returns auto when nothing matches', () => {
+      expect(inferGarmentCategory({ title: 'Mystery Item' }, null)).toBe('auto');
+      expect(inferGarmentCategory({}, null)).toBe('auto');
+    });
+
+    it('does not match substrings inside unrelated words', () => {
+      expect(inferGarmentCategory({ title: 'Guarantee' }, null)).toBe('auto');
+    });
+  });
+
+  describe('ensureDataUri', () => {
+    it('passes data URIs through unchanged', async () => {
+      await expect(ensureDataUri('data:image/png;base64,AAA')).resolves.toBe('data:image/png;base64,AAA');
+    });
+
+    it('wraps raw base64 as a JPEG data URI', async () => {
+      await expect(ensureDataUri('AAA')).resolves.toBe('data:image/jpeg;base64,AAA');
+    });
+
+    it('fetches URLs and converts them to data URIs', async () => {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn(async () => ({
+        ok: true,
+        headers: { get: () => 'image/png' },
+        arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer,
+      }));
+      try {
+        await expect(ensureDataUri('https://example.com/render.png'))
+          .resolves.toBe('data:image/png;base64,AQID');
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('throws on empty input and failed fetches', async () => {
+      await expect(ensureDataUri('')).rejects.toThrow();
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn(async () => ({ ok: false, status: 404 }));
+      try {
+        await expect(ensureDataUri('https://example.com/missing.png')).rejects.toThrow(/404/);
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+  });
+
+  describe('getRenderCacheKey', () => {
+    it('is stable for identical inputs', () => {
+      expect(getRenderCacheKey(PHOTO, 'listing-1')).toBe(getRenderCacheKey(PHOTO, 'listing-1'));
+    });
+
+    it('distinguishes photos that share their first 1000 characters', () => {
+      const prefix = 'data:image/jpeg;base64,' + 'a'.repeat(1000);
+      const keyA = getRenderCacheKey(prefix + 'AAA', 'listing-1');
+      const keyB = getRenderCacheKey(prefix + 'BBB', 'listing-1');
+      expect(keyA).not.toBe(keyB);
+    });
+
+    it('changes when the provider chain changes', () => {
+      const savedReplicate = process.env.REPLICATE_API_TOKEN;
+      const savedYoucam = process.env.YOUCAM_API_KEY;
+      try {
+        delete process.env.YOUCAM_API_KEY;
+        delete process.env.REPLICATE_API_TOKEN;
+        const bareKey = getRenderCacheKey(PHOTO, 'listing-1');
+        process.env.REPLICATE_API_TOKEN = 'test-token';
+        expect(getRenderCacheKey(PHOTO, 'listing-1')).not.toBe(bareKey);
+        process.env.YOUCAM_API_KEY = 'test-key';
+        expect(getRenderCacheKey(PHOTO, 'listing-1')).not.toBe(bareKey);
+      } finally {
+        if (savedReplicate === undefined) delete process.env.REPLICATE_API_TOKEN;
+        else process.env.REPLICATE_API_TOKEN = savedReplicate;
+        if (savedYoucam === undefined) delete process.env.YOUCAM_API_KEY;
+        else process.env.YOUCAM_API_KEY = savedYoucam;
+      }
     });
   });
 });

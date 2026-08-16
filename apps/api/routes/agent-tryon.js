@@ -37,22 +37,40 @@ const { getPlatformWallet } = require('../lib/wallets');
 
 const router = express.Router();
 
-// ── Render cache: avoid duplicate Replicate calls for same (photo + listing) ──
-// TTL: 1 hour. Key: sha256(photoData + listingId). Value: render result.
+// ── Render cache: avoid duplicate paid render calls (YouCam/Replicate) ──
+// for the same (photo + listing). TTL: 1 hour. Value: the render image,
+// cached only as a persistent artifact (R2 URL or inline data URI) so a
+// cached entry never points at an expiring provider URL.
 //
 // Redis-backed (lib/cache.js) so the cache survives restarts and is shared
 // across instances — critical on serverless / multi-instance deploys where
-// a per-process Map would silently re-run paid ($0.03–$0.05) Replicate calls
+// a per-process Map would silently re-run paid ($0.03–$0.05) render calls
 // for the same photo. When Redis is unavailable the cache misses and the
 // try-on still runs (correctness is preserved; only the cost saving is lost).
 const { cacheGet, cacheSet } = require('../lib/cache');
 const RENDER_CACHE_TTL_MS = 60 * 60 * 1000;
 const RENDER_CACHE_PREFIX = 'tryon:render:';
+// Bumped to v2: keys now hash the FULL photo payload (the old 1000-char
+// prefix could collide across photos with similar base64 headers) and are
+// namespaced by the active provider chain, so a render produced before
+// YouCam was enabled is never served once YouCam becomes first choice.
+const RENDER_CACHE_VERSION = 'v2';
+
+function providerChainFingerprint() {
+  return [
+    engine.youcamVto?.isConfigured?.() ? 'youcam' : '',
+    process.env.REPLICATE_API_TOKEN ? 'replicate' : '',
+    'venice',
+  ].filter(Boolean).join('+');
+}
 
 function getRenderCacheKey(photoData, listingId) {
   const hash = crypto.createHash('sha256');
-  hash.update(photoData.slice(0, 1000)); // hash first 1000 chars (enough uniqueness for photos)
+  hash.update(photoData);
+  hash.update('\u0000');
   hash.update(listingId);
+  hash.update('\u0000');
+  hash.update(`${RENDER_CACHE_VERSION}:${providerChainFingerprint()}`);
   return RENDER_CACHE_PREFIX + hash.digest('hex').slice(0, 32);
 }
 
@@ -112,6 +130,54 @@ function recommendSize(bodyAnalysis, sizes) {
         Math.abs(SIZE_ORDER.indexOf(b) - idealIdx),
     );
   return ranked[0] || null;
+}
+
+/**
+ * Normalize any render image form (data URI, http(s) URL, raw base64) into
+ * a data URI. Throws if the input is unusable or a URL fetch fails.
+ */
+async function ensureDataUri(image) {
+  if (typeof image !== 'string' || image.length === 0) {
+    throw new Error('Render image is empty');
+  }
+  if (image.startsWith('data:')) return image;
+  if (image.startsWith('http://') || image.startsWith('https://')) {
+    const response = await fetch(image);
+    if (!response.ok) throw new Error(`Failed to fetch render image: ${response.status}`);
+    const contentType = (response.headers.get('content-type') || 'image/jpeg').split(';')[0];
+    const buffer = Buffer.from(await response.arrayBuffer());
+    return `data:${contentType};base64,${buffer.toString('base64')}`;
+  }
+  // Raw base64 payload
+  return `data:image/jpeg;base64,${image}`;
+}
+
+// ── Garment category inference for YouCam cloth-v4 ──
+// Keyword → category pairs checked in priority order (full garments before
+// separates, so "shirt dress" classifies as full_body). 'auto' lets YouCam
+// classify the garment itself when no hint matches.
+const GARMENT_CATEGORY_KEYWORDS = [
+  ['full_body', ['dress', 'gown', 'jumpsuit', 'romper', 'overalls', 'saree', 'kaftan', 'boubou', 'agbada', 'abaya', 'suit', 'tuxedo']],
+  ['shoes', ['shoe', 'sneaker', 'trainer', 'boot', 'sandal', 'heel', 'loafer']],
+  ['lower_body', ['trouser', 'pant', 'jeans', 'shorts', 'skirt', 'legging', 'jogger']],
+  ['outer', ['jacket', 'coat', 'blazer', 'parka', 'windbreaker', 'trenchcoat']],
+  ['upper_body', ['shirt', 'tee', 'top', 'blouse', 'hoodie', 'sweater', 'jersey', 'tshirt', 'polo', 'tank', 'cardigan', 'vest']],
+];
+
+function inferGarmentCategory(listing, kit) {
+  // Sports kits (home/away/third/goalkeeper) are tops.
+  if (kit?.kitType) return 'upper_body';
+  const haystack = [listing?.title, ...(Array.isArray(listing?.tags) ? listing.tags : [])]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  const tokens = new Set(haystack.split(/[^a-z]+/).filter(Boolean));
+  for (const [category, words] of GARMENT_CATEGORY_KEYWORDS) {
+    if (words.some((word) => tokens.has(word) || tokens.has(`${word}s`) || tokens.has(`${word}es`))) {
+      return category;
+    }
+  }
+  return 'auto';
 }
 
 // ── POST /api/agent/try-on ───────────────────────────────────
@@ -278,10 +344,7 @@ router.post('/', async (req, res) => {
     // doesn't burn the agent's payment. The tx is verified but not yet
     // ledgered — if the render fails, the agent can reuse the tx hash
     // for a retry.
-    const fitPrompt = `You are an expert fashion stylist. Analyze this person's photo for how a ${itemLabel} would fit and suit them.
-
-Return ONLY valid JSON:
-{
+    const fitJsonSchema = `{
   "bodyType": "athletic|slim|average|curvy|plus-size",
   "measurements": { "shoulders": "small|medium|large", "chest": "small|medium|large", "waist": "small|medium|large", "hips": "small|medium|large" },
   "fitRecommendations": ["2-3 specific fit notes for this garment on this person"],
@@ -289,37 +352,50 @@ Return ONLY valid JSON:
   "score": 1-10,
   "confidence": 0-1
 }`;
+    const fitPrompt = `You are an expert fashion stylist. Analyze this person's photo for how a ${itemLabel} would fit and suit them.\n\nReturn ONLY valid JSON:\n${fitJsonSchema}`;
+    const fitPromptRender = `You are an expert fashion stylist. This is a virtual try-on render of a person wearing a ${itemLabel}. Judge how the garment actually fits and suits them AS SHOWN in the render.\n\nReturn ONLY valid JSON:\n${fitJsonSchema}`;
 
-    // Check render cache — if the same person+listing was rendered recently,
-    // skip the expensive Replicate call (~$0.024) and reuse the cached result.
+    // Check render cache — if the same person+listing was rendered recently
+    // with the same provider chain, reuse the cached (persistent) render and
+    // skip the paid provider call entirely.
     const renderCacheKey = getRenderCacheKey(photoData, listingId);
     const cachedRender = await getRenderCache(renderCacheKey);
 
     const renderPromise = cachedRender
-      ? Promise.resolve({ status: 'fulfilled', value: { generatedImage: cachedRender, provider: 'cache', stylingTips: [], imageConditioned: true, fallbackReason: null } })
+      ? Promise.resolve({ generatedImage: cachedRender, provider: 'cache', stylingTips: [], imageConditioned: true, fallbackReason: null })
       : engine.buildGeneratedOutfitImageResponse({
           data: {
             photoData,
             personDescription: personDescription || '',
+            garmentCategory: inferGarmentCategory(row.listing, row.kit),
             items: [{ name: itemLabel, imageUrl: garmentUrl, description: itemLabel }],
           },
           provider: 'auto',
           tier: 'paid',
-        }).then(async (result) => {
-          // Cache the render result (URL or data URI) in Redis so it survives
-          // restarts and is shared across instances.
-          if (result?.generatedImage) {
-            await setRenderCache(renderCacheKey, result.generatedImage);
-          }
-          return result;
         });
 
-    const [render, fitResult] = await Promise.allSettled([
-      renderPromise,
-      engine
-        .generateVisionAnalysis({ prompt: fitPrompt, imageBase64: photoData })
-        .then(({ text }) => engine.parseBodyAnalysisResponse(text)),
-    ]);
+    // Fit analysis rides on the render when it is garment-conditioned:
+    // judging the actual garment on the actual person (YouCam/Replicate
+    // output) beats guessing from the bare photo. Falls back to the photo
+    // when the render is missing, not garment-conditioned, or unusable.
+    const fitPromise = renderPromise
+      .then(async (result) => {
+        if (!result?.imageConditioned || !result?.generatedImage) {
+          throw new Error('render not garment-conditioned');
+        }
+        const renderImage = await ensureDataUri(result.generatedImage);
+        const { text } = await engine.generateVisionAnalysis({
+          prompt: fitPromptRender,
+          imageBase64: renderImage,
+        });
+        return engine.parseBodyAnalysisResponse(text);
+      })
+      .catch(async () => {
+        const { text } = await engine.generateVisionAnalysis({ prompt: fitPrompt, imageBase64: photoData });
+        return engine.parseBodyAnalysisResponse(text);
+      });
+
+    const [render, fitResult] = await Promise.allSettled([renderPromise, fitPromise]);
 
     if (render.status === 'rejected') {
       // Render failed — don't claim the payment. The agent can retry
@@ -486,17 +562,10 @@ Return ONLY valid JSON:
     let polaroid = null;
     try {
       const imageData = render.value.generatedImage;
-      // The image might be a data URI (data:image/...;base64,...) or a URL (https://...)
-      let imageBuffer;
-      if (imageData.startsWith('data:')) {
-        imageBuffer = Buffer.from(imageData.replace(/^data:image\/\w+;base64,/, ''), 'base64');
-      } else if (imageData.startsWith('http')) {
-        const imgResp = await fetch(imageData);
-        if (!imgResp.ok) throw new Error(`Failed to fetch render image: ${imgResp.status}`);
-        imageBuffer = Buffer.from(await imgResp.arrayBuffer());
-      } else {
-        imageBuffer = Buffer.from(imageData, 'base64');
-      }
+      // Renders arrive as data URIs, ephemeral provider URLs (YouCam), or raw
+      // base64 — normalize before persisting.
+      const imageDataUri = await ensureDataUri(imageData);
+      const imageBuffer = Buffer.from(imageDataUri.split(',')[1], 'base64');
       const imageKey = r2KeyFor.agentPolaroid(String(paymentId));
       await r2Upload(imageKey, imageBuffer, 'image/jpeg');
       const imageUrl = r2PublicUrl(imageKey);
@@ -538,8 +607,19 @@ Return ONLY valid JSON:
         imageUrl,
         webUrl: polaroidWebUrl(String(paymentId)),
       };
+
+      // Cache the persistent R2 URL (not the ephemeral provider URL) so a
+      // repeat try-on of the same photo+listing skips the paid render and
+      // never serves an expired link.
+      await setRenderCache(renderCacheKey, imageUrl);
     } catch (polaroidErr) {
       logger.warn('Polaroid upload failed — try-on still succeeded', { component: 'agent-tryon', paymentId }, polaroidErr);
+      // No persistent copy exists; still cache inline data-URI renders so a
+      // retry skips the paid call. Ephemeral provider URLs are deliberately
+      // NOT cached here — they may expire before the cache TTL does.
+      if (typeof render.value.generatedImage === 'string' && render.value.generatedImage.startsWith('data:')) {
+        await setRenderCache(renderCacheKey, render.value.generatedImage);
+      }
     }
 
     // ── Share card: if this try-on came from a look, generate a collage ──
@@ -655,4 +735,4 @@ Return ONLY valid JSON:
 });
 
 module.exports = router;
-module.exports.__test = { isValidPhotoData, recommendSize };
+module.exports.__test = { isValidPhotoData, recommendSize, inferGarmentCategory, ensureDataUri, getRenderCacheKey };

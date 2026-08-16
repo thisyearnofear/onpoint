@@ -607,7 +607,9 @@ async function buildGeneratedOutfitImageResponse({ data, provider, tier = 'paid'
       const youcam = await youcamVto.tryOn({
         personImage: humanImage,
         garmentImage,
-        garmentCategory: 'auto',
+        // Prefer a caller-inferred category (from listing title/tags/kit);
+        // 'auto' lets YouCam classify the garment itself.
+        garmentCategory: (data && data.garmentCategory) || 'auto',
       });
       const generatedImage = youcam.renderUrl;
 
