@@ -13,7 +13,6 @@ import { drizzle } from "drizzle-orm/neon-http";
 import { migrate } from "drizzle-orm/neon-http/migrator";
 import * as schema from "./index.js";
 import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 
 async function main() {
   const connectionString = process.env.NEON_DATABASE_URL;
@@ -25,9 +24,11 @@ async function main() {
   const sql = neon(connectionString);
   const db = drizzle(sql, { schema });
 
-  // Resolve the drizzle directory relative to the project root (two levels up from dist/)
-  const __dirname = fileURLToPath(new URL(".", import.meta.url));
-  const migrationsFolder = resolve(__dirname, "..", "drizzle");
+  // Prefer an explicit path in deployment. Otherwise resolve from the
+  // package working directory, which works for both source and bundled CJS.
+  const migrationsFolder = process.env.DB_MIGRATIONS_DIR
+    ? resolve(process.env.DB_MIGRATIONS_DIR)
+    : resolve(process.cwd(), "drizzle");
 
   console.log(`Running migrations from ${migrationsFolder}...`);
   await migrate(db, { migrationsFolder });

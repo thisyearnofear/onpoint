@@ -9,6 +9,9 @@
     "test": "turbo run test",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
+    "check:db-migrations": "node scripts/check-db-migrations.mjs",
+    "check:db-runtime": "node scripts/check-db-runtime.mjs",
+    "check:live-db-schema": "node scripts/check-live-db-schema.mjs",
     "deploy:api": "bash scripts/deploy-api.sh"
   },
   "devDependencies": {

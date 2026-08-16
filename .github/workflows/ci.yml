@@ -30,6 +30,15 @@ jobs:
       - name: Lint
         run: pnpm run lint
 
+      - name: Build DB runtime
+        run: cd packages/db && ../../node_modules/.bin/tsup
+
+      - name: Check DB migrations
+        run: pnpm run check:db-migrations
+
+      - name: Check DB runtime schema
+        run: pnpm run check:db-runtime
+
       - name: Check types
         run: pnpm run check-types
 

@@ -1,3 +1,14 @@
+CREATE TABLE IF NOT EXISTS "agent_referrals" (
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "agent_address" text NOT NULL,
+  "referral_code" text NOT NULL,
+  "order_id" uuid NOT NULL,
+  "commission_cusd" text NOT NULL,
+  "status" text DEFAULT 'pending' NOT NULL,
+  "created_at" timestamptz DEFAULT now() NOT NULL,
+  FOREIGN KEY ("order_id") REFERENCES "orders"("id")
+);--> statement-breakpoint
+
 CREATE TABLE IF NOT EXISTS "agent_looks" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
   "agent_address" text NOT NULL,

@@ -62,4 +62,9 @@ export const listings = pgTable("listings", {
 
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+
+  // Timestamp when stock/price state was explicitly verified by an
+  // authoritative inventory event. This is intentionally nullable: legacy
+  // listings must not become agent-purchasable merely because metadata changed.
+  lastVerifiedAt: timestamp("last_verified_at", { withTimezone: true }),
 });

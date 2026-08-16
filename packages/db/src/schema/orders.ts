@@ -51,6 +51,8 @@ export const orders = pgTable("orders", {
   amountCusd: text("amount_cusd"),
   buyerAddress: text("buyer_address"),
   paymentTxHash: text("payment_tx_hash").unique(),
+  paymentMethod: text("payment_method"),
+  paymentAsset: text("payment_asset"),
   payoutTxHash: text("payout_tx_hash"),
 
   // M-Pesa settlement (site_buy orders only) — one ledger for all channels.
@@ -87,6 +89,9 @@ export const orders = pgTable("orders", {
 
   // Refund tracking (for stock-race cancellations or dispute resolutions)
   refundTxHash: text("refund_tx_hash"),
+  refundStatus: text("refund_status"),
+  refundAttempts: integer("refund_attempts").notNull().default(0),
+  refundLastError: text("refund_last_error"),
 
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

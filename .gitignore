@@ -75,6 +75,9 @@ scripts/*
 !scripts/seed-digital-curator.mjs
 !scripts/manus-research.mjs
 !scripts/youcam-tryon-smoke.mjs
+!scripts/check-db-migrations.mjs
+!scripts/check-db-runtime.mjs
+!scripts/check-live-db-schema.mjs
 !apps/web/scripts/test-upstash.mjs
 
 # Secrets (note: .synthesis-credentials is still tracked in git history —
