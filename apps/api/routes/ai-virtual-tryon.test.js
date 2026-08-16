@@ -148,4 +148,109 @@ PERSONALIZATION:
     });
     expect(result.latencyMs).toEqual(expect.any(Number));
   });
+
+  it('uses YouCam Apparel VTO first when configured (paid tier)', async () => {
+    process.env.YOUCAM_API_KEY = 'youcam-test-key';
+
+    global.fetch
+      // 1. File API init for the person photo (data URI upload path)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: 200,
+          data: {
+            files: [
+              {
+                file_id: 'src-file-id',
+                requests: [{ method: 'PUT', url: 'https://s3.example.com/upload-src' }],
+              },
+            ],
+          },
+        }),
+      })
+      // 2. Presigned PUT of the person photo bytes
+      .mockResolvedValueOnce({ ok: true })
+      // 3. cloth-v4 task creation (garment passed through as public URL)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ status: 200, data: { task_id: 'youcam-task-123' } }),
+      })
+      // 4. Task poll → success with render URL
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: 200,
+          data: {
+            task_status: 'success',
+            results: { url: 'https://youcam.example.com/render.jpg' },
+          },
+        }),
+      });
+
+    const result = await router.__test.buildGeneratedOutfitImageResponse({
+      provider: 'auto',
+      data: {
+        photoData: 'data:image/jpeg;base64,person',
+        items: [
+          {
+            name: 'Ankara set',
+            description: 'ankara print two-piece',
+            imageUrl: 'https://cdn.example.com/ankara.webp',
+          },
+        ],
+      },
+    });
+
+    expect(result).toMatchObject({
+      generatedImage: 'https://youcam.example.com/render.jpg',
+      provider: 'youcam-cloth-v4',
+      imageConditioned: true,
+      fallbackReason: null,
+      errorClass: null,
+      youcamTaskId: 'youcam-task-123',
+    });
+    expect(result.latencyMs).toEqual(expect.any(Number));
+  });
+
+  it('falls back to Replicate when YouCam rejects the API key', async () => {
+    process.env.YOUCAM_API_KEY = 'youcam-bad-key';
+    process.env.REPLICATE_API_TOKEN = 'replicate-test-token';
+
+    global.fetch
+      // YouCam File API init → 401 invalid key
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: async () => ({ status: 401, error: 'Invalid API key', error_code: 'InvalidAccessToken' }),
+      })
+      // Replicate prediction succeeds
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: 'succeeded',
+          output: 'https://replicate.delivery/result.webp',
+        }),
+      });
+
+    const result = await router.__test.buildGeneratedOutfitImageResponse({
+      provider: 'auto',
+      data: {
+        photoData: 'data:image/jpeg;base64,person',
+        items: [
+          {
+            name: 'Home kit',
+            description: 'red football shirt',
+            imageUrl: 'https://cdn.example.com/kit.webp',
+          },
+        ],
+      },
+    });
+
+    expect(result).toMatchObject({
+      generatedImage: 'https://replicate.delivery/result.webp',
+      provider: 'replicate-idm-vton',
+      imageConditioned: true,
+      fallbackReason: 'youcam_unavailable',
+    });
+  });
 });

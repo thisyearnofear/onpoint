@@ -74,6 +74,7 @@ scripts/*
 !scripts/prava-webhook-smoke.mjs
 !scripts/seed-digital-curator.mjs
 !scripts/manus-research.mjs
+!scripts/youcam-tryon-smoke.mjs
 !apps/web/scripts/test-upstash.mjs
 
 # Secrets (note: .synthesis-credentials is still tracked in git history —
@@ -93,8 +94,11 @@ deploy/*SUMMARY.md
 HETZNER_CONFIG.md
 dump.rdb
 
-# Demo videos (local-only, too large for repo; wire in via URL if needed)
+# Demo videos and demo media artifacts (local-only, too large for repo; wire in via URL if needed)
 apps/web/public/demo/
+/video/
+/videos/
+/media/
 
 # Curator custodial payout keys — server-only, never commit
 curator-payout-keys.json

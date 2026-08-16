@@ -1,7 +1,9 @@
 # AGENTS.md — OnPoint Agent Commerce Guide
 
-> **OnPoint** is the execution layer for fashion intent that needs fit, real stock, and local pay.
-> Humans shop on branded storefronts with AI try-on. Agents hit the **same inventory** via API, x402 try-on, and on-chain checkout.
+> **OnPoint** is the trusted execution rail for agentic fashion commerce: fit-aware, machine-readable, locally payable offers over real merchant inventory.
+> Humans shop on branded storefronts with AI try-on. Agents execute against the **same inventory** via structured offers, paid try-on, checkout, and receipts.
+>
+> Fashion is the current wedge—not a claim that this is already a generic commerce OS. The larger opportunity is agent-ready execution infrastructure for fit-sensitive physical goods; this guide documents the fashion proof point.
 >
 > **Live:** https://beonpoint.netlify.app · **API:** https://api.onpoint.famile.xyz · **Manifest:** https://beonpoint.netlify.app/.well-known/agent.json
 >
@@ -11,19 +13,25 @@
 
 ---
 
+## What this guide proves
+
+The API is designed to make a fashion offer executable, not merely recommendable: identity, product data, size/stock, price, fit evidence, payment, payout, and outcome are connected. A documented endpoint or self-check proves capability; it does not by itself prove repeated third-party usage or fulfillment at scale. See the evidence boundary in [`docs/STRATEGY.md`](./docs/STRATEGY.md).
+
+**Status legend:** `implemented` means the source path exists; `deployed` means it is available in a configured environment; `live-validated` means a real provider/chain path has been exercised; `repeatedly proven` requires independent agents, merchants, and outcomes at meaningful volume. This guide primarily documents the first two levels and selected live validations.
+
 ## Base URLs
 
-| Environment | URL |
-|-------------|-----|
-| Web app | https://beonpoint.netlify.app |
-| API (Hetzner) | https://api.onpoint.famile.xyz |
-| OpenAPI | https://beonpoint.netlify.app/openapi.json |
-| Chain (primary) | Celo mainnet (chainId 42220) |
-| Chain (OKX facade) | XLayer mainnet (chainId 196, `eip155:196`) |
-| Payment tokens | cUSD, USDC (Celo) · USD₮0 (XLayer) |
-| x402 facilitator (Celo) | https://api.x402.celo.org (EIP-3009, gasless) |
-| x402 facilitator (OKX) | https://web3.okx.com/api/v6/pay/x402 (OKX SDK, HMAC auth) |
-| OKX marketplace | Listed as ASP on OKX.AI (agent ID 9874) |
+| Environment             | URL                                                       |
+| ----------------------- | --------------------------------------------------------- |
+| Web app                 | https://beonpoint.netlify.app                             |
+| API (Hetzner)           | https://api.onpoint.famile.xyz                            |
+| OpenAPI                 | https://beonpoint.netlify.app/openapi.json                |
+| Chain (primary)         | Celo mainnet (chainId 42220)                              |
+| Chain (OKX facade)      | XLayer mainnet (chainId 196, `eip155:196`)                |
+| Payment tokens          | cUSD, USDC (Celo) · USD₮0 (XLayer)                        |
+| x402 facilitator (Celo) | https://api.x402.celo.org (EIP-3009, gasless)             |
+| x402 facilitator (OKX)  | https://web3.okx.com/api/v6/pay/x402 (OKX SDK, HMAC auth) |
+| OKX marketplace         | Listed as ASP on OKX.AI (agent ID 9874)                   |
 
 ---
 
@@ -67,7 +75,7 @@ POST /api/agent/try-on
 { "curatorSlug": "nia", "listingId": "abc123", "photoData": "data:image/jpeg;base64,..." }
 ```
 
-Response: **HTTP 402** → pay cUSD fee → re-POST with `paymentTxHash` → **HTTP 200** with try-on render, fit signal, and polaroid (shareable artifact with `imageUrl` and `webUrl`).
+Response: **HTTP 402** → pay the cUSD fee by default, or use an eligible gasless USDC facilitator challenge via `X-PAYMENT` → re-POST → **HTTP 200** with try-on render, fit signal, and polaroid (shareable artifact with `imageUrl` and `webUrl`). The facilitator option is endpoint- and eligibility-scoped; it does not apply to physical order checkout.
 
 Includes `revenueHint` showing economics. Digital listings also return `similarPhysicalItems`.
 
@@ -82,7 +90,7 @@ POST /api/curator/{slug}/order
 
 Response: **HTTP 402** → transfer cUSD to `payTo` (append `dataSuffix` for attribution) → re-POST with `paymentTxHash` + `quoteId` → **HTTP 201** with order confirmation, Celoscan links, a receipt at `/receipt/{receiptId}`, and storefront URL.
 
-Also supports USDC via x402 facilitator (gasless) using `X-PAYMENT` header.
+**Current order rail:** cUSD on Celo via `paymentTxHash` + `quoteId`. The order route currently rejects `X-PAYMENT`/USDC facilitator checkout until treasury conversion and liquidity policy are explicitly enabled. USDC facilitator support remains documented for eligible try-on/facade paths, not as an active order guarantee.
 
 If purchase includes referral code (`X-Referral-Code` header or `?referral=` query param), referring agent earns 2.5% commission.
 
@@ -111,6 +119,7 @@ Anyone with a wallet can compose OnPoint listings into shareable **looks** (styl
 ### Create a Look
 
 **Auth (two paths):**
+
 1. **Agent**: `x-agent-address` header
 2. **Curator**: `x-curator-slug` + `x-curator-whatsapp` headers (WhatsApp verification — the curator's wallet address is used as the creator)
 
@@ -163,24 +172,33 @@ Looks are discoverable through multiple paths:
 The `@repo/agent-core` package exports typed SDK functions for the looks API:
 
 ```typescript
-import { browseLooks, getLook, createLook, classifyLook } from '@repo/agent-core';
+import {
+  browseLooks,
+  getLook,
+  createLook,
+  classifyLook,
+} from "@repo/agent-core";
 
 // Browse with filters
-const looks = await browseLooks({ category: 'streetwear', season: 'summer', limit: 10 });
+const looks = await browseLooks({
+  category: "streetwear",
+  season: "summer",
+  limit: 10,
+});
 
 // Get a single look with resolved items
-const look = await getLook('weekend-street-fit-n19o');
+const look = await getLook("weekend-street-fit-n19o");
 
 // Create a look (requires auth headers on the agent-api client)
 const { id, slug } = await createLook({
-  title: 'Weekend Street Fit',
-  listingIds: ['uuid1', 'uuid2', 'uuid3'],
-  heroListingId: 'uuid1',
-  tags: ['streetwear', 'casual'],
+  title: "Weekend Street Fit",
+  listingIds: ["uuid1", "uuid2", "uuid3"],
+  heroListingId: "uuid1",
+  tags: ["streetwear", "casual"],
 });
 
 // Reclassify metadata
-const { metadata } = await classifyLook('weekend-street-fit-n19o');
+const { metadata } = await classifyLook("weekend-street-fit-n19o");
 ```
 
 Also available: `updateLook`, `deleteLook`, `regenerateCollage`. See [`packages/agent-core/src/looks-api.ts`](./packages/agent-core/src/looks-api.ts) for full type definitions.
@@ -215,9 +233,9 @@ Each look has a `metadata` field with structured classification:
 ```json
 {
   "metadata": {
-    "category": "streetwear",    // streetwear, casual, formal, event, sport, vintage, ankara, sustainable
-    "occasion": "casual",        // casual, formal, event, sport, outdoor, travel, date-night
-    "season": "all-season"       // spring, summer, fall, winter, all-season
+    "category": "streetwear", // streetwear, casual, formal, event, sport, vintage, ankara, sustainable
+    "occasion": "casual", // casual, formal, event, sport, outdoor, travel, date-night
+    "season": "all-season" // spring, summer, fall, winter, all-season
   }
 }
 ```
@@ -254,6 +272,7 @@ POST /api/looks/bulk             # bulk archive/publish/delete (creator only)
 ```
 
 **Bulk actions** — apply an action to multiple looks at once:
+
 ```bash
 POST /api/looks/bulk
 Headers: x-agent-address: 0x...
@@ -262,6 +281,7 @@ Body: { "action": "archive", "slugs": ["slug1", "slug2", "slug3"] }
 ```
 
 **Drafts** — save incomplete looks and publish later:
+
 ```bash
 POST /api/looks  Body: { ..., "status": "draft" }   # save as draft
 PATCH /api/looks/:slug  Body: { "status": "live" }   # publish a draft
@@ -269,6 +289,7 @@ GET /api/looks?status=draft                          # list your drafts (auth-sc
 ```
 
 **403 error format** — includes diagnostic context for self-correction:
+
 ```json
 {
   "error": "Not the look owner",
@@ -293,6 +314,7 @@ POST /api/agent/try-on
 ```
 
 The share card includes:
+
 - Hero: the try-on render (face + outfit)
 - Strip: thumbnails of other items in the look
 - Footer: "Styled by 0xABCD..." + OnPoint branding + look URL
@@ -309,22 +331,22 @@ The card is stored in R2 and returned as `shareCard.imageUrl`.
 
 ## Pricing
 
-| Action | Cost | Split |
-|--------|------|-------|
-| Browse directory + storefronts | Free | — |
-| Web try-on (free tier) | Free (Venice SD35, rate-limited) | Platform subsidizes (~$0.015/call) |
-| Digital try-on (agent, paid) | $0.03 cUSD | 80% curator / 20% platform |
-| Physical try-on (agent, paid) | $0.05 cUSD | 95% curator / 5% platform |
-| Physical order | Listing price (KES -> cUSD) | 95% curator / 5% platform |
-| Referral commission | 2.5% of order value | Paid to referring agent |
-| NFT mint | $0.10 cUSD | 85% creator / 15% platform |
+| Action                         | Cost                             | Split                              |
+| ------------------------------ | -------------------------------- | ---------------------------------- |
+| Browse directory + storefronts | Free                             | —                                  |
+| Web try-on (free tier)         | Free (Venice SD35, rate-limited) | Platform subsidizes (~$0.015/call) |
+| Digital try-on (agent, paid)   | $0.03 cUSD                       | 80% curator / 20% platform         |
+| Physical try-on (agent, paid)  | $0.05 cUSD                       | 95% curator / 5% platform          |
+| Physical order                 | Listing price (KES -> cUSD)      | 95% curator / 5% platform          |
+| Referral commission            | 2.5% of order value              | Paid to referring agent            |
+| NFT mint                       | $0.10 cUSD                       | 85% creator / 15% platform         |
 
 ### Two-Tier Try-On Quality
 
-| Tier | Who | Model | Quality | Rate limit |
-|------|-----|-------|---------|------------|
-| Free (web) | Web users | Venice SD35 | Text-to-image "similar look" — not the actual garment | 5/min, 20/day per IP |
-| Paid (agent) | Agents via x402 | Replicate IDM-VTON | Image-conditioned — actual garment on actual person | 5/min, 20/day per IP |
+| Tier         | Who             | Model              | Quality                                               | Rate limit           |
+| ------------ | --------------- | ------------------ | ----------------------------------------------------- | -------------------- |
+| Free (web)   | Web users       | Venice SD35        | Text-to-image "similar look" — not the actual garment | 5/min, 20/day per IP |
+| Paid (agent) | Agents via x402 | YouCam cloth-v4 → Replicate IDM-VTON | Image-conditioned — actual garment on actual person (YouCam Apparel VTO preferred when `YOUCAM_API_KEY` is set; falls back to Replicate, then Venice) | 5/min, 20/day per IP |
 
 The free tier gives users a visual of "how they'd look in this style." The paid tier shows the actual garment on the person's photo — the accurate pre-purchase check. The quality gap is the reason to pay.
 
@@ -342,10 +364,10 @@ OnPoint is registered as an **Agent Service Provider (ASP)** on [OKX.AI](https:/
 
 ### Two Payment Worlds, Same Inventory
 
-| Path | Chain | Token | Endpoint | Who uses it |
-|------|-------|-------|----------|-------------|
+| Path                      | Chain        | Token       | Endpoint            | Who uses it              |
+| ------------------------- | ------------ | ----------- | ------------------- | ------------------------ |
 | **Celo direct** (default) | Celo (42220) | cUSD / USDC | `/api/agent/try-on` | Agents with Celo wallets |
-| **OKX facade** (A2MCP) | XLayer (196) | USD₮0 | `/okx/try-on` | OKX Agentic Wallet users |
+| **OKX facade** (A2MCP)    | XLayer (196) | USD₮0       | `/okx/try-on`       | OKX Agentic Wallet users |
 
 The OKX facade (`/okx/*`) relays to the same Celo backend — same inventory, same try-on engine, same fit signal. The only difference is the payment rail.
 
@@ -378,15 +400,17 @@ Every `POST /okx/*` returns `HTTP 402` with a `PAYMENT-REQUIRED` response header
     "description": "OnPoint virtual try-on — ...",
     "mimeType": "application/json"
   },
-  "accepts": [{
-    "scheme": "exact",
-    "network": "eip155:196",
-    "asset": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
-    "amount": "50000",
-    "payTo": "0x5e32740122999bb98a50055d68593f94d2a0711e",
-    "maxTimeoutSeconds": 300,
-    "extra": { "name": "USD₮0", "version": "1", "decimals": 6 }
-  }]
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "eip155:196",
+      "asset": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+      "amount": "50000",
+      "payTo": "0x5e32740122999bb98a50055d68593f94d2a0711e",
+      "maxTimeoutSeconds": 300,
+      "extra": { "name": "USD₮0", "version": "1", "decimals": 6 }
+    }
+  ]
 }
 ```
 
@@ -397,6 +421,7 @@ Every `POST /okx/*` returns `HTTP 402` with a `PAYMENT-REQUIRED` response header
 ### Self-Check (No Credentials)
 
 The facade runs in **self-check mode** when OKX facilitator credentials (`OKX_API_KEY`/`OKX_SECRET_KEY`/`OKX_PASSPHRASE`) are not set. In this mode:
+
 - 402 challenges are valid and spec-compliant (pass `onchainos agent x402-check`)
 - Payment verification + on-chain settlement are not performed
 - The ASP is listed and discoverable on OKX.AI
@@ -452,13 +477,13 @@ BUYER_PRIVATE_KEY=0x... node scripts/agent-buyer.mjs
 
 ## What Does NOT Need a Human Curator Wallet
 
-| Capability | Needs curator wallet? | Notes |
-|------------|---------------------|-------|
-| Digital try-on (Nia) | No | Nia is platform-owned with custodial wallet |
-| NFT minting | No | 85/15 split via 0xSplits |
-| Browse storefront pages | No | `/s/{slug}` is browsable; WhatsApp checkout works |
-| Agent physical orders | Yes | Requires `agentPurchasable` = wallet + live physical SKUs |
-| Physical try-on to curator | Yes (or revenue goes to platform) | Without wallet, try-on fees default to platform |
+| Capability                 | Needs curator wallet?             | Notes                                                     |
+| -------------------------- | --------------------------------- | --------------------------------------------------------- |
+| Digital try-on (Nia)       | No                                | Nia is platform-owned with custodial wallet               |
+| NFT minting                | No                                | 85/15 split via 0xSplits                                  |
+| Browse storefront pages    | No                                | `/s/{slug}` is browsable; WhatsApp checkout works         |
+| Agent physical orders      | Yes                               | Requires `agentPurchasable` = wallet + live physical SKUs |
+| Physical try-on to curator | Yes (or revenue goes to platform) | Without wallet, try-on fees default to platform           |
 
 ---
 
@@ -473,25 +498,29 @@ BUYER_PRIVATE_KEY=0x... node scripts/agent-buyer.mjs
 
 ## Links
 
-| Resource | URL |
-|----------|-----|
-| Strategy | [docs/STRATEGY.md](./docs/STRATEGY.md) |
-| Architecture | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) |
-| OpenAPI contract | [apps/web/public/openapi.json](./apps/web/public/openapi.json) |
-| Agent commerce guide | [docs/guides/agent-commerce.md](./docs/guides/agent-commerce.md) |
-| Referral tracking guide | [docs/guides/referral-tracking.md](./docs/guides/referral-tracking.md) |
-| Agent commerce ADR | [docs/adr/0010-agent-storefront-checkout.md](./docs/adr/0010-agent-storefront-checkout.md) |
-| Digital curators ADR | [docs/adr/0011-erc8004-registration-and-digital-curators.md](./docs/adr/0011-erc8004-registration-and-digital-curators.md) |
-| Pricing ADR | [docs/adr/0013-pricing-strategy-and-agent-revenue-model.md](./docs/adr/0013-pricing-strategy-and-agent-revenue-model.md) |
-| x402 facilitator ADR | [docs/adr/0012-x402-facilitator-integration.md](./docs/adr/0012-x402-facilitator-integration.md) |
-| OKX A2MCP facade ADR | [docs/adr/0016-okx-a2mcp-facade.md](./docs/adr/0016-okx-a2mcp-facade.md) |
+| Resource                      | URL                                                                                                                                          |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Strategy                      | [docs/STRATEGY.md](./docs/STRATEGY.md)                                                                                                       |
+| Architecture                  | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)                                                                                               |
+| OpenAPI contract              | [apps/web/public/openapi.json](./apps/web/public/openapi.json)                                                                               |
+| Agent commerce guide          | [docs/guides/agent-commerce.md](./docs/guides/agent-commerce.md)                                                                             |
+| Referral tracking guide       | [docs/guides/referral-tracking.md](./docs/guides/referral-tracking.md)                                                                       |
+| Agent commerce ADR            | [docs/adr/0010-agent-storefront-checkout.md](./docs/adr/0010-agent-storefront-checkout.md)                                                   |
+| Digital curators ADR          | [docs/adr/0011-erc8004-registration-and-digital-curators.md](./docs/adr/0011-erc8004-registration-and-digital-curators.md)                   |
+| Pricing ADR                   | [docs/adr/0013-pricing-strategy-and-agent-revenue-model.md](./docs/adr/0013-pricing-strategy-and-agent-revenue-model.md)                     |
+| x402 facilitator ADR          | [docs/adr/0012-x402-facilitator-integration.md](./docs/adr/0012-x402-facilitator-integration.md)                                             |
+| OKX A2MCP facade ADR          | [docs/adr/0016-okx-a2mcp-facade.md](./docs/adr/0016-okx-a2mcp-facade.md)                                                                     |
 | Monetization ADR (x402-first) | [docs/adr/0018-x402-first-monetization-and-deferred-subscriptions.md](./docs/adr/0018-x402-first-monetization-and-deferred-subscriptions.md) |
-| OKX facade route | [apps/api/routes/okx-facade.js](./apps/api/routes/okx-facade.js) |
-| Celo Builders hackathon | [docs/CELO-BUILDERS-HACKATHON.md](./docs/CELO-BUILDERS-HACKATHON.md) |
-| Qwen Cloud hackathon | [docs/QWEN-CLOUD-HACKATHON.md](./docs/QWEN-CLOUD-HACKATHON.md) |
-| Reference buyer | [scripts/agent-buyer.mjs](./scripts/agent-buyer.mjs) |
-| Reference try-on | [scripts/agent-tryon.mjs](./scripts/agent-tryon.mjs) |
-| Reference looks CLI | [scripts/agent-looks.mjs](./scripts/agent-looks.mjs) |
-| Looks SDK | [packages/agent-core/src/looks-api.ts](./packages/agent-core/src/looks-api.ts) |
-| Supply readiness check | [scripts/agent-commerce-ready.mjs](./scripts/agent-commerce-ready.mjs) |
-| Curator imagery guide | [docs/guides/curator-imagery.md](./docs/guides/curator-imagery.md) |
+| OKX facade route              | [apps/api/routes/okx-facade.js](./apps/api/routes/okx-facade.js)                                                                             |
+| Celo Builders hackathon       | [docs/CELO-BUILDERS-HACKATHON.md](./docs/CELO-BUILDERS-HACKATHON.md)                                                                         |
+| Qwen Cloud hackathon          | [docs/QWEN-CLOUD-HACKATHON.md](./docs/QWEN-CLOUD-HACKATHON.md)                                                                               |
+| YouCam API hackathon          | [docs/YOUCAM-HACKATHON.md](./docs/YOUCAM-HACKATHON.md)                                                                                       |
+| Reference buyer               | [scripts/agent-buyer.mjs](./scripts/agent-buyer.mjs)                                                                                         |
+| Reference try-on              | [scripts/agent-tryon.mjs](./scripts/agent-tryon.mjs)                                                                                         |
+| Reference looks CLI           | [scripts/agent-looks.mjs](./scripts/agent-looks.mjs)                                                                                         |
+| Looks SDK                     | [packages/agent-core/src/looks-api.ts](./packages/agent-core/src/looks-api.ts)                                                               |
+| Supply readiness check        | [scripts/agent-commerce-ready.mjs](./scripts/agent-commerce-ready.mjs)                                                                       |
+| Listing readiness audit       | [scripts/trusted-offer-audit.mjs](./scripts/trusted-offer-audit.mjs)                                                                         |
+| Merchant onboarding scorecard | [docs/guides/merchant-onboarding-scorecard.md](./docs/guides/merchant-onboarding-scorecard.md)                                               |
+| Weekly pilot report           | [docs/guides/weekly-pilot-report.md](./docs/guides/weekly-pilot-report.md)                                                                   |
+| Curator imagery guide         | [docs/guides/curator-imagery.md](./docs/guides/curator-imagery.md)                                                                           |

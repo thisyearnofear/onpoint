@@ -12,6 +12,7 @@ const OpenAI = require('openai');
 const crypto = require('crypto');
 const logger = require('../lib/logger');
 const { logFunnelEvent } = require('../lib/funnel');
+const youcamVto = require('../lib/youcam-vto');
 
 // ── Caching: fingerprint photo data to avoid redundant Venice API calls ──
 let redis = null;
@@ -595,9 +596,74 @@ async function buildGeneratedOutfitImageResponse({ data, provider, tier = 'paid'
   const garmentImage = data && data.items && data.items[0] ? data.items[0].imageUrl || data.items[0].productSrc || data.items[0].cover : null;
   const outfitDescription = data && data.items ? data.items.map((item) => `${item.name}: ${item.description || ''}`).join(', ') : '';
 
-  // tier: 'paid' (agent) → Replicate IDM-VTON first (accurate garment placement, ~$0.024)
+  // tier: 'paid' (agent) → YouCam Apparel VTO first when configured (hackathon
+  //                         provider; generative, garment-conditioned), then
+  //                         Replicate IDM-VTON (~$0.024), then Venice fallback
   //       'free' (web)   → Venice SD35 first (cheaper, ~$0.015, not garment-conditioned)
   const useReplicateFirst = tier === 'paid';
+
+  if (useReplicateFirst && humanImage && garmentImage && youcamVto.isConfigured()) {
+    try {
+      const youcam = await youcamVto.tryOn({
+        personImage: humanImage,
+        garmentImage,
+        garmentCategory: 'auto',
+      });
+      const generatedImage = youcam.renderUrl;
+
+      let structuredTips = [];
+      let stylingTips = [
+        'Compare the rendered garment against your original pose to judge proportion and fit.',
+        'Check the shoulder and waist alignment first; those areas reveal the most about fit.',
+        'Use the generated image as direction, then verify fabric and sizing on the product page.',
+      ];
+
+      if (personDescription) {
+        const tipsResponse = await generateText({
+          prompt: `Styling tips for this image-conditioned virtual try-on: ${personDescription} wearing ${outfitDescription}. Return JSON: [{"text": "...", "action": {...}}]`,
+          provider,
+          geminiModel: 'gemini-3.1-flash-lite-preview',
+          openaiModel: 'gpt-4o',
+        });
+        const parsed = extractStructuredStylingTips(tipsResponse.text || '');
+        stylingTips = parsed.textTips;
+        structuredTips = parsed.structuredTips;
+      }
+
+      const result = {
+        generatedImage,
+        enhancedOutfit: (data && data.items) || [],
+        stylingTips,
+        structuredTips,
+        provider: 'youcam-cloth-v4',
+        imageConditioned: true,
+        fallbackReason: null,
+        latencyMs: Date.now() - startedAt,
+        errorClass: null,
+        youcamTaskId: youcam.taskId,
+      };
+      logger.info('Virtual try-on provider outcome', {
+        component: 'virtual-tryon',
+        action: 'generate-outfit-image',
+        provider: result.provider,
+        imageConditioned: result.imageConditioned,
+        fallbackReason: result.fallbackReason,
+        latencyMs: result.latencyMs,
+        errorClass: result.errorClass,
+      });
+      return result;
+    } catch (error) {
+      fallbackReason = 'youcam_unavailable';
+      errorClass = error?.name || 'YouCamError';
+      logger.warn('YouCam Apparel VTO failed, falling back to Replicate IDM-VTON', {
+        component: 'virtual-tryon',
+        error: error.message,
+        errorClass,
+        youcamErrorCode: error?.youcamErrorCode || null,
+        taskId: error?.taskId || null,
+      });
+    }
+  }
 
   if (useReplicateFirst && humanImage && garmentImage && process.env.REPLICATE_API_TOKEN) {
     try {
@@ -636,7 +702,9 @@ async function buildGeneratedOutfitImageResponse({ data, provider, tier = 'paid'
         structuredTips,
         provider: 'replicate-idm-vton',
         imageConditioned: true,
-        fallbackReason: null,
+        // Preserve an earlier fallbackReason (e.g. 'youcam_unavailable'):
+        // Replicate winning the fallback still records why we fell back.
+        fallbackReason,
         latencyMs: Date.now() - startedAt,
         errorClass: null,
       };
@@ -983,6 +1051,7 @@ module.exports.engine = {
   // listing or x402 payment — the "try-on-before-agent-buys" demo leg.
   runReplicatePrediction,
   IDM_VTON_VERSION,
+  youcamVto,
 };
 module.exports.__test = {
   parseJsonObject,

@@ -11,6 +11,9 @@
  */
 
 const PROVIDER_COSTS = {
+  // YouCam Apparel VTO (Perfect Corp): priced in API units; ~$0.05/render
+  // estimated at 1 unit ≈ $0.055 — recalibrate after first live runs.
+  'youcam-cloth-v4': '0.05',
   'replicate-idm-vton': '0.024',
   'venice-image': '0.015',
   'venice-vision': '0.004',
