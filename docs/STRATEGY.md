@@ -1,325 +1,335 @@
 # OnPoint Strategic Direction
 
-**Last Updated**: 2026-07-10  
-**Status**: Canonical product strategy — other docs defer here for vision, phases, and metrics.  
-**Phase 1 ops:** [PHASE1_AUDIT.md](./PHASE1_AUDIT.md) · [guides/agent-commerce.md](./guides/agent-commerce.md) · `node scripts/agent-commerce-ready.mjs`
+**Last updated:** 2026-08-10
+**Status:** Canonical product strategy. Other docs defer here for positioning, phases, metrics, and expansion decisions.
+**Current evidence note:** Infrastructure was repaired and verified on 2026-08-10, but no current merchant, demand, fulfillment, or revenue figures are asserted here. Use the Phase 1 audit and weekly pilot report for refreshed evidence.
+
+> **Build as if fashion is the company; architect as if fashion is the first vertical.**
 
 ---
 
-## North Star
+## 1. The thesis
 
-> **Become the default execution layer for fashion intent that needs fit + real stock + local pay.**
+### Company-level opportunity
 
-Humans resolve intent on branded storefronts (`/s/[slug]`) with try-on → WhatsApp / M-Pesa.  
-Machines resolve the **same inventory** via storefront APIs, x402 try-on, and agent checkout.
+AI agents will not safely execute physical commerce from shallow product feeds. They need specialized execution rails that understand the product, the buyer, the merchant, the quote, and the payment context.
 
-**Curators are how we get truthful supply** (photos, sizes, stock, settlement).  
-**Agents (and human shoppers) are how demand reaches that supply.**  
-Neither persona *is* the company — the scarce asset is the **fit-aware, locally payable, agent-addressable supply graph**.
+### Product today
+
+**OnPoint is the trusted execution rail for agentic fashion commerce.** It turns live fashion inventory into fit-aware, machine-readable, locally payable offers for both human shoppers and AI agents.
+
+> **Fit before you buy — for people and agents.**
+
+Humans use branded storefronts with AI try-on and WhatsApp/M-Pesa checkout. Agents use the same inventory through structured storefront APIs, paid try-on, permissioned checkout, and verifiable receipts.
+
+### Long-term opportunity
+
+Fashion is the first and hardest proof point for a broader category:
+
+> **Agent-ready execution infrastructure for fit-sensitive physical goods.**
+
+This is not a decision to become a generic commerce API now. The platform abstraction must be earned through real fashion supply, real agent usage, and real transaction outcomes. Expand only when another category pulls the primitives out of the fashion network.
 
 ```text
-Intent (human or agent)
+Messy merchant inventory
         ↓
-   Fit + size signal (try-on)
+Structured, fresh, agent-readable offer
         ↓
-   Truthful stock (curator listings)
+Fit and purchase confidence
         ↓
-   Local settlement (M-Pesa / WhatsApp | cUSD x402)
+Permissioned local checkout
         ↓
-   Curator payout + attribution
+Fulfillment, payout, receipt, and outcome data
 ```
 
 ---
 
-## What We Are (and Are Not)
+## 2. What we are—and are not
 
-| We are | We are not |
-|--------|------------|
-| Fashion **supply + fit rail** with two clients (human UI + agent API) | A horizontal “AI stylist” app competing with ChatGPT shopping |
-| Beachhead: WhatsApp-era fashion inventory in emerging markets (KES, M-Pesa, chat-ops) | Only a WhatsApp seller CMS |
-| Category specialist agents must call when fit + local pay matter | Only “our” shopping agent in `/lab` |
-| Enhancement of Engine + Cast + dual Loop (ADR 0002 layers) | A rebuild or third product surface |
+| We are                                                                           | We are not                                                                         |
+| -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| A vertical execution rail for fit-sensitive fashion commerce                     | A generic AI shopping assistant competing with ChatGPT, Google, Amazon, or Shopify |
+| A shared human storefront + machine-readable catalog over one inventory          | A virtual try-on novelty disconnected from stock or checkout                       |
+| A way to make messy, WhatsApp-era merchant supply agent-executable               | Only a WhatsApp seller CMS                                                         |
+| A category specialist that agents call when fit, freshness, and local pay matter | Generic payment infrastructure or an x402 wrapper                                  |
+| A fashion wedge that may become a broader execution platform                     | A horizontal “picks and shovels” company before the mine is proven                 |
 
-**Tagline (working):** Fit before you buy — for people and agents.
+The product is not the `/lab` agent dashboard. The product is the underlying network: truthful supply, fit evidence, executable offers, settlement, distribution, and outcome data.
 
----
+### The strategic distinction
 
-## Roles (not a primary-customer hierarchy)
-
-| Role | Job in the system | Product implication |
-|------|-------------------|---------------------|
-| **Curators** (human / AI / digital) | Supply + taste + ops + looks | Onboard density, stock truth, chat-ops, payout wallets. Can create looks from own inventory and link agents for distribution |
-| **Human shoppers** | Demand via storefront / try-on | No wallet/Auth0 before first try-on; WhatsApp/M-Pesa checkout |
-| **External agents** | Demand via API + looks | Discoverable offers, paid try-on, checkout success, look creation (style boards with shareable collage cards), third-party usage |
-| **OnPoint platform** | Match + fit + settlement + distribution | Take rate, try-on fees, attribution, referral payouts — not Lab demos |
-
-Own-agent wallet / missions / NFT chrome in `/lab` is **infrastructure and power-user tooling**, not the hero narrative.
+- **Wedge:** fashion inventory with fit, stock, and local payment complexity.
+- **Proof point:** the end-to-end fashion product demonstrates that agents can move from intent to a safe, successful purchase.
+- **Potential platform:** the normalized catalog, freshness, fit, quote, permission, checkout, and outcome primitives can later serve adjacent categories.
+- **Current constraint:** the network has to earn this abstraction with supply density and external usage.
 
 ---
 
-## Current Status (production beta)
+## 3. Why this market now
 
-- 9 human curator archetypes seeded; 1 digital curator (Nia Digital) with digital→physical funnel
-- Agent commerce live on Celo: x402 try-on, storefront checkout, curator splits ([ADR 0010](./adr/0010-agent-storefront-checkout.md), [ADR 0011](./adr/0011-erc8004-registration-and-digital-curators.md))
-- Human loop live: `/s/[slug]`, WhatsApp/M-Pesa, try-on, polaroids
-- Product clarity: homepage dual CTAs (shop + supply); Lab demoted from primary hero; navigation unified via `OnPointHeader`
-- Directory truth: `agentPurchasable` = wallet + live physical SKUs ([guides/agent-commerce.md](./guides/agent-commerce.md))
-- **Revenue without human curator wallets**: digital try-on ($0.03, Nia), NFT minting ($0.10), agent markup model. Human storefront pages (`/s/[slug]`) are browsable and WhatsApp-checkout-able even without a wallet — curators can share their link before going agent-live.
-- **Curator gating**: human curators are hidden from the agent directory until they self-serve and set up a payout wallet (`activatedAt` + `agentPurchasable`). `?includeInactive=1` shows all for admin/nudge purposes. Curator identity is currently trust-based (admin-seeded or self-applied via `/curator/onboard`); WhatsApp number is the primary trust signal. Production needs WhatsApp OTP / social proof verification.
-- **Agent looks + share cards live**: agents compose listings into shareable style boards (`/look/:slug`); try-on via a look generates an Instagram-ready 1080x1350 collage card; referral payout worker auto-settles 2.5% commissions every 30 min
-- Binding constraint: **payout wallets on stocked curators + third-party agent calls** (see [PHASE1_AUDIT.md](./PHASE1_AUDIT.md) prod snapshot)
-- Codebase hygiene: dead code removed, homepage decomposed, ADR 0014 filed for demand-side discovery component rewiring
+The supplied market research points to two related problems. The first is large and established; the second is newer and strategically differentiated.
 
----
+### 3.1 Fit and size create an expensive failure mode
 
-## What's Built (surfaces)
+The research notes cite:
 
-Detail lives in [FEATURES.md](./FEATURES.md) and ADRs. Strategy-level map:
+- **Coresight (2023):** 24.4% average online apparel return rate; size/fit represented 53% of stated return reasons.
+- **Springer, Journal of Business Economics (2021):** in a sample of 8,393 shoppers, 87.1% of fashion returns were attributed to “item does not fit.”
+- **Coresight × Alvanon (May 2026):** sizing/fit was estimated at roughly 70% of returns; the US online apparel/footwear market was estimated at $201.1B in 2025, implying approximately $47.1B at a 23.4% return rate.
 
-| Surface | Role |
-|---------|------|
-| `/s/[slug]` + storefront API | **Canonical catalog** — human HTML + machine offers, one inventory |
-| Try-on (web + `POST /api/agent/try-on`) | **Fit rail** — size/fit signal; digital→physical matching |
-| `/look/[slug]` + `POST /api/looks` | **Distribution layer** — agent-composed style boards with shareable try-on collage cards. Viral loop: agent creates look → visitor tries on → gets Instagram-ready collage → shares → followers discover → try on / buy → agent earns 2.5% referral, curator earns 95% on sale |
-| `/curator`, onboard, admin, WhatsApp ingest | **Supply acquisition & ops** (admin wallet editor) |
-| `/.well-known/agent.json`, directory, x402 order | **Agent demand path** |
-| `/`, `/lab`, `/shop` | Marketing + power surfaces — Lab is not the hero; uses `OnPointHeader` |
-| `/style`, `/collage`, `/social` | **Removed** — redirects to Lab try-on or `/curators`. Demand-side discovery components (LooksFaceoff, CommunityPanel) quarantined per [ADR 0014](./adr/0014-demand-side-discovery-components.md) for Phase 2 rewiring. Agent looks (`/look/:slug`) is the successor — agent-driven distribution, not a user-facing design studio |
+The exact estimates vary by methodology. The durable conclusion is simpler: **fit uncertainty is a major, costly failure mode in online fashion.**
 
-Infrastructure: Vercel/Netlify (presentation) + Hetzner (API, worker, signer, bridge) — [ADR 0001](./adr/0001-backend-first-autonomy.md). Monitoring: [MONITORING.md](./MONITORING.md).
+### 3.2 Agents penalize incomplete and stale commerce data
 
----
+This is the more differentiated wedge. The supplied 2026 research notes cite:
 
-## Phased Focus
+- **Coresight × Alvanon:** AI agents rely on structured, machine-readable data and penalize brands with inconsistent or incomplete sizing information.
+- **Hexagon/Adobe (2026):** AI-referred retail traffic rose sharply year over year; products with complete schema were cited more often, while missing or invalid fields could disqualify products.
+- **DataFeedWatch (March 2026):** high-scoring feeds showed materially higher citation rates; low-quality feeds were effectively invisible.
+- **Shopti (July 2026):** missing core fields and stale custom feeds were associated with materially lower AI citation.
 
-Phases optimize the **supply graph**, not a single persona. Prerequisites are readiness gates, not “finish sellers before touching agents.”
+These figures are **research inputs, not yet independently verified in this repository**. The supplied notes did not include source URLs. Before external publication, attach the original links, confirm definitions and samples, and avoid presenting vendor-specific multipliers as universal facts.
 
-### Phase 1: Supply Graph Readiness (Q3 2026 — CURRENT)
+The strategic implication does not depend on any single multiplier:
 
-**Goal:** Enough fit-aware, agent-commerce-enabled inventory that a third party can try on and buy with high success — while humans keep converting on WhatsApp.
+> As agents become a meaningful demand channel, catalog completeness, freshness, and executable purchase context become eligibility signals—not merely merchandising hygiene.
 
-**Co-primary workstreams** (parallel, enhancement-first):
+### 3.3 What we will not claim
 
-1. **Supply** — Activate curators with truthful stock, sizes, photos, and `commerce.walletAddress` where agent payouts matter; chat-ops over CMS where possible ([ADR 0002](./adr/0002-curator-primitive.md)).
-2. **Fit rail** — Reliable try-on + size recommendation on storefront and agent try-on; digital→physical funnel as discovery → physical SKU.
-3. **Agent demand** — Third-party (not only own-agent) try-on/order volume; offer quality; directory + `agent.json` accuracy.
-4. **Product clarity** — UI/docs express the north star (homepage/CTAs/Lab demotion) without rebuilding surfaces.
-
-**Success metrics (90 days):**
-
-| Metric | Target | Why |
-|--------|--------|-----|
-| Agent-commerce-enabled curators (wallet + live physical SKUs) | ≥ 5 | Minimum graph for external agents |
-| Live physical SKUs with size/stock truth | ≥ 50 | Empty catalogs kill agent trust |
-| Third-party agent try-ons / week | ≥ 20 | Proves demand path beyond demos |
-| Agent order success rate (paid → fulfilled intent) | ≥ 85% | Stock + payment truth |
-| Curator onboard → first human or agent sale (7d) | ≥ 40% | Supply partners must earn |
-| Storefront try-on → purchase (human) | ≥ 15% | Fit rail converts |
-| Digital try-on → physical storefront visit | ≥ 20% | Funnel works |
-
-**Anti-patterns:**
-
-- New homepage frameworks or Phase-4 multi-role “Choose Your Adventure”
-- Duplicating `/curator` or `/s/[slug]`
-- Growing Lab/agent chrome as the public hero
-- Deferring all agent work until “10 curators + 1k consumers”
-- Building features that neither densify supply nor improve fit/settlement for either client
+- **Counterfeit/authorship:** real problem, but primarily a luxury resale/authentication wedge and not OnPoint’s current retail model.
+- **Ghost listings as a standalone buyer category:** stale stock is real, but the strongest evidence currently supports the broader claim that stale or incomplete data reduces agent trust and discoverability.
+- **Returns solved:** OnPoint can improve fit confidence; it does not claim to eliminate returns.
 
 ---
 
-### Phase 2: Execution Reliability (Q4 2026)
+## 4. The Thiel and Graham tests
 
-**Prerequisite:** Phase 1 metric bar mostly met (especially stock truth + agent success rate).
+### Creative monopoly
 
-**Goal:** Make try-on → pay → fulfill trustworthy at higher volume for humans and agents.
+The narrow monopoly to pursue is not “AI fashion” or “agent payments.” It is:
 
-**Focus:** Backend-only AI SDKs / bundle cut; shared provider circuit breaker; error/loading/E2E; progressive disclosure on `/`; one styling system; stock webhooks / freshness; agent DX docs.
+> **The best agent-executable fashion supply graph for inventory where fit, freshness, and local settlement matter.**
 
-**Metrics:** AI P95 useful for try-on path; camera/session completion > 70%; agent checkout success > 92%; mobile bounce on storefronts < 40%.
+The defensible asset is the accumulated network of:
 
----
+- normalized garment and size data;
+- fresh stock and availability history;
+- fit evidence and size mappings;
+- merchant response and fulfillment reliability;
+- local payment and settlement behavior;
+- agent requests, failures, and successful purchases;
+- return, exchange, and outcome signals.
 
-### Phase 3: Default Fashion Rail for Agents (Q1 2027)
+Protocols and model providers can commoditize payments and inference. They cannot instantly reproduce a trusted, outcome-rich physical supply graph.
 
-**Prerequisite:** Sustained third-party agent usage + denser supply (guide: 25+ curators or equivalent SKU depth).
+### Distribution built into the product
 
-**Goal:** Become the category endpoint agents prefer for fit-sensitive, locally settled fashion — not a generic shopper.
+Distribution should be a property of every transaction, not a later marketing function:
 
-**Focus:** Bulk inventory query APIs; stock webhooks; curator allowlists / agent reputation; public agent SDK; protocol alignment as needed (without abandoning x402/Celo wedge); multi-agent handoff only when it serves execution.
+- every curator storefront is also an agent endpoint;
+- every machine-readable offer can be cited and routed by agents;
+- every agent-created look is a shareable distribution object;
+- every try-on/share/order carries attribution;
+- every successful purchase creates a merchant, agent, and outcome relationship;
+- every merchant who improves catalog completeness becomes more discoverable to agents.
 
-**Metrics:** 50+ funded external agent relationships or equivalent call volume; agent-driven GMV share meaningful to curators; autonomous (policy-allowed) share of agent volume > 60% where applicable.
+The loop is:
 
----
+```text
+Curator publishes supply
+  → agent can discover and execute
+  → shopper receives fit confidence
+  → look/share/referral creates demand
+  → purchase creates payout + outcome data
+  → better data improves trust and distribution
+```
 
-### Phase 4: Multi-Client Homepage (Q2 2027)
+A referral link alone is not a moat. The moat is the transaction and data loop it creates.
 
-**Prerequisite:** Supply graph + both demand paths have proven traction.
+### The schlep
 
-**Goal:** One marketing front door with clear paths to supply onboarding vs try-on vs agent docs — smart defaults, not three products. Still enhancement of `/`, not a rewrite for its own sake.
+The unattractive work is central to the opportunity:
 
----
+- onboarding small merchants;
+- ingesting WhatsApp photos and stock updates;
+- normalizing inconsistent sizes and descriptions;
+- keeping availability fresh;
+- reconciling local payment and fulfillment;
+- handling exceptions, substitutions, and uncertain outcomes.
 
-## Completed / Paused Work
-
-| Item | Status | ADR |
-|------|--------|-----|
-| Curator primitive & storefronts | ✅ | [0002](./adr/0002-curator-primitive.md) |
-| Bright Data retail intelligence | ✅ | [0004](./adr/0004-brightdata-web-intelligence.md) |
-| ERC-8004 & digital curators | ✅ | [0011](./adr/0011-erc8004-registration-and-digital-curators.md) |
-| Agent storefront checkout + paid try-on | ✅ | [0010](./adr/0010-agent-storefront-checkout.md) |
-| Agent spending controls | ⏸️ | [0005](./adr/0005-agent-spending-controls.md) |
-| Auth0 Token Vault | ⏸️ | — |
-| Content & affiliate monetization | ⏸️ | — |
-| GoodDollar G$ | 🧪 | [0009](./adr/0009-gooddollar-g-integration.md) |
-| Demand-side discovery components | 📦 Quarantined | [0014](./adr/0014-demand-side-discovery-components.md) |
-
----
-
-## What We Will Not Build
-
-**Killed:** Calendar integration; user-facing design studio / collage (low engagement — note: agent-driven looks with shareable collage cards is a different thing — it's distribution, not a design tool).
-
-**Lab only (power users):** NFT minting; advanced own-agent autonomy UI; missions complexity — keep wallet/spend basics if needed, never homepage hero.
-
-**Deferred:** Multi-chain beyond Celo wedge; custom persona training; creator marketplace; native mobile app (PWA enough); white-label storefronts; horizontal “build our own ChatGPT shopper” as the company.
-
----
-
-## Decision Framework
-
-1. **Does this densify truthful supply, improve fit signals, or improve settlement for human or agent clients?** If no → defer.
-2. **Enhance an existing surface or duplicate one?** Enhancement first; delete don’t deprecate.
-3. **Can this be killed or simplified?** Every line is a liability.
-4. **Opportunity cost** against Phase 1 co-primary metrics.
-5. **No metric → no build.** Prefer third-party agent usage and stock truth over vanity Lab metrics.
-6. **Client clarity:** Human path must not require wallet/Auth0 before first try-on ([ADR 0002](./adr/0002-curator-primitive.md) §5). Agent path must not depend on Lab UI.
+This is a good schlep only if it compounds into proprietary data, higher agent success, merchant retention, or lower operating cost. If it remains bespoke catalog labor without network effects, it is a services business and must be constrained.
 
 ---
 
-## Operating Metrics (dashboard)
+## 5. The product loop
 
-| Metric | Target | Notes |
-|--------|--------|-------|
-| Page load (key surfaces) | < 2s | ✅ baseline |
-| Agent-commerce-enabled SKUs | Growing | Prefer **agentPurchasable** curators (wallet + live physical) — [PHASE1_AUDIT.md](./PHASE1_AUDIT.md) |
-| Third-party agent try-ons | Growing | Phase 1 demand proof (`caller=third_party`) |
-| Agent order success | ≥ 85% → 92% | Phase 1 → 2 |
-| Curator: share → visit | > 20% | ✅ |
-| Curator: try-on → purchase | > 15% | 📊 |
-| Digital try-on → physical visit | > 20% | 📊 |
-| Cross-curator attributed purchases | ≥ 1/week | 📊 |
+OnPoint has two clients over one supply graph:
 
----
+| Client           | Flow                                                                                      | Value                                                                 |
+| ---------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Human shopper    | Storefront → try-on → fit signal → WhatsApp/M-Pesa → receipt                              | Confidence and local, low-friction purchase                           |
+| External agent   | Directory → structured offer → paid try-on → quote/permission → checkout → payout/receipt | Reliable execution rather than a recommendation                       |
+| Curator/merchant | Onboard → publish stock → receive human and agent demand → payout/outcomes                | Distribution and execution without rebuilding commerce infrastructure |
 
-## Risks
-
-| Risk | Mitigation |
-|------|------------|
-| Empty graph / bad stock | Curator activation + chat-ops; block agent-sell when stock/wallet missing |
-| Own-agent-only “usage” | Instrument and prioritize third-party callers; grant/reviewer bar |
-| AI provider downtime | Venice → 0G → Gemini → OpenAI fallback |
-| Protocol giants own checkout | Stay category + fit + local-pay specialist; expose offers cleanly |
-| Seller grind vs agent narrative | Co-primary metrics; don’t starve supply for DX cosplay |
-| Fraud / wallet drain | Spend limits, dead man's switch, anomaly detection ([ADR 0001](./adr/0001-backend-first-autonomy.md)) |
-| AI cost drain on free try-ons | Two-tier model + rate limits + funnel tracking (see below) |
+The operating primitive is a **trusted executable offer**: a product with enough identity, fit, stock, price, payment, and fulfillment context for an agent to act safely.
 
 ---
 
-## Two-Tier Try-On Model + Cost Protection
+## 6. Current product and evidence boundary
 
-**Added**: 2026-07-15
-**Review deadline**: 2026-08-15 (30 days) — decide whether to keep, kill, or adjust the free tier based on funnel data.
+**Current status:** production beta; the source code contains the core storefront, try-on, agent-commerce, curator, payout, referral, looks, and permissioned-checkout rails.
 
-### The problem
+### Implemented product surfaces
 
-Try-on costs ~$0.024-0.028 per call (Replicate IDM-VTON + Venice vision). The free web path used the same expensive model as the paid agent path, with no conversion tracking. A single IP could burn $100+/day.
+- Branded curator storefronts and machine-readable offers.
+- Human AI try-on, fit signals, polaroids, WhatsApp/M-Pesa paths.
+- Agent x402 try-on and Celo checkout with attribution and curator payouts.
+- Digital-to-physical discovery from digital curator designs.
+- Agent-created looks, share cards, referrals, and SDK helpers.
+- Agent identity, spending controls, receipts, and operational dashboards.
+- Prava/Linq discovery, quote, permission, hosted-return, and message handoff work.
 
-### The solution
+### Evidence levels
 
-| Tier | Who | Model | Cost/call | Quality | Rate limit |
-|------|-----|-------|-----------|---------|------------|
-| **Free** | Web users | Venice SD35 | ~$0.015 | Text-to-image: "similar look" — not the actual garment on the person | 5/min, 20/day per IP |
-| **Paid** | Agents ($0.03-0.05) | Replicate IDM-VTON | ~$0.024 | Image-conditioned: actual garment on actual person's photo | 5/min, 20/day per IP |
+| Level                | Meaning                                                         | Current posture                                                          |
+| -------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Implemented          | Source path exists and has local/unit coverage                  | Broadly true across the core rails                                       |
+| Deployed             | Path is available in a deployed environment                     | True for documented production surfaces, subject to deployment freshness |
+| Live-validated       | External provider or chain behavior was exercised successfully  | True for selected Celo, UCP, Prava sandbox, Linq, and webhook paths      |
+| Repeatedly proven    | Independent agents/merchants use it at meaningful volume        | **Not yet established; this is the current strategic proof gap**         |
+| Strategically proven | Supply, demand, economics, retention, and outcomes meet targets | **Not yet proven**                                                       |
 
-The quality gap is intentional — it's the reason to pay. Free shows "this is roughly how you'd look in this style." Paid shows "this is how THIS specific item fits YOUR specific body."
+The Prava integration is permission-ready and sandbox-validated; it does not claim a completed merchant order. Self-check and fixture paths validate orchestration, not payment or fulfillment.
 
-### Funnel tracking
-
-Every try-on and purchase now logs to `funnel_events`:
-- `tryon_complete`: tier, source, provider, cost_usd, revenue_usd, curator_slug, listing_id
-- `purchase`: tier, source, revenue_usd, order details
-
-**Analytics endpoint**: `GET /api/status/funnel?days=7` (service-key auth)
-
-### Other cost protections
-
-- Text generation: Gemini Flash-Lite primary ($0.10/$0.40 per 1M tokens, 7x cheaper than Venice Llama 3.3 70B)
-- Render cache: 1-hour in-memory cache by `sha256(photo + listingId)` — eliminates duplicate Replicate calls
-- All `/api/ai/*` routes: API key auth + per-IP rate limits (5/min for expensive, 15/min for analysis)
-
-### Review criteria (2026-08-15)
-
-| Metric | Keep free tier | Kill free tier | Adjust |
-|--------|---------------|----------------|--------|
-| Free try-on to purchase conversion | > 5% | < 1% | 1-5% (reduce daily cap to 5) |
-| Free try-on cost vs revenue | Revenue > cost | Cost >> revenue | Close to break-even |
-| Agent try-on to purchase conversion | > 15% -> consider making agent free too | < 5% -> keep paid | -- |
-
-If we kill the free tier: require Auth0 login for web try-on, or gate behind curator storefront context only.
+Historical deployment and test evidence is preserved in the relevant hackathon and audit docs, but current numbers must be refreshed before being used as present-tense traction claims.
 
 ---
 
-## Try-On Entry Point Rollout Strategy
+## 7. Current phase: prove the wedge
 
-**Added**: 2026-07-15
+### Phase 1 — Supply Graph Readiness (Q3 2026, current)
 
-### The problem
+**Goal:** enough fit-aware, agent-commerce-enabled inventory that an external agent can discover, try on, buy, and receive a truthful outcome with high success—while humans continue converting through local channels.
 
-The "Try now — it's free" CTA on the home page sends users to `/curators`, a directory of 8 curators. Only 2 have real inventory (Nia Digital with 8 digital designs, Wanja with 20 football kits). The other 6 are placeholder curators with no listings. Users hit analysis paralysis, click a placeholder, see an empty storefront, and bounce.
+Co-primary workstreams:
 
-### Rollout phases
+1. **Supply density:** activate merchants with truthful photos, sizes, stock, freshness, and payout wallets.
+2. **Fit rail:** make try-on and size guidance useful, clearly labeled, and tied to the actual SKU.
+3. **Agent demand:** measure independent agent calls separately from internal demos and scripts.
+4. **Execution reliability:** quote, payment, stock reservation, payout, fulfillment, and receipt states must be truthful.
+5. **Embedded distribution:** make storefronts, looks, referrals, and agent citations drive demand without a separate audience-building product.
+6. **Schlep economics:** measure onboarding time and catalog-maintenance burden; automate only the work that compounds.
 
-**Phase 1 (now — 1 curator with try-on):**
-- CTA → `/s/nia` (direct to Nia's storefront, 8 digital designs ready to try)
-- Button has click feedback: scale-down + spinner during view transition
-- `/curators` redesigned: Nia featured (large card + "Try on now"), Wanja as "also live", other 6 as greyed "coming soon" teasers
-- Goal: fewest clicks to delight. No intermediate page when there's only one option.
+### 90-day proof targets
 
-**Phase 2 (when Wanja's try-on is live — 2+ curators with try-on):**
-- Build `/try-on` as a dedicated "fitting room" page — visual grid of try-on-able items across all curators, one-tap per design
-- CTA → `/try-on`
-- This becomes the marketing URL (`beonpoint.netlify.app/try-on`) and the core product surface
-- `/curators` remains as a directory for people who want to browse by seller
+| Metric                                         | Target                               | Strategic reason                      |
+| ---------------------------------------------- | ------------------------------------ | ------------------------------------- |
+| Agent-commerce-enabled curators                | ≥ 5                                  | A network, not a single demo          |
+| Live physical SKUs with size/stock truth       | ≥ 50                                 | Agents need depth and choice          |
+| Third-party agent try-ons                      | ≥ 20/week                            | Demand beyond the own-agent loop      |
+| Paid-to-fulfilled agent order success          | ≥ 85%                                | Execution trust                       |
+| Curator onboarding to first sale within 7 days | ≥ 40%                                | Supply-side pull                      |
+| Human storefront try-on to purchase            | ≥ 15%                                | Fit rail creates value for humans too |
+| Digital try-on to physical storefront visit    | ≥ 20%                                | Digital discovery feeds real commerce |
+| Catalog freshness / core-field completeness    | Define baseline, then improve weekly | Agent eligibility and trust           |
 
-**Phase 3 (5+ curators with try-on):**
-- `/try-on` becomes filterable by vertical, curator, price
-- `/curators` becomes a full directory with search, filters, curator profiles
-- The "fitting room" and the "directory" are separate surfaces with different jobs
+These are operating targets, not claims of current attainment.
 
-### Why not `/lab?tab=try-on` now
+### Phase 2 — Execution Reliability
 
-The lab is a power-user dashboard (bottom nav, tabs, settings, agent wallet). It's for returning users, not first-time visitors who just clicked "try now." It would overwhelm.
+**Prerequisite:** Phase 1 supply and external usage bar is substantially met.
 
-### Why not build `/try-on` now
+Focus on stock freshness, reservations, fulfillment states, provider circuit breakers, cost controls, E2E coverage, agent SDK quality, and merchant operations. Do not add generic platform surfaces before the core transaction is reliable.
 
-With only Nia having try-on-able items, a `/try-on` page would be 8 items that all link to the same curator. `/s/nia` already does this. Build `/try-on` when there's a reason to aggregate across curators.
+### Phase 3 — Default fashion rail for agents
+
+**Prerequisite:** sustained third-party usage, dense supply, repeat merchant value, and credible unit economics.
+
+Focus on bulk inventory APIs, freshness webhooks, agent reputation/allowlists, public SDKs, richer fit evidence, and protocol adapters. The objective is to become the category endpoint agents prefer—not to own every layer of payment or inference.
+
+### Phase 4 — Earned expansion
+
+Expand to another fit-sensitive physical category only when all are true:
+
+1. external agents or merchants request it;
+2. the same offer/freshness/fit/quote/settlement primitives apply;
+3. fashion has meaningful repeat usage and outcome data;
+4. onboarding and maintenance economics are understood;
+5. the new category has a clear owner and wedge, not just technical reusability.
+
+Potential adjacency examples: beauty shade matching, furniture dimensions/room fit, sports equipment, uniforms/workwear. These are hypotheses, not roadmap commitments.
 
 ---
 
-## Doc Map (consolidation)
+## 8. Business model and moat formation
 
-| Doc | Owns |
-|-----|------|
-| **This file** | Vision, phases, metrics, kill list, decisions |
-| [PHASE1_AUDIT.md](./PHASE1_AUDIT.md) | Kill list + surface audit for Supply Graph Readiness |
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | Layers, data flow, deploy topology |
-| [FEATURES.md](./FEATURES.md) | Feature behavior specs |
-| [GETTING_STARTED.md](./GETTING_STARTED.md) | Setup |
-| [adr/](./adr/) | Decision history — do not fork strategy in new ADRs; amend or link here |
-| Root [README.md](../README.md) | Short pitch + pointers — no second roadmap |
+Near-term revenue can come from:
+
+- paid agent try-on;
+- transaction/take-rate economics on agent purchases;
+- curator or merchant services only where they improve network supply;
+- referral and attribution flows;
+- future data/availability services only after agent demand is proven.
+
+Do not lead with generic API monetization. The API becomes valuable because it connects trusted supply to demand and captures outcomes.
+
+The compounding asset is:
+
+```text
+More useful supply
+  → more agent discovery
+  → more transactions
+  → more fit/freshness/outcome data
+  → better success and merchant ROI
+  → more supply and agent demand
+```
+
+If this loop does not appear, narrow the product or kill the abstraction.
 
 ---
 
-**Document Owner**: Product Lead  
-**Last Reviewed**: 2026-07-10  
-**Next Review**: 2026-07-24
+## 9. What we will not build now
+
+- A horizontal AI shopper or generic “agent commerce OS.”
+- Generic payment infrastructure that large payment networks can commoditize.
+- A user-facing design studio as the primary product.
+- A counterfeit/authentication product for luxury resale.
+- Multi-chain expansion before the Celo/local-pay wedge works.
+- Broad category expansion based only on shared code.
+- Merchant tooling that increases catalog labor without improving agent eligibility, sales, or data quality.
+- More hackathon-specific surfaces unless they improve the core execution loop.
+
+---
+
+## 10. Decision framework
+
+For every proposed feature, ask:
+
+1. Does it make a fashion offer more **discoverable, fit-aware, fresh, executable, or attributable**?
+2. Does it increase agent success, merchant ROI, shopper confidence, or compounding outcome data?
+3. Does it build distribution into the transaction rather than require a separate audience?
+4. Does it turn a schlep into a repeatable asset, or merely add services labor?
+5. Is the claim implemented, deployed, live-validated, repeatedly proven, or still a hypothesis?
+6. Is this a fashion wedge improvement, a reusable primitive, or premature horizontalization?
+7. What metric would cause us to stop?
+
+If the answer is no or unknown, defer.
+
+---
+
+## 11. Canonical doc map
+
+| Doc                                        | Owns                                                                               |
+| ------------------------------------------ | ---------------------------------------------------------------------------------- |
+| **This file**                              | Thesis, positioning, market rationale, phases, metrics, expansion gates, kill list |
+| [PHASE1_AUDIT.md](./PHASE1_AUDIT.md)       | Current implementation/ops audit and evidence refresh checklist                    |
+| [ARCHITECTURE.md](./ARCHITECTURE.md)       | System shape, layers, topology, and data flow                                      |
+| [FEATURES.md](./FEATURES.md)               | Feature behavior and implementation references                                     |
+| [GETTING_STARTED.md](./GETTING_STARTED.md) | Local setup and deployment                                                         |
+| [AGENTS.md](../AGENTS.md)                  | Agent-facing API and commerce guide                                                |
+| [Guides](./guides/)                        | Operational playbooks, including merchant scorecards and weekly pilot reporting    |
+| [ADRs](./adr/)                             | Historical technical decisions; do not fork the strategy                           |
+| Root [README.md](../README.md)             | Short pitch and entry points; no second roadmap                                    |
+
+**Document owner:** Product Lead
+**Next strategy review:** after the next verified Phase 1 production snapshot

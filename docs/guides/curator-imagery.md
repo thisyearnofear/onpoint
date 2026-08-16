@@ -2,17 +2,19 @@
 
 > How to add product photos to curator storefront listings so they show real images instead of "Curator photo pending".
 
-## Current state (2026-07-15)
+## Historical seed snapshot (2026-07-15)
 
-| Curator | Listings | Photos | Notes |
-|---------|----------|--------|-------|
-| Zara | 5 physical | 5 | AI-generated (Venice SD35) — sneakers, hoodie, tee |
-| Mo | 5 physical | 5 | AI-generated (Venice SD35) — football kit flat lays |
-| Juma | 5 physical | 5 | 1 OSS (astro-shop shirt) + 4 AI-generated — vintage/thrift |
-| Grace | 5 physical | 5 | 1 OSS (astro-shop shirt) + 4 AI-generated — luxury accessories |
-| Nia | 8 digital | 8 | AI-generated garments — already had images |
+The counts below describe the historical image-seeding run, not current inventory or merchant onboarding status. Re-run the listing-level audit and confirm media with the merchant before using these numbers in pilot reporting.
 
-**All 20 physical listings now have product images.** Human curator storefronts show a "Preview" badge and "Concept image" labels since the curators haven't been onboarded yet. Images were seeded via `scripts/seed-listing-images.mjs`.
+| Curator | Listings   | Photos | Notes                                                          |
+| ------- | ---------- | ------ | -------------------------------------------------------------- |
+| Zara    | 5 physical | 5      | AI-generated (Venice SD35) — sneakers, hoodie, tee             |
+| Mo      | 5 physical | 5      | AI-generated (Venice SD35) — football kit flat lays            |
+| Juma    | 5 physical | 5      | 1 OSS (astro-shop shirt) + 4 AI-generated — vintage/thrift     |
+| Grace   | 5 physical | 5      | 1 OSS (astro-shop shirt) + 4 AI-generated — luxury accessories |
+| Nia     | 8 digital  | 8      | AI-generated garments — already had images                     |
+
+**Historical result:** all 20 physical listings in that seed cohort received product images. Human curator storefronts showed a "Preview" badge and "Concept image" labels because the curators had not yet been onboarded. Re-verify current media and merchant approval before treating any listing as pilot-ready. Images were seeded via `scripts/seed-listing-images.mjs`.
 
 ## How listing images work
 
@@ -68,6 +70,7 @@ Curators can send a photo + listing details via WhatsApp to the OnPoint agent nu
 Mo's 5 listings have `officialImageKey` populated (e.g. `kits/arsenal-202425-home.jpg`) but the actual files don't exist in R2 — they were referenced in the seed data but never uploaded.
 
 To fix these, either:
+
 - **Upload official kit images** to R2 at the expected keys (e.g. `kits/arsenal-202425-home.jpg`)
 - **Or upload curator photos** via the admin API, which will take precedence over `officialImageKey`
 

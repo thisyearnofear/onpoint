@@ -1,21 +1,29 @@
-# OnPoint — Fit-Aware Fashion Execution
+# OnPoint — The Fashion Execution Rail for AI Agents
 
 > **Fit before you buy — for people and agents.**
 
-OnPoint is the **execution layer** for fashion intent that needs **fit + real stock + local pay**.
+OnPoint turns live fashion inventory into **fit-aware, machine-readable, locally payable offers**.
 
 - **Humans** shop on branded storefronts (`/s/[slug]`) with AI try-on → WhatsApp / M-Pesa.
-- **Agents** hit the **same inventory** via storefront APIs, x402 try-on, and on-chain checkout.
-- **Curators** (human, AI, digital) are how truthful supply enters the graph — not a separate product.
+- **Agents** execute against the **same inventory** via structured offers, paid try-on, permissioned checkout, and verifiable receipts.
+- **Curators** (human, AI, digital) supply the hard-to-structure inventory, stock truth, local operations, and distribution.
+
+**The wedge is fashion; the larger thesis is agent-ready execution infrastructure for fit-sensitive physical goods.** We are proving that abstraction in fashion first, not claiming to be a generic commerce OS today.
+
+```text
+Messy inventory → structured offer → fit confidence → local checkout → outcome
+```
+
+Research rationale and evidence boundaries: [`docs/STRATEGY.md`](./docs/STRATEGY.md).
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-indigo)](https://beonpoint.netlify.app)
 [![ERC-8004](https://img.shields.io/badge/ERC--8004-Registered-blue)](https://8004scan.io/agents/celo/9177)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Qwen Cloud Hackathon](https://img.shields.io/badge/Qwen%20Cloud-Hackathon%20Track%204-orange)](./docs/QWEN-CLOUD-HACKATHON.md)
 
-## Agentic Commerce Hackathon — Prava × Visa × Linq
+## Proof point: Agentic Commerce Hackathon — Prava × Visa × Linq
 
-> **OnPoint is the fashion agent that earns permission to buy.** It discovers
+> This hackathon work is a proof point for the fashion execution rail—not a separate company thesis. **OnPoint is the fashion agent that earns permission to buy.** It discovers
 > live merchant inventory, checks fit on the shopper, locks a binding quote,
 > and requests the narrowest useful payment permission through Prava. Linq is
 > the message-native control plane: a web mission can move into Messages
@@ -45,10 +53,9 @@ credited in the UI only when the OpenAI API actually runs.
 ---
 
 <details>
-<summary><strong>Prior Qwen Cloud Hackathon work</strong></summary>
+<summary><strong>Prior proof point: Qwen Cloud Hackathon</strong></summary>
 
-> **Qwen Cloud Hackathon — Track 4: Autopilot Agent.**
-> OnPoint is an autopilot agent that turns a photo of an outfit into a verifiable on-chain purchase from a real African fashion curator — perceiving with **Qwen3-VL on Qwen Cloud (DashScope)**, reasoning about fit and cultural context (Ankara / Kente / Adire / Bogolan / Shweshwe), and acting through x402-paid try-on and Celo checkout, with a human-in-the-loop checkpoint above $5.
+> **Qwen Cloud Hackathon — Track 4: Autopilot Agent.** This is a historical proof point for the same fashion execution thesis. OnPoint is an autopilot agent that turns a photo of an outfit into a verifiable on-chain purchase from a real African fashion curator — perceiving with **Qwen3-VL on Qwen Cloud (DashScope)**, reasoning about fit and cultural context (Ankara / Kente / Adire / Bogolan / Shweshwe), and acting through x402-paid try-on and Celo checkout, with a human-in-the-loop checkpoint above $5.
 >
 > - Submission writeup + architecture diagram: [`docs/QWEN-CLOUD-HACKATHON.md`](./docs/QWEN-CLOUD-HACKATHON.md)
 > - Alibaba Cloud deployment proof: [`packages/storage/src/oss.ts`](./packages/storage/src/oss.ts)
@@ -59,26 +66,29 @@ credited in the UI only when the OpenAI API actually runs.
 
 </details>
 
-**Canonical strategy:** [`docs/STRATEGY.md`](./docs/STRATEGY.md) — north star, phases, metrics, kill list. Do not fork roadmap copy elsewhere.
+**Canonical strategy:** [`docs/STRATEGY.md`](./docs/STRATEGY.md) — thesis, wedge, market rationale, phases, metrics, evidence boundaries, and expansion gates. Do not fork strategy copy elsewhere.
 
-**Current phase:** Supply Graph Readiness (Q3 2026) — densify **agent-purchasable** inventory (wallet + live physical SKUs) and third-party agent usage in parallel. Ops: `node scripts/agent-commerce-ready.mjs` · [PHASE1_AUDIT.md](./docs/PHASE1_AUDIT.md).
+**Current phase:** Prove the fashion wedge (Q3 2026) — densify **agent-purchasable** inventory, improve catalog freshness/fit truth, and prove third-party agent execution in parallel. Ops: `node scripts/agent-commerce-ready.mjs` (directory gate) or `node scripts/trusted-offer-audit.mjs` (listing-level baseline) · [PHASE1_AUDIT.md](./docs/PHASE1_AUDIT.md).
 
 ---
 
 ## What It Does
 
 ### Supply (Curators)
+
 - Branded storefront at `/s/[your-name]` — one catalog for humans and agents
 - M-Pesa + WhatsApp receipts; chat-ops inventory where possible
 - AI try-on for customers; digital→physical discovery (e.g. Nia Digital → human SKUs)
 - On-chain payouts when agents buy (`commerce.walletAddress`)
 
 ### Demand — Humans
+
 - Virtual try-on and size/fit signal before purchase
 - WhatsApp / M-Pesa checkout — no wallet/Auth0 before first try-on
 - Polaroid share + cross-curator recommendations
 
 ### Demand — Agents
+
 - `/.well-known/agent.json` + curator directory with structured offers
 - x402 try-on ($0.03 digital / $0.05 physical, cUSD) and storefront checkout with curator splits
 - **Agent looks** — compose curator inventory into shareable style boards with AI-generated collages, auto-classified metadata (category/occasion/season), and try-on share cards. SDK helpers in `@repo/agent-core` (`browseLooks`, `createLook`, `getLook`). Reference script: `scripts/agent-looks.mjs`
@@ -122,24 +132,24 @@ See [Getting Started](docs/GETTING_STARTED.md) for env vars and full setup.
 
 ## Documentation
 
-| Doc | Owns |
-|-----|------|
-| [Strategy](docs/STRATEGY.md) | Vision, phases, metrics, decisions |
-| [Phase 1 audit](docs/PHASE1_AUDIT.md) | Kill list + surface priorities |
-| [Architecture](docs/ARCHITECTURE.md) | Layers, data flow, topology |
-| [Features](docs/FEATURES.md) | Feature specs |
-| [Getting Started](docs/GETTING_STARTED.md) | Setup & deploy |
-| [Monitoring](docs/MONITORING.md) | Ops dashboards |
-| [Guides](docs/guides/) | Auth, WhatsApp, MiniPay, [Agent commerce](docs/guides/agent-commerce.md), [Curator wallets](docs/guides/curator-payout-wallets.md) |
-| [ADRs](docs/adr/) | Decision records |
+| Doc                                        | Owns                                                                                                                                                                                                                                                              |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Strategy](docs/STRATEGY.md)               | Vision, phases, metrics, decisions                                                                                                                                                                                                                                |
+| [Phase 1 audit](docs/PHASE1_AUDIT.md)      | Wedge-readiness audit, historical evidence, and refresh checklist                                                                                                                                                                                                 |
+| [Architecture](docs/ARCHITECTURE.md)       | Layers, data flow, topology                                                                                                                                                                                                                                       |
+| [Features](docs/FEATURES.md)               | Feature specs                                                                                                                                                                                                                                                     |
+| [Getting Started](docs/GETTING_STARTED.md) | Setup & deploy                                                                                                                                                                                                                                                    |
+| [Monitoring](docs/MONITORING.md)           | Ops dashboards                                                                                                                                                                                                                                                    |
+| [Guides](docs/guides/)                     | Auth, WhatsApp, MiniPay, [Agent commerce](docs/guides/agent-commerce.md), [Curator wallets](docs/guides/curator-payout-wallets.md), [Merchant scorecard](docs/guides/merchant-onboarding-scorecard.md), [Weekly pilot report](docs/guides/weekly-pilot-report.md) |
+| [ADRs](docs/adr/)                          | Decision records                                                                                                                                                                                                                                                  |
 
 ---
 
 ## Agent Identity
 
-| | |
-|--|--|
-| **ERC-8004** | [9177](https://8004scan.io/agents/celo/9177) |
+|                         |                                                                                         |
+| ----------------------- | --------------------------------------------------------------------------------------- |
+| **ERC-8004**            | [9177](https://8004scan.io/agents/celo/9177)                                            |
 | **Agent wallet (Celo)** | [`0x5b33…24fB`](https://celoscan.io/address/0x5b33E63440e95289207120B94da78CE22F9D24fB) |
 
 Worker cycles (heartbeat, market signals, optional auto-buy) run on Hetzner PM2 — see Strategy + Architecture for role (infrastructure, not the product hero).

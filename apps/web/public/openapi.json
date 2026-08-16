@@ -30,7 +30,7 @@
     "/api/agent/try-on": {
       "post": {
         "summary": "Request a paid fit render (Celo)",
-        "description": "Tiered pricing: $0.03 cUSD for digital listings, $0.05 cUSD for physical listings (per-curator override may apply). Two payment paths: (1) cUSD — transfer to payTo from the 402 challenge, re-POST with paymentTxHash; (2) gasless USDC via the Celo x402 facilitator — sign an EIP-3009 transferWithAuthorization and send it in the X-PAYMENT header.",
+        "description": "Tiered pricing: $0.03 cUSD for digital listings, $0.05 cUSD for physical listings (per-curator override may apply). This try-on endpoint supports (1) cUSD — transfer to payTo from the 402 challenge, then re-POST with paymentTxHash — and (2) eligible gasless USDC facilitator payments via X-PAYMENT. Physical order checkout is a separate endpoint and currently remains cUSD-only.",
         "parameters": [
           { "name": "X-PAYMENT", "in": "header", "required": false, "schema": { "type": "string" }, "description": "Optional base64-encoded x402 payment payload (EIP-3009 transferWithAuthorization for USDC). Facilitator path — gasless for the buyer." }
         ],
@@ -44,7 +44,7 @@
         } } } } },
         "responses": {
           "200": { "description": "Try-on render and fit signal. Includes a shareCard (imageUrl, lookUrl) when lookSlug was provided and the look is live." },
-          "402": { "description": "cUSD or gasless USDC payment requirements" }
+          "402": { "description": "cUSD or, where enabled, gasless USDC payment requirements" }
         }
       }
     },
@@ -84,11 +84,11 @@
         "parameters": [
           { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } },
           { "name": "X-Referral-Code", "in": "header", "required": false, "schema": { "type": "string" }, "description": "Referral code — referring agent earns 2.5% commission on this purchase" },
-          { "name": "referral", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Referral code via query param (alternative to the header, for shareable links)" },
-          { "name": "X-PAYMENT", "in": "header", "required": false, "schema": { "type": "string" }, "description": "Optional base64-encoded x402 payment payload (EIP-3009 transferWithAuthorization for USDC). Facilitator path — gasless for the buyer." }
+          { "name": "referral", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Referral code via query param (alternative to the header, for shareable links)" }
         ],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["listingId", "size"], "properties": { "listingId": { "type": "string" }, "size": { "type": "string" }, "quantity": { "type": "integer", "default": 1 }, "paymentTxHash": { "type": "string" }, "quoteId": { "type": "string" } } } } } },
-        "responses": { "201": { "description": "Order confirmation and receipt URL" }, "402": { "description": "cUSD or gasless USDC payment requirements" }, "409": { "description": "Digital listings are try-on only" } }
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["listingId", "size"], "properties": { "listingId": { "type": "string" }, "size": { "type": "string" }, "quantity": { "type": "integer", "default": 1 }, "paymentTxHash": { "type": "string", "description": "0x-prefixed cUSD transfer hash on Celo" }, "quoteId": { "type": "string", "description": "Quote ID returned in the 402 challenge" } } } } } },
+        "responses": { "201": { "description": "Order confirmation and receipt URL" }, "402": { "description": "cUSD payment required or quote expired" },          "409": { "description": "Digital listings are try-on only, or USDC facilitator checkout is unavailable for this physical order endpoint" } }
+
       }
     },
     "/api/curator/{slug}/earnings": {

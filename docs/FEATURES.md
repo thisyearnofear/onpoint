@@ -1,6 +1,8 @@
 # Features
 
-> **Vision:** [STRATEGY.md](./STRATEGY.md) — OnPoint is the fit-aware execution layer (human storefront + agent API over one supply graph).  
+> **Strategy:** [STRATEGY.md](./STRATEGY.md) — OnPoint is the fashion wedge for a larger thesis: agent-ready execution infrastructure for fit-sensitive physical goods.
+> **Feature boundary:** this file describes the implemented fashion proof point; it does not imply that the broader platform is already proven.
+> **Status boundary:** “Complete” below means implemented in the product/codebase; it does not necessarily mean currently deployed, externally live-validated, or repeatedly proven at scale.
 > **Organizing primitive:** every supply voice — human merchant, AI persona, or digital curator — is a `Curator` ([ADR 0002](./adr/0002-curator-primitive.md)). Features compose against one Curator on `/s/[slug]` (and its machine-readable twin), or across the Curator set for discovery.
 
 ## Curator Storefronts (`/s/[slug]`)
@@ -47,6 +49,8 @@ AI curators with their own storefronts and AI-generated digital garments. Agents
 
 ## Agent Commerce (ADR 0010, 0011)
 
+This is the core execution proof point: a fashion offer connects structured catalog data, fit evidence, payment, payout, attribution, and a receipt. See [`docs/STRATEGY.md`](./STRATEGY.md) for the distinction between capability and strategic proof.
+
 > Third-party agent how-to: [guides/agent-commerce.md](./guides/agent-commerce.md)
 
 ### x402 Try-On Payments
@@ -59,7 +63,7 @@ AI curators with their own storefronts and AI-generated digital garments. Agents
 - 0xSplits payout routing to curator's wallet
 - Digital listings return 409 (try-on only, no physical product)
 
-### Agent Infrastructure
+### Execution controls and verifiability
 - **ERC-8004 registered** agent wallet on Celo
 - **Agent dashboard** at `GET /api/agent/dashboard` — public transparency endpoint
 - **Heartbeat** at `POST /api/agent/heartbeat` — gas monitoring, fraud checks, receipt logging
@@ -68,9 +72,9 @@ AI curators with their own storefronts and AI-generated digital garments. Agents
 
 ---
 
-## Live AR Stylist
+## AI Styling and Live Sessions
 
-Real-time AI styling sessions — like a FaceTime call with a fashion consultant.
+AI-assisted styling and real-time sessions are supporting capabilities around the execution rail—not the company positioning. They help produce fit evidence and confidence before a purchase.
 
 ### Provider Matrix
 | Provider | Tier | Speed | Engine |
@@ -186,26 +190,26 @@ Package: `@repo/gooddollar` — single source of truth for contract addresses, A
 
 ## Feature Matrix
 
-| Feature | Web | Status |
+| Feature | Web | Implementation status (not proof of current scale) |
 |---------|-----|--------|
-| Curator Storefronts | ✅ | Complete |
-| Digital Curators | ✅ | Complete |
-| Agent Commerce (x402) | ✅ | Complete |
-| Live AR Stylist | ✅ | Complete |
-| Virtual Try-On | ✅ | Complete |
-| Smart Recommendations | ✅ | Complete |
-| Agent Web Discovery | ✅ | Complete |
-| Autonomous Execution | ✅ | Complete |
-| Spending Controls | ✅ | Complete |
-| Self Protocol ID | ✅ | Complete |
-| Agent Heartbeat | ✅ | Complete |
-| Style Memory | ✅ | Complete |
-| NFT Minting | ✅ | Complete |
-| Social Sharing | ✅ | Complete |
-| Agentic Tipping | ✅ | Complete |
-| Referral Links | ✅ | Complete |
-| Score Progression | ✅ | Complete |
-| Style Recap Email | ✅ | Complete |
-| GoodDollar G$ Integration | ✅ | Complete |
-| Agent Looks | ✅ | Complete |
+| Curator Storefronts | ✅ | Implemented |
+| Digital Curators | ✅ | Implemented |
+| Agent Commerce (x402) | ✅ | Implemented |
+| AI styling / live sessions | ✅ | Implemented; provider availability and production validation vary |
+| Virtual Try-On | ✅ | Implemented |
+| Smart Recommendations | ✅ | Implemented |
+| Agent Web Discovery | ✅ | Implemented |
+| Autonomous Execution | ✅ | Implemented |
+| Spending Controls | ✅ | Implemented |
+| Self Protocol ID | ✅ | Implemented |
+| Agent Heartbeat | ✅ | Implemented |
+| Style Memory | ✅ | Implemented |
+| NFT Minting | ✅ | Implemented |
+| Social Sharing | ✅ | Implemented |
+| Agentic Tipping | ✅ | Implemented |
+| Referral Links | ✅ | Implemented |
+| Score Progression | ✅ | Implemented |
+| Style Recap Email | ✅ | Implemented |
+| GoodDollar G$ Integration | ✅ | Implemented |
+| Agent Looks | ✅ | Implemented |
 | Auth0 Token Vault | ⏸️ | Paused |

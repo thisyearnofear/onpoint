@@ -52,7 +52,7 @@ The Express API uses these server-only variables in `apps/api/.env`:
 removing it takes effect for new connections and tests without restarting the
 module cache.
 
-### Agent Infrastructure
+### Agent execution and verifiability
 
 | Variable                   | Purpose                                            |
 | -------------------------- | -------------------------------------------------- |

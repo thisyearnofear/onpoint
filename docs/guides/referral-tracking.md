@@ -34,6 +34,7 @@ https://beonpoint.netlify.app/r/[referralCode]
 ```
 
 When users visit a referral link:
+
 1. The referral code is stored in sessionStorage
 2. The code is automatically attached to subsequent orders
 3. When the user completes a purchase, the referring agent earns 2.5% commission
@@ -46,7 +47,7 @@ When users visit a referral link:
 GET /api/agent/dashboard
 ```
 
-Response includes:
+Response shape example (illustrative, not a current production snapshot) includes:
 
 ```json
 {
@@ -73,10 +74,13 @@ Response includes:
 ### Dashboard UI
 
 Visit `https://beonpoint.netlify.app/agent` to view:
+
 - Total referrals and commission earned
 - Pending and paid commissions
 - Recent referral activity
 - Copyable referral link
+
+The weekly pilot report should use actual dashboard/ledger data for the reporting window; the example values above must not be treated as current referral traction.
 
 ## Referral Status
 
@@ -96,6 +100,7 @@ Visit `https://beonpoint.netlify.app/agent` to view:
 Commission is calculated as 2.5% of the total order value in cUSD.
 
 Example:
+
 - Order total: 19.23 cUSD
 - Commission: 19.23 × 0.025 = 0.48 cUSD
 

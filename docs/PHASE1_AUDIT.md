@@ -1,7 +1,10 @@
-# Phase 1 Audit — Supply Graph Readiness
+# Phase 1 Audit — Prove the Fashion Wedge
 
-**Date:** 2026-07-14 (codebase hygiene + revenue model clarity)  
-**North star:** [STRATEGY.md](./STRATEGY.md)
+**Last updated:** 2026-08-10
+**Last verified production repair:** 2026-08-10 — active release `20260810-212431`; API cluster and bridge healthy; live database ledger verified through migration `0010`.
+**Canonical thesis:** [STRATEGY.md](./STRATEGY.md)
+
+This is an operational audit, not a second strategy document. The question is whether OnPoint is proving its fashion wedge: fresh, fit-aware, agent-executable supply with real merchant and agent outcomes. Historical snapshots below must be refreshed before being used as current traction claims. The production repair verification above confirms infrastructure and schema state only; it does not establish current merchant count, external demand, fulfillment success, or revenue.
 
 Enhancement first; delete don't deprecate.
 
@@ -9,14 +12,14 @@ Enhancement first; delete don't deprecate.
 
 The platform can drive transactions and revenue before human curators self-serve wallets:
 
-| Revenue driver | Works without curator wallets? | Mechanism |
-|----------------|-------------------------------|-----------|
-| Digital try-on ($0.03) | YES | Nia is platform-owned with custodial wallet. 80% to Nia's split, 20% to platform. |
-| NFT minting ($0.10) | YES | 85% creator / 15% platform via 0xSplits. |
-| Agent markup | YES | Agents add their own fee on top of any purchase. Platform does not participate. |
-| Human WhatsApp checkout | YES (curator revenue) | `/s/[slug]` pages browsable without wallet. WhatsApp deep link checkout. Curator paid directly. |
-| Agent physical orders (cUSD) | NO | Requires `agentPurchasable` = wallet + live physical SKUs |
-| Physical try-on fees to curator | NO (goes to platform) | Without wallet/split, try-on fees default to platform wallet |
+| Revenue driver                  | Works without curator wallets? | Mechanism                                                                                       |
+| ------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------- |
+| Digital try-on ($0.03)          | YES                            | Nia is platform-owned with custodial wallet. 80% to Nia's split, 20% to platform.               |
+| NFT minting ($0.10)             | YES                            | 85% creator / 15% platform via 0xSplits.                                                        |
+| Agent markup                    | YES                            | Agents add their own fee on top of any purchase. Platform does not participate.                 |
+| Human WhatsApp checkout         | YES (curator revenue)          | `/s/[slug]` pages browsable without wallet. WhatsApp deep link checkout. Curator paid directly. |
+| Agent physical orders (cUSD)    | NO                             | Requires `agentPurchasable` = wallet + live physical SKUs                                       |
+| Physical try-on fees to curator | NO (goes to platform)          | Without wallet/split, try-on fees default to platform wallet                                    |
 
 ## Curator Gating Logic
 
@@ -35,77 +38,106 @@ Current state: trust-based. Seeded curators are admin-created (`config/curators/
 
 ## Shipped this cycle
 
-| Workstream | Status |
-|------------|--------|
-| WS0 audit + kill list | ✅ This file |
-| WS1 brand + homepage dual CTAs | ✅ `lib/brand.ts`, `/`, `/about` |
-| WS2 supply truth | ✅ `agentPurchasable`, physical counts, admin Agent column, onboard wallet CTA |
-| WS4 agent DX | ✅ [guides/agent-commerce.md](./guides/agent-commerce.md), `agent.json` docs URL |
-| WS5 consolidate | ✅ `/style` + `/collage` deleted (redirect → Lab); `/social` deleted (redirect → `/curators`) |
-| Admin wallet edit | ✅ `/admin/curators/[slug]` WalletEditor + `PATCH .../commerce` |
-| Third-party agent metrics | ✅ `apps/api/lib/agent-demand.js` |
-| Custodial payout bootstrap | ✅ `curator-payout-wallets.js`, admin batch + `/curator/wallet` |
-| Magic embedded wallets | ✅ `magic-wallet.ts` + Netlify `NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY` |
+| Workstream                                                                    | Status                                                                                                                           |
+| ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| WS0 audit + kill list                                                         | ✅ This file                                                                                                                     |
+| WS1 brand + homepage dual CTAs                                                | ✅ `lib/brand.ts`, `/`, `/about`                                                                                                 |
+| WS2 supply truth                                                              | ✅ `agentPurchasable`, physical counts, admin Agent column, onboard wallet CTA                                                   |
+| WS4 agent DX                                                                  | ✅ [guides/agent-commerce.md](./guides/agent-commerce.md), `agent.json` docs URL                                                 |
+| WS5 consolidate                                                               | ✅ `/style` + `/collage` deleted (redirect → Lab); `/social` deleted (redirect → `/curators`)                                    |
+| Admin wallet edit                                                             | ✅ `/admin/curators/[slug]` WalletEditor + `PATCH .../commerce`                                                                  |
+| Third-party agent metrics                                                     | ✅ `apps/api/lib/agent-demand.js`                                                                                                |
+| Custodial payout bootstrap                                                    | ✅ `curator-payout-wallets.js`, admin batch + `/curator/wallet`                                                                  |
+| Magic embedded wallets                                                        | ✅ `magic-wallet.ts` + Netlify `NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY`                                                               |
 | Codebase hygiene ([ADR 0014](./adr/0014-demand-side-discovery-components.md)) | ✅ Dead code deleted (DesignStudio, SocialFeed, useMemoryAPI); demand-side discovery components quarantined for Phase 2 rewiring |
-| Navigation unification | ✅ `OnPointHeader` responsive (desktop + mobile); homepage, `/curator`, `/lab` all use shared header/footer |
-| Homepage decomposition | ✅ `app/page.tsx` 1662 → 11 lines; 8 components extracted to `components/home/` |
-| Lab simplification | ✅ `design` + `community` modes removed from `TacticalDashboard`; agent chrome moved to "More" sheet |
-| API type safety | ✅ `jsconfig.json` + JSDoc annotations on `agent-checkout.js`, `curator-storefront.js` |
-| CI lint step | ✅ Lint step added to `.github/workflows/ci.yml` |
+| Navigation unification                                                        | ✅ `OnPointHeader` responsive (desktop + mobile); homepage, `/curator`, `/lab` all use shared header/footer                      |
+| Homepage decomposition                                                        | ✅ `app/page.tsx` 1662 → 11 lines; 8 components extracted to `components/home/`                                                  |
+| Lab simplification                                                            | ✅ `design` + `community` modes removed from `TacticalDashboard`; agent chrome moved to "More" sheet                             |
+| API type safety                                                               | ✅ `jsconfig.json` + JSDoc annotations on `agent-checkout.js`, `curator-storefront.js`                                           |
+| CI lint step                                                                  | ✅ Lint step added to `.github/workflows/ci.yml`                                                                                 |
 
 ---
 
 ## Keep & enhance (Phase 1 critical)
 
-| Surface | Why |
-|---------|-----|
-| `/s/[slug]` + storefront API | Canonical catalog (human + agent) |
-| Try-on (web + `/api/agent/try-on`) | Fit rail |
+| Surface                                                            | Why                                 |
+| ------------------------------------------------------------------ | ----------------------------------- |
+| `/s/[slug]` + storefront API                                       | Canonical catalog (human + agent)   |
+| Try-on (web + `/api/agent/try-on`)                                 | Fit rail                            |
 | `/curator`, `/curator/onboard`, `/curator/wallet`, WhatsApp ingest | Supply acquisition + payout wallets |
-| `/curators` | Human demand entry |
-| `/admin/curators/*` | Ops — wallet + agent-ready badge |
-| `agent.json`, directory `?agentPurchasable=1` | Agent demand path |
-| Digital→physical (`/s/nia`) | Discovery → physical SKUs |
+| `/curators`                                                        | Human demand entry                  |
+| `/admin/curators/*`                                                | Ops — wallet + agent-ready badge    |
+| `agent.json`, directory `?agentPurchasable=1`                      | Agent demand path                   |
+| Digital→physical (`/s/nia`)                                        | Discovery → physical SKUs           |
 
 ## Align (remaining)
 
-| Surface | Action |
-|---------|--------|
-| `/lab` | ✅ Default try-on/shop; agent chrome in "More" sheet (ADR 0014) |
-| `/pricing` | Label shopper vs supply clearly |
-| Brand sweep | Legal/guides/share cards still say BeOnPoint in places — prefer `PRODUCT_NAME` |
-| Pricing messaging | ✅ "Zero platform fees" → "No subscription. No listing fees." (ADR 0013 reconciliation) |
-| Hardcoded API URLs | ✅ `/developers`, `/pricing`, funnel route use `getApiBase()` |
+| Surface            | Action                                                                                  |
+| ------------------ | --------------------------------------------------------------------------------------- |
+| `/lab`             | ✅ Default try-on/shop; agent chrome in "More" sheet (ADR 0014)                         |
+| `/pricing`         | Label shopper vs supply clearly                                                         |
+| Brand sweep        | Legal/guides/share cards still say BeOnPoint in places — prefer `PRODUCT_NAME`          |
+| Pricing messaging  | ✅ "Zero platform fees" → "No subscription. No listing fees." (ADR 0013 reconciliation) |
+| Hardcoded API URLs | ✅ `/developers`, `/pricing`, funnel route use `getApiBase()`                           |
 
 ## Killed / redirected
 
-| Surface | Disposition |
-|---------|-------------|
-| `/style`, `/collage` | Deleted; permanent redirect → `/lab?tab=try-on` |
-| `/social` | Deleted; permanent redirect → `/curators` |
-| Homepage persona carousel in hero | Removed |
-| Homepage wallet connect | Removed from marketing `/` |
-| `DesignStudio.tsx`, `DesignPanel.tsx` | Deleted (collage/design studio, low engagement); `generateDesign` capability retained in AI providers |
-| `SocialFeed.tsx`, `useMemoryAPI.ts` | Deleted (Farcaster-coupled feed); `SocialActivity` type retained in `shared-types` |
-| `/api/social/feed`, `/api/social/activity` | Deleted (orphaned after SocialFeed removal) |
+| Surface                                    | Disposition                                                                                           |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `/style`, `/collage`                       | Deleted; permanent redirect → `/lab?tab=try-on`                                                       |
+| `/social`                                  | Deleted; permanent redirect → `/curators`                                                             |
+| Homepage persona carousel in hero          | Removed                                                                                               |
+| Homepage wallet connect                    | Removed from marketing `/`                                                                            |
+| `DesignStudio.tsx`, `DesignPanel.tsx`      | Deleted (collage/design studio, low engagement); `generateDesign` capability retained in AI providers |
+| `SocialFeed.tsx`, `useMemoryAPI.ts`        | Deleted (Farcaster-coupled feed); `SocialActivity` type retained in `shared-types`                    |
+| `/api/social/feed`, `/api/social/activity` | Deleted (orphaned after SocialFeed removal)                                                           |
 
 ---
 
 ## Metrics
 
-| Metric | How to read |
-|--------|-------------|
-| Agent-purchasable curators | `node scripts/agent-commerce-ready.mjs` or `GET /api/curator/directory` → `meta.agentPurchasableCount` (**target ≥ 5**) |
-| Third-party try-ons / orders | Logs + Prometheus `agent_try_on_third_party` / `agent_order_third_party` |
-| Human try-on → purchase | Curator funnel analytics |
+| Metric                           | How to read                                                                                                                                     |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Agent-purchasable curators       | `node scripts/agent-commerce-ready.mjs` or `GET /api/curator/directory` → `meta.agentPurchasableCount` (**target ≥ 5**)                         |
+| Listing readiness / completeness | `node scripts/trusted-offer-audit.mjs` → physical listing readiness, completeness, freshness, field coverage, and blocker counts                |
+| Merchant onboarding status       | [Merchant Onboarding Scorecard](./guides/merchant-onboarding-scorecard.md) → per-curator Ready / Fixing / Blocked gate and onboarding economics |
+| Weekly pilot progress            | [Weekly Pilot Report](./guides/weekly-pilot-report.md) → supply, demand, execution, funnel, and schlep metrics                                  |
+| Third-party try-ons / orders     | Logs + Prometheus `agent_try_on_third_party` / `agent_order_third_party`                                                                        |
+| Human try-on → purchase          | Curator funnel analytics                                                                                                                        |
 
-### Prod snapshot (2026-07-14)
+### Historical snapshots and current verification
 
-**Hackathon mode:** Platform can drive revenue now without human curators being agent-live. Digital try-on ($0.03 via Nia), NFT minting ($0.10), and agent markup model all work. Human storefront pages (`/s/[slug]`) are browsable and WhatsApp-checkout-able even without wallets.
+**Historical hackathon mode:** Platform could drive revenue without human curators being agent-live. Digital try-on ($0.03 via Nia), NFT minting ($0.10), and agent markup model were documented as working. Human storefront pages (`/s/[slug]`) were browsable and WhatsApp-checkout-able even without wallets. Treat this as historical evidence, not a current production snapshot, until re-run.
 
 **Prior (2026-07-11):** API `20260711-105003` — custodial batch provisioned 7 agent-purchasable curators (wanja, zara, mo, juma, grace, fatima, amara). Verify: `node scripts/agent-commerce-ready.mjs` → `ready: true`.
 
 **Codebase hygiene shipped (2026-07-14):** Dead code removed (DesignStudio, SocialFeed, useMemoryAPI + orphaned API routes). Demand-side discovery components (LooksFaceoff, CommunityPanel) quarantined per [ADR 0014](./adr/0014-demand-side-discovery-components.md). Homepage decomposed (1662 -> 11 lines, 8 components). Navigation unified via `OnPointHeader`. Lab simplified (design/community modes removed, agent chrome in More sheet). API jsconfig + JSDoc annotations added.
+
+**Current infrastructure verification (2026-08-10):** The API deployment was repaired and verified after removing an orphaned bridge listener. Active release `20260810-212431` served HTTP 200 health responses; both API workers, worker, agent server, signer, and bridge were online. The live migration ledger matched repository migrations `0008–0010`, including the refund queue index and removal of the legacy referral uniqueness constraint. This is infrastructure evidence, not a current supply or demand snapshot.
+
+**Repeatable pilot audit:**
+
+Run the fast directory check first, then the listing-level audit. The second command fetches each curator storefront through the public API and intentionally includes inactive curators so the team can see fixable supply gaps:
+
+```bash
+node scripts/agent-commerce-ready.mjs
+node scripts/trusted-offer-audit.mjs
+
+# Point at a local or staging API when needed:
+node scripts/trusted-offer-audit.mjs \\
+  'http://localhost:48751/api/curator/directory'
+```
+
+Interpret the output as a baseline, not a traction claim:
+
+- `directory.pilotReady` — at least five curators are currently advertised as agent-purchasable.
+- `supply.readinessRate` — share of physical listings whose existing `trustedOffer` contract is executable.
+- `supply.averageCompleteness` — mean listing completeness from the same contract.
+- `supply.fieldCoverage` — listing-level coverage for identity, media, size/stock, price, payout, and freshness checks.
+- `supply.blockerCounts` — the shortest prioritized list for merchant-ops fixes.
+- `storefronts.failures` — API/storefront gaps that must be resolved before using the snapshot.
+
+The audit excludes digital listings from physical readiness denominators because digital designs are try-on-only. It does not write to the database, change listings, or call payment routes. A storefront fetch failure or malformed directory record produces exit code `2`; a directory or runtime failure produces exit code `1`.
 
 **Ops playbook to activate human curators (post-hackathon):**
 
@@ -115,9 +147,10 @@ Current state: trust-based. Seeded curators are admin-created (`config/curators/
 4. Curators self-serve: `/curator/onboard` or `/curator/wallet` — Magic, MiniPay, or custodial
 5. After curator-owned wallet: admin **Setup 0xSplit** (skip while `platform_custodial`)
 
-Guide: [curator-payout-wallets.md](./guides/curator-payout-wallets.md)
+Guides: [curator-payout-wallets.md](./guides/curator-payout-wallets.md) · [merchant-onboarding-scorecard.md](./guides/merchant-onboarding-scorecard.md) · [weekly-pilot-report.md](./guides/weekly-pilot-report.md)
 
 ---
 
 **Owner:** Product  
-**Next:** Drive hackathon transactions (digital try-ons + NFT mints) · chase third-party agent calls · verify supply graph after hackathon
+**Next audit:** Refresh agent-purchasable curators, physical SKU freshness/completeness, third-party agent calls, order outcomes, and merchant onboarding economics.
+**Strategic test:** prove the fashion wedge before extracting or marketing a broader platform abstraction.

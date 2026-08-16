@@ -1,10 +1,10 @@
 # Architecture
 
-> **Product vision & phases:** [STRATEGY.md](./STRATEGY.md) — this doc owns system shape and data flow only.
+> **Product thesis, market rationale & phases:** [STRATEGY.md](./STRATEGY.md) — this doc owns system shape and data flow only.
 
 ## System Overview
 
-OnPoint is a monorepo: Next.js presentation, Hetzner API/autonomy, AI providers, and a Python web-bridge. The product is a **fit-aware supply graph** with two demand clients (human UI + agent API) over one Curator inventory.
+OnPoint is a monorepo: Next.js presentation, Hetzner API/autonomy, AI providers, and a Python web-bridge. The product is a **fashion execution rail** with two demand clients (human UI + agent API) over one Curator inventory. Its reusable primitives—structured offers, freshness, fit evidence, quotes, settlement, attribution, and outcomes—are the technical basis for a possible future rail for other fit-sensitive physical goods, but fashion remains the only strategic wedge today.
 
 Three composable layers ([ADR 0002](./adr/0002-curator-primitive.md)):
 
@@ -64,41 +64,42 @@ Three composable layers ([ADR 0002](./adr/0002-curator-primitive.md)):
 
 ## Monorepo Structure
 
-| Package                     | Purpose                                          |
-| --------------------------- | ------------------------------------------------ |
-| `apps/web`                  | Next.js application — UI, API routes, agent loop |
-| `apps/chrome-extension`     | [Archived] Chrome Built-in AI fashion assistant  |
-| `packages/shared-types`     | TypeScript types (fashion data, categories)      |
-| `packages/shared-ui`        | Reusable UI components                           |
-| `packages/ai-client`        | AI provider abstraction layer + React hooks      |
-| `packages/agent-web-bridge` | Python FastAPI browser automation service        |
-| `packages/db`               | Drizzle schema + migrations for Neon (ADR 0003)  |
-| `packages/storage`          | Cloudflare R2 helpers (put, signed URLs, transforms) |
-| `packages/messaging-bridge` | Spectrum-ts wrapper — WhatsApp / Telegram / iMessage providers for the Hetzner agent |
-| `apps/api/routes/curator-apply.js` | Public curator onboarding endpoint |
-| `apps/api/routes/curator-storefront.js` | Public curator storefront read endpoint (handles physical + digital listings) |
-| `apps/api/routes/listing-similar.js` | Public endpoint: similar physical items for a digital listing (digital→physical funnel) |
-| `apps/api/routes/agent-tryon.js` | x402-paid agent try-on endpoint (returns `similarPhysicalItems` for digital listings) |
-| `apps/api/lib/whatsapp-ingest.js` | WhatsApp media -> R2 -> Neon ingest pipeline |
-| `apps/web/app/s/[slug]/page.tsx` | Branded curator storefront UI |
-| `apps/web/components/AICuratorSection.tsx` | AI Curator second opinion voices on human storefronts |
-| `apps/web/components/CrossCuratorRecommendations.tsx` | Cross-curator product recommendations with attribution tracking |
-| `apps/web/app/curator/onboard/page.tsx` | Self-serve Curator onboarding form |
-| `apps/web/app/lab/page.tsx` | Power-user / own-agent tooling (not the demand hero); uses `OnPointHeader` |
-| `apps/web/components/OnPointHeader.tsx` | Shared responsive header + footer (desktop + mobile) |
-| `apps/web/components/home/` | Homepage components extracted from monolithic `page.tsx` (HeroView, LookCrafter, HeroVisual, etc.) |
-| `apps/web/components/Dashboard/TacticalDashboard.tsx` | Lab dashboard with 7 modes: try-on, shop, stylist, my-looks, dashboard, intel, settings |
-| `apps/web/app/admin/analytics/CuratorComparisonTable.tsx` | Cross-curator comparison table with sparklines |
-| `apps/web/components/admin/TrendSparkline.tsx` | Shared sparkline, Bar, CSV export, SMA trend components |
-| `apps/api/routes/agent-looks.js` | Agent looks CRUD + bulk + share + try-on-count + link-agent + collage + classify + image upload |
-| `apps/api/lib/image-composite.js` | Look collage generation — Tier 1 sharp (deterministic grid), Tier 2 Qwen Cloud wan2.7-image-pro (AI flat-lay) |
-| `apps/api/lib/look-classify.js` | Look classification — rule-based + AI vision (qwen-vl-max) for category/occasion/season |
-| `packages/agent-core/src/looks-api.ts` | Typed SDK helpers for the looks API (browse, get, create, classify, update, delete) |
-| `scripts/agent-looks.mjs` | Reference CLI script for the looks API |
+| Package                                                   | Purpose                                                                                                       |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `apps/web`                                                | Next.js application — UI, API routes, agent loop                                                              |
+| `apps/chrome-extension`                                   | [Archived] Chrome Built-in AI fashion assistant                                                               |
+| `packages/shared-types`                                   | TypeScript types (fashion data, categories)                                                                   |
+| `packages/shared-ui`                                      | Reusable UI components                                                                                        |
+| `packages/ai-client`                                      | AI provider abstraction layer + React hooks                                                                   |
+| `packages/agent-web-bridge`                               | Python FastAPI browser automation service                                                                     |
+| `packages/db`                                             | Drizzle schema + migrations for Neon (ADR 0003)                                                               |
+| `packages/storage`                                        | Cloudflare R2 helpers (put, signed URLs, transforms)                                                          |
+| `packages/messaging-bridge`                               | Spectrum-ts wrapper — WhatsApp / Telegram / iMessage providers for the Hetzner agent                          |
+| `apps/api/routes/curator-apply.js`                        | Public curator onboarding endpoint                                                                            |
+| `apps/api/routes/curator-storefront.js`                   | Public curator storefront read endpoint (handles physical + digital listings)                                 |
+| `apps/api/routes/listing-similar.js`                      | Public endpoint: similar physical items for a digital listing (digital→physical funnel)                       |
+| `apps/api/routes/agent-tryon.js`                          | x402-paid agent try-on endpoint (returns `similarPhysicalItems` for digital listings)                         |
+| `apps/api/lib/whatsapp-ingest.js`                         | WhatsApp media -> R2 -> Neon ingest pipeline                                                                  |
+| `apps/web/app/s/[slug]/page.tsx`                          | Branded curator storefront UI                                                                                 |
+| `apps/web/components/AICuratorSection.tsx`                | AI Curator second opinion voices on human storefronts                                                         |
+| `apps/web/components/CrossCuratorRecommendations.tsx`     | Cross-curator product recommendations with attribution tracking                                               |
+| `apps/web/app/curator/onboard/page.tsx`                   | Self-serve Curator onboarding form                                                                            |
+| `apps/web/app/lab/page.tsx`                               | Power-user / own-agent tooling (not the demand hero); uses `OnPointHeader`                                    |
+| `apps/web/components/OnPointHeader.tsx`                   | Shared responsive header + footer (desktop + mobile)                                                          |
+| `apps/web/components/home/`                               | Homepage components extracted from monolithic `page.tsx` (HeroView, LookCrafter, HeroVisual, etc.)            |
+| `apps/web/components/Dashboard/TacticalDashboard.tsx`     | Lab dashboard with 7 modes: try-on, shop, stylist, my-looks, dashboard, intel, settings                       |
+| `apps/web/app/admin/analytics/CuratorComparisonTable.tsx` | Cross-curator comparison table with sparklines                                                                |
+| `apps/web/components/admin/TrendSparkline.tsx`            | Shared sparkline, Bar, CSV export, SMA trend components                                                       |
+| `apps/api/routes/agent-looks.js`                          | Agent looks CRUD + bulk + share + try-on-count + link-agent + collage + classify + image upload               |
+| `apps/api/lib/image-composite.js`                         | Look collage generation — Tier 1 sharp (deterministic grid), Tier 2 Qwen Cloud wan2.7-image-pro (AI flat-lay) |
+| `apps/api/lib/look-classify.js`                           | Look classification — rule-based + AI vision (qwen-vl-max) for category/occasion/season                       |
+| `packages/agent-core/src/looks-api.ts`                    | Typed SDK helpers for the looks API (browse, get, create, classify, update, delete)                           |
+| `scripts/agent-looks.mjs`                                 | Reference CLI script for the looks API                                                                        |
 
 ## Data Flow
 
 ### Consumer homepage (`/`)
+
 1. **Server component** → `app/page.tsx` renders `OnPointHeader` + `HeroView` (client island)
 2. **HeroView** → Composes `WelcomeBackBanner`, `HeroVisual`, `LookCrafter`, `EditorialStats`, `RecentlySavedSection`
 3. **LookCrafter** → Pre-canned result instantly, progressive AI enhancement via `/api/ai/look-preview` (5s timeout, silent fallback)
@@ -106,6 +107,7 @@ Three composable layers ([ADR 0002](./adr/0002-curator-primitive.md)):
 5. **No wallet/Auth0 before first interaction** (ADR 0002 §5)
 
 ### Curator storefront (`/s/[slug]`) — Phase 11
+
 1. **Curator + listings loaded** → Hetzner API reads from Neon (`curators` + `listings` joined to `kit_skus`); R2 image URLs constructed via `packages/storage`
 2. **Customer lands on branded page** → Curator's logo (if set), colors, voice, inventory scoped
 3. **Try-on against Curator catalog** → reuses `VirtualTryOn`, no global product load
@@ -115,7 +117,8 @@ Three composable layers ([ADR 0002](./adr/0002-curator-primitive.md)):
 7. **Current implementation** → `/s/[slug]` is live in the web app and consumes `GET /api/curator/:slug/storefront`; the first production slice is WhatsApp-first checkout for live listings.
 
 ### Digital curator → physical funnel (ADR 0011)
-1. **Agent or consumer visits `/s/nia`** → Storefront API returns 8 digital listings with `inventoryType: "digital"`, violet badge, try-on CTA
+
+1. **Agent or consumer visits `/s/nia`** → Storefront API returns Nia's digital listings with `inventoryType: "digital"`, violet badge, and try-on CTA (the 8-listing count is historical seed data, not a current production guarantee)
 2. **Try-on initiated** → `POST /api/agent/try-on` (x402 payment: $0.03 digital / $0.05 physical cUSD) or web try-on flow
 3. **Digital listing has no physical product** → API returns `similarPhysicalItems` matched by tags (e.g. `["football", "arsenal", "home"]`)
 4. **Similar items from human curators** → `GET /api/listings/:id/similar` joins `kit_skus` for title/image, returns 5 physical listings
@@ -123,6 +126,7 @@ Three composable layers ([ADR 0002](./adr/0002-curator-primitive.md)):
 6. **Agent or consumer follows link** → Lands on human curator storefront → can order physical item via WhatsApp/M-Pesa/agent checkout
 
 ### Curator chat-ops admin (Wanja path) — Phase 11
+
 1. **Curator texts agent** → Spectrum-ts WhatsApp provider → Hetzner `apps/api/routes/agent-whatsapp.js` + `apps/api/lib/whatsapp-ingest.js` (PM2)
 2. **Command parsed** → e.g. `+ arsenal home M 2500 4` resolves to `kit_skus.id = arsenal-2425-home`
 3. **Media ingest (if photo attached)** → download from Meta API → upload to R2 (`/curators/{slug}/listings/{id}/{n}.jpg`) **within webhook window** (Meta URLs expire ~30 days)
@@ -131,6 +135,7 @@ Three composable layers ([ADR 0002](./adr/0002-curator-primitive.md)):
 6. **Customer storefront reflects change immediately** → Hetzner API serves fresh reads; Vercel/Netlify never writes
 
 ### Agent Looks
+
 1. **Database** → `agent_looks` table in Neon (slug, title, description, curator_slug, agent_address, listing_ids jsonb, hero_listing_id, tags text[], metadata jsonb, cover_image_key, collage_key, status, try_on_count, share_count, created_at)
 2. **API routes** → `apps/api/routes/agent-looks.js` — CRUD + bulk + share + try-on-count + link-agent + collage + classify + image upload
 3. **Image generation** → `apps/api/lib/image-composite.js` — Tier 1 sharp (deterministic grid), Tier 2 Qwen Cloud wan2.7-image-pro (AI flat-lay)
@@ -139,6 +144,10 @@ Three composable layers ([ADR 0002](./adr/0002-curator-primitive.md)):
 6. **Web pages** → `/looks` (browse), `/look/[slug]` (detail with try-on CTA, shop CTA, share), curator tools (CuratorLookCreator, CuratorHomePanel with drafts + bulk)
 7. **SDK** → `packages/agent-core/src/looks-api.ts` — typed SDK helpers (browse, get, create, classify, update, delete)
 8. **Reference script** → `scripts/agent-looks.mjs`
+
+## Trusted offer and agent loop architecture
+
+The core unit is not a generic product record; it is a **trusted executable offer** with enough identity, fit, stock, price, payment, fulfillment, and outcome context for a human or agent to act safely.
 
 ## Agent Loop Architecture
 
@@ -163,28 +172,28 @@ Three composable layers ([ADR 0002](./adr/0002-curator-primitive.md)):
 └──────────────────────────────────────────────────────────────┘
 ```
 
-## Reusable Middleware Modules
+## Reusable primitives (future platform surface)
 
-These modules live in `apps/web/lib/` and are designed to be extracted into any agent project:
+These modules are reusable building blocks discovered while proving the fashion wedge. They are not a current generic platform product; extract or expose them more broadly only after fashion supply, external agent usage, and transaction outcomes justify the abstraction:
 
-| Module                      | File                                        | Purpose                                                  |
-| --------------------------- | ------------------------------------------- | -------------------------------------------------------- |
-| **Curator Schema**          | `packages/shared-types/curator.ts`          | Single primitive for human merchants + AI personas (ADR 0002) |
-| **Curator Loader**          | `apps/web/config/curators/*.json` + `lib/utils/persona-config.ts` | Source of truth for `type: "human"` and `type: "ai"` Curators |
-| **Storefront Route**        | `apps/web/app/s/[slug]/page.tsx`            | Composes shipped components against one Curator         |
-| **Agent Controls**          | `middleware/agent-controls.ts`            | Spending limits, autonomy thresholds, approval workflows |
-| **Autonomous Executor**     | `services/autonomous-executor.ts`          | Signs and broadcasts accepted suggestions onchain      |
-| **State Persistence**       | `middleware/agent-store.ts`                 | Redis-backed storage with write-through cache            |
-| **Commission Splits**       | `utils/commissions.ts`                      | Four-tier revenue distribution calculator                |
-| **Suggestion Toast**        | `components/Agent/AgentSuggestionToast.tsx` | Time-bounded agent-to-user proposals                     |
-| **Style Memory**            | `fashion-data.ts` (getRecommendedItems)     | Preference tracking + personalized scoring               |
-| **Agent Wallet**            | `services/agent-wallet.ts`                  | Multi-chain self-custodial wallet service with optional OWS backend support |
-| **Self Protocol**           | `services/self-protocol.ts`                 | Self Agent ID registration and verification            |
-| **Heartbeat Loop**          | `api/agent/heartbeat/route.ts`            | Proactive gas monitoring, fraud checks, receipt logging  |
-| **Agent Dashboard**         | `api/agent/dashboard/route.ts`            | Public transparency endpoint for judges                  |
-| **Referral Links**          | `lib/utils/referral.ts`                   | Trackable share links with base62-encoded ref codes      |
-| **Score Progression**       | `lib/hooks/useScoreProgression.ts`         | Composable hook for trend, best score, persona usage     |
-| **Style Recap Cron**        | `api/cron/style-recap/route.ts`           | Monthly re-engagement email via Hetzner worker           |
+| Module                  | File                                                              | Purpose                                                                     |
+| ----------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| **Curator Schema**      | `packages/shared-types/curator.ts`                                | Single primitive for human merchants + AI personas (ADR 0002)               |
+| **Curator Loader**      | `apps/web/config/curators/*.json` + `lib/utils/persona-config.ts` | Source of truth for `type: "human"` and `type: "ai"` Curators               |
+| **Storefront Route**    | `apps/web/app/s/[slug]/page.tsx`                                  | Composes shipped components against one Curator                             |
+| **Agent Controls**      | `middleware/agent-controls.ts`                                    | Spending limits, autonomy thresholds, approval workflows                    |
+| **Autonomous Executor** | `services/autonomous-executor.ts`                                 | Signs and broadcasts accepted suggestions onchain                           |
+| **State Persistence**   | `middleware/agent-store.ts`                                       | Redis-backed storage with write-through cache                               |
+| **Commission Splits**   | `utils/commissions.ts`                                            | Four-tier revenue distribution calculator                                   |
+| **Suggestion Toast**    | `components/Agent/AgentSuggestionToast.tsx`                       | Time-bounded agent-to-user proposals                                        |
+| **Style Memory**        | `fashion-data.ts` (getRecommendedItems)                           | Preference tracking + personalized scoring                                  |
+| **Agent Wallet**        | `services/agent-wallet.ts`                                        | Multi-chain self-custodial wallet service with optional OWS backend support |
+| **Self Protocol**       | `services/self-protocol.ts`                                       | Self Agent ID registration and verification                                 |
+| **Heartbeat Loop**      | `api/agent/heartbeat/route.ts`                                    | Proactive gas monitoring, fraud checks, receipt logging                     |
+| **Agent Dashboard**     | `api/agent/dashboard/route.ts`                                    | Public transparency endpoint for judges                                     |
+| **Referral Links**      | `lib/utils/referral.ts`                                           | Trackable share links with base62-encoded ref codes                         |
+| **Score Progression**   | `lib/hooks/useScoreProgression.ts`                                | Composable hook for trend, best score, persona usage                        |
+| **Style Recap Cron**    | `api/cron/style-recap/route.ts`                                   | Monthly re-engagement email via Hetzner worker                              |
 
 ## AI Provider Abstraction
 
@@ -199,12 +208,12 @@ interface AIProvider {
 }
 ```
 
-| Provider              | Tier       | Capabilities                                                  |
-| --------------------- | ---------- | ------------------------------------------------------------- |
-| Venice AI             | Free       | Vision analysis via polling (`qwen3-vl-235b-a22b`)           |
-| Replicate (GPT-4o-mini)| Free      | Vision analysis via polling (GPT-4o-mini)                    |
-| Azure Computer Vision | Free       | Object detection + garment tagging + dense captions (AZ CV 4.0) |
-| Gemini Live           | Premium    | Real-time WebSocket audio + video streaming                   |
+| Provider                | Tier    | Capabilities                                                    |
+| ----------------------- | ------- | --------------------------------------------------------------- |
+| Venice AI               | Free    | Vision analysis via polling (`qwen3-vl-235b-a22b`)              |
+| Replicate (GPT-4o-mini) | Free    | Vision analysis via polling (GPT-4o-mini)                       |
+| Azure Computer Vision   | Free    | Object detection + garment tagging + dense captions (AZ CV 4.0) |
+| Gemini Live             | Premium | Real-time WebSocket audio + video streaming                     |
 
 ## Agent Web-Agency (Python Bridge)
 
