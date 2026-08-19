@@ -211,4 +211,4 @@ calls the REST API directly, and is a **Linq sender to iMessage** + the
   OKX is a pay-per-call x402 rail; Prava is a card-credential proxy. The OKX
   facade pattern does **not** apply to Prava.
 - [AGENTS.md](../../AGENTS.md)
-- Hackathon strategy note: [docs/PRAVA-HACKATHON.md](../PRAVA-HACKATHON.md)
+- Hackathon archive: [docs/HACKATHONS.md](../HACKATHONS.md)

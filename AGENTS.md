@@ -8,8 +8,6 @@
 > **Live:** https://beonpoint.netlify.app · **API:** https://api.onpoint.famile.xyz · **Manifest:** https://beonpoint.netlify.app/.well-known/agent.json
 >
 > **Also listed on OKX.AI** as an Agent Service Provider (ASP ID 9874, A2MCP type, XLayer USD₮0 payments).
->
-> **Celo Builders hackathon:** Published submission to the [Agentic Payments and DeFAI Hackathon](https://celobuilders.xyz/hackathons/agentic-payments-defai) — 4 tracks, deadline Aug 3 2026. Attribution tag `celo_ce9e004195d5` is active on every Celo tx. Full details: [docs/CELO-BUILDERS-HACKATHON.md](./docs/CELO-BUILDERS-HACKATHON.md).
 
 ---
 
@@ -446,9 +444,9 @@ onchainos agent x402-check --endpoint "https://api.onpoint.famile.xyz/okx/try-on
 
 ## Attribution (ERC-8021)
 
-Every 402 response includes a `dataSuffix` in the `accepts` block. Append this to your payment transaction data. It carries the platform attribution code and assigned tag in an ERC-8021 array, which is how the hackathon leaderboard counts your transactions.
+Every 402 response includes a `dataSuffix` in the `accepts` block. Append this to your payment transaction data. It carries the platform attribution code and assigned tag in an ERC-8021 array.
 
-If you have your own attribution code, use `toDataSuffix(['your_code', 'celo_ce9e004195d5'])` — the assigned tag must be present.
+If you have your own attribution code, use `toDataSuffix(['your_code', 'celo_ce9e004195d5'])`.
 
 ---
 
@@ -512,9 +510,7 @@ BUYER_PRIVATE_KEY=0x... node scripts/agent-buyer.mjs
 | OKX A2MCP facade ADR          | [docs/adr/0016-okx-a2mcp-facade.md](./docs/adr/0016-okx-a2mcp-facade.md)                                                                     |
 | Monetization ADR (x402-first) | [docs/adr/0018-x402-first-monetization-and-deferred-subscriptions.md](./docs/adr/0018-x402-first-monetization-and-deferred-subscriptions.md) |
 | OKX facade route              | [apps/api/routes/okx-facade.js](./apps/api/routes/okx-facade.js)                                                                             |
-| Celo Builders hackathon       | [docs/CELO-BUILDERS-HACKATHON.md](./docs/CELO-BUILDERS-HACKATHON.md)                                                                         |
-| Qwen Cloud hackathon          | [docs/QWEN-CLOUD-HACKATHON.md](./docs/QWEN-CLOUD-HACKATHON.md)                                                                               |
-| YouCam API hackathon          | [docs/YOUCAM-HACKATHON.md](./docs/YOUCAM-HACKATHON.md)                                                                                       |
+| Hackathon archive             | [docs/HACKATHONS.md](./docs/HACKATHONS.md)                                                                                                   |
 | Reference buyer               | [scripts/agent-buyer.mjs](./scripts/agent-buyer.mjs)                                                                                         |
 | Reference try-on              | [scripts/agent-tryon.mjs](./scripts/agent-tryon.mjs)                                                                                         |
 | Reference looks CLI           | [scripts/agent-looks.mjs](./scripts/agent-looks.mjs)                                                                                         |

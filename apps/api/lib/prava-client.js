@@ -15,7 +15,7 @@
  *
  *   • Live — shells to the `prava` CLI (the fastest path to a real order;
  *     the CLI handles agent linking + passkey flow natively). The CLI is
- *     production-only with real cards (see docs/PRAVA-HACKATHON.md). The
+ *     production-only with real cards (see ADR 0017). The
  *     MCP-SDK path (`@modelcontextprotocol/sdk`) is the preferred production
  *     transport — credentials stay fully server-side — and can be swapped in
  *     behind this same interface. The buy-flow tool chain is identical:

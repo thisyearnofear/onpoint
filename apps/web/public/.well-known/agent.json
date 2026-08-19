@@ -92,7 +92,7 @@
       "code": "celo_aac2acfa60e8",
       "assignedTag": "celo_ce9e004195d5",
       "standard": "ERC-8021",
-      "instructions": "Append the attribution dataSuffix (provided in every 402 response) to your cUSD transfer transaction data. The dataSuffix carries both codes in an ERC-8021 array. Already have your own code? Use toDataSuffix(['your_code', 'celo_ce9e004195d5']) — the assigned tag must be present for hackathon leaderboard credit."
+      "instructions": "Append the attribution dataSuffix (provided in every 402 response) to your cUSD transfer transaction data. The dataSuffix carries both codes in an ERC-8021 array. Already have your own code? Use toDataSuffix(['your_code', 'celo_ce9e004195d5'])."
     },
     "facilitator": {
       "url": "https://api.x402.celo.org",

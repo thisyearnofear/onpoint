@@ -201,7 +201,7 @@ The operating primitive is a **trusted executable offer**: a product with enough
 
 The Prava integration is permission-ready and sandbox-validated; it does not claim a completed merchant order. Self-check and fixture paths validate orchestration, not payment or fulfillment.
 
-Historical deployment and test evidence is preserved in the relevant hackathon and audit docs, but current numbers must be refreshed before being used as present-tense traction claims.
+Historical deployment and test evidence is preserved in [HACKATHONS.md](./HACKATHONS.md) and the Phase 1 audit, but current numbers must be refreshed before being used as present-tense traction claims.
 
 ---
 

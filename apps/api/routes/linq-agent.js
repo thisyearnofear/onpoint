@@ -2,7 +2,7 @@
  * Linq Agent Route — /linq/*
  *
  * The message-native surface of the OnPoint agent for the Agentic Commerce
- * Hackathon (ADR 0017, docs/PRAVA-HACKATHON.md). Receives Linq iMessage
+ * Prava agent checkout (ADR 0017). Receives Linq iMessage
  * webhooks and orchestrates the rail-specific /prava flow, sending and
  * mutating an iMessage App status card in place.
  *
