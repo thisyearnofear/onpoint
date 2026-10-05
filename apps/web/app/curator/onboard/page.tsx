@@ -208,11 +208,11 @@ export default function CuratorOnboardPage() {
         if (res.ok) {
           // Construct URL from current origin — the API returns
           // onpoint.famile.xyz which doesn't resolve; the live site
-          // is wherever this frontend is deployed (e.g. beonpoint.netlify.app)
+          // is wherever this frontend is deployed (e.g. onpoint.fly.dev)
           const origin =
             typeof window !== "undefined"
               ? window.location.origin
-              : "https://beonpoint.netlify.app";
+              : "https://onpoint.fly.dev";
           setStorefrontUrl(`${origin}/s/${data.slug}`);
           // Save slug to localStorage so the storefront can detect
           // the curator is visiting their own page and show the

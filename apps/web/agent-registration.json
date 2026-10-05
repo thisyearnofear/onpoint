@@ -2,11 +2,11 @@
   "type": "Agent",
   "name": "OnPoint AI Stylist",
   "description": "Autonomous AI fashion stylist with spending controls, transparent reasoning, and self-custodial payments. Provides real-time style analysis, personalized recommendations, and autonomous shopping with full user control.",
-  "image": "https://beonpoint.netlify.app/assets/1Product.png",
+  "image": "https://onpoint.fly.dev/assets/1Product.png",
   "endpoints": [
     {
       "type": "a2a",
-      "url": "https://beonpoint.netlify.app/.well-known/agent.json"
+      "url": "https://onpoint.fly.dev/.well-known/agent.json"
     },
     {
       "type": "wallet",

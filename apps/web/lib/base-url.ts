@@ -7,9 +7,9 @@
  *   3. AUTH0_BASE_URL   — used by Auth0 callbacks; safe to reuse
  *   4. VERCEL_URL       — Vercel sets this on deploy
  *   5. URL              — Netlify sets this to the canonical site URL
- *                         (e.g. https://beonpoint.netlify.app)
+ *                         (e.g. https://onpoint.fly.dev)
  *   6. DEPLOY_PRIME_URL — Netlify branch-deploy URL
- *   7. fallback         — https://beonpoint.netlify.app
+ *   7. fallback         — https://onpoint.fly.dev
  *
  * Used by:
  *   - Root layout metadata (og:url, metadataBase)
@@ -36,7 +36,7 @@ export function getBaseUrl(): string {
     if (c && c.trim().length > 0) return c.replace(/\/+$/, "");
   }
 
-  return "https://beonpoint.netlify.app";
+  return "https://onpoint.fly.dev";
 }
 
 export const CANONICAL_BASE_URL = getBaseUrl();

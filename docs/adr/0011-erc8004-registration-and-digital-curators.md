@@ -24,7 +24,7 @@ The OnPoint AI Stylist is registered on-chain at the Celo Agent Registry.
 | Registration tx | `0x536940e8b9167776a7e2951c9f427ee0a519736f4470cf10065e127b0d14abe3` |
 | Block | 67,852,981 |
 | Registered at | 2026-05-25T23:57:00Z |
-| Agent metadata URI | `https://beonpoint.netlify.app/.well-known/agent.json` |
+| Agent metadata URI | `https://onpoint.fly.dev/.well-known/agent.json` |
 
 The registration transaction called `registerAgent` on the registry contract,
 minting agent ID 9177 and storing the agent.json URL as the metadata pointer.

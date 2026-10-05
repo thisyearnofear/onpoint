@@ -5,7 +5,7 @@
 
 ## Base URL
 api: https://api.onpoint.famile.xyz
-web: https://beonpoint.netlify.app
+web: https://onpoint.fly.dev
 manifest: /.well-known/agent.json
 guide: https://github.com/thisyearnofear/onpoint/blob/master/AGENTS.md
 

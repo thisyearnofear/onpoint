@@ -283,7 +283,7 @@ function buildStorefrontAgentCommerce(curator, slug) {
  * Falls back to the production URL if not configured via env.
  */
 function webBaseUrl() {
-  return process.env.WEB_BASE_URL?.replace(/\/$/, '') || 'https://beonpoint.netlify.app';
+  return process.env.WEB_BASE_URL?.replace(/\/$/, '') || 'https://onpoint.fly.dev';
 }
 
 /** Human-browsable storefront URL for a curator. */

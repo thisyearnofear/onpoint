@@ -30,7 +30,7 @@ Content-Type: application/json
 ## Referral Link Format
 
 ```
-https://beonpoint.netlify.app/r/[referralCode]
+https://onpoint.fly.dev/r/[referralCode]
 ```
 
 When users visit a referral link:
@@ -73,7 +73,7 @@ Response shape example (illustrative, not a current production snapshot) include
 
 ### Dashboard UI
 
-Visit `https://beonpoint.netlify.app/agent` to view:
+Visit `https://onpoint.fly.dev/agent` to view:
 
 - Total referrals and commission earned
 - Pending and paid commissions

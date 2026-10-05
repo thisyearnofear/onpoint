@@ -29,7 +29,7 @@ The storefront route resolves `imageKey = listing.photoKeys[0] || kit.officialIm
 
 ### Option 1: Admin UI (manual, per-listing)
 
-1. Go to `https://beonpoint.netlify.app/admin/curators/{slug}/listings/{id}`
+1. Go to `https://onpoint.fly.dev/admin/curators/{slug}/listings/{id}`
 2. Upload a photo via the file picker — it base64-encodes and POSTs to the admin API
 3. The image is uploaded to R2 and appended to `listing.photoKeys[]`
 4. You can drag-and-drop reorder and delete photos
@@ -113,7 +113,7 @@ curl -s https://api.onpoint.famile.xyz/api/curator/zara/storefront | \
   jq '.listings[] | {id: .id[0:12], title: .kit.club, imageUrl}'
 ```
 
-Each listing should now have a non-null `imageUrl`. The storefront at `https://beonpoint.netlify.app/s/zara` will show real product photos instead of the "Curator photo pending" placeholder.
+Each listing should now have a non-null `imageUrl`. The storefront at `https://onpoint.fly.dev/s/zara` will show real product photos instead of the "Curator photo pending" placeholder.
 
 ## Priority order
 

@@ -3,7 +3,7 @@
   "type": "frontend",
   "name": "Storefront (Wanja) — listings + try-on + empty state",
   "planSteps": [
-    { "type": "action", "description": "Navigate to Wanja's storefront", "action": "navigate", "value": "https://beonpoint.netlify.app/s/wanja" },
+    { "type": "action", "description": "Navigate to Wanja's storefront", "action": "navigate", "value": "https://onpoint.fly.dev/s/wanja" },
     { "type": "assertion", "description": "Curator name 'Wanja' is visible in the heading", "selector": "body", "condition": "text_contains", "value": "Wanja" },
     { "type": "assertion", "description": "Intelligence link is visible", "selector": "body", "condition": "text_contains", "value": "Intelligence" },
     { "type": "assertion", "description": "Share button is visible", "selector": "body", "condition": "text_contains", "value": "Share" },

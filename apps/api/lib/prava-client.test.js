@@ -62,7 +62,7 @@ describe('Prava REST integration', () => {
         unit_price: '108.00',
         quantity: 1,
       }],
-      callbackUrl: 'https://beonpoint.netlify.app/prava/return?orderId=op_test',
+      callbackUrl: 'https://onpoint.fly.dev/prava/return?orderId=op_test',
     });
 
     expect(request.url).toBe('https://sandbox.api.prava.space/v1/sessions');
@@ -74,7 +74,7 @@ describe('Prava REST integration', () => {
       currency: 'USD',
       description: 'Aloyoga order via OnPoint',
       integration_type: 'full_checkout',
-      callback_url: 'https://beonpoint.netlify.app/prava/return?orderId=op_test',
+      callback_url: 'https://onpoint.fly.dev/prava/return?orderId=op_test',
       purchase_context: [{
         merchant_details: {
           name: 'Aloyoga',
@@ -258,7 +258,7 @@ describe('Prava REST integration', () => {
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({
       total_amount: '111.24',
       currency: 'USD',
-      callback_url: `https://beonpoint.netlify.app/prava/return?orderId=${created.body.orderId}`,
+      callback_url: `https://onpoint.fly.dev/prava/return?orderId=${created.body.orderId}`,
     });
 
     await supertest(app)

@@ -3,7 +3,7 @@
   "type": "frontend",
   "name": "Curator landing page — positioning + CTAs",
   "planSteps": [
-    { "type": "action", "description": "Navigate directly to the curator landing page at https://beonpoint.netlify.app/curator — stay on this page, do not navigate to any other URL", "action": "navigate", "value": "https://beonpoint.netlify.app/curator" },
+    { "type": "action", "description": "Navigate directly to the curator landing page at https://onpoint.fly.dev/curator — stay on this page, do not navigate to any other URL", "action": "navigate", "value": "https://onpoint.fly.dev/curator" },
     { "type": "assertion", "description": "Page body contains the text 'WhatsApp is your checkout'", "selector": "body", "condition": "text_contains", "value": "WhatsApp is your checkout" },
     { "type": "assertion", "description": "Page body contains the text 'fitting room'", "selector": "body", "condition": "text_contains", "value": "fitting room" },
     { "type": "assertion", "description": "Page body contains the text 'Same customer'", "selector": "body", "condition": "text_contains", "value": "Same customer" },
