@@ -147,7 +147,7 @@ The agent runs on Hetzner under PM2 (per [ADR 0001](./0001-backend-first-autonom
 | Principle | Application |
 |---|---|
 | **ENHANCEMENT FIRST** | No new try-on, gallery, share, or collage components. `/s/[slug]` is a route that composes shipped ones. |
-| **AGGRESSIVE CONSOLIDATION** | `persona-config.ts` and the implicit "merchant" concept collapse into one `Curator` schema. The global `CATALOG` in [`storefront/route.ts`](../../apps/web/app/api/agent/storefront/route.ts) is deleted in favor of per-Curator catalogs. |
+| **AGGRESSIVE CONSOLIDATION** | `persona-config.ts` and the implicit "merchant" concept collapse into one `Curator` schema. The global `CATALOG` in `storefront/route.ts` (deleted — now `apps/api/routes/curator-storefront.js`) is deleted in favor of per-Curator catalogs. |
 | **PREVENT BLOAT** | Hard rule: no new feature ships unless a named Curator asked for it and a named customer of theirs will use it next week. ROADMAP phases not serving the Curator loop move to `/lab`. |
 | **DRY** | One Curator schema feeds the storefront, the AI persona picker, share-card branding, and revshare attribution. |
 | **CLEAN** | Layer 1 (engine) / Layer 2 (Curators) / Layer 3 (loop) is the only architectural seam end-to-end. Agent/web3 code is fenced behind `/lab` and `/api/agent/*`. |
@@ -166,12 +166,12 @@ The agent runs on Hetzner under PM2 (per [ADR 0001](./0001-backend-first-autonom
 ### Negative / Risks
 - Marketplace cold start: needs ~5 curators across distinct verticals before the cross-recommendation graph has value. Mitigation: concierge onboarding of the first 5; AI Curators can populate empty verticals until a human curator joins.
 - Vocabulary clash: today "stylist" means both AI persona and human merchant. Rename in copy: AI → **Stylist (persona)**, human → **Curator** or **Shop**. Code uses `Curator` throughout.
-- Refactor pressure on [`persona-config.ts`](../../apps/web/lib/utils/persona-config.ts), [`storefront/route.ts`](../../apps/web/app/api/agent/storefront/route.ts), and [`TacticalDashboard.tsx`](../../apps/web/components/Dashboard/TacticalDashboard.tsx) to consume the new schema. Done in one pass, not piecemeal.
+- Refactor pressure on [`persona-config.ts`](../../apps/web/lib/utils/persona-config.ts), `storefront/route.ts` (deleted — now `apps/api/routes/curator-storefront.js`), and [`TacticalDashboard.tsx`](../../apps/web/components/Dashboard/TacticalDashboard.tsx) to consume the new schema. Done in one pass, not piecemeal.
 - ROADMAP phases that don't serve the Curator loop (multi-chain expansion, agent-to-agent economy, custom persona training) drop priority. They are not deleted; they move to `Post-MVP` until evidence justifies them.
 
 ## Migration / Sequencing
 
-See [ROADMAP.md → Phase 11](../ROADMAP.md) for the 12-week sequence. Summary:
+See ROADMAP.md (removed — see git history) for the 12-week sequence. Summary:
 
 1. **Wks 1–2** — Schema + `/s/[slug]` + Mo as first Curator. No AI sidekick yet.
 2. **Wks 3–4** — Share-asset templates (3) production-grade with watermark.

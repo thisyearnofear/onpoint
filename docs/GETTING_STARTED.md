@@ -69,7 +69,7 @@ module cache.
 | `MAGIC_SECRET_KEY` | API server only (`apps/api/.env`) | Magic Express/TEE — never expose to web |
 | `CURATOR_PAYOUT_KEYS_PATH` | API server only | Custodial bootstrap key file (chmod 600) |
 
-See [curator-payout-wallets.md](./guides/curator-payout-wallets.md).
+See [curator-payout-wallets.md](./ops/curator-payout-wallets.md).
 
 ### Social & Integrations
 
@@ -132,16 +132,21 @@ OnPoint uses Auth0 for account identity and wallet connection only where onchain
 onpoint/
 ├── apps/
 │   ├── web/                  # Next.js web application
+│   ├── api/                  # Express API — storefronts, try-on, orders, x402 (Hetzner)
 │   └── chrome-extension/     # [Archived] Chrome extension (Built-in AI Challenge)
 ├── packages/
 │   ├── shared-types/         # TypeScript type definitions
 │   ├── shared-ui/            # Shared UI components
+│   ├── agent-core/           # Typed SDK for the agent commerce API
+│   ├── blockchain-client/    # Celo/cUSD payment helpers
 │   ├── ai-client/            # AI provider abstractions
 │   ├── agent-web-bridge/     # Python FastAPI browser automation
+│   ├── db/                   # Drizzle schema + migrations (Neon)
+│   ├── storage/              # Cloudflare R2 helpers
 │   └── eslint-config/        # Internal linting config
 ├── deploy/                   # Hetzner VPS deployment scripts
-├── openclaw/                 # Agent persona configuration
-└── docs/                     # Documentation
+├── scripts/                  # Reference agents, ops audits, seeding
+└── docs/                     # Documentation (see docs/README.md)
 ```
 
 ## Development Commands

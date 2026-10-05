@@ -3,11 +3,11 @@
 - **Status:** Accepted (reference design)
 - **Date:** 2026-07-21
 - **Deciders:** OnPoint core
-- **Related:** [SCOPE-WOW-FEATURES.md](../SCOPE-WOW-FEATURES.md) (Feature 2, Phase 2/3), [ADR 0002](./0002-curator-primitive.md) (Curator primitive), [ADR 0011](./0011-erc8004-registration-and-digital-curators.md) (Digital curators)
+- **Related:** SCOPE-WOW-FEATURES.md (removed — see git history) (Feature 2, Phase 2/3), [ADR 0002](./0002-curator-primitive.md) (Curator primitive), [ADR 0011](./0011-erc8004-registration-and-digital-curators.md) (Digital curators)
 
 ## Context
 
-[SCOPE-WOW-FEATURES.md](../SCOPE-WOW-FEATURES.md) Feature 2 specifies a clothing-extraction operator POC (Phase 2) that graduates into a productized curator-onboarding feature (Phase 3). The POC is currently "not started" with two blockers: a representative curator photo batch and an approved image-generation/editing path.
+SCOPE-WOW-FEATURES.md (removed — see git history) Feature 2 specifies a clothing-extraction operator POC (Phase 2) that graduates into a productized curator-onboarding feature (Phase 3). The POC is currently "not started" with two blockers: a representative curator photo batch and an approved image-generation/editing path.
 
 [`tandpfun/wardrobe`](https://github.com/tandpfun/wardrobe) (MIT, 1.2k stars) is a standalone Vite + React app that extracts garments from photos into a local `data/library.json` catalog. It is **not** being integrated as a dependency or vendored copy. Its `src/import-flow.jsx` implements a staged review/approve/regenerate workflow that is the closest existing reference design for OnPoint's planned POC.
 

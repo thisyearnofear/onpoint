@@ -86,6 +86,10 @@ AI-assisted styling and real-time sessions are supporting capabilities around th
 
 Smart fallback: Venice → Replicate → Azure → Gemini with dedup prevention.
 
+### Under evaluation (not integrated)
+
+Runware `/v1/systemone` decision models — `typesafe:jev@latest` + `runware:laya@1` — for size Choice + fit Score. No code path uses these yet; evaluate against the existing fit-signal output before wiring into the try-on response.
+
 ---
 
 ## AI Curators (Stylist Personas)

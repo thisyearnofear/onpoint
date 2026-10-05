@@ -73,7 +73,7 @@ The bridge stays dumb (it accepts what it's told). Per **CLEAN**, the bridge has
 
 ### D5. Default-ON for async streaming (operational risk accepted)
 
-Async streaming and stealth/proxy plumbing default to ON in `apps/api` and the bridge. Rationale: the alternative — a parallel blocking path — doubles the surface and risks divergence. Kill switch: `TINYFISH_ASYNC=0` reverts to the old blocking `/v1/automation/run` path within `agent_browse`. Documented in `HETZNER_CONFIG.md` after merge.
+Async streaming and stealth/proxy plumbing default to ON in `apps/api` and the bridge. Rationale: the alternative — a parallel blocking path — doubles the surface and risks divergence. Kill switch: `TINYFISH_ASYNC=0` reverts to the old blocking `/v1/automation/run` path within `agent_browse`. Documented in `docs/ops/hetzner.md` after merge.
 
 ### D6. SSE conversion of `POST /api/agent/tasks/execute`
 
@@ -181,7 +181,7 @@ Bridge secrets live in `/opt/onpoint/packages/agent-web-bridge/.env`, loaded by 
 | `apps/api/worker.js` | Apply per-merchant escalation table when posting to `/execute` and `/market-signals` |
 | `apps/web/components/Agent/AgentStatus.tsx` | Replace fetch+setInterval with `EventSource`; inline iframe in drop card on `streamingUrl` |
 | `docs/adr/0008-tinyfish-async-streaming.md` | This file |
-| `docs/HETZNER_CONFIG.md` (or `HETZNER_CONFIG.md`) | Document `TINYFISH_ASYNC=0` kill switch + `TINYFISH_DEFAULT_PROFILE_ID` |
+| `docs/ops/hetzner.md` | Document `TINYFISH_ASYNC=0` kill switch + `TINYFISH_DEFAULT_PROFILE_ID` |
 
 Net repository size change: ~+250 LoC tests, ~+80 LoC bridge refactor, ~+50 LoC agent-tasks, ~+40 LoC AgentStatus. Minus ~60 LoC deleted (blocking constants, brittle regex, polling state). Net: +360 LoC.
 

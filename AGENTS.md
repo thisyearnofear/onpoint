@@ -510,13 +510,12 @@ BUYER_PRIVATE_KEY=0x... node scripts/agent-buyer.mjs
 | OKX A2MCP facade ADR          | [docs/adr/0016-okx-a2mcp-facade.md](./docs/adr/0016-okx-a2mcp-facade.md)                                                                     |
 | Monetization ADR (x402-first) | [docs/adr/0018-x402-first-monetization-and-deferred-subscriptions.md](./docs/adr/0018-x402-first-monetization-and-deferred-subscriptions.md) |
 | OKX facade route              | [apps/api/routes/okx-facade.js](./apps/api/routes/okx-facade.js)                                                                             |
-| Hackathon archive             | [docs/HACKATHONS.md](./docs/HACKATHONS.md)                                                                                                   |
 | Reference buyer               | [scripts/agent-buyer.mjs](./scripts/agent-buyer.mjs)                                                                                         |
 | Reference try-on              | [scripts/agent-tryon.mjs](./scripts/agent-tryon.mjs)                                                                                         |
 | Reference looks CLI           | [scripts/agent-looks.mjs](./scripts/agent-looks.mjs)                                                                                         |
 | Looks SDK                     | [packages/agent-core/src/looks-api.ts](./packages/agent-core/src/looks-api.ts)                                                               |
 | Supply readiness check        | [scripts/agent-commerce-ready.mjs](./scripts/agent-commerce-ready.mjs)                                                                       |
 | Listing readiness audit       | [scripts/trusted-offer-audit.mjs](./scripts/trusted-offer-audit.mjs)                                                                         |
-| Merchant onboarding scorecard | [docs/guides/merchant-onboarding-scorecard.md](./docs/guides/merchant-onboarding-scorecard.md)                                               |
-| Weekly pilot report           | [docs/guides/weekly-pilot-report.md](./docs/guides/weekly-pilot-report.md)                                                                   |
-| Curator imagery guide         | [docs/guides/curator-imagery.md](./docs/guides/curator-imagery.md)                                                                           |
+| Merchant onboarding scorecard | [docs/ops/merchant-onboarding-scorecard.md](./docs/ops/merchant-onboarding-scorecard.md)                                                     |
+| Weekly pilot report           | [docs/ops/weekly-pilot-report.md](./docs/ops/weekly-pilot-report.md)                                                                         |
+| Curator imagery guide         | [docs/ops/curator-imagery.md](./docs/ops/curator-imagery.md)                                                                                 |

@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-07-14
 - **Deciders:** OnPoint core
-- **Related:** [ADR 0002](./0002-curator-primitive.md) (Curator primitive), [STRATEGY.md](../STRATEGY.md) (Phase 2 metrics), [PHASE1_AUDIT.md](../PHASE1_AUDIT.md)
+- **Related:** [ADR 0002](./0002-curator-primitive.md) (Curator primitive), [STRATEGY.md](../STRATEGY.md) (Phase 2 metrics), [phase1-audit.md](../ops/phase1-audit.md)
 
 ## Context
 

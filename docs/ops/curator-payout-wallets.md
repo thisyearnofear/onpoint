@@ -66,4 +66,4 @@ node scripts/agent-commerce-ready.mjs   # target ≥ 5 agent-purchasable
 
 Enter **Magic Labs bonus** or **General Track** with the story already in prod: invisible curator wallets on Celo, agents pay via x402. Skip Particle/Arbitrum as primary until cross-chain agent demand exists.
 
-Related: [agent-commerce.md](./agent-commerce.md) · [PHASE1_AUDIT.md](../PHASE1_AUDIT.md)
+Related: [agent-commerce.md](../guides/agent-commerce.md) · [phase1-audit.md](./phase1-audit.md)

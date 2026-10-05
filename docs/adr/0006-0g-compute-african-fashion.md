@@ -4,7 +4,7 @@
 - **Date:** 2026-06-15
 - **Deciders:** OnPoint core
 - **Supersedes:** —
-- **Related:** [ADR 0001 — Backend-First Autonomy](./0001-backend-first-autonomy.md), [ADR 0003 — Storage Strategy](./0003-storage-strategy.md), [ARCHITECTURE.md](../ARCHITECTURE.md), [ROADMAP.md](../ROADMAP.md)
+- **Related:** [ADR 0001 — Backend-First Autonomy](./0001-backend-first-autonomy.md), [ADR 0003 — Storage Strategy](./0003-storage-strategy.md), [ARCHITECTURE.md](../ARCHITECTURE.md), ROADMAP.md (removed)
 
 ## Context
 

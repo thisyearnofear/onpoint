@@ -201,7 +201,7 @@ The operating primitive is a **trusted executable offer**: a product with enough
 
 The Prava integration is permission-ready and sandbox-validated; it does not claim a completed merchant order. Self-check and fixture paths validate orchestration, not payment or fulfillment.
 
-Historical deployment and test evidence is preserved in [HACKATHONS.md](./HACKATHONS.md) and the Phase 1 audit, but current numbers must be refreshed before being used as present-tense traction claims.
+Historical deployment and test evidence is preserved in git history and the [Phase 1 audit](./ops/phase1-audit.md), but current numbers must be refreshed before being used as present-tense traction claims.
 
 ---
 
@@ -322,13 +322,14 @@ If the answer is no or unknown, defer.
 | Doc                                        | Owns                                                                               |
 | ------------------------------------------ | ---------------------------------------------------------------------------------- |
 | **This file**                              | Thesis, positioning, market rationale, phases, metrics, expansion gates, kill list |
-| [PHASE1_AUDIT.md](./PHASE1_AUDIT.md)       | Current implementation/ops audit and evidence refresh checklist                    |
 | [ARCHITECTURE.md](./ARCHITECTURE.md)       | System shape, layers, topology, and data flow                                      |
 | [FEATURES.md](./FEATURES.md)               | Feature behavior and implementation references                                     |
 | [GETTING_STARTED.md](./GETTING_STARTED.md) | Local setup and deployment                                                         |
 | [AGENTS.md](../AGENTS.md)                  | Agent-facing API and commerce guide                                                |
-| [Guides](./guides/)                        | Operational playbooks, including merchant scorecards and weekly pilot reporting    |
+| [Guides](./guides/)                        | External-facing how-tos for agents and integrators                                 |
+| [Ops](./ops/)                              | Internal runbooks: audits, scorecards, pilot reporting, infra setup                |
 | [ADRs](./adr/)                             | Historical technical decisions; do not fork the strategy                           |
+| [Research](./research/)                    | Market research inputs; verify sources before external citation                    |
 | Root [README.md](../README.md)             | Short pitch and entry points; no second roadmap                                    |
 
 **Document owner:** Product Lead

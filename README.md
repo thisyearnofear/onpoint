@@ -14,7 +14,7 @@ OnPoint turns live fashion inventory into **fit-aware, machine-readable, locally
 [![ERC-8004](https://img.shields.io/badge/ERC--8004-Registered-blue)](https://8004scan.io/agents/celo/9177)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-Built with [Factory Droid](https://factory.ai/product/droid) — [details](docs/BUILT-WITH-DROID.md). Strategy: [`docs/STRATEGY.md`](docs/STRATEGY.md).
+Strategy: [`docs/STRATEGY.md`](docs/STRATEGY.md).
 
 ---
 
@@ -46,9 +46,8 @@ pnpm install && cp apps/web/.env.example apps/web/.env.local && pnpm dev
 
 | | |
 | --- | --- |
-| [YouCam VTO](docs/YOUCAM-VTO.md) | Paid try-on provider (cloth-v4) |
+| [Docs index](docs/README.md) | Full map — guides, ops, ADRs, research |
 | [Architecture](docs/ARCHITECTURE.md) | Stack, layers, data flow |
-| [Features](docs/FEATURES.md) | Feature specs |
 | [Agent commerce](docs/guides/agent-commerce.md) | Third-party agent how-to |
 | [AGENTS.md](./AGENTS.md) | Full API reference |
 

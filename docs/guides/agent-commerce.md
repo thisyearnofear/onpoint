@@ -27,25 +27,9 @@ Manifest: [`/.well-known/agent.json`](../../apps/web/public/.well-known/agent.js
 Reference buyer: [`scripts/agent-buyer.mjs`](../../scripts/agent-buyer.mjs)  
 Reference try-on: [`scripts/agent-tryon.mjs`](../../scripts/agent-tryon.mjs)
 
-## Historical launch snapshot (2026-07-15)
+## Readiness checks
 
-The table below is preserved as launch evidence, not as a current production metric. Re-run the directory and listing-level audits in [Phase 1 Audit](../PHASE1_AUDIT.md) before using present-tense supply or demand numbers.
-
-| Capability              | Status          | Proof                                                                                                                                                             |
-| ----------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ERC-8004 registration   | Live            | agentId 9177, tx `0x536940e8…` on Celo                                                                                                                            |
-| Self Protocol identity  | Live (mock)     | `selfAgentId: onpoint-agent-9177`, `status: verified` — set `SELF_API_KEY` for real registration                                                                  |
-| Agent wallet            | Live            | `0x5b33E63440e95289207120B94da78CE22F9D24fB` — CELO + cUSD funded                                                                                                 |
-| Paid try-on             | Live            | First real try-on: tx `0x2e1ced72…` (0.03 cUSD), receipt `receipt_mrlzmdja_579151d4`                                                                              |
-| Agent dashboard         | Live            | All compliance flags `true` at `/api/agent/dashboard`                                                                                                             |
-| Curator directory       | Historical      | 4 agent-purchasable curators (zara, mo, juma, grace) in the 2026-07-15 launch snapshot                                                                            |
-| Digital curator (Nia)   | Historical      | 8 digital listings with AI-generated garment images in the 2026-07-15 launch snapshot                                                                             |
-| Physical orders         | Ready at launch | Flow verified via dry-run; no real purchase in this historical snapshot (needs funded buyer)                                                                      |
-| Referral tracking       | Ready           | Schema + dashboard wired; no referred purchases yet                                                                                                               |
-| Curator product imagery | Historical      | 20 physical listings had product images in the 2026-07-15 seed snapshot (3 OSS + 17 AI-generated via Venice SD35); see [curator-imagery.md](./curator-imagery.md) |
-| Agent looks             | Live            | `POST /api/looks` — compose listings into shareable style boards. Demo: `/look/weekend-street-fit-n19o`                                                           |
-| Shareable collage cards | Live            | Try-on with `lookSlug` generates 1080x1350 Instagram-ready collage (sharp → R2)                                                                                   |
-| Referral payout worker  | Live            | `POST /api/cron/referral-payout` — auto-settles pending 2.5% commissions every 30 min                                                                             |
+Before driving paid traffic, verify the platform is live and compliant. For current supply/demand figures, run the audits in the [Phase 1 audit](../ops/phase1-audit.md) — do not rely on dated snapshots.
 
 ### Dashboard compliance flags
 
@@ -62,60 +46,9 @@ All four flags must be `true` before driving paid agent traffic:
 
 ## Referral tracking
 
-Agents can earn 2.5% commission by referring customers. When a purchase is made through a referral link or code, the platform records the referral and calculates commission automatically.
+Agents earn 2.5% commission on referred purchases — pass an `X-Referral-Code` header or `?referral=` query param on orders, or share `https://beonpoint.netlify.app/r/[referralCode]` links. View earnings at `GET /api/agent/dashboard` or the UI at `https://beonpoint.netlify.app/agent`.
 
-**How to use:**
-
-```bash
-# Option 1: Header (recommended for API clients)
-POST /api/curator/wanja/order
-X-Referral-Code: ref_abc123...
-Content-Type: application/json
-
-{ "listingId": "...", "size": "M", "quantity": 1 }
-
-# Option 2: Query parameter (for shareable links)
-POST /api/curator/wanja/order?referral=ref_abc123...
-```
-
-**Referral link format:**
-
-```
-https://beonpoint.netlify.app/r/[referralCode]
-```
-
-When users visit a referral link, the code is stored in sessionStorage and automatically attached to subsequent orders.
-
-**View your earnings:**
-
-```bash
-curl https://api.onpoint.famile.xyz/api/agent/dashboard
-```
-
-Response includes:
-
-```json
-{
-  "referrals": {
-    "totalReferrals": 15,
-    "totalCommissionCusd": "125.50",
-    "pendingCommissionCusd": "45.20",
-    "paidCommissionCusd": "80.30",
-    "recentActivity": [
-      {
-        "referralCode": "ref_abc123",
-        "orderAmountCusd": "19.23",
-        "commissionCusd": "0.48",
-        "status": "paid",
-        "curatorSlug": "wanja",
-        "createdAt": "2026-07-15T10:30:00Z"
-      }
-    ]
-  }
-}
-```
-
-Dashboard UI: `https://beonpoint.netlify.app/agent`
+Full details: [referral-tracking.md](./referral-tracking.md)
 
 ## Phase 1 metrics
 
@@ -134,7 +67,7 @@ node scripts/trusted-offer-audit.mjs
 
 The listing-level audit uses only the public directory/storefront contracts, includes inactive curators to expose fixable supply gaps, excludes digital try-on-only listings from physical readiness, and never writes to the database. Treat its output as an operational baseline; it is not evidence of third-party traction.
 
-For the merchant-by-merchant gate and weekly operating cadence, use the [Merchant Onboarding Scorecard](./merchant-onboarding-scorecard.md) and [Weekly Pilot Report](./weekly-pilot-report.md).
+For the merchant-by-merchant gate and weekly operating cadence, use the [Merchant Onboarding Scorecard](../ops/merchant-onboarding-scorecard.md) and [Weekly Pilot Report](../ops/weekly-pilot-report.md).
 
 Admin UI (`/admin/curators`) shows **Ready / Wallet only / No wallet**.  
 Per-curator wallet editor: `/admin/curators/[slug]` → Commerce → **Generate custodial** or Save wallet.
@@ -145,7 +78,7 @@ Per-curator wallet editor: `/admin/curators/[slug]` → Commerce → **Generate 
 SERVICE_API_KEY=... node scripts/bootstrap-curator-payout-wallets.mjs
 ```
 
-Full curator wallet ops (custodial, Magic, MiniPay, migrate): [curator-payout-wallets.md](./curator-payout-wallets.md)
+Full curator wallet ops (custodial, Magic, MiniPay, migrate): [curator-payout-wallets.md](../ops/curator-payout-wallets.md)
 
 **API deploy note:** `physicalListingCount` / `agentPurchasable` require the latest `apps/api` on Hetzner. Until then the ops script lists `stockedNoWallet` from live − digital counts.
 

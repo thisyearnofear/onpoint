@@ -3,7 +3,7 @@
 > Internal weekly reporting template for the Phase 1 fashion-wedge pilot.
 > Copy this file's template into the pilot workspace once per week; do not overwrite prior snapshots.
 >
-> Related: [Strategy](../STRATEGY.md) · [Phase 1 Audit](../PHASE1_AUDIT.md) · [Merchant Onboarding Scorecard](./merchant-onboarding-scorecard.md) · [Agent Commerce Guide](./agent-commerce.md)
+> Related: [Strategy](../STRATEGY.md) · [Phase 1 Audit](./phase1-audit.md) · [Merchant Onboarding Scorecard](./merchant-onboarding-scorecard.md) · [Agent Commerce Guide](../guides/agent-commerce.md)
 
 ## Reporting rules
 

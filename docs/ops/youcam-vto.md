@@ -52,4 +52,4 @@ node scripts/youcam-tryon-smoke.mjs
 
 https://youtu.be/Y4u5q9jzlPs
 
-Historical hackathon context: [HACKATHONS.md](./HACKATHONS.md)
+Shipped during the YouCam Apparel VTO hackathon (Aug 2026); hackathon records removed — see git history.

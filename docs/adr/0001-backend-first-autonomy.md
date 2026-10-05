@@ -4,7 +4,7 @@
 - **Date:** 2026-05-26
 - **Deciders:** OnPoint core
 - **Supersedes:** —
-- **Related:** [ARCHITECTURE.md](../ARCHITECTURE.md), [HETZNER_CONFIG.md](../../HETZNER_CONFIG.md), [SECURE_WALLET_SETUP.md](../SECURE_WALLET_SETUP.md)
+- **Related:** [ARCHITECTURE.md](../ARCHITECTURE.md), [hetzner.md](../ops/hetzner.md)
 
 ## Context
 

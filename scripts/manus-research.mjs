@@ -456,7 +456,7 @@ function writeJSON(path, obj) {
 }
 
 async function main() {
-  const runDir = resolve(repoRoot, "research/manus", `run-${stamp()}`);
+  const runDir = resolve(repoRoot, "docs/research/manus", `run-${stamp()}`);
   mkdirSync(join(runDir, "teardowns"), { recursive: true });
   mkdirSync(join(runDir, "patterns"), { recursive: true });
   mkdirSync(join(runDir, "sku-expansion"), { recursive: true });

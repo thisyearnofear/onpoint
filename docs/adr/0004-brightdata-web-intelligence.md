@@ -4,7 +4,7 @@
 - **Date:** 2026-05-29
 - **Deciders:** OnPoint core
 - **Supersedes:** —
-- **Related:** [ADR 0001](./0001-backend-first-autonomy.md), [ADR 0002](./0002-curator-primitive.md), [ADR 0003](./0003-storage-strategy.md), [ROADMAP.md](../ROADMAP.md)
+- **Related:** [ADR 0001](./0001-backend-first-autonomy.md), [ADR 0002](./0002-curator-primitive.md), [ADR 0003](./0003-storage-strategy.md), ROADMAP.md (removed)
 
 ## Context
 

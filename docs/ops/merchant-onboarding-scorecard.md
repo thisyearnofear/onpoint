@@ -3,7 +3,7 @@
 > Operational checklist for activating a curator into the Phase 1 agent-commerce pilot.
 > This is a working scorecard, not a public merchant-facing promise.
 >
-> Related: [Phase 1 Audit](../PHASE1_AUDIT.md) · [Agent Commerce Guide](./agent-commerce.md) · [Curator Payout Wallets](./curator-payout-wallets.md) · [Strategy](../STRATEGY.md)
+> Related: [Phase 1 Audit](./phase1-audit.md) · [Agent Commerce Guide](../guides/agent-commerce.md) · [Curator Payout Wallets](./curator-payout-wallets.md) · [Strategy](../STRATEGY.md)
 
 ## Purpose
 

@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-08-10
 **Last verified production repair:** 2026-08-10 — active release `20260810-212431`; API cluster and bridge healthy; live database ledger verified through migration `0010`.
-**Canonical thesis:** [STRATEGY.md](./STRATEGY.md)
+**Canonical thesis:** [STRATEGY.md](../STRATEGY.md)
 
 This is an operational audit, not a second strategy document. The question is whether OnPoint is proving its fashion wedge: fresh, fit-aware, agent-executable supply with real merchant and agent outcomes. Historical snapshots below must be refreshed before being used as current traction claims. The production repair verification above confirms infrastructure and schema state only; it does not establish current merchant count, external demand, fulfillment success, or revenue.
 
@@ -43,13 +43,13 @@ Current state: trust-based. Seeded curators are admin-created (`config/curators/
 | WS0 audit + kill list                                                         | ✅ This file                                                                                                                     |
 | WS1 brand + homepage dual CTAs                                                | ✅ `lib/brand.ts`, `/`, `/about`                                                                                                 |
 | WS2 supply truth                                                              | ✅ `agentPurchasable`, physical counts, admin Agent column, onboard wallet CTA                                                   |
-| WS4 agent DX                                                                  | ✅ [guides/agent-commerce.md](./guides/agent-commerce.md), `agent.json` docs URL                                                 |
+| WS4 agent DX                                                                  | ✅ [guides/agent-commerce.md](../guides/agent-commerce.md), `agent.json` docs URL                                                 |
 | WS5 consolidate                                                               | ✅ `/style` + `/collage` deleted (redirect → Lab); `/social` deleted (redirect → `/curators`)                                    |
 | Admin wallet edit                                                             | ✅ `/admin/curators/[slug]` WalletEditor + `PATCH .../commerce`                                                                  |
 | Third-party agent metrics                                                     | ✅ `apps/api/lib/agent-demand.js`                                                                                                |
 | Custodial payout bootstrap                                                    | ✅ `curator-payout-wallets.js`, admin batch + `/curator/wallet`                                                                  |
 | Magic embedded wallets                                                        | ✅ `magic-wallet.ts` + Netlify `NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY`                                                               |
-| Codebase hygiene ([ADR 0014](./adr/0014-demand-side-discovery-components.md)) | ✅ Dead code deleted (DesignStudio, SocialFeed, useMemoryAPI); demand-side discovery components quarantined for Phase 2 rewiring |
+| Codebase hygiene ([ADR 0014](../adr/0014-demand-side-discovery-components.md)) | ✅ Dead code deleted (DesignStudio, SocialFeed, useMemoryAPI); demand-side discovery components quarantined for Phase 2 rewiring |
 | Navigation unification                                                        | ✅ `OnPointHeader` responsive (desktop + mobile); homepage, `/curator`, `/lab` all use shared header/footer                      |
 | Homepage decomposition                                                        | ✅ `app/page.tsx` 1662 → 11 lines; 8 components extracted to `components/home/`                                                  |
 | Lab simplification                                                            | ✅ `design` + `community` modes removed from `TacticalDashboard`; agent chrome moved to "More" sheet                             |
@@ -100,8 +100,8 @@ Current state: trust-based. Seeded curators are admin-created (`config/curators/
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | Agent-purchasable curators       | `node scripts/agent-commerce-ready.mjs` or `GET /api/curator/directory` → `meta.agentPurchasableCount` (**target ≥ 5**)                         |
 | Listing readiness / completeness | `node scripts/trusted-offer-audit.mjs` → physical listing readiness, completeness, freshness, field coverage, and blocker counts                |
-| Merchant onboarding status       | [Merchant Onboarding Scorecard](./guides/merchant-onboarding-scorecard.md) → per-curator Ready / Fixing / Blocked gate and onboarding economics |
-| Weekly pilot progress            | [Weekly Pilot Report](./guides/weekly-pilot-report.md) → supply, demand, execution, funnel, and schlep metrics                                  |
+| Merchant onboarding status       | [Merchant Onboarding Scorecard](./merchant-onboarding-scorecard.md) → per-curator Ready / Fixing / Blocked gate and onboarding economics |
+| Weekly pilot progress            | [Weekly Pilot Report](./weekly-pilot-report.md) → supply, demand, execution, funnel, and schlep metrics                                  |
 | Third-party try-ons / orders     | Logs + Prometheus `agent_try_on_third_party` / `agent_order_third_party`                                                                        |
 | Human try-on → purchase          | Curator funnel analytics                                                                                                                        |
 
@@ -111,7 +111,7 @@ Current state: trust-based. Seeded curators are admin-created (`config/curators/
 
 **Prior (2026-07-11):** API `20260711-105003` — custodial batch provisioned 7 agent-purchasable curators (wanja, zara, mo, juma, grace, fatima, amara). Verify: `node scripts/agent-commerce-ready.mjs` → `ready: true`.
 
-**Codebase hygiene shipped (2026-07-14):** Dead code removed (DesignStudio, SocialFeed, useMemoryAPI + orphaned API routes). Demand-side discovery components (LooksFaceoff, CommunityPanel) quarantined per [ADR 0014](./adr/0014-demand-side-discovery-components.md). Homepage decomposed (1662 -> 11 lines, 8 components). Navigation unified via `OnPointHeader`. Lab simplified (design/community modes removed, agent chrome in More sheet). API jsconfig + JSDoc annotations added.
+**Codebase hygiene shipped (2026-07-14):** Dead code removed (DesignStudio, SocialFeed, useMemoryAPI + orphaned API routes). Demand-side discovery components (LooksFaceoff, CommunityPanel) quarantined per [ADR 0014](../adr/0014-demand-side-discovery-components.md). Homepage decomposed (1662 -> 11 lines, 8 components). Navigation unified via `OnPointHeader`. Lab simplified (design/community modes removed, agent chrome in More sheet). API jsconfig + JSDoc annotations added.
 
 **Current infrastructure verification (2026-08-10):** The API deployment was repaired and verified after removing an orphaned bridge listener. Active release `20260810-212431` served HTTP 200 health responses; both API workers, worker, agent server, signer, and bridge were online. The live migration ledger matched repository migrations `0008–0010`, including the refund queue index and removal of the legacy referral uniqueness constraint. This is infrastructure evidence, not a current supply or demand snapshot.
 
@@ -147,7 +147,7 @@ The audit excludes digital listings from physical readiness denominators because
 4. Curators self-serve: `/curator/onboard` or `/curator/wallet` — Magic, MiniPay, or custodial
 5. After curator-owned wallet: admin **Setup 0xSplit** (skip while `platform_custodial`)
 
-Guides: [curator-payout-wallets.md](./guides/curator-payout-wallets.md) · [merchant-onboarding-scorecard.md](./guides/merchant-onboarding-scorecard.md) · [weekly-pilot-report.md](./guides/weekly-pilot-report.md)
+Guides: [curator-payout-wallets.md](./curator-payout-wallets.md) · [merchant-onboarding-scorecard.md](./merchant-onboarding-scorecard.md) · [weekly-pilot-report.md](./weekly-pilot-report.md)
 
 ---
 

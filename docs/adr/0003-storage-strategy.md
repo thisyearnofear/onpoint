@@ -4,7 +4,7 @@
 - **Date:** 2026-05-28
 - **Deciders:** OnPoint core
 - **Supersedes:** —
-- **Related:** [ADR 0001 — Backend-First Autonomy](./0001-backend-first-autonomy.md), [ADR 0002 — Curator Primitive](./0002-curator-primitive.md), [ARCHITECTURE.md](../ARCHITECTURE.md), [ROADMAP.md](../ROADMAP.md)
+- **Related:** [ADR 0001 — Backend-First Autonomy](./0001-backend-first-autonomy.md), [ADR 0002 — Curator Primitive](./0002-curator-primitive.md), [ARCHITECTURE.md](../ARCHITECTURE.md), ROADMAP.md (removed)
 
 ## Context
 
@@ -195,7 +195,7 @@ Inflates row size, kills query performance, breaks CDN caching. Standard wisdom.
 
 ## Migration / Sequencing
 
-Folded into Phase 11 Wks 1–2 in [ROADMAP.md](../ROADMAP.md):
+Folded into Phase 11 Wks 1–2 in ROADMAP.md (removed):
 
 1. Provision Neon project + R2 bucket; add secrets to Hetzner via `scripts/setup-secrets.sh` (per ADR 0001).
 2. `packages/db/` — Drizzle schema + migrations for the five tables above.

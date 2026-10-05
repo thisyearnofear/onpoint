@@ -85,7 +85,7 @@ const GARMENTS = [
     prompt: 'High-fashion editorial photograph of a jersey dress design. Flowing athletic dress in sunrise orange and deep purple, inspired by Nairobi marathon culture, breathable mesh panels with Maasai beadwork pattern accents. Full-body mannequin display, studio lighting, white background, premium sportswear design concept.',
     tags: ['football', 'dress', 'nairobi', 'maasai', 'african-fashion'],
   },
-  // ── SKU expansion (from research/manus — 20 new concepts) ────
+  // ── SKU expansion (from docs/research/manus — 20 new concepts) ────
   // Motif × garment × occasion matrix to keep the catalog fresh and varied.
   // Organized into 5 collection drops:
   //   Drop 1 "The Starting XI" — matchday + street silhouettes

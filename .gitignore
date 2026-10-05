@@ -94,7 +94,8 @@ __pycache__/
 # Deployment (server-specific configs)
 deploy/*.conf
 deploy/*SUMMARY.md
-HETZNER_CONFIG.md
+docs/ops/hetzner.md
+docs/ops/monitoring.md
 dump.rdb
 
 # Demo videos and demo media artifacts (local-only, too large for repo; wire in via URL if needed)
@@ -124,4 +125,8 @@ plans/design-review/
 deno.lock
 
 # Manus raw event logs (internal API traces, not useful in repo)
-research/manus/run-*/raw/
+docs/research/manus/run-*/raw/
+
+# Local tool state (agent CLIs, caches)
+.devin/config.local.json
+.pytest_cache/
