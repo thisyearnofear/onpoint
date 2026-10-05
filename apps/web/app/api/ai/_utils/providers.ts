@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import OpenAI from "openai";
 import { logger } from "../../../../lib/utils/logger";
 
@@ -16,7 +16,7 @@ const openaiKey =
     : null;
 const veniceKey = process.env.VENICE_API_KEY || null;
 
-const geminiClient = geminiKey ? new GoogleGenerativeAI(geminiKey) : null;
+const geminiClient = geminiKey ? new GoogleGenAI({ apiKey: geminiKey }) : null;
 const openaiClient = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
 
 // Venice AI client (OpenAI-compatible, privacy-preserving, no data retention)
@@ -128,9 +128,8 @@ export async function generateText({
 
     if (selected === "gemini") {
       logger.debug("Using Gemini", { component: "ai-providers", model: geminiModel });
-      const model = geminiClient!.getGenerativeModel({ model: geminiModel });
-      const response = await model.generateContent(prompt);
-      const textResult = response.response.text();
+      const response = await geminiClient!.models.generateContent({ model: geminiModel, contents: prompt });
+      const textResult = response.text;
       return { text: textResult ?? "", usedProvider: "gemini" };
     }
 
@@ -205,16 +204,18 @@ export async function generateVision({
   }
 
   const modelId = resolveGeminiModel(modelChoice);
-  const model = geminiClient!.getGenerativeModel({ model: modelId });
-  const response = await model.generateContent([
-    { text: prompt },
-    {
-      inlineData: {
-        data: imageBase64,
-        mimeType: "image/png",
+  const response = await geminiClient!.models.generateContent({
+    model: modelId,
+    contents: [
+      { text: prompt },
+      {
+        inlineData: {
+          data: imageBase64,
+          mimeType: "image/png",
+        },
       },
-    },
-  ]);
-  const textResult = response.response.text();
+    ],
+  });
+  const textResult = response.text;
   return { text: textResult ?? "", usedProvider: "gemini" };
 }

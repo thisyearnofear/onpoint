@@ -5,7 +5,7 @@ import {
   Copy,
   Check,
   MessageCircle,
-  Instagram,
+  Camera,
   Share2,
   QrCode,
   Download,
@@ -135,7 +135,7 @@ export function ShareKit({ storefrontUrl, curatorName }: ShareKitProps) {
           onClick={handleInstagram}
           className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium transition-all hover:bg-muted active:scale-[0.98]"
         >
-          <Instagram className="h-4 w-4" />
+          <Camera className="h-4 w-4" />
           Instagram
         </button>
 

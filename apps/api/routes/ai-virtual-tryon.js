@@ -7,7 +7,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenAI } = require('@google/genai');
 const OpenAI = require('openai');
 const crypto = require('crypto');
 const logger = require('../lib/logger');
@@ -72,7 +72,7 @@ const geminiKey = process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== '
 const openaiKey = process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your_openai_api_key_here' ? process.env.OPENAI_API_KEY : null;
 const veniceKey = process.env.VENICE_API_KEY || null;
 
-const geminiClient = geminiKey ? new GoogleGenerativeAI(geminiKey) : null;
+const geminiClient = geminiKey ? new GoogleGenAI({ apiKey: geminiKey }) : null;
 const openaiClient = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
 const veniceClient = veniceKey ? new OpenAI({ apiKey: veniceKey, baseURL: VENICE_BASE_URL }) : null;
 
@@ -160,9 +160,8 @@ async function generateText({ prompt, provider = 'auto', veniceModel = 'llama-3.
         };
       }
       if (prov === 'gemini') {
-        const model = geminiClient.getGenerativeModel({ model: geminiModel });
-        const response = await model.generateContent(prompt);
-        return { text: response.response.text() ?? '', usedProvider: 'gemini' };
+        const response = await geminiClient.models.generateContent({ model: geminiModel, contents: prompt });
+        return { text: response.text ?? '', usedProvider: 'gemini' };
       }
       if (prov === 'openai') {
         const response = await openaiClient.chat.completions.create({

@@ -1,37 +1,35 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { AIProvider, AnalysisInput, CritiqueResponse, DesignGeneration, StylistPersona, StylistResponse, VirtualTryOnAnalysis, UserStyleContext } from "./base-provider";
 
 export class GeminiProvider implements AIProvider {
   name = "Gemini";
-  private genAI: GoogleGenerativeAI;
-  private model: any;
+  private genAI: GoogleGenAI;
+  private readonly modelId = "gemini-3.1-pro";
 
   constructor() {
-    this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-3.1-pro" });
+    this.genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
   }
 
   async analyzeOutfit(input: AnalysisInput): Promise<CritiqueResponse> {
     const prompt = this.buildFashionAnalysisPrompt(input);
-    const result = await this.model.generateContent(prompt);
-    return this.parseCritiqueResponse(result.response.text());
+    const result = await this.genAI.models.generateContent({ model: this.modelId, contents: prompt });
+    return this.parseCritiqueResponse(result.text ?? "");
   }
 
   async generateDesign(prompt: string): Promise<DesignGeneration> {
     const designPrompt = this.buildDesignPrompt(prompt);
-    const result = await this.model.generateContent(designPrompt);
-    return this.parseDesignResponse(result.response.text(), prompt);
+    const result = await this.genAI.models.generateContent({ model: this.modelId, contents: designPrompt });
+    return this.parseDesignResponse(result.text ?? "", prompt);
   }
 
   async chatWithStylist(message: string, persona: StylistPersona, context?: UserStyleContext): Promise<StylistResponse> {
     const stylistPrompt = this.buildStylistPrompt(message, persona, context);
-    const result = await this.model.generateContent(stylistPrompt);
-    return this.parseStylistResponse(result.response.text());
+    const result = await this.genAI.models.generateContent({ model: this.modelId, contents: stylistPrompt });
+    return this.parseStylistResponse(result.text ?? "");
   }
 
   async analyzePhoto(file: File): Promise<VirtualTryOnAnalysis> {
     const imageData = await this.fileToGenerativePart(file);
-    const model = this.genAI.getGenerativeModel({ model: "gemini-3.1-pro" });
 
     const prompt = `Analyze this fashion photo:
   1. Identify body type and proportions
@@ -41,8 +39,11 @@ export class GeminiProvider implements AIProvider {
   
   Be body-positive and constructive.`;
 
-    const result = await model.generateContent([prompt, imageData]);
-    return this.parseVirtualTryOnResponse(result.response.text());
+    const result = await this.genAI.models.generateContent({
+      model: this.modelId,
+      contents: [{ text: prompt }, imageData],
+    });
+    return this.parseVirtualTryOnResponse(result.text ?? "");
   }
 
   private async fileToGenerativePart(file: File) {

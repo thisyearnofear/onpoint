@@ -9,9 +9,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@celo/attribution-tags": "0.3.0",
-    "@google/generative-ai": "^0.21.0",
-    "@lighthouse-web3/sdk": "0.4.4",
+    "@celo/attribution-tags": "^0.5.0",
+    "@google/genai": "^1.45.0",
+    "@lighthouse-web3/sdk": "^0.4.7",
     "@neondatabase/serverless": "^1.0.0",
     "@okxweb3/x402-core": "0.1.0",
     "@okxweb3/x402-evm": "0.2.1",
@@ -26,11 +26,11 @@
     "@sentry/node": "^9.12.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "drizzle-orm": "^0.40.0",
-    "express": "^4.18.2",
-    "ioredis": "^5.3.2",
-    "openai": "^4.73.0",
-    "sharp": "0.35.3",
+    "drizzle-orm": "^0.45.3",
+    "express": "^5.2.1",
+    "ioredis": "^6.0.0",
+    "openai": "^7.28.0",
+    "sharp": "0.35.5",
     "viem": "^2.21.0"
   },
   "devDependencies": {

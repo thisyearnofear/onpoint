@@ -16,10 +16,10 @@
     "./components/InteractiveStylingCanvas": "./src/components/InteractiveStylingCanvas.tsx"
   },
   "dependencies": {
+    "@onpoint/shared-types": "workspace:*",
+    "lucide-react": "^1.52.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "lucide-react": "^0.376.0",
-    "@onpoint/shared-types": "workspace:*"
+    "react-dom": "^19.1.0"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
