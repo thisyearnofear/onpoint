@@ -156,7 +156,7 @@ pnpm build        # Build all packages and apps
 pnpm lint         # Run ESLint across the monorepo
 pnpm check-types  # TypeScript type checking
 pnpm format       # Prettier formatting
-pnpm --filter @onpoint/api test  # API tests (139 tests; no live DB required)
+pnpm --filter @onpoint/api test  # API tests (172 tests; no live DB required)
 ```
 
 ### API test modes
@@ -167,6 +167,22 @@ mock transport with `LINQ_MOCK=1`, so a developer shell with live
 `LINQ_API_KEY` credentials cannot accidentally send a real message. The
 production Linq client remains live whenever `LINQ_API_KEY` is configured;
 `LINQ_MOCK=1` is test/demo-only and must not be set in production.
+
+## Dependency Policy
+
+Patch/minor upgrades on sight. Majors only on a trigger: security advisory,
+deprecation, a needed feature, or planned work in that subsystem.
+
+Current deferred majors (deliberate, not debt):
+
+- **tailwind 3→4** — config paradigm migration with visual-default changes;
+  a storefront's rendered output is the product, so defer until a design refresh.
+- **wagmi 3** — checkout critical path; stay on 2.x until a security advisory,
+  RainbowKit dropping v2, or a v3-only feature forces it.
+- **hardhat 3** — contracts are dormant; migrate only before the next
+  contract iteration.
+- **typescript 7 (tsgo)** — adopted for web `check-types` only (~4min → ~5s);
+  builds still run real `tsc` via `next build`, which remains the canonical gate.
 
 ## Deployment
 
