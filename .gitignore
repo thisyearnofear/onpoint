@@ -128,5 +128,5 @@ deno.lock
 docs/research/manus/run-*/raw/
 
 # Local tool state (agent CLIs, caches)
-.devin/config.local.json
+.devin/
 .pytest_cache/

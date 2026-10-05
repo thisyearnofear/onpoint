@@ -1,0 +1,36 @@
+# syntax=docker/dockerfile:1
+# OnPoint API — Express on Fly.io. One image runs 4 node processes
+# (api / worker / agent / signer) selected via fly.api.toml [processes].
+# The Python agent-web-bridge is a separate app + image (fly.bridge.toml).
+
+FROM node:22-slim AS base
+ENV PNPM_HOME=/pnpm \
+    PATH=/pnpm:$PATH
+RUN corepack enable && corepack prepare pnpm@10.10.0 --activate
+
+FROM base AS pruner
+WORKDIR /app
+COPY . .
+RUN pnpm dlx turbo@2.9.16 prune "@onpoint/api" --docker
+
+FROM base AS deps
+WORKDIR /app
+COPY --from=pruner /app/out/json/ .
+RUN pnpm install --frozen-lockfile --prod
+
+# Build workspace deps (dist/) — api itself is plain JS, no build.
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/ .
+COPY --from=pruner /app/out/full/ .
+RUN pnpm build --filter=@onpoint/api...
+
+FROM node:22-slim AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+RUN addgroup --system nodejs && adduser --system --ingroup nodejs onpoint
+COPY --from=builder --chown=onpoint:nodejs /app/ .
+USER onpoint
+# Custodial payout keys persist on a mounted volume (/data).
+VOLUME ["/data"]
+CMD ["node", "apps/api/server.js"]

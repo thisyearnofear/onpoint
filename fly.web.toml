@@ -1,0 +1,48 @@
+# Fly.io — onpoint-web (Next.js standalone)
+# Deploy: fly deploy -c fly.web.toml
+app = "onpoint-web"
+primary_region = "fra"
+
+[build]
+  dockerfile = "Dockerfile"
+
+# NEXT_PUBLIC_* vars are inlined at build time — they must be set here,
+# NOT in fly secrets (secrets are runtime-only). Fill values before deploy.
+[build.args]
+  NEXT_PUBLIC_APP_URL = "https://onpoint.fly.dev"
+  NEXT_PUBLIC_AGENT_API_URL = "https://api.onpoint.famile.xyz"
+  NEXT_PUBLIC_API_BASE = ""
+  NEXT_PUBLIC_APP_NAME = "OnPoint"
+  NEXT_PUBLIC_DEFAULT_CURRENCY = "USD"
+  NEXT_PUBLIC_DEFAULT_LOCALE = "en"
+  NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY = "pk_live_2EDE46A27FE35547"
+  NEXT_PUBLIC_POSTHOG_HOST = ""
+  NEXT_PUBLIC_POSTHOG_KEY = ""
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY = ""
+  NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID = ""
+  NEXT_PUBLIC_ZERO_G_ENABLED = "false"
+  NEXT_PUBLIC_URL = ""
+  NEXT_PUBLIC_ONPOINT_NFT_CONTRACT = "0x8e0a3BcF07Ec8133408A3837DD2DCe398A42f576"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "8080"
+  HOSTNAME = "0.0.0.0"
+  # Phase 2: once apps/api runs on Fly, set this to the private 6PN address
+  # so web->API traffic never leaves Fly's backbone. Server-side only —
+  # takes precedence over NEXT_PUBLIC_AGENT_API_URL in api-base/proxy code.
+  # AGENT_API_INTERNAL_URL = "http://onpoint-api.internal:48751"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "15s"
+    method = "GET"
+    path = "/api/health"

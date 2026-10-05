@@ -1,0 +1,56 @@
+# Fly.io — onpoint-api (Express). PHASE 2 DRAFT — deploy after onpoint-web.
+# Deploy: fly deploy -c fly.api.toml
+#
+# One image runs three node process groups — parity with the Hetzner single-box
+# layout (api + worker + signer on one machine, talking over localhost).
+# Two further apps are intentionally separate:
+#   onpoint-agent  — Meta webhook needs its own public HTTPS surface
+#                    (fly routes by port, not path; a second 443 binding is
+#                    impossible on one app). See fly.agent.toml.
+#   onpoint-bridge — Python runtime, different image. Internal-only.
+app = "onpoint-api"
+primary_region = "fra"
+
+[build]
+  dockerfile = "Dockerfile.api"
+
+[processes]
+  api    = "node apps/api/server.js"
+  worker = "node apps/api/worker.js"
+  signer = "node apps/api/signer.js"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "48751"
+  WORKER_PORT = "48754"
+  SIGNER_PORT = "48755"
+  API_URL = "http://localhost:48751"
+  BRIDGE_URL = "http://onpoint-bridge.internal:48752"
+  REDIS_URL = "redis://localhost:6379"  # replace: fly secrets set REDIS_URL=<upstash/fly-redis-url>
+  # Custodial payout keys — writeable file on the mounted volume.
+  # (Alternative: CURATOR_PAYOUT_KEYS_JSON for read-only key injection.)
+  CURATOR_PAYOUT_KEYS_PATH = "/data/curator-payout-keys.json"
+
+[http_service]
+  internal_port = 48751
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 250
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "15s"
+    method = "GET"
+    path = "/health"
+
+# Custodial payout keys + any small local state. Create once:
+#   fly volumes create onpoint_data -r fra -s 1 -a onpoint-api
+[mounts]
+  source = "onpoint_data"
+  destination = "/data"

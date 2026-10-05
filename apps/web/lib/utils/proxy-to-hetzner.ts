@@ -35,7 +35,10 @@ function unavailableResponse(rlHeaders: Record<string, string>): Response {
 }
 
 export async function proxyToHetzner(request: Request, path: string, tier: RateLimitTier = "general"): Promise<Response> {
-  const hetznerUrl = process.env.NEXT_PUBLIC_AGENT_API_URL;
+  const hetznerUrl =
+    process.env.AGENT_API_INTERNAL_URL || // server-only: Fly 6PN private address
+    process.env.AGENT_API_URL ||
+    process.env.NEXT_PUBLIC_AGENT_API_URL;
   if (!hetznerUrl) {
     return Response.json({ error: "Hetzner API URL not configured" }, { status: 500 });
   }
