@@ -1,6 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  // Docker builds set SKIP_DOCKER_TYPECHECK=1 — the remote builder spends
+  // ~30min in `next build`'s tsc phase, while `pnpm check-types` (tsgo)
+  // already gates locally in ~5s. Local `next build` still typechecks.
+  typescript: {
+    ignoreBuildErrors: process.env.SKIP_DOCKER_TYPECHECK === '1',
+  },
   // Keep optional native packages out of Next.js route bundles when present.
   serverExternalPackages: ['@open-wallet-standard/core'],
   transpilePackages: [

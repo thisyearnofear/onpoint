@@ -42,8 +42,10 @@ ARG NEXT_PUBLIC_APP_URL \
     NEXT_PUBLIC_URL
 # Build workspace deps via turbo, then web via turbopack (default bundler —
 # far lighter than the pinned webpack path, which OOMs shared builders).
-RUN pnpm build --filter=web^... \
- && cd apps/web && node ../../node_modules/next/dist/bin/next build
+# SKIP_DOCKER_TYPECHECK drops the ~30min remote `tsc` phase — the type gate
+# is `pnpm check-types` (tsgo) run locally / in CI.
+RUN SKIP_DOCKER_TYPECHECK=1 pnpm build --filter=web^... \
+ && cd apps/web && SKIP_DOCKER_TYPECHECK=1 node ../../node_modules/next/dist/bin/next build
 
 # Runtime — standalone output already contains a traced node_modules.
 FROM node:22-slim AS runner
