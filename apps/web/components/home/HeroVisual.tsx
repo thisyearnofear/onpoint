@@ -4,24 +4,30 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Check, Lock, ScanFace, Shirt } from "lucide-react";
+import product1 from "../../public/assets/1Product.png";
+import model1 from "../../public/assets/1Model.png";
+import product2 from "../../public/assets/2Product.png";
+import model2 from "../../public/assets/2Model.png";
+import product3 from "../../public/assets/3Product.png";
+import model3 from "../../public/assets/3Model.png";
 
 const looks = [
   {
     id: "graphic-01",
-    product: "/assets/1Product.png",
-    model: "/assets/1Model.png",
+    product: product1,
+    model: model1,
     label: "Graphic 01",
   },
   {
     id: "graphic-02",
-    product: "/assets/2Product.png",
-    model: "/assets/2Model.png",
+    product: product2,
+    model: model2,
     label: "Graphic 02",
   },
   {
     id: "graphic-03",
-    product: "/assets/3Product.png",
-    model: "/assets/3Model.png",
+    product: product3,
+    model: model3,
     label: "Graphic 03",
   },
 ];
@@ -81,6 +87,7 @@ export function HeroVisual() {
                   alt=""
                   fill
                   sizes="96px"
+                  placeholder="blur"
                   className="object-contain p-2 transition-transform group-hover:scale-105"
                 />
                 {selected === index && (
@@ -116,6 +123,7 @@ export function HeroVisual() {
                   alt={`Model wearing ${look.label}`}
                   fill
                   priority
+                  placeholder="blur"
                   sizes="(min-width: 1024px) 430px, 75vw"
                   className="object-contain object-bottom drop-shadow-[0_24px_40px_rgba(0,0,0,0.35)]"
                 />
@@ -139,6 +147,7 @@ export function HeroVisual() {
                   alt=""
                   fill
                   sizes="96px"
+                  placeholder="blur"
                   className="object-contain"
                 />
               </motion.div>

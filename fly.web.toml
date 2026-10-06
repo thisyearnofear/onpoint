@@ -38,7 +38,9 @@ primary_region = "fra"
   force_https = true
   auto_stop_machines = "stop"
   auto_start_machines = true
-  min_machines_running = 1
+  # Keep both machines warm — shared-1x is too weak to absorb a cold start
+  # without a visible TTFB spike on first hit.
+  min_machines_running = 2
 
   [[http_service.checks]]
     interval = "30s"
@@ -46,3 +48,8 @@ primary_region = "fra"
     grace_period = "15s"
     method = "GET"
     path = "/api/health"
+
+# 256MB was tight for standalone Next + the image optimizer (sharp).
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
