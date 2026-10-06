@@ -28,14 +28,14 @@ Surfaces: `/curator/onboard`, `/curator/wallet?slug=…`, shared `CuratorPayoutW
 
 1. Create app at [dashboard.magic.link](https://dashboard.magic.link)
 2. Enable **Celo mainnet**; add `https://forno.celo.org` to Content Security Policy (connect-src)
-3. **Web (Netlify / local):** `NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY=pk_live_…` in `apps/web/.env.local` or Netlify env
+3. **Web (Fly.io / local):** `NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY=pk_live_…` in `apps/web/.env.local` or `fly.web.toml` `[build.args]`
 4. **API (Hetzner only):** `MAGIC_SECRET_KEY=sk_live_…` in `/opt/onpoint/shared/api/.env` — never in web or git
 
 Curator onboard uses **Embedded Wallet** (`magic-sdk` + `connectWithUI`) — only the publishable key is required for that flow.
 
 **Magic Express identity provider** (`POST tee.express.magiclabs.com/v1/identity/provider`) is optional — only if you wire **your own** JWT issuer (e.g. Auth0) into Magic TEE. Skip it for email/Google Magic login.
 
-After setting Netlify env, trigger a redeploy so `NEXT_PUBLIC_*` is baked into the build.
+After changing a `NEXT_PUBLIC_*` build arg, redeploy so it is baked into the build.
 
 ## Server setup (custodial bootstrap)
 

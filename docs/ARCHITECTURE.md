@@ -52,7 +52,7 @@ Three composable layers ([ADR 0002](./adr/0002-curator-primitive.md)):
 ┌──────────────────────────┴───────────────────────────────────┐
 │                    Infrastructure Layer                       │
 ├──────────────┬──────────────┬──────────────┬─────────────────┤
-│   Hetzner    │   Netlify    │   Auth0      │   Blockchains   │
+│   Hetzner    │   Fly.io     │   Auth0      │   Blockchains   │
 │ (Agent home, │  (Presentation)│ (Identity) │  (Celo/Base)    │
 │  ADR 0001)   │              │              │                 │
 ├──────────────┼──────────────┼──────────────┼─────────────────┤
@@ -131,7 +131,7 @@ Three composable layers ([ADR 0002](./adr/0002-curator-primitive.md)):
 3. **Media ingest (if photo attached)** → download from Meta API → upload to R2 (`/curators/{slug}/listings/{id}/{n}.jpg`) **within webhook window** (Meta URLs expire ~30 days)
 4. **Persist** → insert/update Neon `listings` row; R2 keys (not URLs) stored
 5. **Agent reply** → confirmation with `/s/{slug}/{listing-id}` short URL to share with her customer
-6. **Customer storefront reflects change immediately** → Hetzner API serves fresh reads; Vercel/Netlify never writes
+6. **Customer storefront reflects change immediately** → Hetzner API serves fresh reads; the web frontend never writes
 
 ### Agent Looks
 

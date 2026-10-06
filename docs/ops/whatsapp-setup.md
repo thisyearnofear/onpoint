@@ -109,7 +109,7 @@ WA_PHONE_NUMBER_ID=<phone-number-id-from-step-6>
 STORE_URL=https://onpoint.trustfall.xyz
 ```
 
-In `apps/web/.env.local` (or Netlify env vars):
+In `apps/web/.env.local` (or `fly.web.toml` `[build.args]` / `fly secrets` for runtime vars):
 
 ```bash
 WA_ACCESS_TOKEN=<permanent-token-from-step-5>

@@ -218,7 +218,7 @@ async function main() {
   if (lookResult?.status === "success" && lookResult.look) {
     lookSlug = lookResult.look.slug;
     log("✓", `Look created: ${lookSlug}`);
-    log("🔗", `Share URL: ${lookResult.look.shareUrl || `(https://beonpoint.netlify.app/look/${lookSlug})`}`);
+    log("🔗", `Share URL: ${lookResult.look.shareUrl || `(https://onpoint.trustfall.xyz/look/${lookSlug})`}`);
     // create_look response doesn't include referralCode — fetch it via get_look
     const lookDetail = await mcpCall("get_look", { slug: lookSlug });
     referralCode = lookDetail?.referralCode || `ref_${stylistAddress.slice(2, 10)}`;
@@ -352,7 +352,7 @@ async function main() {
   console.log();
   log("ℹ️", "Agent A's 2.5% commission is auto-settled on Celo every 30 minutes by the payout worker.");
   log("ℹ️", "This is the agent-to-agent payment flow: Agent A creates value (a look), Agent B acts on it (a purchase), and Agent A earns on-chain.");
-  log("ℹ️", `View Agent A's earnings: https://beonpoint.netlify.app/agent or GET ${API_BASE}/api/agent/dashboard\n`);
+  log("ℹ️", `View Agent A's earnings: https://onpoint.trustfall.xyz/agent or GET ${API_BASE}/api/agent/dashboard\n`);
 
   console.log("✓ Agent-to-agent referral demo complete.\n");
 }

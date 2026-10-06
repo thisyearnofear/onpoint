@@ -65,7 +65,7 @@ module cache.
 
 | Variable | Where | Purpose |
 | -------- | ----- | ------- |
-| `NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY` | `apps/web/.env.local` / Netlify | Magic email/Google login for curator payouts (Celo) |
+| `NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY` | `apps/web/.env.local` / Fly build args | Magic email/Google login for curator payouts (Celo) |
 | `MAGIC_SECRET_KEY` | API server only (`apps/api/.env`) | Magic Express/TEE — never expose to web |
 | `CURATOR_PAYOUT_KEYS_PATH` | API server only | Custodial bootstrap key file (chmod 600) |
 
@@ -186,19 +186,13 @@ Current deferred majors (deliberate, not debt):
 
 ## Deployment
 
-### Vercel or Netlify (Frontend)
+### Fly.io (Frontend)
 
-The Next.js app can deploy via your preferred frontend host:
+The web app deploys as a standalone Next.js container via `fly.web.toml` + root `Dockerfile`:
 
-1. Connect repository in your frontend host dashboard
-2. Set build command: `pnpm build`
-3. Set output directory: `apps/web/.next`
-4. Configure environment variables in the host UI:
-   - `AUTH0_DOMAIN` (public)
-   - `AUTH0_CLIENT_ID` (public)
-   - `APP_BASE_URL` (public)
-   - `AUTH0_CLIENT_SECRET` (server-only - mark as secret)
-   - `AUTH0_SECRET` (server-only - mark as secret)
+1. `fly deploy -a onpoint -c fly.web.toml`
+2. `NEXT_PUBLIC_*` values live in `[build.args]` (inlined at build time)
+3. Runtime secrets via `fly secrets set` — `AUTH0_CLIENT_SECRET`, `AUTH0_SECRET`, `APP_BASE_URL`; `AUTH0_DOMAIN` / `AUTH0_CLIENT_ID` are `NEXT_PUBLIC`-style build args in `fly.web.toml`
 
 ### Google Cloud Run (Alternative)
 
