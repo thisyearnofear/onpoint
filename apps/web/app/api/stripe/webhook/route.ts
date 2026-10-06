@@ -44,7 +44,7 @@ async function trackEvent(
         properties: {
           ...properties,
           source: "stripe_webhook",
-          $current_url: `${process.env.URL || "https://onpoint.fly.dev"}/stripe/webhook`,
+          $current_url: `${process.env.URL || "https://onpoint.trustfall.xyz"}/stripe/webhook`,
         },
       }),
     });

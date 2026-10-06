@@ -531,7 +531,7 @@ async function createRestSession({ totalAmount, currency = 'USD', merchantName, 
   const amount = String(totalAmount || '');
   const currencyCode = String(currency || '').toUpperCase();
   const countryCode = String(merchantCountry || '').toUpperCase();
-  const hostedCallbackUrl = callbackUrl || process.env.PRAVA_CALLBACK_URL || 'https://onpoint.fly.dev/prava/return';
+  const hostedCallbackUrl = callbackUrl || process.env.PRAVA_CALLBACK_URL || 'https://onpoint.trustfall.xyz/prava/return';
   let parsedMerchantUrl;
   let parsedCallbackUrl;
   try { parsedMerchantUrl = new URL(merchantUrl); } catch {}

@@ -3,7 +3,7 @@
   "type": "frontend",
   "name": "Intel dashboard — WhatsApp comparison framing",
   "planSteps": [
-    { "type": "action", "description": "Navigate to Wanja's intel page", "action": "navigate", "value": "https://onpoint.fly.dev/s/wanja/intel" },
+    { "type": "action", "description": "Navigate to Wanja's intel page", "action": "navigate", "value": "https://onpoint.trustfall.xyz/s/wanja/intel" },
     { "type": "assertion", "description": "Page title says 'Retail Intelligence'", "selector": "body", "condition": "text_contains", "value": "Retail Intelligence" },
     { "type": "assertion", "description": "WhatsApp comparison banner is visible", "selector": "body", "condition": "text_contains", "value": "data you lose on WhatsApp" },
     { "type": "assertion", "description": "Storefront Funnel section header is visible", "selector": "body", "condition": "text_contains", "value": "Storefront Funnel" },

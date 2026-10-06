@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
  */
 const ALLOWED_ORIGINS = [
   // Production domains
+  "https://onpoint.trustfall.xyz",
   "https://onpoint.fly.dev",
   "https://onpoint.xyz",
   "https://www.onpoint.xyz",

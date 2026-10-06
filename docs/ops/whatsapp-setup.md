@@ -24,7 +24,7 @@ The WhatsApp pipeline is already built in `apps/api/agent-server.js`, `apps/api/
 |------|-----------|-------|
 | Meta Business Account | Required | Create at [business.facebook.com](https://business.facebook.com/) |
 | Business Verification Documents | Required | Certificate of Incorporation, Business License, or Tax Registration |
-| Website | Required | onpoint.fly.dev — already live |
+| Website | Required | onpoint.trustfall.xyz — already live |
 | Phone Number | Required | Can use a virtual number or existing business number |
 
 ---
@@ -106,7 +106,7 @@ In your Hetzner server's `.env.production`:
 # WhatsApp Business API
 WA_ACCESS_TOKEN=<permanent-token-from-step-5>
 WA_PHONE_NUMBER_ID=<phone-number-id-from-step-6>
-STORE_URL=https://onpoint.fly.dev
+STORE_URL=https://onpoint.trustfall.xyz
 ```
 
 In `apps/web/.env.local` (or Netlify env vars):

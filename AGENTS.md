@@ -5,7 +5,7 @@
 >
 > Fashion is the current wedge—not a claim that this is already a generic commerce OS. The larger opportunity is agent-ready execution infrastructure for fit-sensitive physical goods; this guide documents the fashion proof point.
 >
-> **Live:** https://onpoint.fly.dev · **API:** https://api.onpoint.famile.xyz · **Manifest:** https://onpoint.fly.dev/.well-known/agent.json
+> **Live:** https://onpoint.trustfall.xyz · **API:** https://api.onpoint.famile.xyz · **Manifest:** https://onpoint.fly.dev/.well-known/agent.json
 >
 > **Also listed on OKX.AI** as an Agent Service Provider (ASP ID 9874, A2MCP type, XLayer USD₮0 payments).
 
@@ -21,7 +21,7 @@ The API is designed to make a fashion offer executable, not merely recommendable
 
 | Environment             | URL                                                       |
 | ----------------------- | --------------------------------------------------------- |
-| Web app                 | https://onpoint.fly.dev                             |
+| Web app                 | https://onpoint.trustfall.xyz                        |
 | API (Hetzner)           | https://api.onpoint.famile.xyz                            |
 | OpenAPI                 | https://onpoint.fly.dev/openapi.json                |
 | Chain (primary)         | Celo mainnet (chainId 42220)                              |
@@ -104,7 +104,7 @@ Public reconciled ledger — try-on fees, order payouts, attribution tags.
 
 ### Step 6: Referral Tracking & Dashboard
 
-Agents earn 2.5% commission on referred purchases. Include `X-Referral-Code` header or `?referral=` query param in order requests. View earnings at `/api/agent/dashboard` or the UI at `https://onpoint.fly.dev/agent`.
+Agents earn 2.5% commission on referred purchases. Include `X-Referral-Code` header or `?referral=` query param in order requests. View earnings at `/api/agent/dashboard` or the UI at `https://onpoint.trustfall.xyz/agent`.
 
 Full details: [docs/guides/referral-tracking.md](./docs/guides/referral-tracking.md)
 

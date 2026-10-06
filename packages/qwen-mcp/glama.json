@@ -3,7 +3,7 @@
   "description": "Agent-commerce-ready African fashion inventory on Celo. Browse curators, try on items with x402-paid AI try-on, buy physical items with cUSD on Celo, compose looks, and earn 2.5% referral commissions. ERC-8021 attribution tags for hackathon leaderboard credit.",
   "category": "commerce",
   "tags": ["celo", "x402", "agent-commerce", "fashion", "payments", "stablecoin", "erc-8021", "referral"],
-  "website": "https://onpoint.fly.dev",
+  "website": "https://onpoint.trustfall.xyz",
   "repo": "https://github.com/thisyearnofear/onpoint",
   "environmentVariables": [
     {

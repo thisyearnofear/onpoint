@@ -46,7 +46,7 @@ All four flags must be `true` before driving paid agent traffic:
 
 ## Referral tracking
 
-Agents earn 2.5% commission on referred purchases — pass an `X-Referral-Code` header or `?referral=` query param on orders, or share `https://onpoint.fly.dev/r/[referralCode]` links. View earnings at `GET /api/agent/dashboard` or the UI at `https://onpoint.fly.dev/agent`.
+Agents earn 2.5% commission on referred purchases — pass an `X-Referral-Code` header or `?referral=` query param on orders, or share `https://onpoint.trustfall.xyz/r/[referralCode]` links. View earnings at `GET /api/agent/dashboard` or the UI at `https://onpoint.trustfall.xyz/agent`.
 
 Full details: [referral-tracking.md](./referral-tracking.md)
 

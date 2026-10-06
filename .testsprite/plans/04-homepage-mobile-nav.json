@@ -3,7 +3,7 @@
   "type": "frontend",
   "name": "Homepage — mobile curator nav visibility",
   "planSteps": [
-    { "type": "action", "description": "Navigate to homepage", "action": "navigate", "value": "https://onpoint.fly.dev/" },
+    { "type": "action", "description": "Navigate to homepage", "action": "navigate", "value": "https://onpoint.trustfall.xyz/" },
     { "type": "assertion", "description": "BeOnPoint brand name is visible", "selector": "body", "condition": "text_contains", "value": "BeOnPoint" },
     { "type": "assertion", "description": "Curators link text is visible in the page", "selector": "body", "condition": "text_contains", "value": "Curators" }
   ]

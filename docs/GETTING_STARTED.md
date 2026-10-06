@@ -85,7 +85,7 @@ See [curator-payout-wallets.md](./ops/curator-payout-wallets.md).
 | `AUTH0_CLIENT_ID`     | Application client ID from Auth0 dashboard                                       |
 | `AUTH0_CLIENT_SECRET` | Application client secret (server-only)                                          |
 | `AUTH0_SECRET`        | 64-char secret for session encryption (`openssl rand -hex 32`)                   |
-| `AUTH0_BASE_URL`      | Your app URL (`http://localhost:3000` dev, `https://onpoint.fly.dev` prod) |
+| `AUTH0_BASE_URL`      | Your app URL (`http://localhost:3000` dev, `https://onpoint.trustfall.xyz` prod) |
 | `APP_BASE_URL`        | Same as AUTH0_BASE_URL (legacy compatibility)                                    |
 | `AUTH0_MANAGEMENT_API_TOKEN` | Optional - for revoking connections (create M2M app with `read:users`, `update:users`) |
 

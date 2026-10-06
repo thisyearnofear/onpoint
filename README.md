@@ -8,9 +8,9 @@ OnPoint turns live fashion inventory into **fit-aware, machine-readable, locally
 - **Agents** execute against the **same inventory** via structured offers, paid try-on, checkout, and receipts
 - **Curators** supply inventory, stock truth, local ops, and distribution
 
-**Live:** [onpoint.fly.dev](https://onpoint.fly.dev) · **API:** [api.onpoint.famile.xyz](https://api.onpoint.famile.xyz) · **Manifest:** [/.well-known/agent.json](https://onpoint.fly.dev/.well-known/agent.json)
+**Live:** [onpoint.trustfall.xyz](https://onpoint.trustfall.xyz) · **API:** [api.onpoint.famile.xyz](https://api.onpoint.famile.xyz) · **Manifest:** [/.well-known/agent.json](https://onpoint.trustfall.xyz/.well-known/agent.json)
 
-[![Live Demo](https://img.shields.io/badge/Live-Demo-indigo)](https://onpoint.fly.dev)
+[![Live Demo](https://img.shields.io/badge/Live-Demo-indigo)](https://onpoint.trustfall.xyz)
 [![ERC-8004](https://img.shields.io/badge/ERC--8004-Registered-blue)](https://8004scan.io/agents/celo/9177)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
@@ -55,4 +55,4 @@ Agent identity: [ERC-8004 #9177](https://8004scan.io/agents/celo/9177) · wallet
 
 ---
 
-**[Live Demo](https://onpoint.fly.dev)** · [GitHub](https://github.com/thisyearnofear/onpoint) · MIT
+**[Live Demo](https://onpoint.trustfall.xyz)** · [GitHub](https://github.com/thisyearnofear/onpoint) · MIT

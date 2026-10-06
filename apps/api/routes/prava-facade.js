@@ -40,7 +40,7 @@ const { compileCommerceIntent } = require('../lib/commerce-intent');
 const { cacheGet, cacheSet, cacheScanJson } = require('../lib/cache');
 
 const router = express.Router();
-const PRAVA_WEB_BASE = (process.env.PRAVA_WEB_BASE_URL || 'https://onpoint.fly.dev').replace(/\/$/, '');
+const PRAVA_WEB_BASE = (process.env.PRAVA_WEB_BASE_URL || 'https://onpoint.trustfall.xyz').replace(/\/$/, '');
 
 // Keep the public commerce surface tight without breaking photo uploads.
 // The web client sends uploaded person images as base64 data URIs; every other

@@ -9,7 +9,7 @@ primary_region = "fra"
 # NEXT_PUBLIC_* vars are inlined at build time — they must be set here,
 # NOT in fly secrets (secrets are runtime-only). Fill values before deploy.
 [build.args]
-  NEXT_PUBLIC_APP_URL = "https://onpoint.fly.dev"
+  NEXT_PUBLIC_APP_URL = "https://onpoint.trustfall.xyz"
   NEXT_PUBLIC_AGENT_API_URL = "https://api.onpoint.famile.xyz"
   NEXT_PUBLIC_API_BASE = ""
   NEXT_PUBLIC_APP_NAME = "OnPoint"

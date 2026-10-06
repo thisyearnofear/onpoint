@@ -211,14 +211,14 @@ export function AnalysisResults({
 
   const copyShareText = async () => {
     if (typeof navigator === "undefined" || !navigator.clipboard) return;
-    await navigator.clipboard.writeText(`${shareText}\n\nonpoint.fly.dev`);
+    await navigator.clipboard.writeText(`${shareText}\n\nonpoint.trustfall.xyz`);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1800);
   };
 
   const shareToX = () => {
     if (typeof window === "undefined") return;
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${shareText}\n\nonpoint.fly.dev`)}`;
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${shareText}\n\nonpoint.trustfall.xyz`)}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
 

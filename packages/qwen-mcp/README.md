@@ -3,7 +3,7 @@
 > Agent-commerce-ready African fashion inventory on Celo. Any MCP-compatible agent can browse curators, try on items with x402-paid AI try-on, buy physical items with cUSD on Celo, compose looks, and earn 2.5% referral commissions.
 
 **Live API:** https://api.onpoint.famile.xyz  
-**Web app:** https://onpoint.fly.dev  
+**Web app:** https://onpoint.trustfall.xyz  
 **Manifest:** https://onpoint.fly.dev/.well-known/agent.json  
 **Chain:** Celo mainnet (chainId 42220)  
 **Payment tokens:** cUSD, USDC  
