@@ -24,9 +24,8 @@ import {
 } from "@rainbow-me/rainbowkit";
 import { config } from "../config/wagmi";
 import { AIProviderContext } from "@repo/ai-client";
-import { sdk } from "@farcaster/miniapp-sdk";
 import { useEffect, useState } from "react";
-import { MiniAppProvider, useMiniApp } from "@neynar/react";
+import { MiniAppProvider } from "@/components/MiniAppProvider";
 import { Auth0Provider } from "@auth0/nextjs-auth0/client";
 import type { User } from "@auth0/nextjs-auth0/types";
 import { SWRConfig } from "swr";
@@ -34,23 +33,6 @@ import { Toaster } from "@/components/toast";
 import { StyleProvider } from "@/lib/context/StyleContext";
 import { MiniPayProvider } from "@/components/MiniPayProvider";
 import { ViewTransitionProvider } from "@/components/ViewTransition";
-
-function MiniAppReady() {
-  const { isSDKLoaded } = useMiniApp();
-  useEffect(() => {
-    const init = async () => {
-      try {
-        if (isSDKLoaded && sdk?.actions?.ready) {
-          await sdk.actions.ready();
-        }
-      } catch {
-        // ignore
-      }
-    };
-    init();
-  }, [isSDKLoaded]);
-  return null;
-}
 
 function useResolvedTheme() {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
@@ -110,7 +92,7 @@ export function Providers({
     <Auth0Provider user={user}>
       <QueryClientProvider client={queryClient}>
         <WagmiProvider config={config}>
-          <MiniAppProvider analyticsEnabled={true}>
+          <MiniAppProvider>
             <MiniPayProvider>
               <RainbowKitProvider
                 theme={(theme === "dark" ? darkTheme : lightTheme)({
@@ -122,7 +104,6 @@ export function Providers({
               >
                 <AIProviderContext>
                   <StyleProvider>
-                  <MiniAppReady />
                   <Toaster>
                     <ViewTransitionProvider>
                       {children}

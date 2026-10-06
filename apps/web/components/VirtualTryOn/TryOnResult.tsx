@@ -14,7 +14,7 @@ import {
   RefreshCw,
   Shirt,
 } from "lucide-react";
-import { useMiniApp } from "@neynar/react";
+import { useMiniApp } from "@/components/MiniAppProvider";
 import { SocialUtils } from "../../lib/utils/social";
 import {
   trackStylingTipVariantClicked,

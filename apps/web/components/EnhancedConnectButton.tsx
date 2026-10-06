@@ -24,7 +24,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { MissionService } from "../lib/services/mission-service";
-import { useMiniApp } from "@neynar/react";
+import { useMiniApp } from "@/components/MiniAppProvider";
 import { resolveENSAddress, getENSAvatar } from "../lib/utils/ens";
 import { celo, celoSepolia } from "../config/chains";
 import { useMiniPay } from "../lib/hooks/useMiniPay";

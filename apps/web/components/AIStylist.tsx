@@ -24,7 +24,7 @@ import { Button } from "@repo/ui/button";
 import { useAccount, useChainId } from "wagmi";
 import { MissionService } from "../lib/services/mission-service";
 import { celo, celoSepolia } from "../config/chains";
-import { useMiniApp } from "@neynar/react";
+import { useMiniApp } from "@/components/MiniAppProvider";
 
 import { StylistSelection } from "./AIStylist/StylistSelection";
 import { ContextCollector } from "./AIStylist/ContextCollector";

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { sdk } from "@farcaster/miniapp-sdk";
 import { Button } from "@repo/ui/button";
-import { useMiniApp } from "@neynar/react";
+import { useMiniApp } from "@/components/MiniAppProvider";
 
 export function FarcasterSignInButton() {
   const { isSDKLoaded, context } = useMiniApp();

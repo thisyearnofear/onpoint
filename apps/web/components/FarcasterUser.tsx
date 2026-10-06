@@ -3,7 +3,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@repo/ui/avatar';
 import { Badge } from '@repo/ui/badge';
 import { Verified } from 'lucide-react';
-import { useMiniApp } from '@neynar/react';
+import { useMiniApp } from '@/components/MiniAppProvider';
 import { useState, useEffect } from 'react';
 
 interface FarcasterUserProps {
