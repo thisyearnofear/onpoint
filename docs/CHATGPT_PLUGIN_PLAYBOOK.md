@@ -23,7 +23,8 @@ ChatGPT can surface plugins mid-conversation when user intent matches a tool. Th
 | Annotations | Set `readOnlyHint`, `destructiveHint`, `openWorldHint` explicitly. |
 | Listing | Clear name (not generic single word; don't append "Plugin"/"MCP"). Example **Prompts**, not screenshots. No pricing/trials/promos in the description. |
 | Privacy | Published privacy policy; minimize inputs; no secrets/PCI/PHI in tool schemas. |
-| Auth | Transparent OAuth; demo account with sample data for review. |
+| Auth | Our free tools are unauthenticated — submit with **no auth**, which simplifies review. (Transparent OAuth + demo account only applies if we later ship account-linked tools.) |
+| Abuse | MCP host must rate-limit before submission — `analyze_*` tools burn AI-provider spend; a public ChatGPT listing means anonymous traffic at scale. |
 | Intent QA | Test direct, indirect, negative, ambiguous prompts. Track selection precision/recall, arg accuracy, completion, latency. |
 | Business | Keep signup, billing, analytics on our site. ChatGPT = discovery + execution surface. |
 
@@ -39,8 +40,12 @@ Allowed patterns for our free → paid ladders:
 - Do **not** initiate subscribe/upgrade/checkout in-plugin; do **not** apply ChatGPT-specific surcharges.
 - Keep x402 / paid APIs on our own product URLs; treat ChatGPT as the free funnel + account-linked entitlements.
 
+**Capability, not just policy:** even where OpenAI permits physical-goods checkout, OnPoint settlement is cUSD on Celo (x402). ChatGPT has no wallet/signer — it *cannot* complete an on-chain payment regardless of what the rules allow. External handoff for `try_on` / `buy_item` is therefore structural, not only a policy posture; this constraint survives any OpenAI commerce-policy loosening.
+
 ## Launch checklist
 
+- [ ] MCP host deployed + `mcp.onpoint.famile.xyz` DNS resolves (streamable HTTP, see Connect doc)
+- [ ] Per-IP/session rate limits on the MCP host (before any public listing)
 - [ ] One primary trigger phrase in user language
 - [ ] Free read-only (or low-side-effect) tool shipped and stable
 - [ ] Paid/deep action available via existing account or external product — not in-plugin checkout

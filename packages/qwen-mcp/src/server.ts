@@ -284,6 +284,27 @@ server.setRequestHandler(
   }) as never,
 );
 
+// ── Rate limiting ────────────────────────────────────────────────
+// Per-IP token bucket for the public HTTP transport. The analyze_*
+// tools burn AI-provider spend, so an unauthenticated public endpoint
+// (ChatGPT plugin, remote agents) must not be unlimited.
+const RATE_LIMIT_PER_MIN = Number(process.env.MCP_RATE_LIMIT_PER_MIN) || 60;
+const rateBuckets = new Map<string, { tokens: number; resetAt: number }>();
+
+function rateLimited(ip: string): boolean {
+  const now = Date.now();
+  let bucket = rateBuckets.get(ip);
+  if (!bucket || now >= bucket.resetAt) {
+    bucket = { tokens: RATE_LIMIT_PER_MIN, resetAt: now + 60_000 };
+    rateBuckets.set(ip, bucket);
+  }
+  if (rateBuckets.size > 10_000) {
+    // Bound memory: evict expired buckets under pressure.
+    for (const [k, v] of rateBuckets) if (now >= v.resetAt) rateBuckets.delete(k);
+  }
+  return --bucket.tokens < 0;
+}
+
 // ── Start ──────────────────────────────────────────────────────
 export async function main() {
   const httpPort = process.env.MCP_HTTP_PORT
@@ -311,7 +332,7 @@ export async function main() {
       }
 
       if (req.method === "GET") {
-        // Health check endpoint
+        // Health check endpoint — exempt from rate limiting (uptime probes)
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({
           server: "onpoint-mcp",
@@ -321,6 +342,19 @@ export async function main() {
           tools: 10,
         }));
         return;
+      }
+
+      if (req.method === "POST" || req.method === "DELETE") {
+        const fwd = req.headers["x-forwarded-for"];
+        const ip =
+          (typeof fwd === "string" ? fwd.split(",")[0]?.trim() : undefined) ||
+          req.socket.remoteAddress ||
+          "unknown";
+        if (rateLimited(ip)) {
+          res.writeHead(429, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "rate_limited", retryAfterSeconds: 60 }));
+          return;
+        }
       }
 
       if (req.method === "POST") {

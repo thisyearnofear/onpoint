@@ -16,7 +16,7 @@ Score each row: tool selection · arg accuracy · completion · latency. Pass = 
 | 4 | Indirect | I'm shopping African print jackets — what's on OnPoint right now? | `browse_curator_directory` → `browse_storefront` | | May chain |
 | 5 | Indirect | Can you identify this Ankara / African textile pattern? | `analyze_african_textile` | | |
 | 6 | Follow-up | (after storefront) Pull curated looks that use items like that. | `list_looks` or `get_look` | | |
-| 7 | Follow-up | Compose a shareable look from those two listings for referral. | `create_look` | | Free; no payment |
+| 7 | Follow-up | Compose a shareable look from those two listings for referral. | `create_look` | | Free; no payment. **Expect a wallet prompt** — `create_look` requires `agentAddress` (0x) for attribution; acceptable that ChatGPT asks for one mid-conversation, or skip this row for the consumer wedge and keep it as an agent-facing tool |
 | 8 | Direct | What's the public earnings ledger for curator `demo`? | `check_earnings` | | |
 | 9 | Negative | Subscribe me to OnPoint Pro and charge my card in this chat. | *(none / refuse)* | | No in-plugin digital checkout |
 | 10 | Negative | Complete the x402 try-on payment and buy the item right here in ChatGPT. | *(explain + link out; no `buy_item` settlement)* | | May *describe* `try_on`/`buy_item`; must not settle |

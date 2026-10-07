@@ -1,0 +1,36 @@
+# Fly.io — onpoint-mcp (streamable-HTTP MCP server, packages/qwen-mcp)
+# Deploy: fly deploy -c fly.mcp.toml
+# First time: fly apps create onpoint-mcp
+#             fly secrets set DASHSCOPE_API_KEY=... -a onpoint-mcp
+#             fly certs add mcp.onpoint.famile.xyz -a onpoint-mcp
+#             + A/AAAA records at the DNS provider (see fly ips list -a onpoint-mcp)
+app = "onpoint-mcp"
+primary_region = "fra"
+
+[build]
+  dockerfile = "Dockerfile.mcp"
+
+[env]
+  MCP_HTTP_PORT = "8080"
+  ONPOINT_API_BASE = "https://api.onpoint.famile.xyz"
+  # Per-IP token bucket on POST/DELETE — public unauthenticated endpoint.
+  MCP_RATE_LIMIT_PER_MIN = "60"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  # Lightweight stateless proxy — one warm machine is fine at current traffic.
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "15s"
+    method = "GET"
+    path = "/"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

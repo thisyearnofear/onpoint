@@ -1,0 +1,27 @@
+# syntax=docker/dockerfile:1
+# OnPoint MCP — streamable-HTTP MCP server (packages/qwen-mcp) for Fly.io.
+# Same turbo-prune pattern as the web Dockerfile.
+
+FROM node:22-slim AS base
+ENV PNPM_HOME=/pnpm \
+    PATH=/pnpm:$PATH
+RUN corepack enable && corepack prepare pnpm@10.10.0 --activate
+
+FROM base AS pruner
+WORKDIR /app
+COPY . .
+RUN pnpm dlx turbo@2.9.16 prune @repo/qwen-mcp --docker
+
+# devDeps included — the server runs via tsx (no build step).
+FROM base AS deps
+WORKDIR /app
+COPY --from=pruner /app/out/json/ .
+RUN pnpm install --frozen-lockfile
+
+FROM base AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=deps /app/ .
+COPY --from=pruner /app/out/full/ .
+EXPOSE 8080
+CMD ["pnpm", "--filter", "@repo/qwen-mcp", "start"]

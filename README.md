@@ -34,7 +34,7 @@ Thin packaging over the live MCP + agent surfaces (directory at [chatgpt.com/plu
 
 | | |
 | --- | --- |
-| MCP | [`https://mcp.onpoint.famile.xyz`](https://mcp.onpoint.famile.xyz) (streamable HTTP; 10 tools in [`agent.json`](https://onpoint.trustfall.xyz/.well-known/agent.json)) |
+| MCP | `https://mcp.onpoint.famile.xyz` — streamable HTTP; 10 tools in [`agent.json`](https://onpoint.trustfall.xyz/.well-known/agent.json). **Deploy pending** — DNS/host not live yet (see [Connect](./docs/CHATGPT_PLUGIN_CONNECT.md)) |
 | OpenAPI | [`https://api.onpoint.famile.xyz`](https://api.onpoint.famile.xyz) · [`/openapi.json`](https://onpoint.trustfall.xyz/openapi.json) |
 | Playbook | [`docs/CHATGPT_PLUGIN_PLAYBOOK.md`](docs/CHATGPT_PLUGIN_PLAYBOOK.md) |
 | Connect | [`docs/CHATGPT_PLUGIN_CONNECT.md`](docs/CHATGPT_PLUGIN_CONNECT.md) |
