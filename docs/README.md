@@ -20,6 +20,13 @@ One canonical doc per concern. [STRATEGY.md](./STRATEGY.md) owns positioning, ph
 | [GETTING_STARTED.md](./GETTING_STARTED.md) | Local setup, env vars, deployment                               |
 | [AGENTS.md](../AGENTS.md)                  | Agent-facing API reference (single source for endpoints)        |
 
+## ChatGPT plugin packaging
+
+- [CHATGPT_PLUGIN_PLAYBOOK.md](./CHATGPT_PLUGIN_PLAYBOOK.md) — shared Oct 2026 shipping rules
+- [CHATGPT_PLUGIN_CONNECT.md](./CHATGPT_PLUGIN_CONNECT.md) — connect `https://mcp.onpoint.famile.xyz` in ChatGPT
+- [CHATGPT_PLUGIN_EVAL.md](./CHATGPT_PLUGIN_EVAL.md) — intent eval prompts
+- [CHATGPT_PLUGIN_STARTER_PROMPTS.md](./CHATGPT_PLUGIN_STARTER_PROMPTS.md) — directory Example Prompts
+
 ## guides/ — external how-tos
 
 For people building against OnPoint.

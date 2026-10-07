@@ -28,6 +28,21 @@ Strategy: [`docs/STRATEGY.md`](docs/STRATEGY.md).
 
 → [Agent commerce guide](docs/guides/agent-commerce.md) · [AGENTS.md](./AGENTS.md)
 
+### ChatGPT plugin — "will these fit me"
+
+Thin packaging over the live MCP + agent surfaces (directory at [chatgpt.com/plugins](https://chatgpt.com/plugins)). Description in user words. **Free tools first** (browse, analyze, looks); **paid try-on / buy stay external** or existing-account only — do not complete x402 checkout inside ChatGPT (see OpenAI physical-goods commerce constraints in the playbook).
+
+| | |
+| --- | --- |
+| MCP | [`https://mcp.onpoint.famile.xyz`](https://mcp.onpoint.famile.xyz) (streamable HTTP; 10 tools in [`agent.json`](https://onpoint.trustfall.xyz/.well-known/agent.json)) |
+| OpenAPI | [`https://api.onpoint.famile.xyz`](https://api.onpoint.famile.xyz) · [`/openapi.json`](https://onpoint.trustfall.xyz/openapi.json) |
+| Playbook | [`docs/CHATGPT_PLUGIN_PLAYBOOK.md`](docs/CHATGPT_PLUGIN_PLAYBOOK.md) |
+| Connect | [`docs/CHATGPT_PLUGIN_CONNECT.md`](docs/CHATGPT_PLUGIN_CONNECT.md) |
+| Eval set | [`docs/CHATGPT_PLUGIN_EVAL.md`](docs/CHATGPT_PLUGIN_EVAL.md) |
+| Starter prompts | [`docs/CHATGPT_PLUGIN_STARTER_PROMPTS.md`](docs/CHATGPT_PLUGIN_STARTER_PROMPTS.md) |
+
+Free discovery: `browse_curator_directory`, `browse_storefront`, `analyze_outfit`, `analyze_african_textile`, `list_looks`, `get_look`, `create_look`, `check_earnings`. Paid (product/agent URLs only): `try_on`, `buy_item`.
+
 ---
 
 ## Quick Start
@@ -49,6 +64,8 @@ pnpm install && cp apps/web/.env.example apps/web/.env.local && pnpm dev
 | [Docs index](docs/README.md) | Full map — guides, ops, ADRs, research |
 | [Architecture](docs/ARCHITECTURE.md) | Stack, layers, data flow |
 | [Agent commerce](docs/guides/agent-commerce.md) | Third-party agent how-to |
+| [ChatGPT plugin playbook](docs/CHATGPT_PLUGIN_PLAYBOOK.md) | Oct 2026 packaging · free first · commerce constraints |
+| [ChatGPT connect / eval / starters](docs/CHATGPT_PLUGIN_CONNECT.md) | MCP connect steps · intent eval · directory prompts |
 | [AGENTS.md](./AGENTS.md) | Full API reference |
 
 Agent identity: [ERC-8004 #9177](https://8004scan.io/agents/celo/9177) · wallet [`0x5b33…24fB`](https://celoscan.io/address/0x5b33E63440e95289207120B94da78CE22F9D24fB)
