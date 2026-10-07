@@ -113,7 +113,7 @@ router.get('/directory', async (req, res) => {
         trustedPhysicalListingCount: sql`(
           SELECT COUNT(*)::int
           FROM ${listings}
-          LEFT JOIN ${kitSkus} ON ${listings.skuId} = ${kitSkus.id}
+          LEFT JOIN ${kitSkus} ON ${listings}.${listings.skuId} = ${kitSkus}.${kitSkus.id}
           WHERE ${listings.curatorSlug} = ${curators.slug}
           AND ${listings.status} = 'live'
           AND (${listings.inventoryType} IS DISTINCT FROM 'digital')
