@@ -49,6 +49,21 @@ Allowed patterns for our free → paid ladders:
 - [ ] Example Prompts on the directory listing
 - [ ] Measure recommendation rate → double down
 
+
+## Usage → monetisation scoreboard (Plugin Lane)
+
+Watch weekly. Free MCP wedge in ChatGPT; **digital paid stays off-platform** (no checkout in ChatGPT — deep-link to OnPoint / agent URLs only). Instrument when you have analytics (MCP request logs, site referral/`utm` on deep-links, trial/checkout events); do not invent dashboards until those exist.
+
+| # | Metric | What “good” looks like |
+| --- | --- | --- |
+| 1 | Plugin connects / MCP URL success | Successful `tools/list` against `https://mcp.onpoint.famile.xyz` |
+| 2 | Free tool calls / week | Calls to live free tools: `browse_curator_directory`, `browse_storefront`, `analyze_outfit`, `analyze_african_textile`, `list_looks`, `get_look`, `create_look`, `check_earnings` |
+| 3 | Return users | ≥2 sessions in 7 days (same ChatGPT user / stable client id if logged) |
+| 4 | Mid-conversation upsell click | Deep-link / informational handoff to OnPoint site or agent try-on/buy URLs (not in-chat settlement) |
+| 5 | Off-platform paid conversion | Trial or checkout **started** from a ChatGPT referral (x402 `try_on` / `buy_item` or storefront) — attributed when instrumentation exists |
+
+Related: [CONNECT](./CHATGPT_PLUGIN_CONNECT.md) free vs paid table · [ops/weekly-pilot-report.md](./ops/weekly-pilot-report.md) for broader pilot metrics.
+
 ## Sources
 
 - https://developers.openai.com/plugins/plugin-guidelines

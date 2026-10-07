@@ -26,6 +26,7 @@ One canonical doc per concern. [STRATEGY.md](./STRATEGY.md) owns positioning, ph
 - [CHATGPT_PLUGIN_CONNECT.md](./CHATGPT_PLUGIN_CONNECT.md) — connect `https://mcp.onpoint.famile.xyz` in ChatGPT
 - [CHATGPT_PLUGIN_EVAL.md](./CHATGPT_PLUGIN_EVAL.md) — intent eval prompts
 - [CHATGPT_PLUGIN_STARTER_PROMPTS.md](./CHATGPT_PLUGIN_STARTER_PROMPTS.md) — directory Example Prompts
+- Scoreboard (usage → monetisation) — section in [CHATGPT_PLUGIN_PLAYBOOK.md](./CHATGPT_PLUGIN_PLAYBOOK.md#usage--monetisation-scoreboard-plugin-lane)
 
 ## guides/ — external how-tos
 
