@@ -46,7 +46,7 @@ curl -H "Authorization: Bearer $SERVICE_API_KEY" \
   "https://api.onpoint.famile.xyz/api/status/funnel/share?days=7"
 ```
 
-Returns `overall`, `byChannel`, and `byLook` (top 20), each with stage counts and its own `k` block. Auth is the service key middleware (`Authorization: Bearer …` or `x-api-key`).
+Returns `overall`, `byChannel`, and `byLook` (top 20), each with stage counts and its own `k` block. Auth is the service key middleware (`x-service-key: …` or `Authorization: Bearer …`).
 
 ## Known limits
 
