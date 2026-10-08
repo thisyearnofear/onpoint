@@ -4,6 +4,8 @@ const { drizzle } = require('drizzle-orm/neon-http');
 const { orders, agentReferrals } = require('@repo/db');
 const { eq, desc } = require('drizzle-orm');
 const logger = require('../lib/logger');
+const { logFunnelEvent } = require('../lib/funnel');
+const { hashVisitor } = require('../lib/share-attribution');
 
 const router = express.Router();
 
@@ -14,8 +16,23 @@ const router = express.Router();
  */
 router.post('/capture', async (req, res) => {
   try {
-    const { agentAddress, storefrontSlug, source } = req.body;
-    
+    const { agentAddress, storefrontSlug, source, referralCode: visitCode, action } = req.body || {};
+
+    // Visit capture from the /r/[referralCode] landing page: it only knows
+    // the code, not the agent address. Log it for the share/referral funnel.
+    if (visitCode && action === 'visit' && !agentAddress) {
+      if (typeof visitCode !== 'string' || !/^[A-Za-z0-9_-]{3,64}$/.test(visitCode)) {
+        return res.status(400).json({ error: 'Invalid referral code' });
+      }
+      logFunnelEvent(null, {
+        eventType: 'referral_visit',
+        source: 'web',
+        visitorHash: hashVisitor(req.ip, req.headers['user-agent']),
+        metadata: { referralCode: visitCode },
+      });
+      return res.json({ success: true, message: 'Referral visit captured' });
+    }
+
     if (!agentAddress || !storefrontSlug) {
       return res.status(400).json({ error: 'Missing required fields' });
     }

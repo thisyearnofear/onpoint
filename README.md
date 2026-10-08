@@ -41,6 +41,7 @@ Thin packaging over the live MCP + agent surfaces (directory at [chatgpt.com/plu
 | Eval set | [`docs/CHATGPT_PLUGIN_EVAL.md`](docs/CHATGPT_PLUGIN_EVAL.md) |
 | Starter prompts | [`docs/CHATGPT_PLUGIN_STARTER_PROMPTS.md`](docs/CHATGPT_PLUGIN_STARTER_PROMPTS.md) |
 | Scoreboard | Weekly usage → monetisation metrics in [`docs/CHATGPT_PLUGIN_PLAYBOOK.md`](docs/CHATGPT_PLUGIN_PLAYBOOK.md#usage--monetisation-scoreboard-plugin-lane) |
+| Growth loop | Look collages and polaroids are the shareable surface; 2.5% referral commissions reward agents that drive purchases. Shares carry an id so the funnel (share → visit → CTA → try-on → order) and K-factor are measurable; buy stays off-platform. No K-factor is claimed until measured: [`docs/guides/growth-loop.md`](docs/guides/growth-loop.md) · [`docs/ops/invite-flow-teardown.md`](docs/ops/invite-flow-teardown.md) |
 
 Free discovery: `browse_curator_directory`, `browse_storefront`, `analyze_outfit`, `analyze_african_textile`, `list_looks`, `get_look`, `create_look`, `check_earnings`. Paid (product/agent URLs only): `try_on`, `buy_item`.
 

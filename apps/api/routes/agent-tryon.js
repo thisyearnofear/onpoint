@@ -31,6 +31,7 @@ const { getAttributionSuffix, getAttributionCode, getAssignedTag } = require('..
 const { engine } = require('./ai-virtual-tryon');
 const { upload: r2Upload, publicUrl: r2PublicUrl, keyFor: r2KeyFor, mirrorTryOnArtifact: ossMirror, isOssConfigured: ossConfigured } = require('@repo/storage');
 const { logFunnelEvent } = require('../lib/funnel');
+const { sanitizeShareId } = require('../lib/share-attribution');
 const { getDb, getSql } = require('../lib/db');
 const { keyToUrl, listingImageUrl } = require('../lib/r2');
 const { getPlatformWallet } = require('../lib/wallets');
@@ -182,8 +183,9 @@ function inferGarmentCategory(listing, kit) {
 
 // ── POST /api/agent/try-on ───────────────────────────────────
 router.post('/', async (req, res) => {
-  const { curatorSlug, listingId, photoData, personDescription, paymentTxHash, lookSlug } =
+  const { curatorSlug, listingId, photoData, personDescription, paymentTxHash, lookSlug, shareId: rawShareId } =
     req.body || {};
+  const shareId = sanitizeShareId(rawShareId);
   const slug = String(curatorSlug || '').toLowerCase();
 
   if (!/^[a-z0-9-]{2,48}$/.test(slug)) {
@@ -509,6 +511,8 @@ router.post('/', async (req, res) => {
         paymentId,
         isDigital,
         fitScore: fitSignal?.score,
+        shareId,
+        lookSlug: lookSlug || null,
         paymentMethod: okxBypass ? 'okx_facade' : (settlementTxHash ? 'x402_facilitator' : 'cusd'),
       },
       clientIp: req.ip,

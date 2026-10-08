@@ -29,6 +29,16 @@ function cleanSlug(value: unknown): string | null {
   return clean;
 }
 
+function cleanShareId(value: unknown): string | null {
+  const clean = cleanText(value, 16)?.toLowerCase() || null;
+  return clean && /^[a-z0-9]{6,16}$/.test(clean) ? clean : null;
+}
+
+function cleanLookSlug(value: unknown): string | null {
+  const clean = cleanText(value, 120)?.toLowerCase() || null;
+  return clean && /^[a-z0-9-]{2,120}$/.test(clean) ? clean : null;
+}
+
 function cleanAmount(value: unknown): number | null {
   const amount = Number(value);
   if (!Number.isFinite(amount) || amount <= 0) return null;
@@ -126,6 +136,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       currency: "KES",
       customerPhone,
       provider: "mpesa_stk",
+      // Look-share attribution (joined to the ledger when payment confirms)
+      shareId: cleanShareId(body.shareId),
+      lookSlug: cleanLookSlug(body.lookSlug),
       status: "pending_verification",
       checkoutRequestId: stkResult.checkoutRequestId,
       createdAt: new Date().toISOString(),

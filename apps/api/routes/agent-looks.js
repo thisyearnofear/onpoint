@@ -22,7 +22,10 @@
  *   PATCH  /api/looks/:slug        — update a look (creator only)
  *   DELETE /api/looks/:slug        — archive a look (creator only)
  *   POST   /api/looks/:slug/image  — upload cover image (creator only)
- *   POST   /api/looks/:slug/share  — record a share event (public, increments count)
+ *   POST   /api/looks/:slug/share  — record a share event (public, increments count; body: shareId, channel)
+ *   POST   /api/looks/:slug/visit  — record a landing on the look page (public; body: shareId, channel)
+ *   POST   /api/looks/:slug/storefront — record a storefront step reached from a look (public; body: kind, shareId)
+ *   POST   /api/looks/:slug/cta    — record a try-on/shop CTA click (public; body: kind, shareId, channel)
  *   POST   /api/looks/:slug/collage — generate/regenerate look collage (public)
  *   POST   /api/looks/:slug/classify — auto-classify look metadata (public)
  *   POST   /api/looks/curator/:slug/link-agent — set linkedAgentAddress (curator auth)
@@ -40,6 +43,15 @@ const { webBaseUrl } = require('../lib/agent-commerce');
 const { composeLookCollage, composeLookCollageAI } = require('../lib/image-composite');
 const { removeBackground } = require('../lib/image-processing');
 const { classifyLook } = require('../lib/look-classify');
+const { logFunnelEvent } = require('../lib/funnel');
+const {
+  newShareId,
+  sanitizeShareId,
+  sanitizeChannel,
+  sanitizeCtaKind,
+  sanitizeStorefrontKind,
+  hashVisitor,
+} = require('../lib/share-attribution');
 
 const router = express.Router();
 
@@ -629,10 +641,44 @@ router.post('/:slug/image', lookAuth, async (req, res) => {
   }
 });
 
+// ── Share-loop events (docs/guides/growth-loop.md) ──
+// Stored in funnel_events: look_share | look_visit | look_cta. No raw IP/UA is
+// stored; visitors are identified by a salted, day-scoped hash.
+async function isLiveLook(db, slug) {
+  const rows = await db.execute(sql`
+    SELECT 1 FROM agent_looks WHERE slug = ${slug} AND status = 'live' LIMIT 1
+  `);
+  return (rows.rows || rows).length > 0;
+}
+
+function recordLookEvent(db, req, eventType, extra = {}) {
+  const body = req.body || {};
+  const shareId = sanitizeShareId(body.shareId);
+  const agent = typeof req.headers['x-agent-address'] === 'string' ? req.headers['x-agent-address'] : null;
+  logFunnelEvent(db, {
+    eventType,
+    source: agent ? 'agent' : 'web',
+    payerAddress: agent,
+    visitorHash: hashVisitor(req.ip, req.headers['user-agent']),
+    metadata: {
+      lookSlug: req.params.slug,
+      shareId,
+      channel: sanitizeChannel(body.channel),
+      ...extra,
+    },
+  });
+  return shareId;
+}
+
 // ── POST /api/looks/:slug/share — record a share event ──
+// Body (all optional): { shareId, channel }. The client mints shareId so the
+// share URL can be built synchronously inside the user gesture.
 router.post('/:slug/share', async (req, res) => {
   try {
     const db = getDb();
+    if (!(await isLiveLook(db, req.params.slug))) {
+      return res.status(404).json({ error: 'Look not found' });
+    }
 
     await db.execute(sql`
       UPDATE agent_looks
@@ -640,10 +686,66 @@ router.post('/:slug/share', async (req, res) => {
       WHERE slug = ${req.params.slug} AND status = 'live'
     `);
 
-    res.json({ success: true });
+    const shareId = sanitizeShareId((req.body || {}).shareId) || newShareId();
+    recordLookEvent(db, req, 'look_share', { shareId });
+    res.json({ success: true, shareId });
   } catch (err) {
     logger.error('Failed to record share', { component: 'agent-looks' }, err);
     res.status(500).json({ error: 'Failed to record share' });
+  }
+});
+
+// ── POST /api/looks/:slug/visit — landing on a (shared) look page ──
+// Body: { shareId?, channel? }. Only attributed visits (valid shareId) count
+// toward the share funnel; plain visits are still logged with shareId=null.
+router.post('/:slug/visit', async (req, res) => {
+  try {
+    const db = getDb();
+    if (!(await isLiveLook(db, req.params.slug))) {
+      return res.status(404).json({ error: 'Look not found' });
+    }
+    recordLookEvent(db, req, 'look_visit');
+    res.json({ success: true });
+  } catch (err) {
+    logger.error('Failed to record look visit', { component: 'agent-looks' }, err);
+    res.status(500).json({ error: 'Failed to record visit' });
+  }
+});
+
+// ── POST /api/looks/:slug/storefront — step reached on the curator storefront ──
+// Body: { kind: 'arrive' | 'tryon' | 'buy' | 'order', shareId, channel? }.
+// Only shareId-carrying events are used by the share funnel.
+router.post('/:slug/storefront', async (req, res) => {
+  try {
+    const kind = sanitizeStorefrontKind((req.body || {}).kind);
+    if (!kind) return res.status(400).json({ error: "kind must be 'arrive', 'tryon', 'buy' or 'order'" });
+    const db = getDb();
+    if (!(await isLiveLook(db, req.params.slug))) {
+      return res.status(404).json({ error: 'Look not found' });
+    }
+    recordLookEvent(db, req, 'look_storefront', { kind });
+    res.json({ success: true });
+  } catch (err) {
+    logger.error('Failed to record storefront event', { component: 'agent-looks' }, err);
+    res.status(500).json({ error: 'Failed to record storefront event' });
+  }
+});
+
+// ── POST /api/looks/:slug/cta — clicked "Try it on" / "Shop the pieces" ──
+// Body: { kind: 'tryon' | 'shop', shareId?, channel? }
+router.post('/:slug/cta', async (req, res) => {
+  try {
+    const kind = sanitizeCtaKind((req.body || {}).kind);
+    if (!kind) return res.status(400).json({ error: "kind must be 'tryon' or 'shop'" });
+    const db = getDb();
+    if (!(await isLiveLook(db, req.params.slug))) {
+      return res.status(404).json({ error: 'Look not found' });
+    }
+    recordLookEvent(db, req, 'look_cta', { kind });
+    res.json({ success: true });
+  } catch (err) {
+    logger.error('Failed to record look cta', { component: 'agent-looks' }, err);
+    res.status(500).json({ error: 'Failed to record cta' });
   }
 });
 

@@ -2,6 +2,10 @@
 
 import { useEffect, useRef } from "react";
 import {
+  captureShareAttribution,
+  reportStorefrontEvent,
+} from "../lib/utils/share-attribution";
+import {
   trackCuratorPageView,
   trackCuratorTryOn,
   trackCuratorBuyClick,
@@ -58,6 +62,21 @@ export function CuratorTracker({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ event: "page_view", curatorSlug: slug }),
     }).catch(() => {});
+
+    // Look-share attribution: remember sid/look and report arrival once per
+    // session (docs/guides/growth-loop.md).
+    const shareAttribution = captureShareAttribution();
+    if (shareAttribution.sid && shareAttribution.look) {
+      try {
+        const key = `onpoint_sf_arrive_${shareAttribution.sid}`;
+        if (sessionStorage.getItem(key) !== "1") {
+          sessionStorage.setItem(key, "1");
+          reportStorefrontEvent("arrive");
+        }
+      } catch {
+        reportStorefrontEvent("arrive");
+      }
+    }
 
     // Detect share or cross-curator referral: ?ref=share:<slug> or ?ref=cross:<slug>
     const params = new URLSearchParams(window.location.search);
@@ -170,6 +189,7 @@ export function CuratorTracker({
       );
 
       if (tryOnLink) {
+        reportStorefrontEvent("tryon");
         const listingId = tryOnLink.dataset.listingId;
         const listing = listingId
           ? listingsRef.current.find((l) => l.id === listingId)
@@ -185,6 +205,7 @@ export function CuratorTracker({
       }
 
       if (buyLink) {
+        reportStorefrontEvent("buy");
         const listingId = buyLink.dataset.listingId;
         const listing = listingId
           ? listingsRef.current.find((l) => l.id === listingId)

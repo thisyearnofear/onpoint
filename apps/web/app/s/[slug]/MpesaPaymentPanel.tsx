@@ -17,6 +17,7 @@ import {
   Mail,
 } from "lucide-react";
 import { ReceiptPanel } from "../../../components/ReceiptPanel";
+import { getAttributionFields, reportStorefrontEvent } from "../../../lib/utils/share-attribution";
 
 type SizeOption = {
   size: string;
@@ -118,6 +119,7 @@ export function MpesaPaymentPanel({
           size: selectedSize,
           amount,
           customerPhone,
+          ...getAttributionFields(),
         }),
       });
 
@@ -126,6 +128,7 @@ export function MpesaPaymentPanel({
 
       setPaymentId(data.paymentId || null);
       setStkStatus("sent");
+      reportStorefrontEvent("order");
 
       // Start polling for payment status
       startPolling(data.paymentId);
@@ -206,11 +209,13 @@ export function MpesaPaymentPanel({
           customerPhone,
           mpesaCode,
           status: "pending_verification",
+          ...getAttributionFields(),
         }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
       setManualStatus("saved");
+      reportStorefrontEvent("order");
       setPaymentId(data.payment?.id || null);
       setReceiptMpesaCode(mpesaCode);
       setPaidAt(new Date().toISOString());

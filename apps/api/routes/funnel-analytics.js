@@ -11,6 +11,7 @@ const express = require('express');
 const router = express.Router();
 const { getSql } = require('../lib/db');
 const logger = require('../lib/logger');
+const { summarizeShareFunnel } = require('../lib/share-attribution');
 
 // GET /api/status/funnel?days=7
 router.get('/', async (req, res) => {
@@ -126,6 +127,49 @@ router.get('/', async (req, res) => {
   } catch (error) {
     logger.error('Funnel analytics failed', { component: 'funnel-analytics' }, error);
     res.status(500).json({ error: 'Failed to fetch funnel analytics' });
+  }
+});
+
+// GET /api/status/funnel/share?days=7
+// Share-loop funnel: shares -> visits -> CTA clicks -> agent try-ons -> orders,
+// plus the K-factor (see docs/guides/growth-loop.md for definitions).
+router.get('/share', async (req, res) => {
+  try {
+    const sql = getSql();
+    if (!sql) {
+      return res.status(500).json({ error: 'Database not configured' });
+    }
+    const days = Math.min(parseInt(req.query.days) || 7, 90);
+
+    const rows = await sql`
+      SELECT
+        event_type,
+        metadata->>'kind' AS kind,
+        metadata->>'shareId' AS share_id,
+        metadata->>'lookSlug' AS look_slug,
+        metadata->>'channel' AS channel,
+        COALESCE(payer_address, visitor_hash) AS actor
+      FROM funnel_events
+      WHERE created_at > NOW() - make_interval(days => ${days})
+        AND metadata->>'shareId' IS NOT NULL
+        AND event_type IN ('look_share', 'look_visit', 'look_cta', 'look_storefront', 'tryon_complete', 'purchase')
+      ORDER BY created_at ASC
+      LIMIT 50000
+    `;
+
+    const summary = summarizeShareFunnel(rows);
+    res.json({
+      period: { days },
+      truncated: rows.length >= 50000,
+      ...summary,
+      notes: {
+        activation: 'A share is activated by a non-sharer look CTA click, storefront try-on/buy/order click, agent try-on, or agent order carrying its shareId.',
+        humanLimit: 'Storefront tryon/buy/order are click or payment-start intent; confirmedSales are server-recorded M-Pesa STK confirmations. Manual M-Pesa codes and WhatsApp-only sales are not attributed.',
+      },
+    });
+  } catch (error) {
+    logger.error('Share funnel failed', { component: 'funnel-analytics' }, error);
+    res.status(500).json({ error: 'Failed to fetch share funnel' });
   }
 });
 

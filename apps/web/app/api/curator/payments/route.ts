@@ -20,6 +20,8 @@ type PaymentPayload = {
   customerPhone?: string;
   mpesaCode?: string;
   status?: string;
+  shareId?: string;
+  lookSlug?: string;
 };
 
 function getRedisUrl(): string | undefined {
@@ -45,6 +47,16 @@ function cleanSlug(value: unknown): string | null {
   const clean = cleanText(value, 64)?.toLowerCase() || null;
   if (!clean || !/^[a-z0-9-]{2,64}$/.test(clean)) return null;
   return clean;
+}
+
+function cleanShareId(value: unknown): string | null {
+  const clean = cleanText(value, 16)?.toLowerCase() || null;
+  return clean && /^[a-z0-9]{6,16}$/.test(clean) ? clean : null;
+}
+
+function cleanLookSlug(value: unknown): string | null {
+  const clean = cleanText(value, 120)?.toLowerCase() || null;
+  return clean && /^[a-z0-9-]{2,120}$/.test(clean) ? clean : null;
 }
 
 function cleanAmount(value: unknown): number | null {
@@ -134,6 +146,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       customerPhone,
       mpesaCode,
       provider: "mpesa_manual",
+      shareId: cleanShareId(body.shareId),
+      lookSlug: cleanLookSlug(body.lookSlug),
       status: cleanText(body.status, 40) || "pending_verification",
       createdAt: new Date().toISOString(),
     };

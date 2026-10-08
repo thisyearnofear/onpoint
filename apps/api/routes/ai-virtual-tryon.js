@@ -12,6 +12,7 @@ const OpenAI = require('openai');
 const crypto = require('crypto');
 const logger = require('../lib/logger');
 const { logFunnelEvent } = require('../lib/funnel');
+const { hashVisitor, sanitizeShareId, sanitizeLookSlug } = require('../lib/share-attribution');
 const youcamVto = require('../lib/youcam-vto');
 
 // ── Caching: fingerprint photo data to avoid redundant Venice API calls ──
@@ -1002,7 +1003,13 @@ Be SPECIFIC. Reference what you see in the photo. Give actionable, personalized 
         curatorSlug: data?.curatorSlug || null,
         listingId: data?.listingId || null,
         provider: result.provider,
-        metadata: { imageConditioned: result.imageConditioned },
+        visitorHash: hashVisitor(req.ip, req.headers['user-agent']),
+        metadata: {
+          imageConditioned: result.imageConditioned,
+          // Look-share attribution (optional, client-supplied, sanitized)
+          shareId: sanitizeShareId(data?.shareId),
+          lookSlug: sanitizeLookSlug(data?.lookSlug),
+        },
         clientIp: req.ip,
       });
       return res.json({ ...result, type });

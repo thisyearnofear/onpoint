@@ -17,6 +17,8 @@ const sharedTypes = require('@onpoint/shared-types');
 const logger = require('../lib/logger');
 const { distributeSplit } = require('../lib/split-setup');
 const { getDb } = require('../lib/db');
+const { logFunnelEvent } = require('../lib/funnel');
+const { sanitizeShareId, sanitizeLookSlug } = require('../lib/share-attribution');
 
 const router = express.Router();
 
@@ -29,11 +31,13 @@ const router = express.Router();
 // Safaricom retries callbacks, and a receipt can only ever be one order.
 //
 // Body: { curatorSlug, listingId, size, amountKes, mpesaReceipt,
-//         customerPhone?, quantity?, source? ('site_buy') }
+//         customerPhone?, quantity?, source? ('site_buy'),
+//         shareId?, lookSlug? }  (growth-loop attribution; see docs/guides/growth-loop.md)
 router.post('/record', async (req, res) => {
   const {
     curatorSlug, listingId, size, amountKes, mpesaReceipt,
     customerPhone, quantity = 1, source = 'site_buy',
+    shareId: rawShareId, lookSlug: rawLookSlug,
   } = req.body || {};
 
   if (!curatorSlug || !/^[a-z0-9-]{2,64}$/.test(String(curatorSlug))) {
@@ -95,6 +99,26 @@ router.post('/record', async (req, res) => {
       mpesaReceipt,
       amountKes: String(kes),
     });
+    // Confirmed sale attributed to a look share. Recorded server-side only (the
+    // public /storefront endpoint cannot emit 'sale'), and only on a fresh
+    // insert so callback retries never double count.
+    const shareId = sanitizeShareId(rawShareId);
+    const lookSlug = sanitizeLookSlug(rawLookSlug);
+    if (shareId && lookSlug) {
+      logFunnelEvent(db, {
+        eventType: 'look_storefront',
+        source: 'web',
+        tier: 'paid',
+        metadata: {
+          kind: 'sale',
+          lookSlug,
+          shareId,
+          orderId: inserted[0].id,
+          amountKes: kes.toFixed(0),
+          rail: 'mpesa',
+        },
+      });
+    }
     return res.status(201).json({ success: true, orderId: inserted[0].id });
   } catch (err) {
     // FK violations mean the slug/listing doesn't exist — client error, not 500

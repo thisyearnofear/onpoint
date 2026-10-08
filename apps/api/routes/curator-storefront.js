@@ -36,6 +36,7 @@ const {
 } = require('../lib/agent-commerce');
 const { getAttributionSuffix, getAttributionCode, getAssignedTag } = require('../lib/attribution');
 const { logFunnelEvent } = require('../lib/funnel');
+const { sanitizeShareId, isSelfReferral } = require('../lib/share-attribution');
 const { getPlatformWallet } = require('../lib/wallets');
 const {
   paymentMethodForOrder,
@@ -614,6 +615,8 @@ router.post('/:slug/order', async (req, res) => {
     // ── Referral tracking ──
     // Extract referral code from request (header or query param)
     const referralCode = req.headers['x-referral-code'] || req.query.referral;
+    // Share attribution (growth loop): which share link drove this order
+    const shareId = sanitizeShareId(req.headers['x-share-id'] || req.query.sid);
 
     // ── Payment routing ──
     // If the curator has a 0xSplits SplitV2 deployed, the buyer pays the
@@ -886,6 +889,18 @@ router.post('/:slug/order', async (req, res) => {
         `);
         
         const agentAddress = referralRecord?.agent_address || referralCode;
+
+        // Never pay an agent commission on its own purchase (inflates both
+        // commissions and the share-loop K-factor).
+        if (isSelfReferral({ referralCode, agentAddress, payerAddress: effectivePayer })) {
+          logger.info('Self-referral ignored', {
+            component: 'curator-storefront',
+            orderId,
+            referralCode,
+          });
+          throw Object.assign(new Error('self-referral'), { skipReferral: true });
+        }
+
         const commissionCusd = (totalCusd * 0.025).toFixed(4); // 2.5% commission
         
         await db.execute(sql`
@@ -901,6 +916,9 @@ router.post('/:slug/order', async (req, res) => {
           commissionCusd,
         });
       } catch (referralErr) {
+        if (referralErr && referralErr.skipReferral) {
+          // Intentional skip (self-referral) — not a failure
+        } else
         // Don't fail the order if referral tracking fails
         logger.warn('Failed to record referral', { component: 'curator-storefront', orderId, referralCode }, referralErr);
       }
@@ -1032,6 +1050,7 @@ router.post('/:slug/order', async (req, res) => {
         quantity,
         usingSplit,
         referralCode: referralCode || null,
+        shareId,
       },
       clientIp: req.ip,
     });

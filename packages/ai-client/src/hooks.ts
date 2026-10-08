@@ -491,7 +491,7 @@ export const useAIVirtualTryOnEnhancement = () => {
   const aiClient = useAIClient();
 
   const enhanceTryOn = React.useCallback(
-    async (outfitItems: Array<{ name: string, description: string, imageUrl?: string }>, photoData?: string, personDescription?: string, stylePreferences?: any): Promise<boolean> => {
+    async (outfitItems: Array<{ name: string, description: string, imageUrl?: string }>, photoData?: string, personDescription?: string, stylePreferences?: any, attribution?: { shareId?: string; lookSlug?: string }): Promise<boolean> => {
       setLoading(true);
       setError(null);
 
@@ -505,7 +505,11 @@ export const useAIVirtualTryOnEnhancement = () => {
             data: {
               items: outfitItems,
               photoData: photoData,
-              personDescription: personDescription
+              personDescription: personDescription,
+              // Optional look-share attribution for growth-loop analytics
+              ...(attribution?.shareId && attribution?.lookSlug
+                ? { shareId: attribution.shareId, lookSlug: attribution.lookSlug }
+                : {})
             },
             stylePreferences
           })

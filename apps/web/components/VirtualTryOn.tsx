@@ -6,6 +6,7 @@ import { Upload, Camera, CheckCircle2, Palette, Ruler, ShieldCheck, Sparkles, Wa
 import dynamic from "next/dynamic";
 // framer-motion removed — using CSS transitions instead
 import { useVirtualTryOn } from "@repo/ai-client";
+import { getAttributionFields } from "../lib/utils/share-attribution";
 import { useAIVirtualTryOnEnhancement } from "@repo/ai-client";
 import { useReplicateVirtualTryOn } from "@repo/ai-client";
 import { imageFileToDataUrl } from "@repo/ai-client";
@@ -663,6 +664,7 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
       selectedPhotoData || undefined,
       personDescription,
       preferences,
+      getAttributionFields(),
     );
   }, [
     enhanceTryOn,

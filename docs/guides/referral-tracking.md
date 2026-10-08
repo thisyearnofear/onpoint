@@ -39,6 +39,12 @@ When users visit a referral link:
 2. The code is automatically attached to subsequent orders
 3. When the user completes a purchase, the referring agent earns 2.5% commission
 
+## Rules
+
+- Self-referral is ignored: no commission is recorded when the paying wallet is the referring agent.
+- Visits to `/r/[referralCode]` are logged as `referral_visit` events.
+- To tie an order to a specific look share, also send `X-Share-Id` (or `?sid=`); see [growth-loop.md](./growth-loop.md).
+
 ## Viewing Your Earnings
 
 ### Agent Dashboard

@@ -35,6 +35,7 @@ These are operating targets from the canonical strategy, not claims of current a
 | Human storefront try-on → purchase               |                        ≥ 15% | Funnel analytics                                                                                        |
 | Digital try-on → physical storefront visit       |                        ≥ 20% | Try-on / referral or storefront analytics                                                               |
 | Catalog freshness / completeness                 | Improve weekly from baseline | Audit JSON                                                                                              |
+| Share-loop K-factor (look shares)                |   Report; no target yet      | `GET /api/status/funnel/share` ([growth-loop.md](../guides/growth-loop.md)); `unknown` until ≥ 30 shares |
 
 A target with no reliable source is **not yet measurable**. Add instrumentation before making a strategic claim.
 
@@ -45,6 +46,7 @@ A target with no reliable source is **not yet measurable**. Add instrumentation 
 - **Paid → fulfilled success:** `fulfilled agent orders / paid agent orders` for orders whose outcome is known within the reporting window. Keep pending, refunded, cancelled, manual-review, and unknown outcomes in separate categories; do not silently exclude them.
 - **First sale within 7 days:** merchants with a first confirmed and fulfilled sale within seven calendar days of their Ready timestamp / merchants entering the Ready cohort seven or more days ago. Newer merchants remain pending, not failures.
 - **Human try-on → purchase:** completed human try-ons that lead to a confirmed purchase in the defined attribution window / completed human try-ons. Use `unknown` until the event source and attribution window are agreed.
+- **Share-loop K-factor:** invites per sharer × activated-share rate, as returned by `/api/status/funnel/share`. Report the sample size (`sampleShares`) next to K; while `status` is `insufficient_data`, write `unknown`, not 0. Human activation stops at the CTA click until storefront attribution lands (see [invite-flow teardown](./invite-flow-teardown.md)).
 - **Digital → physical visit rate:** digital try-on sessions that produce a physical storefront visit in the defined attribution window / digital try-on sessions. Use `unknown` until the visit event is instrumented and deduplicated.
 
 The audit demonstrates catalog-contract readiness; it does not prove that product media represents the physical item or that fulfillment will succeed. Those require merchant confirmation and observed outcomes.

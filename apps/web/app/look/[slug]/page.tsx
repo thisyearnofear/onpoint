@@ -13,6 +13,7 @@ import { OnPointLayout } from "../../../components/OnPointLayout";
 import { SafeImage } from "../../../components/SafeImage";
 import { LookCard, type LookCardData } from "../../../components/LookCard";
 import { ShareBar } from "./ShareBar";
+import { LookTracker } from "./LookTracker";
 import { EditLookButton } from "./EditLookButton";
 import { LookItemGrid } from "./LookItemGrid";
 
@@ -110,10 +111,17 @@ export async function generateMetadata({
 
 export default async function LookPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ sid?: string | string[] }>;
 }) {
   const { slug } = await params;
+  // Share attribution: forward a valid share id through the CTA links so the
+  // storefront / agent flows can keep it (docs/guides/growth-loop.md).
+  const rawSid = (await searchParams)?.sid;
+  const sidValue = (Array.isArray(rawSid) ? rawSid[0] : rawSid)?.toLowerCase();
+  const sidParam = sidValue && /^[a-z0-9]{6,16}$/.test(sidValue) ? `&sid=${sidValue}` : "";
   const look = await loadLook(slug);
 
   if (!look) notFound();
@@ -135,6 +143,7 @@ export default async function LookPage({
 
   return (
     <OnPointLayout footer={false}>
+      <LookTracker lookSlug={look.slug} />
       <div className="mx-auto max-w-5xl px-4 py-8">
         {/* Back link + edit button */}
         <div className="mb-6 flex items-center justify-between">
@@ -239,14 +248,16 @@ export default async function LookPage({
             </p>
             <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
-                href={`/s/${heroItem.curatorSlug}?tryOn=${heroItem.id}&referral=${look.referralCode}&look=${look.slug}`}
+                href={`/s/${heroItem.curatorSlug}?tryOn=${heroItem.id}&referral=${look.referralCode}&look=${look.slug}${sidParam}`}
+                data-look-cta="tryon"
                 className="inline-flex items-center gap-2 rounded-full bg-foreground px-8 py-3 text-sm font-bold text-background transition-colors hover:bg-foreground/90 active:scale-[0.98]"
               >
                 <Eye className="h-4 w-4" />
                 Try it on
               </Link>
               <Link
-                href={`/s/${look.curatorSlug}?referral=${look.referralCode}&look=${look.slug}`}
+                href={`/s/${look.curatorSlug}?referral=${look.referralCode}&look=${look.slug}${sidParam}`}
+                data-look-cta="shop"
                 className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-6 py-3 text-sm font-bold transition-colors hover:bg-muted active:scale-[0.98]"
               >
                 <ShoppingBag className="h-4 w-4" />
@@ -312,7 +323,7 @@ export default async function LookPage({
             <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Share
             </h3>
-            <ShareBar title={look.title} shareUrl={look.shareUrl} />
+            <ShareBar lookSlug={look.slug} title={look.title} shareUrl={look.shareUrl} />
           </div>
         </div>
       </div>

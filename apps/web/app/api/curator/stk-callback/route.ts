@@ -64,6 +64,9 @@ async function recordOrderInLedger(
         mpesaReceipt,
         customerPhone: verifiedPhone || payment.customerPhone || undefined,
         source: "site_buy",
+        // Look-share attribution captured at STK push time (may be null)
+        shareId: payment.shareId || undefined,
+        lookSlug: payment.lookSlug || undefined,
       }),
       signal: AbortSignal.timeout(5000),
     });
