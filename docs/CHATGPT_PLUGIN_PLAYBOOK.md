@@ -46,6 +46,7 @@ Allowed patterns for our free → paid ladders:
 
 - [ ] MCP host deployed + `mcp.onpoint.famile.xyz` DNS resolves (streamable HTTP, see Connect doc)
 - [ ] Per-IP/session rate limits on the MCP host (before any public listing)
+- [ ] **Verified inventory exists** — `agentPurchasable` is 0 today; listings exist but all fail the trusted-offer gate (`lastVerifiedAt` stale/missing, some missing photos). Browse tools work, but "buyable stock" claims are aspirational until ≥1 curator's offers pass verification. Don't submit on the promise — submit when `directory?agentPurchasable=1` returns non-empty.
 - [ ] One primary trigger phrase in user language
 - [ ] Free read-only (or low-side-effect) tool shipped and stable
 - [ ] Paid/deep action available via existing account or external product — not in-plugin checkout
