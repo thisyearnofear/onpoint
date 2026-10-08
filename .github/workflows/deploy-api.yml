@@ -50,15 +50,16 @@ jobs:
           fi
 
       - name: Setup SSH
+        # Secrets go through env vars: multi-line heredocs with unindented
+        # secret lines made this file invalid YAML, so the workflow never ran.
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_SSH_KNOWN_HOSTS: ${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}
         run: |
           mkdir -p ~/.ssh
-          cat > ~/.ssh/id_ed25519 << 'SSHKEY'
-${{ secrets.DEPLOY_SSH_KEY }}
-SSHKEY
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          cat > ~/.ssh/known_hosts << 'KNOWNHOSTS'
-${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}
-KNOWNHOSTS
+          printf '%s\n' "$DEPLOY_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
       - name: Test SSH connection
