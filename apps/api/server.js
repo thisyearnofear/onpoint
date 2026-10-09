@@ -175,10 +175,15 @@ function createServiceApiKeyAuth() {
 app.get('/health', json1k, async (req, res) => {
   let redisStatus = 'disconnected';
   try {
-    await redis.ping();
+    // ioredis 6 queues commands forever while disconnected, so bound the ping
+    // or /health (and the deploy preflight that polls it) would hang.
+    await Promise.race([
+      redis.ping(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('redis ping timeout')), 1500)),
+    ]);
     redisStatus = 'connected';
   } catch {
-    /* already disconnected */
+    /* disconnected or unresponsive */
   }
 
   res.json({

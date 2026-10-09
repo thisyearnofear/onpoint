@@ -399,10 +399,8 @@ if [[ "$DRY_RUN" == false ]]; then
     pid=\$!
     status=1
     for i in \$(seq 1 25); do
-      if curl -sf --max-time 2 http://127.0.0.1:48756/health > /dev/null 2>&1; then
-        status=0
-        break
-      fi
+      code=\$(curl -s --max-time 4 -o /dev/null -w '%{http_code}' http://127.0.0.1:48756/health 2>/dev/null)
+      case \"\$code\" in 2*) status=0; break;; esac
       if ! kill -0 \"\$pid\" 2>/dev/null; then
         break
       fi
@@ -415,6 +413,7 @@ if [[ "$DRY_RUN" == false ]]; then
     fi
     if [ \"\$status\" -ne 0 ]; then
       echo 'preflight_status=failed'
+      echo \"preflight_last_http=\$code\"
       sed -E \"s#(postgres(ql)?://[^[:space:]\\\"'\''<>]+|https?://[^[:space:]\\\"'\''<>]+|0x[a-fA-F0-9]{20,}|[A-Za-z_]*(API|SECRET|TOKEN|PASSWORD|PRIVATE|DSN|KEY)[A-Za-z_]*[=:][^[:space:]\\\"'\''<>]+)#<redacted>#g\" '${PREFLIGHT_LOG}' | tail -120
     else
       echo 'preflight_status=healthy'
