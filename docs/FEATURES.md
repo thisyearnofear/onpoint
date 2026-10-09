@@ -157,6 +157,7 @@ Bright Data integration (ADR 0004): SERP API + Web Unlocker, gated by `BRIGHTDAT
 - Agentic tipping in cUSD (Celo Mainnet + Alfajores)
 - "Proof of Style" snapshots shared to feed
 - Referral links with base62-encoded tracking codes
+- **Look share attribution** (ADR 0019): each look share carries a share id (`?sid=`) so shares can be followed to visits, storefront steps, try-ons, and confirmed M-Pesa sales, with a K-factor that stays `insufficient_data` until there are 30+ shares. Status: `implemented`; API side `deployed`; no conversion or K-factor claim until measured. Definitions and limits: [ops/growth-loop.md](./ops/growth-loop.md); agent contract: [AGENTS.md](../AGENTS.md#share-attribution)
 - `SocialActivity` type retained in `shared-types` for future social proof on storefronts
 - Demand-side discovery components (`LooksFaceoff`, `CommunityPanel`) quarantined per [ADR 0014](./adr/0014-demand-side-discovery-components.md) — retained for Phase 2 rewiring to Curator/polaroid schema
 - **Note:** These quarantined components are separate from the live **Agent Looks** feature (see Feature Matrix), which is a complete, shipped system for composing listings into shareable style boards

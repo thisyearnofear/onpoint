@@ -76,4 +76,4 @@ No raw IP address or user agent is written by the share/visit/CTA events. `visit
 | Payment → ledger join   | `apps/web/app/api/curator/stk-push`, `stk-callback`, `apps/api/routes/fulfillment.js` (`/record`) |
 | Web try-on attribution  | `apps/web/components/VirtualTryOn.tsx`, `packages/ai-client/src/hooks.ts`, `apps/api/routes/ai-virtual-tryon.js` |
 
-See also: [referral tracking](./referral-tracking.md), [invite-flow teardown](../ops/invite-flow-teardown.md), [weekly pilot report](../ops/weekly-pilot-report.md).
+See also: [referral tracking](../guides/referral-tracking.md), [invite-flow teardown](./invite-flow-teardown.md), [weekly pilot report](./weekly-pilot-report.md).

@@ -43,7 +43,7 @@ When users visit a referral link:
 
 - Self-referral is ignored: no commission is recorded when the paying wallet is the referring agent.
 - Visits to `/r/[referralCode]` are logged as `referral_visit` events.
-- To tie an order to a specific look share, also send `X-Share-Id` (or `?sid=`); see [growth-loop.md](./growth-loop.md).
+- To tie an order to a specific look share, also send `X-Share-Id` (or `?sid=`); see [Share Attribution](../../AGENTS.md#share-attribution).
 
 ## Viewing Your Earnings
 

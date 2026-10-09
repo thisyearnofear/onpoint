@@ -17,7 +17,8 @@ One canonical doc per concern. [STRATEGY.md](./STRATEGY.md) owns positioning, ph
 | [STRATEGY.md](./STRATEGY.md)               | Thesis, positioning, phases, metrics, expansion gates, kill list |
 | [ARCHITECTURE.md](./ARCHITECTURE.md)       | System shape, layers, data flow                                 |
 | [FEATURES.md](./FEATURES.md)               | Feature behavior and implementation references                  |
-| [GETTING_STARTED.md](./GETTING_STARTED.md) | Local setup, env vars, deployment                               |
+| [GETTING_STARTED.md](./GETTING_STARTED.md) | Local setup, env vars, deployment overview                      |
+| [deploy/README.md](../deploy/README.md)    | API deploy pipeline, CI, process topology, troubleshooting      |
 | [AGENTS.md](../AGENTS.md)                  | Agent-facing API reference (single source for endpoints)        |
 
 ## ChatGPT plugin packaging
@@ -45,6 +46,10 @@ Not for external consumers.
 - [curator-payout-wallets.md](./ops/curator-payout-wallets.md) — custodial/Magic/MiniPay payouts
 - [curator-imagery.md](./ops/curator-imagery.md) — listing photo seeding
 - [whatsapp-setup.md](./ops/whatsapp-setup.md) — Meta Business API setup
+- [mpesa-setup.md](./ops/mpesa-setup.md) — Daraja STK push: config, sandbox test, go-live, known weaknesses
+- [growth-loop.md](./ops/growth-loop.md) — look-share attribution, funnel and K-factor definitions
+- [invite-flow-teardown.md](./ops/invite-flow-teardown.md) — share-flow teardown procedure and fix backlog
+- [../deploy/README.md](../deploy/README.md) — API deploy pipeline, CI secrets, rollback, troubleshooting
 - [youcam-vto.md](./ops/youcam-vto.md) — paid try-on provider config
 - [minipay.md](./ops/minipay.md), [auth.md](./ops/auth.md) — integration notes
 - `hetzner.md`, `monitoring.md` *(local-only, gitignored — server ops details)*

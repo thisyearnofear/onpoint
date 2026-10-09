@@ -9,7 +9,7 @@ OnPoint API runs on a shared Hetzner VPS (38 GB disk). We **build locally, rsync
 only what's needed — no `git pull` on the server, no pnpm on the server.
 
 **Architecture:**
-- **Frontend:** Vercel (Next.js app) — presentation + identity
+- **Frontend:** Fly.io (`fly.web.toml`, Next.js standalone) — presentation + identity. Deployed separately; see [GETTING_STARTED.md](../docs/GETTING_STARTED.md#deployment)
 - **Backend API:** Hetzner VPS via PM2 (Express on port 48751)
 - **Bridge:** Python FastAPI on port 48752 (Browser-Use / Purch)
 - **Cache:** Redis on localhost:6379 (shared instance)
@@ -89,10 +89,16 @@ curl http://localhost:48751/health
 
 ## Routine Deployment
 
-**Always run from your local machine:**
+**Preferred: let CI deploy.** Pushes to `master` that touch the API deploy automatically (see
+[GitHub Actions Auto-Deploy](#github-actions-auto-deploy)). The runner is Linux, so native modules such as
+`sharp` are bundled for the server's platform.
+
+**Local deploys are a fallback, and risky from macOS:** `npm install` runs on your machine, so a Mac bundle
+ships `darwin-arm64` native binaries (e.g. `@img/sharp-libvips-darwin-arm64`) to a Linux server. Use a Linux
+host or container for local deploys.
 
 ```bash
-# Basic deploy
+# Basic deploy (fallback; Linux only)
 ./scripts/deploy-api.sh
 
 # Preview (dry run)
@@ -106,18 +112,39 @@ The script does:
 
 ```
  1. Build workspace deps       —— @repo/agent-core, @onpoint/shared-types, @repo/blockchain-client, @repo/db, @repo/storage, @repo/messaging-bridge, @repo/etherfuse
- 2. Size check                 —— fail >450 MB, warn >350 MB
- 3. rsync --delete             —— to /opt/onpoint/releases/api/<timestamp>/
- 4. .env symlink               —— shared/api/.env → releases/api/…/.env
- 5. Symlink flip               —— apps/api → releases/api/<timestamp>/
- 6. pm2 reload                 —— zero-downtime reload
- 7. Health check               —— curl /health, retry up to 6× (18s)
- 8. Auto-rollback on failure   —— flips back, reloads, verifies
- 9. Start/reload worker        —— pm2 startOrGracefulReload --only onpoint-worker
-10. Start/reload agent-server  —— pm2 startOrGracefulReload --only onpoint-agent-server
-11. Prune inactive releases    —— keep last 2, preserve active target
-12. Disk summary               —— show usage
+ 2. Bundle                     —— copy API source + built dist/, rewrite workspace:* deps, npm install --omit=dev
+ 3. Size check                 —— fail >550 MB, warn >350 MB (see "Bundle size" below)
+ 4. rsync --delete             —— to /opt/onpoint/releases/api/<timestamp>/
+ 5. .env symlink               —— shared/api/.env → releases/api/…/.env
+ 6. Sync ecosystem config      —— deploy/ecosystem.config.js → /opt/onpoint/deploy/ (overwrites the server copy)
+ 7. Candidate preflight        —— starts the new release on an isolated port (28756) and polls /health (up to 25 attempts);
+                                 a failure aborts BEFORE PM2 or the symlink is touched
+ 8. Bridge health check        —— the Python bridge must be up before the flip
+ 9. Symlink flip               —— apps/api → releases/api/<timestamp>/
+10. pm2 reload onpoint-api     —— graceful reload
+11. Health check               —— curl /health (retries) AND the PM2 instance count must equal `instances`
+                                 for onpoint-api in ecosystem.config.js
+12. Auto-rollback on failure   —— flips back, reloads, verifies, removes the failed release
+13. Start/reload worker, agent-server, signer
+14. Prune inactive releases    —— keep last 2, preserve active target
+15. Disk summary               —— show usage
 ```
+
+### Bundle size
+
+The size check exists to protect the server's disk (38 GB, shared with other apps; each release is kept twice). The hard limit is `SIZE_FAIL_MB` in `scripts/deploy-api.sh` (currently 550). A Linux bundle built in
+CI was ~519 MB. The biggest contributors are `@opentelemetry` (~90 MB), `viem` (~63 MB), and the messaging
+stack `@spectrum-ts` + `@photon-ai` (~75 MB, pulled in by `spectrum-ts` 12 via `@repo/messaging-bridge`). If
+the limit is hit again, prefer trimming dependencies before raising it.
+
+### Production process topology
+
+`onpoint-api` runs as **one `fork` process** (this is also what its saved PM2 dump records), not a cluster.
+`deploy/ecosystem.config.js` matches that: `instances: 1`, `exec_mode: 'fork'`. `pm2 reload` cannot convert
+an existing fork process to cluster, so a cluster config here makes step 11 fail and roll back every release.
+To adopt cluster mode deliberately: `pm2 delete onpoint-api`, set `instances: 2` and `exec_mode: 'cluster'`,
+start it from the ecosystem file, verify env loading (server.js reads the release `.env`), then `pm2 save`.
+Never `pm2 save` while a service is down (see the Oct 2026 incident in `docs/ops/hetzner.md`, local-only).
 
 ### Note: `node-linker=hoisted`
 
@@ -132,7 +159,7 @@ ensure `.npmrc` has this setting before running `pnpm install`.
 ```
 🚀 Deploying @onpoint/api — release 20260526-130237
 📦 Building production bundle...
-📏 Checking build size: 87MB (limit: 200MB, warn: 100MB)
+📏 Checking build size: 519MB (limit: 550MB, warn: 350MB)
 📁 Preparing remote release directory...
 📤 Syncing build to remote...
 🔗 Creating .env symlink: shared/api/.env → releases/api/20260526-130237/.env
@@ -181,23 +208,38 @@ values go directly to the server over SSH. See below for required keys.
 
 ## GitHub Actions Auto-Deploy
 
-A workflow file exists at `.github/workflows/deploy-api.yml`. To enable:
+`.github/workflows/deploy-api.yml` deploys on pushes to `master` that touch `apps/api/**`, `packages/**`,
+`pnpm-lock.yaml`, the workflow itself, or `scripts/deploy-api.sh`. It can also be run by hand
+(**Actions → Deploy API → Run workflow**) with a `dry_run` option.
 
-1. Generate a deploy SSH key:
-   ```bash
-   ssh-keygen -t ed25519 -f ~/.ssh/onpoint-deploy
-   ssh-copy-id -i ~/.ssh/onpoint-deploy.pub deploy@snel-bot
-   ```
+**Secrets** (Settings → Secrets and variables → Actions):
 
-2. Configure these secrets in GitHub:
-   - `DEPLOY_SSH_KEY` — contents of `~/.ssh/onpoint-deploy` (private key)
-   - `DEPLOY_SSH_HOST` — hostname/IP of snel-bot
-   - `DEPLOY_SSH_KNOWN_HOSTS` — output of `ssh-keyscan <host>`
+| Secret | Value |
+| --- | --- |
+| `DEPLOY_SSH_HOST` | Server IP or hostname |
+| `DEPLOY_SSH_PORT` | SSH port (the production host does **not** use 22) |
+| `DEPLOY_SSH_KEY` | Private key of a **dedicated deploy key** (passphrase-less) |
+| `DEPLOY_SSH_KNOWN_HOSTS` | `ssh-keyscan -p <port> <host>` output |
 
-3. Manual deploys still work via `pnpm deploy:api` or `./scripts/deploy-api.sh`
+The runner has no SSH config, so the workflow writes one that defines a `deploy-target` alias (user `deploy`,
+the host and port from the secrets) and sets `ONPOINT_SSH_HOST=deploy-target` for `deploy-api.sh`.
 
-When enabled, pushes to `master` that touch `apps/api/`, `packages/`, or
-`scripts/deploy-api.sh` will auto-deploy.
+**Deploy key.** Use a key generated only for this purpose, not a personal key. Authorize it on the server by
+appending one line to `/home/deploy/.ssh/authorized_keys` (the production line is tagged
+`github-actions-deploy@onpoint` and restricted with `no-port-forwarding,no-agent-forwarding,no-X11-forwarding`).
+To revoke: delete that line and the `DEPLOY_SSH_KEY` secret. Rotate by generating a new pair and repeating.
+
+**Safe first run / validating pipeline changes:**
+
+1. Commit with `[skip ci]` in the message so the push does not deploy.
+2. Run the workflow manually with `dry_run=true` and confirm it passes.
+3. Run it again with `dry_run=false` and watch the preflight and health steps.
+
+> A real deploy can fail safely: the preflight aborts before PM2 or the symlink is touched, and a failed
+> health check rolls back automatically. Check `ssh snel-bot "readlink /opt/onpoint/apps/api"` afterward.
+
+Note: a **dry run does not build the bundle or run the preflight**, so it cannot catch size or startup
+problems. Only a real run exercises those.
 
 ---
 
@@ -279,3 +321,51 @@ ls -1t releases/api/ | head -5
 ln -sfn /opt/onpoint/releases/api/<previous-ts> /opt/onpoint/apps/api
 pm2 reload onpoint-api
 ```
+
+### CI: "This run likely failed because of a workflow file issue"
+
+The workflow YAML is invalid, so no job ran. Validate locally:
+`python3 -c "import yaml; yaml.safe_load(open('.github/workflows/deploy-api.yml'))"`. A past cause was a
+multi-line `cat <<EOF` with unindented secret lines inside a `run: |` block — pass secrets through `env:` and
+use `printf` instead.
+
+### CI fails at "Validate secrets"
+
+One of `DEPLOY_SSH_HOST`, `DEPLOY_SSH_KEY`, `DEPLOY_SSH_KNOWN_HOSTS` is unset (`gh secret list`). Also set
+`DEPLOY_SSH_PORT` if the host does not listen on 22.
+
+### "Build too large"
+
+The bundle exceeded `SIZE_FAIL_MB`. Nothing was uploaded. See [Bundle size](#bundle-size) for what dominates it.
+Measure without deploying by running a copy of the script that stops after the size check.
+
+### "Staged API release failed startup preflight"
+
+Nothing live was touched. The output ends with `preflight_status=failed`, `preflight_last_http=<code>`, a
+`preflight_diag:` block (socket state and `/health` probes on 127.0.0.1, localhost, and ::1), and the
+candidate's log. Read them in this order:
+
+- `[FATAL] OnPoint API failed to listen … EADDRINUSE` — the port was held. The preflight port must be
+  **outside the kernel ephemeral range** (`cat /proc/sys/net/ipv4/ip_local_port_range`, 32768–60999 on the
+  production host). A port inside it can be occupied by an unrelated outbound connection, which `ss -ltn`
+  (listeners only) cannot see. The preflight uses 28756; override with `ONPOINT_PREFLIGHT_PORT`.
+- `preflight_last_http=000` with `curl-exit=7` — nothing is listening (check the log for a crash or bind error).
+- `preflight_last_http=000` with the process alive — `/health` hangs; check Redis reachability.
+- Any `5xx` — an application error; read the candidate's log.
+
+### "API cluster is not fully online" after a passing health check
+
+The PM2 instance count differs from `instances` for `onpoint-api` in `ecosystem.config.js`, and the script
+rolled back. Compare `pm2 describe onpoint-api` (exec mode, instances) with the config. See
+[Production process topology](#production-process-topology). `pm2 reload` cannot change fork ↔ cluster.
+
+### A service logs "running on port N" but nothing answers
+
+On Express 5, `app.listen`'s callback also runs when binding fails, with the error as its argument. The
+entrypoints now exit with `[FATAL] … failed to listen on port N` instead. If you add a new `app.listen`, check
+the `err` argument.
+
+### `/health` hangs when Redis is down
+
+ioredis 6 queues commands indefinitely while disconnected. `/health` bounds its `redis.ping()` to 1.5s and
+reports `redis: "disconnected"`. Do the same for any new health or readiness check that touches Redis.

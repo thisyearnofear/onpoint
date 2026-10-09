@@ -78,6 +78,9 @@ Three composable layers ([ADR 0002](./adr/0002-curator-primitive.md)):
 | `apps/api/routes/curator-storefront.js`                   | Public curator storefront read endpoint (handles physical + digital listings)                                 |
 | `apps/api/routes/listing-similar.js`                      | Public endpoint: similar physical items for a digital listing (digital→physical funnel)                       |
 | `apps/api/routes/agent-tryon.js`                          | x402-paid agent try-on endpoint (returns `similarPhysicalItems` for digital listings)                         |
+| `apps/api/lib/share-attribution.js`                       | Share-id/channel sanitizing, visitor hash, K-factor aggregation for the look-share loop (ADR 0019)             |
+| `apps/api/routes/funnel-analytics.js`                     | Service-key funnel reports: try-on → purchase and `/share` (shares → visits → activation, K-factor)             |
+| `apps/api/routes/fulfillment.js`                          | Order ledger, including `POST /api/orders/record` for confirmed M-Pesa orders (records attributed `sale`)       |
 | `apps/api/lib/whatsapp-ingest.js`                         | WhatsApp media -> R2 -> Neon ingest pipeline                                                                  |
 | `apps/web/app/s/[slug]/page.tsx`                          | Branded curator storefront UI                                                                                 |
 | `apps/web/components/AICuratorSection.tsx`                | AI Curator second opinion voices on human storefronts                                                         |

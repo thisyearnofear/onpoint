@@ -264,7 +264,7 @@ DELETE /api/looks/:slug          # delete a look (creator only)
 POST /api/looks/:slug/image      # upload cover image (creator only)
 POST /api/looks/:slug/collage    # regenerate collage (public)
 POST /api/looks/:slug/classify   # reclassify metadata (public)
-POST /api/looks/:slug/share      # record a share event (public)
+POST /api/looks/:slug/share      # record a share event (public; body: shareId?, channel?; see Share Attribution)
 POST /api/looks/:slug/try-on-count  # increment try-on count (public)
 POST /api/looks/bulk             # bulk archive/publish/delete (creator only)
 ```
@@ -324,6 +324,33 @@ The card is stored in R2 and returned as `shareCard.imageUrl`.
 - Try-ons via a look increment the look's `tryOnCount`
 - Purchases from a look page carry the agent's referral code (2.5% commission)
 - Referral commissions are auto-settled by the payout worker every 30 minutes
+- A payer is never paid a referral commission on its own purchase (self-referral is ignored)
+
+### Share Attribution
+
+> Status: API support is `deployed`. No K-factor or conversion claim is made until measured data exists.
+
+Every share of a look can carry a **share id** so the platform can follow it from share to try-on to order. It is optional and never changes price, payment, or commission.
+
+- **Format:** 6–16 lowercase letters/digits (for example `a1b2c3d4e5f6`). The look URL carries it as `?sid=<id>` and the channel as `?utm_source=<channel>`.
+- **Channels:** `copy`, `native`, `twitter`, `whatsapp`, `chatgpt`, `agent`, `direct`, `other`. Unknown values are stored as `other`.
+- **Agents that share a look** can record it and get an id back:
+
+  ```bash
+  POST /api/looks/{slug}/share
+  Headers: x-agent-address: 0x...        # optional; attributes the share to your wallet
+  Body: { "shareId": "a1b2c3d4e5f6", "channel": "agent" }   # both optional
+  # → 200 { "success": true, "shareId": "a1b2c3d4e5f6" }
+  # → 404 if the look is not live
+  ```
+
+  Omit `shareId` and the server mints one. Put the returned id in the URL you share.
+- **Attributing downstream actions:** when acting on behalf of someone who arrived through a share link, send the id back:
+  - `POST /api/agent/try-on` — body field `shareId`
+  - `POST /api/curator/{slug}/order` — header `X-Share-Id` or query `?sid=`
+- **Invalid ids are ignored**, never an error. The order and try-on still succeed.
+- **Browser-only endpoints.** `POST /api/looks/{slug}/visit`, `/cta`, and `/storefront` exist for the OnPoint web app's own tracking. Agents should not call them.
+- **Privacy.** Events store a salted, day-scoped visitor hash, not an IP address or user agent.
 
 ---
 

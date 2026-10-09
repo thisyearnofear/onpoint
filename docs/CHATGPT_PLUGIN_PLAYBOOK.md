@@ -68,7 +68,7 @@ Watch weekly. Free MCP wedge in ChatGPT; **digital paid stays off-platform** (no
 | 4 | Mid-conversation upsell click | Deep-link / informational handoff to OnPoint site or agent try-on/buy URLs (not in-chat settlement) |
 | 5 | Off-platform paid conversion | Trial or checkout **started** from a ChatGPT referral (x402 `try_on` / `buy_item` or storefront) — attributed when instrumentation exists |
 
-| 6 | Look share loop | Shares → visits → CTA clicks, and K, from `/api/status/funnel/share`; ChatGPT-originated shares appear under channel `chatgpt` once MCP deep-links carry `utm_source=chatgpt` and a `sid` (not yet done). See [growth-loop.md](./guides/growth-loop.md) |
+| 6 | Look share loop | Shares → visits → CTA clicks, and K, from `/api/status/funnel/share`; ChatGPT-originated shares appear under channel `chatgpt` once MCP deep-links carry `utm_source=chatgpt` and a `sid` (not yet done). See [growth-loop.md](./ops/growth-loop.md) |
 
 Related: [CONNECT](./CHATGPT_PLUGIN_CONNECT.md) free vs paid table · [ops/weekly-pilot-report.md](./ops/weekly-pilot-report.md) for broader pilot metrics.
 

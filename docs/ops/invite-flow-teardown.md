@@ -1,8 +1,8 @@
 # Invite-Flow Teardown: Look Share Loop
 
-Purpose: walk the share → visit → try-on → order path step by step, record friction, and keep a ranked fix list. Metric definitions live in [growth-loop.md](../guides/growth-loop.md).
+Purpose: walk the share → visit → try-on → order path step by step, record friction, and keep a ranked fix list. Metric definitions live in [growth-loop.md](./growth-loop.md).
 
-## Baseline findings (code audit, 2026-10-08)
+## Baseline findings (initial code audit)
 
 Found by reading the code, not by running the flow with users. Re-verify each on a deployed build.
 
@@ -17,6 +17,8 @@ Found by reading the code, not by running the flow with users. Re-verify each on
 | 7 | Human purchase               | Human checkout is WhatsApp/M-Pesa and carried no attribution                                                                              | Fixed for M-Pesa STK push: share id stored on the payment, confirmed sale recorded server-side. Manual M-Pesa codes and WhatsApp-only sales **open** |
 | 8 | Agent order referral         | Self-referral was paid; an unknown referral code was stored as the agent address                                                           | Self-referral fixed; unknown-code fallback **open** |
 | 9 | Share card / polaroid        | Share cards created on look try-on are not linked to a share id                                                                           | **Open**                                          |
+
+Statuses describe the repository. Confirm each against the deployed build before relying on it: the API changes and the web changes deploy separately.
 
 ## How to run the teardown
 

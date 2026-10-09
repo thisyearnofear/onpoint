@@ -40,6 +40,7 @@
           "photoData": { "type": "string", "description": "data:image/... base64 payload" },
           "personDescription": { "type": "string", "description": "Optional free-text description of the person (e.g. build, height) to refine the fit analysis" },
           "lookSlug": { "type": "string", "description": "Optional look slug — attributes the try-on to the look (increments its tryOnCount) and triggers a 1080x1350 Instagram-ready shareCard collage in the 200 response" },
+          "shareId": { "type": "string", "pattern": "^[a-z0-9]{6,16}$", "description": "Optional share id from a look link (?sid=). Attributes this try-on to the share; ignored if invalid; never affects price" },
           "paymentTxHash": { "type": "string", "description": "0x-prefixed cUSD transfer hash (payment path 1)" }
         } } } } },
         "responses": {
@@ -84,7 +85,9 @@
         "parameters": [
           { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } },
           { "name": "X-Referral-Code", "in": "header", "required": false, "schema": { "type": "string" }, "description": "Referral code — referring agent earns 2.5% commission on this purchase" },
-          { "name": "referral", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Referral code via query param (alternative to the header, for shareable links)" }
+          { "name": "referral", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Referral code via query param (alternative to the header, for shareable links)" },
+          { "name": "X-Share-Id", "in": "header", "required": false, "schema": { "type": "string", "pattern": "^[a-z0-9]{6,16}$" }, "description": "Optional share id from a look link; attributes this order to the share. Ignored if invalid; never affects price or commission" },
+          { "name": "sid", "in": "query", "required": false, "schema": { "type": "string", "pattern": "^[a-z0-9]{6,16}$" }, "description": "Share id via query param (alternative to X-Share-Id)" }
         ],
         "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["listingId", "size"], "properties": { "listingId": { "type": "string" }, "size": { "type": "string" }, "quantity": { "type": "integer", "default": 1 }, "paymentTxHash": { "type": "string", "description": "0x-prefixed cUSD transfer hash on Celo" }, "quoteId": { "type": "string", "description": "Quote ID returned in the 402 challenge" } } } } } },
         "responses": { "201": { "description": "Order confirmation and receipt URL" }, "402": { "description": "cUSD payment required or quote expired" },          "409": { "description": "Digital listings are try-on only, or USDC facilitator checkout is unavailable for this physical order endpoint" } }
@@ -333,18 +336,64 @@
     },
     "/api/looks/{slug}/share": {
       "post": {
-        "summary": "Record a share event (increments shareCount)",
+        "summary": "Record a share event and get a share id (increments shareCount)",
+        "description": "Optional. Put the returned shareId in the shared URL as ?sid=<id> so the share can be followed to try-ons and orders. Never affects price or commission.",
+        "parameters": [
+          { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "x-agent-address", "in": "header", "required": false, "schema": { "type": "string" }, "description": "Your wallet address; attributes the share to you" }
+        ],
+        "requestBody": { "required": false, "content": { "application/json": { "schema": { "type": "object", "properties": {
+          "shareId": { "type": "string", "pattern": "^[a-z0-9]{6,16}$", "description": "Share id you minted; the server mints one if omitted or invalid" },
+          "channel": { "type": "string", "enum": ["copy", "native", "twitter", "whatsapp", "chatgpt", "agent", "direct", "other"], "description": "Where the share goes; unknown values are stored as other" }
+        } } } } },
+        "responses": {
+          "200": {
+            "description": "Share recorded",
+            "content": { "application/json": { "schema": {
+              "type": "object",
+              "properties": { "success": { "type": "boolean" }, "shareId": { "type": "string" } }
+            } } }
+          },
+          "404": { "description": "Look not found or not live" }
+        }
+      }
+    },
+    "/api/looks/{slug}/visit": {
+      "post": {
+        "summary": "Web app only: record a landing on a look page",
+        "description": "First-party tracking for the OnPoint web app. Agents should not call this.",
         "parameters": [ { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } } ],
         "requestBody": { "required": false, "content": { "application/json": { "schema": { "type": "object", "properties": {
-          "platform": { "type": "string", "enum": ["twitter", "facebook", "whatsapp", "copy", "native"], "description": "Sharing platform" }
+          "shareId": { "type": "string", "pattern": "^[a-z0-9]{6,16}$" },
+          "channel": { "type": "string", "enum": ["copy", "native", "twitter", "whatsapp", "chatgpt", "agent", "direct", "other"] }
         } } } } },
-        "responses": { "200": {
-          "description": "Share recorded",
-          "content": { "application/json": { "schema": {
-            "type": "object",
-            "properties": { "ok": { "type": "boolean" }, "shareCount": { "type": "integer" } }
-          } } }
-        } }
+        "responses": { "200": { "description": "Recorded" }, "404": { "description": "Look not found or not live" } }
+      }
+    },
+    "/api/looks/{slug}/cta": {
+      "post": {
+        "summary": "Web app only: record a try-on or shop click on a look page",
+        "description": "First-party tracking for the OnPoint web app. Agents should not call this.",
+        "parameters": [ { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["kind"], "properties": {
+          "kind": { "type": "string", "enum": ["tryon", "shop"] },
+          "shareId": { "type": "string", "pattern": "^[a-z0-9]{6,16}$" },
+          "channel": { "type": "string", "enum": ["copy", "native", "twitter", "whatsapp", "chatgpt", "agent", "direct", "other"] }
+        } } } } },
+        "responses": { "200": { "description": "Recorded" }, "400": { "description": "Invalid kind" }, "404": { "description": "Look not found or not live" } }
+      }
+    },
+    "/api/looks/{slug}/storefront": {
+      "post": {
+        "summary": "Web app only: record a storefront step reached from a shared look",
+        "description": "First-party tracking for the OnPoint web app. Agents should not call this. Confirmed sales are recorded server-side and cannot be posted here.",
+        "parameters": [ { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["kind"], "properties": {
+          "kind": { "type": "string", "enum": ["arrive", "tryon", "buy", "order"] },
+          "shareId": { "type": "string", "pattern": "^[a-z0-9]{6,16}$" },
+          "channel": { "type": "string", "enum": ["copy", "native", "twitter", "whatsapp", "chatgpt", "agent", "direct", "other"] }
+        } } } } },
+        "responses": { "200": { "description": "Recorded" }, "400": { "description": "Invalid kind" }, "404": { "description": "Look not found or not live" } }
       }
     },
     "/api/looks/{slug}/try-on-count": {

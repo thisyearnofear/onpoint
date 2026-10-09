@@ -35,7 +35,7 @@ These are operating targets from the canonical strategy, not claims of current a
 | Human storefront try-on → purchase               |                        ≥ 15% | Funnel analytics                                                                                        |
 | Digital try-on → physical storefront visit       |                        ≥ 20% | Try-on / referral or storefront analytics                                                               |
 | Catalog freshness / completeness                 | Improve weekly from baseline | Audit JSON                                                                                              |
-| Share-loop K-factor (look shares)                |   Report; no target yet      | `GET /api/status/funnel/share` ([growth-loop.md](../guides/growth-loop.md)); `unknown` until ≥ 30 shares |
+| Share-loop K-factor (look shares)                |   Report; no target yet      | `GET /api/status/funnel/share` ([growth-loop.md](./growth-loop.md)); `unknown` until ≥ 30 shares |
 
 A target with no reliable source is **not yet measurable**. Add instrumentation before making a strategic claim.
 

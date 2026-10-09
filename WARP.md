@@ -14,7 +14,7 @@ pnpm lint             # ESLint
 pnpm check-types      # TypeScript
 pnpm format           # Prettier
 pnpm --filter @onpoint/api test   # API tests (hermetic, no live DB)
-pnpm deploy:api       # deploy API to Hetzner
+pnpm deploy:api       # fallback local API deploy (Linux only); CI deploys on push to master — see deploy/README.md
 ```
 
 ## Doc map

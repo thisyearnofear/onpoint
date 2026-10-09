@@ -50,6 +50,10 @@ Agents earn 2.5% commission on referred purchases — pass an `X-Referral-Code` 
 
 Full details: [referral-tracking.md](./referral-tracking.md)
 
+### Share attribution (optional)
+
+If a human or agent reached you through a shared look link (`?sid=<id>`), pass that id back so the share can be followed to its outcome: `shareId` in the `POST /api/agent/try-on` body, and `X-Share-Id` (or `?sid=`) on `POST /api/curator/{slug}/order`. It never changes price or commission, and an invalid id is ignored. See [Share Attribution](../../AGENTS.md#share-attribution).
+
 ## Phase 1 metrics
 
 Third-party (non–platform-wallet) try-ons and orders are tagged `caller=third_party` in API logs and Prometheus action counters (`agent_try_on_third_party`, `agent_order_third_party`). Own-agent loops do not count as demand proof.
