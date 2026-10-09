@@ -20,8 +20,14 @@ module.exports = {
       name: 'onpoint-api',
       cwd: '/opt/onpoint',
       script: 'apps/api/server.js',     // resolves through symlink
-      instances: 2,                      // Use both CPU cores
-      exec_mode: 'cluster',
+      // Production runs onpoint-api as a single fork process (its saved PM2 dump
+      // says fork_mode). `pm2 reload` cannot convert fork to cluster, so a cluster
+      // config here made deploy-api.sh's instance-count check fail on every
+      // deploy. To adopt cluster mode: `pm2 delete onpoint-api`, set
+      // instances: 2 / exec_mode: 'cluster', start it from this file, then
+      // `pm2 save`. Verify env loading (server.js reads the release .env) first.
+      instances: 1,
+      exec_mode: 'fork',
       autorestart: true,
       watch: false,
       max_memory_restart: '500M',
