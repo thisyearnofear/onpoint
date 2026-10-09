@@ -758,7 +758,12 @@ setTimeout(() => {
 }, 180000);
 
 // ── Start Express Server ──
-app.listen(WORKER_PORT, '127.0.0.1', () => {
+// Express 5 passes listen errors to this callback; fail loudly.
+app.listen(WORKER_PORT, '127.0.0.1', (err) => {
+  if (err) {
+    logger.error('Failed to listen', { component: 'worker' }, err);
+    process.exit(1);
+  }
   logger.info(`onpoint-worker running on port ${WORKER_PORT}`, { component: 'worker' });
   logger.info(`Cycle interval: ${HEARTBEAT_INTERVAL_MS}ms`, { component: 'worker' });
 });

@@ -636,7 +636,13 @@ app.get('/health', (req, res) => {
 
 // ── Start Server ───────────────────────────────────────────────
 
-app.listen(PORT, '127.0.0.1', () => {
+// Express 5 passes listen errors to this callback; fail loudly instead of
+// logging a start banner for a server that is not listening.
+app.listen(PORT, '127.0.0.1', (err) => {
+  if (err) {
+    logger.error('Failed to listen', { component: 'agent-server' }, err);
+    process.exit(1);
+  }
   logger.info('onpoint-agent-server started', {
     component: 'agent-server',
     port: PORT,

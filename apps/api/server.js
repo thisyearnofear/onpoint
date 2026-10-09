@@ -448,7 +448,14 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 48751;
 
-app.listen(PORT, '0.0.0.0', () => {
+// Express 5 invokes this callback with an error when listen fails (e.g.
+// EADDRINUSE). Without this check a failed bind still logged the success
+// banner and left an unreachable process running.
+app.listen(PORT, '0.0.0.0', (err) => {
+  if (err) {
+    console.error(`[FATAL] OnPoint API failed to listen on port ${PORT}:`, err);
+    process.exit(1);
+  }
   console.log(`🚀 OnPoint API v2.1.0 running on port ${PORT}`);
   console.log(`   Health: http://localhost:${PORT}/health`);
   console.log(`   Status: http://localhost:${PORT}/api/status`);

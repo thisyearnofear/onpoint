@@ -628,7 +628,12 @@ module.exports = {
 // ── Start Server (only when run directly, not when imported) ──
 if (require.main === module) {
   initialize().then(() => {
-    app.listen(SIGNER_PORT, BIND_ADDRESS, () => {
+    // Express 5 passes listen errors to this callback; fail loudly.
+    app.listen(SIGNER_PORT, BIND_ADDRESS, (err) => {
+      if (err) {
+        logger.error('Failed to listen', { component: 'signer' }, err);
+        process.exit(1);
+      }
       logger.info(`onpoint-signer running on ${BIND_ADDRESS}:${SIGNER_PORT}`, {
         component: 'signer',
         address: agentAddress || 'unknown',
