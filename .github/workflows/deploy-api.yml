@@ -55,23 +55,38 @@ jobs:
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_SSH_KNOWN_HOSTS: ${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}
+          DEPLOY_SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          # Optional; the production host listens on a non-default port.
+          DEPLOY_SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+          DEPLOY_SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT }}
         run: |
           mkdir -p ~/.ssh
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           printf '%s\n' "$DEPLOY_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
+          # The runner has no ssh config, so define the alias that
+          # scripts/deploy-api.sh and the steps below connect through.
+          {
+            echo "Host deploy-target"
+            echo "  HostName $DEPLOY_SSH_HOST"
+            echo "  User ${DEPLOY_SSH_USER:-deploy}"
+            echo "  Port ${DEPLOY_SSH_PORT:-22}"
+            echo "  IdentityFile ~/.ssh/id_ed25519"
+            echo "  IdentitiesOnly yes"
+          } > ~/.ssh/config
+          chmod 600 ~/.ssh/config
 
       - name: Test SSH connection
         run: |
-          ssh -o ConnectTimeout=10 "${{ secrets.DEPLOY_SSH_HOST }}" "echo ok" || {
+          ssh -o ConnectTimeout=10 deploy-target "echo ok" || {
             echo "::error::Cannot SSH to DEPLOY_SSH_HOST — check the SSH key and host"
             exit 1
           }
 
       - name: Deploy API
         env:
-          ONPOINT_SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          ONPOINT_SSH_HOST: deploy-target
         run: |
           if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
             bash scripts/deploy-api.sh --dry-run

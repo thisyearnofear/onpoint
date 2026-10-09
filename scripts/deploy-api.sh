@@ -30,7 +30,9 @@ FILTER="@onpoint/api"
 BUILD_DIR="./build/api"
 KEEP_RELEASES=2
 SIZE_WARN_MB=350
-SIZE_FAIL_MB=450
+# Raised from 450 after the 2026-10-05 dependency upgrades (spectrum-ts 12
+# adds ~75MB). Prod has ~9GB free and keeps 2 releases.
+SIZE_FAIL_MB=550
 HEALTH_URL="http://localhost:48751/health"
 # Allow cold Node/PM2 starts (especially after creating a previously missing process)
 # enough time to bind before declaring a release unhealthy.
