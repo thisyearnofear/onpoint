@@ -132,7 +132,7 @@ router.get('/', async (req, res) => {
 
 // GET /api/status/funnel/share?days=7
 // Share-loop funnel: shares -> visits -> CTA clicks -> agent try-ons -> orders,
-// plus the K-factor (see docs/guides/growth-loop.md for definitions).
+// plus the K-factor (see docs/ops/growth-loop.md for definitions).
 router.get('/share', async (req, res) => {
   try {
     const sql = getSql();

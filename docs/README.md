@@ -51,7 +51,7 @@ Not for external consumers.
 - [invite-flow-teardown.md](./ops/invite-flow-teardown.md) — share-flow teardown procedure and fix backlog
 - [../deploy/README.md](../deploy/README.md) — API deploy pipeline, CI secrets, rollback, troubleshooting
 - [youcam-vto.md](./ops/youcam-vto.md) — paid try-on provider config
-- [minipay.md](./ops/minipay.md), [auth.md](./ops/auth.md) — integration notes
+- [minipay.md](./ops/minipay.md), [auth.md](./ops/auth.md) — integration notes (auth.md also covers admin console access)
 - `hetzner.md`, `monitoring.md` *(local-only, gitignored — server ops details)*
 
 ## adr/ — decision records

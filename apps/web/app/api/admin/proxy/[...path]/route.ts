@@ -64,6 +64,12 @@ async function proxyRequest(
   request: NextRequest,
 ): Promise<NextResponse> {
   try {
+    // Segments are joined into a URL that carries the service key, and fetch
+    // resolves dot segments. Reject anything that could climb out of /api/admin.
+    if (path.some((seg) => !seg || seg === "." || seg === ".." || /[\\/]/.test(seg))) {
+      return NextResponse.json({ error: "Invalid path" }, { status: 400 });
+    }
+
     const targetPath = `/api/admin/${path.join("/")}`;
     const targetUrl = `${API_BASE}${targetPath}`;
 

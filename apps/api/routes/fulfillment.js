@@ -18,7 +18,7 @@ const logger = require('../lib/logger');
 const { distributeSplit } = require('../lib/split-setup');
 const { getDb } = require('../lib/db');
 const { logFunnelEvent } = require('../lib/funnel');
-const { sanitizeShareId, sanitizeLookSlug } = require('../lib/share-attribution');
+const { sanitizeShareId, sanitizeLookSlug, sanitizeReferralCode } = require('../lib/share-attribution');
 
 const router = express.Router();
 
@@ -32,12 +32,16 @@ const router = express.Router();
 //
 // Body: { curatorSlug, listingId, size, amountKes, mpesaReceipt,
 //         customerPhone?, quantity?, source? ('site_buy'),
-//         shareId?, lookSlug? }  (growth-loop attribution; see docs/guides/growth-loop.md)
+//         shareId?, lookSlug?, referralCode? }
+//   shareId/lookSlug: growth-loop attribution (docs/ops/growth-loop.md).
+//   referralCode is stored on the order for attribution only. It does NOT create
+//   an agent_referrals commission: M-Pesa sales settle in KES, and paying the
+//   2.5% in cUSD is an unresolved business decision.
 router.post('/record', async (req, res) => {
   const {
     curatorSlug, listingId, size, amountKes, mpesaReceipt,
     customerPhone, quantity = 1, source = 'site_buy',
-    shareId: rawShareId, lookSlug: rawLookSlug,
+    shareId: rawShareId, lookSlug: rawLookSlug, referralCode: rawReferralCode,
   } = req.body || {};
 
   if (!curatorSlug || !/^[a-z0-9-]{2,64}$/.test(String(curatorSlug))) {
@@ -77,6 +81,7 @@ router.post('/record', async (req, res) => {
         amountKes: kes.toFixed(0),
         mpesaReceipt,
         source,
+        referralCode: sanitizeReferralCode(rawReferralCode),
         status: 'confirmed',
       })
       .onConflictDoNothing({ target: orders.mpesaReceipt })

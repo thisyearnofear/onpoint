@@ -49,6 +49,39 @@ export async function readPayments(
 }
 
 /**
+ * Read one payment by ID from a curator's list (same window that
+ * `updatePaymentInRedis` searches), or null if absent.
+ */
+export async function getPaymentById(
+  curatorSlug: string,
+  paymentId: string,
+): Promise<Record<string, unknown> | null> {
+  const url = getRedisUrl();
+  const token = getRedisToken();
+  if (!url || !token) return null;
+
+  const key = `${REDIS_PAYMENT_PREFIX}:${curatorSlug}`;
+  const response = await fetch(
+    `${url}/lrange/${key}/0/${MAX_RECENT_PAYMENTS - 1}`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  if (!response.ok) return null;
+
+  const data = await response.json();
+  const rows = Array.isArray(data?.result) ? data.result : [];
+  for (const row of rows) {
+    if (typeof row !== "string") continue;
+    try {
+      const parsed = JSON.parse(row) as Record<string, unknown>;
+      if (parsed.id === paymentId) return parsed;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+/**
  * Update a single payment record in the Redis list by ID.
  * Reads the list, patches the matching record, then deletes and rewrites the list.
  * Returns the updated record or null if not found.

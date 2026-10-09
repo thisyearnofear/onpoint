@@ -51,10 +51,10 @@ Returns `overall`, `byChannel`, and `byLook` (top 20), each with stage counts an
 ## Known limits
 
 - **Click and intent events are not outcomes.** Storefront `tryon` / `buy` / `order` are clicks or payment starts. Outcomes are `tryon_complete` and `confirmedSales` (`sale`). Report them separately from intent in the weekly report.
-- **Confirmed sales cover M-Pesa STK push only.** Manual M-Pesa code submissions are stored with the share id but stay `pending_verification` and have no confirmation path, so they are not counted as sales. WhatsApp-only and off-platform sales are not attributed.
+- **Confirmed sales cover M-Pesa only.** STK push sales are recorded when Safaricom confirms. Manual M-Pesa codes are recorded when an admin verifies them in the console (the order is ledgered first; a reused code is refused). WhatsApp-only and off-platform sales are not attributed.
 - **Web try-on attribution depends on `sessionStorage`.** It survives storefront → `/lab` in the same tab; a new tab or browser loses it. Self-exclusion for web try-ons uses the day-scoped visitor hash, which may not match when the share and try-on reach the API through different paths.
 - **Share ids are client-supplied.** A forged but valid `sid` of an existing share can attribute a sale to it. Treat per-share numbers as analytics, not as grounds for paying anyone.
-- The storefront reads `sid` and `look` but still ignores the `referral` query param; human purchases earn no referral commission.
+- The storefront reads `sid`, `look` and `referral`. A referral code on a human order is stored for attribution only; no commission is created for M-Pesa orders (see [mpesa-setup.md](./mpesa-setup.md#referral-commissions-on-human-orders)).
 - Visitors are identified by a salted, day-scoped hash, so one person returning on another day counts as a new visitor.
 - Self-activity is excluded when the actor id matches the sharer's. Different devices of the same person are not detected.
 - The 2.5% referral commission is separate from share attribution. Referral commissions are skipped when the payer is the referring agent (`isSelfReferral`).

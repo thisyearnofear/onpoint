@@ -44,6 +44,7 @@ const { composeLookCollage, composeLookCollageAI } = require('../lib/image-compo
 const { removeBackground } = require('../lib/image-processing');
 const { classifyLook } = require('../lib/look-classify');
 const { logFunnelEvent } = require('../lib/funnel');
+const { deriveReferralCode } = require('../lib/referral-codes');
 const {
   newShareId,
   sanitizeShareId,
@@ -498,7 +499,7 @@ router.get('/:slug', async (req, res) => {
     }));
 
     // Generate referral code for the look's agent
-    const referralCode = `ref_${look.agentAddress.slice(2, 10)}`;
+    const referralCode = deriveReferralCode(look.agentAddress);
     const coverImageUrl = look.coverImageKey ? keyToUrl(look.coverImageKey) : null;
 
     res.json({
@@ -641,7 +642,7 @@ router.post('/:slug/image', lookAuth, async (req, res) => {
   }
 });
 
-// ── Share-loop events (docs/guides/growth-loop.md) ──
+// ── Share-loop events (docs/ops/growth-loop.md) ──
 // Stored in funnel_events: look_share | look_visit | look_cta. No raw IP/UA is
 // stored; visitors are identified by a salted, day-scoped hash.
 async function isLiveLook(db, slug) {

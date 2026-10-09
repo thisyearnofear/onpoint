@@ -118,7 +118,7 @@ export default async function LookPage({
 }) {
   const { slug } = await params;
   // Share attribution: forward a valid share id through the CTA links so the
-  // storefront / agent flows can keep it (docs/guides/growth-loop.md).
+  // storefront / agent flows can keep it (docs/ops/growth-loop.md).
   const rawSid = (await searchParams)?.sid;
   const sidValue = (Array.isArray(rawSid) ? rawSid[0] : rawSid)?.toLowerCase();
   const sidParam = sidValue && /^[a-z0-9]{6,16}$/.test(sidValue) ? `&sid=${sidValue}` : "";

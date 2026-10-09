@@ -3,6 +3,7 @@
 **Status**: Accepted
 **Date**: 2026-10-09
 **Related**: ADR 0010 (agent storefront checkout), ADR 0013 (pricing and revenue model), ADR 0018 (x402-first monetization)
+**Amended by**: ADR 0020 (manual M-Pesa sales now count once verified; the storefront now reads `referral`)
 
 ## Context
 

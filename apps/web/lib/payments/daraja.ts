@@ -8,6 +8,7 @@
  * live credentials.
  */
 
+import { createHash, timingSafeEqual } from "node:crypto";
 import { logger } from "../utils/logger";
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -18,6 +19,8 @@ export type DarajaConfig = {
   passkey: string;
   businessShortCode: string;
   callbackBaseUrl: string;
+  /** Shared secret appended to the callback URL; see verifyCallbackToken. */
+  callbackSecret?: string;
   sandbox: boolean;
 };
 
@@ -123,6 +126,7 @@ function loadConfig(): DarajaConfig | null {
     passkey,
     businessShortCode,
     callbackBaseUrl,
+    callbackSecret: process.env.DARAJA_CALLBACK_SECRET || undefined,
     sandbox: process.env.DARAJA_SANDBOX !== "false",
   };
 }
@@ -160,6 +164,45 @@ async function getAccessToken(config: DarajaConfig): Promise<string | null> {
     logger.warn("Daraja auth error", { component: "daraja" }, error);
     return null;
   }
+}
+
+// ─── Callback authentication ────────────────────────────────────────
+
+/**
+ * The callback endpoint is public (Safaricom calls it), and the
+ * CheckoutRequestID it matches on is also returned to the paying browser, so
+ * the ID alone is not proof the call came from Safaricom. When
+ * DARAJA_CALLBACK_SECRET is set it is appended to the callback URL registered
+ * with Daraja (`?s=<secret>`) and every callback must present it.
+ */
+export function buildCallbackUrl(
+  config: Pick<DarajaConfig, "callbackBaseUrl" | "callbackSecret">,
+): string {
+  const base = `${config.callbackBaseUrl}/api/curator/stk-callback`;
+  return config.callbackSecret
+    ? `${base}?s=${encodeURIComponent(config.callbackSecret)}`
+    : base;
+}
+
+export type CallbackAuth =
+  /** No secret configured: callbacks are accepted unauthenticated (legacy). */
+  | { ok: true; enforced: false }
+  | { ok: true; enforced: true }
+  | { ok: false; enforced: true };
+
+/** Constant-time comparison of the presented token against the configured secret. */
+export function verifyCallbackToken(
+  provided: string | null | undefined,
+  secret: string | undefined = process.env.DARAJA_CALLBACK_SECRET,
+): CallbackAuth {
+  if (!secret) return { ok: true, enforced: false };
+  if (!provided) return { ok: false, enforced: true };
+  // Hash first so the comparison is fixed-length (timingSafeEqual requires it).
+  const a = createHash("sha256").update(provided).digest();
+  const b = createHash("sha256").update(secret).digest();
+  return timingSafeEqual(a, b)
+    ? { ok: true, enforced: true }
+    : { ok: false, enforced: true };
 }
 
 // ─── STK Push ───────────────────────────────────────────────────────
@@ -200,7 +243,7 @@ export async function initiateStkPush(
     PartyA: parseInt(phone, 10),
     PartyB: shortCode,
     PhoneNumber: parseInt(phone, 10),
-    CallBackURL: `${config.callbackBaseUrl}/api/curator/stk-callback`,
+    CallBackURL: buildCallbackUrl(config),
     AccountReference: request.accountReference.slice(0, 12),
     TransactionDesc: request.transactionDesc.slice(0, 13),
   };

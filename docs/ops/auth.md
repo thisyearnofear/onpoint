@@ -55,6 +55,30 @@ Visit: https://manage.auth0.com/dashboard/us/dev-epemgbox1ty8vjf8/
 
 ---
 
+## Admin Access (`/admin`, `/api/admin`)
+
+The operator console shows customer phone numbers and delivery addresses, confirms or rejects payments, triggers customer WhatsApp messages, and (through `/api/admin/proxy/*`) calls the API with the service key. It is gated in `apps/web/proxy.ts`, using the Auth0 session:
+
+| Visitor | Pages (`/admin/*`) | API (`/api/admin/*`) |
+| --- | --- | --- |
+| Not signed in | redirect to `/auth/login?returnTo=…` | `401` |
+| Signed in, not on the allowlist, or email not verified | `403` | `403` |
+| Verified email on the allowlist | allowed | allowed |
+| No allowlist configured | `503` (fail closed) | `503` |
+
+Configuration (web app, Fly secrets):
+
+```env
+ADMIN_EMAILS=ops@example.com,second@example.com   # comma/space separated; falls back to ADMIN_EMAIL
+```
+
+Notes:
+
+- **Set `ADMIN_EMAILS` before deploying the web app that contains this gate**, or the console returns 503 until you do.
+- The email must be **verified** in Auth0. An unverified email proves nothing (anyone can self-register one), so it is rejected even when it matches.
+- The policy lives in `apps/web/lib/utils/admin-access.ts` (pure, unit-tested) and is applied by `proxy.ts`. The proxy route also refuses `..` and slash segments so it can only reach the API's `/api/admin/*` namespace.
+- Other `/api/curator/*` routes (leads, tracking, delivery, …) are not under this gate. Review them separately.
+
 ## Agent Wallet Setup
 
 ### Security Principles

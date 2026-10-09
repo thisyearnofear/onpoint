@@ -1,6 +1,6 @@
 /**
  * Share attribution helpers — single source of truth for the look-share growth
- * loop (see docs/guides/growth-loop.md).
+ * loop (see docs/ops/growth-loop.md).
  *
  * Events are stored in the existing `funnel_events` table (no new table):
  *   look_share | look_visit | look_cta   (metadata: lookSlug, shareId, channel, ...)
@@ -40,6 +40,13 @@ function sanitizeChannel(value) {
 
 function sanitizeCtaKind(value) {
   return CTA_KINDS.has(value) ? value : null;
+}
+
+/** Referral codes are short tokens (`ref_<8 hex>` or a full address); reject anything else. */
+function sanitizeReferralCode(value) {
+  if (typeof value !== 'string') return null;
+  const v = value.trim();
+  return /^[A-Za-z0-9_-]{3,64}$/.test(v) ? v : null;
 }
 
 /** Look slugs are lowercase slug strings (see lib/slugs.js). */
@@ -223,6 +230,7 @@ module.exports = {
   sanitizeCtaKind,
   sanitizeStorefrontKind,
   sanitizeLookSlug,
+  sanitizeReferralCode,
   hashVisitor,
   isSelfReferral,
   computeKFactor,

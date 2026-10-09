@@ -5,6 +5,7 @@ const { orders, agentReferrals } = require('@repo/db');
 const { eq, desc } = require('drizzle-orm');
 const logger = require('../lib/logger');
 const { logFunnelEvent } = require('../lib/funnel');
+const { deriveReferralCode } = require('../lib/referral-codes');
 const { hashVisitor } = require('../lib/share-attribution');
 
 const router = express.Router();
@@ -49,7 +50,7 @@ router.post('/capture', async (req, res) => {
     // Generate referral code if first time
     const referralCode = existing.length > 0 
       ? existing[0].referralCode 
-      : `ref_${agentAddress.slice(2, 10)}`;
+      : deriveReferralCode(agentAddress);
 
     res.json({ 
       success: true, 

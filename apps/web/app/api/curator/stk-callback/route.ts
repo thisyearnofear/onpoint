@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { logger } from "../../../../lib/utils/logger";
 import {
   parseStkCallback,
+  verifyCallbackToken,
 } from "../../../../lib/payments/daraja";
+import {
+  getPaymentByCheckoutRequestId,
+  updateCheckoutIndex,
+} from "../../../../lib/payments/checkout-store";
+import { recordOrderInLedger } from "../../../../lib/payments/ledger";
 import {
   updatePaymentInRedis,
   createStkConfirmedNotification,
@@ -16,77 +22,16 @@ export { OPTIONS } from "../../ai/_utils/http";
  * Public callback endpoint called by Safaricom after an STK Push
  * transaction completes (success, failure, or timeout).
  *
- * No authentication required — Safaricom calls this directly.
- * We validate the callback by matching the CheckoutRequestID
- * against stored pending payments.
+ * Safaricom cannot send credentials, so authenticity rests on:
+ *   1. a shared secret in the registered callback URL (`?s=`), enforced when
+ *      DARAJA_CALLBACK_SECRET is set (the CheckoutRequestID alone is not proof:
+ *      it is also returned to the paying browser);
+ *   2. matching the CheckoutRequestID against a stored pending payment;
+ *   3. checking the paid amount against the amount we asked for.
  */
 
 const PAYMENT_PREFIX = "curator:payments";
 const MAX_RECENT_PAYMENTS = 200;
-
-/**
- * Record the confirmed payment as an order in the Postgres ledger
- * (ADR 0001: Hetzner owns state). Idempotent server-side on the M-Pesa
- * receipt, so callback retries are safe. Never blocks the Safaricom ack —
- * a ledger hiccup is logged for reconciliation, not surfaced.
- */
-async function recordOrderInLedger(
-  payment: Record<string, unknown>,
-  mpesaReceipt: string,
-  verifiedPhone: string | undefined,
-): Promise<void> {
-  const apiBase = (
-    process.env.NEXT_PUBLIC_AGENT_API_URL ||
-    process.env.AGENT_API_URL ||
-    "http://localhost:48751"
-  ).replace(/\/$/, "");
-  const serviceKey = process.env.SERVICE_API_KEY;
-  if (!serviceKey) {
-    logger.warn("SERVICE_API_KEY not set — M-Pesa order not ledgered", {
-      component: "curator-stk-callback",
-      mpesaReceipt,
-    });
-    return;
-  }
-
-  try {
-    const res = await fetch(`${apiBase}/api/orders/record`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-service-key": serviceKey,
-      },
-      body: JSON.stringify({
-        curatorSlug: payment.curatorSlug,
-        listingId: payment.listingId,
-        size: payment.size,
-        amountKes: payment.amount,
-        mpesaReceipt,
-        customerPhone: verifiedPhone || payment.customerPhone || undefined,
-        source: "site_buy",
-        // Look-share attribution captured at STK push time (may be null)
-        shareId: payment.shareId || undefined,
-        lookSlug: payment.lookSlug || undefined,
-      }),
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      logger.error("Ledger rejected M-Pesa order", {
-        component: "curator-stk-callback",
-        mpesaReceipt,
-        status: res.status,
-        body: body.slice(0, 200),
-      });
-    }
-  } catch (err) {
-    logger.error(
-      "Failed to ledger M-Pesa order — reconcile manually",
-      { component: "curator-stk-callback", mpesaReceipt },
-      err,
-    );
-  }
-}
 
 function getRedisUrl(): string | undefined {
   return process.env.UPSTASH_REDIS_REST_URL;
@@ -97,24 +42,20 @@ function getRedisToken(): string | undefined {
 }
 
 /**
- * Find a payment by checkout request ID across all curator payment lists.
- * This is O(n) but acceptable for this volume.
+ * Legacy lookup: scan the shared "recent" list. Only a fallback now, for
+ * payments created before the direct checkout index existed.
  */
-async function findPaymentByCheckoutRequestId(
+async function findPaymentInRecentList(
   checkoutRequestId: string,
 ): Promise<{ curatorSlug: string; payment: Record<string, unknown> } | null> {
   const url = getRedisUrl();
   const token = getRedisToken();
   if (!url || !token) return null;
 
-  // We need to scan all curator payment keys. Use SCAN + LRANGE.
-  // For simplicity with Upstash REST, fetch the recent feed.
   try {
     const recentRes = await fetch(
       `${url}/lrange/${PAYMENT_PREFIX}:recent/0/${MAX_RECENT_PAYMENTS - 1}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      },
+      { headers: { Authorization: `Bearer ${token}` } },
     );
     if (!recentRes.ok) return null;
 
@@ -144,6 +85,20 @@ async function findPaymentByCheckoutRequestId(
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    const auth = verifyCallbackToken(request.nextUrl.searchParams.get("s"));
+    if (!auth.ok) {
+      logger.warn("STK callback rejected: missing or invalid token", {
+        component: "curator-stk-callback",
+      });
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    if (!auth.enforced) {
+      logger.warn(
+        "DARAJA_CALLBACK_SECRET not set — STK callbacks are unauthenticated",
+        { component: "curator-stk-callback" },
+      );
+    }
+
     // Safaricom sends the callback as JSON in the request body
     const rawBody = await request.json().catch(() => null);
     if (!rawBody) {
@@ -169,10 +124,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       resultDesc: result.resultDesc,
     });
 
-    // Find the matching payment by checkout request ID
-    const match = await findPaymentByCheckoutRequestId(
-      result.checkoutRequestId,
-    );
+    // Direct lookup first; the recent-list scan only covers older payments.
+    const match =
+      (await getPaymentByCheckoutRequestId(result.checkoutRequestId)) ??
+      (await findPaymentInRecentList(result.checkoutRequestId));
 
     if (!match) {
       logger.warn("STK callback for unknown checkout request", {
@@ -186,6 +141,33 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       });
     }
 
+    // Replay guard: a retried or replayed success must not notify or ledger twice.
+    if (result.success && match.payment.status === "paid") {
+      logger.info("STK callback replay ignored (already paid)", {
+        component: "curator-stk-callback",
+        checkoutRequestId: result.checkoutRequestId,
+      });
+      return NextResponse.json({ ResultCode: 0, ResultDesc: "Already processed" });
+    }
+
+    const expectedAmount = Number(match.payment.amount);
+    const paidAmount =
+      result.amount === undefined ? undefined : Number(result.amount);
+    const amountMismatch =
+      result.success &&
+      paidAmount !== undefined &&
+      Number.isFinite(expectedAmount) &&
+      paidAmount !== expectedAmount;
+
+    if (amountMismatch) {
+      logger.error("STK callback amount does not match the payment", {
+        component: "curator-stk-callback",
+        checkoutRequestId: result.checkoutRequestId,
+        expectedAmount,
+        paidAmount,
+      });
+    }
+
     // Update payment based on result
     const updates: Record<string, unknown> = {
       callbackReceivedAt: new Date().toISOString(),
@@ -193,7 +175,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       resultDesc: result.resultDesc,
     };
 
-    if (result.success) {
+    const confirmed = result.success && !amountMismatch;
+
+    if (confirmed) {
       updates.status = "paid";
       updates.verifiedAt = new Date().toISOString();
       updates.fulfilmentStatus = "awaiting_delivery_details";
@@ -209,7 +193,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     } else {
       updates.status = "rejected";
       updates.rejectedAt = new Date().toISOString();
-      updates.rejectionReason = result.resultDesc;
+      updates.rejectionReason = amountMismatch
+        ? `amount_mismatch: paid ${paidAmount}, expected ${expectedAmount}`
+        : result.resultDesc;
     }
 
     const updatedPayment = await updatePaymentInRedis(
@@ -217,23 +203,36 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       match.payment.id as string,
       updates,
     );
+    await updateCheckoutIndex(match.payment, updates).catch(() => false);
 
-    if (result.success && updatedPayment) {
+    if (confirmed && updatedPayment) {
       await createStkConfirmedNotification(updatedPayment);
     }
 
-    if (result.success && result.mpesaReceiptNumber) {
-      await recordOrderInLedger(
-        match.payment,
+    if (confirmed && result.mpesaReceiptNumber) {
+      const ledger = await recordOrderInLedger(
+        { ...match.payment, ...updates },
         result.mpesaReceiptNumber,
         result.phoneNumber ? String(result.phoneNumber) : undefined,
+      );
+      const ledgerUpdates = {
+        ledgerStatus: ledger.outcome,
+        ...(ledger.orderId ? { orderId: ledger.orderId } : {}),
+      };
+      await updatePaymentInRedis(
+        match.curatorSlug,
+        match.payment.id as string,
+        ledgerUpdates,
+      ).catch(() => null);
+      await updateCheckoutIndex({ ...match.payment, ...updates }, ledgerUpdates).catch(
+        () => false,
       );
     }
 
     logger.info("STK callback processed", {
       component: "curator-stk-callback",
       checkoutRequestId: result.checkoutRequestId,
-      success: result.success,
+      success: confirmed,
       mpesaReceiptNumber: result.mpesaReceiptNumber,
       updated: Boolean(updatedPayment),
     });

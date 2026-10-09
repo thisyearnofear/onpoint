@@ -82,8 +82,15 @@ Set as Fly secrets on `onpoint-web`. Full setup, sandbox test, and go-live check
 | `DARAJA_CONSUMER_KEY`, `DARAJA_CONSUMER_SECRET`, `DARAJA_PASSKEY`, `DARAJA_BUSINESS_SHORTCODE` | Safaricom Daraja credentials (sandbox shortcode `174379`) |
 | `DARAJA_SANDBOX` | Defaults to sandbox; set `false` only after go-live |
 | `DARAJA_CALLBACK_BASE_URL` | **Set explicitly** to the web origin. The fallback chain can resolve to the API host, which has no `/api/curator/stk-callback` |
+| `DARAJA_CALLBACK_SECRET` | **Set this.** Shared secret in the callback URL (`?s=`), required on every STK callback. Unset means forged callbacks are possible |
 | `SERVICE_API_KEY` | Lets the STK callback record confirmed orders in the API ledger |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Payment records live here and the callback matches on them |
+
+### Admin console (web app)
+
+| Variable | Purpose |
+| --- | --- |
+| `ADMIN_EMAILS` | Comma/space-separated list of **verified Auth0 emails** allowed into `/admin` and `/api/admin`. Falls back to `ADMIN_EMAIL`. With neither set those routes return `503`. See [ops/auth.md](./ops/auth.md#admin-access-admin-apiadmin) |
 
 ### Social & Integrations
 
@@ -229,7 +236,7 @@ Behavior changes from majors already adopted (check these when touching the code
 
 The web app deploys as a standalone Next.js container via `fly.web.toml` + root `Dockerfile`:
 
-1. `fly deploy -c fly.web.toml` (app name `onpoint-web`, set in `fly.web.toml`). Deploy the API first when a change adds API endpoints the web app calls
+1. `fly deploy -c fly.web.toml` (app name `onpoint-web`, set in `fly.web.toml`). Deploy the API first when a change adds API endpoints the web app calls. **Before deploying, make sure `ADMIN_EMAILS` (or `ADMIN_EMAIL`) is set to a verified Auth0 email**, or the admin console returns 503 (the gate fails closed)
 2. `NEXT_PUBLIC_*` values live in `[build.args]` (inlined at build time)
 3. Runtime secrets via `fly secrets set` — `AUTH0_CLIENT_SECRET`, `AUTH0_SECRET`, `APP_BASE_URL`; `AUTH0_DOMAIN` / `AUTH0_CLIENT_ID` are `NEXT_PUBLIC`-style build args in `fly.web.toml`
 

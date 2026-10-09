@@ -22,6 +22,7 @@ type PaymentPayload = {
   status?: string;
   shareId?: string;
   lookSlug?: string;
+  referralCode?: string;
 };
 
 function getRedisUrl(): string | undefined {
@@ -57,6 +58,11 @@ function cleanShareId(value: unknown): string | null {
 function cleanLookSlug(value: unknown): string | null {
   const clean = cleanText(value, 120)?.toLowerCase() || null;
   return clean && /^[a-z0-9-]{2,120}$/.test(clean) ? clean : null;
+}
+
+function cleanReferralCode(value: unknown): string | null {
+  const clean = cleanText(value, 64);
+  return clean && /^[A-Za-z0-9_-]{3,64}$/.test(clean) ? clean : null;
 }
 
 function cleanAmount(value: unknown): number | null {
@@ -148,6 +154,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       provider: "mpesa_manual",
       shareId: cleanShareId(body.shareId),
       lookSlug: cleanLookSlug(body.lookSlug),
+      referralCode: cleanReferralCode(body.referralCode),
       status: cleanText(body.status, 40) || "pending_verification",
       createdAt: new Date().toISOString(),
     };

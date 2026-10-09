@@ -1,5 +1,5 @@
 /**
- * Client helpers for the look-share growth loop (docs/guides/growth-loop.md).
+ * Client helpers for the look-share growth loop (docs/ops/growth-loop.md).
  * Share links carry `sid` (share id) and `utm_source` (channel). The landing
  * page stores them for the session and reports visits/CTA clicks to the API.
  */
@@ -18,6 +18,10 @@ export type ShareChannel =
 const STORAGE_KEY = "onpoint_share";
 const SID_RE = /^[a-z0-9]{6,16}$/;
 const LOOK_RE = /^[a-z0-9-]{2,120}$/;
+const REFERRAL_RE = /^[A-Za-z0-9_-]{3,64}$/;
+const REFERRAL_KEY = "onpoint_referral_code";
+/** Key written by the /r/[referralCode] landing page. */
+const LANDING_REFERRAL_KEY = "referral_code";
 
 export interface ShareAttribution {
   sid: string | null;
@@ -45,10 +49,39 @@ export function withShareParams(
   return u.toString();
 }
 
+/**
+ * Remember a `?referral=<code>` from the URL for the session. Independent of
+ * the share id: a referral link may arrive without one.
+ */
+function captureReferralFromUrl(params: URLSearchParams): void {
+  const raw = params.get("referral") || "";
+  if (!REFERRAL_RE.test(raw)) return;
+  try {
+    sessionStorage.setItem(REFERRAL_KEY, raw);
+  } catch {
+    /* storage may be blocked */
+  }
+}
+
+/** The referral code for this session, from the URL capture or the /r landing page. */
+export function getReferralCode(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    for (const key of [REFERRAL_KEY, LANDING_REFERRAL_KEY]) {
+      const value = sessionStorage.getItem(key);
+      if (value && REFERRAL_RE.test(value)) return value;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
 /** Read sid/utm_source from the current URL; persist for the session. */
 export function captureShareAttribution(): ShareAttribution {
   if (typeof window === "undefined") return { sid: null, channel: "direct" };
   const params = new URLSearchParams(window.location.search);
+  captureReferralFromUrl(params);
   const rawSid = (params.get("sid") || "").toLowerCase();
   if (SID_RE.test(rawSid)) {
     const rawLook = params.get("look") || "";
@@ -105,12 +138,21 @@ export function postLookEvent(
 
 /**
  * Fields to merge into a payment or try-on request body so the server can
- * join the outcome to the originating share. Empty when not share-attributed.
+ * join the outcome to the originating share and referrer. Empty when neither
+ * is known.
  */
-export function getAttributionFields(): { shareId?: string; lookSlug?: string } {
+export function getAttributionFields(): {
+  shareId?: string;
+  lookSlug?: string;
+  referralCode?: string;
+} {
   const a = getShareAttribution();
-  if (!a.sid || !a.look) return {};
-  return { shareId: a.sid, lookSlug: a.look };
+  const referralCode = getReferralCode();
+  return {
+    ...(a.sid && a.look ? { shareId: a.sid, lookSlug: a.look } : {}),
+    // Stored on the order for attribution only; no commission is created.
+    ...(referralCode ? { referralCode } : {}),
+  };
 }
 
 /**

@@ -64,7 +64,7 @@ export function CuratorTracker({
     }).catch(() => {});
 
     // Look-share attribution: remember sid/look and report arrival once per
-    // session (docs/guides/growth-loop.md).
+    // session (docs/ops/growth-loop.md).
     const shareAttribution = captureShareAttribution();
     if (shareAttribution.sid && shareAttribution.look) {
       try {

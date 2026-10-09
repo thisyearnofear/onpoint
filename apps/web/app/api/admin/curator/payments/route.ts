@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "../../../../../lib/utils/logger";
 import {
+  getPaymentById,
   updatePaymentInRedis,
 } from "../../../../../lib/utils/notifications";
+import { recordOrderInLedger } from "../../../../../lib/payments/ledger";
 import { sendFulfilmentUpdate } from "../../../../../lib/payments/send-receipt";
 import { sendPushNotification } from "../../../../../lib/payments/push-notify";
 
@@ -44,16 +46,69 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const updates: Record<string, unknown> = {};
+    let ledgerOutcome: string | undefined;
 
     // Handle payment status actions
-    if (body.paymentAction === "verify") {
-      updates.status = "paid";
-      updates.verifiedAt = new Date().toISOString();
-      updates.fulfilmentStatus = "awaiting_delivery_details";
-    }
-    if (body.paymentAction === "reject") {
-      updates.status = "rejected";
-      updates.rejectedAt = new Date().toISOString();
+    if (body.paymentAction === "verify" || body.paymentAction === "reject") {
+      const existing = await getPaymentById(curatorSlug, paymentId);
+      if (!existing) {
+        return NextResponse.json({ error: "Payment not found" }, { status: 404 });
+      }
+      const isManual = existing.provider === "mpesa_manual";
+      const alreadyLedgered =
+        existing.ledgerStatus === "recorded" ||
+        (existing.status === "paid" && !isManual); // STK callbacks ledger themselves
+
+      if (body.paymentAction === "reject") {
+        // A confirmed sale is already in the orders ledger; rejecting here would
+        // desynchronise the two. Cancellation belongs in the order tools.
+        if (existing.status === "paid" && alreadyLedgered) {
+          return NextResponse.json(
+            { error: "This payment is already recorded as an order and cannot be rejected here", payment: existing },
+            { status: 409 },
+          );
+        }
+        updates.status = "rejected";
+        updates.rejectedAt = new Date().toISOString();
+      } else if (alreadyLedgered) {
+        // Idempotent: verifying twice must not create a second order.
+        return NextResponse.json({ success: true, payment: existing, ledger: { outcome: "recorded" } });
+      } else {
+        // Manual payment: record the order BEFORE marking it paid, so a payment
+        // is never "paid" without a ledger entry unless we say so explicitly.
+        const receipt = typeof existing.mpesaCode === "string" ? existing.mpesaCode : "";
+        const ledger = receipt
+          ? await recordOrderInLedger(existing, receipt)
+          : { outcome: "skipped" as const, orderId: undefined };
+
+        // A receipt that is already on another order means the same M-Pesa code
+        // is being reused (or double-submitted). Do not count it twice. Exception:
+        // after an earlier failed attempt, our own insert may have landed.
+        if (ledger.outcome === "already_recorded" && existing.ledgerStatus !== "failed") {
+          const flagged = await updatePaymentInRedis(curatorSlug, paymentId, {
+            ledgerStatus: "duplicate_receipt",
+          });
+          logger.warn("Manual payment reuses an already-ledgered M-Pesa code", {
+            component: "admin-curator-payments",
+            curatorSlug,
+            paymentId,
+          });
+          return NextResponse.json(
+            {
+              error: "This M-Pesa code is already recorded on another order. Check the code before verifying.",
+              payment: flagged ?? existing,
+            },
+            { status: 409 },
+          );
+        }
+
+        ledgerOutcome = ledger.outcome === "already_recorded" ? "recorded" : ledger.outcome;
+        updates.status = "paid";
+        updates.verifiedAt = new Date().toISOString();
+        updates.fulfilmentStatus = "awaiting_delivery_details";
+        updates.ledgerStatus = ledgerOutcome;
+        if (ledger.orderId) updates.orderId = ledger.orderId;
+      }
     }
 
     // Handle fulfilment actions
@@ -137,7 +192,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       updates: Object.keys(updates),
     });
 
-    return NextResponse.json({ success: true, payment: updatedPayment });
+    return NextResponse.json({
+      success: true,
+      payment: updatedPayment,
+      ...(ledgerOutcome ? { ledger: { outcome: ledgerOutcome } } : {}),
+    });
   } catch (error) {
     logger.error(
       "Admin curator payment update error",

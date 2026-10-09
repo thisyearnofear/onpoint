@@ -32,6 +32,10 @@ interface PaymentRecord {
   customerPhone?: string | null;
   mpesaCode?: string | null;
   status?: string | null;
+  provider?: string | null;
+  /** Result of recording a verified manual payment in the orders ledger. */
+  ledgerStatus?: string | null;
+  orderId?: string | null;
   fulfilmentStatus?: string | null;
   recipientName?: string | null;
   recipientPhone?: string | null;
@@ -75,6 +79,7 @@ export function PaymentsTable({ curatorName, payments }: { curatorName: string; 
   const [updating, setUpdating] = useState<string | null>(null);
   const [localPayments, setLocalPayments] = useState(payments);
   const [receiptPaymentId, setReceiptPaymentId] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<{ kind: "error" | "warning"; text: string } | null>(null);
 
   const toggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
@@ -89,13 +94,23 @@ export function PaymentsTable({ curatorName, payments }: { curatorName: string; 
         body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (res.ok && data.payment) {
+      if (data.payment) {
         setLocalPayments((prev) =>
           prev.map((p) => (p.id === paymentId ? { ...p, ...data.payment } : p)),
         );
       }
+      if (!res.ok) {
+        setActionMessage({ kind: "error", text: data.error || `Update failed (${res.status})` });
+      } else if (data.ledger && data.ledger.outcome !== "recorded") {
+        setActionMessage({
+          kind: "warning",
+          text: "Payment verified, but the order could not be recorded in the ledger. Use \"Retry recording order\" once the API is reachable.",
+        });
+      } else {
+        setActionMessage(null);
+      }
     } catch {
-      // silently fail
+      setActionMessage({ kind: "error", text: "Network error. Nothing was changed." });
     } finally {
       setUpdating(null);
     }
@@ -114,6 +129,14 @@ export function PaymentsTable({ curatorName, payments }: { curatorName: string; 
 
   return (
     <>
+      {actionMessage && (
+        <div
+          role="alert"
+          className={`mt-4 rounded-lg border px-3 py-2 text-xs ${actionMessage.kind === "error" ? "border-error/30 bg-error/10 text-error" : "border-warning/30 bg-warning/10 text-warning"}`}
+        >
+          {actionMessage.text}
+        </div>
+      )}
       <div className="mt-4 overflow-hidden rounded-lg border border-border">
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-xs text-muted-foreground">
@@ -145,6 +168,13 @@ export function PaymentsTable({ curatorName, payments }: { curatorName: string; 
               const hasDelivery = payment.recipientName || payment.recipientPhone || payment.deliveryAddress;
               const isPendingPay = payment.status === "pending_verification";
               const isPaid = payment.status === "paid";
+              // A verified manual payment that never reached the orders ledger can be retried.
+              const needsLedgerRetry =
+                isPaid &&
+                payment.provider === "mpesa_manual" &&
+                payment.ledgerStatus !== undefined &&
+                payment.ledgerStatus !== null &&
+                payment.ledgerStatus !== "recorded";
               const currentFulfil = payment.fulfilmentStatus || "";
 
               return (
@@ -184,6 +214,11 @@ export function PaymentsTable({ curatorName, payments }: { curatorName: string; 
                         {payment.status === "pending_verification" ? <Clock className="h-3 w-3" /> : null}
                         {payConfig.label}
                       </span>
+                      {payment.ledgerStatus && payment.ledgerStatus !== "recorded" && payment.provider === "mpesa_manual" ? (
+                        <span className="mt-1 block text-[10px] font-medium text-warning">
+                          {payment.ledgerStatus === "duplicate_receipt" ? "Code already used on another order" : "Not in orders ledger"}
+                        </span>
+                      ) : null}
                     </td>
                     <td className="px-3 py-3">
                       {currentFulfil ? (
@@ -317,6 +352,25 @@ export function PaymentsTable({ curatorName, payments }: { curatorName: string; 
                                     Reject
                                   </button>
                                 </div>
+                              )}
+
+                              {needsLedgerRetry && (
+                                <button
+                                  type="button"
+                                  disabled={updating === payment.id}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updatePayment(payment.id, {
+                                      paymentId: payment.id,
+                                      curatorSlug: payment.curatorSlug,
+                                      paymentAction: "verify",
+                                    });
+                                  }}
+                                  className="inline-flex items-center gap-1 rounded-md bg-warning/10 px-2.5 py-1.5 text-[11px] font-medium text-warning transition-colors hover:bg-warning/20 disabled:opacity-50"
+                                >
+                                  <Receipt className="h-3 w-3" />
+                                  Retry recording order
+                                </button>
                               )}
 
                               {/* Fulfilment status actions - only show when paid */}

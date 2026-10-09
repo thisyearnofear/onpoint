@@ -13,9 +13,9 @@ Found by reading the code, not by running the flow with users. Re-verify each on
 | 3 | Look page visit              | No visit event for the look page                                                                                                          | Fixed: `look_visit`                               |
 | 4 | CTA click                    | No event for "Try it on" / "Shop the pieces"                                                                                              | Fixed: `look_cta`; `sid` forwarded in the link    |
 | 5 | Referral landing `/r/[code]` | Page posted `{ referralCode, action: 'visit' }` but `/api/referrals/capture` required `agentAddress` + `storefrontSlug`, so it returned 400 and the visit was lost | Fixed: logs `referral_visit`                      |
-| 6 | Storefront arrival           | `/s/[slug]` did not read `sid`, `referral` or `look`, so attribution ended at the CTA click for humans                                     | Fixed for `sid` + `look`: arrival, try-on/buy clicks and payment start reported; web try-on carries the share id. `referral` is still ignored |
-| 7 | Human purchase               | Human checkout is WhatsApp/M-Pesa and carried no attribution                                                                              | Fixed for M-Pesa STK push: share id stored on the payment, confirmed sale recorded server-side. Manual M-Pesa codes and WhatsApp-only sales **open** |
-| 8 | Agent order referral         | Self-referral was paid; an unknown referral code was stored as the agent address                                                           | Self-referral fixed; unknown-code fallback **open** |
+| 6 | Storefront arrival           | `/s/[slug]` did not read `sid`, `referral` or `look`, so attribution ended at the CTA click for humans | Fixed: all three captured; arrival, try-on/buy clicks and payment start reported; web try-on and payments carry the share id and referral |
+| 7 | Human purchase               | Human checkout is WhatsApp/M-Pesa and carried no attribution | Fixed for M-Pesa: STK sales are recorded on Safaricom's confirmation, and manual codes when an admin verifies them (ledger first, reused codes refused). WhatsApp-only sales **open** |
+| 8 | Agent order referral         | Self-referral was paid; an unknown referral code was stored as the agent address | Fixed: self-referral skipped; codes resolve to a payable address (prior referral, or unique look owner) or record no commission |
 | 9 | Share card / polaroid        | Share cards created on look try-on are not linked to a share id                                                                           | **Open**                                          |
 
 Statuses describe the repository. Confirm each against the deployed build before relying on it: the API changes and the web changes deploy separately.
@@ -42,9 +42,9 @@ For each step record: time to complete, drop-off (who stopped), and any confusio
 
 ## Fix backlog (ranked by funnel position)
 
-1. **Manual M-Pesa and WhatsApp sales (finding 7).** Give manual payments a confirmation path (curator marks verified → ledger → `sale`), and decide how WhatsApp-only sales get a share id. Until then they are invisible to the loop.
+1. **WhatsApp-only sales (finding 7).** Decide how a sale that happens entirely in WhatsApp gets a share id, or accept that it stays invisible to the loop. Manual M-Pesa codes are covered once an admin verifies them.
 2. **Share after try-on (finding 9).** Offer sharing the try-on polaroid straight from the result, with a fresh `sid`.
-3. **Unknown referral code (finding 8).** Reject or ignore a referral code with no matching agent instead of storing the code as an address.
+3. **Human referral commissions.** Referrals on M-Pesa orders are stored for attribution only. Decide whether and how to pay 2.5% on KES orders (rail, conversion, who bears exchange risk) before building it.
 4. **ChatGPT plugin links.** Add `utm_source=chatgpt` and a `sid` to deep-links returned by the MCP `get_look` tool.
 
 Change one thing per week and compare `overall.conversion` and per-channel `k` before and after.

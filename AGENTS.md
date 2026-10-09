@@ -104,7 +104,7 @@ Public reconciled ledger — try-on fees, order payouts, attribution tags.
 
 ### Step 6: Referral Tracking & Dashboard
 
-Agents earn 2.5% commission on referred purchases. Include `X-Referral-Code` header or `?referral=` query param in order requests. View earnings at `/api/agent/dashboard` or the UI at `https://onpoint.trustfall.xyz/agent`.
+Agents earn 2.5% commission on purchases made through the agent API (`POST /api/curator/{slug}/order`). Include `X-Referral-Code` header or `?referral=` query param in order requests. Orders placed by humans through storefront M-Pesa checkout record the referral for attribution but do not currently pay a commission. View earnings at `/api/agent/dashboard` or the UI at `https://onpoint.trustfall.xyz/agent`.
 
 Full details: [docs/guides/referral-tracking.md](./docs/guides/referral-tracking.md)
 
@@ -363,7 +363,7 @@ Every share of a look can carry a **share id** so the platform can follow it fro
 | Digital try-on (agent, paid)   | $0.03 cUSD                       | 80% curator / 20% platform         |
 | Physical try-on (agent, paid)  | $0.05 cUSD                       | 95% curator / 5% platform          |
 | Physical order                 | Listing price (KES -> cUSD)      | 95% curator / 5% platform          |
-| Referral commission            | 2.5% of order value              | Paid to referring agent            |
+| Referral commission            | 2.5% of order value (agent API orders) | Paid to referring agent      |
 | NFT mint                       | $0.10 cUSD                       | 85% creator / 15% platform         |
 
 ### Two-Tier Try-On Quality

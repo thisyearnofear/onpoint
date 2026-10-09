@@ -36,12 +36,15 @@ https://onpoint.trustfall.xyz/r/[referralCode]
 When users visit a referral link:
 
 1. The referral code is stored in sessionStorage
-2. The code is automatically attached to subsequent orders
-3. When the user completes a purchase, the referring agent earns 2.5% commission
+2. The code is attached to payments the visitor makes in that session
+3. Commission depends on how the order is placed:
+   - **Agent API orders** (`POST /api/curator/{slug}/order`) earn the referring agent 2.5%.
+   - **Storefront M-Pesa orders** placed by people in a browser record the referral on the order for attribution, but **do not currently pay a commission**: those orders settle in KES, and the commission rail is cUSD.
 
 ## Rules
 
 - Self-referral is ignored: no commission is recorded when the paying wallet is the referring agent.
+- A referral code that does not resolve to an agent address (unknown, malformed, or ambiguous) records no commission. Codes are `ref_` plus the first 8 hex characters of the agent's wallet address, and are matched case-insensitively against agents that own looks or have earned referrals before.
 - Visits to `/r/[referralCode]` are logged as `referral_visit` events.
 - To tie an order to a specific look share, also send `X-Share-Id` (or `?sid=`); see [Share Attribution](../../AGENTS.md#share-attribution).
 

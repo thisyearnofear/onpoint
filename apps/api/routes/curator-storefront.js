@@ -37,6 +37,7 @@ const {
 const { getAttributionSuffix, getAttributionCode, getAssignedTag } = require('../lib/attribution');
 const { logFunnelEvent } = require('../lib/funnel');
 const { sanitizeShareId, isSelfReferral } = require('../lib/share-attribution');
+const { resolveReferralAgent } = require('../lib/referral-codes');
 const { getPlatformWallet } = require('../lib/wallets');
 const {
   paymentMethodForOrder,
@@ -881,14 +882,20 @@ router.post('/:slug/order', async (req, res) => {
     // to track the 2.5% commission owed to the referring agent.
     if (referralCode) {
       try {
-        // Look up the agent address from the referral code
-        const [referralRecord] = await db.execute(sql`
-          SELECT agent_address FROM agent_referrals 
-          WHERE referral_code = ${referralCode} 
-          LIMIT 1
-        `);
-        
-        const agentAddress = referralRecord?.agent_address || referralCode;
+        // Resolve the code to a payable agent address. An unrecognised code
+        // must never be stored as an address (the payout would fail), so it
+        // records no commission.
+        const resolved = await resolveReferralAgent(db, sql, referralCode);
+        const agentAddress = resolved.address;
+        if (!agentAddress) {
+          logger.warn('Referral code did not resolve to an agent; no commission recorded', {
+            component: 'curator-storefront',
+            orderId,
+            referralCode,
+            reason: resolved.reason,
+          });
+          throw Object.assign(new Error('unresolved-referral'), { skipReferral: true });
+        }
 
         // Never pay an agent commission on its own purchase (inflates both
         // commissions and the share-loop K-factor).
@@ -917,7 +924,7 @@ router.post('/:slug/order', async (req, res) => {
         });
       } catch (referralErr) {
         if (referralErr && referralErr.skipReferral) {
-          // Intentional skip (self-referral) — not a failure
+          // Intentional skip (self-referral or unresolved code) — not a failure
         } else
         // Don't fail the order if referral tracking fails
         logger.warn('Failed to record referral', { component: 'curator-storefront', orderId, referralCode }, referralErr);

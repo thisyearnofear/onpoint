@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "../../../../lib/utils/logger";
 import { initiateStkPush } from "../../../../lib/payments/daraja";
+import { saveCheckoutIndex } from "../../../../lib/payments/checkout-store";
 import { createPaymentNotification } from "../../../../lib/utils/notifications";
 
 export { OPTIONS } from "../../ai/_utils/http";
@@ -37,6 +38,11 @@ function cleanShareId(value: unknown): string | null {
 function cleanLookSlug(value: unknown): string | null {
   const clean = cleanText(value, 120)?.toLowerCase() || null;
   return clean && /^[a-z0-9-]{2,120}$/.test(clean) ? clean : null;
+}
+
+function cleanReferralCode(value: unknown): string | null {
+  const clean = cleanText(value, 64);
+  return clean && /^[A-Za-z0-9_-]{3,64}$/.test(clean) ? clean : null;
 }
 
 function cleanAmount(value: unknown): number | null {
@@ -139,6 +145,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       // Look-share attribution (joined to the ledger when payment confirms)
       shareId: cleanShareId(body.shareId),
       lookSlug: cleanLookSlug(body.lookSlug),
+      // Stored on the order for attribution only (no commission is created)
+      referralCode: cleanReferralCode(body.referralCode),
       status: "pending_verification",
       checkoutRequestId: stkResult.checkoutRequestId,
       createdAt: new Date().toISOString(),
@@ -150,6 +158,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     } catch (error) {
       logger.warn(
         "STK Push payment persistence failed",
+        { component: "curator-stk-push", curatorSlug },
+        error,
+      );
+    }
+
+    // Direct lookup index for the Safaricom callback (best effort: the callback
+    // falls back to scanning the recent list if this is missing).
+    try {
+      await saveCheckoutIndex(payment);
+    } catch (error) {
+      logger.warn(
+        "STK Push checkout index failed",
         { component: "curator-stk-push", curatorSlug },
         error,
       );
