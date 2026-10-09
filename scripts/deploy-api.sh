@@ -406,6 +406,14 @@ if [[ "$DRY_RUN" == false ]]; then
       fi
       sleep 1
     done
+    if [ \"\$status\" -ne 0 ]; then
+      echo 'preflight_diag:'
+      (ss -ltn 2>/dev/null || netstat -ltn 2>/dev/null) | grep ':48756 ' || echo '  not listening on 48756'
+      for h in 127.0.0.1 localhost '[::1]'; do
+        curl -s -m 3 -o /dev/null -w \"  \$h /health http=%{http_code} t=%{time_total}\\n\" \"http://\$h:48756/health\" 2>&1 || echo \"  \$h curl-exit=\$?\"
+      done
+      curl -s -m 3 -o /dev/null -w '  /api/status http=%{http_code}\\n' http://127.0.0.1:48756/api/status 2>&1 || echo '  /api/status curl failed'
+    fi
     if kill -0 \"\$pid\" 2>/dev/null; then
       kill -TERM -- -\"\$pid\" 2>/dev/null || kill -TERM \"\$pid\" 2>/dev/null || true
       sleep 1
