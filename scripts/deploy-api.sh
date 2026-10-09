@@ -34,6 +34,10 @@ SIZE_WARN_MB=350
 # adds ~75MB). Prod has ~9GB free and keeps 2 releases.
 SIZE_FAIL_MB=550
 HEALTH_URL="http://localhost:48751/health"
+# Preflight must use a port OUTSIDE the kernel ephemeral range (32768-60999 on the
+# prod host). Ports inside it can be held by unrelated outbound connections,
+# which makes listen() fail with EADDRINUSE even though nothing is listening.
+PREFLIGHT_PORT="${ONPOINT_PREFLIGHT_PORT:-28756}"
 # Allow cold Node/PM2 starts (especially after creating a previously missing process)
 # enough time to bind before declaring a release unhealthy.
 HEALTH_RETRIES="${ONPOINT_HEALTH_RETRIES:-12}"
@@ -391,15 +395,15 @@ if [[ "$DRY_RUN" == false ]]; then
   PREFLIGHT_LOG="/tmp/onpoint-preflight-${TS}.log"
   ssh "$SSH_HOST" "set +e
     cd '${REMOTE_RELEASE}'
-    if (ss -ltn 2>/dev/null || netstat -ltn 2>/dev/null) | grep -q ':48756 '; then
+    if (ss -ltn 2>/dev/null || netstat -ltn 2>/dev/null) | grep -q ':${PREFLIGHT_PORT} '; then
       echo 'preflight_port=occupied'
       exit 1
     fi
-    setsid env NODE_ENV=production PORT=48756 node server.js > '${PREFLIGHT_LOG}' 2>&1 &
+    setsid env NODE_ENV=production PORT=${PREFLIGHT_PORT} node server.js > '${PREFLIGHT_LOG}' 2>&1 &
     pid=\$!
     status=1
     for i in \$(seq 1 25); do
-      code=\$(curl -s --max-time 4 -o /dev/null -w '%{http_code}' http://127.0.0.1:48756/health 2>/dev/null)
+      code=\$(curl -s --max-time 4 -o /dev/null -w '%{http_code}' http://127.0.0.1:${PREFLIGHT_PORT}/health 2>/dev/null)
       case \"\$code\" in 2*) status=0; break;; esac
       if ! kill -0 \"\$pid\" 2>/dev/null; then
         break
@@ -408,11 +412,11 @@ if [[ "$DRY_RUN" == false ]]; then
     done
     if [ \"\$status\" -ne 0 ]; then
       echo 'preflight_diag:'
-      (ss -ltn 2>/dev/null || netstat -ltn 2>/dev/null) | grep ':48756 ' || echo '  not listening on 48756'
+      (ss -ltn 2>/dev/null || netstat -ltn 2>/dev/null) | grep ':${PREFLIGHT_PORT} ' || echo '  not listening on ${PREFLIGHT_PORT}'
       for h in 127.0.0.1 localhost '[::1]'; do
-        curl -s -m 3 -o /dev/null -w \"  \$h /health http=%{http_code} t=%{time_total}\\n\" \"http://\$h:48756/health\" 2>&1 || echo \"  \$h curl-exit=\$?\"
+        curl -s -m 3 -o /dev/null -w \"  \$h /health http=%{http_code} t=%{time_total}\\n\" \"http://\$h:${PREFLIGHT_PORT}/health\" 2>&1 || echo \"  \$h curl-exit=\$?\"
       done
-      curl -s -m 3 -o /dev/null -w '  /api/status http=%{http_code}\\n' http://127.0.0.1:48756/api/status 2>&1 || echo '  /api/status curl failed'
+      curl -s -m 3 -o /dev/null -w '  /api/status http=%{http_code}\\n' http://127.0.0.1:${PREFLIGHT_PORT}/api/status 2>&1 || echo '  /api/status curl failed'
     fi
     if kill -0 \"\$pid\" 2>/dev/null; then
       kill -TERM -- -\"\$pid\" 2>/dev/null || kill -TERM \"\$pid\" 2>/dev/null || true
