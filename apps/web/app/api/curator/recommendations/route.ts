@@ -16,6 +16,7 @@ import {
   getMatchReason,
   type CrossCuratorPick,
 } from "../../../../lib/utils/cross-curator-recommendations";
+import { rateLimit, RateLimits, getClientId } from "../../../../lib/utils/rate-limit";
 
 const CONNECTION_STRING = process.env.NEON_DATABASE_URL;
 const PUBLIC_R2_URL = process.env.R2_PUBLIC_URL?.replace(/\/$/, "");
@@ -41,6 +42,11 @@ function isValidSlug(slug: string): boolean {
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  const rl = await rateLimit(`recommendations:${getClientId(request)}`, RateLimits.general);
+  if (!rl.allowed) {
+    return Response.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   const { searchParams } = new URL(request.url);
   const curatorSlug = searchParams.get("curatorSlug") || "";
   const limit = Math.min(Number(searchParams.get("limit") || "6"), 12);

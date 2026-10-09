@@ -11,6 +11,7 @@ import {
   recordCuratorHighIntentView,
   recordCuratorCrossRecoClick,
 } from "../../../../../lib/utils/curator-analytics-store";
+import { rateLimit, RateLimits, getClientId } from "../../../../../lib/utils/rate-limit";
 
 export { OPTIONS } from "../../../ai/_utils/http";
 
@@ -49,6 +50,11 @@ function cleanSlug(value: unknown): string | null {
  * No auth required — best-effort analytics collection.
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  const rl = await rateLimit(`analytics-track:${getClientId(request)}`, RateLimits.general);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   try {
     const body = (await request.json()) as TrackPayload;
 

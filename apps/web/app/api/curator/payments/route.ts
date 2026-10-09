@@ -5,6 +5,8 @@ import {
   readPayments,
 } from "../../../../lib/utils/notifications";
 import { recordCuratorPurchase } from "../../../../lib/utils/curator-analytics-store";
+import { verifyListingPrice } from "../../../../lib/payments/price-check";
+import { newPaymentId } from "../../../../lib/payments/ids";
 
 export { OPTIONS } from "../../ai/_utils/http";
 
@@ -141,8 +143,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "customerPhone and mpesaCode are required" }, { status: 400 });
     }
 
+    // Same rule as STK push: the claimed amount must equal the listing price.
+    const priceCheck = await verifyListingPrice({
+      curatorSlug,
+      listingId: cleanText(body.listingId, 80) as string,
+      size: cleanText(body.size, 20) as string,
+      amount: amount as number,
+    });
+    if (!priceCheck.ok) {
+      return NextResponse.json({ error: priceCheck.error }, { status: priceCheck.status });
+    }
+
     const payment = {
-      id: `mpesa_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      id: newPaymentId("mpesa"),
       curatorSlug,
       listingId: cleanText(body.listingId, 80),
       itemName: cleanText(body.itemName),
@@ -155,7 +168,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       shareId: cleanShareId(body.shareId),
       lookSlug: cleanLookSlug(body.lookSlug),
       referralCode: cleanReferralCode(body.referralCode),
-      status: cleanText(body.status, 40) || "pending_verification",
+      // Never client-controlled: only an admin verification (or a Safaricom
+      // callback) may mark a payment paid.
+      status: "pending_verification",
       createdAt: new Date().toISOString(),
     };
 

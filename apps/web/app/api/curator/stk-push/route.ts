@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { logger } from "../../../../lib/utils/logger";
 import { initiateStkPush } from "../../../../lib/payments/daraja";
 import { saveCheckoutIndex } from "../../../../lib/payments/checkout-store";
+import { verifyListingPrice } from "../../../../lib/payments/price-check";
+import { newPaymentId } from "../../../../lib/payments/ids";
 import { createPaymentNotification } from "../../../../lib/utils/notifications";
 
 export { OPTIONS } from "../../ai/_utils/http";
@@ -114,6 +116,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    // The amount comes from the browser, so confirm it against the real listing
+    // price BEFORE charging anything (otherwise a tampered request would be
+    // charged, confirmed, and ledgered at the wrong price).
+    const priceCheck = await verifyListingPrice({ curatorSlug, listingId, size, amount });
+    if (!priceCheck.ok) {
+      return NextResponse.json({ error: priceCheck.error }, { status: priceCheck.status });
+    }
+
     // Initiate STK Push
     const accountRef = `onpoint/${curatorSlug.slice(0, 6)}`;
     const stkResult = await initiateStkPush({
@@ -131,7 +141,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Create pending payment record
-    const paymentId = `stk_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    const paymentId = newPaymentId("stk");
     const payment = {
       id: paymentId,
       curatorSlug,

@@ -102,6 +102,14 @@ export function InventoryForm({ curatorSlug, onCreated }: InventoryFormProps) {
 
       const data = await res.json();
 
+      if (res.status === 401 || res.status === 403 || res.status === 503) {
+        setErrorMsg(
+          "Inventory changes are restricted to the OnPoint operator. Send your update to the OnPoint WhatsApp agent, or ask an admin to add it.",
+        );
+        setFormState("error");
+        return;
+      }
+
       if (!res.ok) {
         setErrorMsg(data.error || "Failed to create listing");
         setFormState("error");

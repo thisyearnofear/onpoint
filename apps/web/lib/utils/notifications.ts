@@ -1,4 +1,5 @@
 import { logger } from "./logger";
+import { isSafeSlug } from "./redis-safe";
 
 const REDIS_PAYMENT_PREFIX = "curator:payments";
 const NOTIFICATION_PREFIX = "curator:notifications";
@@ -23,7 +24,7 @@ export async function readPayments(
 ): Promise<Record<string, unknown>[]> {
   const url = getRedisUrl();
   const token = getRedisToken();
-  if (!url || !token) return [];
+  if (!url || !token || !isSafeSlug(curatorSlug)) return [];
 
   const key = `${REDIS_PAYMENT_PREFIX}:${curatorSlug}`;
   const response = await fetch(`${url}/lrange/${key}/0/49`, {
@@ -58,7 +59,7 @@ export async function getPaymentById(
 ): Promise<Record<string, unknown> | null> {
   const url = getRedisUrl();
   const token = getRedisToken();
-  if (!url || !token) return null;
+  if (!url || !token || !isSafeSlug(curatorSlug)) return null;
 
   const key = `${REDIS_PAYMENT_PREFIX}:${curatorSlug}`;
   const response = await fetch(
@@ -93,7 +94,7 @@ export async function updatePaymentInRedis(
 ): Promise<Record<string, unknown> | null> {
   const url = getRedisUrl();
   const token = getRedisToken();
-  if (!url || !token) return null;
+  if (!url || !token || !isSafeSlug(curatorSlug)) return null;
 
   const key = `${REDIS_PAYMENT_PREFIX}:${curatorSlug}`;
 
@@ -302,7 +303,7 @@ export async function readNotifications(
 ): Promise<Record<string, unknown>[]> {
   const url = getRedisUrl();
   const token = getRedisToken();
-  if (!url || !token) return [];
+  if (!url || !token || !isSafeSlug(curatorSlug)) return [];
 
   const key = `${NOTIFICATION_PREFIX}:${curatorSlug}`;
   const response = await fetch(`${url}/lrange/${key}/0/49`, {

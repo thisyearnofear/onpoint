@@ -90,7 +90,7 @@ Set as Fly secrets on `onpoint-web`. Full setup, sandbox test, and go-live check
 
 | Variable | Purpose |
 | --- | --- |
-| `ADMIN_EMAILS` | Comma/space-separated list of **verified Auth0 emails** allowed into `/admin` and `/api/admin`. Falls back to `ADMIN_EMAIL`. With neither set those routes return `503`. See [ops/auth.md](./ops/auth.md#admin-access-admin-apiadmin) |
+| `ADMIN_EMAILS` | Comma/space-separated list of **verified Auth0 emails** allowed into `/admin`, `/api/admin`, and the inventory write `POST /api/curator/listings`. Falls back to `ADMIN_EMAIL`. With neither set those routes return `503`. See [ops/auth.md](./ops/auth.md#admin-access-admin-apiadmin) |
 
 ### Social & Integrations
 

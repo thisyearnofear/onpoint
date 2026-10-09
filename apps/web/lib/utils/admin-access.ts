@@ -52,13 +52,16 @@ export function isAdminApiPath(pathname: string): boolean {
   return p === "/api/admin" || p.startsWith("/api/admin/");
 }
 
-export function decideAdminAccess(params: {
-  pathname: string;
+/**
+ * Core check, independent of the path: is this user an allowed admin?
+ * Shared by the proxy gate and by route handlers that must be admin-only but
+ * do not live under /admin or /api/admin.
+ */
+export function evaluateAdmin(params: {
   user: AdminUser | null | undefined;
   allowlist: string[];
 }): AdminDecision {
-  const { pathname, user, allowlist } = params;
-  if (!isAdminPath(pathname)) return { action: "allow" };
+  const { user, allowlist } = params;
   if (allowlist.length === 0) return { action: "unconfigured" };
   if (!user) return { action: "login" };
 
@@ -72,4 +75,13 @@ export function decideAdminAccess(params: {
     return { action: "forbidden", reason: "not_allowlisted" };
   }
   return { action: "allow" };
+}
+
+export function decideAdminAccess(params: {
+  pathname: string;
+  user: AdminUser | null | undefined;
+  allowlist: string[];
+}): AdminDecision {
+  if (!isAdminPath(params.pathname)) return { action: "allow" };
+  return evaluateAdmin({ user: params.user, allowlist: params.allowlist });
 }

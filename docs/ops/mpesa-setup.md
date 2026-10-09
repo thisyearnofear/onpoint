@@ -45,6 +45,12 @@ The callback base falls back through `APP_BASE_URL`, then `NEXT_PUBLIC_AGENT_API
 
 Safaricom cannot send credentials, and the `CheckoutRequestID` the callback matches on is also returned to the paying browser. Without a secret, anyone who started a payment could post a forged "success" for it. The secret is part of the callback URL registered with Daraja at push time, so changing it only affects payments started afterwards. Payments already in flight were registered with the old URL; change it when nothing is pending, or accept that those callbacks will be rejected.
 
+## What is verified before a payment starts
+
+The browser sends the amount, but the server does not trust it. `stk-push` and the manual route look the real price up from the API's storefront and require an exact match for that listing and size, which must also be in stock. A mismatch returns `409`; if the price cannot be verified at all the payment is not started (`503`). Manual submissions are always created `pending_verification`, whatever `status` the client sends.
+
+Payment IDs (`stk_…`, `mpesa_…`) contain 96 random bits. The customer-facing endpoints that are authorised by the ID alone (status polling, tracking, delivery details, push subscription) validate its format first and are rate limited. Delivery details cannot be changed once an order is ready for pickup, with a rider, or delivered.
+
 ## What the callback checks
 
 1. The `?s=` secret (when configured). A wrong or missing token returns `403` and changes nothing.
@@ -75,7 +81,8 @@ In `/admin/curators/<slug>`, expand a payment and click **Verify & mark paid**:
 4. With a share id (`?sid=` and `look=` on the storefront URL), confirm one `look_storefront` event with `kind = 'sale'` in `funnel_events`, and still one after replaying the callback.
 5. With a referral (`?referral=ref_…`), confirm `orders.referral_code` is set and **no** `agent_referrals` row exists (see below).
 6. Manual path: submit a code, verify it as an admin, confirm one order; submit a second payment reusing the same code and confirm verification is refused.
-7. Check the web logs for `Ledger rejected M-Pesa order` or `SERVICE_API_KEY not set`.
+7. Price tampering: POST `stk-push` with an `amount` that differs from the listing price and confirm a `409` and that no STK prompt is sent.
+8. Check the web logs for `Ledger rejected M-Pesa order` or `SERVICE_API_KEY not set`.
 
 ## Go live
 
@@ -94,6 +101,7 @@ A referral code (`?referral=` or the `/r/<code>` landing page) is captured for t
 - **The `recent` payment list is stale.** `updatePaymentInRedis` rewrites only the per-curator list, so the shared recent list (the legacy fallback) holds the pending copy. The direct checkout index is the source of truth for the callback.
 - **Non-atomic updates.** `updatePaymentInRedis` reads, patches and rewrites a list, so two simultaneous updates to one curator's list can lose one.
 - **Share ids and referral codes on payments are client-supplied.** A forged valid share id can attribute a sale to someone else's share, and a referral code is not authenticated. Treat both as analytics, never as the basis for paying anyone.
+- **Legacy payment IDs** (created before the CSPRNG change) have a 36-bit random part. They are format-checked and rate limited, but weaker than new IDs.
 - **Manual codes are not checked against M-Pesa.** The curator confirms the code against their M-Pesa statement; the system only prevents reuse of a code already on an order.
 
 ## Code map
@@ -105,6 +113,7 @@ A referral code (`?referral=` or the `/r/<code>` landing page) is captured for t
 | Callback | `apps/web/app/api/curator/stk-callback/route.ts` |
 | Ledger call (shared by callback and admin verify) | `apps/web/lib/payments/ledger.ts` |
 | Manual submission | `apps/web/app/api/curator/payments/route.ts` |
+| Price verification, payment IDs | `apps/web/lib/payments/price-check.ts`, `apps/web/lib/payments/ids.ts` |
 | Admin verify / reject / fulfilment | `apps/web/app/api/admin/curator/payments/route.ts`, `apps/web/app/admin/curators/[slug]/PaymentsTable.tsx` |
 | Order ledger (`/record`) | `apps/api/routes/fulfillment.js` |
 | Storefront UI | `apps/web/app/s/[slug]/MpesaPaymentPanel.tsx` |

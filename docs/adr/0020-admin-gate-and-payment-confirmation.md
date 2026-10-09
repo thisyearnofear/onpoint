@@ -4,6 +4,7 @@
 **Date**: 2026-10-09
 **Related**: ADR 0001 (backend-first autonomy; the Postgres ledger), ADR 0010 (agent storefront checkout), ADR 0019 (share attribution)
 **Amends**: ADR 0019 (its consequences about manual M-Pesa sales and the storefront ignoring `referral`)
+**Followed by**: ADR 0021 (the remaining `/api/curator/*` routes)
 
 ## Context
 

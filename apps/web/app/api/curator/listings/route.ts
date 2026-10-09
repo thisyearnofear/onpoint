@@ -18,12 +18,18 @@
  * branded gradient placeholder. Curators can add photos later via
  * the WhatsApp agent (which has R2 access).
  *
- * Auth: IP-based rate limiting. In a future iteration we should verify
- * the curator "owns" this slug (e.g. via wallet signature or Auth0 session).
+ * Auth: ADMIN ONLY (verified Auth0 email on ADMIN_EMAILS). This endpoint writes
+ * prices and stock, merges into existing listings, and creates storefront
+ * inventory, so it must not be callable anonymously. Curators have no
+ * verifiable identity on the web yet (the browser "owner" flag is a
+ * localStorage value and their WhatsApp number is public), so inventory changes
+ * go through the operator console or the WhatsApp agent. Adding real curator
+ * auth is the prerequisite for re-opening this to curators.
  */
 
 import { neon } from "@neondatabase/serverless";
 import { rateLimit, RateLimits, getClientId } from "../../../../lib/utils/rate-limit";
+import { requireAdmin } from "../../../../lib/utils/require-admin";
 
 const CONNECTION_STRING = process.env.NEON_DATABASE_URL;
 let _sql: ReturnType<typeof neon> | null = null;
@@ -48,6 +54,9 @@ interface CreateListingBody {
 }
 
 export async function POST(request: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
   const clientId = getClientId(request) || "unknown";
   const rlResult = await rateLimit(`listings:${clientId}`, RateLimits.general);
   if (!rlResult.allowed) {

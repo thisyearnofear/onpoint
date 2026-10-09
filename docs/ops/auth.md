@@ -77,7 +77,34 @@ Notes:
 - **Set `ADMIN_EMAILS` before deploying the web app that contains this gate**, or the console returns 503 until you do.
 - The email must be **verified** in Auth0. An unverified email proves nothing (anyone can self-register one), so it is rejected even when it matches.
 - The policy lives in `apps/web/lib/utils/admin-access.ts` (pure, unit-tested) and is applied by `proxy.ts`. The proxy route also refuses `..` and slash segments so it can only reach the API's `/api/admin/*` namespace.
-- Other `/api/curator/*` routes (leads, tracking, delivery, …) are not under this gate. Review them separately.
+- `POST /api/curator/listings` is not under `/api/admin` but is **admin-only** too, via `requireAdmin()` (`lib/utils/require-admin.ts`).
+
+### Web `/api/curator/*` route inventory
+
+Who can call each route, and what protects it. Update this table when you add or change a route.
+
+| Route | Caller | Protection |
+| --- | --- | --- |
+| `payments` GET, `notifications` GET, `leads` GET, `analytics` GET | operator tooling | `x-service-key` (fails closed if `SERVICE_API_KEY` is unset) |
+| `payments` POST (manual M-Pesa submission) | customer | amount must equal the listing price (server-side); `status` is forced to `pending_verification`; unguessable ID |
+| `stk-push` POST | customer | amount must equal the listing price (server-side) before anything is charged |
+| `stk-callback` POST | Safaricom | `?s=` secret (`DARAJA_CALLBACK_SECRET`), amount check, replay guard |
+| `payments/status` GET, `tracking` GET | customer | payment ID is the credential; rate limited; status route returns only public fields |
+| `delivery` POST | customer | payment ID; refused once an order is dispatched or rejected; does not echo the record |
+| `push-subscribe` POST/DELETE | customer | payment ID must exist for that curator; strict validation; no user input in Redis URL paths |
+| `listings` POST | operator | **admin only** (`requireAdmin`); it writes prices and stock |
+| `listings` GET (kit-sku autocomplete), `recommendations` GET | anyone | public catalogue data; rate limited; parameterized SQL |
+| `leads` POST, `views` POST, `analytics/track` POST | anyone | public event capture; rate limited |
+| `analytics/funnel` GET | anyone | public **by design**: a fixed proxy returning four aggregate counters for the curator intel page |
+| `/admin/*`, `/api/admin/*` | operator | admin gate in `proxy.ts` |
+
+### Conventions for routes that touch Redis or money
+
+1. **Never interpolate user input into an Upstash REST URL path.** Path segments are command arguments (`/del/a/b` is `DEL a b`), so a crafted ID can delete or read other keys. Send commands in the JSON pipeline body, and whitelist anything that must be in a key (`isSafeSlug`, `isPaymentId`). See `lib/utils/redis-safe.ts`.
+2. **Never trust a client-supplied price, amount, status or fulfilment state.** Look prices up server-side (`lib/payments/price-check.ts`) and set statuses on the server.
+3. **An ID that authorises access is a credential.** Generate it with a CSPRNG (`lib/payments/ids.ts`), validate its format before touching storage, and rate limit lookups.
+4. **Do not echo stored records** back to a caller; return only the fields it needs.
+5. **Writes that change prices or stock are admin-only** until curators have a verifiable identity (today the browser "owner" flag is a `localStorage` value and a curator's WhatsApp number is public).
 
 ## Agent Wallet Setup
 

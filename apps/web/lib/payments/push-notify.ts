@@ -1,4 +1,5 @@
 import { logger } from "../utils/logger";
+import { isPaymentId } from "./ids";
 
 const REDIS_SUB_PREFIX = "curator:push-subscriptions";
 
@@ -25,7 +26,7 @@ async function getSubscription(
 ): Promise<{ subscription: Record<string, unknown>; curatorSlug: string } | null> {
   const url = getRedisUrl();
   const token = getRedisToken();
-  if (!url || !token) return null;
+  if (!url || !token || !isPaymentId(paymentId)) return null;
 
   const key = `${REDIS_SUB_PREFIX}:${paymentId}`;
   const response = await fetch(`${url}/get/${key}`, {
@@ -132,7 +133,7 @@ export async function sendPushNotification(params: {
     if (err.statusCode === 410) {
       const url = getRedisUrl();
       const token = getRedisToken();
-      if (url && token) {
+      if (url && token && isPaymentId(paymentId)) {
         const key = `${REDIS_SUB_PREFIX}:${paymentId}`;
         await fetch(`${url}/del/${key}`, {
           method: "POST",

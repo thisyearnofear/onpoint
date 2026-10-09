@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { logger } from "../../../../lib/utils/logger";
 import { createLeadNotification } from "../../../../lib/utils/notifications";
 import { recordCuratorLead } from "../../../../lib/utils/curator-analytics-store";
+import { rateLimit, RateLimits, getClientId } from "../../../../lib/utils/rate-limit";
 
 export { OPTIONS } from "../../ai/_utils/http";
 
@@ -127,6 +128,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  const rl = await rateLimit(`leads:${getClientId(request)}`, RateLimits.general);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   try {
     const body = (await request.json()) as CuratorLeadPayload;
     const curatorSlug = cleanSlug(body.curatorSlug);

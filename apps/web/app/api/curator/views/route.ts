@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createViewNotification } from "../../../../lib/utils/notifications";
 import { recordCuratorHighIntentView } from "../../../../lib/utils/curator-analytics-store";
+import { rateLimit, RateLimits, getClientId } from "../../../../lib/utils/rate-limit";
 
 export { OPTIONS } from "../../ai/_utils/http";
 
@@ -24,6 +25,11 @@ function cleanSlug(value: unknown): string | null {
  * has been visible for a sustained period (high-intent view).
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  const rl = await rateLimit(`views:${getClientId(request)}`, RateLimits.general);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   const body = (await request.json()) as Record<string, unknown>;
 
   const curatorSlug = cleanSlug(body.curatorSlug);

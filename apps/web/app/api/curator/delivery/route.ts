@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "../../../../lib/utils/logger";
 import {
+  getPaymentById,
   updatePaymentInRedis,
   createDeliveryNotification,
 } from "../../../../lib/utils/notifications";
+import { rateLimit, getClientId } from "../../../../lib/utils/rate-limit";
+import { isPaymentId, PAYMENT_LOOKUP_LIMIT } from "../../../../lib/payments/ids";
 import { sendReceipt } from "../../../../lib/payments/send-receipt";
 
 export { OPTIONS } from "../../ai/_utils/http";
@@ -28,8 +31,19 @@ function cleanSlug(value: unknown): string | null {
   return clean;
 }
 
+/** Once an order is on its way the address must not be changeable by whoever holds the link. */
+const LOCKED_FULFILMENT = new Set(["ready_for_pickup", "rider_assigned", "delivered"]);
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const body = (await request.json()) as Record<string, unknown>;
+  const rl = await rateLimit(`payment-lookup:${getClientId(request)}`, PAYMENT_LOOKUP_LIMIT);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
+  const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
 
   const paymentId = cleanText(body.paymentId as string, 80);
   const curatorSlug = cleanSlug(body.curatorSlug);
@@ -58,7 +72,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
+  if (!isPaymentId(paymentId)) {
+    return NextResponse.json({ error: "Payment not found" }, { status: 404 });
+  }
+
   try {
+    const existing = await getPaymentById(curatorSlug, paymentId);
+    if (!existing) {
+      return NextResponse.json({ error: "Payment not found" }, { status: 404 });
+    }
+    if (existing.status === "rejected") {
+      return NextResponse.json(
+        { error: "This payment was rejected, so delivery details cannot be added" },
+        { status: 409 },
+      );
+    }
+    if (LOCKED_FULFILMENT.has(String(existing.fulfilmentStatus || ""))) {
+      return NextResponse.json(
+        { error: "This order is already being delivered and can no longer be changed. Contact the seller." },
+        { status: 409 },
+      );
+    }
+
     const updates: Record<string, unknown> = {
       recipientName,
       recipientPhone,
@@ -119,7 +154,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       paymentId,
     });
 
-    return NextResponse.json({ success: true, payment: updatedPayment });
+    // Do not echo the stored record (it holds the customer phone, M-Pesa code, etc.).
+    return NextResponse.json({ success: true });
   } catch (error) {
     logger.error(
       "Delivery submission error",
