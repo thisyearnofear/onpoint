@@ -35,9 +35,9 @@ export default function OccasionWearGuide() {
             <Sparkles className="h-3.5 w-3.5" />
             Style guide
           </div>
-          <h1 className="text-3xl font-black tracking-tight md:text-4xl">Occasion Wear &amp; Event Dressing Guide</h1>
+          <h1 className="text-3xl font-black tracking-tight md:text-4xl">Occasion Wear & Event Dressing Guide</h1>
           <p className="mt-3 text-base text-muted-foreground leading-relaxed">
-            From weddings to galas — here&rsquo;s how to decode the dress code and show up dressed right.
+            From weddings to galas â here’s how to decode the dress code and show up dressed right.
           </p>
         </header>
 
@@ -104,7 +104,7 @@ export default function OccasionWearGuide() {
                 <ul className="space-y-2">
                   {[
                     "Weddings: avoid white, ivory, or cream (reserved for the bride). Bold colours, pastels, and prints are welcome. Black is acceptable for evening weddings",
-                    "Graduations: wear your institution&rsquo;s colours or neutral tones. Avoid anything that clashes with academic gown colours",
+                    "Graduations: wear your institution’s colours or neutral tones. Avoid anything that clashes with academic gown colours",
                     "Cultural celebrations: bright colours are encouraged — Ankara, Kente, and Kitenge for African events. Gold and jewel tones for Diwali or South Asian celebrations",
                     "Corporate events: navy, charcoal, and burgundy are safe. One accent colour (tie, scarf, pocket square) adds personality without overpowering",
                     "Seasonal colour cues: pastels and light linens for daytime/summer events. Rich jewel tones, velvet, and darker fabrics for evening/winter",
@@ -118,7 +118,7 @@ export default function OccasionWearGuide() {
               </AccordionItem>
 
               <AccordionItem
-                title="Fabric &amp; climate considerations"
+                title="Fabric & climate considerations"
                 subtitle="Linen for heat, velvet for evening, layering"
                 icon={<Thermometer className="w-4 h-4" />}
               >
@@ -163,14 +163,14 @@ export default function OccasionWearGuide() {
               href="/guides/formal-wear"
               className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
-              <p className="text-sm font-bold">Formal Wear &amp; Tailoring Guide</p>
+              <p className="text-sm font-bold">Formal Wear & Tailoring Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Bespoke vs MTM, fabric, traditional fits</p>
             </Link>
             <Link
               href="/guides/ankara-style"
               className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
-              <p className="text-sm font-bold">Ankara &amp; African Print Style Guide</p>
+              <p className="text-sm font-bold">Ankara & African Print Style Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Fabrics, ceremonies, and cultural dress</p>
             </Link>
           </div>

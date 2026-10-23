@@ -86,6 +86,8 @@ AI-assisted styling and real-time sessions are supporting capabilities around th
 
 Smart fallback: Venice → Replicate → Azure → Gemini with dedup prevention.
 
+The analyze routes also sit on the shared vision chain (`apps/api/lib/vision.js`, ADR 0022 §3): `ai-venice-analyze` and `ai-analyze-person` delegate to the configured provider order (`VISION_PROVIDERS`); `ai-zerog-analyze` and `ai-qwen-analyze` keep their distinctive primaries (0G TEE attestation, Qwen Cloud spend guards) and fall back to the chain on failure. A `modal` provider slot accepts a self-hosted OpenAI-compatible endpoint via `MODAL_BASE_URL`.
+
 ### Under evaluation (not integrated)
 
 Runware `/v1/systemone` decision models — `typesafe:jev@latest` + `runware:laya@1` — for size Choice + fit Score. No code path uses these yet; evaluate against the existing fit-signal output before wiring into the try-on response.

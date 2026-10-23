@@ -4,7 +4,17 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const vision = require('./vision');
 
-const KEY_ENVS = ['VENICE_API_KEY', 'GEMINI_API_KEY', 'OPENROUTER_API_KEY', 'DASHSCOPE_API_KEY', 'OPENAI_API_KEY'];
+const KEY_ENVS = [
+  'VENICE_API_KEY',
+  'GEMINI_API_KEY',
+  'OPENROUTER_API_KEY',
+  'DASHSCOPE_API_KEY',
+  'OPENAI_API_KEY',
+  'MODAL_API_KEY',
+  'MODAL_BASE_URL',
+  'VISION_MODAL_BASE_URL',
+  'VISION_MODAL_MODEL',
+];
 const saved = {};
 
 function stubClient(behaviour) {
@@ -96,6 +106,58 @@ describe('vision provider chain', () => {
     await expect(
       vision.completeVision({ system: 's', prompt: 'p', imageDataUrl: IMG }),
     ).rejects.toMatchObject({ code: 'VISION_UNAVAILABLE' });
+  });
+
+  it('expectJson:false returns free text without requiring parseable JSON', async () => {
+    process.env.OPENROUTER_API_KEY = 'k';
+    stubClient(() => Promise.resolve({ choices: [{ message: { content: 'Nice jacket — no JSON here.' } }] }));
+    const out = await vision.completeVision({
+      system: 's', prompt: 'p', imageDataUrl: IMG, expectJson: false,
+    });
+    expect(out.provider).toBe('openrouter');
+    expect(out.text).toContain('Nice jacket');
+    expect(out.json).toBeNull();
+  });
+
+  it('expectJson:false still rejects empty responses and falls through', async () => {
+    process.env.VENICE_API_KEY = 'v';
+    process.env.OPENROUTER_API_KEY = 'k';
+    const responses = [
+      () => Promise.resolve({ choices: [{ message: { content: '' } }] }),
+      () => Promise.resolve({ choices: [{ message: { content: 'ok text' } }] }),
+    ];
+    let i = 0;
+    stubClient(() => responses[i++ % responses.length]());
+    const out = await vision.completeVision({
+      system: 's', prompt: 'p', imageDataUrl: IMG, expectJson: false,
+    });
+    expect(out.provider).toBe('openrouter');
+    expect(out.text).toBe('ok text');
+  });
+
+  it('modal provider is enabled by MODAL_BASE_URL alone (key optional)', async () => {
+    process.env.MODAL_BASE_URL = 'https://x--vllm.modal.run/v1';
+    process.env.VISION_PROVIDERS = 'modal';
+    const calls = stubClient(() => Promise.resolve({ choices: [{ message: { content: okJson } }] }));
+    const out = await vision.completeVision({ system: 's', prompt: 'p', imageDataUrl: IMG });
+    expect(out.provider).toBe('modal');
+    expect(calls[0].apiKey).toBe('unused');
+    expect(calls[0].baseURL).toBe('https://x--vllm.modal.run/v1');
+    expect(vision.configuredProviders()).toEqual([
+      { name: 'modal', model: 'Qwen/Qwen2.5-VL-7B-Instruct' },
+    ]);
+  });
+
+  it('modal provider is skipped without baseURL or key', () => {
+    process.env.VISION_PROVIDERS = 'modal';
+    expect(vision.configuredProviders()).toEqual([]);
+  });
+
+  it('omits the system message when system is not provided', async () => {
+    process.env.OPENROUTER_API_KEY = 'k';
+    const calls = stubClient(() => Promise.resolve({ choices: [{ message: { content: okJson } }] }));
+    await vision.completeVision({ prompt: 'p', imageDataUrl: IMG });
+    expect(calls).toHaveLength(1);
   });
 
   it('parseJsonLoose strips fences and takes the first object', () => {

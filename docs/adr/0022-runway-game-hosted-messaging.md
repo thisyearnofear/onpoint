@@ -40,19 +40,22 @@ Routing: the existing Prava mission remains reachable through the web handoff (`
 
 ### 3. Vision provider chain (redundancy)
 
-Judging needs a vision-language model. Verified on 2026-10-23: the local Venice key fails authentication and the DashScope account is suspended for an overdue balance; production Venice key presence is reported by `/health` but not its validity. One provider is therefore not acceptable.
+Judging needs a vision-language model. Verified on 2026-10-23: the local Venice key fails authentication and the DashScope account is suspended for an overdue balance. Production Venice auth was re-verified the same day (`/api/v1/models` → 200), and production runs `VISION_PROVIDERS=openrouter,venice` — two live providers. One provider is not acceptable; two independent billing relationships is the current bar, and the `modal` slot exists for a self-hosted GPU endpoint when usage justifies it.
 
-`apps/api/lib/vision.js` exposes one function over an ordered chain of OpenAI-compatible providers, each enabled only when its key is present:
+`apps/api/lib/vision.js` exposes one function over an ordered chain of OpenAI-compatible providers, each enabled only when its key is present (`modal` is the exception — enabled by `MODAL_BASE_URL` alone; its key is optional):
 
 | Provider | Key env | Default model env |
 | --- | --- | --- |
 | Venice | `VENICE_API_KEY` | `VISION_VENICE_MODEL` = `qwen3-vl-235b-a22b` |
 | Google Gemini (OpenAI-compatible endpoint) | `GEMINI_API_KEY` | `VISION_GEMINI_MODEL` |
 | OpenRouter | `OPENROUTER_API_KEY` | `VISION_OPENROUTER_MODEL` |
+| Modal (self-hosted, e.g. vLLM) | `MODAL_BASE_URL` (+ optional `MODAL_API_KEY`) | `VISION_MODAL_MODEL` |
 | DashScope (Qwen) | `DASHSCOPE_API_KEY` | `VISION_DASHSCOPE_MODEL` |
 | OpenAI | `OPENAI_API_KEY` | `VISION_OPENAI_MODEL` |
 
-Order is overridable with `VISION_PROVIDERS` (comma-separated). Each attempt has a timeout; a provider error, timeout, or unparseable JSON falls through to the next. If every provider fails, Runway answers with a deterministic persona line and no score — the game never dead-ends. Which providers are configured (never their keys) is reported on `/linq/health`.
+Order is overridable with `VISION_PROVIDERS` (comma-separated — note an explicit list must name `modal` for it to activate). Each attempt has a timeout; a provider error, timeout, or unparseable JSON falls through to the next. If every provider fails, Runway answers with a deterministic persona line and no score — the game never dead-ends. Which providers are configured (never their keys) is reported on `/linq/health`.
+
+The chain is shared beyond Runway: `completeVision({ expectJson: false })` serves the free-text live-session analyze routes. `ai-venice-analyze` and `ai-analyze-person` delegate fully; `ai-zerog-analyze` and `ai-qwen-analyze` keep their provider-specific primaries (0G TEE attestation, Qwen spend guards) and fall back to the chain on any failure — including missing keys, kill switch, or budget exhaustion.
 
 Notes from first live verification (2026-10-23): reasoning models (e.g. OpenRouter's `nvidia/nemotron-3.5-super-vl:free`) burn the whole token budget on chain-of-thought unless sent `reasoning: {effort: 'low'}` (OpenRouter-only param) and a generous `VISION_MAX_TOKENS` (default 3000) with `VISION_TIMEOUT_MS` ≈ 90s. Free tiers are rate-limited and may log prompts — acceptable for demos; prefer a paid provider before launch. Dolphin (dphn.ai) is OpenAI-compatible but ships only text models today (`text-v` endpoint), so it is not a vision provider.
 

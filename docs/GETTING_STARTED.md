@@ -32,7 +32,9 @@ Copy `.env.example` to `.env.local` and configure:
 
 | Variable               | Purpose                                          |
 | ---------------------- | ------------------------------------------------ |
-| `VENICE_API_KEY`       | Free-tier vision analysis                        |
+| `VENICE_API_KEY`       | Vision chain provider (Runway judge + analyze routes) |
+| `OPENROUTER_API_KEY`   | Vision chain provider — OpenAI-compatible, has free models |
+| `MODAL_BASE_URL`       | Optional self-hosted vision endpoint (e.g. vLLM on Modal); enables the `modal` chain provider, key optional |
 | `AZURE_CV_ENDPOINT`    | Azure Computer Vision endpoint                   |
 | `AZURE_CV_API_KEY`     | Azure Computer Vision API key (F0 free tier)     |
 | `VERTEX_API_KEY`       | Gemini Live sessions (Google Cloud)              |

@@ -1,20 +1,15 @@
 /**
  * AI Analyze Person Route
  *
- * Uses Venice Vision API to analyze a person's appearance from a photo
- * for fashion styling purposes.
+ * Analyzes a person's appearance from a photo for fashion styling purposes.
+ * Delegates to the shared provider chain in lib/vision.js — historically
+ * Venice-only; the chain keeps the route alive when a single provider fails.
  */
 
 const express = require('express');
 const router = express.Router();
-const OpenAI = require('openai');
 const logger = require('../lib/logger');
-
-const VENICE_BASE_URL = 'https://api.venice.ai/api/v1';
-const veniceKey = process.env.VENICE_API_KEY || null;
-const veniceClient = veniceKey
-  ? new OpenAI({ apiKey: veniceKey, baseURL: VENICE_BASE_URL })
-  : null;
+const vision = require('../lib/vision');
 
 router.post('/', async (req, res) => {
   try {
@@ -24,8 +19,8 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Photo data is required' });
     }
 
-    if (!veniceClient) {
-      return res.status(500).json({ error: 'Venice API key not configured' });
+    if (vision.configuredProviders().length === 0) {
+      return res.status(503).json({ error: 'No vision providers are configured' });
     }
 
     const prefContext = stylePreferences 
@@ -45,34 +40,25 @@ Tailor your recommendations to align with these preferences.`
 
 Provide a detailed but concise description suitable for AI fashion styling.`;
 
-    const response = await veniceClient.chat.completions.create({
-      model: 'qwen3-vl-235b-a22b',
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: prompt },
-            {
-              type: 'image_url',
-              image_url: {
-                url: photoData,
-              },
-            },
-          ],
-        },
-      ],
+    const result = await vision.completeVision({
+      prompt,
+      imageDataUrl: photoData,
+      expectJson: false,
     });
 
-    const description = response.choices[0]?.message?.content ?? '';
-
     return res.json({
-      description,
+      description: result.text,
       type: 'analyze-person',
+      provider: result.provider,
+      model: result.model,
     });
   } catch (error) {
     logger.error('Person analysis error:', error);
-    return res.status(error.status || 500).json({
-      error: error.message || 'Failed to analyze person from photo',
+    const unavailable = error.code === 'VISION_UNAVAILABLE';
+    return res.status(error.status || (unavailable ? 503 : 500)).json({
+      error: unavailable
+        ? 'All vision providers failed'
+        : error.message || 'Failed to analyze person from photo',
       details: error.stack && process.env.NODE_ENV === 'development' ? error.stack : undefined,
     });
   }

@@ -36,7 +36,7 @@ export default function VintageThriftingGuide() {
             Style guide
           </div>
           <h1 className="text-3xl font-black tracking-tight md:text-4xl">
-            Vintage &amp; Thrift Shopping Guide
+            Vintage & Thrift Shopping Guide
           </h1>
           <p className="mt-3 text-base text-muted-foreground leading-relaxed">
             Find hidden gems, spot quality, and navigate pre-loved fashion with confidence.
@@ -79,7 +79,7 @@ export default function VintageThriftingGuide() {
                   {[
                     {
                       item: "Denim jackets",
-                      why: "Vintage Levi&rsquo;s, Lee, and Wrangler jackets from the 70s-90s have superior construction and character that modern replicas can&rsquo;t match.",
+                      why: "Vintage Levi’s, Lee, and Wrangler jackets from the 70s-90s have superior construction and character that modern replicas can’t match.",
                     },
                     {
                       item: "Band T-shirts",
@@ -91,7 +91,7 @@ export default function VintageThriftingGuide() {
                     },
                     {
                       item: "Tailored blazers",
-                      why: "Vintage blazers from quality brands offer tailoring that&rsquo;s nearly impossible to find at thrift prices.",
+                      why: "Vintage blazers from quality brands offer tailoring that’s nearly impossible to find at thrift prices.",
                     },
                   ].map(({ item, why }) => (
                     <div key={item} className="pl-5 border-l-2 border-primary/20">
@@ -141,7 +141,7 @@ export default function VintageThriftingGuide() {
                 <ul className="space-y-2">
                   {[
                     "Always ask for actual measurements (pit-to-pit, length, shoulder width)",
-                    "Vintage men&rsquo;s small often fits modern women&rsquo;s medium — consider cross-shopping",
+                    "Vintage men’s small often fits modern women’s medium â consider cross-shopping",
                     "Waist measurements on vintage trousers run 1-2 inches smaller than modern equivalents",
                     "Vintage stretch fabrics have degraded elastic — account for less recovery",
                   ].map((tip) => (
@@ -204,7 +204,7 @@ export default function VintageThriftingGuide() {
               href="/guides/sustainable-fashion"
               className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
-              <p className="text-sm font-bold">Sustainable &amp; Ethical Fashion Guide</p>
+              <p className="text-sm font-bold">Sustainable & Ethical Fashion Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Five R's, fabric choices, second-hand tips</p>
             </Link>
             <Link

@@ -2,7 +2,7 @@
 
 import type { ErrorInfo } from "next/error";
 
-export default function ShopError({ unstable_retry }: ErrorInfo) {
+export default function ShopError({ retry }: ErrorInfo) {
   return (
     <div
       style={{
@@ -22,7 +22,7 @@ export default function ShopError({ unstable_retry }: ErrorInfo) {
         Unable to load the shop. Please try again.
       </p>
       <button
-        onClick={() => unstable_retry()}
+        onClick={() => retry()}
         style={{
           padding: "0.5rem 1rem",
           borderRadius: "8px",

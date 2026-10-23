@@ -1,24 +1,19 @@
 /**
- * Venice Vision Analysis Route
- * 
- * Real-time video frame analysis for Live AR sessions.
- * Uses Venice qwen3-vl-235b-a22b model for vision.
+ * Vision frame analysis route for Live AR sessions.
+ *
+ * Delegates to the shared provider chain in lib/vision.js — historically
+ * Venice-only (qwen3-vl-235b-a22b), now falls through configured providers
+ * so a single dead key can't take the session down. The `provider` and
+ * `model` fields in the response reflect whichever provider actually served.
+ *
  * Enforces per-session frame rate limits.
  */
 
 const express = require('express');
 const router = express.Router();
-const OpenAI = require('openai');
 const logger = require('../lib/logger');
-const { getRedis } = require('../lib/redis');
+const vision = require('../lib/vision');
 const { checkFrameRate, PROMPTS_BY_GOAL } = require('../lib/frame-rate');
-
-const veniceClient = process.env.VENICE_API_KEY
-  ? new OpenAI({
-      apiKey: process.env.VENICE_API_KEY,
-      baseURL: 'https://api.venice.ai/api/v1',
-    })
-  : null;
 
 // Track frame count per session for prompt rotation
 const sessionFrameCount = new Map();
@@ -31,8 +26,8 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields: image, goal' });
     }
 
-    if (!veniceClient) {
-      return res.status(503).json({ error: 'Venice AI is temporarily unavailable' });
+    if (vision.configuredProviders().length === 0) {
+      return res.status(503).json({ error: 'No vision providers are configured' });
     }
 
     // Enforce per-IP frame rate limit
@@ -55,49 +50,33 @@ router.post('/', async (req, res) => {
     // Strip data URL prefix if present
     const base64Image = image.replace(/^data:image\/\w+;base64,/, '');
 
-    // Call Venice AI with vision model
-    const response = await veniceClient.chat.completions.create({
-      model: 'qwen3-vl-235b-a22b',
-      messages: [
-        {
-          role: 'system',
-          content: systemInstruction || 
-            'You are a fashion stylist AI analyzing video frames. Provide concise, actionable styling feedback. Keep responses under 100 words.',
-        },
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: prompt,
-            },
-            {
-              type: 'image_url',
-              image_url: {
-                url: `data:image/jpeg;base64,${base64Image}`,
-              },
-            },
-          ],
-        },
-      ],
-      max_tokens: 150,
+    const result = await vision.completeVision({
+      system: systemInstruction ||
+        'You are a fashion stylist AI analyzing video frames. Provide concise, actionable styling feedback. Keep responses under 100 words.',
+      prompt,
+      imageDataUrl: `data:image/jpeg;base64,${base64Image}`,
+      maxTokens: 150,
       temperature: 0.7,
+      expectJson: false,
     });
-
-    const analysis = response.choices?.[0]?.message?.content || '';
 
     res.json({
-      analysis,
+      analysis: result.text,
       frameCount,
-      model: 'qwen3-vl-235b-a22b',
-      provider: 'venice',
+      model: result.model,
+      provider: result.provider,
     });
   } catch (error) {
-    logger.veniceError('analyze-frame', 'Venice vision analysis failed', error, {
+    logger.error('Vision frame analysis failed', {
+      component: 'venice-analyze',
+      error: error.message,
       goal: req.body?.goal,
       clientIp: req.ip,
     });
-    res.status(502).json({ error: 'Venice AI analysis failed' });
+    const unavailable = error.code === 'VISION_UNAVAILABLE';
+    res.status(unavailable ? 503 : 502).json({
+      error: unavailable ? 'All vision providers failed' : 'Vision analysis failed',
+    });
   }
 });
 

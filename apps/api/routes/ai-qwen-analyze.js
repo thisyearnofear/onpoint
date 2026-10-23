@@ -22,6 +22,7 @@
 const express = require('express');
 const router = express.Router();
 const logger = require('../lib/logger');
+const vision = require('../lib/vision');
 const { getRedis } = require('../lib/redis');
 const { checkFrameRate, PROMPTS_BY_GOAL } = require('../lib/frame-rate');
 
@@ -80,15 +81,13 @@ router.post('/', async (req, res) => {
         .json({ error: 'Missing required fields: image, goal' });
     }
 
-    if (!process.env.DASHSCOPE_API_KEY) {
+    const qwenUsable =
+      Boolean(process.env.DASHSCOPE_API_KEY) && !KILL_SWITCH;
+    if (!qwenUsable && vision.configuredProviders().length === 0) {
       return res.status(503).json({
-        error: 'Qwen Cloud is not configured (DASHSCOPE_API_KEY missing)',
-      });
-    }
-
-    if (KILL_SWITCH) {
-      return res.status(503).json({
-        error: 'Qwen Cloud kill switch is active (QWEN_CLOUD_KILL_SWITCH=1)',
+        error: !process.env.DASHSCOPE_API_KEY
+          ? 'Qwen Cloud is not configured (DASHSCOPE_API_KEY missing)'
+          : 'Qwen Cloud kill switch is active (QWEN_CLOUD_KILL_SWITCH=1)',
       });
     }
 
@@ -98,20 +97,6 @@ router.post('/', async (req, res) => {
       return res.status(429).json({
         error: 'Frame rate limit exceeded',
         retryAfter: 60,
-      });
-    }
-
-    // Spend guard — pre-call estimate
-    maybeResetDaily();
-    const requestedModel = model || QWEN_CLOUD_DEFAULT_MODEL;
-    const maxTokens = 200;
-    const preCost = estimateCost(requestedModel, 500, maxTokens);
-    if (DAILY_BUDGET_USD > 0 && dailySpendUsd + preCost >= DAILY_BUDGET_USD) {
-      return res.status(429).json({
-        error: 'Qwen Cloud daily budget exceeded',
-        spentUsd: dailySpendUsd.toFixed(6),
-        budgetUsd: DAILY_BUDGET_USD,
-        code: 'BUDGET_EXCEEDED',
       });
     }
 
@@ -125,74 +110,115 @@ router.post('/', async (req, res) => {
       'Analyze this outfit.';
 
     const base64Image = image.replace(/^data:image\/\w+;base64,/, '');
+    const systemMsg =
+      systemInstruction ||
+      'You are a fashion stylist AI analyzing video frames. Provide concise, actionable styling feedback. Keep responses under 100 words.';
 
-    const requestBody = {
-      model: requestedModel,
-      messages: [
-        {
-          role: 'system',
-          content:
-            systemInstruction ||
-            'You are a fashion stylist AI analyzing video frames. Provide concise, actionable styling feedback. Keep responses under 100 words.',
-        },
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: prompt },
+    // Spend guard — pre-call estimate. Over budget skips Qwen and falls
+    // back to the shared vision chain rather than failing the request.
+    maybeResetDaily();
+    const requestedModel = model || QWEN_CLOUD_DEFAULT_MODEL;
+    const maxTokens = 200;
+    const preCost = estimateCost(requestedModel, 500, maxTokens);
+    const budgetExceeded =
+      DAILY_BUDGET_USD > 0 && dailySpendUsd + preCost >= DAILY_BUDGET_USD;
+
+    if (qwenUsable && !budgetExceeded) {
+      try {
+        const requestBody = {
+          model: requestedModel,
+          messages: [
+            { role: 'system', content: systemMsg },
             {
-              type: 'image_url',
-              image_url: { url: `data:image/jpeg;base64,${base64Image}` },
+              role: 'user',
+              content: [
+                { type: 'text', text: prompt },
+                {
+                  type: 'image_url',
+                  image_url: { url: `data:image/jpeg;base64,${base64Image}` },
+                },
+              ],
             },
           ],
-        },
-      ],
-      max_tokens: maxTokens,
-      temperature: 0.7,
-      // Disable thinking by default — it generates hundreds of hidden
-      // reasoning tokens that cost money. Callers must opt in.
-      enable_thinking: enable_thinking === true ? true : false,
-    };
+          max_tokens: maxTokens,
+          temperature: 0.7,
+          // Disable thinking by default — it generates hundreds of hidden
+          // reasoning tokens that cost money. Callers must opt in.
+          enable_thinking: enable_thinking === true ? true : false,
+        };
 
-    const response = await fetch(`${QWEN_CLOUD_BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.DASHSCOPE_API_KEY}`,
-      },
-      body: JSON.stringify(requestBody),
-      signal: AbortSignal.timeout(QWEN_CLOUD_TIMEOUT_MS),
-    });
+        const response = await fetch(`${QWEN_CLOUD_BASE_URL}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${process.env.DASHSCOPE_API_KEY}`,
+          },
+          body: JSON.stringify(requestBody),
+          signal: AbortSignal.timeout(QWEN_CLOUD_TIMEOUT_MS),
+        });
 
-    if (!response.ok) {
-      const errBody = await response.text().catch(() => '');
-      logger.error('Qwen Cloud rejected request', {
+        if (!response.ok) {
+          const errBody = await response.text().catch(() => '');
+          logger.error('Qwen Cloud rejected request', {
+            component: 'qwen-cloud-analyze',
+            status: response.status,
+            body: errBody.slice(0, 200),
+            keyLength: (process.env.DASHSCOPE_API_KEY ?? '').length,
+            keyPrefix: (process.env.DASHSCOPE_API_KEY ?? '').slice(0, 8),
+          });
+          throw new Error(`Qwen Cloud error ${response.status}: ${errBody.slice(0, 200)}`);
+        }
+
+        const data = await response.json();
+        const analysis = data.choices?.[0]?.message?.content || '';
+        const actualCost = estimateCost(
+          data.model || requestedModel,
+          data.usage?.prompt_tokens || 0,
+          data.usage?.completion_tokens || 0,
+        );
+        dailySpendUsd += actualCost;
+
+        return res.json({
+          analysis,
+          frameCount,
+          model: data.model || requestedModel,
+          provider: 'qwen-cloud',
+          // Qwen Cloud does not currently surface TEE attestation.
+          // The trace field is reserved for future use.
+          usage: data.usage,
+          estimatedCostUsd: actualCost,
+          dailySpendUsd: dailySpendUsd.toFixed(6),
+          dailyBudgetUsd: DAILY_BUDGET_USD,
+        });
+      } catch (err) {
+        logger.warn('Qwen Cloud analysis failed, falling back to vision chain', {
+          component: 'qwen-cloud-analyze',
+          error: err.message,
+        });
+      }
+    } else if (budgetExceeded) {
+      logger.warn('Qwen Cloud daily budget exceeded, using vision chain', {
         component: 'qwen-cloud-analyze',
-        status: response.status,
-        body: errBody.slice(0, 200),
-        keyLength: (process.env.DASHSCOPE_API_KEY ?? '').length,
-        keyPrefix: (process.env.DASHSCOPE_API_KEY ?? '').slice(0, 8),
+        spentUsd: dailySpendUsd.toFixed(6),
+        budgetUsd: DAILY_BUDGET_USD,
       });
-      throw new Error(`Qwen Cloud error ${response.status}: ${errBody.slice(0, 200)}`);
     }
 
-    const data = await response.json();
-    const analysis = data.choices?.[0]?.message?.content || '';
-    const actualCost = estimateCost(
-      data.model || requestedModel,
-      data.usage?.prompt_tokens || 0,
-      data.usage?.completion_tokens || 0,
-    );
-    dailySpendUsd += actualCost;
+    const result = await vision.completeVision({
+      system: systemMsg,
+      prompt,
+      imageDataUrl: `data:image/jpeg;base64,${base64Image}`,
+      maxTokens,
+      temperature: 0.7,
+      expectJson: false,
+    });
 
     res.json({
-      analysis,
+      analysis: result.text,
       frameCount,
-      model: data.model || requestedModel,
-      provider: 'qwen-cloud',
-      // Qwen Cloud does not currently surface TEE attestation.
-      // The trace field is reserved for future use.
-      usage: data.usage,
-      estimatedCostUsd: actualCost,
+      model: result.model,
+      provider: result.provider,
+      fallback: 'vision-chain',
       dailySpendUsd: dailySpendUsd.toFixed(6),
       dailyBudgetUsd: DAILY_BUDGET_USD,
     });
@@ -203,7 +229,10 @@ router.post('/', async (req, res) => {
       goal: req.body?.goal,
       clientIp: req.ip,
     });
-    res.status(502).json({ error: 'Qwen Cloud analysis failed' });
+    const unavailable = error.code === 'VISION_UNAVAILABLE';
+    res.status(unavailable ? 503 : 502).json({
+      error: unavailable ? 'All vision providers failed' : 'Qwen Cloud analysis failed',
+    });
   }
 });
 

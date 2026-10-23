@@ -2,7 +2,7 @@
 
 import type { ErrorInfo } from "next/error";
 
-export default function RootError({ error, unstable_retry }: ErrorInfo) {
+export default function RootError({ error, retry }: ErrorInfo) {
   return (
     <div
       style={{
@@ -19,10 +19,10 @@ export default function RootError({ error, unstable_retry }: ErrorInfo) {
         Something went wrong
       </h2>
       <p style={{ color: "#666", marginBottom: "1.5rem", maxWidth: "400px" }}>
-        {error.message || "An unexpected error occurred."}
+        {(error instanceof Error && error.message) || "An unexpected error occurred."}
       </p>
       <button
-        onClick={() => unstable_retry()}
+        onClick={() => retry()}
         style={{
           padding: "0.75rem 1.5rem",
           borderRadius: "8px",

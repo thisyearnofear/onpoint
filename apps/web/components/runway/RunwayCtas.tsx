@@ -58,14 +58,14 @@ export function RunwayCtas({ phoneNumber, themeId }: { phoneNumber: string; them
             <TextTheJudge phoneNumber={phoneNumber} body={smsBody} buttonClassName={PRIMARY} showQr={false} />
             <Link href={playHref} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full border border-zinc-700 px-8 text-base font-bold text-zinc-100 transition-colors hover:border-zinc-500 hover:bg-zinc-900">
               <Play className="h-5 w-5" />
-              {themeId ? "Play today&rsquo;s theme" : "Play in your browser"}
+              {themeId ? "Play today’s theme" : "Play in your browser"}
             </Link>
           </>
         ) : (
           <>
             <Link href={playHref} className={PRIMARY}>
               <Play className="h-5 w-5" />
-              {themeId ? "Play today&rsquo;s theme" : "Play in your browser"}
+              {themeId ? "Play today’s theme" : "Play in your browser"}
             </Link>
             <TextTheJudge phoneNumber={phoneNumber} body={smsBody} showQr={false} />
           </>

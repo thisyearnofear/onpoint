@@ -35,7 +35,7 @@ export default function PlusSizeFashionGuide() {
             <Sparkles className="h-3.5 w-3.5" />
             Style guide
           </div>
-          <h1 className="text-3xl font-black tracking-tight md:text-4xl">Plus-Size Fashion &amp; Fit Guide</h1>
+          <h1 className="text-3xl font-black tracking-tight md:text-4xl">Plus-Size Fashion & Fit Guide</h1>
           <p className="mt-3 text-base text-muted-foreground leading-relaxed">
             Fit, silhouettes, fabrics, and virtual try-on — everything you need to dress with confidence at any size.
           </p>
@@ -85,7 +85,7 @@ export default function PlusSizeFashionGuide() {
                     "Trousers should fasten comfortably without a visible pull at the zip or buttons",
                     "Sleeves should allow full range of motion without tightness at the bicep or armhole",
                     "Darts and princess seams are your friends — they create shape without relying on belts",
-                    "If a garment gaps at the bust or waist, it&rsquo;s the wrong cut, not the wrong size",
+                    "If a garment gaps at the bust or waist, it’s the wrong cut, not the wrong size",
                   ].map((tip) => (
                     <li key={tip} className="flex items-start gap-2 text-sm text-muted-foreground">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
@@ -148,7 +148,7 @@ export default function PlusSizeFashionGuide() {
               >
                 <p className="text-sm leading-7">
                   One of the biggest frustrations in plus-size shopping is ordering online and hoping
-                  for the best. OnPoint&rsquo;s virtual try-on lets you upload a photo and see how any
+                  for the best. OnPoint’s virtual try-on lets you upload a photo and see how any
                   item fits your body type before you commit. This is especially valuable for plus-size
                   shoppers because sizing varies so much between brands. See it, try it, then buy
                   with confidence — no more guessing from size charts.
@@ -166,14 +166,14 @@ export default function PlusSizeFashionGuide() {
               href="/guides/occasion-wear"
               className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
-              <p className="text-sm font-bold">Occasion Wear &amp; Event Dressing Guide</p>
+              <p className="text-sm font-bold">Occasion Wear & Event Dressing Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Weddings, galas, and formal events</p>
             </Link>
             <Link
               href="/guides/sustainable-fashion"
               className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
-              <p className="text-sm font-bold">Sustainable &amp; Ethical Fashion Guide</p>
+              <p className="text-sm font-bold">Sustainable & Ethical Fashion Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Quality fabrics, timeless pieces, smart shopping</p>
             </Link>
           </div>

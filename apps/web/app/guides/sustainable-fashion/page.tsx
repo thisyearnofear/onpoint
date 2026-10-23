@@ -35,9 +35,9 @@ export default function SustainableFashionGuide() {
             <Sparkles className="h-3.5 w-3.5" />
             Style guide
           </div>
-          <h1 className="text-3xl font-black tracking-tight md:text-4xl">Sustainable &amp; Ethical Fashion Guide</h1>
+          <h1 className="text-3xl font-black tracking-tight md:text-4xl">Sustainable & Ethical Fashion Guide</h1>
           <p className="mt-3 text-base text-muted-foreground leading-relaxed">
-            Buy better, care longer, and choose pieces with intention — fashion doesn&rsquo;t have to cost the planet.
+            Buy better, care longer, and choose pieces with intention â fashion doesn’t have to cost the planet.
           </p>
         </header>
 
@@ -69,7 +69,7 @@ export default function SustainableFashionGuide() {
           <div className="rounded-2xl border border-border/40 bg-card p-5 md:p-6">
             <Accordion>
               <AccordionItem
-                title="The five R&rsquo;s of sustainable fashion"
+                title="The five R’s of sustainable fashion"
                 subtitle="Reduce, reuse, repair, recycle, rent"
                 icon={<Recycle className="w-4 h-4" />}
               >
@@ -77,7 +77,7 @@ export default function SustainableFashionGuide() {
                   {[
                     { r: "Reduce", body: "Buy fewer, better pieces. A 10-item capsule wardrobe worn 30 times each has a lower footprint than 50 fast-fashion pieces worn once." },
                     { r: "Reuse", body: "Thrift, swap, and buy second-hand. Vintage and pre-owned fashion keeps clothing in use and out of landfills." },
-                    { r: "Repair", body: "Learn basic mending — replacing a button, fixing a hem, or darning a hole can extend a garment&rsquo;s life by years." },
+                    { r: "Repair", body: "Learn basic mending â replacing a button, fixing a hem, or darning a hole can extend a garment’s life by years." },
                     { r: "Recycle", body: "When a piece is truly done, recycle it through textile recycling programs. Never throw clothes in general waste." },
                     { r: "Rent", body: "For one-off occasions (weddings, events), consider renting instead of buying. It saves money and closet space." },
                   ].map(({ r, body }) => (
@@ -178,7 +178,7 @@ export default function SustainableFashionGuide() {
               href="/guides/vintage-thrifting"
               className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
             >
-              <p className="text-sm font-bold">Vintage &amp; Thrift Shopping Guide</p>
+              <p className="text-sm font-bold">Vintage & Thrift Shopping Guide</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Hidden gems, quality checks, era sizing</p>
             </Link>
             <Link

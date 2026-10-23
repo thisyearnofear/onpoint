@@ -217,6 +217,16 @@ interface AIProvider {
 | Azure Computer Vision   | Free    | Object detection + garment tagging + dense captions (AZ CV 4.0) |
 | Gemini Live             | Premium | Real-time WebSocket audio + video streaming                     |
 
+**Shared vision chain** (`apps/api/lib/vision.js`, ADR 0022 §3): an ordered,
+OpenAI-compatible fallback chain — venice → gemini → openrouter → modal →
+dashscope → openai, overridable with `VISION_PROVIDERS`. It serves the Runway
+judge (JSON verdicts) and the free-text live-session analyze routes
+(`expectJson: false`): `ai-venice-analyze` and `ai-analyze-person` delegate
+fully, while `ai-zerog-analyze` and `ai-qwen-analyze` keep their distinctive
+primaries (0G TEE attestation, Qwen Cloud spend guards) and fall back to the
+chain on failure. `modal` is enabled by `MODAL_BASE_URL` alone (API key
+optional) for a self-hosted vLLM endpoint.
+
 ## Agent Web-Agency (Python Bridge)
 
 When the internal catalog lacks a match, the agent uses a 4-tier discovery engine:

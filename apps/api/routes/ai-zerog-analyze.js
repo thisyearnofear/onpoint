@@ -13,8 +13,8 @@
 
 const express = require('express');
 const router = express.Router();
-const OpenAI = require('openai');
 const logger = require('../lib/logger');
+const vision = require('../lib/vision');
 const { getRedis } = require('../lib/redis');
 const { checkFrameRate, PROMPTS_BY_GOAL } = require('../lib/frame-rate');
 
@@ -26,13 +26,7 @@ const ZERO_G_TIMEOUT_MS = process.env.ZERO_G_TIMEOUT_MS
   ? parseInt(process.env.ZERO_G_TIMEOUT_MS, 10)
   : 20000;
 
-const zerogClient = process.env.ZERO_G_API_KEY
-  ? new OpenAI({
-      apiKey: process.env.ZERO_G_API_KEY,
-      baseURL: ZERO_G_BASE_URL,
-      timeout: ZERO_G_TIMEOUT_MS,
-    })
-  : null;
+const zerogConfigured = Boolean(process.env.ZERO_G_API_KEY);
 
 // Redis-backed frame rate enforcement (separate bucket from Venice / Replicate
 // so a busy 0G session doesn't penalize other providers).
@@ -59,7 +53,7 @@ router.post('/', async (req, res) => {
         .json({ error: 'Missing required fields: image, goal' });
     }
 
-    if (!zerogClient) {
+    if (!zerogConfigured && vision.configuredProviders().length === 0) {
       return res
         .status(503)
         .json({ error: '0G Compute is not configured (ZERO_G_API_KEY missing)' });
@@ -84,79 +78,105 @@ router.post('/', async (req, res) => {
       'Analyze this outfit.';
 
     const base64Image = image.replace(/^data:image\/\w+;base64,/, '');
+    const systemMsg =
+      systemInstruction ||
+      'You are a fashion stylist AI analyzing video frames. Provide concise, actionable styling feedback. Keep responses under 100 words.';
 
-    // Use raw fetch (not the OpenAI SDK) so the response envelope
-    // includes the `x_0g_trace` field that carries the TEE proof.
-    // The OpenAI SDK strips unknown fields, which would lose the
-    // tee_verified flag the agent layer wants for verifiable receipts.
-    const requestBody = {
-      model: model || ZERO_G_DEFAULT_MODEL,
-      messages: [
-        {
-          role: 'system',
-          content:
-            systemInstruction ||
-            'You are a fashion stylist AI analyzing video frames. Provide concise, actionable styling feedback. Keep responses under 100 words.',
-        },
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: prompt },
+    // Primary path: 0G Router. Uses raw fetch (not the OpenAI SDK) so the
+    // response envelope includes the `x_0g_trace` field carrying the TEE
+    // proof — the SDK strips unknown fields and would lose tee_verified.
+    // On any 0G failure (or missing key), fall back to the shared vision
+    // chain; the response then reports the real provider and
+    // tee_verified: false.
+    if (zerogConfigured) {
+      try {
+        const requestBody = {
+          model: model || ZERO_G_DEFAULT_MODEL,
+          messages: [
+            { role: 'system', content: systemMsg },
             {
-              type: 'image_url',
-              image_url: { url: `data:image/jpeg;base64,${base64Image}` },
+              role: 'user',
+              content: [
+                { type: 'text', text: prompt },
+                {
+                  type: 'image_url',
+                  image_url: { url: `data:image/jpeg;base64,${base64Image}` },
+                },
+              ],
             },
           ],
-        },
-      ],
-      max_tokens: 200,
-      temperature: 0.7,
-    };
-    if (verify_tee !== false) requestBody.verify_tee = true; // on by default
+          max_tokens: 200,
+          temperature: 0.7,
+        };
+        if (verify_tee !== false) requestBody.verify_tee = true; // on by default
 
-    const response = await fetch(`${ZERO_G_BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.ZERO_G_API_KEY}`,
-      },
-      body: JSON.stringify(requestBody),
-      signal: AbortSignal.timeout(ZERO_G_TIMEOUT_MS),
-    });
+        const response = await fetch(`${ZERO_G_BASE_URL}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${process.env.ZERO_G_API_KEY}`,
+          },
+          body: JSON.stringify(requestBody),
+          signal: AbortSignal.timeout(ZERO_G_TIMEOUT_MS),
+        });
 
-    if (!response.ok) {
-      const errBody = await response.text().catch(() => '');
-      logger.error('0G Router rejected request', {
-        component: 'zero-g-analyze',
-        status: response.status,
-        body: errBody.slice(0, 200),
-        keyLength: (process.env.ZERO_G_API_KEY ?? '').length,
-        keyPrefix: (process.env.ZERO_G_API_KEY ?? '').slice(0, 8),
-        keySuffix: (process.env.ZERO_G_API_KEY ?? '').slice(-4),
-      });
-      throw new Error(`0G Router error ${response.status}: ${errBody.slice(0, 200)}`);
+        if (!response.ok) {
+          const errBody = await response.text().catch(() => '');
+          logger.error('0G Router rejected request', {
+            component: 'zero-g-analyze',
+            status: response.status,
+            body: errBody.slice(0, 200),
+            keyLength: (process.env.ZERO_G_API_KEY ?? '').length,
+            keyPrefix: (process.env.ZERO_G_API_KEY ?? '').slice(0, 8),
+            keySuffix: (process.env.ZERO_G_API_KEY ?? '').slice(-4),
+          });
+          throw new Error(`0G Router error ${response.status}: ${errBody.slice(0, 200)}`);
+        }
+
+        const data = await response.json();
+        const analysis = data.choices?.[0]?.message?.content || '';
+
+        // TEE proof lives inside x_0g_trace, not at the top level.
+        // See: https://docs.0g.ai/developer-hub/building-on-0g/compute-network/router/overview
+        const trace = data.x_0g_trace || {};
+
+        return res.json({
+          analysis,
+          frameCount,
+          model: data.model || requestBody.model,
+          provider: '0g',
+          tee_verified: trace.tee_verified === true,
+          tee_provider: trace.provider || null,
+          tee_request_id: trace.request_id || null,
+          billing: trace.billing || null,
+        });
+      } catch (err) {
+        logger.warn('0G analysis failed, falling back to vision chain', {
+          component: 'zero-g-analyze',
+          error: err.message,
+        });
+      }
     }
 
-    const data = await response.json();
-    const analysis = data.choices?.[0]?.message?.content || '';
-
-    // TEE proof lives inside x_0g_trace, not at the top level.
-    // See: https://docs.0g.ai/developer-hub/building-on-0g/compute-network/router/overview
-    const trace = data.x_0g_trace || {};
-    const teeVerified = trace.tee_verified === true;
-    const providerAddress = trace.provider || null;
-    const requestId = trace.request_id || null;
-    const billing = trace.billing || null;
+    const result = await vision.completeVision({
+      system: systemMsg,
+      prompt,
+      imageDataUrl: `data:image/jpeg;base64,${base64Image}`,
+      maxTokens: 200,
+      temperature: 0.7,
+      expectJson: false,
+    });
 
     res.json({
-      analysis,
+      analysis: result.text,
       frameCount,
-      model: data.model || requestBody.model,
-      provider: '0g',
-      tee_verified: teeVerified,
-      tee_provider: providerAddress,
-      tee_request_id: requestId,
-      billing,
+      model: result.model,
+      provider: result.provider,
+      tee_verified: false,
+      tee_provider: null,
+      tee_request_id: null,
+      billing: null,
+      fallback: 'vision-chain',
     });
   } catch (error) {
     logger.error('0G Compute analysis failed', {
@@ -165,7 +185,10 @@ router.post('/', async (req, res) => {
       goal: req.body?.goal,
       clientIp: req.ip,
     });
-    res.status(502).json({ error: '0G Compute analysis failed' });
+    const unavailable = error.code === 'VISION_UNAVAILABLE';
+    res.status(unavailable ? 503 : 502).json({
+      error: unavailable ? 'All vision providers failed' : '0G Compute analysis failed',
+    });
   }
 });
 
