@@ -11,7 +11,7 @@ const crypto = require('crypto');
 
 const SHARE_ID_RE = /^[a-z0-9]{6,16}$/;
 const CHANNELS = new Set([
-  'copy', 'native', 'twitter', 'whatsapp', 'chatgpt', 'agent', 'direct', 'other',
+  'copy', 'native', 'twitter', 'whatsapp', 'chatgpt', 'agent', 'imessage', 'direct', 'other',
 ]);
 const CTA_KINDS = new Set(['tryon', 'shop']);
 

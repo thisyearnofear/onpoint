@@ -23,7 +23,7 @@ All events live in the existing `funnel_events` table (`metadata` JSON); there i
 
 ## Channels
 
-`copy`, `native`, `twitter`, `whatsapp`, `chatgpt`, `agent`, `direct`, `other`. Unknown values map to `other`.
+`copy`, `native`, `twitter`, `whatsapp`, `chatgpt`, `agent`, `imessage`, `direct`, `other`. Unknown values map to `other`.
 
 ## Definitions
 

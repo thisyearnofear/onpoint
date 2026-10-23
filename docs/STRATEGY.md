@@ -235,6 +235,19 @@ Co-primary workstreams:
 
 These are operating targets, not claims of current attainment.
 
+### Runway experiment (messaging surface)
+
+The messaging line hosts **Runway**: a themed closet challenge with an AI judge, a shareable result card, and "the fix" — a live OnPoint piece linked into the share-attribution funnel. It serves workstream 5 (embedded distribution) and turns the iMessage line from an external-merchant demo into a surface over OnPoint's own supply. Decision and phases: [ADR 0022](./adr/0022-runway-game-hosted-messaging.md). Evidence: [research/messaging-game-formats.md](./research/messaging-game-formats.md).
+
+| Phase A metric (first 2 weeks of live rounds)    | Target |
+| ------------------------------------------------ | ------ |
+| Distinct chats that start a round                | ≥ 50   |
+| Rounds with a photo submitted                    | ≥ 40%  |
+| Players who play a second round                  | ≥ 25%  |
+| Verdicts whose fix link is visited               | ≥ 10%  |
+
+**Stop rule:** after 100 started rounds, if photo submission is below 20% or second-round play is below 10%, stop building Phase B and re-examine the format. iMessage is measured as an attention channel; physical orders are not a Phase A metric.
+
 ### Phase 2 — Execution Reliability
 
 **Prerequisite:** Phase 1 supply and external usage bar is substantially met.
@@ -334,3 +347,9 @@ If the answer is no or unknown, defer.
 
 **Document owner:** Product Lead
 **Next strategy review:** after the next verified Phase 1 production snapshot
+
+## InstaDomain-pattern roadmap inputs (for next review)
+- [ ] `suggest_looks` + bulk availability check (sizes across listings, one call)
+- [ ] MPP + card rails alongside cUSD x402 (humans without wallets bounce today)
+- [ ] Referral attribution + receipt auto-attached in the buy response (provisioning inside the tool)
+- [ ] Order-status endpoint per paid call; exportable receipts (anti-lock-in posture)

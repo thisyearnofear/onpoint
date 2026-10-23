@@ -33,6 +33,8 @@ const crypto = require('crypto');
 const logger = require('../lib/logger');
 const linq = require('../lib/linq-client');
 const prava = require('../lib/prava-client');
+const vision = require('../lib/vision');
+const runwayEngine = require('../lib/runway/engine');
 const { getRedis } = require('../lib/redis');
 
 const router = express.Router();
@@ -58,6 +60,52 @@ const SERVICE_KEY = process.env.SERVICE_API_KEY;
 
 function parseTrackCommand(text) {
   return /^track\s+(op_[0-9a-f-]+)$/i.exec(String(text || '').trim())?.[1] || null;
+}
+
+// Inbound routing (ADR 0022 §1): 'shop <intent>' → Prava mission, an active
+// Prava mission keeps its behaviour, everything else → Runway.
+function routeInbound(p, activeMission) {
+  if (/^shop\s+(.+)/i.test(String(p?.text || '').trim())) return 'prava';
+  if (activeMission) return 'prava_active';
+  return 'runway';
+}
+
+// Render engine intents as Linq messages in order. iMessage gets the rich
+// card part; other services get the card URL as a link preview.
+async function handleRunwayInbound(p) {
+  const health = await safeGetChat(p.chatId);
+  const gate = await sendGate(health);
+  if (!gate.ok) {
+    logger.warn('Runway send gated by health', { component: 'linq-agent', chatId: p.chatId, reason: gate.reason });
+    return;
+  }
+  const service = p.service || health?.service || null;
+  const intents = await runwayEngine.handleInbound({
+    chatId: p.chatId,
+    text: p.text,
+    photoUrl: p.photo?.photoUrl,
+  });
+  for (const [i, intent] of intents.entries()) {
+    const idempotencyKey = `onpoint:runway:${p.messageId || p.chatId}:${i}`;
+    if (intent.type === 'card') {
+      await linq.sendToChat({
+        chatId: p.chatId,
+        ...(service === 'iMessage'
+          ? {
+              cardUrl: intent.cardUrl,
+              cardImageUrl: intent.cardImageUrl,
+              caption: intent.caption,
+              subcaption: intent.subcaption,
+            }
+          : { linkUrl: intent.cardUrl }),
+        idempotencyKey,
+      });
+    } else if (intent.type === 'link') {
+      await linq.sendToChat({ chatId: p.chatId, linkUrl: intent.url, idempotencyKey });
+    } else {
+      await linq.sendToChat({ chatId: p.chatId, text: intent.text, idempotencyKey });
+    }
+  }
 }
 
 function cardUrlFor(orderId, state) {
@@ -208,6 +256,7 @@ router.get('/health', (_req, res) => {
     pravaMode: prava.selfCheck() ? 'self-check' : 'live',
     publicBase: PUBLIC_BASE,
     phoneNumber: linq.fromNumber,
+    runway: { visionProviders: vision.configuredProviders().map((p) => p.name) },
     note: linq.live ? 'Live iMessage sends via Linq.' : 'Mock mode — sends log to console. Set LINQ_API_KEY + LINQ_WEBHOOK_SECRET for live.',
   });
 });
@@ -381,7 +430,16 @@ async function handleLinqEvent(event) {
     }
 
     const active = await getActiveChat(p.chatId);
-    if (active) {
+    const route = routeInbound(p, active);
+
+    // Explicit 'shop <intent>' prefix keeps the Prava mission reachable.
+    if (route === 'prava') {
+      const intent = /^shop\s+(.+)/i.exec(String(p.text).trim())[1];
+      await handleStyleIntent(p.chatId, p.from, intent, p.photo, p.service);
+      return;
+    }
+
+    if (route === 'prava_active') {
       if (p.photo) {
         await continueActiveOrder(p.chatId, active, { photo: p.photo, fitDecision: 'try_on_completed' });
         return;
@@ -401,8 +459,8 @@ async function handleLinqEvent(event) {
       p.text = p.text.replace(/^new\s*:\s*/i, '');
     }
 
-    // Otherwise treat the text as a new style intent.
-    await handleStyleIntent(p.chatId, p.from, p.text || 'style this for me', p.photo, p.service);
+    // Runway — the default experience on the messaging line (ADR 0022).
+    await handleRunwayInbound(p);
     return;
   }
 
@@ -739,3 +797,4 @@ module.exports = router;
 module.exports.getChatOrder = getActiveChat;
 module.exports.parseTrackCommand = parseTrackCommand;
 module.exports.maskHandle = maskHandle;
+module.exports.routeInbound = routeInbound;

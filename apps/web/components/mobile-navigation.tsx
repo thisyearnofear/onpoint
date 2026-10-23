@@ -11,10 +11,12 @@ import {
   DollarSign,
   BookOpen,
   Info,
+  Shirt,
 } from "lucide-react";
 import { CTA_SHOP } from "../lib/brand";
 
 const MOBILE_LINKS = [
+  { href: "/runway", label: "Runway", icon: Shirt, isNew: true },
   { href: CTA_SHOP.href, label: "Shop", icon: Camera },
   { href: "/looks", label: "Looks", icon: Sparkles },
   { href: "/curator", label: "Supply", icon: Store },
@@ -53,7 +55,7 @@ export function MobileNavigation() {
             className="flex flex-col gap-1 p-4"
             onClick={(e) => e.stopPropagation()}
           >
-            {MOBILE_LINKS.map(({ href, label, icon: Icon }) => (
+            {MOBILE_LINKS.map(({ href, label, icon: Icon, isNew }) => (
               <Link
                 key={href}
                 href={href}
@@ -62,6 +64,9 @@ export function MobileNavigation() {
               >
                 <Icon className="h-4 w-4 text-muted-foreground" />
                 {label}
+                {isNew && (
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-label="New" />
+                )}
               </Link>
             ))}
           </nav>

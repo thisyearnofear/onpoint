@@ -23,6 +23,13 @@ export function OnPointHeader() {
 
           <nav className="flex items-center gap-1">
             <Link
+              href="/runway"
+              className="inline-flex items-center gap-1.5 text-sm font-bold text-foreground hover:bg-muted/50 px-3 py-1.5 rounded-full transition-colors"
+            >
+              Runway
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-label="New" />
+            </Link>
+            <Link
               href="/#agent-search"
               className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 px-3 py-1.5 rounded-full transition-colors"
             >

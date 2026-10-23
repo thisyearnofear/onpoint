@@ -333,7 +333,7 @@ The card is stored in R2 and returned as `shareCard.imageUrl`.
 Every share of a look can carry a **share id** so the platform can follow it from share to try-on to order. It is optional and never changes price, payment, or commission.
 
 - **Format:** 6–16 lowercase letters/digits (for example `a1b2c3d4e5f6`). The look URL carries it as `?sid=<id>` and the channel as `?utm_source=<channel>`.
-- **Channels:** `copy`, `native`, `twitter`, `whatsapp`, `chatgpt`, `agent`, `direct`, `other`. Unknown values are stored as `other`.
+- **Channels:** `copy`, `native`, `twitter`, `whatsapp`, `chatgpt`, `agent`, `imessage`, `direct`, `other`. Unknown values are stored as `other`.
 - **Agents that share a look** can record it and get an id back:
 
   ```bash

@@ -29,6 +29,7 @@ describe('share id', () => {
 describe('channel / cta', () => {
   it('maps to the closed set', () => {
     expect(sanitizeChannel('WhatsApp')).toBe('whatsapp');
+    expect(sanitizeChannel('imessage')).toBe('imessage');
     expect(sanitizeChannel('x')).toBe('twitter');
     expect(sanitizeChannel('tiktok')).toBe('other');
     expect(sanitizeChannel(undefined)).toBe('direct');

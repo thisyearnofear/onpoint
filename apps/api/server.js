@@ -337,6 +337,11 @@ app.use('/okx', json10mb, require('./routes/okx-facade'));
 // facade so the facade's service-key auth doesn't gate it. ADR 0017.
 app.use('/prava/card', require('./routes/prava-card'));
 
+// ── Runway result card (shared after a judged round — no user photo) ──
+// PUBLIC (no service key) — the card content Linq fetches into the bubble
+// and the og:image page shared from the thread. ADR 0022.
+app.use('/runway/card', require('./routes/runway-card'));
+
 // ── Prava Sandbox Fallback (REST session flow — live-demo safety net) ─
 // session → hosted verification → credential readiness via Prava's REST API.
 // It does not synthesize an external checkout or report-status. ADR 0017.
@@ -375,6 +380,15 @@ app.use('/api/referrals', json1k, generalRateLimit, require('./routes/referrals'
 // External agents compose OnPoint listings into shareable style boards.
 
 app.use('/api/looks', json10mb, generalRateLimit, require('./routes/agent-looks'));
+
+// ── Runway web surface (ADR 0022) ─────────────────────────────────
+// Public consumer endpoints for playing Runway in the browser — same engine
+// as the iMessage line, no auth key. Only the photo-judging POST carries the
+// AI analysis limits: the SSR share page polls /results under the web
+// server's IP, so an expensive-tier daily cap there would rate-limit every
+// viewer after ~50 shares.
+app.use('/api/runway/rounds/:roundId/photo', json10mb, aiAnalysisRateLimit, aiAnalysisDailyLimit);
+app.use('/api/runway', json10mb, generalRateLimit, require('./routes/runway-api'));
 
 // ── Listing Routes (public, rate-limited) ───────────────────────
 // Similar physical items for digital listings (digital→physical funnel).

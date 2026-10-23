@@ -16,6 +16,7 @@ import { ShareBar } from "./ShareBar";
 import { LookTracker } from "./LookTracker";
 import { EditLookButton } from "./EditLookButton";
 import { LookItemGrid } from "./LookItemGrid";
+import { RUNWAY_THEME_NAMES } from "../../../lib/utils/runway";
 
 export const dynamic = "force-dynamic";
 
@@ -114,12 +115,13 @@ export default async function LookPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams?: Promise<{ sid?: string | string[] }>;
+  searchParams?: Promise<{ sid?: string | string[]; from?: string; judge?: string; theme?: string }>;
 }) {
   const { slug } = await params;
   // Share attribution: forward a valid share id through the CTA links so the
   // storefront / agent flows can keep it (docs/ops/growth-loop.md).
-  const rawSid = (await searchParams)?.sid;
+  const sp = (await searchParams) || {};
+  const rawSid = sp.sid;
   const sidValue = (Array.isArray(rawSid) ? rawSid[0] : rawSid)?.toLowerCase();
   const sidParam = sidValue && /^[a-z0-9]{6,16}$/.test(sidValue) ? `&sid=${sidValue}` : "";
   const look = await loadLook(slug);
@@ -131,6 +133,13 @@ export default async function LookPage({
   const moreLooks = look.curatorSlug
     ? await loadMoreFromCurator(look.curatorSlug, look.slug)
     : [];
+  const runwayBanner =
+    sp.from === "runway" && typeof sp.judge === "string"
+      ? {
+          judge: sp.judge.charAt(0).toUpperCase() + sp.judge.slice(1).toLowerCase(),
+          theme: typeof sp.theme === "string" ? RUNWAY_THEME_NAMES[sp.theme] : undefined,
+        }
+      : null;
   const agentShort = look.agentAddress
     ? `${look.agentAddress.slice(0, 6)}…${look.agentAddress.slice(-4)}`
     : "unknown";
@@ -156,6 +165,20 @@ export default async function LookPage({
           </Link>
           <EditLookButton curatorSlug={look.curatorSlug} lookSlug={look.slug} />
         </div>
+
+        {runwayBanner && (
+          <div className="mb-6 flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/[0.08] px-4 py-3">
+            <span className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-primary">
+              Runway
+            </span>
+            <p className="text-sm font-bold text-foreground">
+              {runwayBanner.judge}&rsquo;s fix{runwayBanner.theme ? ` for ${runwayBanner.theme}` : ""}
+              <span className="ml-2 font-normal text-muted-foreground">
+                Try it on before your next round.
+              </span>
+            </p>
+          </div>
+        )}
 
         {/* Title + description — editorial header */}
         <div className="mb-6 space-y-3">

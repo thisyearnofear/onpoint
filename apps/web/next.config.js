@@ -67,6 +67,7 @@ const nextConfig = {
       { source: '/api/agent/dashboard', destination: `${hetzner}/api/agent/dashboard` },
       { source: '/api/agent/identity', destination: `${hetzner}/api/agent/identity` },
       { source: '/api/market-intelligence/search', destination: `${hetzner}/api/market-intelligence/search` },
+      { source: '/api/runway/:path*', destination: `${hetzner}/api/runway/:path*` },
       { source: '/api/curator/:slug/storefront', destination: `${hetzner}/api/curator/:slug/storefront` },
       // Prava agent checkout (ADR 0017) — public-facing endpoints proxied to the API.
       { source: '/prava/search', destination: `${hetzner}/prava/search` },

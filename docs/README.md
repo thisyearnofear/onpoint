@@ -62,6 +62,8 @@ Historical technical decisions. Immutable — new decisions get new ADRs.
 
 Market research inputs. Verify sources before external citation.
 
+- [messaging-game-formats.md](./research/messaging-game-formats.md) — consumer game formats, Linq/Photon channel facts (evidence for ADR 0022)
+
 ## Rules
 
 1. One doc owns each topic — link, don't copy.

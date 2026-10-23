@@ -12,7 +12,7 @@ afterAll(() => {
   else process.env.LINQ_MOCK = previousLinqMock;
 });
 
-const { maskHandle, parseTrackCommand } = require('./linq-agent');
+const { maskHandle, parseTrackCommand, routeInbound } = require('./linq-agent');
 const linq = require('../lib/linq-client');
 
 describe('Linq web mission handoff', () => {
@@ -29,6 +29,24 @@ describe('Linq web mission handoff', () => {
   it('exposes only a masked recipient handle to the web handoff', () => {
     expect(maskHandle('+919876543210')).toBe('•••• 3210');
     expect(maskHandle('')).toBeNull();
+  });
+});
+
+describe('Runway inbound routing (ADR 0022)', () => {
+  it('routes "shop <intent>" to the Prava path even with an active mission', () => {
+    expect(routeInbound({ text: 'shop weekend jacket' }, null)).toBe('prava');
+    expect(routeInbound({ text: 'SHOP weekend jacket' }, { orderId: 'x' })).toBe('prava');
+  });
+
+  it('keeps an active Prava mission ahead of Runway', () => {
+    expect(routeInbound({ text: 'SKIP FIT' }, { orderId: 'op_1' })).toBe('prava_active');
+    expect(routeInbound({ photo: { photoUrl: 'https://x/p.jpg' } }, { orderId: 'op_1' })).toBe('prava_active');
+  });
+
+  it('sends plain text with no active mission to Runway', () => {
+    expect(routeInbound({ text: 'weekend jacket' }, null)).toBe('runway');
+    expect(routeInbound({ text: 'play' }, null)).toBe('runway');
+    expect(routeInbound({ photo: { photoUrl: 'https://x/p.jpg' } }, null)).toBe('runway');
   });
 });
 

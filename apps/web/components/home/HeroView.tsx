@@ -24,6 +24,7 @@ import { trackHomepageCta } from "../../lib/utils/analytics";
 import { captureReferralFromURL } from "../../lib/utils/referral";
 import { CTA_SHOP, CTA_SUPPLY, HERO, PRODUCT_NAME } from "../../lib/brand";
 import { HeroVisual } from "./HeroVisual";
+import { RunwayTeaser } from "../runway/RunwayTeaser";
 import { AgentFlow } from "../Agent/AgentFlow";
 import { PravaEvidenceReceipt } from "../Agent/PravaEvidenceReceipt";
 
@@ -305,6 +306,8 @@ export function HeroView() {
           </div>
         </div>
       </section>
+
+      <RunwayTeaser />
 
       <section
         id="agent-search"
