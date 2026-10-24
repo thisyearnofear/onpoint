@@ -15,6 +15,7 @@ only what's needed — no `git pull` on the server, no pnpm on the server.
 - **Cache:** Redis on localhost:6379 (shared instance)
 - **Worker:** `onpoint-worker` on 127.0.0.1:48754 (Phase 1) — heartbeat + task batch loop
 - **Signer:** `onpoint-signer` on 127.0.0.1:48755 (Phase 4) — sole holder of `AGENT_PRIVATE_KEY`, signs mint/transfer requests from the autonomous executor
+- **Spectrum worker:** `onpoint-spectrum` — Runway iMessage line over Photon Spectrum (`apps/api/spectrum-runway.js`; streams `app.messages`, no webhook). Needs `SPECTRUM_PROJECT_ID`/`SPECTRUM_PROJECT_SECRET` (and optionally `RUNWAY_LINE_NUMBER`) in `shared/api/.env`; exits cleanly without them. Linq (`routes/linq-agent.js`) is dormant — its trial key returns 401.
 
 **Deploy strategy (ADR 0001):**
 - `pnpm` builds the workspace packages locally → isolated `npm install --omit=dev` bundle → `rsync` → symlink flip → `pm2 reload`
@@ -125,7 +126,7 @@ The script does:
 11. Health check               —— curl /health (retries) AND the PM2 instance count must equal `instances`
                                  for onpoint-api in ecosystem.config.js
 12. Auto-rollback on failure   —— flips back, reloads, verifies, removes the failed release
-13. Start/reload worker, agent-server, signer
+13. Start/reload worker, agent-server, signer, spectrum worker
 14. Prune inactive releases    —— keep last 2, preserve active target
 15. Disk summary               —— show usage
 ```

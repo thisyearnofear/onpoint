@@ -6,6 +6,13 @@
 > mechanics: [MUSE_SUBMISSION_PLAN.md](./MUSE_SUBMISSION_PLAN.md) · format
 > evidence: [docs/research/messaging-game-formats.md](./docs/research/messaging-game-formats.md).
 
+> **Update 2026-10-24:** the line migrated from Linq to a Photon
+> Spectrum-managed number, **+1 (628) 264-6604** (`onpoint-spectrum`
+> worker). It's a shared-pool line: only allow-listed phones get replies,
+> and email senders are rejected by Photon. Until a dedicated number exists,
+> don't promise "text her yourself" to strangers — the CTA only works for
+> allow-listed phones.
+
 ## The job
 
 One clip for the Photon "Muse" X post that makes a stranger want to text a
@@ -38,7 +45,7 @@ result.** The comedy is physical (the closet raid) plus verbal (the verdict).
 | 4 | "The judges are conferring…" beat — typing dots, let anticipation breathe ~2–3s | iMessage |
 | 5 | **The verdict.** Edina's roast lands + the score card (three paddles: Theme / Cohesion / Styling) | iMessage + result card |
 | 6 | "The fix" — tap through to a real OnPoint look page. This is the product beat: it's a real piece, on a real storefront, you can try on. | Look page, one clean scroll |
-| 7 | End card: **"Text your judge: +1 (424) 394-5528"** + "again" for a new theme | Black card, phone number readable |
+| 7 | End card: **"Text your judge: +1 (628) 264-6604"** + "again" for a new theme | Black card, phone number readable |
 
 ### Alt concept (backup): "Group chat runway"
 
@@ -77,7 +84,7 @@ underdelivers in review. Don't fake group features that don't exist.
 > i texted an AI fashion judge "play" and she gave me 3 minutes to dress for
 > VILLAIN ERA. then she scored my closet. @PhotonHQ
 >
-> text her yourself: +1 (424) 394-5528
+> text her yourself: +1 (628) 264-6604
 
 Attach: the clip + the chat-history screenshot.
 

@@ -5,6 +5,21 @@
 **Related**: ADR 0017 (Prava agent checkout — the current Linq flow), ADR 0019 (share attribution), ADR 0002 (curator primitive / messaging bridge)
 **Evidence**: [research/messaging-game-formats.md](../research/messaging-game-formats.md)
 
+> **Update (2026-10-24) — channel migration to Photon Spectrum.** The Linq
+> trial expired (every API call returned `401`, and no inbound webhooks
+> reached prod — the line was silently unresponsive). Runway's iMessage
+> line now runs on a **Photon Spectrum** managed number, **+1 628 264 6604**
+> (`RUNWAY_LINE_NUMBER`, shared pool — replies only to numbers added under
+> Project → Users until a dedicated number is provisioned).
+> `apps/api/spectrum-runway.js` runs as a dedicated PM2 process
+> (`onpoint-spectrum`) and consumes `app.messages` — no webhook. The engine
+> is unchanged apart from an `imageDataUrl` input; `heic-convert` decodes
+> iPhone HEIC photos before the sharp pipeline, and messages are serialised
+> per chat while chats run in parallel. `routes/linq-agent.js` and
+> `lib/linq-client.js` remain dormant as the fallback path if the Linq
+> account is renewed. References to Linq below describe the original
+> deployment; the semantics carry over to the Spectrum adapter.
+
 ## Context
 
 OnPoint runs a live iMessage line through Linq (ADR 0017). Today every inbound message starts a Prava checkout mission over **external US Shopify merchants**, which run on deterministic fixtures in self-check mode. That surface:
@@ -34,7 +49,7 @@ Routing: the existing Prava mission remains reachable through the web handoff (`
 | Phase | Scope | Gate to proceed |
 | --- | --- | --- |
 | **A — Solo Runway** | 1:1 rounds, vision judge, result card, the fix, attribution, cost caps | Phase A metrics below |
-| **B — Group Runway** | Agent in a group chat (Linq supports 3–31 participants); each player submits; native iMessage **poll** for the peer vote (`poll.vote.added` webhooks); ranked runway card mutates in place as votes land | Linq group/poll behaviour verified on a real group |
+| **B — Group Runway** | Agent in a group chat (Spectrum iMessage supports groups); each player submits; iMessage **poll** content type for the peer vote; ranked runway card mutates in place as votes land | Spectrum group/poll behaviour verified on a real group |
 | **C — Retention** | Daily theme (user-initiated, never random push), streaks, Fit Imposter mode, "Style Wrapped" from history | Phase B engagement |
 | **D — WhatsApp** | Same engine on WhatsApp Business via Spectrum (`packages/messaging-bridge`) for the Kenyan curator market | Engine is channel-agnostic (see §4) |
 
@@ -61,7 +76,7 @@ Notes from first live verification (2026-10-23): reasoning models (e.g. OpenRout
 
 ### 4. Channel-agnostic engine
 
-Game state, theme selection, judging, scoring, card composition and the fix live in `apps/api/lib/runway/` with no Linq imports. `routes/linq-agent.js` is an adapter: it parses webhooks, calls the engine, and renders its output as Linq messages. A Spectrum/WhatsApp adapter (Phase D) reuses the engine unchanged.
+Game state, theme selection, judging, scoring, card composition and the fix live in `apps/api/lib/runway/` with no channel imports. Two adapters exist: `apps/api/spectrum-runway.js` (live — streams `app.messages`, calls the engine, renders intents as Spectrum text/attachment/rich-link sends) and `routes/linq-agent.js` (dormant fallback — parses webhooks, renders the same intents as Linq messages). A WhatsApp adapter (Phase D) reuses the engine unchanged.
 
 ### 4a. Web surface (one product across channels)
 
@@ -81,7 +96,7 @@ Visual system: a dark "backstage" stage within the existing OnPoint tokens; the 
 - **Refusals.** No person/outfit visible, apparent minor, or nudity → a polite refusal and no score.
 - **Photo retention.** The submitted photo is fetched, downscaled in memory, sent to the vision provider, and discarded. It is not written to R2, Redis or logs. The result card contains no photo.
 - **Cost.** Per-chat round cap per day and a global daily vision-call cap (`RUNWAY_DAILY_VISION_CAP`); over the cap, the deterministic fallback answers.
-- **Line health.** Rounds are user-initiated (inbound-first). The game naturally produces inbound replies (photos, "again"), which supports Linq's recommended ~1:2 inbound:outbound ratio. No scheduled "time's up" sends — the deadline is soft and applied when the photo arrives.
+- **Line health.** Rounds are user-initiated (inbound-first). The game naturally produces inbound replies (photos, "again"), which supports the recommended ~1:2 inbound:outbound ratio on whichever provider carries the line. No scheduled "time's up" sends — the deadline is soft and applied when the photo arrives. On the Spectrum shared pool the line only accepts messages from allow-listed phone numbers (email senders and strangers are rejected by Photon before reaching the worker); a dedicated number removes that constraint.
 - **Opt-out** handling and chat-health gating from ADR 0017 apply unchanged.
 
 ### 6. Measurement
@@ -94,7 +109,7 @@ Phase A targets and stop rule live in [STRATEGY.md](../STRATEGY.md#runway-experi
 
 - The messaging line starts building OnPoint's own distribution and outcome data instead of exercising an external merchant fixture.
 - "The fix" is constrained by supply: at the time of writing the directory lists one curator with eight live listings. Runway will surface the supply-density gap quickly — that is a feature of the experiment, not a reason to delay it.
-- Phase B depends on Linq group-chat and poll behaviour that is documented but not yet exercised by this codebase.
+- Phase B depends on Spectrum group-chat and poll behaviour that is documented but not yet exercised by this codebase.
 - The Prava flow is preserved but no longer the default; its compliance copy is unchanged.
 - iMessage reaches an iPhone-heavy, mostly US audience; it is measured as an attention channel (rounds, shares, fix visits), not by physical orders. WhatsApp (Phase D) is the commerce path for the current curator market.
 - Apple's policy for agents in Messages is tightening (first third-party approval was granted in October 2026); line reputation must be monitored, and `phone_number.status_updated` should alert, not just log.

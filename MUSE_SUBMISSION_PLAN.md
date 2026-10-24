@@ -18,24 +18,30 @@ Reason: the Prava flow runs on fixture merchants in self-check mode and its
 climax (passkey approval) cannot happen; Runway is a delightful, honest loop
 over OnPoint's own inventory and is the first step of the growth experiment.
 
-## Step 0 — eligibility (do first)
+## Step 0 — eligibility (resolved 2026-10-24)
 
-Check the Typeform fine print. The line runs on **Linq** (Photon-ecosystem
-partner). Photon's own SDK, `spectrum-ts`, is already a dependency
-(`packages/messaging-bridge`, curator WhatsApp commands). If the form requires
-Photon's managed iMessage lines specifically, decide before building whether to
-(a) submit as Linq + Spectrum ecosystem, or (b) fall back to WritersArcade
-Flynn.
+The Linq trial expired, and the line migrated to a **Photon Spectrum-managed
+iMessage line** (project `onpoint`, `spectrum-ts` in `apps/api/spectrum-runway.js`).
+The agent now runs on Photon's own SDK + managed line — native compliance, no
+fallback framing needed.
+
+**Caveat:** the line is a shared-pool number **+1 (628) 264-6604** that only
+replies to phones allow-listed in the Photon dashboard (and it rejects email
+senders). A viral CTA ("text her yourself") requires a dedicated number
+(Business plan). Until then, the demo invite is "watch" not "text".
+
+> **Paused:** submission deferred until the public-number decision.
 
 ## Build (ADR 0022 Phase A)
 
 - Runway engine (`apps/api/lib/runway/`), vision chain (`apps/api/lib/vision.js`),
-  Linq adapter changes, result card, the fix, `imessage` attribution channel.
+  Spectrum adapter (`apps/api/spectrum-runway.js`), result card, the fix,
+  `imessage` attribution channel.
 - **Blocker:** a working vision key. Local Venice key fails auth; DashScope is
   suspended (overdue balance). Owner to add `GEMINI_API_KEY` and/or
   `OPENROUTER_API_KEY` to `apps/api/.env` and the Hetzner env.
-- Deploy via `.github/workflows/deploy-api.yml`; confirm `/linq/health`
-  reports `mode:"live"` and at least one vision provider.
+- Deploy via `.github/workflows/deploy-api.yml`; confirm `onpoint-spectrum`
+  is `online` in PM2 and `/linq/health` reports at least one vision provider.
 
 ## Demo script (~45–60s)
 
@@ -43,7 +49,7 @@ Flynn.
 2. Cut: closet raid, sped up (this is the IRL moment — the Subway-Surfers-IRL energy).
 3. Send the photo → persona verdict lands, result card pops in.
 4. "The fix" → tap through to the look page.
-5. "again" → new theme. End card: "Text your judge: +1 (424) 394-5528".
+5. "again" → new theme. End card: "Text your judge: +1 (628) 264-6604".
 
 ## Category positioning
 

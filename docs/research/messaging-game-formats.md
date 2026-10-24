@@ -45,16 +45,18 @@ What IRL players improvise — the theme, the clock, the judge, the scoreboard �
 
 ## Channel facts (verified against vendor docs, Oct 2026)
 
-**Linq (current iMessage provider)** — [docs](https://docs.linqapp.com/channel/imessage/):
+**Linq (iMessage provider until 2026-10-24 — trial expired; replaced by Photon Spectrum)** — [docs](https://docs.linqapp.com/channel/imessage/):
 - Group chats of 3–31 participants via `POST /v3/chats` with multiple `to` handles; participants can be added/removed (iMessage only). Delivery and read receipts are not available in groups.
 - Native iMessage **polls** (`POST /v3/chats/{chatId}/polls`) with `poll.vote.added` webhooks; a poll cannot be a chat's first message; options are add-only.
 - Reactions, mentions, typing indicators, message effects, chat backgrounds, contact-card sharing.
 - **Experiences:** native cards rendered by Linq's own iMessage app, including `agentpay` (`request_payment`) that flips to "Paid" in place.
 - Best practices: inbound-first; **no links or media in the first outbound message**; aim for 3+ early replies and ~1:2 inbound:outbound; ≤7,000 messages/day per line; honour opt-out (error `2024`); send without pinning `from`.
 
-**Photon Spectrum** — [docs](https://photon.codes/docs/spectrum-ts/introduction):
-- One agent server, many providers: iMessage (managed lines; DMs, groups, reactions, threaded replies, effects), WhatsApp Business, Telegram, terminal, SIP voice.
-- Already a dependency: `packages/messaging-bridge` wraps `spectrum-ts` for curator WhatsApp commands (`apps/api/agent-server.js`).
+**Photon Spectrum (current iMessage provider)** — [docs](https://photon.codes/docs/spectrum-ts/introduction):
+- One agent server, many providers: iMessage (managed lines; DMs, groups, reactions, threaded replies, effects, polls as first-class content), WhatsApp Business, Telegram, terminal, SIP voice.
+- Inbound via the `app.messages` stream (long-lived process) or `app.webhook()` (native HMAC webhooks or Fusor pass-through). Runway uses the stream.
+- Shared-pool lines answer only Project → Users phone numbers and reject email senders; a dedicated number removes that constraint.
+- Already a dependency: `packages/messaging-bridge` wraps `spectrum-ts` for curator WhatsApp commands (`apps/api/agent-server.js`); `apps/api/spectrum-runway.js` (`onpoint-spectrum`) carries the Runway iMessage line.
 
 ## Market caveat
 
