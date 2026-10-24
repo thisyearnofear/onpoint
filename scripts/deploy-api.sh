@@ -638,6 +638,18 @@ if [[ "$DRY_RUN" == false ]]; then
   }
 fi
 
+# ── Step 9.7: Start/reload onpoint-spectrum ──────────────────────────
+# Runway iMessage worker over Photon Spectrum (primary line). Same
+# startOrGracefulReload pattern — first deploy starts it, later ones reload.
+info "🔄 Starting/reloading PM2 process: onpoint-spectrum"
+cmd "ssh ${SSH_HOST} \"cd ${REMOTE_BASE} && pm2 startOrGracefulReload deploy/ecosystem.config.js --only onpoint-spectrum\""
+
+if [[ "$DRY_RUN" == false ]]; then
+  ssh "$SSH_HOST" "cd ${REMOTE_BASE} && pm2 startOrGracefulReload deploy/ecosystem.config.js --only onpoint-spectrum" || {
+    warn "⚠️  Spectrum worker start/reload failed — API deploy succeeded"
+  }
+fi
+
 # ── Step 10: Cleanup old backup (if this was first-deploy transition) ─
 if [[ "$DRY_RUN" == false && "${HAS_BAK:-false}" == true ]]; then
   info "🧹 Removing backup of original apps/api directory"

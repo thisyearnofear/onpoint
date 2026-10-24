@@ -29,7 +29,7 @@ async function loadPhoneNumber(): Promise<string> {
   } catch {
     // fall through to the sandbox line
   }
-  return "+14243945528";
+  return "+16282646604";
 }
 
 async function loadResult(roundId: string): Promise<Result | null> {

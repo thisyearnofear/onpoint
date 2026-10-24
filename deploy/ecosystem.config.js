@@ -123,6 +123,29 @@ module.exports = {
       merge_logs: true,
     },
 
+    {
+      name: 'onpoint-spectrum',
+      cwd: '/opt/onpoint',
+      script: 'apps/api/spectrum-runway.js', // Runway iMessage line over Photon Spectrum (primary; Linq dormant)
+      instances: 1,
+      exec_mode: 'fork',
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '900M',
+      max_restarts: 10,
+      restart_delay: 5000,
+      env: {
+        NODE_ENV: 'production',
+        REDIS_URL: 'redis://localhost:6379',
+        // SPECTRUM_PROJECT_ID / SPECTRUM_PROJECT_SECRET live in shared/api/.env.
+        // Do NOT add empty keys here — dotenv treats a pre-set empty var as set.
+      },
+      error_file: '/var/log/pm2/onpoint-spectrum-error.log',
+      out_file: '/var/log/pm2/onpoint-spectrum-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      merge_logs: true,
+    },
+
     // ── onpoint-bridge ───────────────────────────────────────────────
     // Python web-bridge for TinyFish / BrightData / Purch / Browser Use.
     // ADR 0008 + ADR 0004. The bridge is NOT deployed by deploy-api.sh's

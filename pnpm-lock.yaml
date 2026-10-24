@@ -88,6 +88,9 @@ importers:
       express:
         specifier: ^5.2.1
         version: 5.2.1
+      heic-convert:
+        specifier: 2.1.0
+        version: 2.1.0
       ioredis:
         specifier: ^6.0.0
         version: 6.0.0
@@ -97,6 +100,9 @@ importers:
       sharp:
         specifier: 0.35.5
         version: 0.35.5(@types/node@22.19.20)
+      spectrum-ts:
+        specifier: 12.11.0
+        version: 12.11.0(typescript@5.9.2)
       viem:
         specifier: ^2.21.0
         version: 2.52.2(bufferutil@4.1.0)(typescript@5.9.2)(utf-8-validate@6.0.6)(zod@4.4.3)
@@ -554,7 +560,7 @@ importers:
     dependencies:
       spectrum-ts:
         specifier: ^12.10.1
-        version: 12.10.1(typescript@5.9.2)
+        version: 12.11.0(typescript@5.9.2)
     devDependencies:
       '@repo/typescript-config':
         specifier: workspace:*
@@ -2834,8 +2840,8 @@ packages:
     resolution: {integrity: sha512-kYGj/ieKOCG+OxoD1R69xHoT7zHl9dboF52LMPUl4FnorbwA8b2pid0uFoDYF55WIfoeo+VSqwlmY84GgpSedg==}
     engines: {node: '>=18'}
 
-  '@photon-ai/whatsapp-business@0.2.0':
-    resolution: {integrity: sha512-FL5hKSZcgXCiZO1hVbu2A2Bd226ZfDEcbvlVWCEJUukWPUL7Gcs0RSwsJm57FnF0J/KhZ1DiwMWLoSL06N+fGw==}
+  '@photon-ai/whatsapp-business@0.3.2':
+    resolution: {integrity: sha512-uloaWcAefUBIHPs177gMvtNl+kCRv6JbD9dpALAKGGS05TlfqcN9kJcL8FSllz25Iflq9WOaLd12yxItKL9Sdg==}
     engines: {node: '>=18'}
 
   '@posthog/core@1.25.2':
@@ -3912,8 +3918,8 @@ packages:
   '@solidity-parser/parser@0.20.2':
     resolution: {integrity: sha512-rbu0bzwNvMcwAjH86hiEAcOeRI2EeK8zCkHDrFykh/Al8mvJeFmjy3UrE7GYQjNwOgbGUUtCn5/k8CB8zIu7QA==}
 
-  '@spectrum-ts/core@12.10.1':
-    resolution: {integrity: sha512-XXoSxdYsvEkl23bvGbP9wT97EafkAV3yBDWkodBkPxGihQ1io9D5F4zER2qaapNf9tPJvlUdcV4VF2PbJFRYKw==}
+  '@spectrum-ts/core@12.11.0':
+    resolution: {integrity: sha512-ufU5sZ6ytZxtwtPSxZs8Zq9gr9W9ot5nrxvfF6Xjj313laHYjdFtdfyi3GnuhreZyeKWmGB3gSVZ2a+7YXbxrw==}
     peerDependencies:
       ffmpeg-static: ^5
       typescript: ^5 || ^6.0.0
@@ -3921,32 +3927,32 @@ packages:
       ffmpeg-static:
         optional: true
 
-  '@spectrum-ts/imessage@12.10.1':
-    resolution: {integrity: sha512-/eJqmmxvBktSMyiMoDDl/nF2QzELTlJnSepB2qU2ijkd7pDTF6P7ze2fiA82urYJl+OnIPUldslFAeJxEUp+Vw==}
+  '@spectrum-ts/imessage@12.11.0':
+    resolution: {integrity: sha512-1ABMYLbQ5PdnZi+eG1/dQCGqhz7xvlRvfX7JPeCwpKXEvsMvsiUvFuzvf1YI/ibYecRVbp1OquzdyZmr3qlVUg==}
     peerDependencies:
       '@spectrum-ts/core': ^12.0.0
       typescript: ^5 || ^6.0.0
 
-  '@spectrum-ts/slack@12.10.1':
-    resolution: {integrity: sha512-9nsGKUoxQltaj2gd/FJkcQpUyHxbMBKBw1fxKM17SNGgQwS1/edCmkSVQc23lxB7tA2lEaqU/fuam/j2q5NTzw==}
+  '@spectrum-ts/slack@12.11.0':
+    resolution: {integrity: sha512-JMCkwC1PehRbnnqVLWjBxgDVU5ltpat9SkM+9OnqocOwYlZ2Eev04KW2cLplxWWnidNwMxY9TvtOuHVhu3gLgA==}
     peerDependencies:
       '@spectrum-ts/core': ^12.0.0
       typescript: ^5 || ^6.0.0
 
-  '@spectrum-ts/telegram@12.10.1':
-    resolution: {integrity: sha512-yUXVhKFte33Qg7StaaVhUotTIR/b3m29jdm91Ih0kzEjtvC0JsholmkXwlvd9EhbXInZdCopFpjUAyQwol6p0g==}
+  '@spectrum-ts/telegram@12.11.0':
+    resolution: {integrity: sha512-o6DUHX9K0eo69I9r0KEaAnkkvKnJsuvr7vy+gDX+9R6D27KsnwDoFnahzF3cgI1yYVLs4DsiVYPjgR0uvh/kLQ==}
     peerDependencies:
       '@spectrum-ts/core': ^12.0.0
       typescript: ^5 || ^6.0.0
 
-  '@spectrum-ts/terminal@12.10.1':
-    resolution: {integrity: sha512-mE+cVja/L9YLZaVmhEW7kGqx6eGLUkqd4xreiE4luew5lUY6KDbdESAdo9e1RpdMFW2FWNpkvCEJirQtRmE1dQ==}
+  '@spectrum-ts/terminal@12.11.0':
+    resolution: {integrity: sha512-to2bXgF99J8XPD398yUTo1OfQYAyobnNE4PSdEBqfOsKAmduLEuD7+8Qhjk6cg5OYwdwZSerVhqDm81jfiA6jw==}
     peerDependencies:
       '@spectrum-ts/core': ^12.0.0
       typescript: ^5 || ^6.0.0
 
-  '@spectrum-ts/whatsapp-business@12.10.1':
-    resolution: {integrity: sha512-5pk7FrsQoTWx9gaYPn8O3mSAda+ihhBRKao44051XOaaLffE77EHPPQ0b7ljxcV/Zkk317K7T7FX51bo4mSynA==}
+  '@spectrum-ts/whatsapp-business@12.11.0':
+    resolution: {integrity: sha512-goG3p4VsZgRgA6MdozalN/oNYKxWypIZ6eP92U4wX8D4eF6aipeATio5YetcI/Oz+WuC/ZyEAS0N8uudhKXZJw==}
     peerDependencies:
       '@spectrum-ts/core': ^12.0.0
       typescript: ^5 || ^6.0.0
@@ -7016,6 +7022,14 @@ packages:
   heap@0.2.7:
     resolution: {integrity: sha512-2bsegYkkHO+h/9MGbn6KWcE45cHZgPANo5LXF7EvWdT0yT2EguSVO1nDgU5c8+ZOPwp2vMNa7YFsJhVcDR9Sdg==}
 
+  heic-convert@2.1.0:
+    resolution: {integrity: sha512-1qDuRvEHifTVAj3pFIgkqGgJIr0M3X7cxEPjEp0oG4mo8GFjq99DpCo8Eg3kg17Cy0MTjxpFdoBHOatj7ZVKtg==}
+    engines: {node: '>=12.0.0'}
+
+  heic-decode@2.1.0:
+    resolution: {integrity: sha512-0fB3O3WMk38+PScbHLVp66jcNhsZ/ErtQ6u2lMYu/YxXgbBtl+oKOhGQHa4RpvE68k8IzbWkABzHnyAIjR758A==}
+    engines: {node: '>=8.0.0'}
+
   hmac-drbg@1.0.1:
     resolution: {integrity: sha512-Tti3gMqLdZfhOQY1Mzf/AanLiqh1WTiJgEj26ZuYQ9fbkLomzGchCws4FyrSd4VkpBfiNhaE1On+lOz894jvXg==}
 
@@ -7398,6 +7412,9 @@ packages:
     resolution: {integrity: sha512-34wB/Y7MW7bzjKRjUKTa46I2Z7eV62Rkhva+KkopW7Qvv/OSWBqvkSY7vusOPrNuZcUG3tApvdVgNB8POj3SPw==}
     engines: {node: '>=10'}
 
+  jpeg-js@0.4.4:
+    resolution: {integrity: sha512-WZzeDOEtTOBK4Mdsar0IqEU5sMr3vSV2RqkAIzUEV2BHnUfKGyswWFPFwK5EeDo93K3FohSHbLAjj0s1Wzd+dg==}
+
   js-base64@2.6.4:
     resolution: {integrity: sha512-pZe//GGmwJndub7ZghVHz7vjb2LgC1m8B07Au3eYqeqv9emhESByMXxaEgkUkEqJe87oBbSniGYoQNIBklc7IQ==}
 
@@ -7521,6 +7538,10 @@ packages:
   levn@0.4.1:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
     engines: {node: '>= 0.8.0'}
+
+  libheif-js@1.23.5:
+    resolution: {integrity: sha512-umXZPthnWZtF3iG/5mQG+AZ2V6i0UeYpo3z2CkggTEgL8dKmIIwJT6TDuAMuabXa1yTW8uJ1ZAgR+CxNTklYYw==}
+    engines: {node: '>=8.0.0'}
 
   lie@3.1.1:
     resolution: {integrity: sha512-RiNhHysUjhrDQntfYSfY4MU24coXXdEOgw9WGcKHNeEwffDYbF//u87M1EWaMGzuFoSbqW0C9C6lEEhDOAswfw==}
@@ -8384,6 +8405,10 @@ packages:
     resolution: {integrity: sha512-40QW5YalBNfQo5yRYmiw7Yz6TKKVr3h6970B2YE+3fQpsWcrbj1PzJgxeJ19DRQjhMbKPIuMY8rFaXc8moolVw==}
     engines: {node: '>=10.13.0'}
 
+  pngjs@6.0.0:
+    resolution: {integrity: sha512-TRzzuFRRmEoSW/p1KVAmiOgPco2Irlah+bGFCeNfJXxxYGwSw7YwAOAcd7X28K/m5bjBWKsC29KyoMfHbypayg==}
+    engines: {node: '>=12.13.0'}
+
   pony-cause@2.1.11:
     resolution: {integrity: sha512-M7LhCsdNbNgiLYiP4WjsfLUuFmCfnjdF6jKe2R9NKl4WFN+HZPGHJZ9lnLP7f9ZnKe3U9nuWD0szirmj+migUg==}
     engines: {node: '>=12.0.0'}
@@ -8473,10 +8498,6 @@ packages:
 
   postcss-value-parser@4.2.0:
     resolution: {integrity: sha512-1NNCs6uurfkVbeXG4S8JFT9t19m45ICnif8zWLd5oPSZ50QnwMfK+H3jv408d4jw/7Bttv5axS5IiHoLaVNHeQ==}
-
-  postcss@8.5.15:
-    resolution: {integrity: sha512-FfR8sjd4em2T6fb3I2MwAJU7HWVMr9zba+enmQeeWFfCbm+UOC/0X4DS8XtpUTMwWMGbjKYP7xjfNekzyGmB3A==}
-    engines: {node: ^10 || ^12 || >=14}
 
   postcss@8.5.23:
     resolution: {integrity: sha512-g50586zr4bZmwFiTlflMu8E0bDTb5I5gertgwAKmsdUlTQIhZtunzUlD1WSzwcVWPoAVpsrA6vlfCD7oXvRwgg==}
@@ -9146,8 +9167,8 @@ packages:
     resolution: {integrity: sha512-i5uvt8C3ikiWeNZSVZNWcfZPItFQOsYTUAOkcUPGd8DqDy1uOUikjt5dG+uRlwyvR108Fb9DOd4GvXfT0N2/uQ==}
     engines: {node: '>= 12'}
 
-  spectrum-ts@12.10.1:
-    resolution: {integrity: sha512-O+FGX0gtOCB9XtjlhtJOjsgNFyJXXOQAMaBtBF48suy/OPStb0tGeF6KzT8kZokcn0T4G6Xs7uRpsf95/Z8J1Q==}
+  spectrum-ts@12.11.0:
+    resolution: {integrity: sha512-z3RNzSfLg/IUAORfK7MpV845pHBXI3xSp4GTPCefGOeQyUf2jGvCCgul6lmpRvzbX69vFf+mwkaWhC7tCzlK9g==}
 
   split-on-first@1.1.0:
     resolution: {integrity: sha512-43ZssAJaMusuKWL8sKUBQXHWOpq8d6CfN/u1p4gUzfJkM05C8rxTmYrkIPTXapZpORA6LkkzcUulJ8FqA7Uudw==}
@@ -12553,7 +12574,7 @@ snapshots:
   '@opentelemetry/instrumentation-undici@0.29.0(@opentelemetry/api@1.9.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/core': 2.7.1(@opentelemetry/api@1.9.1)
+      '@opentelemetry/core': 2.11.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/semantic-conventions': 1.41.1
     transitivePeerDependencies:
@@ -12769,11 +12790,11 @@ snapshots:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/api-logs': 0.218.0
       '@opentelemetry/context-async-hooks': 2.11.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/core': 2.7.1(@opentelemetry/api@1.9.1)
+      '@opentelemetry/core': 2.11.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/exporter-logs-otlp-http': 0.218.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/exporter-metrics-otlp-http': 0.218.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/exporter-trace-otlp-http': 0.218.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/resources': 2.7.1(@opentelemetry/api@1.9.1)
+      '@opentelemetry/resources': 2.11.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-logs': 0.218.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-metrics': 2.11.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-trace-base': 2.11.0(@opentelemetry/api@1.9.1)
@@ -12801,7 +12822,7 @@ snapshots:
     dependencies:
       zod: 4.4.3
 
-  '@photon-ai/whatsapp-business@0.2.0':
+  '@photon-ai/whatsapp-business@0.3.2':
     dependencies:
       '@grpc/grpc-js': 1.14.4
       long: 5.3.2
@@ -14392,7 +14413,7 @@ snapshots:
 
   '@solidity-parser/parser@0.20.2': {}
 
-  '@spectrum-ts/core@12.10.1(typescript@5.9.2)':
+  '@spectrum-ts/core@12.11.0(typescript@5.9.2)':
     dependencies:
       '@photon-ai/otel': 3.8.1(typescript@5.9.2)
       '@photon-ai/proto': 0.2.4
@@ -14407,12 +14428,12 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@spectrum-ts/imessage@12.10.1(@spectrum-ts/core@12.10.1(typescript@5.9.2))(typescript@5.9.2)':
+  '@spectrum-ts/imessage@12.11.0(@spectrum-ts/core@12.11.0(typescript@5.9.2))(typescript@5.9.2)':
     dependencies:
       '@grpc/grpc-js': 1.14.4
       '@photon-ai/advanced-imessage': 2.2.0(@grpc/grpc-js@1.14.4)(nice-grpc-common@2.0.3)(nice-grpc@2.1.16)
       '@photon-ai/otel': 3.8.1(typescript@5.9.2)
-      '@spectrum-ts/core': 12.10.1(typescript@5.9.2)
+      '@spectrum-ts/core': 12.11.0(typescript@5.9.2)
       lru-cache: 11.5.1
       marked: 18.0.14
       nice-grpc: 2.1.16
@@ -14422,31 +14443,31 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@spectrum-ts/slack@12.10.1(@spectrum-ts/core@12.10.1(typescript@5.9.2))(typescript@5.9.2)':
+  '@spectrum-ts/slack@12.11.0(@spectrum-ts/core@12.11.0(typescript@5.9.2))(typescript@5.9.2)':
     dependencies:
       '@photon-ai/slack': 0.2.0
-      '@spectrum-ts/core': 12.10.1(typescript@5.9.2)
+      '@spectrum-ts/core': 12.11.0(typescript@5.9.2)
       typescript: 5.9.2
       zod: 4.4.3
 
-  '@spectrum-ts/telegram@12.10.1(@spectrum-ts/core@12.10.1(typescript@5.9.2))(typescript@5.9.2)':
+  '@spectrum-ts/telegram@12.11.0(@spectrum-ts/core@12.11.0(typescript@5.9.2))(typescript@5.9.2)':
     dependencies:
       '@photon-ai/telegram-ts': 10.0.0
-      '@spectrum-ts/core': 12.10.1(typescript@5.9.2)
+      '@spectrum-ts/core': 12.11.0(typescript@5.9.2)
       marked: 18.0.14
       typescript: 5.9.2
       zod: 4.4.3
 
-  '@spectrum-ts/terminal@12.10.1(@spectrum-ts/core@12.10.1(typescript@5.9.2))(typescript@5.9.2)':
+  '@spectrum-ts/terminal@12.11.0(@spectrum-ts/core@12.11.0(typescript@5.9.2))(typescript@5.9.2)':
     dependencies:
-      '@spectrum-ts/core': 12.10.1(typescript@5.9.2)
+      '@spectrum-ts/core': 12.11.0(typescript@5.9.2)
       typescript: 5.9.2
       zod: 4.4.3
 
-  '@spectrum-ts/whatsapp-business@12.10.1(@spectrum-ts/core@12.10.1(typescript@5.9.2))(typescript@5.9.2)':
+  '@spectrum-ts/whatsapp-business@12.11.0(@spectrum-ts/core@12.11.0(typescript@5.9.2))(typescript@5.9.2)':
     dependencies:
-      '@photon-ai/whatsapp-business': 0.2.0
-      '@spectrum-ts/core': 12.10.1(typescript@5.9.2)
+      '@photon-ai/whatsapp-business': 0.3.2
+      '@spectrum-ts/core': 12.11.0(typescript@5.9.2)
       mime-types: 3.0.2
       typescript: 5.9.2
       zod: 4.4.3
@@ -19290,6 +19311,16 @@ snapshots:
 
   heap@0.2.7: {}
 
+  heic-convert@2.1.0:
+    dependencies:
+      heic-decode: 2.1.0
+      jpeg-js: 0.4.4
+      pngjs: 6.0.0
+
+  heic-decode@2.1.0:
+    dependencies:
+      libheif-js: 1.23.5
+
   hmac-drbg@1.0.1:
     dependencies:
       hash.js: 1.1.7
@@ -19697,6 +19728,8 @@ snapshots:
 
   joycon@3.1.1: {}
 
+  jpeg-js@0.4.4: {}
+
   js-base64@2.6.4: {}
 
   js-sha3@0.8.0: {}
@@ -19831,6 +19864,8 @@ snapshots:
     dependencies:
       prelude-ls: 1.2.1
       type-check: 0.4.0
+
+  libheif-js@1.23.5: {}
 
   lie@3.1.1:
     dependencies:
@@ -20758,6 +20793,8 @@ snapshots:
 
   pngjs@5.0.0: {}
 
+  pngjs@6.0.0: {}
+
   pony-cause@2.1.11: {}
 
   porto@0.2.35(@tanstack/react-query@5.59.20(react@19.2.6))(@types/react@19.1.0)(@wagmi/core@2.22.1(@tanstack/query-core@5.59.20)(@types/react@19.1.0)(immer@10.0.2)(react@19.2.6)(typescript@5.9.2)(use-sync-external-store@1.4.0(react@19.2.6))(viem@2.52.2(bufferutil@4.1.0)(typescript@5.9.2)(utf-8-validate@6.0.6)(zod@4.4.3)))(immer@10.0.2)(react@19.2.6)(typescript@5.9.2)(use-sync-external-store@1.4.0(react@19.2.6))(viem@2.52.2(bufferutil@4.1.0)(typescript@5.9.2)(utf-8-validate@6.0.6)(zod@4.4.3))(wagmi@2.19.5(@tanstack/query-core@5.59.20)(@tanstack/react-query@5.59.20(react@19.2.6))(@types/react@19.1.0)(@upstash/redis@1.37.0)(bufferutil@4.1.0)(immer@10.0.2)(ioredis@5.11.1)(react@19.2.6)(typescript@5.9.2)(utf-8-validate@6.0.6)(viem@2.52.2(bufferutil@4.1.0)(typescript@5.9.2)(utf-8-validate@6.0.6)(zod@4.4.3))(zod@4.4.3)):
@@ -20828,12 +20865,6 @@ snapshots:
       util-deprecate: 1.0.2
 
   postcss-value-parser@4.2.0: {}
-
-  postcss@8.5.15:
-    dependencies:
-      nanoid: 3.3.12
-      picocolors: 1.1.1
-      source-map-js: 1.2.1
 
   postcss@8.5.23:
     dependencies:
@@ -21706,14 +21737,14 @@ snapshots:
 
   source-map@0.7.6: {}
 
-  spectrum-ts@12.10.1(typescript@5.9.2):
+  spectrum-ts@12.11.0(typescript@5.9.2):
     dependencies:
-      '@spectrum-ts/core': 12.10.1(typescript@5.9.2)
-      '@spectrum-ts/imessage': 12.10.1(@spectrum-ts/core@12.10.1(typescript@5.9.2))(typescript@5.9.2)
-      '@spectrum-ts/slack': 12.10.1(@spectrum-ts/core@12.10.1(typescript@5.9.2))(typescript@5.9.2)
-      '@spectrum-ts/telegram': 12.10.1(@spectrum-ts/core@12.10.1(typescript@5.9.2))(typescript@5.9.2)
-      '@spectrum-ts/terminal': 12.10.1(@spectrum-ts/core@12.10.1(typescript@5.9.2))(typescript@5.9.2)
-      '@spectrum-ts/whatsapp-business': 12.10.1(@spectrum-ts/core@12.10.1(typescript@5.9.2))(typescript@5.9.2)
+      '@spectrum-ts/core': 12.11.0(typescript@5.9.2)
+      '@spectrum-ts/imessage': 12.11.0(@spectrum-ts/core@12.11.0(typescript@5.9.2))(typescript@5.9.2)
+      '@spectrum-ts/slack': 12.11.0(@spectrum-ts/core@12.11.0(typescript@5.9.2))(typescript@5.9.2)
+      '@spectrum-ts/telegram': 12.11.0(@spectrum-ts/core@12.11.0(typescript@5.9.2))(typescript@5.9.2)
+      '@spectrum-ts/terminal': 12.11.0(@spectrum-ts/core@12.11.0(typescript@5.9.2))(typescript@5.9.2)
+      '@spectrum-ts/whatsapp-business': 12.11.0(@spectrum-ts/core@12.11.0(typescript@5.9.2))(typescript@5.9.2)
     transitivePeerDependencies:
       - ffmpeg-static
       - supports-color
@@ -22689,7 +22720,7 @@ snapshots:
     dependencies:
       lightningcss: 1.32.0
       picomatch: 4.0.4
-      postcss: 8.5.15
+      postcss: 8.5.23
       rolldown: 1.0.3
       tinyglobby: 0.2.17
     optionalDependencies:
@@ -22704,7 +22735,7 @@ snapshots:
     dependencies:
       lightningcss: 1.32.0
       picomatch: 4.0.4
-      postcss: 8.5.15
+      postcss: 8.5.23
       rolldown: 1.0.3
       tinyglobby: 0.2.17
     optionalDependencies:

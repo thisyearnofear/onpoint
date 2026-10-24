@@ -19,7 +19,7 @@ async function fetchAsDataUrl(url) {
     if (!/^image\//i.test(type)) throw new Error(`photo fetch failed: content-type ${type || 'unknown'}`);
     const buf = Buffer.from(await res.arrayBuffer());
     if (buf.length > MAX_BYTES) throw new Error('photo too large');
-    const out = await sharp(buf)
+    const out = await sharp(await toJpeg(buf, type))
       .rotate()
       .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
       .jpeg({ quality: 80 })
@@ -32,13 +32,23 @@ async function fetchAsDataUrl(url) {
 
 const MAX_DECODED_BYTES = 8 * 1024 * 1024;
 
+// Prebuilt sharp has no HEVC decoder; heic-convert handles it in pure JS.
+async function toJpeg(buf, mime) {
+  if (/^image\/(heic|heif)$/i.test(mime)) {
+    const convert = require('heic-convert');
+    return Buffer.from(await convert({ buffer: buf, format: 'JPEG', quality: 0.9 }));
+  }
+  return buf;
+}
+
 /** Normalise a client-supplied data URL through the same pipeline as a fetch. */
 async function normaliseDataUrl(dataUrl) {
   const m = /^data:image\/(jpeg|jpg|png|webp|heic|heif);base64,(.+)$/i.exec(String(dataUrl || ''));
   if (!m) throw new Error('unsupported image data URL');
   const buf = Buffer.from(m[2], 'base64');
   if (buf.length > MAX_DECODED_BYTES) throw new Error('photo too large');
-  const out = await sharp(buf)
+  const jpeg = await toJpeg(buf, `image/${m[1]}`);
+  const out = await sharp(jpeg)
     .rotate()
     .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
     .jpeg({ quality: 80 })

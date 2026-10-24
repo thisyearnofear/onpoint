@@ -100,6 +100,23 @@ describe('runway engine', () => {
     expect(result.fix.url).toContain('sid=');
   });
 
+  it('judges an image data URL through the same intent path', async () => {
+    const id = chatId();
+    await engine.handleInbound({ chatId: id, text: 'play' });
+    let seen;
+    photo.normaliseDataUrl = async (u) => { seen = u; return 'data:image/jpeg;base64,AAAA'; };
+    const intents = await engine.handleInbound({
+      chatId: id,
+      imageDataUrl: 'data:image/jpeg;base64,RAW',
+    });
+    expect(seen).toBe('data:image/jpeg;base64,RAW');
+    const card = intents.find((i) => i.type === 'card');
+    const round = await state.getRound(id);
+    expect(card.cardUrl).toContain(`/runway/r/${round.roundId}`);
+    expect(intents.at(-1).text).toContain('again');
+    expect((await state.getRound(id)).status).toBe('judged');
+  });
+
   it("'judge edina' switches persona and starts a round", async () => {
     const id = chatId();
     const intents = await engine.handleInbound({ chatId: id, text: 'judge edina' });

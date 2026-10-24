@@ -172,9 +172,9 @@ async function submitPhoto(chatId, { photoUrl, imageDataUrl, now = Date.now(), s
  * Chat entrypoint — returns outbound intents.
  * @returns {Promise<Array<intent>>}
  */
-async function handleInbound({ chatId, text, photoUrl, now = Date.now() }) {
-  if (photoUrl) {
-    const out = await submitPhoto(chatId, { photoUrl, now, surface: 'imessage' });
+async function handleInbound({ chatId, text, photoUrl, imageDataUrl, now = Date.now() }) {
+  if (photoUrl || imageDataUrl) {
+    const out = await submitPhoto(chatId, { photoUrl, imageDataUrl, now, surface: 'imessage' });
     if (out.status !== 'ok') return out.messages.map((m) => ({ type: 'text', text: m }));
 
     const intents = [{ type: 'text', text: out.messages[0] }];

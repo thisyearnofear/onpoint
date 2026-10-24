@@ -11,7 +11,6 @@
  */
 
 const express = require('express');
-const linq = require('../lib/linq-client');
 const logger = require('../lib/logger');
 const { PERSONAS, getPersona } = require('../lib/runway/prompts');
 const { themeOfDay } = require('../lib/runway/themes');
@@ -30,7 +29,7 @@ router.get('/today', (_req, res) => {
   res.json({
     theme: { id: theme.id, name: theme.name, brief: theme.brief },
     judges: Object.values(PERSONAS).map((p) => ({ key: p.key, name: p.name, sample: p.intro[0] })),
-    phoneNumber: linq.fromNumber,
+    phoneNumber: process.env.RUNWAY_LINE_NUMBER || '+16282646604',
   });
 });
 
