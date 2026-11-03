@@ -3,12 +3,14 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Camera, RotateCcw, Send, Share2, Users } from "lucide-react";
+import { Camera, Download, ImageIcon, RotateCcw, Send, Share2, Users } from "lucide-react";
+import { useReducedMotion } from "framer-motion";
 import { SafeImage } from "../SafeImage";
 import { JudgeAvatar, judgeDisplayName } from "./JudgeAvatar";
 import { ScorePaddles } from "./ScorePaddles";
 import { CountdownRing } from "./CountdownRing";
 import { imageFileToJpegDataUrl, runwayPlayerId } from "../../lib/utils/runway";
+import { bestScore, computeStreak, useRunwayHistory } from "../../lib/stores/runway-history-store";
 import type { StylistPersona } from "@repo/ai-client";
 
 type Stage = "intro" | "round" | "preview" | "judging" | "result" | "capped" | "error";
@@ -29,6 +31,15 @@ interface ResultState {
   late: boolean;
   fix?: { kind: string; title: string; imageUrl: string | null; url: string } | null;
 }
+
+const JUDGE_LINES: Record<"miranda" | "edina" | "shaft", string[]> = {
+  miranda: ["Interesting choice. We'll see.", "Hm. I wasn't expecting that.", "Hold still — I'm looking.", "This had better be good."],
+  edina: ["Darling, show me everything.", "Ooh, I do love a surprise.", "Sweetie, the suspense!", "Don't keep me waiting."],
+  shaft: ["Let's see what you brought.", "Confidence. I respect it.", "Alright — impress me.", "Time to deliver."],
+};
+
+const REF_RE = /^[a-f0-9]{12}$/;
+const MIN_JUDGE_MS = 2400;
 
 const JUDGES: Array<{ key: StylistPersona; name: string }> = [
   { key: "miranda", name: "Miranda" },
@@ -61,8 +72,18 @@ export function RunwayPlay() {
   const [result, setResult] = useState<ResultState | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [judgeLineIdx, setJudgeLineIdx] = useState(0);
+  const [shownTotal, setShownTotal] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
+  const camRef = useRef<HTMLInputElement>(null);
   const started = useRef(false);
+  const refSent = useRef(false);
+  const judgingSince = useRef(0);
+  const reduceMotion = useReducedMotion();
+  const entries = useRunwayHistory((st) => st.entries);
+  const addEntry = useRunwayHistory((st) => st.addEntry);
+  const rawRef = params.get("ref") || "";
+  const shareRef = REF_RE.test(rawRef) ? rawRef : undefined;
 
   const startRound = useCallback(async (judgeKey: StylistPersona, tid?: string) => {
     setBusy(true);
@@ -73,7 +94,7 @@ export function RunwayPlay() {
       const res = await fetch("/api/runway/rounds", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ playerId: runwayPlayerId(), judge: judgeKey, themeId: tid }),
+        body: JSON.stringify({ playerId: runwayPlayerId(), judge: judgeKey, themeId: tid, ...(shareRef && !refSent.current ? { ref: shareRef } : {}) }),
       });
       const body = await res.json();
       if (res.status === 429 || body.status === "capped") {
@@ -83,6 +104,7 @@ export function RunwayPlay() {
       }
       if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
       setRound({ roundId: body.roundId, deadline: body.deadline, theme: body.theme, persona: body.persona, messages: body.messages });
+      refSent.current = true;
       setJudge(judgeKey);
       setStage("round");
     } catch {
@@ -101,6 +123,7 @@ export function RunwayPlay() {
   }, [stage, round, judge, themeId, startRound]);
 
   const pickFile = () => fileRef.current?.click();
+  const pickCamera = () => camRef.current?.click();
 
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -116,7 +139,12 @@ export function RunwayPlay() {
 
   const submit = async () => {
     if (!round || !photoData) return;
+    judgingSince.current = Date.now();
     setStage("judging");
+    const reveal = (fn: () => void) => {
+      const wait = Math.max(0, MIN_JUDGE_MS - (Date.now() - judgingSince.current));
+      window.setTimeout(fn, wait);
+    };
     try {
       const res = await fetch(`/api/runway/rounds/${round.roundId}/photo`, {
         method: "POST",
@@ -126,16 +154,78 @@ export function RunwayPlay() {
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
       if (body.status === "ok") {
-        setResult({ ...body.result, fix: body.fix || null });
-        setStage("result");
+        const r: ResultState = { ...body.result, fix: body.fix || null };
+        reveal(() => {
+          setResult(r);
+          setStage("result");
+        });
       } else {
-        setJudgeNote(body.messages?.[0] || "Try another photo.");
-        setStage("preview");
+        reveal(() => {
+          setJudgeNote(body.messages?.[0] || "Try another photo.");
+          setStage("preview");
+        });
       }
     } catch {
-      setJudgeNote("The judges couldn't see that. Try again in a moment.");
-      setStage("preview");
+      reveal(() => {
+        setJudgeNote("The judges couldn't see that. Try again in a moment.");
+        setStage("preview");
+      });
     }
+  };
+
+  // write the round to on-device history once the result lands
+  useEffect(() => {
+    if (stage === "result" && round && result) {
+      addEntry({
+        roundId: round.roundId,
+        themeId: round.theme.id,
+        themeName: round.theme.name,
+        judge: round.persona.key || judge,
+        total: result.total,
+        scores: result.scores,
+        verdict: result.verdict,
+        at: Date.now(),
+      });
+    }
+  }, [stage, round, result, judge, addEntry]);
+
+  // score count-up (skipped under reduced motion)
+  useEffect(() => {
+    if (stage !== "result" || !result) return;
+    if (reduceMotion) {
+      setShownTotal(result.total);
+      return;
+    }
+    setShownTotal(0);
+    const t0 = performance.now();
+    const dur = 900;
+    let raf = 0;
+    const tick = (t: number) => {
+      const p = Math.min(1, (t - t0) / dur);
+      setShownTotal(result.total * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [stage, result, reduceMotion]);
+
+  // rotate the judges' reaction lines while conferring
+  useEffect(() => {
+    if (stage !== "judging") return;
+    setJudgeLineIdx(0);
+    const id = window.setInterval(() => setJudgeLineIdx((i) => i + 1), 1200);
+    return () => window.clearInterval(id);
+  }, [stage]);
+
+  const cardUrl = (format: "story" | "feed") => `/runway/card/${round?.roundId}.png?format=${format}`;
+
+  const recordShare = (channel: "native" | "copy" | "download") => {
+    if (!round) return;
+    fetch(`/api/runway/rounds/${round.roundId}/share`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ channel, playerId: runwayPlayerId() }),
+    }).catch(() => undefined);
   };
 
   const share = async () => {
@@ -143,20 +233,47 @@ export function RunwayPlay() {
     const url = `${window.location.origin}/runway/r/${round.roundId}`;
     const text = `I got ${result.total.toFixed(1)} on ${round.theme.name}. Can you beat it?`;
     try {
+      const res = await fetch(cardUrl("story"));
+      if (res.ok) {
+        const blob = await res.blob();
+        const file = new File([blob], "runway.png", { type: "image/png" });
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], text, url });
+          recordShare("native");
+          return;
+        }
+      }
+    } catch (err) {
+      if ((err as DOMException)?.name === "AbortError") return;
+    }
+    try {
       if (navigator.share) {
         await navigator.share({ title: "Runway", text, url });
+        recordShare("native");
         return;
       }
-      throw new Error("no share api");
-    } catch {
-      try {
-        await navigator.clipboard.writeText(`${text} ${url}`);
-        setToast("Challenge link copied");
-      } catch {
-        setToast(url);
-      }
-      window.setTimeout(() => setToast(null), 2200);
+    } catch (err) {
+      if ((err as DOMException)?.name === "AbortError") return;
     }
+    try {
+      await navigator.clipboard.writeText(`${text} ${url}`);
+      recordShare("copy");
+      setToast("Challenge link copied");
+    } catch {
+      setToast(url);
+    }
+    window.setTimeout(() => setToast(null), 2200);
+  };
+
+  const saveCard = () => {
+    if (!round) return;
+    const a = document.createElement("a");
+    a.href = cardUrl("story");
+    a.download = `runway-${round.roundId}.png`;
+    a.click();
+    recordShare("download");
+    setToast("Story card saved");
+    window.setTimeout(() => setToast(null), 2200);
   };
 
   const personaName = judgeDisplayName(round?.persona.key || judge);
@@ -195,6 +312,21 @@ export function RunwayPlay() {
               ))}
             </div>
             {busy && <p className="text-sm text-zinc-400">Dealing a theme…</p>}
+            {entries.length > 0 && (
+              <div className="flex w-full max-w-sm flex-col items-center gap-3">
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-400">
+                  {computeStreak(entries, Date.now()) > 0 ? `Streak ${computeStreak(entries, Date.now())} · ` : ""}
+                  Best {Math.max(...entries.map((e) => e.total)).toFixed(1)} · {entries.length} round{entries.length === 1 ? "" : "s"}
+                </p>
+                <div className="w-full rounded-2xl border border-zinc-800 bg-zinc-900/60 px-4 py-3">
+                  <p className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-zinc-500">Last verdict</p>
+                  <div className="mt-1 flex items-center justify-between text-sm">
+                    <span className="font-bold text-zinc-100">{entries[0]?.themeName}</span>
+                    <span className="text-zinc-400">{entries[0]?.total.toFixed(1)}/10 · {judgeDisplayName(entries[0]?.judge as StylistPersona)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         )}
 
@@ -210,14 +342,24 @@ export function RunwayPlay() {
               <p className="mt-2 text-sm font-bold text-zinc-200">Raid your closet. One full-length photo.</p>
             </div>
             <CountdownRing deadline={round.deadline} />
-            <button
-              type="button"
-              onClick={pickFile}
-              className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full bg-primary px-8 text-base font-bold text-white shadow-xl shadow-primary/20 transition-all hover:-translate-y-0.5 hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            >
-              <Camera className="h-5 w-5" />
-              I&rsquo;m dressed — add photo
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={pickCamera}
+                className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full bg-primary px-8 text-base font-bold text-white shadow-xl shadow-primary/20 transition-all hover:-translate-y-0.5 hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                <Camera className="h-5 w-5" />
+                Take photo
+              </button>
+              <button
+                type="button"
+                onClick={pickFile}
+                className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full border border-zinc-700 px-6 text-sm font-bold text-zinc-100 hover:border-zinc-500"
+              >
+                <ImageIcon className="h-4 w-4" />
+                Choose from library
+              </button>
+            </div>
             <p className="text-xs text-zinc-500">Your photo is judged and discarded — never stored.</p>
           </>
         )}
@@ -248,15 +390,28 @@ export function RunwayPlay() {
 
         {stage === "judging" && (
           <>
-            <div className="flex gap-3 opacity-40">
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="flex flex-col items-center">
-                  <div className="h-32 w-24 animate-pulse rounded-2xl border border-zinc-700 bg-zinc-900" style={{ animationDelay: `${i * 150}ms` }} />
-                  <div className="h-6 w-1 bg-zinc-700" />
-                </div>
-              ))}
+            <div className="flex items-end gap-5">
+              {JUDGES.map((j) => {
+                const active = j.key === (round?.persona.key || judge);
+                return (
+                  <div
+                    key={j.key}
+                    className={`flex flex-col items-center gap-2 transition-all duration-300 ${
+                      active ? "scale-110" : "translate-y-1 opacity-50"
+                    } ${!reduceMotion && active ? "animate-pulse" : ""}`}
+                  >
+                    <div className={active ? "rounded-full ring-2 ring-primary ring-offset-2 ring-offset-zinc-950" : ""}>
+                      <JudgeAvatar persona={j.key} size="lg" />
+                    </div>
+                    <span className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-zinc-500">{j.name}</span>
+                  </div>
+                );
+              })}
             </div>
-            <p className="text-sm font-bold text-zinc-300">The judges are conferring…</p>
+            <p className="max-w-xs text-center text-sm font-bold text-zinc-300">
+              {(() => { const k = ((round?.persona.key || judge) as "miranda" | "edina" | "shaft"); const lines = JUDGE_LINES[k] || JUDGE_LINES.miranda; return lines[judgeLineIdx % lines.length]; })()}
+            </p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">The judges are conferring…</p>
           </>
         )}
 
@@ -281,7 +436,19 @@ export function RunwayPlay() {
                   </span>
                 )}
               </div>
-              <ScorePaddles scores={result.scores} total={result.total} judgeName={personaName} animated />
+              <div className="flex items-center gap-2">
+                {computeStreak(entries, Date.now()) > 1 && (
+                  <span className="rounded-full border border-primary/40 px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-primary">
+                    Day {computeStreak(entries, Date.now())} streak
+                  </span>
+                )}
+                {entries.length > 1 && result.total >= Math.max(...entries.filter((e) => e.roundId !== round.roundId).map((e) => e.total), 0) && result.total > (bestScore(entries.filter((e) => e.roundId !== round.roundId)) ?? -1) && (
+                  <span className="rounded-full border border-[hsl(var(--accent))] px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[hsl(var(--accent))]">
+                    New best!
+                  </span>
+                )}
+              </div>
+              <ScorePaddles scores={result.scores} total={shownTotal} judgeName={personaName} animated />
               <JudgeBubble persona={judge} name={personaName}>{result.verdict}</JudgeBubble>
               {result.fix && (
               <div className="w-full rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
@@ -305,6 +472,8 @@ export function RunwayPlay() {
                 </div>
               </div>
             )}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={cardUrl("feed")} alt="Your Runway result card" className="h-44 w-auto rounded-xl border border-zinc-800" />
               <div className="flex flex-wrap items-center justify-center gap-3">
                 <button
                   type="button"
@@ -312,6 +481,13 @@ export function RunwayPlay() {
                   className="inline-flex min-h-12 items-center gap-2 rounded-full bg-primary px-6 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90"
                 >
                   <Share2 className="h-4 w-4" /> Challenge a friend
+                </button>
+                <button
+                  type="button"
+                  onClick={saveCard}
+                  className="inline-flex min-h-12 items-center gap-2 rounded-full border border-zinc-700 px-6 text-sm font-bold text-zinc-100 hover:border-zinc-500"
+                >
+                  <Download className="h-4 w-4" /> Save story card
                 </button>
                 <button
                   type="button"
@@ -362,6 +538,7 @@ export function RunwayPlay() {
       </main>
 
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => void onFile(e)} />
+      <input ref={camRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => void onFile(e)} />
     </div>
   );
 }

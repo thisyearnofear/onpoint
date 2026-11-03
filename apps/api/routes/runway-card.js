@@ -55,15 +55,13 @@ function wrapText(text, maxChars = 64, maxLines = 3) {
 
 // One static score paddle — rounded rect on a thin stick, mono eyebrow label,
 // big number. Mirrors components/runway/ScorePaddles.tsx.
-function paddle({ label, value, x, y = 258 }) {
-  const w = 180;
-  const h = 230;
+function paddle({ label, value, x, y = 258, w = 180, h = 230, labelSize = 15, valueSize = 88, stick = 40 }) {
   return `
   <g>
-    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="22" fill="#18181b" stroke="#3f3f46"/>
-    <text x="${x + w / 2}" y="${y + 44}" text-anchor="middle" font-size="15" letter-spacing="3" fill="#a1a1aa" font-family="ui-monospace, Menlo, monospace">${esc(label)}</text>
-    <text x="${x + w / 2}" y="${y + 162}" text-anchor="middle" font-size="88" font-weight="bold" fill="#fafafa" font-family="Helvetica, Arial, sans-serif">${esc(value)}</text>
-    <rect x="${x + w / 2 - 2}" y="${y + h}" width="4" height="40" rx="2" fill="#3f3f46"/>
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${Math.round(w * 0.12)}" fill="#18181b" stroke="#3f3f46"/>
+    <text x="${x + w / 2}" y="${y + Math.round(h * 0.19)}" text-anchor="middle" font-size="${labelSize}" letter-spacing="3" fill="#a1a1aa" font-family="ui-monospace, Menlo, monospace">${esc(label)}</text>
+    <text x="${x + w / 2}" y="${y + Math.round(h * 0.7)}" text-anchor="middle" font-size="${valueSize}" font-weight="bold" fill="#fafafa" font-family="Helvetica, Arial, sans-serif">${esc(value)}</text>
+    <rect x="${x + w / 2 - 2}" y="${y + h}" width="4" height="${stick}" rx="2" fill="#3f3f46"/>
   </g>`;
 }
 
@@ -101,12 +99,60 @@ function cardSvg(result) {
 </svg>`;
 }
 
+// Vertical layouts — same visual language as the og card, stacked for
+// story (1080x1920) and feed (1080x1350) shares.
+function verticalCardSvg(result, { w, h }) {
+  const persona = getPersona(result.persona);
+  const s = result.scores || {};
+  const cx = w / 2;
+  const themeLines = wrapText(result.themeName || '', 16, 2)
+    .map((l, i) => `<text x="${cx}" y="${210 + i * 78}" text-anchor="middle" font-size="64" font-weight="bold" fill="#fafafa" font-family="Helvetica, Arial, sans-serif">${esc(l)}</text>`)
+    .join('');
+  const wrappedVerdict = wrapText(result.verdict || '', 26, 4);
+  const verdictTop = h * 0.66;
+  const verdictLines = wrappedVerdict
+    .map((l, i) => `<text x="${cx}" y="${verdictTop + i * 44}" text-anchor="middle" font-size="30" font-style="italic" fill="#d4d4d8" font-family="Helvetica, Arial, sans-serif">${i === 0 ? '\u201c' : ''}${esc(l)}${i === wrappedVerdict.length - 1 ? '\u201d' : ''}</text>`)
+    .join('');
+  const pw = 260;
+  const py = h * 0.4;
+  const gap = (w - 128 - pw * 3) / 2;
+  const lateTag = result.late ? `<rect x="${w - 160}" y="96" width="92" height="34" rx="17" fill="#fb923c" fill-opacity="0.15" stroke="#fb923c"/><text x="${w - 114}" y="119" text-anchor="middle" font-size="18" letter-spacing="2" fill="#fb923c" font-family="ui-monospace, Menlo, monospace">LATE</text>` : '';
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+  <defs>
+    <radialGradient id="spot" cx="50%" cy="0%" r="90%">
+      <stop offset="0%" stop-color="#f43f5e" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#09090b" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="${w}" height="${h}" fill="#09090b"/>
+  <rect width="${w}" height="${h}" fill="url(#spot)"/>
+  <text x="${cx}" y="130" text-anchor="middle" font-size="26" letter-spacing="8" fill="#f43f5e" font-family="ui-monospace, Menlo, monospace">RUNWAY</text>
+  ${lateTag}
+  <rect x="${cx - 60}" y="152" width="120" height="4" fill="#f43f5e"/>
+  ${themeLines}
+  <text x="${cx}" y="${py - 40}" text-anchor="middle" font-size="120" font-weight="bold" fill="#fafafa" font-family="Helvetica, Arial, sans-serif">${esc(Number(result.total).toFixed(1))}<tspan font-size="48" fill="#71717a">/10</tspan></text>
+  <text x="${cx}" y="${py + 10}" text-anchor="middle" font-size="22" fill="#a1a1aa" font-family="Helvetica, Arial, sans-serif">judged by ${esc(persona.name)}</text>
+  ${paddle({ label: 'THEME', value: s.theme ?? '\u2014', x: 64, y: py + 60, w: pw, h: 300, labelSize: 18, valueSize: 110 })}
+  ${paddle({ label: 'COHESION', value: s.cohesion ?? '\u2014', x: 64 + pw + gap, y: py + 60, w: pw, h: 300, labelSize: 18, valueSize: 110 })}
+  ${paddle({ label: 'STYLING', value: s.styling ?? '\u2014', x: 64 + (pw + gap) * 2, y: py + 60, w: pw, h: 300, labelSize: 18, valueSize: 110 })}
+  ${verdictLines}
+  <text x="${cx}" y="${h - 56}" text-anchor="middle" font-size="24" fill="#a1a1aa" font-family="Helvetica, Arial, sans-serif">Can you beat it? onpoint.trustfall.xyz/runway</text>
+</svg>`;
+}
+
+const FORMATS = {
+  story: { w: 1080, h: 1920 },
+  feed: { w: 1080, h: 1350 },
+};
+
 router.get('/:roundId.png', async (req, res) => {
   try {
     if (!ROUND_ID_RE.test(req.params.roundId)) return res.status(400).json({ error: 'invalid round id' });
     const result = await runwayState.getResult(req.params.roundId);
     if (!result) return res.status(404).json({ error: 'Round not found' });
-    const png = await sharp(Buffer.from(cardSvg(result))).png().toBuffer();
+    const fmt = FORMATS[req.query.format];
+    const svg = fmt ? verticalCardSvg(result, fmt) : cardSvg(result);
+    const png = await sharp(Buffer.from(svg)).png().toBuffer();
     res.set('Cache-Control', 'public, max-age=3600');
     res.set('Content-Type', 'image/png');
     return res.send(png);

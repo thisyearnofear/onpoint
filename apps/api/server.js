@@ -393,6 +393,7 @@ app.use('/api/looks', json10mb, generalRateLimit, require('./routes/agent-looks'
 // server's IP, so an expensive-tier daily cap there would rate-limit every
 // viewer after ~50 shares.
 app.use('/api/runway/rounds/:roundId/photo', json10mb, aiAnalysisRateLimit, aiAnalysisDailyLimit);
+app.use('/api/runway/metrics', json1k, serviceKeyAuth, require('./routes/runway-metrics'));
 app.use('/api/runway', json10mb, generalRateLimit, require('./routes/runway-api'));
 
 // ── Listing Routes (public, rate-limited) ───────────────────────

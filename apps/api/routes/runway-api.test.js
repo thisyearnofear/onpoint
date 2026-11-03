@@ -121,4 +121,36 @@ describe('runway web api', () => {
     expect((await request.get('/api/runway/results/abcdef012345')).status).toBe(404);
     expect((await request.get('/api/runway/results/nope')).status).toBe(404);
   });
+
+  it('POST /rounds/:roundId/share records a share and 204s', async () => {
+    const state = require('../lib/runway/state');
+    const roundId = 'deadbeefcafe';
+    await state.saveResult(roundId, {
+      roundId, themeId: 'villain-era', themeName: 'Villain Era', persona: 'miranda',
+      scores: { theme: 8, cohesion: 7, styling: 6 }, total: 7.0, verdict: 'Sharp.',
+      fixHint: null, fix: null, late: false, provider: 'venice', createdAt: Date.now(),
+    });
+    expect((await request.post(`/api/runway/rounds/${roundId}/share`).send({ channel: 'Instagram', playerId: PID })).status).toBe(204);
+    expect((await request.post(`/api/runway/rounds/${roundId}/share`).send({ channel: 'twitter' })).status).toBe(204);
+    expect((await request.post(`/api/runway/rounds/${roundId}/share`).send({})).status).toBe(204);
+    // unknown / malformed round ids → 404
+    expect((await request.post('/api/runway/rounds/abcdef012345/share').send({})).status).toBe(404);
+    expect((await request.post('/api/runway/rounds/nope/share').send({})).status).toBe(404);
+  });
+
+  it('POST /rounds accepts an optional ref and ignores bad refs', async () => {
+    const state = require('../lib/runway/state');
+    const refId = 'cafef00dbabe';
+    await state.saveResult(refId, {
+      roundId: refId, themeId: 'villain-era', themeName: 'Villain Era', persona: 'miranda',
+      scores: { theme: 8, cohesion: 7, styling: 6 }, total: 7.0, verdict: 'Sharp.',
+      fixHint: null, fix: null, late: false, provider: 'venice', createdAt: Date.now(),
+    });
+    // valid existing ref → round starts
+    const ok = await request.post('/api/runway/rounds').send({ playerId: PID, ref: refId });
+    expect(ok.status).toBe(201);
+    // nonexistent / malformed refs are ignored, round still starts
+    expect((await request.post('/api/runway/rounds').send({ playerId: PID, ref: 'abcdef012345' })).status).toSatisfy((s) => [201, 429].includes(s));
+    expect((await request.post('/api/runway/rounds').send({ playerId: PID, ref: 'not-hex!' })).status).toSatisfy((s) => [201, 429].includes(s));
+  });
 });

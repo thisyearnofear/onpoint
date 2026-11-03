@@ -16,6 +16,7 @@ const judge = require('./judge');
 const photo = require('./photo');
 const fix = require('./fix');
 const { logFunnelEvent } = require('../funnel');
+const { playerHash } = require('./player-hash');
 const { webBaseUrl } = require('../agent-commerce');
 const logger = require('../logger');
 
@@ -30,9 +31,14 @@ const CAP_LINES = {
   shaft: "That's a wrap for today. Back tomorrow.",
 };
 
-const funnel = (eventType, metadata, surface = 'imessage') => {
+const funnel = (eventType, metadata, surface = 'imessage', chatId = null) => {
   try {
-    logFunnelEvent(null, { eventType, source: 'runway', metadata: { ...metadata, surface } });
+    const hash = playerHash(chatId);
+    logFunnelEvent(null, {
+      eventType,
+      source: 'runway',
+      metadata: { ...metadata, surface, ...(hash ? { playerHash: hash } : {}) },
+    });
   } catch {
     // best-effort
   }
@@ -45,7 +51,7 @@ const fmtTotal = (n) => Number(n).toFixed(1);
  * Deal a new round. Returns status 'started' or 'capped' (daily round cap —
  * round/theme/messages are null in that case except the persona cap line).
  */
-async function startRound(chatId, { personaKey, themeId, now = Date.now(), surface = 'imessage' } = {}) {
+async function startRound(chatId, { personaKey, themeId, now = Date.now(), surface = 'imessage', ref } = {}) {
   const persona = getPersona(personaKey);
   if ((await state.incrChatRounds(chatId, now)) > state.ROUNDS_PER_CHAT_DAY) {
     return {
@@ -65,7 +71,18 @@ async function startRound(chatId, { personaKey, themeId, now = Date.now(), surfa
     now,
     recentThemes,
   }));
-  funnel('runway_start', { themeId: theme.id, persona: persona.key, roundId: round.roundId }, surface);
+  let referredBy = null;
+  if (typeof ref === 'string' && /^[a-f0-9]{12}$/.test(ref)) {
+    try {
+      if (await state.getResult(ref)) referredBy = ref;
+    } catch { /* ignore silently */ }
+  }
+  funnel('runway_start', {
+    themeId: theme.id,
+    persona: persona.key,
+    roundId: round.roundId,
+    ...(referredBy ? { ref: referredBy } : {}),
+  }, surface, chatId);
   return {
     status: 'started',
     round,
@@ -95,7 +112,7 @@ async function submitPhoto(chatId, { photoUrl, imageDataUrl, now = Date.now(), s
   }
   const persona = getPersona(round.persona);
   const late = now > round.deadline;
-  funnel('runway_submit', { roundId: round.roundId, late }, surface);
+  funnel('runway_submit', { roundId: round.roundId, late }, surface, chatId);
 
   let dataUrl = imageDataUrl;
   try {
@@ -103,7 +120,7 @@ async function submitPhoto(chatId, { photoUrl, imageDataUrl, now = Date.now(), s
     else dataUrl = await photo.normaliseDataUrl(dataUrl);
   } catch (err) {
     logger.warn('runway photo load failed', { component: 'runway', error: err.message });
-    funnel('runway_unavailable', { roundId: round.roundId }, surface);
+    funnel('runway_unavailable', { roundId: round.roundId }, surface, chatId);
     return { status: 'unavailable', round, theme, persona, result: null, fix: null, messages: [pick(persona.fallback)] };
   }
 
@@ -112,22 +129,22 @@ async function submitPhoto(chatId, { photoUrl, imageDataUrl, now = Date.now(), s
     verdict = await judge.judgeOutfit({ imageDataUrl: dataUrl, theme, persona, late });
   } catch (err) {
     logger.warn('runway judge failed', { component: 'runway', error: err.message });
-    funnel('runway_unavailable', { roundId: round.roundId }, surface);
+    funnel('runway_unavailable', { roundId: round.roundId }, surface, chatId);
     return { status: 'unavailable', round, theme, persona, result: null, fix: null, messages: [pick(persona.fallback)] };
   }
 
   if (verdict.reason === 'refused') {
-    funnel('runway_refused', { roundId: round.roundId }, surface);
+    funnel('runway_refused', { roundId: round.roundId }, surface, chatId);
     return { status: 'refused', round, theme, persona, result: null, fix: null, messages: [persona.refusal] };
   }
   if (!verdict.ok) {
-    funnel('runway_unavailable', { roundId: round.roundId }, surface);
+    funnel('runway_unavailable', { roundId: round.roundId }, surface, chatId);
     return { status: 'unavailable', round, theme, persona, result: null, fix: null, messages: [pick(persona.fallback)] };
   }
 
   const channel = surface === 'imessage' ? 'imessage' : 'direct';
   const foundFix = await fix.findFix({ theme, fixTags: verdict.fixTags, channel, personaKey: persona.key });
-  if (foundFix) funnel('runway_fix', { roundId: round.roundId, shareId: foundFix.shareId, kind: foundFix.kind }, surface);
+  if (foundFix) funnel('runway_fix', { roundId: round.roundId, shareId: foundFix.shareId, kind: foundFix.kind }, surface, chatId);
 
   const result = await state.saveResult(round.roundId, {
     roundId: round.roundId,
@@ -151,7 +168,7 @@ async function submitPhoto(chatId, { photoUrl, imageDataUrl, now = Date.now(), s
     provider: verdict.provider,
     total: verdict.total,
     late,
-  }, surface);
+  }, surface, chatId);
 
   return {
     status: 'ok',

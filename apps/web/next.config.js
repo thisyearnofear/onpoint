@@ -68,6 +68,8 @@ const nextConfig = {
       { source: '/api/agent/identity', destination: `${hetzner}/api/agent/identity` },
       { source: '/api/market-intelligence/search', destination: `${hetzner}/api/market-intelligence/search` },
       { source: '/api/runway/:path*', destination: `${hetzner}/api/runway/:path*` },
+      // Runway share-card PNGs are served at /runway/card/ on the API host.
+      { source: '/runway/card/:path*', destination: `${hetzner}/runway/card/:path*` },
       { source: '/api/curator/:slug/storefront', destination: `${hetzner}/api/curator/:slug/storefront` },
       // Prava agent checkout (ADR 0017) — public-facing endpoints proxied to the API.
       { source: '/prava/search', destination: `${hetzner}/prava/search` },

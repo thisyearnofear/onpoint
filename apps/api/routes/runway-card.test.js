@@ -65,4 +65,28 @@ describe('runway card routes', () => {
   it('404s for malformed html id', async () => {
     expect((await request.get('/runway/card/zzz')).status).toBe(404);
   });
+
+  it('renders 1080x1920 for format=story', async () => {
+    const sharp = require('sharp');
+    const res = await request.get(`/runway/card/${RESULT.roundId}.png?format=story`);
+    expect(res.status).toBe(200);
+    const meta = await sharp(res.body).metadata();
+    expect([meta.width, meta.height]).toEqual([1080, 1920]);
+  }, 30000);
+
+  it('renders 1080x1350 for format=feed', async () => {
+    const sharp = require('sharp');
+    const res = await request.get(`/runway/card/${RESULT.roundId}.png?format=feed`);
+    expect(res.status).toBe(200);
+    const meta = await sharp(res.body).metadata();
+    expect([meta.width, meta.height]).toEqual([1080, 1350]);
+  }, 30000);
+
+  it('unknown format falls back to 1200x630', async () => {
+    const sharp = require('sharp');
+    const res = await request.get(`/runway/card/${RESULT.roundId}.png?format=wide`);
+    expect(res.status).toBe(200);
+    const meta = await sharp(res.body).metadata();
+    expect([meta.width, meta.height]).toEqual([1200, 630]);
+  }, 30000);
 });

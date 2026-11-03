@@ -22,21 +22,23 @@
 | Share-to-player | New players whose first round came from a `/runway/r/:roundId` share page ÷ shares |
 | Fix visit rate | Fix link visits ÷ `runway_fix` |
 
-## Current instrumentation (as of 2026-11-03)
+## Current instrumentation (as of 2026-11-04)
 
 | Event | Emitted | Gap |
 | --- | --- | --- |
-| `runway_start`, `runway_submit`, `runway_verdict`, `runway_fix`, `runway_refused`, `runway_unavailable` | `apps/api/lib/runway/engine.js` (`source: 'runway'`, `metadata.surface` = `web` or `imessage`) | **No player id in metadata.** Cohorts, D1/D7 and second-round rate cannot be computed until a hashed player id is added. |
-| Result share | Not emitted | Web share (`RunwayPlay` "Challenge a friend") records no event |
-| Share page visit → new round | Not emitted | `/runway/r/:roundId` does not tag the next round as share-referred |
+| `runway_start`, `runway_submit`, `runway_verdict`, `runway_fix`, `runway_refused`, `runway_unavailable` | `apps/api/lib/runway/engine.js` (`source: 'runway'`, `metadata.surface` = `web` or `imessage`) | `metadata.playerHash` = first 16 hex of `sha256(RUNWAY_PLAYER_SALT|chatId)` is attached on every event. Raw chat ids / web UUIDs are never stored. |
+| Result share | `runway_share` via `POST /api/runway/rounds/:roundId/share` (`{ channel, playerId }`; channels `native, copy, download, instagram, tiktok, x, whatsapp, imessage, other`) | — |
+| Share page visit → new round | `ref` on `runway_start` | `POST /api/runway/rounds` accepts `ref=<roundId>`; recorded only when the round id is valid 12-hex AND `runwayState.getResult(ref)` exists |
 | Fix visit | Via the ADR 0019 share funnel (`sid` on the fix link) | Works for looks, but has no Runway-specific breakdown |
+| Report | `GET /api/runway/metrics?days=14` (`serviceKeyAuth`, same guard as `/api/status/funnel`) | Cohort math is windowed — `cohortWindowCaveat: true` in the response |
 
 Before claiming any metric:
 
-1. Add a hashed player id (`sha256(salt | chatId)`, not the raw UUID) to every Runway funnel event.
-2. Emit `runway_share` with `channel` (`native`, `copy`, `instagram`, `tiktok`, `x`, `whatsapp`, `imessage`, `other`).
-3. Carry `ref=<roundId>` from the share page into the next `POST /api/runway/rounds` and record it on `runway_start`.
-4. Add a report endpoint, or extend `GET /api/status/funnel`, to return the table above.
+1. ~~Add a hashed player id~~ — done (`lib/runway/player-hash.js`, first 16 hex of `sha256(salt|chatId)`).
+2. ~~Emit `runway_share` with `channel`~~ — done (`POST /api/runway/rounds/:roundId/share`).
+3. ~~Carry `ref=<roundId>`~~ — done (`POST /api/runway/rounds` body `ref`, verified against stored results).
+4. ~~Report endpoint~~ — done (`GET /api/runway/metrics`, `serviceKeyAuth`).
+5. **Still required:** compute real figures from traffic — no retention or share figure is claimed yet. Historical events before this instrumentation have no `playerHash` and are excluded from player-based metrics (counted under `eventsWithoutPlayerHash`).
 
 ## Privacy
 

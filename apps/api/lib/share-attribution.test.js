@@ -31,7 +31,8 @@ describe('channel / cta', () => {
     expect(sanitizeChannel('WhatsApp')).toBe('whatsapp');
     expect(sanitizeChannel('imessage')).toBe('imessage');
     expect(sanitizeChannel('x')).toBe('twitter');
-    expect(sanitizeChannel('tiktok')).toBe('other');
+    expect(sanitizeChannel('tiktok')).toBe('tiktok');
+    expect(sanitizeChannel('instagram')).toBe('instagram');
     expect(sanitizeChannel(undefined)).toBe('direct');
   });
   it('validates cta kind', () => {

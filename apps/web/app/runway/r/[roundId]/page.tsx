@@ -126,7 +126,7 @@ export default async function RunwayResultPage({
           </p>
           <div className="mt-5 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <Link
-              href={`/runway/play?theme=${result.themeId}&judge=${result.persona}`}
+              href={`/runway/play?theme=${result.themeId}&judge=${result.persona}&ref=${result.roundId}`}
               className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full bg-primary px-8 text-base font-bold text-white shadow-xl shadow-primary/20 transition-all hover:-translate-y-0.5 hover:bg-primary/90"
             >
               <Swords className="h-5 w-5" />

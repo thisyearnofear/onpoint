@@ -16,6 +16,8 @@ const { PERSONAS, getPersona } = require('../lib/runway/prompts');
 const { themeOfDay } = require('../lib/runway/themes');
 const engine = require('../lib/runway/engine');
 const runwayState = require('../lib/runway/state');
+const { playerHash } = require('../lib/runway/player-hash');
+const { logFunnelEvent } = require('../lib/funnel');
 
 const router = express.Router();
 
@@ -35,7 +37,7 @@ router.get('/today', (_req, res) => {
 
 router.post('/rounds', async (req, res) => {
   try {
-    const { playerId, judge: judgeKey, themeId } = req.body || {};
+    const { playerId, judge: judgeKey, themeId, ref } = req.body || {};
     if (typeof playerId !== 'string' || !UUID_RE.test(playerId)) {
       return res.status(400).json({ error: 'playerId must be a UUID v4' });
     }
@@ -43,6 +45,7 @@ router.post('/rounds', async (req, res) => {
       personaKey: judgeKey,
       themeId,
       surface: 'web',
+      ref,
     });
     if (out.status === 'capped') {
       return res.status(429).json({ status: 'capped', persona: out.persona, messages: out.messages });
@@ -99,6 +102,39 @@ router.post('/rounds/:roundId/photo', async (req, res) => {
   } catch (err) {
     logger.error('runway photo submit failed', { component: 'runway-api', error: err.message });
     return res.status(500).json({ error: 'Could not judge the photo' });
+  }
+});
+
+const SHARE_CHANNELS = new Set(['native', 'copy', 'download', 'instagram', 'tiktok', 'x', 'whatsapp', 'imessage', 'other']);
+
+router.post('/rounds/:roundId/share', async (req, res) => {
+  try {
+    if (!ROUND_ID_RE.test(req.params.roundId)) {
+      return res.status(404).json({ error: 'Result not found' });
+    }
+    const result = await runwayState.getResult(req.params.roundId);
+    if (!result) return res.status(404).json({ error: 'Result not found' });
+    let channel = String(req.body?.channel || '').trim().toLowerCase();
+    if (channel === 'twitter') channel = 'x';
+    if (!SHARE_CHANNELS.has(channel)) channel = 'other';
+    const { playerId } = req.body || {};
+    const hash = typeof playerId === 'string' && UUID_RE.test(playerId) ? playerHash(webChatId(playerId)) : null;
+    try {
+      logFunnelEvent(null, {
+        eventType: 'runway_share',
+        source: 'runway',
+        metadata: {
+          roundId: req.params.roundId,
+          channel,
+          surface: 'web',
+          ...(hash ? { playerHash: hash } : {}),
+        },
+      });
+    } catch { /* best-effort */ }
+    return res.status(204).end();
+  } catch (err) {
+    logger.error('runway share record failed', { component: 'runway-api', error: err.message });
+    return res.status(500).json({ error: 'Could not record the share' });
   }
 });
 

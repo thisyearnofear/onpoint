@@ -5,11 +5,9 @@ import Link from "next/link";
 import {
   ArrowRight,
   Bot,
-  Check,
   ChevronDown,
   Clock3,
   Code2,
-  KeyRound,
   Lock,
   MessageCircle,
   Palette,
@@ -22,9 +20,8 @@ import {
 import { Reveal } from "../ui/Reveal";
 import { trackHomepageCta } from "../../lib/utils/analytics";
 import { captureReferralFromURL } from "../../lib/utils/referral";
-import { CTA_SHOP, CTA_SUPPLY, HERO, PRODUCT_NAME } from "../../lib/brand";
-import { HeroVisual } from "./HeroVisual";
-import { RunwayTeaser } from "../runway/RunwayTeaser";
+import { CTA_PLAY, CTA_SUPPLY, HERO, PRODUCT_NAME } from "../../lib/brand";
+import { RunwayHeroStage } from "./RunwayHeroStage";
 import { AgentFlow } from "../Agent/AgentFlow";
 import { PravaEvidenceReceipt } from "../Agent/PravaEvidenceReceipt";
 
@@ -275,39 +272,30 @@ export function HeroView() {
                   className="mt-7 flex flex-col items-center gap-4 sm:flex-row lg:justify-start"
                 >
                   <Link
-                    href={CTA_SHOP.href}
+                    href={CTA_PLAY.href}
                     onClick={() =>
-                      trackHomepageCta({ cta: "shop", placement: "hero" })
+                      trackHomepageCta({ cta: "play", placement: "hero" })
                     }
                     className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full bg-primary px-7 text-base font-bold text-white shadow-xl shadow-primary/20 transition-all hover:-translate-y-0.5 hover:bg-primary/90"
                   >
-                    Try the live agent
+                    {CTA_PLAY.label}
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                   <a
-                    href="#proof"
+                    href="#how-it-works"
                     className="inline-flex items-center gap-2 text-sm font-bold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
                   >
-                    <KeyRound className="h-4 w-4" />
-                    See verified proof
+                    See how it works
                   </a>
                 </div>
               </Reveal>
-              <Reveal delay={0.3}>
-                <p className="mt-6 flex items-center justify-center gap-2 text-xs text-muted-foreground lg:justify-start">
-                  <Check className="h-3.5 w-3.5 text-primary" />
-                  No payment session before the fit decision.
-                </p>
-              </Reveal>
             </div>
             <Reveal direction="right" delay={0.1}>
-              <HeroVisual />
+              <RunwayHeroStage />
             </Reveal>
           </div>
         </div>
       </section>
-
-      <RunwayTeaser />
 
       <section
         id="agent-search"
@@ -375,15 +363,15 @@ export function HeroView() {
         className={`fixed bottom-4 left-4 right-4 z-40 pb-[env(safe-area-inset-bottom)] transition-all duration-300 ease-out md:hidden ${heroCtaInView ? "translate-y-24 opacity-0 pointer-events-none" : "translate-y-0 opacity-100"}`}
         aria-hidden={heroCtaInView}
       >
-        <a
-          href="#agent-search"
+        <Link
+          href={CTA_PLAY.href}
           onClick={() =>
-            trackHomepageCta({ cta: "shop", placement: "mobile_sticky" })
+            trackHomepageCta({ cta: "play", placement: "mobile_sticky" })
           }
           className="block w-full rounded-full bg-primary py-4 text-center font-bold text-white shadow-xl shadow-primary/25 active:scale-[0.98]"
         >
-          Try the live agent
-        </a>
+          {CTA_PLAY.mobileLabel}
+        </Link>
       </div>
     </div>
   );
