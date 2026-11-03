@@ -3,6 +3,8 @@
 > **OnPoint** is the trusted execution rail for agentic fashion commerce: fit-aware, machine-readable, locally payable offers over real merchant inventory.
 > Humans shop on branded storefronts with AI try-on. Agents execute against the **same inventory** via structured offers, paid try-on, checkout, and receipts.
 >
+> **Product focus (2026-11-03):** this API is live and supported, but product effort is on the consumer web app first; curator activation is deferred ([ADR 0023](./docs/adr/0023-consumer-engine-first-curators-deferred.md)). Expect thin supply.
+>
 > Fashion is the current wedge—not a claim that this is already a generic commerce OS. The larger opportunity is agent-ready execution infrastructure for fit-sensitive physical goods; this guide documents the fashion proof point.
 >
 > **Live:** https://onpoint.trustfall.xyz · **API:** https://api.onpoint.famile.xyz · **Manifest:** https://onpoint.fly.dev/.well-known/agent.json

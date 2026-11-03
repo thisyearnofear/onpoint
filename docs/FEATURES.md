@@ -5,6 +5,22 @@
 > **Status boundary:** “Complete” below means implemented in the product/codebase; it does not necessarily mean currently deployed, externally live-validated, or repeatedly proven at scale.
 > **Organizing primitive:** every supply voice — human merchant, AI persona, or digital curator — is a `Curator` ([ADR 0002](./adr/0002-curator-primitive.md)). Features compose against one Curator on `/s/[slug]` (and its machine-readable twin), or across the Curator set for discovery.
 
+> **Current focus:** the consumer web engine, led by Runway ([ADR 0023](./adr/0023-consumer-engine-first-curators-deferred.md)). Curator, agent-commerce and payment features below are implemented but **deferred**: no new onboarding or feature work until the Phase 0 gate in [STRATEGY.md](./STRATEGY.md#phase-0--consumer-engine-and-retention-current).
+
+## Runway (consumer front door)
+
+A themed closet challenge judged by AI personas (Miranda, Edina, Shaft). Decision and guardrails: [ADR 0022](./adr/0022-runway-game-hosted-messaging.md). Phasing: [ADR 0023](./adr/0023-consumer-engine-first-curators-deferred.md).
+
+- `/runway`: landing with today's theme and the judges
+- `/runway/play`: pick a judge → theme + 3-minute countdown → photo (downscaled on the device) → judging → animated score paddles (Theme / Cohesion / Styling) → verdict → "the fix" → Challenge a friend
+- `/runway/r/:roundId`: share page; its og:image is the API-rendered score card (1200×630, no user photo)
+- API: `GET /api/runway/today`, `POST /api/runway/rounds`, `POST /api/runway/rounds/:id/photo`, `GET /api/runway/results/:id`. Engine in `apps/api/lib/runway/`.
+- iMessage: the same engine on the Photon Spectrum line (secondary channel)
+- Photo is judged and discarded, never stored. Daily caps: per-player rounds and `RUNWAY_DAILY_VISION_CAP`.
+- Metrics: [ops/retention.md](./ops/retention.md)
+
+Status: `deployed`. Known gaps (Phase 0 backlog): no history or streaks, a text-only share (no vertical image card), a skeleton judging state, the plain file picker (`CameraCapture` is unused), and "the fix" depends on live looks and listings.
+
 ## Curator Storefronts (`/s/[slug]`)
 
 A branded surface a Curator hands to their customers. Composes existing components (`VirtualTryOn`, `PolaroidGallery`, `SessionEndingCard`) against one Curator's catalog and brand kit.
@@ -208,6 +224,7 @@ Package: `@repo/gooddollar` — single source of truth for contract addresses, A
 
 | Feature | Web | Implementation status (not proof of current scale) |
 |---------|-----|--------|
+| Runway | ✅ | Deployed (Phase 0 focus) |
 | Curator Storefronts | ✅ | Implemented |
 | Digital Curators | ✅ | Implemented |
 | Agent Commerce (x402) | ✅ | Implemented |

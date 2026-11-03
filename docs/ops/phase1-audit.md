@@ -1,5 +1,7 @@
 # Phase 1 Audit — Prove the Fashion Wedge
 
+> **Dormant (2026-11-03):** curator activation is deferred until the Phase 0 gate ([ADR 0023](../adr/0023-consumer-engine-first-curators-deferred.md)). Kept for when the gate is met; do not use it to report current progress.
+
 **Last updated:** 2026-08-10
 **Last verified production repair:** 2026-08-10 — active release `20260810-212431`; API cluster and bridge healthy; live database ledger verified through migration `0010`.
 **Canonical thesis:** [STRATEGY.md](../STRATEGY.md)

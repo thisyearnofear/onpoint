@@ -1,6 +1,6 @@
 # ADR 0022: Runway — A Game-Hosted Messaging Surface over OnPoint Inventory
 
-**Status**: Accepted — Phase A (Solo Runway on iMessage) in implementation
+**Status**: Accepted. Phasing (§2) and channel priority superseded by [ADR 0023](./0023-consumer-engine-first-curators-deferred.md): web first, curators deferred.
 **Date**: 2026-10-23
 **Related**: ADR 0017 (Prava agent checkout — the current Linq flow), ADR 0019 (share attribution), ADR 0002 (curator primitive / messaging bridge)
 **Evidence**: [research/messaging-game-formats.md](../research/messaging-game-formats.md)
@@ -108,7 +108,7 @@ Phase A targets and stop rule live in [STRATEGY.md](../STRATEGY.md#runway-experi
 ## Consequences
 
 - The messaging line starts building OnPoint's own distribution and outcome data instead of exercising an external merchant fixture.
-- "The fix" is constrained by supply: at the time of writing the directory lists one curator with eight live listings. Runway will surface the supply-density gap quickly — that is a feature of the experiment, not a reason to delay it.
+- "The fix" is constrained by supply: at the time of writing the directory lists one curator with eight live listings (one live listing by 2026-11-03). Runway will surface the supply-density gap quickly — that is a feature of the experiment, not a reason to delay it.
 - Phase B depends on Spectrum group-chat and poll behaviour that is documented but not yet exercised by this codebase.
 - The Prava flow is preserved but no longer the default; its compliance copy is unchanged.
 - iMessage reaches an iPhone-heavy, mostly US audience; it is measured as an attention channel (rounds, shares, fix visits), not by physical orders. WhatsApp (Phase D) is the commerce path for the current curator market.

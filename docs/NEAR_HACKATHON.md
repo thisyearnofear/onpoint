@@ -102,3 +102,25 @@ Full agent flow proven against the real API on an isolated Neon demo DB:
 - [ ] HACKATHON.md present
 - [ ] NEAR account address for payout
 - [ ] Form submitted once
+
+## Narrated demo (moved from the root README)
+
+
+The NEAR rail lets an agent pay for try-on/checkout and settle the curator **directly** in the same transaction. Verified end-to-end on testnet against the live API code.
+
+```bash
+cd scripts/near-spike
+npm install
+node provision.mjs   # creates + funds onpoint.testnet sub-accounts (~30s)
+node agent-demo.mjs  # narrated run: offer → 402 → pay → 201 → settled payout
+```
+
+What you see:
+
+1. `GET /api/curator/onpoint-store/storefront` — a payable offer (house catalog; no third-party curator needed)
+2. `POST /api/agent/try-on` → **HTTP 402** with `quote.paymentRails: ["celo_cusd","near"]` and a `quote.near` block (account, yoctoNEAR, network)
+3. Agent sends NEAR on testnet → re-POSTs `{nearAccountId, nearTxHash}` → server verifies on-chain via JSON-RPC
+4. `POST /api/curator/onpoint-store/order` → **HTTP 201** — order confirmed, `payout.status: "settled"`, nearblocks explorer links, receipt URL
+5. Curator's NEAR balance increases **in the same transaction** — payment *is* the payout
+
+API surface: `apps/api/lib/near-payments.js` (dependency-free `EXPERIMENTAL_tx_status` verification), rail wired into `routes/agent-tryon.js` and `routes/curator-storefront.js`. Config via `NEAR_NETWORK`, `NEAR_RPC_URL`, `NEAR_USD_PRICE`, `NEAR_PAYOUT_ACCOUNT` (see `apps/api/.env.example`); per-curator override via `commerce.nearAccountId`.

@@ -1,8 +1,10 @@
 # OnPoint Strategic Direction
 
-**Last updated:** 2026-08-10
+**Last updated:** 2026-11-03
 **Status:** Canonical product strategy. Other docs defer here for positioning, phases, metrics, and expansion decisions.
-**Current evidence note:** Infrastructure was repaired and verified on 2026-08-10, but no current merchant, demand, fulfillment, or revenue figures are asserted here. Use the Phase 1 audit and weekly pilot report for refreshed evidence.
+**Current evidence note:** No current user, merchant, demand, fulfillment, or revenue figures are asserted here.
+
+> **Current focus (2026-11-03, [ADR 0023](./adr/0023-consumer-engine-first-curators-deferred.md)):** build the consumer web engine first — a place that produces great, repeatable experiences with high retention among social-native users. Curators are **deferred, not removed**: the supply, agent-commerce and payment rails below stay implemented, but no curator onboarding or supply targets apply until the [activation gate](#phase-0--consumer-engine-and-retention-current) is met. Sections 1–6 describe the long-term thesis; §7 Phase 0 is what we are doing now.
 
 > **Build as if fashion is the company; architect as if fashion is the first vertical.**
 
@@ -205,9 +207,41 @@ Historical deployment and test evidence is preserved in git history and the [Pha
 
 ---
 
-## 7. Current phase: prove the wedge
+## 7. Phases
 
-### Phase 1 — Supply Graph Readiness (Q3 2026, current)
+### Phase 0 — Consumer engine and retention (current)
+
+**Goal:** a mobile-web place that social-native users enjoy, share, and come back to — without depending on curator supply. Runway is the front door; polaroids, looks, the outfit planner, persona stylists, and try-on connect through it. Decision: [ADR 0023](./adr/0023-consumer-engine-first-curators-deferred.md).
+
+Workstreams:
+
+1. **Front door:** the homepage, navigation, and share output lead with Runway.
+2. **Cohesion:** one on-device "you" (history, saved looks, an opt-in photo) that every primitive reads. Each experience hands off to the next.
+3. **Share-native output:** vertical 9:16 / 4:5 cards shared as images, with Instagram / TikTok / X channels.
+4. **Retention engine:** daily theme, streaks, local history, and an optional way to come back (email or install).
+5. **Novelty:** better try-on (the actual garment on the person), richer reveals. Each is cost-gated.
+6. **Measurement:** the retention metrics in [ops/retention.md](./ops/retention.md), instrumented before they are claimed.
+
+"The fix" draws from OnPoint-owned sources (house catalog, digital garments, looks) and falls back to a styling tip. It never shows an empty product slot.
+
+**Metrics** (definitions in [ops/retention.md](./ops/retention.md)):
+
+| Metric | Target (proposed) |
+| --- | --- |
+| Round start → photo submitted | ≥ 40% |
+| Players with a second round (same day or later) | ≥ 25% |
+| D1 return | ≥ 25% |
+| D7 return | ≥ 15% |
+| Results shared | ≥ 10% |
+| New players arriving from a share | tracked, no target yet |
+
+**Stop rule** (from ADR 0022): after 100 started web rounds, if photo submission is below 20% or second-round play is below 10%, stop adding features and re-examine the format.
+
+**Curator activation gate (proposed, to be confirmed by the product lead):** start selective curator onboarding only when, for 4 consecutive weeks, D7 return is ≥ 15% and weekly active players are ≥ 500. Until then, supply metrics are not reported as progress.
+
+**Not in Phase 0:** curator onboarding, merchant tooling, new payment rails, agent-commerce features, and supply targets.
+
+### Phase 1 — Supply Graph Readiness (deferred until the Phase 0 gate)
 
 **Goal:** enough fit-aware, agent-commerce-enabled inventory that an external agent can discover, try on, buy, and receive a truthful outcome with high success—while humans continue converting through local channels.
 
@@ -217,7 +251,7 @@ Co-primary workstreams:
 2. **Fit rail:** make try-on and size guidance useful, clearly labeled, and tied to the actual SKU.
 3. **Agent demand:** measure independent agent calls separately from internal demos and scripts.
 4. **Execution reliability:** quote, payment, stock reservation, payout, fulfillment, and receipt states must be truthful.
-5. **Embedded distribution:** make storefronts, looks, referrals, and agent citations drive demand without a separate audience-building product.
+5. **Embedded distribution:** make storefronts, looks, referrals, and agent citations drive demand. (During Phase 0 the consumer engine *is* the audience-building product — see §7.)
 6. **Schlep economics:** measure onboarding time and catalog-maintenance burden; automate only the work that compounds.
 
 ### 90-day proof targets
@@ -235,7 +269,9 @@ Co-primary workstreams:
 
 These are operating targets, not claims of current attainment.
 
-### Runway experiment (messaging surface)
+### Runway experiment (messaging surface — historical)
+
+> Superseded for planning by Phase 0 above: Runway is now led on the mobile web, and its metrics live there. Kept for the iMessage context.
 
 The messaging line hosts **Runway**: a themed closet challenge with an AI judge, a shareable result card, and "the fix" — a live OnPoint piece linked into the share-attribution funnel. It serves workstream 5 (embedded distribution) and turns the iMessage line from an external-merchant demo into a surface over OnPoint's own supply. Decision and phases: [ADR 0022](./adr/0022-runway-game-hosted-messaging.md). Evidence: [research/messaging-game-formats.md](./research/messaging-game-formats.md).
 
@@ -305,7 +341,7 @@ If this loop does not appear, narrow the product or kill the abstraction.
 
 - A horizontal AI shopper or generic “agent commerce OS.”
 - Generic payment infrastructure that large payment networks can commoditize.
-- A user-facing design studio as the primary product.
+- A user-facing design studio as the primary product. (The Phase 0 consumer engine is a play-and-share experience, not a design studio.)
 - A counterfeit/authentication product for luxury resale.
 - Multi-chain expansion before the Celo/local-pay wedge works.
 - Broad category expansion based only on shared code.
@@ -320,7 +356,7 @@ For every proposed feature, ask:
 
 1. Does it make a fashion offer more **discoverable, fit-aware, fresh, executable, or attributable**?
 2. Does it increase agent success, merchant ROI, shopper confidence, or compounding outcome data?
-3. Does it build distribution into the transaction rather than require a separate audience?
+3. Does it build distribution into the product — during Phase 0, does it make users come back or bring someone?
 4. Does it turn a schlep into a repeatable asset, or merely add services labor?
 5. Is the claim implemented, deployed, live-validated, repeatedly proven, or still a hypothesis?
 6. Is this a fashion wedge improvement, a reusable primitive, or premature horizontalization?
@@ -346,11 +382,13 @@ If the answer is no or unknown, defer.
 | Root [README.md](../README.md)             | Short pitch and entry points; no second roadmap                                    |
 
 **Document owner:** Product Lead
-**Next strategy review:** after the next verified Phase 1 production snapshot
+**Next strategy review:** after 100 started web Runway rounds (Phase 0 stop-rule check)
 
 ## Decision log
 
 ### 2026-11-03 — audience first, curators second
+
+Formalized in [ADR 0023](./adr/0023-consumer-engine-first-curators-deferred.md) and §7 Phase 0. Correction: the lead surface is the mobile web app, with iMessage secondary.
 
 The first audience is **social-native, novelty-seeking users on Instagram, X, and TikTok** — not curators. Goal now: build a base of people engaging with the brand and hone retention **before** selectively onboarding curators.
 
@@ -359,7 +397,7 @@ The first audience is **social-native, novelty-seeking users on Instagram, X, an
 - **Planned phases:** share-native output (9:16 story + 4:5 feed cards, instagram/tiktok/x share channels) → retention engine (daily theme, streaks, local history, email capture) → social loops (friend duels, judge-my-fit links, creator challenges) → novelty layer (AI render in theme, cost-gated) → then selective curator onboarding via "the fix" links.
 - **Basis:** [ADR 0022](./adr/0022-runway-game-hosted-messaging.md) and its stop rule (after 100 started rounds: <20% photo submission or <10% second-round play → stop Phase B).
 - **Live supply snapshot (point-in-time, not a trend):** the agent directory shows **1 agent-purchasable curator with 1 live physical listing** — far below the Phase 1 targets of ≥5 curators / ≥50 SKUs. Demand-side engagement cannot assume meaningful purchasable supply yet; this is exactly why the loop leads with play, not purchase.
-- **Open questions (undecided):** lead platform for the acquisition test; public vs private fit gallery; the daily judging-cost cap (`RUNWAY_DAILY_VISION_CAP`, default 500).
+- **Open questions (undecided):** lead platform for the acquisition test; public vs private fit gallery; the daily judging-cost cap (`RUNWAY_DAILY_VISION_CAP`, default 500); the curator activation gate numbers (proposed in §7); what fills "the fix" first (house catalog, digital garments, or looks).
 
 ## InstaDomain-pattern roadmap inputs (for next review)
 - [ ] `suggest_looks` + bulk availability check (sizes across listings, one call)

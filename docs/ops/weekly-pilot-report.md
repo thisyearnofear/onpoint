@@ -1,5 +1,7 @@
 # Weekly Pilot Report
 
+> **Dormant (2026-11-03):** curator activation is deferred until the Phase 0 gate ([ADR 0023](../adr/0023-consumer-engine-first-curators-deferred.md)). Kept for when the gate is met; do not use it to report current progress.
+
 > Internal weekly reporting template for the Phase 1 fashion-wedge pilot.
 > Copy this file's template into the pilot workspace once per week; do not overwrite prior snapshots.
 >

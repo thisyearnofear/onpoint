@@ -1,6 +1,7 @@
 # Architecture
 
 > **Product thesis, market rationale & phases:** [STRATEGY.md](./STRATEGY.md) — this doc owns system shape and data flow only.
+> **Current focus:** the consumer web engine (Runway: `apps/web/app/runway`, `apps/api/lib/runway/`, `apps/api/routes/runway-api.js`). The curator and agent layers below are implemented but deferred ([ADR 0023](./adr/0023-consumer-engine-first-curators-deferred.md)).
 
 ## System Overview
 

@@ -1,5 +1,7 @@
 # Merchant Onboarding Scorecard
 
+> **Dormant (2026-11-03):** curator activation is deferred until the Phase 0 gate ([ADR 0023](../adr/0023-consumer-engine-first-curators-deferred.md)). Kept for when the gate is met; do not use it to report current progress.
+
 > Operational checklist for activating a curator into the Phase 1 agent-commerce pilot.
 > This is a working scorecard, not a public merchant-facing promise.
 >

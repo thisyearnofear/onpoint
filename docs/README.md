@@ -8,7 +8,7 @@ One canonical doc per concern. [STRATEGY.md](./STRATEGY.md) owns positioning, ph
 | ------------------- | ----------------------------------------------------------------------- |
 | New developer       | [README](../README.md) → [GETTING_STARTED.md](./GETTING_STARTED.md)     |
 | External agent/dev  | [AGENTS.md](../AGENTS.md) → [guides/agent-commerce.md](./guides/agent-commerce.md) |
-| Product/strategy    | [STRATEGY.md](./STRATEGY.md) → [ops/phase1-audit.md](./ops/phase1-audit.md) |
+| Product/strategy    | [STRATEGY.md §7 Phase 0](./STRATEGY.md#phase-0--consumer-engine-and-retention-current) → [ADR 0023](./adr/0023-consumer-engine-first-curators-deferred.md) → [ops/retention.md](./ops/retention.md) |
 
 ## Canonical docs
 
@@ -40,10 +40,9 @@ For people building against OnPoint.
 
 Not for external consumers.
 
+- [retention.md](./ops/retention.md) — Phase 0 retention and engagement definitions, instrumentation gaps
 - [deployment.md](./ops/deployment.md) — deploy runbook: API auto-deploy + manual DB migrations, web (Fly `onpoint`), MCP (`onpoint-mcp`), known gaps
-- [phase1-audit.md](./ops/phase1-audit.md) — pilot audit + evidence refresh checklist
-- [merchant-onboarding-scorecard.md](./ops/merchant-onboarding-scorecard.md) — merchant activation gate
-- [weekly-pilot-report.md](./ops/weekly-pilot-report.md) — weekly metrics template
+- *Dormant until curators are activated (ADR 0023):* [phase1-audit.md](./ops/phase1-audit.md), [merchant-onboarding-scorecard.md](./ops/merchant-onboarding-scorecard.md), [weekly-pilot-report.md](./ops/weekly-pilot-report.md)
 - [curator-payout-wallets.md](./ops/curator-payout-wallets.md) — custodial/Magic/MiniPay payouts
 - [curator-imagery.md](./ops/curator-imagery.md) — listing photo seeding
 - [whatsapp-setup.md](./ops/whatsapp-setup.md) — Meta Business API setup
@@ -78,5 +77,4 @@ Market research inputs. Verify sources before external citation.
 
 ## paypal-hackathon/
 
-- [../PAYPAL_HACKATHON.md](../PAYPAL_HACKATHON.md) — PayPal AI Hackathon submission details
 - [PAYPAL_HACKATHON.md](./PAYPAL_HACKATHON.md) — PayPal integration plan and demo steps

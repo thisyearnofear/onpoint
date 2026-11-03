@@ -1,14 +1,12 @@
-# OnPoint — Agentic Fashion Commerce
+# OnPoint
 
-> **Fit before you buy — for people and agents.**
+> **Dress to the theme. Get judged. Come back tomorrow.**
 
-OnPoint turns live fashion inventory into **fit-aware, machine-readable, locally payable offers**.
+OnPoint is a mobile-first fashion play space. **Runway** is the front door: a daily themed fit check judged by AI personas (Miranda, Edina, Shaft), with score paddles, a verdict, a shareable result, and "the fix". Polaroids, looks, the outfit planner, persona stylists and AI try-on build on it.
 
-- **Humans** shop branded storefronts (`/s/[slug]`) with AI try-on → WhatsApp / M-Pesa checkout
-- **Agents** execute against the **same inventory** via structured offers, paid try-on, checkout, and receipts
-- **Curators** supply inventory, stock truth, local ops, and distribution
+**Current focus:** build the consumer engine and earn retention first. Curator storefronts, agent commerce and payment rails are built but **deferred** until the activation gate is met ([ADR 0023](docs/adr/0023-consumer-engine-first-curators-deferred.md)).
 
-**Live:** [onpoint.trustfall.xyz](https://onpoint.trustfall.xyz) · **API:** [api.onpoint.famile.xyz](https://api.onpoint.famile.xyz) · **Manifest:** [/.well-known/agent.json](https://onpoint.trustfall.xyz/.well-known/agent.json)
+**Live:** [onpoint.trustfall.xyz](https://onpoint.trustfall.xyz) · **Play:** [/runway](https://onpoint.trustfall.xyz/runway) · **API:** [api.onpoint.famile.xyz](https://api.onpoint.famile.xyz) · **Manifest:** [/.well-known/agent.json](https://onpoint.trustfall.xyz/.well-known/agent.json)
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-indigo)](https://onpoint.trustfall.xyz)
 [![ERC-8004](https://img.shields.io/badge/ERC--8004-Registered-blue)](https://8004scan.io/agents/celo/9177)
@@ -19,6 +17,10 @@ Strategy: [`docs/STRATEGY.md`](docs/STRATEGY.md).
 ---
 
 ## What It Does
+
+**Players (current focus)**: Runway rounds on the web or iMessage, AI judges, result cards, looks and polaroids, AI try-on.
+
+*Built and deferred (ADR 0023):*
 
 **Curators** — branded `/s/[slug]` storefronts, WhatsApp/M-Pesa checkout, AI try-on, on-chain agent payouts.
 
@@ -76,31 +78,4 @@ Agent identity: [ERC-8004 #9177](https://8004scan.io/agents/celo/9177) · wallet
 
 **[Live Demo](https://onpoint.trustfall.xyz)** · [GitHub](https://github.com/thisyearnofear/onpoint) · MIT
 
-## NEAR HACKATHON
-
-OnPoint is being adapted for the NEAR HACKATHON (Nov 1–14, 2026) under the **Agent Economy** track. See [`HACKATHON.md`](./HACKATHON.md) and [`docs/NEAR_HACKATHON.md`](./docs/NEAR_HACKATHON.md) for the NEAR integration plan, tools, demo script, and submission checklist.
-
-### Do X, see Y — reproduce the NEAR agent-payment demo
-
-The NEAR rail lets an agent pay for try-on/checkout and settle the curator **directly** in the same transaction. Verified end-to-end on testnet against the live API code.
-
-```bash
-cd scripts/near-spike
-npm install
-node provision.mjs   # creates + funds onpoint.testnet sub-accounts (~30s)
-node agent-demo.mjs  # narrated run: offer → 402 → pay → 201 → settled payout
-```
-
-What you see:
-
-1. `GET /api/curator/onpoint-store/storefront` — a payable offer (house catalog; no third-party curator needed)
-2. `POST /api/agent/try-on` → **HTTP 402** with `quote.paymentRails: ["celo_cusd","near"]` and a `quote.near` block (account, yoctoNEAR, network)
-3. Agent sends NEAR on testnet → re-POSTs `{nearAccountId, nearTxHash}` → server verifies on-chain via JSON-RPC
-4. `POST /api/curator/onpoint-store/order` → **HTTP 201** — order confirmed, `payout.status: "settled"`, nearblocks explorer links, receipt URL
-5. Curator's NEAR balance increases **in the same transaction** — payment *is* the payout
-
-API surface: `apps/api/lib/near-payments.js` (dependency-free `EXPERIMENTAL_tx_status` verification), rail wired into `routes/agent-tryon.js` and `routes/curator-storefront.js`. Config via `NEAR_NETWORK`, `NEAR_RPC_URL`, `NEAR_USD_PRICE`, `NEAR_PAYOUT_ACCOUNT` (see `apps/api/.env.example`); per-curator override via `commerce.nearAccountId`.
-
-## PayPal AI Hackathon
-
-OnPoint is being adapted for the PayPal AI Hackathon (submissions Oct 1 – Nov 12, 2026) under the “Build What’s Next with PayPal and AI” theme. See [`PAYPAL_HACKATHON.md`](./PAYPAL_HACKATHON.md) and [`docs/PAYPAL_HACKATHON.md`](./docs/PAYPAL_HACKATHON.md) for the PayPal integration plan, tools, demo script, and submission checklist.
+Hackathon submissions: [HACKATHON.md](./HACKATHON.md) (NEAR) · [docs/PAYPAL_HACKATHON.md](docs/PAYPAL_HACKATHON.md) (PayPal). Reproducers live there.
