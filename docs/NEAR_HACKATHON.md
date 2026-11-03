@@ -61,12 +61,22 @@ Full agent flow proven against the real API on an isolated Neon demo DB:
 - Accounts: `onpoint.testnet` root · `agent.onpoint.testnet` (scoped, limited funds) · `curator.onpoint.testnet` · `store.onpoint.testnet` — provisioned by `scripts/near-spike/provision.mjs`
 - Narrated reproducer: `scripts/near-spike/agent-demo.mjs` (API_URL-configurable, works against prod once env is deployed)
 
+## Verified on production (api.onpoint.famile.xyz, release 20261103-132815)
+
+- `NEAR_*` env deployed to `/opt/onpoint/shared/api/.env` on Hetzner.
+- `onpoint-store` seeded in prod DB (house catalog + `near-demo-2627-home` kit + listing `0cc69356-68f1-4466-86f8-9db6b440d70a`) — the zero-curator demo path is live.
+- Try-on 402 on a real listing advertises `quote.near` → `onpoint.testnet` (platform fallback).
+- Order 402 on `onpoint-store` shows `payoutModel: "direct_to_curator"` → `store.onpoint.testnet`.
+- **Full prod e2e:** order `b43d1860` — 4.3948 NEAR settled direct ([tx `CvvDFTqq2GB32jdXPhmSxuuUJbp9VrnguyFtKtmDjzRf`](https://testnet.nearblocks.io/txns/CvvDFTqq2GB32jdXPhmSxuuUJbp9VrnguyFtKtmDjzRf)), receipt `receipt_mw0q8w9h_498b2c1f`, curator balance 5.39 → 9.79 NEAR.
+- To re-run against prod: `API_URL=https://api.onpoint.famile.xyz node agent-demo.mjs`.
+
 ## Week 2 plan (demo + submission)
 - [x] Polish one end-to-end agent purchase — `agent-demo.mjs` is the canonical run.
 - [x] Add README “do X, see Y” steps.
-- [ ] Record X demo video (run `agent-demo.mjs` against deployed API).
+- [ ] Record X demo video (run `agent-demo.mjs` against prod — output is video-ready).
 - [ ] Publish repo and post demo.
 - [ ] Submit form.
+- [ ] Swap picsum placeholder image for a real product photo before sharing the storefront.
 
 ## Demo script
 1. `GET /api/curator/onpoint-store/storefront` → agent sees a payable offer.
@@ -75,9 +85,10 @@ Full agent flow proven against the real API on an isolated Neon demo DB:
 4. `POST /api/curator/onpoint-store/order` + `nearTxHash` → 201, order confirmed.
 5. Curator balance on-chain → settled in the same tx; receipt + explorer links.
 
-## Remaining deployment steps
-- Copy `NEAR_NETWORK`, `NEAR_RPC_URL`, `NEAR_USD_PRICE`, `NEAR_PAYOUT_ACCOUNT` into Hetzner `apps/api/.env`.
-- Set `commerce.nearAccountId` on real curators as they onboard (`onpoint-store` is the always-available fallback).
+## Deployment status
+- [x] `NEAR_NETWORK`, `NEAR_RPC_URL`, `NEAR_USD_PRICE`, `NEAR_PAYOUT_ACCOUNT` on Hetzner (`NEAR_USD_PRICE=3.85` is manual — refresh before recording).
+- [x] `onpoint-store` seeded in prod with `commerce.nearAccountId = store.onpoint.testnet`.
+- [ ] Set `commerce.nearAccountId` on real curators as they onboard (`onpoint-store` is the always-available fallback).
 
 ## Risks and fallbacks
 - If NEAR payment integration slips, keep x402/Celo working and present a recorded successful NEAR transaction.
