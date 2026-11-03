@@ -35,6 +35,7 @@ const { curators, listings, kitSkus } = require('@repo/db');
 const { upload, keyFor } = require('@repo/storage');
 const logger = require('./logger');
 const { extractGarmentAttributes } = require('./garment-attributes');
+const { ensureCutout } = require('./garment-cutout');
 const { listingImageUrl } = require('./r2');
 
 const META_API_VERSION = 'v21.0';
@@ -383,7 +384,14 @@ async function upsertListing({ curatorSlug, skuId, listingId, existing, size, pr
     tags: created.tags,
   })
     .then((attributes) =>
-      db.update(listings).set({ attributes }).where(eq(listings.id, listingId)))
+      // Merge into existing attributes so a cutoutKey written earlier survives
+      db.update(listings)
+        .set({ attributes: { ...(created.attributes || {}), ...attributes } })
+        .where(eq(listings.id, listingId))
+        .then(() => ensureCutout({
+          listing: { ...created, attributes: { ...(created.attributes || {}), ...attributes } },
+          db,
+        })))
     .catch((err) =>
       logger.warn('Garment attribute extraction failed', {
         component: 'whatsapp-ingest',

@@ -74,6 +74,8 @@ GET /api/curator/{slug}/storefront?type=top&formality=casual&warmth=light
 
 Case-insensitive exact match on `type`, `formality`, `warmth`; listings without attributes are excluded only when a filter is supplied. Status: `implemented` (backfill script: `scripts/backfill-listing-attributes.mjs`).
 
+**Cutouts (optional, flag-gated).** When `GARMENT_CUTOUT_ENABLED=1` and an OpenAI image key is configured, an AI product shot (white background, no person) is generated post-ingest, stored in R2, and merged into `attributes.cutoutKey`. Listings then expose `cutoutUrl` on the storefront, and the try-on/outfit pipelines prefer the cutout over the raw photo. Status: `implemented`, off by default; backfill via `scripts/backfill-listing-attributes.mjs --cutouts`.
+
 ### Step 3: Try On (Optional but Recommended)
 
 ```bash

@@ -309,6 +309,7 @@ router.get('/:slug/storefront', async (req, res) => {
           title: listing.title || null,
           tags: listing.tags || [],
           attributes: listing.attributes || null,
+          cutoutUrl: keyToUrl(listing.attributes?.cutoutKey) || keyToUrl(`listings/${listing.id}/cutout.png`),
           sizes: listing.sizes || [],
           photoKeys: listing.photoKeys || [],
           status: listing.status,

@@ -248,7 +248,9 @@ router.post('/', async (req, res) => {
 
     const isDigital = row.listing.inventoryType === 'digital';
     const garmentUrl = keyToUrl(
-      row.listing.photoKeys?.[0] || row.kit?.officialImageKey,
+      row.listing.attributes?.cutoutKey
+      || row.listing.photoKeys?.[0]
+      || row.kit?.officialImageKey,
     );
     if (!garmentUrl) {
       return res.status(409).json({ error: 'Listing has no garment image to try on' });

@@ -80,7 +80,10 @@ async function loadPurchasableListings(db, curatorSlug) {
     if (!commerce?.available) continue;
     const prices = commerce.offers.map((o) => o.priceCusd).filter((p) => Number(p) > 0);
     if (prices.length === 0) continue;
-    const imageKey = listing.photoKeys?.[0] || kit?.officialImageKey || null;
+    const imageKey = listing.attributes?.cutoutKey
+      || listing.photoKeys?.[0]
+      || kit?.officialImageKey
+      || null;
     candidates.push({
       listingId: listing.id,
       curatorSlug: listing.curatorSlug,
