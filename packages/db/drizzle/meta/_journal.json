@@ -57,6 +57,13 @@
       "when": 1786384300000,
       "tag": "0010_legacy_referral_constraint",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1786460000000,
+      "tag": "0011_listing_attributes",
+      "breakpoints": true
     }
   ]
 }

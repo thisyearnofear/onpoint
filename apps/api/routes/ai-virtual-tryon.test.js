@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const router = require('./ai-virtual-tryon');
+const geminiTryon = require('../lib/gemini-tryon');
 
 describe('ai-virtual-tryon contract', () => {
   const originalEnv = { ...process.env };
@@ -252,5 +253,101 @@ PERSONALIZATION:
       imageConditioned: true,
       fallbackReason: 'youcam_unavailable',
     });
+  });
+
+  it('uses the Gemini image stage when YouCam and Replicate are unavailable', async () => {
+    process.env.GEMINI_API_KEY = 'gemini-test-key';
+
+    geminiTryon.__test.setClient({
+      models: {
+        generateContent: vi.fn().mockResolvedValue({
+          candidates: [
+            { content: { parts: [{ inlineData: { mimeType: 'image/png', data: 'Z2VtLXJlbmRlcg==' } }] } },
+          ],
+        }),
+      },
+    });
+
+    // Garment image fetch (person is a data URI)
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => 'image/webp' },
+      arrayBuffer: async () => Buffer.from('garment-bytes'),
+    });
+
+    try {
+      const result = await router.__test.buildGeneratedOutfitImageResponse({
+        provider: 'auto',
+        data: {
+          photoData: 'data:image/jpeg;base64,person',
+          items: [
+            {
+              name: 'Home kit',
+              description: 'red football shirt',
+              imageUrl: 'https://cdn.example.com/kit.webp',
+            },
+          ],
+        },
+      });
+
+      expect(result).toMatchObject({
+        generatedImage: 'data:image/png;base64,Z2VtLXJlbmRlcg==',
+        provider: 'gemini-image',
+        imageConditioned: true,
+        fallbackReason: 'replicate_not_configured',
+        errorClass: null,
+      });
+    } finally {
+      geminiTryon.__test.reset();
+    }
+  });
+
+  it('falls through to Venice when the Gemini stage throws', async () => {
+    process.env.GEMINI_API_KEY = 'gemini-test-key';
+    process.env.VENICE_API_KEY = 'venice-test-token';
+
+    geminiTryon.__test.setClient({
+      models: {
+        generateContent: vi.fn().mockRejectedValue(new Error('gemini rate limited')),
+      },
+    });
+
+    global.fetch
+      // Garment image fetch for the Gemini stage
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => 'image/webp' },
+        arrayBuffer: async () => Buffer.from('garment-bytes'),
+      })
+      // Venice text-to-image fallback
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ images: ['base64-webp-image'] }),
+      });
+
+    try {
+      const result = await router.__test.buildGeneratedOutfitImageResponse({
+        provider: 'auto',
+        data: {
+          photoData: 'data:image/jpeg;base64,person',
+          items: [
+            {
+              name: 'Home kit',
+              description: 'red football shirt',
+              imageUrl: 'https://cdn.example.com/kit.webp',
+            },
+          ],
+        },
+      });
+
+      expect(result).toMatchObject({
+        generatedImage: 'base64-webp-image',
+        provider: 'venice-image',
+        imageConditioned: false,
+        fallbackReason: 'gemini_unavailable',
+      });
+    } finally {
+      geminiTryon.__test.reset();
+    }
   });
 });

@@ -44,6 +44,7 @@ const {
   paymentAssetForOrder,
 } = require('../lib/order-refunds');
 const nearPayments = require('../lib/near-payments');
+const paypalPayments = require('../lib/paypal-payments');
 
 const router = express.Router();
 
@@ -307,6 +308,7 @@ router.get('/:slug/storefront', async (req, res) => {
           inventoryType: listing.inventoryType || 'physical',
           title: listing.title || null,
           tags: listing.tags || [],
+          attributes: listing.attributes || null,
           sizes: listing.sizes || [],
           photoKeys: listing.photoKeys || [],
           status: listing.status,
@@ -337,6 +339,19 @@ router.get('/:slug/storefront', async (req, res) => {
           trustedOffer,
         };
       });
+
+    // Optional attribute filters (?type=&formality=&warmth=) — listings
+    // without attributes are excluded only when a filter is supplied.
+    const attributeFilters = ['type', 'formality', 'warmth']
+      .map((key) => [key, String(req.query[key] || '').trim().toLowerCase()])
+      .filter(([, value]) => value);
+    const filteredListings = attributeFilters.length === 0
+      ? liveListings
+      : liveListings.filter((listing) =>
+          listing.attributes
+          && attributeFilters.every(
+            ([key, value]) => String(listing.attributes[key] || '').toLowerCase() === value,
+          ));
 
     // ── Fetch live looks for this curator (10 most recent) ──
     const lookRows = await db
@@ -389,7 +404,7 @@ router.get('/:slug/storefront', async (req, res) => {
     res.json({
       curator,
       webUrl: storefrontWebUrl(slug),
-      listings: liveListings.map((listing) => ({
+      listings: filteredListings.map((listing) => ({
         ...listing,
         checkoutUrl:
           curator.commerce?.checkout === 'whatsapp' || curator.channels?.whatsapp
@@ -398,7 +413,7 @@ router.get('/:slug/storefront', async (req, res) => {
       })),
       looks,
       meta: {
-        listingCount: liveListings.length,
+        listingCount: filteredListings.length,
         lookCount: looks.length,
         checkout: curator.commerce?.checkout || 'whatsapp',
         agentCommerce: buildStorefrontAgentCommerce(curator, slug),
@@ -523,7 +538,7 @@ router.post('/:slug/order', async (req, res) => {
     return res.status(400).json({ error: 'Invalid curator slug' });
   }
 
-  const { listingId, size, paymentTxHash, nearAccountId, nearTxHash, agentId, quoteId: clientQuoteId } = req.body || {};
+  const { listingId, size, paymentTxHash, nearAccountId, nearTxHash, paypalOrderId, agentId, quoteId: clientQuoteId } = req.body || {};
   const quantity = Number(req.body?.quantity ?? 1);
 
   if (!listingId || typeof listingId !== 'string') {
@@ -550,6 +565,12 @@ router.post('/:slug/order', async (req, res) => {
   }
   if (nearTxHash && paymentTxHash) {
     return res.status(400).json({ error: 'Provide either paymentTxHash (Celo cUSD) or nearTxHash (NEAR), not both' });
+  }
+  if (paypalOrderId !== undefined && !paypalPayments.isPaypalOrderId(paypalOrderId)) {
+    return res.status(400).json({ error: 'paypalOrderId must be a PayPal order id' });
+  }
+  if (paypalOrderId && (paymentTxHash || nearTxHash)) {
+    return res.status(400).json({ error: 'Provide exactly one payment proof' });
   }
 
   let db;
@@ -669,8 +690,19 @@ router.post('/:slug/order', async (req, res) => {
     const quoteId = `${listingId.slice(0, 8)}-${requestedSize}-${quantity}-${quoteBucket}`;
     const quoteExpiresAt = new Date(Date.now() + QUOTE_TTL_SECONDS * 1000).toISOString();
 
+    // ── PayPal rail (approval-relay; capture id is the replay-guarded proof) ──
+    // The reference binds the approved PayPal order to this listing+size+quote.
+    let paypalQuote = null;
+    if (!paymentTxHash && !xPaymentHeader && !nearTxHash && !paypalOrderId) {
+      paypalQuote = await paypalPayments.paypalQuoteForUsd({
+        amountUsd: totalCusd,
+        referenceId: `order:${slug}:${listingId}:${requestedSize}:${quoteId}`,
+        description: `OnPoint order from ${row.curator.name}: ${itemLabel}`,
+      });
+    }
+
     // ── Step 1: no payment proof yet → 402 challenge with quote ──
-    if (!paymentTxHash && !xPaymentHeader && !nearTxHash) {
+    if (!paymentTxHash && !xPaymentHeader && !nearTxHash && !paypalOrderId) {
       return res.status(402).json({
         ...sharedTypes.build402Body([requirements]),
         quote: {
@@ -685,7 +717,19 @@ router.post('/:slug/order', async (req, res) => {
           payTo,
           token: sharedTypes.X402_ASSET,
           chainId: sharedTypes.X402_CHAIN_ID,
-          paymentRails: ['celo_cusd', ...(nearQuote ? ['near'] : [])],
+          paymentRails: ['celo_cusd', ...(nearQuote ? ['near'] : []), ...(paypalQuote ? ['paypal'] : [])],
+          ...(paypalQuote
+            ? {
+                paypal: {
+                  env: paypalQuote.env,
+                  orderId: paypalQuote.orderId,
+                  approveUrl: paypalQuote.approveUrl,
+                  amountUsd: paypalQuote.amountUsd,
+                  currency: 'USD',
+                  instructions: 'Send approveUrl to the human payer to approve, then re-POST with { paypalOrderId, quoteId }.',
+                },
+              }
+            : {}),
           ...(nearQuote
             ? {
                 near: {
@@ -743,7 +787,29 @@ router.post('/:slug/order', async (req, res) => {
     let payoutKey = null;
 
     let verification = null;
-    if (nearTxHash) {
+    let paypalResult = null;
+    if (paypalOrderId) {
+      if (!paypalPayments.paypalRailEnabled()) {
+        return res.status(409).json({
+          error: 'PayPal payment rail is not configured for this resource.',
+          code: 'PAYMENT_RAIL_UNAVAILABLE',
+        });
+      }
+      paypalResult = await paypalPayments.verifyAndCapturePaypalOrder({
+        orderId: String(paypalOrderId),
+        ...(clientQuoteId
+          ? { expectedReferenceId: `order:${slug}:${listingId}:${requestedSize}:${clientQuoteId}` }
+          : { expectedReferencePrefix: `order:${slug}:${listingId}:${requestedSize}:` }),
+        minAmountUsd: totalCusd,
+      });
+      if (!paypalResult.ok) {
+        return res.status(402).json({
+          error: `PayPal payment not verified: ${paypalResult.reason}`,
+          ...sharedTypes.build402Body([requirements]),
+        });
+      }
+      verification = { from: paypalResult.payerId || paypalResult.payerEmail, paypal: paypalResult };
+    } else if (nearTxHash) {
       if (!nearPayTo || !nearQuote) {
         return res.status(409).json({
           error: 'NEAR payment rail is not configured for this resource.',
@@ -789,15 +855,20 @@ router.post('/:slug/order', async (req, res) => {
       }
     }
 
-    // The effective tx hash and payer for this request
-    const effectiveTxHash = nearTxHash || paymentTxHash;
-    const effectivePayer = nearTxHash ? nearPayer : verification.from;
-    const paymentMethod = nearTxHash
-      ? 'near'
-      : paymentMethodForOrder({ usingSplit, settlementTxHash: null });
-    const paymentAsset = nearTxHash
-      ? 'NEAR'
-      : paymentAssetForOrder({
+    // The effective tx hash and payer for this request — for PayPal the
+    // capture id is the canonical proof (replay-guarded like a tx hash).
+    const effectiveTxHash = paypalResult?.captureId || nearTxHash || paymentTxHash;
+    const effectivePayer = paypalOrderId ? verification.from : (nearTxHash ? nearPayer : verification.from);
+    const paymentMethod = paypalOrderId
+      ? 'paypal'
+      : nearTxHash
+        ? 'near'
+        : paymentMethodForOrder({ usingSplit, settlementTxHash: null });
+    const paymentAsset = paypalOrderId
+      ? 'USD'
+      : nearTxHash
+        ? 'NEAR'
+        : paymentAssetForOrder({
           usingSplit,
           settlementTxHash: null,
           cusdAsset: sharedTypes.X402_ASSET,
@@ -1024,6 +1095,12 @@ router.post('/:slug/order', async (req, res) => {
           component: 'curator-storefront', slug, orderId, nearPayTo,
         });
       }
+    } else if (paymentMethod === 'paypal') {
+      // Captured to the platform PayPal account; the curator share is
+      // reconciled operationally (no on-chain payout tx on this rail).
+      logger.info('PayPal order paid to platform account — curator payout pending reconciliation', {
+        component: 'curator-storefront', slug, orderId,
+      });
     } else if (usingSplit) {
       // Non-custodial: funds are in the Split contract, pending distribution.
       // The payout_tx_hash will be set when the worker calls distribute.
@@ -1093,18 +1170,23 @@ router.post('/:slug/order', async (req, res) => {
           paymentMethod,
           curatorPayout: paymentMethod === 'near'
             ? `${nearQuote.amountNear} NEAR ${nearDirectToCurator ? '(direct to curator)' : '(platform, pending reconciliation)'}`
-            : sellerShare
-              ? `${(Number(sellerShare.amount) / 1e18).toFixed(2)} cUSD`
-              : usingSplit
-                ? `${totalCusd.toFixed(2)} cUSD via Split (pending distribution)`
-                : null,
+            : paymentMethod === 'paypal'
+              ? `${paypalResult.amountUsd} USD (platform, pending reconciliation)`
+              : sellerShare
+                ? `${(Number(sellerShare.amount) / 1e18).toFixed(2)} cUSD`
+                : usingSplit
+                  ? `${totalCusd.toFixed(2)} cUSD via Split (pending distribution)`
+                  : null,
           near: paymentMethod === 'near'
             ? { accountId: nearPayer, amountYocto: nearQuote.amountYocto, payTo: nearPayTo, network: nearQuote.network }
+            : undefined,
+          paypal: paymentMethod === 'paypal' && paypalResult
+            ? { orderId: paypalResult.orderId, captureId: paypalResult.captureId, amountUsd: paypalResult.amountUsd, env: paypalPayments.paypalEnv() }
             : undefined,
           splitAddress: usingSplit ? splitAddress : undefined,
         },
         txHash: effectiveTxHash,
-        chain: paymentMethod === 'near' ? 'near' : 'celo',
+        chain: paymentMethod === 'near' ? 'near' : paymentMethod === 'paypal' ? 'paypal' : 'celo',
       });
       receiptId = receipt.id;
     } catch (receiptErr) {
@@ -1164,8 +1246,13 @@ router.post('/:slug/order', async (req, res) => {
           from: effectivePayer,
           explorerUrl: paymentMethod === 'near'
             ? nearPayments.nearExplorerTxUrl(effectiveTxHash)
-            : agentCore.getExplorerUrl('celo', effectiveTxHash),
+            : paymentMethod === 'paypal'
+              ? null
+              : agentCore.getExplorerUrl('celo', effectiveTxHash),
           paymentMethod,
+          ...(paymentMethod === 'paypal' && paypalResult
+            ? { paypal: { orderId: paypalResult.orderId, captureId: paypalResult.captureId, amountUsd: paypalResult.amountUsd, env: paypalPayments.paypalEnv() } }
+            : {}),
         },
         payout: paymentMethod === 'near'
           ? nearDirectToCurator
@@ -1184,7 +1271,13 @@ router.post('/:slug/order', async (req, res) => {
                 asset: 'NEAR',
                 note: 'Paid to the platform NEAR account; curator payout is reconciled operationally.',
               }
-          : payoutTxHash
+          : paymentMethod === 'paypal'
+            ? {
+                status: 'pending_reconciliation',
+                asset: 'USD',
+                note: 'Paid to the platform PayPal account; curator payout is reconciled operationally.',
+              }
+            : payoutTxHash
             ? {
                 txHash: payoutTxHash,
                 to: payoutAddress,

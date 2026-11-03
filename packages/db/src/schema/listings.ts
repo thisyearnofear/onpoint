@@ -54,6 +54,10 @@ export const listings = pgTable("listings", {
   // Style/vertical tags for matching digital → physical (e.g. ["football", "arsenal", "home"])
   tags: text("tags").array().notNull().default([]),
 
+  // Machine-readable garment attributes (type/formality/warmth/fabric/
+  // pattern/fit/colors) extracted post-ingest — see lib/garment-attributes.js
+  attributes: jsonb("attributes"),
+
   status: text("status", {
     enum: ["live", "paused", "archived"],
   })

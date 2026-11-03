@@ -66,6 +66,14 @@ GET /api/curator/{slug}/storefront
 
 Returns curator profile + live listings. Each listing includes `agentCommerce` with offers (size, stock, priceCusd). If `agentCommerce` is null, the curator has no wallet — cannot buy. Digital listings are try-on only.
 
+Each listing may also carry `attributes` — machine-readable garment metadata extracted at ingest (rule-based, with optional vision enhancement): `type` (top, bottom, dress, outerwear, footwear, accessory, kit, other), `formality` (casual, smart-casual, formal, sport), `warmth` (light, medium, heavy), `fabric`, `pattern`, `fit`, `colors` (up to 3). Null until the extractor has run. Filter listings on them server-side:
+
+```bash
+GET /api/curator/{slug}/storefront?type=top&formality=casual&warmth=light
+```
+
+Case-insensitive exact match on `type`, `formality`, `warmth`; listings without attributes are excluded only when a filter is supplied. Status: `implemented` (backfill script: `scripts/backfill-listing-attributes.mjs`).
+
 ### Step 3: Try On (Optional but Recommended)
 
 ```bash
@@ -73,7 +81,7 @@ POST /api/agent/try-on
 { "curatorSlug": "nia", "listingId": "abc123", "photoData": "data:image/jpeg;base64,..." }
 ```
 
-Response: **HTTP 402** → pay the cUSD fee by default, or use an eligible gasless USDC facilitator challenge via `X-PAYMENT`, or pay in **NEAR** via the `quote.near` rail (re-POST with `{nearAccountId, nearTxHash}`) → re-POST → **HTTP 200** with try-on render, fit signal, and polaroid (shareable artifact with `imageUrl` and `webUrl`). The facilitator option is endpoint- and eligibility-scoped; it does not apply to physical order checkout. The NEAR rail is advertised in `quote.paymentRails` and `quote.near` when configured (NEAR HACKATHON — see `HACKATHON.md`).
+Response: **HTTP 402** → pay the cUSD fee by default, or use an eligible gasless USDC facilitator challenge via `X-PAYMENT`, or pay in **NEAR** via the `quote.near` rail (re-POST with `{nearAccountId, nearTxHash}`), or pay in **USD via PayPal** via the `quote.paypal` rail (send `approveUrl` to the human payer to approve, then re-POST with `{paypalOrderId}`) → re-POST → **HTTP 200** with try-on render, fit signal, and polaroid (shareable artifact with `imageUrl` and `webUrl`). The facilitator option is endpoint- and eligibility-scoped; it does not apply to physical order checkout. The NEAR rail is advertised in `quote.paymentRails` and `quote.near` when configured (NEAR HACKATHON — see `HACKATHON.md`). The PayPal rail is advertised in `quote.paymentRails` and `quote.paypal` only when `PAYPAL_CLIENT_ID`/`PAYPAL_CLIENT_SECRET` (and `PAYPAL_ENV`, default sandbox) are configured — status `implemented`, not yet live-validated.
 
 Includes `revenueHint` showing economics. Digital listings also return `similarPhysicalItems`.
 
@@ -88,7 +96,7 @@ POST /api/curator/{slug}/order
 
 Response: **HTTP 402** → transfer cUSD to `payTo` (append `dataSuffix` for attribution) → re-POST with `paymentTxHash` + `quoteId` → **HTTP 201** with order confirmation, Celoscan links, a receipt at `/receipt/{receiptId}`, and storefront URL.
 
-**Current order rails:** cUSD on Celo via `paymentTxHash` + `quoteId`, or **NEAR** via `{nearAccountId, nearTxHash, quoteId}` when the `quote.near` rail is advertised — a curator's `commerce.nearAccountId` is paid directly (payment tx = payout tx, `paymentMethod: "near"`). The order route currently rejects `X-PAYMENT`/USDC facilitator checkout until treasury conversion and liquidity policy are explicitly enabled. USDC facilitator support remains documented for eligible try-on/facade paths, not as an active order guarantee.
+**Current order rails:** cUSD on Celo via `paymentTxHash` + `quoteId`, **NEAR** via `{nearAccountId, nearTxHash, quoteId}` when the `quote.near` rail is advertised — a curator's `commerce.nearAccountId` is paid directly (payment tx = payout tx, `paymentMethod: "near"`), or **PayPal** (approval-relay, USD) via `{paypalOrderId, quoteId}` when the `quote.paypal` rail is advertised — the human payer approves at `quote.paypal.approveUrl`, the server verifies + captures the order (capture id is the replay-guarded proof, `paymentMethod: "paypal"`, `paymentAsset: "USD"`), and the curator payout is reconciled operationally (`payout.status: "pending_reconciliation"`). PayPal env: `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_ENV` (`sandbox` default, `live` for production); rail is advertised only when configured — status `implemented`, not yet live-validated. The order route currently rejects `X-PAYMENT`/USDC facilitator checkout until treasury conversion and liquidity policy are explicitly enabled. USDC facilitator support remains documented for eligible try-on/facade paths, not as an active order guarantee.
 
 If purchase includes referral code (`X-Referral-Code` header or `?referral=` query param), referring agent earns 2.5% commission.
 
@@ -164,6 +172,22 @@ Looks are discoverable through multiple paths:
 2. **Agent manifest** — `/.well-known/agent.json` lists `"look_composition"` as a capability. Agents reading the manifest know looks exist.
 
 3. **Direct API** — `GET /api/looks` with filters (see below).
+
+### Agent Outfit Planner
+
+> Status: `implemented` — deterministic rule-based planner, no LLM in v1. Listed in the manifest as capability `outfit_planning`.
+
+Free endpoint that composes live, agent-purchasable listings into executable looks (top+bottom or dress, optional outerwear/footwear) scored against a styling brief — occasion formality, weather/season warmth, color harmony, and budget. Returns fewer looks rather than padding with bad combos.
+
+```bash
+POST /api/agent/outfit
+{ "occasion": "formal", "season": "winter",
+  "weather": { "tempC": 5, "rain": false },
+  "budgetCusd": 25, "preferredListingId": "uuid",
+  "maxLooks": 3, "curatorSlug": "nia" }   // all fields optional; maxLooks caps at 5
+```
+
+Response: `{ looks: [{ title, items: [{ listingId, curatorSlug, title, slot, attributes, imageUrl, priceCusd, orderEndpoint }], totalCusd, score, why }], nextSteps: { tryOn, createLook, order } }`. Cross-curator combos are allowed; each item carries its own `orderEndpoint`. Empty `looks` means inventory couldn't support the brief.
 
 ### SDK Helpers
 

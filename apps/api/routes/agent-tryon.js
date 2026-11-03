@@ -28,6 +28,7 @@ const agentCore = require('@repo/agent-core');
 const logger = require('../lib/logger');
 const { curatorSplitAddress, tryOnPriceCusd, storefrontWebUrl, polaroidWebUrl, webBaseUrl, buildRevenueHint } = require('../lib/agent-commerce');
 const nearPayments = require('../lib/near-payments');
+const paypalPayments = require('../lib/paypal-payments');
 const { getAttributionSuffix, getAttributionCode, getAssignedTag } = require('../lib/attribution');
 const { engine } = require('./ai-virtual-tryon');
 const { upload: r2Upload, publicUrl: r2PublicUrl, keyFor: r2KeyFor, mirrorTryOnArtifact: ossMirror, isOssConfigured: ossConfigured } = require('@repo/storage');
@@ -184,7 +185,7 @@ function inferGarmentCategory(listing, kit) {
 
 // ── POST /api/agent/try-on ───────────────────────────────────
 router.post('/', async (req, res) => {
-  const { curatorSlug, listingId, photoData, personDescription, paymentTxHash, nearAccountId, nearTxHash, lookSlug, shareId: rawShareId } =
+  const { curatorSlug, listingId, photoData, personDescription, paymentTxHash, nearAccountId, nearTxHash, paypalOrderId, lookSlug, shareId: rawShareId } =
     req.body || {};
   const shareId = sanitizeShareId(rawShareId);
   const slug = String(curatorSlug || '').toLowerCase();
@@ -215,6 +216,12 @@ router.post('/', async (req, res) => {
   }
   if (nearTxHash && paymentTxHash) {
     return res.status(400).json({ error: 'Provide either paymentTxHash (Celo cUSD) or nearTxHash (NEAR), not both' });
+  }
+  if (paypalOrderId !== undefined && !paypalPayments.isPaypalOrderId(paypalOrderId)) {
+    return res.status(400).json({ error: 'paypalOrderId must be a PayPal order id' });
+  }
+  if (paypalOrderId && (paymentTxHash || nearTxHash)) {
+    return res.status(400).json({ error: 'Provide exactly one payment proof' });
   }
 
   let db;
@@ -278,9 +285,22 @@ router.post('/', async (req, res) => {
     const nearPayTo = nearPayments.nearPayoutAccount(row.curator);
     const nearQuote = nearPayTo ? nearPayments.nearQuoteForUsd(priceCusd) : null;
 
+    // ── PayPal rail (approval-relay; capture is the replay-guarded proof) ──
+    // Only create the order when a challenge is actually needed — the
+    // reference binds the approved PayPal order to this listing.
+    let paypalQuote = null;
+    if (!okxBypass && !paymentTxHash && !nearTxHash && !paypalOrderId && !req.headers['x-payment']) {
+      paypalQuote = await paypalPayments.paypalQuoteForUsd({
+        amountUsd: priceCusd,
+        referenceId: `tryon:${slug}:${listingId}:${crypto.randomUUID()}`,
+        description: `OnPoint try-on: ${itemLabel}`,
+      });
+    }
+
     let settlementTxHash = null;
     let payerAddress = null;
     let verification = null;
+    let paypalResult = null;
     let paymentMethod = 'cusd';
 
     if (okxBypass) {
@@ -295,7 +315,7 @@ router.post('/', async (req, res) => {
     const xPaymentHeader = req.headers['x-payment'];
 
     // ── Step 1: no payment proof → 402 challenge ──
-    if (!paymentTxHash && !xPaymentHeader && !nearTxHash) {
+    if (!paymentTxHash && !xPaymentHeader && !nearTxHash && !paypalOrderId) {
       return res.status(402).json({
         ...sharedTypes.build402Body([requirements]),
         quote: {
@@ -308,7 +328,19 @@ router.post('/', async (req, res) => {
           payoutModel: splitAddress ? '0xSplits (curator earns a share)' : 'platform',
           token: sharedTypes.X402_ASSET,
           chainId: sharedTypes.X402_CHAIN_ID,
-          paymentRails: ['celo_cusd', ...(nearQuote ? ['near'] : [])],
+          paymentRails: ['celo_cusd', ...(nearQuote ? ['near'] : []), ...(paypalQuote ? ['paypal'] : [])],
+          ...(paypalQuote
+            ? {
+                paypal: {
+                  env: paypalQuote.env,
+                  orderId: paypalQuote.orderId,
+                  approveUrl: paypalQuote.approveUrl,
+                  amountUsd: paypalQuote.amountUsd,
+                  currency: 'USD',
+                  instructions: 'Send approveUrl to the human payer to approve, then re-POST with { paypalOrderId }.',
+                },
+              }
+            : {}),
           ...(nearQuote
             ? {
                 near: {
@@ -345,8 +377,27 @@ router.post('/', async (req, res) => {
     }
     {
       // ── Step 2b: verify the payment on the submitted rail ──
-    const proofTxHash = nearTxHash || paymentTxHash;
-    if (nearTxHash) {
+    if (paypalOrderId) {
+      paymentMethod = 'paypal';
+      if (!paypalPayments.paypalRailEnabled()) {
+        return res.status(409).json({
+          error: 'PayPal payment rail is not configured for this resource.',
+          code: 'PAYMENT_RAIL_UNAVAILABLE',
+        });
+      }
+      paypalResult = await paypalPayments.verifyAndCapturePaypalOrder({
+        orderId: String(paypalOrderId),
+        expectedReferencePrefix: `tryon:${slug}:${listingId}:`,
+        minAmountUsd: priceCusd,
+      });
+      if (!paypalResult.ok) {
+        return res.status(402).json({
+          error: `PayPal payment not verified: ${paypalResult.reason}`,
+          ...sharedTypes.build402Body([requirements]),
+        });
+      }
+      verification = { from: paypalResult.payerId || paypalResult.payerEmail, paypal: paypalResult };
+    } else if (nearTxHash) {
       paymentMethod = 'near';
       if (!nearPayTo || !nearQuote) {
         return res.status(409).json({
@@ -386,10 +437,13 @@ router.post('/', async (req, res) => {
     } // end cUSD verification path
 
     // Pre-check: has this payment tx already been claimed?
+    // For PayPal the canonical proof is the capture id — replay-guarded the
+    // same way as a chain tx hash, so a captured order can't be spent twice.
+    const proofId = paypalResult?.captureId || nearTxHash || paymentTxHash;
     const existing = await db
       .select({ id: payments.id })
       .from(payments)
-      .where(eq(payments.txHash, proofTxHash))
+      .where(eq(payments.txHash, proofId))
       .limit(1);
     if (existing.length > 0) {
       return res.status(409).json({ error: 'Payment transaction already used' });
@@ -398,11 +452,13 @@ router.post('/', async (req, res) => {
     } // end else (not okxBypass)
 
     // The effective tx hash and payer for this request
-    const effectiveTxHash = settlementTxHash || nearTxHash || paymentTxHash;
+    const effectiveTxHash = settlementTxHash || paypalResult?.captureId || nearTxHash || paymentTxHash;
     const effectivePayer = settlementTxHash ? payerAddress : (nearTxHash ? nearPayer : (verification?.from || null));
     const explorerUrl = paymentMethod === 'near'
       ? nearPayments.nearExplorerTxUrl(effectiveTxHash)
-      : agentCore.getExplorerUrl('celo', effectiveTxHash);
+      : paymentMethod === 'paypal'
+        ? null
+        : agentCore.getExplorerUrl('celo', effectiveTxHash);
 
     // Render + fit analysis run concurrently — independent pipelines.
     // We run these BEFORE claiming the payment so that a render failure
@@ -497,6 +553,9 @@ router.post('/', async (req, res) => {
           ...(paymentMethod === 'near'
             ? { near: { accountId: nearPayer, amountYocto: nearQuote.amountYocto, payTo: nearPayTo, network: nearQuote.network } }
             : {}),
+          ...(paymentMethod === 'paypal' && paypalResult
+            ? { paypal: { orderId: paypalResult.orderId, captureId: paypalResult.captureId, amountUsd: paypalResult.amountUsd, env: paypalPayments.paypalEnv() } }
+            : {}),
         },
       })
       .onConflictDoNothing({ target: payments.txHash })
@@ -546,7 +605,7 @@ router.post('/', async (req, res) => {
           paymentMethod,
         },
         txHash: effectiveTxHash,
-        chain: paymentMethod === 'near' ? 'near' : 'celo',
+        chain: paymentMethod === 'near' ? 'near' : paymentMethod === 'paypal' ? 'paypal' : 'celo',
       });
       receiptId = receipt.id;
     } catch (receiptErr) {

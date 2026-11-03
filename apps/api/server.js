@@ -325,6 +325,11 @@ app.use('/api/agent/whatsapp', json1k, serviceKeyAuth, generalRateLimit, require
 
 app.use('/api/agent/try-on', json10mb, aiExpensiveRateLimit, aiExpensiveDailyLimit, require('./routes/agent-tryon'));
 
+// ── Agent Outfit Planner (public, free) ────────────────────────
+// Deterministic look composition over live agent-purchasable inventory.
+
+app.use('/api/agent/outfit', json1k, generalRateLimit, require('./routes/agent-outfit'));
+
 // ── OKX A2MCP Facade (x402 on XLayer, relays to Celo backend) ──────
 // Paid pay-per-call endpoints that settle in USD₮0 on XLayer so OKX
 // Agentic Wallet users can pay without bridging. See routes/okx-facade.js.

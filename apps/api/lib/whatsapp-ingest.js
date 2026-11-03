@@ -34,6 +34,8 @@ const { eq, and } = require('drizzle-orm');
 const { curators, listings, kitSkus } = require('@repo/db');
 const { upload, keyFor } = require('@repo/storage');
 const logger = require('./logger');
+const { extractGarmentAttributes } = require('./garment-attributes');
+const { listingImageUrl } = require('./r2');
 
 const META_API_VERSION = 'v21.0';
 const META_BASE = `https://graph.facebook.com/${META_API_VERSION}`;
@@ -373,6 +375,21 @@ async function upsertListing({ curatorSlug, skuId, listingId, existing, size, pr
     .from(listings)
     .where(eq(listings.id, listingId))
     .limit(1);
+
+  // Fire-and-forget garment attribute extraction — never blocks or fails ingest
+  extractGarmentAttributes({
+    imageUrl: listingImageUrl(created),
+    title: created.title,
+    tags: created.tags,
+  })
+    .then((attributes) =>
+      db.update(listings).set({ attributes }).where(eq(listings.id, listingId)))
+    .catch((err) =>
+      logger.warn('Garment attribute extraction failed', {
+        component: 'whatsapp-ingest',
+        listingId,
+        error: err?.message,
+      }));
 
   logger.info('Listing created', {
     component: 'whatsapp-ingest',

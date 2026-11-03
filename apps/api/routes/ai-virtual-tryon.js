@@ -14,6 +14,7 @@ const logger = require('../lib/logger');
 const { logFunnelEvent } = require('../lib/funnel');
 const { hashVisitor, sanitizeShareId, sanitizeLookSlug } = require('../lib/share-attribution');
 const youcamVto = require('../lib/youcam-vto');
+const { runGeminiTryOn } = require('../lib/gemini-tryon');
 
 // ── Caching: fingerprint photo data to avoid redundant Venice API calls ──
 let redis = null;
@@ -732,6 +733,74 @@ async function buildGeneratedOutfitImageResponse({ data, provider, tier = 'paid'
   } else if (useReplicateFirst) {
     // Paid tier but Replicate couldn't run (no token or missing inputs)
     fallbackReason = !process.env.REPLICATE_API_TOKEN ? 'replicate_not_configured' : !humanImage ? 'missing_person_image' : !garmentImage ? 'missing_garment_image' : 'missing_conditioning_input';
+  }
+
+  // Gemini image-edit stage — generative and garment-conditioned like
+  // Replicate, sits between Replicate and the Venice text-to-image fallback.
+  const geminiKeyConfigured = process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_gemini_api_key_here';
+  if (useReplicateFirst && humanImage && garmentImage && geminiKeyConfigured) {
+    try {
+      const garmentImages = (data && data.items ? data.items : [])
+        .map((item) => item.imageUrl || item.productSrc || item.cover)
+        .filter(Boolean)
+        .slice(0, 2);
+      const gemini = await runGeminiTryOn({
+        humanImage,
+        garmentImages,
+        garmentDescription: outfitDescription || 'fashion garment',
+      });
+      const generatedImage = gemini.generatedImage;
+
+      let structuredTips = [];
+      let stylingTips = [
+        'Compare the rendered garment against your original pose to judge proportion and fit.',
+        'Check the shoulder and waist alignment first; those areas reveal the most about fit.',
+        'Use the generated image as direction, then verify fabric and sizing on the product page.',
+      ];
+
+      if (personDescription) {
+        const tipsResponse = await generateText({
+          prompt: `Styling tips for this image-conditioned virtual try-on: ${personDescription} wearing ${outfitDescription}. Return JSON: [{"text": "...", "action": {...}}]`,
+          provider,
+          geminiModel: 'gemini-3.1-flash-lite-preview',
+          openaiModel: 'gpt-4o',
+        });
+        const parsed = extractStructuredStylingTips(tipsResponse.text || '');
+        stylingTips = parsed.textTips;
+        structuredTips = parsed.structuredTips;
+      }
+
+      const result = {
+        generatedImage,
+        enhancedOutfit: (data && data.items) || [],
+        stylingTips,
+        structuredTips,
+        provider: 'gemini-image',
+        imageConditioned: true,
+        fallbackReason,
+        latencyMs: Date.now() - startedAt,
+        errorClass: null,
+      };
+      logger.info('Virtual try-on provider outcome', {
+        component: 'virtual-tryon',
+        action: 'generate-outfit-image',
+        provider: result.provider,
+        imageConditioned: result.imageConditioned,
+        fallbackReason: result.fallbackReason,
+        latencyMs: result.latencyMs,
+        errorClass: result.errorClass,
+      });
+      return result;
+    } catch (error) {
+      fallbackReason = 'gemini_unavailable';
+      errorClass = error?.name || 'GeminiTryOnError';
+      logger.warn('Gemini image try-on failed, falling back to Venice image generation', {
+        component: 'virtual-tryon',
+        error: error.message,
+        errorClass,
+        geminiErrorCode: error?.code || null,
+      });
+    }
   }
   // Free tier: skip Replicate entirely, go straight to Venice SD35
   if (!useReplicateFirst && !fallbackReason) {
