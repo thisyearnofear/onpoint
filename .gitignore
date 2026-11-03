@@ -104,7 +104,7 @@ docs/ops/monitoring.md
 dump.rdb
 
 # Demo videos and demo media artifacts (local-only, too large for repo; wire in via URL if needed)
-apps/web/public/demo/
+apps/web/public/demo/**/*.mp4
 /video/
 /videos/
 /media/

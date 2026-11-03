@@ -4,8 +4,9 @@
  * funnel event so the fix lands inside the ADR 0019 share-attribution loop.
  *
  * Order: live looks tagged like (theme.tags ∪ fixTags) → live physical
- * listings tagged likewise → most recent live look. Returns null on any DB
- * unavailability — never throws into the game.
+ * listings tagged likewise → style-board outfit matched on the same tags
+ * (inspiration, not inventory) → most recent live look. Returns null on any
+ * DB unavailability — never throws into the game.
  */
 
 const logger = require('../logger');
@@ -14,6 +15,7 @@ const { keyToUrl, listingImageUrl } = require('../r2');
 const { newShareId } = require('../share-attribution');
 const { logFunnelEvent } = require('../funnel');
 const { webBaseUrl } = require('../agent-commerce');
+const { pickStyleFix } = require('./style-board');
 
 function recordShare(sqlDb, metadata) {
   // Mirrors recordLookEvent in routes/agent-looks.js so summarizeShareFunnel
@@ -78,6 +80,21 @@ async function findFix({ theme, fixTags, channel = 'imessage', personaKey }) {
           shareId,
         };
       }
+    }
+
+    // No live match: fall back to a theme-matched style-board outfit before
+    // the generic most-recent-look fallback. Inspiration, not inventory.
+    const outfit = pickStyleFix({ theme, fixTags });
+    if (outfit) {
+      const url = `${web}/style-board?pick=${outfit.id}&sid=${shareId}&utm_source=${channel}${track}`;
+      recordShare(sql, { shareId, channel, actor: 'runway', outfitId: outfit.id });
+      return {
+        kind: 'inspiration',
+        title: outfit.title,
+        imageUrl: `${web}/demo/outfits/${outfit.id}.webp`,
+        url,
+        shareId,
+      };
     }
 
     const recent = await sql`

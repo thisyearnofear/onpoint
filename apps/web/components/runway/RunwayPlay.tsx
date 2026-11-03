@@ -11,7 +11,7 @@ import { ScorePaddles } from "./ScorePaddles";
 import { CountdownRing } from "./CountdownRing";
 import { imageFileToJpegDataUrl, runwayPlayerId } from "../../lib/utils/runway";
 import { bestScore, computeStreak, useRunwayHistory } from "../../lib/stores/runway-history-store";
-import { RUNWAY_SAMPLES, sampleById } from "../../lib/runway-samples";
+import { RUNWAY_SAMPLES, OUTFIT_SAMPLES, sampleById } from "../../lib/runway-samples";
 import type { StylistPersona } from "@repo/ai-client";
 
 type Stage = "intro" | "round" | "preview" | "judging" | "result" | "capped" | "error";
@@ -400,6 +400,18 @@ export function RunwayPlay() {
                     <img src={smp.src} alt={smp.label} className="h-full w-full object-cover" loading="lazy" />
                   </button>
                 ))}
+                {OUTFIT_SAMPLES.map((smp) => (
+                  <button
+                    key={smp.id}
+                    type="button"
+                    onClick={() => void pickSample(smp.src)}
+                    title={smp.label}
+                    className="group h-20 w-16 shrink-0 snap-start overflow-hidden rounded-xl border border-zinc-700/60 bg-zinc-200/90 hover:border-primary/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={smp.src} alt={smp.label} className="h-full w-full object-cover" loading="lazy" />
+                  </button>
+                ))}
               </div>
             </div>
           </>
@@ -515,7 +527,7 @@ export function RunwayPlay() {
                       href={result.fix.url}
                       className="mt-2 inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-bold text-white hover:bg-primary/90"
                     >
-                      See it on you
+                      {result.fix.kind === "inspiration" ? "Get the look" : "See it on you"}
                     </a>
                   </div>
                 </div>

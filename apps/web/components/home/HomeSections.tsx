@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { SafeImage } from "../SafeImage";
-import { RUNWAY_SAMPLES } from "../../lib/runway-samples";
+import { RUNWAY_SAMPLES, OUTFIT_SAMPLES } from "../../lib/runway-samples";
 import { getApiBase } from "../../lib/utils/api-base";
 
 interface NiaListing { id: string; title: string | null; imageUrl: string | null; }
@@ -33,6 +33,23 @@ function TryItSection() {
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={smp.src} alt={smp.label} className="aspect-[3/4] w-full object-cover" loading="lazy" />
+                <span className="block px-3 py-2 text-xs font-bold">{smp.label}</span>
+              </Link>
+            ))}
+          </div>
+          <div className="mt-8 flex items-end justify-between gap-4">
+            <p className="pl-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Or judge a styled look</p>
+            <Link href="/style-board" className="shrink-0 text-xs font-bold text-primary hover:underline">All {OUTFIT_SAMPLES.length} looks →</Link>
+          </div>
+          <div className="mt-3 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2">
+            {OUTFIT_SAMPLES.slice(0, 10).map((smp) => (
+              <Link
+                key={smp.id}
+                href={`/runway/play?sample=${smp.id}`}
+                className="group w-32 shrink-0 snap-start overflow-hidden rounded-2xl border border-border/60 bg-card transition-colors hover:border-primary/60"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={smp.src} alt={smp.label} className="aspect-[2/3] w-full bg-zinc-100 object-cover dark:bg-zinc-900" loading="lazy" />
                 <span className="block px-3 py-2 text-xs font-bold">{smp.label}</span>
               </Link>
             ))}
