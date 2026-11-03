@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Check, Lock, ScanFace, Shirt } from "lucide-react";
+import { Check, ScanFace, Shirt } from "lucide-react";
 import product1 from "../../public/assets/1Product.png";
 import model1 from "../../public/assets/1Model.png";
 import product2 from "../../public/assets/2Product.png";
@@ -55,7 +55,7 @@ export function HeroVisual() {
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
           <div>
             <p className="font-mono text-[9px] uppercase tracking-[0.24em] text-white/40">
-              Fit earns permission
+              See it on you
             </p>
             <p className="mt-1 text-sm font-semibold">Tap a garment</p>
           </div>
@@ -102,10 +102,10 @@ export function HeroVisual() {
           <div className="relative overflow-hidden bg-[radial-gradient(circle_at_50%_42%,rgba(255,255,255,0.13),transparent_54%)]">
             <div className="absolute inset-x-5 top-5 z-20 flex items-center justify-between">
               <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/35">
-                Product → fit
+                On you
               </span>
               <span className="flex items-center gap-1.5 rounded-full border border-fuchsia-300/20 bg-fuchsia-300/10 px-2.5 py-1 text-[9px] font-semibold text-fuchsia-100">
-                <ScanFace className="h-3 w-3" /> Fit preview
+                <ScanFace className="h-3 w-3" /> On you preview
               </span>
             </div>
 
@@ -157,22 +157,17 @@ export function HeroVisual() {
               layout
               className="absolute inset-x-4 bottom-4 z-30 rounded-2xl border border-white/10 bg-black/65 p-3.5 shadow-xl backdrop-blur-xl"
             >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-2.5">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2.5">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-fuchsia-300/10 text-fuchsia-200">
                     <Shirt className="h-4 w-4" />
                   </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-semibold">
-                      {look.label} selected
-                    </p>
-                    <p className="mt-0.5 text-[10px] text-white/45">
-                      Fit checked before spend access
-                    </p>
-                  </div>
+                  <p className="text-xs font-semibold">Tap another garment</p>
                 </div>
-                <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-amber-200/20 bg-amber-200/10 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-wide text-amber-100">
-                  <Lock className="h-3 w-3" /> Permission locked
+                <div className="flex justify-end">
+                  <div className="flex items-center gap-1.5 rounded-full border border-amber-200/20 bg-amber-200/10 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-wide text-amber-100">
+                    <Check className="h-3 w-3" /> On model
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -181,7 +176,7 @@ export function HeroVisual() {
       </div>
 
       <p className="mt-3 text-center font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-        Choose the fit first · approve the scope second
+        Tap a garment. See it on a model.
       </p>
     </div>
   );

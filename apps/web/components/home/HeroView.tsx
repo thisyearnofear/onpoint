@@ -21,7 +21,8 @@ import { Reveal } from "../ui/Reveal";
 import { trackHomepageCta } from "../../lib/utils/analytics";
 import { captureReferralFromURL } from "../../lib/utils/referral";
 import { CTA_PLAY, CTA_SUPPLY, HERO, PRODUCT_NAME } from "../../lib/brand";
-import { RunwayHeroStage } from "./RunwayHeroStage";
+import { HeroVisual } from "./HeroVisual";
+import { HomeSections } from "./HomeSections";
 import { AgentFlow } from "../Agent/AgentFlow";
 import { PravaEvidenceReceipt } from "../Agent/PravaEvidenceReceipt";
 
@@ -226,21 +227,34 @@ export function HeroView() {
   }, []);
 
   const heroCtaRef = React.useRef<HTMLDivElement | null>(null);
-  const [heroCtaInView, setHeroCtaInView] = React.useState(true);
+  const footerRef = React.useRef<HTMLElement | null>(null);
+  const [hideCtaPill, setHideCtaPill] = React.useState(true);
 
   useEffect(() => {
-    const el = heroCtaRef.current;
-    if (!el || typeof IntersectionObserver === "undefined") return;
+    const targets = [
+      heroCtaRef.current,
+      document.getElementById("try-it"),
+      document.getElementById("agent-search"),
+      footerRef.current,
+    ].filter(Boolean) as Element[];
+    if (!targets.length || typeof IntersectionObserver === "undefined") return;
+    const visible = new Set<Element>();
     const observer = new IntersectionObserver(
-      ([entry]) => setHeroCtaInView(entry?.isIntersecting ?? true),
+      (ents) => {
+        for (const e of ents) {
+          if (e.isIntersecting) visible.add(e.target);
+          else visible.delete(e.target);
+        }
+        setHideCtaPill(visible.size > 0);
+      },
       { threshold: 0 },
     );
-    observer.observe(el);
+    targets.forEach((t) => observer.observe(t));
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pb-20 md:pb-0">
       <section className="relative overflow-hidden border-b border-border/30">
         <div className="absolute inset-0 -z-20 bg-[linear-gradient(135deg,hsl(var(--primary)/0.08),transparent_38%,hsl(var(--accent)/0.05))]" />
         <div className="absolute inset-0 -z-10 opacity-[0.2] [background-image:linear-gradient(to_right,hsl(var(--border))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border))_1px,transparent_1px)] [background-size:42px_42px] [mask-image:linear-gradient(to_bottom,black,transparent_85%)]" />
@@ -282,20 +296,34 @@ export function HeroView() {
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                   <a
-                    href="#how-it-works"
+                    href="#try-it"
                     className="inline-flex items-center gap-2 text-sm font-bold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
                   >
-                    See how it works
+                    Try a look — no photo needed
                   </a>
                 </div>
               </Reveal>
             </div>
             <Reveal direction="right" delay={0.1}>
-              <RunwayHeroStage />
+              <div className="relative">
+                <HeroVisual />
+                <div className="mx-auto mt-4 w-fit rounded-2xl border border-zinc-800 bg-zinc-950/95 px-4 py-3 shadow-2xl sm:absolute sm:-bottom-4 sm:-right-6 sm:mx-0 sm:mt-0">
+                  <div className="flex items-baseline gap-3">
+                    <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-primary">Runway</span>
+                    {[{l:'TH',v:8},{l:'CO',v:7},{l:'ST',v:6}].map((p)=>(
+                      <span key={p.l} className="font-mono text-[11px] font-bold text-zinc-100"><span className="mr-1 text-[8px] text-zinc-500">{p.l}</span>{p.v}</span>
+                    ))}
+                    <span className="text-sm font-black text-zinc-50">7.0<span className="text-[10px] text-zinc-500">/10</span></span>
+                  </div>
+                  <p className="mt-1.5 text-[11px] italic leading-snug text-zinc-400">&ldquo;Sharp shoulders. Finally, intent.&rdquo; — Miranda</p>
+                </div>
+              </div>
             </Reveal>
           </div>
         </div>
       </section>
+
+      <HomeSections />
 
       <section
         id="agent-search"
@@ -328,7 +356,7 @@ export function HeroView() {
       <ProofSection />
       <PlatformDisclosure />
 
-      <footer className="border-t border-border/60 py-8">
+      <footer ref={footerRef} className="border-t border-border/60 py-8">
         <div className="container mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 text-sm text-muted-foreground md:flex-row">
           <div className="flex items-center gap-2 font-semibold text-foreground">
             <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-1 shadow-md">
@@ -360,17 +388,17 @@ export function HeroView() {
       </footer>
 
       <div
-        className={`fixed bottom-4 left-4 right-4 z-40 pb-[env(safe-area-inset-bottom)] transition-all duration-300 ease-out md:hidden ${heroCtaInView ? "translate-y-24 opacity-0 pointer-events-none" : "translate-y-0 opacity-100"}`}
-        aria-hidden={heroCtaInView}
+        className={`fixed bottom-4 left-1/2 z-40 -translate-x-1/2 pb-[env(safe-area-inset-bottom)] transition-all duration-300 ease-out md:hidden ${hideCtaPill ? "translate-y-24 opacity-0 pointer-events-none" : "opacity-100"}`}
+        aria-hidden={hideCtaPill}
       >
         <Link
           href={CTA_PLAY.href}
           onClick={() =>
             trackHomepageCta({ cta: "play", placement: "mobile_sticky" })
           }
-          className="block w-full rounded-full bg-primary py-4 text-center font-bold text-white shadow-xl shadow-primary/25 active:scale-[0.98]"
+          className="inline-flex h-12 items-center gap-1.5 whitespace-nowrap rounded-full bg-primary px-6 text-center text-sm font-bold text-white shadow-xl shadow-primary/25 active:scale-[0.98]"
         >
-          {CTA_PLAY.mobileLabel}
+          {CTA_PLAY.mobileLabel} ›
         </Link>
       </div>
     </div>

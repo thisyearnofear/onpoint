@@ -80,6 +80,7 @@ router.post('/rounds/:roundId/photo', async (req, res) => {
     const out = await engine.submitPhoto(webChatId(playerId), {
       imageDataUrl: photoData,
       surface: 'web',
+      sample: req.body?.sample === true,
     });
     const body = {
       status: out.status,

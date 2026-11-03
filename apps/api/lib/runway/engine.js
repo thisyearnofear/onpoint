@@ -96,7 +96,7 @@ async function startRound(chatId, { personaKey, themeId, now = Date.now(), surfa
  * Judge a photo for the chat's awaiting round (freestyle round is created on
  * the fly when none is awaiting).
  */
-async function submitPhoto(chatId, { photoUrl, imageDataUrl, now = Date.now(), surface = 'imessage' }) {
+async function submitPhoto(chatId, { photoUrl, imageDataUrl, now = Date.now(), surface = 'imessage', sample = false }) {
   let round = await state.getRound(chatId);
   let theme;
   if (!round || round.status !== 'awaiting_photo') {
@@ -112,7 +112,7 @@ async function submitPhoto(chatId, { photoUrl, imageDataUrl, now = Date.now(), s
   }
   const persona = getPersona(round.persona);
   const late = now > round.deadline;
-  funnel('runway_submit', { roundId: round.roundId, late }, surface, chatId);
+  funnel('runway_submit', { roundId: round.roundId, late, ...(sample ? { sample: true } : {}) }, surface, chatId);
 
   let dataUrl = imageDataUrl;
   try {
@@ -168,6 +168,7 @@ async function submitPhoto(chatId, { photoUrl, imageDataUrl, now = Date.now(), s
     provider: verdict.provider,
     total: verdict.total,
     late,
+    ...(sample ? { sample: true } : {}),
   }, surface, chatId);
 
   return {

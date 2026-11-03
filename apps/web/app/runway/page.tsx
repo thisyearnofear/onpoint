@@ -4,6 +4,7 @@ import { ScorePaddles } from "../../components/runway/ScorePaddles";
 import { RunwayCtas } from "../../components/runway/RunwayCtas";
 import { JudgePick } from "../../components/runway/JudgePick";
 import type { StylistPersona } from "@repo/ai-client";
+import { RUNWAY_SAMPLES } from "../../lib/runway-samples";
 
 export const metadata: Metadata = {
   title: "Runway — a closet challenge | OnPoint",
@@ -96,7 +97,25 @@ export default async function RunwayPage() {
             <ScorePaddles scores={{ theme: 8, cohesion: 7, styling: 6 }} total={7.0} judgeName="Miranda" />
           </div>
         </div>
-      </main>
+              <div className="mx-auto mt-16 max-w-2xl">
+          <p className="text-center font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">
+            See it in action — no camera needed
+          </p>
+          <div className="mt-4 grid grid-cols-3 gap-3">
+            {RUNWAY_SAMPLES.slice(0, 6).map((smp) => (
+              <a
+                key={smp.id}
+                href={`/runway/play?sample=${smp.id}`}
+                className="group overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/60 text-left transition-colors hover:border-primary/60"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={smp.src} alt={smp.label} className="aspect-[3/4] w-full object-cover" loading="lazy" />
+                <span className="block px-2.5 py-2 text-xs font-bold text-zinc-300">{smp.label}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+</main>
     </div>
   );
 }

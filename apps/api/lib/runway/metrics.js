@@ -29,6 +29,14 @@ function computeRunwayMetrics(events, { now = Date.now(), days = 14 } = {}) {
   // Rounds matched by distinct roundId (same round id counted once per side).
   const startRoundIds = new Set(starts.map((e) => e.md.roundId).filter(Boolean));
   const submitRoundIds = new Set(submits.map((e) => e.md.roundId).filter(Boolean));
+  const sampleSubmitRoundIds = new Set(
+    submits.filter((e) => e.md.sample).map((e) => e.md.roundId).filter(Boolean));
+  const sampleRounds = sampleSubmitRoundIds.size;
+  const nonSampleStarts = new Set(
+    starts.filter((e) => e.md.roundId && !sampleSubmitRoundIds.has(e.md.roundId)).map((e) => e.md.roundId));
+  const nonSampleSubmits = new Set([...submitRoundIds].filter((r) => !sampleSubmitRoundIds.has(r)));
+  const submissionRateExcludingSamples = nonSampleStarts.size
+    ? nonSampleSubmits.size / nonSampleStarts.size : null;
   const submissionRate = startRoundIds.size ? submitRoundIds.size / startRoundIds.size : null;
 
   // Player-based metrics — only events carrying playerHash.
@@ -108,6 +116,8 @@ function computeRunwayMetrics(events, { now = Date.now(), days = 14 } = {}) {
       rate: shares.length ? referredStarts / shares.length : null,
     },
     fixEvents,
+    sampleRounds,
+    submissionRateExcludingSamples,
     eventsWithoutPlayerHash,
   };
 }

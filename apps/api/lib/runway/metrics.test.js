@@ -101,6 +101,20 @@ describe('computeRunwayMetrics', () => {
     expect(m.eventsWithoutPlayerHash).toBe(2);
   });
 
+  it('tracks sampleRounds and submissionRateExcludingSamples', () => {
+    const events = [
+      ev('runway_start', day('2026-11-09'), { roundId: 'r1', playerHash: 'p1' }),
+      ev('runway_start', day('2026-11-09'), { roundId: 'r2', playerHash: 'p1' }),
+      ev('runway_submit', day('2026-11-09'), { roundId: 'r1', playerHash: 'p1', sample: true }),
+      ev('runway_submit', day('2026-11-09'), { roundId: 'r2', playerHash: 'p1' }),
+    ];
+    const m = computeRunwayMetrics(events, { now: NOW, days: 14 });
+    expect(m.sampleRounds).toBe(1);
+    expect(m.submittedRounds).toBe(2);
+    expect(m.submissionRate).toBe(1);
+    expect(m.submissionRateExcludingSamples).toBe(1); // r2 submitted, r1 excluded
+  });
+
   it('accepts ISO strings and ms timestamps interchangeably', () => {
     const events = [
       ev('runway_start', '2026-11-09T09:00:00Z', { roundId: 'a', playerHash: 'p1' }),

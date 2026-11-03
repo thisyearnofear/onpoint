@@ -52,6 +52,7 @@ const nextConfig = {
 
     return config;
   },
+  images: { remotePatterns: [{ protocol: 'https', hostname: 'api.onpoint.famile.xyz' }] },
   async rewrites() {
     const hetzner = process.env.NEXT_PUBLIC_AGENT_API_URL;
     if (!hetzner) return [];

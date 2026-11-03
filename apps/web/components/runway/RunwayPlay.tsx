@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Camera, Download, ImageIcon, RotateCcw, Send, Share2, Users } from "lucide-react";
+import { Camera, Download, RotateCcw, Send, Share2, Users } from "lucide-react";
 import { useReducedMotion } from "framer-motion";
 import { SafeImage } from "../SafeImage";
 import { JudgeAvatar, judgeDisplayName } from "./JudgeAvatar";
@@ -11,6 +11,7 @@ import { ScorePaddles } from "./ScorePaddles";
 import { CountdownRing } from "./CountdownRing";
 import { imageFileToJpegDataUrl, runwayPlayerId } from "../../lib/utils/runway";
 import { bestScore, computeStreak, useRunwayHistory } from "../../lib/stores/runway-history-store";
+import { RUNWAY_SAMPLES, sampleById } from "../../lib/runway-samples";
 import type { StylistPersona } from "@repo/ai-client";
 
 type Stage = "intro" | "round" | "preview" | "judging" | "result" | "capped" | "error";
@@ -64,7 +65,8 @@ export function RunwayPlay() {
   const initialJudge = (params.get("judge") || "").toLowerCase() as StylistPersona;
   const themeId = params.get("theme") || undefined;
 
-  const [stage, setStage] = useState<Stage>(initialJudge ? "round" : "intro");
+  const hasSampleParam = Boolean(params.get("judge") || sampleById(params.get("sample")));
+  const [stage, setStage] = useState<Stage>(initialJudge || hasSampleParam ? "round" : "intro");
   const [judge, setJudge] = useState<StylistPersona>(JUDGES.some((j) => j.key === initialJudge) ? initialJudge : "miranda");
   const [round, setRound] = useState<RoundState | null>(null);
   const [photoData, setPhotoData] = useState<string | null>(null);
@@ -77,12 +79,13 @@ export function RunwayPlay() {
   const fileRef = useRef<HTMLInputElement>(null);
   const camRef = useRef<HTMLInputElement>(null);
   const started = useRef(false);
+  const rawRef = params.get("ref") || "";
   const refSent = useRef(false);
   const judgingSince = useRef(0);
   const reduceMotion = useReducedMotion();
   const entries = useRunwayHistory((st) => st.entries);
   const addEntry = useRunwayHistory((st) => st.addEntry);
-  const rawRef = params.get("ref") || "";
+  const [isSample, setIsSample] = useState(false);
   const shareRef = REF_RE.test(rawRef) ? rawRef : undefined;
 
   const startRound = useCallback(async (judgeKey: StylistPersona, tid?: string) => {
@@ -125,6 +128,26 @@ export function RunwayPlay() {
   const pickFile = () => fileRef.current?.click();
   const pickCamera = () => camRef.current?.click();
 
+  const pickSample = async (src: string) => {
+    try {
+      const res = await fetch(src);
+      const blob = await res.blob();
+      const file = new File([blob], "sample.jpg", { type: blob.type || "image/jpeg" });
+      setPhotoData(await imageFileToJpegDataUrl(file));
+      setIsSample(true);
+      setStage("preview");
+    } catch {
+      setJudgeNote("Could not load that sample — try another.");
+    }
+  };
+
+  // Auto-pick a sample when arriving with ?sample=<id> once a round exists.
+  useEffect(() => {
+    const smp = sampleById(params.get("sample"));
+    if (smp && stage === "round" && round && !photoData) void pickSample(smp.src);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage, round]);
+
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -149,7 +172,7 @@ export function RunwayPlay() {
       const res = await fetch(`/api/runway/rounds/${round.roundId}/photo`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ playerId: runwayPlayerId(), photoData }),
+        body: JSON.stringify({ playerId: runwayPlayerId(), photoData, ...(isSample ? { sample: true } : {}) }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
@@ -290,7 +313,7 @@ export function RunwayPlay() {
         </span>
       </header>
 
-      <main className="relative z-10 mx-auto flex w-full max-w-lg flex-1 flex-col items-center justify-center gap-6 px-4 pb-16">
+      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-lg flex-1 flex-col items-center justify-center gap-6 px-4 pb-16">
         {stage === "intro" && (
           <>
             <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">Pick your judge</p>
@@ -337,30 +360,48 @@ export function RunwayPlay() {
             </div>
             <div className="text-center">
               <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">The theme</p>
-              <h1 className="mt-1 text-4xl font-black tracking-[-0.04em]">{round.theme.name}</h1>
-              <p className="mt-1 text-sm text-zinc-400">{round.theme.brief}</p>
-              <p className="mt-2 text-sm font-bold text-zinc-200">Raid your closet. One full-length photo.</p>
+              <h1 className="mt-1 text-3xl font-black tracking-[-0.04em] sm:text-4xl">{round.theme.name}</h1>
+              <p className="mt-1 hidden text-sm text-zinc-400 sm:block">{round.theme.brief}</p>
+              <p className="mt-1 text-sm font-bold text-zinc-200">Raid your closet. One full-length photo.</p>
             </div>
-            <CountdownRing deadline={round.deadline} />
-            <div className="flex flex-wrap items-center justify-center gap-3">
+            <div className="scale-90 sm:scale-100"><CountdownRing deadline={round.deadline} /></div>
+            <div className="flex items-center justify-center gap-3">
               <button
                 type="button"
                 onClick={pickCamera}
-                className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full bg-primary px-8 text-base font-bold text-white shadow-xl shadow-primary/20 transition-all hover:-translate-y-0.5 hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-bold text-white shadow-xl shadow-primary/20 transition-all hover:-translate-y-0.5 hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <Camera className="h-5 w-5" />
                 Take photo
               </button>
-              <button
-                type="button"
-                onClick={pickFile}
-                className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full border border-zinc-700 px-6 text-sm font-bold text-zinc-100 hover:border-zinc-500"
+              <a
+                href="#sample-outfits"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-zinc-700 px-6 text-sm font-bold text-zinc-100 hover:border-zinc-500"
               >
-                <ImageIcon className="h-4 w-4" />
-                Choose from library
-              </button>
+                Try a sample ↓
+              </a>
             </div>
+            <button type="button" onClick={pickFile} className="text-xs font-bold text-zinc-500 underline-offset-2 hover:text-zinc-300 hover:underline">
+              Choose from library
+            </button>
             <p className="text-xs text-zinc-500">Your photo is judged and discarded — never stored.</p>
+            <div id="sample-outfits" className="w-full max-w-md">
+              <p className="mb-1.5 pl-4 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Or tap a sample outfit</p>
+              <div className="-mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-1">
+                {RUNWAY_SAMPLES.map((smp) => (
+                  <button
+                    key={smp.id}
+                    type="button"
+                    onClick={() => void pickSample(smp.src)}
+                    title={smp.label}
+                    className="group h-20 w-16 shrink-0 snap-start overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/60 hover:border-primary/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={smp.src} alt={smp.label} className="h-full w-full object-cover" loading="lazy" />
+                  </button>
+                ))}
+              </div>
+            </div>
           </>
         )}
 
@@ -368,7 +409,15 @@ export function RunwayPlay() {
           <>
             {judgeNote && <JudgeBubble persona={judge} name={personaName}>{judgeNote}</JudgeBubble>}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={photoData} alt="Your outfit" className="max-h-72 w-auto rounded-2xl border border-zinc-800 object-contain" />
+            <div className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={photoData} alt="Your outfit" className="max-h-72 w-auto rounded-2xl border border-zinc-800 object-contain" />
+              {isSample && (
+                <span className="absolute left-2 top-2 rounded-full bg-zinc-950/80 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-zinc-300">
+                  Sample outfit
+                </span>
+              )}
+            </div>
             <div className="flex gap-3">
               <button
                 type="button"
@@ -489,9 +538,18 @@ export function RunwayPlay() {
                 >
                   <Download className="h-4 w-4" /> Save story card
                 </button>
+                {isSample && (
+                  <button
+                    type="button"
+                    onClick={() => { started.current = false; setPhotoData(null); setIsSample(false); void startRound(judge); }}
+                    className="inline-flex min-h-12 items-center gap-2 rounded-full bg-primary px-6 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90"
+                  >
+                    <Camera className="h-4 w-4" /> Now try it with your own photo
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => { started.current = false; setPhotoData(null); void startRound(judge); }}
+                  onClick={() => { started.current = false; setPhotoData(null); setIsSample(false); void startRound(judge); }}
                   className="inline-flex min-h-12 items-center gap-2 rounded-full border border-zinc-700 px-6 text-sm font-bold text-zinc-100 hover:border-zinc-500"
                 >
                   <RotateCcw className="h-4 w-4" /> Play again

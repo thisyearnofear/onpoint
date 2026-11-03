@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Palette, Store, BookOpen, ShieldCheck } from "lucide-react";
-import { PRODUCT_NAME, CTA_SHOP } from "../lib/brand";
+import { PRODUCT_NAME, CTA_SHOP, CTA_PLAY } from "../lib/brand";
 import { Auth0HeaderButton } from "./auth/Auth0Components";
 import { MobileNavigation } from "./mobile-navigation";
 import { NotificationBell } from "./NotificationBell";
@@ -66,10 +66,10 @@ export function OnPointHeader() {
 
           <div className="flex items-center gap-1">
             <Link
-              href={CTA_SHOP.href}
+              href={CTA_PLAY.href}
               className="mr-1 inline-flex min-h-9 items-center rounded-full bg-primary px-4 text-sm font-bold text-white transition-colors hover:bg-primary/90"
             >
-              Try the agent
+              Play
             </Link>
             <NotificationBell />
             <Auth0HeaderButton />
@@ -91,10 +91,10 @@ export function OnPointHeader() {
           </Link>
           <div className="flex items-center gap-1">
             <Link
-              href={CTA_SHOP.href}
+              href={CTA_PLAY.href}
               className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-primary px-3 text-sm font-semibold text-white hover:bg-primary/90 active:scale-[0.98] transition-[background-color,transform]"
             >
-              Try agent
+              Play
             </Link>
             <div className="hidden sm:contents">
               <NotificationBell direction="up" />
