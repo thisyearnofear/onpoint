@@ -39,6 +39,7 @@ interface ResultState {
 interface OpponentState {
   roundId: string;
   total: number;
+  themeId: string;
   themeName: string;
   persona: string;
 }
@@ -97,6 +98,7 @@ export function RunwayPlay() {
   const addEntry = useRunwayHistory((st) => st.addEntry);
   const [isSample, setIsSample] = useState(false);
   const [opponent, setOpponent] = useState<OpponentState | null>(null);
+  const [opponentLoaded, setOpponentLoaded] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
   const [burst, setBurst] = useState(false);
   const shareRef = REF_RE.test(rawRef) ? rawRef : undefined;
@@ -112,13 +114,17 @@ export function RunwayPlay() {
         if (!res.ok) return;
         const body = await res.json();
         if (!cancelled) {
-          setOpponent({ roundId: body.roundId, total: body.total, themeName: body.themeName, persona: body.persona });
+          setOpponent({ roundId: body.roundId, total: body.total, themeId: body.themeId, themeName: body.themeName, persona: body.persona });
         }
       } catch { /* duel is optional — play on without it */ }
+      finally { if (!cancelled) setOpponentLoaded(true); }
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // A duel always uses the opponent's theme; ?theme= can still override it.
+  const duelThemeId = themeId || opponent?.themeId;
 
   const startRound = useCallback(async (judgeKey: StylistPersona, tid?: string) => {
     setBusy(true);
@@ -150,13 +156,13 @@ export function RunwayPlay() {
     }
   }, []);
 
-  // Auto-start when arriving with ?judge=
+  // Auto-start when arriving with ?judge= (waits for the opponent's theme on duels)
   useEffect(() => {
-    if (stage === "round" && !round && !started.current) {
+    if (stage === "round" && !round && !started.current && (!shareRef || opponentLoaded)) {
       started.current = true;
-      void startRound(judge, themeId);
+      void startRound(judge, duelThemeId);
     }
-  }, [stage, round, judge, themeId, startRound]);
+  }, [stage, round, judge, duelThemeId, shareRef, opponentLoaded, startRound]);
 
   const pickFile = () => fileRef.current?.click();
   const pickCamera = () => camRef.current?.click();
@@ -393,7 +399,7 @@ export function RunwayPlay() {
                   type="button"
                   onClick={() => {
                     setJudge(j.key);
-                    void startRound(j.key, themeId);
+                    void startRound(j.key, duelThemeId);
                   }}
                   disabled={busy}
                   className="flex min-h-[96px] w-24 flex-col items-center justify-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-900/60 transition-colors hover:border-primary/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -688,7 +694,7 @@ export function RunwayPlay() {
             <JudgeBubble persona={judge} name={personaName}>The line went quiet. Try again in a moment.</JudgeBubble>
             <button
               type="button"
-              onClick={() => void startRound(judge, themeId)}
+              onClick={() => void startRound(judge, duelThemeId)}
               className="inline-flex min-h-12 items-center rounded-full bg-primary px-6 text-sm font-bold text-white hover:bg-primary/90"
             >
               Try again
