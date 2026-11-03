@@ -24,7 +24,7 @@ async function loadStorefront(slug: string): Promise<StorefrontData | null> {
   try {
     const res = await fetch(
       `${getApiBase()}/api/curator/${encodeURIComponent(slug)}/storefront`,
-      { cache: "no-store" },
+      { cache: "no-store", signal: AbortSignal.timeout(5000) },
     );
     if (!res.ok) return null;
     return res.json();

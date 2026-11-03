@@ -37,7 +37,7 @@ export default function PricingPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch(`${getApiBase()}/api/curator/directory?agentPurchasable=1`);
+        const response = await fetch(`${getApiBase()}/api/curator/directory?agentPurchasable=1`, { signal: AbortSignal.timeout(5000) });
         const data = await response.json();
         const curators = data.curators?.length || 8;
         const listings = data.curators?.reduce((sum: number, c: any) => sum + (c.liveListingCount || 0), 0) || 55;

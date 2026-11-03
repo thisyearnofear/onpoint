@@ -27,6 +27,7 @@ export async function loadLooks(params: LoadLooksParams): Promise<LookCardData[]
 
     const res = await fetch(`${getApiBase()}/api/looks?${qs}`, {
       cache: "no-store",
+      signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) return [];
 

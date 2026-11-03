@@ -19,7 +19,7 @@ interface Today {
 
 async function loadToday(): Promise<Today | null> {
   try {
-    const res = await fetch(`${getApiBase()}/api/runway/today`, { next: { revalidate: 300 } });
+    const res = await fetch(`${getApiBase()}/api/runway/today`, { next: { revalidate: 300 }, signal: AbortSignal.timeout(5000) });
     if (!res.ok) return null;
     return res.json();
   } catch {

@@ -37,6 +37,7 @@ async function loadStorefront(slug: string): Promise<CuratorStorefrontResponse |
     `${getApiBase()}/api/curator/${encodeURIComponent(slug)}/storefront`,
     {
       cache: "no-store",
+      signal: AbortSignal.timeout(5000),
     },
   );
 

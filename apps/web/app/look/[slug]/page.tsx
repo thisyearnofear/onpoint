@@ -63,7 +63,7 @@ interface Look {
 async function loadLook(slug: string): Promise<Look | null> {
   const res = await fetch(
     `${getApiBase()}/api/looks/${encodeURIComponent(slug)}`,
-    { cache: "no-store" },
+    { cache: "no-store", signal: AbortSignal.timeout(5000) },
   );
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Failed to load look: ${res.status}`);
@@ -77,7 +77,7 @@ async function loadMoreFromCurator(
   try {
     const res = await fetch(
       `${getApiBase()}/api/looks?curator=${encodeURIComponent(curatorSlug)}&limit=4`,
-      { cache: "no-store" },
+      { cache: "no-store", signal: AbortSignal.timeout(5000) },
     );
     if (!res.ok) return [];
     const data = await res.json();

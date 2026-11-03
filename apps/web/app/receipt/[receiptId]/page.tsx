@@ -51,6 +51,7 @@ async function loadReceipt(id: string): Promise<Receipt | null> {
   try {
     const res = await fetch(`${getApiBase()}/api/receipts/${encodeURIComponent(id)}`, {
       cache: "no-store",
+      signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -64,6 +65,7 @@ async function loadCurator(slug: string): Promise<Curator | null> {
   try {
     const res = await fetch(`${getApiBase()}/api/curator/${slug}/storefront`, {
       cache: "no-store",
+      signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -77,6 +79,7 @@ async function loadCuratorListings(slug: string): Promise<Listing[]> {
   try {
     const res = await fetch(`${getApiBase()}/api/curator/${slug}/storefront`, {
       cache: "no-store",
+      signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) return [];
     const data = await res.json();

@@ -355,6 +355,9 @@ importers:
       '@upstash/redis':
         specifier: 1.37.0
         version: 1.37.0
+      lru-cache:
+        specifier: ^11.5.1
+        version: 11.5.1
       viem:
         specifier: ^2.21.0
         version: 2.52.2(bufferutil@4.1.0)(typescript@5.9.2)(utf-8-validate@6.0.6)(zod@4.4.3)

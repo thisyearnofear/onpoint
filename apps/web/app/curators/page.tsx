@@ -47,7 +47,7 @@ async function loadDirectory(): Promise<DirectoryCurator[]> {
   try {
     const res = await fetch(
       `${getApiBase()}/api/curator/directory`,
-      { cache: "no-store" },
+      { cache: "no-store", signal: AbortSignal.timeout(5000) },
     );
     if (!res.ok) return [];
     const data = await res.json();

@@ -40,6 +40,7 @@ async function loadPolaroid(id: string): Promise<PolaroidMeta | null> {
   try {
     const res = await fetch(`${r2Base}/polaroids/${id}.json`, {
       cache: "no-store",
+      signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) return null;
     return res.json();

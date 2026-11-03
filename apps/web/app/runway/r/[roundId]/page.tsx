@@ -24,7 +24,7 @@ interface Result {
 
 async function loadPhoneNumber(): Promise<string> {
   try {
-    const res = await fetch(`${getApiBase()}/api/runway/today`, { next: { revalidate: 300 } });
+    const res = await fetch(`${getApiBase()}/api/runway/today`, { next: { revalidate: 300 }, signal: AbortSignal.timeout(5000) });
     if (res.ok) return (await res.json()).phoneNumber;
   } catch {
     // fall through to the sandbox line
@@ -36,6 +36,7 @@ async function loadResult(roundId: string): Promise<Result | null> {
   try {
     const res = await fetch(`${getApiBase()}/api/runway/results/${encodeURIComponent(roundId)}`, {
       next: { revalidate: 3600 },
+      signal: AbortSignal.timeout(5000),
     });
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`Failed to load result: ${res.status}`);

@@ -97,7 +97,8 @@
     "@repo/blockchain-client": "workspace:*",
     "@repo/ipfs-client": "workspace:*",
     "@upstash/redis": "1.37.0",
-    "viem": "^2.21.0"
+    "viem": "^2.21.0",
+    "lru-cache": "^11.5.1"
   },
   "peerDependencies": {
     "@open-wallet-standard/core": "*",
