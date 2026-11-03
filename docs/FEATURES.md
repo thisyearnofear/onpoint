@@ -17,9 +17,12 @@ A themed closet challenge judged by AI personas (Miranda, Edina, Shaft). Decisio
 - API: `GET /api/runway/today`, `POST /api/runway/rounds`, `POST /api/runway/rounds/:id/photo`, `GET /api/runway/results/:id`. Engine in `apps/api/lib/runway/`.
 - iMessage: the same engine on the Photon Spectrum line (secondary channel)
 - Photo is judged and discarded, never stored. Daily caps: per-player rounds and `RUNWAY_DAILY_VISION_CAP`.
-- Metrics: [ops/retention.md](./ops/retention.md)
+- Metrics: [ops/retention.md](./ops/retention.md). Events carry a hashed player id; shares are recorded via `POST /api/runway/rounds/:id/share`; `GET /api/runway/metrics` (service key) computes the retention definitions.
+- No-photo path: person samples plus 34 styled outfit flat-lays (curated from the MIT nvzhuang dataset — references, not inventory) under `/demo/outfits/`; deep link `?sample=<id>`. `/style-board` is the full gallery (`?pick=<id>` highlights the fix's pick).
+- On-device memory (no photos stored): streak, best score, round history. Share cards render 9:16 story, 4:5 feed and 1200×630 landscape.
+- "The fix" order: tag-matched live look → tag-matched live listing → theme-matched style-board outfit (`kind: 'inspiration'`) → most recent live look.
 
-Status: `deployed`. Known gaps (Phase 0 backlog): no history or streaks, a text-only share (no vertical image card), a skeleton judging state, the plain file picker (`CameraCapture` is unused), and "the fix" depends on live looks and listings.
+Status: `deployed`. Known gaps (Phase 0 backlog): no cross-device history (memory is per-device), `CameraCapture` component is still unused (the flow uses a camera-first file input), and the outfit style board skews feminine/J-fashion with no menswear coverage.
 
 ## Curator Storefronts (`/s/[slug]`)
 
