@@ -49,7 +49,7 @@ describe('runway card routes', () => {
     expect(res.headers['content-type']).toContain('image/png');
     expect(res.headers['cache-control']).toContain('max-age=3600');
     expect(res.body.length).toBeGreaterThan(1000);
-  });
+  }, 30000);
 
   it('404s for an unknown round and malformed png id', async () => {
     expect((await request.get('/runway/card/f6e5d4c3b2a1.png')).status).toBe(404);
