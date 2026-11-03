@@ -72,6 +72,13 @@ export async function imageFileToJpegDataUrl(file: File, maxPx = 1024, quality =
   }
 }
 
+/** Duel result for a ref'd round: did the challenger beat the shared score? */
+export function duelOutcome(yours: number, theirs: number): "win" | "lose" | "tie" {
+  if (yours > theirs) return "win";
+  if (yours < theirs) return "lose";
+  return "tie";
+}
+
 export function runwayPlayerId(): string {
   const KEY = "runway:playerId";
   try {

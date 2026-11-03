@@ -3,13 +3,15 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Camera, Download, RotateCcw, Send, Share2, Users } from "lucide-react";
+import { Camera, Download, RotateCcw, Send, Share2, Swords, Users, Volume2, VolumeX } from "lucide-react";
 import { useReducedMotion } from "framer-motion";
 import { SafeImage } from "../SafeImage";
 import { JudgeAvatar, judgeDisplayName } from "./JudgeAvatar";
 import { ScorePaddles } from "./ScorePaddles";
 import { CountdownRing } from "./CountdownRing";
-import { imageFileToJpegDataUrl, runwayPlayerId } from "../../lib/utils/runway";
+import { Confetti } from "./Confetti";
+import { imageFileToJpegDataUrl, runwayPlayerId, duelOutcome } from "../../lib/utils/runway";
+import { playReveal, playWin, setSoundEnabled, soundEnabled } from "../../lib/utils/runway-sound";
 import { bestScore, computeStreak, useRunwayHistory } from "../../lib/stores/runway-history-store";
 import { RUNWAY_SAMPLES, OUTFIT_SAMPLES, sampleById } from "../../lib/runway-samples";
 import type { StylistPersona } from "@repo/ai-client";
@@ -31,6 +33,14 @@ interface ResultState {
   fixHint: string;
   late: boolean;
   fix?: { kind: string; title: string; imageUrl: string | null; url: string } | null;
+}
+
+/** The score being challenged, loaded from ?ref=<roundId> (a shared result). */
+interface OpponentState {
+  roundId: string;
+  total: number;
+  themeName: string;
+  persona: string;
 }
 
 const JUDGE_LINES: Record<"miranda" | "edina" | "shaft", string[]> = {
@@ -86,13 +96,36 @@ export function RunwayPlay() {
   const entries = useRunwayHistory((st) => st.entries);
   const addEntry = useRunwayHistory((st) => st.addEntry);
   const [isSample, setIsSample] = useState(false);
+  const [opponent, setOpponent] = useState<OpponentState | null>(null);
+  const [soundOn, setSoundOn] = useState(true);
+  const [burst, setBurst] = useState(false);
   const shareRef = REF_RE.test(rawRef) ? rawRef : undefined;
+
+  // Hydrate the sound preference and load the duel opponent from ?ref=.
+  useEffect(() => {
+    setSoundOn(soundEnabled());
+    if (!shareRef) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/runway/results/${shareRef}`, { signal: AbortSignal.timeout(6000) });
+        if (!res.ok) return;
+        const body = await res.json();
+        if (!cancelled) {
+          setOpponent({ roundId: body.roundId, total: body.total, themeName: body.themeName, persona: body.persona });
+        }
+      } catch { /* duel is optional — play on without it */ }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const startRound = useCallback(async (judgeKey: StylistPersona, tid?: string) => {
     setBusy(true);
     setJudgeNote(null);
     setResult(null);
     setPhotoData(null);
+    setBurst(false);
     try {
       const res = await fetch("/api/runway/rounds", {
         method: "POST",
@@ -212,6 +245,22 @@ export function RunwayPlay() {
     }
   }, [stage, round, result, judge, addEntry]);
 
+  const priorEntries = round ? entries.filter((e) => e.roundId !== round.roundId) : entries;
+  const isNewBest = entries.length > 1 && result != null && result.total > (bestScore(priorEntries) ?? -1);
+  const duel = opponent && result ? duelOutcome(result.total, opponent.total) : null;
+
+  // sound + confetti once the verdict lands
+  useEffect(() => {
+    if (stage !== "result" || !result) return;
+    if (soundOn) playReveal();
+    const won = duel === "win" || isNewBest;
+    if (won) {
+      setBurst(true);
+      if (soundOn) window.setTimeout(() => playWin(), 1300);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage, result]);
+
   // score count-up (skipped under reduced motion)
   useEffect(() => {
     if (stage !== "result" || !result) return;
@@ -254,7 +303,13 @@ export function RunwayPlay() {
   const share = async () => {
     if (!round || !result) return;
     const url = `${window.location.origin}/runway/r/${round.roundId}`;
-    const text = `I got ${result.total.toFixed(1)} on ${round.theme.name}. Can you beat it?`;
+    const text = opponent
+      ? duel === "win"
+        ? `I just beat a ${opponent.total.toFixed(1)} with a ${result.total.toFixed(1)} on ${round.theme.name}. Rematch?`
+        : duel === "lose"
+          ? `${result.total.toFixed(1)} vs their ${opponent.total.toFixed(1)} on ${round.theme.name}. Run it back — or take them on?`
+          : `We tied at ${result.total.toFixed(1)} on ${round.theme.name}. Someone has to break this.`
+      : `I got ${result.total.toFixed(1)} on ${round.theme.name}. Can you beat it?`;
     try {
       const res = await fetch(cardUrl("story"));
       if (res.ok) {
@@ -308,9 +363,23 @@ export function RunwayPlay() {
         <Link href="/runway" className="font-mono text-[10px] font-bold uppercase leading-none tracking-[0.22em] text-primary">
           ← Runway
         </Link>
-        <span className="font-mono text-[10px] font-bold uppercase leading-none tracking-[0.22em] text-zinc-500">
-          Judged by {personaName}
-        </span>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              const next = !soundOn;
+              setSoundOn(next);
+              setSoundEnabled(next);
+            }}
+            aria-label={soundOn ? "Mute sound" : "Unmute sound"}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-800 text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
+          >
+            {soundOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+          </button>
+          <span className="font-mono text-[10px] font-bold uppercase leading-none tracking-[0.22em] text-zinc-500">
+            Judged by {personaName}
+          </span>
+        </div>
       </header>
 
       <main className="relative z-10 mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-lg flex-1 flex-col items-center justify-center gap-6 px-4 pb-16">
@@ -364,6 +433,14 @@ export function RunwayPlay() {
               <p className="mt-1 hidden text-sm text-zinc-400 sm:block">{round.theme.brief}</p>
               <p className="mt-1 text-sm font-bold text-zinc-200">Raid your closet. One full-length photo.</p>
             </div>
+            {opponent && (
+              <div className="flex items-center gap-2 rounded-full border border-[hsl(var(--accent))]/60 bg-[hsl(var(--accent))]/10 px-4 py-1.5">
+                <Swords className="h-3.5 w-3.5 text-[hsl(var(--accent))]" />
+                <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[hsl(var(--accent))]">
+                  Duel — beat {opponent.total.toFixed(1)}
+                </span>
+              </div>
+            )}
             <div className="scale-90 sm:scale-100"><CountdownRing deadline={round.deadline} /></div>
             <div className="flex items-center justify-center gap-3">
               <button
@@ -503,13 +580,32 @@ export function RunwayPlay() {
                     Day {computeStreak(entries, Date.now())} streak
                   </span>
                 )}
-                {entries.length > 1 && result.total >= Math.max(...entries.filter((e) => e.roundId !== round.roundId).map((e) => e.total), 0) && result.total > (bestScore(entries.filter((e) => e.roundId !== round.roundId)) ?? -1) && (
+                {isNewBest && (
                   <span className="rounded-full border border-[hsl(var(--accent))] px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[hsl(var(--accent))]">
                     New best!
                   </span>
                 )}
               </div>
               <ScorePaddles scores={result.scores} total={shownTotal} judgeName={personaName} animated />
+              {duel && opponent && (
+                <div className="w-full rounded-2xl border border-zinc-800 bg-zinc-900/70 px-4 py-3.5 text-center">
+                  <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">The duel</p>
+                  <div className="mt-1.5 flex items-center justify-center gap-5">
+                    <div>
+                      <p className={`text-3xl font-black tabular-nums ${duel === "win" ? "text-[hsl(var(--accent))]" : "text-zinc-50"}`}>{result.total.toFixed(1)}</p>
+                      <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-zinc-500">You</p>
+                    </div>
+                    <p className="font-mono text-xs font-bold text-zinc-600">vs</p>
+                    <div>
+                      <p className={`text-3xl font-black tabular-nums ${duel === "lose" ? "text-[hsl(var(--accent))]" : "text-zinc-400"}`}>{opponent.total.toFixed(1)}</p>
+                      <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-zinc-500">Them</p>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-sm font-bold text-zinc-100">
+                    {duel === "win" ? "You took it." : duel === "lose" ? "They keep the crown." : "Dead heat — run it back."}
+                  </p>
+                </div>
+              )}
               <JudgeBubble persona={judge} name={personaName}>{result.verdict}</JudgeBubble>
               {result.fix && (
               <div className="w-full rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
@@ -599,6 +695,8 @@ export function RunwayPlay() {
             </button>
           </>
         )}
+
+        <Confetti fire={burst} />
 
         {toast && (
           <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm font-bold text-zinc-100 shadow-xl">

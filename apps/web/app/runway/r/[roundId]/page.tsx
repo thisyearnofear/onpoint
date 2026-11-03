@@ -113,7 +113,7 @@ export default async function RunwayResultPage({
                   href={result.fix.url}
                   className="mt-2 inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-bold text-white hover:bg-primary/90"
                 >
-                  See it on you
+                  {result.fix.kind === "inspiration" ? "Get the look" : "See it on you"}
                 </a>
               </div>
             </div>
