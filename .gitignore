@@ -73,6 +73,11 @@ scripts/*
 !scripts/prava-demo.mjs
 !scripts/prava-webhook-smoke.mjs
 !scripts/seed-digital-curator.mjs
+# NEAR demo tooling (credentials stay ignored via near-credentials*.json below)
+!scripts/near-spike/
+scripts/near-spike/near-credentials*.json
+scripts/near-spike/node_modules/
+scripts/near-spike/package-lock.json
 !scripts/manus-research.mjs
 !scripts/youcam-tryon-smoke.mjs
 !scripts/check-db-migrations.mjs

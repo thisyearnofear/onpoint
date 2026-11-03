@@ -7,6 +7,7 @@
  */
 
 const sharedTypes = require('@onpoint/shared-types');
+const { nearPayoutAccount, nearQuoteForUsd } = require('./near-payments');
 
 const DEFAULT_KES_PER_USD = 130;
 const DEFAULT_OFFER_FRESHNESS_DAYS = 30;
@@ -250,6 +251,9 @@ function buildStorefrontAgentCommerce(curator, slug) {
   // Storefront-level advertises the physical tier; actual price is resolved
   // per-listing at POST /api/agent/try-on ($0.03 digital / $0.05 physical).
   const tryOnPrice = tryOnPriceCusd(curator);
+  // NEAR rail: advertised when a payout account + USD rate are configured.
+  const nearPayTo = nearPayoutAccount(curator);
+  const nearQuote = nearPayTo ? nearQuoteForUsd(tryOnPrice) : null;
   return {
     enabled,
     chain: 'celo',
@@ -263,8 +267,22 @@ function buildStorefrontAgentCommerce(curator, slug) {
     tryOn: {
       endpoint: '/api/agent/try-on',
       priceCusd: tryOnPrice,
+      paymentRails: ['celo_cusd', ...(nearQuote ? ['near'] : [])],
+      ...(nearQuote
+        ? {
+            near: {
+              network: nearQuote.network,
+              accountId: nearPayTo,
+              amountNear: nearQuote.amountNear,
+              amountYocto: nearQuote.amountYocto,
+              usdRate: nearQuote.usdRate,
+            },
+          }
+        : {}),
       description:
-        'x402-paid fitting room: POST {curatorSlug, listingId, photoData} to render this catalog on your human and get a fit signal before buying. Tiered pricing: $0.03 digital listings, $0.05 physical listings (defaults; per-curator override may apply).',
+        'x402-paid fitting room: POST {curatorSlug, listingId, photoData} to render this catalog on your human and get a fit signal before buying. Tiered pricing: $0.03 digital listings, $0.05 physical listings (defaults; per-curator override may apply). Payment rails: cUSD on Celo (paymentTxHash)' +
+        (nearQuote ? ' or NEAR (nearAccountId + nearTxHash)' : '') +
+        '.',
     },
     earningsEndpoint: `/api/curator/${slug}/earnings`,
     flow: enabled

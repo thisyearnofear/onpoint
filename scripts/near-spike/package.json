@@ -1,0 +1,10 @@
+{
+  "name": "near-spike",
+  "private": true,
+  "version": "0.0.0",
+  "description": "NEAR testnet payment verification spike for hackathon",
+  "type": "module",
+  "dependencies": {
+    "near-api-js": "7.3.1"
+  }
+}

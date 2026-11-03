@@ -43,6 +43,7 @@ const {
   paymentMethodForOrder,
   paymentAssetForOrder,
 } = require('../lib/order-refunds');
+const nearPayments = require('../lib/near-payments');
 
 const router = express.Router();
 
@@ -522,7 +523,7 @@ router.post('/:slug/order', async (req, res) => {
     return res.status(400).json({ error: 'Invalid curator slug' });
   }
 
-  const { listingId, size, paymentTxHash, agentId, quoteId: clientQuoteId } = req.body || {};
+  const { listingId, size, paymentTxHash, nearAccountId, nearTxHash, agentId, quoteId: clientQuoteId } = req.body || {};
   const quantity = Number(req.body?.quantity ?? 1);
 
   if (!listingId || typeof listingId !== 'string') {
@@ -536,6 +537,19 @@ router.post('/:slug/order', async (req, res) => {
   }
   if (paymentTxHash !== undefined && !/^0x[0-9a-fA-F]{64}$/.test(String(paymentTxHash))) {
     return res.status(400).json({ error: 'paymentTxHash must be a 0x-prefixed 32-byte hash' });
+  }
+  const nearPayer = typeof nearAccountId === 'string' ? nearAccountId.toLowerCase() : null;
+  if (nearTxHash !== undefined && !nearPayments.isNearTxHash(nearTxHash)) {
+    return res.status(400).json({ error: 'nearTxHash must be a base58 NEAR transaction hash' });
+  }
+  if (nearAccountId !== undefined && !nearPayments.isNearAccountId(nearPayer || '')) {
+    return res.status(400).json({ error: 'nearAccountId must be a valid NEAR account' });
+  }
+  if (nearTxHash && !nearPayer) {
+    return res.status(400).json({ error: 'nearAccountId is required with nearTxHash' });
+  }
+  if (nearTxHash && paymentTxHash) {
+    return res.status(400).json({ error: 'Provide either paymentTxHash (Celo cUSD) or nearTxHash (NEAR), not both' });
   }
 
   let db;
@@ -638,6 +652,14 @@ router.post('/:slug/order', async (req, res) => {
 
     const xPaymentHeader = req.headers['x-payment'];
 
+    // ── NEAR rail ──
+    // Receiver: the curator's own NEAR account when set (payment to them IS
+    // the payout — settled instantly, no custodial forward), else the
+    // platform NEAR_PAYOUT_ACCOUNT (payout reconciled operationally).
+    const nearDirectToCurator = nearPayments.isNearAccountId(row.curator?.commerce?.nearAccountId || '');
+    const nearPayTo = nearPayments.nearPayoutAccount(row.curator);
+    const nearQuote = nearPayTo ? nearPayments.nearQuoteForUsd(totalCusd) : null;
+
     // Deterministic quote ID — same listing+size+quantity+price produces the
     // same ID, so retries after a network blip get the same quote. Includes
     // a timestamp bucket (minute-granularity) so the quote is reproducible
@@ -648,7 +670,7 @@ router.post('/:slug/order', async (req, res) => {
     const quoteExpiresAt = new Date(Date.now() + QUOTE_TTL_SECONDS * 1000).toISOString();
 
     // ── Step 1: no payment proof yet → 402 challenge with quote ──
-    if (!paymentTxHash && !xPaymentHeader) {
+    if (!paymentTxHash && !xPaymentHeader && !nearTxHash) {
       return res.status(402).json({
         ...sharedTypes.build402Body([requirements]),
         quote: {
@@ -663,6 +685,20 @@ router.post('/:slug/order', async (req, res) => {
           payTo,
           token: sharedTypes.X402_ASSET,
           chainId: sharedTypes.X402_CHAIN_ID,
+          paymentRails: ['celo_cusd', ...(nearQuote ? ['near'] : [])],
+          ...(nearQuote
+            ? {
+                near: {
+                  network: nearQuote.network,
+                  accountId: nearPayTo,
+                  amountNear: nearQuote.amountNear,
+                  amountYocto: nearQuote.amountYocto,
+                  usdRate: nearQuote.usdRate,
+                  payoutModel: nearDirectToCurator ? 'direct_to_curator' : 'platform',
+                  instructions: `Send exactly ${nearQuote.amountYocto} yoctoNEAR (~${nearQuote.amountNear} NEAR) to ${nearPayTo} on NEAR ${nearQuote.network}, then re-POST with { nearAccountId, nearTxHash, quoteId }.`,
+                },
+              }
+            : {}),
           attribution: {
             code: getAttributionCode(),
             assignedTag: getAssignedTag(),
@@ -670,7 +706,7 @@ router.post('/:slug/order', async (req, res) => {
             instructions: 'Append the dataSuffix to your transfer transaction data to tag it as OnPoint activity on Celo.',
           },
           instructions:
-            'Transfer the exact cUSD amount to payTo on Celo, then re-POST with paymentTxHash and quoteId.',
+            'Transfer the exact cUSD amount to payTo on Celo, then re-POST with paymentTxHash and quoteId — or pay in NEAR via the quote.near rail.',
         },
         revenueHint: buildRevenueHint('order', { totalCusd, curator: row.curator }),
       });
@@ -700,18 +736,42 @@ router.post('/:slug/order', async (req, res) => {
       }
     }
 
-    // ── Step 2c: verify cUSD payment ──
-    const signerClient = agentCore.getSignerClient();
-    const payoutKey = !signerClient ? process.env.AGENT_PRIVATE_KEY : null;
-    if (!signerClient && !payoutKey) {
-      return res.status(503).json({
-        error: 'Curator payout signing not configured. Set SIGNER_URL+SIGNER_API_KEY or AGENT_PRIVATE_KEY.',
-        code: 'SIGNING_NOT_CONFIGURED',
-      });
-    }
+    // ── Step 2c: verify the payment on the submitted rail ──
+    // Signing is only needed for the custodial cUSD payout below — NEAR
+    // direct-pay settles to the curator's own account at payment time.
+    let signerClient = null;
+    let payoutKey = null;
 
     let verification = null;
-    {
+    if (nearTxHash) {
+      if (!nearPayTo || !nearQuote) {
+        return res.status(409).json({
+          error: 'NEAR payment rail is not configured for this resource.',
+          code: 'PAYMENT_RAIL_UNAVAILABLE',
+        });
+      }
+      const nearResult = await nearPayments.verifyNearPayment({
+        txHash: String(nearTxHash),
+        signerAccountId: nearPayer,
+        expectedReceiverId: nearPayTo,
+        minDepositYocto: nearQuote.amountYocto,
+      });
+      if (!nearResult.ok) {
+        return res.status(402).json({
+          error: `NEAR payment not verified: ${nearResult.reason}`,
+          ...sharedTypes.build402Body([requirements]),
+        });
+      }
+      verification = { from: nearPayer, near: nearResult };
+    } else {
+      signerClient = agentCore.getSignerClient();
+      payoutKey = !signerClient ? process.env.AGENT_PRIVATE_KEY : null;
+      if (!signerClient && !payoutKey) {
+        return res.status(503).json({
+          error: 'Curator payout signing not configured. Set SIGNER_URL+SIGNER_API_KEY or AGENT_PRIVATE_KEY.',
+          code: 'SIGNING_NOT_CONFIGURED',
+        });
+      }
       const minAmountWei = BigInt(requirements.maxAmountRequired);
       verification = await agentCore.ERC20.verifyTransfer({
         chain: 'celo',
@@ -730,15 +790,19 @@ router.post('/:slug/order', async (req, res) => {
     }
 
     // The effective tx hash and payer for this request
-    const effectiveTxHash = paymentTxHash;
-    const effectivePayer = verification.from;
-    const paymentMethod = paymentMethodForOrder({ usingSplit, settlementTxHash: null });
-    const paymentAsset = paymentAssetForOrder({
-      usingSplit,
-      settlementTxHash: null,
-      cusdAsset: sharedTypes.X402_ASSET,
-      usdcAsset: null,
-    });
+    const effectiveTxHash = nearTxHash || paymentTxHash;
+    const effectivePayer = nearTxHash ? nearPayer : verification.from;
+    const paymentMethod = nearTxHash
+      ? 'near'
+      : paymentMethodForOrder({ usingSplit, settlementTxHash: null });
+    const paymentAsset = nearTxHash
+      ? 'NEAR'
+      : paymentAssetForOrder({
+          usingSplit,
+          settlementTxHash: null,
+          cusdAsset: sharedTypes.X402_ASSET,
+          usdcAsset: null,
+        });
 
     // Claim the verified payment before touching inventory. Neon HTTP does not
     // provide an interactive transaction, so the order stays pending until
@@ -943,7 +1007,24 @@ router.post('/:slug/order', async (req, res) => {
     let payoutTxHash = null;
     let sellerShare = null;
 
-    if (usingSplit) {
+    if (paymentMethod === 'near') {
+      if (nearDirectToCurator) {
+        // The buyer's transfer already landed in the curator's NEAR account —
+        // the payment tx IS the payout. No forward tx or server-side NEAR
+        // signer required.
+        payoutTxHash = effectiveTxHash;
+        await db.update(orders).set({ payoutTxHash }).where(eq(orders.id, orderId));
+        logger.info('NEAR order paid directly to curator account — settled', {
+          component: 'curator-storefront', slug, orderId, nearPayTo,
+        });
+      } else {
+        // Paid to the platform NEAR account; the curator share is reconciled
+        // operationally (no NEAR signing key server-side on this rail).
+        logger.info('NEAR order paid to platform account — curator payout pending reconciliation', {
+          component: 'curator-storefront', slug, orderId, nearPayTo,
+        });
+      }
+    } else if (usingSplit) {
       // Non-custodial: funds are in the Split contract, pending distribution.
       // The payout_tx_hash will be set when the worker calls distribute.
       payoutTxHash = null; // explicitly null — distribution happens async
@@ -1010,15 +1091,20 @@ router.post('/:slug/order', async (req, res) => {
           buyerAddress: effectivePayer,
           payoutTxHash,
           paymentMethod,
-          curatorPayout: sellerShare
-            ? `${(Number(sellerShare.amount) / 1e18).toFixed(2)} cUSD`
-            : usingSplit
-              ? `${totalCusd.toFixed(2)} cUSD via Split (pending distribution)`
-              : null,
+          curatorPayout: paymentMethod === 'near'
+            ? `${nearQuote.amountNear} NEAR ${nearDirectToCurator ? '(direct to curator)' : '(platform, pending reconciliation)'}`
+            : sellerShare
+              ? `${(Number(sellerShare.amount) / 1e18).toFixed(2)} cUSD`
+              : usingSplit
+                ? `${totalCusd.toFixed(2)} cUSD via Split (pending distribution)`
+                : null,
+          near: paymentMethod === 'near'
+            ? { accountId: nearPayer, amountYocto: nearQuote.amountYocto, payTo: nearPayTo, network: nearQuote.network }
+            : undefined,
           splitAddress: usingSplit ? splitAddress : undefined,
         },
         txHash: effectiveTxHash,
-        chain: 'celo',
+        chain: paymentMethod === 'near' ? 'near' : 'celo',
       });
       receiptId = receipt.id;
     } catch (receiptErr) {
@@ -1076,24 +1162,43 @@ router.post('/:slug/order', async (req, res) => {
         payment: {
           txHash: effectiveTxHash,
           from: effectivePayer,
-          explorerUrl: agentCore.getExplorerUrl('celo', effectiveTxHash),
+          explorerUrl: paymentMethod === 'near'
+            ? nearPayments.nearExplorerTxUrl(effectiveTxHash)
+            : agentCore.getExplorerUrl('celo', effectiveTxHash),
           paymentMethod,
         },
-        payout: payoutTxHash
-          ? {
-              txHash: payoutTxHash,
-              to: payoutAddress,
-              amountCusd: (Number(sellerShare.amount) / 1e18).toFixed(2),
-              explorerUrl: agentCore.getExplorerUrl('celo', payoutTxHash),
-            }
-          : usingSplit
+        payout: paymentMethod === 'near'
+          ? nearDirectToCurator
             ? {
-                status: 'pending_distribution',
-                to: splitAddress,
-                type: '0xSplits',
-                note: 'Funds held non-custodially in Split contract; distribution is automatic.',
+                status: 'settled',
+                txHash: payoutTxHash,
+                to: nearPayTo,
+                asset: 'NEAR',
+                amountNear: nearQuote.amountNear,
+                explorerUrl: nearPayments.nearExplorerTxUrl(payoutTxHash),
+                note: 'Paid directly to the curator NEAR account — payment and payout are the same transaction.',
               }
-            : { status: 'pending', to: payoutAddress },
+            : {
+                status: 'pending_reconciliation',
+                to: nearPayTo,
+                asset: 'NEAR',
+                note: 'Paid to the platform NEAR account; curator payout is reconciled operationally.',
+              }
+          : payoutTxHash
+            ? {
+                txHash: payoutTxHash,
+                to: payoutAddress,
+                amountCusd: (Number(sellerShare.amount) / 1e18).toFixed(2),
+                explorerUrl: agentCore.getExplorerUrl('celo', payoutTxHash),
+              }
+            : usingSplit
+              ? {
+                  status: 'pending_distribution',
+                  to: splitAddress,
+                  type: '0xSplits',
+                  note: 'Funds held non-custodially in Split contract; distribution is automatic.',
+                }
+              : { status: 'pending', to: payoutAddress },
         receiptId,
         receiptUrl: receiptId ? `${webBaseUrl()}/receipt/${receiptId}` : undefined,
         storefrontUrl: storefrontWebUrl(slug),

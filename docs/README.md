@@ -54,6 +54,11 @@ Not for external consumers.
 - [minipay.md](./ops/minipay.md), [auth.md](./ops/auth.md) — integration notes (auth.md also covers admin console access)
 - `hetzner.md`, `monitoring.md` *(local-only, gitignored — server ops details)*
 
+## hackathon/
+
+- [../HACKATHON.md](../HACKATHON.md) — NEAR HACKATHON submission details
+- [NEAR_HACKATHON.md](./NEAR_HACKATHON.md) — NEAR integration plan and demo steps
+
 ## adr/ — decision records
 
 Historical technical decisions. Immutable — new decisions get new ADRs.
@@ -69,3 +74,8 @@ Market research inputs. Verify sources before external citation.
 1. One doc owns each topic — link, don't copy.
 2. No dated snapshots, promo deadlines, or hackathon claims in permanent docs.
 3. Status words follow the STRATEGY legend: implemented / deployed / live-validated / repeatedly proven.
+
+## paypal-hackathon/
+
+- [../PAYPAL_HACKATHON.md](../PAYPAL_HACKATHON.md) — PayPal AI Hackathon submission details
+- [PAYPAL_HACKATHON.md](./PAYPAL_HACKATHON.md) — PayPal integration plan and demo steps

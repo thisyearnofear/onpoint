@@ -73,7 +73,7 @@ POST /api/agent/try-on
 { "curatorSlug": "nia", "listingId": "abc123", "photoData": "data:image/jpeg;base64,..." }
 ```
 
-Response: **HTTP 402** → pay the cUSD fee by default, or use an eligible gasless USDC facilitator challenge via `X-PAYMENT` → re-POST → **HTTP 200** with try-on render, fit signal, and polaroid (shareable artifact with `imageUrl` and `webUrl`). The facilitator option is endpoint- and eligibility-scoped; it does not apply to physical order checkout.
+Response: **HTTP 402** → pay the cUSD fee by default, or use an eligible gasless USDC facilitator challenge via `X-PAYMENT`, or pay in **NEAR** via the `quote.near` rail (re-POST with `{nearAccountId, nearTxHash}`) → re-POST → **HTTP 200** with try-on render, fit signal, and polaroid (shareable artifact with `imageUrl` and `webUrl`). The facilitator option is endpoint- and eligibility-scoped; it does not apply to physical order checkout. The NEAR rail is advertised in `quote.paymentRails` and `quote.near` when configured (NEAR HACKATHON — see `HACKATHON.md`).
 
 Includes `revenueHint` showing economics. Digital listings also return `similarPhysicalItems`.
 
@@ -88,7 +88,7 @@ POST /api/curator/{slug}/order
 
 Response: **HTTP 402** → transfer cUSD to `payTo` (append `dataSuffix` for attribution) → re-POST with `paymentTxHash` + `quoteId` → **HTTP 201** with order confirmation, Celoscan links, a receipt at `/receipt/{receiptId}`, and storefront URL.
 
-**Current order rail:** cUSD on Celo via `paymentTxHash` + `quoteId`. The order route currently rejects `X-PAYMENT`/USDC facilitator checkout until treasury conversion and liquidity policy are explicitly enabled. USDC facilitator support remains documented for eligible try-on/facade paths, not as an active order guarantee.
+**Current order rails:** cUSD on Celo via `paymentTxHash` + `quoteId`, or **NEAR** via `{nearAccountId, nearTxHash, quoteId}` when the `quote.near` rail is advertised — a curator's `commerce.nearAccountId` is paid directly (payment tx = payout tx, `paymentMethod: "near"`). The order route currently rejects `X-PAYMENT`/USDC facilitator checkout until treasury conversion and liquidity policy are explicitly enabled. USDC facilitator support remains documented for eligible try-on/facade paths, not as an active order guarantee.
 
 If purchase includes referral code (`X-Referral-Code` header or `?referral=` query param), referring agent earns 2.5% commission.
 

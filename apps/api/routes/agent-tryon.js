@@ -27,6 +27,7 @@ const sharedTypes = require('@onpoint/shared-types');
 const agentCore = require('@repo/agent-core');
 const logger = require('../lib/logger');
 const { curatorSplitAddress, tryOnPriceCusd, storefrontWebUrl, polaroidWebUrl, webBaseUrl, buildRevenueHint } = require('../lib/agent-commerce');
+const nearPayments = require('../lib/near-payments');
 const { getAttributionSuffix, getAttributionCode, getAssignedTag } = require('../lib/attribution');
 const { engine } = require('./ai-virtual-tryon');
 const { upload: r2Upload, publicUrl: r2PublicUrl, keyFor: r2KeyFor, mirrorTryOnArtifact: ossMirror, isOssConfigured: ossConfigured } = require('@repo/storage');
@@ -183,7 +184,7 @@ function inferGarmentCategory(listing, kit) {
 
 // ── POST /api/agent/try-on ───────────────────────────────────
 router.post('/', async (req, res) => {
-  const { curatorSlug, listingId, photoData, personDescription, paymentTxHash, lookSlug, shareId: rawShareId } =
+  const { curatorSlug, listingId, photoData, personDescription, paymentTxHash, nearAccountId, nearTxHash, lookSlug, shareId: rawShareId } =
     req.body || {};
   const shareId = sanitizeShareId(rawShareId);
   const slug = String(curatorSlug || '').toLowerCase();
@@ -201,6 +202,19 @@ router.post('/', async (req, res) => {
   }
   if (paymentTxHash !== undefined && !/^0x[0-9a-fA-F]{64}$/.test(String(paymentTxHash))) {
     return res.status(400).json({ error: 'paymentTxHash must be a 0x-prefixed 32-byte hash' });
+  }
+  const nearPayer = typeof nearAccountId === 'string' ? nearAccountId.toLowerCase() : null;
+  if (nearTxHash !== undefined && !nearPayments.isNearTxHash(nearTxHash)) {
+    return res.status(400).json({ error: 'nearTxHash must be a base58 NEAR transaction hash' });
+  }
+  if (nearAccountId !== undefined && !nearPayments.isNearAccountId(nearPayer || '')) {
+    return res.status(400).json({ error: 'nearAccountId must be a valid NEAR account' });
+  }
+  if (nearTxHash && !nearPayer) {
+    return res.status(400).json({ error: 'nearAccountId is required with nearTxHash' });
+  }
+  if (nearTxHash && paymentTxHash) {
+    return res.status(400).json({ error: 'Provide either paymentTxHash (Celo cUSD) or nearTxHash (NEAR), not both' });
   }
 
   let db;
@@ -257,9 +271,17 @@ router.post('/', async (req, res) => {
       !!process.env.SERVICE_API_KEY &&
       req.headers['x-service-key'] === process.env.SERVICE_API_KEY;
 
+    // ── NEAR rail (second payment rail alongside Celo cUSD) ──
+    // Receiver resolves per-curator (commerce.nearAccountId) then the
+    // platform NEAR_PAYOUT_ACCOUNT fallback. The quote converts the USD fee
+    // via NEAR_USD_PRICE; rail is absent from the challenge when unpriced.
+    const nearPayTo = nearPayments.nearPayoutAccount(row.curator);
+    const nearQuote = nearPayTo ? nearPayments.nearQuoteForUsd(priceCusd) : null;
+
     let settlementTxHash = null;
     let payerAddress = null;
     let verification = null;
+    let paymentMethod = 'cusd';
 
     if (okxBypass) {
       settlementTxHash =
@@ -267,12 +289,13 @@ router.post('/', async (req, res) => {
       payerAddress =
         req.headers['x-okx-payer'] ||
         '0x0000000000000000000000000000000000000000';
+      paymentMethod = 'okx_facade';
     } else {
     // ── Check for x402 facilitator payment (X-PAYMENT header) ──
     const xPaymentHeader = req.headers['x-payment'];
 
     // ── Step 1: no payment proof → 402 challenge ──
-    if (!paymentTxHash && !xPaymentHeader) {
+    if (!paymentTxHash && !xPaymentHeader && !nearTxHash) {
       return res.status(402).json({
         ...sharedTypes.build402Body([requirements]),
         quote: {
@@ -285,6 +308,19 @@ router.post('/', async (req, res) => {
           payoutModel: splitAddress ? '0xSplits (curator earns a share)' : 'platform',
           token: sharedTypes.X402_ASSET,
           chainId: sharedTypes.X402_CHAIN_ID,
+          paymentRails: ['celo_cusd', ...(nearQuote ? ['near'] : [])],
+          ...(nearQuote
+            ? {
+                near: {
+                  network: nearQuote.network,
+                  accountId: nearPayTo,
+                  amountNear: nearQuote.amountNear,
+                  amountYocto: nearQuote.amountYocto,
+                  usdRate: nearQuote.usdRate,
+                  instructions: `Send exactly ${nearQuote.amountYocto} yoctoNEAR (~${nearQuote.amountNear} NEAR) to ${nearPayTo} on NEAR ${nearQuote.network}, then re-POST with { nearAccountId, nearTxHash }.`,
+                },
+              }
+            : {}),
           attribution: {
             code: getAttributionCode(),
             assignedTag: getAssignedTag(),
@@ -292,7 +328,7 @@ router.post('/', async (req, res) => {
             instructions: 'Append the dataSuffix to your transfer transaction data to tag it as OnPoint activity on Celo.',
           },
           instructions:
-            'Transfer the exact cUSD amount to payTo on Celo, then re-POST with paymentTxHash.',
+            'Transfer the exact cUSD amount to payTo on Celo, then re-POST with paymentTxHash — or pay in NEAR via the quote.near rail.',
         },
         revenueHint: buildRevenueHint('try_on', { totalCusd: priceCusd, curator: row.curator }),
       });
@@ -308,7 +344,30 @@ router.post('/', async (req, res) => {
       });
     }
     {
-      // ── Step 2b: verify cUSD payment, run try-on, then claim ──
+      // ── Step 2b: verify the payment on the submitted rail ──
+    const proofTxHash = nearTxHash || paymentTxHash;
+    if (nearTxHash) {
+      paymentMethod = 'near';
+      if (!nearPayTo || !nearQuote) {
+        return res.status(409).json({
+          error: 'NEAR payment rail is not configured for this resource.',
+          code: 'PAYMENT_RAIL_UNAVAILABLE',
+        });
+      }
+      const nearResult = await nearPayments.verifyNearPayment({
+        txHash: String(nearTxHash),
+        signerAccountId: nearPayer,
+        expectedReceiverId: nearPayTo,
+        minDepositYocto: nearQuote.amountYocto,
+      });
+      if (!nearResult.ok) {
+        return res.status(402).json({
+          error: `NEAR payment not verified: ${nearResult.reason}`,
+          ...sharedTypes.build402Body([requirements]),
+        });
+      }
+      verification = { from: nearPayer, near: nearResult };
+    } else {
     const minAmountWei = BigInt(requirements.maxAmountRequired);
     verification = await agentCore.ERC20.verifyTransfer({
       chain: 'celo',
@@ -324,22 +383,26 @@ router.post('/', async (req, res) => {
         ...sharedTypes.build402Body([requirements]),
       });
     }
+    } // end cUSD verification path
 
     // Pre-check: has this payment tx already been claimed?
     const existing = await db
       .select({ id: payments.id })
       .from(payments)
-      .where(eq(payments.txHash, paymentTxHash))
+      .where(eq(payments.txHash, proofTxHash))
       .limit(1);
     if (existing.length > 0) {
       return res.status(409).json({ error: 'Payment transaction already used' });
     }
-    } // end cUSD verification path
+    }
     } // end else (not okxBypass)
 
     // The effective tx hash and payer for this request
-    const effectiveTxHash = settlementTxHash || paymentTxHash;
-    const effectivePayer = settlementTxHash ? payerAddress : (verification?.from || null);
+    const effectiveTxHash = settlementTxHash || nearTxHash || paymentTxHash;
+    const effectivePayer = settlementTxHash ? payerAddress : (nearTxHash ? nearPayer : (verification?.from || null));
+    const explorerUrl = paymentMethod === 'near'
+      ? nearPayments.nearExplorerTxUrl(effectiveTxHash)
+      : agentCore.getExplorerUrl('celo', effectiveTxHash);
 
     // Render + fit analysis run concurrently — independent pipelines.
     // We run these BEFORE claiming the payment so that a render failure
@@ -410,7 +473,7 @@ router.post('/', async (req, res) => {
       return res.status(502).json({
         error: settlementTxHash
           ? 'Try-on render failed. The facilitator payment was settled on-chain but not ledgered. Contact support.'
-          : 'Try-on render failed — your payment was not claimed. You can retry with the same paymentTxHash.',
+          : 'Try-on render failed — your payment was not claimed. You can retry with the same transaction hash.',
         retryable: !settlementTxHash,
       });
     }
@@ -425,7 +488,16 @@ router.post('/', async (req, res) => {
         amountCusd: priceCusd.toFixed(2),
         txHash: effectiveTxHash,
         resource: '/api/agent/try-on',
-        metadata: { listingId, item: itemLabel, payTo, splitAddress: splitAddress || null, paymentMethod: okxBypass ? 'okx_facade' : (settlementTxHash ? 'x402_facilitator' : 'cusd') },
+        metadata: {
+          listingId,
+          item: itemLabel,
+          payTo,
+          splitAddress: splitAddress || null,
+          paymentMethod,
+          ...(paymentMethod === 'near'
+            ? { near: { accountId: nearPayer, amountYocto: nearQuote.amountYocto, payTo: nearPayTo, network: nearQuote.network } }
+            : {}),
+        },
       })
       .onConflictDoNothing({ target: payments.txHash })
       .returning({ id: payments.id });
@@ -471,10 +543,10 @@ router.post('/', async (req, res) => {
           priceCusd,
           payerAddress: effectivePayer,
           renderProvider: render.value.provider,
-          paymentMethod: okxBypass ? 'okx_facade' : (settlementTxHash ? 'x402_facilitator' : 'cusd'),
+          paymentMethod,
         },
         txHash: effectiveTxHash,
-        chain: 'celo',
+        chain: paymentMethod === 'near' ? 'near' : 'celo',
       });
       receiptId = receipt.id;
     } catch (receiptErr) {
@@ -494,7 +566,7 @@ router.post('/', async (req, res) => {
       isDigital,
       caller,
       payerAddress: effectivePayer,
-      paymentMethod: okxBypass ? 'okx_facade' : (settlementTxHash ? 'x402_facilitator' : 'cusd'),
+      paymentMethod,
     });
 
     // Log funnel event: tryon_complete (paid, agent)
@@ -513,7 +585,7 @@ router.post('/', async (req, res) => {
         fitScore: fitSignal?.score,
         shareId,
         lookSlug: lookSlug || null,
-        paymentMethod: okxBypass ? 'okx_facade' : (settlementTxHash ? 'x402_facilitator' : 'cusd'),
+        paymentMethod,
       },
       clientIp: req.ip,
     });
@@ -599,7 +671,7 @@ router.post('/', async (req, res) => {
         payment: {
           txHash: effectiveTxHash,
           amountCusd: priceCusd.toFixed(2),
-          explorerUrl: agentCore.getExplorerUrl('celo', effectiveTxHash),
+          explorerUrl,
         },
         storefrontUrl: storefrontWebUrl(slug),
         createdAt: new Date().toISOString(),
@@ -713,9 +785,9 @@ router.post('/', async (req, res) => {
         id: paymentId,
         txHash: effectiveTxHash,
         amountCusd: priceCusd.toFixed(2),
-        explorerUrl: agentCore.getExplorerUrl('celo', effectiveTxHash),
+        explorerUrl,
         payoutModel: splitAddress ? '0xSplits (curator earns a share)' : 'platform',
-        paymentMethod: okxBypass ? 'okx_facade' : (settlementTxHash ? 'x402_facilitator' : 'cusd'),
+        paymentMethod,
       },
       receiptId,
       receiptUrl: receiptId ? `${webBaseUrl()}/receipt/${receiptId}` : undefined,

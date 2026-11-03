@@ -137,12 +137,19 @@ export default async function ReceiptPage({
   const splitAddress = meta.splitAddress as string | undefined;
   const priceCusd = meta.priceCusd as number | undefined;
 
-  const explorerUrl = txHash
-    ? `https://celoscan.io/tx/${txHash}`
-    : null;
-  const payoutExplorerUrl = payoutTxHash
-    ? `https://celoscan.io/tx/${payoutTxHash}`
-    : null;
+  const chain = (receipt.chain as string | undefined) || "celo";
+  const nearSub =
+    (meta.near as { network?: string } | undefined)?.network === "mainnet"
+      ? ""
+      : "testnet.";
+  const explorerFor = (hash?: string) =>
+    !hash
+      ? null
+      : chain === "near"
+        ? `https://${nearSub}nearblocks.io/txns/${hash}`
+        : `https://celoscan.io/tx/${hash}`;
+  const explorerUrl = explorerFor(txHash);
+  const payoutExplorerUrl = explorerFor(payoutTxHash);
 
   const amount = totalCusd ?? priceCusd;
 
