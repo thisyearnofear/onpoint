@@ -251,6 +251,8 @@ The bridge is an isolated Python FastAPI service using Browser Use Cloud V3 with
 
 **x402 try-on payments**: Agents pay $0.03 cUSD for digital try-ons or $0.05 cUSD for physical try-ons via the HTTP 402 challenge flow (ADR 0010, 0011). Digital curator try-ons route revenue to the AI curator's 0xSplits; physical try-ons route to the human curator's split.
 
+**Alternative rails (try-on + order 402s)**: when configured, `quote.paymentRails` also advertises `near` (direct payout to the curator's `commerce.nearAccountId`) and `paypal` (approval-relay: human approves `quote.paypal.approveUrl`, server verifies + captures; payout reconciled operationally). Both are `implemented`; PayPal is not live-validated. Details: [FEATURES.md](./FEATURES.md#agent-storefront-checkout).
+
 ## Security Model
 
 - **Autonomy threshold**: Actions under $5 cUSD auto-execute via `autonomous-executor.ts`; above requires user approval

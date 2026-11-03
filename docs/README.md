@@ -40,6 +40,7 @@ For people building against OnPoint.
 
 Not for external consumers.
 
+- [deployment.md](./ops/deployment.md) — deploy runbook: API auto-deploy + manual DB migrations, web (Fly `onpoint`), MCP (`onpoint-mcp`), known gaps
 - [phase1-audit.md](./ops/phase1-audit.md) — pilot audit + evidence refresh checklist
 - [merchant-onboarding-scorecard.md](./ops/merchant-onboarding-scorecard.md) — merchant activation gate
 - [weekly-pilot-report.md](./ops/weekly-pilot-report.md) — weekly metrics template

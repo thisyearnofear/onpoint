@@ -348,6 +348,19 @@ If the answer is no or unknown, defer.
 **Document owner:** Product Lead
 **Next strategy review:** after the next verified Phase 1 production snapshot
 
+## Decision log
+
+### 2026-11-03 — audience first, curators second
+
+The first audience is **social-native, novelty-seeking users on Instagram, X, and TikTok** — not curators. Goal now: build a base of people engaging with the brand and hone retention **before** selectively onboarding curators.
+
+- **Hero experience:** Runway (daily themed fit check with AI judges Miranda, Edina, Shaft → verdict → share card) on the mobile-optimized web app.
+- **Acquisition test:** screen recordings of the mobile web experience posted to Instagram and X.
+- **Planned phases:** share-native output (9:16 story + 4:5 feed cards, instagram/tiktok/x share channels) → retention engine (daily theme, streaks, local history, email capture) → social loops (friend duels, judge-my-fit links, creator challenges) → novelty layer (AI render in theme, cost-gated) → then selective curator onboarding via "the fix" links.
+- **Basis:** [ADR 0022](./adr/0022-runway-game-hosted-messaging.md) and its stop rule (after 100 started rounds: <20% photo submission or <10% second-round play → stop Phase B).
+- **Live supply snapshot (point-in-time, not a trend):** the agent directory shows **1 agent-purchasable curator with 1 live physical listing** — far below the Phase 1 targets of ≥5 curators / ≥50 SKUs. Demand-side engagement cannot assume meaningful purchasable supply yet; this is exactly why the loop leads with play, not purchase.
+- **Open questions (undecided):** lead platform for the acquisition test; public vs private fit gallery; the daily judging-cost cap (`RUNWAY_DAILY_VISION_CAP`, default 500).
+
 ## InstaDomain-pattern roadmap inputs (for next review)
 - [ ] `suggest_looks` + bulk availability check (sizes across listings, one call)
 - [ ] MPP + card rails alongside cUSD x402 (humans without wallets bounce today)

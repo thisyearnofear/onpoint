@@ -17,6 +17,7 @@ A branded surface a Curator hands to their customers. Composes existing componen
 - Off-ramp checkout to their existing Shopify / WhatsApp / Stripe / M-Pesa
 - Self-serve onboarding at `/curator/onboard`
 - Cross-curator recommendations with attribution tracking
+- Machine-readable listing `attributes` (`type`, `formality`, `warmth`, `fabric`, `pattern`, `fit`, `colors`) extracted at ingest (rule-based, optional Qwen vision); filterable via `?type=&formality=&warmth=` on the storefront API. Status: `implemented`
 
 ### Three Curator types, one schema
 | Type | Source | Example | Catalog |
@@ -62,6 +63,12 @@ This is the core execution proof point: a fashion offer connects structured cata
 - `POST /api/curator/:slug/order` — agents buy physical listings via cUSD
 - 0xSplits payout routing to curator's wallet
 - Digital listings return 409 (try-on only, no physical product)
+- Alternative rails on the same 402 challenge (advertised in `quote.paymentRails` only when configured):
+  - **NEAR** — `{nearAccountId, nearTxHash}`; curator's `commerce.nearAccountId` paid directly (payment tx = payout tx). See [NEAR_HACKATHON.md](./NEAR_HACKATHON.md). Status: `implemented`
+  - **PayPal** (approval-relay, USD) — `quote.paypal.approveUrl` → human approves → re-POST `{paypalOrderId}`; server verifies + captures via Orders v2, capture id is the replay-guarded proof, curator payout `pending_reconciliation`. See [PAYPAL_HACKATHON.md](./PAYPAL_HACKATHON.md). Status: `implemented`, not live-validated
+
+### Agent Outfit Planner
+- `POST /api/agent/outfit` (free) — deterministic planner composes live agent-purchasable listings into looks scored against a brief (occasion, season, weather, budget, preferred listing); returns `looks[].items` with per-item `orderEndpoint`, `totalCusd`, `score`, `why`, plus `nextSteps` (try-on/createLook/order). Manifest capability: `outfit_planning`. Status: `implemented`
 
 ### Execution controls and verifiability
 - **ERC-8004 registered** agent wallet on Celo
@@ -146,10 +153,12 @@ Bright Data integration (ADR 0004): SERP API + Web Unlocker, gated by `BRIGHTDAT
 
 ## Virtual Try-On
 
-- IDM-VTON model via Replicate API
-- Upload garment + human images for AI-powered fitting
+- Image-conditioned fitting (upload person + garment images) with a provider fallback chain:
+  - **Paid tier (agents):** YouCam Apparel VTO → Replicate IDM-VTON → Gemini image edit (`GEMINI_TRYON_MODEL`, default `gemini-2.5-flash-image`; runs only when `GEMINI_API_KEY` is set) → Venice SD35
+  - **Free tier (web):** Venice SD35 first — text-to-image "similar look", **not garment-conditioned** (current limitation: the free render is not the actual garment on the actual person; that is the paid tier's job)
 - Body-inclusive visualizations with caching
 - **Digital→physical funnel**: TryOnResult renders "Shop the real thing" section with similar physical items when try-on is from a digital listing
+- Optional **garment cutouts** (`GARMENT_CUTOUT_ENABLED` + OpenAI image key): post-ingest AI product shot stored in R2 as `attributes.cutoutKey`; try-on/outfit inputs prefer the cutout, storefront exposes `cutoutUrl`. Status: `implemented`, off by default
 
 ---
 
