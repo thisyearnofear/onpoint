@@ -20,6 +20,7 @@ interface RevealProps {
   once?: boolean;
   className?: string;
   as?: "div" | "section" | "span";
+  initiallyVisible?: boolean;
 }
 
 const DIRECTION_MAP: Record<Direction, { x: number; y: number }> = {
@@ -47,6 +48,7 @@ export function Reveal({
   once = true,
   className,
   as = "div",
+  initiallyVisible = false,
 }: RevealProps) {
   const { ref, inView } = useInView<HTMLDivElement>({ once, threshold: 0.1 });
   const dir = DIRECTION_MAP[direction];
@@ -56,11 +58,15 @@ export function Reveal({
   return (
     <MotionTag
       ref={ref}
-      initial={{
-        opacity: 0,
-        x: dir.x * distance,
-        y: dir.y * distance,
-      }}
+      initial={
+        initiallyVisible
+          ? false
+          : {
+              opacity: 0,
+              x: dir.x * distance,
+              y: dir.y * distance,
+            }
+      }
       animate={
         inView
           ? { opacity: 1, x: 0, y: 0 }

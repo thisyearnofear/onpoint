@@ -138,8 +138,12 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
 
   return (
     <>
-      <NewUserOnboarding />
-      <DashboardTooltips />
+      {mode === "dashboard" && (
+        <>
+          <NewUserOnboarding />
+          <DashboardTooltips />
+        </>
+      )}
       <div className="flex flex-col min-h-screen bg-background">
 
       {/* ── Desktop top tab bar (hidden on mobile) ── */}

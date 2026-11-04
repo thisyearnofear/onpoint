@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight } from "lucide-react";
-import { SafeImage } from "../SafeImage";
-import { RUNWAY_SAMPLES, OUTFIT_SAMPLES } from "../../lib/runway-samples";
-import { getApiBase } from "../../lib/utils/api-base";
+import { OUTFIT_SAMPLES, FEATURED_OUTFIT_SAMPLES } from "../../lib/runway-samples";
 
 interface NiaListing { id: string; title: string | null; imageUrl: string | null; }
 
@@ -22,37 +21,40 @@ function TryItSection() {
       <div className="container mx-auto px-4 py-14 md:py-20">
         <div className="mx-auto max-w-6xl">
           <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">Try it in 10 seconds</p>
-          <h2 className="mt-3 text-3xl font-black tracking-tight md:text-5xl">Pick an outfit. See the verdict.</h2>
-          <p className="mt-3 max-w-lg text-sm text-muted-foreground">No camera needed — tap a sample and the judges take it from there.</p>
-          <div className="mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-3 md:overflow-visible lg:grid-cols-6">
-            {RUNWAY_SAMPLES.map((smp) => (
+          <h2 className="mt-3 text-3xl font-black tracking-tight md:text-5xl">Find a look. Get a verdict.</h2>
+          <p className="mt-3 max-w-lg text-sm text-muted-foreground">Curated outfit inspiration. Pick a look for a Runway verdict — no photo needed.</p>
+          <p className="mt-2 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">AI styling references · not items for sale</p>
+          <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-3">
+            {FEATURED_OUTFIT_SAMPLES.map((smp) => (
               <Link
                 key={smp.id}
                 href={`/runway/play?sample=${smp.id}`}
-                className="group w-40 shrink-0 snap-start overflow-hidden rounded-2xl border border-border/60 bg-card transition-colors hover:border-primary/60 md:w-auto"
+                className="group overflow-hidden rounded-2xl border border-border/60 bg-card transition-colors hover:border-primary/60"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={smp.src} alt={smp.label} className="aspect-[3/4] w-full object-cover" loading="lazy" />
-                <span className="block px-3 py-2 text-xs font-bold">{smp.label}</span>
+                <div className="relative aspect-[2/3] w-full bg-zinc-100 dark:bg-zinc-900">
+                  <Image
+                    src={smp.src}
+                    alt={smp.label}
+                    fill
+                    sizes="(min-width: 768px) 33vw, 50vw"
+                    className="object-contain"
+                  />
+                </div>
+                <span className="block px-3 py-2.5">
+                  <span className="block min-h-8 text-xs font-bold leading-4">{smp.label}</span>
+                  <span className="mt-1 block text-xs font-bold text-primary group-hover:underline">Get a verdict</span>
+                </span>
               </Link>
             ))}
           </div>
-          <div className="mt-8 flex items-end justify-between gap-4">
-            <p className="pl-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Or judge a styled look</p>
-            <Link href="/style-board" className="shrink-0 text-xs font-bold text-primary hover:underline">All {OUTFIT_SAMPLES.length} looks →</Link>
-          </div>
-          <div className="mt-3 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2">
-            {OUTFIT_SAMPLES.slice(0, 10).map((smp) => (
-              <Link
-                key={smp.id}
-                href={`/runway/play?sample=${smp.id}`}
-                className="group w-32 shrink-0 snap-start overflow-hidden rounded-2xl border border-border/60 bg-card transition-colors hover:border-primary/60"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={smp.src} alt={smp.label} className="aspect-[2/3] w-full bg-zinc-100 object-cover dark:bg-zinc-900" loading="lazy" />
-                <span className="block px-3 py-2 text-xs font-bold">{smp.label}</span>
-              </Link>
-            ))}
+          <div className="mt-8 flex items-center justify-center">
+            <Link
+              href="/style-board"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border/60 px-6 text-sm font-bold transition-colors hover:border-primary/60 hover:text-primary"
+            >
+              Explore all {OUTFIT_SAMPLES.length} looks
+              <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
         </div>
       </div>
@@ -62,51 +64,39 @@ function TryItSection() {
 
 /** 'Designs you can try on' — Nia gallery with watermark-hiding crop. */
 function NiaGallery() {
-  const [items, setItems] = useState<NiaListing[]>(NIA_FALLBACK);
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(`${getApiBase()}/api/curator/nia/storefront`, { signal: AbortSignal.timeout(5000) });
-        if (!res.ok) return;
-        const data = await res.json();
-        const live = (data.listings || []).filter((l: NiaListing) => l.imageUrl);
-        if (!cancelled && live.length) setItems(live.slice(0, 8));
-      } catch { /* fallback stays */ }
-    })();
-    return () => { cancelled = true; };
-  }, []);
+  const items = NIA_FALLBACK;
 
   return (
     <section className="border-t border-border/40 bg-muted/15">
       <div className="container mx-auto px-4 py-14 md:py-20">
         <div className="mx-auto max-w-6xl">
-          <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">The catalog</p>
-          <h2 className="mt-3 text-3xl font-black tracking-tight md:text-5xl">Designs you can try on.</h2>
-          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">Garment demos</p>
+          <h2 className="mt-3 text-3xl font-black tracking-tight md:text-5xl">Explore the on-model demo.</h2>
+          <p className="mt-3 max-w-lg text-sm text-muted-foreground">Prepared garment previews, not live inventory. Open the fitting room to use your own photo.</p>
+          <div className="mt-8 grid grid-cols-3 gap-3">
             {items.map((item) => (
               <div key={item.id} className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-                <div className="relative aspect-[4/5] overflow-hidden bg-zinc-950">
+                <div className="relative aspect-[4/5] overflow-hidden bg-zinc-100 dark:bg-zinc-900">
                   {/* scale ~1.12 anchored top-right hides the Venice watermark corner */}
-                  <SafeImage
-                    sources={[item.imageUrl || ""]}
+                  <Image
+                    src={item.imageUrl || ""}
                     alt={item.title || "Garment"}
                     fill
-                    className="origin-top-right scale-[1.12] object-cover"
-                    fallbackIconSize={28}
+                    sizes="33vw"
+                    className="object-contain"
                   />
                 </div>
-                <div className="flex items-center justify-between gap-2 px-3 py-2.5">
-                  <p className="truncate text-xs font-bold">{item.title || "Untitled"}</p>
-                  <Link
-                    href={`/lab?tab=try-on&from=nia${item.id.startsWith("f") ? "" : `&item=${item.id}`}`}
-                    className="inline-flex min-h-11 shrink-0 items-center rounded-full bg-primary px-4 text-xs font-bold text-white hover:bg-primary/90"
-                  >
-                    Try on
-                  </Link>
-                </div>
+                <p className="px-2 py-2 text-center text-xs font-bold">{item.title || "Untitled"}</p>
               </div>
             ))}
+          </div>
+          <div className="mt-6 flex justify-center">
+            <Link
+              href="/lab?tab=try-on&from=nia"
+              className="inline-flex min-h-11 items-center rounded-full bg-primary px-6 text-sm font-bold text-white hover:bg-primary/90"
+            >
+              Open fitting room
+            </Link>
           </div>
         </div>
       </div>
@@ -118,7 +108,7 @@ const POWERS = [
   { title: "Runway", copy: "A judged fit check — theme, photo, verdict.", href: "/runway", img: "/demo/demo-card-2.png", wide: true },
   { title: "Try-on", copy: "See the garment on you, not a model.", href: "/lab?tab=try-on&from=nia", img: "/demo/sample-street-layers.jpg" },
   { title: "Looks", copy: "Compose and share style boards.", href: "/looks", collage: true },
-  { title: "Outfit planner", copy: "Agents ask 'what should I wear Saturday?'", href: "/developers", planner: true },
+  { title: "Agent outfit tools", copy: "Developer tools for inventory-based outfit planning.", href: "/developers", planner: true },
   { title: "Share cards", copy: "Story + feed cards for Instagram and X.", href: "/runway", img: "/demo/demo-card-1.png", wide: true },
   { title: "Agents", copy: "Shop with permission via MCP/x402/UCP.", href: "#agent-search", terminal: true },
 ];
@@ -144,17 +134,17 @@ function PowersSection() {
                     </div>
                   ) : p.planner ? (
                     <div className="flex h-full w-full flex-col items-stretch justify-center gap-3 bg-zinc-950 p-3">
-                      <span className="self-center rounded-full border border-zinc-700 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-wide text-zinc-300">Saturday · 24°C · casual</span>
+                      <span className="self-center rounded-full border border-zinc-700 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-wide text-zinc-300">Example outfit inspiration</span>
                       <div className="flex justify-center gap-2">
-                        {["/assets/1Product.png","/assets/2Product.png","/assets/3Product.png"].map((src)=>(
+                        {FEATURED_OUTFIT_SAMPLES.slice(0, 3).map((smp)=>(
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img key={src} src={src} alt="" loading="lazy" className="h-24 w-[4.5rem] rounded-lg border border-zinc-700 object-cover" />
+                          <img key={smp.id} src={smp.src} alt="" loading="lazy" className="h-24 w-[4.5rem] rounded-lg border border-zinc-700 bg-zinc-100 object-contain" />
                         ))}
                       </div>
-                      <p className="text-center font-mono text-[10px] text-zinc-400">Score 8.4 · 3 items</p>
                     </div>
                   ) : p.terminal ? (
                     <div className="flex h-full w-full flex-col justify-center gap-1.5 bg-zinc-950 p-3 font-mono text-[10px] leading-relaxed">
+                      <p className="self-start rounded-full border border-zinc-700 px-2 py-0.5 font-bold uppercase tracking-wide text-zinc-400">Example agent flow</p>
                       <p className="text-zinc-500">$ <span className="text-zinc-300">POST /api/curator/nia/order</span></p>
                       <p className="text-amber-300/90">402 · pay 4.00 cUSD</p>
                       <p className="text-emerald-300/90">✓ approved · receipt #A1F3</p>

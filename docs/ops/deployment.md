@@ -36,6 +36,17 @@ npx tsx packages/db/src/migrate.ts
 - Web was stale from 2026-10-16 until redeployed 2026-11-03 (release v12); that release took `/runway` and `/runway/play` live for the first time.
 - A remote build once hung ~18 min in "Collecting page data" (root cause unconfirmed). As mitigation, all server-side API fetches in `apps/web/app` now carry `AbortSignal.timeout(5000)`; the build is also sensitive to the `.npmrc` hoisting config (`shamefully-hoist`, `node-linker=hoisted`) — without it the pruned install fails to resolve transitive deps (`lru-cache`, `bls-eth-wasm`).
 
+### Release validation checklist (wardrobe studio release)
+
+After `flyctl deploy` completes and before calling the release done:
+
+- `flyctl status -a onpoint` and `flyctl machines list -a onpoint` — machines healthy/started.
+- `curl -I https://onpoint.trustfall.xyz/` returns HTTP 200; SSR HTML contains `id="style-studio"` and the model image (hero visible without hydration).
+- Browser, direct production URL:
+  - Rack garment 01 → 02 swaps the model image and `aria-pressed`; Undo restores; pin + select another piece → two-pane compare; Save piece → reload → Saved tab shows it.
+  - Viewports 1440 / 390 / 360, light and dark: no horizontal overflow; on mobile first viewport shows rack + full model together.
+  - "Get a verdict" links to `/runway/play?sample=<id>`; "Use my photo" links to `/lab?tab=try-on`. No paid try-on or judging execution is required for validation — inspect links, don't complete them.
+
 ## MCP (Fly.io, app `onpoint-mcp`)
 
 - Fly app `onpoint-mcp` (fra, 2 machines, `fly.mcp.toml`; secret `DASHSCOPE_API_KEY`), deployed 2026-11-03 at `mcp.onpoint.famile.xyz`, certificate issued.

@@ -30,10 +30,10 @@ export function OnPointHeader() {
               <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-label="New" />
             </Link>
             <Link
-              href="/#agent-search"
+              href="/#style-studio"
               className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 px-3 py-1.5 rounded-full transition-colors"
             >
-              Product
+              Studio
             </Link>
             <Link
               href="/#how-it-works"

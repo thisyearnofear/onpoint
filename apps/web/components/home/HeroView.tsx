@@ -4,7 +4,6 @@ import React, { useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
-  Bot,
   ChevronDown,
   Clock3,
   Code2,
@@ -20,8 +19,8 @@ import {
 import { Reveal } from "../ui/Reveal";
 import { trackHomepageCta } from "../../lib/utils/analytics";
 import { captureReferralFromURL } from "../../lib/utils/referral";
-import { CTA_PLAY, CTA_SUPPLY, HERO, PRODUCT_NAME } from "../../lib/brand";
-import { HeroVisual } from "./HeroVisual";
+import { CTA_PLAY, CTA_SUPPLY, PRODUCT_NAME } from "../../lib/brand";
+import { WardrobeWorkspace } from "../wardrobe/WardrobeWorkspace";
 import { HomeSections } from "./HomeSections";
 import { AgentFlow } from "../Agent/AgentFlow";
 import { PravaEvidenceReceipt } from "../Agent/PravaEvidenceReceipt";
@@ -255,73 +254,9 @@ export function HeroView() {
 
   return (
     <div className="min-h-screen pb-20 md:pb-0">
-      <section className="relative overflow-hidden border-b border-border/30">
-        <div className="absolute inset-0 -z-20 bg-[linear-gradient(135deg,hsl(var(--primary)/0.08),transparent_38%,hsl(var(--accent)/0.05))]" />
-        <div className="absolute inset-0 -z-10 opacity-[0.2] [background-image:linear-gradient(to_right,hsl(var(--border))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border))_1px,transparent_1px)] [background-size:42px_42px] [mask-image:linear-gradient(to_bottom,black,transparent_85%)]" />
-        <div className="container mx-auto px-4 py-12 md:py-16 lg:py-20">
-          <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
-            <div className="text-center lg:text-left">
-              <Reveal>
-                <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/[0.06] px-3.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
-                  <Bot className="h-3.5 w-3.5" />
-                  {HERO.eyebrow}
-                </div>
-              </Reveal>
-              <Reveal delay={0.08}>
-                <h1 className="mt-5 text-4xl font-black leading-[0.98] tracking-[-0.045em] sm:text-5xl md:text-6xl lg:text-[4.1rem]">
-                  {HERO.headline}
-                  <span className="mt-1 block text-primary">
-                    {HERO.headlineAccent}
-                  </span>
-                </h1>
-              </Reveal>
-              <Reveal delay={0.16}>
-                <p className="mx-auto mt-5 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg lg:mx-0">
-                  {HERO.subcopy}
-                </p>
-              </Reveal>
-              <Reveal delay={0.24}>
-                <div
-                  ref={heroCtaRef}
-                  className="mt-7 flex flex-col items-center gap-4 sm:flex-row lg:justify-start"
-                >
-                  <Link
-                    href={CTA_PLAY.href}
-                    onClick={() =>
-                      trackHomepageCta({ cta: "play", placement: "hero" })
-                    }
-                    className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full bg-primary px-7 text-base font-bold text-white shadow-xl shadow-primary/20 transition-all hover:-translate-y-0.5 hover:bg-primary/90"
-                  >
-                    {CTA_PLAY.label}
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                  <a
-                    href="#try-it"
-                    className="inline-flex items-center gap-2 text-sm font-bold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-                  >
-                    Try a look — no photo needed
-                  </a>
-                </div>
-              </Reveal>
-            </div>
-            <Reveal direction="right" delay={0.1}>
-              <div className="relative">
-                <HeroVisual />
-                <div className="mx-auto mt-4 w-fit rounded-2xl border border-zinc-800 bg-zinc-950/95 px-4 py-3 shadow-2xl sm:absolute sm:-bottom-4 sm:-right-6 sm:mx-0 sm:mt-0">
-                  <div className="flex items-baseline gap-3">
-                    <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-primary">Runway</span>
-                    {[{l:'TH',v:8},{l:'CO',v:7},{l:'ST',v:6}].map((p)=>(
-                      <span key={p.l} className="font-mono text-[11px] font-bold text-zinc-100"><span className="mr-1 text-[8px] text-zinc-500">{p.l}</span>{p.v}</span>
-                    ))}
-                    <span className="text-sm font-black text-zinc-50">7.0<span className="text-[10px] text-zinc-500">/10</span></span>
-                  </div>
-                  <p className="mt-1.5 text-[11px] italic leading-snug text-zinc-400">&ldquo;Sharp shoulders. Finally, intent.&rdquo; — Miranda</p>
-                </div>
-              </div>
-            </Reveal>
-          </div>
-        </div>
-      </section>
+      <div ref={heroCtaRef}>
+        <WardrobeWorkspace />
+      </div>
 
       <HomeSections />
 

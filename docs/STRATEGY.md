@@ -215,7 +215,7 @@ Historical deployment and test evidence is preserved in git history and the [Pha
 
 Workstreams:
 
-1. **Front door:** the homepage, navigation, and share output lead with Runway.
+1. **Front door:** the homepage is the wardrobe-studio workspace (gallery, clothes rack, inspector, on-device saves) that hands into Runway and the fitting room; navigation exposes the studio alongside Runway, and share output continues to lead with Runway.
 2. **Cohesion:** one on-device "you" (history, saved looks, an opt-in photo) that every primitive reads. Each experience hands off to the next.
 3. **Share-native output:** vertical 9:16 / 4:5 cards shared as images, with Instagram / TikTok / X channels.
 4. **Retention engine:** daily theme, streaks, local history, and an optional way to come back (email or install).
@@ -240,6 +240,8 @@ Workstreams:
 **Curator activation gate (proposed, to be confirmed by the product lead):** start selective curator onboarding only when, for 4 consecutive weeks, D7 return is ≥ 15% and weekly active players are ≥ 500. Until then, supply metrics are not reported as progress.
 
 **Not in Phase 0:** curator onboarding, merchant tooling, new payment rails, agent-commerce features, and supply targets.
+
+> Implementation context: the Phase 0 homepage is implemented as a wardrobe-first studio adapted from open wardrobe dashboards — behavior and provenance in [FEATURES.md § Wardrobe studio](./FEATURES.md#wardrobe-studio-consumer-homepage), decision in [ADR 0024](./adr/0024-consumer-wardrobe-studio-and-interaction-reuse.md). Runway remains the retention engine it feeds.
 
 ### Phase 1 — Supply Graph Readiness (deferred until the Phase 0 gate)
 

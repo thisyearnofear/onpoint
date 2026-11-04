@@ -7,7 +7,22 @@
 
 > **Current focus:** the consumer web engine, led by Runway ([ADR 0023](./adr/0023-consumer-engine-first-curators-deferred.md)). Curator, agent-commerce and payment features below are implemented but **deferred**: no new onboarding or feature work until the Phase 0 gate in [STRATEGY.md](./STRATEGY.md#phase-0--consumer-engine-and-retention-current).
 
-## Runway (consumer front door)
+## Wardrobe studio (consumer homepage)
+
+The homepage (`/`, `#style-studio`) is a wardrobe-first styling workspace, not a marketing hero. Decision and provenance: [ADR 0024](./adr/0024-consumer-wardrobe-studio-and-interaction-reuse.md). Status: `implemented` (pending production verification; see [ops/deployment.md](./ops/deployment.md)).
+
+- **Gallery** — tabs All / Clothes / Outfit ideas / Saved (`aria-pressed`), text search over titles+tags, occasion filters (Everyday / Work / Going out / Layers; hidden in Clothes, garments unaffected), 12-at-a-time paging with Load more. Items: 3 prepared garment pairs (`/assets/{1,2,3}Product.png` + matching `Model.png`) plus all 34 AI outfit references from `/demo/outfits/`, ordered garments → six curated featured looks → remainder.
+- **Clothes rack** — the three garments hang as real product photos on a CSS rail (rotateY swivel, neighbor separation on hover/focus, `aria-label` "Dress model in Graphic 0x", arrow/Home/End keyboard nav). Inspired by [DiMaac's clothes rack](https://ui.dimaac.com/components/clothes-rack); implemented with our own CSS and photos — no Three.js/WebGL, no cloth simulation, no vendored component code.
+- **Inspector** — selected garment shows the matching prepared model plus a floating garment cutout and an On model / Piece toggle (labelled "Prepared on-model demo · not your photo"). Selected outfit shows its actual flat-lay labelled "Outfit reference · not items for sale". No autocycling, no fabricated scores.
+- **Selection model** — shared across rack/gallery/stage; explicit selection only, undo pops history (and restores browse filters/paging so the prior card is visible), duplicate selection adds no history. Pin then pick a different piece → inline two-pane compare with honest per-item mode labels.
+- **On-device favorites and notes** — `localStorage` key `onpoint-wardrobe-studio-v1`, JSON `{version:1, savedIds, notes}`; notes are private, ≤240 chars, per item, never leave the device; version/unknown-ID/malformed data rejected on read. No account sync and no server-persisted wardrobe. Studio favorites are separate from the `/style-board` "My picks" hearts store.
+- **Next actions** — "Get a verdict" deep-links `/runway/play?sample=<id>` (garments resolve via the `studio-graphic-0{1,2,3}` sample ids that render the matching model; outfits use their existing ids); "Use my photo" opens `/lab?tab=try-on`. Judging is a Runway round; personal try-on is a separate generation — neither runs on rack/gallery clicks.
+- **Honesty boundary** — references are inspiration, not live inventory or purchasable items; garment/model pairs are prepared demos, not the user's photo. Style-board titles/labels stay in parity between web and API mirrors. The studio server-renders visible (no hydration-gated hero), and try-on opens without old onboarding overlays.
+- **Provenance** — gallery/inspector patterns adapted from the MIT-licensed [tandpfun/wardrobe](https://github.com/tandpfun/wardrobe) and [Om-Alve/wardrobe](https://github.com/Om-Alve/wardrobe) dashboards; license kept at `apps/web/components/wardrobe/wardrobe.LICENSE` with both source links in the studio footer. Code license does not cover their sample imagery — only our existing local assets are used.
+
+Known limits (explicitly not claimed): menswear/asset parity, personal-photo garment extraction, free-form AI restyling, trips/planner from the upstream dashboard, and multi-slot real-garment compositing are not implemented.
+
+## Runway (consumer daily challenge)
 
 A themed closet challenge judged by AI personas (Miranda, Edina, Shaft). Decision and guardrails: [ADR 0022](./adr/0022-runway-game-hosted-messaging.md). Phasing: [ADR 0023](./adr/0023-consumer-engine-first-curators-deferred.md).
 

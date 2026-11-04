@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Check, ScanFace, Shirt } from "lucide-react";
+import { Check, Shirt } from "lucide-react";
 import product1 from "../../public/assets/1Product.png";
 import model1 from "../../public/assets/1Model.png";
 import product2 from "../../public/assets/2Product.png";
@@ -54,8 +55,8 @@ export function HeroVisual() {
       <div className="overflow-hidden rounded-[2rem] border border-border/60 bg-[#111218] text-white shadow-2xl shadow-black/25">
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
           <div>
-            <p className="font-mono text-[9px] uppercase tracking-[0.24em] text-white/40">
-              See it on you
+            <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-white/70">
+              On-model demo
             </p>
             <p className="mt-1 text-sm font-semibold">Tap a garment</p>
           </div>
@@ -76,10 +77,10 @@ export function HeroVisual() {
                 }}
                 aria-label={`Dress model in ${item.label}`}
                 aria-pressed={selected === index}
-                className={`group relative aspect-square overflow-hidden rounded-2xl border p-1.5 transition-all ${
+                className={`group relative aspect-square overflow-hidden rounded-2xl border bg-zinc-200 p-1.5 transition-all ${
                   selected === index
-                    ? "border-white/60 bg-white/10 shadow-lg"
-                    : "border-white/10 bg-white/[0.04] hover:border-white/30"
+                    ? "border-white/60 shadow-lg ring-2 ring-white/30"
+                    : "border-white/10 hover:border-white/30"
                 }`}
               >
                 <Image
@@ -101,22 +102,19 @@ export function HeroVisual() {
 
           <div className="relative overflow-hidden bg-[radial-gradient(circle_at_50%_42%,rgba(255,255,255,0.13),transparent_54%)]">
             <div className="absolute inset-x-5 top-5 z-20 flex items-center justify-between">
-              <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/35">
-                On you
-              </span>
-              <span className="flex items-center gap-1.5 rounded-full border border-fuchsia-300/20 bg-fuchsia-300/10 px-2.5 py-1 text-[9px] font-semibold text-fuchsia-100">
-                <ScanFace className="h-3 w-3" /> On you preview
+              <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/70">
+                Prepared model preview
               </span>
             </div>
 
             <AnimatePresence mode="popLayout">
               <motion.div
                 key={look.id}
-                initial={reduceMotion ? false : { opacity: 0, scale: 0.97 }}
+                initial={false}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={reduceMotion ? undefined : { opacity: 0, scale: 1.02 }}
                 transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute inset-8 bottom-20 top-12"
+                className="absolute inset-x-3 bottom-36 top-12"
               >
                 <Image
                   src={look.model}
@@ -164,10 +162,16 @@ export function HeroVisual() {
                   </div>
                   <p className="text-xs font-semibold">Tap another garment</p>
                 </div>
-                <div className="flex justify-end">
+                <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 rounded-full border border-amber-200/20 bg-amber-200/10 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-wide text-amber-100">
                     <Check className="h-3 w-3" /> On model
                   </div>
+                  <Link
+                    href="/lab?tab=try-on&from=nia"
+                    className="shrink-0 text-[10px] font-bold text-fuchsia-200 underline-offset-2 hover:underline"
+                  >
+                    Use my photo
+                  </Link>
                 </div>
               </div>
             </motion.div>
@@ -175,8 +179,8 @@ export function HeroVisual() {
         </div>
       </div>
 
-      <p className="mt-3 text-center font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-        Tap a garment. See it on a model.
+      <p className="mt-3 text-center font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
+        Prepared previews. Try your own photo in the fitting room.
       </p>
     </div>
   );

@@ -2,7 +2,7 @@
 
 > **Dress to the theme. Get judged. Come back tomorrow.**
 
-OnPoint is a mobile-first fashion play space. **Runway** is the front door: a daily themed fit check judged by AI personas (Miranda, Edina, Shaft), with score paddles, a verdict, a shareable result, and "the fix". Polaroids, looks, the outfit planner, persona stylists and AI try-on build on it.
+OnPoint is a mobile-first fashion play space. The homepage is a **wardrobe studio**: a browsable gallery of prepared garments and AI outfit references with a clothes rack, on-model demos, pin-and-compare, and on-device saved picks. From there, **Runway** is the daily themed fit check judged by AI personas (Miranda, Edina, Shaft) — score paddles, a verdict, a shareable result, and "the fix" — and the fitting room handles personal try-on on your own photo.
 
 **Current focus:** build the consumer engine and earn retention first. Curator storefronts, agent commerce and payment rails are built but **deferred** until the activation gate is met ([ADR 0023](docs/adr/0023-consumer-engine-first-curators-deferred.md)).
 
@@ -18,7 +18,7 @@ Strategy: [`docs/STRATEGY.md`](docs/STRATEGY.md).
 
 ## What It Does
 
-**Players (current focus)**: Runway rounds on the web or iMessage, AI judges, result cards, looks and polaroids, AI try-on.
+**Players (current focus)**: a wardrobe studio homepage (clothes rack, pin/compare, save, curated outfit references), Runway rounds on the web or iMessage, AI judges, result cards, looks and polaroids, AI try-on.
 
 *Built and deferred (ADR 0023):*
 

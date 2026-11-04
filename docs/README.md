@@ -63,6 +63,8 @@ Not for external consumers.
 
 Historical technical decisions. Immutable — new decisions get new ADRs.
 
+- [0024-consumer-wardrobe-studio-and-interaction-reuse.md](./adr/0024-consumer-wardrobe-studio-and-interaction-reuse.md) — wardrobe-studio homepage; supersedes ADR 0015's consumer-UI exclusion only
+
 ## research/
 
 Market research inputs. Verify sources before external citation.
