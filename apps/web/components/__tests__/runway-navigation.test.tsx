@@ -1,5 +1,5 @@
 import React from "react";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, act } from "@testing-library/react";
@@ -39,8 +39,16 @@ describe("Runway navigation continuity", () => {
   it("uses valid theme classes in the actual Runway component source", () => {
     // Read from the project root (vitest is run from apps/web) because
     // import.meta.url is not a file: URL under the jsdom test environment.
-    const source = readFileSync(resolve(process.cwd(), "components/runway/RunwayPlay.tsx"), "utf8");
-    expect(source).not.toContain("text-foreground0");
+    // Markup lives in RunwayPlay.tsx and the per-stage files under runway/play/.
+    const dir = resolve(process.cwd(), "components/runway/play");
+    const files = [
+      resolve(process.cwd(), "components/runway/RunwayPlay.tsx"),
+      ...readdirSync(dir).filter((f) => f.endsWith(".tsx")).map((f) => resolve(dir, f)),
+    ];
+    expect(files.length).toBeGreaterThan(5);
+    for (const file of files) {
+      expect(readFileSync(file, "utf8"), file).not.toContain("text-foreground0");
+    }
   });
 
   it.each([
