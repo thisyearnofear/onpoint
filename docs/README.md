@@ -61,9 +61,15 @@ Not for external consumers.
 
 ## adr/ — decision records
 
-Historical technical decisions. Immutable — new decisions get new ADRs.
+Historical technical decisions. Immutable — new decisions get new ADRs. Current product phase is owned by STRATEGY.md and FEATURES.md; these records explain why.
 
-- [0024-consumer-wardrobe-studio-and-interaction-reuse.md](./adr/0024-consumer-wardrobe-studio-and-interaction-reuse.md) — wardrobe-studio homepage; supersedes ADR 0015's consumer-UI exclusion only
+- [0024](./adr/0024-consumer-wardrobe-studio-and-interaction-reuse.md) — wardrobe-studio homepage; supersedes only ADR 0015's consumer-UI exclusion
+- [0023](./adr/0023-consumer-engine-first-curators-deferred.md) — consumer web first; curators deferred, not removed
+- [0022](./adr/0022-runway-game-hosted-messaging.md) — Runway engine, guardrails, and measurement; web phasing superseded by 0023
+- [0019](./adr/0019-share-attribution-on-funnel-events.md) — share ids on funnel events
+- [0010](./adr/0010-agent-storefront-checkout.md), [0011](./adr/0011-erc8004-registration-and-digital-curators.md), [0002](./adr/0002-curator-primitive.md) — agent checkout, digital curators, and the curator primitive
+
+Older ADRs (0001–0009, 0012–0018, 0020–0021) stay in [adr/](./adr/) and are linked from the docs that still depend on them.
 
 ## research/
 
