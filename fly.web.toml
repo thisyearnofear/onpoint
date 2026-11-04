@@ -1,6 +1,6 @@
-# Fly.io — onpoint-web (Next.js standalone)
+# Fly.io — onpoint (Next.js standalone) ← production app serving onpoint.trustfall.xyz
 # Deploy: fly deploy -c fly.web.toml
-app = "onpoint-web"
+app = "onpoint"
 primary_region = "fra"
 
 [build]
