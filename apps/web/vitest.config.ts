@@ -4,6 +4,9 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react()],
+  // tsconfig uses jsx:"preserve" (Next); tests need the automatic JSX runtime
+  // or components without `import React` throw "React is not defined".
+  esbuild: { jsx: "automatic" },
   test: {
     include: [
       "lib/**/*.test.{ts,tsx}",
