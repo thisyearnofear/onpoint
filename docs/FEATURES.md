@@ -12,17 +12,19 @@
 A themed closet challenge judged by AI personas (Miranda, Edina, Shaft). Decision and guardrails: [ADR 0022](./adr/0022-runway-game-hosted-messaging.md). Phasing: [ADR 0023](./adr/0023-consumer-engine-first-curators-deferred.md).
 
 - `/runway`: landing with today's theme and the judges
-- `/runway/play`: pick a judge → theme + 3-minute countdown → photo (downscaled on the device) → judging → animated score paddles (Theme / Cohesion / Styling) → verdict → "the fix" → Challenge a friend
-- `/runway/r/:roundId`: share page; its og:image is the API-rendered score card (1200×630, no user photo)
+- `/runway/play`: pick a judge (or "Surprise me") → theme + 3-minute countdown → photo or sample (samples sit under the photo CTAs; samples can never be marked late) → judging (ambient heartbeat) → animated score paddles → typed verdict + reactions from the other two judges → "the fix" → Challenge a friend
+- `/runway/r/:roundId`: share page; its og:image is the API-rendered score card (1200×630, no user photo). "Take the challenge" deep-links `/runway/play?judge=&theme=&ref=` into a duel.
 - API: `GET /api/runway/today`, `POST /api/runway/rounds`, `POST /api/runway/rounds/:id/photo`, `GET /api/runway/results/:id`. Engine in `apps/api/lib/runway/`.
+- Duels: a `?ref=<roundId>` round loads the shared result as the opponent — "DUEL — beat X.X" badge, You-vs-Them card with their verdict quote, "Run it back" rematch on a loss/tie, duel-aware share text. Ref attribution is recorded on `runway_start`.
+- Sound & reveal: WebAudio synth cues (paddle flips, count-up chime, win arpeggio, low-tier roast) + ambient tension heartbeat, all behind a persisted mute toggle. Canvas confetti burst — gold palette for 8+ "Judges' favourite", accent for a duel win or new personal best.
 - iMessage: the same engine on the Photon Spectrum line (secondary channel)
 - Photo is judged and discarded, never stored. Daily caps: per-player rounds and `RUNWAY_DAILY_VISION_CAP`.
 - Metrics: [ops/retention.md](./ops/retention.md). Events carry a hashed player id; shares are recorded via `POST /api/runway/rounds/:id/share`; `GET /api/runway/metrics` (service key) computes the retention definitions.
-- No-photo path: person samples plus 34 styled outfit flat-lays (curated from the MIT nvzhuang dataset — references, not inventory) under `/demo/outfits/`; deep link `?sample=<id>`. `/style-board` is the full gallery (`?pick=<id>` highlights the fix's pick).
-- On-device memory (no photos stored): streak, best score, round history. Share cards render 9:16 story, 4:5 feed and 1200×630 landscape.
+- No-photo path: person samples plus 34 styled outfit flat-lays (curated from the MIT nvzhuang dataset — references, not inventory) under `/demo/outfits/`; deep link `?sample=<id>`. `/style-board` is the full gallery (`?pick=<id>` highlights the fix's pick) with an on-device "My picks" hearts rail.
+- On-device memory (no photos stored): streak, best score, round history, sound preference, hearted outfits. Share cards render 9:16 story, 4:5 feed and 1200×630 landscape.
 - "The fix" order: tag-matched live look → tag-matched live listing → theme-matched style-board outfit (`kind: 'inspiration'`) → most recent live look.
 
-Status: `deployed`. Known gaps (Phase 0 backlog): no cross-device history (memory is per-device), `CameraCapture` component is still unused (the flow uses a camera-first file input), and the outfit style board skews feminine/J-fashion with no menswear coverage.
+Status: `deployed`. Known gaps (Phase 0 backlog): no cross-device history (memory is per-device), `CameraCapture` component is still unused (the flow uses a camera-first file input), banter lines are canned rather than AI-generated, no duel-completion event yet (ref attribution is start-side only), and the outfit style board skews feminine/J-fashion with no menswear coverage.
 
 ## Curator Storefronts (`/s/[slug]`)
 

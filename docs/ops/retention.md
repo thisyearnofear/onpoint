@@ -28,7 +28,7 @@
 | --- | --- | --- |
 | `runway_start`, `runway_submit`, `runway_verdict`, `runway_fix`, `runway_refused`, `runway_unavailable` | `apps/api/lib/runway/engine.js` (`source: 'runway'`, `metadata.surface` = `web` or `imessage`) | `metadata.playerHash` = first 16 hex of `sha256(RUNWAY_PLAYER_SALT|chatId)` is attached on every event. Raw chat ids / web UUIDs are never stored. |
 | Result share | `runway_share` via `POST /api/runway/rounds/:roundId/share` (`{ channel, playerId }`; channels `native, copy, download, instagram, tiktok, x, whatsapp, imessage, other`) | — |
-| Share page visit → new round | `ref` on `runway_start` | `POST /api/runway/rounds` accepts `ref=<roundId>`; recorded only when the round id is valid 12-hex AND `runwayState.getResult(ref)` exists |
+| Share page visit → new round | `ref` on `runway_start` | `POST /api/runway/rounds` accepts `ref=<roundId>`; recorded only when the round id is valid 12-hex AND `runwayState.getResult(ref)` exists. `ref` also powers the duel flow (`?ref=` → opponent load + versus card); duel completions are not yet a distinct event — a duel player looks like any other referred round |
 | Fix visit | Via the ADR 0019 share funnel (`sid` on the fix link) | Works for looks, but has no Runway-specific breakdown |
 | Report | `GET /api/runway/metrics?days=14` (`serviceKeyAuth`, same guard as `/api/status/funnel`) | Cohort math is windowed — `cohortWindowCaveat: true` in the response |
 
