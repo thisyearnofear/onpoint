@@ -11,7 +11,8 @@ import { ScorePaddles } from "./ScorePaddles";
 import { CountdownRing } from "./CountdownRing";
 import { Confetti } from "./Confetti";
 import { imageFileToJpegDataUrl, runwayPlayerId, duelOutcome, nextThemeLabel } from "../../lib/utils/runway";
-import { playReveal, playWin, setSoundEnabled, soundEnabled } from "../../lib/utils/runway-sound";
+import { playReveal, playWin, playRoast, startTension, stopTension, setSoundEnabled, soundEnabled } from "../../lib/utils/runway-sound";
+import { banterFor, scoreTier } from "../../lib/runway-banter";
 import { bestScore, computeStreak, useRunwayHistory } from "../../lib/stores/runway-history-store";
 import { RUNWAY_SAMPLES, OUTFIT_SAMPLES, sampleById } from "../../lib/runway-samples";
 import type { StylistPersona } from "@repo/ai-client";
@@ -72,6 +73,23 @@ function JudgeBubble({ persona, name, showAvatar = true, children }: { persona: 
   );
 }
 
+/** Verdict text typed in character-by-character; instant under reduced motion. */
+function TypedText({ text, onDone }: { text: string; onDone?: () => void }) {
+  const reduce = useReducedMotion();
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (reduce) { setN(text.length); return; }
+    setN(0);
+    const id = window.setInterval(() => setN((v) => Math.min(v + 1, text.length)), 14);
+    return () => window.clearInterval(id);
+  }, [text, reduce]);
+  const done = n >= text.length;
+  useEffect(() => {
+    if (done) onDone?.();
+  }, [done, onDone]);
+  return <>{text.slice(0, n)}{!done && <span className="animate-pulse">▌</span>}</>;
+}
+
 export function RunwayPlay() {
   const params = useSearchParams();
   const initialJudge = (params.get("judge") || "").toLowerCase() as StylistPersona;
@@ -102,6 +120,8 @@ export function RunwayPlay() {
   const [opponentLoaded, setOpponentLoaded] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
   const [burst, setBurst] = useState(false);
+  const [verdictTyped, setVerdictTyped] = useState(false);
+  const [banterShown, setBanterShown] = useState(0);
   const shareRef = REF_RE.test(rawRef) ? rawRef : undefined;
 
   // Hydrate the sound preference and load the duel opponent from ?ref=.
@@ -133,6 +153,8 @@ export function RunwayPlay() {
     setResult(null);
     setPhotoData(null);
     setBurst(false);
+    setVerdictTyped(false);
+    setBanterShown(0);
     try {
       const res = await fetch("/api/runway/rounds", {
         method: "POST",
@@ -256,14 +278,31 @@ export function RunwayPlay() {
   const isNewBest = entries.length > 1 && result != null && result.total > (bestScore(priorEntries) ?? -1);
   const duel = opponent && result ? duelOutcome(result.total, opponent.total) : null;
 
+  // ambient heartbeat while the judges confer
+  useEffect(() => {
+    if (stage !== "judging" || !soundOn) return;
+    startTension();
+    return () => stopTension();
+  }, [stage, soundOn]);
+
+  // the other two judges chime in once the verdict finishes typing
+  useEffect(() => {
+    if (!verdictTyped) return;
+    const t1 = window.setTimeout(() => setBanterShown(1), 450);
+    const t2 = window.setTimeout(() => setBanterShown(2), 1300);
+    return () => { window.clearTimeout(t1); window.clearTimeout(t2); };
+  }, [verdictTyped]);
+
   // sound + confetti once the verdict lands
   useEffect(() => {
     if (stage !== "result" || !result) return;
     if (soundOn) playReveal();
-    const won = duel === "win" || isNewBest;
-    if (won) {
+    const tier = scoreTier(result.total);
+    if (tier === "high" || duel === "win" || isNewBest) {
       setBurst(true);
       if (soundOn) window.setTimeout(() => playWin(), 1300);
+    } else if (tier === "low" && soundOn) {
+      window.setTimeout(() => playRoast(), 1200);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage, result]);
@@ -598,6 +637,16 @@ export function RunwayPlay() {
                     New best!
                   </span>
                 )}
+                {scoreTier(result.total) === "high" && (
+                  <span className="rounded-full border border-amber-400/60 px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-amber-300">
+                    Judges&apos; favourite
+                  </span>
+                )}
+                {scoreTier(result.total) === "low" && (
+                  <span className="rounded-full border border-zinc-700 px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-zinc-400">
+                    Tough crowd
+                  </span>
+                )}
               </div>
               <ScorePaddles scores={result.scores} total={shownTotal} judgeName={personaName} animated />
               {duel && opponent && (
@@ -633,7 +682,16 @@ export function RunwayPlay() {
                   )}
                 </div>
               )}
-              <JudgeBubble persona={judge} name={personaName}>{result.verdict}</JudgeBubble>
+              <JudgeBubble persona={judge} name={personaName}>
+                <TypedText text={result.verdict} onDone={() => setVerdictTyped(true)} />
+              </JudgeBubble>
+              {JUDGES.filter((j) => j.key !== (round.persona.key || judge)).map((rj, i) =>
+                banterShown > i ? (
+                  <JudgeBubble key={rj.key} persona={rj.key} name={`${rj.name} reacts`}>
+                    {banterFor(rj.key, scoreTier(result.total), round.roundId)}
+                  </JudgeBubble>
+                ) : null,
+              )}
               {result.fix && (
               <div className="w-full rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
                 <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">The fix</p>
@@ -728,7 +786,7 @@ export function RunwayPlay() {
           </>
         )}
 
-        <Confetti fire={burst} />
+        <Confetti fire={burst} variant={result && scoreTier(result.total) === "high" ? "gold" : "accent"} />
 
         {toast && (
           <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm font-bold text-zinc-100 shadow-xl">

@@ -59,7 +59,33 @@ export function playReveal(): void {
   tone({ freq: 783.99, at: 1.3, dur: 0.4, type: "sine", gain: 0.06 });
 }
 
-/** Short rising arpeggio for a duel win or a new personal best. */
+/** Short rising arpeggio for a duel win, new best, or a high-tier score. */
 export function playWin(): void {
   [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => tone({ freq, at: i * 0.09, dur: 0.22, type: "sine", gain: 0.07 }));
+}
+
+/** Descending "wah-wah" for a low-tier score — the crowd's gentle groan. */
+export function playRoast(): void {
+  tone({ freq: 196, at: 0, dur: 0.3, gain: 0.05 });
+  tone({ freq: 147, at: 0.3, dur: 0.5, gain: 0.05 });
+}
+
+let tensionTimer: number | null = null;
+
+/** Soft heartbeat pulse while the judges confer. Idempotent; stopTension ends it. */
+export function startTension(): void {
+  if (tensionTimer != null || typeof window === "undefined") return;
+  const beat = () => {
+    tone({ freq: 98, dur: 0.12, type: "sine", gain: 0.04 });
+    tone({ freq: 98, at: 0.18, dur: 0.1, type: "sine", gain: 0.03 });
+  };
+  beat();
+  tensionTimer = window.setInterval(beat, 950);
+}
+
+export function stopTension(): void {
+  if (tensionTimer != null) {
+    window.clearInterval(tensionTimer);
+    tensionTimer = null;
+  }
 }

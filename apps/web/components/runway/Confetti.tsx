@@ -3,10 +3,13 @@
 import React, { useEffect, useRef } from "react";
 import { useReducedMotion } from "framer-motion";
 
-const COLORS = ["#ff5c8a", "#ffd166", "#7ae2c3", "#a78bfa", "#f4f4f5"];
+const PALETTES = {
+  accent: ["#ff5c8a", "#ffd166", "#7ae2c3", "#a78bfa", "#f4f4f5"],
+  gold: ["#ffd166", "#f9c74f", "#fff3c4", "#e9c46a", "#f4f4f5"],
+} as const;
 
 /** One-shot ~90-particle burst from just above centre. Respects reduced motion. */
-export function Confetti({ fire }: { fire: boolean }) {
+export function Confetti({ fire, variant = "accent" }: { fire: boolean; variant?: keyof typeof PALETTES }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const reduce = useReducedMotion();
 
@@ -35,7 +38,7 @@ export function Confetti({ fire }: { fire: boolean }) {
         h: 3 + Math.random() * 4,
         rot: Math.random() * Math.PI,
         vr: (Math.random() - 0.5) * 0.3,
-        color: COLORS[Math.floor(Math.random() * COLORS.length)] ?? "#f4f4f5",
+        color: PALETTES[variant][Math.floor(Math.random() * PALETTES[variant].length)] ?? "#f4f4f5",
         born: performance.now() + Math.random() * 120,
       };
     });
@@ -68,7 +71,7 @@ export function Confetti({ fire }: { fire: boolean }) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [fire, reduce]);
+  }, [fire, reduce, variant]);
 
   if (!fire) return null;
   return <canvas ref={ref} aria-hidden className="pointer-events-none fixed inset-0 z-40 h-full w-full" />;
