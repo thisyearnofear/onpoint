@@ -23,6 +23,6 @@ Meanwhile the web app already has consumer primitives that do not depend on cura
 
 - STRATEGY.md §7 gains a Phase 0, and the old Phase 1 supply targets are marked deferred.
 - Ops docs written for the curator pilot (phase-1 audit, onboarding scorecard, weekly pilot report) are kept and marked dormant.
-- Runway funnel events do not yet carry a stable player identifier, so cohort retention cannot be measured until that is added (see ops/retention.md).
+- Runway funnel events carry a salted `playerHash` (web: anonymous `runway:playerId`; iMessage: chat id) and `GET /api/runway/metrics` computes the retention definitions from them. Instrumented, but no figure is claimed until computed from real traffic (see ops/retention.md).
 - The agent-facing API (AGENTS.md) is unchanged. External agents can still use it. It is simply not where product effort goes.
 - Risk: the consumer engine becomes a novelty with no commerce path. Mitigation: the gate is explicit, and "the fix" keeps the path into products open from day one.
