@@ -4,6 +4,7 @@ import { render, screen, within, fireEvent, act } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { WardrobeWorkspace } from "../wardrobe/WardrobeWorkspace";
 import { STUDIO_ITEMS, STORAGE_KEY } from "../../lib/wardrobe-studio";
+import { useStyleHearts } from "../../lib/stores/style-board-hearts";
 import { sampleById, RUNWAY_SAMPLES, OUTFIT_SAMPLES } from "../../lib/runway-samples";
 
 vi.mock("next/image", () => ({
@@ -23,8 +24,9 @@ const openGalleryItem = (name: string) =>
 describe("WardrobeWorkspace", () => {
   afterEach(() => {
     act(() => {
-      window.localStorage.clear();
       vi.restoreAllMocks();
+      useStyleHearts.setState({ hearts: [] });
+      window.localStorage.clear();
     });
   });
 
@@ -199,7 +201,38 @@ describe("WardrobeWorkspace", () => {
     expect(screen.getByText("1 saved")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
     expect(screen.getAllByRole("button", { name: "View Navy cardigan + jeans" }).length).toBe(1);
-    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)!).savedIds).toEqual(["spr-0161"]);
+    // Outfits migrated out of the studio key into the shared picks store.
+    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)!).savedIds).toEqual([]);
+    expect(useStyleHearts.getState().hearts).toEqual(["spr-0161"]);
+  });
+
+  it("saving an outfit writes to the shared style-board picks, not the studio key", () => {
+    render(<WardrobeWorkspace />);
+    openGalleryItem("Navy cardigan + jeans");
+    fireEvent.click(screen.getByRole("button", { name: /Save look/ }));
+    expect(useStyleHearts.getState().hearts).toEqual(["spr-0161"]);
+    expect((JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '{"savedIds":[]}')).savedIds).toEqual([]);
+  });
+
+  it("outfits hearted on the style board appear in the studio Saved tab", () => {
+    act(() => useStyleHearts.setState({ hearts: ["spr-0161", "not-a-studio-id"] }));
+    render(<WardrobeWorkspace />);
+    fireEvent.click(screen.getByRole("button", { name: "Saved" }));
+    expect(screen.getByText("1 saved")).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "View Navy cardigan + jeans" }).length).toBe(1);
+  });
+
+  it("migrates legacy studio-saved outfits once, keeping garments and notes", () => {
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ version: 1, savedIds: ["studio-graphic-02", "spr-0161"], notes: { "spr-0161": "keep" } }),
+    );
+    act(() => useStyleHearts.setState({ hearts: ["aut-0169"] }));
+    render(<WardrobeWorkspace />);
+    expect(useStyleHearts.getState().hearts).toEqual(["aut-0169", "spr-0161"]);
+    const stored = JSON.parse(window.localStorage.getItem(STORAGE_KEY)!);
+    expect(stored.savedIds).toEqual(["studio-graphic-02"]);
+    expect(stored.notes["spr-0161"]).toBe("keep");
   });
 
   it("rejects version-mismatched and malformed stored payloads", () => {

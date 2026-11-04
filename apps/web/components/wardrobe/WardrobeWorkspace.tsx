@@ -12,6 +12,7 @@ import {
   writeStudioSaved,
   type StudioItem,
 } from "../../lib/wardrobe-studio";
+import { useStyleHearts } from "../../lib/stores/style-board-hearts";
 import styles from "./WardrobeWorkspace.module.css";
 
 type StudioTab = "all" | "clothes" | "outfits" | "saved";
@@ -116,7 +117,12 @@ export function WardrobeWorkspace() {
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [comparing, setComparing] = useState(false);
   const [view, setView] = useState<"model" | "piece">("model");
-  const [savedIds, setSavedIds] = useState<string[]>([]);
+  // Garments (studio-only) live in the studio key; saved outfits live in the shared
+  // style-board hearts store so both surfaces show one set of picks.
+  const [savedGarmentIds, setSavedGarmentIds] = useState<string[]>([]);
+  const hearts = useStyleHearts((s) => s.hearts);
+  const toggleHeart = useStyleHearts((s) => s.toggle);
+  const addHearts = useStyleHearts((s) => s.addMany);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [noteDraft, setNoteDraft] = useState("");
   const [storageOk, setStorageOk] = useState(true);
@@ -127,12 +133,24 @@ export function WardrobeWorkspace() {
 
   useEffect(() => {
     const { saved, available } = readStudioSaved();
-    setSavedIds(saved.savedIds);
+    // One-time migration: outfit ids once saved in the studio key move to the shared store.
+    const garmentIds = saved.savedIds.filter((id) => studioItemById(id)?.kind === "garment");
+    const legacyOutfits = saved.savedIds.filter((id) => studioItemById(id)?.kind === "outfit");
+    if (legacyOutfits.length) {
+      addHearts(legacyOutfits);
+      if (available) writeStudioSaved({ savedIds: garmentIds, notes: saved.notes });
+    }
+    setSavedGarmentIds(garmentIds);
     setNotes(saved.notes);
     setNoteDraft(saved.notes[STUDIO_GARMENTS[0]!.id] || "");
     setStorageOk(available);
     setHydrated(true);
   }, []);
+
+  const savedIds = useMemo(
+    () => [...savedGarmentIds, ...(hydrated ? hearts.filter((id) => studioItemById(id)?.kind === "outfit") : [])],
+    [savedGarmentIds, hearts, hydrated],
+  );
 
   const selected = studioItemById(selectedId) ?? STUDIO_GARMENTS[0]!;
   const pinned = pinnedId ? studioItemById(pinnedId) : null;
@@ -219,17 +237,21 @@ export function WardrobeWorkspace() {
     setStatus("Pin cleared.");
   };
 
-  const persist = (ids: string[], nextNotes: Record<string, string>) => {
-    const ok = writeStudioSaved({ savedIds: ids, notes: nextNotes });
+  const persist = (garmentIds: string[], nextNotes: Record<string, string>) => {
+    const ok = writeStudioSaved({ savedIds: garmentIds, notes: nextNotes });
     setStorageOk(ok);
   };
 
   const toggleSave = () => {
-    const next = savedIds.includes(selected.id)
-      ? savedIds.filter((i) => i !== selected.id)
-      : [...savedIds, selected.id];
-    setSavedIds(next);
-    persist(next, notes);
+    if (selected.kind === "garment") {
+      const next = savedGarmentIds.includes(selected.id)
+        ? savedGarmentIds.filter((i) => i !== selected.id)
+        : [...savedGarmentIds, selected.id];
+      setSavedGarmentIds(next);
+      persist(next, notes);
+    } else {
+      toggleHeart(selected.id);
+    }
     setStatus(savedIds.includes(selected.id) ? `${selected.title} removed from saved.` : `${selected.title} saved.`);
   };
 
@@ -239,7 +261,7 @@ export function WardrobeWorkspace() {
     if (text) next[selected.id] = text;
     else delete next[selected.id];
     setNotes(next);
-    persist(savedIds, next);
+    persist(savedGarmentIds, next);
     setStatus(text ? "Note saved." : "Note cleared.");
   };
 
