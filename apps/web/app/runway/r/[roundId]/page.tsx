@@ -115,6 +115,14 @@ export default async function RunwayResultPage({
                 >
                   {result.fix.kind === "inspiration" ? "Get the look" : "See it on you"}
                 </a>
+                {result.fix.kind === "inspiration" && (
+                  <Link
+                    href="/lab?tab=try-on"
+                    className="ml-3 mt-2 inline-flex min-h-11 items-center text-xs font-bold text-zinc-400 underline-offset-2 hover:text-zinc-200 hover:underline"
+                  >
+                    Try it on you →
+                  </Link>
+                )}
               </div>
             </div>
           </div>

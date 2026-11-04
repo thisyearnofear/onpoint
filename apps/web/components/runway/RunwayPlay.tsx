@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Camera, Download, RotateCcw, Send, Share2, Swords, Volume2, VolumeX } from "lucide-react";
-import { useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { SafeImage } from "../SafeImage";
 import { JudgeAvatar, judgeDisplayName } from "./JudgeAvatar";
 import { ScorePaddles } from "./ScorePaddles";
@@ -580,6 +580,21 @@ export function RunwayPlay() {
 
         {stage === "judging" && (
           <>
+            {photoData && (
+              <div className="relative h-40 w-32 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={photoData} alt="Your outfit under review" className="h-full w-full object-cover opacity-80" />
+                {!reduceMotion && (
+                  <motion.div
+                    aria-hidden
+                    className="absolute inset-x-0 h-12 bg-gradient-to-b from-transparent via-primary/40 to-transparent"
+                    initial={{ top: "-30%" }}
+                    animate={{ top: "110%" }}
+                    transition={{ duration: 1.6, repeat: Infinity, ease: "linear" }}
+                  />
+                )}
+              </div>
+            )}
             <div className="flex items-end gap-5">
               {JUDGES.map((j) => {
                 const active = j.key === (round?.persona.key || judge);
@@ -608,7 +623,7 @@ export function RunwayPlay() {
         {stage === "result" && round && result && (
           <div className="flex w-full flex-col items-center gap-6 lg:max-w-4xl lg:flex-row lg:items-start lg:justify-center lg:gap-12">
             {photoData && (
-              <figure className="w-44 shrink-0 -rotate-3 rounded-lg border border-zinc-700 bg-zinc-100 p-2 pb-3 shadow-2xl shadow-black/50 lg:mt-10 lg:w-64">
+              <figure className="sticky top-3 z-30 w-36 shrink-0 -rotate-3 self-start rounded-lg border border-zinc-700 bg-zinc-100 p-2 pb-3 shadow-2xl shadow-black/50 lg:top-10 lg:mt-10 lg:w-64">
                 {/* local preview only — the judged photo is never stored or re-uploaded */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={photoData} alt={`Your outfit for ${round.theme.name}`} className="aspect-[3/4] w-full rounded object-cover" />
@@ -710,6 +725,14 @@ export function RunwayPlay() {
                     >
                       {result.fix.kind === "inspiration" ? "Get the look" : "See it on you"}
                     </a>
+                    {result.fix.kind === "inspiration" && (
+                      <Link
+                        href="/lab?tab=try-on"
+                        className="ml-3 mt-2 inline-flex min-h-11 items-center text-xs font-bold text-zinc-400 underline-offset-2 hover:text-zinc-200 hover:underline"
+                      >
+                        Try it on you →
+                      </Link>
+                    )}
                   </div>
                 </div>
               </div>

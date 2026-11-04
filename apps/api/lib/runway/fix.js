@@ -86,12 +86,17 @@ async function findFix({ theme, fixTags, channel = 'imessage', personaKey }) {
     // the generic most-recent-look fallback. Inspiration, not inventory.
     const outfit = pickStyleFix({ theme, fixTags });
     if (outfit) {
-      const url = `${web}/style-board?pick=${outfit.id}&sid=${shareId}&utm_source=${channel}${track}`;
+      // Web surface uses relative URLs — always hits the same origin the
+      // player is on, immune to WEB_BASE_URL pointing at a stale domain.
+      const onWeb = channel === 'direct';
+      const url = onWeb
+        ? `/style-board?pick=${outfit.id}&sid=${shareId}&utm_source=${channel}${track}`
+        : `${web}/style-board?pick=${outfit.id}&sid=${shareId}&utm_source=${channel}${track}`;
       recordShare(sql, { shareId, channel, actor: 'runway', outfitId: outfit.id });
       return {
         kind: 'inspiration',
         title: outfit.title,
-        imageUrl: `${web}/demo/outfits/${outfit.id}.webp`,
+        imageUrl: onWeb ? `/demo/outfits/${outfit.id}.webp` : `${web}/demo/outfits/${outfit.id}.webp`,
         url,
         shareId,
       };
