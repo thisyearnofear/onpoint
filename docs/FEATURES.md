@@ -9,7 +9,7 @@
 
 ## Wardrobe studio (consumer homepage)
 
-The homepage (`/`, `#style-studio`) is a wardrobe-first styling workspace, not a marketing hero. Decision and provenance: [ADR 0024](./adr/0024-consumer-wardrobe-studio-and-interaction-reuse.md). Status: `implemented` (pending production verification; see [ops/deployment.md](./ops/deployment.md)).
+The homepage (`/`, `#style-studio`) is a wardrobe-first styling workspace, not a marketing hero. Decision and provenance: [ADR 0024](./adr/0024-consumer-wardrobe-studio-and-interaction-reuse.md). Status: `deployed` — production checked on onpoint.trustfall.xyz per the [ops deployment checklist](./ops/deployment.md#release-validation-checklist-wardrobe-studio-release) (prepared demos only; not live-validated against paid providers).
 
 - **Gallery** — tabs All / Clothes / Outfit ideas / Saved (`aria-pressed`), text search over titles+tags, occasion filters (Everyday / Work / Going out / Layers; hidden in Clothes, garments unaffected), 12-at-a-time paging with Load more. Items: 3 prepared garment pairs (`/assets/{1,2,3}Product.png` + matching `Model.png`) plus all 34 AI outfit references from `/demo/outfits/`, ordered garments → six curated featured looks → remainder.
 - **Clothes rack** — the three garments hang as real product photos on a CSS rail (rotateY swivel, neighbor separation on hover/focus, `aria-label` "Dress model in Graphic 0x", arrow/Home/End keyboard nav). Inspired by [DiMaac's clothes rack](https://ui.dimaac.com/components/clothes-rack); implemented with our own CSS and photos — no Three.js/WebGL, no cloth simulation, no vendored component code.
