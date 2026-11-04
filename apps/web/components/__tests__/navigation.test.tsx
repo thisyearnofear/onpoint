@@ -64,7 +64,7 @@ describe("OnPointHeader", () => {
     const summary = screen.getByText("More").closest("details") as HTMLElement;
     expect(summary).toBeTruthy();
     summary.open = true;
-    expect(within(summary).getByRole("link", { name: "All looks" })).toBeTruthy();
+    expect(within(summary).queryByRole("link", { name: "All looks" })).toBeNull();
     expect(within(summary).getByRole("link", { name: "Create a look" })).toBeTruthy();
     expect(within(summary).getByRole("link", { name: "Developers" })).toBeTruthy();
     expect(within(summary).getByRole("link", { name: "Supply" })).toBeTruthy();

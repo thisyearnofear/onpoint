@@ -1,26 +1,20 @@
-import type { Metadata } from "next";
-import { Suspense } from "react";
-import { OnPointFooter } from "@/components/OnPointHeader";
-import { StyleBoard } from "@/components/style-board/StyleBoard";
+import { permanentRedirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "The Style Board — outfit inspo | OnPoint",
-  description: "Curated AI-generated outfit references. Pick a look, send it to the Runway judges, or bring your own fit.",
-};
-
-export default function StyleBoardPage() {
-  return (
-    <>
-      <Suspense
-        fallback={
-          <div className="flex min-h-[40vh] items-center justify-center" role="status" aria-live="polite">
-            <span className="text-sm font-semibold text-muted-foreground">Opening the style board…</span>
-          </div>
-        }
-      >
-        <StyleBoard />
-      </Suspense>
-      <OnPointFooter />
-    </>
-  );
+/**
+ * The style board merged into the wardrobe studio (`/?tab=outfits`).
+ * Old links — including runway "fix" shares with ?pick=<id>&sid=&utm_ — are
+ * forwarded; the studio selects the picked outfit on stage.
+ */
+export default async function StyleBoardPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(await searchParams)) {
+    if (typeof value === "string") params.set(key, value);
+    else if (value) for (const v of value) params.append(key, v);
+  }
+  params.set("tab", "outfits");
+  permanentRedirect(`/?${params.toString()}`);
 }

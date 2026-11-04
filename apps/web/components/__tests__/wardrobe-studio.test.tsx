@@ -27,6 +27,7 @@ describe("WardrobeWorkspace", () => {
       vi.restoreAllMocks();
       useStyleHearts.setState({ hearts: [] });
       window.localStorage.clear();
+      window.history.pushState({}, "", "/");
     });
   });
 
@@ -294,6 +295,23 @@ describe("WardrobeWorkspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Saved" }));
     expect(scrollSpy).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
+  });
+
+  it("deep link ?tab=outfits&pick=<id> selects the outfit on stage and reveals its card", () => {
+    window.history.pushState({}, "", "/?tab=outfits&pick=aut-0169");
+    render(<WardrobeWorkspace />);
+    expect(screen.getByRole("button", { name: "Outfit ideas" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByText(/score higher in something like/)).toBeTruthy();
+    expect(screen.getByRole("img", { name: "Field jacket + hoodie" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "View Field jacket + hoodie" })).toBeTruthy();
+  });
+
+  it("deep link ?tab=<id> opens that tab; unknown pick falls back to the tab", () => {
+    window.history.pushState({}, "", "/?tab=clothes&pick=bogus");
+    render(<WardrobeWorkspace />);
+    expect(screen.getByRole("button", { name: "Clothes" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "Dress model in Graphic 01" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.queryByText(/score higher/)).toBeNull();
   });
 
   it("outfit selection shows flatlay + verdict link, no on-model claim", () => {

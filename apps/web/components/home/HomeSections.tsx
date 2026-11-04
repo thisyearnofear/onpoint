@@ -49,7 +49,7 @@ function TryItSection() {
           </div>
           <div className="mt-8 flex items-center justify-center">
             <Link
-              href="/style-board"
+              href="/?tab=outfits"
               className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border/60 px-6 text-sm font-bold transition-colors hover:border-primary/60 hover:text-primary"
             >
               Explore all {OUTFIT_SAMPLES.length} looks

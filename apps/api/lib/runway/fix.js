@@ -90,8 +90,8 @@ async function findFix({ theme, fixTags, channel = 'imessage', personaKey }) {
       // player is on, immune to WEB_BASE_URL pointing at a stale domain.
       const onWeb = channel === 'direct';
       const url = onWeb
-        ? `/style-board?pick=${outfit.id}&sid=${shareId}&utm_source=${channel}${track}`
-        : `${web}/style-board?pick=${outfit.id}&sid=${shareId}&utm_source=${channel}${track}`;
+        ? `/?tab=outfits&pick=${outfit.id}&sid=${shareId}&utm_source=${channel}${track}`
+        : `${web}/?tab=outfits&pick=${outfit.id}&sid=${shareId}&utm_source=${channel}${track}`;
       recordShare(sql, { shareId, channel, actor: 'runway', outfitId: outfit.id });
       return {
         kind: 'inspiration',

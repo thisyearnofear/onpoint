@@ -49,7 +49,7 @@ export function HeroView() {
             {PRODUCT_NAME}
           </div>
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-            <Link href="/style-board" className="hover:text-foreground">
+            <Link href="/?tab=outfits" className="hover:text-foreground">
               All looks
             </Link>
             <Link href="/developers" className="hover:text-foreground">

@@ -127,6 +127,7 @@ export function WardrobeWorkspace() {
   const [noteDraft, setNoteDraft] = useState("");
   const [storageOk, setStorageOk] = useState(true);
   const [status, setStatus] = useState("");
+  const [pickNotice, setPickNotice] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const galleryRef = useRef<HTMLDivElement | null>(null);
@@ -144,6 +145,26 @@ export function WardrobeWorkspace() {
     setNotes(saved.notes);
     setNoteDraft(saved.notes[STUDIO_GARMENTS[0]!.id] || "");
     setStorageOk(available);
+
+    // Deep links: ?tab=<tab-id> picks the gallery tab; ?pick=<item-id> selects the
+    // item on stage (the /style-board redirect forwards both).
+    const params = new URLSearchParams(window.location.search);
+    const pick = studioItemById(params.get("pick"));
+    const requestedTab = params.get("tab");
+    if (pick) {
+      const pickTab: StudioTab = pick.kind === "outfit" ? "outfits" : "all";
+      setTab(pickTab);
+      setSelectedId(pick.id);
+      setNoteDraft(saved.notes[pick.id] || "");
+      setPickNotice(pick.title);
+      // Page the gallery far enough to reveal the picked card.
+      const gallery = pickTab === "outfits" ? STUDIO_ITEMS.filter((i) => i.kind === "outfit") : STUDIO_ITEMS;
+      const idx = gallery.findIndex((i) => i.id === pick.id);
+      if (idx >= PAGE) setLimit(Math.ceil((idx + 1) / PAGE) * PAGE);
+      setStatus(`${pick.title} selected.`);
+    } else if (requestedTab && TABS.some((t) => t.id === requestedTab)) {
+      setTab(requestedTab as StudioTab);
+    }
     setHydrated(true);
   }, []);
 
@@ -275,6 +296,13 @@ export function WardrobeWorkspace() {
       <div className={styles.wrap}>
         <h1 className={styles.headline}>Your wardrobe, in play.</h1>
         <p className={styles.subcopy}>Pick a piece. Pin a favorite. Find your next look.</p>
+
+        {pickNotice && (
+          <div className="mt-4 rounded-2xl border border-primary/40 bg-primary/5 px-4 py-3 text-sm">
+            The judges think you&apos;d score higher in something like <strong>{pickNotice}</strong> — or{" "}
+            <Link href="/runway/play" className="font-bold text-primary hover:underline">play with your own photo</Link>.
+          </div>
+        )}
 
         <div className={styles.topbar}>
           <nav className={styles.tabs} aria-label="Wardrobe sections">
