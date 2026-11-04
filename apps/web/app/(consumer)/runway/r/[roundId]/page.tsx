@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Swords } from "lucide-react";
-import { getApiBase } from "../../../../lib/utils/api-base";
-import { ScorePaddles } from "../../../../components/runway/ScorePaddles";
-import { TextTheJudge } from "../../../../components/runway/TextTheJudge";
-import { JudgeAvatar, judgeDisplayName } from "../../../../components/runway/JudgeAvatar";
-import { SafeImage } from "../../../../components/SafeImage";
+import { getApiBase } from "@/lib/utils/api-base";
+import { ScorePaddles } from "@/components/runway/ScorePaddles";
+import { TextTheJudge } from "@/components/runway/TextTheJudge";
+import { JudgeAvatar, judgeDisplayName } from "@/components/runway/JudgeAvatar";
+import { SafeImage } from "@/components/SafeImage";
 
 interface Result {
   roundId: string;
@@ -77,7 +77,7 @@ export default async function RunwayResultPage({
   const phoneNumber = await loadPhoneNumber();
 
   return (
-    <div className="dark min-h-screen bg-zinc-950 text-zinc-50">
+    <div className="min-h-screen bg-background text-foreground">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.18),transparent_65%)]" />
       <main className="relative mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-8 px-4 py-16">
         <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">
@@ -88,9 +88,9 @@ export default async function RunwayResultPage({
 
         <div className="flex w-full items-start gap-3">
           <JudgeAvatar persona={result.persona} size="md" />
-          <div className="w-full rounded-2xl rounded-tl-sm border border-zinc-800 bg-zinc-900/80 px-4 py-3">
-            <p className="font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-zinc-500">{judgeName}</p>
-            <p className="mt-1 text-sm leading-relaxed text-zinc-100">
+          <div className="w-full rounded-2xl rounded-tl-sm border border-border bg-card/80 px-4 py-3">
+            <p className="font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-muted-foreground">{judgeName}</p>
+            <p className="mt-1 text-sm leading-relaxed text-foreground">
               {result.late && <span className="mr-2 font-bold text-[hsl(var(--accent))]">LATE —</span>}
               {result.verdict}
             </p>
@@ -98,17 +98,17 @@ export default async function RunwayResultPage({
         </div>
 
         {result.fix && (
-          <div className="w-full rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
+          <div className="w-full rounded-2xl border border-border bg-card/70 p-4">
             <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">The fix</p>
             <div className="mt-2 flex items-center gap-4">
               {result.fix.imageUrl && (
-                <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900">
+                <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-border bg-card">
                   <SafeImage sources={[result.fix.imageUrl]} alt={result.fix.title} fill unoptimized className="object-cover" fallbackIconSize={24} />
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <p className="text-sm text-zinc-400">{result.fixHint}</p>
-                <p className="truncate text-base font-bold text-zinc-50">{result.fix.title}</p>
+                <p className="text-sm text-muted-foreground">{result.fixHint}</p>
+                <p className="truncate text-base font-bold text-foreground">{result.fix.title}</p>
                 <a
                   href={result.fix.url}
                   className="mt-2 inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-bold text-white hover:bg-primary/90"
@@ -118,7 +118,7 @@ export default async function RunwayResultPage({
                 {result.fix.kind === "inspiration" && (
                   <Link
                     href="/lab?tab=try-on"
-                    className="ml-3 mt-2 inline-flex min-h-11 items-center text-xs font-bold text-zinc-400 underline-offset-2 hover:text-zinc-200 hover:underline"
+                    className="ml-3 mt-2 inline-flex min-h-11 items-center text-xs font-bold text-muted-foreground underline-offset-2 hover:text-foreground/80 hover:underline"
                   >
                     Try it on you →
                   </Link>
@@ -142,7 +142,7 @@ export default async function RunwayResultPage({
             </Link>
             <TextTheJudge phoneNumber={phoneNumber} body={`play ${result.themeId}`} />
           </div>
-          <p className="mt-4 text-xs text-zinc-500">
+          <p className="mt-4 text-xs text-muted-foreground">
             Your photo is judged and discarded — never stored.
           </p>
         </div>

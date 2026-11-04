@@ -6,9 +6,9 @@ import type { StylistPersona } from "@repo/ai-client";
 // Static colour map (Tailwind can't compile dynamic class names). Values
 // mirror the persona tokens in lib/utils/persona-config.ts.
 const STYLE: Record<string, { bg: string; text: string; letter: string; name: string }> = {
-  miranda: { bg: "bg-slate-500/15", text: "text-slate-300", letter: "M", name: "Miranda" },
-  edina: { bg: "bg-purple-500/15", text: "text-purple-300", letter: "E", name: "Edina" },
-  shaft: { bg: "bg-orange-500/15", text: "text-orange-300", letter: "S", name: "Shaft" },
+  miranda: { bg: "bg-slate-500/15", text: "text-slate-700 dark:text-slate-300", letter: "M", name: "Miranda" },
+  edina: { bg: "bg-purple-500/15", text: "text-purple-700 dark:text-purple-300", letter: "E", name: "Edina" },
+  shaft: { bg: "bg-orange-500/15", text: "text-orange-700 dark:text-orange-300", letter: "S", name: "Shaft" },
 };
 
 export const JUDGE_NAMES: Record<string, string> = Object.fromEntries(
@@ -37,7 +37,7 @@ export function JudgeAvatar({
   size?: keyof typeof SIZES;
   className?: string;
 }) {
-  const s = STYLE[persona] || { bg: "bg-zinc-800", text: "text-zinc-300", letter: "?" };
+  const s = STYLE[persona] || { bg: "bg-muted", text: "text-muted-foreground", letter: "?" };
   return (
     <div
       aria-hidden

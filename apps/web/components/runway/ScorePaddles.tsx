@@ -88,12 +88,12 @@ export function ScorePaddles({
         ))}
       </div>
       <p className="text-center" aria-live="polite" aria-label={`Total score ${total.toFixed(1)} out of 10`}>
-        <span className={`font-black tabular-nums text-zinc-50 ${size === "sm" ? "text-2xl" : "text-4xl"}`}>
+        <span className={`font-black tabular-nums text-foreground ${size === "sm" ? "text-2xl" : "text-4xl"}`}>
           {total.toFixed(1)}
         </span>
-        <span className="text-xl font-bold text-zinc-500">/10</span>
+        <span className="text-xl font-bold text-muted-foreground">/10</span>
         {judgeName && (
-          <span className="block text-sm text-zinc-400">judged by {judgeName}</span>
+          <span className="block text-sm text-muted-foreground">judged by {judgeName}</span>
         )}
       </p>
     </div>

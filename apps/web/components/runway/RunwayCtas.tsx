@@ -28,12 +28,12 @@ function QrCard({ href }: { href: string }) {
   }, [href]);
   if (!qr) return null;
   return (
-    <div className="mt-2 hidden items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/60 px-4 py-3 md:flex">
+    <div className="mt-2 hidden items-center gap-3 rounded-2xl border border-border bg-card/60 px-4 py-3 md:flex">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={qr} alt="QR code to text the judge" className="h-24 w-24 rounded-lg border border-zinc-800" />
-      <p className="text-sm text-zinc-400">
+      <p className="text-sm text-muted-foreground">
         On your iPhone?
-        <span className="block font-bold text-zinc-200">Scan to text the judge.</span>
+        <span className="block font-bold text-foreground">Scan to text the judge.</span>
       </p>
     </div>
   );
@@ -56,7 +56,7 @@ export function RunwayCtas({ phoneNumber, themeId }: { phoneNumber: string; them
         {order === "sms-first" ? (
           <>
             <TextTheJudge phoneNumber={phoneNumber} body={smsBody} buttonClassName={PRIMARY} showQr={false} />
-            <Link href={playHref} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full border border-zinc-700 px-8 text-base font-bold text-zinc-100 transition-colors hover:border-zinc-500 hover:bg-zinc-900">
+            <Link href={playHref} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full border border-border px-8 text-base font-bold text-foreground transition-colors hover:bg-muted">
               <Play className="h-5 w-5" />
               {themeId ? "Play today’s theme" : "Play in your browser"}
             </Link>

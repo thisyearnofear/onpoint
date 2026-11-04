@@ -24,7 +24,7 @@ import {
 } from "@rainbow-me/rainbowkit";
 import { config } from "../config/wagmi";
 import { AIProviderContext } from "@repo/ai-client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { MiniAppProvider } from "@/components/MiniAppProvider";
 import { Auth0Provider } from "@auth0/nextjs-auth0/client";
 import type { User } from "@auth0/nextjs-auth0/types";
@@ -33,29 +33,9 @@ import { Toaster } from "@/components/toast";
 import { StyleProvider } from "@/lib/context/StyleContext";
 import { MiniPayProvider } from "@/components/MiniPayProvider";
 import { ViewTransitionProvider } from "@/components/ViewTransition";
+import { useResolvedTheme } from "@/lib/hooks/useResolvedTheme";
 
-function useResolvedTheme() {
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
 
-  useEffect(() => {
-    const resolve = () => {
-      setTheme(
-        document.documentElement.classList.contains("dark") ? "dark" : "light",
-      );
-    };
-
-    resolve();
-    const observer = new MutationObserver(resolve);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-
-    return () => observer.disconnect();
-  }, []);
-
-  return theme;
-}
 
 export function Providers({
   children,

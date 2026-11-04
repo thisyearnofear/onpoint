@@ -65,9 +65,9 @@ function JudgeBubble({ persona, name, showAvatar = true, children }: { persona: 
   return (
     <div className="flex items-start gap-3">
       {showAvatar ? <JudgeAvatar persona={persona} size="md" /> : <div className="w-10" />}
-      <div className="max-w-md rounded-2xl rounded-tl-sm border border-zinc-800 bg-zinc-900/80 px-4 py-3">
-        <p className="font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-zinc-500">{name}</p>
-        <div className="mt-1 text-sm leading-relaxed text-zinc-100">{children}</div>
+      <div className="max-w-md rounded-2xl rounded-tl-sm border border-border bg-card/80 px-4 py-3">
+        <p className="font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-muted-foreground">{name}</p>
+        <div className="mt-1 text-sm leading-relaxed text-foreground">{children}</div>
       </div>
     </div>
   );
@@ -403,7 +403,7 @@ export function RunwayPlay() {
   const personaName = judgeDisplayName(round?.persona.key || judge);
 
   return (
-    <div className="dark flex min-h-screen flex-col bg-zinc-950 text-zinc-50">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.18),transparent_65%)]" />
       <header className="relative z-10 flex items-baseline justify-between px-4 py-4">
         <Link href="/runway" className="font-mono text-[10px] font-bold uppercase leading-none tracking-[0.22em] text-primary">
@@ -418,11 +418,11 @@ export function RunwayPlay() {
               setSoundEnabled(next);
             }}
             aria-label={soundOn ? "Mute sound" : "Unmute sound"}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-800 text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-zinc-600 hover:text-foreground/80"
           >
             {soundOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
           </button>
-          <span className="font-mono text-[10px] font-bold uppercase leading-none tracking-[0.22em] text-zinc-500">
+          <span className="font-mono text-[10px] font-bold uppercase leading-none tracking-[0.22em] text-muted-foreground">
             Judged by {personaName}
           </span>
         </div>
@@ -442,7 +442,7 @@ export function RunwayPlay() {
                     void startRound(j.key, duelThemeId);
                   }}
                   disabled={busy}
-                  className="flex min-h-[96px] w-24 flex-col items-center justify-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-900/60 transition-colors hover:border-primary/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  className="flex min-h-[96px] w-24 flex-col items-center justify-center gap-2 rounded-2xl border border-border bg-card/60 transition-colors hover:border-primary/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <JudgeAvatar persona={j.key} size="lg" />
                   <span className="text-sm font-bold">{j.name}</span>
@@ -457,22 +457,22 @@ export function RunwayPlay() {
                 void startRound(j.key, duelThemeId);
               }}
               disabled={busy}
-              className="text-xs font-bold text-zinc-500 underline-offset-2 hover:text-zinc-300 hover:underline"
+              className="text-xs font-bold text-muted-foreground underline-offset-2 hover:text-foreground/70 hover:underline"
             >
               Surprise me — any judge
             </button>
-            {busy && <p className="text-sm text-zinc-400">Dealing a theme…</p>}
+            {busy && <p className="text-sm text-muted-foreground">Dealing a theme…</p>}
             {entries.length > 0 && (
               <div className="flex w-full max-w-sm flex-col items-center gap-3">
-                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-400">
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
                   {computeStreak(entries, Date.now()) > 0 ? `Streak ${computeStreak(entries, Date.now())} · ` : ""}
                   Best {Math.max(...entries.map((e) => e.total)).toFixed(1)} · {entries.length} round{entries.length === 1 ? "" : "s"}
                 </p>
-                <div className="w-full rounded-2xl border border-zinc-800 bg-zinc-900/60 px-4 py-3">
-                  <p className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-zinc-500">Last verdict</p>
+                <div className="w-full rounded-2xl border border-border bg-card/60 px-4 py-3">
+                  <p className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Last verdict</p>
                   <div className="mt-1 flex items-center justify-between text-sm">
-                    <span className="font-bold text-zinc-100">{entries[0]?.themeName}</span>
-                    <span className="text-zinc-400">{entries[0]?.total.toFixed(1)}/10 · {judgeDisplayName(entries[0]?.judge as StylistPersona)}</span>
+                    <span className="font-bold text-foreground">{entries[0]?.themeName}</span>
+                    <span className="text-muted-foreground">{entries[0]?.total.toFixed(1)}/10 · {judgeDisplayName(entries[0]?.judge as StylistPersona)}</span>
                   </div>
                 </div>
               </div>
@@ -488,8 +488,8 @@ export function RunwayPlay() {
             <div className="text-center">
               <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">The theme</p>
               <h1 className="mt-1 text-3xl font-black tracking-[-0.04em] sm:text-4xl">{round.theme.name}</h1>
-              <p className="mt-1 hidden text-sm text-zinc-400 sm:block">{round.theme.brief}</p>
-              <p className="mt-1 text-sm font-bold text-zinc-200">Raid your closet. One full-length photo.</p>
+              <p className="mt-1 hidden text-sm text-muted-foreground sm:block">{round.theme.brief}</p>
+              <p className="mt-1 text-sm font-bold text-foreground/80">Raid your closet. One full-length photo.</p>
             </div>
             {opponent && (
               <div className="flex items-center gap-2 rounded-full border border-[hsl(var(--accent))]/60 bg-[hsl(var(--accent))]/10 px-4 py-1.5">
@@ -509,13 +509,13 @@ export function RunwayPlay() {
                 <Camera className="h-5 w-5" />
                 Take photo
               </button>
-              <button type="button" onClick={pickFile} className="inline-flex min-h-12 items-center justify-center rounded-full border border-zinc-700 px-6 text-sm font-bold text-zinc-100 hover:border-zinc-500">
+              <button type="button" onClick={pickFile} className="inline-flex min-h-12 items-center justify-center rounded-full border border-zinc-700 px-6 text-sm font-bold text-foreground hover:border-zinc-500">
                 From library
               </button>
             </div>
-            <p className="text-xs text-zinc-500">Your photo is judged and discarded — never stored.</p>
+            <p className="text-xs text-muted-foreground">Your photo is judged and discarded — never stored.</p>
             <div id="sample-outfits" className="w-full max-w-md">
-              <p className="mb-1.5 pl-4 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">No photo? Tap a look — judges score it too</p>
+              <p className="mb-1.5 pl-4 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">No photo? Tap a look — judges score it too</p>
               <div className="-mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-1">
                 {RUNWAY_SAMPLES.map((smp) => (
                   <button
@@ -523,7 +523,7 @@ export function RunwayPlay() {
                     type="button"
                     onClick={() => void pickSample(smp.src)}
                     title={smp.label}
-                    className="group h-20 w-16 shrink-0 snap-start overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/60 hover:border-primary/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    className="group h-20 w-16 shrink-0 snap-start overflow-hidden rounded-xl border border-border bg-card/60 hover:border-primary/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={smp.src} alt={smp.label} className="h-full w-full object-cover" loading="lazy" />
@@ -552,9 +552,9 @@ export function RunwayPlay() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <div className="relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={photoData} alt="Your outfit" className="max-h-72 w-auto rounded-2xl border border-zinc-800 object-contain" />
+              <img src={photoData} alt="Your outfit" className="max-h-72 w-auto rounded-2xl border border-border object-contain" />
               {isSample && (
-                <span className="absolute left-2 top-2 rounded-full bg-zinc-950/80 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-zinc-300">
+                <span className="absolute left-2 top-2 rounded-full bg-background/80 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-foreground/70">
                   Sample outfit
                 </span>
               )}
@@ -563,7 +563,7 @@ export function RunwayPlay() {
               <button
                 type="button"
                 onClick={pickFile}
-                className="inline-flex min-h-12 items-center gap-2 rounded-full border border-zinc-700 px-6 text-sm font-bold text-zinc-100 hover:border-zinc-500"
+                className="inline-flex min-h-12 items-center gap-2 rounded-full border border-zinc-700 px-6 text-sm font-bold text-foreground hover:border-zinc-500"
               >
                 <RotateCcw className="h-4 w-4" /> Retake
               </button>
@@ -581,7 +581,7 @@ export function RunwayPlay() {
         {stage === "judging" && (
           <>
             {photoData && (
-              <div className="relative h-40 w-32 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900">
+              <div className="relative h-40 w-32 overflow-hidden rounded-xl border border-border bg-card">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={photoData} alt="Your outfit under review" className="h-full w-full object-cover opacity-80" />
                 {!reduceMotion && (
@@ -605,18 +605,18 @@ export function RunwayPlay() {
                       active ? "scale-110" : "translate-y-1 opacity-50"
                     } ${!reduceMotion && active ? "animate-pulse" : ""}`}
                   >
-                    <div className={active ? "rounded-full ring-2 ring-primary ring-offset-2 ring-offset-zinc-950" : ""}>
+                    <div className={active ? "rounded-full ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}>
                       <JudgeAvatar persona={j.key} size="lg" />
                     </div>
-                    <span className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-zinc-500">{j.name}</span>
+                    <span className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{j.name}</span>
                   </div>
                 );
               })}
             </div>
-            <p className="max-w-xs text-center text-sm font-bold text-zinc-300">
+            <p className="max-w-xs text-center text-sm font-bold text-foreground/70">
               {(() => { const k = ((round?.persona.key || judge) as "miranda" | "edina" | "shaft"); const lines = JUDGE_LINES[k] || JUDGE_LINES.miranda; return lines[judgeLineIdx % lines.length]; })()}
             </p>
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">The judges are conferring…</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">The judges are conferring…</p>
           </>
         )}
 
@@ -658,31 +658,31 @@ export function RunwayPlay() {
                   </span>
                 )}
                 {scoreTier(result.total) === "low" && (
-                  <span className="rounded-full border border-zinc-700 px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-zinc-400">
+                  <span className="rounded-full border border-zinc-700 px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                     Tough crowd
                   </span>
                 )}
               </div>
               <ScorePaddles scores={result.scores} total={shownTotal} judgeName={personaName} animated />
               {duel && opponent && (
-                <div className="w-full rounded-2xl border border-zinc-800 bg-zinc-900/70 px-4 py-3.5 text-center">
-                  <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">The duel</p>
+                <div className="w-full rounded-2xl border border-border bg-card/70 px-4 py-3.5 text-center">
+                  <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">The duel</p>
                   <div className="mt-1.5 flex items-center justify-center gap-5">
                     <div>
-                      <p className={`text-3xl font-black tabular-nums ${duel === "win" ? "text-[hsl(var(--accent))]" : "text-zinc-50"}`}>{result.total.toFixed(1)}</p>
-                      <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-zinc-500">You</p>
+                      <p className={`text-3xl font-black tabular-nums ${duel === "win" ? "text-[hsl(var(--accent))]" : "text-foreground"}`}>{result.total.toFixed(1)}</p>
+                      <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-muted-foreground">You</p>
                     </div>
-                    <p className="font-mono text-xs font-bold text-zinc-600">vs</p>
+                    <p className="font-mono text-xs font-bold text-muted-foreground">vs</p>
                     <div>
-                      <p className={`text-3xl font-black tabular-nums ${duel === "lose" ? "text-[hsl(var(--accent))]" : "text-zinc-400"}`}>{opponent.total.toFixed(1)}</p>
-                      <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-zinc-500">Them</p>
+                      <p className={`text-3xl font-black tabular-nums ${duel === "lose" ? "text-[hsl(var(--accent))]" : "text-muted-foreground"}`}>{opponent.total.toFixed(1)}</p>
+                      <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Them</p>
                     </div>
                   </div>
-                  <p className="mt-2 text-sm font-bold text-zinc-100">
+                  <p className="mt-2 text-sm font-bold text-foreground">
                     {duel === "win" ? "You took it." : duel === "lose" ? "They keep the crown." : "Dead heat — run it back."}
                   </p>
                   {opponent.verdict && (
-                    <p className="mt-1.5 line-clamp-2 text-xs italic text-zinc-500">
+                    <p className="mt-1.5 line-clamp-2 text-xs italic text-muted-foreground">
                       Theirs: &ldquo;{opponent.verdict}&rdquo;
                     </p>
                   )}
@@ -708,17 +708,17 @@ export function RunwayPlay() {
                 ) : null,
               )}
               {result.fix && (
-              <div className="w-full rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
+              <div className="w-full rounded-2xl border border-border bg-card/70 p-4">
                 <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">The fix</p>
                 <div className="mt-2 flex items-center gap-4">
                   {result.fix.imageUrl && (
-                    <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900">
+                    <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-border bg-card">
                       <SafeImage sources={[result.fix.imageUrl]} alt={result.fix.title} fill unoptimized className="object-cover" fallbackIconSize={24} />
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm text-zinc-400">{result.fixHint}</p>
-                    <p className="truncate text-base font-bold text-zinc-50">{result.fix.title}</p>
+                    <p className="text-sm text-muted-foreground">{result.fixHint}</p>
+                    <p className="truncate text-base font-bold text-foreground">{result.fix.title}</p>
                     <a
                       href={result.fix.url}
                       className="mt-2 inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-bold text-white hover:bg-primary/90"
@@ -728,7 +728,7 @@ export function RunwayPlay() {
                     {result.fix.kind === "inspiration" && (
                       <Link
                         href="/lab?tab=try-on"
-                        className="ml-3 mt-2 inline-flex min-h-11 items-center text-xs font-bold text-zinc-400 underline-offset-2 hover:text-zinc-200 hover:underline"
+                        className="ml-3 mt-2 inline-flex min-h-11 items-center text-xs font-bold text-muted-foreground underline-offset-2 hover:text-foreground/80 hover:underline"
                       >
                         Try it on you →
                       </Link>
@@ -738,7 +738,7 @@ export function RunwayPlay() {
               </div>
             )}
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={cardUrl("feed")} alt="Your Runway result card" className="h-44 w-auto rounded-xl border border-zinc-800" />
+              <img src={cardUrl("feed")} alt="Your Runway result card" className="h-44 w-auto rounded-xl border border-border" />
               <div className="flex flex-wrap items-center justify-center gap-3">
                 <button
                   type="button"
@@ -750,7 +750,7 @@ export function RunwayPlay() {
                 <button
                   type="button"
                   onClick={saveCard}
-                  className="inline-flex min-h-12 items-center gap-2 rounded-full border border-zinc-700 px-6 text-sm font-bold text-zinc-100 hover:border-zinc-500"
+                  className="inline-flex min-h-12 items-center gap-2 rounded-full border border-zinc-700 px-6 text-sm font-bold text-foreground hover:border-zinc-500"
                 >
                   <Download className="h-4 w-4" /> Save story card
                 </button>
@@ -758,7 +758,7 @@ export function RunwayPlay() {
                   <button
                     type="button"
                     onClick={() => { started.current = false; setPhotoData(null); setIsSample(false); void startRound(judge); }}
-                    className="inline-flex min-h-12 items-center gap-2 rounded-full border border-zinc-700 px-6 text-sm font-bold text-zinc-100 hover:border-zinc-500"
+                    className="inline-flex min-h-12 items-center gap-2 rounded-full border border-zinc-700 px-6 text-sm font-bold text-foreground hover:border-zinc-500"
                   >
                     <Camera className="h-4 w-4" /> Try your own photo
                   </button>
@@ -768,19 +768,19 @@ export function RunwayPlay() {
                 <button
                   type="button"
                   onClick={() => { started.current = false; setPhotoData(null); setIsSample(false); void startRound(judge); }}
-                  className="text-xs font-bold text-zinc-500 underline-offset-2 hover:text-zinc-300 hover:underline"
+                  className="text-xs font-bold text-muted-foreground underline-offset-2 hover:text-foreground/70 hover:underline"
                 >
                   Play again
                 </button>
                 <button
                   type="button"
                   onClick={() => setStage("intro")}
-                  className="text-xs font-bold text-zinc-500 underline-offset-2 hover:text-zinc-300 hover:underline"
+                  className="text-xs font-bold text-muted-foreground underline-offset-2 hover:text-foreground/70 hover:underline"
                 >
                   Switch judge
                 </button>
               </div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                 New theme in {nextThemeLabel(Date.now())}
               </p>
             </div>
@@ -790,7 +790,7 @@ export function RunwayPlay() {
         {stage === "capped" && (
           <>
             <JudgeBubble persona={judge} name={personaName}>{judgeNote}</JudgeBubble>
-            <Link href="/runway" className="inline-flex min-h-12 items-center rounded-full border border-zinc-700 px-6 text-sm font-bold text-zinc-100 hover:border-zinc-500">
+            <Link href="/runway" className="inline-flex min-h-12 items-center rounded-full border border-zinc-700 px-6 text-sm font-bold text-foreground hover:border-zinc-500">
               Back to Runway
             </Link>
           </>
@@ -812,7 +812,7 @@ export function RunwayPlay() {
         <Confetti fire={burst} variant={result && scoreTier(result.total) === "high" ? "gold" : "accent"} />
 
         {toast && (
-          <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm font-bold text-zinc-100 shadow-xl">
+          <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border border-zinc-700 bg-card px-4 py-2 text-sm font-bold text-foreground shadow-xl">
             {toast}
           </div>
         )}

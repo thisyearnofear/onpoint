@@ -32,7 +32,9 @@ export function OnPointLayout({ children, footer = true, className }: OnPointLay
       }`}
     >
       <OnPointHeader />
-      {children}
+      <div id="main-content" tabIndex={-1}>
+        {children}
+      </div>
       {footer && <OnPointFooter />}
     </main>
   );

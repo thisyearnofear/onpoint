@@ -1,6 +1,6 @@
 import React from "react";
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 vi.mock("../Dashboard/NewUserOnboarding", () => ({
   NewUserOnboarding: () => <div data-testid="onboarding" />,
@@ -14,15 +14,36 @@ vi.mock("../AttestationBadge", () => ({ AttestationBadge: () => null }));
 vi.mock("../EnhancedConnectButton", () => ({ EnhancedConnectButton: () => null }));
 vi.mock("../Dashboard/TryOnPanel", () => ({ TryOnPanel: () => <div>try-on panel</div> }));
 vi.mock("../Dashboard/StylistPanel", () => ({ StylistPanel: () => null }));
-vi.mock("../Dashboard/ShopPanel", () => ({ ShopPanel: () => null }));
+vi.mock("../Dashboard/ShopPanel", () => ({ ShopPanel: () => <div>shop panel</div> }));
 vi.mock("../Dashboard/HomePanel", () => ({ HomePanel: () => <div>home panel</div> }));
 vi.mock("../Dashboard/MyLooksPanel", () => ({ MyLooksPanel: () => null }));
 vi.mock("../Dashboard/SettingsPanel", () => ({ SettingsPanel: () => null }));
 vi.mock("../Dashboard/MarketIntelPanel", () => ({ MarketIntelPanel: () => null }));
 
+let mockSearch = "";
+let cachedSearch = "";
+let cachedParams = new URLSearchParams();
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => {
+    const search = mockSearch || window.location.search;
+    if (search !== cachedSearch) {
+      cachedSearch = search;
+      cachedParams = new URLSearchParams(search);
+    }
+    return cachedParams;
+  },
+  usePathname: () => "/lab",
+}));
+
 import { TacticalDashboard } from "../Dashboard/TacticalDashboard";
 
 describe("TacticalDashboard onboarding gating", () => {
+  beforeEach(() => {
+    mockSearch = "";
+    cachedSearch = "";
+    cachedParams = new URLSearchParams();
+  });
+
   it("shows no onboarding modal or Home tooltips on default Try On", () => {
     window.history.replaceState(null, "", "/lab?tab=try-on&from=nia");
     render(<TacticalDashboard />);
@@ -38,5 +59,19 @@ describe("TacticalDashboard onboarding gating", () => {
     fireEvent.click(screen.getAllByRole("button", { name: /^Home$/i })[0]);
     expect(screen.getByTestId("onboarding")).toBeTruthy();
     expect(screen.getByTestId("tooltips")).toBeTruthy();
+  });
+
+  it("returns to Try On when its navigation query changes without remounting", async () => {
+    window.history.replaceState(null, "", "/lab");
+    const view = render(<TacticalDashboard />);
+    fireEvent.click(screen.getAllByRole("button", { name: /^Shop$/i })[0]);
+    await waitFor(() => expect(screen.getByText("shop panel")).toBeTruthy());
+    expect(screen.queryByText("try-on panel")).toBeNull();
+
+    mockSearch = "?tab=try-on";
+    view.rerender(<TacticalDashboard />);
+
+    await waitFor(() => expect(screen.getByText("try-on panel")).toBeTruthy());
+    expect(screen.queryByText("shop panel")).toBeNull();
   });
 });

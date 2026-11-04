@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import Script from "next/script";
 import { getBaseUrl } from "@/lib/base-url";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import { META_DESCRIPTION, PRODUCT_NAME, TAGLINE } from "@/lib/brand";
 import "./globals.css";
 import "./mobile.css";
@@ -106,27 +107,7 @@ export default async function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(() => {
-  try {
-    const storageKey = 'onpoint-theme';
-    const stored = localStorage.getItem(storageKey);
-    const resolved = stored || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    document.documentElement.classList.toggle('dark', resolved === 'dark');
-
-    // Adaptive performance: detect low-end devices
-    // Check for low memory, low CPU cores, or small viewport + reduced motion
-    const deviceMemory = navigator.deviceMemory;
-    const isLowEnd = (
-      deviceMemory !== undefined && deviceMemory <= 4 ||
-      navigator.hardwareConcurrency !== undefined && navigator.hardwareConcurrency <= 4 ||
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
-      window.matchMedia('(prefers-reduced-data: reduce)').matches
-    );
-    if (isLowEnd) {
-      document.documentElement.classList.add('low-end-device');
-    }
-  } catch {}
-})();`,
+            __html: THEME_INIT_SCRIPT,
           }}
         />
         {/* PWA manifest for installable app */}

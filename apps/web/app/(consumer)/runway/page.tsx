@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { getApiBase } from "../../lib/utils/api-base";
-import { ScorePaddles } from "../../components/runway/ScorePaddles";
-import { RunwayCtas } from "../../components/runway/RunwayCtas";
-import { JudgePick } from "../../components/runway/JudgePick";
+import { getApiBase } from "@/lib/utils/api-base";
+import { ScorePaddles } from "@/components/runway/ScorePaddles";
+import { RunwayCtas } from "@/components/runway/RunwayCtas";
+import { JudgePick } from "@/components/runway/JudgePick";
 import type { StylistPersona } from "@repo/ai-client";
-import { RUNWAY_SAMPLES } from "../../lib/runway-samples";
+import { RUNWAY_SAMPLES } from "@/lib/runway-samples";
 
 export const metadata: Metadata = {
   title: "Runway — a closet challenge | OnPoint",
@@ -39,7 +39,7 @@ export default async function RunwayPage() {
   const themeId = today?.theme.id;
 
   return (
-    <div className="dark min-h-screen bg-zinc-950 text-zinc-50">
+    <div className="min-h-screen bg-background text-foreground">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.18),transparent_65%)]" />
 
       <main className="relative mx-auto max-w-4xl px-4 pb-20 pt-16 md:pt-24">
@@ -51,34 +51,34 @@ export default async function RunwayPage() {
             Dress to the theme.
             <span className="block text-primary">You have 3 minutes.</span>
           </h1>
-          <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-zinc-400 sm:text-lg">
+          <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
             Raid your own closet, send one photo, and a judge scores it. Then we
             show you the piece that would have won.
           </p>
           <div className="mt-8">
             <RunwayCtas phoneNumber={today?.phoneNumber || "+16282646604"} themeId={themeId} />
           </div>
-          <p className="mt-4 text-xs text-zinc-500">
+          <p className="mt-4 text-xs text-muted-foreground">
             Your photo is judged and discarded — never stored.
           </p>
         </div>
 
         {today && (
-          <div className="mx-auto mt-14 max-w-md rounded-3xl border border-zinc-800 bg-zinc-900/60 p-6 text-center">
+          <div className="mx-auto mt-14 max-w-md rounded-3xl border border-border bg-card/60 p-6 text-center">
             <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">
               Today&rsquo;s theme
             </p>
             <p className="mt-2 text-2xl font-black tracking-[-0.04em]">{today.theme.name}</p>
-            <p className="mt-1 text-sm text-zinc-400">{today.theme.brief}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{today.theme.brief}</p>
           </div>
         )}
 
         <div className="mt-14 grid gap-3 sm:grid-cols-3">
           {STEPS.map((s) => (
-            <div key={s.n} className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
+            <div key={s.n} className="rounded-2xl border border-border bg-card/60 p-5">
               <span className="font-mono text-[9px] font-bold tracking-[0.2em] text-primary">{s.n}</span>
               <h2 className="mt-4 text-lg font-bold">{s.title}</h2>
-              <p className="mt-1 text-sm text-zinc-400">{s.copy}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{s.copy}</p>
             </div>
           ))}
         </div>
@@ -106,11 +106,11 @@ export default async function RunwayPage() {
               <a
                 key={smp.id}
                 href={`/runway/play?sample=${smp.id}`}
-                className="group overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/60 text-left transition-colors hover:border-primary/60"
+                className="group overflow-hidden rounded-2xl border border-border bg-card/60 text-left transition-colors hover:border-primary/60"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={smp.src} alt={smp.label} className="aspect-[3/4] w-full object-cover" loading="lazy" />
-                <span className="block px-2.5 py-2 text-xs font-bold text-zinc-300">{smp.label}</span>
+                <span className="block px-2.5 py-2 text-xs font-bold text-foreground/80">{smp.label}</span>
               </a>
             ))}
           </div>

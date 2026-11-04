@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, type ReactNode } from "react";
+import { useSearchParams } from "next/navigation";
 // framer-motion removed — using CSS transitions instead
 import {
   Palette,
@@ -23,21 +24,32 @@ import {
   setPendingTryOnSelection,
 } from "../../lib/utils/try-on-selection";
 
+import dynamic from "next/dynamic";
 import { TryOnPanel } from "./TryOnPanel";
-import { StylistPanel } from "./StylistPanel";
-import { ShopPanel } from "./ShopPanel";
 import { NewUserOnboarding } from "./NewUserOnboarding";
-import { HomePanel } from "./HomePanel";
-import { MyLooksPanel } from "./MyLooksPanel";
+
+const PanelLoading = () => (
+  <div className="flex min-h-[30vh] items-center justify-center" role="status">
+    <span className="text-xs font-semibold text-muted-foreground">Loading panel…</span>
+  </div>
+);
+const StylistPanel = dynamic(() => import("./StylistPanel").then((m) => m.StylistPanel), { loading: PanelLoading });
+const ShopPanel = dynamic(() => import("./ShopPanel").then((m) => m.ShopPanel), { loading: PanelLoading });
+const HomePanel = dynamic(() => import("./HomePanel").then((m) => m.HomePanel), { loading: PanelLoading });
+const MyLooksPanel = dynamic(() => import("./MyLooksPanel").then((m) => m.MyLooksPanel), { loading: PanelLoading });
 // DesignPanel and CommunityPanel are quarantined (ADR 0014).
 // They are retained in the codebase for Phase 2 demand-side discovery rewiring
 // but unwired from the Lab UI per "agent layer becomes infrastructure, not the hero" (ADR 0002).
-import { SettingsPanel } from "./SettingsPanel";
-import { MarketIntelPanel } from "./MarketIntelPanel";
+const SettingsPanel = dynamic(() => import("./SettingsPanel").then((m) => m.SettingsPanel), { loading: PanelLoading });
+const MarketIntelPanel = dynamic(() => import("./MarketIntelPanel").then((m) => m.MarketIntelPanel), { loading: PanelLoading });
 // CommunityPanel import removed — quarantined per ADR 0014 (demand-side discovery, pending Phase 2 rewiring).
 import { DashboardTooltips } from "./DashboardTooltips";
 
 type AppMode = "dashboard" | "my-looks" | "try-on" | "stylist" | "shop" | "intel" | "settings";
+
+// All valid modes (for URL param validation). Module scope so the effect below
+// reads a stable reference — the array literal never re-triggers the effect.
+const ALL_MODES: AppMode[] = ["dashboard", "my-looks", "try-on", "stylist", "shop", "intel", "settings"];
 
 interface TacticalDashboardProps {
   onBack?: () => void;
@@ -55,12 +67,12 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
   } | null>(null);
 
   // Listen for URL tab param (e.g. from Connected Accounts nav link or storefront)
+  const searchParams = useSearchParams();
   React.useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tab = params.get("tab") as AppMode | null;
-    const from = params.get("from") || undefined;
-    const item = params.get("item") || undefined;
-    const persona = params.get("persona") || undefined;
+    const tab = searchParams.get("tab") as AppMode | null;
+    const from = searchParams.get("from") || undefined;
+    const item = searchParams.get("item") || undefined;
+    const persona = searchParams.get("persona") || undefined;
 
     if (tab && ALL_MODES.includes(tab)) {
       setMode(tab);
@@ -76,10 +88,9 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
       setDeepLinkContext({ persona });
       window.history.replaceState(null, "", window.location.pathname);
     }
-  }, []);
+  }, [searchParams]);
 
-  // All valid modes (for URL param validation)
-  const ALL_MODES: AppMode[] = ["dashboard", "my-looks", "try-on", "stylist", "shop", "intel", "settings"];
+  // All valid modes (for URL param validation) — ALL_MODES is defined at module scope.
 
   // Desktop top-bar: fit + shop first; community/intel in More
   const desktopNavItems = [
