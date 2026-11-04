@@ -72,6 +72,19 @@ export async function imageFileToJpegDataUrl(file: File, maxPx = 1024, quality =
   }
 }
 
+/** ms until the next UTC-day theme rolls over (themes are UTC-day indexed). */
+export function msUntilNextTheme(nowMs: number): number {
+  return (Math.floor(nowMs / 86400000) + 1) * 86400000 - nowMs;
+}
+
+/** "4h 12m" / "42m" countdown copy to the next daily theme. */
+export function nextThemeLabel(nowMs: number): string {
+  const mins = Math.ceil(msUntilNextTheme(nowMs) / 60000);
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
 /** Duel result for a ref'd round: did the challenger beat the shared score? */
 export function duelOutcome(yours: number, theirs: number): "win" | "lose" | "tie" {
   if (yours > theirs) return "win";

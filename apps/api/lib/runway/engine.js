@@ -111,7 +111,8 @@ async function submitPhoto(chatId, { photoUrl, imageDataUrl, now = Date.now(), s
     theme = getTheme(round.themeId);
   }
   const persona = getPersona(round.persona);
-  const late = now > round.deadline;
+  // Sample submissions are a try-it path, not the timed challenge — never late.
+  const late = !sample && now > round.deadline;
   funnel('runway_submit', { roundId: round.roundId, late, ...(sample ? { sample: true } : {}) }, surface, chatId);
 
   let dataUrl = imageDataUrl;

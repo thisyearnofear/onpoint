@@ -3,14 +3,14 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Camera, Download, RotateCcw, Send, Share2, Swords, Users, Volume2, VolumeX } from "lucide-react";
+import { Camera, Download, RotateCcw, Send, Share2, Swords, Volume2, VolumeX } from "lucide-react";
 import { useReducedMotion } from "framer-motion";
 import { SafeImage } from "../SafeImage";
 import { JudgeAvatar, judgeDisplayName } from "./JudgeAvatar";
 import { ScorePaddles } from "./ScorePaddles";
 import { CountdownRing } from "./CountdownRing";
 import { Confetti } from "./Confetti";
-import { imageFileToJpegDataUrl, runwayPlayerId, duelOutcome } from "../../lib/utils/runway";
+import { imageFileToJpegDataUrl, runwayPlayerId, duelOutcome, nextThemeLabel } from "../../lib/utils/runway";
 import { playReveal, playWin, setSoundEnabled, soundEnabled } from "../../lib/utils/runway-sound";
 import { bestScore, computeStreak, useRunwayHistory } from "../../lib/stores/runway-history-store";
 import { RUNWAY_SAMPLES, OUTFIT_SAMPLES, sampleById } from "../../lib/runway-samples";
@@ -42,6 +42,7 @@ interface OpponentState {
   themeId: string;
   themeName: string;
   persona: string;
+  verdict: string;
 }
 
 const JUDGE_LINES: Record<"miranda" | "edina" | "shaft", string[]> = {
@@ -114,7 +115,7 @@ export function RunwayPlay() {
         if (!res.ok) return;
         const body = await res.json();
         if (!cancelled) {
-          setOpponent({ roundId: body.roundId, total: body.total, themeId: body.themeId, themeName: body.themeName, persona: body.persona });
+          setOpponent({ roundId: body.roundId, total: body.total, themeId: body.themeId, themeName: body.themeName, persona: body.persona, verdict: body.verdict });
         }
       } catch { /* duel is optional — play on without it */ }
       finally { if (!cancelled) setOpponentLoaded(true); }
@@ -409,6 +410,18 @@ export function RunwayPlay() {
                 </button>
               ))}
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                const j = JUDGES[Math.floor(Math.random() * JUDGES.length)]!;
+                setJudge(j.key);
+                void startRound(j.key, duelThemeId);
+              }}
+              disabled={busy}
+              className="text-xs font-bold text-zinc-500 underline-offset-2 hover:text-zinc-300 hover:underline"
+            >
+              Surprise me — any judge
+            </button>
             {busy && <p className="text-sm text-zinc-400">Dealing a theme…</p>}
             {entries.length > 0 && (
               <div className="flex w-full max-w-sm flex-col items-center gap-3">
@@ -457,19 +470,13 @@ export function RunwayPlay() {
                 <Camera className="h-5 w-5" />
                 Take photo
               </button>
-              <a
-                href="#sample-outfits"
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-zinc-700 px-6 text-sm font-bold text-zinc-100 hover:border-zinc-500"
-              >
-                Try a sample ↓
-              </a>
+              <button type="button" onClick={pickFile} className="inline-flex min-h-12 items-center justify-center rounded-full border border-zinc-700 px-6 text-sm font-bold text-zinc-100 hover:border-zinc-500">
+                From library
+              </button>
             </div>
-            <button type="button" onClick={pickFile} className="text-xs font-bold text-zinc-500 underline-offset-2 hover:text-zinc-300 hover:underline">
-              Choose from library
-            </button>
             <p className="text-xs text-zinc-500">Your photo is judged and discarded — never stored.</p>
             <div id="sample-outfits" className="w-full max-w-md">
-              <p className="mb-1.5 pl-4 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Or tap a sample outfit</p>
+              <p className="mb-1.5 pl-4 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">No photo? Tap a look — judges score it too</p>
               <div className="-mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-1">
                 {RUNWAY_SAMPLES.map((smp) => (
                   <button
@@ -610,6 +617,20 @@ export function RunwayPlay() {
                   <p className="mt-2 text-sm font-bold text-zinc-100">
                     {duel === "win" ? "You took it." : duel === "lose" ? "They keep the crown." : "Dead heat — run it back."}
                   </p>
+                  {opponent.verdict && (
+                    <p className="mt-1.5 line-clamp-2 text-xs italic text-zinc-500">
+                      Theirs: &ldquo;{opponent.verdict}&rdquo;
+                    </p>
+                  )}
+                  {duel !== "win" && (
+                    <button
+                      type="button"
+                      onClick={() => { setPhotoData(null); setIsSample(false); void startRound(judge, opponent.themeId); }}
+                      className="mt-2.5 inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[hsl(var(--accent))]/60 px-4 text-xs font-bold text-[hsl(var(--accent))] hover:bg-[hsl(var(--accent))]/10"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" /> Run it back
+                    </button>
+                  )}
                 </div>
               )}
               <JudgeBubble persona={judge} name={personaName}>{result.verdict}</JudgeBubble>
@@ -656,26 +677,31 @@ export function RunwayPlay() {
                   <button
                     type="button"
                     onClick={() => { started.current = false; setPhotoData(null); setIsSample(false); void startRound(judge); }}
-                    className="inline-flex min-h-12 items-center gap-2 rounded-full bg-primary px-6 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90"
+                    className="inline-flex min-h-12 items-center gap-2 rounded-full border border-zinc-700 px-6 text-sm font-bold text-zinc-100 hover:border-zinc-500"
                   >
-                    <Camera className="h-4 w-4" /> Now try it with your own photo
+                    <Camera className="h-4 w-4" /> Try your own photo
                   </button>
                 )}
+              </div>
+              <div className="flex items-center gap-4">
                 <button
                   type="button"
                   onClick={() => { started.current = false; setPhotoData(null); setIsSample(false); void startRound(judge); }}
-                  className="inline-flex min-h-12 items-center gap-2 rounded-full border border-zinc-700 px-6 text-sm font-bold text-zinc-100 hover:border-zinc-500"
+                  className="text-xs font-bold text-zinc-500 underline-offset-2 hover:text-zinc-300 hover:underline"
                 >
-                  <RotateCcw className="h-4 w-4" /> Play again
+                  Play again
                 </button>
                 <button
                   type="button"
                   onClick={() => setStage("intro")}
-                  className="inline-flex min-h-12 items-center gap-2 rounded-full border border-zinc-700 px-6 text-sm font-bold text-zinc-100 hover:border-zinc-500"
+                  className="text-xs font-bold text-zinc-500 underline-offset-2 hover:text-zinc-300 hover:underline"
                 >
-                  <Users className="h-4 w-4" /> Switch judge
+                  Switch judge
                 </button>
               </div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">
+                New theme in {nextThemeLabel(Date.now())}
+              </p>
             </div>
           </div>
         )}
