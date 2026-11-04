@@ -4,8 +4,7 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react()],
-  // tsconfig uses jsx:"preserve" (Next); tests need the automatic JSX runtime
-  // or components without `import React` throw "React is not defined".
+  // tsconfig uses jsx:"preserve" (Next); esbuild fixes it for vitest.
   esbuild: { jsx: "automatic" },
   test: {
     include: [
