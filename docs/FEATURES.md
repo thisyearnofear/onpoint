@@ -7,9 +7,13 @@
 
 > **Current focus:** the consumer web engine, led by Runway ([ADR 0023](./adr/0023-consumer-engine-first-curators-deferred.md)). Curator, agent-commerce and payment features below are implemented but **deferred**: no new onboarding or feature work until the Phase 0 gate in [STRATEGY.md](./STRATEGY.md#phase-0--consumer-engine-and-retention-current).
 
+## Consumer loop
+
+One loop: pick a look, get a verdict, then play again or try it on you. Selection never starts a task; only "Get a verdict" does. Primary nav is Looks (`/`), Runway (`/runway`), and Fitting room (`/lab?tab=try-on`). The header repeats "Get a verdict" because it is the same action, not a fourth destination. Developer, agent, and supply links stay under More. `/style-board` is the full look catalog, not a second homepage. The sections below the stage do not restate the nav or repeat the rack.
+
 ## Wardrobe studio (consumer homepage)
 
-The homepage (`/`, `#style-studio`) is a wardrobe-first styling workspace, not a marketing hero. Decision and provenance: [ADR 0024](./adr/0024-consumer-wardrobe-studio-and-interaction-reuse.md). Status: `deployed` — production checked on onpoint.trustfall.xyz per the [ops deployment checklist](./ops/deployment.md#release-validation-checklist-wardrobe-studio-release) (prepared demos only; not live-validated against paid providers).
+The homepage (`/`, `#style-studio`) is the first step of that loop: a wardrobe stage for choosing a look, not a marketing hero and not a directory of the product. Decision and provenance: [ADR 0024](./adr/0024-consumer-wardrobe-studio-and-interaction-reuse.md). Status: `deployed` — production checked on onpoint.trustfall.xyz per the [ops deployment checklist](./ops/deployment.md#release-validation-checklist-wardrobe-studio-release) (prepared demos only; not live-validated against paid providers).
 
 - **Gallery** — tabs All / Clothes / Outfit ideas / Saved (`aria-pressed`), text search over titles+tags, occasion filters (Everyday / Work / Going out / Layers; hidden in Clothes, garments unaffected), 12-at-a-time paging with Load more. Items: 3 prepared garment pairs (`/assets/{1,2,3}Product.png` + matching `Model.png`) plus all 34 AI outfit references from `/demo/outfits/`, ordered garments → six curated featured looks → remainder.
 - **Clothes rack** — the three garments hang as real product photos on a CSS rail (rotateY swivel, neighbor separation on hover/focus, `aria-label` "Dress model in Graphic 0x", arrow/Home/End keyboard nav). Inspired by [DiMaac's clothes rack](https://ui.dimaac.com/components/clothes-rack); implemented with our own CSS and photos — no Three.js/WebGL, no cloth simulation, no vendored component code.

@@ -28,10 +28,9 @@ import { NavigationLink } from "../NavigationLink";
 describe("shared nav model", () => {
   it("primary items are identical for desktop and mobile", () => {
     expect(PRIMARY_NAV.map((i) => `${i.href}:${i.label}`)).toEqual([
-      "/#style-studio:Studio",
-      "/style-board:Outfit ideas",
-      "/lab?tab=try-on:Fitting room",
+      "/:Looks",
       "/runway:Runway",
+      "/lab?tab=try-on:Fitting room",
     ]);
   });
 
@@ -48,22 +47,27 @@ describe("shared nav model", () => {
 
 describe("OnPointHeader", () => {
   beforeEach(() => { mockPathname = "/"; });
-  it("renders the four primary links with correct hrefs; Studio active only at root", () => {
+  it("renders the three primary links; Runway active on its page", () => {
     mockPathname = "/runway/play";
     render(<OnPointHeader />);
     const navs = screen.getAllByRole("navigation", { name: "Primary" });
-    const labels = within(navs[0]).getAllByRole("link").map((l) => l.textContent?.trim()).filter(Boolean);
-    expect(labels.slice(0, 4)).toEqual(["Studio", "Outfit ideas", "Fitting room", "Runway"]);
+    // primary links are first 3 items; More dropdown items follow
+    const navLinks = within(navs[0]).getAllByRole("link");
+    const primaryLabels = navLinks.slice(0, 3).map((l) => l.textContent?.trim()).filter(Boolean);
+    expect(primaryLabels).toEqual(["Looks", "Runway", "Fitting room"]);
     expect(within(navs[0]).getByRole("link", { name: "Runway" }).getAttribute("aria-current")).toBe("page");
-    expect(within(navs[0]).getByRole("link", { name: "Studio" }).getAttribute("aria-current")).toBeNull();
-    expect(navs[0].querySelector('[style*="backdrop"]')).toBeNull();
   });
 
-  it("secondary links live under More and footer uses honest Live agent label", () => {
+  it("secondary links live under More", () => {
     render(<OnPointHeader />);
-    expect(screen.getAllByText("How it works").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Live agent").length).toBeGreaterThan(0);
-    expect(screen.queryByText(/^Shop$/)).toBeNull();
+    // "More" is a <summary> inside a <details> — query by text then open
+    const summary = screen.getByText("More").closest("details") as HTMLElement;
+    expect(summary).toBeTruthy();
+    summary.open = true;
+    expect(within(summary).getByRole("link", { name: "All looks" })).toBeTruthy();
+    expect(within(summary).getByRole("link", { name: "Create a look" })).toBeTruthy();
+    expect(within(summary).getByRole("link", { name: "Developers" })).toBeTruthy();
+    expect(within(summary).getByRole("link", { name: "Supply" })).toBeTruthy();
   });
 });
 
@@ -71,10 +75,10 @@ describe("NavigationLink", () => {
   it("same-path hash links render as native anchors (no router navigation)", () => {
     mockPathname = "/";
     const { container } = render(
-      <NavigationLink href="/#style-studio" label="Studio">Studio</NavigationLink>,
+      <NavigationLink href="/" label="Looks">Looks</NavigationLink>,
     );
     const a = container.querySelector("a")!;
-    expect(a.getAttribute("href")).toBe("/#style-studio");
+    expect(a.getAttribute("href")).toBe("/");
     expect(a.tagName).toBe("A");
   });
 
@@ -114,7 +118,7 @@ describe("MobileNavigation dialog", () => {
     expect(dialog.getAttribute("open")).not.toBeNull();
     expect(document.body.style.overflow).toBe("hidden");
     expect(dialog.querySelectorAll('a[href="/runway"]').length).toBe(1);
-    expect(within(dialog as HTMLElement).getByRole("link", { name: "Studio" })).toBeTruthy();
+    expect(within(dialog as HTMLElement).getByRole("link", { name: "Looks" })).toBeTruthy();
     fireEvent.click(within(dialog as HTMLElement).getByRole("link", { name: "Runway" }));
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
     expect(document.body.style.overflow).toBe("");

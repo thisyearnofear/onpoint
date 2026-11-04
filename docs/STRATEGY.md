@@ -215,7 +215,7 @@ Historical deployment and test evidence is preserved in git history and the [Pha
 
 Workstreams:
 
-1. **Front door:** the homepage is the wardrobe-studio workspace (gallery, clothes rack, inspector, on-device saves) that hands into Runway and the fitting room; navigation exposes the studio alongside Runway, and share output continues to lead with Runway.
+1. **Front door:** one loop — pick a look, get a verdict, then play again or try it on. The homepage is that choice (wardrobe stage) with a single primary action. Navigation is Looks, Runway, and Fitting room, plus a header action that starts a round. Pin, compare, notes, and the style board stay ways to choose; developer and agent surfaces stay out of the consumer path. Share output still leads with Runway.
 2. **Cohesion:** one on-device "you" (history, saved looks, an opt-in photo) that every primitive reads. Each experience hands off to the next.
 3. **Share-native output:** vertical 9:16 / 4:5 cards shared as images, with Instagram / TikTok / X channels.
 4. **Retention engine:** daily theme, streaks, local history, and an optional way to come back (email or install).
@@ -241,7 +241,7 @@ Workstreams:
 
 **Not in Phase 0:** curator onboarding, merchant tooling, new payment rails, agent-commerce features, and supply targets.
 
-> Implementation context: the Phase 0 homepage is implemented as a wardrobe-first studio adapted from open wardrobe dashboards — behavior and provenance in [FEATURES.md § Wardrobe studio](./FEATURES.md#wardrobe-studio-consumer-homepage), decision in [ADR 0024](./adr/0024-consumer-wardrobe-studio-and-interaction-reuse.md). Runway remains the retention engine it feeds.
+> Implementation context: the homepage is the wardrobe stage described in [FEATURES.md § Consumer loop](./FEATURES.md#consumer-loop). Provenance: [ADR 0024](./adr/0024-consumer-wardrobe-studio-and-interaction-reuse.md). Runway remains the retention engine the stage feeds.
 
 ### Phase 1 — Supply Graph Readiness (deferred until the Phase 0 gate)
 

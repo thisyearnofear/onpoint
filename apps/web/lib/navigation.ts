@@ -4,15 +4,14 @@ export interface NavItem {
 }
 
 export const PRIMARY_NAV: NavItem[] = [
-  { href: "/#style-studio", label: "Studio" },
-  { href: "/style-board", label: "Outfit ideas" },
-  { href: "/lab?tab=try-on", label: "Fitting room" },
+  { href: "/", label: "Looks" },
   { href: "/runway", label: "Runway" },
+  { href: "/lab?tab=try-on", label: "Fitting room" },
 ];
 
 export const SECONDARY_NAV: NavItem[] = [
-  { href: "/#how-it-works", label: "How it works" },
-  { href: "/#proof", label: "Proof" },
+  { href: "/style-board", label: "All looks" },
+  { href: "/looks", label: "Create a look" },
   { href: "/developers", label: "Developers" },
   { href: "/curator", label: "Supply" },
 ];
@@ -24,8 +23,8 @@ export function navPathname(href: string): string {
 export function isNavActive(href: string, pathname: string): boolean {
   const p = navPathname(href);
   if (p === "/") return pathname === "/";
-  if (p === "/style-board") return pathname === "/style-board";
   if (p === "/lab") return pathname === "/lab" || pathname.startsWith("/lab/");
   if (p === "/runway") return pathname === "/runway" || pathname.startsWith("/runway/");
+  if (p === "/style-board") return pathname === "/style-board";
   return pathname === p;
 }
