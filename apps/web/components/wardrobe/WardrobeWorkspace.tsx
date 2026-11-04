@@ -488,22 +488,7 @@ export function WardrobeWorkspace() {
           </div>
         </div>
 
-        <footer className={styles.foot}>
-          <p>
-            Starter wardrobe: 3 prepared garment demos + 34 AI styling references — inspiration, not purchasable
-            inventory or your photos. Use your own photo in the fitting room.
-          </p>
-          <p>
-            Studio interface adapted from MIT-licensed open wardrobe dashboards:{" "}
-            <a href="https://github.com/tandpfun/wardrobe" target="_blank" rel="noopener noreferrer">tandpfun/wardrobe</a>{" "}
-            and{" "}
-            <a href="https://github.com/Om-Alve/wardrobe" target="_blank" rel="noopener noreferrer">Om-Alve/wardrobe</a>.
-          </p>
-          <p>
-            Rack interaction inspired by{" "}
-            <a href="https://ui.dimaac.com/components/clothes-rack" target="_blank" rel="noopener noreferrer">DiMaac clothes rack</a>.
-          </p>
-        </footer>
+
       </div>
     </section>
   );

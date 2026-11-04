@@ -347,7 +347,7 @@ describe("StudioClothesRack", () => {
     }
     expect(rack.querySelectorAll("img").length).toBe(3);
     expect(within(rack).getAllByRole("button", { name: /Dress model in Graphic/ }).length).toBe(3);
-    expect(screen.getByRole("link", { name: "DiMaac clothes rack" }).getAttribute("href")).toBe("https://ui.dimaac.com/components/clothes-rack");
+
   });
 });
 
