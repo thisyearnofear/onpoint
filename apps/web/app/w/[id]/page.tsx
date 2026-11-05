@@ -114,6 +114,9 @@ export default async function WishlistPage({ params }: { params: Promise<{ id: s
           <Link href="/couple" className="inline-flex min-h-12 items-center rounded-full bg-primary px-8 text-sm font-bold text-white hover:bg-primary/90">
             Make a card together
           </Link>
+          <Link href="/magazine" className="mt-3 block text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">
+            Or send it as a magazine →
+          </Link>
         </div>
       </main>
     </div>
