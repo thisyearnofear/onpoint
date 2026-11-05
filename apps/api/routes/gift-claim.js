@@ -38,15 +38,20 @@ function publicView(row, listing) {
 }
 
 router.get('/:token', async (req, res) => {
-  const token = String(req.params.token || '');
-  if (!TOKEN_RE.test(token)) return res.status(400).json({ error: 'invalid token' });
-  const db = getDb();
-  const [row] = await db.select().from(orders).where(eq(orders.claimToken, token)).limit(1);
-  if (!row) return res.status(404).json({ error: 'gift not found' });
-  const [listing] = row.listingId
-    ? await db.select().from(listings).where(eq(listings.id, row.listingId)).limit(1)
-    : [null];
-  res.json(publicView(row, listing));
+  try {
+    const token = String(req.params.token || '');
+    if (!TOKEN_RE.test(token)) return res.status(400).json({ error: 'invalid token' });
+    const db = getDb();
+    const [row] = await db.select().from(orders).where(eq(orders.claimToken, token)).limit(1);
+    if (!row) return res.status(404).json({ error: 'gift not found' });
+    const [listing] = row.listingId
+      ? await db.select().from(listings).where(eq(listings.id, row.listingId)).limit(1)
+      : [null];
+    res.json(publicView(row, listing));
+  } catch (err) {
+    logger.error('gift claim lookup failed', { route: 'gift', token: req.params.token }, err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 router.post('/:token', async (req, res) => {
@@ -72,7 +77,7 @@ router.post('/:token', async (req, res) => {
     const [existing] = await db.select().from(orders).where(eq(orders.claimToken, token)).limit(1);
     return res.status(existing ? 410 : 404).json({ error: existing ? 'already claimed' : 'gift not found' });
   }
-  logger.info({ orderId: updated[0].id }, 'gift order claimed');
+  logger.info('gift order claimed', { orderId: updated[0].id });
   res.json({ claimed: true });
 });
 
