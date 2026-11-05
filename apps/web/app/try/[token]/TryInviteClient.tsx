@@ -27,9 +27,13 @@ function CaptureOptIn({ source }: { source: string }) {
 export function TryInviteClient({
   token,
   listingImageUrl,
+  curatorSlug,
+  listingId,
 }: {
   token: string;
   listingImageUrl: string | null;
+  curatorSlug?: string;
+  listingId?: string;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [photoData, setPhotoData] = useState<string | null>(null);
@@ -75,6 +79,22 @@ export function TryInviteClient({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={resultUrl} alt="Your try-on result" className="mx-auto mt-4 max-h-[420px] border border-border object-contain" />
         <p className="mt-4 text-xs text-muted-foreground">Your photo was styled and discarded — never stored.</p>
+        <div className="mt-4 flex flex-wrap justify-center gap-3">
+          {curatorSlug && (
+            <a
+              href={`/s/${curatorSlug}${listingId ? `?item=${listingId}` : ""}`}
+              className="inline-flex min-h-10 items-center rounded-full bg-primary px-5 text-xs font-bold text-white hover:bg-primary/90"
+            >
+              Get the piece
+            </a>
+          )}
+          <a
+            href="/couple"
+            className="inline-flex min-h-10 items-center rounded-full border border-border px-5 text-xs font-bold text-foreground hover:border-foreground"
+          >
+            Make a couple card
+          </a>
+        </div>
         <CaptureOptIn source="try-invite" />
       </div>
     );

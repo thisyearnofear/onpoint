@@ -69,7 +69,12 @@ export default async function TryInvitePage({ params }: { params: Promise<{ toke
         )}
 
         <div className="mt-6">
-          <TryInviteClient token={token} listingImageUrl={listing?.imageUrl ?? null} />
+          <TryInviteClient
+            token={token}
+            listingImageUrl={listing?.imageUrl ?? null}
+            curatorSlug={invite.curatorSlug}
+            listingId={invite.listingId}
+          />
         </div>
       </main>
     </div>

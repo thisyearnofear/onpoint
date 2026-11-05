@@ -39,6 +39,12 @@ export function GiftClaimClient({ token }: { token: string }) {
         <p className="mt-2 text-sm text-muted-foreground">
           Your delivery details are confirmed — the curator ships from here.
         </p>
+        <a
+          href="/couple"
+          className="mt-4 inline-flex min-h-10 items-center rounded-full border border-border px-5 text-xs font-bold text-foreground hover:border-foreground"
+        >
+          Send one back — make a card for them
+        </a>
       </div>
     );
   }
