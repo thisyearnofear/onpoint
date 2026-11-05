@@ -439,6 +439,83 @@ module.exports = {
   composeTryOnShareCard,
   composeLookCollage,
   composeLookCollageAI,
+  composeCoupleCard,
   // Backward-compatible alias
   generateShareCard: composeTryOnShareCard,
 };
+
+// ── 3. Couple Card (ADR 0026) ──
+
+/**
+ * "Couple goals" card: couple photo hero + the look's items tiled below.
+ * Deterministic Tier-1 composite — no paired-subject ML needed. The card
+ * leads with the photo; merch sits in the tile strip.
+ *
+ * @param {Object} opts
+ * @param {string} opts.photoBase64 - data URI or URL of the couple photo
+ * @param {Array}  opts.items - [{ imageUrl, title }] (max 6 shown)
+ * @param {string} opts.theme - card theme label ("Date night", ...)
+ * @param {string} [opts.senderName] - who styled it
+ * @returns {Promise<{ r2Key: string, url: string }>}
+ */
+async function composeCoupleCard(opts) {
+  const { photoBase64, items = [], theme, senderName } = opts;
+  if (!photoBase64) throw new Error('photoBase64 required');
+
+  const HEADER_HEIGHT = 180;
+  const HERO_HEIGHT = 810;
+  const STRIP_HEIGHT = 180;
+  const FOOTER_HEIGHT = CARD_HEIGHT - HEADER_HEIGHT - HERO_HEIGHT - STRIP_HEIGHT;
+
+  const photoBuf = await fetchImageBuffer(photoBase64);
+  if (!photoBuf) throw new Error('Failed to load couple photo');
+  const heroImg = await sharp(photoBuf)
+    .resize(CARD_WIDTH, HERO_HEIGHT, { fit: 'cover', position: 'attention' })
+    .toBuffer();
+
+  const header = textSvg(CARD_WIDTH, HEADER_HEIGHT, [
+    { text: (theme || 'COUPLE GOALS').toUpperCase().slice(0, 48), y: 80, size: 44, weight: 'bold', fill: COLORS.accent },
+    { text: senderName ? `styled by ${senderName}`.slice(0, 60) : 'styled on OnPoint', y: 132, size: 30, fill: COLORS.textMuted },
+  ], { bg: '#f5f5f5' });
+
+  // Item tiles — merch stays in the strip, not the hero
+  const shown = items.slice(0, 6);
+  const tileW = shown.length ? Math.floor(CARD_WIDTH / Math.max(shown.length, 1)) : 0;
+  const tiles = [];
+  for (let i = 0; i < shown.length; i++) {
+    const buf = await fetchImageBuffer(shown[i].imageUrl);
+    if (!buf) continue;
+    try {
+      tiles.push({
+        input: await sharp(buf).resize(tileW, STRIP_HEIGHT, { fit: 'cover' }).toBuffer(),
+        left: i * tileW,
+        top: HEADER_HEIGHT + HERO_HEIGHT,
+      });
+    } catch { /* skip bad tiles */ }
+  }
+
+  const footer = textSvg(CARD_WIDTH, FOOTER_HEIGHT, [
+    { text: 'ONPOINT', y: FOOTER_HEIGHT / 2 + 10, size: 34, weight: 'bold', fill: COLORS.textLight },
+  ], { bg: '#0a0a0a' });
+
+  const card = await sharp({
+    create: {
+      width: CARD_WIDTH,
+      height: CARD_HEIGHT,
+      channels: 3,
+      background: COLORS.bg,
+    },
+  })
+    .composite([
+      { input: header, left: 0, top: 0 },
+      { input: heroImg, left: 0, top: HEADER_HEIGHT },
+      ...tiles,
+      { input: footer, left: 0, top: HEADER_HEIGHT + HERO_HEIGHT + STRIP_HEIGHT },
+    ])
+    .webp({ quality: 90 })
+    .toBuffer();
+
+  const r2Key = `couple-cards/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
+  await r2Upload(r2Key, card, 'image/webp');
+  return { r2Key, url: r2PublicUrl(r2Key) };
+}

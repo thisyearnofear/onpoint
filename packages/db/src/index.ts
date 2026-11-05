@@ -14,3 +14,4 @@ export * from "./schema/payments.js";
 export * from "./schema/sessions.js";
 export * from "./schema/agent-looks.js";
 export * from "./schema/funnel-events.js";
+export * from "./schema/couple-cards.js";

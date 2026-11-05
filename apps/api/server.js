@@ -253,6 +253,7 @@ app.use('/api/agent/heartbeat', json1k, require('./routes/agent-heartbeat'));
 app.use('/api/agent/dashboard', json1k, require('./routes/agent-dashboard'));
 app.use('/api/receipts', json1k, require('./routes/receipts'));
 app.use('/api/gift', json1k, generalRateLimit, require('./routes/gift-claim'));
+app.use('/api/couple', json10mb, generalRateLimit, require('./routes/couple'));
 
 // Wallet — service-key auth (exposes private wallet info)
 app.use('/api/agent/wallet', json1k, serviceKeyAuth, require('./routes/agent-wallet'));
