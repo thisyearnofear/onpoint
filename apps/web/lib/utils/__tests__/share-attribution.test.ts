@@ -68,11 +68,32 @@ describe("share attribution (client)", () => {
     expect(getReferralCode()).toBe("ref_abcdef01");
   });
 
-  it.each(["", "a b", "ref_abc'; DROP TABLE x;--", "x".repeat(65), "ab"])("ignores a malformed referral %j", (bad) => {
+  it("accepts a full wallet address as a referral code", () => {
+    visit("?referral=0x5e32740122999bb98a50055d68593f94d2a0711e");
+    captureShareAttribution();
+    expect(getReferralCode()).toBe("0x5e32740122999bb98a50055d68593f94d2a0711e");
+  });
+
+  it.each([
+    "",
+    "a b",
+    "ref_abc'; DROP TABLE x;--",
+    "x".repeat(65),
+    "ab",
+    "ref_abcdef",
+    "0x5e32740122999bb98a50055d68593f94d2a0711",
+  ])("ignores a malformed referral %j", (bad) => {
     visit(`?referral=${encodeURIComponent(bad)}`);
     captureShareAttribution();
     expect(getReferralCode()).toBeNull();
     sessionStorage.setItem("referral_code", bad);
+    expect(getReferralCode()).toBeNull();
+  });
+
+  // A curator slug used to pass the shape check and get sent to the server as a
+  // referral code, so an order could be attributed to nobody.
+  it("refuses a curator slug as a referral code", () => {
+    sessionStorage.setItem("referral_code", "nia");
     expect(getReferralCode()).toBeNull();
   });
 

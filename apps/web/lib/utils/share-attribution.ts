@@ -18,7 +18,12 @@ export type ShareChannel =
 const STORAGE_KEY = "onpoint_share";
 const SID_RE = /^[a-z0-9]{6,16}$/;
 const LOOK_RE = /^[a-z0-9-]{2,120}$/;
-const REFERRAL_RE = /^[A-Za-z0-9_-]{3,64}$/;
+/**
+ * Mirrors apps/api/lib/referral-codes.js: a code is `ref_<8 hex>` or a full
+ * wallet address. The previous `{3,64}` shape accepted any curator slug, so a
+ * slug stored as a referral code was sent to the server as one.
+ */
+const REFERRAL_RE = /^(ref_[0-9a-fA-F]{8}|0x[0-9a-fA-F]{40})$/;
 const REFERRAL_KEY = "onpoint_referral_code";
 /** Key written by the /r/[referralCode] landing page. */
 const LANDING_REFERRAL_KEY = "referral_code";

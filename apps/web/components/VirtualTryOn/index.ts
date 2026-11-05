@@ -1,7 +1,6 @@
 export { PhotoUpload } from './PhotoUpload';
 export { BodyScan } from './BodyScan';
 export { AnalysisResults } from './AnalysisResults';
-export { ActionHub } from './ActionHub';
 export { PhotoPreview } from './PhotoPreview';
 export { ScanComplete } from './ScanComplete';
 export { WelcomeCard } from './WelcomeCard';

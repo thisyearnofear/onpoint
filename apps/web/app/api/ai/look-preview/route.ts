@@ -1,8 +1,7 @@
 /**
  * Look Preview API Route
  *
- * Public endpoint (no auth required) for the landing page LookCrafter widget.
- * Generates a text-based outfit preview: score + critique + palette description.
+ * Public endpoint (no auth required) for a text-based outfit preview:
  *
  * Design rationale:
  * - PUBLIC: The landing page works without sign-up, so this endpoint cannot require auth

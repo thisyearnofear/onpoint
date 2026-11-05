@@ -6,6 +6,7 @@ import { TransitionLink } from "../../../components/ViewTransition";
 import { SafeImage } from "../../../components/SafeImage";
 import { getApiBase } from "../../../lib/utils/api-base";
 import { PolaroidShareButtons } from "./PolaroidShareButtons";
+import { ReferralCopyCta } from "./ReferralCopyCta";
 
 export const dynamic = "force-dynamic";
 
@@ -229,23 +230,7 @@ export default async function PolaroidPage({
               />
 
               {/* Referral CTA — earn 2.5% when someone buys through your share */}
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-warning/10 border border-warning/20">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-warning/20">
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-amber-300">Earn 2.5% per purchase</p>
-                  <p className="text-xs text-amber-400/70 truncate">
-                    Share this polaroid — when someone buys through your link, you earn commission
-                  </p>
-                </div>
-                <button
-                  onClick={() => navigator.clipboard.writeText(`${typeof window !== "undefined" ? window.location.origin : ""}/r/${meta.curatorSlug}`)}
-                  className="shrink-0 px-3 py-1.5 rounded-full bg-warning/20 hover:bg-warning/30 text-xs font-bold text-amber-300 transition-colors"
-                >
-                  Copy link
-                </button>
-              </div>
+              <ReferralCopyCta />
 
               {/* CTA — shop the real thing */}
               <TransitionLink
