@@ -21,8 +21,6 @@ import { useAccount } from "wagmi";
 import { TipSheet } from "../Agent/TipModal";
 import { AgentApprovalModal } from "../Agent/AgentApprovalModal";
 import { AgentSuggestionToast } from "../Agent/AgentSuggestionToast";
-import { CartDrawer } from "../Shop/CartDrawer";
-import { CheckoutModal } from "../Shop/CheckoutModal";
 import { SessionEndingCard } from "./SessionEndingCard";
 import { useCartStore } from "../../lib/stores/cart-store";
 import { useAnalysisHistory } from "../../lib/stores/analysis-history-store";
@@ -178,7 +176,6 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
   const cartItemCount = useCartStore((s) => s.itemCount());
   const openCart = useCartStore((s) => s.openCart);
   const [showTipModal, setShowTipModal] = React.useState(false);
-  const [showCheckout, setShowCheckout] = React.useState(false);
   const [showInstructions, setShowInstructions] = React.useState(true);
   const [showStyleReport, setShowStyleReport] = React.useState(false);
   const [showComparison, setShowComparison] = React.useState(false);
@@ -1191,11 +1188,7 @@ export function LiveStylistView({ onBack, onSwitchToUpload }: LiveStylistViewPro
           onReject={rejectRequest}
           request={currentApproval}
         />
-        <CartDrawer onCheckout={() => setShowCheckout(true)} />
-        <CheckoutModal
-          isOpen={showCheckout}
-          onClose={() => setShowCheckout(false)}
-        />
+        {/* Cart + checkout live in OnPointLayout's CartMount. */}
 
         {/* Flash Overlay (z-70) */}
         <AnimatePresence>

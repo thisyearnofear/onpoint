@@ -507,12 +507,23 @@ function PressHoldButton({
   );
 }
 
-export function CartButton() {
+/**
+ * The header's cart door. Hidden while empty: a badge-less bag icon on every
+ * page is chrome for a state almost nobody is in, and the fly-to-cart preview
+ * is what tells you it works.
+ *
+ * `mounted` gates the render because the store rehydrates from localStorage —
+ * an empty SSR shell against a full first client paint is a hydration mismatch.
+ */
+export function CartSlot() {
   const openCart = useCartStore((s) => s.openCart);
   const itemCount = useCartStore((s) => s.itemCount());
   const lastAddedItem = useCartStore((s) => s.lastAddedItem);
   const clearLastAddedItem = useCartStore((s) => s.clearLastAddedItem);
   const previewKeyRef = useRef(0);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   // Increment key on each new item so same-item re-add re-triggers the animation
   useEffect(() => {
@@ -526,6 +537,8 @@ export function CartButton() {
     const timer = setTimeout(clearLastAddedItem, 3000);
     return () => clearTimeout(timer);
   }, [lastAddedItem, clearLastAddedItem]);
+
+  if (!mounted || itemCount === 0) return null;
 
   return (
     <div className="relative inline-flex items-center">
@@ -566,6 +579,8 @@ export function CartButton() {
 
       <button
         data-cart-button
+        type="button"
+        aria-label={`Open cart, ${itemCount} ${itemCount === 1 ? "item" : "items"}`}
         onClick={openCart}
         className="relative w-10 h-10 rounded-full bg-muted/30 hover:bg-muted border border-border flex items-center justify-center transition-colors shrink-0"
       >

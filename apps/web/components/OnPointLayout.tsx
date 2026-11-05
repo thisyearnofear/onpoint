@@ -1,4 +1,5 @@
 import { OnPointHeader, OnPointFooter } from "./OnPointHeader";
+import { CartMount } from "./Shop/CartMount";
 
 interface OnPointLayoutProps {
   children: React.ReactNode;
@@ -36,6 +37,7 @@ export function OnPointLayout({ children, footer = true, className }: OnPointLay
         {children}
       </div>
       {footer && <OnPointFooter />}
+      <CartMount />
     </main>
   );
 }

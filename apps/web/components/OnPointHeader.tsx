@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Shirt, ChevronDown } from "lucide-react";
-import { PRODUCT_NAME, CTA_PLAY } from "../lib/brand";
-import { PRIMARY_NAV, SECONDARY_NAV, FOOTER_LINKS, isNavActive } from "../lib/navigation";
+import { Shirt } from "lucide-react";
+import { PRODUCT_NAME } from "../lib/brand";
+import { PRIMARY_NAV, FOOTER_LINKS, isNavActive } from "../lib/navigation";
 import { NavigationLink } from "./NavigationLink";
 import { Auth0HeaderButton } from "./auth/Auth0Components";
+import { CartSlot } from "./Shop/CartDrawer";
 import { MobileNavigation } from "./mobile-navigation";
 import { NotificationBell } from "./NotificationBell";
 import { ThemeToggle } from "./ThemeToggle";
@@ -19,27 +20,6 @@ const linkActive = `${linkBase} font-bold text-foreground underline underline-of
 
 export function OnPointHeader() {
   const pathname = usePathname() || "/";
-  const moreRef = useRef<HTMLDetailsElement | null>(null);
-
-  useEffect(() => {
-    const details = moreRef.current;
-    if (!details) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && details.open) {
-        details.open = false;
-        details.querySelector("summary")?.focus();
-      }
-    };
-    const onPointer = (e: Event) => {
-      if (details.open && !details.contains(e.target as Node)) details.open = false;
-    };
-    document.addEventListener("keydown", onKey);
-    document.addEventListener("pointerdown", onPointer);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.removeEventListener("pointerdown", onPointer);
-    };
-  }, []);
 
   return (
     <>
@@ -65,33 +45,10 @@ export function OnPointHeader() {
                 {item.label}
               </NavigationLink>
             ))}
-            <details ref={moreRef} className="group relative">
-              <summary className={`${linkIdle} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
-                More <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
-              </summary>
-              <div className="absolute right-0 top-full mt-1 min-w-44 rounded-xl border border-border/60 bg-popover p-1 shadow-lg">
-                {SECONDARY_NAV.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => { if (moreRef.current) moreRef.current.open = false; }}
-                    className="flex min-h-[44px] items-center rounded-lg px-3 text-sm text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-            </details>
           </nav>
 
           <div className="flex items-center gap-1">
-            <NavigationLink
-              href={CTA_PLAY.href}
-              label="Runway"
-              className="mr-1 inline-flex min-h-9 items-center rounded-full bg-primary px-4 text-sm font-bold text-white transition-colors hover:bg-primary/90"
-            >
-              Play
-            </NavigationLink>
+            <CartSlot />
             <NotificationBell />
             <Auth0HeaderButton />
             <ThemeToggle />
@@ -111,13 +68,7 @@ export function OnPointHeader() {
             </span>
           </Link>
           <div className="flex items-center gap-1">
-            <NavigationLink
-              href={CTA_PLAY.href}
-              label="Runway"
-              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-primary px-3 text-sm font-semibold text-white hover:bg-primary/90 active:scale-[0.98] transition-[background-color,transform]"
-            >
-              Play
-            </NavigationLink>
+            <CartSlot />
             <div className="hidden sm:contents">
               <NotificationBell direction="up" />
               <Auth0HeaderButton />

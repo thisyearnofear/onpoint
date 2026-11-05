@@ -7,9 +7,7 @@ import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import type { FashionItem } from "@onpoint/shared-types";
 import { ShoppingBag, Sparkles, Loader2 } from "lucide-react";
 import { OnPointLayout } from "../../components/OnPointLayout";
-import { CartDrawer } from "../../components/Shop/CartDrawer";
 import { FlyToCartOverlay, type FlyItem } from "../../components/Shop/FlyToCartOverlay";
-import { CheckoutModal } from "../../components/Shop/CheckoutModal";
 import { ExternalPickCard, LocalPickCard, ProvenanceBar } from "../../components/Shop/CuratedPickCard";
 import { SafeImage } from "../../components/SafeImage";
 import { useCartStore } from "../../lib/stores/cart-store";
@@ -19,7 +17,6 @@ import { useStyleContext } from "@/lib/context/StyleContext";
 export default function ShopPage() {
   const [selectedItem, setSelectedItem] = useState<FashionItem | null>(null);
   const [likedItems, setLikedItems] = useState<Set<string>>(new Set());
-  const [showCheckout, setShowCheckout] = useState(false);
   const [stylistAnalysis, setStylistAnalysis] = useState<any>(null);
   const [flyingItem, setFlyingItem] = useState<FlyItem | null>(null);
   const addItem = useCartStore((s) => s.addItem);
@@ -332,15 +329,8 @@ export default function ShopPage() {
           </div>
         </div>
       )}
-      {/* Fly-to-cart animation */}
+      {/* Fly-to-cart animation — page-local; cart + checkout live in the layout */}
       <FlyToCartOverlay item={flyingItem} onComplete={handleFlyComplete} />
-
-      {/* Cart & Checkout */}
-      <CartDrawer onCheckout={() => setShowCheckout(true)} />
-      <CheckoutModal
-        isOpen={showCheckout}
-        onClose={() => setShowCheckout(false)}
-      />
     </OnPointLayout>
   );
 }

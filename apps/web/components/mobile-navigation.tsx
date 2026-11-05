@@ -2,11 +2,9 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
-import { CTA_SHOP } from "../lib/brand";
-import { PRIMARY_NAV, SECONDARY_NAV, isNavActive } from "../lib/navigation";
+import { PRIMARY_NAV, isNavActive } from "../lib/navigation";
 import { NavigationLink } from "./NavigationLink";
 
 const itemCls =
@@ -103,20 +101,6 @@ export function MobileNavigation() {
                   {item.label}
                 </NavigationLink>
               ))}
-              <div className="my-2 border-t border-border/60" aria-hidden="true" />
-              {SECONDARY_NAV.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className={`${itemCls} text-muted-foreground`}
-                >
-                  {item.label}
-                </Link>
-              ))}
-              <Link href={CTA_SHOP.href} onClick={() => setOpen(false)} className={`${itemCls} text-muted-foreground`}>
-                Live agent
-              </Link>
               <button
                 type="button"
                 onClick={() => {

@@ -1,7 +1,7 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, within, fireEvent } from "@testing-library/react";
-import { PRIMARY_NAV, isNavActive } from "../../lib/navigation";
+import { PRIMARY_NAV, FOOTER_LINKS, isNavActive } from "../../lib/navigation";
 
 let mockPathname = "/";
 vi.mock("next/navigation", () => ({
@@ -20,55 +20,82 @@ vi.mock("next/link", () => ({
 vi.mock("../NotificationBell", () => ({ NotificationBell: () => null }));
 vi.mock("../auth/Auth0Components", () => ({ Auth0HeaderButton: () => null }));
 vi.mock("@repo/ui/button", () => ({ Button: (p: Record<string, unknown>) => React.createElement("button", p) }));
+vi.mock("../Shop/CartDrawer", () => ({ CartSlot: () => null }));
 
 import { OnPointHeader } from "../OnPointHeader";
 import { MobileNavigation } from "../mobile-navigation";
 import { NavigationLink } from "../NavigationLink";
 
 describe("shared nav model", () => {
-  it("primary items are identical for desktop and mobile", () => {
+  it("primary is three places, identical for desktop and mobile", () => {
     expect(PRIMARY_NAV.map((i) => `${i.href}:${i.label}`)).toEqual([
       "/:Wardrobe",
       "/runway:Runway",
       "/lab/try-on:Fitting room",
-      "/shop:Shop",
     ]);
   });
 
-  it("active matching: Studio only at root; runway covers play/result", () => {
-    expect(isNavActive("/#style-studio", "/")).toBe(true);
-    expect(isNavActive("/#style-studio", "/runway")).toBe(false);
+  // Nav is for places, not flows. Purchase, styling and saved renders are actions
+  // on an artifact, so a future "give Shop a nav door" has to fail here first.
+  it("no flow or brochure destination is in nav", () => {
+    const hrefs = PRIMARY_NAV.map((i) => i.href);
+    expect(hrefs).not.toContain("/shop");
+    expect(hrefs).not.toContain("/looks");
+    expect(hrefs).not.toContain("/developers");
+    expect(hrefs).not.toContain("/curator");
+    expect(hrefs).not.toContain("/style-board");
+    expect(hrefs).not.toContain("/cards");
+  });
+
+  it("brochure destinations live only in the footer", () => {
+    const hrefs = FOOTER_LINKS.map((i) => i.href);
+    expect(hrefs).toEqual([
+      "/curator",
+      "/developers",
+      "/pricing",
+      "/guides",
+      "/about",
+      "/privacy",
+      "/terms",
+    ]);
+    expect(hrefs).not.toContain("/shop");
+    expect(hrefs).not.toContain("/looks");
+  });
+
+  it("active matching: runway covers play/result, legacy lab urls keep the highlight", () => {
+    expect(isNavActive("/", "/")).toBe(true);
+    expect(isNavActive("/", "/runway")).toBe(false);
     expect(isNavActive("/runway", "/runway")).toBe(true);
     expect(isNavActive("/runway", "/runway/play")).toBe(true);
     expect(isNavActive("/runway", "/runway/r/abc")).toBe(true);
-    expect(isNavActive("/style-board", "/")).toBe(false);
+    expect(isNavActive("/lab/try-on", "/lab/try-on")).toBe(true);
     expect(isNavActive("/lab/try-on", "/lab")).toBe(true);
+    expect(isNavActive("/lab/try-on", "/lab/stylist")).toBe(true);
   });
 });
 
 describe("OnPointHeader", () => {
   beforeEach(() => { mockPathname = "/"; });
-  it("renders the primary links; Runway active on its page", () => {
+
+  it("renders exactly the primary links; Runway active on its page", () => {
     mockPathname = "/runway/play";
     render(<OnPointHeader />);
-    const navs = screen.getAllByRole("navigation", { name: "Primary" });
-    // primary links lead; More dropdown items follow
-    const navLinks = within(navs[0]).getAllByRole("link");
-    const primaryLabels = navLinks.slice(0, 4).map((l) => l.textContent?.trim()).filter(Boolean);
-    expect(primaryLabels).toEqual(["Wardrobe", "Runway", "Fitting room", "Shop"]);
-    expect(within(navs[0]).getByRole("link", { name: "Runway" }).getAttribute("aria-current")).toBe("page");
+    const nav = screen.getByRole("navigation", { name: "Primary" });
+    expect(within(nav).getAllByRole("link").map((l) => l.textContent?.trim())).toEqual([
+      "Wardrobe",
+      "Runway",
+      "Fitting room",
+    ]);
+    expect(within(nav).getByRole("link", { name: "Runway" }).getAttribute("aria-current")).toBe("page");
   });
 
-  it("secondary links live under More", () => {
+  it("has no secondary-nav chrome", () => {
     render(<OnPointHeader />);
-    // "More" is a <summary> inside a <details> — query by text then open
-    const summary = screen.getByText("More").closest("details") as HTMLElement;
-    expect(summary).toBeTruthy();
-    summary.open = true;
-    expect(within(summary).queryByRole("link", { name: "All looks" })).toBeNull();
-    expect(within(summary).getByRole("link", { name: "Create a look" })).toBeTruthy();
-    expect(within(summary).getByRole("link", { name: "Developers" })).toBeTruthy();
-    expect(within(summary).getByRole("link", { name: "Supply" })).toBeTruthy();
+    expect(screen.queryByText("More")).toBeNull();
+    expect(document.querySelector("details")).toBeNull();
+    // The header Play pill contradicted the Runway nav item (/runway/play vs /runway).
+    expect(screen.queryByRole("link", { name: "Play" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Live agent" })).toBeNull();
   });
 });
 
@@ -125,6 +152,16 @@ describe("MobileNavigation dialog", () => {
     expect(document.body.style.overflow).toBe("");
   });
 
+  it("the dialog holds the three primary places and nothing else but Close", () => {
+    render(<MobileNavigation />);
+    fireEvent.click(screen.getByRole("button", { name: "Open menu" }));
+    const dialog = document.body.querySelector("dialog#mobile-nav-dialog")!;
+    expect(dialog.querySelectorAll("a")).toHaveLength(3);
+    expect(within(dialog as HTMLElement).queryByText("More")).toBeNull();
+    expect(within(dialog as HTMLElement).queryByRole("link", { name: "Live agent" })).toBeNull();
+    expect(within(dialog as HTMLElement).queryByRole("link", { name: "Developers" })).toBeNull();
+  });
+
   it("cancel (Escape) closes and returns focus to trigger", () => {
     render(<MobileNavigation />);
     fireEvent.click(screen.getByRole("button", { name: "Open menu" }));
@@ -139,20 +176,5 @@ describe("MobileNavigation dialog", () => {
     const dialog = document.body.querySelector("dialog#mobile-nav-dialog")!;
     fireEvent.click(dialog);
     expect(screen.getByRole("button", { name: "Open menu" }).getAttribute("aria-expanded")).toBe("false");
-  });
-
-  it("desktop More dropdown closes on Escape and outside click", () => {
-    mockPathname = "/";
-    render(<OnPointHeader />);
-    const details = document.querySelector("details")!;
-    details.open = true;
-    fireEvent.keyDown(document, { key: "Escape" });
-    expect(details.open).toBe(false);
-    details.open = true;
-    fireEvent.pointerDown(document.body);
-    expect(details.open).toBe(false);
-    details.open = true;
-    fireEvent.click(within(details as HTMLElement).getByRole("link", { name: "Developers" }));
-    expect(details.open).toBe(false);
   });
 });

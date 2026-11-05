@@ -3,17 +3,15 @@ export interface NavItem {
   label: string;
 }
 
+/**
+ * Places, not flows — three of them. Purchase, styling and saved renders are
+ * actions attached to the artifact they act on, so they have no door here
+ * (ADR 0028). Nothing else may join this list without dropping something.
+ */
 export const PRIMARY_NAV: NavItem[] = [
   { href: "/", label: "Wardrobe" },
   { href: "/runway", label: "Runway" },
   { href: "/lab/try-on", label: "Fitting room" },
-  { href: "/shop", label: "Shop" },
-];
-
-export const SECONDARY_NAV: NavItem[] = [
-  { href: "/looks", label: "Create a look" },
-  { href: "/developers", label: "Developers" },
-  { href: "/curator", label: "Supply" },
 ];
 
 /**
