@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
@@ -38,23 +38,40 @@ export function HeroVisual() {
   const [selected, setSelected] = useState(0);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [muse, setMuse] = useState<string | null>(null);
+  const [onScreen, setOnScreen] = useState(true);
+  const [pageVisible, setPageVisible] = useState(true);
+  const rootRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion();
   const look = looks[selected]!;
 
   useEffect(() => setMuse(museFor(look.id)), [look.id]);
 
   useEffect(() => {
-    if (reduceMotion || hasInteracted) return;
+    const el = rootRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([entry]) => setOnScreen(Boolean(entry?.isIntersecting)), { threshold: 0.1 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const onVis = () => setPageVisible(document.visibilityState === "visible");
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
+
+  useEffect(() => {
+    if (reduceMotion || hasInteracted || !onScreen || !pageVisible) return;
     const timer = window.setInterval(
       () => setSelected((current) => (current + 1) % looks.length),
       3200,
     );
     return () => window.clearInterval(timer);
-  }, [reduceMotion, hasInteracted]);
+  }, [reduceMotion, hasInteracted, onScreen, pageVisible]);
 
   return (
-    <div className="relative mx-auto w-full max-w-xl">
-      <div className="absolute -inset-10 -z-10 bg-[radial-gradient(circle_at_55%_45%,hsl(var(--primary)/0.2),transparent_62%)] blur-3xl" />
+    <div ref={rootRef} className="relative mx-auto w-full max-w-xl">
+      <div className="absolute -inset-10 -z-10 bg-[radial-gradient(circle_at_55%_45%,hsl(var(--primary)/0.2),transparent_62%)] blur-2xl sm:blur-3xl" />
 
       <div className="overflow-hidden rounded-[2rem] border border-border/60 bg-[#111218] text-white shadow-2xl shadow-black/25">
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
