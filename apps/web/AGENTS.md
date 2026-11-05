@@ -23,3 +23,9 @@ Use `npm run check-types` for the frontend typecheck.
 - **Honest metrics:** no hardcoded ratings, counts, or "community favorite" claims. Rating UI renders only when real `averageRating` data exists.
 - **Iconography:** Lucide only — no emoji in UI chrome (emoji in generated share captions is fine). Logo is a hairline tile + `Shirt`.
 - **Structure:** eyebrows/mono-uppercase labels only for genuinely ordinal or functional labels; left-biased heroes. Root layout is intentionally non-async — do not re-add `auth0.getSession()` there (it forces every page dynamic).
+
+## Provider architecture (2026-11-05)
+
+- **Root `Providers` (`app/providers.tsx`) is wallet-free by design.** It holds SWRConfig, Auth0Provider, QueryClientProvider, MiniAppProvider (must stay global — it fires `sdk.actions.ready()` for Farcaster splash), StyleProvider, Toaster, ViewTransitionProvider.
+- **Wallet stack is route-scoped.** wagmi/RainbowKit/MiniPay live in `app/wallet-providers.tsx` (`WalletProviders`). A route that calls wagmi/RainbowKit/`useMiniPay` hooks gets them via a `layout.tsx` in its own directory wrapping `<WalletProviders>` — currently `app/(consumer)/lab/layout.tsx` and `app/curator/onboard/layout.tsx`. Do not re-add wagmi to root Providers; do not call wallet hooks on public routes — they will throw outside `WalletProviders`.
+- Dead provider note: `@repo/ai-client`'s `AIProviderContext` was removed (zero consumers; `useAIClient` falls back to a mock).

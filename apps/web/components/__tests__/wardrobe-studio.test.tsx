@@ -105,7 +105,7 @@ describe("WardrobeWorkspace", () => {
     expect(stored.savedIds).toEqual(["studio-graphic-02"]);
     unmount();
     render(<WardrobeWorkspace />);
-    fireEvent.click(screen.getByRole("button", { name: "Saved" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Saved" }));
     expect(screen.getAllByRole("button", { name: "View Graphic 02" }).length).toBe(1);
     openGalleryItem("Graphic 02");
     const savedBtns = screen.getAllByRole("button", { name: "Saved" });
@@ -133,7 +133,7 @@ describe("WardrobeWorkspace", () => {
   it("ignores malformed and unknown stored data", () => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, savedIds: ["bogus", "spr-0161", "spr-0161"], notes: { bogus: "x", "spr-0161": "ok" } }));
     render(<WardrobeWorkspace />);
-    fireEvent.click(screen.getByRole("button", { name: "Saved" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Saved" }));
     const items = screen.getAllByRole("button", { name: /^View / });
     expect(items.length).toBe(1);
     expect(items[0].getAttribute("aria-label")).toBe("View Navy cardigan + jeans");
@@ -148,17 +148,17 @@ describe("WardrobeWorkspace", () => {
 
   it("tabs, search, occasion filters and Load more behave", () => {
     render(<WardrobeWorkspace />);
-    fireEvent.click(screen.getByRole("button", { name: "Clothes" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Clothes" }));
     expect(screen.getAllByRole("button", { name: /^View / }).length).toBe(3);
     expect(screen.queryByRole("button", { name: "Work" })).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Outfit ideas" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Outfit ideas" }));
     fireEvent.click(screen.getByRole("button", { name: "Work" }));
     const workCount = STUDIO_ITEMS.filter((i) => i.kind === "outfit" && i.tags.some((t) => ["business", "office", "work"].includes(t))).length;
     expect(screen.getAllByRole("button", { name: /^View / }).length).toBe(Math.min(workCount, 12));
 
     fireEvent.click(screen.getByRole("button", { name: "All occasions" }));
-    fireEvent.click(screen.getByRole("button", { name: "All" }));
+    fireEvent.click(screen.getByRole("tab", { name: "All" }));
     expect(screen.getByText(`Showing 12 of ${STUDIO_ITEMS.length}`)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Load more/ }));
     expect(screen.getAllByRole("button", { name: /^View / }).length).toBe(24);
@@ -183,11 +183,11 @@ describe("WardrobeWorkspace", () => {
     fireEvent.click(late);
     fireEvent.change(screen.getByLabelText("Search pieces"), { target: { value: "zzz-no-match" } });
     fireEvent.click(screen.getByRole("button", { name: "Work" }));
-    fireEvent.click(screen.getByRole("button", { name: "Outfit ideas" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Outfit ideas" }));
     expect(screen.queryAllByRole("button", { name: /^View / }).length).toBe(0);
     fireEvent.click(screen.getByRole("button", { name: /Undo/ }));
     expect((screen.getByLabelText("Search pieces") as HTMLInputElement).value).toBe("");
-    expect(screen.getByRole("button", { name: "All" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("tab", { name: "All" }).getAttribute("aria-selected")).toBe("true");
     expect(screen.getAllByRole("button", { name: `View ${lateLabel}` }).length).toBe(1);
     expect(screen.getByRole("button", { name: "All occasions" }).getAttribute("aria-pressed")).toBe("true");
   });
@@ -195,7 +195,7 @@ describe("WardrobeWorkspace", () => {
   it("Saved tab distinguishes real favorites from filtered-out matches", () => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, savedIds: ["spr-0161"], notes: {} }));
     render(<WardrobeWorkspace />);
-    fireEvent.click(screen.getByRole("button", { name: "Saved" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Saved" }));
     expect(screen.getByText("1 saved")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Search pieces"), { target: { value: "zzz-no-match" } });
     expect(screen.getByText("No saved pieces match these filters.")).toBeTruthy();
@@ -218,7 +218,7 @@ describe("WardrobeWorkspace", () => {
   it("outfits hearted on the style board appear in the studio Saved tab", () => {
     act(() => useStyleHearts.setState({ hearts: ["spr-0161", "not-a-studio-id"] }));
     render(<WardrobeWorkspace />);
-    fireEvent.click(screen.getByRole("button", { name: "Saved" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Saved" }));
     expect(screen.getByText("1 saved")).toBeTruthy();
     expect(screen.getAllByRole("button", { name: "View Navy cardigan + jeans" }).length).toBe(1);
   });
@@ -246,7 +246,7 @@ describe("WardrobeWorkspace", () => {
     for (const raw of cases) {
       window.localStorage.setItem(STORAGE_KEY, raw);
       const { unmount } = render(<WardrobeWorkspace />);
-      fireEvent.click(screen.getByRole("button", { name: "Saved" }));
+      fireEvent.click(screen.getByRole("tab", { name: "Saved" }));
       expect(screen.getByText(/No saved pieces yet/)).toBeTruthy();
       unmount();
     }
@@ -273,10 +273,10 @@ describe("WardrobeWorkspace", () => {
     const scrollSpy = vi.fn();
     Element.prototype.scrollIntoView = scrollSpy;
     render(<WardrobeWorkspace />);
-    fireEvent.click(screen.getByRole("button", { name: "Saved" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Saved" }));
     expect(scrollSpy).toHaveBeenCalledTimes(1);
     scrollSpy.mockClear();
-    fireEvent.click(screen.getByRole("button", { name: "All" }));
+    fireEvent.click(screen.getByRole("tab", { name: "All" }));
     expect(scrollSpy).toHaveBeenCalledTimes(1);
     scrollSpy.mockClear();
     openGalleryItem("Graphic 01");
@@ -292,7 +292,7 @@ describe("WardrobeWorkspace", () => {
     Element.prototype.scrollIntoView = scrollSpy;
     render(<WardrobeWorkspace />);
     openGalleryItem("Graphic 02");
-    fireEvent.click(screen.getByRole("button", { name: "Saved" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Saved" }));
     expect(scrollSpy).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
   });
@@ -300,7 +300,7 @@ describe("WardrobeWorkspace", () => {
   it("deep link ?tab=outfits&pick=<id> selects the outfit on stage and reveals its card", () => {
     window.history.pushState({}, "", "/?tab=outfits&pick=aut-0169");
     render(<WardrobeWorkspace />);
-    expect(screen.getByRole("button", { name: "Outfit ideas" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("tab", { name: "Outfit ideas" }).getAttribute("aria-selected")).toBe("true");
     expect(screen.getByText(/score higher in something like/)).toBeTruthy();
     expect(screen.getByRole("img", { name: "Field jacket + hoodie" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "View Field jacket + hoodie" })).toBeTruthy();
@@ -309,7 +309,7 @@ describe("WardrobeWorkspace", () => {
   it("deep link ?tab=<id> opens that tab; unknown pick falls back to the tab", () => {
     window.history.pushState({}, "", "/?tab=clothes&pick=bogus");
     render(<WardrobeWorkspace />);
-    expect(screen.getByRole("button", { name: "Clothes" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("tab", { name: "Clothes" }).getAttribute("aria-selected")).toBe("true");
     expect(screen.getByRole("button", { name: "Dress model in Graphic 01" }).getAttribute("aria-pressed")).toBe("true");
     expect(screen.queryByText(/score higher/)).toBeNull();
   });

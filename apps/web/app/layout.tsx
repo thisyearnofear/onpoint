@@ -7,7 +7,6 @@ import "./globals.css";
 import "./mobile.css";
 import "./view-transitions.css";
 import { Providers } from "./providers";
-import '@rainbow-me/rainbowkit/styles.css';
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",

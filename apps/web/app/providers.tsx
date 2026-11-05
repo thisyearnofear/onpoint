@@ -16,14 +16,6 @@ if (typeof window === "undefined") {
 
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { WagmiProvider } from "wagmi";
-import {
-  RainbowKitProvider,
-  darkTheme,
-  lightTheme,
-} from "@rainbow-me/rainbowkit";
-import { config } from "../config/wagmi";
-import { AIProviderContext } from "@repo/ai-client";
 import { useState } from "react";
 import { MiniAppProvider } from "@/components/MiniAppProvider";
 import { Auth0Provider } from "@auth0/nextjs-auth0/client";
@@ -31,11 +23,12 @@ import type { User } from "@auth0/nextjs-auth0/types";
 import { SWRConfig } from "swr";
 import { Toaster } from "@/components/toast";
 import { StyleProvider } from "@/lib/context/StyleContext";
-import { MiniPayProvider } from "@/components/MiniPayProvider";
 import { ViewTransitionProvider } from "@/components/ViewTransition";
-import { useResolvedTheme } from "@/lib/hooks/useResolvedTheme";
 
-
+// Root provider stack is intentionally wallet-free: wagmi/RainbowKit/MiniPay
+// are large SDKs that only /lab and /curator/onboard need. They get them via
+// WalletProviders in those routes' layout.tsx — adding a wallet-dependent
+// feature elsewhere means adding a layout there too, not restoring it here.
 
 export function Providers({
   children,
@@ -44,7 +37,6 @@ export function Providers({
   children: React.ReactNode;
   user?: User;
 }) {
-  const theme = useResolvedTheme();
   const [queryClient] = useState(() => new QueryClient());
 
   return (
@@ -71,30 +63,15 @@ export function Providers({
     >
     <Auth0Provider user={user}>
       <QueryClientProvider client={queryClient}>
-        <WagmiProvider config={config}>
-          <MiniAppProvider>
-            <MiniPayProvider>
-              <RainbowKitProvider
-                theme={(theme === "dark" ? darkTheme : lightTheme)({
-                  accentColor: "#7c3aed",
-                  accentColorForeground: "white",
-                  borderRadius: "medium",
-                  fontStack: "system",
-                })}
-              >
-                <AIProviderContext>
-                  <StyleProvider>
-                  <Toaster>
-                    <ViewTransitionProvider>
-                      {children}
-                    </ViewTransitionProvider>
-                  </Toaster>
-                  </StyleProvider>
-                </AIProviderContext>
-              </RainbowKitProvider>
-            </MiniPayProvider>
-          </MiniAppProvider>
-        </WagmiProvider>
+        <MiniAppProvider>
+          <StyleProvider>
+          <Toaster>
+            <ViewTransitionProvider>
+              {children}
+            </ViewTransitionProvider>
+          </Toaster>
+          </StyleProvider>
+        </MiniAppProvider>
       </QueryClientProvider>
     </Auth0Provider>
     </SWRConfig>
