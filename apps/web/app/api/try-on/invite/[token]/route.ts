@@ -18,7 +18,10 @@ export async function POST(
   }
   const upstream = await fetch(`${getApiBase()}/api/ai/virtual-tryon`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(process.env.VENICE_API_KEY ? { "x-api-key": process.env.VENICE_API_KEY } : {}),
+    },
     body: JSON.stringify({
       ...body,
       listingId: invite.listingId,

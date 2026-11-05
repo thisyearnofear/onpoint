@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Check, Shirt } from "lucide-react";
+import { MuseSwap, museFor, clearMuse } from "./MuseSwap";
 import product1 from "../../public/assets/1Product.png";
 import model1 from "../../public/assets/1Model.png";
 import product2 from "../../public/assets/2Product.png";
@@ -36,8 +37,11 @@ const looks = [
 export function HeroVisual() {
   const [selected, setSelected] = useState(0);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [muse, setMuse] = useState<string | null>(null);
   const reduceMotion = useReducedMotion();
   const look = looks[selected]!;
+
+  useEffect(() => setMuse(museFor(look.id)), [look.id]);
 
   useEffect(() => {
     if (reduceMotion || hasInteracted) return;
@@ -103,7 +107,7 @@ export function HeroVisual() {
           <div className="relative overflow-hidden bg-[radial-gradient(circle_at_50%_42%,rgba(255,255,255,0.13),transparent_54%)]">
             <div className="absolute inset-x-5 top-5 z-20 flex items-center justify-between">
               <span className="font-mono text-xs uppercase tracking-[0.18em] text-white/70">
-                Prepared model preview
+                {muse ? "Your muse" : "Prepared model preview"}
               </span>
             </div>
 
@@ -116,15 +120,24 @@ export function HeroVisual() {
                 transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
                 className="absolute inset-x-3 bottom-36 top-12"
               >
-                <Image
-                  src={look.model}
-                  alt={`Model wearing ${look.label}`}
-                  fill
-                  priority
-                  placeholder="blur"
-                  sizes="(min-width: 1024px) 430px, 75vw"
-                  className="object-contain object-bottom drop-shadow-[0_24px_40px_rgba(0,0,0,0.35)]"
-                />
+                {muse ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={muse}
+                    alt="Your muse wearing the look"
+                    className="h-full w-full object-contain object-bottom drop-shadow-[0_24px_40px_rgba(0,0,0,0.35)]"
+                  />
+                ) : (
+                  <Image
+                    src={look.model}
+                    alt={`Model wearing ${look.label}`}
+                    fill
+                    priority
+                    placeholder="blur"
+                    sizes="(min-width: 1024px) 430px, 75vw"
+                    className="object-contain object-bottom drop-shadow-[0_24px_40px_rgba(0,0,0,0.35)]"
+                  />
+                )}
               </motion.div>
             </AnimatePresence>
 
@@ -166,12 +179,36 @@ export function HeroVisual() {
                   <div className="flex items-center gap-1.5 rounded-full border border-amber-200/20 bg-amber-200/10 px-2.5 py-1.5 text-xs font-bold uppercase tracking-wide text-amber-100">
                     <Check className="h-3 w-3" /> On model
                   </div>
-                  <Link
-                    href="/lab?tab=try-on&from=nia"
-                    className="shrink-0 text-xs font-bold text-fuchsia-200 underline-offset-2 hover:underline"
-                  >
-                    Use my photo
-                  </Link>
+                  <span className="flex shrink-0 items-center gap-3">
+                    {muse ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          clearMuse(look.id);
+                          setMuse(null);
+                        }}
+                        className="text-xs font-bold text-white/60 underline-offset-2 hover:underline"
+                      >
+                        Back to demo
+                      </button>
+                    ) : (
+                      <MuseSwap
+                        lookId={look.id}
+                        garmentImageUrl={
+                          typeof window !== "undefined"
+                            ? `${window.location.origin}${look.product.src}`
+                            : look.product.src
+                        }
+                        onDone={setMuse}
+                      />
+                    )}
+                    <Link
+                      href="/lab?tab=try-on&from=nia"
+                      className="text-xs font-bold text-fuchsia-200 underline-offset-2 hover:underline"
+                    >
+                      Use my photo
+                    </Link>
+                  </span>
                 </div>
               </div>
             </motion.div>
