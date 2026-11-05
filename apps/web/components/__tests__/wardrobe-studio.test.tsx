@@ -18,6 +18,12 @@ vi.mock("next/image", () => ({
   },
 }));
 
+// The outfits tab's live browse fetches the API; its own suite covers it. Here we
+// only need to know it sits above the studio references section.
+vi.mock("../wardrobe/LiveLooks", () => ({
+  LiveLooks: () => React.createElement("h3", null, "Live looks"),
+}));
+
 const openGalleryItem = (name: string) =>
   fireEvent.click(screen.getAllByRole("button", { name: `View ${name}` })[0]);
 
@@ -152,13 +158,21 @@ describe("WardrobeWorkspace", () => {
     expect(screen.getAllByRole("button", { name: /^View / }).length).toBe(3);
     expect(screen.queryByRole("button", { name: "Work" })).toBeNull();
 
+    // Outfit ideas is the live-looks surface: the studio occasion filter does not
+    // apply to it, and the studio outfits are a labelled reference section below.
     fireEvent.click(screen.getByRole("tab", { name: "Outfit ideas" }));
-    fireEvent.click(screen.getByRole("button", { name: "Work" }));
-    const workCount = STUDIO_ITEMS.filter((i) => i.kind === "outfit" && i.tags.some((t) => ["business", "office", "work"].includes(t))).length;
-    expect(screen.getAllByRole("button", { name: /^View / }).length).toBe(Math.min(workCount, 12));
+    expect(screen.queryByRole("button", { name: "Work" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Live looks" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Studio references" })).toBeTruthy();
+    const outfitCount = STUDIO_ITEMS.filter((i) => i.kind === "outfit").length;
+    expect(screen.getAllByRole("button", { name: /^View / }).length).toBe(Math.min(12, outfitCount));
+    if (outfitCount > 12) {
+      expect(screen.getByText(`Load more (${outfitCount - 12} left)`)).toBeTruthy();
+    }
 
-    fireEvent.click(screen.getByRole("button", { name: "All occasions" }));
     fireEvent.click(screen.getByRole("tab", { name: "All" }));
+    fireEvent.click(screen.getByRole("button", { name: "Work" }));
+    fireEvent.click(screen.getByRole("button", { name: "All occasions" }));
     expect(screen.getByText(`Showing 12 of ${STUDIO_ITEMS.length}`)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Load more/ }));
     expect(screen.getAllByRole("button", { name: /^View / }).length).toBe(24);
@@ -183,7 +197,6 @@ describe("WardrobeWorkspace", () => {
     fireEvent.click(late);
     fireEvent.change(screen.getByLabelText("Search pieces"), { target: { value: "zzz-no-match" } });
     fireEvent.click(screen.getByRole("button", { name: "Work" }));
-    fireEvent.click(screen.getByRole("tab", { name: "Outfit ideas" }));
     expect(screen.queryAllByRole("button", { name: /^View / }).length).toBe(0);
     fireEvent.click(screen.getByRole("button", { name: /Undo/ }));
     expect((screen.getByLabelText("Search pieces") as HTMLInputElement).value).toBe("");

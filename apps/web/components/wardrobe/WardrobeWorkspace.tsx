@@ -13,6 +13,12 @@ import {
   type StudioItem,
 } from "../../lib/wardrobe-studio";
 import { useStyleHearts } from "../../lib/stores/style-board-hearts";
+import { LiveLooks } from "./LiveLooks";
+import {
+  DEFAULT_LIVE_LOOKS_FILTERS,
+  readLiveLooksFilters,
+  type LiveLooksFilters,
+} from "../../lib/looks/params";
 import styles from "./WardrobeWorkspace.module.css";
 
 type StudioTab = "all" | "clothes" | "outfits" | "saved";
@@ -128,6 +134,7 @@ export function WardrobeWorkspace() {
   const [storageOk, setStorageOk] = useState(true);
   const [status, setStatus] = useState("");
   const [pickNotice, setPickNotice] = useState<string | null>(null);
+  const [liveFilters, setLiveFilters] = useState<LiveLooksFilters>(DEFAULT_LIVE_LOOKS_FILTERS);
   const [hydrated, setHydrated] = useState(false);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const galleryRef = useRef<HTMLDivElement | null>(null);
@@ -149,6 +156,7 @@ export function WardrobeWorkspace() {
     // Deep links: ?tab=<tab-id> picks the gallery tab; ?pick=<item-id> selects the
     // item on stage (the /style-board redirect forwards both).
     const params = new URLSearchParams(window.location.search);
+    setLiveFilters(readLiveLooksFilters(params));
     const pick = studioItemById(params.get("pick"));
     const requestedTab = params.get("tab");
     if (pick) {
@@ -190,6 +198,13 @@ export function WardrobeWorkspace() {
   }, [tab, query, occasion, savedIds]);
 
   const visible = filtered.slice(0, limit);
+
+  // On the outfits tab the studio references are a labelled sample section under the
+  // live looks, so they show the outfit set rather than the shared occasion filter.
+  const studioOutfits = useMemo(
+    () => STUDIO_ITEMS.filter((item) => item.kind === "outfit"),
+    [],
+  );
 
   const resetBrowse = () => setLimit(PAGE);
 
@@ -458,61 +473,95 @@ export function WardrobeWorkspace() {
           </div>
 
           <div className={styles.galleryCol} ref={galleryRef}>
-            <div className={styles.searchRow}>
-              <label className="sr-only" htmlFor="studio-search">Search pieces</label>
-              <input
-                id="studio-search"
-                className={styles.search}
-                type="search"
-                placeholder="Search pieces and tags"
-                value={query}
-                onChange={(e) => { setQuery(e.target.value); resetBrowse(); }}
-              />
-              <span className={styles.count}>
-                {tab === "saved" ? `${savedIds.length} saved` : `Showing ${visible.length} of ${filtered.length}`}
-              </span>
-            </div>
+            {tab === "outfits" ? (
+              <div className="flex flex-col gap-10">
+                <LiveLooks filters={liveFilters} onFiltersChange={setLiveFilters} />
 
-            {tab !== "clothes" && (
-              <div className={styles.occasions} aria-label="Occasion filters">
-                {OCCASIONS.map((o) => (
-                  <button
-                    key={o.id}
-                    type="button"
-                    className={`${styles.occasion}${occasion === o.id ? ` ${styles.active}` : ""}`}
-                    aria-pressed={occasion === o.id}
-                    onClick={() => { setOccasion(o.id); resetBrowse(); }}
-                  >
-                    {o.label}
-                  </button>
-                ))}
+                <div>
+                  <h3 className="text-base font-bold leading-tight">Studio references</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Outfit ideas we prepared on our own models — references, not items for sale.
+                  </p>
+                  <div className={`${styles.gallery} mt-4`} aria-label="Studio outfit references">
+                    {studioOutfits.slice(0, limit).map((item) => (
+                      <GalleryItem
+                        key={item.id}
+                        item={item}
+                        selected={selected.id === item.id}
+                        onOpen={(id) => choose(id, true)}
+                      />
+                    ))}
+                  </div>
+                  {studioOutfits.length > limit && (
+                    <button
+                      type="button"
+                      className={styles.loadMore}
+                      onClick={() => setLimit((l) => l + PAGE)}
+                    >
+                      Load more ({studioOutfits.length - limit} left)
+                    </button>
+                  )}
+                </div>
               </div>
-            )}
-
-            {tab === "saved" && savedIds.length === 0 ? (
-              <div className={styles.empty}>
-                <p>Nothing saved yet — the pieces you keep will wait for you here.</p>
-                <button type="button" className={`${styles.loadMore} mt-3`} onClick={() => { setTab("all"); clearFilters(); }}>Browse all</button>
-              </div>
-            ) : savedEmptyFiltered ? (
-              <div className={styles.empty}>
-                <p>Nothing matches those filters — try widening.</p>
-                <button type="button" className={`${styles.loadMore} mt-3`} onClick={clearFilters}>Clear filters</button>
-              </div>
-            ) : filtered.length === 0 ? (
-              <p className={styles.empty}>Nothing matches — try widening.</p>
             ) : (
-              <div className={styles.gallery} aria-label="Wardrobe items">
-                {visible.map((item) => (
-                  <GalleryItem key={item.id} item={item} selected={selected.id === item.id} onOpen={(id) => choose(id, true)} />
-                ))}
-              </div>
-            )}
+              <>
+                <div className={styles.searchRow}>
+                  <label className="sr-only" htmlFor="studio-search">Search pieces</label>
+                  <input
+                    id="studio-search"
+                    className={styles.search}
+                    type="search"
+                    placeholder="Search pieces and tags"
+                    value={query}
+                    onChange={(e) => { setQuery(e.target.value); resetBrowse(); }}
+                  />
+                  <span className={styles.count}>
+                    {tab === "saved" ? `${savedIds.length} saved` : `Showing ${visible.length} of ${filtered.length}`}
+                  </span>
+                </div>
 
-            {filtered.length > visible.length && (
-              <button type="button" className={styles.loadMore} onClick={() => setLimit((l) => l + PAGE)}>
-                Load more ({filtered.length - visible.length} left)
-              </button>
+                {tab !== "clothes" && (
+                  <div className={styles.occasions} aria-label="Occasion filters">
+                    {OCCASIONS.map((o) => (
+                      <button
+                        key={o.id}
+                        type="button"
+                        className={`${styles.occasion}${occasion === o.id ? ` ${styles.active}` : ""}`}
+                        aria-pressed={occasion === o.id}
+                        onClick={() => { setOccasion(o.id); resetBrowse(); }}
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {tab === "saved" && savedIds.length === 0 ? (
+                  <div className={styles.empty}>
+                    <p>Nothing saved yet — the pieces you keep will wait for you here.</p>
+                    <button type="button" className={`${styles.loadMore} mt-3`} onClick={() => { setTab("all"); clearFilters(); }}>Browse all</button>
+                  </div>
+                ) : savedEmptyFiltered ? (
+                  <div className={styles.empty}>
+                    <p>Nothing matches those filters — try widening.</p>
+                    <button type="button" className={`${styles.loadMore} mt-3`} onClick={clearFilters}>Clear filters</button>
+                  </div>
+                ) : filtered.length === 0 ? (
+                  <p className={styles.empty}>Nothing matches — try widening.</p>
+                ) : (
+                  <div className={styles.gallery} aria-label="Wardrobe items">
+                    {visible.map((item) => (
+                      <GalleryItem key={item.id} item={item} selected={selected.id === item.id} onOpen={(id) => choose(id, true)} />
+                    ))}
+                  </div>
+                )}
+
+                {filtered.length > visible.length && (
+                  <button type="button" className={styles.loadMore} onClick={() => setLimit((l) => l + PAGE)}>
+                    Load more ({filtered.length - visible.length} left)
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
