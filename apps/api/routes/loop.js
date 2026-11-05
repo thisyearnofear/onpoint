@@ -12,6 +12,7 @@ const { desc } = require('drizzle-orm');
 const { loopCaptures, coupleCards } = require('@repo/db');
 const { getDb } = require('../lib/db');
 const { logFunnelEvent } = require('../lib/funnel');
+const { sendMessage } = require('../lib/linq-client');
 const logger = require('../lib/logger');
 
 const router = express.Router();
@@ -44,7 +45,7 @@ const CHANNEL_RE = { whatsapp: /^\+?[\d\s-]{7,20}$/, email: /^[^@\s]+@[^@\s]+\.[
 
 router.post('/capture', async (req, res) => {
   try {
-    const { channel, contact, source, ref } = req.body || {};
+    const { channel, contact, source, ref, url } = req.body || {};
     const c = String(channel || '');
     const value = String(contact || '').trim().slice(0, 120);
     if (!CHANNEL_RE[c] || !CHANNEL_RE[c].test(value)) {
@@ -54,7 +55,24 @@ router.post('/capture', async (req, res) => {
     const db = getDb();
     await db.insert(loopCaptures).values({ channel: c, contact: value, source: src, ref: ref ? String(ref).slice(0, 120) : null });
     await logFunnelEvent(db, { eventType: 'loop_capture', source: 'web', metadata: { channel: c, src } });
-    res.json({ ok: true });
+    // Outbound: phone contacts get the artifact via iMessage (Linq rail).
+    // Email contacts are captured for a future send rail — no provider yet.
+    let sent = false;
+    const artifactUrl = url ? String(url).slice(0, 500) : null;
+    if (c === 'whatsapp' && artifactUrl) {
+      try {
+        await sendMessage({
+          to: value,
+          text: 'Your OnPoint look is ready',
+          linkUrl: artifactUrl,
+          idempotencyKey: `capture-${src}-${value.slice(-6)}`,
+        });
+        sent = true;
+      } catch (sendErr) {
+        logger.warn('capture send failed', { route: 'loop', src }, sendErr);
+      }
+    }
+    res.json({ ok: true, sent });
   } catch (err) {
     logger.error('loop capture failed', { route: 'loop' }, err);
     res.status(500).json({ error: 'Internal server error' });

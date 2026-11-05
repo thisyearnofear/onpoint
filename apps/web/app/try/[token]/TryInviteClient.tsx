@@ -4,13 +4,13 @@ import React, { useRef, useState } from "react";
 import { Camera, Loader2 } from "lucide-react";
 import { SaveItemButton } from "@/components/SaveItemButton";
 
-function CaptureOptIn({ source }: { source: string }) {
+function CaptureOptIn({ source, url }: { source: string; url?: string | null }) {
   const [value, setValue] = useState("");
   const [done, setDone] = useState(false);
   const submit = async () => {
     const channel = value.includes("@") ? "email" : "whatsapp";
     if (!value.trim()) return;
-    const res = await fetch("/api/loop/capture", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ channel, contact: value, source }) });
+    const res = await fetch("/api/loop/capture", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ channel, contact: value, source, url }) });
     if (res.ok) setDone(true);
   };
   if (done) return <p className="mt-3 text-xs font-bold text-success">We&apos;ll send it to you.</p>;
@@ -101,7 +101,7 @@ export function TryInviteClient({
             <SaveItemButton item={{ listingId, curatorSlug: curatorSlug || null, title: title || null, imageUrl: listingImageUrl }} />
           )}
         </div>
-        <CaptureOptIn source="try-invite" />
+        <CaptureOptIn source="try-invite" url={resultUrl} />
       </div>
     );
   }
