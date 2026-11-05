@@ -261,7 +261,7 @@ export function TryOnResult({
                   className="object-cover transition-opacity duration-300"
                 />
                 {isApproximation && (
-                  <div className="absolute top-2 left-2 rounded-md bg-black/70 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-300 backdrop-blur-sm">
+                  <div className="absolute top-2 left-2 rounded-md bg-black/70 px-2 py-1 text-xs font-bold uppercase tracking-wide text-amber-300 backdrop-blur-sm">
                     AI Similar-Look Preview
                   </div>
                 )}

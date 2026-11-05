@@ -339,13 +339,13 @@ export function AnalysisResults({
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="rounded-xl border border-border bg-muted/20 p-3">
               <User className="h-4 w-4 text-primary" />
-              <p className="mt-2 text-[10px] uppercase tracking-wide text-muted-foreground">Profile</p>
+              <p className="mt-2 text-xs uppercase tracking-wide text-muted-foreground">Profile</p>
               <p className="text-sm font-semibold">{bodyType}</p>
             </div>
             {Object.entries(analysis.measurements).slice(0, 2).map(([key, value]) => (
               <div key={key} className="rounded-xl border border-border bg-muted/20 p-3">
                 <Ruler className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
-                <p className="mt-2 text-[10px] uppercase tracking-wide text-muted-foreground capitalize">
+                <p className="mt-2 text-xs uppercase tracking-wide text-muted-foreground capitalize">
                   {key}
                 </p>
                 <p className="truncate text-sm font-semibold">{value || "Balanced"}</p>
@@ -390,7 +390,7 @@ export function AnalysisResults({
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-sm font-semibold">{personaStyle.characterName}</p>
-                  <Badge variant="outline" className="text-[10px]">
+                  <Badge variant="outline" className="text-xs">
                     Shareable take
                   </Badge>
                 </div>
@@ -417,7 +417,7 @@ export function AnalysisResults({
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-sm font-semibold">{curatorName}'s handoff</p>
-                  <Badge variant="outline" className="text-[10px]">
+                  <Badge variant="outline" className="text-xs">
                     Human curator
                   </Badge>
                 </div>
@@ -427,7 +427,7 @@ export function AnalysisResults({
                 </p>
                 {selectedGarment?.name && (
                   <div className="mt-3 rounded-xl border border-border bg-muted/25 p-3">
-                    <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       Current piece
                     </p>
                     <p className="mt-1 text-sm font-semibold">{selectedGarment.name}</p>
@@ -480,7 +480,7 @@ export function AnalysisResults({
               )}
             </button>
             {!saved && (
-              <label className="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-transparent text-[10px] text-muted-foreground/60 cursor-pointer hover:text-muted-foreground hover:border-border/40 transition-all">
+              <label className="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-transparent text-xs text-muted-foreground/60 cursor-pointer hover:text-muted-foreground hover:border-border/40 transition-all">
                 <input
                   type="checkbox"
                   checked={shareToCommunity}
@@ -581,7 +581,7 @@ function InsightCard({
           {title}
         </h4>
         {items.length > 1 && (
-          <button onClick={onToggle} className="text-[10px] font-medium underline-offset-2 hover:underline">
+          <button onClick={onToggle} className="text-xs font-medium underline-offset-2 hover:underline">
             {expanded ? "Less" : `+${items.length - 1}`}
           </button>
         )}

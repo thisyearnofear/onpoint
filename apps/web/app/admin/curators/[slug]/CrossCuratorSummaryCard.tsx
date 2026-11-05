@@ -180,7 +180,7 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
           <p className="mt-1 text-xl font-black tabular-nums">
             {report.crossRecoClicks.toLocaleString()}
           </p>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {clickToVisitRate} click → visit
           </p>
         </div>
@@ -195,7 +195,7 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
               .reduce((a, b) => a + b, 0)
               .toLocaleString()}
           </p>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             From other storefronts
           </p>
         </div>
@@ -210,7 +210,7 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
           <p className="mt-1 text-xl font-black tabular-nums">
             {totalAttributedPurchases.toLocaleString()}
           </p>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Traced to cross-curator referrals
           </p>
         </div>
@@ -274,7 +274,7 @@ export function CrossCuratorSummaryCard({ slug }: { slug: string }) {
                   key={sourceSlug}
                   className="flex items-center gap-2 rounded-lg border border-border bg-muted/25 px-3 py-2"
                 >
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-success/10 text-[10px] font-bold text-success">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-success/10 text-xs font-bold text-success">
                     {count}
                   </div>
                   <span className="text-xs font-medium capitalize">

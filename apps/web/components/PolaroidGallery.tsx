@@ -156,13 +156,13 @@ function PolaroidCard({
 
         {/* Caption area (polaroid bottom) */}
         <div className="absolute bottom-0 left-0 right-0 px-3 pb-2.5 pt-1">
-          <p className="text-zinc-800 dark:text-zinc-100 text-[11px] font-medium leading-tight line-clamp-2">
+          <p className="text-zinc-800 dark:text-zinc-100 text-xs font-medium leading-tight line-clamp-2">
             {session.headline || "Style analysis"}
           </p>
           <div className="flex items-center justify-between mt-1">
-            <span className="text-zinc-400 dark:text-zinc-500 text-[10px]">{dateLabel}</span>
+            <span className="text-zinc-400 dark:text-zinc-500 text-xs">{dateLabel}</span>
             {session.sessionGoal && (
-              <span className="text-zinc-500 dark:text-zinc-400 text-[9px] capitalize bg-zinc-100 dark:bg-zinc-700 px-1.5 py-0.5 rounded-full">
+              <span className="text-zinc-500 dark:text-zinc-400 text-xs capitalize bg-zinc-100 dark:bg-zinc-700 px-1.5 py-0.5 rounded-full">
                 {session.sessionGoal}
               </span>
             )}
@@ -423,9 +423,9 @@ function CompareView({
                     <p className="text-xs font-medium text-foreground truncate">
                       {session.headline}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">{dateLabel}</p>
+                    <p className="text-xs text-muted-foreground">{dateLabel}</p>
                     {session.persona && (
-                      <span className="text-[9px] capitalize text-primary font-medium">
+                      <span className="text-xs capitalize text-primary font-medium">
                         {session.persona}
                       </span>
                     )}
@@ -437,7 +437,7 @@ function CompareView({
 
           {/* Score comparison */}
           <div className="rounded-xl border border-border bg-muted/30 p-4">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
               Score Comparison
             </p>
             <div className="flex items-center justify-center gap-6">
@@ -461,7 +461,7 @@ function CompareView({
           {/* Takeaways comparison */}
           {allTakeaways.length > 0 && (
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
                 Feedback comparison
               </p>
               <div className="space-y-2">
@@ -482,9 +482,9 @@ function CompareView({
                       {inLeft && inRight ? (
                         <span className="text-emerald-400 shrink-0 mt-0.5">Both</span>
                       ) : inLeft ? (
-                        <span className="text-primary shrink-0 mt-0.5 text-[10px] font-bold">Left only</span>
+                        <span className="text-primary shrink-0 mt-0.5 text-xs font-bold">Left only</span>
                       ) : (
-                        <span className="text-accent shrink-0 mt-0.5 text-[10px] font-bold">Right only</span>
+                        <span className="text-accent shrink-0 mt-0.5 text-xs font-bold">Right only</span>
                       )}
                       <span className="text-foreground/80 leading-relaxed">{takeaway}</span>
                     </div>
@@ -497,14 +497,14 @@ function CompareView({
           {/* Topics */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
                 Left topics
               </p>
               <div className="flex flex-wrap gap-1">
                 {left.topics.slice(0, 3).map((t, i) => (
                   <span
                     key={i}
-                    className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary"
+                    className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary"
                   >
                     {t}
                   </span>
@@ -512,14 +512,14 @@ function CompareView({
               </div>
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
                 Right topics
               </p>
               <div className="flex flex-wrap gap-1">
                 {right.topics.slice(0, 3).map((t, i) => (
                   <span
                     key={i}
-                    className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] text-accent"
+                    className="rounded-full bg-accent/10 px-2 py-0.5 text-xs text-accent"
                   >
                     {t}
                   </span>
@@ -659,11 +659,11 @@ export function PolaroidGallery({
                   }`}
                 >
                   {isCompareSelected ? (
-                    <span className="text-[10px] font-bold">
+                    <span className="text-xs font-bold">
                       {compareSelection.indexOf(session.id) + 1}
                     </span>
                   ) : (
-                    <span className="text-[10px]">+</span>
+                    <span className="text-xs">+</span>
                   )}
                 </button>
               )}

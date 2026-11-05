@@ -270,7 +270,7 @@ export function StyleReportCard({
               <div>
                 <h3 className="text-white font-bold text-sm">Style Report</h3>
                 <p
-                  className={`${personaStyle.accent} text-[10px] font-mono uppercase tracking-widest`}
+                  className={`${personaStyle.accent} text-xs font-mono uppercase tracking-widest`}
                 >
                   {personaStyle.characterName}
                 </p>
@@ -278,7 +278,7 @@ export function StyleReportCard({
             </div>
             <div className="flex items-center gap-1">
               <Sparkles className="w-4 h-4 text-amber-400" />
-              <span className="text-[10px] text-amber-400 font-bold">
+              <span className="text-xs text-amber-400 font-bold">
                 OnPoint
               </span>
             </div>
@@ -298,7 +298,7 @@ export function StyleReportCard({
               <div className="absolute bottom-3 left-3 right-3">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-                  <span className="text-[10px] text-white/80 font-mono">
+                  <span className="text-xs text-white/80 font-mono">
                     Proof of Style
                   </span>
                 </div>
@@ -313,7 +313,7 @@ export function StyleReportCard({
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", damping: 10, stiffness: 100 }}
-                className="text-7xl font-black text-white italic tracking-tighter tabular-nums drop-shadow-2xl"
+                className="text-7xl font-black text-white tracking-tighter tabular-nums drop-shadow-2xl"
               >
                 {score}
               </motion.div>
@@ -329,7 +329,7 @@ export function StyleReportCard({
               transition={{ delay: 0.3 }}
               className="mt-3 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 inline-block"
             >
-              <span className="text-[10px] font-bold text-white uppercase tracking-widest">
+              <span className="text-xs font-bold text-white uppercase tracking-widest">
                 {getScoreTier(score)}
               </span>
             </motion.div>
@@ -338,14 +338,14 @@ export function StyleReportCard({
           {/* Topics */}
           {topics.length > 0 && (
             <div className="space-y-2">
-              <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">
+              <p className="text-xs text-white/40 font-bold uppercase tracking-widest">
                 Analysis Focus
               </p>
               <div className="flex flex-wrap gap-2">
                 {topics.slice(0, 4).map((topic, i) => (
                   <span
                     key={i}
-                    className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-[10px] text-white/70"
+                    className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-white/70"
                   >
                     {topic}
                   </span>
@@ -358,13 +358,13 @@ export function StyleReportCard({
           {takeaways.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">
+                <p className="text-xs text-white/40 font-bold uppercase tracking-widest">
                   Stylist Feedback
                 </p>
                 {hasMoreTakeaways && (
                   <button
                     onClick={() => setShowAllTakeaways(!showAllTakeaways)}
-                    className="text-[10px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
+                    className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
                   >
                     {showAllTakeaways ? (
                       <>
@@ -420,7 +420,7 @@ export function StyleReportCard({
               >
                 <div className="flex items-center gap-2">
                   <FileText className="w-3 h-3 text-white/40" />
-                  <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">
+                  <p className="text-xs text-white/40 font-bold uppercase tracking-widest">
                     Full Session Log ({fullFeedback.length} entries)
                   </p>
                 </div>
@@ -453,12 +453,12 @@ export function StyleReportCard({
                               className={`w-3 h-3 mt-0.5 shrink-0 ${config.color}`}
                             />
                             <div className="flex-1 min-w-0">
-                              <p className="text-[10px] text-white/60 leading-snug">
+                              <p className="text-xs text-white/60 leading-snug">
                                 {feedback.text}
                               </p>
                             </div>
                             <span
-                              className={`text-[8px] ${config.color} uppercase tracking-wider shrink-0 mt-0.5`}
+                              className={`text-xs ${config.color} uppercase tracking-wider shrink-0 mt-0.5`}
                             >
                               {config.label}
                             </span>
@@ -469,7 +469,7 @@ export function StyleReportCard({
 
                     <button
                       onClick={handleDownloadFeedback}
-                      className="w-full mt-2 text-center text-[10px] text-indigo-400 hover:text-indigo-300 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-indigo-500/5 hover:bg-indigo-500/10 transition-colors"
+                      className="w-full mt-2 text-center text-xs text-indigo-400 hover:text-indigo-300 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-indigo-500/5 hover:bg-indigo-500/10 transition-colors"
                     >
                       <Download className="w-3 h-3" />
                       Download Full Feedback
@@ -484,7 +484,7 @@ export function StyleReportCard({
           {sessionGoal && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
               <div className="w-2 h-2 rounded-full bg-indigo-500" />
-              <span className="text-[10px] text-indigo-300 font-medium">
+              <span className="text-xs text-indigo-300 font-medium">
                 Goal: {sessionGoal}
               </span>
             </div>
@@ -492,7 +492,7 @@ export function StyleReportCard({
 
           {/* QR / Link Hint */}
           <div className="text-center">
-            <p className="text-[9px] text-white/30 font-mono">
+            <p className="text-xs text-white/30 font-mono">
               OnPoint &bull; {new Date().toLocaleDateString()}
             </p>
           </div>
@@ -515,7 +515,7 @@ export function StyleReportCard({
                 size="sm"
                 onClick={handleShareFarcaster}
                 disabled={isSharingFarcaster}
-                className="text-white/60 hover:text-white hover:bg-white/5 rounded-xl text-[10px] flex flex-col gap-1 py-3"
+                className="text-white/60 hover:text-white hover:bg-white/5 rounded-xl text-xs flex flex-col gap-1 py-3"
               >
                 {isSharingFarcaster ? (
                   <Sparkles className="w-3.5 h-3.5 animate-spin" />
@@ -528,7 +528,7 @@ export function StyleReportCard({
                 variant="ghost"
                 size="sm"
                 onClick={handleShareTwitter}
-                className="text-white/60 hover:text-white hover:bg-white/5 rounded-xl text-[10px] flex flex-col gap-1 py-3"
+                className="text-white/60 hover:text-white hover:bg-white/5 rounded-xl text-xs flex flex-col gap-1 py-3"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
                 Twitter
@@ -538,7 +538,7 @@ export function StyleReportCard({
                 size="sm"
                 onClick={handleDownload}
                 disabled={isSharing}
-                className="text-white/60 hover:text-white hover:bg-white/5 rounded-xl text-[10px] flex flex-col gap-1 py-3"
+                className="text-white/60 hover:text-white hover:bg-white/5 rounded-xl text-xs flex flex-col gap-1 py-3"
               >
                 {isSharing ? (
                   <Sparkles className="w-3.5 h-3.5 animate-spin" />
@@ -581,7 +581,7 @@ export function StyleReportCard({
                   setEmailSending(false);
                 }
               }}
-              className="w-full text-white/40 hover:text-white hover:bg-white/5 rounded-xl text-[10px]"
+              className="w-full text-white/40 hover:text-white hover:bg-white/5 rounded-xl text-xs"
             >
               {emailSending ? (
                 <>
@@ -611,7 +611,7 @@ export function StyleReportCard({
               variant="ghost"
               size="sm"
               onClick={handleCopy}
-              className="w-full text-white/40 hover:text-white hover:bg-white/5 rounded-xl text-[10px]"
+              className="w-full text-white/40 hover:text-white hover:bg-white/5 rounded-xl text-xs"
             >
               {copied ? (
                 <>
@@ -630,7 +630,7 @@ export function StyleReportCard({
           {/* Close */}
           <button
             onClick={onClose}
-            className="w-full text-center text-[10px] text-white/30 hover:text-white/60 transition-colors pt-2 pb-1"
+            className="w-full text-center text-xs text-white/30 hover:text-white/60 transition-colors pt-2 pb-1"
           >
             Close
           </button>

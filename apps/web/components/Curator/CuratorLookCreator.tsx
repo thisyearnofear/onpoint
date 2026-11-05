@@ -306,7 +306,7 @@ export function CuratorLookCreator({
                   ariaLabel="Add look tag"
                   maxTags={8}
                 />
-                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                <p className="mt-1.5 text-xs text-muted-foreground">
                   Press Enter or comma to add a tag. Used for filtering on the /looks page.
                 </p>
               </div>
@@ -352,7 +352,7 @@ export function CuratorLookCreator({
                       <button
                         type="button"
                         onClick={clearCoverImage}
-                        className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
                       >
                         <X className="h-3 w-3" />
                         Remove
@@ -360,7 +360,7 @@ export function CuratorLookCreator({
                     )}
                   </div>
                 </div>
-                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                <p className="mt-1.5 text-xs text-muted-foreground">
                   {isEditMode
                     ? "Upload a new image to replace the current cover."
                     : "Shown as the card image on the /looks page (overrides the hero item image)."}
@@ -413,7 +413,7 @@ export function CuratorLookCreator({
                           <button
                             type="button"
                             onClick={() => setHeroId(listing.id)}
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase transition-colors ${
+                            className={`rounded-full px-2 py-0.5 text-xs font-bold uppercase transition-colors ${
                               isHero
                                 ? "bg-foreground text-background"
                                 : "border border-border text-muted-foreground hover:bg-muted"
@@ -431,7 +431,7 @@ export function CuratorLookCreator({
                     </p>
                   )}
                 </div>
-                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                <p className="mt-1.5 text-xs text-muted-foreground">
                   Pick at least 2 items. The hero piece gets the try-on render.
                 </p>
               </div>
@@ -464,7 +464,7 @@ export function CuratorLookCreator({
                       {parsedTags.slice(0, 3).map((tag) => (
                         <span
                           key={tag}
-                          className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium capitalize text-muted-foreground"
+                          className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium capitalize text-muted-foreground"
                         >
                           {tag}
                         </span>

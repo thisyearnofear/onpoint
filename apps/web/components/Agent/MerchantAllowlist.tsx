@@ -90,7 +90,7 @@ export function MerchantAllowlist() {
               <p className="text-xs font-bold text-foreground">
                 Trusted Merchants
               </p>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {merchants.length > 0
                   ? `${merchants.length} approved store${merchants.length > 1 ? "s" : ""}`
                   : "Auto-buy from approved stores only"}
@@ -115,7 +115,7 @@ export function MerchantAllowlist() {
                   className="flex items-center gap-2 rounded-lg bg-background/35 px-2.5 py-1.5"
                 >
                   <Globe className="h-3 w-3 text-sky-400 flex-shrink-0" />
-                  <span className="text-[11px] text-foreground flex-1 truncate">
+                  <span className="text-xs text-foreground flex-1 truncate">
                     {merchant}
                   </span>
                   <button
@@ -141,12 +141,12 @@ export function MerchantAllowlist() {
             }}
             placeholder="e.g. grailed.com"
             disabled={adding}
-            className="flex-1 bg-muted/30 border border-border/50 rounded-lg px-2.5 py-1.5 text-[11px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-sky-500/30 disabled:opacity-50"
+            className="flex-1 bg-muted/30 border border-border/50 rounded-lg px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-sky-500/30 disabled:opacity-50"
           />
           <button
             onClick={addMerchant}
             disabled={adding || !input.trim()}
-            className="flex items-center gap-1 px-2.5 py-1.5 bg-sky-500/20 text-sky-300 rounded-lg border border-sky-500/30 hover:bg-sky-500/30 transition-colors disabled:opacity-50 text-[10px] font-medium"
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-sky-500/20 text-sky-300 rounded-lg border border-sky-500/30 hover:bg-sky-500/30 transition-colors disabled:opacity-50 text-xs font-medium"
           >
             {adding ? (
               <Loader2 className="h-3 w-3 animate-spin" />
@@ -160,7 +160,7 @@ export function MerchantAllowlist() {
         </div>
 
         {merchants.length === 0 && !loading && (
-          <p className="text-[9px] text-muted-foreground mt-2">
+          <p className="text-xs text-muted-foreground mt-2">
             The agent will only auto-purchase from merchants on this list.
             Purchases from other stores require your approval.
           </p>

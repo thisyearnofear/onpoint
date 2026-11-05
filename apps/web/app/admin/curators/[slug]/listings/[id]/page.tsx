@@ -382,7 +382,7 @@ export default function ListingDetailPage({
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-bold">Photos</h2>
               {photoKeys.length > 1 && (
-                <span className="text-[10px] text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   Drag to reorder
                 </span>
               )}
@@ -452,7 +452,7 @@ export default function ListingDetailPage({
 
                         {/* Hover overlay */}
                         <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/0 transition-colors group-hover:bg-black/40">
-                          <span className="rounded-full bg-black/60 px-2 py-0.5 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100">
+                          <span className="rounded-full bg-black/60 px-2 py-0.5 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
                             Photo {i + 1}
                           </span>
                           <button
@@ -460,7 +460,7 @@ export default function ListingDetailPage({
                               e.preventDefault();
                               setDeletingKey(key);
                             }}
-                            className="inline-flex items-center gap-1 rounded-full bg-error/80 px-2.5 py-1 text-[10px] font-medium text-white opacity-0 transition-all hover:bg-error group-hover:opacity-100"
+                            className="inline-flex items-center gap-1 rounded-full bg-error/80 px-2.5 py-1 text-xs font-medium text-white opacity-0 transition-all hover:bg-error group-hover:opacity-100"
                             title="Delete photo"
                           >
                             <Trash2 className="h-3 w-3" />
@@ -571,7 +571,7 @@ export default function ListingDetailPage({
                     className="flex flex-wrap items-end gap-2 sm:gap-3 rounded-lg border border-border bg-muted/30 p-2.5 sm:p-3"
                   >
                     <div className="w-14 sm:w-16">
-                      <label className="mb-1 block text-[10px] font-medium text-muted-foreground uppercase">
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground uppercase">
                         Size
                       </label>
                       <input
@@ -583,7 +583,7 @@ export default function ListingDetailPage({
                       />
                     </div>
                     <div className="flex-1 min-w-[70px] sm:min-w-[80px]">
-                      <label className="mb-1 block text-[10px] font-medium text-muted-foreground uppercase">
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground uppercase">
                         Price (KES)
                       </label>
                       <input
@@ -595,7 +595,7 @@ export default function ListingDetailPage({
                       />
                     </div>
                     <div className="w-16 sm:w-20">
-                      <label className="mb-1 block text-[10px] font-medium text-muted-foreground uppercase">
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground uppercase">
                         Stock
                       </label>
                       <input
@@ -607,7 +607,7 @@ export default function ListingDetailPage({
                       />
                     </div>
                     <div className="min-w-[132px] flex-1">
-                      <label className="mb-1 block text-[10px] font-medium text-muted-foreground uppercase">
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground uppercase">
                         Printing
                       </label>
                       <button
@@ -624,7 +624,7 @@ export default function ListingDetailPage({
                     </div>
                     {s.printingAvailable && (
                       <div className="w-24 sm:w-28">
-                        <label className="mb-1 block text-[10px] font-medium text-muted-foreground uppercase">
+                        <label className="mb-1 block text-xs font-medium text-muted-foreground uppercase">
                           Print fee
                         </label>
                         <input

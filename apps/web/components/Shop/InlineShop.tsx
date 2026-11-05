@@ -158,7 +158,7 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
               Your AI Picks
             </h3>
             {isCurating && (
-              <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Loader2 className="w-3 h-3 animate-spin" />
                 Searching live stores...
               </span>
@@ -246,13 +246,13 @@ export function InlineShop({ onTryOn }: InlineShopProps) {
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-xs font-bold text-primary">{find.amount}</span>
                         {find.source && (
-                          <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                          <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                             {find.source}
                           </span>
                         )}
                       </div>
                     </div>
-                    <span className="text-[10px] text-muted-foreground group-hover:text-primary transition-colors shrink-0">
+                    <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors shrink-0">
                       Visit →
                     </span>
                   </a>

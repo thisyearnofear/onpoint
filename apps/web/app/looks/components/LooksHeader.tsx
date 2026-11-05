@@ -13,7 +13,7 @@ export function LooksHeader() {
       </Link>
 
       <div className="mb-8 mt-6 space-y-3">
-        <h1 className="text-3xl font-black tracking-tight md:text-4xl">
+        <h1 className="font-display text-3xl font-semibold tracking-tight md:text-4xl">
           Outfits curated for you
         </h1>
         <p className="max-w-2xl text-lg text-muted-foreground">

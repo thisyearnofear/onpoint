@@ -42,30 +42,6 @@ function getInitials(name: string): string {
     .join("");
 }
 
-// Vertical emoji map for visual flair
-const VERTICAL_EMOJI: Record<string, string> = {
-  football: "⚽",
-  streetwear: "🏙️",
-  formal: "👔",
-  vintage: "📽️",
-  luxury: "💎",
-  accessories: "👜",
-  footwear: "👟",
-  jewelry: "💍",
-  athleisure: "🏃",
-  outerwear: "🧥",
-  denim: "👖",
-  knitwear: "🧶",
-  swimwear: "🏊",
-  activewear: "💪",
-  resort: "🏖️",
-  beauty: "💄",
-  eyewear: "🕶️",
-  watches: "⌚",
-  bags: "🎒",
-  hats: "🎩",
-};
-
 export function CuratorDirectoryClient({
   curators,
   verticals,
@@ -151,7 +127,6 @@ export function CuratorDirectoryClient({
                     : "bg-muted/40 text-muted-foreground hover:bg-muted"
                 }`}
               >
-                {VERTICAL_EMOJI[v] && <span>{VERTICAL_EMOJI[v]}</span>}
                 <span className="capitalize">{v}</span>
               </button>
             ))}
@@ -260,7 +235,7 @@ function CuratorCard({ curator }: { curator: DirectoryCurator }) {
             >
               {curator.name}
             </h3>
-            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
               {curator.type === "ai" && (
                 <span className="flex items-center gap-0.5 text-primary">
                   <Sparkles className="w-3 h-3" />
@@ -283,14 +258,13 @@ function CuratorCard({ curator }: { curator: DirectoryCurator }) {
             {curator.verticals.slice(0, 4).map((v) => (
               <span
                 key={v}
-                className="px-2 py-0.5 rounded-md bg-muted/40 text-[10px] font-medium text-muted-foreground capitalize"
+                className="px-2 py-0.5 rounded-md bg-muted/40 text-xs font-medium text-muted-foreground capitalize"
               >
-                {VERTICAL_EMOJI[v] ? `${VERTICAL_EMOJI[v]} ` : ""}
                 {v}
               </span>
             ))}
             {curator.verticals.length > 4 && (
-              <span className="px-2 py-0.5 text-[10px] text-muted-foreground">
+              <span className="px-2 py-0.5 text-xs text-muted-foreground">
                 +{curator.verticals.length - 4}
               </span>
             )}

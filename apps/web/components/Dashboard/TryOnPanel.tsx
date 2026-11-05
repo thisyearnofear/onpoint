@@ -85,7 +85,7 @@ export function TryOnPanel({ deepLinkFrom, deepLinkItem, deepLinkPersona, onDism
           </p>
           <button
             onClick={onDismissDeepLink}
-            className="ml-auto text-[10px] text-accent/60 hover:text-accent"
+            className="ml-auto text-xs text-accent/60 hover:text-accent"
           >
             Dismiss
           </button>

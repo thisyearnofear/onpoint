@@ -42,13 +42,13 @@ export function SimilarItemCard({
         <p className="text-xs font-bold leading-tight line-clamp-2">
           {alt.title}
         </p>
-        <p className="text-[10px] text-muted-foreground">{alt.curatorName}</p>
+        <p className="text-xs text-muted-foreground">{alt.curatorName}</p>
         <p className="text-xs font-bold">{formatPrice(alt.lowestPrice)}</p>
       </div>
       <Link
         href={`/s/${alt.curatorSlug}?referral=${referralCode}&look=${lookSlug}`}
         onClick={(e) => e.stopPropagation()}
-        className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+        className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
       >
         View storefront <ArrowRight className="h-3 w-3" />
       </Link>

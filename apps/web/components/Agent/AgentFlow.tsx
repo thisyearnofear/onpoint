@@ -84,7 +84,7 @@ function MissionRail({
           <Sparkles className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-primary">
+          <p className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-primary">
             Live shopping mission
           </p>
           <p className="truncate text-sm font-semibold text-foreground">
@@ -151,7 +151,7 @@ function MissionRail({
                 )}
               </span>
               <span
-                className={`text-[10px] font-semibold sm:text-xs ${
+                className={`text-xs font-semibold sm:text-xs ${
                   active ? "text-foreground" : "text-muted-foreground"
                 }`}
               >

@@ -241,7 +241,7 @@ function TimeRangeToggle({
     <div className="flex overflow-hidden rounded-md border border-border bg-background">
       <button
         onClick={() => onChange("7d")}
-        className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${
+        className={`px-2 py-0.5 text-xs font-medium transition-colors ${
           active === "7d"
             ? "bg-info/15 text-violet-600"
             : "text-muted-foreground hover:bg-muted"
@@ -252,7 +252,7 @@ function TimeRangeToggle({
       <button
         onClick={() => onChange("30d")}
         disabled={!has30}
-        className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${
+        className={`px-2 py-0.5 text-xs font-medium transition-colors ${
           active === "30d"
             ? "bg-info/15 text-violet-600"
             : "text-muted-foreground hover:bg-muted disabled:opacity-40"
@@ -292,7 +292,7 @@ function ExportCsvButton({
   return (
     <button
       onClick={handleExport}
-      className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-muted"
+      className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted"
       title="Download CSV"
     >
       <Download className="h-3 w-3" />
@@ -353,7 +353,7 @@ export function TrendSparkline({
             />
           </div>
           {/* Total + WoW badge */}
-          <div className="mt-0.5 flex items-center gap-2 text-[11px]">
+          <div className="mt-0.5 flex items-center gap-2 text-xs">
             <span className="text-muted-foreground">
               {activeTotal.toLocaleString()} total clicks
               {timeRange === "7d" ? " this week" : " this month"}
@@ -393,7 +393,7 @@ export function TrendSparkline({
 
       {/* Trend legend + prediction */}
       {predicted !== null && (
-        <div className="mt-2 flex flex-wrap items-center gap-3 text-[10px]">
+        <div className="mt-2 flex flex-wrap items-center gap-3 text-xs">
           <span className="inline-flex items-center gap-1 text-muted-foreground/60">
             <span className="inline-block h-px w-3 border-t border-dashed border-orange-400" />
             SMA({trendWindow})
@@ -409,7 +409,7 @@ export function TrendSparkline({
       )}
 
       {/* Day labels */}
-      <div className="mt-2 flex justify-between text-[10px] text-muted-foreground/60">
+      <div className="mt-2 flex justify-between text-xs text-muted-foreground/60">
         {timeRange === "7d"
           ? dates7d.map((d) => (
               <span key={d} className="tabular-nums">
@@ -441,7 +441,7 @@ export function TrendSparkline({
                   maxWidth: timeRange === "30d" ? 12 : 24,
                 }}
               />
-              <div className="pointer-events-none absolute -top-8 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded bg-popover px-2 py-1 text-[10px] font-medium opacity-0 shadow-md transition-opacity group-hover:opacity-100">
+              <div className="pointer-events-none absolute -top-8 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded bg-popover px-2 py-1 text-xs font-medium opacity-0 shadow-md transition-opacity group-hover:opacity-100">
                 {v || 0} click{(v || 0) === 1 ? "" : "s"}
               </div>
             </div>

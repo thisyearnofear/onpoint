@@ -90,7 +90,7 @@ function OptionCard({ label, desc, selected, onClick }: OptionCardProps) {
       }`}
     >
       <p className="text-xs font-bold">{label}</p>
-      <p className="text-[10px] text-muted-foreground mt-0.5">{desc}</p>
+      <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
     </button>
   );
 }
@@ -143,7 +143,7 @@ export function BodyCustomizer({ profile, onChange }: BodyCustomizerProps) {
                   }[tone.value] || "#8b5e3c",
                 }}
               />
-              <span className={`text-[9px] ${profile.skinTone === tone.value ? "font-bold text-primary" : "text-muted-foreground"}`}>
+              <span className={`text-xs ${profile.skinTone === tone.value ? "font-bold text-primary" : "text-muted-foreground"}`}>
                 {tone.label}
               </span>
             </button>

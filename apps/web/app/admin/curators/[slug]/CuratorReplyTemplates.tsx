@@ -47,7 +47,7 @@ export function CuratorReplyTemplates({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold">{template.label}</p>
-                <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   {categoryLabel(template.category)}
                 </p>
               </div>

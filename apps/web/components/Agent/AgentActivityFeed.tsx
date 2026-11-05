@@ -97,15 +97,15 @@ export function AgentActivityFeed({ onShop }: { onShop?: () => void }) {
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium truncate">{s.description}</p>
                 {s.reasoning && (
-                  <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
+                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
                     💡 {s.reasoning}
                   </p>
                 )}
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[10px] font-bold text-primary">
+                  <span className="text-xs font-bold text-primary">
                     {s.amount}
                   </span>
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {timeAgo(s.createdAt)}
                   </span>
                 </div>

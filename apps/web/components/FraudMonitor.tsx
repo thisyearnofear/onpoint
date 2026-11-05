@@ -160,7 +160,7 @@ export function FraudMonitor() {
           </div>
           <div className="flex items-center gap-2">
             {health?.status === "frozen" && (
-              <span className="px-2 py-0.5 text-[10px] font-bold bg-error/20 text-red-400 rounded-full uppercase tracking-wider animate-pulse">
+              <span className="px-2 py-0.5 text-xs font-bold bg-error/20 text-red-400 rounded-full uppercase tracking-wider animate-pulse">
                 FROZEN
               </span>
             )}
@@ -229,7 +229,7 @@ export function FraudMonitor() {
             />
           </div>
           {health && health.anomalyScore > 50 && (
-            <p className="text-[10px] text-red-400/80 mt-1">
+            <p className="text-xs text-red-400/80 mt-1">
               {health.anomalyScore > 75
                 ? "Auto-freeze threshold reached. Agent will be frozen automatically."
                 : "Elevated anomaly score — review recent activity."}
@@ -240,13 +240,13 @@ export function FraudMonitor() {
         {/* Agent Info */}
         <div className="grid grid-cols-2 gap-2 pt-1">
           <div className="bg-muted/30 rounded-lg p-2">
-            <div className="text-[10px] text-muted-foreground font-medium">Heartbeat</div>
+            <div className="text-xs text-muted-foreground font-medium">Heartbeat</div>
             <div className="text-xs font-semibold mt-0.5">
               {health ? `${Math.floor((Date.now() - health.lastHeartbeat) / 60000)}m ago` : "—"}
             </div>
           </div>
           <div className="bg-muted/30 rounded-lg p-2">
-            <div className="text-[10px] text-muted-foreground font-medium">Consecutive Failures</div>
+            <div className="text-xs text-muted-foreground font-medium">Consecutive Failures</div>
             <div className="text-xs font-semibold mt-0.5">{health?.consecutiveFailures ?? 0}</div>
           </div>
         </div>
@@ -297,7 +297,7 @@ export function FraudMonitor() {
             <Activity className="w-4 h-4 text-primary" />
             <span className="text-sm font-medium">Recent Alerts</span>
             {activeAlerts.length > 0 && (
-              <span className="px-1.5 py-0.5 text-[10px] font-bold bg-error/20 text-red-400 rounded-full">
+              <span className="px-1.5 py-0.5 text-xs font-bold bg-error/20 text-red-400 rounded-full">
                 {activeAlerts.length}
               </span>
             )}
@@ -339,10 +339,10 @@ export function FraudMonitor() {
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       <div className={`w-1.5 h-1.5 rounded-full ${alert.resolved ? "bg-muted-foreground" : severityColor.dot}`} />
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         {alert.type.replace(/_/g, " ")}
                       </span>
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         {Math.floor((Date.now() - alert.timestamp) / 60000)}m ago
                       </span>
                     </div>

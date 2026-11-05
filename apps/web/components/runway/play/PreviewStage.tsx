@@ -27,7 +27,7 @@ export function PreviewStage({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={photoData} alt="Your outfit" className="max-h-72 w-auto rounded-2xl border border-border object-contain" />
         {isSample && (
-          <span className="absolute left-2 top-2 rounded-full bg-background/80 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-foreground/70">
+          <span className="absolute left-2 top-2 rounded-full bg-background/80 px-2.5 py-1 font-mono text-xs font-bold uppercase tracking-[0.18em] text-foreground/70">
             Sample outfit
           </span>
         )}

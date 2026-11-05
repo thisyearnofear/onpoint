@@ -108,7 +108,7 @@ export function GStreakPill({ compact, className }: GStreakPillProps) {
             className={`h-3.5 w-3.5 ${streak >= 3 ? "text-amber-400" : "text-warning"}`}
           />
           <span className="font-bold">{streak}</span>
-          <span className="text-[10px] opacity-70 whitespace-nowrap">
+          <span className="text-xs opacity-70 whitespace-nowrap">
             day{streak === 1 ? "" : "s"}
           </span>
           <ChevronDown
@@ -163,7 +163,7 @@ export function GStreakPill({ compact, className }: GStreakPillProps) {
               {streak}-day G$ streak
             </p>
             {isProtectedToday && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[9px] font-bold text-emerald-300">
+              <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-bold text-emerald-300">
                 <ShieldCheck className="h-2.5 w-2.5" />
                 Protected
               </span>
@@ -233,25 +233,25 @@ function StreakDetail({
       </div>
 
       {lastMilestone && (
-        <div className="flex items-center gap-1.5 text-[11px] text-emerald-300">
+        <div className="flex items-center gap-1.5 text-xs text-emerald-300">
           <Sparkles className="h-3 w-3" />
           <span>{lastMilestone.rewardLabel}</span>
         </div>
       )}
 
       {nextMilestone && (
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           {daysToNext} day{daysToNext === 1 ? "" : "s"} to{" "}
           {nextMilestone.rewardLabel}
         </p>
       )}
 
       {showProtectPrompt ? (
-        <p className="text-[11px] text-amber-300/90">
+        <p className="text-xs text-amber-300/90">
           Claim today&apos;s G$ to protect your streak.
         </p>
       ) : isProtectedToday ? (
-        <p className="text-[11px] text-emerald-300/80">
+        <p className="text-xs text-emerald-300/80">
           Streak protected for today.
         </p>
       ) : null}
@@ -297,10 +297,10 @@ function DayZeroCard({
             title={`Day ${m.days}: ${m.rewardLabel}`}
             className="flex-1 rounded-lg bg-muted/50 px-2 py-1.5 text-center"
           >
-            <p className="text-[10px] font-bold text-muted-foreground">
+            <p className="text-xs font-bold text-muted-foreground">
               Day {m.days}
             </p>
-            <p className="text-[9px] text-muted-foreground/70 leading-tight mt-0.5">
+            <p className="text-xs text-muted-foreground/70 leading-tight mt-0.5">
               {m.rewardLabel.split(" + ")[0]?.replace(" unlocked", "")}
             </p>
           </div>

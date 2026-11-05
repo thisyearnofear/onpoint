@@ -175,7 +175,7 @@ function OutcomeLedger({
     <div className="overflow-hidden rounded-2xl border border-border/60 bg-background">
       <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
         <div>
-          <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-primary">
+          <p className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-primary">
             Mission receipt
           </p>
           <p className="mt-0.5 text-sm font-bold">
@@ -231,7 +231,7 @@ function CommerceEvidence({
     <div className="overflow-hidden rounded-2xl border border-border/60 bg-background">
       <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
         <div>
-          <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-primary">
+          <p className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-primary">
             Live commerce stack
           </p>
           <p className="mt-0.5 text-sm font-bold">
@@ -265,7 +265,7 @@ function CommerceEvidence({
         />
         <LinqMissionHandoff orderId={orderId} />
       </div>
-      <p className="border-t border-border/40 px-4 py-2.5 text-[10px] leading-relaxed text-muted-foreground">
+      <p className="border-t border-border/40 px-4 py-2.5 text-xs leading-relaxed text-muted-foreground">
         Messages opens with a prefilled tracking code. Nothing is sent until you
         send it; 👍 refreshes status and never authorizes payment.
       </p>
@@ -285,7 +285,7 @@ function EvidenceCell({
   return (
     <div className="bg-card px-3 py-3">
       <p
-        className={`font-mono text-[8px] font-bold uppercase tracking-[0.14em] ${active ? "text-emerald-600 dark:text-emerald-300" : "text-muted-foreground"}`}
+        className={`font-mono text-xs font-bold uppercase tracking-[0.14em] ${active ? "text-emerald-600 dark:text-emerald-300" : "text-muted-foreground"}`}
       >
         {eyebrow}
       </p>
@@ -354,7 +354,7 @@ function FashionImageViewer({
     >
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 sm:px-6">
         <div>
-          <p className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-white/45">
+          <p className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-white/45">
             OnPoint fitting room
           </p>
           <p className="mt-0.5 text-sm font-semibold">{selected.label}</p>
@@ -767,7 +767,7 @@ export function AgentCheckoutCard({
               </button>
               {showTryOn && (
                 <>
-                  <div className="absolute left-3 top-3 rounded-full border border-white/15 bg-black/65 px-3 py-1.5 text-[10px] font-semibold text-white backdrop-blur-md">
+                  <div className="absolute left-3 top-3 rounded-full border border-white/15 bg-black/65 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-md">
                     {compareOriginal
                       ? "Original product"
                       : "Fit preview · IDM-VTON"}
@@ -785,7 +785,7 @@ export function AgentCheckoutCard({
                         }
                       }}
                       onKeyUp={() => setCompareOriginal(false)}
-                      className="absolute bottom-3 right-3 flex items-center gap-2 rounded-full border border-white/15 bg-black/70 px-3 py-2 text-[10px] font-bold text-white shadow-lg backdrop-blur-md transition-transform active:scale-95"
+                      className="absolute bottom-3 right-3 flex items-center gap-2 rounded-full border border-white/15 bg-black/70 px-3 py-2 text-xs font-bold text-white shadow-lg backdrop-blur-md transition-transform active:scale-95"
                     >
                       <span className="h-2 w-2 rounded-full bg-fuchsia-300" />
                       Hold to compare
@@ -859,7 +859,7 @@ export function AgentCheckoutCard({
                 <UserRound className="h-4 w-4 text-primary" /> Person photo
                 ready
               </span>
-              <span className="flex items-center gap-1.5 text-[10px] font-bold text-primary">
+              <span className="flex items-center gap-1.5 text-xs font-bold text-primary">
                 View full screen <Maximize2 className="h-3 w-3" />
               </span>
             </button>
@@ -1006,7 +1006,7 @@ export function AgentCheckoutCard({
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="rounded-xl border border-border/50 bg-background/80 px-3 py-2.5">
-                    <p className="font-mono text-[8px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                    <p className="font-mono text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
                       Merchant
                     </p>
                     <p className="mt-1 truncate text-xs font-semibold">
@@ -1015,7 +1015,7 @@ export function AgentCheckoutCard({
                     </p>
                   </div>
                   <div className="rounded-xl border border-border/50 bg-background/80 px-3 py-2.5">
-                    <p className="font-mono text-[8px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                    <p className="font-mono text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
                       Maximum
                     </p>
                     <p className="mt-1 text-xs font-semibold">
@@ -1037,7 +1037,7 @@ export function AgentCheckoutCard({
                   )}
                   Request exact-scope permission
                 </button>
-                <p className="text-center text-[11px] text-muted-foreground">
+                <p className="text-center text-xs text-muted-foreground">
                   Prava creates the permission session only now. Nothing has
                   been charged.
                 </p>
@@ -1055,7 +1055,7 @@ export function AgentCheckoutCard({
                 <KeyRound className="h-4 w-4" /> Enter test card on Prava{" "}
                 <ArrowRight className="h-4 w-4" />
               </a>
-              <p className="text-center text-[11px] text-muted-foreground">
+              <p className="text-center text-xs text-muted-foreground">
                 Sandbox — no real money. The hosted flow advances to credential
                 readiness; an external checkout outcome is still required.
               </p>
@@ -1195,7 +1195,7 @@ export function AgentCheckoutCard({
         </div>
 
         {/* Footer */}
-        <div className="border-t border-border/40 px-5 py-3 text-center text-[10px] text-muted-foreground">
+        <div className="border-t border-border/40 px-5 py-3 text-center text-xs text-muted-foreground">
           {isConfirmed
             ? "Paid via Prava · scoped card · network-level controls"
             : isSandboxCompleted

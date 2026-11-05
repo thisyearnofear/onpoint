@@ -257,7 +257,7 @@ export function MintLookButton({
                 {mintError.message}
               </p>
               {mintError.hint && (
-                <p className="text-muted-foreground text-[10px] mt-1 font-mono truncate">
+                <p className="text-muted-foreground text-xs mt-1 font-mono truncate">
                   {mintError.hint}
                 </p>
               )}
@@ -286,7 +286,7 @@ export function MintLookButton({
                 ? "Confirm in your wallet…"
                 : "Preparing your Proof of Style…"}
             </p>
-            <p className="text-muted-foreground/70 text-[10px]">
+            <p className="text-muted-foreground/70 text-xs">
               Saving your look…
             </p>
           </div>

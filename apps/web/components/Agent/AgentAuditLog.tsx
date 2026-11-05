@@ -106,7 +106,7 @@ export function AgentAuditLog() {
               <p className="text-xs font-bold text-foreground">
                 Transaction Audit Log
               </p>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {total} onchain actions
                 {signedCount > 0 && (
                   <> · <span className="text-emerald-400">{signedCount} signed</span></>
@@ -124,7 +124,7 @@ export function AgentAuditLog() {
 
         {/* Entries */}
         {entries.length === 0 && !loading ? (
-          <p className="text-[10px] text-muted-foreground text-center py-3">
+          <p className="text-xs text-muted-foreground text-center py-3">
             No onchain transactions yet. Tip the agent or enable auto-buy to see activity here.
           </p>
         ) : (
@@ -151,17 +151,17 @@ export function AgentAuditLog() {
                     {/* Action + amount */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[11px] font-medium text-foreground truncate">
+                        <span className="text-xs font-medium text-foreground truncate">
                           {ACTION_LABELS[entry.action] || entry.action.replace(/_/g, " ")}
                         </span>
                         {entry.amount && parseFloat(entry.amount) > 0 && (
-                          <span className="text-[10px] text-violet-300 font-semibold">
+                          <span className="text-xs text-violet-300 font-semibold">
                             {formatAmount(entry.amount)}
                           </span>
                         )}
                       </div>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[9px] text-muted-foreground">
+                        <span className="text-xs text-muted-foreground">
                           {entry.ts ? formatTimeAgo(entry.ts) : ""}
                         </span>
                         {entry.txHash && (
@@ -169,14 +169,14 @@ export function AgentAuditLog() {
                             href={`${EXPLORER_BASE}${entry.txHash}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-0.5 text-[9px] text-violet-400 hover:text-violet-300 transition-colors"
+                            className="inline-flex items-center gap-0.5 text-xs text-violet-400 hover:text-violet-300 transition-colors"
                           >
                             {entry.txHash.slice(0, 6)}...{entry.txHash.slice(-4)}
                             <ExternalLink className="h-2.5 w-2.5" />
                           </a>
                         )}
                         {entry.reason && (
-                          <span className="text-[9px] text-muted-foreground truncate">
+                          <span className="text-xs text-muted-foreground truncate">
                             · {entry.reason}
                           </span>
                         )}
@@ -185,7 +185,7 @@ export function AgentAuditLog() {
 
                     {/* Decision badge */}
                     <span
-                      className={`rounded-full px-1.5 py-0.5 text-[8px] font-bold flex-shrink-0 ${
+                      className={`rounded-full px-1.5 py-0.5 text-xs font-bold flex-shrink-0 ${
                         entry.decision === "signed"
                           ? "bg-success/15 text-emerald-300"
                           : entry.decision === "rejected"
@@ -203,7 +203,7 @@ export function AgentAuditLog() {
             {entries.length > 3 && (
               <button
                 onClick={() => setExpanded(!expanded)}
-                className="w-full flex items-center justify-center gap-1 text-[10px] text-violet-400 hover:text-violet-300 transition-colors pt-1.5"
+                className="w-full flex items-center justify-center gap-1 text-xs text-violet-400 hover:text-violet-300 transition-colors pt-1.5"
               >
                 {expanded ? (
                   <>

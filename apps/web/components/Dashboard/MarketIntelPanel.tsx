@@ -309,7 +309,7 @@ export function MarketIntelPanel() {
           <div key={card.label} className="rounded-xl border border-border bg-card p-4">
             <div className="mb-2 flex items-center gap-2 text-muted-foreground">
               <card.icon className="h-4 w-4 text-primary" />
-              <span className="text-[11px] font-bold uppercase tracking-wider">{card.label}</span>
+              <span className="text-xs font-bold uppercase tracking-wider">{card.label}</span>
             </div>
             <p className="truncate text-lg font-black text-foreground">{card.value}</p>
           </div>
@@ -335,19 +335,19 @@ export function MarketIntelPanel() {
               signals.map((signal) => (
                 <article key={signal.id} className="rounded-lg border border-border bg-background/40 p-3">
                   <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${signalStyles[signal.type] ?? "border-border bg-muted text-muted-foreground"}`}>
+                    <span className={`rounded-full border px-2 py-0.5 text-xs font-bold ${signalStyles[signal.type] ?? "border-border bg-muted text-muted-foreground"}`}>
                       {signalLabels[signal.type] ?? signal.type}
                     </span>
-                    <span className="text-[11px] text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       {Math.round(signal.confidence * 100)}% confidence
                     </span>
-                    <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                       <Clock className="h-3 w-3" />
                       {formatTimestamp(signal.createdAt)}
                     </span>
                   </div>
                   <h4 className="text-sm font-semibold text-foreground">{signal.title}</h4>
-                  <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-primary">
+                  <p className="mt-1 text-xs font-medium uppercase tracking-wider text-primary">
                     {provenanceLabel(signal)}
                   </p>
                   <p className="mt-1 text-xs leading-5 text-muted-foreground">{signal.evidence}</p>
@@ -412,7 +412,7 @@ export function MarketIntelPanel() {
                 <h3 className="text-sm font-bold uppercase tracking-wider">Agent Memory</h3>
               </div>
               {memory && (
-                <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">
+                <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
                   {memory.repeatedIntentCount}x intent
                 </span>
               )}
@@ -424,11 +424,11 @@ export function MarketIntelPanel() {
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="rounded-lg border border-border bg-background/40 p-2">
-                    <p className="text-[10px] font-bold uppercase tracking-wider">Known Gaps</p>
+                    <p className="text-xs font-bold uppercase tracking-wider">Known Gaps</p>
                     <p className="mt-1 text-sm font-black text-foreground">{memory.knownGapCount}</p>
                   </div>
                   <div className="rounded-lg border border-border bg-background/40 p-2">
-                    <p className="text-[10px] font-bold uppercase tracking-wider">Retailers</p>
+                    <p className="text-xs font-bold uppercase tracking-wider">Retailers</p>
                     <p className="mt-1 text-sm font-black text-foreground">{memory.rememberedRetailers.length}</p>
                   </div>
                 </div>
@@ -451,7 +451,7 @@ export function MarketIntelPanel() {
                 <div key={integration.id} className="rounded-lg border border-border bg-background/40 p-3">
                   <div className="mb-2 flex flex-wrap items-center gap-2">
                     <span className="text-xs font-semibold text-foreground">{integration.label}</span>
-                    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${partnerStatusStyles[integration.status] ?? partnerStatusStyles.ready}`}>
+                    <span className={`rounded-full border px-2 py-0.5 text-xs font-bold uppercase ${partnerStatusStyles[integration.status] ?? partnerStatusStyles.ready}`}>
                       {integration.status}
                     </span>
                   </div>

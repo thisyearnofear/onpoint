@@ -224,7 +224,7 @@ export default async function ListingListPage({
                         >
                           {s.size}
                           {s.stock > 0 && (
-                            <span className="ml-1 text-[10px] text-muted-foreground">
+                            <span className="ml-1 text-xs text-muted-foreground">
                               KES {s.price.toLocaleString()}
                             </span>
                           )}

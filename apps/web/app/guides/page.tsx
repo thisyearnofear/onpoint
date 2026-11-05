@@ -145,7 +145,7 @@ export default function GuidesIndexPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <h2 className="text-base font-bold">{guide.title}</h2>
-                      <span className="text-[10px] text-muted-foreground shrink-0">{guide.readTime}</span>
+                      <span className="text-xs text-muted-foreground shrink-0">{guide.readTime}</span>
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
                       {guide.description}

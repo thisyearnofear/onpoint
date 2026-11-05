@@ -146,7 +146,7 @@ export default function FormalWearGuide() {
                   ].map(({ meas, desc }) => (
                     <div key={meas} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
                       <p className="text-xs font-bold text-foreground">{meas}</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">{desc}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
                     </div>
                   ))}
                 </div>

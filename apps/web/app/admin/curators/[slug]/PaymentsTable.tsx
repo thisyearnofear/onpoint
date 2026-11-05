@@ -208,21 +208,21 @@ export function PaymentsTable({ curatorName, payments }: { curatorName: string; 
                       </code>
                     </td>
                     <td className="px-3 py-3">
-                      <span className={`inline-flex items-center gap-1 rounded-full ${payConfig.bg} px-2 py-0.5 text-[11px] font-medium capitalize ${payConfig.color}`}>
+                      <span className={`inline-flex items-center gap-1 rounded-full ${payConfig.bg} px-2 py-0.5 text-xs font-medium capitalize ${payConfig.color}`}>
                         {payment.status === "paid" ? <CheckCircle2 className="h-3 w-3" /> : null}
                         {payment.status === "rejected" ? <XCircle className="h-3 w-3" /> : null}
                         {payment.status === "pending_verification" ? <Clock className="h-3 w-3" /> : null}
                         {payConfig.label}
                       </span>
                       {payment.ledgerStatus && payment.ledgerStatus !== "recorded" && payment.provider === "mpesa_manual" ? (
-                        <span className="mt-1 block text-[10px] font-medium text-warning">
+                        <span className="mt-1 block text-xs font-medium text-warning">
                           {payment.ledgerStatus === "duplicate_receipt" ? "Code already used on another order" : "Not in orders ledger"}
                         </span>
                       ) : null}
                     </td>
                     <td className="px-3 py-3">
                       {currentFulfil ? (
-                        <span className={`inline-flex items-center gap-1 rounded-full ${fulfilConfig.bg} px-2 py-0.5 text-[11px] font-medium capitalize ${fulfilConfig.color}`}>
+                        <span className={`inline-flex items-center gap-1 rounded-full ${fulfilConfig.bg} px-2 py-0.5 text-xs font-medium capitalize ${fulfilConfig.color}`}>
                           {currentFulfil === "delivered" ? <Handshake className="h-3 w-3" /> : null}
                           {currentFulfil === "ready_for_pickup" ? <PackageCheck className="h-3 w-3" /> : null}
                           {currentFulfil === "rider_assigned" ? <Bike className="h-3 w-3" /> : null}
@@ -230,7 +230,7 @@ export function PaymentsTable({ curatorName, payments }: { curatorName: string; 
                           {fulfilConfig.label}
                         </span>
                       ) : (
-                        <span className="text-[11px] text-muted-foreground">—</span>
+                        <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </td>
                     <td className="px-3 py-3 text-right text-xs text-muted-foreground">
@@ -302,7 +302,7 @@ export function PaymentsTable({ curatorName, payments }: { curatorName: string; 
                                   e.stopPropagation();
                                   setReceiptPaymentId(payment.id);
                                 }}
-                                className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-success/10 px-2.5 py-1.5 text-[11px] font-medium text-success transition-colors hover:bg-success/20"
+                                className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-success/10 px-2.5 py-1.5 text-xs font-medium text-success transition-colors hover:bg-success/20"
                               >
                                 <Receipt className="h-3 w-3" />
                                 View customer receipt
@@ -330,7 +330,7 @@ export function PaymentsTable({ curatorName, payments }: { curatorName: string; 
                                         paymentAction: "verify",
                                       });
                                     }}
-                                    className="inline-flex items-center gap-1 rounded-md bg-success/10 px-2.5 py-1.5 text-[11px] font-medium text-success transition-colors hover:bg-success/20 disabled:opacity-50"
+                                    className="inline-flex items-center gap-1 rounded-md bg-success/10 px-2.5 py-1.5 text-xs font-medium text-success transition-colors hover:bg-success/20 disabled:opacity-50"
                                   >
                                     <CheckCircle2 className="h-3 w-3" />
                                     Verify & mark paid
@@ -346,7 +346,7 @@ export function PaymentsTable({ curatorName, payments }: { curatorName: string; 
                                         paymentAction: "reject",
                                       });
                                     }}
-                                    className="inline-flex items-center gap-1 rounded-md bg-error/10 px-2.5 py-1.5 text-[11px] font-medium text-error transition-colors hover:bg-error/20 disabled:opacity-50"
+                                    className="inline-flex items-center gap-1 rounded-md bg-error/10 px-2.5 py-1.5 text-xs font-medium text-error transition-colors hover:bg-error/20 disabled:opacity-50"
                                   >
                                     <XCircle className="h-3 w-3" />
                                     Reject
@@ -366,7 +366,7 @@ export function PaymentsTable({ curatorName, payments }: { curatorName: string; 
                                       paymentAction: "verify",
                                     });
                                   }}
-                                  className="inline-flex items-center gap-1 rounded-md bg-warning/10 px-2.5 py-1.5 text-[11px] font-medium text-warning transition-colors hover:bg-warning/20 disabled:opacity-50"
+                                  className="inline-flex items-center gap-1 rounded-md bg-warning/10 px-2.5 py-1.5 text-xs font-medium text-warning transition-colors hover:bg-warning/20 disabled:opacity-50"
                                 >
                                   <Receipt className="h-3 w-3" />
                                   Retry recording order
@@ -388,7 +388,7 @@ export function PaymentsTable({ curatorName, payments }: { curatorName: string; 
                                           fulfilmentAction: "ready_for_pickup",
                                         });
                                       }}
-                                      className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 px-2.5 py-1.5 text-[11px] font-medium text-blue-600 transition-colors hover:bg-blue-500/20 disabled:opacity-50"
+                                      className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 px-2.5 py-1.5 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-500/20 disabled:opacity-50"
                                     >
                                       <Package className="h-3 w-3" />
                                       Ready for pickup
@@ -406,7 +406,7 @@ export function PaymentsTable({ curatorName, payments }: { curatorName: string; 
                                           fulfilmentAction: "rider_assigned",
                                         });
                                       }}
-                                      className="inline-flex items-center gap-1 rounded-md bg-info/10 px-2.5 py-1.5 text-[11px] font-medium text-violet-600 transition-colors hover:bg-info/20 disabled:opacity-50"
+                                      className="inline-flex items-center gap-1 rounded-md bg-info/10 px-2.5 py-1.5 text-xs font-medium text-violet-600 transition-colors hover:bg-info/20 disabled:opacity-50"
                                     >
                                       <Bike className="h-3 w-3" />
                                       Rider assigned
@@ -424,7 +424,7 @@ export function PaymentsTable({ curatorName, payments }: { curatorName: string; 
                                           fulfilmentAction: "delivered",
                                         });
                                       }}
-                                      className="inline-flex items-center gap-1 rounded-md bg-success/10 px-2.5 py-1.5 text-[11px] font-medium text-success transition-colors hover:bg-success/20 disabled:opacity-50"
+                                      className="inline-flex items-center gap-1 rounded-md bg-success/10 px-2.5 py-1.5 text-xs font-medium text-success transition-colors hover:bg-success/20 disabled:opacity-50"
                                     >
                                       <Handshake className="h-3 w-3" />
                                       Mark delivered
@@ -471,7 +471,7 @@ export function PaymentsTable({ curatorName, payments }: { curatorName: string; 
             </button>
 
             {/* Header badge */}
-            <div className="mb-3 flex items-center gap-2 rounded-full bg-warning/10 px-3 py-1 text-[11px] font-medium text-warning w-fit">
+            <div className="mb-3 flex items-center gap-2 rounded-full bg-warning/10 px-3 py-1 text-xs font-medium text-warning w-fit">
               <Receipt className="h-3.5 w-3.5" />
               Customer view
             </div>

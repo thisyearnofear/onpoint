@@ -13,3 +13,13 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 Run frontend tests from `apps/web` with `./node_modules/.bin/vitest run <test paths>`. Avoid `npx vitest`: it can resolve another workspace's Vitest version instead of the frontend's installed version.
 
 Use `npm run check-types` for the frontend typecheck.
+
+## Frontend design system (consolidated 2026-11-05)
+
+- **Tokens:** `app/globals.css` is the single source — warm paper/ink neutrals (the wardrobe-studio palette), shadcn-compatible HSL triplets. Semantic states (`success/warning/error/info`) are also HSL and consumed via `hsl(var(--*))`. Never reintroduce RGB triplets or hardcoded hex in shared CSS.
+- **Typography:** Geist Sans (UI) + Geist Mono + `--font-display` (Georgia serif) for brand headlines via `font-display` / `text-fashion-display`. Smallest type size is `text-xs` (12px); arbitrary `text-[Npx]` below 12px is banned — the mobile floor lifts `text-xs` to 14px under 640px.
+- **Persona colors:** never interpolate Tailwind classes (`bg-${color}`). Use `personaStyling.theme.*` from `lib/utils/persona-theme.ts` — literal class maps keyed by color family. Tailwind scans `lib/` and `packages/{shared-ui,ui}`; there is no safelist, so dynamic classes silently break.
+- **Motion:** exponential ease-out `cubic-bezier(0.16,1,0.3,1)` — no elastic/bounce easing.
+- **Honest metrics:** no hardcoded ratings, counts, or "community favorite" claims. Rating UI renders only when real `averageRating` data exists.
+- **Iconography:** Lucide only — no emoji in UI chrome (emoji in generated share captions is fine). Logo is a hairline tile + `Shirt`.
+- **Structure:** eyebrows/mono-uppercase labels only for genuinely ordinal or functional labels; left-biased heroes. Root layout is intentionally non-async — do not re-add `auth0.getSession()` there (it forces every page dynamic).

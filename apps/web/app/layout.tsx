@@ -1,6 +1,5 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
-import Script from "next/script";
 import { getBaseUrl } from "@/lib/base-url";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import { META_DESCRIPTION, PRODUCT_NAME, TAGLINE } from "@/lib/brand";
@@ -9,7 +8,6 @@ import "./mobile.css";
 import "./view-transitions.css";
 import { Providers } from "./providers";
 import '@rainbow-me/rainbowkit/styles.css';
-import { auth0 } from "@/lib/auth0";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -67,26 +65,25 @@ export const metadata: Metadata = {
     description: META_DESCRIPTION,
     images: ["/opengraph-image.png"],
   },
-  // Farcaster Mini App discovery picks up `opengraph-image.png` via the
-  // Frame/miniapp meta tag below, but explicit og:* tags help when the
-  // link is unfurled on other surfaces (Lens, X, LinkedIn, Slack).
-  other: {
-    "theme-color": "#0F0F13",
-  },
 };
 
-export const viewport = {
+export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f7f6f3" },
+    { media: "(prefers-color-scheme: dark)", color: "#0F0F13" },
+  ],
 };
 
-export default async function RootLayout({
+// Session is resolved client-side by Auth0Provider (useUser → /auth/profile).
+// Awaiting auth0.getSession() here forced every page — including public
+// surfaces like /, /looks, /curators — into per-request dynamic rendering.
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await auth0.getSession();
-  const user = session?.user;
   const baseUrl = appBaseUrl;
   const embed = {
     version: "1",
@@ -122,13 +119,9 @@ export default async function RootLayout({
         <meta name="fc:frame" content={JSON.stringify(embed)} />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <Providers user={user}>
+        <Providers>
           {children}
         </Providers>
-        <Script
-          src="https://s.skimresources.com/js/304047X1792196.skimlinks.js"
-          strategy="afterInteractive"
-        />
       </body>
     </html>
   );

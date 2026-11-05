@@ -83,7 +83,7 @@ export function CommandCenter() {
           <div className="bg-muted/60 px-4 py-2 flex items-center justify-between border-b border-border">
             <div className="flex items-center gap-2">
               <TerminalIcon className="w-3 h-3 text-primary" />
-              <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-tighter">AI Reasoning Terminal</span>
+              <span className="text-xs font-mono text-muted-foreground uppercase tracking-tighter">AI Reasoning Terminal</span>
             </div>
             <div className="flex gap-1">
               <div className="w-1.5 h-1.5 rounded-full bg-error/50" />
@@ -108,7 +108,7 @@ export function CommandCenter() {
             <span className="text-xs text-muted-foreground font-medium">Network Impact</span>
           </div>
           <div className="text-2xl font-bold text-foreground tracking-tighter">14.2k</div>
-          <div className="text-[10px] text-green-400 font-mono">+12% vs last check</div>
+          <div className="text-xs text-green-400 font-mono">+12% vs last check</div>
         </div>
         <div className="p-4 rounded-2xl bg-gradient-to-br from-accent/10 to-transparent border border-border">
           <div className="flex items-center gap-2 mb-1">
@@ -116,7 +116,7 @@ export function CommandCenter() {
             <span className="text-xs text-muted-foreground font-medium">On-Chain Assets</span>
           </div>
           <div className="text-2xl font-bold text-foreground tracking-tighter">852</div>
-          <div className="text-[10px] text-accent font-mono">Proofs of Style</div>
+          <div className="text-xs text-accent font-mono">Proofs of Style</div>
         </div>
       </div>
     </div>
@@ -128,10 +128,10 @@ function StatusCard({ icon, label, value, subValue }: { icon: any, label: string
     <div className="p-3 rounded-2xl bg-card/70 border border-border backdrop-blur-sm">
       <div className="flex items-center gap-2 mb-2">
         {icon}
-        <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{label}</span>
+        <span className="text-xs text-muted-foreground font-bold uppercase tracking-widest">{label}</span>
       </div>
       <div className="text-sm font-bold text-foreground tracking-tight leading-none mb-1">{value}</div>
-      <div className="text-[9px] text-muted-foreground font-medium">{subValue}</div>
+      <div className="text-xs text-muted-foreground font-medium">{subValue}</div>
     </div>
   );
 }

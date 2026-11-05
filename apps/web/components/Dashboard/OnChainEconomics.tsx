@@ -57,7 +57,7 @@ function StatBadge({
     <div className="flex items-center gap-2 rounded-lg border border-border bg-card/60 px-3 py-2">
       <Icon className="h-3.5 w-3.5 shrink-0" style={{ color }} />
       <div className="min-w-0">
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+        <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
         <p className="text-sm font-bold text-foreground">{value}</p>
       </div>
     </div>
@@ -97,7 +97,7 @@ export function OnChainEconomics() {
         <span className="text-sm font-bold uppercase tracking-wider text-foreground">
           On-Chain Economics
         </span>
-        <span className="ml-auto rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-bold text-success">
+        <span className="ml-auto rounded-full bg-success/10 px-2 py-0.5 text-xs font-bold text-success">
           Celo Mainnet
         </span>
       </div>
@@ -138,7 +138,7 @@ export function OnChainEconomics() {
         {/* Recent transactions */}
         {actions.length > 0 ? (
           <div className="space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Recent On-Chain Actions
             </p>
             {actions.map((action, i) => (
@@ -156,7 +156,7 @@ export function OnChainEconomics() {
                     {action.action || "agent action"}
                   </p>
                   {action.timestamp && (
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       {new Date(action.timestamp).toLocaleString()}
                     </p>
                   )}
@@ -170,7 +170,7 @@ export function OnChainEconomics() {
                       href={`https://celoscan.io/tx/${action.txHash}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
+                      className="inline-flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground"
                     >
                       View <ExternalLink className="h-2.5 w-2.5" />
                     </a>
@@ -191,7 +191,7 @@ export function OnChainEconomics() {
         {data?.walletAddress && (
           <div className="mt-4 flex items-center justify-between rounded-lg bg-muted/30 px-3 py-2">
             <div className="min-w-0">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Agent Wallet</p>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Agent Wallet</p>
               <p className="truncate text-xs font-mono text-foreground">
                 {data.walletAddress.slice(0, 6)}...{data.walletAddress.slice(-4)}
               </p>
@@ -200,7 +200,7 @@ export function OnChainEconomics() {
               href={`https://celoscan.io/address/${data.walletAddress}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="shrink-0 text-[10px] text-muted-foreground hover:text-foreground"
+              className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
             >
               <ExternalLink className="h-3.5 w-3.5" />
             </a>

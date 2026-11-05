@@ -16,7 +16,7 @@ export function CritiqueModeCard({ mode, isSelected, onSelect, disabled }: Criti
     const configs = {
       roast: {
         icon: Flame,
-        label: "🔥 Roast Mode",
+        label: "Roast Mode",
         description: "Brutally honest, no mercy",
         color: "text-error",
         bg: "bg-red-50"

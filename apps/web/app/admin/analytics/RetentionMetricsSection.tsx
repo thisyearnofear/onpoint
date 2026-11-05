@@ -220,7 +220,7 @@ export function RetentionMetricsSection() {
               <p className="text-2xl font-black tracking-tight">
                 {rpt.totalSaves.toLocaleString()}
               </p>
-              <p className="text-[11px] text-muted-foreground">From try-on results</p>
+              <p className="text-xs text-muted-foreground">From try-on results</p>
             </div>
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-primary">
               <Bookmark className="h-4 w-4" />
@@ -235,7 +235,7 @@ export function RetentionMetricsSection() {
               <p className="text-2xl font-black tracking-tight">
                 {rpt.totalCardOpens.toLocaleString()}
               </p>
-              <p className="text-[11px] text-muted-foreground">Polaroid preview views</p>
+              <p className="text-xs text-muted-foreground">Polaroid preview views</p>
             </div>
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-info">
               <ImageIcon className="h-4 w-4" />
@@ -250,7 +250,7 @@ export function RetentionMetricsSection() {
               <p className="text-2xl font-black tracking-tight">
                 {rpt.totalShares.toLocaleString()}
               </p>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {rpt.shareRate !== "—"
                   ? `${rpt.shareRate} of card opens`
                   : "No card opens yet"}
@@ -267,7 +267,7 @@ export function RetentionMetricsSection() {
             <div className="space-y-1">
               <p className="text-xs font-medium text-muted-foreground">Share rate</p>
               <p className="text-2xl font-black tracking-tight">{rpt.shareRate}</p>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Shares ÷ style card opens
               </p>
             </div>
@@ -297,7 +297,7 @@ export function RetentionMetricsSection() {
                 });
                 return (
                   <div key={day.date} className="flex flex-1 flex-col items-center gap-1">
-                    <span className="text-[10px] font-medium tabular-nums text-muted-foreground">
+                    <span className="text-xs font-medium tabular-nums text-muted-foreground">
                       {day.saves}
                     </span>
                     <div className="relative w-full flex-1 flex items-end">
@@ -314,7 +314,7 @@ export function RetentionMetricsSection() {
                         />
                       )}
                     </div>
-                    <span className="text-[9px] text-muted-foreground">{dateLabel}</span>
+                    <span className="text-xs text-muted-foreground">{dateLabel}</span>
                   </div>
                 );
               })}
@@ -322,7 +322,7 @@ export function RetentionMetricsSection() {
           ) : (
             <p className="py-8 text-center text-xs text-muted-foreground">No daily data yet</p>
           )}
-          <div className="mt-3 flex items-center gap-4 text-[10px] text-muted-foreground">
+          <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <span className="inline-block h-2 w-2 rounded-sm bg-primary/40" /> Saves
             </span>
@@ -349,7 +349,7 @@ export function RetentionMetricsSection() {
                       </span>
                       <span className="tabular-nums">
                         {count.toLocaleString()}
-                        <span className="ml-1 text-[11px] text-muted-foreground">
+                        <span className="ml-1 text-xs text-muted-foreground">
                           ({pct(count, rpt.totalShares)})
                         </span>
                       </span>
@@ -385,7 +385,7 @@ export function RetentionMetricsSection() {
                     <span className="text-muted-foreground">{labelize(source)}</span>
                     <span className="tabular-nums">
                       {count.toLocaleString()}
-                      <span className="ml-1 text-[11px] text-muted-foreground">
+                      <span className="ml-1 text-xs text-muted-foreground">
                         ({pct(count, rpt.totalSaves)})
                       </span>
                     </span>
@@ -413,7 +413,7 @@ export function RetentionMetricsSection() {
                     <span className="text-muted-foreground">{labelize(persona)}</span>
                     <span className="tabular-nums">
                       {count.toLocaleString()}
-                      <span className="ml-1 text-[11px] text-muted-foreground">
+                      <span className="ml-1 text-xs text-muted-foreground">
                         ({pct(count, rpt.totalSaves)})
                       </span>
                     </span>
@@ -441,7 +441,7 @@ export function RetentionMetricsSection() {
                     <span className="text-muted-foreground">{labelize(persona)}</span>
                     <span className="tabular-nums">
                       {count.toLocaleString()}
-                      <span className="ml-1 text-[11px] text-muted-foreground">
+                      <span className="ml-1 text-xs text-muted-foreground">
                         ({pct(count, rpt.totalShares)})
                       </span>
                     </span>
@@ -488,11 +488,11 @@ export function RetentionMetricsSection() {
         </div>
       )}
 
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         Data aggregated in Redis from{" "}
-        <code className="rounded bg-muted px-1 py-0.5 font-mono text-[10px]">look_saved</code>,{" "}
-        <code className="rounded bg-muted px-1 py-0.5 font-mono text-[10px]">style_card_opened</code>, and{" "}
-        <code className="rounded bg-muted px-1 py-0.5 font-mono text-[10px]">style_card_share</code> events.
+        <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">look_saved</code>,{" "}
+        <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">style_card_opened</code>, and{" "}
+        <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">style_card_share</code> events.
         Updates in near-real-time.
       </p>
     </div>

@@ -29,7 +29,7 @@ export function RoundStage({
         <JudgeBubble persona={judge} name={personaName}>{round.messages[0]}</JudgeBubble>
       </div>
       <div className="text-center">
-        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">The theme</p>
+        <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-primary">The theme</p>
         <h1 className="mt-1 text-3xl font-black tracking-[-0.04em] sm:text-4xl">{round.theme.name}</h1>
         <p className="mt-1 hidden text-sm text-muted-foreground sm:block">{round.theme.brief}</p>
         <p className="mt-1 text-sm font-bold text-foreground/80">Raid your closet. One full-length photo.</p>
@@ -37,7 +37,7 @@ export function RoundStage({
       {opponent && (
         <div className="flex items-center gap-2 rounded-full border border-[hsl(var(--accent))]/60 bg-[hsl(var(--accent))]/10 px-4 py-1.5">
           <Swords className="h-3.5 w-3.5 text-[hsl(var(--accent))]" />
-          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[hsl(var(--accent))]">
+          <span className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-[hsl(var(--accent))]">
             Duel — beat {opponent.total.toFixed(1)}
           </span>
         </div>
@@ -58,7 +58,7 @@ export function RoundStage({
       </div>
       <p className="text-xs text-muted-foreground">Your photo is judged and discarded — never stored.</p>
       <div id="sample-outfits" className="w-full max-w-md">
-        <p className="mb-1.5 pl-4 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">No photo? Tap a look — judges score it too</p>
+        <p className="mb-1.5 pl-4 font-mono text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">No photo? Tap a look — judges score it too</p>
         <div className="-mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-1">
           {RUNWAY_SAMPLES.map((smp) => (
             <button

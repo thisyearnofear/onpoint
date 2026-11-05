@@ -168,7 +168,7 @@ export function EnhancedConnectButton({
                   {/* Mission/Level Badge */}
                   <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 border border-primary/20 rounded-full">
                     <Trophy className="h-3 w-3 text-primary" />
-                    <span className="text-[10px] font-bold text-primary uppercase tracking-wider">
+                    <span className="text-xs font-bold text-primary uppercase tracking-wider">
                       Lvl {level}
                     </span>
                     {isStyleElite && (
@@ -186,7 +186,7 @@ export function EnhancedConnectButton({
                         <AlertCircle className="h-4 w-4 text-yellow-500" />
                       ) : (
                         <div
-                          className={`w-5 h-5 rounded-full ${chainColor} flex items-center justify-center text-white text-[10px] font-bold`}
+                          className={`w-5 h-5 rounded-full ${chainColor} flex items-center justify-center text-white text-xs font-bold`}
                         >
                           {chainIcon}
                         </div>
@@ -255,7 +255,7 @@ export function EnhancedConnectButton({
                   </Button>
                   {showValueProp && (
                     <div className="absolute top-full right-0 mt-2 w-64 bg-card border border-border rounded-2xl shadow-xl p-4 z-50 animate-fade-in">
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-3">
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
                         Why connect?
                       </p>
                       <div className="space-y-2.5">
@@ -278,7 +278,7 @@ export function EnhancedConnectButton({
                           </p>
                         </div>
                       </div>
-                      <p className="text-[10px] text-muted-foreground/50 mt-3 pt-2 border-t border-border/50">
+                      <p className="text-xs text-muted-foreground/50 mt-3 pt-2 border-t border-border/50">
                         On Celo · No gas fees for claiming
                       </p>
                     </div>

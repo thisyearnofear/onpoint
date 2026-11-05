@@ -257,7 +257,7 @@ export function GeminiLivePaymentButton({
           <CreditCard className="w-5 h-5 mr-2" />
           <span className="font-bold">Pay with Card — $0.30</span>
         </Button>
-        <p className="text-[10px] text-muted-foreground/70 text-center">
+        <p className="text-xs text-muted-foreground/70 text-center">
           Or connect a wallet in Settings to pay with crypto
         </p>
       </div>
@@ -334,7 +334,7 @@ export function GeminiLivePaymentButton({
         </div>
       )}
 
-      <p className="text-[10px] text-muted-foreground text-center">
+      <p className="text-xs text-muted-foreground text-center">
         One-time payment for this session
       </p>
     </div>

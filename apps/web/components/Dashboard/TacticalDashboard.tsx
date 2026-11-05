@@ -212,7 +212,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
             }`}
           >
             <LayoutDashboard className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Home</span>
+            <span className="text-xs font-medium">Home</span>
           </button>
 
           {/* Shop */}
@@ -223,7 +223,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
             }`}
           >
             <ShoppingBag className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Shop</span>
+            <span className="text-xs font-medium">Shop</span>
           </button>
 
           {/* Try On — elevated center button */}
@@ -238,7 +238,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
             >
               <Camera className="w-6 h-6" />
             </button>
-            <span className={`text-[10px] font-medium mt-0.5 ${mode === "try-on" ? "text-accent" : "text-muted-foreground"}`}>
+            <span className={`text-xs font-medium mt-0.5 ${mode === "try-on" ? "text-accent" : "text-muted-foreground"}`}>
               Try On
             </span>
           </div>
@@ -251,7 +251,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
             }`}
           >
             <Grid className="w-5 h-5" />
-            <span className="text-[10px] font-medium">More</span>
+            <span className="text-xs font-medium">More</span>
           </button>
         </div>
       </nav>
@@ -298,7 +298,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/40">
                     <item.icon className={`w-5 h-5 ${mode === item.id ? item.color : "text-muted-foreground"}`} />
                   </div>
-                  <span className={`text-[10px] font-medium ${mode === item.id ? "text-foreground" : "text-muted-foreground"}`}>
+                  <span className={`text-xs font-medium ${mode === item.id ? "text-foreground" : "text-muted-foreground"}`}>
                     {item.label}
                   </span>
                 </button>
@@ -321,7 +321,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
             </div>
             {/* Power tools — agent chrome, secondary per ADR 0002 */}
             <div className="border-t border-border px-6 py-3">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50 mb-2">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/50 mb-2">
                 Power
               </p>
               <div className="flex items-center gap-2 flex-wrap">

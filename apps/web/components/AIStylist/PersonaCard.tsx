@@ -172,7 +172,7 @@ export function PersonaCard({
               </div>
               <button
                 onClick={(e) => toggleVoice(e, config.greeting)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all ${
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
                   isPlaying
                     ? `${config.bgColor} ${config.color} ring-1 ${config.ringColor.replace('ring-', 'ring-')}`
                     : `${config.bgColor} ${config.color} hover:opacity-80`

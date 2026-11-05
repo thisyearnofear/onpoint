@@ -162,7 +162,7 @@ export default async function CuratorStorefrontPage({
 
             <div className="space-y-4">
               <h1
-                className="max-w-3xl text-4xl font-black tracking-tight md:text-6xl"
+                className="font-display max-w-3xl text-4xl font-semibold tracking-tight md:text-6xl"
                 data-view-transition="curator-name"
                 style={{ viewTransitionName: `curator-name-${slug}` }}
               >
@@ -242,7 +242,7 @@ export default async function CuratorStorefrontPage({
                 ].map((step, index) => (
                   <div key={step} className="flex items-center gap-2 rounded-md border border-border bg-muted/30 p-2">
                     <span
-                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
                       style={{ background: "var(--curator-primary)" }}
                     >
                       {index + 1}
@@ -271,8 +271,8 @@ export default async function CuratorStorefrontPage({
         <section className="border-b border-border bg-muted/20">
           <div className="mx-auto max-w-6xl px-4 py-6">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                Quick Try
+              <h2 className="text-sm font-bold text-muted-foreground">
+                Quick try
               </h2>
               <a
                 href={`/lab?tab=try-on&from=${slug}`}
@@ -302,7 +302,7 @@ export default async function CuratorStorefrontPage({
                         <Camera className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                     </div>
-                    <p className="mt-1.5 max-w-[6rem] truncate text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                    <p className="mt-1.5 line-clamp-2 w-24 text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
                       {listing.title || "Untitled"}
                     </p>
                   </a>
@@ -332,10 +332,7 @@ export default async function CuratorStorefrontPage({
 
         <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Available now
-            </p>
-            <h2 className="mt-1 text-2xl font-black tracking-tight">
+            <h2 className="text-2xl font-black tracking-tight">
               Choose a piece, then decide with confidence
             </h2>
           </div>

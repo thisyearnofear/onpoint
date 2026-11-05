@@ -61,10 +61,10 @@ export function LookCrafter() {
   const occasions = OCCASIONS;
   const vibes = VIBES;
 
-  const freePersonas: { id: StylistPersona; name: string; emoji: string }[] = [
-    { id: "miranda", name: "Miranda", emoji: "⭐" },
-    { id: "edina", name: "Edina", emoji: "✨" },
-    { id: "shaft", name: "Shaft", emoji: "💬" },
+  const freePersonas: { id: StylistPersona; name: string }[] = [
+    { id: "miranda", name: "Miranda" },
+    { id: "edina", name: "Edina" },
+    { id: "shaft", name: "Shaft" },
   ];
 
   const canGenerate = occasion && vibe && persona;
@@ -216,13 +216,13 @@ export function LookCrafter() {
                       <button
                         key={bt.id}
                         onClick={() => handleBodyTypeSelect(bt.id)}
-                        className={`flex flex-col items-center gap-0.5 rounded-lg p-2 text-[10px] font-medium transition-all active:scale-[0.95] ${
+                        className={`flex flex-col items-center gap-0.5 rounded-lg p-2 text-xs font-medium transition-all active:scale-[0.95] ${
                           bodyType === bt.id
                             ? "bg-primary/10 border border-primary text-primary shadow-sm"
                             : "bg-muted/50 border border-transparent text-muted-foreground hover:bg-muted active:bg-muted/80"
                         }`}
                       >
-                        <span className="text-base">{bt.emoji}</span>
+                        <span className="text-base"></span>
                         <span className="leading-tight">{bt.label}</span>
                       </button>
                     ))}
@@ -245,7 +245,7 @@ export function LookCrafter() {
                             : "bg-muted/50 border-2 border-transparent text-muted-foreground hover:bg-muted active:bg-muted/80"
                         }`}
                       >
-                        <span className="text-lg">{o.emoji}</span>
+                        <span className="text-lg"></span>
                         <span>{o.label}</span>
                       </button>
                     ))}
@@ -290,7 +290,7 @@ export function LookCrafter() {
                             : "bg-muted/50 border-2 border-transparent text-muted-foreground hover:bg-muted active:bg-muted/80"
                         }`}
                       >
-                        <span className="text-base">{bt.emoji}</span>
+                        <span className="text-base"></span>
                         <span>{bt.label}</span>
                       </button>
                     ))}
@@ -348,7 +348,7 @@ export function LookCrafter() {
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${config.bg}`}>
                             {React.createElement(config.icon, { className: `w-5 h-5 ${config.text}` })}
                           </div>
-                          <span className="text-[11px] font-medium">{p.name}</span>
+                          <span className="text-xs font-medium">{p.name}</span>
                         </button>
                       );
                     })}
@@ -399,7 +399,7 @@ export function LookCrafter() {
                       <div className="w-4 h-4 rounded-full bg-primary/80 flex items-center justify-center">
                         {React.createElement(getPersonaConfig(persona!).icon, { className: "w-2.5 h-2.5 text-white" })}
                       </div>
-                      <span className="text-[11px] font-bold text-white">
+                      <span className="text-xs font-bold text-white">
                         {getPersonaConfig(persona!).characterName.split(" ")[0]}
                       </span>
                     </div>
@@ -419,14 +419,14 @@ export function LookCrafter() {
                     </div>
                   </div>
                   <div className="p-3 bg-background">
-                    <p className="text-[11px] text-muted-foreground italic leading-relaxed">
+                    <p className="text-xs text-muted-foreground italic leading-relaxed">
                       &ldquo;{result.critique}&rdquo;
                     </p>
                     <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                      <span className="px-1.5 py-0.5 rounded bg-muted text-[11px] font-medium text-muted-foreground capitalize">
+                      <span className="px-1.5 py-0.5 rounded bg-muted text-xs font-medium text-muted-foreground capitalize">
                         {occasion}
                       </span>
-                      <span className="px-1.5 py-0.5 rounded bg-muted text-[11px] font-medium text-muted-foreground capitalize">
+                      <span className="px-1.5 py-0.5 rounded bg-muted text-xs font-medium text-muted-foreground capitalize">
                         {vibe}
                       </span>
                     </div>

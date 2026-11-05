@@ -358,7 +358,7 @@ export function AgentPermissionDashboard() {
               <Zap className="w-4 h-4 text-violet-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] text-zinc-400 leading-relaxed">
+              <p className="text-xs text-zinc-400 leading-relaxed">
                 <span className="text-violet-400 font-medium">Agent: </span>
                 {hasPermissions
                   ? "Monitoring your favorite retailers for price drops. I'll alert you before making any purchases."
@@ -501,7 +501,7 @@ function RetailerCard({
               {permission.scopes.map((scope) => (
                 <span
                   key={scope}
-                  className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-500 border border-zinc-700/50"
+                  className="text-xs px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-500 border border-zinc-700/50"
                 >
                   {scope.replace(":", " ")}
                 </span>

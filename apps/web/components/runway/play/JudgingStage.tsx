@@ -46,13 +46,13 @@ export function JudgingStage({
               <div className={active ? "rounded-full ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}>
                 <JudgeAvatar persona={j.key} size="lg" />
               </div>
-              <span className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{j.name}</span>
+              <span className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">{j.name}</span>
             </div>
           );
         })}
       </div>
       <p className="max-w-xs text-center text-sm font-bold text-foreground/70">{lines[lineIdx % lines.length]}</p>
-      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">The judges are conferring…</p>
+      <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">The judges are conferring…</p>
     </>
   );
 }

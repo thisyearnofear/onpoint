@@ -72,7 +72,7 @@ describe("getRecommendedItems", () => {
     expect(results).toHaveLength(0);
   });
 
-  it("returns high-rated items when no preferences set", () => {
+  it("returns items when no preferences set", () => {
     const prefs: StylePreferences = {
       categories: [],
       priceRange: { min: 0, max: 10000 },
@@ -80,8 +80,10 @@ describe("getRecommendedItems", () => {
 
     const results = getRecommendedItems(prefs, 3);
     expect(results).toHaveLength(3);
-    // Top items should generally have higher ratings
-    const topRating = results[0]!.averageRating ?? 0;
-    expect(topRating).toBeGreaterThan(3);
+    // Seed items carry no ratings until real engagement data exists —
+    // the rating bonus must degrade to 0 rather than fabricate a ranking.
+    for (const item of results) {
+      expect(item.averageRating ?? 0).toBe(0);
+    }
   });
 });

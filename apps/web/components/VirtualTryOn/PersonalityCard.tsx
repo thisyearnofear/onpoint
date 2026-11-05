@@ -103,7 +103,7 @@ export function PersonalityCard({
         {!isLocked && (
           <button
             onClick={toggleVoice}
-            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-all ${
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-all ${
               isPlaying
                 ? "bg-primary/10 text-primary ring-1 ring-primary/30"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -125,21 +125,21 @@ export function PersonalityCard({
           </button>
         )}
         {config.tier === 'premium' && !isLocked && (
-          <span className="text-[10px] px-2 py-0.5 rounded bg-amber-100 text-warning font-medium">
+          <span className="text-xs px-2 py-0.5 rounded bg-amber-100 text-warning font-medium">
             PRO
           </span>
         )}
         {!isLocked && (
-          <span className={`text-[10px] px-2 py-1 rounded-full ${
+          <span className={`text-xs px-2 py-1 rounded-full ${
             config.mode === 'honest' ? 'bg-blue-100 text-blue-700' :
             config.mode === 'roast' ? 'bg-red-100 text-red-700' :
             'bg-green-100 text-green-700'
           }`}>
-            {config.mode === 'honest' ? '💼 Honest' : config.mode === 'roast' ? '🔥 Roast' : '✨ Hype'}
+            {config.mode === 'honest' ? 'Honest' : config.mode === 'roast' ? 'Roast' : 'Hype'}
           </span>
         )}
         {isLocked && (
-          <span className="text-[10px] text-center leading-tight">
+          <span className="text-xs text-center leading-tight">
             {gCost ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 font-bold text-success">
                 {gCost.toLocaleString()} G$ / session
@@ -158,7 +158,7 @@ export function PersonalityCard({
                   e.preventDefault();
                   setShowPreview(true);
                 }}
-                className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Eye className="h-3 w-3" />
                 Preview their style
@@ -178,10 +178,10 @@ export function PersonalityCard({
                 >
                   <X className="h-3 w-3" />
                 </button>
-                <p className="text-[10px] italic text-muted-foreground leading-relaxed pr-4">
+                <p className="text-xs italic text-muted-foreground leading-relaxed pr-4">
                   {config.previewSnippet}
                 </p>
-                <p className="text-[9px] text-muted-foreground/60 mt-1.5">
+                <p className="text-xs text-muted-foreground/60 mt-1.5">
                   Premium stylists include scores, brand picks & price ranges.
                 </p>
               </div>

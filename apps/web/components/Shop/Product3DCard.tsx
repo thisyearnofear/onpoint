@@ -48,7 +48,7 @@ export function Product3DCard({ imageUrl, name, price, badge, reason, onClick }:
       }}
     >
       {badge && (
-        <div className="absolute top-1.5 left-1.5 z-10 px-1.5 py-0.5 rounded-full bg-primary/90 text-white text-[8px] font-bold shadow-lg">
+        <div className="absolute top-1.5 left-1.5 z-10 px-1.5 py-0.5 rounded-full bg-primary/90 text-white text-xs font-bold shadow-lg">
           {badge}
         </div>
       )}
@@ -78,7 +78,7 @@ export function Product3DCard({ imageUrl, name, price, badge, reason, onClick }:
         <div className="p-2 space-y-0.5">
           <p className="text-xs font-medium truncate">{name}</p>
           {reason && (
-            <p className="text-[10px] text-muted-foreground line-clamp-1 leading-tight">
+            <p className="text-xs text-muted-foreground line-clamp-1 leading-tight">
               💡 {reason}
             </p>
           )}

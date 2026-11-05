@@ -99,7 +99,7 @@ export function MissionToast({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <CheckCircle className="w-4 h-4 text-emerald-400" />
-              <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
+              <span className="text-xs text-emerald-400 font-bold uppercase tracking-wider">
                 Mission Complete!
               </span>
             </div>

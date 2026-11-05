@@ -187,7 +187,7 @@ export function TrackingTimeline({
                   >
                     {step.label}
                     {isCurrent && !isDelivered && (
-                      <span className="ml-2 inline-flex animate-fade-slide-in items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-success">
+                      <span className="ml-2 inline-flex animate-fade-slide-in items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-success">
                         <Clock className="h-2.5 w-2.5" />
                         Current
                       </span>
@@ -218,7 +218,7 @@ export function TrackingTimeline({
               <p className="text-xs font-semibold text-warning">
                 Payment pending verification
               </p>
-              <p className="mt-0.5 text-[11px] text-warning/80">
+              <p className="mt-0.5 text-xs text-warning/80">
                 Your payment is being verified. This page will update automatically once confirmed.
               </p>
             </div>

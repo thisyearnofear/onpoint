@@ -275,7 +275,7 @@ export function CrossCuratorRecommendationsSection() {
               <p className="text-2xl font-black tracking-tight">
                 {totalCrossRecoClicks.toLocaleString()}
               </p>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Cards clicked across all storefronts
               </p>
             </div>
@@ -294,7 +294,7 @@ export function CrossCuratorRecommendationsSection() {
               <p className="text-2xl font-black tracking-tight">
                 {recoClickToVisitRate}
               </p>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {totalCrossShareVisits.toLocaleString()} visits from{" "}
                 {totalCrossRecoClicks.toLocaleString()} clicks
               </p>
@@ -314,7 +314,7 @@ export function CrossCuratorRecommendationsSection() {
               <p className="text-2xl font-black tracking-tight">
                 {totalCrossAttrPurchases.toLocaleString()}
               </p>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Purchases traced to cross-curator referrals
               </p>
             </div>
@@ -333,7 +333,7 @@ export function CrossCuratorRecommendationsSection() {
               <p className="text-2xl font-black tracking-tight">
                 {curatorBreakdown.length}
               </p>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Sending cross-curator recommendations
               </p>
             </div>
@@ -393,7 +393,7 @@ export function CrossCuratorRecommendationsSection() {
                       <span className="font-medium capitalize">{r.slug}</span>
                       <span className="ml-2 shrink-0 text-muted-foreground tabular-nums">
                         {r.crossRecoClicks || 0} clicks
-                        <span className="ml-1 text-[11px]">
+                        <span className="ml-1 text-xs">
                           ({pct(r.shareVisits || 0, r.crossRecoClicks || 0)}{" "}
                           visit rate)
                         </span>
@@ -476,7 +476,7 @@ export function CrossCuratorRecommendationsSection() {
                   </div>
                   <div>
                     <p className="text-sm font-medium capitalize">{slug}</p>
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       attributed purchase{count === 1 ? "" : "s"}
                     </p>
                   </div>
@@ -486,13 +486,13 @@ export function CrossCuratorRecommendationsSection() {
         </div>
       )}
 
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         Cross-curator data tracked via{" "}
-        <code className="rounded bg-muted px-1 py-0.5 font-mono text-[10px]">
+        <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
           cross_reco_click
         </code>{" "}
         events and{" "}
-        <code className="rounded bg-muted px-1 py-0.5 font-mono text-[10px]">
+        <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
           share_visit
         </code>{" "}
         referral attribution. Updates in near-real-time.

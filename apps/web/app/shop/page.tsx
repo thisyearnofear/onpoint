@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from "react";
 import Image from "next/image";
-import { ShopGrid, EngagementBadge } from "@repo/shared-ui";
+import { ShopGrid } from "@repo/shared-ui";
 import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import type { FashionItem } from "@onpoint/shared-types";
 import { ShoppingBag, Sparkles, Loader2 } from "lucide-react";
@@ -49,6 +49,15 @@ export default function ShopPage() {
     }
   }, [fetchPicks]);
 
+  // Deep link: /shop?item=<slug-or-id> opens that item's detail modal,
+  // so shared links land on the item rather than the bare catalog.
+  React.useEffect(() => {
+    const param = new URLSearchParams(window.location.search).get("item");
+    if (!param) return;
+    const match = CANVAS_ITEMS.find((i) => i.slug === param || i.id === param);
+    if (match) setSelectedItem(match);
+  }, []);
+
   const handleItemClick = (item: FashionItem) => {
     setSelectedItem(item);
   };
@@ -64,13 +73,11 @@ export default function ShopPage() {
   };
 
   const handleShare = (item: FashionItem) => {
-    // Implement share logic
+    const url = `${window.location.origin}/shop?item=${item.slug || item.id}`;
     if (navigator.share) {
-      navigator.share({
-        title: item.name,
-        text: item.description,
-        url: `${window.location.origin}/shop`,
-      });
+      navigator.share({ title: item.name, text: item.description, url });
+    } else {
+      navigator.clipboard?.writeText(url);
     }
   };
 
@@ -82,7 +89,6 @@ export default function ShopPage() {
         {(dominantAesthetic || budgetLabel) && (
           <div className="mb-6 px-4 py-3 rounded-xl bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 border border-primary/10">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>🎯</span>
               {dominantAesthetic && (
                 <span>
                   Highlighting <span className="font-semibold text-foreground capitalize">{dominantAesthetic}</span> styles
@@ -121,7 +127,7 @@ export default function ShopPage() {
                   <h3 className="text-lg font-bold text-foreground">
                     Your AI Agent is Shopping for You
                   </h3>
-                  <span className="px-2 py-0.5 text-[10px] font-bold bg-primary/20 text-primary rounded-full uppercase">
+                  <span className="px-2 py-0.5 text-xs font-bold bg-primary/20 text-primary rounded-full uppercase">
                     Active
                   </span>
                 </div>
@@ -243,29 +249,6 @@ export default function ShopPage() {
             )}
           </div>
         )}
-
-        {/* Featured Metrics */}
-        <div className="mb-12 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <EngagementBadge
-            type="trending"
-            tryOnCount={CANVAS_ITEMS.reduce(
-              (sum, item) => sum + (item.tryOnCount || 0),
-              0,
-            )}
-            rating={4.7}
-            animated
-          />
-          <EngagementBadge
-            type="viral"
-            tryOnCount={
-              CANVAS_ITEMS.length > 0
-                ? Math.max(...CANVAS_ITEMS.map((item) => item.tryOnCount || 0))
-                : 0
-            }
-            mintCount={12}
-            animated
-          />
-        </div>
 
         {/* Shop Grid with Mobile Carousel & Enhanced Cards */}
         <ShopGrid

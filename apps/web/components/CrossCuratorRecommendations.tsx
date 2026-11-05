@@ -120,7 +120,7 @@ export function CrossCuratorRecommendations({
         <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
           Picked for you by AI
         </h2>
-        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
           {recommendations.length} items
         </span>
       </div>
@@ -181,7 +181,7 @@ export function CrossCuratorRecommendations({
               )}
 
               {/* Curator badge */}
-              <div className="absolute left-2 top-2 flex items-center gap-1.5 rounded-full bg-background/90 px-2 py-1 text-[10px] font-bold shadow-sm backdrop-blur">
+              <div className="absolute left-2 top-2 flex items-center gap-1.5 rounded-full bg-background/90 px-2 py-1 text-xs font-bold shadow-sm backdrop-blur">
                 <div
                   className="h-3 w-3 rounded-full"
                   style={{ background: rec.curatorColor }}
@@ -210,7 +210,7 @@ export function CrossCuratorRecommendations({
                 <span className="text-sm font-bold text-foreground">
                   {formatPrice(rec.lowestPrice) || "Ask"}
                 </span>
-                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                   {rec.matchReason}
                 </span>
               </div>

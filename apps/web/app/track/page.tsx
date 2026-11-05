@@ -463,7 +463,7 @@ function TrackingPageInner() {
           {payment.fulfilmentStatus !== "delivered" && (
             <div className="flex items-center gap-2">
               <div className="relative group" tabIndex={0}>
-                <span className="inline-flex cursor-default items-center gap-1.5 rounded-full border border-success/20 bg-success/10 px-2.5 py-0.5 text-[11px] font-medium text-success">
+                <span className="inline-flex cursor-default items-center gap-1.5 rounded-full border border-success/20 bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success">
                   <span className="relative flex h-2 w-2">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
@@ -473,8 +473,8 @@ function TrackingPageInner() {
 
                 {/* Live indicator tooltip */}
                 <div className="absolute right-0 top-full z-20 mt-1.5 w-56 rounded-lg border border-border bg-card p-3 shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 max-w-[calc(100vw-2rem)]">
-                  <p className="text-[11px] font-medium text-success">Auto-refreshing</p>
-                  <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
+                  <p className="text-xs font-medium text-success">Auto-refreshing</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                     This page automatically refreshes every 15 seconds to check for order updates.
                   </p>
                 </div>
@@ -483,7 +483,7 @@ function TrackingPageInner() {
               {/* Connection status with tooltip */}
               <div className="relative group" tabIndex={0}>
                 <span
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-all duration-300 cursor-default ${
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all duration-300 cursor-default ${
                     pushSubscribed
                       ? "border-success/20 bg-success/10 text-success"
                       : swRegistered
@@ -511,22 +511,22 @@ function TrackingPageInner() {
                 <div className="absolute right-0 top-full z-20 mt-1.5 w-64 rounded-lg border border-border bg-card p-3 shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 max-w-[calc(100vw-2rem)]">
                   {pushSubscribed ? (
                     <>
-                      <p className="text-[11px] font-medium text-success">Push active</p>
-                      <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
+                      <p className="text-xs font-medium text-success">Push active</p>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                         Real-time notifications are active. You&apos;ll be notified instantly when your order status changes, even if this page is closed.
                       </p>
                     </>
                   ) : swRegistered ? (
                     <>
-                      <p className="text-[11px] font-medium text-blue-600">Polling</p>
-                      <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
+                      <p className="text-xs font-medium text-blue-600">Polling</p>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                         Service worker is registered. This page checks for updates every 15 seconds. Enable notifications for real-time updates.
                       </p>
                     </>
                   ) : (
                     <>
-                      <p className="text-[11px] font-medium text-muted-foreground">Connecting</p>
-                      <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
+                      <p className="text-xs font-medium text-muted-foreground">Connecting</p>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                         Setting up the background service for order updates. This should complete momentarily.
                       </p>
                     </>
@@ -534,7 +534,7 @@ function TrackingPageInner() {
                 </div>
               </div>
               <span
-                className={`inline-flex items-center gap-1 text-[10px] text-muted-foreground/60 transition-all duration-300 ${
+                className={`inline-flex items-center gap-1 text-xs text-muted-foreground/60 transition-all duration-300 ${
                   justRefreshed
                     ? "translate-x-0 opacity-100"
                     : "translate-x-0 opacity-100"
@@ -571,7 +571,7 @@ function TrackingPageInner() {
                 // Clipboard API not available — silently fail
               }
             }}
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium transition-all duration-300 ${
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-all duration-300 ${
               copied
                 ? "border-success/30 bg-success/10 text-success"
                 : "border-border bg-background text-muted-foreground hover:border-muted-foreground/30 hover:text-foreground"
@@ -597,7 +597,7 @@ function TrackingPageInner() {
                 type="button"
                 onClick={toggleNotifications}
                 disabled={notifPermissionDenied}
-                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium transition-all duration-300 ${
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-all duration-300 ${
                   notificationsEnabled
                     ? "border-success/30 bg-success/10 text-success"
                     : notifPermissionDenied
@@ -626,8 +626,8 @@ function TrackingPageInner() {
               {/* Unblock tooltip — subtle, appears on hover/focus only */}
               {notifPermissionDenied && (
                 <div className="absolute right-0 top-full z-20 mt-1.5 w-64 rounded-lg border border-border bg-card p-3 shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200">
-                  <p className="text-[11px] font-medium text-foreground">Notifications blocked</p>
-                  <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
+                  <p className="text-xs font-medium text-foreground">Notifications blocked</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                     Open your browser settings &rarr; Privacy &amp; security &rarr; Site settings &rarr; Notifications &rarr; allow this site.
                   </p>
                 </div>
@@ -775,7 +775,7 @@ function TrackingPageInner() {
 
         {/* ── Auto-refresh notice ── */}
         {payment.fulfilmentStatus !== "delivered" && (
-          <p className="text-center text-[10px] text-muted-foreground/50">
+          <p className="text-center text-xs text-muted-foreground/50">
             This page refreshes automatically every 15 seconds.
           </p>
         )}

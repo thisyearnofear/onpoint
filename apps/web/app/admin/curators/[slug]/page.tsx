@@ -404,7 +404,7 @@ export default async function CuratorDetailPage({
                 {leads.slice(0, 8).map((lead) => (
                   <tr key={lead.id} className="align-top">
                     <td className="px-3 py-3">
-                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium capitalize text-primary">
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium capitalize text-primary">
                         {labelize(lead.source)}
                       </span>
                     </td>

@@ -72,7 +72,7 @@ export function SuggestionHistoryPanel({
           <span className="text-xs font-bold text-foreground uppercase tracking-wider">
             Agent Suggestions
           </span>
-          <span className="text-[10px] font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+          <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
             {suggestions.length}
           </span>
         </div>
@@ -114,18 +114,18 @@ export function SuggestionHistoryPanel({
                         {suggestion.description}
                       </p>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[10px] font-bold text-amber-400">
+                        <span className="text-xs font-bold text-amber-400">
                           {suggestion.amount}
                         </span>
-                        <span className="text-[10px] text-muted-foreground/50">·</span>
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-xs text-muted-foreground/50">·</span>
+                        <span className="text-xs text-muted-foreground">
                           {formatTime(suggestion.createdAt)}
                         </span>
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <StatusIcon className={`w-3.5 h-3.5 ${status.color}`} />
-                      <span className={`text-[10px] font-bold ${status.color}`}>
+                      <span className={`text-xs font-bold ${status.color}`}>
                         {status.label}
                       </span>
                     </div>
@@ -151,7 +151,7 @@ export function SuggestionHistoryPanel({
             return (
               <div
                 key={suggestion.id}
-                className="flex items-center gap-2 text-[11px]"
+                className="flex items-center gap-2 text-xs"
               >
                 <StatusIcon className={`w-3 h-3 shrink-0 ${status.color}`} />
                 <span className="text-muted-foreground truncate flex-1">

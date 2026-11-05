@@ -393,7 +393,7 @@ export function CuratorHomePanel({
                 >
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{look.title}</p>
-                    <span className="rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-bold uppercase text-warning dark:text-amber-400">
+                    <span className="rounded-full bg-warning/10 px-2 py-0.5 text-xs font-bold uppercase text-warning dark:text-amber-400">
                       Draft
                     </span>
                   </div>
@@ -485,7 +485,7 @@ export function CuratorHomePanel({
                       </button>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">{look.title}</p>
-                        <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
+                        <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
                           <span className="inline-flex items-center gap-0.5">
                             <Eye className="h-3 w-3" />
                             {look.tryOnCount ?? 0}

@@ -171,27 +171,27 @@ export function AgentSuggestionToast({
           {/* Observed features - what the AI noticed */}
           {suggestion.observedFeatures && (
             <div className="mb-3 p-2.5 rounded-xl bg-muted/30 border border-border/50">
-              <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider mb-1.5">
+              <p className="text-xs text-muted-foreground/70 uppercase tracking-wider mb-1.5">
                 I noticed you're wearing
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {suggestion.observedFeatures.colors?.map((color, i) => (
                   <span
                     key={`color-${i}`}
-                    className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-medium"
+                    className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-medium"
                   >
                     {color}
                   </span>
                 ))}
                 {suggestion.observedFeatures.fit && (
-                  <span className="px-2 py-0.5 rounded-full bg-success/20 text-emerald-300 text-[10px] font-medium">
+                  <span className="px-2 py-0.5 rounded-full bg-success/20 text-emerald-300 text-xs font-medium">
                     {suggestion.observedFeatures.fit} fit
                   </span>
                 )}
                 {suggestion.observedFeatures.style?.map((style, i) => (
                   <span
                     key={`style-${i}`}
-                    className="px-2 py-0.5 rounded-full bg-warning/20 text-amber-300 text-[10px] font-medium"
+                    className="px-2 py-0.5 rounded-full bg-warning/20 text-amber-300 text-xs font-medium"
                   >
                     {style}
                   </span>
@@ -213,7 +213,7 @@ export function AgentSuggestionToast({
                   {suggestion.amount}
                 </p>
                 {suggestion.source && (
-                  <span className="text-[10px] text-muted-foreground/70 bg-muted/30 px-1.5 py-0.5 rounded border border-border/50">
+                  <span className="text-xs text-muted-foreground/70 bg-muted/30 px-1.5 py-0.5 rounded border border-border/50">
                     at {suggestion.source}
                   </span>
                 )}
@@ -233,7 +233,7 @@ export function AgentSuggestionToast({
                   <p className="text-xs text-indigo-300 font-medium animate-pulse">
                     {suggestion.liveUrl ? "Diving into live marketplaces..." : "Searching global fashion networks..."}
                   </p>
-                  <p className="text-[9px] text-indigo-400/50 uppercase tracking-tighter">
+                  <p className="text-xs text-indigo-400/50 uppercase tracking-tighter">
                     {suggestion.liveUrl ? "Deep Web Search Active" : "Scanning Product Networks"}
                   </p>
                 </div>
@@ -242,7 +242,7 @@ export function AgentSuggestionToast({
               {suggestion.liveUrl && (
                 <button
                   onClick={() => window.open(suggestion.liveUrl, "_blank")}
-                  className="w-full py-2 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg flex items-center justify-center gap-2 text-[10px] text-indigo-400 font-bold border border-indigo-500/20 transition-all uppercase tracking-wider shadow-lg shadow-indigo-500/5"
+                  className="w-full py-2 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg flex items-center justify-center gap-2 text-xs text-indigo-400 font-bold border border-indigo-500/20 transition-all uppercase tracking-wider shadow-lg shadow-indigo-500/5"
                 >
                   <Eye className="w-3.5 h-3.5" />
                   Watch Agent Live
@@ -260,7 +260,7 @@ export function AgentSuggestionToast({
                   Couldn't find results this time
                 </p>
               </div>
-              <p className="text-[10px] text-red-400/60 mt-1">
+              <p className="text-xs text-red-400/60 mt-1">
                 Try refining your search or check back later.
               </p>
             </div>
@@ -289,11 +289,11 @@ export function AgentSuggestionToast({
             <div className="mt-3 flex items-center justify-between px-3 py-1.5 bg-indigo-500/10 rounded-lg border border-indigo-500/20">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
-                <span className="text-[10px] text-indigo-300 font-bold uppercase tracking-wider">Verifiable Receipt</span>
+                <span className="text-xs text-indigo-300 font-bold uppercase tracking-wider">Verifiable Receipt</span>
               </div>
               <button 
                 onClick={() => window.open(`https://gateway.lighthouse.storage/ipfs/${suggestion.verifiableLogCid}`, "_blank")}
-                className="text-[10px] text-indigo-400 hover:text-indigo-300 underline font-medium"
+                className="text-xs text-indigo-400 hover:text-indigo-300 underline font-medium"
               >
                 View on IPFS
               </button>

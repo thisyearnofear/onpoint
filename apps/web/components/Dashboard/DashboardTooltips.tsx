@@ -179,7 +179,7 @@ function DashboardTooltip({
           </p>
           <button
             onClick={onDismissAll}
-            className="mt-2 text-[10px] text-background/40 hover:text-background/60 transition-colors"
+            className="mt-2 text-xs text-background/40 hover:text-background/60 transition-colors"
           >
             Don&apos;t show any tooltips
           </button>

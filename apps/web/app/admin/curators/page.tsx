@@ -163,13 +163,13 @@ export default async function CuratorListPage() {
                       {curator.verticals?.slice(0, 2).map((v) => (
                         <span
                           key={v}
-                          className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+                          className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
                         >
                           {v.replaceAll("-", " ")}
                         </span>
                       ))}
                       {(curator.verticals?.length || 0) > 2 && (
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                           +{curator.verticals.length - 2}
                         </span>
                       )}
@@ -186,7 +186,7 @@ export default async function CuratorListPage() {
                       <ShoppingBag className="h-3 w-3" />
                       {curator.listingCount}
                       {typeof curator.physicalLiveCount === "number" && (
-                        <span className="text-[10px] opacity-70">
+                        <span className="text-xs opacity-70">
                           ({curator.physicalLiveCount} phys)
                         </span>
                       )}
@@ -197,7 +197,7 @@ export default async function CuratorListPage() {
                       <span className="inline-flex rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success">
                         Ready
                         {curator.commerce?.payoutWalletStatus === "platform_custodial" && (
-                          <span className="ml-1 text-[10px] opacity-80">(custodial)</span>
+                          <span className="ml-1 text-xs opacity-80">(custodial)</span>
                         )}
                       </span>
                     ) : curator.hasWallet ? (

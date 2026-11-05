@@ -360,7 +360,7 @@ function InteractiveStylingCanvas({ selectedColor, onColorApplied }: Interactive
             absolute top-[25%] left-[55%] -translate-x-1/2 -translate-y-1/2
             w-[18px] h-[18px] rounded-full
             border border-foreground/60 text-foreground/60
-            flex items-center justify-center text-[11px] font-bold
+            flex items-center justify-center text-xs font-bold
             cursor-help z-[15] font-sans
             hover:border-foreground hover:text-foreground
             transition-colors duration-200

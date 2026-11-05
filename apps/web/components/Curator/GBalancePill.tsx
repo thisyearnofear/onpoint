@@ -133,7 +133,7 @@ export function GBalancePill({ className }: GBalancePillProps) {
                 fetchBalance();
               }}
             />
-            <p className="mt-2 text-[10px] text-muted-foreground">
+            <p className="mt-2 text-xs text-muted-foreground">
               GoodDollar is free daily UBI on Celo. Claim once per day.
             </p>
           </div>

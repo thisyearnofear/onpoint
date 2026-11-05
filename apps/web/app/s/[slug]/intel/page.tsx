@@ -204,7 +204,7 @@ export default function CuratorIntelPage() {
           <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
             <BarChart3 className="h-4 w-4" />
             Storefront Funnel
-            <span className="ml-1 rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-medium text-success">
+            <span className="ml-1 rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
               OnPoint only
             </span>
           </h2>

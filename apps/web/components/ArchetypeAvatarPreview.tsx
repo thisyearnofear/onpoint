@@ -20,7 +20,6 @@ interface ArchetypeConfig {
 
 interface ArchetypeMeta {
   title: string;
-  emoji: string;
   description: string;
 }
 
@@ -28,32 +27,26 @@ interface ArchetypeMeta {
 const ARCHETYPE_META: Record<string, ArchetypeMeta> = {
   "mo": {
     title: "Sportswear Stylist",
-    emoji: "⚽",
     description: "Football kits, athletic gear, Premier League jerseys",
   },
   "zara": {
     title: "Streetwear Curator",
-    emoji: "👟",
     description: "Sneakers, drops, streetwear staples, retro fits",
   },
   "amara": {
     title: "Ankara & African Print",
-    emoji: "🧵",
     description: "Ankara, Kente, Kitenge, occasion wear, custom pieces",
   },
   "juma": {
     title: "Vintage & Thrift",
-    emoji: "📻",
     description: "One-of-a-kind vintage, thrift finds, deadstock",
   },
   "fatima": {
     title: "Tailor & Formalwear",
-    emoji: "✂️",
     description: "Bespoke suits, kaftans, agbadas, formal wear",
   },
   "grace": {
     title: "Luxury & Premium",
-    emoji: "💎",
     description: "Designer pieces, luxury resale, premium accessories",
   },
 };
@@ -151,7 +144,7 @@ export default async function ArchetypeAvatarPreview() {
               {/* Name & title */}
               <p className="mt-3 text-sm font-bold">{archetype.name}</p>
               <p className="text-xs text-muted-foreground">
-                {meta?.emoji} {meta?.title ?? archetype.verticals[0]}
+                {meta?.title ?? archetype.verticals[0]}
               </p>
 
               {/* Vertical tags */}
@@ -159,7 +152,7 @@ export default async function ArchetypeAvatarPreview() {
                 {archetype.verticals.slice(0, 2).map((v) => (
                   <span
                     key={v}
-                    className="rounded-full bg-muted px-2 py-0.5 text-[9px] font-medium text-muted-foreground"
+                    className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
                   >
                     {v.replaceAll("-", " ")}
                   </span>
@@ -168,12 +161,11 @@ export default async function ArchetypeAvatarPreview() {
 
               {/* Hover detail */}
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 rounded-xl bg-background/95 opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100">
-                <span className="text-2xl">{meta?.emoji}</span>
-                <p className="px-2 text-center text-[11px] leading-tight text-muted-foreground">
+                                <p className="px-2 text-center text-xs leading-tight text-muted-foreground">
                   {meta?.description}
                 </p>
                 <span
-                  className="mt-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-white"
+                  className="mt-1 rounded-full px-2 py-0.5 text-xs font-medium text-white"
                   style={{ background: primary }}
                 >
                   {archetype.brand?.location?.city ?? "—"}

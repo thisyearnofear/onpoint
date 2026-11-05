@@ -16,42 +16,36 @@ interface ConnectedAccount {
 const PROVIDER_CONFIG: Record<SupportedProvider, {
   name: string;
   description: string;
-  icon: string;
   defaultScopes: string[];
   color: string;
 }> = {
   'custom-shop': {
     name: 'Shop',
     description: 'Shopify shopping history & preferences',
-    icon: '🛍️',
     defaultScopes: ['openid', 'profile', 'email'],
     color: 'from-indigo-500 to-indigo-600'
   },
   'custom-klarna': {
     name: 'Klarna',
     description: 'Payment history & wishlists',
-    icon: '💳',
     defaultScopes: ['openid', 'profile'],
     color: 'from-pink-500 to-pink-600'
   },
   'paypal': {
     name: 'PayPal',
     description: 'Payment & transaction history',
-    icon: '💰',
     defaultScopes: ['openid', 'profile', 'email'],
     color: 'from-blue-600 to-blue-700'
   },
   'amazon': {
     name: 'Amazon',
     description: 'Shopping history & wishlists',
-    icon: '📦',
     defaultScopes: ['profile', 'postal_code'],
     color: 'from-orange-500 to-orange-600'
   },
   'google-oauth2': {
     name: 'Google',
     description: 'Calendar scheduling',
-    icon: '📅',
     defaultScopes: [
       'https://www.googleapis.com/auth/calendar.events'
     ],
@@ -60,7 +54,6 @@ const PROVIDER_CONFIG: Record<SupportedProvider, {
   'discord': {
     name: 'Discord',
     description: 'Share with fashion communities',
-    icon: '💬',
     defaultScopes: ['identify', 'email'],
     color: 'from-indigo-600 to-indigo-700'
   }
@@ -198,8 +191,7 @@ export function ConnectedAccounts() {
               className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:bg-muted/30 transition-colors"
             >
               <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${config.color} flex items-center justify-center text-2xl`}>
-                {config.icon}
-              </div>
+                </div>
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">

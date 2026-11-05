@@ -187,7 +187,7 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                       </div>
                       <div className="flex items-start gap-2">
                         <Wallet className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                        <div className="text-[10px] text-muted-foreground leading-relaxed">
+                        <div className="text-xs text-muted-foreground leading-relaxed">
                           Your AI stylist handles payment automatically.
                           Purchases under{" "}
                           <span className="text-amber-400 font-bold">
@@ -197,7 +197,7 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                         </div>
                       </div>
                       {total > 5 && (
-                        <div className="flex items-center gap-2 text-amber-400 text-[10px]">
+                        <div className="flex items-center gap-2 text-amber-400 text-xs">
                           <AlertCircle className="w-3 h-3" />
                           <span>Approval required for this purchase</span>
                         </div>
@@ -240,7 +240,7 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                           `Pay $${total.toFixed(2)}`
                         )}
                       </Button>
-                      <p className="text-[10px] text-muted-foreground/70 text-center flex items-center justify-center gap-1">
+                      <p className="text-xs text-muted-foreground/70 text-center flex items-center justify-center gap-1">
                         <Shield className="w-3 h-3" />
                         Secure payment via your AI stylist
                       </p>

@@ -168,7 +168,7 @@ export default async function LookPage({
 
         {runwayBanner && (
           <div className="mb-6 flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/[0.08] px-4 py-3">
-            <span className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-primary">
+            <span className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-primary">
               Runway
             </span>
             <p className="text-sm font-bold text-foreground">

@@ -30,7 +30,7 @@ export function ItemCard({ item, referralCode, lookSlug, onSwap }: ItemCardProps
             fallbackIconSize={32}
           />
           {item.isHero && (
-            <span className="absolute left-2 top-2 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-bold uppercase text-background">
+            <span className="absolute left-2 top-2 rounded-full bg-foreground px-2 py-0.5 text-xs font-bold uppercase text-background">
               Hero
             </span>
           )}
@@ -51,7 +51,7 @@ export function ItemCard({ item, referralCode, lookSlug, onSwap }: ItemCardProps
         <h3 className="text-xs font-bold leading-tight line-clamp-2">
           {item.title}
         </h3>
-        <p className="text-[11px] capitalize text-muted-foreground">
+        <p className="text-xs capitalize text-muted-foreground">
           {item.curatorSlug}
           {item.kit?.brand && ` · ${item.kit.brand}`}
         </p>

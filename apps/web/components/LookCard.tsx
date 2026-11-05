@@ -104,17 +104,17 @@ export function LookCard({ look, compact = false }: LookCardProps) {
         {look.metadata && (look.metadata.category || look.metadata.occasion || look.metadata.season) && (
           <div className="flex flex-wrap gap-1">
             {look.metadata.category && (
-              <span className="rounded-full bg-foreground/5 px-2 py-0.5 text-[10px] font-semibold capitalize text-foreground/70">
+              <span className="rounded-full bg-foreground/5 px-2 py-0.5 text-xs font-semibold capitalize text-foreground/70">
                 {look.metadata.category}
               </span>
             )}
             {look.metadata.occasion && look.metadata.occasion !== 'casual' && (
-              <span className="rounded-full bg-foreground/5 px-2 py-0.5 text-[10px] font-semibold capitalize text-foreground/70">
+              <span className="rounded-full bg-foreground/5 px-2 py-0.5 text-xs font-semibold capitalize text-foreground/70">
                 {look.metadata.occasion}
               </span>
             )}
             {look.metadata.season && look.metadata.season !== 'all-season' && (
-              <span className="rounded-full bg-foreground/5 px-2 py-0.5 text-[10px] font-semibold capitalize text-foreground/70">
+              <span className="rounded-full bg-foreground/5 px-2 py-0.5 text-xs font-semibold capitalize text-foreground/70">
                 {look.metadata.season}
               </span>
             )}
@@ -126,14 +126,14 @@ export function LookCard({ look, compact = false }: LookCardProps) {
             {look.tags.slice(0, maxTags).map((tag) => (
               <span
                 key={tag}
-                className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium capitalize text-muted-foreground"
+                className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium capitalize text-muted-foreground"
               >
                 {tag}
               </span>
             ))}
           </div>
           {look.tryOnCount > 0 && (
-            <span className="inline-flex shrink-0 items-center gap-1 text-[10px] text-muted-foreground">
+            <span className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
               <Eye className="h-3 w-3" />
               {look.tryOnCount}
             </span>

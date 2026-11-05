@@ -105,7 +105,7 @@ function StyleScanLoadingCard({
           <div className="absolute inset-x-3 top-4 h-px bg-primary/80 shadow-[0_0_22px_rgba(255,255,255,0.75)] animate-pulse" />
           <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-primary/20 to-transparent animate-pulse" />
           <div className="absolute bottom-4 left-4 right-4">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-background/85 px-2.5 py-1 text-[10px] font-medium text-foreground backdrop-blur">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-background/85 px-2.5 py-1 text-xs font-medium text-foreground backdrop-blur">
               <Sparkles className="h-3 w-3 text-primary" />
               OnPoint Style Scan
             </div>
@@ -143,7 +143,7 @@ function StyleScanLoadingCard({
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-xs font-medium">{step.label}</p>
-                    <p className="truncate text-[10px] text-muted-foreground">{step.detail}</p>
+                    <p className="truncate text-xs text-muted-foreground">{step.detail}</p>
                   </div>
                 </div>
               );
@@ -151,7 +151,7 @@ function StyleScanLoadingCard({
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-[10px] font-medium text-muted-foreground">
+            <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
               <span>{isPreparingPhoto ? "Optimizing upload" : "Personalizing recommendations"}</span>
               <span>{isPreparingPhoto ? "Step 1/4" : "Step 3/4"}</span>
             </div>
@@ -251,13 +251,13 @@ function PersonaDeepLinkBanner({
             <> pre-selected for your session</>
           )}
         </p>
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Upload a photo and {config.characterName.split(" ")[0]} will give their take automatically.
         </p>
       </div>
       <button
         onClick={() => setPhase("exiting")}
-        className="shrink-0 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+        className="shrink-0 text-xs text-muted-foreground hover:text-foreground transition-colors"
       >
         Dismiss
       </button>
@@ -798,7 +798,7 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                 <button
                   type="button"
                   onClick={() => setSelfieMode(false)}
-                  className={`rounded-full px-3 py-1 text-[11px] font-medium transition-colors ${
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                     !selfieMode ? "bg-primary text-white" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -807,7 +807,7 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                 <button
                   type="button"
                   onClick={() => setSelfieMode(true)}
-                  className={`rounded-full px-3 py-1 text-[11px] font-medium transition-colors ${
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                     selfieMode ? "bg-primary text-white" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -887,7 +887,7 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                                 ? "OnPoint is styling your profile"
                                 : "Photo ready"}
                         </p>
-                        <p className="text-[10px] text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">
                           {analysis?.bodyType
                             ? `Body type: ${analysis.bodyType}`
                             : isPreparingPhoto
@@ -899,7 +899,7 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                       </div>
                       {(loading || isPreparingPhoto) && (
                         <div className="space-y-1.5">
-                          <div className="flex items-center gap-1.5 text-[10px] text-primary">
+                          <div className="flex items-center gap-1.5 text-xs text-primary">
                             <Sparkles className="h-3 w-3" />
                             <span>{isPreparingPhoto ? "Optimizing upload" : "Building your fit profile"}</span>
                           </div>
@@ -911,7 +911,7 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                     </div>
                     <button
                       onClick={handleReset}
-                      className="shrink-0 rounded-md border border-border px-2.5 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      className="shrink-0 rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                     >
                       Change
                     </button>
@@ -1080,7 +1080,7 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                           <div className="flex items-center justify-between mb-3">
                             <p className="text-xs font-medium text-muted-foreground">PREMIUM STYLISTS</p>
                             {!isPremium && (
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-success/20 text-emerald-400 font-bold">
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-success/20 text-emerald-400 font-bold">
                                 Unlock via XP, badge, G$, or Pro
                               </span>
                             )}
@@ -1105,7 +1105,7 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                             })}
                           </div>
                           {!isPremium && (
-                            <p className="mt-2 text-[11px] text-muted-foreground/80">
+                            <p className="mt-2 text-xs text-muted-foreground/80">
                               No G$ yet? Claim free daily G$ below — no card needed.
                             </p>
                           )}

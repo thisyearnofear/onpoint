@@ -117,11 +117,11 @@ export function NotificationsFeed({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
                     <span
-                      className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${bgClass} ${colorClass}`}
+                      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium uppercase tracking-wider ${bgClass} ${colorClass}`}
                     >
                       {labelize(notif.type)}
                     </span>
-                    <span className="shrink-0 text-[10px] text-muted-foreground">
+                    <span className="shrink-0 text-xs text-muted-foreground">
                       {timeAgo(notif.createdAt)}
                     </span>
                   </div>

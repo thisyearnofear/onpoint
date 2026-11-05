@@ -81,7 +81,7 @@ function StatCard({
         <div className="space-y-1">
           <p className="text-xs font-medium text-muted-foreground">{label}</p>
           <p className="text-2xl font-black tracking-tight">{value}</p>
-          {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
+          {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
         </div>
         <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted ${accent}`}>
           <Icon className="h-4 w-4" />
@@ -130,7 +130,7 @@ function BreakdownCard({
               <span className="truncate text-muted-foreground">{labelize(key)}</span>
               <span className="ml-2 shrink-0 font-medium tabular-nums">
                 {val}
-                <span className="ml-1 text-[11px] text-muted-foreground">
+                <span className="ml-1 text-xs text-muted-foreground">
                   ({pct(val, total)})
                 </span>
               </span>
@@ -159,14 +159,14 @@ function DailyChart({ data }: { data: { date: string; total: number }[] }) {
           });
           return (
             <div key={day.date} className="flex flex-1 flex-col items-center gap-1">
-              <span className="text-[10px] font-medium tabular-nums text-muted-foreground">
+              <span className="text-xs font-medium tabular-nums text-muted-foreground">
                 {day.total}
               </span>
               <div
                 className="w-full rounded-t-md bg-gradient-to-t from-primary/60 to-primary transition-all duration-500"
                 style={{ height: `${Math.max(h, 4)}%` }}
               />
-              <span className="text-[9px] text-muted-foreground">{dateLabel}</span>
+              <span className="text-xs text-muted-foreground">{dateLabel}</span>
             </div>
           );
         })}
@@ -406,7 +406,7 @@ export default function AnalyticsDashboardPage() {
                 <span className="text-muted-foreground">Image-conditioned</span>
                 <span className="font-medium tabular-nums">
                   {report.imageConditioned.yes}
-                  <span className="ml-1 text-[11px] text-muted-foreground">
+                  <span className="ml-1 text-xs text-muted-foreground">
                     ({pct(report.imageConditioned.yes, report.total)})
                   </span>
                 </span>
@@ -422,7 +422,7 @@ export default function AnalyticsDashboardPage() {
                 <span className="text-muted-foreground">AI generated / analysis only</span>
                 <span className="font-medium tabular-nums">
                   {report.imageConditioned.no}
-                  <span className="ml-1 text-[11px] text-muted-foreground">
+                  <span className="ml-1 text-xs text-muted-foreground">
                     ({pct(report.imageConditioned.no, report.total)})
                   </span>
                 </span>
@@ -438,9 +438,9 @@ export default function AnalyticsDashboardPage() {
       </div>
 
       {/* Footer note */}
-      <p className="text-[11px] text-muted-foreground">
-        Data aggregated in Redis from <code className="rounded bg-muted px-1 py-0.5 font-mono text-[10px]">virtual_try_on_provider_outcome</code> and{" "}
-        <code className="rounded bg-muted px-1 py-0.5 font-mono text-[10px]">virtual_try_on_provider_error</code> events. Updates in near-real-time.
+      <p className="text-xs text-muted-foreground">
+        Data aggregated in Redis from <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">virtual_try_on_provider_outcome</code> and{" "}
+        <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">virtual_try_on_provider_error</code> events. Updates in near-real-time.
       </p>
 
       {/* ════════════════════ AI Persona Funnel ════════════════════ */}
@@ -619,10 +619,10 @@ function CuratorFunnelAnalyticsSection() {
                     <span className="text-muted-foreground">{step.label}</span>
                     <span className="font-medium tabular-nums">
                       {step.value.toLocaleString()}{" "}
-                      <span className="text-[11px] text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         / {step.total.toLocaleString()}
                       </span>
-                      <span className="ml-1 text-[11px] font-bold">
+                      <span className="ml-1 text-xs font-bold">
                         ({pctVal.toFixed(1)}%)
                       </span>
                     </span>
@@ -648,7 +648,7 @@ function CuratorFunnelAnalyticsSection() {
                 });
                 return (
                   <div key={day.date} className="flex flex-1 flex-col items-center gap-1">
-                    <span className="text-[10px] font-medium tabular-nums text-muted-foreground">
+                    <span className="text-xs font-medium tabular-nums text-muted-foreground">
                       {day.totalViews}
                     </span>
                     <div className="relative w-full flex-1 flex items-end">
@@ -663,7 +663,7 @@ function CuratorFunnelAnalyticsSection() {
                         />
                       )}
                     </div>
-                    <span className="text-[9px] text-muted-foreground">{dateLabel}</span>
+                    <span className="text-xs text-muted-foreground">{dateLabel}</span>
                   </div>
                 );
               })}
@@ -704,7 +704,7 @@ function CuratorFunnelAnalyticsSection() {
         )}
       </div>
 
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         Curator funnel data aggregated in Redis from client-side tracking and server events.
         Updates in near-real-time. Requires UPSTASH_REDIS_REST_URL configuration.
       </p>

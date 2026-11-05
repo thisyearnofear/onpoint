@@ -70,7 +70,7 @@ export function LiveSessionStartScreen({
         </button>
         <div className="flex items-center gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground">
+          <span className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground">
             {isPremium ? "Premium" : "Free · No signup"}
           </span>
         </div>
@@ -100,7 +100,7 @@ export function LiveSessionStartScreen({
 
               <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1 rounded-full bg-success/20 backdrop-blur-md border border-emerald-400/30 shadow-lg">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-200">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-200">
                   Good Position
                 </span>
               </div>
@@ -116,10 +116,10 @@ export function LiveSessionStartScreen({
                     key={s.label}
                     className="flex-1 rounded-lg bg-black/40 backdrop-blur-md border border-white/10 px-1.5 sm:px-2 py-1.5 min-w-0"
                   >
-                    <p className="text-[8px] uppercase tracking-wider text-white/50 font-bold truncate">
+                    <p className="text-xs uppercase tracking-wider text-white/50 font-bold truncate">
                       {s.label}
                     </p>
-                    <p className={`text-[10px] sm:text-[11px] font-bold truncate ${s.color}`}>
+                    <p className={`text-xs sm:text-xs font-bold truncate ${s.color}`}>
                       {s.value}
                     </p>
                   </div>
@@ -145,11 +145,11 @@ export function LiveSessionStartScreen({
           <div className="text-center space-y-2 max-w-lg">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success/10 border border-success/25">
               <ShieldCheck className="w-3 h-3 text-emerald-400" />
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-300">
                 {isPremium ? "Live · Premium" : "On-device preview · No signup"}
               </span>
             </div>
-            <h1 className="text-3xl sm:text-5xl font-black text-foreground tracking-tighter italic">
+            <h1 className="text-3xl sm:text-5xl font-black text-foreground tracking-tighter">
               {isPremium ? "Live Style Camera" : "Snap & Analyze"}
             </h1>
             <p className="text-muted-foreground text-sm sm:text-base max-w-md mx-auto leading-relaxed">
@@ -158,7 +158,7 @@ export function LiveSessionStartScreen({
                 : "Tap to capture. Get fit, palette, and shopping matches in seconds."}
             </p>
             {!isPremium && (
-              <p className="text-[11px] text-muted-foreground/70 max-w-md mx-auto leading-relaxed">
+              <p className="text-xs text-muted-foreground/70 max-w-md mx-auto leading-relaxed">
                 Free tier is an AI style preview — not the exact garment. The $0.03 paid try-on renders the actual item on your photo.
               </p>
             )}
@@ -178,7 +178,7 @@ export function LiveSessionStartScreen({
                   <Icon className="w-4 h-4 text-emerald-400" />
                 </div>
                 <p className="text-xs font-bold">{label}</p>
-                <p className="text-[10px] text-muted-foreground leading-tight">{desc}</p>
+                <p className="text-xs text-muted-foreground leading-tight">{desc}</p>
               </div>
             ))}
           </div>
@@ -187,7 +187,7 @@ export function LiveSessionStartScreen({
           {!isPremium && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/25">
               <Camera className="w-3 h-3 text-indigo-400" />
-              <span className="text-[10px] font-mono font-bold text-indigo-300">
+              <span className="text-xs font-mono font-bold text-indigo-300">
                 {capturesRemaining} free capture{capturesRemaining !== 1 ? "s" : ""} remaining
               </span>
             </div>
@@ -228,14 +228,14 @@ export function LiveSessionStartScreen({
               <Camera className="w-5 h-5" />
               {showSpinner ? "Connecting..." : "START STYLE CAMERA"}
             </Button>
-            <p className="text-[10px] text-center text-muted-foreground/70 leading-relaxed">
+            <p className="text-xs text-center text-muted-foreground/70 leading-relaxed">
               We only open the camera after you tap. Frames stay on your device unless you save them.
             </p>
           </div>
 
           <button
             onClick={onCompareProviders}
-            className="text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+            className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
           >
             Compare AI providers →
           </button>
@@ -243,7 +243,7 @@ export function LiveSessionStartScreen({
           {onUseUploadPhoto && (
             <button
               onClick={onUseUploadPhoto}
-              className="text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors inline-flex items-center gap-1.5"
+              className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors inline-flex items-center gap-1.5"
             >
               <Upload className="w-3 h-3" />
               Or upload a photo instead →
@@ -253,7 +253,7 @@ export function LiveSessionStartScreen({
           {hasStoredSession && onViewStoredSession && (
             <button
               onClick={onViewStoredSession}
-              className="text-[11px] text-success/60 hover:text-emerald-400 transition-colors inline-flex items-center gap-1.5"
+              className="text-xs text-success/60 hover:text-emerald-400 transition-colors inline-flex items-center gap-1.5"
             >
               View last analysis →
             </button>

@@ -114,7 +114,7 @@ export function LookVersionHistory({
                 )}
                 {/* Label */}
                 <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-1">
-                  <span className="text-[10px] text-white font-medium">
+                  <span className="text-xs text-white font-medium">
                     {version.label || `Look ${i + 1}`}
                   </span>
                 </div>

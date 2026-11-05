@@ -23,9 +23,9 @@ interface PersonaAvatarProps {
 // ── Size Map ──
 
 const SIZE_MAP: Record<AvatarSize, { container: string; icon: string; label: string }> = {
-  xs: { container: "w-6 h-6", icon: "w-3 h-3", label: "text-[8px]" },
-  sm: { container: "w-8 h-8", icon: "w-4 h-4", label: "text-[9px]" },
-  md: { container: "w-10 h-10", icon: "w-5 h-5", label: "text-[10px]" },
+  xs: { container: "w-6 h-6", icon: "w-3 h-3", label: "text-xs" },
+  sm: { container: "w-8 h-8", icon: "w-4 h-4", label: "text-xs" },
+  md: { container: "w-10 h-10", icon: "w-5 h-5", label: "text-xs" },
   lg: { container: "w-14 h-14", icon: "w-7 h-7", label: "text-xs" },
   xl: { container: "w-20 h-20", icon: "w-10 h-10", label: "text-sm" },
   "2xl": { container: "w-28 h-28", icon: "w-14 h-14", label: "text-base" },
@@ -87,7 +87,7 @@ export function PersonaAvatar({
         `}
         title={`${config.characterName} — ${config.description}`}
       >
-        <Icon className={`${sizeClass.icon} text-${config.text} relative z-10`} />
+        <Icon className={`${sizeClass.icon} ${config.theme.text} relative z-10`} />
 
         {/* Subtle gradient overlay on hover */}
         <div
@@ -140,7 +140,7 @@ export function PersonaAvatar({
       {showBadge && size !== "xs" && (
         <span
           className={`
-            ${sizeClass.label} px-1.5 py-0.5 rounded-full font-medium              ${config.bg} text-${config.text}
+            ${sizeClass.label} px-1.5 py-0.5 rounded-full font-medium              ${config.bg} ${config.theme.text}
           `}
         >
           {GREETING_LINES[persona] || config.label}

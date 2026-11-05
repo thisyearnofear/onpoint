@@ -89,7 +89,7 @@ export function AgentWalletBadge() {
         {formatBalance(primary.balance)}
       </span>
       {wallets.length > 1 && (
-        <span className="text-[10px] text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           +{wallets.length - 1}
         </span>
       )}

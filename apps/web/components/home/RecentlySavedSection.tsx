@@ -84,9 +84,9 @@ export function RecentlySavedSection() {
                       {session.headline}
                     </p>
                     <div className="mt-1 flex items-center gap-2">
-                      <span className="text-[10px] text-white/70">{dateLabel}</span>
+                      <span className="text-xs text-white/70">{dateLabel}</span>
                       {session.persona && (
-                        <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[11px] font-medium text-white capitalize">
+                        <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-xs font-medium text-white capitalize">
                           {session.persona}
                         </span>
                       )}

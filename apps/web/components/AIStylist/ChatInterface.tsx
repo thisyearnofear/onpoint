@@ -297,7 +297,7 @@ export function ChatInterface({
                 {Math.round(voiceVolume * 100)}%
               </span>
             </div>
-            <span className="text-[11px] font-medium text-muted-foreground/60 flex-shrink-0">Speed</span>
+            <span className="text-xs font-medium text-muted-foreground/60 flex-shrink-0">Speed</span>
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <input
                 type="range"

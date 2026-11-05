@@ -45,11 +45,11 @@ export function LookOfTheWeekCard({
         <div className="flex items-center justify-between mb-4">
           <div className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-1 text-white shadow-md">
             <Crown className="w-3.5 h-3.5" />
-            <span className="text-[10px] font-bold uppercase tracking-wider">
+            <span className="text-xs font-bold uppercase tracking-wider">
               Look of the week
             </span>
           </div>
-          <span className="text-[10px] text-warning/70 dark:text-amber-400/70 font-medium">
+          <span className="text-xs text-warning/70 dark:text-amber-400/70 font-medium">
             {dateLabel}
           </span>
         </div>
@@ -111,7 +111,7 @@ export function LookOfTheWeekCard({
                 {look.topics.slice(0, 4).map((topic, i) => (
                   <span
                     key={i}
-                    className="rounded-full bg-warning/10 border border-warning/20 px-2.5 py-0.5 text-[11px] font-medium text-warning dark:text-amber-400"
+                    className="rounded-full bg-warning/10 border border-warning/20 px-2.5 py-0.5 text-xs font-medium text-warning dark:text-amber-400"
                   >
                     {topic}
                   </span>

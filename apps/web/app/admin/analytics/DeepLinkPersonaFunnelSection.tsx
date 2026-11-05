@@ -178,7 +178,7 @@ export function DeepLinkPersonaFunnelSection() {
               <p className="text-2xl font-black tracking-tight">
                 {rpt.totalSelected.toLocaleString()}
               </p>
-              <p className="text-[11px] text-muted-foreground">From storefront cards</p>
+              <p className="text-xs text-muted-foreground">From storefront cards</p>
             </div>
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-primary">
               <Link2 className="h-4 w-4" />
@@ -190,7 +190,7 @@ export function DeepLinkPersonaFunnelSection() {
             <div className="space-y-1">
               <p className="text-xs font-medium text-muted-foreground">Completion rate</p>
               <p className="text-2xl font-black tracking-tight">{rpt.completionRate}</p>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {rpt.totalCompleted} completed / {rpt.totalOutcomes} total
               </p>
             </div>
@@ -206,7 +206,7 @@ export function DeepLinkPersonaFunnelSection() {
               <p className="text-2xl font-black tracking-tight">
                 {formatMs(rpt.avgDurationMs)}
               </p>
-              <p className="text-[11px] text-muted-foreground">Selection to critique</p>
+              <p className="text-xs text-muted-foreground">Selection to critique</p>
             </div>
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-info">
               <Sparkles className="h-4 w-4" />
@@ -220,7 +220,7 @@ export function DeepLinkPersonaFunnelSection() {
               <p className="text-2xl font-black tracking-tight">
                 {rpt.totalAbandoned.toLocaleString()}
               </p>
-              <p className="text-[11px] text-muted-foreground">Selected but no critique</p>
+              <p className="text-xs text-muted-foreground">Selected but no critique</p>
             </div>
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-warning">
               <XCircle className="h-4 w-4" />
@@ -257,7 +257,7 @@ export function DeepLinkPersonaFunnelSection() {
                       </span>
                       <span className="ml-2 shrink-0 tabular-nums">
                         {stats.selected} selected
-                        <span className="ml-1.5 text-[11px] text-muted-foreground">
+                        <span className="ml-1.5 text-xs text-muted-foreground">
                           {stats.completionRate} completed
                         </span>
                       </span>
@@ -301,7 +301,7 @@ export function DeepLinkPersonaFunnelSection() {
                             height={20}
                           />
                         )}
-                        <span className="text-[9px] text-muted-foreground">
+                        <span className="text-xs text-muted-foreground">
                           7d trend
                         </span>
                       </div>
@@ -332,7 +332,7 @@ export function DeepLinkPersonaFunnelSection() {
                 });
                 return (
                   <div key={day.date} className="flex flex-1 flex-col items-center gap-1">
-                    <span className="text-[10px] font-medium tabular-nums text-muted-foreground">
+                    <span className="text-xs font-medium tabular-nums text-muted-foreground">
                       {day.selected}
                     </span>
                     <div className="relative w-full flex-1 flex items-end">
@@ -347,7 +347,7 @@ export function DeepLinkPersonaFunnelSection() {
                         />
                       )}
                     </div>
-                    <span className="text-[9px] text-muted-foreground">{dateLabel}</span>
+                    <span className="text-xs text-muted-foreground">{dateLabel}</span>
                   </div>
                 );
               })}
@@ -355,7 +355,7 @@ export function DeepLinkPersonaFunnelSection() {
           ) : (
             <p className="py-8 text-center text-xs text-muted-foreground">No daily data yet</p>
           )}
-          <div className="mt-3 flex items-center gap-4 text-[10px] text-muted-foreground">
+          <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <span className="inline-block h-2 w-2 rounded-sm bg-primary/30" /> Selected
             </span>
@@ -394,13 +394,13 @@ export function DeepLinkPersonaFunnelSection() {
         </div>
       )}
 
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         Data aggregated in Redis from{" "}
-        <code className="rounded bg-muted px-1 py-0.5 font-mono text-[10px]">
+        <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
           deep_link_persona_selected
         </code>{" "}
         and{" "}
-        <code className="rounded bg-muted px-1 py-0.5 font-mono text-[10px]">
+        <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
           deep_link_persona_outcome
         </code>{" "}
         events. Updates in near-real-time.

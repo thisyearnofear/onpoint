@@ -118,7 +118,7 @@ export function AttestationBadge() {
                   <p className="text-sm font-bold text-foreground">
                     {data.erc8004.name}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Autonomous Agent Identity
                   </p>
                 </div>
@@ -135,14 +135,14 @@ export function AttestationBadge() {
             <div className="px-4 py-3 border-b border-border/50">
               <div className="flex items-center gap-2 mb-2">
                 <ScrollText className="w-3.5 h-3.5 text-indigo-400" />
-                <span className="text-[11px] font-bold text-foreground">
+                <span className="text-xs font-bold text-foreground">
                   ERC-8004 Registry
                 </span>
-                <span className="ml-auto bg-success/15 text-emerald-300 text-[8px] font-bold px-1.5 py-0.5 rounded-full">
+                <span className="ml-auto bg-success/15 text-emerald-300 text-xs font-bold px-1.5 py-0.5 rounded-full">
                   registered
                 </span>
               </div>
-              <div className="space-y-1.5 text-[10px]">
+              <div className="space-y-1.5 text-xs">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Agent ID</span>
                   <span className="text-foreground font-mono font-bold">
@@ -192,11 +192,11 @@ export function AttestationBadge() {
             <div className="px-4 py-3">
               <div className="flex items-center gap-2 mb-2">
                 <Fingerprint className="w-3.5 h-3.5 text-violet-400" />
-                <span className="text-[11px] font-bold text-foreground">
+                <span className="text-xs font-bold text-foreground">
                   Self Protocol
                 </span>
                 <span
-                  className={`ml-auto text-[8px] font-bold px-1.5 py-0.5 rounded-full ${
+                  className={`ml-auto text-xs font-bold px-1.5 py-0.5 rounded-full ${
                     data.self.status === "verified"
                       ? "bg-success/15 text-emerald-300"
                       : data.self.status === "pending"
@@ -207,7 +207,7 @@ export function AttestationBadge() {
                   {data.self.status}
                 </span>
               </div>
-              <div className="space-y-1.5 text-[10px]">
+              <div className="space-y-1.5 text-xs">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Self Agent ID</span>
                   <span className="text-foreground font-mono">

@@ -41,7 +41,7 @@ export function WelcomeBackBanner() {
             {totalLooks > 1 && <> · {totalLooks} looks{bestScore ? `, best: ${bestScore}/10` : ""}</>}
           </p>
           {trendLabel && (
-            <p className="mt-0.5 text-[11px] font-medium text-primary">{trendLabel}</p>
+            <p className="mt-0.5 text-xs font-medium text-primary">{trendLabel}</p>
           )}
         </div>
         <Link

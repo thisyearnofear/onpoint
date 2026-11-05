@@ -65,7 +65,7 @@ export function AnimatedScore({
           className={`animate-fade-in px-4 py-1 rounded-full ${tierBgClass} border backdrop-blur-sm`}
           style={{ animationDelay: `${delay + 0.4}s` }}
         >
-          <span className={`text-[10px] font-bold ${tierTextClass} uppercase tracking-[0.15em]`}>
+          <span className={`text-xs font-bold ${tierTextClass} uppercase tracking-[0.15em]`}>
             {displayTier}
           </span>
         </div>

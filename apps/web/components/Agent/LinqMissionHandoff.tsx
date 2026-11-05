@@ -134,7 +134,7 @@ export function LinqMissionHandoff({ orderId }: { orderId: string }) {
       >
         <span>
           <span
-            className={`font-mono text-[8px] font-bold uppercase tracking-[0.14em] ${
+            className={`font-mono text-xs font-bold uppercase tracking-[0.14em] ${
               connected
                 ? "text-emerald-600 dark:text-emerald-300"
                 : "text-primary"
@@ -203,7 +203,7 @@ export function LinqMissionHandoff({ orderId }: { orderId: string }) {
                     )}
                   </span>
                   <div>
-                    <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-white/70">
+                    <p className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-white/70">
                       Live Linq handoff
                     </p>
                     <p className="mt-1 text-lg font-bold">
@@ -231,7 +231,7 @@ export function LinqMissionHandoff({ orderId }: { orderId: string }) {
                 <div>
                   <div className="flex items-center gap-2 text-[#0866ff]">
                     <Smartphone className="h-4 w-4" />
-                    <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em]">
+                    <p className="font-mono text-xs font-bold uppercase tracking-[0.18em]">
                       Phone handoff · Linq
                     </p>
                   </div>
@@ -261,14 +261,14 @@ export function LinqMissionHandoff({ orderId }: { orderId: string }) {
                     )}
                   </div>
 
-                  <div className="mt-4 grid gap-2 text-[11px] sm:max-w-md sm:grid-cols-2">
+                  <div className="mt-4 grid gap-2 text-xs sm:max-w-md sm:grid-cols-2">
                     <button
                       type="button"
                       onClick={() => void copy("number", mission.phoneNumber)}
                       className="flex items-center justify-between rounded-xl border border-black/10 bg-white px-3 py-2.5 text-left dark:border-white/10 dark:bg-white/5"
                     >
                       <span>
-                        <span className="block text-[8px] font-bold uppercase tracking-wider text-black/40 dark:text-white/40">Message</span>
+                        <span className="block text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40">Message</span>
                         <span className="mt-0.5 block font-mono font-semibold">{mission.phoneNumber}</span>
                       </span>
                       {copied === "number" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
@@ -279,7 +279,7 @@ export function LinqMissionHandoff({ orderId }: { orderId: string }) {
                       className="flex items-center justify-between rounded-xl border border-black/10 bg-white px-3 py-2.5 text-left dark:border-white/10 dark:bg-white/5"
                     >
                       <span className="min-w-0">
-                        <span className="block text-[8px] font-bold uppercase tracking-wider text-black/40 dark:text-white/40">Send this code</span>
+                        <span className="block text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40">Send this code</span>
                         <span className="mt-0.5 block truncate font-mono font-semibold">{mission.message}</span>
                       </span>
                       {copied === "code" ? <Check className="ml-2 h-3.5 w-3.5 shrink-0" /> : <Copy className="ml-2 h-3.5 w-3.5 shrink-0" />}
@@ -303,7 +303,7 @@ export function LinqMissionHandoff({ orderId }: { orderId: string }) {
                       </div>
                     )}
                   </div>
-                  <p className="mt-2 text-center font-mono text-[8px] font-bold uppercase tracking-wider text-black/40 dark:text-white/40">
+                  <p className="mt-2 text-center font-mono text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40">
                     Scan with your phone
                   </p>
                 </div>

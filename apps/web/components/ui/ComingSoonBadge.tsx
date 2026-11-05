@@ -14,7 +14,7 @@ export function ComingSoonBadge({
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full bg-warning/15 border border-warning/30 font-medium text-warning dark:text-amber-400 ${
-        size === "xs" ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-0.5 text-xs"
+        size === "xs" ? "px-1.5 py-0.5 text-xs" : "px-2 py-0.5 text-xs"
       }`}
     >
       <Clock className={size === "xs" ? "w-2.5 h-2.5" : "w-3 h-3"} />

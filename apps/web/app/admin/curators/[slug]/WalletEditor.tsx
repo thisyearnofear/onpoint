@@ -171,7 +171,7 @@ export function WalletEditor({
           <Wallet className="h-4 w-4 text-warning" />
           Payout wallet (Celo / MiniPay)
         </label>
-        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
           {statusLabel}
         </span>
       </div>

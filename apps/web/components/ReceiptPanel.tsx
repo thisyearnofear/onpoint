@@ -367,7 +367,7 @@ export function ReceiptPanel({
               "You will be notified when the rider is on the way.",
             ].map((step, i) => (
               <li key={i} className="receipt-step flex items-start gap-2.5 text-xs leading-5 text-foreground">
-                <span className="receipt-step-num mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-success/10 text-[9px] font-bold text-success">
+                <span className="receipt-step-num mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-success/10 text-xs font-bold text-success">
                   {i + 1}
                 </span>
                 {step}

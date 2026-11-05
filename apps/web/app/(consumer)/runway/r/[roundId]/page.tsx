@@ -80,7 +80,7 @@ export default async function RunwayResultPage({
     <div className="min-h-screen bg-background text-foreground">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.18),transparent_65%)]" />
       <main className="relative mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-8 px-4 py-16">
-        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">
+        <p className="text-xs font-medium text-muted-foreground">
           Runway · {result.themeName}
         </p>
 
@@ -89,7 +89,7 @@ export default async function RunwayResultPage({
         <div className="flex w-full items-start gap-3">
           <JudgeAvatar persona={result.persona} size="md" />
           <div className="w-full rounded-2xl rounded-tl-sm border border-border bg-card/80 px-4 py-3">
-            <p className="font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-muted-foreground">{judgeName}</p>
+            <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">{judgeName}</p>
             <p className="mt-1 text-sm leading-relaxed text-foreground">
               {result.late && <span className="mr-2 font-bold text-[hsl(var(--accent))]">LATE —</span>}
               {result.verdict}
@@ -99,7 +99,7 @@ export default async function RunwayResultPage({
 
         {result.fix && (
           <div className="w-full rounded-2xl border border-border bg-card/70 p-4">
-            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">The fix</p>
+            <p className="text-xs font-bold text-primary">The fix</p>
             <div className="mt-2 flex items-center gap-4">
               {result.fix.imageUrl && (
                 <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-border bg-card">

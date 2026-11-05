@@ -54,7 +54,7 @@ export function PravaReturn({ orderId }: { orderId: string }) {
       <div className="absolute inset-0 opacity-40 [background-image:radial-gradient(circle_at_20%_20%,rgba(82,214,160,0.18),transparent_32%),radial-gradient(circle_at_80%_75%,rgba(255,255,255,0.08),transparent_28%)]" />
       <section className="relative w-full max-w-md overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.055] shadow-2xl shadow-black/40 backdrop-blur-xl">
         <div className="border-b border-white/10 px-6 py-5">
-          <p className="font-mono text-[9px] font-bold uppercase tracking-[0.24em] text-emerald-300">
+          <p className="font-mono text-xs font-bold uppercase tracking-[0.24em] text-emerald-300">
             Prava → OnPoint
           </p>
           <p className="mt-1 text-sm text-white/55">Secure mission handoff</p>
@@ -89,7 +89,7 @@ export function PravaReturn({ orderId }: { orderId: string }) {
           </p>
 
           {orderId && (
-            <p className="mt-5 truncate rounded-xl border border-white/10 bg-black/20 px-3 py-2 font-mono text-[10px] text-white/40">
+            <p className="mt-5 truncate rounded-xl border border-white/10 bg-black/20 px-3 py-2 font-mono text-xs text-white/40">
               {orderId}
             </p>
           )}

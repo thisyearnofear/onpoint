@@ -297,7 +297,7 @@ export function GStreamPanel({
               <button
                 key={p.amount}
                 onClick={() => setSelectedMonthly(p.amount)}
-                className={`rounded-md px-2 py-0.5 text-[10px] font-bold transition-colors ${
+                className={`rounded-md px-2 py-0.5 text-xs font-bold transition-colors ${
                   selectedMonthly === p.amount
                     ? "bg-success/20 text-emerald-300"
                     : "bg-muted/40 text-muted-foreground hover:bg-muted"
@@ -387,7 +387,7 @@ export function GStreamPanel({
               }`}
             >
               {p.amount} G$/mo
-              <span className="text-[9px] font-normal text-muted-foreground/60">
+              <span className="text-xs font-normal text-muted-foreground/60">
                 {p.usd}/mo
               </span>
             </button>

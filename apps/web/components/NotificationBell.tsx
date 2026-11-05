@@ -169,7 +169,7 @@ function NotificationList({
                   >
                     {notification.title}
                   </p>
-                  <span className="shrink-0 text-[10px] text-muted-foreground/60 mt-0.5">
+                  <span className="shrink-0 text-xs text-muted-foreground/60 mt-0.5">
                     {timeAgo(notification.timestamp)}
                   </span>
                 </div>
@@ -411,7 +411,7 @@ export function NotificationBell({ direction = "down" }: { direction?: "up" | "d
         <Bell className="w-5 h-5 text-muted-foreground" />
       )}
       {unreadCount > 0 && (
-        <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center w-[18px] h-[18px] text-[10px] font-bold text-white bg-error rounded-full leading-none shadow-sm">
+        <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center w-[18px] h-[18px] text-xs font-bold text-white bg-error rounded-full leading-none shadow-sm">
           {unreadCount > 9 ? "9+" : unreadCount}
         </span>
       )}
@@ -526,7 +526,7 @@ export function NotificationBell({ direction = "down" }: { direction?: "up" | "d
                 <BellRing className="w-4 h-4 text-primary" />
                 Notifications
                 {unreadCount > 0 && (
-                  <span className="text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                  <span className="text-xs font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
                     {unreadCount} new
                   </span>
                 )}

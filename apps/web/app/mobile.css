@@ -1,13 +1,19 @@
 /* Mobile-specific optimizations */
 
-/* Ensure proper touch targets */
-button,
-a,
-input,
-select,
-textarea {
-  min-height: 44px;
-  min-width: 44px;
+/* Ensure proper touch targets — only on touch devices. Applying this
+   globally also mutates desktop layouts (e.g. breadcrumbs, inline links). */
+@media (hover: none) and (pointer: coarse) {
+  button,
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+  }
+  button,
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-width: 44px;
+  }
 }
 
 /* Optimize for touch scrolling */
@@ -79,7 +85,7 @@ textarea {
   @media (prefers-reduced-motion: reduce) {
     .animate-shimmer {
       animation: none !important;
-      background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
+      background: linear-gradient(90deg, var(--shimmer-base) 25%, var(--shimmer-peak) 50%, var(--shimmer-base) 75%);
     }
   }
 }
@@ -105,17 +111,10 @@ textarea {
 
 .low-end-device .animate-shimmer {
   animation: none !important;
-  background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
+  background: linear-gradient(90deg, var(--shimmer-base) 25%, var(--shimmer-peak) 50%, var(--shimmer-base) 75%);
 }
 
-/* Reduce motion for mobile users who prefer it */
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
+/* prefers-reduced-motion is handled globally in globals.css */
 
 /* Hide scrollbars for horizontal scrolling containers */
 .no-scrollbar {

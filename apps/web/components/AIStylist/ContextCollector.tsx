@@ -37,12 +37,12 @@ export function ContextCollector({
 
   // Quick scenario presets — derived from shared OCCASIONS constant for DRY consistency
   const quickScenarios = [
-    { label: "Work", icon: "💼", data: { occasion: "Work meeting", weather: "Indoor", location: "Office", time: "Morning" } },
-    { label: "Date", icon: "💕", data: { occasion: "Date night", weather: "Evening", location: "Restaurant", time: "Evening" } },
-    { label: "Casual", icon: "☀️", data: { occasion: "Casual weekend", weather: "Sunny", location: "City", time: "Afternoon" } },
-    { label: "Wedding", icon: "💍", data: { occasion: "Wedding", weather: "Outdoor", location: "Venue", time: "Evening" } },
-    { label: "Night Out", icon: "🌃", data: { occasion: "Night out", weather: "Evening", location: "Club", time: "Night" } },
-    { label: "Interview", icon: "🎯", data: { occasion: "Job interview", weather: "Indoor", location: "Office", time: "Morning" } },
+    { label: "Work", data: { occasion: "Work meeting", weather: "Indoor", location: "Office", time: "Morning" } },
+    { label: "Date", data: { occasion: "Date night", weather: "Evening", location: "Restaurant", time: "Evening" } },
+    { label: "Casual", data: { occasion: "Casual weekend", weather: "Sunny", location: "City", time: "Afternoon" } },
+    { label: "Wedding", data: { occasion: "Wedding", weather: "Outdoor", location: "Venue", time: "Evening" } },
+    { label: "Night Out", data: { occasion: "Night out", weather: "Evening", location: "Club", time: "Night" } },
+    { label: "Interview", data: { occasion: "Job interview", weather: "Indoor", location: "Office", time: "Morning" } },
   ];
 
   const handleQuickScenario = (scenarioData: Record<string, string>) => {
@@ -86,7 +86,7 @@ export function ContextCollector({
                 className="h-12 flex-col gap-1 text-xs"
                 onClick={() => handleQuickScenario(scenario.data)}
               >
-                <span className="text-base">{scenario.icon}</span>
+                <span className="text-base"></span>
                 {scenario.label}
               </Button>
             ))}

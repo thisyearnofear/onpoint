@@ -36,7 +36,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     modelHeight: "5'4\"",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.5,
   },
   {
     id: "2",
@@ -55,7 +54,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     modelHeight: "5'4\"",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.2,
   },
   {
     id: "3",
@@ -74,7 +72,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     modelHeight: "5'4\"",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.8,
   },
   {
     id: "4",
@@ -91,7 +88,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     modelHeight: "5'8\"",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.0,
   },
 
   // ── Pants ──
@@ -109,7 +105,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     modelSize: "32",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.3,
   },
   {
     id: "6",
@@ -125,7 +120,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     modelSize: "30",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.6,
   },
   {
     id: "26",
@@ -141,7 +135,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     modelSize: "30",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.5,
   },
   {
     id: "27",
@@ -157,7 +150,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     modelSize: "32",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.4,
   },
   {
     id: "28",
@@ -173,7 +165,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     modelSize: "31",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.7,
   },
 
   // ── Shoes ──
@@ -191,7 +182,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     modelSize: "10",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.7,
   },
   {
     id: "8",
@@ -207,7 +197,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     modelSize: "9",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.4,
   },
 
   // ── Accessories ──
@@ -224,7 +213,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
       "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=400&h=500&fit=crop",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.1,
   },
   {
     id: "10",
@@ -239,7 +227,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
       "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=500&fit=crop",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.5,
   },
 
   // ── Outerwear ──
@@ -260,7 +247,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     modelHeight: "5'10\"",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.6,
   },
   {
     id: "12",
@@ -276,7 +262,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     modelSize: "M",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.3,
   },
 
   // ── Dresses ──
@@ -297,7 +282,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     modelHeight: "5'6\"",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.9,
   },
   {
     id: "29",
@@ -314,7 +298,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     modelHeight: "5'7\"",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.8,
   },
   {
     id: "30",
@@ -331,7 +314,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     modelHeight: "5'5\"",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.6,
   },
   {
     id: "31",
@@ -348,7 +330,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     modelHeight: "5'4\"",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.5,
   },
 
   // ── Additional Products for Expanded Catalog ──
@@ -367,7 +348,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     modelHeight: "5'6\"",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.4,
   },
   {
     id: "15",
@@ -383,7 +363,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     modelHeight: "5'8\"",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.6,
   },
   {
     id: "16",
@@ -399,7 +378,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     modelHeight: "5'4\"",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.7,
   },
 
   // ── Shoes ──
@@ -415,7 +393,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     modelSize: "38",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.3,
   },
   {
     id: "18",
@@ -429,7 +406,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     modelSize: "37",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.5,
   },
   {
     id: "19",
@@ -443,7 +419,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     modelSize: "39",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.2,
   },
 
   // ── Bags ──
@@ -458,7 +433,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     productSrc: "/assets/1Product.png",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.1,
   },
   {
     id: "21",
@@ -471,7 +445,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     productSrc: "/assets/2Product.png",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.4,
   },
 
   // ── Accessories ──
@@ -486,7 +459,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     productSrc: "/assets/1Product.png",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.8,
   },
   {
     id: "23",
@@ -499,7 +471,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     productSrc: "/assets/2Product.png",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.3,
   },
   {
     id: "24",
@@ -512,7 +483,6 @@ export const CANVAS_ITEMS: FashionItem[] = [
     productSrc: "/assets/3Product.png",
     createdAt: new Date(),
     updatedAt: new Date(),
-    averageRating: 4.0,
   },
 ];
 

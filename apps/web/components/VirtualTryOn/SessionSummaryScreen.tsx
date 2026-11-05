@@ -24,12 +24,12 @@ import type {
   CaptureOption,
   SessionFeedback,
 } from "./hooks/useLiveSession";
-import type { PersonaConfig } from "../../lib/utils/persona-config";
+import type { PersonaConfigWithTheme } from "../../lib/utils/persona-config";
 import { SafeImage } from "../SafeImage";
 
 interface SessionSummaryScreenProps {
   sessionSummary: SessionSummary;
-  personaStyling: PersonaConfig;
+  personaStyling: PersonaConfigWithTheme;
   selectedPersona: string | null;
   onBack: () => void;
   hasCaptures: boolean;
@@ -82,14 +82,14 @@ export function SessionSummaryScreen({
     <div className="flex flex-col h-full bg-background overflow-y-auto pb-20">
       {/* Header */}
       <div
-        className={`p-6 flex items-center justify-between border-b border-${personaStyling.color}/20 bg-card/80 backdrop-blur-md sticky top-0 z-50`}
+        className={`p-6 flex items-center justify-between border-b ${personaStyling.theme.border20} bg-card/80 backdrop-blur-md sticky top-0 z-50`}
       >
         <div className="flex items-center gap-3">
           <div
-            className={`w-10 h-10 rounded-full bg-${personaStyling.color}/20 flex items-center justify-center border border-${personaStyling.color}/30 shadow-[0_0_15px_rgba(99,102,241,0.2)]`}
+            className={`w-10 h-10 rounded-full ${personaStyling.theme.bg20} flex items-center justify-center border ${personaStyling.theme.border30} shadow-[0_0_15px_rgba(99,102,241,0.2)]`}
           >
             <PersonaIcon
-              className={`w-5 h-5 text-${personaStyling.accent}`}
+              className={`w-5 h-5 ${personaStyling.theme.text}`}
             />
           </div>
           <div>
@@ -97,7 +97,7 @@ export function SessionSummaryScreen({
               Session Summary
             </h1>
             <p
-              className={`text-[10px] text-${personaStyling.text}/60 uppercase tracking-widest font-mono`}
+              className={`text-xs ${personaStyling.theme.textDim} uppercase tracking-widest font-mono`}
             >
               Proof of Style Verified
             </p>
@@ -117,7 +117,7 @@ export function SessionSummaryScreen({
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`relative overflow-hidden rounded-3xl bg-gradient-to-br from-${personaStyling.color} to-card p-6 sm:p-8 shadow-2xl shadow-${personaStyling.color}/20`}
+          className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${personaStyling.theme.gradientToCard} p-6 sm:p-8 shadow-2xl ${personaStyling.theme.shadow}`}
         >
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-3xl rounded-full -mr-16 -mt-16" />
           <div className="relative z-10">
@@ -129,7 +129,7 @@ export function SessionSummaryScreen({
                   delay={0.2}
                   size="md"
                 />
-                <p className="mt-2 text-[9px] uppercase tracking-widest text-muted-foreground">
+                <p className="mt-2 text-xs uppercase tracking-widest text-muted-foreground">
                   {Math.round(sessionSummary.scoreConfidence * 100)}%
                   {" "}
                   {sessionSummary.scoreSource === "model"
@@ -142,7 +142,7 @@ export function SessionSummaryScreen({
               {sessionSummary.takeaways.length > 0 && (
                 <div className="flex-1 min-w-0 border-l border-border pl-5">
                   <p
-                    className={`text-[9px] text-${personaStyling.text}/60 uppercase tracking-widest mb-1.5 font-bold`}
+                    className={`text-xs ${personaStyling.theme.textDim} uppercase tracking-widest mb-1.5 font-bold`}
                   >
                     Top Insight
                   </p>
@@ -157,7 +157,7 @@ export function SessionSummaryScreen({
 
         {/* Key Takeaways */}
         <div className="space-y-4">
-          <h2 className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest px-1 flex items-center gap-2">
+          <h2 className="text-muted-foreground text-xs font-bold uppercase tracking-widest px-1 flex items-center gap-2">
             <Sparkles className="w-3 h-3" />
             AI Stylist Insights
           </h2>
@@ -169,13 +169,13 @@ export function SessionSummaryScreen({
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.1 }}
-                  className={`bg-card border border-${personaStyling.color}/20 p-4 rounded-2xl flex gap-3 items-start`}
+                  className={`bg-card border ${personaStyling.theme.border20} p-4 rounded-2xl flex gap-3 items-start`}
                 >
                   <div
-                    className={`w-6 h-6 rounded-lg bg-${personaStyling.color}/10 flex items-center justify-center shrink-0 mt-0.5`}
+                    className={`w-6 h-6 rounded-lg ${personaStyling.theme.bg10} flex items-center justify-center shrink-0 mt-0.5`}
                   >
                     <CheckCircle
-                      className={`w-3.5 h-3.5 text-${personaStyling.accent}`}
+                      className={`w-3.5 h-3.5 ${personaStyling.theme.text}`}
                     />
                   </div>
                   <p className="text-sm text-foreground/80 leading-snug">
@@ -189,7 +189,7 @@ export function SessionSummaryScreen({
               <p className="text-sm text-muted-foreground">
                 No specific insights captured this session.
               </p>
-              <p className="text-[10px] text-muted-foreground/70 mt-1">
+              <p className="text-xs text-muted-foreground/70 mt-1">
                 Try a longer session for deeper analysis.
               </p>
             </div>
@@ -199,20 +199,20 @@ export function SessionSummaryScreen({
         {/* Analyzed Topics */}
         {sessionSummary.topics.length > 0 && (
           <div className="space-y-4">
-            <h2 className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest px-1">
+            <h2 className="text-muted-foreground text-xs font-bold uppercase tracking-widest px-1">
               Style Analysis Focus
             </h2>
             <div className="flex flex-wrap gap-2">
               {sessionSummary.topics.map((topic, i) => (
                 <div
                   key={i}
-                  className={`px-3 py-2 rounded-xl bg-${personaStyling.color}/5 border border-${personaStyling.color}/10 flex items-center gap-2`}
+                  className={`px-3 py-2 rounded-xl ${personaStyling.theme.bg5} border ${personaStyling.theme.border10} flex items-center gap-2`}
                 >
                   <div
-                    className={`w-1.5 h-1.5 rounded-full bg-${personaStyling.color}/40`}
+                    className={`w-1.5 h-1.5 rounded-full ${personaStyling.theme.bg40}`}
                   />
                   <span
-                    className={`text-xs text-${personaStyling.accent}/80`}
+                    className={`text-xs ${personaStyling.theme.textSoft}`}
                   >
                     {topic}
                   </span>
@@ -230,7 +230,7 @@ export function SessionSummaryScreen({
             transition={{ delay: 0.3 }}
             className="space-y-3"
           >
-            <h2 className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest px-1 flex items-center gap-2">
+            <h2 className="text-muted-foreground text-xs font-bold uppercase tracking-widest px-1 flex items-center gap-2">
               <Eye className="w-3 h-3" />
               Score Evidence
             </h2>
@@ -247,7 +247,7 @@ export function SessionSummaryScreen({
                 </div>
               ))}
             </div>
-            <p className="text-[9px] text-muted-foreground/70 px-1">
+            <p className="text-xs text-muted-foreground/70 px-1">
               {sessionSummary.scoreSource === "model"
                 ? "Evidence extracted from AI analysis"
                 : "Derived from session sentiment"}
@@ -260,7 +260,7 @@ export function SessionSummaryScreen({
         {/* Photo Gallery */}
         {hasCaptures && (
           <div className="space-y-4">
-            <h2 className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest px-1">
+            <h2 className="text-muted-foreground text-xs font-bold uppercase tracking-widest px-1">
               Proof of Style Artifacts
             </h2>
             <div className="flex gap-4 overflow-x-auto pb-4 -mx-6 px-6 no-scrollbar">
@@ -283,7 +283,7 @@ export function SessionSummaryScreen({
                     className="object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-3">
-                    <p className="text-[10px] text-white/50 font-mono">
+                    <p className="text-xs text-white/50 font-mono">
                       0x{cap.image.slice(22, 28)}
                     </p>
                   </div>
@@ -299,7 +299,7 @@ export function SessionSummaryScreen({
 
           {/* Style Report Card Button */}
           <Button
-            className={`w-full bg-gradient-to-r from-${personaStyling.color} to-${personaStyling.accent} hover:opacity-90 text-white rounded-full py-5 text-sm font-bold shadow-lg shadow-${personaStyling.color}/20 gap-2`}
+            className={`w-full bg-gradient-to-r ${personaStyling.theme.gradientPair} hover:opacity-90 text-white rounded-full py-5 text-sm font-bold shadow-lg ${personaStyling.theme.shadow} gap-2`}
             onClick={() => onSetShowStyleReport(true)}
           >
             <Sparkles className="w-4 h-4" />
@@ -340,7 +340,7 @@ export function SessionSummaryScreen({
           {/* Session recommendations from AI analysis */}
           {sessionSummary.recommendations && sessionSummary.recommendations.length > 0 && (
             <div className="space-y-3">
-              <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                 Recommended For You
               </h3>
               <div className="grid grid-cols-3 gap-2">
@@ -367,8 +367,8 @@ export function SessionSummaryScreen({
                         </div>
                       )}
                       <div className="p-1.5">
-                        <p className="text-[10px] text-foreground font-medium truncate">{rec.name}</p>
-                        <p className="text-[10px] font-bold text-amber-400">${rec.price}</p>
+                        <p className="text-xs text-foreground font-medium truncate">{rec.name}</p>
+                        <p className="text-xs font-bold text-amber-400">${rec.price}</p>
                       </div>
                     </div>
                   );
@@ -439,7 +439,7 @@ export function SessionSummaryScreen({
                 new CustomEvent("onpoint:navigate", { detail: "my-looks" }),
               );
             }}
-            className="w-full text-center text-[11px] text-success/70 hover:text-emerald-400 transition-colors py-2"
+            className="w-full text-center text-xs text-success/70 hover:text-emerald-400 transition-colors py-2"
           >
             Saved to My Looks — View all →
           </button>

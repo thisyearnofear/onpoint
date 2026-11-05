@@ -9,11 +9,11 @@ export function PersonaChip({ persona }: { persona: StylistPersona }) {
   const Icon = config.icon;
   return (
     <div className={`inline-flex items-center gap-1.5 rounded-full ${config.bg} border ${config.border} px-2.5 py-1 transition-all duration-500`}>
-      <Icon className={`h-3 w-3 ${config.text}`} />
-      <span className="text-[10px] font-bold text-foreground">
+      <Icon className={`h-3 w-3 ${config.theme.text}`} />
+      <span className="text-xs font-bold text-foreground">
         {config.characterName.split(" ")[0]}:
       </span>
-      <span className={`text-[10px] font-medium ${config.text}`}>
+      <span className={`text-xs font-medium ${config.theme.text}`}>
         &ldquo;{PERSONA_QUOTES[persona]}&rdquo;
       </span>
     </div>

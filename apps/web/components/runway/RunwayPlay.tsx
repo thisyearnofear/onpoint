@@ -49,7 +49,7 @@ export function RunwayPlay() {
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.18),transparent_65%)]" />
       <header className="relative z-10 flex items-baseline justify-between px-4 py-4">
-        <Link href="/runway" className="font-mono text-[10px] font-bold uppercase leading-none tracking-[0.22em] text-primary">
+        <Link href="/runway" className="font-mono text-xs font-bold uppercase leading-none tracking-[0.22em] text-primary">
           ← Runway
         </Link>
         <div className="flex items-center gap-3">
@@ -65,7 +65,7 @@ export function RunwayPlay() {
           >
             {soundOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
           </button>
-          <span className="font-mono text-[10px] font-bold uppercase leading-none tracking-[0.22em] text-muted-foreground">
+          <span className="font-mono text-xs font-bold uppercase leading-none tracking-[0.22em] text-muted-foreground">
             Judged by {personaName}
           </span>
         </div>

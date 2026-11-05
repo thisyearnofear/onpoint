@@ -55,9 +55,9 @@ const ERC20_TRANSFER_ABI = [
  * `usd` field gives users a frame of reference for G$ amounts.
  */
 const TIP_CONFIGS: Record<TipToken, {
-  low: { amounts: readonly { amount: string; label: string; icon: string; usd?: string }[]; headline: string; subtext: string };
-  standard: { amounts: readonly { amount: string; label: string; icon: string; usd?: string }[]; headline: string; subtext: string };
-  premium: { amounts: readonly { amount: string; label: string; icon: string; usd?: string }[]; headline: string; subtext: string };
+  low: { amounts: readonly { amount: string; label: string; usd?: string }[]; headline: string; subtext: string };
+  standard: { amounts: readonly { amount: string; label: string; usd?: string }[]; headline: string; subtext: string };
+  premium: { amounts: readonly { amount: string; label: string; usd?: string }[]; headline: string; subtext: string };
 }> = {
   cUSD: {
     low: {
@@ -67,18 +67,18 @@ const TIP_CONFIGS: Record<TipToken, {
     },
     standard: {
       amounts: [
-        { amount: "0.1", label: "Thanks!", icon: "🙏" },
-        { amount: "0.25", label: "Great!", icon: "👏" },
-        { amount: "0.5", label: "Amazing!", icon: "🔥" },
+        { amount: "0.1", label: "Thanks!" },
+        { amount: "0.25", label: "Great!" },
+        { amount: "0.5", label: "Amazing!" },
       ],
       headline: "Say Thanks",
       subtext: "Great session with your stylist",
     },
     premium: {
       amounts: [
-        { amount: "0.5", label: "Great!", icon: "👏" },
-        { amount: "1.0", label: "Amazing!", icon: "🔥" },
-        { amount: "2.0", label: "Superstar!", icon: "⭐" },
+        { amount: "0.5", label: "Great!" },
+        { amount: "1.0", label: "Amazing!" },
+        { amount: "2.0", label: "Superstar!" },
       ],
       headline: "Elite Style Session!",
       subtext: "Your stylist nailed it — celebrate!",
@@ -92,18 +92,18 @@ const TIP_CONFIGS: Record<TipToken, {
     },
     standard: {
       amounts: [
-        { amount: "1000", label: "Thanks!", icon: "🙏", usd: "~$0.10" },
-        { amount: "2500", label: "Great!", icon: "👏", usd: "~$0.25" },
-        { amount: "5000", label: "Amazing!", icon: "🔥", usd: "~$0.50" },
+        { amount: "1000", label: "Thanks!", usd: "~$0.10" },
+        { amount: "2500", label: "Great!", usd: "~$0.25" },
+        { amount: "5000", label: "Amazing!", usd: "~$0.50" },
       ],
       headline: "Tip in G$ UBI",
       subtext: "Support your stylist with GoodDollar",
     },
     premium: {
       amounts: [
-        { amount: "5000", label: "Great!", icon: "👏", usd: "~$0.50" },
-        { amount: "10000", label: "Amazing!", icon: "🔥", usd: "~$1.00" },
-        { amount: "20000", label: "Superstar!", icon: "⭐", usd: "~$2.00" },
+        { amount: "5000", label: "Great!", usd: "~$0.50" },
+        { amount: "10000", label: "Amazing!", usd: "~$1.00" },
+        { amount: "20000", label: "Superstar!", usd: "~$2.00" },
       ],
       headline: "Elite Style Session!",
       subtext: "Celebrate with G$ UBI — GoodDollar on Celo",
@@ -361,7 +361,7 @@ export function TipSheet({
                       href={`https://celoscan.io/tx/${txHash}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-emerald-400 text-[10px] inline-flex items-center gap-1 mt-1 hover:underline"
+                      className="text-emerald-400 text-xs inline-flex items-center gap-1 mt-1 hover:underline"
                     >
                       View transaction <ExternalLink className="w-3 h-3" />
                     </a>
@@ -426,12 +426,12 @@ export function TipSheet({
                         disabled={!isConnected || isProcessing}
                         className="flex flex-col items-center gap-1.5 p-4 rounded-2xl bg-muted/30 border border-border hover:bg-muted hover:border-warning/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <span className="text-2xl">{tip.icon}</span>
+                        <span className="text-2xl"></span>
                         <span className="text-foreground font-bold">
                           {tip.amount} {selectedToken}
                         </span>
                         {tip.usd && (
-                          <span className="text-emerald-400/60 text-[10px] font-medium">
+                          <span className="text-emerald-400/60 text-xs font-medium">
                             {tip.usd}
                           </span>
                         )}
@@ -463,7 +463,7 @@ export function TipSheet({
                     <Heart className="w-5 h-5" />
                     Say Thanks
                   </button>
-                  <p className="text-center text-muted-foreground/50 text-[10px]">
+                  <p className="text-center text-muted-foreground/50 text-xs">
                     Tip in cUSD or G$ UBI · Powered by GoodDollar on Celo
                   </p>
                   <button
@@ -473,7 +473,7 @@ export function TipSheet({
                       }
                       handleClose();
                     }}
-                    className="w-full text-center text-muted-foreground/40 hover:text-muted-foreground/60 text-[10px] transition-colors pt-1"
+                    className="w-full text-center text-muted-foreground/40 hover:text-muted-foreground/60 text-xs transition-colors pt-1"
                   >
                     Not now — don&apos;t auto-show tips
                   </button>

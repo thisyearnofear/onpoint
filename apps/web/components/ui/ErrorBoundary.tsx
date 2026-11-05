@@ -98,7 +98,7 @@ function ErrorFallback({ error, onReset }: ErrorFallbackProps) {
               {error.message}
             </p>
             {error.stack && (
-              <pre className="text-destructive/60 text-[10px] mt-2 overflow-auto max-h-32">
+              <pre className="text-destructive/60 text-xs mt-2 overflow-auto max-h-32">
                 {error.stack}
               </pre>
             )}

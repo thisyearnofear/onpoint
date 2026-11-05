@@ -22,7 +22,7 @@ export function LiveCommerceProof() {
                 {value}
               </span>
             </div>
-            <span className="mt-1 text-[11px] text-muted-foreground sm:text-xs">
+            <span className="mt-1 text-xs text-muted-foreground sm:text-xs">
               {label}
             </span>
           </div>

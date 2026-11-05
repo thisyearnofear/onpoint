@@ -83,7 +83,7 @@ export function ActionHub({
         <div className="space-y-4">
           <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 relative">
             {recommendedAction === 'generate' && (
-              <span className="absolute -top-2 right-3 text-[10px] font-medium bg-primary text-white rounded-full px-2 py-0.5">✨ Recommended</span>
+              <span className="absolute -top-2 right-3 text-xs font-medium bg-primary text-white rounded-full px-2 py-0.5"><Sparkles className="mr-1 inline h-3 w-3" />Recommended</span>
             )}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-start gap-3">
@@ -117,7 +117,7 @@ export function ActionHub({
 
           <div className="rounded-lg border border-accent/30 bg-accent/5 p-4 relative">
             {recommendedAction === 'scan' && (
-              <span className="absolute -top-2 right-3 text-[10px] font-medium bg-primary text-white rounded-full px-2 py-0.5">✨ Recommended</span>
+              <span className="absolute -top-2 right-3 text-xs font-medium bg-primary text-white rounded-full px-2 py-0.5"><Sparkles className="mr-1 inline h-3 w-3" />Recommended</span>
             )}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-start gap-3">
@@ -145,7 +145,7 @@ export function ActionHub({
 
           <div className="rounded-lg border border-border p-4 relative">
             {recommendedAction === 'critique' && (
-              <span className="absolute -top-2 right-3 text-[10px] font-medium bg-primary text-white rounded-full px-2 py-0.5">✨ Recommended</span>
+              <span className="absolute -top-2 right-3 text-xs font-medium bg-primary text-white rounded-full px-2 py-0.5"><Sparkles className="mr-1 inline h-3 w-3" />Recommended</span>
             )}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-start gap-3">
@@ -173,7 +173,7 @@ export function ActionHub({
 
           <div className="rounded-lg border border-border p-4 relative">
             {recommendedAction === 'analysis' && (
-              <span className="absolute -top-2 right-3 text-[10px] font-medium bg-primary text-white rounded-full px-2 py-0.5">✨ Recommended</span>
+              <span className="absolute -top-2 right-3 text-xs font-medium bg-primary text-white rounded-full px-2 py-0.5"><Sparkles className="mr-1 inline h-3 w-3" />Recommended</span>
             )}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-start gap-3">

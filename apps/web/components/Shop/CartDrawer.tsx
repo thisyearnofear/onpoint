@@ -73,7 +73,7 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
                 <ShoppingBag className="w-5 h-5 text-indigo-400" />
                 <h2 className="text-lg font-bold text-foreground">Cart</h2>
                 {itemCount > 0 && (
-                  <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded-full">
+                  <span className="text-xs font-mono text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded-full">
                     {itemCount} {itemCount === 1 ? "item" : "items"}
                   </span>
                 )}
@@ -544,10 +544,10 @@ export function CartButton() {
             </div>
             {/* Name + checkmark */}
             <div className="flex flex-col">
-              <span className="text-[11px] font-medium text-foreground leading-tight truncate max-w-[120px]">
+              <span className="text-xs font-medium text-foreground leading-tight truncate max-w-[120px]">
                 {lastAddedItem.name}
               </span>
-              <span className="text-[10px] text-emerald-400 flex items-center gap-1">
+              <span className="text-xs text-emerald-400 flex items-center gap-1">
                 <span className="text-emerald-400">✓</span>
                 Added
               </span>
@@ -572,7 +572,7 @@ export function CartButton() {
               duration: 0.4,
               ease: "easeOut",
             }}
-            className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center"
+            className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center"
           >
             {itemCount}
           </motion.span>

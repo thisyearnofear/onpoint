@@ -90,7 +90,7 @@ export function CuratorComparisonTable({
                 <tr key={r.slug} className="hover:bg-muted/30 transition-colors">
                   <td className="py-3 pr-3">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-info/10 text-[10px] font-bold text-violet-600 uppercase">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-info/10 text-xs font-bold text-violet-600 uppercase">
                         {displayName.charAt(0)}
                       </div>
                       <span className="font-medium capitalize">{displayName}</span>
@@ -108,7 +108,7 @@ export function CuratorComparisonTable({
                           trendWindow={3}
                         />
                       ) : (
-                        <span className="text-[11px] text-muted-foreground">No data</span>
+                        <span className="text-xs text-muted-foreground">No data</span>
                       )}
                     </div>
                   </td>
@@ -150,7 +150,7 @@ export function CuratorComparisonTable({
       </div>
 
       {/* Legend */}
-      <div className="mt-3 flex items-center gap-4 text-[10px] text-muted-foreground">
+      <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1">
           <span className="inline-block h-px w-3 border-t border-dashed border-orange-400" />
           SMA(3) trend

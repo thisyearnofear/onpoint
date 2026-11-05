@@ -6,6 +6,10 @@
 import { Crown, Zap, Leaf, Sparkles, Star, MessageCircle } from "lucide-react";
 import type { StylistPersona } from "@repo/ai-client";
 import { G_STREAK_BADGES } from "./g-streak-config";
+import {
+  personaThemeClasses,
+  type PersonaThemeClasses,
+} from "./persona-theme";
 
 export interface PersonaConfig {
   // Identity
@@ -187,10 +191,18 @@ const PERSONA_CONFIGS: Record<StylistPersona, PersonaConfig> = {
   },
 };
 
+export type PersonaConfigWithTheme = PersonaConfig & {
+  /** Static Tailwind class variants for this persona's color family.
+      Replaces dynamic `bg-${color}` interpolation — see persona-theme.ts. */
+  theme: PersonaThemeClasses;
+};
+
 export function getPersonaConfig(
   persona: string | null | undefined,
-): PersonaConfig {
-  return PERSONA_CONFIGS[persona as StylistPersona] || PERSONA_CONFIGS.miranda;
+): PersonaConfigWithTheme {
+  const config =
+    PERSONA_CONFIGS[persona as StylistPersona] || PERSONA_CONFIGS.miranda;
+  return { ...config, theme: personaThemeClasses(persona) };
 }
 
 export const ALL_PERSONAS = Object.keys(PERSONA_CONFIGS) as StylistPersona[];

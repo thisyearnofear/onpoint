@@ -119,13 +119,13 @@ export default async function PolaroidPage({
               <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent">
                 <div className="flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4 text-white/90" />
-                  <span className="text-sm font-black text-white tracking-tight italic">
+                  <span className="text-sm font-black text-white tracking-tight">
                     OnPoint
                   </span>
                 </div>
                 {fit?.score != null && (
                   <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-sm rounded-full px-3 py-1">
-                    <span className="text-[10px] font-mono text-white/60 uppercase tracking-wider">
+                    <span className="text-xs font-mono text-white/60 uppercase tracking-wider">
                       Score
                     </span>
                     <span className={`text-lg font-black ${scoreColor}`}>
@@ -174,7 +174,7 @@ export default async function PolaroidPage({
                   )}
                   {fit.fitRecommendations.length > 0 && (
                     <div className="space-y-1.5">
-                      <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest font-bold">
+                      <p className="text-xs text-muted-foreground/60 uppercase tracking-widest font-bold">
                         Fit Notes
                       </p>
                       {fit.fitRecommendations.slice(0, 3).map((r, i) => (
@@ -189,7 +189,7 @@ export default async function PolaroidPage({
                   )}
                   {fit.styleRecommendations.length > 0 && (
                     <div className="space-y-1.5">
-                      <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest font-bold">
+                      <p className="text-xs text-muted-foreground/60 uppercase tracking-widest font-bold">
                         Style Notes
                       </p>
                       {fit.styleRecommendations.slice(0, 2).map((r, i) => (
@@ -235,13 +235,13 @@ export default async function PolaroidPage({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-bold text-amber-300">Earn 2.5% per purchase</p>
-                  <p className="text-[10px] text-amber-400/70 truncate">
+                  <p className="text-xs text-amber-400/70 truncate">
                     Share this polaroid — when someone buys through your link, you earn commission
                   </p>
                 </div>
                 <button
                   onClick={() => navigator.clipboard.writeText(`${typeof window !== "undefined" ? window.location.origin : ""}/r/${meta.curatorSlug}`)}
-                  className="shrink-0 px-3 py-1.5 rounded-full bg-warning/20 hover:bg-warning/30 text-[10px] font-bold text-amber-300 transition-colors"
+                  className="shrink-0 px-3 py-1.5 rounded-full bg-warning/20 hover:bg-warning/30 text-xs font-bold text-amber-300 transition-colors"
                 >
                   Copy link
                 </button>

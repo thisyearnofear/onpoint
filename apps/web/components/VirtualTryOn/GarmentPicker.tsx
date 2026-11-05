@@ -109,7 +109,7 @@ export function GarmentPicker({
         <p className="text-xs font-semibold text-primary">
           {selectedGarment ? "Selected for try-on" : "Choose a garment"}
         </p>
-        <span className="rounded-full border border-primary/20 px-2 py-0.5 text-[10px] font-medium text-primary">
+        <span className="rounded-full border border-primary/20 px-2 py-0.5 text-xs font-medium text-primary">
           {selectedGarment ? "Ready" : "Required"}
         </span>
       </div>
@@ -166,16 +166,16 @@ export function GarmentPicker({
               {selectedGarment.description}
             </p>
             <div className="mt-1 flex flex-wrap gap-1.5">
-              <span className="rounded-full bg-background px-2 py-0.5 text-[10px] text-muted-foreground">
+              <span className="rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground">
                 {sourceLabel(selectedGarment.source)}
               </span>
               {selectedGarment.category && (
-                <span className="rounded-full bg-background px-2 py-0.5 text-[10px] text-muted-foreground">
+                <span className="rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground">
                   {selectedGarment.category}
                 </span>
               )}
               {formatTryOnPrice(selectedGarment.price) && (
-                <span className="rounded-full bg-background px-2 py-0.5 text-[10px] text-muted-foreground">
+                <span className="rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground">
                   {formatTryOnPrice(selectedGarment.price)}
                 </span>
               )}
@@ -236,7 +236,7 @@ export function GarmentPicker({
                     ) : null}
                   </div>
                   <p className="mt-2 truncate text-xs font-medium">{item.name}</p>
-                  <p className="truncate text-[10px] text-muted-foreground">
+                  <p className="truncate text-xs text-muted-foreground">
                     {sourceLabel(item.source)}
                     {price ? ` · ${price}` : ""}
                   </p>

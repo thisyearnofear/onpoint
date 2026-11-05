@@ -36,7 +36,7 @@ export function TrendingTopics({
     >
       <div className="flex items-center gap-2 mb-3">
         <Hash className="w-3.5 h-3.5 text-primary" />
-        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
           Trending Topics
         </span>
       </div>
@@ -44,14 +44,14 @@ export function TrendingTopics({
         {activeTopic && (
           <button
             onClick={() => onTopicToggle(null)}
-            className="rounded-full bg-primary/20 text-primary ring-1 ring-primary/30 px-2 py-0.5 text-[10px] font-medium"
+            className="rounded-full bg-primary/20 text-primary ring-1 ring-primary/30 px-2 py-0.5 text-xs font-medium"
           >
             Clear filter
           </button>
         )}
         {sorted.map(([topic, count]) => {
           const weight = count / maxCount;
-          const size = weight >= 0.7 ? "text-xs" : weight >= 0.4 ? "text-[11px]" : "text-[10px]";
+          const size = weight >= 0.7 ? "text-xs" : weight >= 0.4 ? "text-xs" : "text-xs";
           const opacity = 0.5 + weight * 0.5;
 
           return (
@@ -66,7 +66,7 @@ export function TrendingTopics({
               style={{ opacity }}
             >
               {topic}
-              <span className="ml-1 text-[9px] text-muted-foreground/50 font-normal">
+              <span className="ml-1 text-xs text-muted-foreground/50 font-normal">
                 {count}
               </span>
             </button>

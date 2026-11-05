@@ -91,7 +91,7 @@ export function ProgressRail({ currentStage }: ProgressRailProps) {
                   {isCompleted ? <Check className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
                 </div>
                 <span
-                  className={`text-[10px] font-medium text-center leading-tight transition-colors duration-300 ${
+                  className={`text-xs font-medium text-center leading-tight transition-colors duration-300 ${
                     isCompleted
                       ? "text-primary"
                       : isActive

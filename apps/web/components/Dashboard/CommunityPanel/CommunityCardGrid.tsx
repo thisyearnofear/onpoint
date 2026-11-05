@@ -72,11 +72,11 @@ export function CommunityCardGrid({
                 {searchQuery ? highlightText(look.headline, searchQuery) : look.headline}
               </p>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-warning">
+                <span className="inline-flex items-center gap-0.5 text-xs font-bold text-warning">
                   <Sparkles className="w-2 h-2" />
                   {look.score}/10
                 </span>
-                <span className="text-[9px] text-muted-foreground/60">{timeAgo}</span>
+                <span className="text-xs text-muted-foreground/60">{timeAgo}</span>
               </div>
             </div>
           </div>
@@ -88,7 +88,7 @@ export function CommunityCardGrid({
               }`}
             >
               <Heart className={`w-3 h-3 ${isLiked ? "fill-rose-500" : ""}`} />
-              <span className="text-[8px] font-medium tabular-nums">{look.likes}</span>
+              <span className="text-xs font-medium tabular-nums">{look.likes}</span>
             </button>
             {onBookmark && (
               <BookmarkButton isBookmarked={isBookmarked} onToggle={() => onBookmark(look.id)} size="sm" />
@@ -100,7 +100,7 @@ export function CommunityCardGrid({
         {look.topics.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-2">
             {look.topics.slice(0, 2).map((topic, i) => (
-              <span key={i} className="rounded-full bg-muted/50 px-1.5 py-0.5 text-[8px] text-muted-foreground/70">
+              <span key={i} className="rounded-full bg-muted/50 px-1.5 py-0.5 text-xs text-muted-foreground/70">
                 {topic}
               </span>
             ))}
@@ -110,7 +110,7 @@ export function CommunityCardGrid({
         {/* Report button (subtle, bottom-right) */}
         <div className="flex items-center justify-between">
           {look.persona && (
-            <span className="text-[8px] capitalize text-muted-foreground/50">via {look.persona}</span>
+            <span className="text-xs capitalize text-muted-foreground/50">via {look.persona}</span>
           )}
           {onReport && (
             <button

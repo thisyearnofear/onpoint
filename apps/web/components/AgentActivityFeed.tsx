@@ -257,7 +257,7 @@ export function AgentActivityFeed() {
             />
           </span>
           <span
-            className={`text-[11px] font-bold uppercase tracking-wider ${
+            className={`text-xs font-bold uppercase tracking-wider ${
               isLive
                 ? "text-emerald-600 dark:text-emerald-400"
                 : "text-muted-foreground"
@@ -289,7 +289,7 @@ export function AgentActivityFeed() {
                         <p className="text-sm font-semibold text-foreground">
                           {item.label}
                         </p>
-                        <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                        <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
                           {item.badge}
                         </span>
                       </div>
@@ -301,7 +301,7 @@ export function AgentActivityFeed() {
                       <span className="font-mono text-sm font-bold text-foreground">
                         {item.amount}
                       </span>
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         {timeAgo(item.timestamp)}
                       </span>
                     </div>
@@ -328,7 +328,7 @@ export function AgentActivityFeed() {
                     </p>
                   </div>
                   <div className="flex flex-shrink-0 flex-col items-end">
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                    <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
                       <CheckCircle2 className="h-3 w-3 text-success" />
                       {fact.amount}
                     </span>
@@ -339,7 +339,7 @@ export function AgentActivityFeed() {
 
         {/* Footer */}
         <div className="border-t border-border/40 bg-muted/20 px-4 py-2.5 text-center">
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {isLive ? (
               <>
                 <Sparkles className="-mt-0.5 mr-1 inline h-3 w-3" />

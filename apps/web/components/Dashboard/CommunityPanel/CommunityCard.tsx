@@ -83,15 +83,15 @@ export function CommunityCard({
                     : look.headline}
                 </p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-warning">
+                  <span className="inline-flex items-center gap-0.5 text-xs font-bold text-warning">
                     <Sparkles className="w-3 h-3" />
                     {look.score}/10
                   </span>
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {timeAgo}
                   </span>
                   {look.persona && (
-                    <span className="text-[10px] capitalize text-muted-foreground/70">
+                    <span className="text-xs capitalize text-muted-foreground/70">
                       via {look.persona}
                     </span>
                   )}
@@ -113,7 +113,7 @@ export function CommunityCard({
                   </p>
                 ))}
                 {look.takeaways.length > 2 && (
-                  <p className="text-[10px] text-muted-foreground/50">
+                  <p className="text-xs text-muted-foreground/50">
                     +{look.takeaways.length - 2} more
                   </p>
                 )}
@@ -126,7 +126,7 @@ export function CommunityCard({
                 {look.topics.slice(0, 3).map((topic, i) => (
                   <span
                     key={i}
-                    className={`rounded-full px-2 py-0.5 text-[10px] ${
+                    className={`rounded-full px-2 py-0.5 text-xs ${
                       showHighlight && topic.toLowerCase().includes(searchQuery!.toLowerCase())
                         ? "bg-amber-400/30 text-foreground font-medium"
                         : "bg-muted/70 text-muted-foreground/80"
@@ -165,7 +165,7 @@ export function CommunityCard({
                   isLiked ? "fill-rose-500 scale-110" : ""
                 }`}
               />
-              <span className="text-[10px] font-medium tabular-nums">
+              <span className="text-xs font-medium tabular-nums">
                 {look.likes}
               </span>
             </button>

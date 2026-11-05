@@ -42,18 +42,16 @@ export default async function RunwayPage() {
     <div className="min-h-screen bg-background text-foreground">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.18),transparent_65%)]" />
 
-      <main className="relative mx-auto max-w-4xl px-4 pb-20 pt-16 md:pt-24">
-        <div className="text-center">
-          <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">
-            Runway · A closet challenge
-          </p>
-          <h1 className="mt-4 text-4xl font-black leading-[1.02] tracking-[-0.04em] sm:text-5xl md:text-6xl">
+      <main className="relative mx-auto max-w-5xl px-4 pb-20 pt-16 md:pt-24">
+        <div className="max-w-2xl">
+          <h1 className="font-display text-4xl leading-[1.05] tracking-[-0.02em] sm:text-5xl md:text-6xl">
             Dress to the theme.
             <span className="block text-primary">You have 3 minutes.</span>
           </h1>
-          <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Raid your own closet, send one photo, and a judge scores it. Then we
-            show you the piece that would have won.
+          <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+            Runway is a closet challenge: raid your own wardrobe, send one
+            photo, and a judge scores it. Then we show you the piece that
+            would have won.
           </p>
           <div className="mt-8">
             <RunwayCtas phoneNumber={today?.phoneNumber || "+16282646604"} themeId={themeId} />
@@ -65,7 +63,7 @@ export default async function RunwayPage() {
 
         {today && (
           <div className="mx-auto mt-14 max-w-md rounded-3xl border border-border bg-card/60 p-6 text-center">
-            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">
+            <p className="text-xs font-medium text-muted-foreground">
               Today&rsquo;s theme
             </p>
             <p className="mt-2 text-2xl font-black tracking-[-0.04em]">{today.theme.name}</p>
@@ -76,7 +74,7 @@ export default async function RunwayPage() {
         <div className="mt-14 grid gap-3 sm:grid-cols-3">
           {STEPS.map((s) => (
             <div key={s.n} className="rounded-2xl border border-border bg-card/60 p-5">
-              <span className="font-mono text-[9px] font-bold tracking-[0.2em] text-primary">{s.n}</span>
+              <span className="font-mono text-xs font-bold tracking-[0.2em] text-primary">{s.n}</span>
               <h2 className="mt-4 text-lg font-bold">{s.title}</h2>
               <p className="mt-1 text-sm text-muted-foreground">{s.copy}</p>
             </div>
@@ -85,10 +83,7 @@ export default async function RunwayPage() {
 
         <div className="mt-14 grid items-center gap-10 md:grid-cols-2">
           <div>
-            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">
-              The judges
-            </p>
-            <h2 className="mt-3 text-2xl font-black tracking-[-0.04em]">Pick who scores you.</h2>
+<h2 className="text-2xl font-black tracking-[-0.04em]">Pick who scores you.</h2>
             <div className="mt-5">
               <JudgePick judges={today?.judges || [{ key: "miranda", name: "Miranda" }, { key: "edina", name: "Edina" }, { key: "shaft", name: "Shaft" }]} themeId={themeId} />
             </div>
@@ -98,9 +93,7 @@ export default async function RunwayPage() {
           </div>
         </div>
               <div className="mx-auto mt-16 max-w-2xl">
-          <p className="text-center font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">
-            See it in action — no camera needed
-          </p>
+          <h2 className="text-lg font-bold">See it in action — no camera needed</h2>
           <div className="mt-4 grid grid-cols-3 gap-3">
             {RUNWAY_SAMPLES.slice(0, 6).map((smp) => (
               <a

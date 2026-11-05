@@ -2,17 +2,14 @@ import type { Config } from 'tailwindcss'
 
 export default {
   darkMode: 'class',
-  safelist: [
-    {
-      pattern:
-        /(bg|text|border|from|to|shadow)-(slate|gray|purple|pink|orange|amber|yellow|blue|cyan|emerald|green|rose|red)-(400|500|600)(\/(5|10|20|30|40|60|80))?/,
-    },
-  ],
   content: [
     "./pages/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
+    "./lib/**/*.{ts,tsx}",
+    "../../packages/shared-ui/src/**/*.{ts,tsx}",
+    "../../packages/ui/src/**/*.{ts,tsx}",
   ],
   theme: {
     container: {
@@ -66,14 +63,19 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))'
         },
-        success: 'rgb(var(--success) / <alpha-value>)',
-        'success-foreground': 'rgb(var(--success-foreground) / <alpha-value>)',
-        warning: 'rgb(var(--warning) / <alpha-value>)',
-        'warning-foreground': 'rgb(var(--warning-foreground) / <alpha-value>)',
-        error: 'rgb(var(--error) / <alpha-value>)',
-        'error-foreground': 'rgb(var(--error-foreground) / <alpha-value>)',
-        info: 'rgb(var(--info) / <alpha-value>)',
-        'info-foreground': 'rgb(var(--info-foreground) / <alpha-value>)'
+        success: 'hsl(var(--success) / <alpha-value>)',
+        'success-foreground': 'hsl(var(--success-foreground) / <alpha-value>)',
+        warning: 'hsl(var(--warning) / <alpha-value>)',
+        'warning-foreground': 'hsl(var(--warning-foreground) / <alpha-value>)',
+        error: 'hsl(var(--error) / <alpha-value>)',
+        'error-foreground': 'hsl(var(--error-foreground) / <alpha-value>)',
+        info: 'hsl(var(--info) / <alpha-value>)',
+        'info-foreground': 'hsl(var(--info-foreground) / <alpha-value>)'
+      },
+      fontFamily: {
+        sans: ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-geist-mono)', 'ui-monospace', 'monospace'],
+        display: ['var(--font-display)'],
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -194,22 +196,22 @@ export default {
         'accordion-up': 'accordion-up 0.2s ease-out',
         'fade-in': 'fade-in 0.6s ease-out',
         'slide-in': 'slide-in 0.3s ease-out',
-        'step-activate': 'step-activate 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) both',
-        'step-enter': 'step-enter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+        'step-activate': 'step-activate 0.8s cubic-bezier(0.16, 1, 0.3, 1) both',
+        'step-enter': 'step-enter 0.5s cubic-bezier(0.16, 1, 0.3, 1) both',
         'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
-        'fade-slide-in': 'fade-slide-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+        'fade-slide-in': 'fade-slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both',
         'fade-slide-out': 'fade-slide-out 0.3s ease-in forwards',
-        'celebration-bounce': 'celebration-bounce 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+        'celebration-bounce': 'celebration-bounce 0.8s cubic-bezier(0.16, 1, 0.3, 1) both',
         'spin-once': 'spin-once 0.5s cubic-bezier(0.4, 0, 0.2, 1) both',
         'scale-pulse': 'scale-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'shimmer': 'shimmer 2s infinite',
-        'bounce-in-up': 'bounce-in-up 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        'bounce-in-up': 'bounce-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
         'float': 'float 3s ease-in-out infinite',
         'glow': 'glow 2s ease-in-out',
         'card-tilt': 'card-tilt 0.6s ease-out forwards',
-        'swipe-in-left': 'swipe-in-left 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        'swipe-in-left': 'swipe-in-left 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
         'gradient-shift': 'gradient-shift 3s ease infinite',
-        'count-up': 'count-up 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        'count-up': 'count-up 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
         'persona-speaking': 'persona-speaking 0.6s ease-in-out infinite',
         'persona-thinking': 'persona-thinking 1.2s ease-in-out infinite',
         'persona-wave': 'persona-wave 2s ease-in-out',

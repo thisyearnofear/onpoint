@@ -13,7 +13,7 @@ import { TypedText } from "./TypedText";
 import { JUDGES, cardUrl } from "./types";
 import type { DuelOutcome, OpponentState, ResultState, RoundState } from "./types";
 
-const PILL = "rounded-full border px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.2em]";
+const PILL = "rounded-full border px-2.5 py-0.5 font-mono text-xs font-bold uppercase tracking-[0.2em]";
 const QUIET_LINK = "text-xs font-bold text-muted-foreground underline-offset-2 hover:text-foreground/70 hover:underline";
 const OUTLINE_BTN = "inline-flex min-h-12 items-center gap-2 rounded-full border border-zinc-700 px-6 text-sm font-bold text-foreground hover:border-zinc-500";
 
@@ -43,16 +43,16 @@ function DuelCard({
 }) {
   return (
     <div className="w-full rounded-2xl border border-border bg-card/70 px-4 py-3.5 text-center">
-      <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">The duel</p>
+      <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">The duel</p>
       <div className="mt-1.5 flex items-center justify-center gap-5">
         <div>
           <p className={`text-3xl font-black tabular-nums ${duel === "win" ? "text-[hsl(var(--accent))]" : "text-foreground"}`}>{result.total.toFixed(1)}</p>
-          <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-muted-foreground">You</p>
+          <p className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">You</p>
         </div>
         <p className="font-mono text-xs font-bold text-muted-foreground">vs</p>
         <div>
           <p className={`text-3xl font-black tabular-nums ${duel === "lose" ? "text-[hsl(var(--accent))]" : "text-muted-foreground"}`}>{opponent.total.toFixed(1)}</p>
-          <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Them</p>
+          <p className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">Them</p>
         </div>
       </div>
       <p className="mt-2 text-sm font-bold text-foreground">
@@ -81,7 +81,7 @@ function FixCard({ result }: { result: ResultState }) {
   if (!fix) return null;
   return (
     <div className="w-full rounded-2xl border border-border bg-card/70 p-4">
-      <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">The fix</p>
+      <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-primary">The fix</p>
       <div className="mt-2 flex items-center gap-4">
         {fix.imageUrl && (
           <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-border bg-card">
@@ -164,7 +164,7 @@ export function ResultStage({
       )}
       <div className="flex w-full max-w-lg flex-col items-center gap-6">
         <div className="flex items-center gap-3">
-          <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">
+          <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-primary">
             Runway · {round.theme.name}
           </p>
           {result.late && <span className={`${PILL} border-[hsl(var(--accent))] text-[hsl(var(--accent))]`}>Late</span>}
@@ -206,7 +206,7 @@ export function ResultStage({
           <button type="button" onClick={onPlayAgain} className={QUIET_LINK}>Play again</button>
           <button type="button" onClick={onSwitchJudge} className={QUIET_LINK}>Switch judge</button>
         </div>
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+        <p className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
           New theme in {nextThemeLabel(Date.now())}
         </p>
       </div>

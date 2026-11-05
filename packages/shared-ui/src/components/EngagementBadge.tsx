@@ -114,7 +114,9 @@ export const EngagementBadge: React.FC<EngagementBadgeProps> = ({
           <h3 className="font-semibold text-sm text-foreground">
             {config.label}
           </h3>
-          <p className="text-xs text-muted-foreground">Community favorite</p>
+          <p className="text-xs text-muted-foreground">
+            {tryOnCount > 0 ? `${tryOnCount.toLocaleString()} try-ons` : 'No activity yet'}
+          </p>
         </div>
       </div>
 

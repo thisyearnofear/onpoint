@@ -34,28 +34,28 @@ import { markCuratorOwner } from "../../../lib/hooks/use-curator-owner";
 // ── Valid verticals (mirrors server-side list) ──────────────
 
 const VERTICALS = [
-  { id: "football", label: "Football", emoji: "⚽" },
-  { id: "sportswear", label: "Sportswear", emoji: "🏃" },
-  { id: "premier-league", label: "Premier League", emoji: "🏆" },
-  { id: "streetwear", label: "Streetwear", emoji: "👟" },
-  { id: "sneakers", label: "Sneakers", emoji: "👟" },
-  { id: "formal", label: "Formal", emoji: "👔" },
-  { id: "occasion", label: "Occasion", emoji: "🎀" },
-  { id: "sustainable", label: "Sustainable", emoji: "🌱" },
-  { id: "outdoor", label: "Outdoor", emoji: "🏔️" },
-  { id: "high-fashion", label: "High Fashion", emoji: "👗" },
-  { id: "runway", label: "Runway", emoji: "✨" },
-  { id: "luxury", label: "Luxury", emoji: "💎" },
-  { id: "retro", label: "Retro", emoji: "📼" },
-  { id: "tailoring", label: "Tailoring", emoji: "✂️" },
-  { id: "ankara", label: "Ankara", emoji: "🧵" },
-  { id: "african-print", label: "African Print", emoji: "🌍" },
-  { id: "vintage", label: "Vintage", emoji: "📻" },
-  { id: "thrift", label: "Thrift", emoji: "🛍️" },
-  { id: "hair", label: "Hair", emoji: "💇" },
-  { id: "barber", label: "Barber", emoji: "💈" },
-  { id: "accessories", label: "Accessories", emoji: "⌚" },
-  { id: "jewelry", label: "Jewelry", emoji: "💍" },
+  { id: "football", label: "Football" },
+  { id: "sportswear", label: "Sportswear" },
+  { id: "premier-league", label: "Premier League" },
+  { id: "streetwear", label: "Streetwear" },
+  { id: "sneakers", label: "Sneakers" },
+  { id: "formal", label: "Formal" },
+  { id: "occasion", label: "Occasion" },
+  { id: "sustainable", label: "Sustainable" },
+  { id: "outdoor", label: "Outdoor" },
+  { id: "high-fashion", label: "High Fashion" },
+  { id: "runway", label: "Runway" },
+  { id: "luxury", label: "Luxury" },
+  { id: "retro", label: "Retro" },
+  { id: "tailoring", label: "Tailoring" },
+  { id: "ankara", label: "Ankara" },
+  { id: "african-print", label: "African Print" },
+  { id: "vintage", label: "Vintage" },
+  { id: "thrift", label: "Thrift" },
+  { id: "hair", label: "Hair" },
+  { id: "barber", label: "Barber" },
+  { id: "accessories", label: "Accessories" },
+  { id: "jewelry", label: "Jewelry" },
 ];
 
 // ── Types ──────────────────────────────────────────────────
@@ -509,7 +509,7 @@ export default function CuratorOnboardPage() {
               <label className="mb-3 flex items-center gap-2 text-sm font-medium">
                 <Wallet className="h-4 w-4 text-warning" />
                 Payout wallet
-                <span className="rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-warning">
+                <span className="rounded-full bg-warning/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-warning">
                   Needed for agent sales
                 </span>
               </label>
@@ -576,7 +576,7 @@ export default function CuratorOnboardPage() {
                         : "border-border bg-card text-muted-foreground hover:border-muted-foreground/30 hover:text-foreground"
                     }`}
                   >
-                    <span>{v.emoji}</span>
+                    <span></span>
                     <span>{v.label}</span>
                     {selected && <Check className="h-3 w-3" />}
                   </button>

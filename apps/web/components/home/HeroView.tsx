@@ -2,7 +2,7 @@
 
 import React, { useEffect } from "react";
 import Link from "next/link";
-import { Palette } from "lucide-react";
+import { Shirt } from "lucide-react";
 import { captureReferralFromURL } from "../../lib/utils/referral";
 import { trackHomepageCta } from "../../lib/utils/analytics";
 import { CTA_PLAY, PRODUCT_NAME } from "../../lib/brand";
@@ -43,8 +43,8 @@ export function HeroView() {
       <footer className="border-t border-border/60 py-8">
         <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 text-sm text-muted-foreground md:flex-row">
           <div className="flex items-center gap-2 font-semibold text-foreground">
-            <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-1 shadow-md">
-              <Palette className="h-3.5 w-3.5 text-white" />
+            <div className="rounded-lg border border-border p-1">
+              <Shirt className="h-3.5 w-3.5 text-foreground" />
             </div>
             {PRODUCT_NAME}
           </div>
@@ -59,7 +59,7 @@ export function HeroView() {
               Privacy
             </Link>
           </div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.15em]">
+          <p className="font-mono text-xs uppercase tracking-[0.15em]">
             Earn permission. Report truth.
           </p>
         </div>

@@ -55,12 +55,12 @@ export function HeroVisual() {
       <div className="overflow-hidden rounded-[2rem] border border-border/60 bg-[#111218] text-white shadow-2xl shadow-black/25">
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-white/70">
+            <p className="font-mono text-xs uppercase tracking-[0.24em] text-white/70">
               On-model demo
             </p>
             <p className="mt-1 text-sm font-semibold">Tap a garment</p>
           </div>
-          <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 font-mono text-[9px] font-bold uppercase tracking-wider text-emerald-200">
+          <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 font-mono text-xs font-bold uppercase tracking-wider text-emerald-200">
             Interactive
           </span>
         </div>
@@ -102,7 +102,7 @@ export function HeroVisual() {
 
           <div className="relative overflow-hidden bg-[radial-gradient(circle_at_50%_42%,rgba(255,255,255,0.13),transparent_54%)]">
             <div className="absolute inset-x-5 top-5 z-20 flex items-center justify-between">
-              <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/70">
+              <span className="font-mono text-xs uppercase tracking-[0.18em] text-white/70">
                 Prepared model preview
               </span>
             </div>
@@ -163,12 +163,12 @@ export function HeroVisual() {
                   <p className="text-xs font-semibold">Tap another garment</p>
                 </div>
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5 rounded-full border border-amber-200/20 bg-amber-200/10 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-wide text-amber-100">
+                  <div className="flex items-center gap-1.5 rounded-full border border-amber-200/20 bg-amber-200/10 px-2.5 py-1.5 text-xs font-bold uppercase tracking-wide text-amber-100">
                     <Check className="h-3 w-3" /> On model
                   </div>
                   <Link
                     href="/lab?tab=try-on&from=nia"
-                    className="shrink-0 text-[10px] font-bold text-fuchsia-200 underline-offset-2 hover:underline"
+                    className="shrink-0 text-xs font-bold text-fuchsia-200 underline-offset-2 hover:underline"
                   >
                     Use my photo
                   </Link>
@@ -179,7 +179,7 @@ export function HeroVisual() {
         </div>
       </div>
 
-      <p className="mt-3 text-center font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
+      <p className="mt-3 text-center font-mono text-xs uppercase tracking-[0.08em] text-muted-foreground">
         Prepared previews. Try your own photo in the fitting room.
       </p>
     </div>

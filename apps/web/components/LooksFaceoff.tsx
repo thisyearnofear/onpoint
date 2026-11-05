@@ -97,7 +97,7 @@ export function LooksFaceoff() {
             <Vote className="h-5 w-5 text-primary" />
             <h3 className="text-lg font-bold">Who Wore It Better?</h3>
           </div>
-          <Badge variant="outline" className="text-[10px]">
+          <Badge variant="outline" className="text-xs">
             <TrendingUp className="h-3 w-3 mr-1" />
             Community Vote
           </Badge>
@@ -117,7 +117,7 @@ export function LooksFaceoff() {
           >
             {!voted && (
               <div className="absolute top-2 right-2 z-10">
-                <Badge variant="secondary" className="text-[10px]">
+                <Badge variant="secondary" className="text-xs">
                   Vote A
                 </Badge>
               </div>
@@ -127,13 +127,13 @@ export function LooksFaceoff() {
                 <p className="text-sm font-medium line-clamp-2">{pair.lookA.headline}</p>
                 <div className="flex flex-wrap gap-1 mt-2 justify-center">
                   {pair.lookA.topics.slice(0, 3).map((topic) => (
-                    <Badge key={topic} variant="outline" className="text-[9px] px-1.5 py-0">
+                    <Badge key={topic} variant="outline" className="text-xs px-1.5 py-0">
                       {topic}
                     </Badge>
                   ))}
                 </div>
                 {pair.lookA.persona && (
-                  <p className="text-[10px] text-muted-foreground mt-2">
+                  <p className="text-xs text-muted-foreground mt-2">
                     via {pair.lookA.persona}
                   </p>
                 )}
@@ -174,7 +174,7 @@ export function LooksFaceoff() {
           >
             {!voted && (
               <div className="absolute top-2 right-2 z-10">
-                <Badge variant="secondary" className="text-[10px]">
+                <Badge variant="secondary" className="text-xs">
                   Vote B
                 </Badge>
               </div>
@@ -184,13 +184,13 @@ export function LooksFaceoff() {
                 <p className="text-sm font-medium line-clamp-2">{pair.lookB.headline}</p>
                 <div className="flex flex-wrap gap-1 mt-2 justify-center">
                   {pair.lookB.topics.slice(0, 3).map((topic) => (
-                    <Badge key={topic} variant="outline" className="text-[9px] px-1.5 py-0">
+                    <Badge key={topic} variant="outline" className="text-xs px-1.5 py-0">
                       {topic}
                     </Badge>
                   ))}
                 </div>
                 {pair.lookB.persona && (
-                  <p className="text-[10px] text-muted-foreground mt-2">
+                  <p className="text-xs text-muted-foreground mt-2">
                     via {pair.lookB.persona}
                   </p>
                 )}
@@ -234,7 +234,7 @@ export function LooksFaceoff() {
         )}
 
         {!voted && (
-          <p className="text-[10px] text-center text-muted-foreground mt-3">
+          <p className="text-xs text-center text-muted-foreground mt-3">
             Cast your vote — winning looks earn more visibility
           </p>
         )}

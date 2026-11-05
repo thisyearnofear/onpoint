@@ -123,7 +123,7 @@ export function MissionsPanel({ userId, compact = false }: MissionsPanelProps) {
               <Target className="w-4 h-4 text-indigo-400" />
               <span className="text-sm font-bold text-foreground">Missions</span>
             </div>
-            <Badge variant="outline" className="text-[10px] text-indigo-400 border-indigo-500/30">
+            <Badge variant="outline" className="text-xs text-indigo-400 border-indigo-500/30">
               {completedCount}/{totalCount}
             </Badge>
           </div>
@@ -154,7 +154,7 @@ export function MissionsPanel({ userId, compact = false }: MissionsPanelProps) {
             </div>
             <div>
               <h3 className="text-sm font-bold text-foreground">Style Missions</h3>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {completedCount}/{totalCount} completed
               </p>
             </div>
@@ -176,7 +176,7 @@ export function MissionsPanel({ userId, compact = false }: MissionsPanelProps) {
         {/* Progress Bar */}
         <div className="space-y-1">
           <Progress value={progressPercent} className="h-2 bg-muted" />
-          <p className="text-[10px] text-muted-foreground/70 text-right">
+          <p className="text-xs text-muted-foreground/70 text-right">
             {Math.round(progressPercent)}% complete
           </p>
         </div>
@@ -187,7 +187,7 @@ export function MissionsPanel({ userId, compact = false }: MissionsPanelProps) {
             variant="ghost"
             size="sm"
             onClick={() => setSelectedCategory("all")}
-            className={`text-[10px] px-3 py-1 rounded-full whitespace-nowrap ${
+            className={`text-xs px-3 py-1 rounded-full whitespace-nowrap ${
               selectedCategory === "all"
                 ? "bg-muted text-foreground"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -201,7 +201,7 @@ export function MissionsPanel({ userId, compact = false }: MissionsPanelProps) {
               variant="ghost"
               size="sm"
               onClick={() => setSelectedCategory(cat)}
-              className={`text-[10px] px-3 py-1 rounded-full whitespace-nowrap ${
+              className={`text-xs px-3 py-1 rounded-full whitespace-nowrap ${
                 selectedCategory === cat
                   ? `${CATEGORY_STYLES[cat].bg} ${CATEGORY_STYLES[cat].color} ${CATEGORY_STYLES[cat].border} border`
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -266,7 +266,7 @@ export function MissionsPanel({ userId, compact = false }: MissionsPanelProps) {
                           </h4>
                           <div className="flex items-center gap-1.5">
                             {mission.reward.type === "xp" && (
-                              <span className="text-[10px] text-amber-400 font-bold">
+                              <span className="text-xs text-amber-400 font-bold">
                                 +{mission.reward.value} XP
                               </span>
                             )}
@@ -288,7 +288,7 @@ export function MissionsPanel({ userId, compact = false }: MissionsPanelProps) {
                               value={(progress.currentProgress / mission.maxProgress) * 100}
                               className="h-1 bg-muted"
                             />
-                            <p className="text-[10px] text-muted-foreground/70 mt-1">
+                            <p className="text-xs text-muted-foreground/70 mt-1">
                               {progress.currentProgress}/{mission.maxProgress}
                             </p>
                           </div>
@@ -310,13 +310,13 @@ export function MissionsPanel({ userId, compact = false }: MissionsPanelProps) {
 
                                 {/* Requirements */}
                                 <div className="space-y-1">
-                                  <p className="text-[10px] text-muted-foreground/70 font-bold uppercase tracking-wider">
+                                  <p className="text-xs text-muted-foreground/70 font-bold uppercase tracking-wider">
                                     Requirements
                                   </p>
                                   {mission.requirements.map((req, i) => (
                                     <div
                                       key={i}
-                                      className="flex items-center gap-2 text-[10px] text-muted-foreground"
+                                      className="flex items-center gap-2 text-xs text-muted-foreground"
                                     >
                                       <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
                                       <span>
@@ -354,7 +354,7 @@ export function MissionsPanel({ userId, compact = false }: MissionsPanelProps) {
                                 {isCompleted && progress?.claimedReward && (
                                   <div className="flex items-center gap-1.5 mt-2 text-emerald-400">
                                     <CheckCircle className="w-3.5 h-3.5" />
-                                    <span className="text-[10px] font-bold">Reward claimed</span>
+                                    <span className="text-xs font-bold">Reward claimed</span>
                                   </div>
                                 )}
                               </div>
@@ -373,7 +373,7 @@ export function MissionsPanel({ userId, compact = false }: MissionsPanelProps) {
         {/* Badges Section */}
         {state.badges.length > 0 && (
           <div className="space-y-2 pt-2 border-t border-border">
-            <p className="text-[10px] text-muted-foreground/70 font-bold uppercase tracking-wider">
+            <p className="text-xs text-muted-foreground/70 font-bold uppercase tracking-wider">
               Earned Badges
             </p>
             <div className="flex flex-wrap gap-2">
@@ -383,7 +383,7 @@ export function MissionsPanel({ userId, compact = false }: MissionsPanelProps) {
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20"
                 >
                   <Star className="w-3 h-3 text-purple-400" />
-                  <span className="text-[10px] text-purple-300 font-bold capitalize">
+                  <span className="text-xs text-purple-300 font-bold capitalize">
                     {badge.replace(/-/g, " ")}
                   </span>
                 </div>

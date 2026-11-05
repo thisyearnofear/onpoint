@@ -3,7 +3,7 @@
 import React, { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Palette, ChevronDown } from "lucide-react";
+import { Shirt, ChevronDown } from "lucide-react";
 import { PRODUCT_NAME, CTA_PLAY, CTA_SHOP } from "../lib/brand";
 import { PRIMARY_NAV, SECONDARY_NAV, isNavActive } from "../lib/navigation";
 import { NavigationLink } from "./NavigationLink";
@@ -47,8 +47,8 @@ export function OnPointHeader() {
       <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background hidden lg:block">
         <div className="container flex h-14 items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2 text-sm font-bold">
-            <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-1.5 shadow-md">
-              <Palette className="h-4 w-4 text-white" />
+            <div className="rounded-lg border border-border p-1.5">
+              <Shirt className="h-4 w-4 text-foreground" />
             </div>
             {PRODUCT_NAME}
           </Link>
@@ -103,8 +103,8 @@ export function OnPointHeader() {
       <div className="lg:hidden sticky top-0 z-50 w-full border-b border-border/60 bg-background">
         <div className="flex items-center justify-between px-3 h-14">
           <Link href="/" className="flex items-center gap-2">
-            <div className="p-1 rounded-lg bg-gradient-to-br from-primary to-accent shadow-sm">
-              <Palette className="h-4 w-4 text-white" />
+            <div className="p-1 rounded-lg border border-border">
+              <Shirt className="h-4 w-4 text-foreground" />
             </div>
             <span className="text-sm font-bold tracking-tight">
               {PRODUCT_NAME}
@@ -136,8 +136,8 @@ export function OnPointFooter() {
     <footer className="border-t border-border/60 py-8">
       <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 text-sm text-muted-foreground md:flex-row">
         <div className="flex items-center gap-2">
-          <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-1 shadow-md">
-            <Palette className="h-3.5 w-3.5 text-white" />
+          <div className="rounded-lg border border-border p-1">
+            <Shirt className="h-3.5 w-3.5 text-foreground" />
           </div>
           {PRODUCT_NAME}
         </div>

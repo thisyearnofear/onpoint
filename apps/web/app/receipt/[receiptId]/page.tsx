@@ -176,11 +176,11 @@ export default async function ReceiptPage({
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-1.5">
                     <Sparkles className="w-4 h-4 text-white/80" />
-                    <span className="text-sm font-black text-white tracking-tight italic">
+                    <span className="text-sm font-black text-white tracking-tight">
                       OnPoint
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider">
+                  <span className="text-xs font-mono text-white/40 uppercase tracking-wider">
                     Receipt
                   </span>
                 </div>
@@ -201,7 +201,7 @@ export default async function ReceiptPage({
               {/* Item */}
               {item && (
                 <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50">
-                  <span className="text-[10px] text-muted-foreground/60 uppercase tracking-widest font-bold">
+                  <span className="text-xs text-muted-foreground/60 uppercase tracking-widest font-bold">
                     Item
                   </span>
                   <span className="text-sm text-foreground font-medium text-right">
@@ -214,7 +214,7 @@ export default async function ReceiptPage({
               {/* Amount paid */}
               {amount != null && (
                 <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50">
-                  <span className="text-[10px] text-muted-foreground/60 uppercase tracking-widest font-bold">
+                  <span className="text-xs text-muted-foreground/60 uppercase tracking-widest font-bold">
                     Amount
                   </span>
                   <span className="text-lg font-bold text-emerald-400">
@@ -226,7 +226,7 @@ export default async function ReceiptPage({
               {/* Curator payout */}
               {curatorPayout && (
                 <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50">
-                  <span className="text-[10px] text-muted-foreground/60 uppercase tracking-widest font-bold">
+                  <span className="text-xs text-muted-foreground/60 uppercase tracking-widest font-bold">
                     Curator Earned
                   </span>
                   <span className="text-sm text-amber-400 font-medium">
@@ -301,7 +301,7 @@ export default async function ReceiptPage({
               {/* Buyer address */}
               {buyerAddress && buyerAddress !== "0x0000000000000000000000000000000000000000" && (
                 <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50">
-                  <span className="text-[10px] text-muted-foreground/60 uppercase tracking-widest font-bold">
+                  <span className="text-xs text-muted-foreground/60 uppercase tracking-widest font-bold">
                     Buyer
                   </span>
                   <span className="text-xs text-muted-foreground font-mono">

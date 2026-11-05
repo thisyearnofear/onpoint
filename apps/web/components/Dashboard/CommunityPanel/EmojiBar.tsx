@@ -69,7 +69,7 @@ export function EmojiBar({
           >
             <span className="text-sm leading-none">{emoji}</span>
             {count > 0 && (
-              <span className="text-[10px] font-medium tabular-nums">
+              <span className="text-xs font-medium tabular-nums">
                 {count}
               </span>
             )}

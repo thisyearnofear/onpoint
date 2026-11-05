@@ -22,10 +22,10 @@ export function Leaderboard({ looks }: { looks: CommunityLook[] }) {
     >
       <div className="flex items-center gap-2 mb-4">
         <Medal className="w-4 h-4 text-warning" />
-        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
           Leaderboard
         </span>
-        <span className="text-[10px] text-muted-foreground/50">
+        <span className="text-xs text-muted-foreground/50">
           Top liked looks
         </span>
       </div>
@@ -51,20 +51,20 @@ export function Leaderboard({ looks }: { looks: CommunityLook[] }) {
               <div className={`w-8 h-8 mx-auto rounded-lg bg-gradient-to-br ${colors.bg} flex items-center justify-center text-white text-sm font-black shadow-sm mb-2`}>
                 {look.persona ? look.persona[0]!.toUpperCase() : "?"}
               </div>
-              <p className="text-[10px] font-semibold text-foreground leading-tight line-clamp-2 mb-1">
+              <p className="text-xs font-semibold text-foreground leading-tight line-clamp-2 mb-1">
                 {look.headline}
               </p>
               <div className="flex items-center justify-center gap-1">
-                <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-warning">
+                <span className="inline-flex items-center gap-0.5 text-xs font-bold text-warning">
                   <Sparkles className="w-2.5 h-2.5" />
                   {look.score}/10
                 </span>
-                <span className="text-[9px] text-muted-foreground/60">&middot;</span>
-                <span className={`text-[9px] font-bold ${colors.text}`}>
+                <span className="text-xs text-muted-foreground/60">&middot;</span>
+                <span className={`text-xs font-bold ${colors.text}`}>
                   {look.likes} ❤️
                 </span>
               </div>
-              <p className="text-[8px] text-muted-foreground/50 mt-1">{dateLabel}</p>
+              <p className="text-xs text-muted-foreground/50 mt-1">{dateLabel}</p>
             </motion.div>
           );
         })}

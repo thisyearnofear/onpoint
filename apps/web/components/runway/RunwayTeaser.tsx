@@ -34,9 +34,6 @@ export function RunwayTeaser() {
         <div className="container relative mx-auto px-4 py-14 md:py-20">
           <div className="mx-auto grid max-w-5xl items-center gap-10 md:grid-cols-2">
             <div className="text-center md:text-left">
-              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">
-                New · Runway
-              </p>
               <h2 className="mt-3 text-3xl font-black leading-[1.02] tracking-[-0.04em] md:text-5xl">
                 Dress to the theme.
                 <span className="block text-primary">You have 3 minutes.</span>

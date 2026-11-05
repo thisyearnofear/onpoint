@@ -6,9 +6,6 @@ export default function RunwayResultNotFound() {
     <div className="min-h-screen bg-background text-foreground">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.18),transparent_65%)]" />
       <main className="relative mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-8 px-4 py-16 text-center">
-        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">
-          Runway
-        </p>
         <h1 className="text-3xl font-black tracking-[-0.04em]">
           This round has left the runway.
         </h1>

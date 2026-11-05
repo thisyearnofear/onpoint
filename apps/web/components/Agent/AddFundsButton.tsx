@@ -292,7 +292,7 @@ export function AddFundsButton() {
                     )}
 
                     <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-2">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold mb-2">
                         Currency
                       </p>
                       <div className="flex gap-2">
@@ -313,7 +313,7 @@ export function AddFundsButton() {
                     </div>
 
                     <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-2">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold mb-2">
                         Amount
                       </p>
                       <div className="flex items-center gap-1 px-4 py-3 rounded-xl bg-muted/30 border border-border">
@@ -377,17 +377,17 @@ export function AddFundsButton() {
                         </span>
                       </div>
                       <div className="border-t border-border/50 pt-2 space-y-1">
-                        <div className="flex justify-between text-[10px]">
+                        <div className="flex justify-between text-xs">
                           <span className="text-muted-foreground">Rate</span>
                           <span className="text-foreground">
                             1 {quote.cryptoAsset} ≈ {quote.rate} {quote.fiat}
                           </span>
                         </div>
-                        <div className="flex justify-between text-[10px]">
+                        <div className="flex justify-between text-xs">
                           <span className="text-muted-foreground">Fees</span>
                           <span className="text-foreground">{quote.fees} {quote.fiat}</span>
                         </div>
-                        <div className="flex justify-between text-[10px]">
+                        <div className="flex justify-between text-xs">
                           <span className="text-muted-foreground">Network</span>
                           <span className="text-foreground capitalize">{quote.chain}</span>
                         </div>
@@ -430,7 +430,7 @@ export function AddFundsButton() {
                       <div className="space-y-3">
                         {order.paymentInstructions.clabe && (
                           <div className="bg-muted/30 border border-border rounded-xl p-3 space-y-1.5">
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
+                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold">
                               SPEI CLABE
                             </p>
                             <div className="flex items-center justify-between">
@@ -458,7 +458,7 @@ export function AddFundsButton() {
 
                         {order.paymentInstructions.reference && (
                           <div className="bg-muted/30 border border-border rounded-xl p-3 space-y-1.5">
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
+                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold">
                               Reference
                             </p>
                             <div className="flex items-center justify-between">
@@ -484,7 +484,7 @@ export function AddFundsButton() {
                           </div>
                         )}
 
-                        <p className="text-[10px] text-muted-foreground/60 text-center">
+                        <p className="text-xs text-muted-foreground/60 text-center">
                           Funds will be credited automatically once the transfer is detected.
                         </p>
                       </div>
@@ -531,7 +531,7 @@ export function AddFundsButton() {
                           <ExternalLink className="h-3 w-3" />
                         </a>
                       )}
-                      <p className="text-[10px] text-muted-foreground/60 pt-1">
+                      <p className="text-xs text-muted-foreground/60 pt-1">
                         Closing automatically…
                       </p>
                     </div>

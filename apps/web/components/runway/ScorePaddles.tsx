@@ -32,7 +32,7 @@ function Paddle({
       aria-label={`${label.charAt(0) + label.slice(1).toLowerCase()}: ${value} out of 10`}
       className="flex w-full flex-col items-center rounded-2xl border border-zinc-700/80 bg-zinc-900/90 px-2 py-4 shadow-lg shadow-black/40"
     >
-      <span className="font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-zinc-400">
+      <span className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-zinc-400">
         {label}
       </span>
       <span className="mt-2 text-5xl font-black tabular-nums text-zinc-50">

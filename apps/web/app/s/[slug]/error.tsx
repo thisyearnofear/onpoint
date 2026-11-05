@@ -42,7 +42,7 @@ export default function CuratorStorefrontError({
         </Button>
 
         {error.digest && (
-          <p className="text-[10px] text-muted-foreground/40 font-mono">
+          <p className="text-xs text-muted-foreground/40 font-mono">
             Reference: {error.digest}
           </p>
         )}

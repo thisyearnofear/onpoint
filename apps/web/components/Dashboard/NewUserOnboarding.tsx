@@ -62,7 +62,7 @@ export function NewUserOnboarding() {
               <Camera className="h-8 w-8 text-emerald-400" />
             </div>
             <div className="space-y-2">
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">
                 First fit check
               </p>
               <h2 className="text-2xl font-black tracking-tight">
@@ -85,7 +85,7 @@ export function NewUserOnboarding() {
                 key={label}
                 className="rounded-xl border border-border bg-muted/40 px-3 py-2 text-left"
               >
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   {label}
                 </p>
                 <p className="text-xs font-semibold text-foreground">{value}</p>

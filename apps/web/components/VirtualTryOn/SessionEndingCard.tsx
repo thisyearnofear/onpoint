@@ -136,18 +136,18 @@ export function SessionEndingCard({
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-white/80" />
-                <span className="text-sm font-black text-white tracking-tight italic">
+                <span className="text-sm font-black text-white tracking-tight">
                   OnPoint
                 </span>
               </div>
-              <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider">
+              <span className="text-xs font-mono text-white/40 uppercase tracking-wider">
                 {sessionExpired ? "Session Ended" : "Completed"}
               </span>
             </div>
 
             {/* Score — hero element */}
             <div className="flex flex-col items-center text-center">
-              <span className="text-[9px] font-mono text-white/40 uppercase tracking-[0.25em] mb-2">
+              <span className="text-xs font-mono text-white/40 uppercase tracking-[0.25em] mb-2">
                 Proof of Style
               </span>
               <AnimatedScore score={summary.score} delay={0.3} size="lg" />
@@ -164,7 +164,7 @@ export function SessionEndingCard({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
             >
-              <p className="text-[9px] text-muted-foreground/60 uppercase tracking-widest mb-2.5 font-bold">
+              <p className="text-xs text-muted-foreground/60 uppercase tracking-widest mb-2.5 font-bold">
                 Analyzed
               </p>
               <div className="flex flex-wrap gap-2">
@@ -176,7 +176,7 @@ export function SessionEndingCard({
                       className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-muted/30 border border-border/50"
                     >
                       <Icon className="w-3 h-3 text-primary/70" />
-                      <span className="text-[10px] text-foreground/70 font-medium">
+                      <span className="text-xs text-foreground/70 font-medium">
                         {topic}
                       </span>
                     </div>
@@ -194,7 +194,7 @@ export function SessionEndingCard({
               transition={{ delay: 0.7 }}
               className="bg-primary/5 border border-primary/10 rounded-2xl p-4 space-y-3"
             >
-              <p className="text-[9px] text-primary/60 uppercase tracking-widest font-bold">
+              <p className="text-xs text-primary/60 uppercase tracking-widest font-bold">
                 Key Insights
               </p>
               {summary.takeaways.slice(0, 3).map((takeaway, i) => (
@@ -203,7 +203,7 @@ export function SessionEndingCard({
                 </p>
               ))}
               {summary.takeaways.length > 3 && (
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   +{summary.takeaways.length - 3} more in full report
                 </p>
               )}
@@ -218,7 +218,7 @@ export function SessionEndingCard({
               transition={{ delay: 0.75 }}
               className="space-y-2"
             >
-              <p className="text-[9px] text-muted-foreground/60 uppercase tracking-widest font-bold flex items-center gap-1.5">
+              <p className="text-xs text-muted-foreground/60 uppercase tracking-widest font-bold flex items-center gap-1.5">
                 <Eye className="w-3 h-3" />
                 Score Evidence
               </p>
@@ -229,13 +229,13 @@ export function SessionEndingCard({
                     className="flex items-start gap-2 px-2.5 py-1.5 rounded-lg bg-muted/20 border border-border/30"
                   >
                     <div className="w-1 h-1 rounded-full bg-success mt-1.5 shrink-0" />
-                    <span className="text-[11px] text-foreground/60 leading-relaxed">
+                    <span className="text-xs text-foreground/60 leading-relaxed">
                       {evidence}
                     </span>
                   </div>
                 ))}
               </div>
-              <p className="text-[9px] text-muted-foreground/40">
+              <p className="text-xs text-muted-foreground/40">
                 {summary.scoreSource === "model"
                   ? "From AI analysis"
                   : "Derived from sentiment"}
@@ -267,7 +267,7 @@ export function SessionEndingCard({
                   {captures.length} capture{captures.length !== 1 ? "s" : ""}{" "}
                   saved
                 </p>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {captures[0]!.comment.slice(0, 50)}…
                 </p>
               </div>
@@ -309,7 +309,7 @@ export function SessionEndingCard({
               transition={{ delay: 0.88 }}
               className="space-y-2"
             >
-              <p className="text-[9px] text-muted-foreground/60 uppercase tracking-widest font-bold">
+              <p className="text-xs text-muted-foreground/60 uppercase tracking-widest font-bold">
                 Recommended For You
               </p>
               <div className="space-y-2">
@@ -327,7 +327,7 @@ export function SessionEndingCard({
                           <p className="text-xs text-foreground font-medium truncate">
                             {product.name}
                           </p>
-                          <p className="text-[10px] text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             {product.category.includes(".")
                               ? `Found at ${product.category}`
                               : product.category}
@@ -393,7 +393,7 @@ export function SessionEndingCard({
               transition={{ delay: 1.0 }}
               className="space-y-2.5 pt-2 border-t border-border/50"
             >
-              <p className="text-[9px] text-muted-foreground/60 uppercase tracking-widest font-bold">
+              <p className="text-xs text-muted-foreground/60 uppercase tracking-widest font-bold">
                 Unlock More
               </p>
 
@@ -427,7 +427,7 @@ export function SessionEndingCard({
           >
             <button
               onClick={onViewSummary}
-              className="w-full text-center text-[10px] text-muted-foreground/60 hover:text-foreground/60 transition-colors py-1"
+              className="w-full text-center text-xs text-muted-foreground/60 hover:text-foreground/60 transition-colors py-1"
             >
               View Full Summary →
             </button>
@@ -445,7 +445,7 @@ export function SessionEndingCard({
                   new CustomEvent("onpoint:navigate", { detail: "my-looks" })
                 );
               }}
-              className="w-full text-center text-[10px] text-success/60 hover:text-emerald-400 transition-colors py-1"
+              className="w-full text-center text-xs text-success/60 hover:text-emerald-400 transition-colors py-1"
             >
               Saved to My Looks ✓ — View all →
             </button>
@@ -454,9 +454,9 @@ export function SessionEndingCard({
           {/* Branding footer */}
           <div className="flex items-center justify-center gap-1.5 pt-3 border-t border-border/50">
             <Sparkles className="w-3 h-3 text-primary/40" />
-            <span className="text-[9px] text-muted-foreground/60 font-medium">
+            <span className="text-xs text-muted-foreground/60 font-medium">
               Styled by{" "}
-              <span className="text-primary/50 font-bold italic">
+              <span className="text-primary/50 font-bold">
                 OnPoint
               </span>{" "}
               AI

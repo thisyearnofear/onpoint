@@ -36,7 +36,6 @@ interface CuratorArchetype {
   title: string;
   tagline: string;
   description: string;
-  emoji: string;
   color: string;
   accent: string;
   verticals: string[];
@@ -52,7 +51,6 @@ const ARCHETYPES: CuratorArchetype[] = [
     tagline: "Kits, jerseys, athletic gear — your local game is global.",
     description:
       "You source and sell football kits, training gear, and matchday fits. Your customers know what they want but need help with sizing, printing, and the latest drops.",
-    emoji: "⚽",
     color: "#22c55e",
     accent: "#16a34a",
     verticals: ["football", "sportswear", "premier-league"],
@@ -75,7 +73,6 @@ const ARCHETYPES: CuratorArchetype[] = [
     tagline: "Sneakers, drops, and fits that move culture.",
     description:
       "You hustle sneaker releases, limited drops, and streetwear staples. Your edge is knowing what's next — but your customers need to see how it looks on them before they cop.",
-    emoji: "👟",
     color: "#a855f7",
     accent: "#7c3aed",
     verticals: ["streetwear", "sneakers", "retro"],
@@ -98,7 +95,6 @@ const ARCHETYPES: CuratorArchetype[] = [
     tagline: "Bold prints, occasion wear, and cultural fashion.",
     description:
       "You work with Ankara, Kente, Kitenge, and other African prints — making custom pieces for weddings, graduations, and celebrations. Every piece is unique and every customer needs to see the drape.",
-    emoji: "🧵",
     color: "#eab308",
     accent: "#ca8a04",
     verticals: ["ankara", "african-print", "occasion"],
@@ -121,7 +117,6 @@ const ARCHETYPES: CuratorArchetype[] = [
     tagline: "One-of-a-kind pieces that need the right home.",
     description:
       "You hunt vintage, thrift, and deadstock — curating pieces that no one else has. The challenge is selling the vibe without the customer trying it on.",
-    emoji: "📻",
     color: "#f97316",
     accent: "#d97706",
     verticals: ["vintage", "thrift", "retro"],
@@ -144,7 +139,6 @@ const ARCHETYPES: CuratorArchetype[] = [
     tagline: "Bespoke fits that start with measurements, not luck.",
     description:
       "You make suits, kaftans, agbadas, and formal wear. Every customer needs measurements, fabric selection, and style consultation — high touch, high value, high hesitation.",
-    emoji: "✂️",
     color: "#6366f1",
     accent: "#4f46e5",
     verticals: ["tailoring", "formal", "occasion"],
@@ -167,7 +161,6 @@ const ARCHETYPES: CuratorArchetype[] = [
     tagline: "High-end pieces that demand discretion and trust.",
     description:
       "You resell luxury handbags, watches, and designer pieces — authentic, curated, and premium. Your customers care about condition, authenticity, and how it looks styled.",
-    emoji: "💎",
     color: "#f43f5e",
     accent: "#e11d48",
     verticals: ["luxury", "high-fashion", "accessories"],
@@ -424,7 +417,7 @@ export default function CuratorLandingPage() {
                     "Ok I'll take the M, #7 printed",
                   ].map((msg, i) => (
                     <div key={i} className="flex items-center gap-2 text-sm">
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
                         {i + 1}
                       </span>
                       <span className="text-muted-foreground italic">
@@ -449,7 +442,7 @@ export default function CuratorLandingPage() {
                 </div>
                 <div className="space-y-2.5">
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
                       1
                     </span>
                     <span className="text-foreground">
@@ -458,7 +451,7 @@ export default function CuratorLandingPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
                       2
                     </span>
                     <span className="text-foreground">
@@ -467,7 +460,7 @@ export default function CuratorLandingPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success/15 text-[10px] font-bold text-success">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success/15 text-xs font-bold text-success">
                       <MessageCircle className="h-3 w-3" />
                     </span>
                     <span className="font-medium text-foreground">
@@ -522,7 +515,7 @@ export default function CuratorLandingPage() {
                 items={ARCHETYPES.map((a) => ({
                   id: a.id,
                   label: a.title.split(" ")[0] ?? a.title,
-                  icon: <span className="text-base">{a.emoji}</span>,
+                  icon: <span className="text-base"></span>,
                   content: (
                     <div
                       className="rounded-2xl border border-border/40 bg-card p-6 md:p-8"
@@ -535,8 +528,7 @@ export default function CuratorLandingPage() {
                             background: `linear-gradient(135deg, ${a.color}20, ${a.accent}20)`,
                           }}
                         >
-                          {a.emoji}
-                        </div>
+                          </div>
                         <div className="flex-1">
                           <h3 className="text-lg font-black tracking-tight">
                             {a.title}
@@ -661,7 +653,7 @@ export default function CuratorLandingPage() {
           <div className="mx-auto max-w-5xl px-4">
             <div className="grid gap-6 rounded-3xl border border-border/60 bg-card p-6 md:grid-cols-[0.8fr_1.2fr] md:items-center md:p-8">
               <div>
-                <p className="inline-flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+                <p className="inline-flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-[0.2em] text-primary">
                   <Globe className="h-3.5 w-3.5" /> Local-first, agent-ready
                 </p>
                 <h2 className="mt-3 text-2xl font-black tracking-tight md:text-3xl">
@@ -740,7 +732,7 @@ export default function CuratorLandingPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="font-bold">Wanja</p>
-                    <span className="rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-medium text-success">
+                    <span className="rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
                       Sportswear Stylist
                     </span>
                   </div>

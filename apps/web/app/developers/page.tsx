@@ -28,7 +28,7 @@ function Endpoint({ method, path, desc }: { method: string; path: string; desc: 
   };
   return (
     <div className="flex items-start gap-3 py-3 border-b border-border/30 last:border-0">
-      <span className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${colors[method] || "bg-muted text-muted-foreground"}`}>
+      <span className={`shrink-0 px-2 py-0.5 rounded text-xs font-bold uppercase ${colors[method] || "bg-muted text-muted-foreground"}`}>
         {method}
       </span>
       <code className="text-sm font-mono text-foreground break-all">{path}</code>
@@ -43,19 +43,15 @@ export default function DevelopersPage() {
 
       <div className="container mx-auto px-4 py-12 md:py-16 max-w-5xl">
         {/* Hero */}
-        <div className="text-center mb-14">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-bold text-primary uppercase tracking-wider mb-4">
-            <Bot className="w-3.5 h-3.5" />
-            Agent Commerce API
-          </div>
-          <h1 className="text-4xl md:text-5xl font-black tracking-tight">
+        <div className="mb-14 max-w-3xl">
+          <h1 className="font-display text-4xl leading-[1.05] tracking-[-0.02em] md:text-5xl">
             Same catalog.
             <span className="block text-primary">Your agent, your logic.</span>
           </h1>
-          <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-            OnPoint exposes a machine-readable API for AI agents. Browse curators, try on items, and buy from the same inventory humans use. Pay with cUSD or gasless USDC on Celo, or USD₮0 on XLayer via the OKX.AI marketplace.
+          <p className="mt-4 text-lg text-muted-foreground">
+            The agent commerce API exposes machine-readable endpoints for AI agents. Browse curators, try on items, and buy from the same inventory humans use. Pay with cUSD or gasless USDC on Celo, or USD₮0 on XLayer via the OKX.AI marketplace.
           </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <div className="mt-6 flex flex-wrap gap-3">
             <a
               href={`${getBaseUrl()}/.well-known/agent.json`}
               target="_blank"
@@ -181,15 +177,15 @@ export default function DevelopersPage() {
               </p>
               <ol className="space-y-2 text-sm">
                 <li className="flex gap-2">
-                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">1</span>
+                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">1</span>
                   <span>POST try-on or order</span>
                 </li>
                 <li className="flex gap-2">
-                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">2</span>
+                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">2</span>
                   <span>Receive 402 with payTo + dataSuffix</span>
                 </li>
                 <li className="flex gap-2">
-                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">3</span>
+                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">3</span>
                   <span>Transfer cUSD, re-POST with txHash</span>
                 </li>
               </ol>
@@ -214,15 +210,15 @@ export default function DevelopersPage() {
               </p>
               <ol className="space-y-2 text-sm">
                 <li className="flex gap-2">
-                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">1</span>
+                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">1</span>
                   <span>Sign EIP-3009 transferWithAuthorization</span>
                 </li>
                 <li className="flex gap-2">
-                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">2</span>
+                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">2</span>
                   <span>Encode PaymentPayload as base64 JSON</span>
                 </li>
                 <li className="flex gap-2">
-                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">3</span>
+                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">3</span>
                   <span>Send in X-PAYMENT header</span>
                 </li>
               </ol>
@@ -244,15 +240,15 @@ export default function DevelopersPage() {
               </p>
               <ol className="space-y-2 text-sm">
                 <li className="flex gap-2">
-                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">1</span>
+                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">1</span>
                   <span>POST /okx/try-on → 402 + PAYMENT-REQUIRED header</span>
                 </li>
                 <li className="flex gap-2">
-                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">2</span>
+                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">2</span>
                   <span>OKX Agentic Wallet signs + settles USD₮0</span>
                 </li>
                 <li className="flex gap-2">
-                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">3</span>
+                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">3</span>
                   <span>200 with try-on render + fit signal</span>
                 </li>
               </ol>

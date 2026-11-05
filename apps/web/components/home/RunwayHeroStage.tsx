@@ -27,7 +27,7 @@ export function RunwayHeroStage() {
     <div className="dark relative overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-950 px-6 py-10 text-zinc-50 shadow-2xl">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.22),transparent_65%)]" />
       <div className="relative text-center">
-        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">
+        <p className="text-xs font-medium text-zinc-400">
           Today&rsquo;s theme
         </p>
         <p className="mt-2 text-3xl font-black tracking-[-0.03em]">

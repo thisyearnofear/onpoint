@@ -100,11 +100,17 @@ export const ShopGrid: React.FC<ShopGridProps> = ({
     [items]
   );
 
-  const avgRating = useMemo(
-    () => (items || []).length > 0 
-      ? ((items || []).reduce((sum, item) => sum + (item?.averageRating || 0), 0) / (items || []).length).toFixed(1)
-      : '0',
+  // Only surface rating UI when real ratings exist — a "0.0★" or a
+  // rating computed from empty data reads as fabricated social proof.
+  const ratedItems = useMemo(
+    () => (items || []).filter((item) => (item?.averageRating || 0) > 0),
     [items]
+  );
+  const avgRating = useMemo(
+    () => ratedItems.length > 0
+      ? (ratedItems.reduce((sum, item) => sum + (item.averageRating || 0), 0) / ratedItems.length).toFixed(1)
+      : null,
+    [ratedItems]
   );
 
   return (
@@ -125,13 +131,15 @@ export const ShopGrid: React.FC<ShopGridProps> = ({
               Try-ons
             </div>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-accent">{avgRating}★</div>
-            <div className="text-xs text-muted-foreground flex items-center gap-1">
-              <Star className="h-3 w-3" />
-              Avg Rating
+          {avgRating !== null && (
+            <div className="text-center">
+              <div className="text-2xl font-bold text-accent">{avgRating}★</div>
+              <div className="text-xs text-muted-foreground flex items-center gap-1">
+                <Star className="h-3 w-3" />
+                Avg Rating
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -184,11 +192,11 @@ export const ShopGrid: React.FC<ShopGridProps> = ({
               onChange={(e) => setSortBy(e.target.value as SortOption)}
               className="px-4 py-2 rounded-lg border border-border bg-card text-sm font-medium hover:border-primary focus:border-primary focus:outline-none transition-colors"
             >
-              <option value="trending">🔥 Trending</option>
-              <option value="rating">⭐ Highest Rated</option>
-              <option value="newest">✨ Newest</option>
-              <option value="price-low">💰 Price: Low to High</option>
-              <option value="price-high">💎 Price: High to Low</option>
+              <option value="trending">Trending</option>
+              {avgRating !== null && <option value="rating">Highest Rated</option>}
+              <option value="newest">Newest</option>
+              <option value="price-low">Price: Low to High</option>
+              <option value="price-high">Price: High to Low</option>
             </select>
           </div>
 
@@ -299,7 +307,7 @@ export const ShopGrid: React.FC<ShopGridProps> = ({
       {/* Empty State */}
       {sortedAndFiltered.length === 0 && (
         <div className="text-center py-16">
-          <div className="text-6xl mb-4">👗</div>
+          <Search className="mx-auto mb-4 h-10 w-10 text-muted-foreground/40" />
           <h3 className="text-lg font-semibold text-foreground mb-2">No items found</h3>
           <p className="text-muted-foreground">Try adjusting your filters</p>
         </div>

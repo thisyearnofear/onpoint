@@ -409,17 +409,17 @@ export function CommunityPanel({ onNavigate, onNewLooksStatus }: CommunityPanelP
         <button onClick={() => setView("reactions")}
           className={`flex min-h-[44px] items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-all ${view === "reactions" ? "bg-rose-500/20 text-rose-500 ring-1 ring-rose-500/30" : "bg-muted/40 text-muted-foreground hover:text-foreground"}`}
         ><BookHeart className="w-3.5 h-3.5" /> Reactions
-          {allLikedIds.size + allReactedIds.size > 0 && <span className="ml-0.5 rounded-full bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-bold text-rose-500 tabular-nums">{allLikedIds.size + allReactedIds.size}</span>}
+          {allLikedIds.size + allReactedIds.size > 0 && <span className="ml-0.5 rounded-full bg-rose-500/20 px-1.5 py-0.5 text-xs font-bold text-rose-500 tabular-nums">{allLikedIds.size + allReactedIds.size}</span>}
         </button>
         <button onClick={() => setView("saved")}
           className={`flex min-h-[44px] items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-all ${view === "saved" ? "bg-sky-500/20 text-sky-500 ring-1 ring-sky-500/30" : "bg-muted/40 text-muted-foreground hover:text-foreground"}`}
         ><Bookmark className="w-3.5 h-3.5" /> Saved
-          {bookmarkedIds.size > 0 && <span className="ml-0.5 rounded-full bg-sky-500/20 px-1.5 py-0.5 text-[10px] font-bold text-sky-500 tabular-nums">{bookmarkedIds.size}</span>}
+          {bookmarkedIds.size > 0 && <span className="ml-0.5 rounded-full bg-sky-500/20 px-1.5 py-0.5 text-xs font-bold text-sky-500 tabular-nums">{bookmarkedIds.size}</span>}
         </button>
         <button onClick={() => setView("moderation")}
           className={`flex min-h-[44px] items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-all ${view === "moderation" ? "bg-rose-500/20 text-rose-500 ring-1 ring-rose-500/30" : "bg-muted/40 text-muted-foreground hover:text-foreground"}`}
         ><Flag className="w-3.5 h-3.5" /> Reports
-          {reportedIds.size > 0 && <span className="ml-0.5 rounded-full bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-bold text-rose-500 tabular-nums">{reportedIds.size}</span>}
+          {reportedIds.size > 0 && <span className="ml-0.5 rounded-full bg-rose-500/20 px-1.5 py-0.5 text-xs font-bold text-rose-500 tabular-nums">{reportedIds.size}</span>}
         </button>
       </div>
 
@@ -435,7 +435,7 @@ export function CommunityPanel({ onNavigate, onNewLooksStatus }: CommunityPanelP
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex flex-wrap gap-1.5">
             <button onClick={() => setPersonaFilter(null)}
-              className={`rounded-full px-2.5 py-1 text-[10px] font-medium transition-all ${!personaFilter ? "bg-primary/20 text-primary ring-1 ring-primary/30" : "bg-muted/50 text-muted-foreground hover:text-foreground"}`}
+              className={`rounded-full px-2.5 py-1 text-xs font-medium transition-all ${!personaFilter ? "bg-primary/20 text-primary ring-1 ring-primary/30" : "bg-muted/50 text-muted-foreground hover:text-foreground"}`}
             >All</button>
             {PERSONAS.map((p) => {
               const isFollowed = followedPersonas.has(p);
@@ -443,7 +443,7 @@ export function CommunityPanel({ onNavigate, onNewLooksStatus }: CommunityPanelP
               return (
                 <div key={p} className="flex items-center gap-0.5">
                   <button onClick={() => setPersonaFilter(isActive ? null : p)}
-                    className={`rounded-full px-2.5 py-1 text-[10px] font-medium capitalize transition-all ${isActive ? "bg-primary/20 text-primary ring-1 ring-primary/30" : "bg-muted/50 text-muted-foreground hover:text-foreground"}`}
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium capitalize transition-all ${isActive ? "bg-primary/20 text-primary ring-1 ring-primary/30" : "bg-muted/50 text-muted-foreground hover:text-foreground"}`}
                   >{p}</button>
                   <button onClick={() => toggleFollowPersona(p)} title={isFollowed ? `Unfollow ${p}` : `Follow ${p}`}
                     className={`rounded-full p-1 transition-all ${isFollowed ? "text-primary hover:text-primary/70" : "text-muted-foreground/30 hover:text-muted-foreground/70"}`}
@@ -453,16 +453,16 @@ export function CommunityPanel({ onNavigate, onNewLooksStatus }: CommunityPanelP
             })}
             {followedPersonas.size > 0 && (
               <button onClick={() => setShowFollowedOnly(!showFollowedOnly)}
-                className={`rounded-full px-2.5 py-1 text-[10px] font-medium transition-all ${showFollowedOnly ? "bg-primary/20 text-primary ring-1 ring-primary/30" : "bg-muted/50 text-muted-foreground hover:text-foreground"}`}
+                className={`rounded-full px-2.5 py-1 text-xs font-medium transition-all ${showFollowedOnly ? "bg-primary/20 text-primary ring-1 ring-primary/30" : "bg-muted/50 text-muted-foreground hover:text-foreground"}`}
               ><UserCheck className="w-3 h-3 inline mr-0.5" /> Followed only</button>
             )}
           </div>
           <div className="flex items-center gap-1 ml-auto">
             <button onClick={() => setSortMode("trending")}
-              className={`rounded-lg px-2 py-1 text-[10px] font-medium transition-all ${sortMode === "trending" ? "bg-accent/20 text-accent" : "text-muted-foreground/50 hover:text-muted-foreground"}`}
+              className={`rounded-lg px-2 py-1 text-xs font-medium transition-all ${sortMode === "trending" ? "bg-accent/20 text-accent" : "text-muted-foreground/50 hover:text-muted-foreground"}`}
             ><Flame className="w-3 h-3 inline mr-0.5" /> Trending</button>
             <button onClick={() => setSortMode("latest")}
-              className={`rounded-lg px-2 py-1 text-[10px] font-medium transition-all ${sortMode === "latest" ? "bg-accent/20 text-accent" : "text-muted-foreground/50 hover:text-muted-foreground"}`}
+              className={`rounded-lg px-2 py-1 text-xs font-medium transition-all ${sortMode === "latest" ? "bg-accent/20 text-accent" : "text-muted-foreground/50 hover:text-muted-foreground"}`}
             ><Clock className="w-3 h-3 inline mr-0.5" /> Latest</button>
           </div>
         </div>
@@ -489,7 +489,7 @@ export function CommunityPanel({ onNavigate, onNewLooksStatus }: CommunityPanelP
           {view === "reactions" ? (
             <>
               <span className="flex items-center gap-1"><HeartHandshake className="w-3 h-3 text-rose-400" />{looks.length} reacted look{looks.length !== 1 ? "s" : ""}</span>
-              <button onClick={handleClearReactions} className="ml-auto flex items-center gap-1 rounded-lg px-2 py-1 text-muted-foreground/50 hover:text-rose-400 hover:bg-rose-500/10 transition-all"><Trash2 className="w-3 h-3" /><span className="text-[10px]">Clear all</span></button>
+              <button onClick={handleClearReactions} className="ml-auto flex items-center gap-1 rounded-lg px-2 py-1 text-muted-foreground/50 hover:text-rose-400 hover:bg-rose-500/10 transition-all"><Trash2 className="w-3 h-3" /><span className="text-xs">Clear all</span></button>
             </>
           ) : view === "saved" ? (
             <>
@@ -499,7 +499,7 @@ export function CommunityPanel({ onNavigate, onNewLooksStatus }: CommunityPanelP
           ) : view === "moderation" ? (
             <>
               <span className="flex items-center gap-1"><Flag className="w-3 h-3 text-rose-400" />{looks.length} reported look{looks.length !== 1 ? "s" : ""}</span>
-              <button onClick={handleClearReports} className="ml-auto flex items-center gap-1 rounded-lg px-2 py-1 text-muted-foreground/50 hover:text-rose-400 hover:bg-rose-500/10 transition-all"><Trash2 className="w-3 h-3" /><span className="text-[10px]">Clear all</span></button>
+              <button onClick={handleClearReports} className="ml-auto flex items-center gap-1 rounded-lg px-2 py-1 text-muted-foreground/50 hover:text-rose-400 hover:bg-rose-500/10 transition-all"><Trash2 className="w-3 h-3" /><span className="text-xs">Clear all</span></button>
             </>
           ) : (
             <>

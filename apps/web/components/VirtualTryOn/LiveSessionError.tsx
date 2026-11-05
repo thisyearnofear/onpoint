@@ -127,7 +127,7 @@ function CameraRecovery({
 
         {error.steps.length > 0 && (
           <div className="mb-6">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono mb-2.5">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground font-mono mb-2.5">
               How to fix
             </p>
             <ol className="space-y-2">
@@ -136,7 +136,7 @@ function CameraRecovery({
                   key={i}
                   className="flex gap-3 text-sm text-slate-200 leading-relaxed"
                 >
-                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-white/5 border border-white/10 text-muted-foreground/70 text-[10px] font-bold flex items-center justify-center mt-0.5">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-white/5 border border-white/10 text-muted-foreground/70 text-xs font-bold flex items-center justify-center mt-0.5">
                     {i + 1}
                   </span>
                   <span>{step}</span>

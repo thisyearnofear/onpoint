@@ -154,7 +154,7 @@ export function ProviderComparisonModal({
               <table className="w-full text-sm">
                 <thead>
                   <tr>
-                    <th className="text-left text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground pb-3 pr-4 sticky left-0 bg-card">
+                    <th className="text-left text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground pb-3 pr-4 sticky left-0 bg-card">
                       Feature
                     </th>
                     {factories.map((f) => {
@@ -177,7 +177,7 @@ export function ProviderComparisonModal({
                             </span>
                           </div>
                           <span
-                            className={`inline-block mt-1 px-2 py-0.5 text-[9px] font-bold rounded-full border uppercase tracking-wider ${providerBadgeColor}`}
+                            className={`inline-block mt-1 px-2 py-0.5 text-xs font-bold rounded-full border uppercase tracking-wider ${providerBadgeColor}`}
                           >
                             {f.isPremium ? "Premium" : "Free"}
                           </span>
@@ -189,7 +189,7 @@ export function ProviderComparisonModal({
                 <tbody>
                   {rows.map((row) => (
                     <tr key={row.label} className="border-t border-border/50">
-                      <td className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground py-3 pr-4 sticky left-0 bg-card whitespace-nowrap">
+                      <td className="text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground py-3 pr-4 sticky left-0 bg-card whitespace-nowrap">
                         {row.label}
                       </td>
                       {row.values.map(({ factory, value }) => (
@@ -208,7 +208,7 @@ export function ProviderComparisonModal({
 
             {/* Quick-select footer */}
             <div className="border-t border-border px-6 py-4">
-              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground mb-3">
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground mb-3">
                 Quick select
               </p>
               <div className="flex flex-wrap gap-2">
@@ -220,7 +220,7 @@ export function ProviderComparisonModal({
                         onSelect(f.name, card.goal);
                         onClose();
                       }}
-                      className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors ${
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
                         f.isPremium
                           ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20"
                           : "border-border bg-muted/50 text-foreground hover:bg-muted"

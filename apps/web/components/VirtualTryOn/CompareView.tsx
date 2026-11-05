@@ -66,12 +66,12 @@ export function CompareView({ versions, originalPhotoUrl, onClose }: CompareView
                 {item.tips && item.tips.length > 0 && (
                   <div className="space-y-0.5">
                     {item.tips.slice(0, 2).map((tip, i) => (
-                      <p key={i} className="text-[11px] text-muted-foreground line-clamp-2">
+                      <p key={i} className="text-xs text-muted-foreground line-clamp-2">
                         • {tip}
                       </p>
                     ))}
                     {item.tips.length > 2 && (
-                      <p className="text-[10px] text-muted-foreground/60">
+                      <p className="text-xs text-muted-foreground/60">
                         +{item.tips.length - 2} more tips
                       </p>
                     )}

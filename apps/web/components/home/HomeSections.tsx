@@ -20,10 +20,9 @@ function TryItSection() {
     <section id="try-it" className="scroll-mt-20 border-t border-border/40 bg-background">
       <div className="container mx-auto px-4 py-14 md:py-20">
         <div className="mx-auto max-w-6xl">
-          <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">Try it in 10 seconds</p>
           <h2 className="mt-3 text-3xl font-black tracking-tight md:text-5xl">Find a look. Get a verdict.</h2>
           <p className="mt-3 max-w-lg text-sm text-muted-foreground">Curated outfit inspiration. Pick a look for a Runway verdict — no photo needed.</p>
-          <p className="mt-2 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">AI styling references · not items for sale</p>
+          <p className="mt-2 text-xs text-muted-foreground">AI styling references — not items for sale.</p>
           <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-3">
             {FEATURED_OUTFIT_SAMPLES.map((smp) => (
               <Link
@@ -70,7 +69,6 @@ function NiaGallery() {
     <section className="border-t border-border/40 bg-muted/15">
       <div className="container mx-auto px-4 py-14 md:py-20">
         <div className="mx-auto max-w-6xl">
-          <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">Garment demos</p>
           <h2 className="mt-3 text-3xl font-black tracking-tight md:text-5xl">Explore the on-model demo.</h2>
           <p className="mt-3 max-w-lg text-sm text-muted-foreground">Prepared garment previews, not live inventory. Open the fitting room to use your own photo.</p>
           <div className="mt-8 grid grid-cols-3 gap-3">
@@ -119,7 +117,6 @@ function PowersSection() {
     <section id="superpowers" className="scroll-mt-20 border-t border-border/40 bg-background">
       <div className="container mx-auto px-4 py-14 md:py-20">
         <div className="mx-auto max-w-6xl">
-          <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-primary">The whole product</p>
           <h2 className="mt-3 text-3xl font-black tracking-tight md:text-5xl">One wardrobe, six superpowers.</h2>
           <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {POWERS.map((p) => (
@@ -134,7 +131,7 @@ function PowersSection() {
                     </div>
                   ) : p.planner ? (
                     <div className="flex h-full w-full flex-col items-stretch justify-center gap-3 bg-zinc-950 p-3">
-                      <span className="self-center rounded-full border border-zinc-700 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-wide text-zinc-300">Example outfit inspiration</span>
+                      <span className="self-center rounded-full border border-zinc-700 px-2.5 py-1 font-mono text-xs font-bold uppercase tracking-wide text-zinc-300">Example outfit inspiration</span>
                       <div className="flex justify-center gap-2">
                         {FEATURED_OUTFIT_SAMPLES.slice(0, 3).map((smp)=>(
                           // eslint-disable-next-line @next/next/no-img-element
@@ -143,7 +140,7 @@ function PowersSection() {
                       </div>
                     </div>
                   ) : p.terminal ? (
-                    <div className="flex h-full w-full flex-col justify-center gap-1.5 bg-zinc-950 p-3 font-mono text-[10px] leading-relaxed">
+                    <div className="flex h-full w-full flex-col justify-center gap-1.5 bg-zinc-950 p-3 font-mono text-xs leading-relaxed">
                       <p className="self-start rounded-full border border-zinc-700 px-2 py-0.5 font-bold uppercase tracking-wide text-zinc-400">Example agent flow</p>
                       <p className="text-zinc-500">$ <span className="text-zinc-300">POST /api/curator/nia/order</span></p>
                       <p className="text-amber-300/90">402 · pay 4.00 cUSD</p>

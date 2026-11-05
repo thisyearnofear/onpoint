@@ -60,7 +60,7 @@ export function TopReactionsCard({ looks }: { looks: CommunityLook[] }) {
           <div className="grid grid-cols-3 gap-3">
             <div className="text-center">
               <p className="text-2xl font-black text-foreground">{looks.length}</p>
-              <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+              <p className="text-xs text-muted-foreground/70 mt-0.5">
                 looks reacted
               </p>
             </div>
@@ -68,7 +68,7 @@ export function TopReactionsCard({ looks }: { looks: CommunityLook[] }) {
               <p className="text-2xl font-black text-foreground">
                 {totalLikesGiven}
               </p>
-              <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+              <p className="text-xs text-muted-foreground/70 mt-0.5">
                 likes given
               </p>
             </div>
@@ -76,7 +76,7 @@ export function TopReactionsCard({ looks }: { looks: CommunityLook[] }) {
               <p className="text-2xl font-black text-foreground">
                 {topScore}/10
               </p>
-              <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+              <p className="text-xs text-muted-foreground/70 mt-0.5">
                 top score
               </p>
             </div>

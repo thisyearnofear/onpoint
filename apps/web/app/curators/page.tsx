@@ -74,22 +74,22 @@ export default async function CuratorsPage() {
   return (
     <OnPointLayout>
       {/* ── Header ── */}
-      <header className="border-b border-border bg-gradient-to-b from-muted/30 to-background">
+      <header className="border-b border-border">
         <div className="container mx-auto px-4 py-10 md:py-14 max-w-4xl">
-          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-4">
+          <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-1.5 text-xs text-muted-foreground">
             <Link href="/" className="hover:text-foreground transition-colors">
               Home
             </Link>
-            <span>/</span>
+            <span aria-hidden="true">/</span>
             <span className="text-foreground">Curators</span>
-          </div>
+          </nav>
 
           <div className="flex items-start gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 shrink-0">
               <Store className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-3xl md:text-4xl font-black tracking-tight text-foreground">
+              <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-foreground">
                 Browse Curators
               </h1>
               <p className="mt-2 text-muted-foreground text-sm md:text-base max-w-xl">
@@ -148,12 +148,7 @@ export default async function CuratorsPage() {
             {/* ── Featured: Nia Digital ── */}
             {nia && (
               <section>
-                <div className="flex items-center gap-2 mb-4">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                    Featured — Try on now
-                  </h2>
-                </div>
+                <h2 className="mb-4 text-lg font-bold">Featured</h2>
                 <Link
                   href={`/lab?tab=try-on&from=nia`}
                   className="group block rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/[0.04] to-transparent p-6 md:p-8 transition-all hover:border-primary/50 hover:shadow-lg"
@@ -172,7 +167,7 @@ export default async function CuratorsPage() {
                     <div className="flex-1 space-y-3">
                       <div className="flex items-center gap-2">
                         <h3 className="text-xl font-black tracking-tight">{nia.name}</h3>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/15 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
                           <Sparkles className="w-2.5 h-2.5" />
                           AI Curator
                         </span>
@@ -200,7 +195,7 @@ export default async function CuratorsPage() {
                         {nia.verticals.slice(0, 4).map((v) => (
                           <span
                             key={v}
-                            className="rounded-full border border-border px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground capitalize"
+                            className="rounded-full border border-border px-2.5 py-0.5 text-xs font-medium text-muted-foreground capitalize"
                           >
                             {v.replaceAll("-", " ")}
                           </span>
@@ -224,12 +219,7 @@ export default async function CuratorsPage() {
             {/* ── Also live: Wanja + others ── */}
             {(wanja || otherLive.length > 0) && (
               <section>
-                <div className="flex items-center gap-2 mb-4">
-                  <Store className="w-4 h-4 text-muted-foreground" />
-                  <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                    Also live
-                  </h2>
-                </div>
+                <h2 className="mb-4 text-lg font-bold">Also live</h2>
                 <div className="grid gap-4 sm:grid-cols-2">
                   {[wanja, ...otherLive].filter(Boolean).map((curator) => (
                     <Link
@@ -265,7 +255,7 @@ export default async function CuratorsPage() {
                             {curator!.verticals.slice(0, 3).map((v) => (
                               <span
                                 key={v}
-                                className="rounded-full bg-muted/40 px-2 py-0.5 text-[10px] font-medium text-muted-foreground capitalize"
+                                className="rounded-full bg-muted/40 px-2 py-0.5 text-xs font-medium text-muted-foreground capitalize"
                               >
                                 {v.replaceAll("-", " ")}
                               </span>
@@ -282,12 +272,7 @@ export default async function CuratorsPage() {
             {/* ── Coming soon ── */}
             {comingSoon.length > 0 && (
               <section>
-                <div className="flex items-center gap-2 mb-4">
-                  <Clock className="w-4 h-4 text-muted-foreground" />
-                  <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                    Coming soon
-                  </h2>
-                </div>
+                <h2 className="mb-4 text-lg font-bold">Coming soon</h2>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {comingSoon.map((curator) => (
                     <div
@@ -318,7 +303,7 @@ export default async function CuratorsPage() {
                             {curator.verticals.slice(0, 2).map((v) => (
                               <span
                                 key={v}
-                                className="rounded-full bg-muted/30 px-1.5 py-0.5 text-[10px] text-muted-foreground capitalize"
+                                className="rounded-full bg-muted/30 px-1.5 py-0.5 text-xs text-muted-foreground capitalize"
                               >
                                 {v.replaceAll("-", " ")}
                               </span>

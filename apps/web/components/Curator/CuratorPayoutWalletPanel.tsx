@@ -172,7 +172,7 @@ export function CuratorPayoutWalletPanel({
     <div className={compact ? "space-y-3" : "space-y-4"}>
       <div className="flex flex-wrap items-center gap-2">
         <span
-          className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
+          className={`rounded-full px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${
             status === "curator_owned"
               ? "bg-success/10 text-success"
               : status === "platform_custodial"
@@ -183,7 +183,7 @@ export function CuratorPayoutWalletPanel({
           {statusLabel}
         </span>
         {wallet && (
-          <code className="truncate max-w-full rounded bg-muted px-2 py-1 text-[11px] font-mono">
+          <code className="truncate max-w-full rounded bg-muted px-2 py-1 text-xs font-mono">
             {wallet}
           </code>
         )}

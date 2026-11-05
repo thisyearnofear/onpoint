@@ -146,7 +146,7 @@ export function AICuratorSection({
         <h2 className="text-sm font-bold">
           AI Stylist second opinions
         </h2>
-        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
           Free
         </span>
       </div>
@@ -175,7 +175,7 @@ export function AICuratorSection({
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-bold">{voice.name}</p>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {voice.description}
                   </p>
                 </div>
@@ -183,7 +183,7 @@ export function AICuratorSection({
               <p className="text-xs leading-relaxed text-muted-foreground italic mb-3">
                 &ldquo;{take}&rdquo;
               </p>
-              <div className="flex items-center gap-1.5 text-[11px] font-bold text-primary opacity-0 transition-opacity group-hover:opacity-100">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-primary opacity-0 transition-opacity group-hover:opacity-100">
                 <Camera className="h-3 w-3" />
                 Try on with {voice.name.split(" ")[0]}
                 <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
