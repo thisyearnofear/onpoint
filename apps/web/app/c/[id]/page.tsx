@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getApiBase } from "@/lib/utils/api-base";
+import { SaveItemButton } from "./SaveItemButton";
 
 export const metadata: Metadata = {
   title: "Couple goals | OnPoint",
@@ -86,6 +87,7 @@ export default async function CoupleCardPage({ params }: { params: Promise<{ id:
                         Get it
                       </Link>
                     )}
+                    <SaveItemButton item={item} />
                   </div>
                 </div>
               ))}

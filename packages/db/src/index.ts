@@ -16,3 +16,4 @@ export * from "./schema/agent-looks.js";
 export * from "./schema/funnel-events.js";
 export * from "./schema/couple-cards.js";
 export * from "./schema/loop-captures.js";
+export * from "./schema/wishlists.js";
