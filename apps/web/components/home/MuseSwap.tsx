@@ -80,6 +80,7 @@ export function MuseSwap({
       >
         {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
         {busy ? "Styling…" : "Make her the model"}
+        <span className="sr-only"> — stays on this device</span>
       </button>
       {error && <span className="text-[10px] text-red-300">{error}</span>}
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />

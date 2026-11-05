@@ -65,6 +65,7 @@ export function GiftClaimClient({ token }: { token: string }) {
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           placeholder="Delivery address"
+          aria-describedby="claim-once"
           required
           rows={3}
           className="w-full border border-border bg-background px-4 py-3 text-sm outline-none focus:border-foreground"
@@ -80,11 +81,15 @@ export function GiftClaimClient({ token }: { token: string }) {
       <button
         type="submit"
         disabled={busy || !address.trim()}
+        aria-label="Claim this gift"
         className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 bg-primary px-6 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-50"
       >
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
         {busy ? "Confirming…" : "Claim the gift"}
       </button>
+      <p id="claim-once" className="mt-3 text-center text-xs text-muted-foreground">
+        One link, one claim — it&apos;s yours, and only you can use it.
+      </p>
     </form>
   );
 }

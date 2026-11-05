@@ -65,6 +65,12 @@ export default async function GiftPage({ params }: { params: Promise<{ token: st
           {gift.claimed ? (
             <div className="border border-border bg-card p-6 text-center">
               <p className="font-display text-2xl">Already claimed.</p>
+              <a
+                href="/couple"
+                className="mt-4 inline-flex min-h-10 items-center rounded-full border border-border px-5 text-xs font-bold text-foreground hover:border-foreground"
+              >
+                Send one back — make a card for them
+              </a>
               <p className="mt-2 text-sm text-muted-foreground">
                 This gift was claimed — delivery details are on their way to the curator.
               </p>

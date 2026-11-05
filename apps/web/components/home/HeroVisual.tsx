@@ -107,7 +107,7 @@ export function HeroVisual() {
           <div className="relative overflow-hidden bg-[radial-gradient(circle_at_50%_42%,rgba(255,255,255,0.13),transparent_54%)]">
             <div className="absolute inset-x-5 top-5 z-20 flex items-center justify-between">
               <span className="font-mono text-xs uppercase tracking-[0.18em] text-white/70">
-                {muse ? "Your muse" : "Prepared model preview"}
+                {muse ? "Your muse · this device" : "Prepared model preview"}
               </span>
             </div>
 

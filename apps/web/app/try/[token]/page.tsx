@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { verifyInviteToken } from "@/lib/utils/try-on-invite";
 import { getApiBase } from "@/lib/utils/api-base";
 import { TryInviteClient } from "./TryInviteClient";
@@ -34,7 +33,27 @@ async function loadListing(curatorSlug: string, listingId: string): Promise<List
 export default async function TryInvitePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const invite = verifyInviteToken(token);
-  if (!invite) notFound();
+  if (!invite) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <main className="mx-auto max-w-xl px-4 pb-20 pt-24 text-center md:pt-32">
+          <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-primary">That link ran out</p>
+          <h1 className="mt-3 font-display text-4xl leading-[1.05] tracking-[-0.02em] sm:text-5xl">
+            This invite was used, or it expired.
+          </h1>
+          <p className="mt-4 text-sm text-muted-foreground">
+            Each link works once — ask for a fresh one, or style your own.
+          </p>
+          <a
+            href="/couple"
+            className="mt-6 inline-flex min-h-12 items-center rounded-full bg-primary px-8 text-sm font-bold text-white hover:bg-primary/90"
+          >
+            Make your own
+          </a>
+        </main>
+      </div>
+    );
+  }
 
   const listing = await loadListing(invite.curatorSlug, invite.listingId);
 

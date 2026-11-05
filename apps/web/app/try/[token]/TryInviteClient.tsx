@@ -16,7 +16,7 @@ function CaptureOptIn({ source, url }: { source: string; url?: string | null }) 
   if (done) return <p className="mt-3 text-xs font-bold text-success">We&apos;ll send it to you.</p>;
   return (
     <div className="mt-4 border-t border-border pt-4">
-      <p className="text-xs text-muted-foreground">Get this render by WhatsApp or email:</p>
+      <p className="text-xs text-muted-foreground">Want this on your phone? We&apos;ll send the look — nothing else, ever.</p>
       <div className="mt-2 flex gap-2">
         <input value={value} onChange={(e) => setValue(e.target.value)} placeholder="+254… or you@mail.com" className="min-w-0 flex-1 border border-border bg-background px-3 py-2 text-xs outline-none focus:border-foreground" />
         <button type="button" onClick={() => void submit()} className="shrink-0 border border-border px-4 text-xs font-bold text-foreground hover:border-foreground">Send</button>

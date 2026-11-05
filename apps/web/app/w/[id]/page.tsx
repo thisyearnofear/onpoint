@@ -57,7 +57,10 @@ export default async function WishlistPage({ params }: { params: Promise<{ id: s
           {list.ownerName ? (seeYouIn ? `Picked for ${list.ownerName}.` : `${list.ownerName}'s list.`) : "Picked for you."}
         </h1>
         <p className="mt-4 text-sm text-muted-foreground">
-          {seeYouIn ? "Try one on — the pieces are real." : "Every piece is real stock — try it on, then decide."}
+          {seeYouIn ? "Try one on — the pieces are real." : "A wish, not a checkout — prices wait for later."}
+        </p>
+        <p className="mt-2 text-xs text-muted-foreground/80">
+          This link is the list — whoever has it can add pieces. Keep it between the right people.
         </p>
 
         <div className="mt-8 grid gap-3">
