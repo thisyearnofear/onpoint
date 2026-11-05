@@ -51,9 +51,9 @@ const LiveStylistView = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex items-center justify-center min-h-[400px] bg-slate-950 rounded-2xl">
+      <div className="flex items-center justify-center min-h-[400px] bg-muted border border-border">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+          <div className="w-10 h-10 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
           <p className="text-xs text-muted-foreground font-mono tracking-wider">
             Loading Live Stylist…
           </p>
@@ -1052,8 +1052,8 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
 
                   {/* Persona Selection */}
                     {canShowPersonaSelection && (
-                      <div className="animate-fade-in border rounded-2xl p-6 bg-gradient-to-br from-primary/5 to-accent/5">
-                        <h3 className="text-xl font-bold mb-2">Choose Your Stylist</h3>
+                      <div className="animate-fade-in border border-border bg-card p-6">
+                        <h3 className="font-display text-xl tracking-[-0.01em] mb-2">Choose Your Stylist</h3>
                         <p className="text-sm text-muted-foreground mb-6">
                           Pick a persona to get personalized fashion critique
                         </p>
@@ -1080,7 +1080,7 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                           <div className="flex items-center justify-between mb-3">
                             <p className="text-xs font-medium text-muted-foreground">PREMIUM STYLISTS</p>
                             {!isPremium && (
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-success/20 text-emerald-400 font-bold">
+                              <span className="text-xs px-2 py-0.5 border border-border text-muted-foreground font-bold">
                                 Unlock via XP, badge, G$, or Pro
                               </span>
                             )}
@@ -1136,7 +1136,7 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                                   <p className="text-xs text-rose-400 break-words">{gPayment.error}</p>
                                 )}
                                 {gPayment.isPending && (
-                                  <p className="text-xs text-emerald-400">Confirm in wallet…</p>
+                                  <p className="text-xs text-success">Confirm in wallet…</p>
                                 )}
                               </div>
                               <div className="flex flex-col gap-1.5">

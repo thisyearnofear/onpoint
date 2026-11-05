@@ -102,12 +102,14 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
     { id: "dashboard" as AppMode, label: "Home", icon: LayoutDashboard },
   ];
 
-  // Hidden tabs accessible via "More"
+  // Hidden tabs accessible via "More" — only sections not on the primary
+  // rail for the viewport (mobile shows Stylist/My Looks, which have no
+  // bottom-nav slot; desktop hides them because they're in the tab bar).
   const moreNavItems = [
-    { id: "shop" as AppMode, label: "Shop", icon: ShoppingBag },
-    { id: "stylist" as AppMode, label: "Stylist", icon: MessageCircle },
-    { id: "intel" as AppMode, label: "Market Intel", icon: Radar },
-    { id: "settings" as AppMode, label: "Settings", icon: User },
+    { id: "stylist" as AppMode, label: "Stylist", icon: MessageCircle, mobileOnly: true },
+    { id: "my-looks" as AppMode, label: "My Looks", icon: Palette, mobileOnly: true },
+    { id: "intel" as AppMode, label: "Market Intel", icon: Radar, mobileOnly: false },
+    { id: "settings" as AppMode, label: "Settings", icon: User, mobileOnly: false },
   ];
 
   const [moreOpen, setMoreOpen] = useState(false);
@@ -297,7 +299,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
                     navigateTo(item.id);
                     setMoreOpen(false);
                   }}
-                  className={`flex flex-col items-center gap-2 p-3 border transition-colors ${
+                  className={`${item.mobileOnly ? "md:hidden " : ""}flex flex-col items-center gap-2 p-3 border transition-colors ${
                     mode === item.id
                       ? "border-primary bg-muted/50"
                       : "border-transparent hover:border-border hover:bg-muted/30"
