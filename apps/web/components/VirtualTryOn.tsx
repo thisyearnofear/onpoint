@@ -974,7 +974,6 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                           }
                           loading={tryOnLoading}
                           originalPhotoUrl={previewUrl}
-                          onBack={clearEnhancement}
                           onRetry={handleGenerateTryOn}
                           onChangeGarment={() => {
                             clearEnhancement();
@@ -989,6 +988,10 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                             }
                           }}
                           similarPhysicalItems={similarPhysicalItems}
+                          sourceListing={{
+                            curatorSlug: initialCuratorSlug,
+                            listingId: selectedTryOnItem?.id,
+                          }}
                         />
                       </div>
                     )}

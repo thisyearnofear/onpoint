@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import {
   Bookmark,
   Sparkles,
-  Share,
+  Send,
   CheckCircle,
   ShoppingBag,
   ArrowRight,
@@ -14,8 +14,12 @@ import {
   RefreshCw,
   Shirt,
 } from "lucide-react";
-import { useMiniApp } from "@/components/MiniAppProvider";
-import { SocialUtils } from "../../lib/utils/social";
+import { storefrontDoor } from "../../lib/utils/get-it";
+import {
+  newShareId,
+  withShareParams,
+  type ShareChannel,
+} from "../../lib/utils/share-attribution";
 import {
   trackStylingTipVariantClicked,
   trackResultCompareToggled,
@@ -57,15 +61,17 @@ interface TryOnResultProps {
         timestamp?: number;
       }
     | string; // Keep backward compatibility
-  onBack: () => void;
   loading?: boolean;
   originalPhotoUrl?: string;
   onVariantFromTip?: (args: { tip: string; payload?: string }) => void;
-  /** One-click retry with same settings */
+  /** Same garment, another take. */
   onRetry?: () => void;
+  /** Back to the picker — the row's "Try it on". */
   onChangeGarment?: () => void;
   /** Similar physical items from human curators (digital→physical funnel) */
   similarPhysicalItems?: SimilarPhysicalItem[];
+  /** The listing this render is of — what "Get it" buys and "Send it" invites on. */
+  sourceListing?: { curatorSlug?: string | null; listingId?: string | null } | null;
 }
 
 // Utility function to parse simple markdown bold text
@@ -130,17 +136,18 @@ function StagedProgress() {
 
 export function TryOnResult({
   result,
-  onBack,
   loading = false,
   originalPhotoUrl,
   onVariantFromTip,
   onRetry,
   onChangeGarment,
   similarPhysicalItems,
+  sourceListing,
 }: TryOnResultProps) {
-  const { context } = useMiniApp();
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sendFailed, setSendFailed] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
   const compareStartRef = useRef<number | null>(null);
 
@@ -184,6 +191,17 @@ export function TryOnResult({
 
   const { addSession } = useAnalysisHistory();
 
+  // What this render is of: the storefront listing it came from, or — for a
+  // digital design, which has no stock — the first physical equivalent the API
+  // matched. Both the buy door and the invite are built from that, so the CTA
+  // can never promise an item this result doesn't have.
+  const buyTarget = sourceListing?.listingId
+    ? sourceListing
+    : (similarPhysicalItems?.[0] ?? null);
+  const getIt = storefrontDoor(buyTarget);
+  const sendTarget =
+    buyTarget?.curatorSlug && buyTarget?.listingId ? buyTarget : null;
+
   const handleSaveLook = useCallback(() => {
     if (saved) return;
     addSession({
@@ -206,23 +224,55 @@ export function TryOnResult({
     });
   }, [saved, description, stylingTips, imageSrc, addSession]);
 
-  const handleShare = async () => {
-    // Include capture image via IPFS embed
-    const imageUrl = imageSrc;
-    const shareText = description
-      ? `Just tried on this look with OnPoint! ${description} 🔥 #OnPoint #Fashion #AI`
-      : `Just tried on this amazing look with OnPoint! 🔥 #OnPoint #Fashion #AI`;
+  const handleSend = async () => {
+    if (!sendTarget?.curatorSlug || !sendTarget.listingId) return;
+    setSending(true);
+    let inviteUrl: string | null = null;
+    try {
+      const res = await fetch("/api/try-on/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          curatorSlug: sendTarget.curatorSlug,
+          listingId: sendTarget.listingId,
+          note: description ? description.slice(0, 280) : undefined,
+        }),
+      });
+      if (res.ok) inviteUrl = ((await res.json())?.inviteUrl as string) ?? null;
+    } catch {
+      inviteUrl = null;
+    }
+    setSending(false);
+    if (!inviteUrl) {
+      setSendFailed(true);
+      return;
+    }
 
-    const success = await SocialUtils.shareContent(
-      imageUrl.startsWith("http")
-        ? { text: shareText, imageUrl }
-        : { text: shareText, imageDataUrl: imageUrl },
-      context,
-    );
+    // One id per send, so the link can be followed to the recipient's try-on and
+    // order. The token route signs it; nothing here is stored on this device.
+    const sid = newShareId();
+    const channel: ShareChannel = typeof navigator.share === "function" ? "native" : "copy";
+    const url = withShareParams(inviteUrl, sid, channel);
 
-    if (success && !SocialUtils.isInFarcasterApp(context)) {
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({
+          title: "Try this on — I picked it for you",
+          text: description || "See it on you before you buy it.",
+          url,
+        });
+        return;
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
       setCopied(true);
+      setSendFailed(false);
       setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setSendFailed(true);
     }
   };
 
@@ -384,54 +434,66 @@ export function TryOnResult({
             </div>
           )}
 
-          {/* Action buttons with save + share */}
-          <div className="grid grid-cols-3 gap-2">
-            <Button variant="outline" onClick={onBack} className="text-xs">
-              Retry
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleSaveLook}
-              disabled={saved}
-              className={`text-xs ${saved ? "border-success/30 text-success" : ""}`}
-            >
-              {saved ? (
-                <><Bookmark className="h-3.5 w-3.5 mr-1 fill-current" /> Saved</>
-              ) : (
-                <><Bookmark className="h-3.5 w-3.5 mr-1" /> Save</>
-              )}
-            </Button>
-            <Button onClick={handleShare} className="text-xs">
-              {copied ? (
-                <><CheckCircle className="h-3.5 w-3.5 mr-1" /> Copied!</>
-              ) : (
-                <><Share className="h-3.5 w-3.5 mr-1" /> Share</>
-              )}
-            </Button>
-          </div>
-
-          {/* One-click retry */}
-          {onRetry && (
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Button
-                variant="ghost"
-                className="w-full text-primary hover:bg-primary/10"
-                onClick={onRetry}
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Regenerate
+          {/* The next loop, in order — buy it, try something else on, keep it,
+              hand it to someone. Never a dead end. */}
+          {!loading && (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <Button variant="outline" asChild className="text-xs">
+                <a href={getIt.href}>
+                  <ShoppingBag className="h-3.5 w-3.5 mr-1" />
+                  {getIt.label}
+                </a>
               </Button>
               {onChangeGarment && (
+                <Button variant="outline" onClick={onChangeGarment} className="text-xs">
+                  <Shirt className="h-3.5 w-3.5 mr-1" />
+                  Try it on
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                onClick={handleSaveLook}
+                disabled={saved}
+                className={`text-xs ${saved ? "border-success/30 text-success" : ""}`}
+              >
+                {saved ? (
+                  <><Bookmark className="h-3.5 w-3.5 mr-1 fill-current" /> Saved</>
+                ) : (
+                  <><Bookmark className="h-3.5 w-3.5 mr-1" /> Save</>
+                )}
+              </Button>
+              {sendTarget && (
                 <Button
-                  variant="ghost"
-                  className="w-full text-primary hover:bg-primary/10"
-                  onClick={onChangeGarment}
+                  onClick={() => void handleSend()}
+                  loading={sending}
+                  className="text-xs"
                 >
-                  <Shirt className="h-4 w-4 mr-2" />
-                  Change garment
+                  {copied ? (
+                    <><CheckCircle className="h-3.5 w-3.5 mr-1" /> Link copied</>
+                  ) : (
+                    <><Send className="h-3.5 w-3.5 mr-1" /> {sending ? "Minting…" : "Send it"}</>
+                  )}
                 </Button>
               )}
             </div>
+          )}
+          {sendFailed && (
+            <p className="text-xs text-error">
+              That invite didn&apos;t mint — the link is what failed, not your photo.
+              Try once more, or screenshot the look.
+            </p>
+          )}
+
+          {/* Same garment, same photo, another take. */}
+          {onRetry && (
+            <Button
+              variant="ghost"
+              className="w-full text-primary hover:bg-primary/10"
+              onClick={onRetry}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Regenerate
+            </Button>
           )}
 
           {/* Digital→Physical funnel: similar physical items from human curators */}
@@ -449,7 +511,7 @@ export function TryOnResult({
                 {similarPhysicalItems.map((item) => (
                   <a
                     key={item.listingId}
-                    href={`/s/${item.curatorSlug}`}
+                    href={`/s/${item.curatorSlug}?item=${item.listingId}`}
                     className="flex items-center gap-3 rounded-lg border border-border p-2.5 transition-all hover:border-primary/40 hover:bg-muted/30"
                   >
                     {item.imageUrl && (

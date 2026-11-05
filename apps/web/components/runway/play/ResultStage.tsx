@@ -1,5 +1,4 @@
 import React from "react";
-import Link from "next/link";
 import { Camera, Download, RotateCcw, Share2 } from "lucide-react";
 import type { StylistPersona } from "@repo/ai-client";
 import { SafeImage } from "../../SafeImage";
@@ -9,6 +8,7 @@ import type { RunwayEntry } from "../../../lib/stores/runway-history-store";
 import { banterFor, scoreTier } from "../../../lib/runway-banter";
 import { nextThemeLabel } from "../../../lib/utils/runway";
 import { JudgeBubble } from "./JudgeBubble";
+import { GetItButton } from "./GetItButton";
 import { TypedText } from "./TypedText";
 import { JUDGES, cardUrl } from "./types";
 import type { DuelOutcome, OpponentState, ResultState, RoundState } from "./types";
@@ -91,20 +91,7 @@ function FixCard({ result }: { result: ResultState }) {
         <div className="min-w-0 flex-1">
           <p className="text-sm text-muted-foreground">{result.fixHint}</p>
           <p className="truncate text-base font-bold text-foreground">{fix.title}</p>
-          <a
-            href={fix.url}
-            className="mt-2 inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-bold text-white hover:bg-primary/90"
-          >
-            {fix.kind === "inspiration" ? "Get the look" : "See it on you"}
-          </a>
-          {fix.kind === "inspiration" && (
-            <Link
-              href="/lab?tab=try-on"
-              className="ml-3 mt-2 inline-flex min-h-11 items-center text-xs font-bold text-muted-foreground underline-offset-2 hover:text-foreground/80 hover:underline"
-            >
-              Try it on you →
-            </Link>
-          )}
+          <GetItButton fix={fix} />
         </div>
       </div>
     </div>

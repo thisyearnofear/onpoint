@@ -70,7 +70,9 @@ async function findFix({ theme, fixTags, channel = 'imessage', personaKey }) {
       `;
       if (listings.length) {
         const l = listings[0];
-        const url = `${web}/s/${l.curator_slug}?sid=${shareId}&utm_source=${channel}${track}`;
+        // ?item= so the storefront opens on this listing — without it the fix
+        // lands on an unfiltered shelf and "Get it" is a wrong promise.
+        const url = `${web}/s/${l.curator_slug}?item=${l.id}&sid=${shareId}&utm_source=${channel}${track}`;
         recordShare(sql, { lookSlug: null, shareId, channel, actor: 'runway', listingId: l.id });
         return {
           kind: 'listing',

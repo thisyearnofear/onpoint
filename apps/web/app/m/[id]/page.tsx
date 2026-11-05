@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getApiBase } from "@/lib/utils/api-base";
+import { ShareAttributionCapture } from "@/components/ShareAttributionCapture";
 import { Flipbook } from "./Flipbook";
 
 export const metadata: Metadata = { title: "Your issue | OnPoint" };
@@ -34,5 +35,10 @@ export default async function MagazineViewPage({ params }: { params: Promise<{ i
   const { id } = await params;
   const mag = await load(id);
   if (!mag) notFound();
-  return <Flipbook mag={mag} />;
+  return (
+    <>
+      <ShareAttributionCapture />
+      <Flipbook mag={mag} />
+    </>
+  );
 }

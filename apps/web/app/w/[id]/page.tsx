@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getApiBase } from "@/lib/utils/api-base";
 import { RecordSeen } from "@/components/RecentlySeen";
 import { ShareArtifact } from "@/components/ShareArtifact";
+import { ShareAttributionCapture } from "@/components/ShareAttributionCapture";
 
 export const metadata: Metadata = { title: "A list for you | OnPoint" };
 
@@ -49,6 +50,7 @@ export default async function WishlistPage({ params }: { params: Promise<{ id: s
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <RecordSeen entry={{ kind: "list", title: list.ownerName ? `${list.ownerName}'s list` : "The wish list", href: `/w/${id}` }} />
+      <ShareAttributionCapture />
       <main className="mx-auto max-w-xl px-4 pb-20 pt-14 md:pt-20">
         <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-primary">
           {seeYouIn ? "Things to see you in" : "The wish list"}

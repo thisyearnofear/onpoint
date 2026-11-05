@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ArrowRight, CheckCircle2, Sparkles, ShoppingBag } from "lucide-react";
+import { CheckCircle2, Sparkles } from "lucide-react";
 import { OnPointLayout } from "../../../components/OnPointLayout";
 import { TransitionLink } from "../../../components/ViewTransition";
 import { SafeImage } from "../../../components/SafeImage";
 import { getApiBase } from "../../../lib/utils/api-base";
 import { PolaroidShareButtons } from "./PolaroidShareButtons";
+import { PolaroidGetItLink } from "./PolaroidGetItLink";
 import { ReferralCopyCta } from "./ReferralCopyCta";
 
 export const dynamic = "force-dynamic";
@@ -148,7 +149,7 @@ export default async function PolaroidPage({
                 <p className="text-sm text-muted-foreground mt-1">
                   by{" "}
                   <TransitionLink
-                    href={`/s/${meta.curatorSlug}`}
+                    href={`/s/${meta.curatorSlug}?item=${meta.listingId}`}
                     className="text-primary hover:underline font-medium"
                   >
                     {meta.curatorName}
@@ -233,14 +234,11 @@ export default async function PolaroidPage({
               <ReferralCopyCta />
 
               {/* CTA — shop the real thing */}
-              <TransitionLink
-                href={`/s/${meta.curatorSlug}`}
-                className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-full py-4 text-sm font-bold shadow-lg shadow-indigo-500/20 transition-all"
-              >
-                <ShoppingBag className="w-4 h-4" />
-                Shop {meta.curatorName}
-                <ArrowRight className="w-3.5 h-3.5 opacity-60" />
-              </TransitionLink>
+              <PolaroidGetItLink
+                curatorSlug={meta.curatorSlug}
+                curatorName={meta.curatorName}
+                listingId={meta.listingId}
+              />
             </div>
           </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
+import Link from "next/link";
 import Image from "next/image";
 import { ShopGrid } from "@repo/shared-ui";
 import { CANVAS_ITEMS } from "@onpoint/shared-types";
@@ -13,6 +14,7 @@ import { SafeImage } from "../../components/SafeImage";
 import { useCartStore } from "../../lib/stores/cart-store";
 import { useCuratedPicksStore } from "../../lib/stores/curated-picks-store";
 import { useStyleContext } from "@/lib/context/StyleContext";
+import { captureShareAttribution } from "@/lib/utils/share-attribution";
 
 export default function ShopPage() {
   const [selectedItem, setSelectedItem] = useState<FashionItem | null>(null);
@@ -49,6 +51,7 @@ export default function ShopPage() {
   // Deep link: /shop?item=<slug-or-id> opens that item's detail modal,
   // so shared links land on the item rather than the bare catalog.
   React.useEffect(() => {
+    captureShareAttribution();
     const param = new URLSearchParams(window.location.search).get("item");
     if (!param) return;
     const match = CANVAS_ITEMS.find((i) => i.slug === param || i.id === param);
@@ -291,41 +294,47 @@ export default function ShopPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4 text-center">
-              <div>
-                <div className="text-2xl font-bold text-primary">
-                  ${selectedItem.price}
-                </div>
-                <div className="text-sm text-muted-foreground">Price</div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-primary">
+                ${selectedItem.price}
               </div>
-              <div>
-                <div className="text-2xl font-bold text-accent">
-                  {selectedItem.tryOnCount || 0}
-                </div>
-                <div className="text-sm text-muted-foreground">Try-ons</div>
-              </div>
+              <div className="text-sm text-muted-foreground">Price</div>
             </div>
 
-            <button
-              onClick={() => {
-                const imageEl = document.querySelector('[data-fly-image]');
-                const sourceRect = imageEl?.getBoundingClientRect();
-                const target = document.querySelector('[data-cart-button]')?.getBoundingClientRect();
-                if (sourceRect && target) {
-                  setFlyingItem({
-                    imageUrl: selectedItem.modelSrc || selectedItem.cover,
-                    sourceRect,
-                    targetRect: target,
-                  });
-                }
-                addItem(selectedItem);
-                setSelectedItem(null);
-              }}
-              className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-primary to-accent text-white font-semibold hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-            >
-              <ShoppingBag className="w-4 h-4" />
-              Add to Cart — ${selectedItem.price}
-            </button>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Link
+                href="/lab/try-on"
+                className="w-full py-3 px-4 rounded-lg border border-border text-center font-semibold text-foreground hover:border-foreground transition-colors flex items-center justify-center gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                Try it on
+              </Link>
+              <button
+                onClick={() => {
+                  const imageEl = document.querySelector('[data-fly-image]');
+                  const sourceRect = imageEl?.getBoundingClientRect();
+                  const target = document.querySelector('[data-cart-button]')?.getBoundingClientRect();
+                  if (sourceRect && target) {
+                    setFlyingItem({
+                      imageUrl: selectedItem.modelSrc || selectedItem.cover,
+                      sourceRect,
+                      targetRect: target,
+                    });
+                  }
+                  addItem(selectedItem);
+                  setSelectedItem(null);
+                }}
+                className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-primary to-accent text-white font-semibold hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+              >
+                <ShoppingBag className="w-4 h-4" />
+                Add to Cart — ${selectedItem.price}
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              The fitting room styles in this look. House catalog photos aren&apos;t
+              merchant stock — real stock, sizes and prices live on curator
+              storefronts.
+            </p>
           </div>
         </div>
       )}

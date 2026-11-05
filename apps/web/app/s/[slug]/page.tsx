@@ -16,6 +16,7 @@ import { SafeImage } from "../../../components/SafeImage";
 import { SaveItemButton } from "@/components/SaveItemButton";
 import { RecordSeen } from "@/components/RecentlySeen";
 import { CuratorTracker } from "../../../components/CuratorTracker";
+import { StorefrontFocusListing } from "../../../components/StorefrontFocusListing";
 import { CrossCuratorRecommendations } from "../../../components/CrossCuratorRecommendations";
 import { AICuratorSection } from "../../../components/AICuratorSection";
 import { ComingSoonBadge } from "../../../components/ui/ComingSoonBadge";
@@ -89,10 +90,10 @@ export default async function CuratorStorefrontPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ editLook?: string }>;
+  searchParams: Promise<{ editLook?: string; item?: string }>;
 }) {
   const { slug } = await params;
-  const { editLook } = await searchParams;
+  const { editLook, item } = await searchParams;
   const storefront = await loadStorefront(slug);
 
   if (!storefront) {
@@ -100,6 +101,9 @@ export default async function CuratorStorefrontPage({
   }
 
   const { curator, listings, meta } = storefront;
+  // A "Get it" link names the listing it came from. Resolve it against this
+  // curator's real inventory — an unknown id gets no banner and no scroll.
+  const focusListing = item ? listings.find((l) => l.id === item) : undefined;
   const digitalListings = listings.filter((l) => l.digital || l.inventoryType === "digital");
   const physicalListings = listings.filter((l) => !l.digital && l.inventoryType !== "digital");
   const primary = curator.brand?.colors?.primary || "#111827";
@@ -129,6 +133,7 @@ export default async function CuratorStorefrontPage({
         listingCount={listings.length}
         listings={trackerListings}
       />
+      <StorefrontFocusListing listingId={focusListing?.id ?? null} />
       <RecordSeen entry={{ kind: "shop", title: curator.name, href: `/s/${slug}` }} />
       <OnPointLayout>
       <div
@@ -333,6 +338,16 @@ export default async function CuratorStorefrontPage({
           }))}
         />
 
+        {focusListing && (
+          <div className="mb-5 rounded-lg border border-primary/40 bg-primary/5 px-4 py-3 text-sm">
+            You came here for{" "}
+            <strong className="font-bold">
+              {focusListing.kit?.club || focusListing.title || "this piece"}
+            </strong>
+            . It is in the collection below, with its live sizes and price.
+          </div>
+        )}
+
         <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
           <div>
             <h2 className="text-2xl font-black tracking-tight">
@@ -379,10 +394,13 @@ export default async function CuratorStorefrontPage({
                 {digitalListings.map((listing) => (
                   <article
                     key={listing.id}
+                    id={`listing-${listing.id}`}
                     data-listing-id={listing.id}
                     data-view-transition="product-card"
                     style={{ viewTransitionName: getViewTransitionName("product-card", listing.id) }}
-                    className="overflow-hidden rounded-lg border border-border"
+                    className={`scroll-mt-24 overflow-hidden rounded-lg border border-border ${
+                      focusListing?.id === listing.id ? "ring-2 ring-primary" : ""
+                    }`}
                   >
                     <div
                       className="relative aspect-[4/3] bg-muted"
@@ -469,10 +487,13 @@ export default async function CuratorStorefrontPage({
               return (
                 <article
                   key={listing.id}
+                  id={`listing-${listing.id}`}
                   data-listing-id={listing.id}
                   data-view-transition="product-card"
                   style={{ viewTransitionName: getViewTransitionName("product-card", listing.id) }}
-                  className="overflow-hidden rounded-lg border border-border"
+                  className={`scroll-mt-24 overflow-hidden rounded-lg border border-border ${
+                    focusListing?.id === listing.id ? "ring-2 ring-primary" : ""
+                  }`}
                 >
                   <div
                     className="relative aspect-[4/3] bg-muted"

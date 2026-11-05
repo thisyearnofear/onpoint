@@ -6,6 +6,7 @@ import { getApiBase } from "@/lib/utils/api-base";
 import { ScorePaddles } from "@/components/runway/ScorePaddles";
 import { TextTheJudge } from "@/components/runway/TextTheJudge";
 import { JudgeAvatar, judgeDisplayName } from "@/components/runway/JudgeAvatar";
+import { GetItButton } from "@/components/runway/play/GetItButton";
 import { SafeImage } from "@/components/SafeImage";
 
 interface Result {
@@ -109,20 +110,7 @@ export default async function RunwayResultPage({
               <div className="min-w-0 flex-1">
                 <p className="text-sm text-muted-foreground">{result.fixHint}</p>
                 <p className="truncate text-base font-bold text-foreground">{result.fix.title}</p>
-                <a
-                  href={result.fix.url}
-                  className="mt-2 inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-bold text-white hover:bg-primary/90"
-                >
-                  {result.fix.kind === "inspiration" ? "Get the look" : "See it on you"}
-                </a>
-                {result.fix.kind === "inspiration" && (
-                  <Link
-                    href="/lab?tab=try-on"
-                    className="ml-3 mt-2 inline-flex min-h-11 items-center text-xs font-bold text-muted-foreground underline-offset-2 hover:text-foreground/80 hover:underline"
-                  >
-                    Try it on you →
-                  </Link>
-                )}
+                <GetItButton fix={result.fix} />
               </div>
             </div>
           </div>

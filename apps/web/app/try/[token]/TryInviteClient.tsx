@@ -3,6 +3,10 @@
 import React, { useRef, useState } from "react";
 import { Camera, Loader2 } from "lucide-react";
 import { SaveItemButton } from "@/components/SaveItemButton";
+import {
+  captureShareAttribution,
+  type ShareAttribution,
+} from "@/lib/utils/share-attribution";
 
 function CaptureOptIn({ source, url }: { source: string; url?: string | null }) {
   const [value, setValue] = useState("");
@@ -39,10 +43,17 @@ export function TryInviteClient({
   title?: string | null;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const attributionRef = useRef<ShareAttribution | null>(null);
   const [photoData, setPhotoData] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
+
+  // The sender's link carries ?sid= — store it so this try-on and any order
+  // that follows can be joined back to that share.
+  React.useEffect(() => {
+    attributionRef.current = captureShareAttribution();
+  }, []);
 
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -60,7 +71,11 @@ export function TryInviteClient({
       const res = await fetch(`/api/try-on/invite/${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ photoData, garmentImageUrl: listingImageUrl }),
+        body: JSON.stringify({
+          photoData,
+          garmentImageUrl: listingImageUrl,
+          ...(attributionRef.current?.sid ? { shareId: attributionRef.current.sid } : {}),
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Try-on failed");
