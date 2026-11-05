@@ -13,6 +13,7 @@ import {
 import type { CuratorStorefrontResponse } from "@onpoint/shared-types";
 import { OnPointLayout } from "../../../components/OnPointLayout";
 import { SafeImage } from "../../../components/SafeImage";
+import { SaveItemButton } from "@/components/SaveItemButton";
 import { CuratorTracker } from "../../../components/CuratorTracker";
 import { CrossCuratorRecommendations } from "../../../components/CrossCuratorRecommendations";
 import { AICuratorSection } from "../../../components/AICuratorSection";
@@ -566,6 +567,14 @@ export default async function CuratorStorefrontPage({
                         <Camera className="h-4 w-4" />
                         Try with AI
                       </a>
+                      <SaveItemButton
+                        item={{
+                          listingId: listing.id,
+                          curatorSlug: slug,
+                          title: listing.title || `${kit?.club ?? "Item"} ${formatKitType(kit?.kitType ?? "")}`.trim(),
+                          imageUrl: listing.imageUrl || null,
+                        }}
+                      />
                       {listing.checkoutUrl ? (
                         <a
                           href={listing.checkoutUrl}

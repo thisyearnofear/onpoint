@@ -2,6 +2,7 @@
 
 import React, { useRef, useState } from "react";
 import { Camera, Loader2 } from "lucide-react";
+import { SaveItemButton } from "@/components/SaveItemButton";
 
 function CaptureOptIn({ source }: { source: string }) {
   const [value, setValue] = useState("");
@@ -29,11 +30,13 @@ export function TryInviteClient({
   listingImageUrl,
   curatorSlug,
   listingId,
+  title,
 }: {
   token: string;
   listingImageUrl: string | null;
   curatorSlug?: string;
   listingId?: string;
+  title?: string | null;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [photoData, setPhotoData] = useState<string | null>(null);
@@ -94,6 +97,9 @@ export function TryInviteClient({
           >
             Make a couple card
           </a>
+          {listingId && (
+            <SaveItemButton item={{ listingId, curatorSlug: curatorSlug || null, title: title || null, imageUrl: listingImageUrl }} />
+          )}
         </div>
         <CaptureOptIn source="try-invite" />
       </div>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getApiBase } from "@/lib/utils/api-base";
-import { SaveItemButton } from "./SaveItemButton";
+import { SaveItemButton } from "@/components/SaveItemButton";
 
 export const metadata: Metadata = {
   title: "Couple goals | OnPoint",

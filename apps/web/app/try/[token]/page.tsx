@@ -74,6 +74,7 @@ export default async function TryInvitePage({ params }: { params: Promise<{ toke
             listingImageUrl={listing?.imageUrl ?? null}
             curatorSlug={invite.curatorSlug}
             listingId={invite.listingId}
+            title={listing?.title ?? null}
           />
         </div>
       </main>
