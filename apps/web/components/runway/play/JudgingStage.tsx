@@ -19,7 +19,7 @@ export function JudgingStage({
   return (
     <>
       {photoData && (
-        <div className="relative h-40 w-32 overflow-hidden rounded-xl border border-border bg-card">
+        <div className="relative h-40 w-32 overflow-hidden border border-border bg-card">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={photoData} alt="Your outfit under review" className="h-full w-full object-cover opacity-80" />
           {!reduceMotion && (

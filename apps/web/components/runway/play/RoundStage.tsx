@@ -52,7 +52,7 @@ export function RoundStage({
           <Camera className="h-5 w-5" />
           Take photo
         </button>
-        <button type="button" onClick={onPickLibrary} className="inline-flex min-h-12 items-center justify-center rounded-full border border-zinc-700 px-6 text-sm font-bold text-foreground hover:border-zinc-500">
+        <button type="button" onClick={onPickLibrary} className="inline-flex min-h-12 items-center justify-center rounded-full border border-border px-6 text-sm font-bold text-foreground hover:border-foreground">
           From library
         </button>
       </div>
@@ -66,7 +66,7 @@ export function RoundStage({
               type="button"
               onClick={() => onPickSample(smp.src)}
               title={smp.label}
-              className="group h-20 w-16 shrink-0 snap-start overflow-hidden rounded-xl border border-border bg-card/60 hover:border-primary/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="group h-20 w-16 shrink-0 snap-start overflow-hidden border border-border bg-card hover:border-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={smp.src} alt={smp.label} className="h-full w-full object-cover" loading="lazy" />
@@ -78,7 +78,7 @@ export function RoundStage({
               type="button"
               onClick={() => onPickSample(smp.src)}
               title={smp.label}
-              className="group h-20 w-16 shrink-0 snap-start overflow-hidden rounded-xl border border-zinc-700/60 bg-zinc-200/90 hover:border-primary/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="group h-20 w-16 shrink-0 snap-start overflow-hidden border border-border bg-muted hover:border-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={smp.src} alt={smp.label} className="h-full w-full object-cover" loading="lazy" />

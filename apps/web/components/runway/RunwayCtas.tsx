@@ -28,9 +28,9 @@ function QrCard({ href }: { href: string }) {
   }, [href]);
   if (!qr) return null;
   return (
-    <div className="mt-2 hidden items-center gap-3 rounded-2xl border border-border bg-card/60 px-4 py-3 md:flex">
+    <div className="mt-2 hidden items-center gap-3 border border-border bg-card px-4 py-3 md:flex">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={qr} alt="QR code to text the judge" className="h-24 w-24 rounded-lg border border-zinc-800" />
+      <img src={qr} alt="QR code to text the judge" className="h-24 w-24 border border-border" />
       <p className="text-sm text-muted-foreground">
         On your iPhone?
         <span className="block font-bold text-foreground">Scan to text the judge.</span>
@@ -51,8 +51,8 @@ export function RunwayCtas({ phoneNumber, themeId }: { phoneNumber: string; them
   const playHref = themeId ? `/runway/play?theme=${themeId}` : "/runway/play";
 
   return (
-    <div className="flex flex-col items-center">
-      <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+    <div className="flex flex-col items-start">
+      <div className="flex flex-col items-start gap-4 sm:flex-row">
         {order === "sms-first" ? (
           <>
             <TextTheJudge phoneNumber={phoneNumber} body={smsBody} buttonClassName={PRIMARY} showQr={false} />

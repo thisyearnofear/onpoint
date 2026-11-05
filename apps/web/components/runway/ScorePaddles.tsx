@@ -30,12 +30,12 @@ function Paddle({
     <div
       role="img"
       aria-label={`${label.charAt(0) + label.slice(1).toLowerCase()}: ${value} out of 10`}
-      className="flex w-full flex-col items-center rounded-2xl border border-zinc-700/80 bg-zinc-900/90 px-2 py-4 shadow-lg shadow-black/40"
+      className="flex w-full flex-col items-center border border-border bg-card px-2 py-4"
     >
-      <span className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-zinc-400">
+      <span className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">
         {label}
       </span>
-      <span className="mt-2 text-5xl font-black tabular-nums text-zinc-50">
+      <span className="mt-2 font-display text-5xl tabular-nums text-foreground">
         {value}
       </span>
     </div>
@@ -60,7 +60,7 @@ function Paddle({
       ) : (
         body
       )}
-      <div aria-hidden className="h-6 w-1 rounded-b bg-zinc-700" />
+      <div aria-hidden className="h-6 w-px bg-border" />
     </div>
   );
 }

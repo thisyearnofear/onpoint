@@ -7,7 +7,7 @@ export function CappedStage({ judge, personaName, note }: { judge: StylistPerson
   return (
     <>
       <JudgeBubble persona={judge} name={personaName}>{note}</JudgeBubble>
-      <Link href="/runway" className="inline-flex min-h-12 items-center rounded-full border border-zinc-700 px-6 text-sm font-bold text-foreground hover:border-zinc-500">
+      <Link href="/runway" className="inline-flex min-h-12 items-center rounded-full border border-border px-6 text-sm font-bold text-foreground hover:border-foreground">
         Back to Runway
       </Link>
     </>

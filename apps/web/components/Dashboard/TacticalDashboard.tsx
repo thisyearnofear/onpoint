@@ -27,6 +27,7 @@ import {
 import dynamic from "next/dynamic";
 import { TryOnPanel } from "./TryOnPanel";
 import { NewUserOnboarding } from "./NewUserOnboarding";
+import { useModalA11y } from "../../lib/hooks/use-modal-a11y";
 
 const PanelLoading = () => (
   <div className="flex min-h-[30vh] items-center justify-center" role="status">
@@ -94,22 +95,23 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
 
   // Desktop top-bar: fit + shop first; community/intel in More
   const desktopNavItems = [
-    { id: "try-on" as AppMode, label: "Try On", icon: Camera, color: "text-accent" },
-    { id: "shop" as AppMode, label: "Shop", icon: ShoppingBag, color: "text-amber-400" },
-    { id: "stylist" as AppMode, label: "Stylist", icon: MessageCircle, color: "text-primary" },
-    { id: "my-looks" as AppMode, label: "My Looks", icon: Palette, color: "text-indigo-400" },
-    { id: "dashboard" as AppMode, label: "Home", icon: LayoutDashboard, color: "text-foreground" },
+    { id: "try-on" as AppMode, label: "Try On", icon: Camera },
+    { id: "shop" as AppMode, label: "Shop", icon: ShoppingBag },
+    { id: "stylist" as AppMode, label: "Stylist", icon: MessageCircle },
+    { id: "my-looks" as AppMode, label: "My Looks", icon: Palette },
+    { id: "dashboard" as AppMode, label: "Home", icon: LayoutDashboard },
   ];
 
   // Hidden tabs accessible via "More"
   const moreNavItems = [
-    { id: "shop" as AppMode, label: "Shop", icon: ShoppingBag, color: "text-amber-400" },
-    { id: "stylist" as AppMode, label: "Stylist", icon: MessageCircle, color: "text-primary" },
-    { id: "intel" as AppMode, label: "Market Intel", icon: Radar, color: "text-emerald-400" },
-    { id: "settings" as AppMode, label: "Settings", icon: User, color: "text-muted-foreground" },
+    { id: "shop" as AppMode, label: "Shop", icon: ShoppingBag },
+    { id: "stylist" as AppMode, label: "Stylist", icon: MessageCircle },
+    { id: "intel" as AppMode, label: "Market Intel", icon: Radar },
+    { id: "settings" as AppMode, label: "Settings", icon: User },
   ];
 
   const [moreOpen, setMoreOpen] = useState(false);
+  const moreSheetRef = useModalA11y<HTMLDivElement>(moreOpen, () => setMoreOpen(false));
 
   // Route map — each mode maps to its content factory
   const contentMap: Record<AppMode, () => ReactNode> = {
@@ -158,39 +160,39 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
       <div className="flex flex-col min-h-screen bg-background">
 
       {/* ── Desktop top tab bar (hidden on mobile) ── */}
-      <div className="hidden md:block sticky top-16 z-40 bg-background/80 backdrop-blur-md border-b border-border/60">
+      <div className="hidden md:block sticky top-16 z-40 bg-background/80 backdrop-blur-md border-b border-border">
         <div className="container mx-auto px-4">
-          <div className="flex items-center gap-1 py-3 overflow-x-auto no-scrollbar">
+          <div className="flex items-stretch gap-1 overflow-x-auto no-scrollbar" role="tablist" aria-label="Fitting room sections">
             {desktopNavItems.map((item) => (
               <button
                 key={item.id}
+                role="tab"
+                aria-selected={mode === item.id}
                 onClick={() => navigateTo(item.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all whitespace-nowrap ${
+                className={`flex items-center gap-2 border-b-2 px-4 py-3 whitespace-nowrap transition-colors ${
                   mode === item.id
-                    ? "bg-muted text-foreground ring-1 ring-border"
-                    : "text-muted-foreground hover:text-foreground/80"
+                    ? "border-primary text-foreground font-semibold"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <div className="relative">
-                  <item.icon className={`w-4 h-4 ${mode === item.id ? item.color : ""}`} />
-                </div>
-                <span className="text-sm font-medium">{item.label}</span>
+                <item.icon className="w-4 h-4" />
+                <span className="text-sm">{item.label}</span>
               </button>
             ))}
             <div className="ml-auto flex items-center gap-1">
               {/* Desktop More button — Market Intel + Settings */}
               <button
                 onClick={() => setMoreOpen(true)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all whitespace-nowrap ${
+                className={`flex items-center gap-2 border-b-2 px-4 py-3 whitespace-nowrap transition-colors ${
                   mode === "intel" || mode === "settings"
-                    ? "bg-muted text-foreground ring-1 ring-border"
-                    : "text-muted-foreground hover:text-foreground/80"
+                    ? "border-primary text-foreground font-semibold"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <Grid className="w-4 h-4" />
-                <span className="text-sm font-medium">More</span>
+                <span className="text-sm">More</span>
               </button>
-              <NotificationBell />
+              <div className="px-2 py-2"><NotificationBell /></div>
             </div>
           </div>
         </div>
@@ -232,13 +234,13 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
               onClick={() => navigateTo("try-on")}
               className={`flex items-center justify-center w-14 h-14 rounded-full shadow-lg transition-all ${
                 mode === "try-on"
-                  ? "bg-accent text-white shadow-accent/30 scale-95"
+                  ? "bg-primary text-white shadow-primary/30 scale-95"
                   : "bg-primary text-white shadow-primary/25 hover:shadow-primary/40"
               }`}
             >
               <Camera className="w-6 h-6" />
             </button>
-            <span className={`text-xs font-medium mt-0.5 ${mode === "try-on" ? "text-accent" : "text-muted-foreground"}`}>
+            <span className={`text-xs font-medium mt-0.5 ${mode === "try-on" ? "text-primary" : "text-muted-foreground"}`}>
               Try On
             </span>
           </div>
@@ -263,6 +265,11 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           {/* Sheet */}
           <div
+            ref={moreSheetRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="More sections"
+            tabIndex={-1}
             className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl border-t border-border shadow-2xl pb-[env(safe-area-inset-bottom,0px)]"
             onClick={(e) => e.stopPropagation()}
           >
@@ -275,6 +282,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
               <span className="text-sm font-bold text-foreground">More</span>
               <button
                 onClick={() => setMoreOpen(false)}
+                aria-label="Close"
                 className="p-1.5 hover:bg-muted rounded-full transition-colors"
               >
                 <X className="w-4 h-4 text-muted-foreground" />
@@ -289,14 +297,14 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
                     navigateTo(item.id);
                     setMoreOpen(false);
                   }}
-                  className={`flex flex-col items-center gap-2 p-3 rounded-2xl transition-all ${
+                  className={`flex flex-col items-center gap-2 p-3 border transition-colors ${
                     mode === item.id
-                      ? "bg-muted/50 ring-1 ring-border"
-                      : "hover:bg-muted/30"
+                      ? "border-primary bg-muted/50"
+                      : "border-transparent hover:border-border hover:bg-muted/30"
                   }`}
                 >
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/40">
-                    <item.icon className={`w-5 h-5 ${mode === item.id ? item.color : "text-muted-foreground"}`} />
+                    <item.icon className={`w-5 h-5 ${mode === item.id ? "text-primary" : "text-muted-foreground"}`} />
                   </div>
                   <span className={`text-xs font-medium ${mode === item.id ? "text-foreground" : "text-muted-foreground"}`}>
                     {item.label}

@@ -15,7 +15,7 @@ import type { DuelOutcome, OpponentState, ResultState, RoundState } from "./type
 
 const PILL = "rounded-full border px-2.5 py-0.5 font-mono text-xs font-bold uppercase tracking-[0.2em]";
 const QUIET_LINK = "text-xs font-bold text-muted-foreground underline-offset-2 hover:text-foreground/70 hover:underline";
-const OUTLINE_BTN = "inline-flex min-h-12 items-center gap-2 rounded-full border border-zinc-700 px-6 text-sm font-bold text-foreground hover:border-zinc-500";
+const OUTLINE_BTN = "inline-flex min-h-12 items-center gap-2 rounded-full border border-border px-6 text-sm font-bold text-foreground hover:border-foreground";
 
 function ResultBadges({ result, entries, isNewBest }: { result: ResultState; entries: RunwayEntry[]; isNewBest: boolean }) {
   const streak = computeStreak(entries, Date.now());
@@ -25,7 +25,7 @@ function ResultBadges({ result, entries, isNewBest }: { result: ResultState; ent
       {streak > 1 && <span className={`${PILL} border-primary/40 text-primary`}>Day {streak} streak</span>}
       {isNewBest && <span className={`${PILL} border-[hsl(var(--accent))] text-[hsl(var(--accent))]`}>New best!</span>}
       {tier === "high" && <span className={`${PILL} border-amber-400/60 text-amber-300`}>Judges&apos; favourite</span>}
-      {tier === "low" && <span className={`${PILL} border-zinc-700 text-muted-foreground`}>Tough crowd</span>}
+      {tier === "low" && <span className={`${PILL} border-border text-muted-foreground`}>Tough crowd</span>}
     </div>
   );
 }
@@ -42,7 +42,7 @@ function DuelCard({
   onRunItBack: () => void;
 }) {
   return (
-    <div className="w-full rounded-2xl border border-border bg-card/70 px-4 py-3.5 text-center">
+    <div className="w-full border border-border bg-card px-4 py-3.5 text-center">
       <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">The duel</p>
       <div className="mt-1.5 flex items-center justify-center gap-5">
         <div>
@@ -80,11 +80,11 @@ function FixCard({ result }: { result: ResultState }) {
   const fix = result.fix;
   if (!fix) return null;
   return (
-    <div className="w-full rounded-2xl border border-border bg-card/70 p-4">
+    <div className="w-full border border-border bg-card p-4">
       <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-primary">The fix</p>
       <div className="mt-2 flex items-center gap-4">
         {fix.imageUrl && (
-          <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-border bg-card">
+          <div className="relative h-20 w-20 shrink-0 overflow-hidden border border-border bg-card">
             <SafeImage sources={[fix.imageUrl]} alt={fix.title} fill unoptimized className="object-cover" fallbackIconSize={24} />
           </div>
         )}
@@ -155,7 +155,7 @@ export function ResultStage({
   return (
     <div className="flex w-full flex-col items-center gap-6 lg:max-w-4xl lg:flex-row lg:items-start lg:justify-center lg:gap-12">
       {photoData && (
-        <figure className="sticky top-3 z-30 w-36 shrink-0 -rotate-3 self-start rounded-lg border border-zinc-700 bg-zinc-100 p-2 pb-3 shadow-2xl shadow-black/50 lg:top-10 lg:mt-10 lg:w-64">
+        <figure className="sticky top-3 z-30 w-36 shrink-0 -rotate-3 self-start rounded-lg border border-border bg-zinc-100 p-2 pb-3 shadow-2xl shadow-black/50 lg:top-10 lg:mt-10 lg:w-64">
           {/* local preview only — the judged photo is never stored or re-uploaded */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={photoData} alt={`Your outfit for ${round.theme.name}`} className="aspect-[3/4] w-full rounded object-cover" />
@@ -184,7 +184,7 @@ export function ResultStage({
         )}
         <FixCard result={result} />
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={cardUrl(round.roundId, "feed")} alt="Your Runway result card" className="h-44 w-auto rounded-xl border border-border" />
+        <img src={cardUrl(round.roundId, "feed")} alt="Your Runway result card" className="h-44 w-auto border border-border" />
         <div className="flex flex-wrap items-center justify-center gap-3">
           <button
             type="button"

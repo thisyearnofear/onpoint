@@ -30,8 +30,8 @@ describe("Runway navigation continuity", () => {
     vi.stubGlobal("fetch", fetchMock);
     const { container } = render(<RunwayPlay />);
     await act(async () => {});
-    expect(screen.getByText("Pick your judge")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Miranda" })).toBeTruthy();
+    expect(screen.getByText(/Pick your judge/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Miranda/ })).toBeTruthy();
     expect(container.querySelector(".dark")).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
   });

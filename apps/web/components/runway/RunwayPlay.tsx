@@ -47,8 +47,7 @@ export function RunwayPlay() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.18),transparent_65%)]" />
-      <header className="relative z-10 flex items-baseline justify-between px-4 py-4">
+      <header className="relative z-10 mx-auto flex w-full max-w-5xl items-baseline justify-between px-4 py-4">
         <Link href="/runway" className="font-mono text-xs font-bold uppercase leading-none tracking-[0.22em] text-primary">
           ← Runway
         </Link>
@@ -61,7 +60,7 @@ export function RunwayPlay() {
               setSoundEnabled(next);
             }}
             aria-label={soundOn ? "Mute sound" : "Unmute sound"}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-zinc-600 hover:text-foreground/80"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
           >
             {soundOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
           </button>
@@ -71,7 +70,7 @@ export function RunwayPlay() {
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-lg flex-1 flex-col items-center justify-center gap-6 px-4 pb-16">
+      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-xl flex-1 flex-col items-center justify-center gap-6 px-4 pb-16">
         {stage === "intro" && <IntroStage busy={r.busy} entries={entries} onPick={pickJudge} />}
 
         {stage === "round" && round && (
@@ -131,7 +130,7 @@ export function RunwayPlay() {
         <Confetti fire={reveal.burst} variant={result && scoreTier(result.total) === "high" ? "gold" : "accent"} />
 
         {toast && (
-          <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border border-zinc-700 bg-card px-4 py-2 text-sm font-bold text-foreground shadow-xl">
+          <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border border-border bg-card px-4 py-2 text-sm font-bold text-foreground shadow-xl">
             {toast}
           </div>
         )}
