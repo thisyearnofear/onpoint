@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { useCartStore, type CartItem } from "../../lib/stores/cart-store";
+import { useModalA11y } from "../../lib/hooks/use-modal-a11y";
 import { SafeImage } from "../SafeImage";
 
 interface CheckoutResult {
@@ -85,6 +86,8 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
     }
   };
 
+  const dialogRef = useModalA11y<HTMLDivElement>(isOpen, handleClose);
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -106,6 +109,11 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
           >
             <motion.div
               layout
+              ref={dialogRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label={result?.success ? "Order confirmed" : "Checkout"}
+              tabIndex={-1}
               className="bg-card border border-border rounded-3xl max-w-md w-full shadow-2xl overflow-hidden"
             >
               {/* Success state */}
@@ -134,6 +142,7 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                       <button
                         onClick={handleClose}
                         disabled={isProcessing}
+                        aria-label="Close checkout"
                         className="w-10 h-10 rounded-full hover:bg-muted flex items-center justify-center transition-colors disabled:opacity-50"
                       >
                         <X className="w-5 h-5 text-muted-foreground" />

@@ -5,6 +5,7 @@ import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import { X, Plus, Minus, Trash2, ShoppingBag, ArrowRight, ChevronLeft } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { useCartStore } from "../../lib/stores/cart-store";
+import { useModalA11y } from "../../lib/hooks/use-modal-a11y";
 import { SafeImage } from "../SafeImage";
 
 interface CartDrawerProps {
@@ -16,6 +17,7 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
     useCartStore();
   const total = useCartStore((s) => s.total());
   const itemCount = useCartStore((s) => s.itemCount());
+  const drawerRef = useModalA11y<HTMLDivElement>(isOpen, closeCart);
 
   return (
     <AnimatePresence>
@@ -47,6 +49,11 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
               scale: 0.97,
               transition: { duration: 0 },
             }}
+            ref={drawerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Shopping cart"
+            tabIndex={-1}
             className="fixed right-0 top-0 bottom-0 z-[70] w-full max-w-md bg-background border-l border-border flex flex-col shadow-2xl"
           >
             {/* Swipe indicator — hinted draggable edge */}
@@ -80,6 +87,7 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
               </div>
               <button
                 onClick={closeCart}
+                aria-label="Close cart"
                 className="w-8 h-8 rounded-full hover:bg-muted flex items-center justify-center transition-colors"
               >
                 <X className="w-5 h-5 text-muted-foreground" />
