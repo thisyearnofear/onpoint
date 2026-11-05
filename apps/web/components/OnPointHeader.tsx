@@ -4,8 +4,8 @@ import React, { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Shirt, ChevronDown } from "lucide-react";
-import { PRODUCT_NAME, CTA_PLAY, CTA_SHOP } from "../lib/brand";
-import { PRIMARY_NAV, SECONDARY_NAV, isNavActive } from "../lib/navigation";
+import { PRODUCT_NAME, CTA_PLAY } from "../lib/brand";
+import { PRIMARY_NAV, SECONDARY_NAV, FOOTER_LINKS, isNavActive } from "../lib/navigation";
 import { NavigationLink } from "./NavigationLink";
 import { Auth0HeaderButton } from "./auth/Auth0Components";
 import { MobileNavigation } from "./mobile-navigation";
@@ -142,60 +142,15 @@ export function OnPointFooter() {
           {PRODUCT_NAME}
         </div>
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-          <Link
-            href={CTA_SHOP.href}
-            className="hover:text-foreground transition-colors"
-          >
-            Live agent
-          </Link>
-          <Link
-            href="/looks"
-            className="hover:text-foreground transition-colors"
-          >
-            Looks
-          </Link>
-          <Link
-            href="/curator"
-            className="hover:text-foreground transition-colors"
-          >
-            Supply
-          </Link>
-          <Link
-            href="/pricing"
-            className="hover:text-foreground transition-colors"
-          >
-            Pricing
-          </Link>
-          <Link
-            href="/developers"
-            className="hover:text-foreground transition-colors"
-          >
-            Developers
-          </Link>
-          <Link
-            href="/guides"
-            className="hover:text-foreground transition-colors"
-          >
-            Guides
-          </Link>
-          <Link
-            href="/about"
-            className="hover:text-foreground transition-colors"
-          >
-            About
-          </Link>
-          <Link
-            href="/privacy"
-            className="hover:text-foreground transition-colors"
-          >
-            Privacy
-          </Link>
-          <Link
-            href="/terms"
-            className="hover:text-foreground transition-colors"
-          >
-            Terms
-          </Link>
+          {FOOTER_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="hover:text-foreground transition-colors"
+            >
+              {link.label}
+            </Link>
+          ))}
         </div>
         <div className="flex items-center gap-4 text-xs">
           <span>Earn permission. Report truth.</span>

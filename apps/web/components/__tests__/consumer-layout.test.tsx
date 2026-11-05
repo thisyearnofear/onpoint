@@ -19,6 +19,12 @@ describe("consumer route group", () => {
     expect(screen.getByRole("link", { name: "Skip to content" }).getAttribute("href")).toBe("#main-content");
   });
 
+  // The home page used to hand-roll its own footer row, so `/` rendered two.
+  it("renders the shared footer once, not a page-specific second one", () => {
+    render(<ConsumerLayout><div data-testid="child" /></ConsumerLayout>);
+    expect(screen.getAllByTestId("shared-footer").length).toBe(1);
+  });
+
   it("loading fallback is visible, polite, and theme-agnostic", () => {
     const html = renderToStaticMarkup(<ConsumerLoading />);
     expect(html).toContain("role=\"status\"");

@@ -9,7 +9,7 @@ export default function ConsumerLayout({ children }: { children: React.ReactNode
       >
         Skip to content
       </a>
-      <OnPointLayout footer={false}>{children}</OnPointLayout>
+      <OnPointLayout>{children}</OnPointLayout>
     </>
   );
 }

@@ -82,7 +82,7 @@ export default function ShopPage() {
   };
 
   return (
-    <OnPointLayout footer={false}>
+    <OnPointLayout>
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
         {/* Personalization Context Banner */}
