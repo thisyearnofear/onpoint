@@ -156,38 +156,14 @@
 
     --radius: 0.75rem;
 
-    --gradient-fashion: linear-gradient(135deg,
-        hsl(346 75% 55% / 0.9) 0%,
-        hsl(27 96% 61% / 0.8) 50%,
-        hsl(240 5% 84% / 0.7) 100%);
 
-    --gradient-subtle: linear-gradient(180deg,
-        hsl(0 0% 100% / 0.95) 0%,
-        hsl(0 0% 98% / 0.98) 100%);
 
     --shadow-elegant: 0 20px 40px -10px hsl(346 75% 55% / 0.15);
     --shadow-soft: 0 8px 30px hsl(240 5.9% 90% / 0.3);
 
-    /* Badge gradient colors — themed to the design system */
-    --badge-trending-from: hsl(24 94% 50%);
-    --badge-trending-to: hsl(0 84% 60%);
-    --badge-trending-bg-from: hsl(33 100% 96%);
-    --badge-trending-bg-to: hsl(0 96% 96%);
 
-    --badge-viral-from: hsl(330 100% 50%);
-    --badge-viral-to: hsl(0 84% 60%);
-    --badge-viral-bg-from: hsl(330 100% 96%);
-    --badge-viral-bg-to: hsl(0 96% 96%);
 
-    --badge-popular-from: hsl(270 100% 50%);
-    --badge-popular-to: hsl(330 100% 50%);
-    --badge-popular-bg-from: hsl(270 100% 96%);
-    --badge-popular-bg-to: hsl(330 100% 96%);
 
-    --badge-new-from: hsl(200 100% 50%);
-    --badge-new-to: hsl(180 100% 50%);
-    --badge-new-bg-from: hsl(200 100% 96%);
-    --badge-new-bg-to: hsl(180 100% 96%);
 
     /* Semantic state colors — HSL triplets like every other token,
        consumed via hsl(var(--*)) in tailwind.config.ts */
@@ -238,33 +214,13 @@
     --input: 120 7% 18%;
     --ring: 346 80% 60%;
 
-    --gradient-subtle: linear-gradient(180deg,
-        hsl(240 10% 8% / 0.98) 0%,
-        hsl(240 10% 6% / 1) 100%);
 
     --shadow-elegant: 0 20px 40px -10px hsl(346 75% 45% / 0.35);
     --shadow-soft: 0 8px 30px hsl(240 10% 2% / 0.5);
 
-    /* Badge gradient colors — dark mode variants */
-    --badge-trending-from: hsl(24 94% 50%);
-    --badge-trending-to: hsl(0 84% 60%);
-    --badge-trending-bg-from: hsl(24 50% 8%);
-    --badge-trending-bg-to: hsl(0 50% 8%);
 
-    --badge-viral-from: hsl(330 100% 50%);
-    --badge-viral-to: hsl(0 84% 60%);
-    --badge-viral-bg-from: hsl(330 50% 8%);
-    --badge-viral-bg-to: hsl(0 50% 8%);
 
-    --badge-popular-from: hsl(270 100% 50%);
-    --badge-popular-to: hsl(330 100% 50%);
-    --badge-popular-bg-from: hsl(270 50% 8%);
-    --badge-popular-bg-to: hsl(330 50% 8%);
 
-    --badge-new-from: hsl(200 100% 50%);
-    --badge-new-to: hsl(180 100% 50%);
-    --badge-new-bg-from: hsl(200 50% 8%);
-    --badge-new-bg-to: hsl(180 50% 8%);
 
     /* Semantic state colors — same values work on dark backgrounds */
     --success: 160 84% 39%;
@@ -294,13 +250,7 @@
 }
 
 @layer components {
-  .fashion-gradient {
-    background: var(--gradient-fashion);
-  }
 
-  .subtle-gradient {
-    background: var(--gradient-subtle);
-  }
 
   .elegant-shadow {
     box-shadow: var(--shadow-elegant);

@@ -305,13 +305,14 @@ export function WardrobeWorkspace() {
         )}
 
         <div className={styles.topbar}>
-          <nav className={styles.tabs} aria-label="Wardrobe sections">
+          <nav className={styles.tabs} aria-label="Wardrobe sections" role="tablist">
             {TABS.map((t) => (
               <button
                 key={t.id}
                 type="button"
                 className={`${styles.tab}${tab === t.id ? ` ${styles.active}` : ""}`}
-                aria-pressed={tab === t.id}
+                role="tab"
+                aria-selected={tab === t.id}
                 onClick={() => chooseTab(t.id)}
               >
                 {t.label}

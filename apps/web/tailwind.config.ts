@@ -216,10 +216,6 @@ export default {
         'persona-thinking': 'persona-thinking 1.2s ease-in-out infinite',
         'persona-wave': 'persona-wave 2s ease-in-out',
         'speech-bar': 'speech-bar 0.8s ease-in-out infinite'
-      },
-      backgroundImage: {
-        'fashion-gradient': 'var(--gradient-fashion)',
-        'subtle-gradient': 'var(--gradient-subtle)'
       }
     }
   },
