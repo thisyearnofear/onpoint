@@ -4,7 +4,6 @@ import React from "react";
 import { Button } from "@repo/ui/button";
 import {
   ArrowLeft,
-  ShieldCheck,
   AlertCircle,
   Camera,
   Ruler,
@@ -12,7 +11,6 @@ import {
   Zap,
   Upload,
 } from "lucide-react";
-import { motion } from "framer-motion";
 import { ProviderComparisonModal } from "./ProviderComparisonModal";
 import { useStartButton } from "./hooks/useStartButton";
 
@@ -59,112 +57,42 @@ export function LiveSessionStartScreen({
   const { showSpinner, handleStart } = useStartButton(onStart, isInitializing);
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border/50 shrink-0">
+    <div className="flex h-full flex-col bg-background">
+      <div className="flex shrink-0 items-center justify-between border-b border-border/50 px-4 py-3 sm:px-6">
         <button
           onClick={onBack}
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
-          <ArrowLeft className="w-3.5 h-3.5" />
+          <ArrowLeft className="h-3.5 w-3.5" />
           Back
         </button>
-        <div className="flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground">
-            {isPremium ? "Premium" : "Free · No signup"}
-          </span>
-        </div>
+        <span className="font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          {isPremium ? "Premium" : "Free · no signup"}
+        </span>
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="flex flex-col items-center gap-5 sm:gap-6 max-w-2xl mx-auto w-full px-5 sm:px-6 py-6 sm:py-8">
-          <div className="w-full">
-            <div className="relative aspect-[4/5] sm:aspect-[16/10] w-full overflow-hidden rounded-3xl border border-success/20 bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950/30 shadow-2xl shadow-emerald-500/10">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,_rgba(16,185,129,0.18),_transparent_60%)]" />
-
-              <div className="absolute inset-0 flex items-end justify-center">
-                <div className="relative w-[44%] h-[78%]">
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[34%] aspect-square rounded-full bg-gradient-to-b from-slate-300/70 to-slate-500/70" />
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-[58%] rounded-t-[45%] bg-gradient-to-b from-slate-400/60 to-slate-600/60" />
-                </div>
-              </div>
-
-              <div className="absolute inset-6 sm:inset-10">
-                <div className="relative w-full h-full">
-                  <div className="absolute -top-1 -left-1 w-8 h-8 border-t-2 border-l-2 border-emerald-300/80 rounded-tl-2xl" />
-                  <div className="absolute -top-1 -right-1 w-8 h-8 border-t-2 border-r-2 border-emerald-300/80 rounded-tr-2xl" />
-                  <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-2 border-l-2 border-emerald-300/80 rounded-bl-2xl" />
-                  <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-2 border-r-2 border-emerald-300/80 rounded-br-2xl" />
-                </div>
-              </div>
-
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1 rounded-full bg-success/20 backdrop-blur-md border border-emerald-400/30 shadow-lg">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-200">
-                  Good Position
-                </span>
-              </div>
-
-              <div className="absolute bottom-4 inset-x-3 sm:inset-x-6 flex gap-1.5 sm:gap-2">
-                {[
-                  { label: "Framing", value: "locked", color: "text-emerald-300" },
-                  { label: "Fit", value: "reading", color: "text-sky-300" },
-                  { label: "Palette", value: "sampling", color: "text-violet-300" },
-                  { label: "Shop", value: "matches", color: "text-amber-300" },
-                ].map((s) => (
-                  <div
-                    key={s.label}
-                    className="flex-1 rounded-lg bg-black/40 backdrop-blur-md border border-white/10 px-1.5 sm:px-2 py-1.5 min-w-0"
-                  >
-                    <p className="text-xs uppercase tracking-wider text-white/50 font-bold truncate">
-                      {s.label}
-                    </p>
-                    <p className={`text-xs sm:text-xs font-bold truncate ${s.color}`}>
-                      {s.value}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              {isPremium && (
-                <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                  <motion.div
-                    aria-hidden
-                    className="absolute inset-x-0 h-full"
-                    initial={{ y: "-100%" }}
-                    animate={{ y: ["-100%", "100%", "-100%"] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                  >
-                    <div className="h-px bg-gradient-to-r from-transparent via-emerald-300/80 to-transparent shadow-[0_0_20px_rgba(16,185,129,0.6)]" />
-                  </motion.div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="text-center space-y-2 max-w-lg">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success/10 border border-success/25">
-              <ShieldCheck className="w-3 h-3 text-emerald-400" />
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-300">
-                {isPremium ? "Live · Premium" : "On-device preview · No signup"}
-              </span>
-            </div>
-            <h1 className="text-3xl sm:text-5xl font-black text-foreground tracking-tighter">
-              {isPremium ? "Live Style Camera" : "Snap & Analyze"}
+        <div className="mx-auto flex w-full max-w-xl flex-col items-center gap-7 px-5 py-10 sm:py-14">
+          <div className="max-w-lg space-y-3 text-center">
+            <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-primary">
+              {isPremium ? "The live mirror" : "The fitting room"}
+            </p>
+            <h1 className="font-display text-4xl leading-[1.05] tracking-[-0.02em] text-foreground sm:text-5xl">
+              {isPremium ? "Style, as you move." : "Step in front of the mirror."}
             </h1>
-            <p className="text-muted-foreground text-sm sm:text-base max-w-md mx-auto leading-relaxed">
+            <p className="mx-auto max-w-md text-sm leading-relaxed text-muted-foreground sm:text-base">
               {isPremium
-                ? "Real-time AI feedback as you move. Get fit, palette, and voice-led styling."
-                : "Tap to capture. Get fit, palette, and shopping matches in seconds."}
+                ? "Real-time feedback as you move — fit, palette, and a voice that knows your wardrobe."
+                : "Hold still, tap once. Fit, palette, and the pieces that fill the gaps — in seconds."}
             </p>
             {!isPremium && (
-              <p className="text-xs text-muted-foreground/70 max-w-md mx-auto leading-relaxed">
-                Free tier is an AI style preview — not the exact garment. The $0.03 paid try-on renders the actual item on your photo.
+              <p className="mx-auto max-w-md text-xs leading-relaxed text-muted-foreground/80">
+                A style preview, not the exact garment — the $0.03 try-on renders the real piece on you.
               </p>
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-2 w-full max-w-md">
+          <div className="grid w-full max-w-md grid-cols-3 gap-3">
             {[
               { icon: Ruler, label: "Fit", desc: "Proportion read" },
               { icon: Palette, label: "Palette", desc: "Color harmony" },
@@ -172,44 +100,43 @@ export function LiveSessionStartScreen({
             ].map(({ icon: Icon, label, desc }) => (
               <div
                 key={label}
-                className="flex flex-col items-center text-center p-2.5 sm:p-3 rounded-xl border border-border bg-card/50"
+                className="flex flex-col items-center border border-border bg-card p-4 text-center"
               >
-                <div className="w-8 h-8 rounded-full bg-success/10 border border-success/20 flex items-center justify-center mb-1.5">
-                  <Icon className="w-4 h-4 text-emerald-400" />
+                <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-full border border-primary/20 bg-primary/10">
+                  <Icon className="h-4 w-4 text-primary" />
                 </div>
-                <p className="text-xs font-bold">{label}</p>
-                <p className="text-xs text-muted-foreground leading-tight">{desc}</p>
+                <p className="text-xs font-bold text-foreground">{label}</p>
+                <p className="mt-0.5 text-xs leading-tight text-muted-foreground">{desc}</p>
               </div>
             ))}
           </div>
 
-          {/* Capture limit badge — free tier only */}
           {!isPremium && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/25">
-              <Camera className="w-3 h-3 text-indigo-400" />
-              <span className="text-xs font-mono font-bold text-indigo-300">
-                {capturesRemaining} free capture{capturesRemaining !== 1 ? "s" : ""} remaining
+            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5">
+              <Camera className="h-3 w-3 text-muted-foreground" />
+              <span className="font-mono text-xs font-bold text-muted-foreground">
+                {capturesRemaining} free capture{capturesRemaining !== 1 ? "s" : ""} — plenty for a first look
               </span>
             </div>
           )}
 
           {error && (
-            <div className="w-full max-w-md rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-left">
-              <div className="flex items-center gap-2 text-rose-400">
+            <div className="w-full max-w-md border border-error/30 bg-error/10 p-4 text-left">
+              <div className="flex items-center gap-2 text-error">
                 <AlertCircle className="h-4 w-4 shrink-0" />
-                <p className="text-xs font-bold uppercase tracking-wider">Session Error</p>
+                <p className="text-xs font-bold uppercase tracking-wider">Something's off</p>
               </div>
-              <p className="mt-2 text-sm text-rose-300">{error}</p>
+              <p className="mt-2 text-sm text-error/90">{error}</p>
               {error.toLowerCase().includes("camera") && (
                 <div className="mt-2 space-y-2">
-                  <p className="text-xs text-rose-300/70">
-                    Make sure you allow camera access and are on HTTPS.
+                  <p className="text-xs text-error/70">
+                    Check camera access is allowed and you're on HTTPS.
                   </p>
                   <button
                     onClick={onDismissError}
-                    className="text-xs text-amber-300 hover:text-amber-200 underline underline-offset-2"
+                    className="text-xs font-bold text-foreground underline underline-offset-2"
                   >
-                    Use Upload Photo instead →
+                    Upload a photo instead →
                   </button>
                 </div>
               )}
@@ -218,46 +145,46 @@ export function LiveSessionStartScreen({
 
           <div className="w-full max-w-md space-y-2">
             <Button
-              className="w-full bg-success hover:bg-success active:bg-success text-white rounded-full py-6 text-base sm:text-lg font-bold shadow-xl shadow-emerald-500/30 transition-all hover:shadow-emerald-500/50"
+              className="w-full rounded-full bg-primary py-6 text-base font-bold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 hover:shadow-primary/40"
               loading={showSpinner}
               loadingIcon={
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
               }
               onClick={handleStart}
             >
-              <Camera className="w-5 h-5" />
-              {showSpinner ? "Connecting..." : "START STYLE CAMERA"}
+              <Camera className="h-5 w-5" />
+              {showSpinner ? "Opening…" : "Open the mirror"}
             </Button>
-            <p className="text-xs text-center text-muted-foreground/70 leading-relaxed">
-              We only open the camera after you tap. Frames stay on your device unless you save them.
+            <p className="text-center text-xs leading-relaxed text-muted-foreground">
+              The camera only opens when you ask — frames stay on your device unless you save them.
             </p>
           </div>
 
-          <button
-            onClick={onCompareProviders}
-            className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
-          >
-            Compare AI providers →
-          </button>
-
-          {onUseUploadPhoto && (
+          <div className="flex flex-col items-center gap-2">
             <button
-              onClick={onUseUploadPhoto}
-              className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors inline-flex items-center gap-1.5"
+              onClick={onCompareProviders}
+              className="text-xs text-muted-foreground/70 transition-colors hover:text-muted-foreground"
             >
-              <Upload className="w-3 h-3" />
-              Or upload a photo instead →
+              Compare AI providers →
             </button>
-          )}
-
-          {hasStoredSession && onViewStoredSession && (
-            <button
-              onClick={onViewStoredSession}
-              className="text-xs text-success/60 hover:text-emerald-400 transition-colors inline-flex items-center gap-1.5"
-            >
-              View last analysis →
-            </button>
-          )}
+            {onUseUploadPhoto && (
+              <button
+                onClick={onUseUploadPhoto}
+                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/70 transition-colors hover:text-muted-foreground"
+              >
+                <Upload className="h-3 w-3" />
+                Or upload a photo instead →
+              </button>
+            )}
+            {hasStoredSession && onViewStoredSession && (
+              <button
+                onClick={onViewStoredSession}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-primary transition-colors hover:text-primary/80"
+              >
+                View last analysis →
+              </button>
+            )}
+          </div>
 
           <ProviderComparisonModal
             isOpen={showComparison}

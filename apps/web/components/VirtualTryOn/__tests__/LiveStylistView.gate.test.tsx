@@ -148,7 +148,7 @@ describe("LiveStylistView — start-screen gate", () => {
 
   it("renders the start screen when no provider is persisted", () => {
     render(<LiveStylistView onBack={() => {}} />);
-    expect(screen.getByText(/START STYLE CAMERA/i)).toBeTruthy();
+    expect(screen.getByText(/Open the mirror/i)).toBeTruthy();
   });
 
   it("renders the start screen even when a provider preference is persisted, as long as no session is in flight", () => {
@@ -165,7 +165,7 @@ describe("LiveStylistView — start-screen gate", () => {
     render(<LiveStylistView onBack={() => {}} />);
 
     // Start screen primary CTA is present.
-    expect(screen.getByText(/START STYLE CAMERA/i)).toBeTruthy();
+    expect(screen.getByText(/Open the mirror/i)).toBeTruthy();
     // Main session ticker label (the Miranda fallback) must NOT be in the
     // tree — its presence would mean we slipped into the main view.
     expect(screen.queryByText(/Miranda Priestly/i)).toBeNull();
@@ -178,7 +178,7 @@ describe("LiveStylistView — start-screen gate", () => {
       isInitializing: true,
     };
     render(<LiveStylistView onBack={() => {}} />);
-    expect(screen.queryByText(/START STYLE CAMERA/i)).toBeNull();
+    expect(screen.queryByText(/Open the mirror/i)).toBeNull();
   });
 
   it("leaves the start screen once a session is connected", () => {
@@ -188,6 +188,6 @@ describe("LiveStylistView — start-screen gate", () => {
       isInitializing: false,
     };
     render(<LiveStylistView onBack={() => {}} />);
-    expect(screen.queryByText(/START STYLE CAMERA/i)).toBeNull();
+    expect(screen.queryByText(/Open the mirror/i)).toBeNull();
   });
 });
