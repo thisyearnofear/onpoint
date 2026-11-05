@@ -24,7 +24,8 @@ async function loadLooks(): Promise<Array<{ slug: string; title: string }>> {
   }
 }
 
-export default async function MagazinePage() {
+export default async function MagazinePage({ searchParams }: { searchParams: Promise<{ reply?: string }> }) {
+  const { reply } = await searchParams;
   const looks = await loadLooks();
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -38,7 +39,7 @@ export default async function MagazinePage() {
         </p>
         <div className="mt-8">
           {looks.length > 0 ? (
-            <MagazineClient looks={looks} />
+            <MagazineClient looks={looks} replyTo={reply || null} />
           ) : (
             <div className="border border-border bg-card p-6 text-center text-sm text-muted-foreground">
               No pieces to feature yet — new stock lands soon.

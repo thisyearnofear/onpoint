@@ -12,6 +12,9 @@ export interface MagazineData {
   senderName: string | null;
   note: string | null;
   items: Array<{ listingId: string; curatorSlug: string | null; title: string | null; imageUrl: string | null }>;
+  issue: number;
+  replyTo: string | null;
+  heroListingId: string | null;
 }
 
 async function load(id: string): Promise<MagazineData | null> {

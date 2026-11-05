@@ -19,7 +19,7 @@ export function Flipbook({ mag }: { mag: MagazineData }) {
     key: "cover",
     node: (
       <div className="flex h-full flex-col bg-card p-8 text-center">
-        <p className="font-mono text-xs font-bold uppercase tracking-[0.24em] text-primary">The issue of one</p>
+        <p className="font-mono text-xs font-bold uppercase tracking-[0.24em] text-primary">Issue Nº {mag.issue || 1}</p>
         <div className="flex flex-1 items-center justify-center py-6">
           {mag.photoUrl ? (
             /* eslint-disable-next-line @next/next/no-img-element */
@@ -51,7 +51,12 @@ export function Flipbook({ mag }: { mag: MagazineData }) {
           </p>
           <div className="grid flex-1 grid-rows-2 gap-4 py-4">
             {pair.map((item) => (
-              <div key={item.listingId} className="flex min-h-0 items-center gap-4 border border-border p-4">
+              <div key={item.listingId} className="relative flex min-h-0 items-center gap-4 border border-border p-4">
+                {item.listingId === mag.heroListingId && (
+                  <span className="absolute -top-2 right-3 border border-primary/40 bg-primary px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-white">
+                    Picked for you
+                  </span>
+                )}
                 {item.imageUrl ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img src={item.imageUrl} alt={item.title || "Piece"} className="h-20 w-20 shrink-0 border border-border object-cover" />
@@ -93,7 +98,7 @@ export function Flipbook({ mag }: { mag: MagazineData }) {
           )}
           {mag.senderName && <p className="mt-4 text-xs font-bold text-muted-foreground">— {mag.senderName}</p>}
         </div>
-        <Link href="/magazine" className="inline-flex min-h-12 items-center justify-center rounded-full bg-primary px-8 text-sm font-bold text-white hover:bg-primary/90">
+        <Link href={`/magazine?reply=${mag.id}`} className="inline-flex min-h-12 items-center justify-center rounded-full bg-primary px-8 text-sm font-bold text-white hover:bg-primary/90">
           Send one back
         </Link>
       </div>
@@ -102,8 +107,11 @@ export function Flipbook({ mag }: { mag: MagazineData }) {
 
   const [index, setIndex] = useState(0);
   const [dir, setDir] = useState(1);
+  const [hintDone, setHintDone] = useState(false);
+  const touchX = React.useRef<number | null>(null);
   const total = pages.length;
   const flip = useCallback((d: number) => {
+    setHintDone(true);
     setIndex((i) => {
       const next = Math.min(Math.max(i + d, 0), total - 1);
       if (next !== i) setDir(d);
@@ -123,16 +131,30 @@ export function Flipbook({ mag }: { mag: MagazineData }) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-muted/30 px-4 py-10">
       <div className="w-full max-w-md" style={{ perspective: "1600px" }}>
-        <div className="relative aspect-[3/4] w-full overflow-hidden rounded-sm border border-border shadow-2xl shadow-black/20">
+        <div
+          className="relative aspect-[3/4] w-full overflow-hidden rounded-sm border border-border shadow-2xl shadow-black/20"
+          onTouchStart={(e) => { touchX.current = e.touches[0]?.clientX ?? null; }}
+          onTouchEnd={(e) => {
+            if (touchX.current == null) return;
+            const dx = (e.changedTouches[0]?.clientX ?? 0) - touchX.current;
+            if (Math.abs(dx) > 40) flip(dx < 0 ? 1 : -1);
+            touchX.current = null;
+          }}
+        >
           <AnimatePresence mode="popLayout" custom={dir}>
             <motion.div
               key={pages[index]!.key}
               custom={dir}
               initial={{ rotateY: dir > 0 ? 70 : -70, x: dir > 0 ? 60 : -60, opacity: 0.6 }}
-              animate={{ rotateY: 0, x: 0, opacity: 1 }}
+              animate={
+                index === 0 && !hintDone
+                  ? { rotateY: [0, -14, 0], x: 0, opacity: 1 }
+                  : { rotateY: 0, x: 0, opacity: 1 }
+              }
+              onAnimationComplete={() => { if (index === 0 && !hintDone) setHintDone(true); }}
               exit={{ rotateY: dir > 0 ? -70 : 70, x: dir > 0 ? -60 : 60, opacity: 0 }}
-              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-              style={{ transformOrigin: dir > 0 ? "left center" : "right center", transformStyle: "preserve-3d" }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              style={{ transformOrigin: "left center", transformStyle: "preserve-3d" }}
               className="absolute inset-0"
             >
               {pages[index]!.node}
@@ -149,7 +171,7 @@ export function Flipbook({ mag }: { mag: MagazineData }) {
           </button>
         </div>
         <p className="mt-4 text-center font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          {index + 1} of {total} — arrow keys or tap the edges
+          {index + 1} of {total} — swipe, tap the edges, or arrow keys
         </p>
       </div>
     </div>

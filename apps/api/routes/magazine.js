@@ -53,11 +53,18 @@ async function uploadPhoto(photoData) {
 
 router.post('/', async (req, res) => {
   try {
-    const { photoData, recipientName, senderName, note, lookSlug, listingIds } = req.body || {};
+    const { photoData, recipientName, senderName, note, lookSlug, listingIds, replyTo, heroFirst } = req.body || {};
     const db = getDb();
     const { items, notFound } = await resolveItems(db, { lookSlug, listingIds });
     if (notFound) return res.status(404).json({ error: 'look not found' });
     const photoUrl = photoData ? await uploadPhoto(photoData).catch(() => null) : null;
+
+    let issue = 1;
+    let parent = null;
+    if (replyTo && ID_RE.test(String(replyTo))) {
+      [parent] = await db.select({ issue: magazines.issue }).from(magazines).where(eq(magazines.id, String(replyTo))).limit(1);
+      if (parent) issue = parent.issue + 1;
+    }
 
     const [row] = await db
       .insert(magazines)
@@ -67,6 +74,9 @@ router.post('/', async (req, res) => {
         senderName: senderName ? String(senderName).slice(0, 60) : null,
         note: note ? String(note).slice(0, 500) : null,
         items,
+        issue,
+        replyTo: parent ? String(replyTo) : null,
+        heroListingId: heroFirst && items[0] ? items[0].listingId : null,
       })
       .returning({ id: magazines.id });
     await logFunnelEvent(db, { eventType: 'magazine_created', source: 'web', metadata: { id: row.id, count: items.length } });
@@ -93,6 +103,9 @@ router.get('/:id', async (req, res) => {
       senderName: row.senderName,
       note: row.note,
       items: row.items || [],
+      issue: row.issue,
+      replyTo: row.replyTo,
+      heroListingId: row.heroListingId,
       createdAt: row.createdAt,
     });
   } catch (err) {

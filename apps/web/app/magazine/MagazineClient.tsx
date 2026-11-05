@@ -3,13 +3,14 @@
 import React, { useRef, useState } from "react";
 import { Camera, Loader2 } from "lucide-react";
 
-export function MagazineClient({ looks }: { looks: Array<{ slug: string; title: string }> }) {
+export function MagazineClient({ looks, replyTo }: { looks: Array<{ slug: string; title: string }>; replyTo?: string | null }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [photoData, setPhotoData] = useState<string | null>(null);
   const [recipientName, setRecipientName] = useState("");
   const [senderName, setSenderName] = useState("");
   const [note, setNote] = useState("");
   const [lookSlug, setLookSlug] = useState(looks[0]?.slug || "");
+  const [heroFirst, setHeroFirst] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [url, setUrl] = useState<string | null>(null);
@@ -35,6 +36,8 @@ export function MagazineClient({ looks }: { looks: Array<{ slug: string; title: 
           senderName: senderName || undefined,
           note: note || undefined,
           lookSlug: lookSlug || undefined,
+          replyTo: replyTo || undefined,
+          heroFirst,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -61,7 +64,22 @@ export function MagazineClient({ looks }: { looks: Array<{ slug: string; title: 
   }
 
   return (
-    <div className="space-y-3 border border-border bg-card p-6">
+    <div className="grid gap-5 border border-border bg-card p-6 sm:grid-cols-[9rem_1fr]">
+      {/* Live cover — forms as you type */}
+      <div className="mx-auto aspect-[3/4] w-36 shrink-0 border border-border bg-muted/30 p-4 text-center shadow-sm">
+        <p className="font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-primary">The issue of one</p>
+        <div className="mt-2 flex h-20 items-center justify-center overflow-hidden border border-border/60 bg-muted/50">
+          {photoData ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={photoData} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="font-display text-lg italic text-foreground/50">{recipientName || "her"}</span>
+          )}
+        </div>
+        <p className="mt-2 font-display text-base leading-tight">For {recipientName || "her"}.</p>
+        {senderName && <p className="mt-1 font-mono text-[8px] uppercase tracking-[0.18em] text-muted-foreground">by {senderName}</p>}
+      </div>
+      <div className="space-y-3">
       <div className="text-center">
         {photoData ? (
           /* eslint-disable-next-line @next/next/no-img-element */
@@ -96,6 +114,10 @@ export function MagazineClient({ looks }: { looks: Array<{ slug: string; title: 
           <option key={l.slug} value={l.slug}>{l.title}</option>
         ))}
       </select>
+      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+        <input type="checkbox" checked={heroFirst} onChange={(e) => setHeroFirst(e.target.checked)} className="h-4 w-4 accent-primary" />
+        Mark the first piece as <em className="font-bold not-italic">the one</em> — it gets a ribbon
+      </label>
       <textarea
         value={note}
         onChange={(e) => setNote(e.target.value)}
@@ -114,6 +136,7 @@ export function MagazineClient({ looks }: { looks: Array<{ slug: string; title: 
       </button>
       {error && <p className="text-center text-xs text-error">{error}</p>}
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+      </div>
     </div>
   );
 }
