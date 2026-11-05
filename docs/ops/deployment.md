@@ -13,12 +13,21 @@
 Migrations are never applied by the deploy pipeline. Rule: **apply the migration to prod before pushing code that selects new columns** (or after pushing only additive reads that tolerate the column's absence).
 
 ```bash
-NEON_DATABASE_URL=<prod url from .env.local — never commit> \
+NEON_DATABASE_URL=<prod url — never commit> \
 DB_MIGRATIONS_DIR=packages/db/drizzle \
 npx tsx packages/db/src/migrate.ts
 ```
 
 `DB_MIGRATIONS_DIR` is required — the runner defaults to `./drizzle` relative to cwd, which is the wrong folder when run from the repo root.
+
+**The API's runtime env lives on the box, not in the repo.** The pm2 process (`onpoint-agent-server`, cwd `/opt/onpoint`) loads `NEON_DATABASE_URL` from `/opt/onpoint/apps/api/.env` (and `/opt/onpoint/.env`), which points at a **different Neon database** than the repo's local `.env`/`.env.local`. Always apply migrations against the box env:
+
+```bash
+ssh snel-bot 'NEON=$(grep "^NEON_DATABASE_URL" /opt/onpoint/apps/api/.env | cut -d= -f2- | tr -d "\""); \
+psql "$NEON" -f -' < packages/db/migrations/<file>.sql
+```
+
+**Incident record (2026-11-05):** the gift-claim migration applied cleanly against the *local* `.env` DB, but the API's orders table (on the box DB) lacked `claim_token` — every `/api/gift/*` lookup 500'd until the same `ALTER TABLE` ran against `/opt/onpoint` env. Same class of bug as 0011; the fix is the box-env rule above.
 
 **Incident record (2026-11-03):** migration `0011_listing_attributes` (nullable jsonb `listings.attributes`) was pushed before being applied, causing HTTP 500 on storefront/looks/outfit responses that selected the column. Resolved by applying it the same day; the prod migration ledger now ends at 0011.
 

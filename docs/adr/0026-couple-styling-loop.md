@@ -1,6 +1,6 @@
 # ADR 0026: Couple styling ("couple goals") — viral loop spec
 
-- Status: **Proposed**
+- Status: **Implemented** (2026-11-05) — `POST /api/couple/render`, `GET /api/couple/card/:id`, `couple_cards` table, `/couple` + `/c/{id}` + `/cards` feed. v1 uses the deterministic sharp composite (fallback path), not paired-subject generative render.
 - Date: 2026-11-05
 - Extends: ADR 0025 (try-on invite + gift claim)
 

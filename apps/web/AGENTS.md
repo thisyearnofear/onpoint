@@ -35,7 +35,11 @@ Use `npm run check-types` for the frontend typecheck.
 Every surface is one funnel: **try on → get styled/judged → share artifact → purchase**. A feature is coherent only if it produces a try-on, a purchase, or a share artifact — otherwise it's a strand.
 
 - **New surface ≠ new loop.** Features enter through an existing entry point, reuse shipped primitives (render, polaroid/share card, signed token, gift claim, earnings ledger), and exit to purchase. If a feature needs new machinery *and* a new entry point, park it — that's a Frankenstein limb.
-- **Build order for the social layer (ADR 0025/0026):** try-on invites (shipped, `/try/{token}`) → gift claim → couple cards. Don't widen the top of the loop before the purchase closer exists.
-- **Entry-point budget:** primary nav stays at 3 items (Looks, Runway, Fitting room). New flows enter via share links and cards, not new tabs. When a surface doesn't fit the consumer ICP, move it to `/admin` or cut it (precedent: Market Intel → `/admin/intel`).
+- **Build order for the social layer (ADR 0025/0026):** shipped end-to-end — invites (`/try/{token}`) → gift claim (`/gift/{token}`) → couple cards (`/c/{id}`, `/cards`) → wishlists (`/w/{id}`). Every hop logs a funnel event.
+- **Entry-point budget:** primary nav stays at 4 places — Wardrobe, Runway, Fitting room, Shop. New flows enter via share links and cards, not new tabs. When a surface doesn't fit the consumer ICP, move it to `/admin` or cut it (precedent: Market Intel → `/admin/intel`).
+- **Brochures vs tools:** marketing content ("what we solve", streak counters, G$ unlock ads) belongs on brochure surfaces (`/about`, `/curator`, `/s/{slug}`) — never inside a tool flow. Precedent: lab "Home" dashboard deleted; G$ streak card pulled from the persona picker.
+- **Recipient surfaces pattern:** `/try/{token}`, `/gift/{token}`, `/c/{id}`, `/w/{id}` — unguessable-id public pages, no account, no price, one artifact + next-action CTAs that hand off (never dead-end). New relational surfaces follow this shape.
+- **Carry-forward:** surfaces pass context via `?from=&item=&persona=` deep links into the lab; results always offer the next loop (Get it / Try it on / Save / Send it), not a dead end.
+- **Upstream auth:** web proxies that call keyed API endpoints (`/api/ai/*`) must send `x-api-key: process.env.VENICE_API_KEY` — the key lives in fly secrets. Missing it silently 401s (the invite-render incident).
 - **Web/API boundary:** web-side UX tokens (invites, cards) may be stateless, but their artifacts must resolve through the API's own objects (render, order, claim). Don't fork the data model.
-- **Known duplicates to fix, not extend:** `/shop` vs lab `ShopPanel`, `/looks` vs lab `My Looks` — one verb should have one home.
+- **Resolved duplicates:** `/shop` is the only shop verb (lab `ShopPanel` deleted; `?tab=shop` redirects); lab "Saved" is try-on results, `/looks` is the composer — different verbs, honest names.

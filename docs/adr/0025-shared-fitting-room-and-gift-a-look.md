@@ -1,6 +1,6 @@
 # ADR 0025: Shared fitting room and Gift-a-look — specs on existing rails
 
-- Status: **Proposed**
+- Status: **Implemented** (2026-11-05) — `POST /api/try-on/invite` → `/try/{token}`; `POST /api/curator/{slug}/order` + `gift` block → `claimUrl`; `GET|POST /api/gift/{token}`; web pages `/try/{token}`, `/gift/{token}`. Note: invites are stateless HMAC tokens (no table yet); invite prepay is unwired; `status: 'pending'` on gift orders rather than `pending_claim`.
 - Date: 2026-11-05
 - Context: The product treats try-on as a solo utility. The strongest observed
   ICP is *relational*: one person has the photo and the body (her), another has
