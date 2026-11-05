@@ -10,7 +10,6 @@ import {
   LayoutDashboard,
   ShoppingBag,
   User,
-  Radar,
   Grid,
   X,
 } from "lucide-react";
@@ -42,15 +41,14 @@ const MyLooksPanel = dynamic(() => import("./MyLooksPanel").then((m) => m.MyLook
 // They are retained in the codebase for Phase 2 demand-side discovery rewiring
 // but unwired from the Lab UI per "agent layer becomes infrastructure, not the hero" (ADR 0002).
 const SettingsPanel = dynamic(() => import("./SettingsPanel").then((m) => m.SettingsPanel), { loading: PanelLoading });
-const MarketIntelPanel = dynamic(() => import("./MarketIntelPanel").then((m) => m.MarketIntelPanel), { loading: PanelLoading });
 // CommunityPanel import removed — quarantined per ADR 0014 (demand-side discovery, pending Phase 2 rewiring).
 import { DashboardTooltips } from "./DashboardTooltips";
 
-type AppMode = "dashboard" | "my-looks" | "try-on" | "stylist" | "shop" | "intel" | "settings";
+type AppMode = "dashboard" | "my-looks" | "try-on" | "stylist" | "shop" | "settings";
 
 // All valid modes (for URL param validation). Module scope so the effect below
 // reads a stable reference — the array literal never re-triggers the effect.
-const ALL_MODES: AppMode[] = ["dashboard", "my-looks", "try-on", "stylist", "shop", "intel", "settings"];
+const ALL_MODES: AppMode[] = ["dashboard", "my-looks", "try-on", "stylist", "shop", "settings"];
 
 interface TacticalDashboardProps {
   onBack?: () => void;
@@ -108,7 +106,6 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
   const moreNavItems = [
     { id: "stylist" as AppMode, label: "Stylist", icon: MessageCircle, mobileOnly: true },
     { id: "my-looks" as AppMode, label: "My Looks", icon: Palette, mobileOnly: true },
-    { id: "intel" as AppMode, label: "Market Intel", icon: Radar, mobileOnly: false },
     { id: "settings" as AppMode, label: "Settings", icon: User, mobileOnly: false },
   ];
 
@@ -126,7 +123,6 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
       onDismissDeepLink={() => setDeepLinkContext(null)}
     />,
     stylist: () => <StylistPanel />,
-    intel: () => <MarketIntelPanel />,
     shop: () => (
       <ShopPanel
         onTryOn={(item?: FashionItem) => {
@@ -186,7 +182,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
               <button
                 onClick={() => setMoreOpen(true)}
                 className={`flex items-center gap-2 border-b-2 px-4 py-3 whitespace-nowrap transition-colors ${
-                  mode === "intel" || mode === "settings"
+                  mode === "settings"
                     ? "border-primary text-foreground font-semibold"
                     : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}

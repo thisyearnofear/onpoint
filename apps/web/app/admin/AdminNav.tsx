@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, LayoutDashboard, Store } from "lucide-react";
+import { BarChart3, LayoutDashboard, Radar, Store } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/admin/analytics", icon: BarChart3, label: "Analytics" },
+  { href: "/admin/intel", icon: Radar, label: "Market Intel" },
   { href: "/admin/curators", icon: Store, label: "Curators" },
 ];
 
