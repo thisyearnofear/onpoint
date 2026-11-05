@@ -19,7 +19,6 @@ import { useUserPreferences } from "../hooks/useUserPreferences";
 import { useMissionState } from "../hooks/use-mission-state";
 import { useGStreak } from "../lib/hooks/use-g-streak";
 import { useGSessionPayment } from "../lib/hooks/use-g-session-payment";
-import { GStreakPill } from "./Curator/GStreakPill";
 import { SafeImage } from "./SafeImage";
 import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import type { TryOnSelection } from "../lib/utils/try-on-selection";
@@ -1104,16 +1103,6 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                               );
                             })}
                           </div>
-                          {!isPremium && (
-                            <p className="mt-2 text-xs text-muted-foreground/80">
-                              No G$ yet? Claim free daily G$ below — no card needed.
-                            </p>
-                          )}
-                        </div>
-
-                        {/* G$ Style Streak — the loop surface */}
-                        <div className="mb-4">
-                          <GStreakPill />
                         </div>
 
                         {/* G$ per-session payment confirm */}
