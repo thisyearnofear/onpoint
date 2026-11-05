@@ -22,8 +22,13 @@ export default async function CardsPage() {
         <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-primary">Fresh off the board</p>
         <h1 className="mt-3 font-display text-4xl leading-[1.05] tracking-[-0.02em] sm:text-5xl">Couple cards.</h1>
         <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-          {cards.map((c) => (
-            <Link key={c.id} href={`/c/${c.id}`} className="group border border-border bg-card transition-colors hover:border-foreground">
+          {cards.map((c, i) => (
+            <Link
+              key={c.id}
+              href={`/c/${c.id}`}
+              style={{ animationDelay: `${Math.min(i, 12) * 50}ms` }}
+              className="fade-up group border border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:border-foreground hover:shadow-md"
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={c.cardUrl} alt={c.theme || "Couple card"} className="w-full object-cover" loading="lazy" />
               <span className="block border-t border-border px-3 py-2 text-xs font-bold text-foreground/80 group-hover:text-foreground">

@@ -48,7 +48,7 @@ export function CoupleClient({ looks }: { looks: LookOption[] }) {
 
   if (result) {
     return (
-      <div className="border border-border bg-card p-6 text-center">
+      <div className="card-reveal border border-border bg-card p-6 text-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={result.cardUrl} alt="Your couple goals card" className="mx-auto max-h-[520px] border border-border object-contain" />
         <a

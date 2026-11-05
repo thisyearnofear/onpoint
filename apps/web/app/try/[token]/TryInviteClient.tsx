@@ -70,7 +70,7 @@ export function TryInviteClient({
 
   if (resultUrl) {
     return (
-      <div className="border border-border bg-card p-6 text-center">
+      <div className="card-reveal border border-border bg-card p-6 text-center">
         <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-primary">Your look</p>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={resultUrl} alt="Your try-on result" className="mx-auto mt-4 max-h-[420px] border border-border object-contain" />

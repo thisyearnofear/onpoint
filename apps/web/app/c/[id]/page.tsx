@@ -51,7 +51,7 @@ export default async function CoupleCardPage({ params }: { params: Promise<{ id:
           {card.senderName ? `Styled by ${card.senderName}.` : "Styled on OnPoint."}
         </h1>
 
-        <div className="mt-8 border border-border bg-card p-4">
+        <div className="card-reveal mt-8 border border-border bg-card p-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={card.cardUrl} alt={`${card.theme || "Couple goals"} card`} className="w-full object-contain" />
         </div>
