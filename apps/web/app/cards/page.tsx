@@ -18,7 +18,7 @@ async function loadCards(): Promise<Array<{ id: string; cardUrl: string; theme: 
 export default async function CardsPage() {
   const cards = await loadCards();
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-dvh bg-background text-foreground">
       <main className="mx-auto max-w-6xl px-4 pb-20 pt-14 md:pt-20">
         <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-primary">Fresh off the board</p>
         <h1 className="mt-3 font-display text-4xl leading-[1.05] tracking-[-0.02em] sm:text-5xl">Couple cards.</h1>

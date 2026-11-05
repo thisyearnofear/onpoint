@@ -246,7 +246,7 @@ export default function CuratorOnboardPage() {
   if (submitState === "success") {
     return (
       <OnPointLayout footer={false}>
-        <div className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center px-6 py-16 text-center">
+        <div className="mx-auto flex min-h-dvh max-w-lg flex-col items-center justify-center px-6 py-16 text-center">
           <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-success/10">
             <CheckCircle2 className="h-10 w-10 text-success" />
           </div>

@@ -77,9 +77,9 @@ export default async function RunwayResultPage({
   const phoneNumber = await loadPhoneNumber();
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-dvh bg-background text-foreground">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.18),transparent_65%)]" />
-      <main className="relative mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-8 px-4 py-16">
+      <main className="relative mx-auto flex min-h-dvh max-w-lg flex-col items-center justify-center gap-8 px-4 py-16">
         <p className="text-xs font-medium text-muted-foreground">
           Runway · {result.themeName}
         </p>

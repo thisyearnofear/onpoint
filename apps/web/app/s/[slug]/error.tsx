@@ -16,7 +16,7 @@ export default function CuratorStorefrontError({
   }, [error]);
 
   return (
-    <main className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
+    <main className="min-h-dvh bg-background text-foreground flex items-center justify-center p-6">
       <div className="max-w-md w-full text-center space-y-6">
         <div className="mx-auto w-16 h-16 rounded-2xl bg-rose-500/15 border border-rose-500/25 flex items-center justify-center">
           <AlertCircle className="w-8 h-8 text-rose-400" />

@@ -135,7 +135,7 @@ export function MagazineClient({ looks, replyTo }: { looks: Array<{ slug: string
         {busy ? "Setting the pages…" : "Make the issue"}
       </button>
       {error && <p className="text-center text-xs text-error">{error}</p>}
-      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+      <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onFile} />
       </div>
     </div>
   );

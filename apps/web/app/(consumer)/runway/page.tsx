@@ -42,7 +42,7 @@ export default async function RunwayPage() {
   const themeId = today?.theme.id;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-dvh bg-background text-foreground">
       <main className="mx-auto max-w-6xl px-4 pb-24 pt-14 md:pt-20">
         <div className="grid items-start gap-10 lg:grid-cols-[3fr_2fr]">
           <div>

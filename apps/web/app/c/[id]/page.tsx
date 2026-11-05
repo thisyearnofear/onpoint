@@ -67,7 +67,7 @@ export default async function CoupleCardPage({ params }: { params: Promise<{ id:
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-dvh bg-background text-foreground">
       <RecordSeen entry={{ kind: "card", title: card.theme || "Couple goals", href: `/c/${id}` }} />
       <main className="mx-auto max-w-xl px-4 pb-20 pt-14 md:pt-20">
         <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-primary">

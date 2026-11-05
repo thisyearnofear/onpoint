@@ -51,7 +51,7 @@ export function Flipbook({ mag }: { mag: MagazineData }) {
           </p>
           <div className="grid flex-1 grid-rows-2 gap-4 py-4">
             {pair.map((item) => (
-              <div key={item.listingId} className="relative flex min-h-0 items-center gap-4 border border-border p-4">
+              <div key={item.listingId} className="relative flex min-h-0 items-center gap-3 border border-border p-3 sm:gap-4 sm:p-4">
                 {item.listingId === mag.heroListingId && (
                   <span className="absolute -top-2 right-3 border border-primary/40 bg-primary px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-white">
                     Picked for you
@@ -59,9 +59,9 @@ export function Flipbook({ mag }: { mag: MagazineData }) {
                 )}
                 {item.imageUrl ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={item.imageUrl} alt={item.title || "Piece"} className="h-20 w-20 shrink-0 border border-border object-cover" />
+                  <img src={item.imageUrl} alt={item.title || "Piece"} className="h-16 w-16 shrink-0 border border-border object-cover sm:h-20 sm:w-20" />
                 ) : (
-                  <div className="h-20 w-20 shrink-0 border border-border bg-muted" />
+                  <div className="h-16 w-16 shrink-0 border border-border bg-muted sm:h-20 sm:w-20" />
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-bold text-foreground">{item.title || "The piece"}</p>
@@ -129,7 +129,7 @@ export function Flipbook({ mag }: { mag: MagazineData }) {
   }, [flip]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-muted/30 px-4 py-10">
+    <div className="flex min-h-dvh flex-col items-center justify-center bg-muted/30 px-4 py-10">
       <div className="w-full max-w-md" style={{ perspective: "1600px" }}>
         <div
           className="relative aspect-[3/4] w-full overflow-hidden rounded-sm border border-border shadow-2xl shadow-black/20"

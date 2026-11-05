@@ -35,7 +35,7 @@ export default async function TryInvitePage({ params }: { params: Promise<{ toke
   const invite = verifyInviteToken(token);
   if (!invite) {
     return (
-      <div className="min-h-screen bg-background text-foreground">
+      <div className="min-h-dvh bg-background text-foreground">
         <main className="mx-auto max-w-xl px-4 pb-20 pt-24 text-center md:pt-32">
           <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-primary">That link ran out</p>
           <h1 className="mt-3 font-display text-4xl leading-[1.05] tracking-[-0.02em] sm:text-5xl">
@@ -58,7 +58,7 @@ export default async function TryInvitePage({ params }: { params: Promise<{ toke
   const listing = await loadListing(invite.curatorSlug, invite.listingId);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-dvh bg-background text-foreground">
       <main className="mx-auto max-w-xl px-4 pb-20 pt-14 md:pt-20">
         <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-primary">
           Picked for you

@@ -83,7 +83,7 @@ export function MuseSwap({
         <span className="sr-only"> — stays on this device</span>
       </button>
       {error && <span className="text-[10px] text-red-300">{error}</span>}
-      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+      <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onFile} />
     </span>
   );
 }

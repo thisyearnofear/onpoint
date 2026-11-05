@@ -34,7 +34,7 @@ export default async function GiftPage({ params }: { params: Promise<{ token: st
   if (!gift) notFound();
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-dvh bg-background text-foreground">
       <main className="mx-auto max-w-xl px-4 pb-20 pt-14 md:pt-20">
         <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-primary">
           A gift for you
