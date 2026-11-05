@@ -31,6 +31,7 @@ describe("shared nav model", () => {
       "/:Looks",
       "/runway:Runway",
       "/lab?tab=try-on:Fitting room",
+      "/shop:Shop",
     ]);
   });
 

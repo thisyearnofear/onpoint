@@ -14,7 +14,6 @@ vi.mock("../AttestationBadge", () => ({ AttestationBadge: () => null }));
 vi.mock("../EnhancedConnectButton", () => ({ EnhancedConnectButton: () => null }));
 vi.mock("../Dashboard/TryOnPanel", () => ({ TryOnPanel: () => <div>try-on panel</div> }));
 vi.mock("../Dashboard/StylistPanel", () => ({ StylistPanel: () => null }));
-vi.mock("../Dashboard/ShopPanel", () => ({ ShopPanel: () => <div>shop panel</div> }));
 vi.mock("../Dashboard/HomePanel", () => ({ HomePanel: () => <div>home panel</div> }));
 vi.mock("../Dashboard/MyLooksPanel", () => ({ MyLooksPanel: () => null }));
 vi.mock("../Dashboard/SettingsPanel", () => ({ SettingsPanel: () => null }));
@@ -23,7 +22,10 @@ vi.mock("../Dashboard/MarketIntelPanel", () => ({ MarketIntelPanel: () => null }
 let mockSearch = "";
 let cachedSearch = "";
 let cachedParams = new URLSearchParams();
+const mockPush = vi.fn();
+const mockReplace = vi.fn();
 vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
   useSearchParams: () => {
     const search = mockSearch || window.location.search;
     if (search !== cachedSearch) {
@@ -65,13 +67,11 @@ describe("TacticalDashboard onboarding gating", () => {
     window.history.replaceState(null, "", "/lab");
     const view = render(<TacticalDashboard />);
     fireEvent.click(screen.getAllByRole("button", { name: /^Shop$/i })[0]);
-    await waitFor(() => expect(screen.getByText("shop panel")).toBeTruthy());
-    expect(screen.queryByText("try-on panel")).toBeNull();
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/shop"));
 
     mockSearch = "?tab=try-on";
     view.rerender(<TacticalDashboard />);
 
     await waitFor(() => expect(screen.getByText("try-on panel")).toBeTruthy());
-    expect(screen.queryByText("shop panel")).toBeNull();
   });
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, type ReactNode } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 // framer-motion removed — using CSS transitions instead
 import {
   Palette,
@@ -17,12 +17,6 @@ import { NotificationBell } from "../NotificationBell";
 import { AgentWalletBadge } from "../AgentWalletBadge";
 import { AttestationBadge } from "../AttestationBadge";
 import { EnhancedConnectButton } from "../EnhancedConnectButton";
-import type { FashionItem } from "@onpoint/shared-types";
-import {
-  fashionItemToTryOnSelection,
-  setPendingTryOnSelection,
-} from "../../lib/utils/try-on-selection";
-
 import dynamic from "next/dynamic";
 import { TryOnPanel } from "./TryOnPanel";
 import { NewUserOnboarding } from "./NewUserOnboarding";
@@ -34,7 +28,6 @@ const PanelLoading = () => (
   </div>
 );
 const StylistPanel = dynamic(() => import("./StylistPanel").then((m) => m.StylistPanel), { loading: PanelLoading });
-const ShopPanel = dynamic(() => import("./ShopPanel").then((m) => m.ShopPanel), { loading: PanelLoading });
 const HomePanel = dynamic(() => import("./HomePanel").then((m) => m.HomePanel), { loading: PanelLoading });
 const MyLooksPanel = dynamic(() => import("./MyLooksPanel").then((m) => m.MyLooksPanel), { loading: PanelLoading });
 // DesignPanel and CommunityPanel are quarantined (ADR 0014).
@@ -56,6 +49,7 @@ interface TacticalDashboardProps {
 
 export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
   // Default to try-on (fit rail). URL ?tab= still deep-links power surfaces.
+  const router = useRouter();
   const [mode, setMode] = useState<AppMode>("try-on");
 
   // Deep-link context from storefront or external pages
@@ -73,6 +67,11 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
     const item = searchParams.get("item") || undefined;
     const persona = searchParams.get("persona") || undefined;
 
+    if (tab === "shop") {
+      // The shop verb has one home: /shop. Old ?tab=shop links forward there.
+      router.replace("/shop");
+      return;
+    }
     if (tab && ALL_MODES.includes(tab)) {
       setMode(tab);
       if (from || item || persona) {
@@ -96,7 +95,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
     { id: "try-on" as AppMode, label: "Try On", icon: Camera },
     { id: "shop" as AppMode, label: "Shop", icon: ShoppingBag },
     { id: "stylist" as AppMode, label: "Stylist", icon: MessageCircle },
-    { id: "my-looks" as AppMode, label: "My Looks", icon: Palette },
+    { id: "my-looks" as AppMode, label: "Saved", icon: Palette },
     { id: "dashboard" as AppMode, label: "Home", icon: LayoutDashboard },
   ];
 
@@ -105,7 +104,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
   // bottom-nav slot; desktop hides them because they're in the tab bar).
   const moreNavItems = [
     { id: "stylist" as AppMode, label: "Stylist", icon: MessageCircle, mobileOnly: true },
-    { id: "my-looks" as AppMode, label: "My Looks", icon: Palette, mobileOnly: true },
+    { id: "my-looks" as AppMode, label: "Saved", icon: Palette, mobileOnly: true },
     { id: "settings" as AppMode, label: "Settings", icon: User, mobileOnly: false },
   ];
 
@@ -113,7 +112,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
   const moreSheetRef = useModalA11y<HTMLDivElement>(moreOpen, () => setMoreOpen(false));
 
   // Route map — each mode maps to its content factory
-  const contentMap: Record<AppMode, () => ReactNode> = {
+  const contentMap: Partial<Record<AppMode, () => ReactNode>> = {
     dashboard: () => <HomePanel onNavigate={(m) => setMode(m as AppMode)} />,
     "my-looks": () => <MyLooksPanel onNavigate={(m) => setMode(m as AppMode)} />,
     "try-on": () => <TryOnPanel
@@ -123,22 +122,16 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
       onDismissDeepLink={() => setDeepLinkContext(null)}
     />,
     stylist: () => <StylistPanel />,
-    shop: () => (
-      <ShopPanel
-        onTryOn={(item?: FashionItem) => {
-          if (item) {
-            setPendingTryOnSelection(fashionItemToTryOnSelection(item));
-          }
-          setMode("try-on");
-        }}
-      />
-    ),
     settings: () => <SettingsPanel />,
   };
 
-  const renderContent = () => contentMap[mode]();
+  const renderContent = () => (contentMap[mode] ?? contentMap["try-on"] ?? (() => null))();
 
   const navigateTo = (id: AppMode) => {
+    if (id === "shop") {
+      router.push("/shop");
+      return;
+    }
     setMode(id);
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
