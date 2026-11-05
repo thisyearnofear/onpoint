@@ -3,6 +3,27 @@
 import React, { useRef, useState } from "react";
 import { Camera, Loader2 } from "lucide-react";
 
+function CaptureOptIn({ source }: { source: string }) {
+  const [value, setValue] = useState("");
+  const [done, setDone] = useState(false);
+  const submit = async () => {
+    const channel = value.includes("@") ? "email" : "whatsapp";
+    if (!value.trim()) return;
+    const res = await fetch("/api/loop/capture", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ channel, contact: value, source }) });
+    if (res.ok) setDone(true);
+  };
+  if (done) return <p className="mt-3 text-xs font-bold text-success">We&apos;ll send it to you.</p>;
+  return (
+    <div className="mt-4 border-t border-border pt-4">
+      <p className="text-xs text-muted-foreground">Get this render by WhatsApp or email:</p>
+      <div className="mt-2 flex gap-2">
+        <input value={value} onChange={(e) => setValue(e.target.value)} placeholder="+254… or you@mail.com" className="min-w-0 flex-1 border border-border bg-background px-3 py-2 text-xs outline-none focus:border-foreground" />
+        <button type="button" onClick={() => void submit()} className="shrink-0 border border-border px-4 text-xs font-bold text-foreground hover:border-foreground">Send</button>
+      </div>
+    </div>
+  );
+}
+
 export function TryInviteClient({
   token,
   listingImageUrl,
@@ -39,6 +60,7 @@ export function TryInviteClient({
       const url =
         data?.polaroid?.webUrl || data?.polaroid?.imageUrl || data?.renderUrl || data?.imageUrl || data?.url;
       setResultUrl(url || null);
+      fetch("/api/loop/event", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "invite_rendered", meta: { token: token.slice(0, 16) } }) }).catch(() => undefined);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -53,6 +75,7 @@ export function TryInviteClient({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={resultUrl} alt="Your try-on result" className="mx-auto mt-4 max-h-[420px] border border-border object-contain" />
         <p className="mt-4 text-xs text-muted-foreground">Your photo was styled and discarded — never stored.</p>
+        <CaptureOptIn source="try-invite" />
       </div>
     );
   }

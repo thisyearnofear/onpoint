@@ -15,6 +15,7 @@ const { eq, isNull, and } = require('drizzle-orm');
 const { orders, listings } = require('@repo/db');
 const { getDb } = require('../lib/db');
 const { keyToUrl } = require('../lib/r2');
+const { logFunnelEvent } = require('../lib/funnel');
 const logger = require('../lib/logger');
 
 const router = express.Router();
@@ -44,6 +45,7 @@ router.get('/:token', async (req, res) => {
     const db = getDb();
     const [row] = await db.select().from(orders).where(eq(orders.claimToken, token)).limit(1);
     if (!row) return res.status(404).json({ error: 'gift not found' });
+    await logFunnelEvent(db, { eventType: 'gift_opened', source: 'web', metadata: { claimed: Boolean(row.claimedAt) } });
     const [listing] = row.listingId
       ? await db.select().from(listings).where(eq(listings.id, row.listingId)).limit(1)
       : [null];
@@ -77,6 +79,7 @@ router.post('/:token', async (req, res) => {
     const [existing] = await db.select().from(orders).where(eq(orders.claimToken, token)).limit(1);
     return res.status(existing ? 410 : 404).json({ error: existing ? 'already claimed' : 'gift not found' });
   }
+  await logFunnelEvent(db, { eventType: 'gift_claimed', source: 'web', metadata: {} });
   logger.info('gift order claimed', { orderId: updated[0].id });
   res.json({ claimed: true });
 });

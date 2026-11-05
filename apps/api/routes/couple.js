@@ -15,6 +15,7 @@ const { coupleCards, agentLooks, listings } = require('@repo/db');
 const { getDb } = require('../lib/db');
 const { keyToUrl } = require('../lib/r2');
 const { composeCoupleCard } = require('../lib/image-composite');
+const { logFunnelEvent } = require('../lib/funnel');
 const logger = require('../lib/logger');
 
 const router = express.Router();
@@ -67,6 +68,7 @@ router.post('/render', async (req, res) => {
       .values({ r2Key, cardUrl: url, theme: theme || lookTitle || null, senderName: senderName || null, items })
       .returning({ id: coupleCards.id });
 
+    await logFunnelEvent(db, { eventType: 'couple_card_created', source: 'web', metadata: { cardId: card.id } });
     const base = process.env.WEB_BASE_URL || 'https://onpoint.trustfall.xyz';
     res.json({ id: card.id, cardUrl: url, pageUrl: `${base}/c/${card.id}`, items });
   } catch (err) {
@@ -82,6 +84,7 @@ router.get('/card/:id', async (req, res) => {
     const db = getDb();
     const [row] = await db.select().from(coupleCards).where(eq(coupleCards.id, id)).limit(1);
     if (!row) return res.status(404).json({ error: 'card not found' });
+    await logFunnelEvent(db, { eventType: 'couple_card_viewed', source: 'web', metadata: { cardId: row.id } });
     res.json({
       id: row.id,
       cardUrl: row.cardUrl,
