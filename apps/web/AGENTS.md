@@ -29,3 +29,13 @@ Use `npm run check-types` for the frontend typecheck.
 - **Root `Providers` (`app/providers.tsx`) is wallet-free by design.** It holds SWRConfig, Auth0Provider, QueryClientProvider, MiniAppProvider (must stay global — it fires `sdk.actions.ready()` for Farcaster splash), StyleProvider, Toaster, ViewTransitionProvider.
 - **Wallet stack is route-scoped.** wagmi/RainbowKit/MiniPay live in `app/wallet-providers.tsx` (`WalletProviders`). A route that calls wagmi/RainbowKit/`useMiniPay` hooks gets them via a `layout.tsx` in its own directory wrapping `<WalletProviders>` — currently `app/(consumer)/lab/layout.tsx` and `app/curator/onboard/layout.tsx`. Do not re-add wagmi to root Providers; do not call wallet hooks on public routes — they will throw outside `WalletProviders`.
 - Dead provider note: `@repo/ai-client`'s `AIProviderContext` was removed (zero consumers; `useAIClient` falls back to a mock).
+
+## Product coherence (2026-11-05)
+
+Every surface is one funnel: **try on → get styled/judged → share artifact → purchase**. A feature is coherent only if it produces a try-on, a purchase, or a share artifact — otherwise it's a strand.
+
+- **New surface ≠ new loop.** Features enter through an existing entry point, reuse shipped primitives (render, polaroid/share card, signed token, gift claim, earnings ledger), and exit to purchase. If a feature needs new machinery *and* a new entry point, park it — that's a Frankenstein limb.
+- **Build order for the social layer (ADR 0025/0026):** try-on invites (shipped, `/try/{token}`) → gift claim → couple cards. Don't widen the top of the loop before the purchase closer exists.
+- **Entry-point budget:** primary nav stays at 3 items (Looks, Runway, Fitting room). New flows enter via share links and cards, not new tabs. When a surface doesn't fit the consumer ICP, move it to `/admin` or cut it (precedent: Market Intel → `/admin/intel`).
+- **Web/API boundary:** web-side UX tokens (invites, cards) may be stateless, but their artifacts must resolve through the API's own objects (render, order, claim). Don't fork the data model.
+- **Known duplicates to fix, not extend:** `/shop` vs lab `ShopPanel`, `/looks` vs lab `My Looks` — one verb should have one home.
