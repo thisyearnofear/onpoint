@@ -43,12 +43,13 @@ const ALL_MODES: AppMode[] = ["my-looks", "try-on", "stylist", "shop", "settings
 
 interface TacticalDashboardProps {
   onBack?: () => void;
+  initialMode?: string;
 }
 
-export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
+export function TacticalDashboard({ onBack: _onBack, initialMode }: TacticalDashboardProps) {
   // Default to try-on (fit rail). URL ?tab= still deep-links power surfaces.
   const router = useRouter();
-  const [mode, setMode] = useState<AppMode>("try-on");
+  const [mode, setMode] = useState<AppMode>((initialMode as AppMode) || "try-on");
 
   // Deep-link context from storefront or external pages
   const [deepLinkContext, setDeepLinkContext] = React.useState<{
@@ -135,9 +136,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
     }
     setMode(id);
     if (typeof window !== "undefined") {
-      const url = new URL(window.location.href);
-      url.searchParams.set("tab", id);
-      window.history.replaceState(null, "", url.toString());
+      window.history.replaceState(null, "", `/lab/${id === "my-looks" ? "saved" : id}`);
     }
   };
 

@@ -30,7 +30,7 @@ describe("shared nav model", () => {
     expect(PRIMARY_NAV.map((i) => `${i.href}:${i.label}`)).toEqual([
       "/:Wardrobe",
       "/runway:Runway",
-      "/lab?tab=try-on:Fitting room",
+      "/lab/try-on:Fitting room",
       "/shop:Shop",
     ]);
   });
@@ -42,7 +42,7 @@ describe("shared nav model", () => {
     expect(isNavActive("/runway", "/runway/play")).toBe(true);
     expect(isNavActive("/runway", "/runway/r/abc")).toBe(true);
     expect(isNavActive("/style-board", "/")).toBe(false);
-    expect(isNavActive("/lab?tab=try-on", "/lab")).toBe(true);
+    expect(isNavActive("/lab/try-on", "/lab")).toBe(true);
   });
 });
 
