@@ -28,7 +28,7 @@ import { NavigationLink } from "../NavigationLink";
 describe("shared nav model", () => {
   it("primary items are identical for desktop and mobile", () => {
     expect(PRIMARY_NAV.map((i) => `${i.href}:${i.label}`)).toEqual([
-      "/:Looks",
+      "/:Wardrobe",
       "/runway:Runway",
       "/lab?tab=try-on:Fitting room",
       "/shop:Shop",
@@ -48,14 +48,14 @@ describe("shared nav model", () => {
 
 describe("OnPointHeader", () => {
   beforeEach(() => { mockPathname = "/"; });
-  it("renders the three primary links; Runway active on its page", () => {
+  it("renders the primary links; Runway active on its page", () => {
     mockPathname = "/runway/play";
     render(<OnPointHeader />);
     const navs = screen.getAllByRole("navigation", { name: "Primary" });
-    // primary links are first 3 items; More dropdown items follow
+    // primary links lead; More dropdown items follow
     const navLinks = within(navs[0]).getAllByRole("link");
-    const primaryLabels = navLinks.slice(0, 3).map((l) => l.textContent?.trim()).filter(Boolean);
-    expect(primaryLabels).toEqual(["Looks", "Runway", "Fitting room"]);
+    const primaryLabels = navLinks.slice(0, 4).map((l) => l.textContent?.trim()).filter(Boolean);
+    expect(primaryLabels).toEqual(["Wardrobe", "Runway", "Fitting room", "Shop"]);
     expect(within(navs[0]).getByRole("link", { name: "Runway" }).getAttribute("aria-current")).toBe("page");
   });
 
@@ -76,7 +76,7 @@ describe("NavigationLink", () => {
   it("same-path hash links render as native anchors (no router navigation)", () => {
     mockPathname = "/";
     const { container } = render(
-      <NavigationLink href="/" label="Looks">Looks</NavigationLink>,
+      <NavigationLink href="/" label="Wardrobe">Wardrobe</NavigationLink>,
     );
     const a = container.querySelector("a")!;
     expect(a.getAttribute("href")).toBe("/");
@@ -119,7 +119,7 @@ describe("MobileNavigation dialog", () => {
     expect(dialog.getAttribute("open")).not.toBeNull();
     expect(document.body.style.overflow).toBe("hidden");
     expect(dialog.querySelectorAll('a[href="/runway"]').length).toBe(1);
-    expect(within(dialog as HTMLElement).getByRole("link", { name: "Looks" })).toBeTruthy();
+    expect(within(dialog as HTMLElement).getByRole("link", { name: "Wardrobe" })).toBeTruthy();
     fireEvent.click(within(dialog as HTMLElement).getByRole("link", { name: "Runway" }));
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
     expect(document.body.style.overflow).toBe("");

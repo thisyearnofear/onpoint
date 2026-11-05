@@ -4,7 +4,7 @@ export interface NavItem {
 }
 
 export const PRIMARY_NAV: NavItem[] = [
-  { href: "/", label: "Looks" },
+  { href: "/", label: "Wardrobe" },
   { href: "/runway", label: "Runway" },
   { href: "/lab?tab=try-on", label: "Fitting room" },
   { href: "/shop", label: "Shop" },
