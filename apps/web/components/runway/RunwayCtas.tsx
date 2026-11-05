@@ -34,8 +34,25 @@ function QrCard({ href }: { href: string }) {
       <p className="text-sm text-muted-foreground">
         On your iPhone?
         <span className="block font-bold text-foreground">Scan to text the judge.</span>
+        <span className="mt-1 flex items-center gap-1.5 text-xs">
+          <TypingDots /> an AI judge — instant replies, not a person
+        </span>
       </p>
     </div>
+  );
+}
+
+function TypingDots() {
+  return (
+    <span className="inline-flex items-end gap-0.5" aria-hidden>
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="h-1 w-1 rounded-full bg-muted-foreground"
+          style={{ animation: `runway-typing 1.2s ease-in-out ${i * 0.2}s infinite` }}
+        />
+      ))}
+    </span>
   );
 }
 
@@ -43,12 +60,25 @@ function QrCard({ href }: { href: string }) {
  * Adaptive CTAs: iPhone/iPad leads with "Text the judge" (native iMessage);
  * everything else leads with "Play in your browser" + compact QR card below.
  */
-export function RunwayCtas({ phoneNumber, themeId }: { phoneNumber: string; themeId?: string }) {
+export function RunwayCtas({ phoneNumber, themeId }: { phoneNumber?: string; themeId?: string }) {
   const [order, setOrder] = useState<"sms-first" | "web-first" | null>(null);
   useEffect(() => setOrder(runwayCtaOrder(navigator.userAgent)), []);
   const smsBody = `play ${themeId || ""}`.trim();
   const smsHref = `sms:${phoneNumber}?&body=${encodeURIComponent(smsBody)}`;
   const playHref = themeId ? `/runway/play?theme=${themeId}` : "/runway/play";
+
+  // SMS only renders when the API served a live number for today — no
+  // number, no dead channel advertised on the page.
+  if (!phoneNumber) {
+    return (
+      <div className="flex flex-col items-start">
+        <Link href={playHref} className={PRIMARY}>
+          <Play className="h-5 w-5" />
+          {themeId ? "Play today’s theme" : "Play in your browser"}
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-start">

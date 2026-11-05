@@ -57,7 +57,7 @@ export default async function RunwayPage() {
               would have won.
             </p>
             <div className="mt-8">
-              <RunwayCtas phoneNumber={today?.phoneNumber || "+16282646604"} themeId={themeId} />
+              <RunwayCtas phoneNumber={today?.phoneNumber} themeId={themeId} />
             </div>
             <p className="mt-4 text-xs text-muted-foreground">
               Your photo is judged and discarded — never stored.

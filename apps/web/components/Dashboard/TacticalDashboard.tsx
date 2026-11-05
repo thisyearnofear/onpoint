@@ -7,7 +7,6 @@ import {
   Palette,
   Camera,
   MessageCircle,
-  LayoutDashboard,
   ShoppingBag,
   User,
   Grid,
@@ -28,7 +27,6 @@ const PanelLoading = () => (
   </div>
 );
 const StylistPanel = dynamic(() => import("./StylistPanel").then((m) => m.StylistPanel), { loading: PanelLoading });
-const HomePanel = dynamic(() => import("./HomePanel").then((m) => m.HomePanel), { loading: PanelLoading });
 const MyLooksPanel = dynamic(() => import("./MyLooksPanel").then((m) => m.MyLooksPanel), { loading: PanelLoading });
 // DesignPanel and CommunityPanel are quarantined (ADR 0014).
 // They are retained in the codebase for Phase 2 demand-side discovery rewiring
@@ -37,11 +35,11 @@ const SettingsPanel = dynamic(() => import("./SettingsPanel").then((m) => m.Sett
 // CommunityPanel import removed — quarantined per ADR 0014 (demand-side discovery, pending Phase 2 rewiring).
 import { DashboardTooltips } from "./DashboardTooltips";
 
-type AppMode = "dashboard" | "my-looks" | "try-on" | "stylist" | "shop" | "settings";
+type AppMode = "my-looks" | "try-on" | "stylist" | "shop" | "settings";
 
 // All valid modes (for URL param validation). Module scope so the effect below
 // reads a stable reference — the array literal never re-triggers the effect.
-const ALL_MODES: AppMode[] = ["dashboard", "my-looks", "try-on", "stylist", "shop", "settings"];
+const ALL_MODES: AppMode[] = ["my-looks", "try-on", "stylist", "shop", "settings"];
 
 interface TacticalDashboardProps {
   onBack?: () => void;
@@ -62,7 +60,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
   // Listen for URL tab param (e.g. from Connected Accounts nav link or storefront)
   const searchParams = useSearchParams();
   React.useEffect(() => {
-    const tab = searchParams.get("tab") as AppMode | null;
+    const tab = searchParams.get("tab");
     const from = searchParams.get("from") || undefined;
     const item = searchParams.get("item") || undefined;
     const persona = searchParams.get("persona") || undefined;
@@ -72,8 +70,13 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
       router.replace("/shop");
       return;
     }
-    if (tab && ALL_MODES.includes(tab)) {
-      setMode(tab);
+    if (tab === "dashboard") {
+      // The lab has no dashboard mode — try-on is the landing.
+      router.replace("/lab?tab=try-on");
+      return;
+    }
+    if (tab && ALL_MODES.includes(tab as AppMode)) {
+      setMode(tab as AppMode);
       if (from || item || persona) {
         setDeepLinkContext({ from, item, persona });
       }
@@ -96,7 +99,6 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
     { id: "shop" as AppMode, label: "Shop", icon: ShoppingBag },
     { id: "stylist" as AppMode, label: "Stylist", icon: MessageCircle },
     { id: "my-looks" as AppMode, label: "Saved", icon: Palette },
-    { id: "dashboard" as AppMode, label: "Home", icon: LayoutDashboard },
   ];
 
   // Hidden tabs accessible via "More" — only sections not on the primary
@@ -113,7 +115,6 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
 
   // Route map — each mode maps to its content factory
   const contentMap: Partial<Record<AppMode, () => ReactNode>> = {
-    dashboard: () => <HomePanel onNavigate={(m) => setMode(m as AppMode)} />,
     "my-looks": () => <MyLooksPanel onNavigate={(m) => setMode(m as AppMode)} />,
     "try-on": () => <TryOnPanel
       deepLinkFrom={deepLinkContext?.from}
@@ -142,7 +143,7 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
 
   return (
     <>
-      {mode === "dashboard" && (
+      {mode === "try-on" && !deepLinkContext && (
         <>
           <NewUserOnboarding />
           <DashboardTooltips />
@@ -197,15 +198,15 @@ export function TacticalDashboard({ onBack: _onBack }: TacticalDashboardProps) {
       {/* ── Mobile bottom nav (hidden on desktop) ── */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-background/95 backdrop-blur-xl border-t border-border" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
         <div className="flex items-end justify-around h-16 max-w-lg mx-auto">
-          {/* Home */}
+          {/* Saved */}
           <button
-            onClick={() => navigateTo("dashboard")}
+            onClick={() => navigateTo("my-looks")}
             className={`flex flex-col items-center gap-0.5 pt-2 pb-1 px-3 transition-colors ${
-              mode === "dashboard" ? "text-primary" : "text-muted-foreground"
+              mode === "my-looks" ? "text-primary" : "text-muted-foreground"
             }`}
           >
-            <LayoutDashboard className="w-5 h-5" />
-            <span className="text-xs font-medium">Home</span>
+            <Palette className="w-5 h-5" />
+            <span className="text-xs font-medium">Saved</span>
           </button>
 
           {/* Shop */}

@@ -14,7 +14,6 @@ vi.mock("../AttestationBadge", () => ({ AttestationBadge: () => null }));
 vi.mock("../EnhancedConnectButton", () => ({ EnhancedConnectButton: () => null }));
 vi.mock("../Dashboard/TryOnPanel", () => ({ TryOnPanel: () => <div>try-on panel</div> }));
 vi.mock("../Dashboard/StylistPanel", () => ({ StylistPanel: () => null }));
-vi.mock("../Dashboard/HomePanel", () => ({ HomePanel: () => <div>home panel</div> }));
 vi.mock("../Dashboard/MyLooksPanel", () => ({ MyLooksPanel: () => null }));
 vi.mock("../Dashboard/SettingsPanel", () => ({ SettingsPanel: () => null }));
 vi.mock("../Dashboard/MarketIntelPanel", () => ({ MarketIntelPanel: () => null }));
@@ -54,13 +53,13 @@ describe("TacticalDashboard onboarding gating", () => {
     expect(screen.getByText("try-on panel")).toBeTruthy();
   });
 
-  it("mounts onboarding + tooltips only in dashboard mode", () => {
+  it("mounts onboarding + tooltips on the try-on landing only", () => {
     window.history.replaceState(null, "", "/lab");
     render(<TacticalDashboard />);
-    expect(screen.queryByTestId("onboarding")).toBeNull();
-    fireEvent.click(screen.getAllByRole("button", { name: /^Home$/i })[0]);
     expect(screen.getByTestId("onboarding")).toBeTruthy();
     expect(screen.getByTestId("tooltips")).toBeTruthy();
+    fireEvent.click(screen.getAllByRole("button", { name: /^Saved$/i })[0]);
+    expect(screen.queryByTestId("onboarding")).toBeNull();
   });
 
   it("returns to Try On when its navigation query changes without remounting", async () => {

@@ -19,7 +19,7 @@ interface TooltipDef {
 }
 
 const TOOLTIPS: TooltipDef[] = [
-  { id: "dashboard", label: "Home", description: "Your dashboard — streak, activity, and quick actions." },
+  { id: "try-on", label: "Try On", description: "The fitting room — upload a photo, get a fit signal." },
   { id: "try-on", label: "Try On", description: "Point your camera or upload a photo to get your outfit scored live." },
   { id: "stylist", label: "Stylist", description: "Chat with your AI stylist for personalized recommendations." },
   { id: "shop", label: "Shop", description: "Curated picks based on your style analysis." },
