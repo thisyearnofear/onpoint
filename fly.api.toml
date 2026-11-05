@@ -32,6 +32,7 @@ primary_region = "fra"
   CURATOR_PAYOUT_KEYS_PATH = "/data/curator-payout-keys.json"
 
 [http_service]
+  processes = ["api"]
   internal_port = 48751
   force_https = true
   auto_stop_machines = "stop"
