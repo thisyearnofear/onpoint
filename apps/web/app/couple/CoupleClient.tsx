@@ -40,7 +40,7 @@ export function CoupleClient({ looks }: { looks: LookOption[] }) {
       if (!res.ok) throw new Error(data?.error || "Render failed");
       setResult({ cardUrl: data.cardUrl, pageUrl: data.pageUrl });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(err instanceof Error ? err.message : "That didn't take — try again.");
     } finally {
       setBusy(false);
     }

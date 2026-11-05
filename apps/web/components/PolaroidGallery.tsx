@@ -306,10 +306,9 @@ function EmptyState({
       >
         <Camera className="w-10 h-10 text-muted-foreground" />
       </motion.div>
-      <h3 className="text-lg font-bold text-foreground mb-2">No looks yet</h3>
+      <h3 className="text-lg font-bold text-foreground mb-2">Your first look is waiting</h3>
       <p className="text-sm text-muted-foreground max-w-xs mb-6">
-        Your style analyses will appear here as a visual collection after your
-        first try-on session.
+        One photo in the fitting room and this becomes your wall — every try-on, kept.
       </p>
       <div className="flex flex-col gap-3 w-full max-w-xs">
         <Button

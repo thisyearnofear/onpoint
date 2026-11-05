@@ -69,7 +69,7 @@ export function TryInviteClient({
       setResultUrl(url || null);
       fetch("/api/loop/event", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "invite_rendered", meta: { token: token.slice(0, 16) } }) }).catch(() => undefined);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(err instanceof Error ? err.message : "That didn't take — try again.");
     } finally {
       setBusy(false);
     }

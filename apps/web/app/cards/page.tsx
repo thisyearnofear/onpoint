@@ -40,7 +40,7 @@ export default async function CardsPage() {
             </Link>
           ))}
         </div>
-        {cards.length === 0 && <p className="mt-10 text-sm text-muted-foreground">No cards yet — be the first.</p>}
+        {cards.length === 0 && <p className="mt-10 text-sm text-muted-foreground">No cards yet. The first one&apos;s yours to make.</p>}
         <div className="mt-10 text-center">
           <Link href="/couple" className="inline-flex min-h-12 items-center rounded-full bg-primary px-8 text-sm font-bold text-white hover:bg-primary/90">Make yours</Link>
         </div>

@@ -45,7 +45,7 @@ export default async function CouplePage() {
             <CoupleClient looks={looks} />
           ) : (
             <div className="border border-border bg-card p-6 text-center text-sm text-muted-foreground">
-              No looks available yet — check back soon.
+              No looks to style with yet — new ones land soon.
             </div>
           )}
         </div>

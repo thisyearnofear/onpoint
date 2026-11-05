@@ -64,7 +64,7 @@ export function MuseSwap({
       }
       onDone(url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(err instanceof Error ? err.message : "That didn't take — try again.");
     } finally {
       setBusy(false);
     }

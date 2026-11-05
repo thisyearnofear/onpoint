@@ -110,7 +110,7 @@ describe("WardrobeWorkspace", () => {
     openGalleryItem("Graphic 02");
     const savedBtns = screen.getAllByRole("button", { name: "Saved" });
     fireEvent.click(savedBtns.find((b) => b.querySelector("svg"))!);
-    expect(screen.getByText(/No saved pieces yet/)).toBeTruthy();
+    expect(screen.getByText(/Nothing saved yet/)).toBeTruthy();
   });
 
   it("notes persist per item and do not auto-save a favorite", () => {
@@ -198,7 +198,7 @@ describe("WardrobeWorkspace", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Saved" }));
     expect(screen.getByText("1 saved")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Search pieces"), { target: { value: "zzz-no-match" } });
-    expect(screen.getByText("No saved pieces match these filters.")).toBeTruthy();
+    expect(screen.getByText("Nothing matches those filters — try widening.")).toBeTruthy();
     expect(screen.getByText("1 saved")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
     expect(screen.getAllByRole("button", { name: "View Navy cardigan + jeans" }).length).toBe(1);
@@ -247,7 +247,7 @@ describe("WardrobeWorkspace", () => {
       window.localStorage.setItem(STORAGE_KEY, raw);
       const { unmount } = render(<WardrobeWorkspace />);
       fireEvent.click(screen.getByRole("tab", { name: "Saved" }));
-      expect(screen.getByText(/No saved pieces yet/)).toBeTruthy();
+      expect(screen.getByText(/Nothing saved yet/)).toBeTruthy();
       unmount();
     }
   });

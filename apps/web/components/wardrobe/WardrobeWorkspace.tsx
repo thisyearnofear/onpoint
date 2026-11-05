@@ -491,16 +491,16 @@ export function WardrobeWorkspace() {
 
             {tab === "saved" && savedIds.length === 0 ? (
               <div className={styles.empty}>
-                <p>No saved pieces yet. Save a garment or look and it will wait here.</p>
+                <p>Nothing saved yet — the pieces you keep will wait for you here.</p>
                 <button type="button" className={`${styles.loadMore} mt-3`} onClick={() => { setTab("all"); clearFilters(); }}>Browse all</button>
               </div>
             ) : savedEmptyFiltered ? (
               <div className={styles.empty}>
-                <p>No saved pieces match these filters.</p>
+                <p>Nothing matches those filters — try widening.</p>
                 <button type="button" className={`${styles.loadMore} mt-3`} onClick={clearFilters}>Clear filters</button>
               </div>
             ) : filtered.length === 0 ? (
-              <p className={styles.empty}>No matching pieces.</p>
+              <p className={styles.empty}>Nothing matches — try widening.</p>
             ) : (
               <div className={styles.gallery} aria-label="Wardrobe items">
                 {visible.map((item) => (
