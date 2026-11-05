@@ -14,6 +14,7 @@ import type { CuratorStorefrontResponse } from "@onpoint/shared-types";
 import { OnPointLayout } from "../../../components/OnPointLayout";
 import { SafeImage } from "../../../components/SafeImage";
 import { SaveItemButton } from "@/components/SaveItemButton";
+import { RecordSeen } from "@/components/RecentlySeen";
 import { CuratorTracker } from "../../../components/CuratorTracker";
 import { CrossCuratorRecommendations } from "../../../components/CrossCuratorRecommendations";
 import { AICuratorSection } from "../../../components/AICuratorSection";
@@ -128,6 +129,7 @@ export default async function CuratorStorefrontPage({
         listingCount={listings.length}
         listings={trackerListings}
       />
+      <RecordSeen entry={{ kind: "shop", title: curator.name, href: `/s/${slug}` }} />
       <OnPointLayout>
       <div
         style={

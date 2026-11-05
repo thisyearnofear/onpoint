@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getApiBase } from "@/lib/utils/api-base";
+import { RecentlySeenStrip } from "@/components/RecentlySeen";
 
 export const metadata: Metadata = { title: "Fresh cards | OnPoint" };
 
@@ -21,6 +22,7 @@ export default async function CardsPage() {
       <main className="mx-auto max-w-6xl px-4 pb-20 pt-14 md:pt-20">
         <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-primary">Fresh off the board</p>
         <h1 className="mt-3 font-display text-4xl leading-[1.05] tracking-[-0.02em] sm:text-5xl">Couple cards.</h1>
+        <RecentlySeenStrip />
         <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
           {cards.map((c, i) => (
             <Link

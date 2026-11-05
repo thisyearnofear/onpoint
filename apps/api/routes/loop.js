@@ -77,4 +77,23 @@ router.get('/cards', async (req, res) => {
   }
 });
 
+// Ops read: recent opt-ins (service-key gated — feeds the send rail).
+router.get('/captures', (req, res, next) => {
+  const serviceKey = process.env.SERVICE_API_KEY;
+  if (serviceKey) {
+    const provided = req.headers['x-service-key'] ?? req.headers['authorization']?.replace('Bearer ', '')?.trim();
+    if (provided !== serviceKey) return res.status(401).json({ error: 'unauthorized' });
+  }
+  return next();
+}, async (req, res) => {
+  try {
+    const db = getDb();
+    const rows = await db.select().from(loopCaptures).orderBy(desc(loopCaptures.createdAt)).limit(200);
+    res.json({ captures: rows });
+  } catch (err) {
+    logger.error('captures read failed', { route: 'loop' }, err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 module.exports = router;
