@@ -769,52 +769,8 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
     <section className="py-4">
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto">
-          {/* Compact mode toggle */}
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-            <div className="flex items-center gap-2">
-              <Button
-                variant={showLiveStylist ? "default" : "outline"}
-                size="sm"
-                onClick={() => setShowLiveStylist(true)}
-                className="rounded-full text-xs"
-              >
-                <Camera className="w-3.5 h-3.5 mr-1" />
-                Live Camera
-              </Button>
-              <Button
-                variant={!showLiveStylist ? "default" : "outline"}
-                size="sm"
-                onClick={() => setShowLiveStylist(false)}
-                className="rounded-full text-xs"
-              >
-                <Upload className="w-3.5 h-3.5 mr-1" />
-                Upload Photo
-              </Button>
-            </div>
-            {/* Selfie / Full body toggle — only relevant in upload mode */}
-            {!showLiveStylist && (
-              <div className="flex items-center gap-1.5 rounded-full border border-border p-0.5">
-                <button
-                  type="button"
-                  onClick={() => setSelfieMode(false)}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                    !selfieMode ? "bg-primary text-white" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Full body
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelfieMode(true)}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                    selfieMode ? "bg-primary text-white" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Selfie
-                </button>
-              </div>
-            )}
-          </div>
+          {/* Mode choice lives inside the tool — the live start screen offers
+              "upload a photo instead", and upload mode links back to camera. */}
 
           {/* Deep-link persona banner — fades out when critique arrives or user dismisses */}
           {initialPersona && (
@@ -837,6 +793,36 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
             </div>
           ) : (
             <div className="animate-fade-in max-w-2xl mx-auto space-y-6">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowLiveStylist(true)}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  Back to live camera
+                </button>
+                <div className="flex items-center gap-1.5 rounded-full border border-border p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setSelfieMode(false)}
+                    className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                      !selfieMode ? "bg-primary text-white" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Full body
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelfieMode(true)}
+                    className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                      selfieMode ? "bg-primary text-white" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Selfie
+                  </button>
+                </div>
+              </div>
                 {/* Selfie mode: show body customizer before/after photo upload */}
                 {selfieMode && (
                   <div className="rounded-xl border border-primary/20 bg-primary/[0.03] p-4">

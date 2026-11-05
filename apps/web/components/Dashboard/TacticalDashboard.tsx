@@ -153,7 +153,7 @@ export function TacticalDashboard({ onBack: _onBack, initialMode }: TacticalDash
       {/* ── Desktop top tab bar (hidden on mobile) ── */}
       <div className="hidden md:block sticky top-16 z-40 bg-background/80 backdrop-blur-md border-b border-border">
         <div className="container mx-auto px-4">
-          <div className="flex items-stretch gap-1 overflow-x-auto no-scrollbar" role="tablist" aria-label="Fitting room sections">
+          <div className="hidden items-stretch gap-1 overflow-x-auto no-scrollbar sm:flex" role="tablist" aria-label="Fitting room sections">
             {desktopNavItems.map((item) => (
               <button
                 key={item.id}
