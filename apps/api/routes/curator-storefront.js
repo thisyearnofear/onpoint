@@ -539,7 +539,8 @@ router.post('/:slug/order', async (req, res) => {
     return res.status(400).json({ error: 'Invalid curator slug' });
   }
 
-  const { listingId, size, paymentTxHash, nearAccountId, nearTxHash, paypalOrderId, agentId, quoteId: clientQuoteId } = req.body || {};
+  const { listingId, size, paymentTxHash, nearAccountId, nearTxHash, paypalOrderId, agentId, quoteId: clientQuoteId, gift } = req.body || {};
+  const giftClaimToken = gift ? require('crypto').randomUUID() : null;
   const quantity = Number(req.body?.quantity ?? 1);
 
   if (!listingId || typeof listingId !== 'string') {
@@ -895,6 +896,9 @@ router.post('/:slug/order', async (req, res) => {
         source: 'agent',
         status: 'pending',
         referralCode: referralCode || null,
+        claimToken: giftClaimToken,
+        giftNote: gift?.note ? String(gift.note).slice(0, 500) : null,
+        recipientName: gift?.recipientName ? String(gift.recipientName).slice(0, 80) : null,
       })
       .onConflictDoNothing({ target: orders.paymentTxHash })
       .returning({ id: orders.id });
@@ -1295,6 +1299,7 @@ router.post('/:slug/order', async (req, res) => {
               : { status: 'pending', to: payoutAddress },
         receiptId,
         receiptUrl: receiptId ? `${webBaseUrl()}/receipt/${receiptId}` : undefined,
+        claimUrl: giftClaimToken ? `${webBaseUrl()}/gift/${giftClaimToken}` : undefined,
         storefrontUrl: storefrontWebUrl(slug),
       },
     });

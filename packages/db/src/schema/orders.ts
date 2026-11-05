@@ -93,6 +93,15 @@ export const orders = pgTable("orders", {
   refundAttempts: integer("refund_attempts").notNull().default(0),
   refundLastError: text("refund_last_error"),
 
+  // Gift claim (ADR 0025) — buyer pays, recipient claims address/size via a
+  // single-use token. Order is "pending_claim" while claimToken is set and
+  // shippingAddress is still null; claim writes the address + clears this.
+  claimToken: text("claim_token").unique(),
+  giftNote: text("gift_note"),
+  recipientName: text("recipient_name"),
+  shippingAddress: text("shipping_address"),
+  claimedAt: timestamp("claimed_at", { withTimezone: true }),
+
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
