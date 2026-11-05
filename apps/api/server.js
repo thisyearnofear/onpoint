@@ -256,6 +256,7 @@ app.use('/api/gift', json1k, generalRateLimit, require('./routes/gift-claim'));
 app.use('/api/couple', json10mb, generalRateLimit, require('./routes/couple'));
 app.use('/api/loop', json1k, generalRateLimit, require('./routes/loop'));
 app.use('/api/wishlist', json1k, generalRateLimit, require('./routes/wishlist'));
+app.use('/api/magazine', json10mb, generalRateLimit, require('./routes/magazine'));
 
 // Wallet — service-key auth (exposes private wallet info)
 app.use('/api/agent/wallet', json1k, serviceKeyAuth, require('./routes/agent-wallet'));
