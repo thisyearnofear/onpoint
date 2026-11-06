@@ -156,6 +156,8 @@ Body: { ... same as above ... }
 
 Response: 201 with the created look (slug, id, etc.)
 
+**Provenance:** `curator`-authed creation writes `provenance: 'curator'`; agent-created looks default to `'studio'` (composed/demo content — rendered "OnPoint studio" in the web app). `partner` is reserved for outbound-routed items.
+
 ### Link an Agent to a Curator Storefront
 
 A curator can link an agent wallet so that agent's looks appear on their storefront page. This is a soft link for attribution and discovery, not authorization.
@@ -171,7 +173,7 @@ A curator can also set this to their own wallet to create looks themselves. UI f
 
 Looks are discoverable through multiple paths:
 
-1. **Storefront response** — `GET /api/curator/{slug}/storefront` now includes a `looks` array with the curator's 10 most recent live looks (slug, title, coverImageUrl, collageUrl, heroImageUrl, tags, metadata, tryOnCount, shareCount, itemCount). Single-call discovery — no separate API call needed.
+1. **Storefront response** — `GET /api/curator/{slug}/storefront` now includes a `looks` array with the curator's 10 most recent live looks (slug, title, coverImageUrl, collageUrl, heroImageUrl, tags, metadata, provenance, tryOnCount, shareCount, itemCount). Single-call discovery — no separate API call needed.
 
 2. **Agent manifest** — `/.well-known/agent.json` lists `"look_composition"` as a capability. Agents reading the manifest know looks exist.
 
