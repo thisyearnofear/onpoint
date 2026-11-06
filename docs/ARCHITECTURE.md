@@ -87,7 +87,7 @@ Three composable layers ([ADR 0002](./adr/0002-curator-primitive.md)):
 | `apps/web/components/AICuratorSection.tsx`                | AI Curator second opinion voices on human storefronts                                                         |
 | `apps/web/components/CrossCuratorRecommendations.tsx`     | Cross-curator product recommendations with attribution tracking                                               |
 | `apps/web/app/curator/onboard/page.tsx`                   | Self-serve Curator onboarding form                                                                            |
-| `apps/web/app/(consumer)/lab/page.tsx`                    | The fitting room — one surface, no mode slugs (`/lab/[mode]` 301s onto its disclosures)                        |
+| `apps/web/app/(consumer)/lab/page.tsx`                    | The fitting room — one surface, no mode slugs (retired ones 308 from the config) |
 | `apps/web/components/OnPointHeader.tsx`                   | The one header row (three places + cart/notifications/auth/theme) and `OnPointFooter`, which `OnPointLayout` mounts |
 | `apps/web/components/home/`                               | `HeroView` — the client island around the wardrobe stage plus the mobile sticky CTA                            |
 | `apps/web/components/Dashboard/TacticalDashboard.tsx`     | The fitting room surface: try-on plus the `#your-try-ons`, `#ask-stylist` and `#settings` disclosures          |

@@ -72,12 +72,13 @@ seven-layer stack, nothing did.
    room plus three disclosures — `#your-try-ons`, `#ask-stylist`, `#settings` — because
    with Shop gone, `Try On` duplicated the header's Fitting room, `Saved` duplicated the
    result's own Save, `Stylist` was a way to choose, and `Settings` was not a consumer
-   destination. Retired `/lab/{mode}` URLs 301 onto the disclosure they used to open.
+   destination. Retired `/lab/{mode}` URLs answer a 308 onto the disclosure they used to
+   open — from the config table, per clause 7.
    Agent-security surfaces (`FraudMonitor`, the agent-security disclosure) moved to the
    `ADMIN_EMAILS`-gated `/admin`, per the budget rule's own instruction: when a surface
    doesn't fit the consumer ICP, move it or cut it.
 
-6. **`/looks` folded into the wardrobe's outfits tab,** with a query-preserving `301`,
+6. **`/looks` folded into the wardrobe's outfits tab,** with a query-preserving `308`,
    after the tab was made to show **real** looks (`e5d948c`) — not the studio's prepared
    outfit references, which `FEATURES.md` had been describing as "the full look catalog"
    while the catalog lived on another route.
@@ -89,15 +90,21 @@ seven-layer stack, nothing did.
    API-breaking change, and the fold is safe only because the redirect preserves every
    param and the outfits tab still resolves `pick`.
 
-7. **Retired URLs get a permanent redirect, by the mechanism that actually produces one.**
-   A route the sitemap published gets a 308; a route nobody could link to gets deleted
-   instead (all of Stage 1's dead components, `LabModeClient`, `DashboardTooltips`,
-   `app/looks/{api,utils,constants,components}`). `next.config.js`'s `redirects()` is
-   used when the destination needs no query — `permanentRedirect()` in a synchronous
-   page runs during static generation, where Next swallows it and prerenders its own
-   error shell as an HTTP 200, which is worse than the page it replaced.
-   `permanentRedirect()` in a page that awaits `searchParams` does work, because the page
-   stays dynamic — that is the shape of `/looks` and `/style-board`.
+7. **Retired URLs get a permanent redirect, by the mechanism that actually produces
+   one.** Two of Next's rendering modes swallow `permanentRedirect()` and answer 200: a
+   synchronous page runs during static generation, where the throw becomes a prerendered
+   error shell; and a page under a client layout — anything in `app/(consumer)` — has its
+   shell flushed before the page runs, so the 308 can only arrive afterwards as a
+   `<meta http-equiv="refresh">`. Both were caught by asking the running server rather
+   than the test suite. So a destination that needs no query lives in `next.config.js`'s
+   `redirects()`, which the router matches before rendering — that owns `/style-guide`,
+   `/style`, `/collage`, `/social` and the retired `/lab/{mode}` slugs — and a destination
+   that must forward the query keeps a page which awaits `searchParams` and sits *outside*
+   the consumer layout: `/looks` and `/style-board`. A route nobody could link to gets
+   deleted instead (Stage 1's dead components, `LabModeClient`, `DashboardTooltips`,
+   `app/looks/{api,utils,constants,components}`). Against a production build every one of
+   them answers 308 with params and fragment intact; only an unknown `/lab/{mode}` — a
+   typo, not a link — still lands through the page's client-side fallback.
 
 ## What this does not claim
 
@@ -131,8 +138,8 @@ real one, because supply is still thin ([ADR 0023](./0023-consumer-engine-first-
 - **Drift is now test-locked, not review-locked.** `navigation.test.tsx` asserts three
   items *and* that `/shop`, `/looks`, `/developers` and `/curator` are absent, so "give
   purchase a nav door" fails loudly instead of looking like progress. New tests cover the
-  Get-it kind→href table, the `/looks` param matrix, the `/lab/{mode}` redirect table,
-  the cart door, and the retired-route invariants.
+  Get-it kind→href table, the `/looks` param matrix, the `/lab/{mode}` redirect table in
+  `next.config.js`, the cart door, and the retired-route invariants.
 - **Remaining gaps are named, not hidden.** `/cards` had no inbound link at all before
   this; it now has exactly one per artifact footer, and no test can reach it through nav
   because that is the point. `/couple`, `/magazine`, `/gift`, `/try` and
@@ -144,6 +151,9 @@ real one, because supply is still thin ([ADR 0023](./0023-consumer-engine-first-
 Each stage is its own commit and reverts alone: `e5d948c` (real looks in the outfits
 tab, the prerequisite), `d88f4b5` (dead code + two link bugs), `74d5b94` (one footer),
 `c336765` (nav 4→3, cart door), `dca8aef` (purchase as artifact action), `3049526` (lab
-flatten), `73f078f` (`/looks` fold), `9618e9a` (retired routes + `/cards` door).
+flatten), `73f078f` (`/looks` fold), `9618e9a` (retired routes + `/cards` door),
+`4cb2357` (the written rule) — plus the commit after it, which moved the retired
+`/lab/{mode}` slugs and `/style-board` into `next.config.js` once the running server
+showed the page-level form answering 200.
 Reverting `c336765` alone restores Shop's nav item without restoring the mock-inventory
 claim, because the item and the claim lived in different files.

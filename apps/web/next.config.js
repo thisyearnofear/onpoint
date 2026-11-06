@@ -115,6 +115,18 @@ const nextConfig = {
       // Pricing model is pay-per-use; the legacy subscription page is dead.
       { source: '/account/subscription', destination: '/pricing', permanent: true },
       { source: '/account/subscription/:path*', destination: '/pricing', permanent: true },
+      // The lab flattened to one surface: these slugs used to name a tab, and
+      // the panel they opened is now a disclosure on the fitting room. Here
+      // rather than in the page's permanentRedirect() because /lab/* renders
+      // inside the consumer layout, whose shell flushes before the page runs —
+      // Next then degrades the 308 to a 200 + <meta http-equiv="refresh">.
+      // A config entry is matched by the router before rendering, so the status
+      // is really permanent. The hash is read client-side and opens the panel.
+      { source: '/lab/stylist', destination: '/lab/try-on#ask-stylist', permanent: true },
+      { source: '/lab/saved', destination: '/lab/try-on#your-try-ons', permanent: true },
+      { source: '/lab/settings', destination: '/lab/try-on#settings', permanent: true },
+      { source: '/lab/dashboard', destination: '/lab/try-on', permanent: true },
+      { source: '/lab/shop', destination: '/shop', permanent: true },
       // The design-system demo page was 337 lines of mock inventory with
       // hardcoded ratings and try-on counts — the worst honest-metrics surface
       // in the app, and the sitemap published it. Here rather than in a page

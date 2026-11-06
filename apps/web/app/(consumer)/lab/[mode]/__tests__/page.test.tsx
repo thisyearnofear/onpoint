@@ -14,29 +14,24 @@ vi.mock("@/components/Dashboard/TacticalDashboard", () => ({
 
 import LabModePage from "../page";
 
-const TABLE: Array<[string, string]> = [
-  ["stylist", "/lab/try-on#ask-stylist"],
-  ["saved", "/lab/try-on#your-try-ons"],
-  ["settings", "/lab/try-on#settings"],
-  ["dashboard", "/lab/try-on"],
-  ["shop", "/shop"],
-  // Anything else has no panel to open: it lands on the fitting room.
-  ["hauling", "/lab/try-on"],
-  // Object.prototype must not read as a retired mode.
-  ["constructor", "/lab/try-on"],
-];
+// The slugs people actually linked — /lab/stylist, /saved, /settings, /dashboard,
+// /shop — are retired by next.config.js's redirects(), which is the only layer
+// that answers a real 308 from inside the consumer layout; retired-routes.test.ts
+// locks that table. What is left here is the catch-all a config entry cannot
+// express: a mode nothing names any more still has to land somewhere.
+const FALLBACK_MODES = ["hauling", "constructor"];
 
 const visit = (mode: string) => LabModePage({ params: Promise.resolve({ mode }) });
 
-describe("/lab/[mode] — retired tabs redirect, the fitting room serves", () => {
+describe("/lab/[mode] — the fitting room serves, an unknown mode falls back", () => {
   // Braces matter: returning the mock would register it as a teardown hook.
   beforeEach(() => {
     permanentRedirect.mockClear();
   });
 
-  it.each(TABLE)("%s lands on %s", async (mode, target) => {
+  it.each(FALLBACK_MODES)("%s lands on the fitting room", async (mode) => {
     await visit(mode).catch(() => null);
-    expect(permanentRedirect).toHaveBeenCalledWith(target);
+    expect(permanentRedirect).toHaveBeenCalledWith("/lab/try-on");
   });
 
   it("renders the fitting room at try-on without redirecting", async () => {

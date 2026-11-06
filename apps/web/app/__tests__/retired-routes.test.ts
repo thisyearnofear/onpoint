@@ -19,12 +19,15 @@ describe("retired URLs", () => {
     expect(entry).toEqual({ source: "/style-guide", destination: "/about", permanent: true });
   });
 
-  // A permanentRedirect() in a page that takes no searchParams runs during
-  // static generation, where Next swallows it and prerenders its error shell as
-  // a 200. (/looks and /style-board avoid this only because they await
-  // searchParams, which keeps them dynamic.) A route the config already
-  // redirects must therefore have no page — otherwise the page is dead and the
-  // 308 is a rumor.
+  // Two ways a page-level permanentRedirect() ships a 200 instead of the
+  // permanent status: a page that takes no searchParams runs during static
+  // generation, where Next swallows the throw and prerenders its error shell;
+  // and a page under a client layout — anything inside app/(consumer) — whose
+  // shell flushes before the page runs, so Next can only emit a
+  // <meta http-equiv="refresh">. (/looks and /style-board get a real 308
+  // because they await searchParams AND sit outside that layout.) A route the
+  // config already redirects must therefore have no page — otherwise the page
+  // is dead and the 308 is a rumor.
   it("does not also keep a page for a config-redirected route", async () => {
     for (const entry of await redirects()) {
       if (entry.source.includes(":path*")) continue;
@@ -34,6 +37,24 @@ describe("retired URLs", () => {
         exists: false,
       });
     }
+  });
+
+  // The lab's retired tab slugs were bookmarked and shared, so their status has
+  // to be permanent — which means the config, not the page. Each destination
+  // carries the hash TacticalDashboard's panelForHash reads to open the panel.
+  it("carries every retired lab tab onto the fitting room", async () => {
+    const table = Object.fromEntries(
+      (await redirects())
+        .filter((r) => r.source.startsWith("/lab/"))
+        .map((r) => [r.source, r.destination]),
+    );
+    expect(table).toEqual({
+      "/lab/stylist": "/lab/try-on#ask-stylist",
+      "/lab/saved": "/lab/try-on#your-try-ons",
+      "/lab/settings": "/lab/try-on#settings",
+      "/lab/dashboard": "/lab/try-on",
+      "/lab/shop": "/shop",
+    });
   });
 
   it("publishes none of them, so a crawler never rides a permanent hop", async () => {

@@ -2,23 +2,12 @@ import { Suspense } from "react";
 import { permanentRedirect } from "next/navigation";
 import { TacticalDashboard } from "@/components/Dashboard/TacticalDashboard";
 
-// The lab is one surface. These slugs used to name a tab; the panel they
-// opened is now a disclosure on the fitting room, so the URL still arrives
-// there. 301 because these were shared and bookmarked.
-const RETIRED_MODES: Record<string, string> = {
-  stylist: "/lab/try-on#ask-stylist",
-  saved: "/lab/try-on#your-try-ons",
-  settings: "/lab/try-on#settings",
-  dashboard: "/lab/try-on",
-  shop: "/shop",
-};
-
+// The lab is one surface. The slugs that used to name a tab are retired in
+// next.config.js's redirects(), which answers a real 308; this page only has to
+// catch a mode nothing links to any more and still land it on the fitting room.
 export default async function LabModePage({ params }: { params: Promise<{ mode: string }> }) {
   const { mode } = await params;
-  if (mode !== "try-on") {
-    const retired = Object.hasOwn(RETIRED_MODES, mode) ? RETIRED_MODES[mode] : undefined;
-    permanentRedirect(retired ?? "/lab/try-on");
-  }
+  if (mode !== "try-on") permanentRedirect("/lab/try-on");
 
   return (
     <Suspense
