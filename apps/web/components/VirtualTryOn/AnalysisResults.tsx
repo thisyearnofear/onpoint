@@ -105,10 +105,6 @@ export function AnalysisResults({
     return () => clearTimeout(timer);
   }, [analysis]);
 
-  if (showLoading) {
-    return <AnalysisSkeleton staggered showActions />;
-  }
-
   const currentLook = getArray((analysis as any).currentLook);
   const fitRecommendations = getArray((analysis as any).fitRecommendations || analysis.fitRecommendations);
   const styleRecommendations = getArray((analysis as any).styleRecommendations || analysis.styleAdjustments);
@@ -208,6 +204,12 @@ export function AnalysisResults({
       source: "analysis_result",
     });
   }, [saved, analysis, preferences, persona, currentLook, styleRecommendations, fitRecommendations, previewUrl, selectedGarment, addSession, shareToCommunity]);
+
+  // Skeleton gate must sit below every hook — React #310 if a useCallback
+  // runs on the second render but not the first.
+  if (showLoading) {
+    return <AnalysisSkeleton staggered showActions />;
+  }
 
   const copyShareText = async () => {
     if (typeof navigator === "undefined" || !navigator.clipboard) return;
