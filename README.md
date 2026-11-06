@@ -79,3 +79,7 @@ Agent identity: [ERC-8004 #9177](https://8004scan.io/agents/celo/9177) · wallet
 **[Live Demo](https://onpoint.trustfall.xyz)** · [GitHub](https://github.com/thisyearnofear/onpoint) · MIT
 
 Hackathon submissions: [HACKATHON.md](./HACKATHON.md) (NEAR) · [docs/PAYPAL_HACKATHON.md](docs/PAYPAL_HACKATHON.md) (PayPal). Reproducers live there.
+
+## Flip the Switch Hackathon
+
+OnPoint is being adapted for the Flip the Switch Hackathon (Nov 4–7, 2026) as a **team commerce agent** using Switch. See [`SWITCH_HACKATHON.md`](./SWITCH_HACKATHON.md) and [`docs/SWITCH_HACKATHON.md`](./docs/SWITCH_HACKATHON.md) for the Switch room workflow, demo script, and submission checklist.
