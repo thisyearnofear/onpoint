@@ -807,6 +807,89 @@ async function buildGeneratedOutfitImageResponse({ data, provider, tier = 'paid'
     fallbackReason = 'free_tier_venice_first';
   }
 
+  // Generative tail, second-to-last: Neon AI Gateway image generation via the
+  // Responses API. Non-streamed calls always lose to the gateway's ~640KB
+  // response cap (upstream only allows >=1024px outputs), so the image must
+  // stream back chunked — stream:true + partial_images.
+  const neonBase = process.env.NEON_AI_BASE_URL;
+  const neonKey = process.env.NEON_AI_API_KEY;
+  if (neonBase && neonKey) {
+    try {
+      const responsesBase = neonBase.replace(/\/v1\/?$/, '');
+      const r = await fetch(`${responsesBase}/openai/v1/responses`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${neonKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: process.env.NEON_IMAGE_MODEL || 'gpt-5-mini',
+          input: `Create a high-quality fashion photograph. ${personDescription ? `Person: ${personDescription}. ` : ''}Wearing: ${outfitDescription}. Full-body portrait, professional photography.`,
+          stream: true,
+          tools: [{ type: 'image_generation', partial_images: 1 }],
+        }),
+        signal: AbortSignal.timeout(180_000),
+      });
+      if (!r.ok) throw new Error(`Neon gateway error: ${r.status}`);
+
+      const text = await r.text();
+      const findB64 = (o) => {
+        if (typeof o === 'string' && o.length > 100_000) return o;
+        if (o && typeof o === 'object') {
+          for (const v of Object.values(o)) { const f = findB64(v); if (f) return f; }
+        }
+        return null;
+      };
+      let imageB64 = null;
+      for (const line of text.split('\n')) {
+        if (!line.startsWith('data: ')) continue;
+        try { imageB64 = imageB64 || findB64(JSON.parse(line.slice(6))); } catch { /* [DONE] or partial JSON */ }
+      }
+      if (!imageB64) throw new Error('Neon image stream produced no image');
+
+      let neonTips = [];
+      let neonStructured = [];
+      if (personDescription) {
+        const tipsResponse = await generateText({
+          prompt: `Styling tips for: ${personDescription} wearing ${outfitDescription}. Return JSON: [{"text": "...", "action": {...}}]`,
+          provider,
+          geminiModel: 'gemini-3.1-flash-lite-preview',
+          openaiModel: 'gpt-4o',
+        });
+        const parsed = extractStructuredStylingTips(tipsResponse.text || '');
+        neonTips = parsed.textTips;
+        neonStructured = parsed.structuredTips;
+      }
+
+      const result = {
+        generatedImage: imageB64,
+        enhancedOutfit: (data && data.items) || [],
+        stylingTips: neonTips.length ? neonTips : ['Layer up', 'Accessorize', 'Check fit', 'Color harmony'],
+        structuredTips: neonStructured,
+        provider: 'neon-image',
+        imageConditioned: false,
+        fallbackReason,
+        latencyMs: Date.now() - startedAt,
+        errorClass,
+      };
+      logger.info('Virtual try-on provider outcome', {
+        component: 'virtual-tryon',
+        action: 'generate-outfit-image',
+        provider: result.provider,
+        imageConditioned: result.imageConditioned,
+        fallbackReason: result.fallbackReason,
+        latencyMs: result.latencyMs,
+        errorClass: result.errorClass,
+      });
+      return result;
+    } catch (error) {
+      if (!fallbackReason) fallbackReason = 'neon_unavailable';
+      errorClass = error?.name || 'NeonImageError';
+      logger.warn('Neon image try-on failed, falling back to Venice image generation', {
+        component: 'virtual-tryon',
+        error: error.message,
+        errorClass,
+      });
+    }
+  }
+
   const veniceApiKey = process.env.VENICE_API_KEY;
   if (!veniceApiKey) {
     const error = new Error('Venice API key not configured');
