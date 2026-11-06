@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowLeft, Check, Sparkles, Calendar, Camera, Palette, Thermometer, Clock, Zap } from "lucide-react";
+import { Check, Calendar, Camera, Palette, Thermometer, Clock } from "lucide-react";
 import { Reveal } from "../../../components/ui/Reveal";
 import { Accordion, AccordionItem } from "../../../components/ui/Accordion";
-import { OnPointLayout } from "../../../components/OnPointLayout";
+import { GuideLayout } from "../../../components/guides/GuideLayout";
 
 export const metadata: Metadata = {
   title: "Occasion Wear & Event Dressing Guide | OnPoint",
@@ -18,51 +18,19 @@ export const metadata: Metadata = {
 
 export default function OccasionWearGuide() {
   return (
-    <OnPointLayout footer={false}>
-      <article className="mx-auto max-w-3xl px-4 py-12">
-        {/* Back link */}
-        <Link
-          href="/"
-          className="mb-8 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to OnPoint
-        </Link>
-
-        {/* Header */}
-        <header className="mb-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-medium text-muted-foreground mb-4">
-            <Sparkles className="h-3.5 w-3.5" />
-            Style guide
-          </div>
-          <h1 className="text-3xl font-black tracking-tight md:text-4xl">Occasion Wear & Event Dressing Guide</h1>
-          <p className="mt-3 text-base text-muted-foreground leading-relaxed">
-            From weddings to galas â here’s how to decode the dress code and show up dressed right.
-          </p>
-        </header>
-
-        {/* Quick Takeaways */}
-        <Reveal>
-          <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.04] to-transparent p-5 mb-8">
-            <div className="flex items-center gap-2 mb-3">
-              <Zap className="w-4 h-4 text-primary" />
-              <h2 className="text-sm font-bold uppercase tracking-wider">Quick Takeaways</h2>
-            </div>
-            <div className="grid sm:grid-cols-2 gap-2">
-              {[
-                "Know the dress code — white tie to smart casual, each has rules",
+    <GuideLayout
+        title="Occasion Wear & Event Dressing Guide"
+        lede="From weddings to galas â here’s how to decode the dress code and show up dressed right."
+  takeaways={[
+            "Know the dress code — white tie to smart casual, each has rules",
                 "Avoid white/ivory at weddings; bold colours and prints are welcome",
                 "Choose linen and light cotton for warm climates, velvet for evening",
-                "Plan 6-8 weeks ahead for made-to-measure or bespoke pieces",
-              ].map((tip) => (
-                <div key={tip} className="flex items-start gap-2 text-sm">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                  <span className="text-muted-foreground">{tip}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Reveal>
+                "Plan 6-8 weeks ahead for made-to-measure or bespoke pieces"
+          ]}
+      >
+                {/* Header */}
+
+        
 
         {/* Detailed sections — progressive disclosure via accordion */}
         <Reveal>
@@ -183,7 +151,7 @@ export default function OccasionWearGuide() {
             Try on occasion wear now
           </Link>
         </div>
-      </article>
-    </OnPointLayout>
+      
+    </GuideLayout>
   );
 }

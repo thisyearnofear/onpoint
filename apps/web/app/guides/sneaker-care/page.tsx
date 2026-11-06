@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowLeft, Check, Sparkles, ShoppingBag, Camera, Zap, Layers, ShieldCheck, Clock } from "lucide-react";
+import { Check, ShoppingBag, Camera, Layers, ShieldCheck, Clock } from "lucide-react";
 import { Reveal } from "../../../components/ui/Reveal";
 import { Accordion, AccordionItem } from "../../../components/ui/Accordion";
-import { OnPointLayout } from "../../../components/OnPointLayout";
+import { GuideLayout } from "../../../components/guides/GuideLayout";
 
 export const metadata: Metadata = {
   title: "Sneaker Collecting & Care Guide | OnPoint",
@@ -18,51 +18,20 @@ export const metadata: Metadata = {
 
 export default function SneakerCareGuide() {
   return (
-    <OnPointLayout footer={false}>
-      <article className="mx-auto max-w-3xl px-4 py-12">
-        {/* Back link */}
-        <Link
-          href="/"
-          className="mb-8 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to OnPoint
-        </Link>
-
-        {/* Header — punchy, not a wall of text */}
-        <header className="mb-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-medium text-muted-foreground mb-4">
-            <Sparkles className="h-3.5 w-3.5" />
-            Style guide
-          </div>
-          <h1 className="text-3xl font-black tracking-tight md:text-4xl">Sneaker Collecting &amp; Care Guide</h1>
-          <p className="mt-3 text-base text-muted-foreground leading-relaxed">
-            Building a rotation, cleaning by material, storage, and authentication — everything that separates sneakers that last from sneakers that crumble.
-          </p>
-        </header>
-
-        {/* TL;DR — quick takeaways, no reading required */}
-        <Reveal>
-          <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.04] to-transparent p-5 mb-8">
-            <div className="flex items-center gap-2 mb-3">
-              <Zap className="w-4 h-4 text-primary" />
-              <h2 className="text-sm font-bold uppercase tracking-wider">Quick Takeaways</h2>
-            </div>
-            <div className="grid sm:grid-cols-2 gap-2">
-              {[
-                "A balanced rotation = beaters, a rotational pair, a statement pair, and a retro",
+    <GuideLayout
+        title="Sneaker Collecting & Care Guide"
+        lede="Building a rotation, cleaning by material, storage, and authentication — everything that separates sneakers that last from sneakers that crumble."
+  takeaways={[
+            "A balanced rotation = beaters, a rotational pair, a statement pair, and a retro",
                 "Clean by material — suede never gets wet, canvas can go in the machine",
                 "Original box + tissue paper adds 15-20% to resale value",
-                "Check stitching, box label, smell, and weight to spot fakes",
-              ].map((tip) => (
-                <div key={tip} className="flex items-start gap-2 text-sm">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                  <span className="text-muted-foreground">{tip}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Reveal>
+                "Check stitching, box label, smell, and weight to spot fakes"
+          ]}
+      >
+                {/* Header — punchy, not a wall of text */}
+
+        {/* TL;DR — quick takeaways, no reading required */}
+        
 
         {/* Detailed sections — progressive disclosure via accordion */}
         <Reveal>
@@ -93,7 +62,7 @@ export default function SneakerCareGuide() {
               <AccordionItem
                 title="Cleaning by material"
                 subtitle="Leather, suede, mesh, canvas — the right method"
-                icon={<Sparkles className="w-4 h-4" />}
+                icon={<Check className="w-4 h-4" />}
               >
                 <div className="grid gap-3 sm:grid-cols-2">
                   {[
@@ -200,7 +169,7 @@ export default function SneakerCareGuide() {
             Try on sneakers now
           </Link>
         </div>
-      </article>
-    </OnPointLayout>
+      
+    </GuideLayout>
   );
 }

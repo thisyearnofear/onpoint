@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowLeft, Check, Sparkles, Camera, Scissors, Calendar, Ruler, Zap } from "lucide-react";
+import { Check, Camera, Scissors, Calendar, Ruler } from "lucide-react";
 import { Reveal } from "../../../components/ui/Reveal";
 import { Accordion, AccordionItem } from "../../../components/ui/Accordion";
-import { OnPointLayout } from "../../../components/OnPointLayout";
+import { GuideLayout } from "../../../components/guides/GuideLayout";
 
 export const metadata: Metadata = {
   title: "Ankara & African Print Style Guide | OnPoint",
@@ -18,53 +18,19 @@ export const metadata: Metadata = {
 
 export default function AnkaraStyleGuide() {
   return (
-    <OnPointLayout footer={false}>
-      <article className="mx-auto max-w-3xl px-4 py-12">
-        {/* Back link */}
-        <Link
-          href="/"
-          className="mb-8 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to OnPoint
-        </Link>
-
-        {/* Header */}
-        <header className="mb-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-medium text-muted-foreground mb-4">
-            <Sparkles className="h-3.5 w-3.5" />
-            Style guide
-          </div>
-          <h1 className="text-3xl font-black tracking-tight md:text-4xl">
-            Ankara &amp; African Print Style Guide
-          </h1>
-          <p className="mt-3 text-base text-muted-foreground leading-relaxed">
-            Bold prints, rich colours, and cultural heritage — choose the right fabric, fit, and style for any occasion.
-          </p>
-        </header>
-
-        {/* Quick Takeaways */}
-        <Reveal>
-          <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.04] to-transparent p-5 mb-8">
-            <div className="flex items-center gap-2 mb-3">
-              <Zap className="w-4 h-4 text-primary" />
-              <h2 className="text-sm font-bold uppercase tracking-wider">Quick Takeaways</h2>
-            </div>
-            <div className="grid sm:grid-cols-2 gap-2">
-              {[
-                "Ankara = versatile wax print for structured pieces",
+    <GuideLayout
+        title="Ankara & African Print Style Guide"
+        lede="Bold prints, rich colours, and cultural heritage — choose the right fabric, fit, and style for any occasion."
+  takeaways={[
+            "Ankara = versatile wax print for structured pieces",
                 "Match print boldness to the occasion (weddings vs. casual)",
                 "Most pieces are made-to-measure — have your measurements ready",
-                "Virtual try-on shows how a print drapes before fabric is cut",
-              ].map((tip) => (
-                <div key={tip} className="flex items-start gap-2 text-sm">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                  <span className="text-muted-foreground">{tip}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Reveal>
+                "Virtual try-on shows how a print drapes before fabric is cut"
+          ]}
+      >
+                {/* Header */}
+
+        
 
         {/* Detailed sections — progressive disclosure via accordion */}
         <Reveal>
@@ -73,7 +39,7 @@ export default function AnkaraStyleGuide() {
               <AccordionItem
                 title="Choosing your fabric"
                 subtitle="Ankara, Kente, Kitenge — what sets them apart"
-                icon={<Sparkles className="w-4 h-4" />}
+                icon={<Check className="w-4 h-4" />}
               >
                 <div className="grid gap-3 sm:grid-cols-3 mt-2">
                   {[
@@ -229,7 +195,7 @@ export default function AnkaraStyleGuide() {
             Try on African print now
           </Link>
         </div>
-      </article>
-    </OnPointLayout>
+      
+    </GuideLayout>
   );
 }

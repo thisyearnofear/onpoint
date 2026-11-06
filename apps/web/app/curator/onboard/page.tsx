@@ -10,7 +10,6 @@ import {
   Globe,
   Loader2,
   MessageCircle,
-  Sparkles,
   Store,
   X,
   AlertCircle,
@@ -389,7 +388,7 @@ export default function CuratorOnboardPage() {
   return (
     <OnPointLayout footer={false}>
       {/* Hero */}
-      <section className="border-b border-border bg-gradient-to-b from-card to-background">
+      <section className="border-b border-border bg-card">
         <div className="mx-auto max-w-3xl px-4 py-12 md:py-16">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/20">
             <Store className="h-7 w-7 text-white" />
@@ -700,7 +699,7 @@ export default function CuratorOnboardPage() {
             {gSectionOpen && (
               <div className="space-y-3 rounded-xl border border-border bg-card p-4">
                 {gClaimed && (
-                  <div className="flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2 text-sm text-emerald-300">
+                  <div className="flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2 text-sm text-success">
                     <CheckCircle className="h-4 w-4 shrink-0" />
                     G$ claimed! Funds are in your wallet on Celo.
                   </div>
@@ -748,7 +747,6 @@ export default function CuratorOnboardPage() {
                 </>
               ) : (
                 <>
-                  <Sparkles className="h-4 w-4" />
                   Create storefront
                 </>
               )}

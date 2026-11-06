@@ -45,7 +45,7 @@ When users visit a referral link:
 
 - Self-referral is ignored: no commission is recorded when the paying wallet is the referring agent.
 - A referral code that does not resolve to an agent address (unknown, malformed, or ambiguous) records no commission. Codes are `ref_` plus the first 8 hex characters of the agent's wallet address, and are matched case-insensitively against agents that own looks or have earned referrals before.
-- Visits to `/r/[referralCode]` are logged as `referral_visit` events.
+- `/r/[referralCode]` is a server-side 307 that POSTs the `referral_visit` capture before redirecting to the destination with `?referral=<code>` appended — no client spinner.
 - To tie an order to a specific look share, also send `X-Share-Id` (or `?sid=`); see [Share Attribution](../../AGENTS.md#share-attribution).
 
 ## Viewing Your Earnings

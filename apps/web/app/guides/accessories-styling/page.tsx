@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowLeft, Check, Sparkles, Star, Camera, Watch, Gem, Ruler, Zap } from "lucide-react";
+import { Check, Camera, Watch, Gem, Ruler } from "lucide-react";
 import { Reveal } from "../../../components/ui/Reveal";
 import { Accordion, AccordionItem } from "../../../components/ui/Accordion";
-import { OnPointLayout } from "../../../components/OnPointLayout";
+import { GuideLayout } from "../../../components/guides/GuideLayout";
 
 export const metadata: Metadata = {
   title: "Accessories Styling Guide | OnPoint",
@@ -18,51 +18,19 @@ export const metadata: Metadata = {
 
 export default function AccessoriesStylingGuide() {
   return (
-    <OnPointLayout footer={false}>
-      <article className="mx-auto max-w-3xl px-4 py-12">
-        {/* Back link */}
-        <Link
-          href="/"
-          className="mb-8 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to OnPoint
-        </Link>
-
-        {/* Header */}
-        <header className="mb-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-medium text-muted-foreground mb-4">
-            <Sparkles className="h-3.5 w-3.5" />
-            Style guide
-          </div>
-          <h1 className="text-3xl font-black tracking-tight md:text-4xl">Accessories Styling Guide</h1>
-          <p className="mt-3 text-base text-muted-foreground leading-relaxed">
-            The right watch, bag, or pair of earrings transforms a simple look into a signature style.
-          </p>
-        </header>
-
-        {/* Quick Takeaways */}
-        <Reveal>
-          <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.04] to-transparent p-5 mb-8">
-            <div className="flex items-center gap-2 mb-3">
-              <Zap className="w-4 h-4 text-primary" />
-              <h2 className="text-sm font-bold uppercase tracking-wider">Quick Takeaways</h2>
-            </div>
-            <div className="grid sm:grid-cols-2 gap-2">
-              {[
-                "Stick to three visible accessories max — keep it intentional",
+    <GuideLayout
+        title="Accessories Styling Guide"
+        lede="The right watch, bag, or pair of earrings transforms a simple look into a signature style."
+  takeaways={[
+            "Stick to three visible accessories max — keep it intentional",
                 "Mix metals with one dominant (60%) and one accent (40%)",
                 "Build a core wardrobe: watch, bag, jewellery, belt, hat",
-                "Match accessories to the occasion — minimal for office, bold for evening",
-              ].map((tip) => (
-                <div key={tip} className="flex items-start gap-2 text-sm">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                  <span className="text-muted-foreground">{tip}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Reveal>
+                "Match accessories to the occasion — minimal for office, bold for evening"
+          ]}
+      >
+                {/* Header */}
+
+        
 
         {/* Detailed sections — progressive disclosure via accordion */}
         <Reveal>
@@ -71,7 +39,7 @@ export default function AccessoriesStylingGuide() {
               <AccordionItem
                 title="The rule of three"
                 subtitle="No more than three visible accessories at once"
-                icon={<Sparkles className="w-4 h-4" />}
+                icon={<Check className="w-4 h-4" />}
               >
                 <p className="text-sm leading-7 text-muted-foreground">
                   A well-accessorised outfit follows the rule of three — no more than three visible
@@ -99,7 +67,7 @@ export default function AccessoriesStylingGuide() {
                     "Rose gold pairs well with both yellow gold (warm) and silver (contrast)",
                   ].map((tip) => (
                     <li key={tip} className="flex items-start gap-2 text-sm">
-                      <Star className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
                       <span>{tip}</span>
                     </li>
                   ))}
@@ -141,7 +109,7 @@ export default function AccessoriesStylingGuide() {
               <AccordionItem
                 title="Occasion matching"
                 subtitle="Office, evening, casual, and formal"
-                icon={<Star className="w-4 h-4" />}
+                icon={<Check className="w-4 h-4" />}
               >
                 <ul className="space-y-3">
                   {[
@@ -209,7 +177,7 @@ export default function AccessoriesStylingGuide() {
             Try on accessories now
           </Link>
         </div>
-      </article>
-    </OnPointLayout>
+      
+    </GuideLayout>
   );
 }

@@ -1,87 +1,57 @@
-'use client';
+import { redirect } from "next/navigation";
+import { getApiBase } from "@/lib/utils/api-base";
 
-import { useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { getApiBase } from '@/lib/utils/api-base';
-import { Loader2 } from "lucide-react";
-import { OnPointLayout } from '../../../components/OnPointLayout';
+export const dynamic = "force-dynamic";
 
 /**
- * Referral landing page - /r/[referralCode]
- * 
- * Handles incoming referral links from agents.
- * Tracks the click and redirects to the appropriate destination.
- * 
- * Flow:
- * 1. Agent shares link with their referral code (e.g., /r/abc123)
- * 2. User clicks link, lands here
- * 3. We capture the visit (POST /api/referrals/capture)
- * 4. Redirect to storefront or landing page
+ * Referral landing — /r/[referralCode]
+ *
+ * Server-side redirect (no spinner flash):
+ * 1. `receipt_*` links predate /receipt/{id} — forward them untouched.
+ * 2. POST the visit capture to the API; use its redirectUrl when provided.
+ * 3. Forward with `?referral=<code>` so whichever surface lands next stores the
+ *    code for the session (see lib/utils/share-attribution.ts).
  */
-export default function ReferralPage() {
-  const params = useParams();
-  const router = useRouter();
-  const referralCode = params.referralCode as string;
-
-  useEffect(() => {
-    const captureAndRedirect = async () => {
-      if (!referralCode) {
-        router.push('/');
-        return;
+async function resolveDestination(referralCode: string): Promise<string> {
+  try {
+    const res = await fetch(`${getApiBase()}/api/referrals/capture`, {
+      method: "POST",
+      signal: AbortSignal.timeout(5000),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        referralCode,
+        action: "visit",
+        timestamp: new Date().toISOString(),
+      }),
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (typeof data.redirectUrl === "string" && data.redirectUrl) {
+        return data.redirectUrl;
       }
+    }
+  } catch {
+    /* capture failure must not strand the visitor */
+  }
+  return "/";
+}
 
-      // Receipt links used this route before receipts moved under /receipt.
-      // Preserve those published links without treating a receipt ID as a referral.
-      if (referralCode.startsWith('receipt_')) {
-        router.replace(`/receipt/${encodeURIComponent(referralCode)}`);
-        return;
-      }
+function withReferralParam(dest: string, code: string): string {
+  if (!dest.startsWith("/")) return dest; // external destination — leave as-is
+  const sep = dest.includes("?") ? "&" : "?";
+  return `${dest}${sep}referral=${encodeURIComponent(code)}`;
+}
 
-      // Store referral code in session storage for later use
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('referral_code', referralCode);
-      }
-
-      // Try to capture the referral visit
-      try {
-        const res = await fetch(`${getApiBase()}/api/referrals/capture`, {
-          method: 'POST',
-          signal: AbortSignal.timeout(5000),
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            referralCode,
-            action: 'visit',
-            timestamp: new Date().toISOString(),
-          }),
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          // If we got a destination, use it
-          if (data.redirectUrl) {
-            router.push(data.redirectUrl);
-            return;
-          }
-        }
-      } catch (error) {
-        console.error('Failed to capture referral:', error);
-      }
-
-      // Default redirect to homepage
-      router.push('/');
-    };
-
-    captureAndRedirect();
-  }, [referralCode, router]);
-
-  return (
-    <OnPointLayout footer={false}>
-      <div className="flex min-h-dvh items-center justify-center bg-gradient-to-b from-background to-muted/20">
-        <div className="text-center space-y-4">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
-          <p className="text-lg text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    </OnPointLayout>
-  );
+export default async function ReferralPage({
+  params,
+}: {
+  params: Promise<{ referralCode: string }>;
+}) {
+  const { referralCode } = await params;
+  if (!referralCode) redirect("/");
+  if (referralCode.startsWith("receipt_")) {
+    redirect(`/receipt/${encodeURIComponent(referralCode)}`);
+  }
+  redirect(withReferralParam(await resolveDestination(referralCode), referralCode));
 }

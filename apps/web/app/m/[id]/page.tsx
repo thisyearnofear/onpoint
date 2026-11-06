@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getApiBase } from "@/lib/utils/api-base";
 import { ShareAttributionCapture } from "@/components/ShareAttributionCapture";
+import { ArtifactShell } from "@/components/surface/ArtifactShell";
+import { ExitLinks } from "@/components/surface/ExitLinks";
+import type { SurfaceItem } from "@/components/surface/ItemRow";
 import { Flipbook } from "./Flipbook";
 
 export const metadata: Metadata = { title: "Your issue | OnPoint" };
@@ -12,7 +15,7 @@ export interface MagazineData {
   recipientName: string | null;
   senderName: string | null;
   note: string | null;
-  items: Array<{ listingId: string; curatorSlug: string | null; title: string | null; imageUrl: string | null }>;
+  items: SurfaceItem[];
   issue: number;
   replyTo: string | null;
   heroListingId: string | null;
@@ -36,9 +39,9 @@ export default async function MagazineViewPage({ params }: { params: Promise<{ i
   const mag = await load(id);
   if (!mag) notFound();
   return (
-    <>
+    <ArtifactShell exits={<ExitLinks kinds={["board"]} />}>
       <ShareAttributionCapture />
       <Flipbook mag={mag} />
-    </>
+    </ArtifactShell>
   );
 }

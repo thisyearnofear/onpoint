@@ -6,7 +6,7 @@ import Image from "next/image";
 import { ShopGrid } from "@repo/shared-ui";
 import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import type { FashionItem } from "@onpoint/shared-types";
-import { ShoppingBag, Sparkles, Loader2 } from "lucide-react";
+import { ShoppingBag, Loader2 } from "lucide-react";
 import { OnPointLayout } from "../../components/OnPointLayout";
 import { FlyToCartOverlay, type FlyItem } from "../../components/Shop/FlyToCartOverlay";
 import { ExternalPickCard, LocalPickCard, ProvenanceBar } from "../../components/Shop/CuratedPickCard";
@@ -92,7 +92,7 @@ export default function ShopPage() {
       <div className="container mx-auto px-4 py-12">
         {/* Personalization Context Banner */}
         {(dominantAesthetic || budgetLabel) && (
-          <div className="mb-6 px-4 py-3 rounded-xl bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 border border-primary/10">
+          <div className="mb-6 px-4 py-3 rounded-xl bg-primary/[0.05] border border-primary/10">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               {dominantAesthetic && (
                 <span>
@@ -110,7 +110,7 @@ export default function ShopPage() {
 
         {/* AI Stylist Recommendations Banner */}
         {stylistAnalysis && (
-          <div className="mb-8 bg-gradient-to-r from-primary/10 to-accent/10 border-2 border-primary/30 rounded-2xl p-6 shadow-lg">
+          <div className="mb-8 bg-primary/[0.08] border-2 border-primary/30 rounded-2xl p-6 shadow-lg">
             <div className="flex items-start gap-4">
               {stylistAnalysis.userPhoto ? (
                 <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0 ring-2 ring-primary/20">
@@ -173,7 +173,6 @@ export default function ShopPage() {
         {(isCurating || curatedPicks.length > 0) && (
           <div className="mb-12">
             <div className="flex items-center gap-2 mb-6">
-              <Sparkles className="w-5 h-5 text-primary" />
               <h2 className="text-lg font-bold text-foreground">
                 Curated For You
               </h2>
@@ -311,7 +310,6 @@ export default function ShopPage() {
                 href="/lab/try-on"
                 className="w-full py-3 px-4 rounded-lg border border-border text-center font-semibold text-foreground hover:border-foreground transition-colors flex items-center justify-center gap-2"
               >
-                <Sparkles className="w-4 h-4" />
                 Try it on
               </Link>
               <button
@@ -329,7 +327,7 @@ export default function ShopPage() {
                   addItem(selectedItem);
                   setSelectedItem(null);
                 }}
-                className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-primary to-accent text-white font-semibold hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 rounded-lg bg-primary text-primary-foreground font-semibold hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
               >
                 <ShoppingBag className="w-4 h-4" />
                 Add to Cart — ${selectedItem.price}

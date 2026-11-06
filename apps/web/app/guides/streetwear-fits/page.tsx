@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowLeft, Check, Sparkles, ShoppingBag, Camera, Shirt, Footprints, Layers, Zap } from "lucide-react";
+import { Check, ShoppingBag, Camera, Shirt, Footprints, Layers } from "lucide-react";
 import { Reveal } from "../../../components/ui/Reveal";
 import { Accordion, AccordionItem } from "../../../components/ui/Accordion";
-import { OnPointLayout } from "../../../components/OnPointLayout";
+import { GuideLayout } from "../../../components/guides/GuideLayout";
 
 export const metadata: Metadata = {
   title: "Streetwear Style Guide | OnPoint",
@@ -18,53 +18,19 @@ export const metadata: Metadata = {
 
 export default function StreetwearGuide() {
   return (
-    <OnPointLayout footer={false}>
-      <article className="mx-auto max-w-3xl px-4 py-12">
-        {/* Back link */}
-        <Link
-          href="/"
-          className="mb-8 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to OnPoint
-        </Link>
-
-        {/* Header */}
-        <header className="mb-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-medium text-muted-foreground mb-4">
-            <Sparkles className="h-3.5 w-3.5" />
-            Style guide
-          </div>
-          <h1 className="text-3xl font-black tracking-tight md:text-4xl">
-            Streetwear Style Guide
-          </h1>
-          <p className="mt-3 text-base text-muted-foreground leading-relaxed">
-            Sneaker drops, layering, and oversized fits — build a wardrobe that moves culture forward.
-          </p>
-        </header>
-
-        {/* Quick Takeaways */}
-        <Reveal>
-          <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.04] to-transparent p-5 mb-8">
-            <div className="flex items-center gap-2 mb-3">
-              <Zap className="w-4 h-4 text-primary" />
-              <h2 className="text-sm font-bold uppercase tracking-wider">Quick Takeaways</h2>
-            </div>
-            <div className="grid sm:grid-cols-2 gap-2">
-              {[
-                "Oversized tees + heavy hoodies are the foundation",
+    <GuideLayout
+        title="Streetwear Style Guide"
+        lede="Sneaker drops, layering, and oversized fits — build a wardrobe that moves culture forward."
+  takeaways={[
+            "Oversized tees + heavy hoodies are the foundation",
                 "Build a 4-pair sneaker rotation: daily, statement, tech, retro",
                 "Layer for proportion, not bulk — mix textures & lengths",
-                "Vintage & deadstock pieces add real authenticity",
-              ].map((tip) => (
-                <div key={tip} className="flex items-start gap-2 text-sm">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                  <span className="text-muted-foreground">{tip}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Reveal>
+                "Vintage & deadstock pieces add real authenticity"
+          ]}
+      >
+                {/* Header */}
+
+        
 
         {/* Detailed sections — progressive disclosure via accordion */}
         <Reveal>
@@ -183,7 +149,7 @@ export default function StreetwearGuide() {
               <AccordionItem
                 title="Sustainable streetwear"
                 subtitle="Vintage and deadstock — fashion with a story"
-                icon={<Sparkles className="w-4 h-4" />}
+                icon={<Check className="w-4 h-4" />}
               >
                 <p className="text-sm leading-7">
                   One of the best things about streetwear culture is the vintage and second-hand
@@ -231,7 +197,7 @@ export default function StreetwearGuide() {
             Try on streetwear now
           </Link>
         </div>
-      </article>
-    </OnPointLayout>
+      
+    </GuideLayout>
   );
 }

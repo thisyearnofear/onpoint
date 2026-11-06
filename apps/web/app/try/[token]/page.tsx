@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { verifyInviteToken } from "@/lib/utils/try-on-invite";
 import { getApiBase } from "@/lib/utils/api-base";
+import { ArtifactShell } from "@/components/surface/ArtifactShell";
+import { ExitLinks } from "@/components/surface/ExitLinks";
 import { TryInviteClient } from "./TryInviteClient";
 
 export const metadata: Metadata = {
@@ -35,68 +37,54 @@ export default async function TryInvitePage({ params }: { params: Promise<{ toke
   const invite = verifyInviteToken(token);
   if (!invite) {
     return (
-      <div className="min-h-dvh bg-background text-foreground">
-        <main className="mx-auto max-w-xl px-4 pb-20 pt-24 text-center md:pt-32">
-          <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-primary">That link ran out</p>
-          <h1 className="mt-3 font-display text-4xl leading-[1.05] tracking-[-0.02em] sm:text-5xl">
-            This invite was used, or it expired.
-          </h1>
-          <p className="mt-4 text-sm text-muted-foreground">
-            One link, one try-on — ask for a fresh one, or style your own.
-          </p>
-          <a
-            href="/couple"
-            className="mt-6 inline-flex min-h-12 items-center rounded-full bg-primary px-8 text-sm font-bold text-white hover:bg-primary/90"
-          >
-            Make your own
-          </a>
-        </main>
-      </div>
+      <ArtifactShell
+        eyebrow="That link ran out"
+        title="This invite was used, or it expired."
+        lede="One link, one try-on — ask for a fresh one, or style your own."
+        exits={<ExitLinks kinds={["make", "board"]} />}
+      />
     );
   }
 
   const listing = await loadListing(invite.curatorSlug, invite.listingId);
 
   return (
-    <div className="min-h-dvh bg-background text-foreground">
-      <main className="mx-auto max-w-xl px-4 pb-20 pt-14 md:pt-20">
-        <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-primary">
-          Picked for you
-        </p>
-        <h1 className="mt-3 font-display text-4xl leading-[1.05] tracking-[-0.02em] sm:text-5xl">
-          {invite.senderName ? `${invite.senderName} styled this for you.` : "Someone styled this for you."}
-        </h1>
-        {invite.note && (
-          <p className="mt-3 text-base italic leading-relaxed text-muted-foreground">
-            &ldquo;{invite.note}&rdquo;
-          </p>
-        )}
-
-        {listing && (
-          <div className="mt-8 flex items-center gap-4 border border-border bg-card p-4">
-            {listing.imageUrl && (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={listing.imageUrl} alt={listing.title || "The item"} className="h-20 w-20 border border-border object-cover" />
-            )}
-            <div className="min-w-0">
-              <p className="truncate text-base font-bold text-foreground">{listing.title || "The pick"}</p>
-              {listing.priceCusd != null && (
-                <p className="text-xs text-muted-foreground">~${listing.priceCusd.toFixed(2)}</p>
-              )}
-            </div>
+    <ArtifactShell
+      eyebrow="Picked for you"
+      artifact={
+        listing?.imageUrl ? (
+          <div className="border border-border bg-card p-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={listing.imageUrl}
+              alt={listing.title || "The pick"}
+              className="w-full object-contain"
+            />
           </div>
-        )}
-
-        <div className="mt-6">
-          <TryInviteClient
-            token={token}
-            listingImageUrl={listing?.imageUrl ?? null}
-            curatorSlug={invite.curatorSlug}
-            listingId={invite.listingId}
-            title={listing?.title ?? null}
-          />
-        </div>
-      </main>
-    </div>
+        ) : undefined
+      }
+      title={invite.senderName ? `${invite.senderName} styled this for you.` : "Someone styled this for you."}
+      lede={
+        <>
+          {invite.note && <span className="block italic">“{invite.note}”</span>}
+          {listing && (
+            <span className="mt-1 block text-xs">
+              {listing.title || "The pick"}
+              {listing.priceCusd != null && ` · ~$${listing.priceCusd.toFixed(2)}`}
+            </span>
+          )}
+        </>
+      }
+    >
+      <div className="mt-6">
+        <TryInviteClient
+          token={token}
+          listingImageUrl={listing?.imageUrl ?? null}
+          curatorSlug={invite.curatorSlug}
+          listingId={invite.listingId}
+          title={listing?.title ?? null}
+        />
+      </div>
+    </ArtifactShell>
   );
 }

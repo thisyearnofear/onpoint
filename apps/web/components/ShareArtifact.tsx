@@ -8,14 +8,30 @@ import {
   type ShareChannel,
 } from "@/lib/utils/share-attribution";
 
-export function ShareArtifact({ title, text, url }: { title: string; text?: string; url: string }) {
+export function ShareArtifact({
+  title,
+  text,
+  url,
+  onShare,
+}: {
+  title: string;
+  text?: string;
+  url: string;
+  /** Extra attribution hook — called with (channel, attributedUrl, sid) per send. */
+  onShare?: (channel: ShareChannel, url: string, sid: string) => void;
+}) {
   const [copied, setCopied] = useState(false);
 
   const share = async () => {
     const base = url.startsWith("http") ? url : `${window.location.origin}${url}`;
     // A fresh id per send: without it, an artifact share is indistinguishable
     // from any other visit when the try-on and order land.
-    const mint = (channel: ShareChannel) => withShareParams(base, newShareId(), channel);
+    const mint = (channel: ShareChannel) => {
+      const sid = newShareId();
+      const attributed = withShareParams(base, sid, channel);
+      onShare?.(channel, attributed, sid);
+      return attributed;
+    };
     // Count the share itself — conversions are joined downstream by sid,
     // but share volume needs its own event to exist in the funnel at all.
     const log = (channel: ShareChannel) =>

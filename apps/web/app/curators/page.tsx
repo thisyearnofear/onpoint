@@ -5,7 +5,6 @@ import {
   ArrowRight,
   Camera,
   Package,
-  Sparkles,
   Store,
   Users,
   Eye,
@@ -134,7 +133,7 @@ export default async function CuratorsPage() {
         {curators.length === 0 ? (
           /* Empty state */
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-muted/40 mb-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-muted/40 mb-4">
               <Store className="w-8 h-8 text-muted-foreground" />
             </div>
             <h2 className="text-xl font-bold text-foreground mb-2">
@@ -160,11 +159,11 @@ export default async function CuratorsPage() {
                 <h2 className="mb-4 text-lg font-bold">Featured</h2>
                 <Link
                   href={`/lab?tab=try-on&from=nia`}
-                  className="group block rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/[0.04] to-transparent p-6 md:p-8 transition-all hover:border-primary/50 hover:shadow-lg"
+                  className="group block rounded-2xl border-2 border-primary/30 bg-primary/[0.04] p-6 md:p-8 transition-all hover:border-primary/50 hover:shadow-lg"
                 >
                   <div className="flex flex-col md:flex-row gap-6">
                     {/* Visual */}
-                    <div className="relative flex h-32 w-32 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-purple-500/20 text-4xl font-black text-primary">
+                    <div className="relative flex h-32 w-32 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-4xl font-black text-primary">
                       {nia.brand?.logo ? (
                         <Image src={nia.brand.logo} alt={nia.name} fill unoptimized className="rounded-2xl object-cover" />
                       ) : (
@@ -176,8 +175,7 @@ export default async function CuratorsPage() {
                     <div className="flex-1 space-y-3">
                       <div className="flex items-center gap-2">
                         <h3 className="text-xl font-black tracking-tight">{nia.name}</h3>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/15 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
-                          <Sparkles className="w-2.5 h-2.5" />
+                        <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-primary">
                           AI Curator
                         </span>
                       </div>
@@ -327,7 +325,7 @@ export default async function CuratorsPage() {
             )}
 
             {/* ── Become a curator CTA ── */}
-            <section className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.03] to-transparent p-6 md:p-8 text-center">
+            <section className="rounded-2xl border border-primary/20 bg-primary/[0.03] p-6 md:p-8 text-center">
               <div className="flex h-12 w-12 mx-auto items-center justify-center rounded-2xl bg-primary/10 mb-3">
                 <Store className="w-6 h-6 text-primary" />
               </div>

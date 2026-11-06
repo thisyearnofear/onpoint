@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ItemRow } from "@/components/surface/ItemRow";
 import type { MagazineData } from "./page";
 
 interface Page {
@@ -51,30 +52,14 @@ export function Flipbook({ mag }: { mag: MagazineData }) {
           </p>
           <div className="grid flex-1 grid-rows-2 gap-4 py-4">
             {pair.map((item) => (
-              <div key={item.listingId} className="relative flex min-h-0 items-center gap-3 border border-border p-3 sm:gap-4 sm:p-4">
+              <div key={item.listingId} className="relative flex min-h-0 items-center">
                 {item.listingId === mag.heroListingId && (
-                  <span className="absolute -top-2 right-3 border border-primary/40 bg-primary px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-white">
+                  <span className="absolute -top-2 right-3 z-10 border border-primary/40 bg-primary px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-white">
                     Picked for you
                   </span>
                 )}
-                {item.imageUrl ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={item.imageUrl} alt={item.title || "Piece"} className="h-16 w-16 shrink-0 border border-border object-cover sm:h-20 sm:w-20" />
-                ) : (
-                  <div className="h-16 w-16 shrink-0 border border-border bg-muted sm:h-20 sm:w-20" />
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-foreground">{item.title || "The piece"}</p>
-                  <div className="mt-2 flex gap-2">
-                    <Link href={`/lab?tab=try-on&from=${item.curatorSlug || "mag"}&item=${item.listingId}`} className="inline-flex min-h-9 items-center rounded-full bg-primary px-3 text-xs font-bold text-white">
-                      Try it on
-                    </Link>
-                    {item.curatorSlug && (
-                      <Link href={`/s/${item.curatorSlug}?item=${item.listingId}`} className="inline-flex min-h-9 items-center rounded-full border border-border px-3 text-xs font-bold text-foreground hover:border-foreground">
-                        Get it
-                      </Link>
-                    )}
-                  </div>
+                <div className="w-full">
+                  <ItemRow item={item} from="mag" variant="compact" />
                 </div>
               </div>
             ))}
@@ -129,10 +114,10 @@ export function Flipbook({ mag }: { mag: MagazineData }) {
   }, [flip]);
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center bg-muted/30 px-4 py-10">
+    <div className="flex flex-col items-center px-4 py-6">
       <div className="w-full max-w-md" style={{ perspective: "1600px" }}>
         <div
-          className="relative aspect-[3/4] w-full overflow-hidden rounded-sm border border-border shadow-2xl shadow-black/20"
+          className="relative aspect-[3/4] w-full overflow-hidden rounded-sm border border-border shadow-lg shadow-black/20"
           onTouchStart={(e) => { touchX.current = e.touches[0]?.clientX ?? null; }}
           onTouchEnd={(e) => {
             if (touchX.current == null) return;

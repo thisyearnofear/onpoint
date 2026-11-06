@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowLeft, Check, Sparkles, Heart, Camera, Ruler, Zap } from "lucide-react";
+import { Check, Heart, Camera, Ruler } from "lucide-react";
 import { Reveal } from "../../../components/ui/Reveal";
 import { Accordion, AccordionItem } from "../../../components/ui/Accordion";
-import { OnPointLayout } from "../../../components/OnPointLayout";
+import { GuideLayout } from "../../../components/guides/GuideLayout";
 
 export const metadata: Metadata = {
   title: "Plus-Size Fashion & Fit Guide | OnPoint",
@@ -18,51 +18,20 @@ export const metadata: Metadata = {
 
 export default function PlusSizeFashionGuide() {
   return (
-    <OnPointLayout footer={false}>
-      <article className="mx-auto max-w-3xl px-4 py-12">
-        {/* Back link */}
-        <Link
-          href="/"
-          className="mb-8 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to OnPoint
-        </Link>
-
-        {/* Header — punchy, not a wall of text */}
-        <header className="mb-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-medium text-muted-foreground mb-4">
-            <Sparkles className="h-3.5 w-3.5" />
-            Style guide
-          </div>
-          <h1 className="text-3xl font-black tracking-tight md:text-4xl">Plus-Size Fashion & Fit Guide</h1>
-          <p className="mt-3 text-base text-muted-foreground leading-relaxed">
-            Fit, silhouettes, fabrics, and virtual try-on — everything you need to dress with confidence at any size.
-          </p>
-        </header>
-
-        {/* TL;DR — quick takeaways, no reading required */}
-        <Reveal>
-          <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.04] to-transparent p-5 mb-8">
-            <div className="flex items-center gap-2 mb-3">
-              <Zap className="w-4 h-4 text-primary" />
-              <h2 className="text-sm font-bold uppercase tracking-wider">Quick Takeaways</h2>
-            </div>
-            <div className="grid sm:grid-cols-2 gap-2">
-              {[
-                "Clothes should skim your body — not pull, gap, or bag",
+    <GuideLayout
+        title="Plus-Size Fashion & Fit Guide"
+        lede="Fit, silhouettes, fabrics, and virtual try-on — everything you need to dress with confidence at any size."
+  takeaways={[
+            "Clothes should skim your body — not pull, gap, or bag",
                 "Fit & flare and wrap silhouettes flatter every body type",
                 "Stretch fabrics with good recovery hold shape without sagging",
-                "Virtual try-on removes the guesswork from online sizing",
-              ].map((tip) => (
-                <div key={tip} className="flex items-start gap-2 text-sm">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                  <span className="text-muted-foreground">{tip}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Reveal>
+                "Virtual try-on removes the guesswork from online sizing"
+          ]}
+      >
+                {/* Header — punchy, not a wall of text */}
+
+        {/* TL;DR — quick takeaways, no reading required */}
+        
 
         {/* Detailed sections — progressive disclosure via accordion */}
         <Reveal>
@@ -98,7 +67,7 @@ export default function PlusSizeFashionGuide() {
               <AccordionItem
                 title="Silhouettes that work"
                 subtitle="Fit & flare, wraps, straight leg, V-necks"
-                icon={<Sparkles className="w-4 h-4" />}
+                icon={<Check className="w-4 h-4" />}
               >
                 <p className="text-sm leading-7 mb-3">
                   Certain silhouettes are universally flattering for plus-size bodies. These are
@@ -187,7 +156,7 @@ export default function PlusSizeFashionGuide() {
             Try on plus-size styles now
           </Link>
         </div>
-      </article>
-    </OnPointLayout>
+      
+    </GuideLayout>
   );
 }

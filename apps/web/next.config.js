@@ -134,6 +134,9 @@ const nextConfig = {
       // generation prerenders Next's error shell as a 200, which a crawler
       // reads as the page still existing. A config entry is a real 308.
       { source: '/style-guide', destination: '/about', permanent: true },
+      // Pricing folded into /developers — agents, not consumers, are the
+      // audience (consumers never see prices).
+      { source: '/pricing', destination: '/developers#pricing', permanent: true },
     ];
   },
 };

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import {
-  ArrowRight,
   Bot,
   Camera,
   Check,
@@ -11,6 +10,7 @@ import {
   Key,
   Layers,
   Shield,
+  Tag,
   Wallet,
   Zap,
 } from "lucide-react";
@@ -21,18 +21,32 @@ import { getBaseUrl } from "../../lib/base-url";
 
 const API_BASE = getApiBase();
 
-function Endpoint({ method, path, desc }: { method: string; path: string; desc: string }) {
+function Endpoint({
+  method,
+  path,
+  desc,
+}: {
+  method: string;
+  path: string;
+  desc: string;
+}) {
   const colors: Record<string, string> = {
-    GET: "bg-success/10 text-success dark:text-emerald-400",
-    POST: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+    GET: "bg-success/10 text-success",
+    POST: "bg-info/10 text-info",
   };
   return (
     <div className="flex items-start gap-3 py-3 border-b border-border/30 last:border-0">
-      <span className={`shrink-0 px-2 py-0.5 rounded text-xs font-bold uppercase ${colors[method] || "bg-muted text-muted-foreground"}`}>
+      <span
+        className={`shrink-0 px-2 py-0.5 rounded text-xs font-bold uppercase ${colors[method] || "bg-muted text-muted-foreground"}`}
+      >
         {method}
       </span>
-      <code className="text-sm font-mono text-foreground break-all">{path}</code>
-      <span className="text-sm text-muted-foreground ml-auto shrink-0 text-right max-w-[40%]">{desc}</span>
+      <code className="text-sm font-mono text-foreground break-all">
+        {path}
+      </code>
+      <span className="text-sm text-muted-foreground ml-auto shrink-0 text-right max-w-[40%]">
+        {desc}
+      </span>
     </div>
   );
 }
@@ -40,8 +54,7 @@ function Endpoint({ method, path, desc }: { method: string; path: string; desc: 
 export default function DevelopersPage() {
   return (
     <OnPointLayout>
-
-      <div className="container mx-auto px-4 py-12 md:py-16 max-w-5xl">
+      <div className="container mx-auto px-4 py-12 md:py-10 max-w-5xl">
         {/* Hero */}
         <div className="mb-14 max-w-3xl">
           <h1 className="font-display text-4xl leading-[1.05] tracking-[-0.02em] md:text-5xl">
@@ -49,7 +62,10 @@ export default function DevelopersPage() {
             <span className="block text-primary">Your agent, your logic.</span>
           </h1>
           <p className="mt-4 text-lg text-muted-foreground">
-            The agent commerce API exposes machine-readable endpoints for AI agents. Browse curators, try on items, and buy from the same inventory humans use. Pay with cUSD or gasless USDC on Celo, or USD₮0 on XLayer via the OKX.AI marketplace.
+            The agent commerce API exposes machine-readable endpoints for AI
+            agents. Browse curators, try on items, and buy from the same
+            inventory humans use. Pay with cUSD or gasless USDC on Celo, or
+            USD₮0 on XLayer via the OKX.AI marketplace.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <a
@@ -94,54 +110,106 @@ export default function DevelopersPage() {
 
         {/* Endpoints */}
         <section className="mb-14">
-          <h2 className="text-2xl font-black tracking-tight mb-6 flex items-center gap-2">
+          <h2 className="font-display text-2xl tracking-tight mb-6 flex items-center gap-2">
             <Layers className="w-5 h-5 text-primary" />
             API Endpoints
           </h2>
           <div className="rounded-xl border border-border/40 bg-card p-6 space-y-1">
-            <Endpoint method="GET" path="/api/curator/directory?agentPurchasable=1" desc="Curators with wallets + physical SKUs" />
-            <Endpoint method="GET" path="/api/curator/{slug}/storefront" desc="Listings with cUSD offers" />
-            <Endpoint method="POST" path="/api/agent/try-on" desc="Pay to render, get fit signal" />
-            <Endpoint method="POST" path="/api/curator/{slug}/order" desc="Buy an item" />
-            <Endpoint method="GET" path="/api/curator/{slug}/earnings" desc="Public reconciled ledger" />
-            <Endpoint method="POST" path="/api/agent/mint" desc="Mint NFT with royalty split" />
+            <Endpoint
+              method="GET"
+              path="/api/curator/directory?agentPurchasable=1"
+              desc="Curators with wallets + physical SKUs"
+            />
+            <Endpoint
+              method="GET"
+              path="/api/curator/{slug}/storefront"
+              desc="Listings with cUSD offers"
+            />
+            <Endpoint
+              method="POST"
+              path="/api/agent/try-on"
+              desc="Pay to render, get fit signal"
+            />
+            <Endpoint
+              method="POST"
+              path="/api/curator/{slug}/order"
+              desc="Buy an item"
+            />
+            <Endpoint
+              method="GET"
+              path="/api/curator/{slug}/earnings"
+              desc="Public reconciled ledger"
+            />
+            <Endpoint
+              method="POST"
+              path="/api/agent/mint"
+              desc="Mint NFT with royalty split"
+            />
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            Base URL: <code className="font-mono">{API_BASE}</code>. All responses include x402 payment requirements when auth is needed.
+            Base URL: <code className="font-mono">{API_BASE}</code>. All
+            responses include x402 payment requirements when auth is needed.
           </p>
         </section>
 
         {/* OKX A2MCP Endpoints */}
         <section className="mb-14">
-          <h2 className="text-2xl font-black tracking-tight mb-3 flex items-center gap-2">
+          <h2 className="font-display text-2xl tracking-tight mb-3 flex items-center gap-2">
             <Zap className="w-5 h-5 text-primary" />
             OKX.AI Marketplace (A2MCP)
           </h2>
-          <div className="rounded-xl border-2 border-primary/20 bg-gradient-to-br from-primary/[0.03] to-transparent p-6 space-y-4">
+          <div className="rounded-xl border-2 border-primary/20 bg-primary/[0.03] p-6 space-y-4">
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-1 rounded-full bg-primary text-white text-xs font-bold">Listed as ASP</span>
-              <span className="text-sm text-muted-foreground">Agent ID 9874 · Category: Lifestyle · XLayer USD₮0</span>
+              <span className="px-2.5 py-1 rounded-full bg-primary text-white text-xs font-bold">
+                Listed as ASP
+              </span>
+              <span className="text-sm text-muted-foreground">
+                Agent ID 9874 · Category: Lifestyle · XLayer USD₮0
+              </span>
             </div>
             <p className="text-sm text-muted-foreground">
-              Same inventory, same try-on engine — payments settle in USD₮0 on XLayer (eip155:196) for OKX Agentic Wallet users.
-              Both endpoints return 402 + <code className="font-mono text-xs">PAYMENT-REQUIRED</code> header (base64 v2 challenge).
+              Same inventory, same try-on engine — payments settle in USD₮0 on
+              XLayer (eip155:196) for OKX Agentic Wallet users. Both endpoints
+              return 402 +{" "}
+              <code className="font-mono text-xs">PAYMENT-REQUIRED</code> header
+              (base64 v2 challenge).
             </p>
             <div className="rounded-xl border border-border/40 bg-card p-4 space-y-1">
-              <Endpoint method="POST" path="/okx/browse" desc="Free directory (zero-fee x402)" />
-              <Endpoint method="POST" path="/okx/try-on" desc="$0.05 USD₮0 per try-on" />
-              <Endpoint method="GET" path="/okx/health" desc="Facade status + mode" />
+              <Endpoint
+                method="POST"
+                path="/okx/browse"
+                desc="Free directory (zero-fee x402)"
+              />
+              <Endpoint
+                method="POST"
+                path="/okx/try-on"
+                desc="$0.05 USD₮0 per try-on"
+              />
+              <Endpoint
+                method="GET"
+                path="/okx/health"
+                desc="Facade status + mode"
+              />
             </div>
             <div className="flex flex-wrap gap-2 pt-2">
-              <code className="px-2.5 py-1 rounded-lg bg-muted/60 text-xs">network: eip155:196</code>
-              <code className="px-2.5 py-1 rounded-lg bg-muted/60 text-xs">asset: USD₮0</code>
-              <code className="px-2.5 py-1 rounded-lg bg-muted/60 text-xs">scheme: exact</code>
-              <code className="px-2.5 py-1 rounded-lg bg-muted/60 text-xs">x402Version: 2</code>
+              <code className="px-2.5 py-1 rounded-lg bg-muted/60 text-xs">
+                network: eip155:196
+              </code>
+              <code className="px-2.5 py-1 rounded-lg bg-muted/60 text-xs">
+                asset: USD₮0
+              </code>
+              <code className="px-2.5 py-1 rounded-lg bg-muted/60 text-xs">
+                scheme: exact
+              </code>
+              <code className="px-2.5 py-1 rounded-lg bg-muted/60 text-xs">
+                x402Version: 2
+              </code>
             </div>
           </div>
         </section>
 
         <section className="mb-14">
-          <h2 className="text-2xl font-black tracking-tight mb-6 flex items-center gap-2">
+          <h2 className="font-display text-2xl tracking-tight mb-6 flex items-center gap-2">
             <Zap className="w-5 h-5 text-primary" />
             Verify Before You Pay
           </h2>
@@ -151,21 +219,22 @@ export default function DevelopersPage() {
               code={`curl -sS '${API_BASE}/api/curator/directory?agentPurchasable=1'`}
             />
             <div className="rounded-lg border border-border/40 bg-card p-5 text-sm leading-6 text-muted-foreground">
-              Discover stocked curator storefronts without credentials. Select an offer,
-              request a 402 challenge, and only then create a payment authorization.
+              Discover stocked curator storefronts without credentials. Select
+              an offer, request a 402 challenge, and only then create a payment
+              authorization.
             </div>
           </div>
         </section>
 
         {/* Payment Flow */}
         <section className="mb-14">
-          <h2 className="text-2xl font-black tracking-tight mb-6 flex items-center gap-2">
+          <h2 className="font-display text-2xl tracking-tight mb-6 flex items-center gap-2">
             <Wallet className="w-5 h-5 text-primary" />
             Three Payment Paths
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
             {/* cUSD path */}
-            <div className="rounded-xl border border-border/40 bg-gradient-to-br from-background to-primary/[0.03] p-6 space-y-4">
+            <div className="rounded-xl border border-border/40 bg-primary/[0.03] p-6 space-y-4">
               <div className="flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
                   <Wallet className="w-4 h-4 text-primary" />
@@ -173,19 +242,26 @@ export default function DevelopersPage() {
                 <h3 className="font-bold">cUSD Direct</h3>
               </div>
               <p className="text-sm text-muted-foreground">
-                Standard cUSD transfer on Celo. Append the attribution dataSuffix to the tx data.
+                Standard cUSD transfer on Celo. Append the attribution
+                dataSuffix to the tx data.
               </p>
               <ol className="space-y-2 text-sm">
                 <li className="flex gap-2">
-                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">1</span>
+                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                    1
+                  </span>
                   <span>POST try-on or order</span>
                 </li>
                 <li className="flex gap-2">
-                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">2</span>
+                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                    2
+                  </span>
                   <span>Receive 402 with payTo + dataSuffix</span>
                 </li>
                 <li className="flex gap-2">
-                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">3</span>
+                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                    3
+                  </span>
                   <span>Transfer cUSD, re-POST with txHash</span>
                 </li>
               </ol>
@@ -195,7 +271,7 @@ export default function DevelopersPage() {
             </div>
 
             {/* USDC facilitator path */}
-            <div className="rounded-xl border-2 border-primary/30 bg-gradient-to-br from-background to-primary/[0.04] p-6 space-y-4 relative">
+            <div className="rounded-xl border-2 border-primary/30 bg-primary/[0.04] p-6 space-y-4 relative">
               <div className="absolute -top-3 right-4 px-3 py-0.5 rounded-full bg-primary text-white text-xs font-bold">
                 Recommended
               </div>
@@ -206,19 +282,26 @@ export default function DevelopersPage() {
                 <h3 className="font-bold">USDC via Facilitator</h3>
               </div>
               <p className="text-sm text-muted-foreground">
-                Gasless for buyer. Sign EIP-3009 auth, facilitator settles on-chain.
+                Gasless for buyer. Sign EIP-3009 auth, facilitator settles
+                on-chain.
               </p>
               <ol className="space-y-2 text-sm">
                 <li className="flex gap-2">
-                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">1</span>
+                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                    1
+                  </span>
                   <span>Sign EIP-3009 transferWithAuthorization</span>
                 </li>
                 <li className="flex gap-2">
-                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">2</span>
+                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                    2
+                  </span>
                   <span>Encode PaymentPayload as base64 JSON</span>
                 </li>
                 <li className="flex gap-2">
-                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">3</span>
+                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                    3
+                  </span>
                   <span>Send in X-PAYMENT header</span>
                 </li>
               </ol>
@@ -228,7 +311,7 @@ export default function DevelopersPage() {
             </div>
 
             {/* OKX XLayer path */}
-            <div className="rounded-xl border border-border/40 bg-gradient-to-br from-background to-primary/[0.03] p-6 space-y-4">
+            <div className="rounded-xl border border-border/40 bg-primary/[0.03] p-6 space-y-4">
               <div className="flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
                   <Globe className="w-4 h-4 text-primary" />
@@ -236,19 +319,26 @@ export default function DevelopersPage() {
                 <h3 className="font-bold">USD₮0 via OKX</h3>
               </div>
               <p className="text-sm text-muted-foreground">
-                XLayer-native payments for OKX Agentic Wallet users. Facade relays to Celo backend.
+                XLayer-native payments for OKX Agentic Wallet users. Facade
+                relays to Celo backend.
               </p>
               <ol className="space-y-2 text-sm">
                 <li className="flex gap-2">
-                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">1</span>
+                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                    1
+                  </span>
                   <span>POST /okx/try-on → 402 + PAYMENT-REQUIRED header</span>
                 </li>
                 <li className="flex gap-2">
-                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">2</span>
+                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                    2
+                  </span>
                   <span>OKX Agentic Wallet signs + settles USD₮0</span>
                 </li>
                 <li className="flex gap-2">
-                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">3</span>
+                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                    3
+                  </span>
                   <span>200 with try-on render + fit signal</span>
                 </li>
               </ol>
@@ -261,7 +351,7 @@ export default function DevelopersPage() {
 
         {/* Code Example */}
         <section className="mb-14">
-          <h2 className="text-2xl font-black tracking-tight mb-6 flex items-center gap-2">
+          <h2 className="font-display text-2xl tracking-tight mb-6 flex items-center gap-2">
             <Code className="w-5 h-5 text-primary" />
             Quick Start
           </h2>
@@ -269,25 +359,25 @@ export default function DevelopersPage() {
             label="Request an order quote"
             code={`// 1. Read a live storefront
 const store = await fetch("${API_BASE}/api/curator/wanja/storefront")
-  .then((response) => response.json());
+ .then((response) => response.json());
 
 const listing = store.listings.find(
-  (item) => item.agentCommerce?.offers?.length,
+ (item) => item.agentCommerce?.offers?.length,
 );
 const offer = listing.agentCommerce.offers[0];
 
 // 2. Request an order quote. No payment happens here.
 const orderRes = await fetch(
-  "${API_BASE}/api/curator/wanja/order",
-  {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      listingId: listing.id,
-      size: offer.size,
-      quantity: 1,
-    }),
-  }
+ "${API_BASE}/api/curator/wanja/order",
+ {
+ method: "POST",
+ headers: { "Content-Type": "application/json" },
+ body: JSON.stringify({
+ listingId: listing.id,
+ size: offer.size,
+ quantity: 1,
+ }),
+ }
 );
 const challenge = await orderRes.json();
 
@@ -298,13 +388,14 @@ if (orderRes.status !== 402) throw new Error("Expected a payment challenge");
 
         {/* Competitive Differentiation — evidence-based, from teardown research */}
         <section className="mb-14">
-          <h2 className="text-2xl font-black tracking-tight mb-3 flex items-center gap-2">
+          <h2 className="font-display text-2xl tracking-tight mb-3 flex items-center gap-2">
             <Shield className="w-5 h-5 text-primary" />
             Why OnPoint, Not Another API
           </h2>
           <p className="text-sm text-muted-foreground mb-6 max-w-2xl">
-            Most fashion APIs are demand-side wrappers over generic catalogs. OnPoint is the supply
-            side — fit-aware, locally payable, agent-addressable inventory that no one else has.
+            Most fashion APIs are demand-side wrappers over generic catalogs.
+            OnPoint is the supply side — fit-aware, locally payable,
+            agent-addressable inventory that no one else has.
           </p>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="rounded-xl border border-border/40 bg-card p-5 space-y-3">
@@ -313,10 +404,11 @@ if (orderRes.status !== 402) throw new Error("Expected a payment challenge");
                 Fit signal, not just search
               </h3>
               <p className="text-sm text-muted-foreground">
-                Image-conditioned try-on (Replicate IDM-VTON) shows the actual garment on the
-                buyer&apos;s photo — not a &ldquo;similar look&rdquo; approximation. Jumia and Kilimall
-                have local payments but zero fit signal. Amazon and Walmart have try-on but no
-                African inventory or local settlement.
+                Image-conditioned try-on (Replicate IDM-VTON) shows the actual
+                garment on the buyer&apos;s photo — not a &ldquo;similar
+                look&rdquo; approximation. Jumia and Kilimall have local
+                payments but zero fit signal. Amazon and Walmart have try-on but
+                no African inventory or local settlement.
               </p>
             </div>
             <div className="rounded-xl border border-border/40 bg-card p-5 space-y-3">
@@ -325,9 +417,10 @@ if (orderRes.status !== 402) throw new Error("Expected a payment challenge");
                 Same inventory, two clients
               </h3>
               <p className="text-sm text-muted-foreground">
-                Every curator listing serves humans (storefront + WhatsApp/M-Pesa) and agents (API +
-                x402/cUSD) from one source of truth. Competitors serve one or the other; none serve
-                both from the same catalog with agent payouts.
+                Every curator listing serves humans (storefront +
+                WhatsApp/M-Pesa) and agents (API + x402/cUSD) from one source of
+                truth. Competitors serve one or the other; none serve both from
+                the same catalog with agent payouts.
               </p>
             </div>
             <div className="rounded-xl border border-border/40 bg-card p-5 space-y-3">
@@ -336,9 +429,10 @@ if (orderRes.status !== 402) throw new Error("Expected a payment challenge");
                 Local payment rails
               </h3>
               <p className="text-sm text-muted-foreground">
-                WhatsApp/M-Pesa for humans, cUSD/USDC on Celo and USD₮0 on XLayer for agents. Doji
-                and StyleAI have no checkout rails at all. Zeekit requires a Walmart account. OnPoint
-                closes the loop in the markets others ignore.
+                WhatsApp/M-Pesa for humans, cUSD/USDC on Celo and USD₮0 on
+                XLayer for agents. Doji and StyleAI have no checkout rails at
+                all. Zeekit requires a Walmart account. OnPoint closes the loop
+                in the markets others ignore.
               </p>
             </div>
             <div className="rounded-xl border border-border/40 bg-card p-5 space-y-3">
@@ -347,9 +441,10 @@ if (orderRes.status !== 402) throw new Error("Expected a payment challenge");
                 Curator provenance, not generic catalog
               </h3>
               <p className="text-sm text-muted-foreground">
-                Every item traces to a named curator with a wallet, stock truth, and payout split.
-                Vue.ai and StyleAI sit on top of retailer catalogs. OnPoint&apos;s supply graph is
-                built from African fashion curators (Ankara, Kente, Adire, Bogolan, Shweshwe) —
+                Every item traces to a named curator with a wallet, stock truth,
+                and payout split. Vue.ai and StyleAI sit on top of retailer
+                catalogs. OnPoint&apos;s supply graph is built from African
+                fashion curators (Ankara, Kente, Adire, Bogolan, Shweshwe) —
                 inventory no horizontal platform has.
               </p>
             </div>
@@ -358,7 +453,7 @@ if (orderRes.status !== 402) throw new Error("Expected a payment challenge");
 
         {/* Capabilities */}
         <section className="mb-14">
-          <h2 className="text-2xl font-black tracking-tight mb-6 flex items-center gap-2">
+          <h2 className="font-display text-2xl tracking-tight mb-6 flex items-center gap-2">
             <Shield className="w-5 h-5 text-primary" />
             Platform Capabilities
           </h2>
@@ -380,7 +475,10 @@ if (orderRes.status !== 402) throw new Error("Expected a payment challenge");
                 desc: "ERC-8021 dataSuffix on every tx. Dual attribution tags. Agent codes supported.",
               },
             ].map((cap) => (
-              <div key={cap.title} className="rounded-xl border border-border/40 bg-card p-5 space-y-3">
+              <div
+                key={cap.title}
+                className="rounded-xl border border-border/40 bg-card p-5 space-y-3"
+              >
                 <div className="flex items-center gap-2 text-primary">
                   {cap.icon}
                   <h3 className="text-sm font-bold">{cap.title}</h3>
@@ -393,7 +491,7 @@ if (orderRes.status !== 402) throw new Error("Expected a payment challenge");
 
         {/* Agent Identity */}
         <section className="mb-14">
-          <h2 className="text-2xl font-black tracking-tight mb-6 flex items-center gap-2">
+          <h2 className="font-display text-2xl tracking-tight mb-6 flex items-center gap-2">
             <Bot className="w-5 h-5 text-primary" />
             Agent Identity
           </h2>
@@ -428,7 +526,9 @@ if (orderRes.status !== 402) throw new Error("Expected a payment challenge");
                     <code className="font-mono text-xs">0x8004...a432</code>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Self verification</span>
+                    <span className="text-muted-foreground">
+                      Self verification
+                    </span>
                     <span>Not published</span>
                   </div>
                 </div>
@@ -437,16 +537,40 @@ if (orderRes.status !== 402) throw new Error("Expected a payment challenge");
           </div>
         </section>
 
-        {/* CTA */}
-        <div className="text-center">
-          <Link
-            href="/pricing"
-            className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:text-primary/80 transition-colors"
-          >
-            See pricing details
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
+        {/* Pricing — the agent-facing price card, folded in from /pricing */}
+        <section id="pricing" className="mb-14 scroll-mt-20">
+          <h2 className="font-display text-2xl tracking-tight mb-6 flex items-center gap-2">
+            <Tag className="w-5 h-5 text-primary" />
+            Pricing
+          </h2>
+          <div className="rounded-xl border border-border/40 bg-card">
+            <div className="divide-y divide-border/40">
+              {[
+                ["Web try-on (human, no wallet)", "Free"],
+                ["Digital try-on (agent)", "$0.03 / call"],
+                ["Physical try-on (agent)", "$0.05 / call"],
+                ["Fashion NFT mint", "$0.10"],
+                ["Purchase split", "95% curator / 5% platform"],
+                ["Look creator earnings", "85% creator / 15% platform"],
+                ["Referral commission", "2.5% of platform fee, via 0xSplits"],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  className="flex items-center justify-between px-6 py-3.5"
+                >
+                  <span className="text-sm text-muted-foreground">{label}</span>
+                  <span className="font-mono text-sm font-bold text-foreground">
+                    {value}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="border-t border-border/40 px-6 py-3 text-xs text-muted-foreground">
+              USD-pegged via cUSD or USDC on Celo, USD₮0 on XLayer — gasless for
+              buyers. NEAR and PayPal rails available where configured.
+            </p>
+          </div>
+        </section>
       </div>
     </OnPointLayout>
   );

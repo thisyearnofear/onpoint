@@ -1,17 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  ArrowLeft,
-  Eye,
-  TrendingUp,
-  Share2,
-  Sparkles,
-} from "lucide-react";
+import { ArrowLeft, Eye } from "lucide-react";
 import { getApiBase } from "../../../lib/utils/api-base";
 import { OnPointLayout } from "../../../components/OnPointLayout";
 import { SafeImage } from "../../../components/SafeImage";
 import { LookCard, type LookCardData } from "../../../components/LookCard";
-import { ShareBar } from "./ShareBar";
+import { LookShareButton } from "./LookShareButton";
 import { LookTracker } from "./LookTracker";
 import { EditLookButton } from "./EditLookButton";
 import { LookItemGrid } from "./LookItemGrid";
@@ -148,12 +142,31 @@ export default async function LookPage({
     heroItem?.imageUrl,
   ];
 
+  const stats: string[] = [];
+  if (look.tryOnCount > 0) stats.push(`${look.tryOnCount} try-ons`);
+  if (look.purchaseCount > 0) stats.push(`${look.purchaseCount} purchases`);
+  if (look.shareCount > 0) stats.push(`${look.shareCount} shares`);
+
+  const metaTokens = [
+    look.metadata?.category,
+    look.metadata?.occasion && look.metadata.occasion !== "casual"
+      ? look.metadata.occasion.replace("-", " ")
+      : null,
+    look.metadata?.season && look.metadata.season !== "all-season"
+      ? look.metadata.season
+      : null,
+  ].filter(Boolean) as string[];
+
+  const tryOnHref = heroItem
+    ? `/s/${heroItem.curatorSlug}?tryOn=${heroItem.id}&referral=${look.referralCode}&look=${look.slug}${sidParam}`
+    : null;
+
   return (
     <OnPointLayout footer={false}>
       <LookTracker lookSlug={look.slug} />
-      <div className="mx-auto max-w-5xl px-4 py-8">
-        {/* Back link + edit button */}
-        <div className="mb-6 flex items-center justify-between">
+      <div className="mx-auto max-w-5xl px-4 pb-28 pt-4 md:pb-8 md:pt-8">
+        {/* Back link + edit */}
+        <div className="mb-4 flex items-center justify-between">
           <Link
             href="/?tab=outfits"
             className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -165,7 +178,7 @@ export default async function LookPage({
         </div>
 
         {runwayBanner && (
-          <div className="mb-6 flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/[0.08] px-4 py-3">
+          <div className="mb-4 flex items-center gap-3 border border-primary/30 bg-primary/[0.08] px-4 py-3">
             <span className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-primary">
               Runway
             </span>
@@ -178,114 +191,71 @@ export default async function LookPage({
           </div>
         )}
 
-        {/* Title + description — editorial header */}
-        <div className="mb-6 space-y-3">
-          <h1 className="text-3xl font-black tracking-tight md:text-5xl">
+        {/* Hero first */}
+        <div className="relative aspect-[4/5] overflow-hidden bg-muted md:mx-auto md:max-w-md">
+          <SafeImage
+            sources={heroImageSources}
+            alt={look.title}
+            fill
+            unoptimized
+            className="object-cover"
+            fallbackIconSize={64}
+          />
+        </div>
+
+        {/* Title + quiet meta line, tight under the hero */}
+        <div className="mt-4 space-y-2">
+          <h1 className="font-display text-3xl leading-[1.05] tracking-[-0.02em] md:text-4xl">
             {look.title}
           </h1>
+          <p className="text-xs text-muted-foreground">
+            Styled by {agentShort}
+            {stats.length > 0 && ` · ${stats.join(" · ")}`}
+            {metaTokens.map((t) => (
+              <span key={t}>
+                {" · "}
+                <Link
+                  href={`/?tab=outfits&category=${encodeURIComponent(t)}`}
+                  className="capitalize underline-offset-2 hover:text-foreground hover:underline"
+                >
+                  {t}
+                </Link>
+              </span>
+            ))}
+            {look.tags.map((tag) => (
+              <span key={tag}>
+                {" · "}
+                <Link
+                  href={`/?tab=outfits&tag=${encodeURIComponent(tag)}`}
+                  className="capitalize underline-offset-2 hover:text-foreground hover:underline"
+                >
+                  {tag}
+                </Link>
+              </span>
+            ))}
+          </p>
           {look.description && (
-            <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
+            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
               {look.description}
             </p>
           )}
-
-          {/* Structured metadata badges */}
-          {look.metadata && (look.metadata.category || look.metadata.occasion || look.metadata.season) && (
-            <div className="flex flex-wrap gap-2">
-              {look.metadata.category && (
-                <Link
-                  href={`/?tab=outfits&category=${encodeURIComponent(look.metadata.category)}`}
-                  className="rounded-full bg-foreground/5 px-3 py-1 text-xs font-semibold capitalize text-foreground/70 transition-colors hover:bg-foreground/10"
-                >
-                  {look.metadata.category}
-                </Link>
-              )}
-              {look.metadata.occasion && look.metadata.occasion !== 'casual' && (
-                <Link
-                  href={`/?tab=outfits&occasion=${encodeURIComponent(look.metadata.occasion)}`}
-                  className="rounded-full bg-foreground/5 px-3 py-1 text-xs font-semibold capitalize text-foreground/70 transition-colors hover:bg-foreground/10"
-                >
-                  {look.metadata.occasion.replace('-', ' ')}
-                </Link>
-              )}
-              {look.metadata.season && look.metadata.season !== 'all-season' && (
-                <Link
-                  href={`/?tab=outfits&season=${encodeURIComponent(look.metadata.season)}`}
-                  className="rounded-full bg-foreground/5 px-3 py-1 text-xs font-semibold capitalize text-foreground/70 transition-colors hover:bg-foreground/10"
-                >
-                  {look.metadata.season}
-                </Link>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Hero collage — full-bleed on mobile, centered on desktop */}
-        <div className="mb-6">
-          <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-muted md:max-w-md md:mx-auto">
-            <SafeImage
-              sources={heroImageSources}
-              alt={look.title}
-              fill
-              unoptimized
-              className="object-cover"
-              fallbackIconSize={64}
-            />
-          </div>
-        </div>
-
-        {/* Stats bar — only when there's real activity to show */}
-        {look.tryOnCount + look.purchaseCount + look.shareCount > 0 && (
-          <div className="mb-8 flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5">
-              Styled by{" "}
-              <span className="font-medium text-foreground">
-                {agentShort}
-              </span>
-            </span>
-            <span className="text-border">·</span>
-            <span className="inline-flex items-center gap-1.5">
-              <Eye className="h-4 w-4" />
-              {look.tryOnCount} try-ons
-            </span>
-            <span className="text-border">·</span>
-            <span className="inline-flex items-center gap-1.5">
-              <TrendingUp className="h-4 w-4" />
-              {look.purchaseCount} purchases
-            </span>
-            <span className="text-border">·</span>
-            <span className="inline-flex items-center gap-1.5">
-              <Share2 className="h-4 w-4" />
-              {look.shareCount} shares
-            </span>
-          </div>
-        )}
-
-        {/* Try-on CTA — prominent and action-oriented */}
-        {heroItem && (
-          <div className="mb-8 rounded-2xl border border-border bg-muted/50 p-6 text-center md:p-8">
-            <h2 className="mb-2 text-2xl font-black tracking-tight">Try on this look</h2>
-            <p className="mx-auto mb-5 max-w-lg text-sm text-muted-foreground">
-              Upload a photo and see how the hero piece looks on you. We’ll use it
-              to render an AI try-on and create a shareable collage card.
-            </p>
-            <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+          {/* Inline CTA on desktop; mobile gets the sticky bar below */}
+          {tryOnHref && (
+            <div className="hidden pt-2 md:block">
               <Link
-                href={`/s/${heroItem.curatorSlug}?tryOn=${heroItem.id}&referral=${look.referralCode}&look=${look.slug}${sidParam}`}
+                href={tryOnHref}
                 data-look-cta="tryon"
-                className="inline-flex items-center gap-2 rounded-full bg-foreground px-8 py-3 text-sm font-bold text-background transition-colors hover:bg-foreground/90 active:scale-[0.98]"
+                className="inline-flex items-center gap-2 rounded-full bg-foreground px-8 py-3 text-sm font-bold text-background transition-colors hover:bg-foreground/90"
               >
                 <Eye className="h-4 w-4" />
                 Try it on
               </Link>
-              {/* Nothing purchasable yet — the funnel exit is share/save,
-                  not a checkout that can't fulfill. */}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Items — visual grid of cutouts with swap */}
-        <div className="mb-8">
+        {/* Items */}
+        <div className="mt-8">
           <LookItemGrid
             items={items}
             referralCode={look.referralCode}
@@ -296,10 +266,9 @@ export default async function LookPage({
 
         {/* More from this curator */}
         {moreLooks.length > 0 && look.curatorSlug && (
-          <div className="mb-8">
+          <div className="mt-8">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                <Sparkles className="h-4 w-4" />
+              <h2 className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">
                 More from {look.curatorSlug}
               </h2>
               <Link
@@ -317,33 +286,30 @@ export default async function LookPage({
           </div>
         )}
 
-        {/* Tags + Share — bottom section */}
-        <div className="flex flex-col gap-6 border-t border-border pt-6 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Tags
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {look.tags.map((tag) => (
-                <Link
-                  key={tag}
-                  href={`/?tab=outfits&tag=${encodeURIComponent(tag)}`}
-                  className="rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium capitalize text-muted-foreground transition-colors hover:bg-muted/80"
-                >
-                  {tag}
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-2 sm:w-64">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Share
-            </h3>
-            <ShareBar lookSlug={look.slug} title={look.title} shareUrl={look.shareUrl} />
-          </div>
+        {/* Share */}
+        <div className="mt-8 flex justify-end border-t border-border pt-6">
+          <LookShareButton
+            lookSlug={look.slug}
+            title={look.title}
+            text={look.description || undefined}
+            url={look.shareUrl}
+          />
         </div>
       </div>
+
+      {/* Sticky try-on — mobile only */}
+      {tryOnHref && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur md:hidden">
+          <Link
+            href={tryOnHref}
+            data-look-cta="tryon"
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-foreground py-3.5 text-sm font-bold text-background transition-colors active:scale-[0.98]"
+          >
+            <Eye className="h-4 w-4" />
+            Try it on
+          </Link>
+        </div>
+      )}
     </OnPointLayout>
   );
 }

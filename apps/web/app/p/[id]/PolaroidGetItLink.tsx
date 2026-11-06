@@ -30,7 +30,7 @@ export function PolaroidGetItLink({
   return (
     <TransitionLink
       href={href}
-      className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-full py-4 text-sm font-bold shadow-lg shadow-indigo-500/20 transition-all"
+      className="flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground hover:bg-primary/90 rounded-full py-4 text-sm font-bold transition-colors"
     >
       <ShoppingBag className="w-4 h-4" />
       Shop {curatorName}

@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowLeft, Check, Sparkles, Scissors, Camera, Ruler, Shirt, Zap } from "lucide-react";
+import { Check, Scissors, Camera, Ruler, Shirt } from "lucide-react";
 import { Reveal } from "../../../components/ui/Reveal";
 import { Accordion, AccordionItem } from "../../../components/ui/Accordion";
-import { OnPointLayout } from "../../../components/OnPointLayout";
+import { GuideLayout } from "../../../components/guides/GuideLayout";
 
 export const metadata: Metadata = {
   title: "Formal Wear & Tailoring Guide | OnPoint",
@@ -18,53 +18,20 @@ export const metadata: Metadata = {
 
 export default function FormalWearGuide() {
   return (
-    <OnPointLayout footer={false}>
-      <article className="mx-auto max-w-3xl px-4 py-12">
-        {/* Back link */}
-        <Link
-          href="/"
-          className="mb-8 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to OnPoint
-        </Link>
-
-        {/* Header — punchy, not a wall of text */}
-        <header className="mb-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-medium text-muted-foreground mb-4">
-            <Sparkles className="h-3.5 w-3.5" />
-            Style guide
-          </div>
-          <h1 className="text-3xl font-black tracking-tight md:text-4xl">
-            Formal Wear &amp; Tailoring Guide
-          </h1>
-          <p className="mt-3 text-base text-muted-foreground leading-relaxed">
-            Bespoke, made-to-measure, fabrics, and measurements — everything you need to order custom formal wear with confidence.
-          </p>
-        </header>
-
-        {/* TL;DR — quick takeaways, no reading required */}
-        <Reveal>
-          <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.04] to-transparent p-5 mb-8">
-            <div className="flex items-center gap-2 mb-3">
-              <Zap className="w-4 h-4 text-primary" />
-              <h2 className="text-sm font-bold uppercase tracking-wider">Quick Takeaways</h2>
-            </div>
-            <div className="grid sm:grid-cols-2 gap-2">
-              {[
-                "MTM ~$150-400 in 1-3 weeks, bespoke ~$500-2,000+ in 4-8 weeks",
+    <GuideLayout
+        title="Formal Wear & Tailoring Guide"
+        lede="Bespoke, made-to-measure, fabrics, and measurements — everything you need to order custom formal wear with confidence."
+  takeaways={[
+            "MTM ~$150-400 in 1-3 weeks, bespoke ~$500-2,000+ in 4-8 weeks",
                 "Wool is the gold standard for suits — breathable and wrinkle-resistant",
                 "Provide 8 key measurements for a suit that truly fits",
-                "Try on the finished garment virtually before the tailor cuts fabric",
-              ].map((tip) => (
-                <div key={tip} className="flex items-start gap-2 text-sm">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                  <span className="text-muted-foreground">{tip}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Reveal>
+                "Try on the finished garment virtually before the tailor cuts fabric"
+          ]}
+      >
+                {/* Header — punchy, not a wall of text */}
+
+        {/* TL;DR — quick takeaways, no reading required */}
+        
 
         {/* Detailed sections — progressive disclosure via accordion */}
         <Reveal>
@@ -155,7 +122,7 @@ export default function FormalWearGuide() {
               <AccordionItem
                 title="Traditional formal wear guide"
                 subtitle="Agbada, kaftan, dashiki, kente stole"
-                icon={<Sparkles className="w-4 h-4" />}
+                icon={<Check className="w-4 h-4" />}
               >
                 <p className="text-sm leading-7 mb-3">
                   In East and West Africa, formal wear encompasses rich traditions beyond
@@ -252,7 +219,7 @@ export default function FormalWearGuide() {
             Try on formal wear now
           </Link>
         </div>
-      </article>
-    </OnPointLayout>
+      
+    </GuideLayout>
   );
 }

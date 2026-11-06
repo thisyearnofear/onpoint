@@ -22,7 +22,7 @@ export const PRIMARY_NAV: NavItem[] = [
 export const FOOTER_LINKS: NavItem[] = [
   { href: "/curator", label: "Supply" },
   { href: "/developers", label: "Developers" },
-  { href: "/pricing", label: "Pricing" },
+  { href: "/developers#pricing", label: "Pricing" },
   { href: "/guides", label: "Guides" },
   { href: "/about", label: "About" },
   { href: "/privacy", label: "Privacy" },

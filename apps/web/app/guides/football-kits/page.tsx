@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowLeft, Check, Shirt, Ruler, Printer, Smartphone, Sparkles, Zap } from "lucide-react";
+import { Check, Ruler, Printer, Smartphone } from "lucide-react";
 import { Reveal } from "../../../components/ui/Reveal";
 import { Accordion, AccordionItem } from "../../../components/ui/Accordion";
-import { OnPointLayout } from "../../../components/OnPointLayout";
+import { GuideLayout } from "../../../components/guides/GuideLayout";
 
 export const metadata: Metadata = {
   title: "Football Kit Buying Guide | OnPoint",
@@ -18,53 +18,20 @@ export const metadata: Metadata = {
 
 export default function FootballKitsGuide() {
   return (
-    <OnPointLayout footer={false}>
-      <article className="mx-auto max-w-3xl px-4 py-12">
-        {/* Back link */}
-        <Link
-          href="/"
-          className="mb-8 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to OnPoint
-        </Link>
-
-        {/* Header — punchy, not a wall of text */}
-        <header className="mb-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-medium text-muted-foreground mb-4">
-            <Shirt className="h-3.5 w-3.5" />
-            Style guide
-          </div>
-          <h1 className="text-3xl font-black tracking-tight md:text-4xl">
-            Football Kit Buying Guide
-          </h1>
-          <p className="mt-3 text-base text-muted-foreground leading-relaxed">
-            Sizing, printing, authentic vs. replica — everything you need before you buy.
-          </p>
-        </header>
-
-        {/* TL;DR — quick takeaways, no reading required */}
-        <Reveal>
-          <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.04] to-transparent p-5 mb-8">
-            <div className="flex items-center gap-2 mb-3">
-              <Zap className="w-4 h-4 text-primary" />
-              <h2 className="text-sm font-bold uppercase tracking-wider">Quick Takeaways</h2>
-            </div>
-            <div className="grid sm:grid-cols-2 gap-2">
-              {[
-                "Nike runs slim → size up for relaxed fit",
+    <GuideLayout
+        title="Football Kit Buying Guide"
+        lede="Sizing, printing, authentic vs. replica — everything you need before you buy."
+  takeaways={[
+            "Nike runs slim → size up for relaxed fit",
                 "Adidas = standard fit → your usual size",
                 "Replica ~$70-90, Authentic ~$120-150",
-                "Try on with AI before you order",
-              ].map((tip) => (
-                <div key={tip} className="flex items-start gap-2 text-sm">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                  <span className="text-muted-foreground">{tip}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Reveal>
+                "Try on with AI before you order"
+          ]}
+      >
+                {/* Header — punchy, not a wall of text */}
+
+        {/* TL;DR — quick takeaways, no reading required */}
+        
 
         {/* Detailed sections — progressive disclosure via accordion */}
         <Reveal>
@@ -150,7 +117,7 @@ export default function FootballKitsGuide() {
               <AccordionItem
                 title="Current season vs. retro"
                 subtitle="Collecting tips for classic kits"
-                icon={<Sparkles className="w-4 h-4" />}
+                icon={<Check className="w-4 h-4" />}
               >
                 <p className="text-sm leading-7 mb-3">
                   Current-season kits are widely available in standard sizes. Retro kits
@@ -233,7 +200,7 @@ export default function FootballKitsGuide() {
             Try on a kit now
           </Link>
         </div>
-      </article>
-    </OnPointLayout>
+      
+    </GuideLayout>
   );
 }

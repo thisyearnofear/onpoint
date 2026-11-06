@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from "react";
 import Image from "next/image";
 import { flushSync } from "react-dom";
-import { MapPin, Package, Search, Sparkles, X } from "lucide-react";
+import { MapPin, Package, Search, X } from "lucide-react";
 import {
   TransitionLink,
   withViewTransition,
@@ -238,7 +238,6 @@ function CuratorCard({ curator }: { curator: DirectoryCurator }) {
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               {curator.type === "ai" && (
                 <span className="flex items-center gap-0.5 text-primary">
-                  <Sparkles className="w-3 h-3" />
                   AI
                 </span>
               )}

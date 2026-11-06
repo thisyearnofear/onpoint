@@ -1,0 +1,31 @@
+"use client";
+
+import { ShareArtifact } from "../../../components/ShareArtifact";
+import { postLookEvent } from "../../../lib/utils/share-attribution";
+
+/**
+ * ShareArtifact wired to the look funnel — every share mints a sid and posts
+ * the look share event so share → visit → try-on joins downstream.
+ */
+export function LookShareButton({
+  lookSlug,
+  title,
+  text,
+  url,
+}: {
+  lookSlug: string;
+  title: string;
+  text?: string;
+  url: string;
+}) {
+  return (
+    <ShareArtifact
+      title={title}
+      text={text}
+      url={url}
+      onShare={(channel, _u, sid) =>
+        postLookEvent(lookSlug, "share", { shareId: sid, channel })
+      }
+    />
+  );
+}

@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { CheckCircle2, Sparkles } from "lucide-react";
-import { OnPointLayout } from "../../../components/OnPointLayout";
+import { CheckCircle2 } from "lucide-react";
 import { TransitionLink } from "../../../components/ViewTransition";
 import { SafeImage } from "../../../components/SafeImage";
-import { getApiBase } from "../../../lib/utils/api-base";
-import { PolaroidShareButtons } from "./PolaroidShareButtons";
+import { ArtifactShell } from "../../../components/surface/ArtifactShell";
+import { FactList, shortHash } from "../../../components/surface/FactList";
+import { ShareArtifact } from "../../../components/ShareArtifact";
 import { PolaroidGetItLink } from "./PolaroidGetItLink";
-import { ReferralCopyCta } from "./ReferralCopyCta";
 
 export const dynamic = "force-dynamic";
 
@@ -93,161 +92,108 @@ export default async function PolaroidPage({
   if (!meta) notFound();
 
   const fit = meta.fitSignal;
-  const scoreColor =
-    fit?.score == null
-      ? "text-muted-foreground"
-      : fit.score >= 8
-        ? "text-emerald-400"
-        : fit.score >= 6
-          ? "text-amber-400"
-          : "text-orange-400";
+
+  const notes = [
+    ...(fit?.fitRecommendations ?? []),
+    ...(fit?.styleRecommendations ?? []),
+  ].slice(0, 2);
 
   return (
-    <OnPointLayout className="flex flex-col">
-      <div className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md">
-          {/* Polaroid card — branded, shareable */}
-          <div className="bg-card rounded-3xl overflow-hidden shadow-2xl border border-border">
-            {/* Image */}
-            <div className="relative aspect-[3/4] bg-muted/20">
-              <SafeImage
-                sources={[meta.imageUrl]}
-                alt={`${meta.item} — AI try-on`}
-                fill
-                unoptimized
-                className="object-cover"
-              />
-              {/* Branding overlay */}
-              <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent">
-                <div className="flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-white/90" />
-                  <span className="text-sm font-black text-white tracking-tight">
-                    OnPoint
-                  </span>
-                </div>
-                {fit?.score != null && (
-                  <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-sm rounded-full px-3 py-1">
-                    <span className="text-xs font-mono text-white/60 uppercase tracking-wider">
-                      Score
-                    </span>
-                    <span className={`text-lg font-black ${scoreColor}`}>
-                      {fit.score}
-                    </span>
-                    <span className="text-xs text-white/40">/10</span>
-                  </div>
-                )}
-              </div>
+    <ArtifactShell
+      eyebrow="AI try-on"
+      artifact={
+        <div className="relative aspect-[3/4] border border-border bg-muted/20">
+          <SafeImage
+            sources={[meta.imageUrl]}
+            alt={`${meta.item} — AI try-on`}
+            fill
+            unoptimized
+            className="object-cover"
+          />
+          {fit?.score != null && (
+            <div className="absolute right-3 top-3 flex items-center gap-1.5 bg-black/50 px-3 py-1 backdrop-blur-sm">
+              <span className="font-mono text-xs uppercase tracking-wider text-white/70">
+                Score
+              </span>
+              <span className="text-lg font-bold text-white">{fit.score}</span>
+              <span className="text-xs text-white/50">/10</span>
             </div>
-
-            {/* Body */}
-            <div className="p-6 space-y-5">
-              {/* Item + curator */}
-              <div>
-                <h1 className="text-xl font-bold text-foreground leading-tight">
-                  {meta.item}
-                </h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  by{" "}
-                  <TransitionLink
-                    href={`/s/${meta.curatorSlug}?item=${meta.listingId}`}
-                    className="text-primary hover:underline font-medium"
-                  >
-                    {meta.curatorName}
-                  </TransitionLink>
-                </p>
-              </div>
-
-              {/* Fit signal */}
-              {fit && (
-                <div className="space-y-3">
-                  {fit.recommendedSize && (
-                    <div className="flex items-center gap-2 p-3 rounded-xl bg-success/10 border border-success/20">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span className="text-sm text-emerald-300">
-                        Recommended size:{" "}
-                        <span className="font-bold">{fit.recommendedSize}</span>
-                        {fit.confidence != null && (
-                          <span className="text-emerald-400/60 ml-1.5">
-                            ({Math.round(fit.confidence * 100)}% confidence)
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                  )}
-                  {fit.fitRecommendations.length > 0 && (
-                    <div className="space-y-1.5">
-                      <p className="text-xs text-muted-foreground/60 uppercase tracking-widest font-bold">
-                        Fit Notes
-                      </p>
-                      {fit.fitRecommendations.slice(0, 3).map((r, i) => (
-                        <p
-                          key={i}
-                          className="text-xs text-foreground/70 leading-relaxed"
-                        >
-                          {r}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                  {fit.styleRecommendations.length > 0 && (
-                    <div className="space-y-1.5">
-                      <p className="text-xs text-muted-foreground/60 uppercase tracking-widest font-bold">
-                        Style Notes
-                      </p>
-                      {fit.styleRecommendations.slice(0, 2).map((r, i) => (
-                        <p
-                          key={i}
-                          className="text-xs text-foreground/70 leading-relaxed"
-                        >
-                          {r}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* On-chain proof */}
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-muted/30 border border-border/50">
-                <div className="w-2 h-2 rounded-full bg-success shrink-0" />
-                <span className="text-xs text-muted-foreground">
-                  Verified on Celo —{" "}
-                  <a
-                    href={meta.payment.explorerUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline font-medium"
-                  >
-                    {meta.payment.amountCusd} cUSD paid
-                  </a>
-                </span>
-              </div>
-
-              {/* Social share — drives viral loop */}
-              <PolaroidShareButtons
-                item={meta.item}
-                curatorName={meta.curatorName}
-                score={fit?.score ?? null}
-              />
-
-              {/* Referral CTA — earn 2.5% when someone buys through your share */}
-              <ReferralCopyCta />
-
-              {/* CTA — shop the real thing */}
-              <PolaroidGetItLink
-                curatorSlug={meta.curatorSlug}
-                curatorName={meta.curatorName}
-                listingId={meta.listingId}
-              />
-            </div>
-          </div>
-
-          {/* Footer hint */}
-          <p className="text-center text-xs text-muted-foreground/50 mt-4">
-            AI try-on powered by OnPoint. Not a perfect representation of fit.
-          </p>
+          )}
         </div>
+      }
+      title={meta.item}
+      lede={
+        <>
+          by{" "}
+          <TransitionLink
+            href={`/s/${meta.curatorSlug}?item=${meta.listingId}`}
+            className="font-medium text-primary hover:underline"
+          >
+            {meta.curatorName}
+          </TransitionLink>
+          {fit?.recommendedSize && (
+            <span className="mt-1 flex items-center gap-1.5 text-success">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              Recommended size: <span className="font-bold">{fit.recommendedSize}</span>
+              {fit.confidence != null && (
+                <span className="text-success/60">
+                  ({Math.round(fit.confidence * 100)}%)
+                </span>
+              )}
+            </span>
+          )}
+        </>
+      }
+      stickyAction={
+        <PolaroidGetItLink
+          curatorSlug={meta.curatorSlug}
+          curatorName={meta.curatorName}
+          listingId={meta.listingId}
+        />
+      }
+      exits={
+        <p className="mt-8 text-center text-xs text-muted-foreground/70">
+          AI try-on — direction, not a perfect representation of fit.
+        </p>
+      }
+    >
+      {notes.length > 0 && (
+        <div className="mt-6 space-y-1.5">
+          {notes.map((note, i) => (
+            <p key={i} className="text-sm leading-relaxed text-foreground/80">
+              {note}
+            </p>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-6">
+        <FactList
+          rows={[
+            {
+              label: "Paid",
+              value: `${meta.payment.amountCusd} cUSD`,
+            },
+            {
+              label: "Verified on Celo",
+              value: shortHash(meta.payment.txHash),
+              href: meta.payment.explorerUrl,
+              mono: true,
+            },
+          ]}
+        />
       </div>
-    </OnPointLayout>
+
+      <div className="mt-6">
+        <ShareArtifact
+          title={`${meta.item} — AI try-on`}
+          text={`Try-on for ${meta.item} by ${meta.curatorName}${fit?.score ? ` — fit score ${fit.score}/10` : ""}`}
+          url={`/p/${id}`}
+        />
+        <p className="mt-3 text-xs text-muted-foreground">
+          Share this polaroid — when someone buys through your link you earn 2.5%.
+        </p>
+      </div>
+    </ArtifactShell>
   );
 }

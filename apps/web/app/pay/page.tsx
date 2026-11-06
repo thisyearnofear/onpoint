@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowLeft, Check, CheckCircle2, Copy, CreditCard, ExternalLink,
-  HelpCircle, Loader2, Shirt, Sparkles, Wallet,
+  HelpCircle, Loader2, Shirt, Wallet,
 } from "lucide-react";
 import QRCode from "qrcode";
 import { OnPointLayout } from "../../components/OnPointLayout";
@@ -253,14 +253,14 @@ export default function PayPage() {
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="group flex w-full flex-col items-center justify-center gap-4 rounded-3xl border-2 border-dashed border-border bg-gradient-to-b from-muted/60 to-muted/30 px-6 py-16 text-muted-foreground transition-all hover:border-foreground/40"
+              className="group flex w-full flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-border bg-muted/40 px-6 py-16 text-muted-foreground transition-all hover:border-foreground/40"
             >
               {photo ? (
                 <Image src={photo} alt="Your photo" width={140} height={140} unoptimized className="h-36 w-36 rounded-2xl object-cover shadow-lg" />
               ) : (
                 <>
                   <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-foreground/5 transition-transform group-hover:scale-105">
-                    <Sparkles className="h-7 w-7 text-foreground/60" />
+                    <Shirt className="h-7 w-7 text-foreground/60" />
                   </span>
                   <span className="text-base font-semibold text-foreground">Drop in a photo of yourself</span>
                   <span className="text-xs">JPG or PNG · used once for your try-on render</span>
@@ -399,7 +399,7 @@ export default function PayPage() {
 
         {/* ── Step 3: verify — the wait, staged ──────────────────── */}
         {step === "verify" ? (
-          <div className="mt-6 rounded-3xl border border-border bg-gradient-to-b from-card to-muted/30 p-8">
+          <div className="mt-6 rounded-xl border border-border bg-card p-8">
             <ol className="mx-auto max-w-sm space-y-4">
               {["Payment quote locked in", "Payment seen on-chain", "Rendering your try-on", "Ready"].map((label, i) => (
                 <li key={label} className="flex items-center gap-3">
@@ -419,12 +419,12 @@ export default function PayPage() {
         {/* ── Done: the render is the hero ────────────────────────── */}
         {step === "done" ? (
           <div className="mt-6 space-y-5">
-            <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-lg">
+            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-lg">
               {render ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={render} alt="Your try-on render" className="w-full" />
               ) : (
-                <div className="flex h-64 items-center justify-center bg-muted"><Sparkles className="h-8 w-8 text-muted-foreground" /></div>
+                <div className="flex h-64 items-center justify-center bg-muted"><Shirt className="h-8 w-8 text-muted-foreground" /></div>
               )}
               <div className="border-t border-border p-5">
                 <p className="text-sm font-bold">That's you, wearing it.</p>

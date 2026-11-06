@@ -7,8 +7,8 @@ import {
   MapPin,
   MessageCircle,
   PackageSearch,
+  Shirt,
   ShoppingBag,
-  Sparkles,
 } from "lucide-react";
 import type { CuratorStorefrontResponse } from "@onpoint/shared-types";
 import { OnPointLayout } from "../../../components/OnPointLayout";
@@ -160,122 +160,71 @@ export default async function CuratorStorefrontPage({
         </p>
       </div>
       <section className="border-b border-border">
-        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 md:grid-cols-[1fr_360px] md:py-14">
-          <div className="space-y-6">
-            <div className="flex flex-wrap items-center gap-2">
-              {curator.verticals.map((vertical) => (
-                <span
-                  key={vertical}
-                  className="rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium capitalize text-muted-foreground"
-                >
-                  {vertical.replaceAll("-", " ")}
-                </span>
-              ))}
+        <div className="mx-auto max-w-6xl px-4 py-6 md:py-8">
+          <div className="flex items-start gap-4">
+            <div
+              className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg text-lg font-black text-white"
+              data-view-transition="curator-avatar"
+              style={{
+                background: "var(--curator-primary)",
+                viewTransitionName: `curator-avatar-${slug}`,
+              }}
+            >
+              {curator.brand?.logo ? (
+                <SafeImage
+                  sources={[curator.brand.logo]}
+                  alt={`${curator.name} logo`}
+                  fill
+                  unoptimized
+                  className="object-cover"
+                />
+              ) : (
+                curator.name.slice(0, 1).toUpperCase()
+              )}
             </div>
-
-            <div className="space-y-4">
+            <div className="min-w-0 space-y-3">
               <h1
-                className="font-display max-w-3xl text-4xl font-semibold tracking-tight md:text-6xl"
+                className="font-display text-3xl font-semibold tracking-tight md:text-4xl"
                 data-view-transition="curator-name"
                 style={{ viewTransitionName: `curator-name-${slug}` }}
               >
                 {curator.name}
                 {isPreview && (
-                  <span className="ml-3 inline-flex items-center gap-1.5 align-middle rounded-full border border-warning/30 bg-warning/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-warning dark:text-amber-400">
-                    <Sparkles className="h-3 w-3" />
+                  <span className="ml-3 inline-flex items-center gap-1.5 align-middle rounded-full border border-warning/30 bg-warning/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-warning">
                     Preview
                   </span>
                 )}
               </h1>
-              <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
+              <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
                 {isPreview
                   ? `A preview of ${curator.name}'s catalog — real stock and pricing, with AI try-on. This curator is in the process of joining OnPoint.`
                   : physicalListings.length > 0
-                    ? `Real stock, fit-aware decisions, and a direct line to ${curator.name}. Choose a piece, try it on with AI, then confirm the details on WhatsApp.`
+                    ? `Choose a piece, try it on with AI, then confirm the details with ${curator.name}.`
                     : `Try on digital pieces from ${curator.name}, mint what you love, and see where they lead.`}
               </p>
-            </div>
-
-            <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-              {location?.city && (
-                <span className="inline-flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  {location.city}
-                  {location.landmark ? `, ${location.landmark}` : ""}
+              <div className="flex flex-wrap items-center gap-2">
+                {curator.verticals.map((vertical) => (
+                  <span
+                    key={vertical}
+                    className="rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium capitalize text-muted-foreground"
+                  >
+                    {vertical.replaceAll("-", " ")}
+                  </span>
+                ))}
+                {location?.city && (
+                  <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <MapPin className="h-3.5 w-3.5" />
+                    {location.city}
+                    {location.landmark ? `, ${location.landmark}` : ""}
+                  </span>
+                )}
+                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <ShoppingBag className="h-3.5 w-3.5" />
+                  {meta.listingCount} live listings
                 </span>
-              )}
-              <span className="inline-flex items-center gap-2">
-                <ShoppingBag className="h-4 w-4" />
-                {meta.listingCount} live listings
-              </span>
-              {curator.channels?.whatsapp && (
-                <span className="inline-flex items-center gap-2">
-                  <MessageCircle className="h-4 w-4" />
-                  WhatsApp checkout
-                </span>
-              )}
+              </div>
             </div>
           </div>
-
-          <aside className="border-l-2 pl-5" style={{ borderColor: "var(--curator-primary)" }}>
-            <div className="space-y-5">
-              <div
-                className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg text-2xl font-black text-white"
-                data-view-transition="curator-avatar"
-                style={{
-                  background: "var(--curator-primary)",
-                  viewTransitionName: `curator-avatar-${slug}`,
-                }}
-              >
-                {curator.brand?.logo ? (
-                  <SafeImage
-                    sources={[curator.brand.logo]}
-                    alt={`${curator.name} logo`}
-                    fill
-                    unoptimized
-                    className="object-cover"
-                  />
-                ) : (
-                  curator.name.slice(0, 1).toUpperCase()
-                )}
-              </div>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">How it works</p>
-                <h2 className="mt-2 text-lg font-bold">Fit first. Confirm with {curator.name}.</h2>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  OnPoint prepares the fit context; the curator confirms availability,
-                  size, and delivery before you pay.
-                </p>
-              </div>
-              <div className="grid gap-2 text-xs">
-                {[
-                  "Choose from the live collection",
-                  "Try on a piece with AI",
-                  "Confirm size and delivery",
-                ].map((step, index) => (
-                  <div key={step} className="flex items-center gap-2 rounded-md border border-border bg-muted/30 p-2">
-                    <span
-                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                      style={{ background: "var(--curator-primary)" }}
-                    >
-                      {index + 1}
-                    </span>
-                    <span className="font-medium">{step}</span>
-                  </div>
-                ))}
-              </div>
-              {curator.channels?.whatsapp && (
-                <a
-                  href={`https://wa.me/${curator.channels.whatsapp.replace(/^\+/, "")}`}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
-                  style={{ background: "var(--curator-accent)" }}
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  Chat with {curator.name}
-                </a>
-              )}
-            </div>
-          </aside>
         </div>
       </section>
 
@@ -390,7 +339,6 @@ export default async function CuratorStorefrontPage({
           {digitalListings.length > 0 && (
             <div className="mb-8">
               <div className="mb-4 flex items-center gap-2">
-                <Sparkles className="h-4 w-4" style={{ color: "var(--curator-accent)" }} />
                 <h3 className="text-sm font-bold uppercase tracking-[0.18em] text-muted-foreground">
                   Digital Designs · Try-On Only
                 </h3>
@@ -428,12 +376,11 @@ export default async function CuratorStorefrontPage({
                               "linear-gradient(135deg, var(--curator-primary), var(--curator-accent))",
                           }}
                         >
-                          <Sparkles className="h-10 w-10" />
+                          <Shirt className="h-10 w-10" />
                           <p className="text-sm font-bold">{listing.title || "Digital Design"}</p>
                         </div>
                       )}
-                      <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-violet-600/90 px-3 py-1 text-xs font-bold text-white shadow-sm">
-                        <Sparkles className="h-3 w-3" />
+                      <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-primary/90 px-3 py-1 text-xs font-bold text-primary-foreground shadow-sm">
                         Digital
                       </div>
                     </div>
@@ -678,6 +625,20 @@ export default async function CuratorStorefrontPage({
         </div>
       </section>
       </div>
+
+      {/* Sticky action bar — the one checkout door */}
+      {curator.channels?.whatsapp && (
+        <div className="sticky bottom-0 z-40 border-t border-border/60 bg-background/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
+          <a
+            href={`https://wa.me/${curator.channels.whatsapp.replace(/^\+/, "")}`}
+            className="mx-auto flex w-full max-w-6xl items-center justify-center gap-2 rounded-full py-3.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+            style={{ background: "var(--curator-accent)" }}
+          >
+            <MessageCircle className="h-4 w-4" />
+            Chat with {curator.name}
+          </a>
+        </div>
+      )}
       </OnPointLayout>
     </>
   );

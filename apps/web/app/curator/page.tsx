@@ -7,7 +7,6 @@ import {
   MessageCircle,
   ChartNoAxesCombined,
   Share2,
-  Sparkles,
   Store,
   Shirt,
   Palette,
@@ -271,13 +270,13 @@ export default function CuratorLandingPage() {
     <OnPointLayout>
       {/* ── Hero ── */}
       <Reveal>
-        <section className="border-b border-border bg-gradient-to-b from-card to-background">
-          <div className="mx-auto max-w-6xl px-4 py-16 md:py-24">
+        <section className="border-b border-border bg-card">
+          <div className="mx-auto max-w-6xl px-4 py-10 md:py-10">
             <div className="mx-auto max-w-3xl text-center">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/20">
                 <Store className="h-7 w-7 text-white" />
               </div>
-              <h1 className="mt-6 text-4xl font-black tracking-tight md:text-5xl">
+              <h1 className="mt-6 font-display text-4xl tracking-tight md:text-5xl">
                 Your storefront turns fit questions into orders.
                 <span className="block text-primary">
                   OnPoint is your fitting room. WhatsApp is where the
@@ -300,7 +299,6 @@ export default function CuratorLandingPage() {
                   href="/curator/onboard"
                   className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl"
                 >
-                  <Sparkles className="h-4 w-4" />
                   Create your storefront
                   <ArrowRight className="h-4 w-4" />
                 </Link>
@@ -362,9 +360,7 @@ export default function CuratorLandingPage() {
               ].map((stat) => (
                 <div key={stat.label} className="text-center">
                   <stat.icon className={`mx-auto h-5 w-5 ${stat.color}`} />
-                  <p className={`mt-2 text-xl font-black ${stat.color}`}>
-                    {stat.value}
-                  </p>
+                  <p className={`mt-2 text-xl ${stat.color}`}>{stat.value}</p>
                   <p className="text-xs text-muted-foreground">{stat.label}</p>
                 </div>
               ))}
@@ -375,14 +371,14 @@ export default function CuratorLandingPage() {
 
       {/* ── Before/After WhatsApp comparison ── */}
       <Reveal>
-        <section className="border-b border-border py-16 md:py-20">
+        <section className="border-b border-border py-10 md:py-10">
           <div className="mx-auto max-w-6xl px-4">
             <div className="text-center">
               <p className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-4 py-1.5 text-xs font-medium text-muted-foreground">
                 <MessageCircle className="h-3.5 w-3.5 text-success" />
                 Why OnPoint + WhatsApp beats WhatsApp alone
               </p>
-              <h2 className="mt-4 text-3xl font-black tracking-tight md:text-4xl">
+              <h2 className="mt-4 font-display text-3xl tracking-tight md:text-4xl">
                 Same customer. Half the messages.
               </h2>
               <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
@@ -495,14 +491,13 @@ export default function CuratorLandingPage() {
 
       {/* ── Archetypes — tabbed, pick your vertical ── */}
       <Reveal>
-        <section className="border-b border-border py-16 md:py-20">
+        <section className="border-b border-border py-10 md:py-10">
           <div className="mx-auto max-w-4xl px-4">
             <div className="text-center">
               <p className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-4 py-1.5 text-xs font-medium text-muted-foreground">
-                <Sparkles className="h-3.5 w-3.5 text-accent" />
                 Curator profiles
               </p>
-              <h2 className="mt-4 text-3xl font-black tracking-tight md:text-4xl">
+              <h2 className="mt-4 font-display text-3xl tracking-tight md:text-4xl">
                 Built for your vertical
               </h2>
               <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
@@ -527,12 +522,9 @@ export default function CuratorLandingPage() {
                           style={{
                             background: `linear-gradient(135deg, ${a.color}20, ${a.accent}20)`,
                           }}
-                        >
-                          </div>
+                        ></div>
                         <div className="flex-1">
-                          <h3 className="text-lg font-black tracking-tight">
-                            {a.title}
-                          </h3>
+                          <h3 className="text-lg tracking-tight">{a.title}</h3>
                           <p className="text-sm text-muted-foreground">
                             {a.tagline}
                           </p>
@@ -593,7 +585,6 @@ export default function CuratorLandingPage() {
                             background: `linear-gradient(135deg, ${a.color}, ${a.accent})`,
                           }}
                         >
-                          <Sparkles className="h-4 w-4" />
                           Create {a.title.split(" ")[0]} storefront
                           <ArrowRight className="h-4 w-4" />
                         </Link>
@@ -615,10 +606,10 @@ export default function CuratorLandingPage() {
 
       {/* ── Benefits ── */}
       <Reveal>
-        <section className="border-b border-border bg-gradient-to-b from-card to-background py-16 md:py-20">
+        <section className="border-b border-border bg-card py-10 md:py-10">
           <div className="mx-auto max-w-6xl px-4">
             <div className="text-center">
-              <h2 className="text-3xl font-black tracking-tight md:text-4xl">
+              <h2 className="font-display text-3xl tracking-tight md:text-4xl">
                 Every curator gets
               </h2>
               <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
@@ -649,14 +640,14 @@ export default function CuratorLandingPage() {
 
       {/* ── Local-first, agent-ready ── */}
       <Reveal>
-        <section className="border-b border-border bg-muted/20 py-14 md:py-16">
+        <section className="border-b border-border bg-muted/20 py-14 md:py-10">
           <div className="mx-auto max-w-5xl px-4">
-            <div className="grid gap-6 rounded-3xl border border-border/60 bg-card p-6 md:grid-cols-[0.8fr_1.2fr] md:items-center md:p-8">
+            <div className="grid gap-6 rounded-xl border border-border/60 bg-card p-6 md:grid-cols-[0.8fr_1.2fr] md:items-center md:p-8">
               <div>
                 <p className="inline-flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-[0.2em] text-primary">
                   <Globe className="h-3.5 w-3.5" /> Local-first, agent-ready
                 </p>
-                <h2 className="mt-3 text-2xl font-black tracking-tight md:text-3xl">
+                <h2 className="mt-3 font-display text-2xl tracking-tight md:text-3xl">
                   Start with the channels your customers already use.
                 </h2>
               </div>
@@ -679,10 +670,10 @@ export default function CuratorLandingPage() {
 
       {/* ── How it works ── */}
       <Reveal>
-        <section className="border-b border-border py-16 md:py-20">
+        <section className="border-b border-border py-10 md:py-10">
           <div className="mx-auto max-w-6xl px-4">
             <div className="text-center">
-              <h2 className="text-3xl font-black tracking-tight md:text-4xl">
+              <h2 className="font-display text-3xl tracking-tight md:text-4xl">
                 You do the selling.
                 <span className="block text-primary">We handle the tech.</span>
               </h2>
@@ -691,7 +682,7 @@ export default function CuratorLandingPage() {
             <div className="mt-10 grid gap-8 md:grid-cols-4">
               {STEPS.map(({ step, title, body }) => (
                 <div key={step} className="relative text-center md:text-left">
-                  <div className="mx-auto md:mx-0 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-black text-primary">
+                  <div className="mx-auto md:mx-0 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm text-primary">
                     {step}
                   </div>
                   <h3 className="mt-4 font-bold">{title}</h3>
@@ -712,21 +703,21 @@ export default function CuratorLandingPage() {
 
       {/* ── What curators say ── */}
       <Reveal>
-        <section className="border-b border-border bg-card/50 py-16 md:py-20">
+        <section className="border-b border-border bg-card/50 py-10 md:py-10">
           <div className="mx-auto max-w-6xl px-4">
             <div className="text-center">
               <p className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-4 py-1.5 text-xs font-medium text-muted-foreground">
                 <MessageCircle className="h-3.5 w-3.5 text-success" />
                 First curator
               </p>
-              <h2 className="mt-4 text-2xl font-black tracking-tight md:text-3xl">
+              <h2 className="mt-4 font-display text-2xl tracking-tight md:text-3xl">
                 What Wanja says
               </h2>
             </div>
 
             <div className="mx-auto mt-8 max-w-2xl pl-6 border-l-4 border-success/30">
               <div className="flex items-start gap-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success/10 text-sm font-black text-success">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success/10 text-sm text-success">
                   W
                 </div>
                 <div>
@@ -765,13 +756,13 @@ export default function CuratorLandingPage() {
 
       {/* ── Final CTA ── */}
       <Reveal>
-        <section className="py-16 md:py-20">
+        <section className="py-10 md:py-10">
           <div className="mx-auto max-w-6xl px-4">
             <div className="mx-auto max-w-2xl text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/20">
                 <Store className="h-8 w-8 text-white" />
               </div>
-              <h2 className="mt-6 text-3xl font-black tracking-tight md:text-4xl">
+              <h2 className="mt-6 font-display text-3xl tracking-tight md:text-4xl">
                 Ready to open your storefront?
               </h2>
               <p className="mx-auto mt-3 max-w-md text-muted-foreground">
@@ -783,7 +774,6 @@ export default function CuratorLandingPage() {
                   href="/curator/onboard"
                   className="inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-4 text-base font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl"
                 >
-                  <Sparkles className="h-5 w-5" />
                   Create your storefront
                   <ArrowRight className="h-5 w-5" />
                 </Link>

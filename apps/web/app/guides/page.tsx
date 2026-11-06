@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowRight, Shirt, Sparkles, ShoppingBag, Search, Scissors, Footprints, Leaf, Star, Heart, Calendar } from "lucide-react";
+import { ArrowRight, Shirt, Palette, ShoppingBag, Search, Scissors, Footprints, Leaf, Star, Heart, Calendar } from "lucide-react";
 import { OnPointLayout } from "../../components/OnPointLayout";
 
 export const metadata: Metadata = {
@@ -28,7 +28,7 @@ const GUIDES = [
     slug: "ankara-style",
     title: "Ankara & African Print Style Guide",
     description: "Fabrics, occasion matching, made-to-measure measurements, and virtual try-on for bold prints.",
-    icon: Sparkles,
+    icon: Palette,
     color: "text-warning",
     bg: "bg-warning/10",
     readTime: "4 min",
@@ -38,8 +38,8 @@ const GUIDES = [
     title: "Streetwear Style Guide",
     description: "Core pieces, sneaker rotation essentials, layering techniques, and navigating limited drops.",
     icon: ShoppingBag,
-    color: "text-purple-500",
-    bg: "bg-purple-500/10",
+    color: "text-primary",
+    bg: "bg-primary/10",
     readTime: "5 min",
   },
   {
@@ -47,8 +47,8 @@ const GUIDES = [
     title: "Vintage & Thrift Shopping Guide",
     description: "Hidden gems, quality checks, vintage sizing quirks, and building a unique wardrobe sustainably.",
     icon: Search,
-    color: "text-orange-500",
-    bg: "bg-orange-500/10",
+    color: "text-primary",
+    bg: "bg-primary/10",
     readTime: "5 min",
   },
   {
@@ -56,8 +56,8 @@ const GUIDES = [
     title: "Formal Wear & Tailoring Guide",
     description: "Bespoke vs made-to-measure, fabric selection, measurements, and traditional agbadas and kaftans.",
     icon: Scissors,
-    color: "text-indigo-500",
-    bg: "bg-indigo-500/10",
+    color: "text-primary",
+    bg: "bg-primary/10",
     readTime: "6 min",
   },
   {
@@ -65,8 +65,8 @@ const GUIDES = [
     title: "Sneaker Collecting & Care Guide",
     description: "Building a rotation, cleaning by material, storage for value retention, and spotting authentic vs fake pairs.",
     icon: Footprints,
-    color: "text-cyan-500",
-    bg: "bg-cyan-500/10",
+    color: "text-primary",
+    bg: "bg-primary/10",
     readTime: "5 min",
   },
   {
@@ -83,8 +83,8 @@ const GUIDES = [
     title: "Accessories Styling Guide",
     description: "The rule of three, metal mixing, building an accessories wardrobe, and occasion matching for watches, bags, and jewellery.",
     icon: Star,
-    color: "text-rose-500",
-    bg: "bg-rose-500/10",
+    color: "text-primary",
+    bg: "bg-primary/10",
     readTime: "4 min",
   },
   {
@@ -92,8 +92,8 @@ const GUIDES = [
     title: "Plus-Size Fashion & Fit Guide",
     description: "Finding the right fit, flattering silhouettes, fabric and pattern tips, and dressing with confidence at every size.",
     icon: Heart,
-    color: "text-pink-500",
-    bg: "bg-pink-500/10",
+    color: "text-primary",
+    bg: "bg-primary/10",
     readTime: "5 min",
   },
   {
@@ -101,8 +101,8 @@ const GUIDES = [
     title: "Occasion Wear & Event Dressing Guide",
     description: "Dress codes decoded, colour coordination, fabric and climate considerations, and planning ahead for weddings and formal events.",
     icon: Calendar,
-    color: "text-blue-500",
-    bg: "bg-blue-500/10",
+    color: "text-primary",
+    bg: "bg-primary/10",
     readTime: "6 min",
   },
 ];
@@ -111,10 +111,9 @@ export default function GuidesIndexPage() {
   return (
     <OnPointLayout>
       {/* Hero */}
-      <section className="border-b border-border bg-gradient-to-b from-card to-background">
+      <section className="border-b border-border bg-card">
         <div className="mx-auto max-w-3xl px-4 py-14 md:py-18 text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-medium text-muted-foreground mb-4">
-            <Sparkles className="h-3.5 w-3.5" />
             Style guides
           </div>
           <h1 className="text-3xl font-black tracking-tight md:text-4xl">
