@@ -562,9 +562,6 @@ router.post('/:slug/order', async (req, res) => {
   if (nearAccountId !== undefined && !nearPayments.isNearAccountId(nearPayer || '')) {
     return res.status(400).json({ error: 'nearAccountId must be a valid NEAR account' });
   }
-  if (nearTxHash && !nearPayer) {
-    return res.status(400).json({ error: 'nearAccountId is required with nearTxHash' });
-  }
   if (nearTxHash && paymentTxHash) {
     return res.status(400).json({ error: 'Provide either paymentTxHash (Celo cUSD) or nearTxHash (NEAR), not both' });
   }
@@ -830,7 +827,7 @@ router.post('/:slug/order', async (req, res) => {
           ...sharedTypes.build402Body([requirements]),
         });
       }
-      verification = { from: nearPayer, near: nearResult };
+      verification = { from: nearResult.signer || nearPayer, near: nearResult };
     } else {
       signerClient = agentCore.getSignerClient();
       payoutKey = !signerClient ? process.env.AGENT_PRIVATE_KEY : null;
@@ -860,7 +857,7 @@ router.post('/:slug/order', async (req, res) => {
     // The effective tx hash and payer for this request — for PayPal the
     // capture id is the canonical proof (replay-guarded like a tx hash).
     const effectiveTxHash = paypalResult?.captureId || nearTxHash || paymentTxHash;
-    const effectivePayer = paypalOrderId ? verification.from : (nearTxHash ? nearPayer : verification.from);
+    const effectivePayer = paypalOrderId ? verification.from : (nearTxHash ? (verification?.near?.signer || verification?.from || nearPayer) : verification.from);
     const paymentMethod = paypalOrderId
       ? 'paypal'
       : nearTxHash
@@ -1183,7 +1180,7 @@ router.post('/:slug/order', async (req, res) => {
                   ? `${totalCusd.toFixed(2)} cUSD via Split (pending distribution)`
                   : null,
           near: paymentMethod === 'near'
-            ? { accountId: nearPayer, amountYocto: nearQuote.amountYocto, payTo: nearPayTo, network: nearQuote.network }
+            ? { accountId: effectivePayer, amountYocto: nearQuote.amountYocto, payTo: nearPayTo, network: nearQuote.network }
             : undefined,
           paypal: paymentMethod === 'paypal' && paypalResult
             ? { orderId: paypalResult.orderId, captureId: paypalResult.captureId, amountUsd: paypalResult.amountUsd, env: paypalPayments.paypalEnv() }

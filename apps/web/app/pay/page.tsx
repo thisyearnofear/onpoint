@@ -13,6 +13,8 @@ const WALLET_SEND = "https://testnet.mynearwallet.com/send-money";
 
 type Step = "upload" | "pay" | "verifying" | "done";
 
+interface Listing { id: string; title: string; imageUrl: string | null; priceKes: number | null }
+
 interface NearQuote {
   network?: string;
   accountId?: string;
@@ -37,6 +39,8 @@ export default function PayPage() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [selected, setSelected] = useState<string>(DEMO_LISTING);
   const fileRef = useRef<HTMLInputElement>(null);
   const polling = useRef(false);
 
@@ -47,7 +51,7 @@ export default function PayPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           curatorSlug: DEMO_CURATOR,
-          listingId: DEMO_LISTING,
+          listingId: selected,
           photoData: photo,
           ...extra,
         }),
@@ -58,10 +62,11 @@ export default function PayPage() {
   );
 
   const getQuote = useCallback(async (photoData: string) => {
+    void selected;
     const res = await fetch("/api/pay/try-on", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ curatorSlug: DEMO_CURATOR, listingId: DEMO_LISTING, photoData }),
+      body: JSON.stringify({ curatorSlug: DEMO_CURATOR, listingId: selected, photoData }),
     });
     const data = await res.json().catch(() => ({}));
     if (res.status === 402 && (data.near || data.quote?.near)) {
@@ -122,6 +127,18 @@ export default function PayPage() {
     [callRail],
   );
 
+  // What the house shelf actually offers — the same storefront agents read.
+  useEffect(() => {
+    fetch("/api/pay/listings")
+      .then((r) => r.json())
+      .then((d) => {
+        const items = Array.isArray(d.listings) ? d.listings : [];
+        setListings(items);
+        if (items.length && !items.some((l: Listing) => l.id === DEMO_LISTING)) setSelected(items[0].id);
+      })
+      .catch(() => {});
+  }, []);
+
   // Wallet-redirect return: MyNearWallet appends ?transactionHashes= after send.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -136,17 +153,18 @@ export default function PayPage() {
     }
   }, [photo, startVerify]);
 
-  // QR for mobile wallets — near:// send URI scannable by HOT / Meteor / MyNearWallet.
-  useEffect(() => {
-    if (!quote?.accountId || !quote?.amountNear) return;
-    QRCode.toDataURL(`near://send?to=${quote.accountId}&amount=${quote.amountNear}`, { width: 220, margin: 1 })
-      .then(setQrDataUrl)
-      .catch(() => {});
-  }, [quote]);
-
   const walletUrl = quote?.accountId && quote?.amountNear && typeof window !== "undefined"
     ? `${WALLET_SEND}/${quote.accountId}/${quote.amountNear}?success_url=${encodeURIComponent(`${window.location.origin}/pay?sent=1`)}`
     : null;
+
+  // hoist above the QR effect — order-independent since hooks run top-down anyway.
+  // QR for paying on your phone — encodes the wallet's web send page, which
+  // opens something actionable on every device (near:// URIs parse nowhere
+  // on an unknown wallet, so the https send page is the universal payload).
+  useEffect(() => {
+    if (!walletUrl) return;
+    QRCode.toDataURL(walletUrl, { width: 220, margin: 1 }).then(setQrDataUrl).catch(() => {});
+  }, [walletUrl]);
 
   const copy = async (text: string) => {
     try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* clipboard blocked */ }
@@ -168,6 +186,27 @@ export default function PayPage() {
           <span className="font-mono">0.0078 NEAR</span> (≈ $0.03) on testnet, get the render back.
           Studio sample stock; the rails are real.
         </p>
+
+        {step === "upload" && listings.length > 1 ? (
+          <div className="mt-6 flex gap-3 overflow-x-auto pb-1" role="listbox" aria-label="Pick a piece">
+            {listings.map((l) => (
+              <button
+                key={l.id}
+                type="button"
+                role="option"
+                aria-selected={selected === l.id}
+                onClick={() => setSelected(l.id)}
+                className={`flex w-36 shrink-0 flex-col items-start gap-2 rounded-2xl border p-3 text-left transition-colors ${selected === l.id ? "border-foreground bg-muted/60" : "border-border bg-muted/30 hover:border-foreground/50"}`}
+              >
+                {l.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={l.imageUrl} alt="" className="h-20 w-full rounded-xl object-cover" />
+                ) : null}
+                <span className="text-xs font-semibold leading-snug">{l.title}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
 
         {step === "upload" ? (
           <div className="mt-8 space-y-4">
