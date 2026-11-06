@@ -73,4 +73,21 @@ describe("Toast System", () => {
     });
     expect(result.current.toast).toBeDefined();
   });
+
+  it("accepts ReactNode messages and action options", () => {
+    const { result } = renderUseToast();
+    const onUndo = vi.fn();
+    expect(() => {
+      act(() => {
+        result.current.toast(
+          <span>
+            Swapped <strong>item</strong>
+          </span>,
+          "info",
+          { action: { label: "Undo", onClick: onUndo }, durationMs: 0 },
+        );
+      });
+    }).not.toThrow();
+    expect(onUndo).not.toHaveBeenCalled();
+  });
 });

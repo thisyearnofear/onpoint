@@ -9,12 +9,20 @@ type ToastType = "success" | "error" | "info" | "warning";
 
 interface Toast {
   id: number;
-  message: string;
+  message: React.ReactNode;
   type: ToastType;
+  action?: { label: string; onClick: () => void };
+}
+
+interface ToastOptions {
+  /** Auto-dismiss delay. Default 4000ms; pass 0 to require manual dismiss. */
+  durationMs?: number;
+  /** Optional inline action (e.g. "Undo") — dismisses the toast on click. */
+  action?: { label: string; onClick: () => void };
 }
 
 interface ToastContextValue {
-  toast: (message: string, type?: ToastType) => void;
+  toast: (message: React.ReactNode, type?: ToastType, options?: ToastOptions) => void;
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -61,11 +69,14 @@ export function Toaster({ children }: { children: React.ReactNode }) {
   }, []);
 
   const toast = useCallback(
-    (message: string, type: ToastType = "info") => {
+    (message: React.ReactNode, type: ToastType = "info", options: ToastOptions = {}) => {
       const id = ++toastId;
-      setToasts((prev) => [...prev, { id, message, type }]);
-      const timer = setTimeout(() => removeToast(id), 4000);
-      timersRef.current.set(id, timer);
+      const { durationMs = 4000, action } = options;
+      setToasts((prev) => [...prev, { id, message, type, action }]);
+      if (durationMs > 0) {
+        const timer = setTimeout(() => removeToast(id), durationMs);
+        timersRef.current.set(id, timer);
+      }
     },
     [removeToast],
   );
@@ -96,7 +107,22 @@ export function Toaster({ children }: { children: React.ReactNode }) {
           )}
         >
           <span className="mt-0.5 shrink-0">{ICONS[t.type]}</span>
-          <p className="text-sm text-foreground flex-1">{t.message}</p>
+          {typeof t.message === "string" ? (
+            <p className="text-sm text-foreground flex-1">{t.message}</p>
+          ) : (
+            <div className="text-sm text-foreground flex-1">{t.message}</div>
+          )}
+          {t.action && (
+            <button
+              onClick={() => {
+                t.action?.onClick();
+                removeToast(t.id);
+              }}
+              className="shrink-0 text-sm font-bold text-primary hover:text-primary/80 transition-colors"
+            >
+              {t.action.label}
+            </button>
+          )}
           <button
             onClick={() => removeToast(t.id)}
             aria-label="Dismiss"

@@ -28,6 +28,8 @@ export interface StagedWaitProps {
   stageIndex?: number;
   /** Override the progress fill (0–100). */
   progress?: number;
+  /** Drop the card chrome — for embedding inside another surface (e.g. an image frame). */
+  bare?: boolean;
   className?: string;
 }
 
@@ -55,6 +57,7 @@ export function StagedWait({
   progressCap = 95,
   stageIndex: stageIndexOverride,
   progress: progressOverride,
+  bare = false,
   className = "",
 }: StagedWaitProps) {
   const [elapsed, setElapsed] = React.useState(0);
@@ -79,7 +82,13 @@ export function StagedWait({
       : null;
 
   return (
-    <div className={`overflow-hidden border border-border bg-card ${className}`}>
+    <div
+      className={
+        bare
+          ? `flex h-full flex-col justify-center p-4 ${className}`
+          : `overflow-hidden border border-border bg-card ${className}`
+      }
+    >
       <div className={`grid gap-0 ${media ? "sm:grid-cols-[180px_1fr]" : ""}`}>
         {media && (
           <div className="relative h-44 overflow-hidden bg-muted sm:h-auto sm:min-h-[240px]">
@@ -88,7 +97,7 @@ export function StagedWait({
             <div className="absolute inset-x-3 top-4 h-px animate-pulse bg-primary/80" />
           </div>
         )}
-        <div className="space-y-4 p-4">
+        <div className={`space-y-4 ${bare ? "" : "p-4"}`}>
           <div className="flex items-baseline justify-between gap-3">
             <p className="text-sm font-bold text-foreground">{title}</p>
             <span className="font-mono text-xs text-muted-foreground" aria-live="off">

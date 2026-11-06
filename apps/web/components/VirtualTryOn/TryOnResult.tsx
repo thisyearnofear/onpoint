@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import {
@@ -13,6 +13,8 @@ import {
   Palette,
   RefreshCw,
   Shirt,
+  Scan,
+  Wand2,
 } from "lucide-react";
 import { storefrontDoor } from "../../lib/utils/get-it";
 import {
@@ -27,7 +29,7 @@ import {
 } from "../../lib/utils/analytics";
 import { useAnalysisHistory } from "../../lib/stores/analysis-history-store";
 import { SafeImage } from "../SafeImage";
-import { Spinner } from "../state";
+import { StagedWait } from "../state";
 
 interface StructuredTipAction {
   type: string;
@@ -91,49 +93,21 @@ function parseMarkdownBold(text: string) {
   });
 }
 
-const PROGRESS_STAGES = [
-  "Analyzing body proportions…",
-  "Matching garment drape & fit…",
-  "Rendering final look…",
-  "Adding finishing touches…",
+// The enhancement path runs garment-conditioned rendering upstream with a
+// ~120s budget, so stages are paced to that — not a fake 8s metronome.
+const TRY_ON_STAGES = [
+  { at: 0, label: "Composing the look", detail: "Garment and photo locked", icon: Shirt },
+  { at: 20, label: "Rendering try-on", detail: "Fabric simulation in progress", icon: Wand2 },
+  { at: 70, label: "Fit fidelity pass", detail: "Checking drape and proportion", icon: Scan },
+  { at: 105, label: "Final polish", detail: "Sharpening the result", icon: Sparkles },
 ];
 
-function StagedProgress() {
-  const [stage, setStage] = useState(0);
-  const _startTimeRef = useRef(Date.now());
-
-  useEffect(() => {
-    if (stage >= PROGRESS_STAGES.length - 1) return;
-    const delay = 8000 + Math.random() * 4000; // 8-12s per stage
-    const timer = setTimeout(() => setStage((s) => s + 1), delay);
-    return () => clearTimeout(timer);
-  }, [stage]);
-
-  return (
-    <div className="w-full h-full flex items-center justify-center">
-      <div className="text-center px-4">
-        <Spinner size="xl" className="mx-auto mb-4" />
-        <Sparkles className="h-8 w-8 text-primary mx-auto mb-3" />
-        <p className="text-sm font-medium text-primary mb-2 transition-all duration-500">
-          {PROGRESS_STAGES[stage]}
-        </p>
-        <div className="flex items-center justify-center gap-1.5 mb-1">
-          {PROGRESS_STAGES.map((_, i) => (
-            <div
-              key={i}
-              className={`h-1 rounded-full transition-all duration-500 ${
-                i <= stage ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/30"
-              }`}
-            />
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          This typically takes 30–60 seconds
-        </p>
-      </div>
-    </div>
-  );
-}
+const TRY_ON_WAIT_LINES = [
+  "Virtual try-on renders in about a minute — the fabric simulation is the slow part.",
+  "Your photo is used for this render and discarded. Nothing is stored.",
+  "The result is a visualization, not a guarantee — check the size chart before buying.",
+  "If this runs long, you can retry or pick a different garment.",
+];
 
 export function TryOnResult({
   result,
@@ -297,7 +271,13 @@ export function TryOnResult({
         <div className="space-y-4">
           <div className="relative aspect-[3/4] max-h-96 rounded-lg overflow-hidden bg-muted mx-auto">
             {loading ? (
-              <StagedProgress />
+              <StagedWait
+                bare
+                title="Rendering your try-on"
+                stages={TRY_ON_STAGES}
+                lines={TRY_ON_WAIT_LINES}
+                tauSeconds={50}
+              />
             ) : image ? (
               <>
                 <SafeImage
