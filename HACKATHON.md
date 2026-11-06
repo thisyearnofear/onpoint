@@ -35,7 +35,7 @@ Scope to **one curator, one item, one agent flow**.
 
 **Zero-curator fallback:** the platform-operated `onpoint-store` storefront guarantees demo inventory regardless of curator onboarding — a house catalog whose NEAR payouts land on `store.onpoint.testnet`. Real curators are a bonus, not a blocker.
 
-Current state (implemented): NEAR payment rail on `POST /api/agent/try-on` and `POST /api/curator/{slug}/order` — `nearAccountId` + `nearTxHash` proof, trustless JSON-RPC verification (`apps/api/lib/near-payments.js`), direct-to-curator settlement. Reproduce locally: `cd scripts/near-spike && npm i && node provision.mjs && node agent-demo.mjs` (narrated end-to-end run, ~2 min).
+Current state (implemented): NEAR payment rail on `POST /api/agent/try-on` and `POST /api/curator/{slug}/order` — `nearAccountId` + `nearTxHash` proof, trustless JSON-RPC verification (`apps/api/lib/near-payments.js`), direct-to-curator settlement. Reproduce locally: `cd scripts/near-spike && npm i && node provision.mjs && node agent-demo.mjs` (narrated end-to-end run, ~2 min). Spike databases live in `scripts/near-spike`'s own env — never repoint `apps/api/.env`'s `NEON_DATABASE_URL` at a demo project (the 2026-11-03 incident: the near-demo DB went stale against prod migrations and every artifact route 500'd locally).
 
 1. Agent discovers item via manifest/API.
 2. Agent requests paid try-on.
