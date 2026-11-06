@@ -1,8 +1,9 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { Check, Camera, Watch, Gem, Ruler } from "lucide-react";
-import { Reveal } from "../../../components/ui/Reveal";
-import { Accordion, AccordionItem } from "../../../components/ui/Accordion";
+import { AccordionItem } from "../../../components/ui/Accordion";
+import { GuideAccordion } from "../../../components/guides/GuideAccordion";
+import { GuideRelated } from "../../../components/guides/GuideRelated";
+import { GuideCta } from "../../../components/guides/GuideCta";
 import { GuideLayout } from "../../../components/guides/GuideLayout";
 
 export const metadata: Metadata = {
@@ -11,7 +12,8 @@ export const metadata: Metadata = {
     "How to style watches, bags, jewelry, belts, and hats — proportion rules, metal mixing, occasion matching, and building an accessories wardrobe.",
   openGraph: {
     title: "Accessories Styling Guide | OnPoint",
-    description: "Master the art of accessories. Watches, bags, jewelry, belts — proportion, mixing, and occasion matching.",
+    description:
+      "Master the art of accessories. Watches, bags, jewelry, belts — proportion, mixing, and occasion matching.",
     images: [{ url: "/assets/3Product.png" }],
   },
 };
@@ -19,165 +21,176 @@ export const metadata: Metadata = {
 export default function AccessoriesStylingGuide() {
   return (
     <GuideLayout
-        title="Accessories Styling Guide"
-        lede="The right watch, bag, or pair of earrings transforms a simple look into a signature style."
-  takeaways={[
-            "Stick to three visible accessories max — keep it intentional",
-                "Mix metals with one dominant (60%) and one accent (40%)",
-                "Build a core wardrobe: watch, bag, jewellery, belt, hat",
-                "Match accessories to the occasion — minimal for office, bold for evening"
-          ]}
-      >
-                {/* Header */}
+      title="Accessories Styling Guide"
+      lede="The right watch, bag, or pair of earrings transforms a simple look into a signature style."
+      takeaways={[
+        "Stick to three visible accessories max — keep it intentional",
+        "Mix metals with one dominant (60%) and one accent (40%)",
+        "Build a core wardrobe: watch, bag, jewellery, belt, hat",
+        "Match accessories to the occasion — minimal for office, bold for evening",
+      ]}
+    >
+      {/* Detailed sections — progressive disclosure via accordion */}
+      <GuideAccordion>
+        <AccordionItem
+          title="The rule of three"
+          subtitle="No more than three visible accessories at once"
+          icon={<Check className="w-4 h-4" />}
+        >
+          <p className="text-sm leading-7 text-muted-foreground">
+            A well-accessorised outfit follows the rule of three — no more than
+            three visible accessories at a time. This keeps the look intentional
+            without overwhelming it. For example: watch + ring + bag, or
+            earrings + necklace + belt. When in doubt, remove one and see if the
+            outfit still works.
+          </p>
+        </AccordionItem>
 
-        
+        <AccordionItem
+          title="Metal mixing: the new rules"
+          subtitle="Silver + gold, balance, and skin tone"
+          icon={<Gem className="w-4 h-4" />}
+        >
+          <p className="text-sm leading-7 mb-3 text-muted-foreground">
+            The old rule that all jewellery must match in metal tone is
+            outdated. Mixing metals creates visual interest. Key principles:
+          </p>
+          <ul className="space-y-2">
+            {[
+              "Silver and gold work together when there's intentional contrast. A gold watch with a silver ring is a look",
+              "Use one dominant metal (60%) and one accent metal (40%) for balance",
+              "Mixed metals look best when there's a connecting element — a strap, a stone, or a fabric that bridges the tones",
+              "Warm skin tones lean toward gold; cool skin tones lean toward silver. But personal preference trumps rules",
+              "Rose gold pairs well with both yellow gold (warm) and silver (contrast)",
+            ].map((tip) => (
+              <li key={tip} className="flex items-start gap-2 text-sm">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                <span>{tip}</span>
+              </li>
+            ))}
+          </ul>
+        </AccordionItem>
 
-        {/* Detailed sections — progressive disclosure via accordion */}
-        <Reveal>
-          <div className="border border-border p-5 md:p-6">
-            <Accordion>
-              <AccordionItem
-                title="The rule of three"
-                subtitle="No more than three visible accessories at once"
-                icon={<Check className="w-4 h-4" />}
-              >
-                <p className="text-sm leading-7 text-muted-foreground">
-                  A well-accessorised outfit follows the rule of three — no more than three visible
-                  accessories at a time. This keeps the look intentional without overwhelming it.
-                  For example: watch + ring + bag, or earrings + necklace + belt. When in doubt,
-                  remove one and see if the outfit still works.
+        <AccordionItem
+          title="Building your accessories wardrobe"
+          subtitle="Watches, bags, jewellery, belts & hats"
+          icon={<Watch className="w-4 h-4" />}
+        >
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              {
+                category: "Watches",
+                essentials:
+                  "A daily beater (metal or sports), a dress watch (leather strap), and a smartwatch for fitness days. One watch per context is enough.",
+              },
+              {
+                category: "Bags",
+                essentials:
+                  "A crossbody for daily use, a tote for work or travel, and a clutch or mini bag for evenings. Neutral colours (black, brown, cream) maximise versatility.",
+              },
+              {
+                category: "Jewellery",
+                essentials:
+                  "Everyday studs or small hoops, a signature ring or bracelet, and one statement piece for special occasions. Layer necklaces at varying lengths.",
+              },
+              {
+                category: "Belts & Hats",
+                essentials:
+                  "A 1-inch belt in black and brown covers most outfits. A structured cap, a beanie (winter), and a Panama or wide-brim (summer) round it out.",
+              },
+            ].map(({ category, essentials }) => (
+              <div key={category} className="pl-5 border-l-2 border-primary/20">
+                <h3 className="text-sm font-bold text-foreground">
+                  {category}
+                </h3>
+                <p className="mt-1 text-xs text-muted-foreground leading-5">
+                  {essentials}
                 </p>
-              </AccordionItem>
-
-              <AccordionItem
-                title="Metal mixing: the new rules"
-                subtitle="Silver + gold, balance, and skin tone"
-                icon={<Gem className="w-4 h-4" />}
-              >
-                <p className="text-sm leading-7 mb-3 text-muted-foreground">
-                  The old rule that all jewellery must match in metal tone is outdated. Mixing metals
-                  creates visual interest. Key principles:
-                </p>
-                <ul className="space-y-2">
-                  {[
-                    "Silver and gold work together when there's intentional contrast. A gold watch with a silver ring is a look",
-                    "Use one dominant metal (60%) and one accent metal (40%) for balance",
-                    "Mixed metals look best when there's a connecting element — a strap, a stone, or a fabric that bridges the tones",
-                    "Warm skin tones lean toward gold; cool skin tones lean toward silver. But personal preference trumps rules",
-                    "Rose gold pairs well with both yellow gold (warm) and silver (contrast)",
-                  ].map((tip) => (
-                    <li key={tip} className="flex items-start gap-2 text-sm">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-                      <span>{tip}</span>
-                    </li>
-                  ))}
-                </ul>
-              </AccordionItem>
-
-              <AccordionItem
-                title="Building your accessories wardrobe"
-                subtitle="Watches, bags, jewellery, belts & hats"
-                icon={<Watch className="w-4 h-4" />}
-              >
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {[
-                    {
-                      category: "Watches",
-                      essentials: "A daily beater (metal or sports), a dress watch (leather strap), and a smartwatch for fitness days. One watch per context is enough.",
-                    },
-                    {
-                      category: "Bags",
-                      essentials: "A crossbody for daily use, a tote for work or travel, and a clutch or mini bag for evenings. Neutral colours (black, brown, cream) maximise versatility.",
-                    },
-                    {
-                      category: "Jewellery",
-                      essentials: "Everyday studs or small hoops, a signature ring or bracelet, and one statement piece for special occasions. Layer necklaces at varying lengths.",
-                    },
-                    {
-                      category: "Belts & Hats",
-                      essentials: "A 1-inch belt in black and brown covers most outfits. A structured cap, a beanie (winter), and a Panama or wide-brim (summer) round it out.",
-                    },
-                  ].map(({ category, essentials }) => (
-                    <div key={category} className="pl-5 border-l-2 border-primary/20">
-                      <h3 className="text-sm font-bold text-foreground">{category}</h3>
-                      <p className="mt-1 text-xs text-muted-foreground leading-5">{essentials}</p>
-                    </div>
-                  ))}
-                </div>
-              </AccordionItem>
-
-              <AccordionItem
-                title="Occasion matching"
-                subtitle="Office, evening, casual, and formal"
-                icon={<Check className="w-4 h-4" />}
-              >
-                <ul className="space-y-3">
-                  {[
-                    { occasion: "Professional / Office", tip: "Keep it minimal. A classic watch, small studs, and a structured bag. Avoid noisy bracelets or dangling earrings." },
-                    { occasion: "Evening / Dinner", tip: "One statement piece (chandelier earrings, a cocktail ring, or a metallic clutch). Let the statement accessory lead." },
-                    { occasion: "Casual / Weekend", tip: "Layer beaded bracelets, wear a fabric watch strap, use a canvas tote. This is where you experiment." },
-                    { occasion: "Formal / Ceremony", tip: "Match metals to your outfit hardware. Pearl or diamond studs are always appropriate. A clutch or small structured bag." },
-                  ].map(({ occasion, tip }) => (
-                    <li key={occasion} className="pl-5 border-l-2 border-primary/20">
-                      <p className="text-sm font-bold text-foreground">{occasion}</p>
-                      <p className="mt-1 text-xs text-muted-foreground leading-5">{tip}</p>
-                    </li>
-                  ))}
-                </ul>
-              </AccordionItem>
-
-              <AccordionItem
-                title="Proportion matters"
-                subtitle="Body frame, watch size, and virtual try-on"
-                icon={<Ruler className="w-4 h-4" />}
-              >
-                <p className="text-sm leading-7 mb-3 text-muted-foreground">
-                  Accessories should complement your body proportions, not overwhelm them. Petite frames
-                  suit smaller bags and delicate jewellery. Taller frames can carry oversized totes and
-                  bolder pieces. Your watch face should be proportional to your wrist — a general rule
-                  is the lugs should not overhang your wrist.
-                </p>
-                <div className="pl-5 border-l-2 border-primary/30 text-sm">
-                  <p className="font-semibold text-foreground">Virtual try-on for accessories</p>
-                  <p className="mt-1 text-muted-foreground">
-                    Use OnPoint&rsquo;s virtual try-on to see how watches, bags, and jewellery look on your
-                    body type before you buy. Upload a photo and see the proportions for yourself.
-                  </p>
-                </div>
-              </AccordionItem>
-            </Accordion>
+              </div>
+            ))}
           </div>
-        </Reveal>
+        </AccordionItem>
 
-        {/* Related guides + CTA */}
-        <div className="border-t border-border pt-6 mt-8">
-          <h3 className="text-sm font-bold mb-3">Related guides</h3>
-          <div className="grid gap-3 sm:grid-cols-2 mb-4">
-            <Link
-              href="/guides/occasion-wear"
-              className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
-            >
-              <p className="text-sm font-bold">Occasion Wear &amp; Event Dressing Guide</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">Dress codes, colour, and event styling</p>
-            </Link>
-            <Link
-              href="/guides/streetwear-fits"
-              className="block py-3 border-b border-border/40 transition-colors hover:border-primary/30 group"
-            >
-              <p className="text-sm font-bold">Streetwear Style Guide</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">Layering, sneaker rotations, drops</p>
-            </Link>
+        <AccordionItem
+          title="Occasion matching"
+          subtitle="Office, evening, casual, and formal"
+          icon={<Check className="w-4 h-4" />}
+        >
+          <ul className="space-y-3">
+            {[
+              {
+                occasion: "Professional / Office",
+                tip: "Keep it minimal. A classic watch, small studs, and a structured bag. Avoid noisy bracelets or dangling earrings.",
+              },
+              {
+                occasion: "Evening / Dinner",
+                tip: "One statement piece (chandelier earrings, a cocktail ring, or a metallic clutch). Let the statement accessory lead.",
+              },
+              {
+                occasion: "Casual / Weekend",
+                tip: "Layer beaded bracelets, wear a fabric watch strap, use a canvas tote. This is where you experiment.",
+              },
+              {
+                occasion: "Formal / Ceremony",
+                tip: "Match metals to your outfit hardware. Pearl or diamond studs are always appropriate. A clutch or small structured bag.",
+              },
+            ].map(({ occasion, tip }) => (
+              <li key={occasion} className="pl-5 border-l-2 border-primary/20">
+                <p className="text-sm font-bold text-foreground">{occasion}</p>
+                <p className="mt-1 text-xs text-muted-foreground leading-5">
+                  {tip}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </AccordionItem>
+
+        <AccordionItem
+          title="Proportion matters"
+          subtitle="Body frame, watch size, and virtual try-on"
+          icon={<Ruler className="w-4 h-4" />}
+        >
+          <p className="text-sm leading-7 mb-3 text-muted-foreground">
+            Accessories should complement your body proportions, not overwhelm
+            them. Petite frames suit smaller bags and delicate jewellery. Taller
+            frames can carry oversized totes and bolder pieces. Your watch face
+            should be proportional to your wrist — a general rule is the lugs
+            should not overhang your wrist.
+          </p>
+          <div className="pl-5 border-l-2 border-primary/30 text-sm">
+            <p className="font-semibold text-foreground">
+              Virtual try-on for accessories
+            </p>
+            <p className="mt-1 text-muted-foreground">
+              Use OnPoint&rsquo;s virtual try-on to see how watches, bags, and
+              jewellery look on your body type before you buy. Upload a photo
+              and see the proportions for yourself.
+            </p>
           </div>
-        </div>
+        </AccordionItem>
+      </GuideAccordion>
 
-        <div className="pt-6 text-center">
-          <p className="text-sm text-muted-foreground mb-4">Ready to accessorise with confidence?</p>
-          <Link href="/lab" className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90">
-            <Camera className="h-4 w-4" />
-            Try on accessories now
-          </Link>
-        </div>
-      
+      <GuideRelated
+        links={[
+          {
+            href: "/guides/occasion-wear",
+            title: "Occasion Wear &amp; Event Dressing Guide",
+            desc: "Dress codes, colour, and event styling",
+          },
+          {
+            href: "/guides/streetwear-fits",
+            title: "Streetwear Style Guide",
+            desc: "Layering, sneaker rotations, drops",
+          },
+        ]}
+      />
+
+      <GuideCta
+        question="Ready to accessorise with confidence?"
+        label="Try on accessories now"
+        href="/lab"
+        icon={<Camera className="h-4 w-4" />}
+      />
     </GuideLayout>
   );
 }

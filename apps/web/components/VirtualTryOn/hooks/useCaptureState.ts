@@ -49,7 +49,9 @@ export function useCaptureState(maxCaptures: number) {
 
       try {
         sdk.actions.ready();
-      } catch {}
+      } catch {
+        /* ignored — best-effort */
+      }
 
       const canvas = document.createElement("canvas");
       canvas.width = videoRef.current.videoWidth;

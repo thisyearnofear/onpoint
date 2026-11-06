@@ -6,12 +6,12 @@ import {
   X,
   Check,
   Loader2,
-  ExternalLink,
+  
   ShoppingBag,
   AlertCircle,
   Shield,
   Wallet,
-  Info,
+  
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { useCartStore, type CartItem } from "../../lib/stores/cart-store";

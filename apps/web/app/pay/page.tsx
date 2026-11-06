@@ -427,7 +427,7 @@ export default function PayPage() {
                 <div className="flex h-64 items-center justify-center bg-muted"><Shirt className="h-8 w-8 text-muted-foreground" /></div>
               )}
               <div className="border-t border-border p-5">
-                <p className="text-sm font-bold">That's you, wearing it.</p>
+                <p className="text-sm font-bold">That&rsquo;s you, wearing it.</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Paid {method === "near" && quote?.amountNear ? `${quote.amountNear} NEAR` : method === "paypal" ? "via PayPal" : ""} — verified on-chain, direct to the seller. No middleman took a cut.
                 </p>

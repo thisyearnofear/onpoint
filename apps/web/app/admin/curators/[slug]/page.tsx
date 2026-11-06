@@ -441,7 +441,7 @@ export default async function CuratorDetailPage({
       <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
         <div className="flex items-center gap-2">
           <MessageCircle className="h-4 w-4 text-success" />
-          <h2 className="font-bold">{curator.name}'s operator needs</h2>
+          <h2 className="font-bold">{curator.name}&rsquo;s operator needs</h2>
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           {[

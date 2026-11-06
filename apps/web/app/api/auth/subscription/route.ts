@@ -22,7 +22,6 @@ import {
   getUsage,
   getAllTiers,
   getTierConfig,
-  type SubscriptionTier,
 } from "../../../../lib/services/subscription-service";
 import { corsHeaders } from "../../ai/_utils/http";
 

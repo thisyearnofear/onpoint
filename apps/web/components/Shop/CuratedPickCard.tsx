@@ -6,7 +6,7 @@ import type { CuratedPick, PickProvenance } from "../../lib/utils/curated-picks"
 import type { FashionItem, ExternalProduct } from "@onpoint/shared-types";
 import { SafeImage } from "../SafeImage";
 
-function trackPickClick(pick: CuratedPick, position: number) {
+function trackPickClick(pick: CuratedPick, _position: number) {
   const item = pick.item;
   const category = "category" in item ? item.category : "";
   const price = "price" in item ? item.price : 0;

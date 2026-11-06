@@ -13,7 +13,7 @@ import {
   Loader2,
   AlertTriangle,
   ExternalLink,
-  Radio,
+  
   RefreshCw,
   Share2,
   Check,
@@ -115,7 +115,7 @@ function TrackingPageInner() {
 
   /** Unsubscribe push subscription: call PushManager.unsubscribe() + delete from Redis. */
   const unsubscribePush = useCallback(async () => {
-    const { pid, slug } = trackingParamsRef.current;
+    const { pid, slug: _slug } = trackingParamsRef.current;
     if (!pid) return;
 
     // Delete from Redis first (best-effort)

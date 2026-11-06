@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     // TODO: persist events to storage and surface in UI
 
     return NextResponse.json({ ok: true }, { status: 200 });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ ok: false, error: 'Invalid payload' }, { status: 400 });
   }
 }

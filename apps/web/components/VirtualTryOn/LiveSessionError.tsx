@@ -53,7 +53,7 @@ export function LiveSessionError({
   showByokInput,
   userApiKey,
   sessionGoal,
-  onStopSession,
+
   onGoBack,
   onPaymentSuccess,
   onStartSession,

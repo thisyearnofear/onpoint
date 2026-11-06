@@ -3,7 +3,7 @@
 import React from "react";
 import { RefreshCw, Sparkles, Palette, Camera, MessageCircle } from "lucide-react";
 import type { StylistPersona } from "@repo/ai-client";
-import { PersonaAvatar, MascotThinking } from "./ui/PersonaAvatar";
+import { MascotThinking } from "./ui/PersonaAvatar";
 
 interface AILoadingStateProps {
   type: 'design' | 'color' | 'tryon' | 'chat' | 'analysis';

@@ -13,7 +13,7 @@
  */
 
 import { parseEther } from "viem";
-import { redisGet, redisSetEx, redisSet, redisDel } from "../utils/redis-helpers";
+import { redisGet, redisSetEx } from "../utils/redis-helpers";
 import { setUserSubscription } from "../../middleware/agent-auth";
 import type { AgentPermission } from "../../middleware/agent-auth";
 import type Stripe from "stripe";

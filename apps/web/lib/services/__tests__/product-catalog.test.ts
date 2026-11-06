@@ -3,11 +3,11 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { productCatalog, type SearchOptions } from "../product-catalog";
+import { productCatalog } from "../product-catalog";
 
 // Mock shared-types
 vi.mock("@onpoint/shared-types", () => ({
-  searchCatalog: vi.fn((query: string, limit: number) => {
+  searchCatalog: vi.fn((query: string, _limit: number) => {
     if (query.toLowerCase().includes("jacket")) {
       return [
         {

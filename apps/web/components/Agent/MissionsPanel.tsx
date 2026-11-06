@@ -19,16 +19,13 @@ import {
   ChevronRight,
   Gift,
   CheckCircle,
-  Lock,
   Zap,
   Target,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MissionService,
-  type Mission,
   type MissionCategory,
-  type UserMissionProgress,
 } from "../../lib/services/mission-service";
 
 // ── Icon Map ──

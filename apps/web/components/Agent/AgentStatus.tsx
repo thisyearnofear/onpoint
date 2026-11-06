@@ -864,7 +864,7 @@ export function AgentStatus({
                       Auto-buy is off
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      The agent found {priceDrops.length} deal{priceDrops.length > 1 ? 's' : ''}, but won't buy anything until you set a max price.
+                      The agent found {priceDrops.length} deal{priceDrops.length > 1 ? 's' : ''}, but won&rsquo;t buy anything until you set a max price.
                     </p>
                     <div className="flex items-center gap-1.5 mt-2">
                       <button

@@ -11,7 +11,7 @@ import { parseEther } from "viem";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 import {
   getEscrowBalance,
-  initializeEscrow,
+  
   depositToEscrow,
   updateAllowance,
   withdrawFromEscrow,

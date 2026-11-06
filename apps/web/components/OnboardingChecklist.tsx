@@ -17,7 +17,7 @@ interface OnboardingChecklistProps {
   storefrontUrl: string;
 }
 
-interface ChecklistStep {
+interface _ChecklistStep {
   id: string;
   label: string;
   description: string;

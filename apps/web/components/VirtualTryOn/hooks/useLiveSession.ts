@@ -13,7 +13,6 @@ import { useLiveProvider, SESSION_FACTORIES, type LiveSessionFactory, detectBrow
 import { PersonaVoice } from "../../../lib/utils/persona-voice";
 import {
   useAgentSuggestions,
-  type AgentSuggestion,
 } from "../../Agent/AgentSuggestionToast";
 import { useAgentApproval } from "../../Agent/AgentApprovalModal";
 import { useCartStore } from "../../../lib/stores/cart-store";
@@ -635,7 +634,7 @@ export function useLiveSession() {
     );
 
     if (internalMatch) {
-      const contextSnippet =
+      const _contextSnippet =
         reasoning[0]?.slice(0, 80) || "analyzing your look";
       createSuggestion({
         actionType: "purchase" as ActionType,
@@ -659,7 +658,7 @@ export function useLiveSession() {
         ? personaModifiers[selectedPersona] || ""
         : "";
       const query = `${modifier} ${keyword}`.trim();
-      const contextSnippet =
+      const _contextSnippet =
         reasoning[0]?.slice(0, 80) || "analyzing your look";
 
       console.log(

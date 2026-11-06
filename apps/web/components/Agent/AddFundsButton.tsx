@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Wallet,
-  Plus,
+  
   X,
   Loader2,
   CheckCircle2,
@@ -12,7 +12,7 @@ import {
   Copy,
   Check,
   ArrowRight,
-  Ban,
+  
   Gift,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";

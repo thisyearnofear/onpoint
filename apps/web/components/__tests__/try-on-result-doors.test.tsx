@@ -5,9 +5,9 @@ import { render, screen, fireEvent, act } from "@testing-library/react";
 vi.mock("@repo/ui/button", () => ({
   Button: ({
     asChild,
-    loading,
-    variant,
-    size,
+    loading: _loading,
+    variant: _variant,
+    size: _size,
     children,
     ...rest
   }: React.PropsWithChildren<{
@@ -28,7 +28,7 @@ vi.mock("@repo/ui/card", () => {
 });
 
 vi.mock("../SafeImage", () => ({
-  SafeImage: ({ fill, unoptimized, ...rest }: Record<string, unknown>) =>
+  SafeImage: ({ fill: _fill, unoptimized: _unoptimized, ...rest }: Record<string, unknown>) =>
     React.createElement("img", rest),
 }));
 

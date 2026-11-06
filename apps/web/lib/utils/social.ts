@@ -50,7 +50,7 @@ export class SocialUtils {
     static async shareContent(options: ShareOptions, farcasterContext?: any): Promise<boolean> {
         try {
             // Upload capture image if provided
-            let embeds: string[] = [];
+            const embeds: string[] = [];
             if (options.imageDataUrl) {
                 const uploaded = await this.uploadCaptureImage(options.imageDataUrl);
                 if (uploaded?.url) {

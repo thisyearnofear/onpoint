@@ -2,26 +2,26 @@
 
 import { useEffect, useState } from "react";
 import {
-  Activity,
+  
   AlertCircle,
   BarChart3,
   Clock,
-  Cpu,
+  
   ImageIcon,
-  Layers,
+  
   RefreshCw,
-  ShieldAlert,
+  
   Sparkles,
   TrendingUp,
   Eye,
   ShoppingBag,
-  CreditCard,
+  
   Share2,
-  Users,
+  
   MousePointerClick,
-  ArrowRightLeft,
-  Link2,
-  GitBranch,
+  
+  
+  
 } from "lucide-react";
 import { CrossCuratorRecommendationsSection } from "./CrossCuratorRecommendationsSection";
 import { DeepLinkPersonaFunnelSection } from "./DeepLinkPersonaFunnelSection";

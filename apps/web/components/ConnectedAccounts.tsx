@@ -258,7 +258,7 @@ export function ConnectedAccounts() {
           <div className="text-sm text-muted-foreground">
             <p className="font-medium text-foreground mb-1">How it works</p>
             <ul className="space-y-1 list-disc list-inside">
-              <li>Click "Connect" to authorize access via OAuth</li>
+              <li>Click &quot;Connect&quot; to authorize access via OAuth</li>
               <li>Your credentials are stored securely in Auth0 Token Vault</li>
               <li>Your AI agent requests tokens only when needed</li>
               <li>You can revoke access anytime</li>

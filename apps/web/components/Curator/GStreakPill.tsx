@@ -323,7 +323,7 @@ function DayZeroCard({
           </ConnectButton.Custom>
         ) : !isOnCelo ? (
           <ConnectButton.Custom>
-            {({ chain, openChainModal }) => (
+            {({ chain: _chain, openChainModal }) => (
               <button
                 onClick={openChainModal}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-warning/90 px-4 py-2.5 text-sm font-bold text-white transition-transform active:scale-[0.98] hover:bg-warning"

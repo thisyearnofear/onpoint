@@ -45,7 +45,7 @@ async function redisPipeline(commands: string[][]): Promise<void> {
   }
 }
 
-async function redisGet(key: string): Promise<number | null> {
+async function _redisGet(key: string): Promise<number | null> {
   const url = getRedisUrl();
   const token = getRedisToken();
   if (!url || !token) return null;
@@ -292,13 +292,13 @@ export interface CuratorFunnelOverview {
  */
 export async function getCuratorAnalytics(
   curatorSlug: string,
-  curatorName?: string,
+  _curatorName?: string,
 ): Promise<CuratorAnalyticsReport | null> {
   const url = getRedisUrl();
   const token = getRedisToken();
   if (!url || !token) return null;
 
-  const today = todayStr();
+  const _today = todayStr();
   const dates: string[] = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
@@ -534,7 +534,7 @@ export async function getCuratorFunnelOverview(): Promise<CuratorFunnelOverview 
     .map((c) => ({ slug: c.slug, name: c.slug, pageViews: c.pageViews, purchases: c.purchases }));
 
   // Last 7 days aggregation
-  const today = todayStr();
+  const _today = todayStr();
   const dates: string[] = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date();

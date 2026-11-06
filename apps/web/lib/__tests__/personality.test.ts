@@ -15,7 +15,7 @@ describe("PersonalityService", () => {
   });
 
   it("returns empty string for unknown persona", () => {
-    // @ts-ignore - testing invalid input
+    // @ts-expect-error - testing invalid input
     const prompt = personalityService.getPersonaPrompt("unknown");
     expect(prompt).toBe("");
   });

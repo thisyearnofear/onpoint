@@ -1,14 +1,29 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { ScrollArea } from "@repo/ui/scroll-area";
 import { Separator } from "@repo/ui/separator";
-import { MessageCircle, Sparkles, Send, RefreshCw, Bot, Palette, Settings, Volume2, VolumeX, RotateCcw } from "lucide-react";
-import { ChatMessage } from './ChatMessage';
+import {
+  MessageCircle,
+  Sparkles,
+  Send,
+  RefreshCw,
+  Bot,
+  Palette,
+  Settings,
+  Volume2,
+  VolumeX,
+  RotateCcw,
+} from "lucide-react";
+import { ChatMessage } from "./ChatMessage";
 import { Avatar, AvatarFallback } from "@repo/ui/avatar";
 import type { StylistPersona, StyleSuggestion } from "@repo/ai-client";
-import { speakAsPersona, stopSpeaking, getVoiceProfile } from "../../lib/utils/persona-voice";
+import {
+  speakAsPersona,
+  stopSpeaking,
+  getVoiceProfile,
+} from "../../lib/utils/persona-voice";
 
 interface Message {
   id: string;
@@ -76,7 +91,9 @@ export function ChatInterface({
 }: ChatInterfaceProps) {
   const [autoPlay, setAutoPlay] = useState(() => {
     try {
-      return localStorage.getItem(`onpoint:autoPlay:${selectedPersona}`) === "true";
+      return (
+        localStorage.getItem(`onpoint:autoPlay:${selectedPersona}`) === "true"
+      );
     } catch {
       return false;
     }
@@ -89,18 +106,26 @@ export function ChatInterface({
   // Voice volume (0–1 mapped from 0–100% for the slider)
   const [voiceVolume, setVoiceVolume] = useState(() => {
     try {
-      const stored = localStorage.getItem(`onpoint:voiceVolume:${selectedPersona}`);
+      const stored = localStorage.getItem(
+        `onpoint:voiceVolume:${selectedPersona}`,
+      );
       if (stored) return Math.max(0, Math.min(100, Number(stored))) / 100;
-    } catch {}
+    } catch {
+      /* ignored — best-effort */
+    }
     return personaProfile.volume;
   });
 
   // Voice rate (0.5–2.0 mapped from 50–200% for the slider)
   const [voiceRate, setVoiceRate] = useState(() => {
     try {
-      const stored = localStorage.getItem(`onpoint:voiceRate:${selectedPersona}`);
+      const stored = localStorage.getItem(
+        `onpoint:voiceRate:${selectedPersona}`,
+      );
       if (stored) return Math.max(0.5, Math.min(2, Number(stored)));
-    } catch {}
+    } catch {
+      /* ignored — best-effort */
+    }
     return personaProfile.rate;
   });
 
@@ -109,7 +134,10 @@ export function ChatInterface({
   // Persist auto-play preference when value changes (key derived from current persona)
   useEffect(() => {
     try {
-      localStorage.setItem(`onpoint:autoPlay:${selectedPersona}`, String(autoPlay));
+      localStorage.setItem(
+        `onpoint:autoPlay:${selectedPersona}`,
+        String(autoPlay),
+      );
     } catch {
       // localStorage unavailable
     }
@@ -118,7 +146,8 @@ export function ChatInterface({
   // Load stored preference when persona switches (runs before persist above on key change)
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(`onpoint:autoPlay:${selectedPersona}`) === "true";
+      const stored =
+        localStorage.getItem(`onpoint:autoPlay:${selectedPersona}`) === "true";
       setAutoPlay(stored);
     } catch {
       setAutoPlay(false);
@@ -128,27 +157,47 @@ export function ChatInterface({
   // Persist volume and rate per persona
   useEffect(() => {
     try {
-      localStorage.setItem(`onpoint:voiceVolume:${selectedPersona}`, String(Math.round(voiceVolume * 100)));
-    } catch {}
+      localStorage.setItem(
+        `onpoint:voiceVolume:${selectedPersona}`,
+        String(Math.round(voiceVolume * 100)),
+      );
+    } catch {
+      /* ignored — best-effort */
+    }
   }, [voiceVolume]);
   useEffect(() => {
     try {
-      localStorage.setItem(`onpoint:voiceRate:${selectedPersona}`, String(voiceRate));
-    } catch {}
+      localStorage.setItem(
+        `onpoint:voiceRate:${selectedPersona}`,
+        String(voiceRate),
+      );
+    } catch {
+      /* ignored — best-effort */
+    }
   }, [voiceRate]);
 
   // Restore stored volume/rate when persona switches
   useEffect(() => {
     try {
-      const storedVol = localStorage.getItem(`onpoint:voiceVolume:${selectedPersona}`);
-      if (storedVol) setVoiceVolume(Math.max(0, Math.min(100, Number(storedVol))) / 100);
+      const storedVol = localStorage.getItem(
+        `onpoint:voiceVolume:${selectedPersona}`,
+      );
+      if (storedVol)
+        setVoiceVolume(Math.max(0, Math.min(100, Number(storedVol))) / 100);
       else setVoiceVolume(getVoiceProfile(selectedPersona).volume);
-    } catch {}
+    } catch {
+      /* ignored — best-effort */
+    }
     try {
-      const storedRate = localStorage.getItem(`onpoint:voiceRate:${selectedPersona}`);
-      if (storedRate) setVoiceRate(Math.max(0.5, Math.min(2, Number(storedRate))));
+      const storedRate = localStorage.getItem(
+        `onpoint:voiceRate:${selectedPersona}`,
+      );
+      if (storedRate)
+        setVoiceRate(Math.max(0.5, Math.min(2, Number(storedRate))));
       else setVoiceRate(getVoiceProfile(selectedPersona).rate);
-    } catch {}
+    } catch {
+      /* ignored — best-effort */
+    }
   }, [selectedPersona]);
 
   // Auto-play the latest assistant message when autoPlay is enabled
@@ -159,14 +208,17 @@ export function ChatInterface({
     if (lastMsg.id === lastAutoPlayedId.current) return;
     lastAutoPlayedId.current = lastMsg.id;
     setAutoPlayingId(lastMsg.id);
-    speakAsPersona(lastMsg.content, selectedPersona, voiceOverrides).finally(() => {
-      setAutoPlayingId(null);
-    });
+    speakAsPersona(lastMsg.content, selectedPersona, voiceOverrides).finally(
+      () => {
+        setAutoPlayingId(null);
+      },
+    );
   }, [messages, autoPlay, selectedPersona]);
 
   // Determine if the latest assistant message is being auto-played
   const lastMsg = messages[messages.length - 1];
-  const autoPlayActive = autoPlayingId !== null && lastMsg?.id === autoPlayingId;
+  const autoPlayActive =
+    autoPlayingId !== null && lastMsg?.id === autoPlayingId;
 
   const handleResetVoice = useCallback(() => {
     const profile = getVoiceProfile(selectedPersona);
@@ -176,7 +228,9 @@ export function ChatInterface({
     try {
       localStorage.removeItem(`onpoint:voiceVolume:${selectedPersona}`);
       localStorage.removeItem(`onpoint:voiceRate:${selectedPersona}`);
-    } catch {}
+    } catch {
+      /* ignored — best-effort */
+    }
   }, [selectedPersona]);
 
   const handleAutoPlayStop = useCallback(() => {
@@ -195,7 +249,13 @@ export function ChatInterface({
     stopSpeaking();
     setAutoPlay(false);
     setAutoPlayingId(null);
-  }, [clearConversation, setMessages, setSuggestions, setShowSuggestions, setActiveGuidedPrompt]);
+  }, [
+    clearConversation,
+    setMessages,
+    setSuggestions,
+    setShowSuggestions,
+    setActiveGuidedPrompt,
+  ]);
 
   return (
     <Card className="elegant-shadow">
@@ -203,28 +263,40 @@ export function ChatInterface({
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
             <MessageCircle className="h-5 w-5 text-primary" />
-            Chat with {selectedPersona === "luxury" ? "Anna Karenina" :
-              selectedPersona === "streetwear" ? "Artful Dodger" :
-                selectedPersona === "sustainable" ? "Mowgli" :
-                  selectedPersona === "edina" ? "Edina Monsoon" :
-                    selectedPersona === "miranda" ? "Miranda Priestly" :
-                      "John Shaft"}
+            Chat with{" "}
+            {selectedPersona === "luxury"
+              ? "Anna Karenina"
+              : selectedPersona === "streetwear"
+                ? "Artful Dodger"
+                : selectedPersona === "sustainable"
+                  ? "Mowgli"
+                  : selectedPersona === "edina"
+                    ? "Edina Monsoon"
+                    : selectedPersona === "miranda"
+                      ? "Miranda Priestly"
+                      : "John Shaft"}
           </CardTitle>
           <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setAutoPlay((prev) => {
-                const next = !prev;
-                if (!next) stopSpeaking();
-                return next;
-              })}
+              onClick={() =>
+                setAutoPlay((prev) => {
+                  const next = !prev;
+                  if (!next) stopSpeaking();
+                  return next;
+                })
+              }
               className={`h-8 text-xs px-2 transition-colors ${
                 autoPlay
                   ? "border-success/50 text-success bg-success/10 hover:bg-success/15"
                   : "border-muted-foreground/30 text-muted-foreground hover:bg-muted/5"
               }`}
-              title={autoPlay ? "Auto-play is on — new responses will be read aloud" : "Auto-play persona voice for new responses"}
+              title={
+                autoPlay
+                  ? "Auto-play is on — new responses will be read aloud"
+                  : "Auto-play persona voice for new responses"
+              }
             >
               {autoPlay ? (
                 <Volume2 className="h-3.5 w-3.5 mr-1 fill-emerald-500" />
@@ -256,7 +328,7 @@ export function ChatInterface({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.open('/lab?tab=try-on', '_blank')}
+              onClick={() => window.open("/lab?tab=try-on", "_blank")}
               className="border-accent/30 text-accent hover:bg-accent/5 h-8 text-xs px-2"
               title="Open Lab try-on"
             >
@@ -297,7 +369,9 @@ export function ChatInterface({
                 {Math.round(voiceVolume * 100)}%
               </span>
             </div>
-            <span className="text-xs font-medium text-muted-foreground/60 flex-shrink-0">Speed</span>
+            <span className="text-xs font-medium text-muted-foreground/60 flex-shrink-0">
+              Speed
+            </span>
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <input
                 type="range"
@@ -325,28 +399,37 @@ export function ChatInterface({
 
       <CardContent className="pt-0">
         {/* Context Summary */}
-        {messages.length > 0 && (contextData.occasion || contextData.weather || contextData.location || contextData.time) && (
-          <div className="mb-4 p-2 bg-primary/5 rounded-lg border border-primary/20">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs text-primary">
-                <Settings className="h-3 w-3" />
-                <span>
-                  {[contextData.occasion, contextData.weather, contextData.location, contextData.time]
-                    .filter(Boolean)
-                    .join(' • ')}
-                </span>
+        {messages.length > 0 &&
+          (contextData.occasion ||
+            contextData.weather ||
+            contextData.location ||
+            contextData.time) && (
+            <div className="mb-4 p-2 bg-primary/5 rounded-lg border border-primary/20">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs text-primary">
+                  <Settings className="h-3 w-3" />
+                  <span>
+                    {[
+                      contextData.occasion,
+                      contextData.weather,
+                      contextData.location,
+                      contextData.time,
+                    ]
+                      .filter(Boolean)
+                      .join(" • ")}
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleToggleContext}
+                  className="h-6 text-xs text-primary hover:bg-primary/10"
+                >
+                  Edit
+                </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleToggleContext}
-                className="h-6 text-xs text-primary hover:bg-primary/10"
-              >
-                Edit
-              </Button>
             </div>
-          </div>
-        )}
+          )}
 
         {/* Chat Messages */}
         {messages.length > 0 ? (
@@ -359,7 +442,9 @@ export function ChatInterface({
                     message={msg}
                     isLast={index === messages.length - 1}
                     selectedPersona={selectedPersona}
-                    autoPlayActive={autoPlayActive && index === messages.length - 1}
+                    autoPlayActive={
+                      autoPlayActive && index === messages.length - 1
+                    }
                     onAutoPlayStop={handleAutoPlayStop}
                     voiceOverrides={voiceOverrides}
                   />
@@ -388,7 +473,10 @@ export function ChatInterface({
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="text-sm font-medium flex items-center gap-2">
                     {guidedPrompts[activeGuidedPrompt]?.icon &&
-                      React.createElement(guidedPrompts[activeGuidedPrompt].icon, { className: "h-4 w-4" })}
+                      React.createElement(
+                        guidedPrompts[activeGuidedPrompt].icon,
+                        { className: "h-4 w-4" },
+                      )}
                     {guidedPrompts[activeGuidedPrompt]?.text}
                   </h4>
                   <Button
@@ -401,17 +489,19 @@ export function ChatInterface({
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {guidedPrompts[activeGuidedPrompt]?.examples?.map((example, idx) => (
-                    <Button
-                      key={idx}
-                      variant="outline"
-                      size="sm"
-                      className="text-xs h-7"
-                      onClick={() => handleGuidedPromptSelect(example)}
-                    >
-                      {example}
-                    </Button>
-                  ))}
+                  {guidedPrompts[activeGuidedPrompt]?.examples?.map(
+                    (example, idx) => (
+                      <Button
+                        key={idx}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={() => handleGuidedPromptSelect(example)}
+                      >
+                        {example}
+                      </Button>
+                    ),
+                  )}
                 </div>
               </div>
             )}
@@ -470,7 +560,7 @@ export function ChatInterface({
                       onClick={() => setActiveGuidedPrompt(index)}
                     >
                       <Icon className="h-3 w-3 mr-1" />
-                      {prompt.text.split(' ')[0]}
+                      {prompt.text.split(" ")[0]}
                     </Button>
                   );
                 })}

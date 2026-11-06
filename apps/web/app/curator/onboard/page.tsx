@@ -14,7 +14,7 @@ import {
   X,
   AlertCircle,
   ShoppingBag,
-  Smartphone,
+  
   Share2,
   Gift,
   ChevronDown,
@@ -230,7 +230,7 @@ export default function CuratorOnboardPage() {
           setServerMessage(body.error || "Something went wrong. Please try again.");
           setSubmitState("error");
         }
-      } catch (err) {
+      } catch {
         setServerMessage(
           "Could not reach the server. Make sure the API is running on port 48751.",
         );

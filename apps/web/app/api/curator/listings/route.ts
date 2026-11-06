@@ -43,7 +43,7 @@ function sql() {
 }
 
 const VALID_KIT_TYPES = ["home", "away", "third", "goalkeeper"];
-const VALID_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "3XL", "S/M", "L/XL", "OS"];
+const _VALID_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "3XL", "S/M", "L/XL", "OS"];
 
 interface CreateListingBody {
   curatorSlug: string;

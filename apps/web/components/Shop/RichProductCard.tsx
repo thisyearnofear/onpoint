@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { ExternalLink, Star, TrendingDown } from "lucide-react";
+import { ExternalLink, TrendingDown } from "lucide-react";
 import type { ProductResult } from "@onpoint/shared-types";
 import { SafeImage } from "../SafeImage";
 
@@ -24,9 +24,9 @@ export function RichProductCard({
   onClick,
 }: RichProductCardProps) {
   const cardRef = useRef<HTMLAnchorElement>(null);
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
-  const [isHovered, setIsHovered] = useState(false);
-  const [imgError, setImgError] = useState(false);
+  const [_tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [_isHovered, setIsHovered] = useState(false);
+  const [imgError, _setImgError] = useState(false);
 
   const isBestPrice =
     lowestPrice !== undefined &&

@@ -3,7 +3,7 @@ import { generateText } from "../_utils/providers";
 import { corsHeaders } from "../_utils/http";
 import {
   getRandomAfricanPattern,
-  AFRICAN_PATTERNS,
+  
 } from "@onpoint/shared-types";
 import { logger } from "../../../../lib/utils/logger";
 import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";

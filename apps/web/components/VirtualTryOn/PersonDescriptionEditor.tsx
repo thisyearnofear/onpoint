@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { Button } from "@repo/ui/button";
 import { Textarea } from "@repo/ui/textarea";
-import { Sparkles, Edit3, Check, X, User } from "lucide-react";
+import { Sparkles, Edit3, User } from "lucide-react";
 
 interface PersonDescriptionEditorProps {
   description: string;

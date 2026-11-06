@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       }
 
       return NextResponse.json(report, { headers: corsHeaders(origin) });
-    } catch (error) {
+    } catch {
       return NextResponse.json(
         { error: "Failed to load retention report" },
         { status: 500, headers: corsHeaders(origin) },

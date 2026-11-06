@@ -85,7 +85,7 @@ export function fireConfetti(options: ConfettiOptions = {}): void {
     });
   }
 
-  let animationId: number;
+  let _animationId: number;
 
   function animate() {
     ctx!.clearRect(0, 0, canvas.width, canvas.height);
@@ -119,12 +119,12 @@ export function fireConfetti(options: ConfettiOptions = {}): void {
     }
 
     if (alive) {
-      animationId = requestAnimationFrame(animate);
+      _animationId = requestAnimationFrame(animate);
     } else {
       canvas.remove();
       isRunning = false;
     }
   }
 
-  animationId = requestAnimationFrame(animate);
+  _animationId = requestAnimationFrame(animate);
 }

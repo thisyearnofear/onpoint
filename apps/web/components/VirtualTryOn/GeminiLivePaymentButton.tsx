@@ -10,7 +10,7 @@ import {
   useSwitchChain,
   useBalance,
 } from "wagmi";
-import { parseEther, formatEther } from "viem";
+import { parseEther } from "viem";
 import {
   Sparkles,
   Loader2,
@@ -61,7 +61,7 @@ export function GeminiLivePaymentButton({
 
   const PAYMENT_AMOUNT = "0.5"; // 0.5 CELO for Gemini Live access
   const isOnCelo = chainId === celo.id || chainId === celoSepolia.id;
-  const isTestnet = chainId === celoSepolia.id;
+  const _isTestnet = chainId === celoSepolia.id;
 
   // Check if user has enough balance
   const hasEnoughBalance =

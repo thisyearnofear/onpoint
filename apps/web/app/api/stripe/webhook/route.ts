@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
               const fullSub = await stripe.subscriptions.retrieve(subscriptionId);
               await syncSubscriptionFromStripe(fullSub, { forcedUserId: userId });
             }
-          } catch (fetchErr) {
+          } catch {
             logger.warn("Failed to fetch subscription for sync", {
               component: "stripe-webhook",
               subscriptionId,

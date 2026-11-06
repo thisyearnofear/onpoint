@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from "react";
 import { Button } from "@repo/ui/button";
-import { Upload, Camera, CheckCircle2, Palette, Ruler, ShieldCheck, Sparkles, Wand2, Gift } from "lucide-react";
+import { Camera, CheckCircle2, Palette, Ruler, ShieldCheck, Sparkles, Wand2, Gift } from "lucide-react";
 import dynamic from "next/dynamic";
 // framer-motion removed — using CSS transitions instead
 import { useVirtualTryOn } from "@repo/ai-client";

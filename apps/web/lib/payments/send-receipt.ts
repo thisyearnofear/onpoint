@@ -320,7 +320,7 @@ async function sendViaEmail(
 
 // ─── Main entry point ─────────────────────────────────────────
 
-const SEND_RECIPIENT_KEY = "curator:payments:receipt_sent";
+const _SEND_RECIPIENT_KEY = "curator:payments:receipt_sent";
 
 /**
  * Send the receipt to the customer after order completion.

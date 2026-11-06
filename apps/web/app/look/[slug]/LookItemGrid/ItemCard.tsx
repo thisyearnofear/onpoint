@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Shuffle } from "lucide-react";
 import { SafeImage } from "../../../../components/SafeImage";
-import { formatPrice, getLowestPrice } from "./utils";
+import { getLowestPrice } from "./utils";
 import { PriceReveal } from "../../../../components/PriceReveal";
 import type { LookItem } from "./types";
 

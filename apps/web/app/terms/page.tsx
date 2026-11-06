@@ -26,7 +26,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-bold text-foreground">1. Acceptance of Terms</h2>
             <p className="mt-2">
-              By accessing or using OnPoint (the "Service"), you agree to be bound
+              By accessing or using OnPoint (the &quot;Service&quot;), you agree to be bound
               by these Terms of Service. If you do not agree, do not use the Service.
               OnPoint is operated as a community-build application and is provided
               free of charge unless explicitly stated otherwise on a paid tier.
@@ -124,7 +124,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-bold text-foreground">10. Disclaimer of Warranties</h2>
             <p className="mt-2">
-              The Service is provided "as is" and "as available" without warranties
+              The Service is provided &quot;as is&quot; and &quot;as available&quot; without warranties
               of any kind, express or implied. We do not warrant that the Service
               will be uninterrupted, error-free, or that AI-generated outputs will
               meet your expectations.

@@ -224,7 +224,7 @@ export function AgentApprovalModal({
 // ============================================
 
 export function useAgentApproval() {
-  const [pendingApprovals, setPendingApprovals] = useState<ApprovalRequest[]>(
+  const [pendingApprovals, _setPendingApprovals] = useState<ApprovalRequest[]>(
     [],
   );
   const [currentApproval, setCurrentApproval] =

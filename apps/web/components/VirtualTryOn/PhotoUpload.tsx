@@ -28,7 +28,7 @@ const SAMPLE_PHOTOS = [
 export function PhotoUpload({ onPhotoSelect, disabled, selfieMode = false }: PhotoUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loadingSample, setLoadingSample] = useState<string | null>(null);
-  const { result: qualityResult, checking: qualityChecking, checkPhoto, reset } = usePhotoQualityCheck();
+  const { result: qualityResult, checking: qualityChecking, checkPhoto, reset: _reset } = usePhotoQualityCheck();
 
   const handleFile = useCallback(
     async (file: File) => {

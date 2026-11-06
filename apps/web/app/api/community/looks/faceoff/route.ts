@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse, after } from "next/server";
 import {
   redisGet,
-  redisSetEx,
+  
   redisIncr,
   redisSadd,
 } from "../../../../../lib/utils/redis-helpers";
@@ -20,7 +20,7 @@ import type { CommunityLook } from "../types";
 
 const FACEOFF_VOTE_PREFIX = "community:faceoff:votes:";
 const FACEOFF_HISTORY_PREFIX = "community:faceoff:history:";
-const LOOK_TTL = 7 * 86400;
+const _LOOK_TTL = 7 * 86400;
 
 // ── GET — Fetch a random face-off pair ──
 
@@ -144,6 +144,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-export async function OPTIONS(request: NextRequest) {
+export async function OPTIONS(_request: NextRequest) {
   return NextResponse.json({}, { headers: corsHeaders("*") });
 }

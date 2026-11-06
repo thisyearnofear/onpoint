@@ -8,11 +8,11 @@ import {
   Download,
   Copy,
   CheckCircle,
-  Crown,
-  Zap,
-  Leaf,
-  Star,
-  MessageCircle,
+  
+  
+  
+  
+  
   ExternalLink,
   ChevronDown,
   ChevronUp,

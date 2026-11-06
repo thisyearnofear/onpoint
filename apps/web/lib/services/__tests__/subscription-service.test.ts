@@ -20,7 +20,7 @@ vi.mock("../../../middleware/agent-auth", () => ({
   setUserSubscription: vi.fn(),
 }));
 
-import { redisGet, redisSetEx, redisSet, redisDel } from "../../utils/redis-helpers";
+import { redisGet, redisSetEx } from "../../utils/redis-helpers";
 
 const mockRedisGet = vi.mocked(redisGet);
 const mockRedisSetEx = vi.mocked(redisSetEx);

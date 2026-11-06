@@ -5,7 +5,6 @@ import { Button } from "@repo/ui/button";
 import { Check, Search, Sparkles } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { TryOnSelection } from "../../lib/utils/try-on-selection";
-import { trackTryOnGarmentSelected } from "../../lib/utils/analytics";
 import { SafeImage } from "../SafeImage";
 
 type SelectableGarment = TryOnSelection & {

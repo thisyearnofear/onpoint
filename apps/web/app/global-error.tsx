@@ -2,7 +2,7 @@
 
 import type { ErrorInfo } from "next/error";
 
-export default function GlobalError({ error, retry }: ErrorInfo) {
+export default function GlobalError({ error: _error, retry }: ErrorInfo) {
   return (
     <html>
       <body className="flex min-h-dvh items-center justify-center bg-background text-foreground">

@@ -32,7 +32,7 @@ function getRedisToken(): string | undefined {
   return process.env.UPSTASH_REDIS_REST_TOKEN;
 }
 
-async function redisIncr(key: string): Promise<void> {
+async function _redisIncr(key: string): Promise<void> {
   const url = getRedisUrl();
   const token = getRedisToken();
   if (!url || !token) return;
@@ -51,7 +51,7 @@ async function redisIncr(key: string): Promise<void> {
   }
 }
 
-async function redisGet(key: string): Promise<number | null> {
+async function _redisGet(key: string): Promise<number | null> {
   const url = getRedisUrl();
   const token = getRedisToken();
   if (!url || !token) return null;
@@ -297,7 +297,7 @@ export async function getRetentionReport(): Promise<RetentionReport | null> {
   const token = getRedisToken();
   if (!url || !token) return null;
 
-  const today = todayStr();
+  const _today = todayStr();
   const dates: string[] = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
@@ -431,7 +431,7 @@ export async function recordDeepLinkPersonaOutcome(props: {
 }): Promise<void> {
   const today = todayStr();
   const persona = props.persona || "unknown";
-  const curator = props.curatorSlug || "unknown";
+  const _curator = props.curatorSlug || "unknown";
   const completedKey = props.completed ? "completed" : "abandoned";
 
   const cmds: string[][] = [
@@ -485,7 +485,7 @@ export async function getDeepLinkPersonaReport(): Promise<DeepLinkPersonaReport 
  const token = getRedisToken();
   if (!url || !token) return null;
 
-  const today = todayStr();
+  const _today = todayStr();
   const dates: string[] = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
@@ -607,7 +607,7 @@ export async function getProviderOutcomeReport(): Promise<ProviderOutcomeReport 
   const token = getRedisToken();
   if (!url || !token) return null;
 
-  const today = todayStr();
+  const _today = todayStr();
   const dates: string[] = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date();

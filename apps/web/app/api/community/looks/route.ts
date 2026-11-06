@@ -58,7 +58,7 @@ const SubmitLookSchema = z.object({
 
 type SortMode = "trending" | "latest";
 
-const ALL_PERSONAS = [
+const _ALL_PERSONAS = [
   "miranda",
   "edina",
   "shaft",
@@ -67,9 +67,9 @@ const ALL_PERSONAS = [
   "sustainable",
 ] as const;
 
-const REACTION_EMOJIS = ["🔥", "👍", "😍", "💯", "✨"] as const;
+const _REACTION_EMOJIS = ["🔥", "👍", "😍", "💯", "✨"] as const;
 
-type ReactionEmoji = (typeof REACTION_EMOJIS)[number];
+type _ReactionEmoji = (typeof _REACTION_EMOJIS)[number];
 
 // ── POST — Submit anonymized look ──
 

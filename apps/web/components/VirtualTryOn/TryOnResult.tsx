@@ -99,7 +99,7 @@ const PROGRESS_STAGES = [
 
 function StagedProgress() {
   const [stage, setStage] = useState(0);
-  const startTimeRef = useRef(Date.now());
+  const _startTimeRef = useRef(Date.now());
 
   useEffect(() => {
     if (stage >= PROGRESS_STAGES.length - 1) return;

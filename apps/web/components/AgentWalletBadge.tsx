@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useUser } from "@auth0/nextjs-auth0/client";
-import { Wallet, Loader2 } from "lucide-react";
+import { Wallet } from "lucide-react";
 
 interface WalletData {
   chain: string;

@@ -143,7 +143,7 @@ export async function getAgentPolicy(
   walletAddress: string,
 ): Promise<SpendPolicy> {
   const tier = await agentReputation.getSpendLimit(walletAddress);
-  const reputation = await agentReputation.getReputation(walletAddress);
+  const _reputation = await agentReputation.getReputation(walletAddress);
 
   return {
     walletAddress: walletAddress.toLowerCase(),

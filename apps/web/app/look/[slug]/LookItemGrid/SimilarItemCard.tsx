@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { SafeImage } from "../../../../components/SafeImage";
-import { formatPrice } from "./utils";
 import { PriceReveal } from "../../../../components/PriceReveal";
 import type { SimilarItem } from "./types";
 

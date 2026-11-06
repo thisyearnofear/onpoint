@@ -439,7 +439,7 @@ export async function POST(
           success: true,
           order: {
             id: orderId,
-            items: resolvedItems.map(({ seller, ...item }) => item),
+            items: resolvedItems.map(({ seller: _seller, ...item }) => item),
             totalAmount: totalFormatted,
             totalWei: totalWei.toString(),
             txHash: txHashes[0] ?? "0x",

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Sparkles,
   Check,
@@ -14,7 +14,7 @@ import {
   Globe,
   Search,
   Eye,
-  RefreshCw,
+  
   Gift,
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
@@ -172,7 +172,7 @@ export function AgentSuggestionToast({
           {suggestion.observedFeatures && (
             <div className="mb-3 p-2.5 rounded-xl bg-muted/30 border border-border/50">
               <p className="text-xs text-muted-foreground/70 uppercase tracking-wider mb-1.5">
-                I noticed you're wearing
+                I noticed you&rsquo;re wearing
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {suggestion.observedFeatures.colors?.map((color, i) => (
@@ -257,7 +257,7 @@ export function AgentSuggestionToast({
               <div className="flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-red-400" />
                 <p className="text-xs text-red-300 font-medium">
-                  Couldn't find results this time
+                  Couldn&rsquo;t find results this time
                 </p>
               </div>
               <p className="text-xs text-red-400/60 mt-1">

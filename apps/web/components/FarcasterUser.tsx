@@ -14,7 +14,7 @@ interface FarcasterUserProps {
 export function FarcasterUser({ fid, compact = false }: FarcasterUserProps) {
     const { context } = useMiniApp();
     const [userData, setUserData] = useState<any>(null);
-    const [loading, setLoading] = useState(false);
+    const [_loading, setLoading] = useState(false);
 
     // Use provided fid or current user's fid
     const userFid = fid || context?.user?.fid;

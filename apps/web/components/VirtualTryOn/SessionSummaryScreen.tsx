@@ -22,7 +22,7 @@ import { AnimatedScore } from "./AnimatedScore";
 import type {
   SessionSummary,
   CaptureOption,
-  SessionFeedback,
+  
 } from "./hooks/useLiveSession";
 import type { PersonaConfigWithTheme } from "../../lib/utils/persona-config";
 import { SafeImage } from "../SafeImage";
@@ -455,11 +455,11 @@ export function SessionSummaryScreen({
             <AgentApprovalModal
               isOpen={isApprovalModalOpen}
               onClose={() => onSetShowTipModal(false)}
-              onApprove={(requestId: string) => {
+              onApprove={(_requestId: string) => {
                 onApprove();
                 return Promise.resolve();
               }}
-              onReject={(requestId: string) => {
+              onReject={(_requestId: string) => {
                 onReject();
               }}
               request={currentApproval}

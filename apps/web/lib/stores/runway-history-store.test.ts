@@ -6,7 +6,7 @@ import {
   type RunwayEntry,
 } from "./runway-history-store";
 
-const DAY = 86400000;
+const _DAY = 86400000;
 const NOW = Date.parse("2026-11-10T12:00:00Z");
 const at = (isoDay: string) => Date.parse(`${isoDay}T09:00:00Z`);
 

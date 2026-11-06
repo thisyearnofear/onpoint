@@ -3,7 +3,6 @@
 import { useMemo, useRef, useEffect, useState } from "react";
 import {
   Smartphone,
-  Truck,
   PackageCheck,
   Bike,
   CheckCircle2,
@@ -87,7 +86,7 @@ export function TrackingTimeline({
   paymentStatus,
   fulfilmentStatus,
   hasDelivery,
-  createdAt,
+
 }: {
   paymentStatus?: string | null;
   fulfilmentStatus?: string | null;

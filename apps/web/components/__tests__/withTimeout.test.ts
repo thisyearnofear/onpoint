@@ -97,11 +97,11 @@ describe("abortableTimeout", () => {
 });
 
 describe("getUserMediaWithTimeout", () => {
-  type StopFn = () => void;
+  type _StopFn = () => void;
   type Track = { stop: () => void };
   type MockStream = { getTracks: () => Track[] };
 
-  let originalGetUserMedia: typeof navigator.mediaDevices.getUserMedia;
+  let _originalGetUserMedia: typeof navigator.mediaDevices.getUserMedia;
   let originalMediaDevices: MediaDevices | undefined;
 
   beforeEach(() => {

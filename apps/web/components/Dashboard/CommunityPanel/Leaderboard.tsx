@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Crown, Medal, Sparkles, Trophy } from "lucide-react";
+import { Medal, Sparkles } from "lucide-react";
 import type { CommunityLook } from "./types";
 
 export function Leaderboard({ looks }: { looks: CommunityLook[] }) {

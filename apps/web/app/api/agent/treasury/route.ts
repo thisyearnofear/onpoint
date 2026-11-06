@@ -49,7 +49,7 @@ const PayComputeSchema = z.object({
 
 // GET - Check treasury balance and stats
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  return requireAuthWithRateLimit(async (req, ctx) => {
+  return requireAuthWithRateLimit(async (req, _ctx) => {
     const origin = req.headers.get("origin") ?? undefined;
     const url = new URL(req.url);
     const agentId = url.searchParams.get("agentId") || "onpoint-stylist";
@@ -112,7 +112,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 // POST - Manage treasury (add revenue, record expense, pay compute)
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  return requireAuthWithRateLimit(async (req, ctx) => {
+  return requireAuthWithRateLimit(async (req, _ctx) => {
     const origin = req.headers.get("origin") ?? undefined;
 
     try {

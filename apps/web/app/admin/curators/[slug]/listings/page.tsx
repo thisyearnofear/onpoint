@@ -67,7 +67,7 @@ function totalStock(sizes: ListingRow["sizes"]) {
   return sizes.reduce((sum, s) => sum + (s.stock || 0), 0);
 }
 
-function minPrice(sizes: ListingRow["sizes"]) {
+function _minPrice(sizes: ListingRow["sizes"]) {
   if (!sizes.length) return null;
   return Math.min(...sizes.map((s) => s.price));
 }

@@ -7,7 +7,7 @@ import {
   ExternalLink,
   Fingerprint,
   ScrollText,
-  Loader2,
+  
   X,
 } from "lucide-react";
 

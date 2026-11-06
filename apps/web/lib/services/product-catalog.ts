@@ -18,12 +18,10 @@ import {
   MarketSignal,
   ProductSearchWithSignals,
   searchCatalog as searchLocalCatalog,
-  mergeProductResults,
 } from "@onpoint/shared-types";
 import {
   redisGet,
   redisSet,
-  isRedisConfigured,
 } from "../utils/redis-helpers";
 
 /**

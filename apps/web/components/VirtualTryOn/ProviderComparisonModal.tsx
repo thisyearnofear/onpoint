@@ -2,7 +2,7 @@
 
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Zap, Crown, Sparkles, Camera, Clock, Wifi } from "lucide-react";
+import { X, Zap, Crown, Sparkles } from "lucide-react";
 import { SESSION_FACTORIES } from "@repo/ai-client";
 import type { LiveSessionFactory } from "@repo/ai-client";
 

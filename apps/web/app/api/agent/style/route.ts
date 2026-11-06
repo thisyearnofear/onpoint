@@ -27,7 +27,7 @@ const TrackInteractionSchema = z.object({
   sessionGoal: z.enum(["event", "daily", "critique"]).optional(),
 });
 
-const GetRecommendationsSchema = z.object({
+const _GetRecommendationsSchema = z.object({
   userId: z.string().default("default"),
   limit: z.number().min(1).max(10).default(3),
   excludeIds: z.array(z.string()).default([]),

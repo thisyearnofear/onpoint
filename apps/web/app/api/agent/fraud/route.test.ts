@@ -21,7 +21,7 @@ vi.mock("../../../../lib/services/fraud-detection", () => ({
 
 vi.mock("../../../../middleware/agent-auth", () => ({
   requireAuthWithRateLimit:
-    (handler: Function) => (req: NextRequest) =>
+    (handler: (req: NextRequest, ctx: unknown) => unknown) => (req: NextRequest) =>
       handler(req, { userId: "user1", agentId: "onpoint-stylist", tier: "premium", permissions: [] }),
 }));
 
@@ -272,7 +272,7 @@ describe("POST /api/agent/fraud", () => {
           }),
         }),
       );
-      const body = await res.json();
+      const _body = await res.json();
 
       expect(res.status).toBe(404);
     });

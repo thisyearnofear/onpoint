@@ -4,7 +4,7 @@ import { requireAuthWithRateLimit } from "../../../../middleware/agent-auth";
 import { logger } from "../../../../lib/utils/logger";
 
 export async function POST(request: NextRequest) {
-  return requireAuthWithRateLimit(async (req, _ctx) => {
+  return requireAuthWithRateLimit(async (_req, _ctx) => {
     try {
       const signer = await NeynarSocialUtils.createManagedSigner();
       if (!signer) {

@@ -89,7 +89,9 @@ export function useAgentStream() {
                     isRunning: false,
                   }));
                 }
-              } catch {}
+              } catch {
+        /* ignored — best-effort */
+      }
               eventType = "";
             }
           }

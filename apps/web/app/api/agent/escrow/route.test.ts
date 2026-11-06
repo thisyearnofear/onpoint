@@ -19,7 +19,7 @@ vi.mock("../../../../lib/services/escrow-service", () => ({
 
 vi.mock("../../../../middleware/agent-auth", () => ({
   requireAuthWithRateLimit:
-    (handler: Function) => (req: NextRequest) =>
+    (handler: (req: NextRequest, ctx: unknown) => unknown) => (req: NextRequest) =>
       handler(req, { userId: "user1", agentId: "onpoint-stylist", tier: "premium", permissions: [] }),
 }));
 
@@ -66,7 +66,7 @@ describe("GET /api/agent/escrow", () => {
 
     const { GET } = await import("./route");
     const res = await GET(new NextRequest("http://localhost/api/agent/escrow?agentId=custom-agent"));
-    const body = await res.json();
+    const _body = await res.json();
 
     expect(res.status).toBe(200);
     expect(mocks.getEscrowBalance).toHaveBeenCalledWith("user1", "custom-agent");

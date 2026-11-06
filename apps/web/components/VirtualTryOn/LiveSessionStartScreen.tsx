@@ -124,13 +124,13 @@ export function LiveSessionStartScreen({
             <div className="w-full max-w-md border border-error/30 bg-error/10 p-4 text-left">
               <div className="flex items-center gap-2 text-error">
                 <AlertCircle className="h-4 w-4 shrink-0" />
-                <p className="text-xs font-bold uppercase tracking-wider">Something's off</p>
+                <p className="text-xs font-bold uppercase tracking-wider">Something&rsquo;s off</p>
               </div>
               <p className="mt-2 text-sm text-error/90">{error}</p>
               {error.toLowerCase().includes("camera") && (
                 <div className="mt-2 space-y-2">
                   <p className="text-xs text-error/70">
-                    Check camera access is allowed and you're on HTTPS.
+                    Check camera access is allowed and you&rsquo;re on HTTPS.
                   </p>
                   <button
                     onClick={onDismissError}

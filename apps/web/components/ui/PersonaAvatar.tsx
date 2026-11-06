@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { Sparkles, Crown, Zap, Leaf, Star, MessageCircle } from "lucide-react";
 import type { StylistPersona } from "@repo/ai-client";
 import { getPersonaConfig } from "../../lib/utils/persona-config";
 

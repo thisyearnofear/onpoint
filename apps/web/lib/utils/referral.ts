@@ -10,7 +10,7 @@ function encode(n: number): string {
   return result;
 }
 
-function decode(s: string): number {
+function _decode(s: string): number {
   let n = 0;
   for (const c of s) {
     n = n * 62 + BASE62.indexOf(c);

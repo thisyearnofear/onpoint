@@ -15,7 +15,7 @@ import {
   Clock,
   Ban,
   CheckCircle2,
-  XCircle,
+  
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 
@@ -59,7 +59,7 @@ export function FraudMonitor() {
   const [health, setHealth] = useState<AgentHealth | null>(null);
   const [alerts, setAlerts] = useState<FraudAlert[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expanded, setExpanded] = useState(false);
+  const [_expanded, _setExpanded] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const fetchStatus = useCallback(async () => {

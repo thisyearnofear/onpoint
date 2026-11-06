@@ -19,7 +19,6 @@ import { CuratorTracker } from "../../../components/CuratorTracker";
 import { StorefrontFocusListing } from "../../../components/StorefrontFocusListing";
 import { CrossCuratorRecommendations } from "../../../components/CrossCuratorRecommendations";
 import { AICuratorSection } from "../../../components/AICuratorSection";
-import { ComingSoonBadge } from "../../../components/ui/ComingSoonBadge";
 import { StorefrontLooks } from "../../../components/StorefrontLooks";
 import { MpesaPaymentPanel } from "./MpesaPaymentPanel";
 import { CuratorOwnerTools } from "../../../components/Curator/CuratorOwnerTools";

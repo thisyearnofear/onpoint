@@ -69,9 +69,9 @@ export const DEFAULT_SPLIT: RevenueSplit = {
 
 const TREASURY_KEY = (agentId: string) => `treasury:${agentId}`;
 const REVENUE_KEY = (id: string) => `revenue:${id}`;
-const REVENUE_INDEX_KEY = (agentId: string) => `revenue:index:${agentId}`;
+const _REVENUE_INDEX_KEY = (agentId: string) => `revenue:index:${agentId}`;
 const EXPENSE_KEY = (id: string) => `expense:${id}`;
-const EXPENSE_INDEX_KEY = (agentId: string) => `expense:index:${agentId}`;
+const _EXPENSE_INDEX_KEY = (agentId: string) => `expense:index:${agentId}`;
 
 // ============================================
 // Treasury Management

@@ -70,7 +70,7 @@ function loadArchetypes(): ArchetypeConfig[] {
 
 // ── Avatar fallback ──────────────────────────────────
 
-function getInitials(name: string): string {
+function _getInitials(name: string): string {
   return name
     .split(/\s+/)
     .map((n) => n.charAt(0).toUpperCase())

@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { service, prompt, model, image } = await request.json();
+    const { service, prompt, model: _model, image: _image } = await request.json();
 
     if (!service) {
       return NextResponse.json(

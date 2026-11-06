@@ -13,7 +13,7 @@ import {
   Loader2,
   Key,
   Eye,
-  EyeOff,
+  
   Clock,
   Zap,
   AlertCircle,
@@ -94,7 +94,7 @@ export function AgentPermissionDashboard() {
     "permissions",
   );
   const [showConnectWizard, setShowConnectWizard] = useState(false);
-  const [activityLog, setActivityLog] = useState<ActivityLog[]>([
+  const [activityLog, _setActivityLog] = useState<ActivityLog[]>([
     {
       id: "1",
       action: "Browse catalog",
@@ -139,7 +139,7 @@ export function AgentPermissionDashboard() {
     }
   }, []);
 
-  const formatTimeAgo = (timestamp: number) => {
+  const _formatTimeAgo = (timestamp: number) => {
     const diff = Date.now() - timestamp;
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return "Just now";
@@ -382,8 +382,8 @@ export function AgentPermissionDashboard() {
   );
 }
 
-function OnboardingView({ onComplete }: { onComplete: () => void }) {
-  const [step, setStep] = useState(0);
+function OnboardingView({ onComplete: _onComplete }: { onComplete: () => void }) {
+  const [_step, _setStep] = useState(0);
 
   return (
     <div className="relative bg-zinc-900/90 border border-zinc-800 rounded-3xl overflow-hidden backdrop-blur-xl">
