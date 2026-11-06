@@ -96,6 +96,7 @@ describe("LiveLooks", () => {
     const { onFiltersChange } = setup();
     await screen.findByText("Look alpha");
 
+    fireEvent.click(screen.getByRole("button", { name: /^Filters/ }));
     const vibeRow = within(screen.getByRole("group", { name: "Vibe" }));
     fireEvent.click(vibeRow.getByRole("button", { name: "Formal" }));
     expect(onFiltersChange).toHaveBeenCalledWith(expect.objectContaining({ category: "formal" }));

@@ -192,6 +192,7 @@ router.post('/', lookAuth, async (req, res) => {
         coverImageKey,
         tags: tags || [],
         status: lookStatus,
+        provenance: req.creatorType === 'curator' ? 'curator' : 'studio',
       })
       .returning();
 
