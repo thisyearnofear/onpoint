@@ -64,10 +64,9 @@ export function LookCard({ look, compact = false }: LookCardProps) {
   const padding = compact ? "p-3" : "p-4";
   const titleSize = compact ? "text-sm" : "text-base";
 
-  // Prefer curator name; fall back to a friendly default.
-  const curatorLabel = look.curatorSlug
-    ? `From ${look.curatorSlug}`
-    : "OnPoint Stylist";
+  // All current looks are studio-composed fixtures — honest attribution,
+  // not fake merchant names. Revisit when real curators land.
+  const curatorLabel = "OnPoint studio";
 
   return (
     <Link

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { SafeImage } from "../../../../components/SafeImage";
 import { formatPrice } from "./utils";
+import { PriceReveal } from "../../../../components/PriceReveal";
 import type { SimilarItem } from "./types";
 
 interface SimilarItemCardProps {
@@ -43,7 +44,7 @@ export function SimilarItemCard({
           {alt.title}
         </p>
         <p className="text-xs text-muted-foreground">{alt.curatorName}</p>
-        <p className="text-xs font-bold">{formatPrice(alt.lowestPrice)}</p>
+        <p className="text-xs font-bold"><PriceReveal kesAmount={alt.lowestPrice ?? 0} label="See price" /></p>
       </div>
       <Link
         href={`/s/${alt.curatorSlug}?referral=${referralCode}&look=${lookSlug}`}

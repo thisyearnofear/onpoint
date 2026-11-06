@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Shuffle } from "lucide-react";
 import { SafeImage } from "../../../../components/SafeImage";
 import { formatPrice, getLowestPrice } from "./utils";
+import { PriceReveal } from "../../../../components/PriceReveal";
 import type { LookItem } from "./types";
 
 interface ItemCardProps {
@@ -56,7 +57,7 @@ export function ItemCard({ item, referralCode, lookSlug, onSwap }: ItemCardProps
           {item.kit?.brand && ` · ${item.kit.brand}`}
         </p>
         {(price ?? 0) > 0 && (
-          <p className="text-xs font-bold">{formatPrice(price)}</p>
+          <p className="text-xs font-bold"><PriceReveal kesAmount={price ?? 0} label="See price" /></p>
         )}
       </div>
     </div>

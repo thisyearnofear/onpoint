@@ -6,7 +6,6 @@ import {
   TrendingUp,
   Share2,
   Sparkles,
-  ShoppingBag,
 } from "lucide-react";
 import { getApiBase } from "../../../lib/utils/api-base";
 import { OnPointLayout } from "../../../components/OnPointLayout";
@@ -279,14 +278,8 @@ export default async function LookPage({
                 <Eye className="h-4 w-4" />
                 Try it on
               </Link>
-              <Link
-                href={`/s/${look.curatorSlug}?referral=${look.referralCode}&look=${look.slug}${sidParam}`}
-                data-look-cta="shop"
-                className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-6 py-3 text-sm font-bold transition-colors hover:bg-muted active:scale-[0.98]"
-              >
-                <ShoppingBag className="h-4 w-4" />
-                Shop the pieces
-              </Link>
+              {/* Nothing purchasable yet — the funnel exit is share/save,
+                  not a checkout that can't fulfill. */}
             </div>
           </div>
         )}
