@@ -16,18 +16,9 @@ importers:
         specifier: ^2.21.0
         version: 2.52.2(bufferutil@4.1.0)(typescript@5.9.2)(utf-8-validate@6.0.6)(zod@4.4.3)
     devDependencies:
-      '@img/sharp-darwin-arm64':
-        specifier: 0.35.5
-        version: 0.35.5
-      '@rollup/rollup-darwin-arm64':
-        specifier: 4.67.5
-        version: 4.67.5
       '@types/minimatch':
         specifier: 3.0.5
         version: 3.0.5
-      '@typescript/native-preview-darwin-arm64':
-        specifier: 7.0.0-dev.20260707.2
-        version: 7.0.0-dev.20260707.2
       prettier:
         specifier: ^3.6.2
         version: 3.8.3
@@ -3294,11 +3285,6 @@ packages:
 
   '@rollup/rollup-darwin-arm64@4.61.1':
     resolution: {integrity: sha512-0F1L/Z3Eqv8mT2n3dCpeO8GcTvHvVqkP5/t6DMsn0KzhYVcg+s7Ncl5DS8qjKYEeio6Az0Gt6nyBORay5qIlCA==}
-    cpu: [arm64]
-    os: [darwin]
-
-  '@rollup/rollup-darwin-arm64@4.67.5':
-    resolution: {integrity: sha512-SNamgdrY69oPdBrQV9fKGo6PSmKcVhyn0D0jnDmcqgRJvrxQGGBhtekOHTUJ7TCgkW0nE8XMH9v2CwXmjNIzVA==}
     cpu: [arm64]
     os: [darwin]
 
@@ -11505,6 +11491,7 @@ snapshots:
   '@img/sharp-darwin-arm64@0.35.5':
     optionalDependencies:
       '@img/sharp-libvips-darwin-arm64': 1.3.4
+    optional: true
 
   '@img/sharp-darwin-x64@0.35.5':
     optionalDependencies:
@@ -13651,8 +13638,6 @@ snapshots:
   '@rollup/rollup-darwin-arm64@4.61.1':
     optional: true
 
-  '@rollup/rollup-darwin-arm64@4.67.5': {}
-
   '@rollup/rollup-darwin-x64@4.61.1':
     optional: true
 
@@ -14963,7 +14948,8 @@ snapshots:
       '@typescript-eslint/types': 8.60.1
       eslint-visitor-keys: 5.0.1
 
-  '@typescript/native-preview-darwin-arm64@7.0.0-dev.20260707.2': {}
+  '@typescript/native-preview-darwin-arm64@7.0.0-dev.20260707.2':
+    optional: true
 
   '@typescript/native-preview-darwin-x64@7.0.0-dev.20260707.2':
     optional: true

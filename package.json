@@ -15,10 +15,7 @@
     "deploy:api": "bash scripts/deploy-api.sh"
   },
   "devDependencies": {
-    "@img/sharp-darwin-arm64": "0.35.5",
-    "@rollup/rollup-darwin-arm64": "4.67.5",
     "@types/minimatch": "3.0.5",
-    "@typescript/native-preview-darwin-arm64": "7.0.0-dev.20260707.2",
     "prettier": "^3.6.2",
     "turbo": "^2.5.8",
     "typescript": "5.9.2"
