@@ -87,10 +87,10 @@ Three composable layers ([ADR 0002](./adr/0002-curator-primitive.md)):
 | `apps/web/components/AICuratorSection.tsx`                | AI Curator second opinion voices on human storefronts                                                         |
 | `apps/web/components/CrossCuratorRecommendations.tsx`     | Cross-curator product recommendations with attribution tracking                                               |
 | `apps/web/app/curator/onboard/page.tsx`                   | Self-serve Curator onboarding form                                                                            |
-| `apps/web/app/lab/page.tsx`                               | Power-user / own-agent tooling (not the demand hero); uses `OnPointHeader`                                    |
-| `apps/web/components/OnPointHeader.tsx`                   | Shared responsive header + footer (desktop + mobile)                                                          |
-| `apps/web/components/home/`                               | Homepage components extracted from monolithic `page.tsx` (HeroView, LookCrafter, HeroVisual, etc.)            |
-| `apps/web/components/Dashboard/TacticalDashboard.tsx`     | Lab dashboard with 7 modes: try-on, shop, stylist, my-looks, dashboard, intel, settings                       |
+| `apps/web/app/(consumer)/lab/page.tsx`                    | The fitting room — one surface, no mode slugs (`/lab/[mode]` 301s onto its disclosures)                        |
+| `apps/web/components/OnPointHeader.tsx`                   | The one header row (three places + cart/notifications/auth/theme) and `OnPointFooter`, which `OnPointLayout` mounts |
+| `apps/web/components/home/`                               | `HeroView` — the client island around the wardrobe stage plus the mobile sticky CTA                            |
+| `apps/web/components/Dashboard/TacticalDashboard.tsx`     | The fitting room surface: try-on plus the `#your-try-ons`, `#ask-stylist` and `#settings` disclosures          |
 | `apps/web/app/admin/analytics/CuratorComparisonTable.tsx` | Cross-curator comparison table with sparklines                                                                |
 | `apps/web/components/admin/TrendSparkline.tsx`            | Shared sparkline, Bar, CSV export, SMA trend components                                                       |
 | `apps/api/routes/agent-looks.js`                          | Agent looks CRUD + bulk + share + try-on-count + link-agent + collage + classify + image upload               |
@@ -103,10 +103,10 @@ Three composable layers ([ADR 0002](./adr/0002-curator-primitive.md)):
 
 ### Consumer homepage (`/`)
 
-1. **Server component** → `app/page.tsx` renders `OnPointHeader` + `HeroView` (client island)
-2. **HeroView** → Composes `WelcomeBackBanner`, `HeroVisual`, `LookCrafter`, `EditorialStats`, `RecentlySavedSection`
-3. **LookCrafter** → Pre-canned result instantly, progressive AI enhancement via `/api/ai/look-preview` (5s timeout, silent fallback)
-4. **Dual CTAs** → Shop (`/curators`) + Supply (`/curator`) + Agents (`/developers`)
+1. **Server component** → `app/(consumer)/page.tsx` renders `HeroView`; `app/(consumer)/layout.tsx` supplies `OnPointLayout` (the one header row and the one shared footer)
+2. **HeroView** → the client island around `WardrobeWorkspace`, plus the mobile sticky "Get a verdict" pill — IntersectionObserver-gated to the hero CTA and the `placement: "mobile_sticky"` measurement point
+3. **WardrobeWorkspace** → the wardrobe stage: clothes rack, gallery, inspector, undo history. Its Outfit ideas tab fetches live looks client-side (`GET /api/looks`) — a server fetch would force the homepage dynamic
+4. **Next actions** → "Get a verdict" deep-links `/runway/play?sample=<id>`; try-on, styling and purchase are offered by the result, not by nav (ADR 0028)
 5. **No wallet/Auth0 before first interaction** (ADR 0002 §5)
 
 ### Curator storefront (`/s/[slug]`) — Phase 11
@@ -144,7 +144,7 @@ Three composable layers ([ADR 0002](./adr/0002-curator-primitive.md)):
 3. **Image generation** → `apps/api/lib/image-composite.js` — Tier 1 sharp (deterministic grid), Tier 2 Qwen Cloud wan2.7-image-pro (AI flat-lay)
 4. **Classification** → `apps/api/lib/look-classify.js` — rule-based + AI vision (qwen-vl-max) for category/occasion/season
 5. **Storefront integration** → `apps/api/routes/curator-storefront.js` includes a `looks` array in the response (10 most recent live looks per curator)
-6. **Web pages** → `/looks` (browse), `/look/[slug]` (detail with try-on CTA, shop CTA, share), curator tools (CuratorLookCreator, CuratorHomePanel with drafts + bulk)
+6. **Web pages** → the wardrobe's outfits tab (browse — `/looks` permanently redirects into `/?tab=outfits`), `/look/[slug]` (detail with try-on CTA, Get-it CTA, share), curator tools (CuratorLookCreator, CuratorHomePanel with drafts + bulk)
 7. **SDK** → `packages/agent-core/src/looks-api.ts` — typed SDK helpers (browse, get, create, classify, update, delete)
 8. **Reference script** → `scripts/agent-looks.mjs`
 

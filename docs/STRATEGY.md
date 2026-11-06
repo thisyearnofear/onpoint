@@ -215,7 +215,7 @@ Historical deployment and test evidence is preserved in git history and the [Pha
 
 Workstreams:
 
-1. **Front door:** one loop — pick a look, get a verdict, then play again or try it on. The homepage is that choice (wardrobe stage) with a single primary action. Navigation is Looks, Runway, and Fitting room, plus a header action that starts a round. Pin, compare, notes, and the style board stay ways to choose; developer and agent surfaces stay out of the consumer path. Share output still leads with Runway.
+1. **Front door:** one loop — pick a look, get a verdict, then play again or try it on. The homepage is that choice (wardrobe stage) with a single primary action. Navigation is three places — Wardrobe, Runway, and Fitting room — with no header action beside them; pin, compare, notes, and the style board stay ways to choose, and purchase stays an action on an artifact rather than a destination. Developer and agent surfaces move to the footer, out of the consumer path. Share output still leads with Runway.
 2. **Cohesion:** one on-device "you" (history, saved looks, an opt-in photo) that every primitive reads. Each experience hands off to the next.
 3. **Share-native output:** vertical 9:16 / 4:5 cards shared as images, with Instagram / TikTok / X channels.
 4. **Retention engine:** daily theme, streaks, local history, and an optional way to come back (email or install).

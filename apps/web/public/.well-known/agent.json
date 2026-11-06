@@ -46,6 +46,18 @@
         "tryOn": "https://api.onpoint.famile.xyz/okx/try-on",
         "health": "https://api.onpoint.famile.xyz/okx/health"
       }
+    },
+    {
+      "type": "web",
+      "url": "https://onpoint.trustfall.xyz",
+      "description": "The human-facing app over the same inventory this manifest describes. Listed here so an agent can point a person at the right page without depending on where the site's navigation happens to put it — agents do not scroll footers. /agent is the referral-earnings UI for the 2.5% commission on POST /api/curator/{slug}/order; /developers is the integration guide.",
+      "pages": {
+        "agentEarnings": "https://onpoint.trustfall.xyz/agent",
+        "developers": "https://onpoint.trustfall.xyz/developers",
+        "storefront": "https://onpoint.trustfall.xyz/s/{curatorSlug}",
+        "look": "https://onpoint.trustfall.xyz/look/{slug}",
+        "receipt": "https://onpoint.trustfall.xyz/receipt/{receiptId}"
+      }
     }
   ],
   "capabilities": [

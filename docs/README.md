@@ -63,6 +63,10 @@ Not for external consumers.
 
 Historical technical decisions. Immutable — new decisions get new ADRs. Current product phase is owned by STRATEGY.md and FEATURES.md; these records explain why.
 
+- [0028](./adr/0028-navigation-consolidation-places-not-flows.md) — nav is three places and one footer; purchase, styling and saved renders become actions on an artifact (supersedes 0022 §4a and 0023 §3, navigation clauses only)
+- [0027](./adr/0027-frontend-design-system-consolidation.md) — one design system, honest metrics, non-async root layout; renumbered 2026-11-06 from a second file committed under 0024
+- [0026](./adr/0026-couple-styling-loop.md) — couple styling loop on existing rails
+- [0025](./adr/0025-shared-fitting-room-and-gift-a-look.md) — shared fitting room and Gift-a-look
 - [0024](./adr/0024-consumer-wardrobe-studio-and-interaction-reuse.md) — wardrobe-studio homepage; supersedes only ADR 0015's consumer-UI exclusion
 - [0023](./adr/0023-consumer-engine-first-curators-deferred.md) — consumer web first; curators deferred, not removed
 - [0022](./adr/0022-runway-game-hosted-messaging.md) — Runway engine, guardrails, and measurement; web phasing superseded by 0023
@@ -70,6 +74,8 @@ Historical technical decisions. Immutable — new decisions get new ADRs. Curren
 - [0010](./adr/0010-agent-storefront-checkout.md), [0011](./adr/0011-erc8004-registration-and-digital-curators.md), [0002](./adr/0002-curator-primitive.md) — agent checkout, digital curators, and the curator primitive
 
 Older ADRs (0001–0009, 0012–0018, 0020–0021) stay in [adr/](./adr/) and are linked from the docs that still depend on them.
+
+There is no ADR 0007. No file with that number has ever existed in this repo's history, so the gap in the sequence is a numbering gap, not a missing record — do not "fill" it.
 
 ## research/
 

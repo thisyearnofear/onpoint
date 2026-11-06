@@ -1,6 +1,13 @@
-# ADR 0024: Frontend design system consolidation
+# ADR 0027: Frontend design system consolidation
 
 **Status:** Accepted · 2026-11-05
+
+> Renumbered from 0024 on 2026-11-06. It was committed the day after
+> [ADR 0024](./0024-consumer-wardrobe-studio-and-interaction-reuse.md) and took
+> the same number, so two different decisions lived at 0024 with different
+> dates. 0024 keeps the number — it is cited from three places and indexed in
+> [docs/README.md](../README.md); this one was cited nowhere and absent from the
+> index, so it is the record that moves. Nothing else about it changes.
 
 ## Context
 

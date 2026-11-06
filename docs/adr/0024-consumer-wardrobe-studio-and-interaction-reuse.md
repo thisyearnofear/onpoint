@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-11-04
 - **Deciders:** OnPoint core
-- **Related:** [ADR 0015](./0015-wardrobe-supply-prep-reference.md) (Wardrobe supply-prep reference), [ADR 0023](./0023-consumer-engine-first-curators-deferred.md) (consumer engine first), [FEATURES.md § Wardrobe studio](../FEATURES.md#wardrobe-studio-consumer-homepage)
+- **Related:** [ADR 0015](./0015-wardrobe-supply-prep-reference.md) (Wardrobe supply-prep reference), [ADR 0023](./0023-consumer-engine-first-curators-deferred.md) (consumer engine first), [ADR 0027](./0027-frontend-design-system-consolidation.md) (the design-system record that briefly shared this number), [FEATURES.md § Wardrobe studio](../FEATURES.md#wardrobe-studio-consumer-homepage)
 
 ## Context
 

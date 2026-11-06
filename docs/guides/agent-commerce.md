@@ -171,7 +171,7 @@ A curator can also set this to their own wallet to create looks themselves.
 
 - Curator storefront page (`/s/[slug]`) shows a "Link an Agent" panel (owner-only) and a "Create a Styled Look" form (owner-only, appears when the curator has 2+ live physical listings)
 - Storefront page shows "Styled Looks" section with looks featuring this curator's items
-- `/looks` directory page shows all live looks
+- The wardrobe's outfits tab lists live looks for readers (`/?tab=outfits&curator=[slug]`; `/looks` permanently redirects there)
 
 **The bridge:**
 Curators bring taste and inventory. Agents bring distribution. Looks are the shared surface. A curator can style their own inventory, or they can let an agent do it — either way, the look drives try-ons and purchases back to the curator's storefront, and the creator earns referral commission.

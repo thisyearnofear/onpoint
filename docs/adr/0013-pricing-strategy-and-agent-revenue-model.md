@@ -234,8 +234,12 @@ auth, notifications, and theme toggle.
 - Live stats section: 8 curators, 55 listings, $0.03 try-on, 24/7 API uptime
 - Digital fashion showcase featuring Nia with 3-card grid (try-on, mint, earn)
 
+> Amended 2026-11-06 by [ADR 0028](./0028-navigation-consolidation-places-not-flows.md): none of this is on the homepage anymore. The hero is the wardrobe stage; the agent CTA and the hardcoded stats row were deleted with the rest of the marketing scaffolding — the counts were exactly the honest-metrics problem 0028 cites. `/developers` is reachable from the one shared footer and from `/.well-known/agent.json`, which is where an agent actually looks.
+
 ### Analytics
 Added "developers" to `trackHomepageCta` CTA types for agent-first button tracking.
+
+> Amended 2026-11-06: that CTA is gone, so `"developers"` records nothing; `trackHomepageCta` has one remaining call site — the mobile sticky "Get a verdict" pill (`cta: "play"`, `placement: "mobile_sticky"`). The type union is left as-is rather than pruned, since the funnel's historical events used those values.
 
 ## Consequences
 
