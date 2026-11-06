@@ -143,8 +143,13 @@ real one, because supply is still thin ([ADR 0023](./0023-consumer-engine-first-
 - **Remaining gaps are named, not hidden.** `/cards` had no inbound link at all before
   this; it now has exactly one per artifact footer, and no test can reach it through nav
   because that is the point. `/couple`, `/magazine`, `/gift`, `/try` and
-  `ShareArtifact` remain untested. Cart reachability on a real phone is a manual check,
-  not a suite result.
+  `ShareArtifact` remain untested. Two of the three hand-checks this plan asked for
+  turned out to be suite assertions instead — a shared try-on result is a `/try/{token}`
+  link and never the image blob (`try-on-result-doors.test.tsx:91`), and a Runway
+  `inspiration` fix's `?pick=` selects its outfit on stage (`wardrobe-studio.test.tsx:313`).
+  Cart reachability on a real phone is still only a manual check: `cart-door.test.tsx`
+  proves the slot appears with a badge and opens a cart persisted on another page, not
+  that a thumb can tap it.
 
 ## Revert
 
@@ -152,8 +157,7 @@ Each stage is its own commit and reverts alone: `e5d948c` (real looks in the out
 tab, the prerequisite), `d88f4b5` (dead code + two link bugs), `74d5b94` (one footer),
 `c336765` (nav 4→3, cart door), `dca8aef` (purchase as artifact action), `3049526` (lab
 flatten), `73f078f` (`/looks` fold), `9618e9a` (retired routes + `/cards` door),
-`4cb2357` (the written rule) — plus the commit after it, which moved the retired
-`/lab/{mode}` slugs and `/style-board` into `next.config.js` once the running server
-showed the page-level form answering 200.
+`4cb2357` (the written rule), `d58d772` (the same retirements, answered at the HTTP layer
+after the running server showed the page-level form returning 200).
 Reverting `c336765` alone restores Shop's nav item without restoring the mock-inventory
 claim, because the item and the claim lived in different files.
