@@ -52,7 +52,7 @@ describe("shared nav model", () => {
     expect(hrefs).toEqual([
       "/curator",
       "/developers",
-      "/pricing",
+      "/developers#pricing",
       "/guides",
       "/about",
       "/privacy",
@@ -60,6 +60,7 @@ describe("shared nav model", () => {
     ]);
     expect(hrefs).not.toContain("/shop");
     expect(hrefs).not.toContain("/looks");
+    expect(hrefs).not.toContain("/pricing");
   });
 
   it("active matching: runway covers play/result, legacy lab urls keep the highlight", () => {

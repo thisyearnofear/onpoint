@@ -17,6 +17,7 @@ export default defineConfig({
     testTimeout: 15000,
     environment: "jsdom",
     globals: true,
+    setupFiles: ["./test-setup.ts"],
   },
   resolve: {
     alias: {

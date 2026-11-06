@@ -34,7 +34,7 @@ export default function AccessoriesStylingGuide() {
 
         {/* Detailed sections — progressive disclosure via accordion */}
         <Reveal>
-          <div className="rounded-2xl border border-border/40 bg-card p-5 md:p-6">
+          <div className="border border-border p-5 md:p-6">
             <Accordion>
               <AccordionItem
                 title="The rule of three"
@@ -172,7 +172,7 @@ export default function AccessoriesStylingGuide() {
 
         <div className="pt-6 text-center">
           <p className="text-sm text-muted-foreground mb-4">Ready to accessorise with confidence?</p>
-          <Link href="/lab" className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90">
+          <Link href="/lab" className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90">
             <Camera className="h-4 w-4" />
             Try on accessories now
           </Link>
