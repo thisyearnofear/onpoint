@@ -20,6 +20,16 @@
 const logger = require('./logger');
 
 const PROVIDERS = {
+  neon: {
+    // Neon AI Gateway — OpenAI-compatible endpoint on the branch, one Neon
+    // credential, models from several labs. Needs both the gateway URL and a
+    // Neon API key, so it stays inert until both envs are set. Enable AI
+    // Gateway + prepaid credits on the project first.
+    keyEnv: 'NEON_AI_API_KEY',
+    baseURL: () => process.env.NEON_AI_BASE_URL || '',
+    model: () => process.env.VISION_NEON_MODEL || 'gpt-5.4-mini',
+    requiresURL: true,
+  },
   venice: {
     keyEnv: 'VENICE_API_KEY',
     baseURL: process.env.VENICE_BASE_URL || 'https://api.venice.ai/api/v1',
@@ -56,7 +66,7 @@ const PROVIDERS = {
   },
 };
 
-const DEFAULT_ORDER = ['venice', 'gemini', 'openrouter', 'modal', 'dashscope', 'openai'];
+const DEFAULT_ORDER = ['neon', 'venice', 'gemini', 'openrouter', 'modal', 'dashscope', 'openai'];
 
 function providerOrder() {
   const raw = process.env.VISION_PROVIDERS;
@@ -76,9 +86,11 @@ function baseURLFor(name) {
   return typeof url === 'function' ? url() : url;
 }
 
-/** A provider is usable with an API key, or (optionalKey) with a baseURL. */
+/** A provider is usable with an API key, or (optionalKey) with a baseURL;
+ *  requiresURL providers need both. */
 function providerEnabled(name) {
   const def = PROVIDERS[name];
+  if (def.requiresURL) return Boolean(apiKeyFor(name) && baseURLFor(name));
   if (def.optionalKey) return Boolean(apiKeyFor(name) || baseURLFor(name));
   return Boolean(apiKeyFor(name));
 }
