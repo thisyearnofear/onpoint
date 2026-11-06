@@ -18,7 +18,7 @@ import { OnPointLayout } from "../../components/OnPointLayout";
 export const metadata: Metadata = {
   title: "Browse Curators | OnPoint",
   description:
-    "Discover fashion curators on OnPoint. Try on AI designs from Nia Digital, browse football kits from Wanja, and more curators coming soon.",
+    "Browse the OnPoint studio supply. Independent fashion curators open once the app proves traction — join the waitlist to be first.",
 };
 
 export const dynamic = "force-dynamic";
@@ -93,10 +93,19 @@ export default async function CuratorsPage() {
                 Browse Curators
               </h1>
               <p className="mt-2 text-muted-foreground text-sm md:text-base max-w-xl">
-                Try on AI designs from Nia Digital, browse football kits from Wanja, and more curators coming soon.
+                Try on the OnPoint studio supply below. Independent curators open once the app proves traction.
               </p>
             </div>
           </div>
+
+          <p className="mt-4 max-w-xl rounded-xl border border-dashed border-border bg-muted/40 px-4 py-2.5 text-xs text-muted-foreground">
+            What&apos;s here now is OnPoint&apos;s own studio supply — the independent curator
+            network opens after traction. Want in early?{" "}
+            <Link href="/curator" className="font-semibold text-foreground underline underline-offset-2">
+              Become a curator
+            </Link>
+            .
+          </p>
 
           {/* Stats strip */}
           <div className="mt-6 flex flex-wrap gap-4 text-sm">
