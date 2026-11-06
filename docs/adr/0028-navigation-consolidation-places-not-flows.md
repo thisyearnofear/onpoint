@@ -151,6 +151,20 @@ real one, because supply is still thin ([ADR 0023](./0023-consumer-engine-first-
   proves the slot appears with a badge and opens a cart persisted on another page, not
   that a thumb can tap it.
 
+  > **Amended 2026-11-06 (later commits `3229d2a`, `a9803ca`):** the "untested"
+  > list above is stale, and its framing was wrong — those are artifact URLs and
+  > flow entries, not surfaces, so coverage belongs at the mint/resolution seam,
+  > not as page tests. It now exists: `couple-client.test.tsx` (creation body:
+  > `listed`, `replyTo`, `shareId`), `gift-claim.test.tsx` (name/address/size),
+  > `share-artifact.test.tsx` (minted sid URL + `artifact_shared` event), and the
+  > invite route test (claim-before-render, 410-on-spent, release-on-failure).
+  > New invariants shipped since: invites are single-use at the render seam
+  > (Redis claim via `/api/invites`, released on render failure); `couple_cards`
+  > gains `listed` (sender board opt-out, feed-filtered) and `reply_to`
+  > ("Send one back" threading); and `/api/couple/card/:id/report` delists a
+  > card on link-bearer authority so the photographed person has an exit.
+  > `/magazine` still lacks a client-level test.
+
 ## Revert
 
 Each stage is its own commit and reverts alone: `e5d948c` (real looks in the outfits
