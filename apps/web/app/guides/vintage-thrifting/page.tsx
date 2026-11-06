@@ -106,7 +106,7 @@ export default function VintageThriftingGuide() {
           <ul className="space-y-2">
             {[
               "Always ask for actual measurements (pit-to-pit, length, shoulder width)",
-              "Vintage men’s small often fits modern women’s medium â consider cross-shopping",
+              "Vintage men’s small often fits modern women’s medium — consider cross-shopping",
               "Waist measurements on vintage trousers run 1-2 inches smaller than modern equivalents",
               "Vintage stretch fabrics have degraded elastic — account for less recovery",
             ].map((tip) => (

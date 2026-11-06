@@ -29,7 +29,7 @@ export default function OccasionWearGuide() {
   return (
     <GuideLayout
       title="Occasion Wear & Event Dressing Guide"
-      lede="From weddings to galas â here’s how to decode the dress code and show up dressed right."
+      lede="From weddings to galas — here’s how to decode the dress code and show up dressed right."
       takeaways={[
         "Know the dress code — white tie to smart casual, each has rules",
         "Avoid white/ivory at weddings; bold colours and prints are welcome",

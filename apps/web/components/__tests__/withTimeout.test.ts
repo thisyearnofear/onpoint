@@ -101,7 +101,6 @@ describe("getUserMediaWithTimeout", () => {
   type Track = { stop: () => void };
   type MockStream = { getTracks: () => Track[] };
 
-  let _originalGetUserMedia: typeof navigator.mediaDevices.getUserMedia;
   let originalMediaDevices: MediaDevices | undefined;
 
   beforeEach(() => {
@@ -127,7 +126,6 @@ describe("getUserMediaWithTimeout", () => {
       configurable: true,
       writable: true,
     });
-    originalGetUserMedia = fakeMediaDevices.getUserMedia;
   }
 
   it("resolves with the stream when getUserMedia resolves before the timeout", async () => {

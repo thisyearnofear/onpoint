@@ -22,7 +22,7 @@ export default function SustainableFashionGuide() {
   return (
     <GuideLayout
       title="Sustainable & Ethical Fashion Guide"
-      lede="Buy better, care longer, and choose pieces with intention â fashion doesn’t have to cost the planet."
+      lede="Buy better, care longer, and choose pieces with intention — fashion doesn’t have to cost the planet."
       takeaways={[
         "Buy fewer, better pieces — a capsule wardrobe beats fast fashion",
         "Choose organic cotton, linen, hemp, and Tencel over synthetics",
@@ -49,7 +49,7 @@ export default function SustainableFashionGuide() {
               },
               {
                 r: "Repair",
-                body: "Learn basic mending â replacing a button, fixing a hem, or darning a hole can extend a garment’s life by years.",
+                body: "Learn basic mending — replacing a button, fixing a hem, or darning a hole can extend a garment’s life by years.",
               },
               {
                 r: "Recycle",

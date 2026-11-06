@@ -16,7 +16,9 @@ async function resolveDestination(referralCode: string): Promise<string> {
   try {
     const res = await fetch(`${getApiBase()}/api/referrals/capture`, {
       method: "POST",
-      signal: AbortSignal.timeout(5000),
+      // Short budget: a slow API must not leave the visitor staring at a
+      // blank redirect. Capture failure falls through to "/" below.
+      signal: AbortSignal.timeout(1500),
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         referralCode,
