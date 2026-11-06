@@ -78,6 +78,11 @@ function paypalFetch({ orderStatus = 'APPROVED', captureStatus = 'COMPLETED', or
     if (url.includes('/v2/checkout/orders/')) {
       return { ok: true, json: async () => paypalOrder(orderStatus) };
     }
+    // Order confirm fires a fire-and-forget IPFS receipt upload; a throw here
+    // retries with backoff and pushes the test past the 5s timeout.
+    if (url.includes('grove.storage') || url.includes('ipfs') || url.includes('lighthouse')) {
+      return { ok: true, json: async () => ({ Hash: 'bafy-test-receipt' }) };
+    }
     throw new Error(`unexpected fetch ${url}`);
   });
 }
