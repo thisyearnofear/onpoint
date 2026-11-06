@@ -211,6 +211,26 @@ export function AnalysisResults({
     return <AnalysisSkeleton staggered showActions />;
   }
 
+  // Degraded path: the render/enhance call failed upstream, so the report is a
+  // conservative profile, not a read of the photo. Name that at the top and
+  // stop — no persona ceremony, brief, or share rows around a missing render.
+  if ((analysis as { fallbackReason?: string }).fallbackReason) {
+    return (
+      <div className="border border-border bg-card p-6">
+        <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-warning">
+          Styling service is having trouble
+        </p>
+        <h2 className="mt-3 font-display text-3xl leading-[1.05] tracking-[-0.02em]">
+          This read is a fallback — it didn&apos;t see your photo.
+        </h2>
+        <p className="mt-4 text-sm text-muted-foreground">
+          {topStyleTip} Try again in a bit with a clear, well-lit full-body
+          photo for a sharper read — or browse the edit below.
+        </p>
+      </div>
+    );
+  }
+
   const copyShareText = async () => {
     if (typeof navigator === "undefined" || !navigator.clipboard) return;
     await navigator.clipboard.writeText(`${shareText}\n\nonpoint.trustfall.xyz`);
