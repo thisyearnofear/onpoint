@@ -44,7 +44,8 @@ interface LookCardProps {
 }
 
 /**
- * Shared look card — used on /looks, curator storefronts, and "more looks" sections.
+ * Shared look card — used in the wardrobe's outfits tab, curator storefronts,
+ * and "more looks" sections.
  *
  * Image priority: collageUrl → coverImageUrl → heroImageUrl → first item image → placeholder.
  */

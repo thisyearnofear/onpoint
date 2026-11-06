@@ -77,7 +77,7 @@ export const viewport: Viewport = {
 
 // Session is resolved client-side by Auth0Provider (useUser → /auth/profile).
 // Awaiting auth0.getSession() here forced every page — including public
-// surfaces like /, /looks, /curators — into per-request dynamic rendering.
+// surfaces like /, /look/[slug], /curators — into per-request dynamic rendering.
 export default function RootLayout({
   children,
 }: Readonly<{

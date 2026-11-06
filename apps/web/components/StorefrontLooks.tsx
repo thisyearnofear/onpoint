@@ -37,7 +37,7 @@ export async function StorefrontLooks({ curatorSlug }: { curatorSlug: string }) 
           </p>
         </div>
         <Link
-          href={`/looks?curator=${curatorSlug}`}
+          href={`/?tab=outfits&curator=${encodeURIComponent(curatorSlug)}`}
           className="shrink-0 text-sm font-medium text-foreground/60 transition-colors hover:text-foreground"
         >
           View all →

@@ -1,60 +1,22 @@
-import { OnPointLayout } from "../../components/OnPointLayout";
-import { loadLooks } from "./api";
-import { LooksHeader } from "./components/LooksHeader";
-import { LooksFilters } from "./components/LooksFilters";
-import { LooksEmptyState } from "./components/LooksEmptyState";
-import { LooksGrid } from "./components/LooksGrid";
-import type { LooksFilters as LooksFiltersType } from "./utils";
+import { permanentRedirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-interface SearchParams {
-  tag?: string;
-  category?: string;
-  occasion?: string;
-  season?: string;
-  sort?: string;
-}
-
-export async function generateMetadata() {
-  return {
-    title: "Looks | OnPoint",
-    description:
-      "Browse real outfits from OnPoint curators. Try any look on with AI and shop the pieces.",
-  };
-}
-
+/**
+ * `/looks` was a second browse surface for the same catalog the wardrobe's
+ * outfits tab now shows. 301 because these URLs were shared and linked from
+ * live look pages; every param is carried across — dropping `sid`, `pick`,
+ * `theme` or `judge` would silently break share attribution and the Runway
+ * deep links that mint them.
+ */
 export default async function LooksPage({
   searchParams,
 }: {
-  searchParams: Promise<SearchParams>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { tag, category, occasion, season, sort } = await searchParams;
-  const looks = await loadLooks({ tag, category, occasion, season, sort });
-
-  const currentFilters: LooksFiltersType = {
-    category,
-    occasion,
-    season,
-    sort,
-  };
-  const hasActiveFilters = Boolean(category || occasion || season);
-
-  return (
-    <OnPointLayout>
-      <div className="mx-auto max-w-6xl px-4 py-10">
-        <LooksHeader />
-
-        <LooksFilters currentFilters={currentFilters} />
-
-        <div className="mt-8">
-          {looks.length === 0 ? (
-            <LooksEmptyState hasActiveFilters={hasActiveFilters} />
-          ) : (
-            <LooksGrid looks={looks} />
-          )}
-        </div>
-      </div>
-    </OnPointLayout>
-  );
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(await searchParams)) {
+    if (typeof value === "string") params.set(key, value);
+    else if (value) for (const v of value) params.append(key, v);
+  }
+  params.set("tab", "outfits");
+  permanentRedirect(`/?${params.toString()}`);
 }

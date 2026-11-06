@@ -307,7 +307,8 @@ export function CuratorLookCreator({
                   maxTags={8}
                 />
                 <p className="mt-1.5 text-xs text-muted-foreground">
-                  Press Enter or comma to add a tag. Used for filtering on the /looks page.
+                  Press Enter or comma to add a tag. Tags are how readers filter the
+                  looks in their wardrobe.
                 </p>
               </div>
 
@@ -363,7 +364,7 @@ export function CuratorLookCreator({
                 <p className="mt-1.5 text-xs text-muted-foreground">
                   {isEditMode
                     ? "Upload a new image to replace the current cover."
-                    : "Shown as the card image on the /looks page (overrides the hero item image)."}
+                    : "Shown as the card image wherever the look is listed (overrides the hero item image)."}
                 </p>
               </div>
 

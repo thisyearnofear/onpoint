@@ -157,7 +157,7 @@ export default async function LookPage({
         {/* Back link + edit button */}
         <div className="mb-6 flex items-center justify-between">
           <Link
-            href="/looks"
+            href="/?tab=outfits"
             className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -196,7 +196,7 @@ export default async function LookPage({
             <div className="flex flex-wrap gap-2">
               {look.metadata.category && (
                 <Link
-                  href={`/looks?category=${look.metadata.category}`}
+                  href={`/?tab=outfits&category=${encodeURIComponent(look.metadata.category)}`}
                   className="rounded-full bg-foreground/5 px-3 py-1 text-xs font-semibold capitalize text-foreground/70 transition-colors hover:bg-foreground/10"
                 >
                   {look.metadata.category}
@@ -204,7 +204,7 @@ export default async function LookPage({
               )}
               {look.metadata.occasion && look.metadata.occasion !== 'casual' && (
                 <Link
-                  href={`/looks?occasion=${look.metadata.occasion}`}
+                  href={`/?tab=outfits&occasion=${encodeURIComponent(look.metadata.occasion)}`}
                   className="rounded-full bg-foreground/5 px-3 py-1 text-xs font-semibold capitalize text-foreground/70 transition-colors hover:bg-foreground/10"
                 >
                   {look.metadata.occasion.replace('-', ' ')}
@@ -212,7 +212,7 @@ export default async function LookPage({
               )}
               {look.metadata.season && look.metadata.season !== 'all-season' && (
                 <Link
-                  href={`/looks?season=${look.metadata.season}`}
+                  href={`/?tab=outfits&season=${encodeURIComponent(look.metadata.season)}`}
                   className="rounded-full bg-foreground/5 px-3 py-1 text-xs font-semibold capitalize text-foreground/70 transition-colors hover:bg-foreground/10"
                 >
                   {look.metadata.season}
@@ -301,7 +301,7 @@ export default async function LookPage({
         </div>
 
         {/* More from this curator */}
-        {moreLooks.length > 0 && (
+        {moreLooks.length > 0 && look.curatorSlug && (
           <div className="mb-8">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
@@ -309,7 +309,7 @@ export default async function LookPage({
                 More from {look.curatorSlug}
               </h2>
               <Link
-                href={`/looks?curator=${look.curatorSlug}`}
+                href={`/?tab=outfits&curator=${encodeURIComponent(look.curatorSlug)}`}
                 className="text-sm font-medium text-foreground/60 transition-colors hover:text-foreground"
               >
                 View all →
@@ -333,7 +333,7 @@ export default async function LookPage({
               {look.tags.map((tag) => (
                 <Link
                   key={tag}
-                  href={`/looks?tag=${tag}`}
+                  href={`/?tab=outfits&tag=${encodeURIComponent(tag)}`}
                   className="rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium capitalize text-muted-foreground transition-colors hover:bg-muted/80"
                 >
                   {tag}
