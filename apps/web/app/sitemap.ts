@@ -34,6 +34,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // Functional pages
     { url: `${BASE_URL}/privacy`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE_URL}/pricing`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.6 },
-    { url: `${BASE_URL}/style-guide`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.3 },
   ];
 }

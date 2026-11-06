@@ -119,6 +119,9 @@ export default async function WishlistPage({ params }: { params: Promise<{ id: s
           <Link href="/magazine" className="mt-3 block text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">
             Or send it as a magazine →
           </Link>
+          <Link href="/cards" className="mt-3 block text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">
+            Or see what others made →
+          </Link>
         </div>
       </main>
     </div>

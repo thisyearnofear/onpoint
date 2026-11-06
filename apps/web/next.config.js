@@ -115,6 +115,13 @@ const nextConfig = {
       // Pricing model is pay-per-use; the legacy subscription page is dead.
       { source: '/account/subscription', destination: '/pricing', permanent: true },
       { source: '/account/subscription/:path*', destination: '/pricing', permanent: true },
+      // The design-system demo page was 337 lines of mock inventory with
+      // hardcoded ratings and try-on counts — the worst honest-metrics surface
+      // in the app, and the sitemap published it. Here rather than in a page
+      // calling permanentRedirect(): a synchronous redirect during static
+      // generation prerenders Next's error shell as a 200, which a crawler
+      // reads as the page still existing. A config entry is a real 308.
+      { source: '/style-guide', destination: '/about', permanent: true },
     ];
   },
 };
