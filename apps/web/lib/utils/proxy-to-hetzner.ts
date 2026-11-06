@@ -11,7 +11,12 @@ import { rateLimit, rateLimitHeaders, RateLimits } from "./rate-limit";
 type RateLimitTier = keyof typeof RateLimits;
 
 // How long to wait for the upstream before treating it as unavailable.
-const UPSTREAM_TIMEOUT_MS = 30_000;
+const UPSTREAM_TIMEOUT_MS = 60_000;
+// Slow generation routes (Replicate IDM-VTON budgets up to 120s upstream,
+// Venice SD35 / large vision models can run long) get headroom instead of
+// being aborted mid-work — which also used to double-bill a retry.
+const GENERATION_TIMEOUT_MS = 180_000;
+export { GENERATION_TIMEOUT_MS };
 // Gateway-level statuses that mean "the backend itself is down" (as opposed
 // to a meaningful 4xx the client should see). These get converted into a
 // clean, retryable JSON response instead of leaking nginx's 502 HTML page.
@@ -34,7 +39,13 @@ function unavailableResponse(rlHeaders: Record<string, string>): Response {
   );
 }
 
-export async function proxyToHetzner(request: Request, path: string, tier: RateLimitTier = "general"): Promise<Response> {
+export async function proxyToHetzner(
+  request: Request,
+  path: string,
+  tier: RateLimitTier = "general",
+  options: { timeoutMs?: number } = {},
+): Promise<Response> {
+  const timeoutMs = options.timeoutMs ?? UPSTREAM_TIMEOUT_MS;
   const hetznerUrl =
     process.env.AGENT_API_INTERNAL_URL || // server-only: Fly 6PN private address
     process.env.AGENT_API_URL ||
@@ -78,13 +89,14 @@ export async function proxyToHetzner(request: Request, path: string, tier: RateL
     return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  // Try twice: one immediate retry rides out brief restarts / gateway blips.
-  // Retries are only safe because these proxied AI endpoints are idempotent
-  // reads (analysis), not state-mutating writes.
+  // Try twice on GATEWAY-DOWN statuses only: an instant 502/503/504 from
+  // nginx means a restart or blip, and one immediate retry rides it out.
+  // A timeout abort is NOT retried — on slow generation routes the upstream
+  // is still working, and re-firing duplicates cost without helping.
   const maxAttempts = 2;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await fetch(targetUrl, {
         method: request.method,
@@ -118,7 +130,7 @@ export async function proxyToHetzner(request: Request, path: string, tier: RateL
       });
     } catch (error) {
       clearTimeout(timeout);
-      if (attempt < maxAttempts) continue;
+      // Aborts/timeouts and network failures: no retry — see maxAttempts note.
       console.error(`[Proxy] Hetzner request failed for ${path}:`, error);
       return unavailableResponse(rlHeaders);
     }

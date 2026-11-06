@@ -1,7 +1,11 @@
-import { proxyToHetzner } from "@/lib/utils/proxy-to-hetzner";
+import { proxyToHetzner, GENERATION_TIMEOUT_MS } from "@/lib/utils/proxy-to-hetzner";
 
 export async function POST(request: Request) {
-  return proxyToHetzner(request, "/api/ai/virtual-tryon", "veniceFree");
+  // Replicate IDM-VTON budgets up to 120s upstream; give the proxy headroom
+  // instead of aborting mid-work and surfacing a false 503.
+  return proxyToHetzner(request, "/api/ai/virtual-tryon", "veniceFree", {
+    timeoutMs: GENERATION_TIMEOUT_MS,
+  });
 }
 
 export async function OPTIONS() {

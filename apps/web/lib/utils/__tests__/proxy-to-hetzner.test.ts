@@ -31,13 +31,15 @@ describe("proxyToHetzner graceful fallback", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2); // initial + 1 retry
   });
 
-  it("returns 503 on network failure after retry", async () => {
+  it("returns 503 on network failure without retrying", async () => {
+    // Timeouts and network failures are not retried: on slow generation routes
+    // the upstream is still working, and re-firing duplicates cost.
     const fetchMock = vi.fn().mockRejectedValue(new Error("ECONNREFUSED"));
     vi.stubGlobal("fetch", fetchMock);
 
     const res = await proxyToHetzner(req(), "/api/ai/virtual-tryon", "veniceFree");
     expect(res.status).toBe(503);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("passes through a successful 200 without retry", async () => {

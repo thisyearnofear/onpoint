@@ -75,12 +75,33 @@ function getProviderLabel(enhancement?: {
   return "Analysis only";
 }
 
-const STYLE_SCAN_STEPS = [
-  { label: "Secure resize", detail: "Keeping upload lean", icon: ShieldCheck },
-  { label: "Color read", detail: "Finding palette cues", icon: Palette },
-  { label: "Fit map", detail: "Checking proportion", icon: Ruler },
-  { label: "Stylist brief", detail: "Preparing recommendations", icon: Wand2 },
+// Stages light up on a timer — the upstream gives no progress signal, so the
+// beats are paced to what actually happens (fast resize, slower vision read).
+const SCAN_STAGES = [
+  { at: 0, label: "Secure resize", detail: "Keeping upload lean", icon: ShieldCheck },
+  { at: 8, label: "Color read", detail: "Finding palette cues", icon: Palette },
+  { at: 18, label: "Fit map", detail: "Checking proportion", icon: Ruler },
+  { at: 30, label: "Stylist brief", detail: "Preparing recommendations", icon: Wand2 },
 ];
+
+// One line every ~8s while the model works — honest notes and styling tips so
+// a 60s generation doesn't feel like a dead screen.
+const WAIT_LINES = [
+  "Big vision models take their time — a good read isn't instant.",
+  "Your photo is read once and discarded. Nothing is stored.",
+  "Window light is the biggest fit-read upgrade there is.",
+  "Full-body frames read proportion best; cropped selfies read style only.",
+  "Stand relaxed — posed stiffness skews the fit read.",
+  "Your fit profile powers try-on, styling, and the curator brief.",
+  "Tip: a plain background makes the silhouette easier to read.",
+  "Everything here feeds one goal: clothes that actually fit.",
+];
+
+function formatElapsed(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
 
 function StyleScanLoadingCard({
   previewUrl,
@@ -89,10 +110,28 @@ function StyleScanLoadingCard({
   previewUrl: string;
   isPreparingPhoto: boolean;
 }) {
+  const [elapsed, setElapsed] = React.useState(0);
+
+  React.useEffect(() => {
+    const started = Date.now();
+    const tick = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - started) / 1000));
+    }, 1000);
+    return () => clearInterval(tick);
+  }, []);
+
+  const stageIndex = isPreparingPhoto
+    ? 0
+    : SCAN_STAGES.reduce((acc, stage, i) => (elapsed >= stage.at ? i : acc), 0);
+  // Asymptotic progress: ~63% at 30s, ~86% at 60s, capped at 95% — the bar
+  // finishes when the result arrives, not when the timer says so.
+  const progress = Math.min(95, Math.round((1 - Math.exp(-elapsed / 30)) * 100));
+  const line = WAIT_LINES[Math.floor(elapsed / 8) % WAIT_LINES.length];
+
   return (
-    <div className="overflow-hidden rounded-xl border border-primary/20 bg-card">
+    <div className="overflow-hidden border border-border bg-card">
       <div className="grid gap-0 sm:grid-cols-[180px_1fr]">
-        <div className="relative min-h-[220px] overflow-hidden bg-muted">
+        <div className="relative h-44 overflow-hidden bg-muted sm:h-auto sm:min-h-[240px]">
           <SafeImage
             sources={[previewUrl]}
             alt=""
@@ -100,67 +139,67 @@ function StyleScanLoadingCard({
             unoptimized
             className="object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/70" />
-          <div className="absolute inset-x-3 top-4 h-px bg-primary/80 shadow-[0_0_22px_rgba(255,255,255,0.75)] animate-pulse" />
-          <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-primary/20 to-transparent animate-pulse" />
-          <div className="absolute bottom-4 left-4 right-4">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-background/85 px-2.5 py-1 text-xs font-medium text-foreground backdrop-blur">
-              <Sparkles className="h-3 w-3 text-primary" />
-              OnPoint Style Scan
-            </div>
-          </div>
+          {/* scan line — the only motion on the photo */}
+          <div className="absolute inset-x-3 top-4 h-px animate-pulse bg-primary/80" />
         </div>
         <div className="space-y-4 p-4">
-          <div>
-            <p className="text-sm font-semibold">
-              {isPreparingPhoto ? "Polishing your photo for analysis" : "Building your fit profile"}
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="text-sm font-bold text-foreground">
+              {isPreparingPhoto ? "Optimizing your photo" : "Building your fit profile"}
             </p>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              {isPreparingPhoto
-                ? "We resize the image before sending it so the upload feels fast and stable."
-                : "OnPoint is reading color, silhouette, proportion, and styling cues from your photo."}
-            </p>
+            <span className="font-mono text-xs text-muted-foreground" aria-live="off">
+              {formatElapsed(elapsed)}
+            </span>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-2">
-            {STYLE_SCAN_STEPS.map((step, index) => {
-              const Icon = step.icon;
-              const active = isPreparingPhoto ? index === 0 : index > 0;
+          <div className="grid gap-2">
+            {SCAN_STAGES.map((stage, index) => {
+              const Icon = stage.icon;
+              const done = index < stageIndex;
+              const active = index === stageIndex;
               return (
                 <div
-                  key={step.label}
-                  className={`flex min-h-14 items-center gap-2 rounded-lg border px-3 py-2 transition-colors ${
+                  key={stage.label}
+                  className={`flex items-center gap-2.5 border px-3 py-2 transition-colors duration-500 ${
                     active
-                      ? "border-primary/25 bg-primary/10"
-                      : "border-border bg-muted/30"
-                  }`}
+                      ? "border-primary/40 bg-primary/5"
+                      : "border-border/60 bg-transparent"
+                  } ${done || active ? "" : "opacity-50"}`}
                 >
-                  <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-                    active ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"
-                  }`}>
-                    {active ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
+                  <span
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${
+                      done
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : active
+                          ? "border-primary text-primary"
+                          : "border-border text-muted-foreground"
+                    }`}
+                  >
+                    {done ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Icon className="h-3 w-3" />}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-bold text-foreground">{stage.label}</p>
+                    <p className="truncate text-xs text-muted-foreground">{stage.detail}</p>
                   </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-medium">{step.label}</p>
-                    <p className="truncate text-xs text-muted-foreground">{step.detail}</p>
-                  </div>
+                  {active && (
+                    <span className="h-3 w-3 shrink-0 animate-spin rounded-full border border-primary/30 border-t-primary" />
+                  )}
                 </div>
               );
             })}
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
-              <span>{isPreparingPhoto ? "Optimizing upload" : "Personalizing recommendations"}</span>
-              <span>{isPreparingPhoto ? "Step 1/4" : "Step 3/4"}</span>
-            </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-muted">
               <div
-                className={`h-full rounded-full bg-primary transition-all duration-700 ${
-                  isPreparingPhoto ? "w-1/4" : "w-3/4"
-                }`}
+                className="h-full rounded-full bg-primary transition-all duration-1000 ease-out"
+                style={{ width: `${isPreparingPhoto ? 8 : progress}%` }}
               />
             </div>
+            {/* rotating beat — a fresh line every ~8s keeps the wait inhabited */}
+            <p key={line} className="animate-fade-in text-xs leading-relaxed text-muted-foreground">
+              {line}
+            </p>
           </div>
         </div>
       </div>
