@@ -17,5 +17,7 @@ export const coupleCards = pgTable("couple_cards", {
   items: jsonb("items").notNull().default([]),
   // Sender opt-out from the public /cards board; the card always resolves by link.
   listed: boolean("listed").notNull().default(true),
+  // Card this one answers — the "make yours" CTA on /c/{id} carries ?reply={id}.
+  replyTo: uuid("reply_to"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });

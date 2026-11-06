@@ -257,6 +257,7 @@ app.use('/api/receipts', json1k, require('./routes/receipts'));
 app.use('/api/gift', json1k, generalRateLimit, require('./routes/gift-claim'));
 app.use('/api/couple', json10mb, artifactIngestRateLimit, artifactIngestDailyLimit, require('./routes/couple'));
 app.use('/api/loop', json1k, generalRateLimit, require('./routes/loop'));
+app.use('/api/invites', json1k, generalRateLimit, require('./routes/invites'));
 app.use('/api/wishlist', json1k, generalRateLimit, require('./routes/wishlist'));
 app.use('/api/magazine', json10mb, artifactIngestRateLimit, artifactIngestDailyLimit, require('./routes/magazine'));
 

@@ -6,6 +6,7 @@ import { SaveItemButton } from "@/components/SaveItemButton";
 import { RecordSeen } from "@/components/RecentlySeen";
 import { ShareArtifact } from "@/components/ShareArtifact";
 import { ShareAttributionCapture } from "@/components/ShareAttributionCapture";
+import { ReportCard } from "./ReportCard";
 
 export const metadata: Metadata = {
   title: "Couple goals | OnPoint",
@@ -24,6 +25,8 @@ interface CoupleCard {
   theme: string | null;
   senderName: string | null;
   items: CardItem[];
+  listed: boolean;
+  replyTo: string | null;
   createdAt: string;
 }
 
@@ -44,6 +47,8 @@ export default async function CoupleCardPage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const card = await loadCard(id);
   if (!card) notFound();
+  // Reply threading: when this card answers another, name what it answers.
+  const parent = card.replyTo ? await loadCard(card.replyTo) : null;
 
   const firstSlug = card.items.find((i) => i.curatorSlug)?.curatorSlug;
   let more: CardItem[] = [];
@@ -78,6 +83,11 @@ export default async function CoupleCardPage({ params }: { params: Promise<{ id:
         <h1 className="mt-3 font-display text-4xl leading-[1.05] tracking-[-0.02em] sm:text-5xl">
           {card.senderName ? `Styled by ${card.senderName}.` : "Styled on OnPoint."}
         </h1>
+        {parent && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            A reply to {parent.senderName ? `${parent.senderName}'s` : "the"} card{parent.theme ? ` — ${parent.theme}` : ""}.
+          </p>
+        )}
 
         <div className="card-reveal mt-8 border border-border bg-card p-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -149,8 +159,8 @@ export default async function CoupleCardPage({ params }: { params: Promise<{ id:
         )}
 
         <div className="mt-10 border-t border-border pt-6 text-center">
-          <Link href="/couple" className="inline-flex min-h-12 items-center rounded-full bg-primary px-8 text-sm font-bold text-white hover:bg-primary/90">
-            Make your own
+          <Link href={`/couple?reply=${id}`} className="inline-flex min-h-12 items-center rounded-full bg-primary px-8 text-sm font-bold text-white hover:bg-primary/90">
+            Send one back
           </Link>
           <Link href="/magazine" className="mt-3 block text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">
             Or send it as a magazine →
@@ -158,6 +168,7 @@ export default async function CoupleCardPage({ params }: { params: Promise<{ id:
           <Link href="/cards" className="mt-3 block text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">
             Or see what others made →
           </Link>
+          {card.listed && <ReportCard id={id} />}
         </div>
       </main>
     </div>

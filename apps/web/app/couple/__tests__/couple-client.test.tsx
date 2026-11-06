@@ -65,6 +65,20 @@ describe("couple card creation", () => {
     expect(body.listed).toBe(true);
   });
 
+  it("threads the card it answers when opened with ?reply=", async () => {
+    render(<CoupleClient looks={LOOKS} replyTo="a1b2c3d4-e5f6-7890-abcd-ef1234567890" />);
+    const file = new File(["x"], "us.jpg", { type: "image/jpeg" });
+    fireEvent.change(document.querySelector('input[type="file"]') as HTMLInputElement, {
+      target: { files: [file] },
+    });
+    await screen.findByAltText("You two");
+    fireEvent.click(screen.getByRole("button", { name: /Make the card/ }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).replyTo).toBe(
+      "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    );
+  });
+
   it("sends listed=false when the sender unticks the board box", async () => {
     render(<CoupleClient looks={LOOKS} />);
     const file = new File(["x"], "us.jpg", { type: "image/jpeg" });

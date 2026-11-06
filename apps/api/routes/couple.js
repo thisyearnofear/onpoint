@@ -19,6 +19,7 @@ const { logFunnelEvent } = require('../lib/funnel');
 const logger = require('../lib/logger');
 
 const router = express.Router();
+const ID_RE = /^[a-f0-9-]{36}$/;
 
 async function resolveItems(db, { lookSlug, listingIds }) {
   let ids = Array.isArray(listingIds) ? listingIds.filter(Boolean).slice(0, 6) : null;
@@ -47,7 +48,7 @@ const PHOTO_BYTES_MAX = 8_000_000; // ~6 MB image as base64 — the 10mb body ca
 
 router.post('/render', async (req, res) => {
   try {
-    const { photoData, lookSlug, listingIds, theme, senderName, listed, shareId, shareChannel } = req.body || {};
+    const { photoData, lookSlug, listingIds, theme, senderName, listed, shareId, shareChannel, replyTo } = req.body || {};
     if (!photoData || !String(photoData).startsWith('data:image/')) {
       return res.status(400).json({ error: 'photoData (data:image/...) required' });
     }
@@ -78,6 +79,7 @@ router.post('/render', async (req, res) => {
         items,
         // Sender opt-out from the public board; unlisted cards still resolve by link.
         listed: listed !== false,
+        replyTo: replyTo && ID_RE.test(String(replyTo)) ? String(replyTo) : null,
       })
       .returning({ id: coupleCards.id });
 
@@ -101,21 +103,46 @@ router.post('/render', async (req, res) => {
 router.get('/card/:id', async (req, res) => {
   try {
     const id = String(req.params.id || '');
-    if (!/^[a-f0-9-]{36}$/.test(id)) return res.status(400).json({ error: 'invalid card id' });
+    if (!ID_RE.test(id)) return res.status(400).json({ error: 'invalid card id' });
     const db = getDb();
     const [row] = await db.select().from(coupleCards).where(eq(coupleCards.id, id)).limit(1);
     if (!row) return res.status(404).json({ error: 'card not found' });
-    await logFunnelEvent(db, { eventType: 'couple_card_viewed', source: 'web', metadata: { cardId: row.id } });
+    await logFunnelEvent(db, { eventType: 'couple_card_viewed', source: 'web', metadata: { cardId: row.id, surface: 'couple' } });
     res.json({
       id: row.id,
       cardUrl: row.cardUrl,
       theme: row.theme,
       senderName: row.senderName,
       items: row.items || [],
+      listed: row.listed,
+      replyTo: row.replyTo || null,
       createdAt: row.createdAt,
     });
   } catch (err) {
     logger.error('couple card lookup failed', { route: 'couple', id: req.params.id }, err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Possession of the link is the authority to delist — same capability model
+// as the wishlist. The photographed person can't consent at creation, so the
+// board gives them an exit: report drops the card off the public feed while
+// the direct link keeps working for whoever has it.
+router.post('/card/:id/report', async (req, res) => {
+  try {
+    const id = String(req.params.id || '');
+    if (!ID_RE.test(id)) return res.status(400).json({ error: 'invalid card id' });
+    const db = getDb();
+    const updated = await db
+      .update(coupleCards)
+      .set({ listed: false })
+      .where(eq(coupleCards.id, id))
+      .returning({ id: coupleCards.id });
+    if (updated.length === 0) return res.status(404).json({ error: 'card not found' });
+    await logFunnelEvent(db, { eventType: 'card_reported', source: 'web', metadata: { cardId: id, surface: 'cards' } });
+    res.json({ listed: false });
+  } catch (err) {
+    logger.error('card report failed', { route: 'couple', id: req.params.id }, err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

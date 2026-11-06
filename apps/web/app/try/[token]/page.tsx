@@ -39,10 +39,10 @@ export default async function TryInvitePage({ params }: { params: Promise<{ toke
         <main className="mx-auto max-w-xl px-4 pb-20 pt-24 text-center md:pt-32">
           <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-primary">That link ran out</p>
           <h1 className="mt-3 font-display text-4xl leading-[1.05] tracking-[-0.02em] sm:text-5xl">
-            This invite has expired.
+            This invite was used, or it expired.
           </h1>
           <p className="mt-4 text-sm text-muted-foreground">
-            Invite links last about a week — ask for a fresh one, or style your own.
+            One link, one try-on — ask for a fresh one, or style your own.
           </p>
           <a
             href="/couple"

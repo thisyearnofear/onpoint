@@ -9,7 +9,7 @@ interface LookOption {
   title: string;
 }
 
-export function CoupleClient({ looks }: { looks: LookOption[] }) {
+export function CoupleClient({ looks, replyTo }: { looks: LookOption[]; replyTo?: string | null }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [photoData, setPhotoData] = useState<string | null>(null);
   const [lookSlug, setLookSlug] = useState(looks[0]?.slug || "");
@@ -45,6 +45,7 @@ export function CoupleClient({ looks }: { looks: LookOption[] }) {
           theme: theme || undefined,
           senderName: senderName || undefined,
           listed,
+          ...(replyTo ? { replyTo } : {}),
           ...(sid ? { shareId: sid, shareChannel: channel } : {}),
         }),
       });

@@ -7,7 +7,8 @@ export const metadata: Metadata = {
   description: "One photo of the two of you + a look. A card worth sending.",
 };
 
-export default async function CouplePage() {
+export default async function CouplePage({ searchParams }: { searchParams: Promise<{ reply?: string }> }) {
+  const { reply } = await searchParams;
   const looks = await loadLookOptions();
   return (
     <div className="min-h-dvh bg-background text-foreground">
@@ -24,7 +25,7 @@ export default async function CouplePage() {
         </p>
         <div className="mt-8">
           {looks.length > 0 ? (
-            <CoupleClient looks={looks} />
+            <CoupleClient looks={looks} replyTo={reply ?? null} />
           ) : (
             <div className="border border-border bg-card p-6 text-center text-sm text-muted-foreground">
               No looks to style with yet — new ones land soon.
