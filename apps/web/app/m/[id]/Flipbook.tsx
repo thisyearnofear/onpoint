@@ -66,7 +66,7 @@ export function Flipbook({ mag }: { mag: MagazineData }) {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-bold text-foreground">{item.title || "The piece"}</p>
                   <div className="mt-2 flex gap-2">
-                    <Link href={`/lab?tab=try-on&from=mag&item=${item.listingId}`} className="inline-flex min-h-9 items-center rounded-full bg-primary px-3 text-xs font-bold text-white">
+                    <Link href={`/lab?tab=try-on&from=${item.curatorSlug || "mag"}&item=${item.listingId}`} className="inline-flex min-h-9 items-center rounded-full bg-primary px-3 text-xs font-bold text-white">
                       Try it on
                     </Link>
                     {item.curatorSlug && (

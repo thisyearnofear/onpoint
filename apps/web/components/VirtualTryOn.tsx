@@ -989,7 +989,7 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                           }}
                           similarPhysicalItems={similarPhysicalItems}
                           sourceListing={{
-                            curatorSlug: initialCuratorSlug,
+                            curatorSlug: selectedTryOnItem?.curator?.slug ?? initialCuratorSlug,
                             listingId: selectedTryOnItem?.id,
                           }}
                         />

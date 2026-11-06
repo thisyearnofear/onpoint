@@ -103,8 +103,10 @@ export default async function CoupleCardPage({ params }: { params: Promise<{ id:
                     <p className="truncate text-sm font-bold text-foreground">{item.title || "The piece"}</p>
                   </div>
                   <div className="flex shrink-0 gap-2">
+                    {/* from= names whose shelf the garment came from; an item with
+                        no known curator falls back to naming itself. */}
                     <Link
-                      href={`/lab?tab=try-on&from=card&item=${item.listingId}`}
+                      href={`/lab?tab=try-on&from=${item.curatorSlug || "card"}&item=${item.listingId}`}
                       className="inline-flex min-h-10 items-center rounded-full bg-primary px-4 text-xs font-bold text-white hover:bg-primary/90"
                     >
                       Try it on

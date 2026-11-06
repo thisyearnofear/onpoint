@@ -12,7 +12,7 @@ export default function LabPage() {
         </div>
       }
     >
-      <TacticalDashboard onBack={() => window.history.back()} />
+      <TacticalDashboard />
     </Suspense>
   );
 }

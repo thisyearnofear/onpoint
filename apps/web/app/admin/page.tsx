@@ -5,6 +5,9 @@ import {
   Users,
   ArrowRight,
 } from "lucide-react";
+import { FraudMonitor } from "@/components/FraudMonitor";
+import { AttestationBadge } from "@/components/AttestationBadge";
+import { AgentWalletBadge } from "@/components/AgentWalletBadge";
 
 async function getCuratorCount(): Promise<{ total: number; withListings: number }> {
   try {
@@ -106,6 +109,24 @@ export default async function AdminDashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* Agent operations — the lab's old "Power" block: monitoring and on-chain
+          identity for autonomous spending, which no consumer is choosing. */}
+      <section className="space-y-3">
+        <h2 className="font-bold">Agent operations</h2>
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-4">
+          <AttestationBadge />
+          <AgentWalletBadge />
+        </div>
+        <details className="rounded-xl border border-border bg-card">
+          <summary className="cursor-pointer list-none p-4 text-sm font-medium">
+            Agent spending monitor
+          </summary>
+          <div className="border-t border-border p-4">
+            <FraudMonitor />
+          </div>
+        </details>
+      </section>
     </div>
   );
 }

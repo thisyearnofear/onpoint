@@ -20,7 +20,9 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@/": path.resolve(__dirname, "./"),
+      // The key keeps its trailing slash, so the replacement needs one too —
+      // without it "@/components/x" resolved to "<root>components/x".
+      "@/": path.resolve(__dirname) + "/",
     },
   },
 });

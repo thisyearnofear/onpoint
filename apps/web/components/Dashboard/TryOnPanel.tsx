@@ -11,6 +11,7 @@ import {
   resolveStorefrontTryOnSelection,
   resolveTryOnSelection,
 } from "../../lib/utils/try-on-selection";
+import { describeDeepLinkSource, resolveDeepLinkSource } from "../../lib/utils/deep-link-source";
 
 interface TryOnPanelProps {
   deepLinkFrom?: string;
@@ -20,6 +21,13 @@ interface TryOnPanelProps {
 }
 
 export function TryOnPanel({ deepLinkFrom, deepLinkItem, deepLinkPersona, onDismissDeepLink }: TryOnPanelProps) {
+  const source = React.useMemo(
+    () => resolveDeepLinkSource(deepLinkFrom),
+    [deepLinkFrom],
+  );
+  const caption = describeDeepLinkSource(source);
+  const curatorSlug = source?.kind === "storefront" ? source.curatorSlug : undefined;
+
   const [selection, setSelection] = React.useState<TryOnSelection | null>(null);
   const [selectionLoading, setSelectionLoading] = React.useState(false);
 
@@ -27,12 +35,12 @@ export function TryOnPanel({ deepLinkFrom, deepLinkItem, deepLinkPersona, onDism
     let cancelled = false;
 
     async function resolveSelection() {
-      setSelectionLoading(Boolean(deepLinkFrom && deepLinkItem));
+      setSelectionLoading(Boolean(curatorSlug && deepLinkItem));
 
       const pending = consumePendingTryOnSelection();
       const local = resolveTryOnSelection(deepLinkItem);
 
-      if (!deepLinkFrom || !deepLinkItem) {
+      if (!curatorSlug || !deepLinkItem) {
         if (!cancelled) {
           setSelection(local || pending);
           setSelectionLoading(false);
@@ -42,7 +50,7 @@ export function TryOnPanel({ deepLinkFrom, deepLinkItem, deepLinkPersona, onDism
 
       try {
         const storefrontSelection = await resolveStorefrontTryOnSelection(
-          deepLinkFrom,
+          curatorSlug,
           deepLinkItem,
         );
         if (!cancelled) {
@@ -61,7 +69,7 @@ export function TryOnPanel({ deepLinkFrom, deepLinkItem, deepLinkPersona, onDism
     return () => {
       cancelled = true;
     };
-  }, [deepLinkFrom, deepLinkItem]);
+  }, [curatorSlug, deepLinkItem]);
 
   return (
     <motion.div
@@ -69,13 +77,11 @@ export function TryOnPanel({ deepLinkFrom, deepLinkItem, deepLinkPersona, onDism
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
     >
-      {deepLinkFrom && (
+      {caption && (
         <div className="mb-4 flex items-center gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3">
           <Camera className="w-4 h-4 text-accent shrink-0" />
           <p className="text-xs text-accent">
-            Styling from{" "}
-            <span className="font-bold">{deepLinkFrom}</span>
-            's storefront
+            {caption}
             {selection?.name ? (
               <> — {selection.name}</>
             ) : deepLinkItem ? (
@@ -91,7 +97,11 @@ export function TryOnPanel({ deepLinkFrom, deepLinkItem, deepLinkPersona, onDism
           </button>
         </div>
       )}
-      <VirtualTryOn selectedTryOnItem={selection} initialPersona={deepLinkPersona as StylistPersona | undefined} initialCuratorSlug={deepLinkFrom} />
+      <VirtualTryOn
+        selectedTryOnItem={selection}
+        initialPersona={deepLinkPersona as StylistPersona | undefined}
+        initialCuratorSlug={curatorSlug}
+      />
     </motion.div>
   );
 }

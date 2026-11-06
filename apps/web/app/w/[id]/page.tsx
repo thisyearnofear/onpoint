@@ -76,7 +76,7 @@ export default async function WishlistPage({ params }: { params: Promise<{ id: s
                 <p className="truncate text-sm font-bold text-foreground">{item.title || "The piece"}</p>
               </div>
               <div className="flex shrink-0 gap-2">
-                <Link href={`/lab?tab=try-on&from=list&item=${item.listingId}`} className="inline-flex min-h-10 items-center rounded-full bg-primary px-4 text-xs font-bold text-white hover:bg-primary/90">
+                <Link href={`/lab?tab=try-on&from=${item.curatorSlug || "list"}&item=${item.listingId}`} className="inline-flex min-h-10 items-center rounded-full bg-primary px-4 text-xs font-bold text-white hover:bg-primary/90">
                   Try it on
                 </Link>
                 {item.curatorSlug && (
