@@ -211,9 +211,6 @@ router.post('/', async (req, res) => {
   if (nearAccountId !== undefined && !nearPayments.isNearAccountId(nearPayer || '')) {
     return res.status(400).json({ error: 'nearAccountId must be a valid NEAR account' });
   }
-  if (nearTxHash && !nearPayer) {
-    return res.status(400).json({ error: 'nearAccountId is required with nearTxHash' });
-  }
   if (nearTxHash && paymentTxHash) {
     return res.status(400).json({ error: 'Provide either paymentTxHash (Celo cUSD) or nearTxHash (NEAR), not both' });
   }
@@ -419,7 +416,7 @@ router.post('/', async (req, res) => {
           ...sharedTypes.build402Body([requirements]),
         });
       }
-      verification = { from: nearPayer, near: nearResult };
+      verification = { from: nearResult.signer || nearPayer, near: nearResult };
     } else {
     const minAmountWei = BigInt(requirements.maxAmountRequired);
     verification = await agentCore.ERC20.verifyTransfer({
@@ -455,7 +452,7 @@ router.post('/', async (req, res) => {
 
     // The effective tx hash and payer for this request
     const effectiveTxHash = settlementTxHash || paypalResult?.captureId || nearTxHash || paymentTxHash;
-    const effectivePayer = settlementTxHash ? payerAddress : (nearTxHash ? nearPayer : (verification?.from || null));
+    const effectivePayer = settlementTxHash ? payerAddress : (nearTxHash ? (verification?.near?.signer || nearPayer) : (verification?.from || null));
     const explorerUrl = paymentMethod === 'near'
       ? nearPayments.nearExplorerTxUrl(effectiveTxHash)
       : paymentMethod === 'paypal'

@@ -120,7 +120,9 @@ async function verifyNearPayment({
       method: 'EXPERIMENTAL_tx_status',
       params: {
         tx_hash: txHash,
-        sender_account_id: signerAccountId,
+        // EXPERIMENTAL_tx_status indexes by any participant — when the payer
+        // is not claimed (human flow pastes only a hash), the receiver works.
+        sender_account_id: signerAccountId || expectedReceiverId,
         wait_until: 'FINAL',
       },
     }),
@@ -149,7 +151,7 @@ async function verifyNearPayment({
   }
 
   const tx = r.transaction;
-  if (tx.signer_id !== signerAccountId) {
+  if (signerAccountId && tx.signer_id !== signerAccountId) {
     return { ok: false, reason: 'signer_mismatch', signer: tx.signer_id };
   }
   if (tx.receiver_id !== expectedReceiverId) {

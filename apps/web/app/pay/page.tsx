@@ -1,101 +1,158 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Copy, ExternalLink, QrCode, Sparkles, Wallet } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Copy, ExternalLink, HelpCircle, QrCode, Sparkles, Wallet } from "lucide-react";
+import QRCode from "qrcode";
 import { OnPointLayout } from "../../components/OnPointLayout";
 
 const DEMO_LISTING = "0cc69356-68f1-4466-86f8-9db6b440d70a"; // NEAR FC Home Kit — studio sample stock
 const DEMO_CURATOR = "onpoint-store";
+const WALLET_SEND = "https://testnet.mynearwallet.com/send-money";
 
-type Step = "upload" | "quoting" | "pay" | "verifying" | "done" | "failed";
+type Step = "upload" | "pay" | "verifying" | "done";
 
 interface NearQuote {
   network?: string;
   accountId?: string;
   amountNear?: number;
   amountYocto?: string;
-  instructions?: string;
 }
 
 /**
- * Human front door to the NEAR payment rail — the same flow agents use
- * programmatically, rendered for a person with a wallet:
- * upload a photo → get the 402 quote → pay from a NEAR wallet →
- * paste the tx hash → the try-on renders. Testnet, studio sample stock.
+ * Human front door to the NEAR payment rail — the same 402 → pay → verify
+ * flow agents run programmatically, rendered for a person with a wallet.
+ * One field total: the payer is derived from the transaction on-chain.
+ * Testnet, studio sample stock — the rails are real.
  */
 export default function PayPage() {
   const [step, setStep] = useState<Step>("upload");
   const [photo, setPhoto] = useState<string | null>(null);
+  const [photoLoading, setPhotoLoading] = useState(false);
   const [quote, setQuote] = useState<NearQuote | null>(null);
-  const [quoteId, setQuoteId] = useState<string | null>(null);
   const [render, setRender] = useState<string | null>(null);
   const [txHash, setTxHash] = useState("");
-  const [payerId, setPayerId] = useState("");
+  const [verifySince, setVerifySince] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const polling = useRef(false);
 
-  const callRail = useCallback(async (extra: Record<string, string>) => {
+  const callRail = useCallback(
+    async (extra: Record<string, string>) => {
+      const res = await fetch("/api/pay/try-on", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          curatorSlug: DEMO_CURATOR,
+          listingId: DEMO_LISTING,
+          photoData: photo,
+          ...extra,
+        }),
+      });
+      return { status: res.status, data: await res.json().catch(() => ({})) };
+    },
+    [photo],
+  );
+
+  const getQuote = useCallback(async (photoData: string) => {
     const res = await fetch("/api/pay/try-on", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        curatorSlug: DEMO_CURATOR,
-        listingId: DEMO_LISTING,
-        photoData: photo,
-        ...extra,
-      }),
+      body: JSON.stringify({ curatorSlug: DEMO_CURATOR, listingId: DEMO_LISTING, photoData }),
     });
-    return { status: res.status, data: await res.json().catch(() => ({})) };
-  }, [photo]);
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 402 && (data.near || data.quote?.near)) {
+      setQuote(data.near || data.quote.near);
+      return true;
+    }
+    setError(data.error || `Couldn't fetch your payment quote (${res.status}) — try again.`);
+    return false;
+  }, []);
 
+  // Warm the quote the moment the photo lands — perceived instant pay step.
   const onFile = (file: File) => {
     const reader = new FileReader();
-    reader.onload = () => setPhoto(String(reader.result));
+    reader.onload = async () => {
+      const data = String(reader.result);
+      setPhoto(data);
+      // Survive the wallet redirect — try-on photo under the ~6MB API cap.
+      try { sessionStorage.setItem("onpoint-pay-photo", data); } catch { /* quota */ }
+      setPhotoLoading(true);
+      setError(null);
+      const ok = await getQuote(data);
+      setPhotoLoading(false);
+      if (ok) setStep("pay");
+    };
     reader.readAsDataURL(file);
   };
 
-  const getQuote = async () => {
-    setError(null);
-    setStep("quoting");
-    const { status, data } = await callRail({});
-    if (status === 402 && (data.near || data.quote?.near)) {
-      setQuote(data.near || data.quote.near);
-      setQuoteId(data.quoteId || data.quote?.quoteId || null);
+  // Verify-and-render: retry on 402 (payment still finalizing), one request
+  // returns the render once the transfer verifies.
+  const startVerify = useCallback(
+    async (hash: string) => {
+      if (polling.current) return;
+      polling.current = true;
+      setError(null);
+      setVerifySince(Date.now());
+      setStep("verifying");
+      const deadline = Date.now() + 120_000;
+      while (Date.now() < deadline) {
+        const { status, data } = await callRail({ nearTxHash: hash });
+        if (status === 200 && (data.success || data.tryOn)) {
+          setRender(data.tryOn?.render?.image || null);
+          setStep("done");
+          polling.current = false;
+          return;
+        }
+        if (status !== 402) {
+          setError(data.error || `Something went wrong (${status}) — try again.`);
+          setStep("pay");
+          polling.current = false;
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 4000));
+      }
+      setError("Payment hasn't landed on-chain yet — check your wallet, then retry the hash.");
       setStep("pay");
-    } else {
-      setError(data.error || `Unexpected response (${status}) — try again.`);
-      setStep("upload");
+      polling.current = false;
+    },
+    [callRail],
+  );
+
+  // Wallet-redirect return: MyNearWallet appends ?transactionHashes= after send.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const returned = params.get("transactionHashes");
+    const storedPhoto = photo ?? (() => { try { return sessionStorage.getItem("onpoint-pay-photo"); } catch { return null; } })();
+    if (storedPhoto && !photo) setPhoto(storedPhoto);
+    if (returned) {
+      setTxHash(returned);
+      window.history.replaceState({}, "", "/pay");
+      if (storedPhoto) { setPhoto(storedPhoto); startVerify(returned); }
+      else setStep("upload");
     }
-  };
+  }, [photo, startVerify]);
 
-  const verify = async () => {
-    setError(null);
-    setStep("verifying");
-    const { status, data } = await callRail({
-      nearAccountId: payerId.trim().toLowerCase(),
-      nearTxHash: txHash.trim(),
-      ...(quoteId ? { quoteId } : {}),
-    });
-    if (status === 200 && (data.tryOn?.render?.image || data.success)) {
-      setRender(data.tryOn?.render?.image || null);
-      setStep("done");
-    } else {
-      setError(data.error || "That payment didn't verify yet — the tx may still be finalizing. Try again in a few seconds.");
-      setStep("pay");
-    }
-  };
+  // QR for mobile wallets — near:// send URI scannable by HOT / Meteor / MyNearWallet.
+  useEffect(() => {
+    if (!quote?.accountId || !quote?.amountNear) return;
+    QRCode.toDataURL(`near://send?to=${quote.accountId}&amount=${quote.amountNear}`, { width: 220, margin: 1 })
+      .then(setQrDataUrl)
+      .catch(() => {});
+  }, [quote]);
 
-  const copyPayTo = async () => {
-    if (!quote?.accountId) return;
-    try { await navigator.clipboard.writeText(quote.accountId); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* clipboard blocked */ }
-  };
-
-  const nearLink = quote?.accountId && quote?.amountNear
-    ? `near://send?to=${quote.accountId}&amount=${quote.amountNear}`
+  const walletUrl = quote?.accountId && quote?.amountNear && typeof window !== "undefined"
+    ? `${WALLET_SEND}/${quote.accountId}/${quote.amountNear}?success_url=${encodeURIComponent(`${window.location.origin}/pay?sent=1`)}`
     : null;
+
+  const copy = async (text: string) => {
+    try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* clipboard blocked */ }
+  };
+
+  const elapsed = verifySince ? Math.round((Date.now() - verifySince) / 1000) : 0;
 
   return (
     <OnPointLayout>
@@ -106,11 +163,13 @@ export default function PayPage() {
 
         <h1 className="font-display text-3xl font-semibold tracking-tight">Pay with NEAR</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          The same rail AI agents pay on — opened for people. Try on the NEAR FC home kit,
-          pay in NEAR on testnet, get the render back. Studio sample stock; the rails are real.
+          The same rail AI agents pay on — opened for people. Try on the{" "}
+          <span className="font-semibold text-foreground">NEAR FC home kit</span>, pay{" "}
+          <span className="font-mono">0.0078 NEAR</span> (≈ $0.03) on testnet, get the render back.
+          Studio sample stock; the rails are real.
         </p>
 
-        {step === "upload" || step === "quoting" ? (
+        {step === "upload" ? (
           <div className="mt-8 space-y-4">
             <button
               type="button"
@@ -128,77 +187,82 @@ export default function PayPage() {
               )}
             </button>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
-            <button
-              type="button"
-              disabled={!photo || step === "quoting"}
-              onClick={getQuote}
-              className="w-full rounded-full bg-foreground py-3 text-sm font-bold text-background transition-colors hover:bg-foreground/90 disabled:opacity-40"
-            >
-              {step === "quoting" ? "Getting your NEAR quote…" : "Get my NEAR payment quote"}
-            </button>
+            {photoLoading ? <p className="text-center text-sm text-muted-foreground">Getting your payment quote…</p> : null}
           </div>
         ) : null}
 
         {step === "pay" && quote ? (
           <div className="mt-8 space-y-5">
             <div className="rounded-2xl border border-border bg-muted/40 p-5">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Your quote — 402</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Your quote — HTTP 402</p>
               <p className="mt-3 font-mono text-2xl font-bold">{quote.amountNear} NEAR</p>
-              <p className="mt-1 break-all font-mono text-sm text-muted-foreground">to {quote.accountId}</p>
+              <div className="mt-1 flex items-center gap-2">
+                <p className="break-all font-mono text-sm text-muted-foreground">to {quote.accountId}</p>
+                <button type="button" onClick={() => copy(quote.accountId!)} className="shrink-0 text-muted-foreground transition-colors hover:text-foreground" aria-label="Copy address">
+                  {copied ? <CheckCircle2 className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+                </button>
+              </div>
               <p className="mt-2 text-xs text-muted-foreground">on NEAR {quote.network ?? "testnet"}</p>
             </div>
 
-            <div className="flex flex-col gap-2 sm:flex-row">
-              {nearLink ? (
-                <a href={nearLink} className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-foreground px-5 py-3 text-sm font-bold text-background transition-colors hover:bg-foreground/90">
-                  <Wallet className="h-4 w-4" /> Pay in NEAR wallet
-                </a>
-              ) : null}
-              <button type="button" onClick={copyPayTo} className="inline-flex items-center justify-center gap-2 rounded-full border border-border px-5 py-3 text-sm font-bold transition-colors hover:bg-muted">
-                {copied ? <CheckCircle2 className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
-                {copied ? "Copied" : "Copy address"}
-              </button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Any NEAR wallet works — the deep link opens mobile wallets (HOT, Meteor, MyNearWallet).
-              Or copy the address and send the amount manually.
-            </p>
+            {walletUrl ? (
+              <a href={walletUrl} className="flex w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 py-3.5 text-sm font-bold text-background transition-colors hover:bg-foreground/90">
+                <Wallet className="h-4 w-4" /> Pay {quote.amountNear} NEAR in MyNearWallet
+              </a>
+            ) : null}
+
+            {qrDataUrl ? (
+              <div className="flex items-center gap-4 rounded-2xl border border-border p-4">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={qrDataUrl} alt="Scan to pay with a NEAR wallet" className="h-28 w-28 rounded-xl" />
+                <div>
+                  <p className="text-sm font-semibold">Scan to pay</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Opens in any NEAR mobile wallet (HOT, Meteor, MyNearWallet) with the amount and address pre-filled.</p>
+                </div>
+              </div>
+            ) : null}
 
             <div className="rounded-2xl border border-border p-5">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">After you pay</p>
-              <div className="mt-3 space-y-3">
-                <input
-                  value={payerId}
-                  onChange={(e) => setPayerId(e.target.value)}
-                  placeholder="your-account.testnet"
-                  className="w-full rounded-xl border border-border bg-background px-4 py-3 font-mono text-sm outline-none focus:border-foreground"
-                  aria-label="Your NEAR account"
-                />
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Already paid?</p>
+              <div className="mt-3 flex gap-2">
                 <input
                   value={txHash}
                   onChange={(e) => setTxHash(e.target.value)}
-                  placeholder="transaction hash from your wallet"
-                  className="w-full rounded-xl border border-border bg-background px-4 py-3 font-mono text-sm outline-none focus:border-foreground"
+                  placeholder="paste the transaction hash"
+                  className="min-w-0 flex-1 rounded-xl border border-border bg-background px-4 py-3 font-mono text-sm outline-none focus:border-foreground"
                   aria-label="NEAR transaction hash"
                 />
                 <button
                   type="button"
-                  disabled={!payerId.trim() || !txHash.trim()}
-                  onClick={verify}
-                  className="w-full rounded-full bg-foreground py-3 text-sm font-bold text-background transition-colors hover:bg-foreground/90 disabled:opacity-40"
+                  disabled={!txHash.trim()}
+                  onClick={() => startVerify(txHash.trim())}
+                  className="shrink-0 rounded-full bg-foreground px-5 py-3 text-sm font-bold text-background transition-colors hover:bg-foreground/90 disabled:opacity-40"
                 >
-                  Verify payment &amp; render my try-on
+                  Verify
                 </button>
               </div>
+              <p className="mt-2 text-xs text-muted-foreground">One field — we read your account from the chain itself.</p>
             </div>
+
+            <details className="rounded-2xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground">
+              <summary className="flex cursor-pointer items-center gap-2 font-semibold text-foreground">
+                <HelpCircle className="h-4 w-4" /> New to NEAR?
+              </summary>
+              <p className="mt-2 text-xs leading-relaxed">
+                <a href="https://testnet.mynearwallet.com" target="_blank" rel="noreferrer" className="font-semibold underline underline-offset-2">testnet.mynearwallet.com</a>{" "}
+                creates a testnet wallet that arrives pre-funded — no faucet run needed. This whole page runs on testnet: nothing here costs real money.
+              </p>
+            </details>
           </div>
         ) : null}
 
         {step === "verifying" ? (
           <div className="mt-8 rounded-2xl border border-border bg-muted/40 p-8 text-center">
             <Sparkles className="mx-auto h-8 w-8 animate-pulse text-muted-foreground" />
-            <p className="mt-3 text-sm font-semibold">Verifying on-chain, then rendering…</p>
-            <p className="mt-1 text-xs text-muted-foreground">JSON-RPC verification + the try-on render takes a moment.</p>
+            <p className="mt-3 text-sm font-semibold">
+              {elapsed < 8 ? "Confirming your payment on-chain…" : "Payment confirmed — rendering your try-on…"}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">Trustless verification, then the render — usually under 30 seconds.</p>
           </div>
         ) : null}
 
