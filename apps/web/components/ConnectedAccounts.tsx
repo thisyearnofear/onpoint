@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@repo/ui/button";
 import { Check, ExternalLink, Lock, Unlock, AlertCircle } from "lucide-react";
 import { useUser } from "@auth0/nextjs-auth0/client";
+import { Spinner } from "./state";
 import type { SupportedProvider } from "../lib/services/token-vault";
 
 interface ConnectedAccount {
@@ -155,7 +156,7 @@ export function ConnectedAccounts() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <Spinner size="lg" />
       </div>
     );
   }
@@ -235,7 +236,7 @@ export function ConnectedAccounts() {
                   >
                     {isConnecting ? (
                       <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        <Spinner size="sm" tone="inverse" className="mr-2" />
                         Connecting...
                       </>
                     ) : (

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { fetchAgentApi } from "../../lib/utils/agent-api";
+import { Spinner } from "../state";
 import type { ActionType } from "../../lib/middleware/agent-controls";
 
 export interface ApprovalRequest {
@@ -205,7 +206,7 @@ export function AgentApprovalModal({
                 className="flex-1 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500"
               >
                 {isProcessing ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                  <Spinner size="sm" tone="inverse" className="mr-2" />
                 ) : (
                   <Check className="w-4 h-4 mr-2" />
                 )}

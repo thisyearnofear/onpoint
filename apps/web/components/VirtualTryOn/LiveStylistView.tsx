@@ -33,6 +33,7 @@ import { LiveSessionError } from "./LiveSessionError";
 import { AutoDismissTimer } from "./hooks/AutoDismissTimer";
 import { CaptureProgressRing } from "./hooks/CaptureProgressRing";
 import { SafeImage } from "../SafeImage";
+import { Busy } from "../state";
 
 
 const SessionSummaryScreen = dynamic(
@@ -41,12 +42,7 @@ const SessionSummaryScreen = dynamic(
     ssr: false,
     loading: () => (
       <div className="flex items-center justify-center h-full min-h-[400px] bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-          <p className="text-xs text-muted-foreground font-mono tracking-wider">
-            Preparing summary…
-          </p>
-        </div>
+        <Busy label="Preparing summary" className="font-mono tracking-wider" />
       </div>
     ),
   },

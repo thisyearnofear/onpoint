@@ -21,6 +21,7 @@ import { Button } from "@repo/ui/button";
 import type { ActionType } from "../../lib/middleware/agent-controls";
 import { fetchAgentApi } from "../../lib/utils/agent-api";
 import { RichProductGroup } from "../Shop/RichProductCard";
+import { Spinner } from "../state";
 
 export interface AgentSuggestion {
   id: string;
@@ -226,7 +227,7 @@ export function AgentSuggestionToast({
             <div className="mt-3 p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/10 flex flex-col gap-3">
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <div className="w-8 h-8 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin" />
+                  <Spinner size="lg" />
                   <Globe className="w-3.5 h-3.5 text-indigo-400 absolute inset-0 m-auto" />
                 </div>
                 <div className="flex flex-col">
@@ -334,7 +335,7 @@ export function AgentSuggestionToast({
             className="flex-1 h-10 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-sm"
           >
             {isProcessing ? (
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1" />
+              <Spinner size="sm" tone="inverse" className="mr-1" />
             ) : (
               <Check className="w-4 h-4 mr-1" />
             )}

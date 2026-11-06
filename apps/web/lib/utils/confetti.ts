@@ -3,7 +3,7 @@
  * Fires a celebratory burst of colored particles.
  */
 
-interface ConfettiOptions {
+export interface ConfettiOptions {
   particleCount?: number;
   spread?: number;
   origin?: { x: number; y: number };

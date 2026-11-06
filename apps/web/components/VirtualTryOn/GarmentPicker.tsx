@@ -6,6 +6,7 @@ import { Check, Search, Sparkles } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { TryOnSelection } from "../../lib/utils/try-on-selection";
 import { SafeImage } from "../SafeImage";
+import { Busy } from "../state";
 
 type SelectableGarment = TryOnSelection & {
   selectionKey: string;
@@ -256,8 +257,14 @@ export function GarmentPicker({
           disabled={tryOnLoading || !selectedGarment}
           onClick={onGenerateTryOn}
         >
-          <Sparkles className="h-4 w-4 mr-2" />
-          {tryOnLoading ? "Generating Try-On..." : "Generate AI Try-On"}
+          {tryOnLoading ? (
+            <Busy label="Generating try-on" tone="inverse" />
+          ) : (
+            <>
+              <Sparkles className="h-4 w-4 mr-2" />
+              Generate AI Try-On
+            </>
+          )}
         </Button>
       </div>
     </div>

@@ -6,6 +6,7 @@ import { Button } from "@repo/ui/button";
 import { Badge } from "@repo/ui/badge";
 import { Vote, RefreshCw, TrendingUp } from "lucide-react";
 import { useUser } from "@auth0/nextjs-auth0/client";
+import { Spinner } from "./state";
 import type { CommunityLook } from "../app/api/community/looks/types";
 
 interface FaceoffPair {
@@ -76,8 +77,8 @@ export function LooksFaceoff() {
         <CardContent className="p-6">
           <div className="flex items-center justify-center py-8">
             <div className="flex flex-col items-center gap-3">
-              <div className="h-8 w-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-              <p className="text-sm text-muted-foreground">Finding face-off...</p>
+              <Spinner size="lg" />
+              <p className="text-sm text-muted-foreground">Finding face-off…</p>
             </div>
           </div>
         </CardContent>

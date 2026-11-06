@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { Button } from "@repo/ui/button";
 import { Textarea } from "@repo/ui/textarea";
 import { Sparkles, Edit3, User } from "lucide-react";
+import { Spinner } from "../state";
 
 interface PersonDescriptionEditorProps {
   description: string;
@@ -168,7 +169,7 @@ export function PersonDescriptionEditor({
                 >
                   {loading ? (
                     <div className="flex items-center gap-1">
-                      <div className="animate-spin rounded-full h-2.5 w-2.5 border-b-2 border-white"></div>
+                      <Spinner size="sm" tone="inverse" />
                       <span className="text-xs">Generating...</span>
                     </div>
                   ) : (

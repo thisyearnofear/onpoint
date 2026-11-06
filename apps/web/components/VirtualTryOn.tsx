@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from "react";
 import { Button } from "@repo/ui/button";
-import { Camera, CheckCircle2, Palette, Ruler, ShieldCheck, Sparkles, Wand2, Gift } from "lucide-react";
+import { Camera, Palette, Ruler, ShieldCheck, Sparkles, Wand2, Gift } from "lucide-react";
 import dynamic from "next/dynamic";
 // framer-motion removed — using CSS transitions instead
 import { useVirtualTryOn } from "@repo/ai-client";
@@ -20,6 +20,7 @@ import { useMissionState } from "../hooks/use-mission-state";
 import { useGStreak } from "../lib/hooks/use-g-streak";
 import { useGSessionPayment } from "../lib/hooks/use-g-session-payment";
 import { SafeImage } from "./SafeImage";
+import { Busy, ErrorState, Spinner, StagedWait } from "./state";
 import { CANVAS_ITEMS } from "@onpoint/shared-types";
 import type { TryOnSelection } from "../lib/utils/try-on-selection";
 import {
@@ -51,12 +52,7 @@ const LiveStylistView = dynamic(
     ssr: false,
     loading: () => (
       <div className="flex items-center justify-center min-h-[400px] bg-muted border border-border">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-          <p className="text-xs text-muted-foreground font-mono tracking-wider">
-            Loading Live Stylist…
-          </p>
-        </div>
+        <Busy label="Loading live stylist" className="text-xs font-mono tracking-wider" />
       </div>
     ),
   },
@@ -97,12 +93,6 @@ const WAIT_LINES = [
   "Everything here feeds one goal: clothes that actually fit.",
 ];
 
-function formatElapsed(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
 function StyleScanLoadingCard({
   previewUrl,
   isPreparingPhoto,
@@ -110,100 +100,23 @@ function StyleScanLoadingCard({
   previewUrl: string;
   isPreparingPhoto: boolean;
 }) {
-  const [elapsed, setElapsed] = React.useState(0);
-
-  React.useEffect(() => {
-    const started = Date.now();
-    const tick = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - started) / 1000));
-    }, 1000);
-    return () => clearInterval(tick);
-  }, []);
-
-  const stageIndex = isPreparingPhoto
-    ? 0
-    : SCAN_STAGES.reduce((acc, stage, i) => (elapsed >= stage.at ? i : acc), 0);
-  // Asymptotic progress: ~63% at 30s, ~86% at 60s, capped at 95% — the bar
-  // finishes when the result arrives, not when the timer says so.
-  const progress = Math.min(95, Math.round((1 - Math.exp(-elapsed / 30)) * 100));
-  const line = WAIT_LINES[Math.floor(elapsed / 8) % WAIT_LINES.length];
-
   return (
-    <div className="overflow-hidden border border-border bg-card">
-      <div className="grid gap-0 sm:grid-cols-[180px_1fr]">
-        <div className="relative h-44 overflow-hidden bg-muted sm:h-auto sm:min-h-[240px]">
-          <SafeImage
-            sources={[previewUrl]}
-            alt=""
-            fill
-            unoptimized
-            className="object-cover"
-          />
-          {/* scan line — the only motion on the photo */}
-          <div className="absolute inset-x-3 top-4 h-px animate-pulse bg-primary/80" />
-        </div>
-        <div className="space-y-4 p-4">
-          <div className="flex items-baseline justify-between gap-3">
-            <p className="text-sm font-bold text-foreground">
-              {isPreparingPhoto ? "Optimizing your photo" : "Building your fit profile"}
-            </p>
-            <span className="font-mono text-xs text-muted-foreground" aria-live="off">
-              {formatElapsed(elapsed)}
-            </span>
-          </div>
-
-          <div className="grid gap-2">
-            {SCAN_STAGES.map((stage, index) => {
-              const Icon = stage.icon;
-              const done = index < stageIndex;
-              const active = index === stageIndex;
-              return (
-                <div
-                  key={stage.label}
-                  className={`flex items-center gap-2.5 border px-3 py-2 transition-colors duration-500 ${
-                    active
-                      ? "border-primary/40 bg-primary/5"
-                      : "border-border/60 bg-transparent"
-                  } ${done || active ? "" : "opacity-50"}`}
-                >
-                  <span
-                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${
-                      done
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : active
-                          ? "border-primary text-primary"
-                          : "border-border text-muted-foreground"
-                    }`}
-                  >
-                    {done ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Icon className="h-3 w-3" />}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-bold text-foreground">{stage.label}</p>
-                    <p className="truncate text-xs text-muted-foreground">{stage.detail}</p>
-                  </div>
-                  {active && (
-                    <span className="h-3 w-3 shrink-0 animate-spin rounded-full border border-primary/30 border-t-primary" />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="space-y-2">
-            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-primary transition-all duration-1000 ease-out"
-                style={{ width: `${isPreparingPhoto ? 8 : progress}%` }}
-              />
-            </div>
-            {/* rotating beat — a fresh line every ~8s keeps the wait inhabited */}
-            <p key={line} className="animate-fade-in text-xs leading-relaxed text-muted-foreground">
-              {line}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+    <StagedWait
+      title={isPreparingPhoto ? "Optimizing your photo" : "Building your fit profile"}
+      media={
+        <SafeImage
+          sources={[previewUrl]}
+          alt=""
+          fill
+          unoptimized
+          className="object-cover"
+        />
+      }
+      stages={SCAN_STAGES}
+      lines={WAIT_LINES}
+      stageIndex={isPreparingPhoto ? 0 : undefined}
+      progress={isPreparingPhoto ? 8 : undefined}
+    />
   );
 }
 
@@ -896,7 +809,7 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                       />
                       {isBusy && (
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                          <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          <Spinner size="sm" tone="inverse" />
                         </div>
                       )}
                     </div>
@@ -942,54 +855,36 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                   </div>
                   {/* Error Display */}
                   {error && (
-                    <div className="border border-destructive rounded-lg p-4 bg-destructive/10">
-                      <p className="text-sm font-medium text-destructive">
-                        Analysis paused
-                      </p>
-                      <p className="mt-1 text-xs text-destructive/90">{error}</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={clearError}
-                        className="mt-3"
-                      >
-                        Dismiss
-                      </Button>
-                    </div>
+                    <ErrorState
+                      title="Analysis paused"
+                      message={error}
+                      onDismiss={clearError}
+                    />
                   )}
 
                   {tryOnError && (
-                    <div className="border border-destructive rounded-lg p-4 bg-destructive/10">
-                      <p className="text-destructive text-sm">{tryOnError}</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={clearTryOnError}
-                        className="mt-3"
-                      >
-                        Dismiss
-                      </Button>
-                    </div>
+                    <ErrorState message={tryOnError} onDismiss={clearTryOnError} />
                   )}
 
                   {qualityWarning && selectedPhoto && !analysis && (
-                    <div className="border border-warning/30 rounded-lg p-4 bg-warning/10">
-                      <p className="text-warning dark:text-amber-300 text-sm">
-                        {qualityWarning}
-                      </p>
-                      <div className="mt-3 flex gap-2">
-                        <Button
-                          size="sm"
-                          onClick={handleAnalyzeAnyway}
-                          disabled={loading || isPreparingPhoto}
-                        >
-                          {isPreparingPhoto ? "Optimizing..." : "Analyze Anyway"}
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={handleReset}>
-                          Choose Better Photo
-                        </Button>
-                      </div>
-                    </div>
+                    <ErrorState
+                      tone="warning"
+                      message={qualityWarning}
+                      actions={
+                        <>
+                          <Button
+                            size="sm"
+                            onClick={handleAnalyzeAnyway}
+                            disabled={loading || isPreparingPhoto}
+                          >
+                            {isPreparingPhoto ? "Optimizing..." : "Analyze Anyway"}
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={handleReset}>
+                            Choose Better Photo
+                          </Button>
+                        </>
+                      }
+                    />
                   )}
 
                   {/* Branded loading state while photo optimization or analysis runs */}

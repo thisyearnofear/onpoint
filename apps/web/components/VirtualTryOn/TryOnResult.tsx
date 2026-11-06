@@ -27,6 +27,7 @@ import {
 } from "../../lib/utils/analytics";
 import { useAnalysisHistory } from "../../lib/stores/analysis-history-store";
 import { SafeImage } from "../SafeImage";
+import { Spinner } from "../state";
 
 interface StructuredTipAction {
   type: string;
@@ -111,7 +112,7 @@ function StagedProgress() {
   return (
     <div className="w-full h-full flex items-center justify-center">
       <div className="text-center px-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+        <Spinner size="xl" className="mx-auto mb-4" />
         <Sparkles className="h-8 w-8 text-primary mx-auto mb-3" />
         <p className="text-sm font-medium text-primary mb-2 transition-all duration-500">
           {PROGRESS_STAGES[stage]}

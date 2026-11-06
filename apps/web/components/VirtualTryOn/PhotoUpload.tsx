@@ -3,7 +3,8 @@
 import React, { useRef, useCallback, useState } from "react";
 import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
-import { Camera, Upload, User, Sun, Eye, CheckCircle, AlertTriangle, XCircle, Loader2, Sparkles } from "lucide-react";
+import { Camera, Upload, User, Sun, Eye, CheckCircle, AlertTriangle, XCircle, Sparkles } from "lucide-react";
+import { Spinner } from "../state";
 import { usePhotoQualityCheck } from "./usePhotoQualityCheck";
 import type { QualityCheck, QualityCheckResult } from "./usePhotoQualityCheck";
 
@@ -138,7 +139,7 @@ export function PhotoUpload({ onPhotoSelect, disabled, selfieMode = false }: Pho
                 >
                   {loadingSample === sample.src ? (
                     <div className="absolute inset-0 flex items-center justify-center bg-background/80">
-                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      <Spinner size="sm" />
                     </div>
                   ) : null}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -193,7 +194,7 @@ export function PhotoUpload({ onPhotoSelect, disabled, selfieMode = false }: Pho
         {/* Quality check in progress */}
         {qualityChecking && (
           <div className="flex items-center justify-center gap-2 mt-3 text-xs text-muted-foreground">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <Spinner size="sm" />
             <span>Checking photo quality…</span>
           </div>
         )}

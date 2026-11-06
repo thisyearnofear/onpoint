@@ -54,3 +54,16 @@ Every surface is one funnel: **try on → get styled/judged → share artifact �
 - `ShareArtifact` is the one share row; `onShare(channel, url, sid)` is the hook for funnel events (see `LookShareButton`). ShareKit survives only on `/curator/onboard`.
 - ESLint bans (fire as warnings via `eslint-plugin-only-warn`): `rounded-3xl`, `shadow-2xl`, `bg-gradient-to-*`, `text-(emerald|amber|indigo|purple)-\d`, decorative `Sparkles` — under `app/` outside `/admin`.
 - Review rule: ≤2 levels of bordered-box nesting per surface.
+
+## State vocabulary (2026-11-06)
+
+Surfaces were consolidated first; states are the second dialect. Every wait, empty, error, and win goes through `components/state/` — never hand-roll them:
+
+- `<Spinner size tone>` — the one border-spinner (`sm|md|lg|xl`, `default|inverse`). Lucide `Loader2 animate-spin` is acceptable for icon-only spins; the border-div pattern is banned outside `components/state/` (ESLint `no-restricted-syntax`, app + components).
+- `<Busy label>` — inline "verb-ing…" for waits under ~5s (buttons, rows, quality checks). Pass the bare gerund phrase; the ellipsis is added.
+- `<StagedWait title stages lines media>` — the one long-wait pattern (>5s, typically 30–120s generations): elapsed timer, timer-paced stages, asymptotic progress capped below 100%, rotating honest notes. Stage `at` times should reflect measured upstream durations, not guesses.
+- `<EmptyState icon title body action>` — name the absence, hand over the next action. Never a dead screen.
+- `<ErrorState title message tone onDismiss onRetry actions>` — what happened + it's not your fault + the next move. `tone="warning"` for degraded-but-usable.
+- `celebrate(kind)` — confetti budgeted once-per-kind per browser (localStorage). Only for firsts and closed loops (first save, first purchase, gift claimed) — never for loading, never twice.
+
+Copy rules: present-progressive labels ("Reading your photo…"), no fake precision ("Step 3/4" that never moves), no apology spam, mixed `...`/`…` is banned — Busy/StagedWait own the punctuation.

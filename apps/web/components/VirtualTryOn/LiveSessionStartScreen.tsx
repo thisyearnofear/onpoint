@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { ProviderComparisonModal } from "./ProviderComparisonModal";
 import { useStartButton } from "./hooks/useStartButton";
+import { Spinner } from "../state";
 
 interface LiveSessionStartScreenProps {
   onBack: () => void;
@@ -147,9 +148,7 @@ export function LiveSessionStartScreen({
             <Button
               className="w-full rounded-full bg-primary py-6 text-base font-bold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 hover:shadow-primary/40"
               loading={showSpinner}
-              loadingIcon={
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-              }
+              loadingIcon={<Spinner size="sm" tone="inverse" />}
               onClick={handleStart}
             >
               <Camera className="h-5 w-5" />
