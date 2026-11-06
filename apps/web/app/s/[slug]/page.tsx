@@ -154,6 +154,11 @@ export default async function CuratorStorefrontPage({
           Browse all curators
         </Link>
       </div>
+      <div className="mx-auto max-w-6xl px-4 pt-6">
+        <p className="rounded-xl border border-dashed border-border bg-muted/40 px-4 py-2.5 text-xs text-muted-foreground">
+          Demo storefront — the payment rails are real; this inventory is studio sample stock, not a live merchant.
+        </p>
+      </div>
       <section className="border-b border-border">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 md:grid-cols-[1fr_360px] md:py-14">
           <div className="space-y-6">

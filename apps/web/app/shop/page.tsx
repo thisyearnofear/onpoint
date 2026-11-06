@@ -83,6 +83,11 @@ export default function ShopPage() {
 
   return (
     <OnPointLayout>
+      <div className="mx-auto max-w-6xl px-4 pt-6">
+        <p className="rounded-xl border border-dashed border-border bg-muted/40 px-4 py-2.5 text-xs text-muted-foreground">
+          Demo catalog — the checkout rails are real; items are studio sample stock, not a live merchant.
+        </p>
+      </div>
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
         {/* Personalization Context Banner */}

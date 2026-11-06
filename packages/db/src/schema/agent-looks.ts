@@ -55,6 +55,7 @@ export const agentLooks = pgTable("agent_looks", {
 
   // Tags for discoverability (e.g. ["streetwear", "vintage", "summer"])
   tags: text("tags").array().notNull().default([]),
+  provenance: text("provenance").notNull().default("studio"),
 
   // Structured metadata derived from tags or AI classification.
   // Stores { category, occasion, season } for filtering and badges.

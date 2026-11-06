@@ -373,6 +373,7 @@ router.get('/', async (req, res) => {
         // to coverImageUrl → heroImageUrl. The frontend uses this as the
         // primary card image when available.
         collageUrl: keyToUrl(`looks/${look.slug}/collage-latest.webp`) || coverImageUrl || heroImageUrl,
+        provenance: look.provenance,
         // Include a minimal items array so the frontend's fallback logic works
         items: (look.listingIds || []).map((id) => {
           const listing = listingMap.get(id);
@@ -506,6 +507,7 @@ router.get('/:slug', async (req, res) => {
       ...look,
       coverImageUrl,
       collageUrl: keyToUrl(`looks/${look.slug}/collage-latest.webp`) || coverImageUrl,
+      provenance: look.provenance,
       items,
       referralCode,
       shareUrl: `${webBaseUrl()}/look/${look.slug}`,

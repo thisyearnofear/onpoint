@@ -23,6 +23,7 @@ export interface LookCardData {
   description: string | null;
   agentAddress: string;
   curatorSlug: string | null;
+  provenance?: "studio" | "curator" | "partner" | null;
   coverImageKey: string | null;
   coverImageUrl: string | null;
   heroImageUrl: string | null;
@@ -64,9 +65,13 @@ export function LookCard({ look, compact = false }: LookCardProps) {
   const padding = compact ? "p-3" : "p-4";
   const titleSize = compact ? "text-sm" : "text-base";
 
-  // All current looks are studio-composed fixtures — honest attribution,
-  // not fake merchant names. Revisit when real curators land.
-  const curatorLabel = "OnPoint studio";
+  // Provenance from the data layer: studio content is our composed
+  // fixtures; real curators get merchant attribution when supply lands.
+  const curatorLabel = look.provenance === "studio"
+    ? "OnPoint studio"
+    : look.curatorSlug
+      ? `From ${look.curatorSlug}`
+      : "OnPoint Stylist";
 
   return (
     <Link
