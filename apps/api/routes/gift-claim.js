@@ -4,7 +4,8 @@
  * Public, no-auth claim flow for gifted orders (ADR 0025):
  *   buyer pays → order carries a claimToken → recipient opens /gift/{token}
  *   → GET returns the wrapped-card view (item, sender note — never price)
- *   → POST captures shipping address (+ optional size when buyer chose "ask her").
+ *   → POST captures shipping address (+ optional size correction — size is
+ *     chosen at purchase; the recipient may amend it here).
  *
  * A claim token is 128-bit random, single-use (POST 410s once claimed),
  * and this route never exposes price or payment fields.
@@ -45,7 +46,7 @@ router.get('/:token', async (req, res) => {
     const db = getDb();
     const [row] = await db.select().from(orders).where(eq(orders.claimToken, token)).limit(1);
     if (!row) return res.status(404).json({ error: 'gift not found' });
-    await logFunnelEvent(db, { eventType: 'gift_opened', source: 'web', metadata: { claimed: Boolean(row.claimedAt) } });
+    await logFunnelEvent(db, { eventType: 'gift_opened', source: 'web', metadata: { surface: 'gift', claimed: Boolean(row.claimedAt) } });
     const [listing] = row.listingId
       ? await db.select().from(listings).where(eq(listings.id, row.listingId)).limit(1)
       : [null];
@@ -60,17 +61,20 @@ router.post('/:token', async (req, res) => {
   const token = String(req.params.token || '');
   if (!TOKEN_RE.test(token)) return res.status(400).json({ error: 'invalid token' });
   const address = req.body?.address?.toString().trim();
+  const name = req.body?.name?.toString().trim();
   const size = req.body?.size?.toString().trim();
   if (!address || address.length < 8 || address.length > 500) {
     return res.status(400).json({ error: 'shipping address required' });
   }
   const db = getDb();
   // Single-use guard: only the first POST wins (claimed_at still null).
+  // A self-reported recipient name beats the buyer's guess for the shipping label.
   const updated = await db
     .update(orders)
     .set({
       shippingAddress: address,
       ...(size ? { size } : {}),
+      ...(name ? { recipientName: name.slice(0, 80) } : {}),
       claimedAt: new Date(),
     })
     .where(and(eq(orders.claimToken, token), isNull(orders.claimedAt)))
@@ -79,7 +83,7 @@ router.post('/:token', async (req, res) => {
     const [existing] = await db.select().from(orders).where(eq(orders.claimToken, token)).limit(1);
     return res.status(existing ? 410 : 404).json({ error: existing ? 'already claimed' : 'gift not found' });
   }
-  await logFunnelEvent(db, { eventType: 'gift_claimed', source: 'web', metadata: {} });
+  await logFunnelEvent(db, { eventType: 'gift_claimed', source: 'web', metadata: { surface: 'gift' } });
   logger.info('gift order claimed', { orderId: updated[0].id });
   res.json({ claimed: true });
 });

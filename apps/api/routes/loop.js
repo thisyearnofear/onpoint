@@ -8,7 +8,7 @@
  */
 
 const express = require('express');
-const { desc } = require('drizzle-orm');
+const { desc, eq } = require('drizzle-orm');
 const { loopCaptures, coupleCards } = require('@repo/db');
 const { getDb } = require('../lib/db');
 const { logFunnelEvent } = require('../lib/funnel');
@@ -21,6 +21,7 @@ const EVENT_TYPES = new Set([
   'invite_opened', 'invite_rendered',
   'couple_card_created', 'couple_card_viewed',
   'gift_opened', 'gift_claimed', 'card_feed_viewed',
+  'artifact_shared',
 ]);
 
 router.post('/event', async (req, res) => {
@@ -86,6 +87,7 @@ router.get('/cards', async (req, res) => {
     const rows = await db
       .select({ id: coupleCards.id, cardUrl: coupleCards.cardUrl, theme: coupleCards.theme, senderName: coupleCards.senderName, createdAt: coupleCards.createdAt })
       .from(coupleCards)
+      .where(eq(coupleCards.listed, true))
       .orderBy(desc(coupleCards.createdAt))
       .limit(limit);
     res.json({ cards: rows });

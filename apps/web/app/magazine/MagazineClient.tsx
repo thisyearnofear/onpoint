@@ -2,6 +2,7 @@
 
 import React, { useRef, useState } from "react";
 import { Camera, Loader2 } from "lucide-react";
+import { getShareAttribution } from "@/lib/utils/share-attribution";
 
 export function MagazineClient({ looks, replyTo }: { looks: Array<{ slug: string; title: string }>; replyTo?: string | null }) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -27,6 +28,8 @@ export function MagazineClient({ looks, replyTo }: { looks: Array<{ slug: string
     setBusy(true);
     setError(null);
     try {
+      // Join this issue to the share that brought the sender in, when there is one.
+      const { sid, channel } = getShareAttribution();
       const res = await fetch("/api/magazine", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -38,6 +41,7 @@ export function MagazineClient({ looks, replyTo }: { looks: Array<{ slug: string
           lookSlug: lookSlug || undefined,
           replyTo: replyTo || undefined,
           heroFirst,
+          ...(sid ? { shareId: sid, shareChannel: channel } : {}),
         }),
       });
       const data = await res.json().catch(() => ({}));

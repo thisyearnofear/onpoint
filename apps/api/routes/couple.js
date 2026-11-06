@@ -43,11 +43,16 @@ async function resolveItems(db, { lookSlug, listingIds }) {
   };
 }
 
+const PHOTO_BYTES_MAX = 8_000_000; // ~6 MB image as base64 — the 10mb body cap stays the backstop
+
 router.post('/render', async (req, res) => {
   try {
-    const { photoData, lookSlug, listingIds, theme, senderName } = req.body || {};
+    const { photoData, lookSlug, listingIds, theme, senderName, listed, shareId, shareChannel } = req.body || {};
     if (!photoData || !String(photoData).startsWith('data:image/')) {
       return res.status(400).json({ error: 'photoData (data:image/...) required' });
+    }
+    if (String(photoData).length > PHOTO_BYTES_MAX) {
+      return res.status(413).json({ error: 'photo too large — under 6 MB' });
     }
     if (!lookSlug && (!Array.isArray(listingIds) || listingIds.length === 0)) {
       return res.status(400).json({ error: 'lookSlug or listingIds required' });
@@ -65,10 +70,26 @@ router.post('/render', async (req, res) => {
 
     const [card] = await db
       .insert(coupleCards)
-      .values({ r2Key, cardUrl: url, theme: theme || lookTitle || null, senderName: senderName || null, items })
+      .values({
+        r2Key,
+        cardUrl: url,
+        theme: theme || lookTitle || null,
+        senderName: senderName || null,
+        items,
+        // Sender opt-out from the public board; unlisted cards still resolve by link.
+        listed: listed !== false,
+      })
       .returning({ id: coupleCards.id });
 
-    await logFunnelEvent(db, { eventType: 'couple_card_created', source: 'web', metadata: { cardId: card.id } });
+    await logFunnelEvent(db, {
+      eventType: 'couple_card_created',
+      source: 'web',
+      metadata: {
+        cardId: card.id,
+        surface: 'couple',
+        ...(shareId ? { shareId: String(shareId).slice(0, 24), shareChannel: String(shareChannel || 'direct').slice(0, 24) } : {}),
+      },
+    });
     const base = process.env.WEB_BASE_URL || 'https://onpoint.trustfall.xyz';
     res.json({ id: card.id, cardUrl: url, pageUrl: `${base}/c/${card.id}`, items });
   } catch (err) {

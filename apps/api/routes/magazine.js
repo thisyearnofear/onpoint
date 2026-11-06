@@ -51,9 +51,14 @@ async function uploadPhoto(photoData) {
   return r2PublicUrl(key);
 }
 
+const PHOTO_BYTES_MAX = 8_000_000; // ~6 MB image as base64 — the 10mb body cap stays the backstop
+
 router.post('/', async (req, res) => {
   try {
-    const { photoData, recipientName, senderName, note, lookSlug, listingIds, replyTo, heroFirst } = req.body || {};
+    const { photoData, recipientName, senderName, note, lookSlug, listingIds, replyTo, heroFirst, shareId, shareChannel } = req.body || {};
+    if (photoData && String(photoData).length > PHOTO_BYTES_MAX) {
+      return res.status(413).json({ error: 'photo too large — under 6 MB' });
+    }
     const db = getDb();
     const { items, notFound } = await resolveItems(db, { lookSlug, listingIds });
     if (notFound) return res.status(404).json({ error: 'look not found' });
@@ -79,7 +84,16 @@ router.post('/', async (req, res) => {
         heroListingId: heroFirst && items[0] ? items[0].listingId : null,
       })
       .returning({ id: magazines.id });
-    await logFunnelEvent(db, { eventType: 'magazine_created', source: 'web', metadata: { id: row.id, count: items.length } });
+    await logFunnelEvent(db, {
+      eventType: 'magazine_created',
+      source: 'web',
+      metadata: {
+        id: row.id,
+        count: items.length,
+        surface: 'magazine',
+        ...(shareId ? { shareId: String(shareId).slice(0, 24), shareChannel: String(shareChannel || 'direct').slice(0, 24) } : {}),
+      },
+    });
     const base = process.env.WEB_BASE_URL || 'https://onpoint.trustfall.xyz';
     res.json({ id: row.id, url: `${base}/m/${row.id}` });
   } catch (err) {

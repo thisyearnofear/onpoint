@@ -16,9 +16,18 @@ export function ShareArtifact({ title, text, url }: { title: string; text?: stri
     // A fresh id per send: without it, an artifact share is indistinguishable
     // from any other visit when the try-on and order land.
     const mint = (channel: ShareChannel) => withShareParams(base, newShareId(), channel);
+    // Count the share itself — conversions are joined downstream by sid,
+    // but share volume needs its own event to exist in the funnel at all.
+    const log = (channel: ShareChannel) =>
+      fetch("/api/loop/event", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "artifact_shared", meta: { channel, path: url } }),
+      }).catch(() => undefined);
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
         await navigator.share({ title, text, url: mint("native") });
+        void log("native");
         return;
       } catch {
         /* user dismissed or unsupported — fall back to copy */
@@ -28,6 +37,7 @@ export function ShareArtifact({ title, text, url }: { title: string; text?: stri
       await navigator.clipboard.writeText(mint("copy"));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+      void log("copy");
     } catch {
       /* clipboard unavailable */
     }

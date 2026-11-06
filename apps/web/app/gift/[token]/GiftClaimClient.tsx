@@ -19,7 +19,7 @@ export function GiftClaimClient({ token }: { token: string }) {
       const res = await fetch(`/api/gift/${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address, size: size || undefined }),
+        body: JSON.stringify({ address, name: name || undefined, size: size || undefined }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Claim failed");

@@ -2,6 +2,7 @@
 
 import React, { useRef, useState } from "react";
 import { Camera, Loader2 } from "lucide-react";
+import { getShareAttribution } from "@/lib/utils/share-attribution";
 
 interface LookOption {
   slug: string;
@@ -17,6 +18,7 @@ export function CoupleClient({ looks }: { looks: LookOption[] }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ cardUrl: string; pageUrl: string } | null>(null);
+  const [listed, setListed] = useState(true);
 
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -31,10 +33,20 @@ export function CoupleClient({ looks }: { looks: LookOption[] }) {
     setBusy(true);
     setError(null);
     try {
+      // If this session arrived via a shared artifact, join the new card to
+      // that share — otherwise the viral edge is invisible in the funnel.
+      const { sid, channel } = getShareAttribution();
       const res = await fetch("/api/couple/render", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ photoData, lookSlug, theme: theme || undefined, senderName: senderName || undefined }),
+        body: JSON.stringify({
+          photoData,
+          lookSlug,
+          theme: theme || undefined,
+          senderName: senderName || undefined,
+          listed,
+          ...(sid ? { shareId: sid, shareChannel: channel } : {}),
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Render failed");
@@ -90,6 +102,10 @@ export function CoupleClient({ looks }: { looks: LookOption[] }) {
               placeholder="Your name — shown as styled by (optional)"
               className="w-full border border-border bg-background px-4 py-3 text-sm outline-none focus:border-foreground"
             />
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              <input type="checkbox" checked={listed} onChange={(e) => setListed(e.target.checked)} className="h-4 w-4 accent-primary" />
+              Show on the public board — untick to keep it between you two
+            </label>
           </div>
           <div className="mt-4 flex justify-center gap-3">
             <button

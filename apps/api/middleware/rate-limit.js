@@ -46,6 +46,14 @@ const TIERS = {
     windowMs: 86_400_000,
     prefix: 'ai-analysis-daily',
   },
+  // Unauthenticated artifact creation (couple card, magazine): photo → R2 +
+  // DB row per call. No AI cost, but storage spam is still a cost vector.
+  artifactIngest: { maxRequests: 15, windowMs: 60_000, prefix: 'artifact-ingest' },
+  artifactIngestDaily: {
+    maxRequests: 60,
+    windowMs: 86_400_000,
+    prefix: 'artifact-ingest-daily',
+  },
 };
 
 // ── Factory: create rate limit middleware ──
