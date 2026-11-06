@@ -34,6 +34,10 @@ function getRedis() {
     _redis.on('error', () => {
       // Silent: Redis is best-effort for rate limiting and caching.
     });
+    // lazyConnect + no offline queue means a first command fired while
+    // 'wait' rejects instantly — start the handshake at construction so
+    // the cold-start window is boot-time only, not first-call-per-process.
+    _redis.connect().catch(() => {});
   } catch {
     _initFailed = true;
     return null;
