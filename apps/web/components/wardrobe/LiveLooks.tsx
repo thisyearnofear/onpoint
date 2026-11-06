@@ -60,6 +60,7 @@ export function LiveLooks({ filters, onFiltersChange }: LiveLooksProps) {
   const [looks, setLooks] = useState<LookCardData[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "failed">("loading");
   const [attempt, setAttempt] = useState(0);
+  const [showFilters, setShowFilters] = useState(false);
   const query = looksQuery(filters);
 
   useEffect(() => {
@@ -105,10 +106,24 @@ export function LiveLooks({ filters, onFiltersChange }: LiveLooksProps) {
       </p>
 
       <div className="mt-4 flex flex-col gap-2">
-        <FilterRow label="Sort" options={[...SORT_OPTIONS]} value={filters.sort} onSelect={(v) => select("sort", v)} />
-        <FilterRow label="Vibe" options={VIBES} value={filters.category} onSelect={(v) => select("category", v)} />
-        <FilterRow label="Occasion" options={OCCASIONS} value={filters.occasion} onSelect={(v) => select("occasion", v)} />
-        <FilterRow label="Season" options={SEASONS} value={filters.season} onSelect={(v) => select("season", v)} />
+        <div className="flex flex-wrap items-center gap-2">
+          <FilterRow label="Sort" options={[...SORT_OPTIONS]} value={filters.sort} onSelect={(v) => select("sort", v)} />
+          <button
+            type="button"
+            className={showFilters ? chipActive : chipIdle}
+            aria-expanded={showFilters}
+            onClick={() => setShowFilters((s) => !s)}
+          >
+            Filters{hasActiveLooksFilters(filters) ? " · on" : ""}
+          </button>
+        </div>
+        {showFilters && (
+          <>
+            <FilterRow label="Vibe" options={VIBES} value={filters.category} onSelect={(v) => select("category", v)} />
+            <FilterRow label="Occasion" options={OCCASIONS} value={filters.occasion} onSelect={(v) => select("occasion", v)} />
+            <FilterRow label="Season" options={SEASONS} value={filters.season} onSelect={(v) => select("season", v)} />
+          </>
+        )}
         {filters.curator && (
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-border px-3 text-sm">
@@ -198,9 +213,11 @@ export function LiveLooks({ filters, onFiltersChange }: LiveLooksProps) {
 
       {state === "ready" && looks.length > 0 && (
         <div className={`${GRID} mt-6`}>
-          {looks.map((look) => (
-            <LookCard key={look.id} look={look} />
-          ))}
+          {looks
+            .filter((l, i, a) => a.findIndex((x) => (x.title || "") === (l.title || "")) === i)
+            .map((look) => (
+              <LookCard key={look.id} look={look} />
+            ))}
         </div>
       )}
     </section>

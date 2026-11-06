@@ -140,9 +140,8 @@ export default async function LookPage({
           theme: typeof sp.theme === "string" ? RUNWAY_THEME_NAMES[sp.theme] : undefined,
         }
       : null;
-  const agentShort = look.agentAddress
-    ? `${look.agentAddress.slice(0, 6)}…${look.agentAddress.slice(-4)}`
-    : "unknown";
+  // Humans don't read hex — the wallet is attribution plumbing, not a name.
+  const agentShort = "an AI stylist";
 
   const heroImageSources = [
     look.collageUrl,
@@ -236,30 +235,32 @@ export default async function LookPage({
           </div>
         </div>
 
-        {/* Stats bar — subtle, below the image */}
-        <div className="mb-8 flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5">
-            Styled by{" "}
-            <span className="font-mono font-medium text-foreground">
-              {agentShort}
+        {/* Stats bar — only when there's real activity to show */}
+        {look.tryOnCount + look.purchaseCount + look.shareCount > 0 && (
+          <div className="mb-8 flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5">
+              Styled by{" "}
+              <span className="font-medium text-foreground">
+                {agentShort}
+              </span>
             </span>
-          </span>
-          <span className="text-border">·</span>
-          <span className="inline-flex items-center gap-1.5">
-            <Eye className="h-4 w-4" />
-            {look.tryOnCount} try-ons
-          </span>
-          <span className="text-border">·</span>
-          <span className="inline-flex items-center gap-1.5">
-            <TrendingUp className="h-4 w-4" />
-            {look.purchaseCount} purchases
-          </span>
-          <span className="text-border">·</span>
-          <span className="inline-flex items-center gap-1.5">
-            <Share2 className="h-4 w-4" />
-            {look.shareCount} shares
-          </span>
-        </div>
+            <span className="text-border">·</span>
+            <span className="inline-flex items-center gap-1.5">
+              <Eye className="h-4 w-4" />
+              {look.tryOnCount} try-ons
+            </span>
+            <span className="text-border">·</span>
+            <span className="inline-flex items-center gap-1.5">
+              <TrendingUp className="h-4 w-4" />
+              {look.purchaseCount} purchases
+            </span>
+            <span className="text-border">·</span>
+            <span className="inline-flex items-center gap-1.5">
+              <Share2 className="h-4 w-4" />
+              {look.shareCount} shares
+            </span>
+          </div>
+        )}
 
         {/* Try-on CTA — prominent and action-oriented */}
         {heroItem && (
