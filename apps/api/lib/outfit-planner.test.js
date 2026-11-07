@@ -165,4 +165,17 @@ describe('planOutfits', () => {
     expect(looks).toHaveLength(1);
     expect(looks[0].items.map((i) => i.listingId)).toEqual(['tee-1', 'jeans-1']);
   });
+
+  it('mixes free closet pieces with live listings', () => {
+    const closetTop = {
+      listingId: 'closet-0', curatorSlug: 'closet', title: 'My tee', imageUrl: null,
+      priceCusd: 0, orderEndpoint: null, source: 'closet',
+      attributes: { type: 'top', formality: 'casual', warmth: null, colors: ['white'] },
+    };
+    const { looks } = planOutfits({ listings: [closetTop, casualBottom], brief: {} });
+    expect(looks).toHaveLength(1);
+    const closet = looks[0].items.find((i) => i.listingId === 'closet-0');
+    expect(closet).toMatchObject({ source: 'closet', priceCusd: 0, orderEndpoint: null });
+    expect(looks[0].totalCusd).toBe(casualBottom.priceCusd);
+  });
 });

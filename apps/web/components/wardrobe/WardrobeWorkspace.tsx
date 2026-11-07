@@ -14,6 +14,7 @@ import {
 } from "../../lib/wardrobe-studio";
 import { useStyleHearts } from "../../lib/stores/style-board-hearts";
 import { LiveLooks } from "./LiveLooks";
+import { ClosetSection } from "./ClosetSection";
 import {
   DEFAULT_LIVE_LOOKS_FILTERS,
   readLiveLooksFilters,
@@ -505,7 +506,8 @@ export function WardrobeWorkspace() {
               </div>
             ) : (
               <>
-                <div className={styles.searchRow}>
+                <ClosetSection />
+                <div className={styles.searchRow} style={{ marginTop: 20 }}>
                   <label className="sr-only" htmlFor="studio-search">Search pieces</label>
                   <input
                     id="studio-search"

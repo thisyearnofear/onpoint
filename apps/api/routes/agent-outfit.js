@@ -7,7 +7,9 @@
  * lib/outfit-planner.js (no LLM).
  *
  * Body: { occasion?, season?, weather?: {tempC?, rain?}, budgetCusd?,
- *         preferredListingId?, maxLooks? (default 3, cap 5), curatorSlug? }
+ *         preferredListingId?, maxLooks? (default 3, cap 5), curatorSlug?,
+ *         closetItems?: [{title, type, formality?, warmth?, colors?}] (max 3,
+ *           metadata only — mixed in as free, non-orderable candidates) }
  */
 
 const express = require('express');
@@ -23,13 +25,15 @@ const { planOutfits } = require('../lib/outfit-planner');
 const router = express.Router();
 
 const MAX_LOOKS_CAP = 5;
+const MAX_CLOSET_ITEMS = 3;
+const CLOSET_TYPES = new Set(['top', 'bottom', 'dress', 'outerwear', 'footwear', 'accessory']);
 
 function validateBrief(body) {
   const errors = [];
   if (body == null || typeof body !== 'object' || Array.isArray(body)) {
     return { errors: ['Body must be a JSON object'] };
   }
-  const { occasion, season, weather, budgetCusd, preferredListingId, maxLooks, curatorSlug } = body;
+  const { occasion, season, weather, budgetCusd, preferredListingId, maxLooks, curatorSlug, closetItems } = body;
 
   if (occasion !== undefined && typeof occasion !== 'string') errors.push('occasion must be a string');
   if (season !== undefined && typeof season !== 'string') errors.push('season must be a string');
@@ -56,6 +60,39 @@ function validateBrief(body) {
   }
   if (curatorSlug !== undefined && (typeof curatorSlug !== 'string' || !isValidSlug(curatorSlug))) {
     errors.push('curatorSlug must be a valid slug');
+  }
+  // On-device closet metadata (no photo bytes — images never leave the device).
+  // Each item: { title?, type (required), formality?, warmth?, colors? }.
+  if (closetItems !== undefined) {
+    if (!Array.isArray(closetItems)) {
+      errors.push('closetItems must be an array');
+    } else {
+      if (closetItems.length > MAX_CLOSET_ITEMS) {
+        errors.push(`closetItems accepts at most ${MAX_CLOSET_ITEMS} items`);
+      }
+      closetItems.forEach((item, i) => {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) {
+          errors.push(`closetItems[${i}] must be an object`);
+          return;
+        }
+        if (item.title !== undefined && typeof item.title !== 'string') {
+          errors.push(`closetItems[${i}].title must be a string`);
+        }
+        if (typeof item.type !== 'string' || !CLOSET_TYPES.has(item.type.trim().toLowerCase())) {
+          errors.push(`closetItems[${i}].type must be one of ${[...CLOSET_TYPES].join(', ')}`);
+        }
+        for (const field of ['formality', 'warmth']) {
+          if (item[field] !== undefined && typeof item[field] !== 'string') {
+            errors.push(`closetItems[${i}].${field} must be a string`);
+          }
+        }
+        if (item.colors !== undefined) {
+          if (!Array.isArray(item.colors) || !item.colors.every((c) => typeof c === 'string')) {
+            errors.push(`closetItems[${i}].colors must be an array of strings`);
+          }
+        }
+      });
+    }
   }
   return { errors };
 }
@@ -98,6 +135,26 @@ async function loadPurchasableListings(db, curatorSlug) {
   return candidates;
 }
 
+/** Client-supplied closet metadata → planner candidates (free, not orderable). */
+function closetToCandidates(closetItems) {
+  if (!Array.isArray(closetItems)) return [];
+  return closetItems.slice(0, MAX_CLOSET_ITEMS).map((item, i) => ({
+    listingId: `closet-${i}`,
+    curatorSlug: 'closet',
+    title: (typeof item.title === 'string' && item.title.trim()) || `My piece ${i + 1}`,
+    attributes: {
+      type: String(item.type).trim().toLowerCase(),
+      formality: typeof item.formality === 'string' && item.formality.trim() ? item.formality.trim().toLowerCase() : null,
+      warmth: typeof item.warmth === 'string' && item.warmth.trim() ? item.warmth.trim().toLowerCase() : null,
+      colors: Array.isArray(item.colors) ? item.colors.filter((c) => typeof c === 'string').map((c) => c.trim().toLowerCase()).filter(Boolean).slice(0, 3) : [],
+    },
+    imageUrl: null,
+    priceCusd: 0,
+    orderEndpoint: null,
+    source: 'closet',
+  }));
+}
+
 router.post('/', async (req, res) => {
   const { errors } = validateBrief(req.body);
   if (errors.length > 0) {
@@ -113,6 +170,7 @@ router.post('/', async (req, res) => {
     maxLooks: req.body?.maxLooks,
     curatorSlug: req.body?.curatorSlug,
   };
+  const closetCandidates = closetToCandidates(req.body?.closetItems);
 
   let db;
   try {
@@ -123,13 +181,16 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    const candidates = await loadPurchasableListings(db, brief.curatorSlug);
+    const live = await loadPurchasableListings(db, brief.curatorSlug);
+    // Closet first: deterministic ordering prefers free, already-owned pieces.
+    const candidates = [...closetCandidates, ...live];
     const { looks } = planOutfits({ listings: candidates, brief });
 
     res.json({
       looks,
       meta: {
-        candidateCount: candidates.length,
+        candidateCount: live.length,
+        closetCount: closetCandidates.length,
         generatedAt: new Date().toISOString(),
       },
       nextSteps: {
@@ -145,4 +206,4 @@ router.post('/', async (req, res) => {
 });
 
 module.exports = router;
-module.exports.__test = { validateBrief, loadPurchasableListings };
+module.exports.__test = { validateBrief, loadPurchasableListings, closetToCandidates };

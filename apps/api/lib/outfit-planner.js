@@ -212,7 +212,8 @@ function buildLook(items, brief, targets, climate) {
       attributes: item.attributes || null,
       imageUrl: item.imageUrl || null,
       priceCusd: item.priceCusd ?? null,
-      orderEndpoint: item.orderEndpoint || `/api/curator/${item.curatorSlug}/order`,
+      orderEndpoint: item.source === 'closet' ? null : (item.orderEndpoint || `/api/curator/${item.curatorSlug}/order`),
+      source: item.source || 'listing',
     })),
     totalCusd: totalCusd(items),
     score,
@@ -239,7 +240,11 @@ function planOutfits({ listings = [], brief = {} } = {}) {
   const bySlot = { top: [], bottom: [], dress: [], outerwear: [], footwear: [], accessory: [] };
   for (const listing of listings) {
     const slot = slotOf(listing);
-    if (slot && Number(listing.priceCusd) > 0) bySlot[slot].push(listing);
+    // Closet items are free (price 0) and stay on-device; only their metadata
+    // reaches the planner. Live listings must still be positively priced.
+    const isCloset = listing?.source === 'closet';
+    const price = Number(listing.priceCusd);
+    if (slot && (price > 0 || (isCloset && price >= 0))) bySlot[slot].push(listing);
   }
   // Deterministic candidate ordering
   for (const list of Object.values(bySlot)) {

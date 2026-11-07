@@ -190,10 +190,15 @@ POST /api/agent/outfit
 { "occasion": "formal", "season": "winter",
   "weather": { "tempC": 5, "rain": false },
   "budgetCusd": 25, "preferredListingId": "uuid",
-  "maxLooks": 3, "curatorSlug": "nia" }   // all fields optional; maxLooks caps at 5
+  "maxLooks": 3, "curatorSlug": "nia",
+  "closetItems": [{ "title": "My tee", "type": "top",
+    "formality": "casual", "warmth": "light",
+    "colors": ["white"] }] }   // all fields optional; maxLooks caps at 5
 ```
 
-Response: `{ looks: [{ title, items: [{ listingId, curatorSlug, title, slot, attributes, imageUrl, priceCusd, orderEndpoint }], totalCusd, score, why }], nextSteps: { tryOn, createLook, order } }`. Cross-curator combos are allowed; each item carries its own `orderEndpoint`. Empty `looks` means inventory couldn't support the brief.
+`closetItems` (max 3, metadata only — never photo bytes) mixes caller-owned pieces into the plan as free, non-orderable candidates (`source: "closet"`, `orderEndpoint: null`, excluded from `totalCusd`). Use it to style around what the user already owns.
+
+Response: `{ looks: [{ title, items: [{ listingId, curatorSlug, title, slot, attributes, imageUrl, priceCusd, orderEndpoint, source? }], totalCusd, score, why }], nextSteps: { tryOn, createLook, order } }`. Cross-curator combos are allowed; each item carries its own `orderEndpoint`. Empty `looks` means inventory couldn't support the brief.
 
 ### SDK Helpers
 

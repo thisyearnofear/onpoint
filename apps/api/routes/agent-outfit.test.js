@@ -4,7 +4,7 @@ import express from 'express';
 
 const require = createRequire(import.meta.url);
 const router = require('./agent-outfit');
-const { validateBrief } = router.__test;
+const { validateBrief, closetToCandidates } = router.__test;
 
 const app = express();
 app.use(express.json());
@@ -51,6 +51,31 @@ describe('validateBrief', () => {
     expect(validateBrief({ weather: { rain: 'yes' } }).errors.length).toBeGreaterThan(0);
     expect(validateBrief({ curatorSlug: 'BAD SLUG!' }).errors.length).toBeGreaterThan(0);
     expect(validateBrief({ occasion: 42 }).errors.length).toBeGreaterThan(0);
+  });
+
+  it('accepts closet metadata and rejects over-limit or untyped closets', () => {
+    expect(validateBrief({
+      occasion: 'casual',
+      closetItems: [{ title: 'My tee', type: 'top', formality: 'casual', colors: ['white'] }],
+    }).errors).toEqual([]);
+    expect(validateBrief({ closetItems: 'nope' }).errors.length).toBeGreaterThan(0);
+    expect(validateBrief({
+      closetItems: [
+        { type: 'top' }, { type: 'bottom' }, { type: 'dress' }, { type: 'top' },
+      ],
+    }).errors.length).toBeGreaterThan(0);
+    expect(validateBrief({ closetItems: [{ title: 'Mystery' }] }).errors.length).toBeGreaterThan(0);
+    expect(validateBrief({ closetItems: [{ type: 'hat' }] }).errors.length).toBeGreaterThan(0);
+  });
+
+  it('maps closet metadata to free, non-orderable candidates', () => {
+    const out = closetToCandidates([{ title: 'My tee', type: 'Top', colors: ['White', 'blue'] }]);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({
+      listingId: 'closet-0', curatorSlug: 'closet', source: 'closet', priceCusd: 0, orderEndpoint: null,
+    });
+    expect(out[0].attributes).toMatchObject({ type: 'top', colors: ['white', 'blue'] });
+    expect(closetToCandidates(undefined)).toEqual([]);
   });
 });
 
