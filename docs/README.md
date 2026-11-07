@@ -63,6 +63,7 @@ Not for external consumers.
 
 Historical technical decisions. Immutable — new decisions get new ADRs. Current product phase is owned by STRATEGY.md and FEATURES.md; these records explain why.
 
+- [0029](./adr/0029-lookbook-spread-primitive-and-user-hero-results.md) — results become a lookbook issue: user photo is the cover, products are marginalia; `components/lookbook/` spread primitive generalizes the `/m/[id]` flipbook
 - [0028](./adr/0028-navigation-consolidation-places-not-flows.md) — nav is three places and one footer; purchase, styling and saved renders become actions on an artifact (supersedes 0022 §4a and 0023 §3, navigation clauses only)
 - [0027](./adr/0027-frontend-design-system-consolidation.md) — one design system, honest metrics, non-async root layout; renumbered 2026-11-06 from a second file committed under 0024
 - [0026](./adr/0026-couple-styling-loop.md) — couple styling loop on existing rails

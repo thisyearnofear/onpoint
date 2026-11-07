@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useCallback } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import {
@@ -109,6 +110,14 @@ const TRY_ON_WAIT_LINES = [
   "If this runs long, you can retry or pick a different garment.",
 ];
 
+// The signature edge (ADR 0029): when a render replaces the wait, it arrives
+// along a torn-magazine contour — never a straight wipe. Two clip-paths with
+// identical vertex counts so framer-motion can tween the leading edge.
+const EDGE_HIDDEN =
+  "polygon(0% 0%, 0% 0%, 0% 7%, 0% 13%, 0% 19%, 0% 26%, 0% 33%, 0% 40%, 0% 47%, 0% 54%, 0% 61%, 0% 68%, 0% 75%, 0% 82%, 0% 89%, 0% 95%, 0% 100%, 0% 100%)";
+const EDGE_REVEALED =
+  "polygon(0% 0%, 100% 0%, 100% 7%, 94% 13%, 100% 19%, 96% 26%, 100% 33%, 95% 40%, 100% 47%, 97% 54%, 100% 61%, 94% 68%, 100% 75%, 96% 82%, 100% 89%, 93% 95%, 100% 100%, 0% 100%)";
+
 export function TryOnResult({
   result,
   loading = false,
@@ -125,6 +134,7 @@ export function TryOnResult({
   const [sendFailed, setSendFailed] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
   const compareStartRef = useRef<number | null>(null);
+  const reduceMotion = useReducedMotion();
 
   // Map action type to icon
   const actionIcon = (type: string) => {
@@ -279,7 +289,13 @@ export function TryOnResult({
                 tauSeconds={50}
               />
             ) : image ? (
-              <>
+              <motion.div
+                key={imageSrc}
+                className="absolute inset-0"
+                initial={reduceMotion ? false : { clipPath: EDGE_HIDDEN }}
+                animate={{ clipPath: EDGE_REVEALED }}
+                transition={reduceMotion ? { duration: 0 } : { duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+              >
                 <SafeImage
                   sources={[
                     showOriginal && originalPhotoUrl ? originalPhotoUrl : imageSrc,
@@ -338,7 +354,7 @@ export function TryOnResult({
                     {showOriginal ? "Original" : "Hold to compare"}
                   </button>
                 )}
-              </>
+              </motion.div>
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <div className="text-center">

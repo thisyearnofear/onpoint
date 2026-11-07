@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from "react";
 import { Button } from "@repo/ui/button";
-import { Camera, Palette, Ruler, ShieldCheck, Sparkles, Wand2, Gift } from "lucide-react";
+import { Camera, ChevronDown, Palette, Ruler, ShieldCheck, Sparkles, Wand2, Gift } from "lucide-react";
 import dynamic from "next/dynamic";
 // framer-motion removed — using CSS transitions instead
 import { useVirtualTryOn } from "@repo/ai-client";
@@ -938,15 +938,28 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                           selectedGarment={selectedGarment}
                           onCritiqueModeSelection={() => setShowPersonalitySelection(true)}
                           onShopRecommendations={handleShopRecommendations}
-                          preferences={preferences}
-                        />
-                        <GarmentPicker
-                          garmentOptions={garmentOptions}
-                          selectedGarmentKey={selectedGarmentKey}
-                          onSelectGarment={selectGarment}
                           onGenerateTryOn={handleGenerateTryOn}
                           tryOnLoading={tryOnLoading}
+                          preferences={preferences}
                         />
+                        {/* The catalog is the swap drawer, not the page — the
+                            issue above is the result; this is how you change
+                            the piece. */}
+                        <details className="group mt-3 border border-border bg-card">
+                          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-bold text-foreground [&::-webkit-details-marker]:hidden">
+                            Not these pieces? Swap from the catalog
+                            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+                          </summary>
+                          <div className="border-t border-border p-3">
+                            <GarmentPicker
+                              garmentOptions={garmentOptions}
+                              selectedGarmentKey={selectedGarmentKey}
+                              onSelectGarment={selectGarment}
+                              onGenerateTryOn={handleGenerateTryOn}
+                              tryOnLoading={tryOnLoading}
+                            />
+                          </div>
+                        </details>
                       </div>
                     )}
 

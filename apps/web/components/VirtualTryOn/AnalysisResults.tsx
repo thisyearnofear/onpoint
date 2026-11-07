@@ -7,6 +7,8 @@ import {
   Image as ImageIcon,
   MessageCircle,
   Send,
+  Shirt,
+  Sparkles,
   User,
 } from "lucide-react";
 import type { StylistPersona, VirtualTryOnAnalysis } from "@repo/ai-client";
@@ -15,6 +17,9 @@ import { AnalysisSkeleton } from "./AnalysisSkeleton";
 import { useAnalysisHistory } from "../../lib/stores/analysis-history-store";
 import { StyleReportCard } from "./StyleReportCard";
 import { SafeImage } from "../SafeImage";
+import { Lookbook, Cover, Spread, BackPage } from "../lookbook";
+import type { LookbookPage } from "../lookbook";
+import { Busy } from "../state";
 import {
   trackLookSaved,
   trackStyleCardOpened,
@@ -27,6 +32,8 @@ interface AnalysisResultsProps {
   selectedGarment?: TryOnSelection | null;
   onCritiqueModeSelection?: () => void;
   onShopRecommendations?: () => void;
+  onGenerateTryOn?: () => void;
+  tryOnLoading?: boolean;
   preferences?: any;
 }
 
@@ -50,10 +57,13 @@ function selectPersona(analysis: VirtualTryOnAnalysis): StylistPersona {
 }
 
 /**
- * The post-upload read. One photo, one fit line, two notes, one action row.
+ * The post-upload read, composed as a lookbook issue: the photo is the
+ * cover (object-contain — the person is never cropped), the fit read and
+ * notes are interior spreads, the picked piece gets its own plate, and the
+ * last page carries the next loop (try-on, save, share, critique, shop).
  * The persona quote, measurement tiles and accordion insight cards were
  * ceremony around the same three facts — the style card modal carries the
- * shareable artifact, the garment picker below carries the try-on action.
+ * shareable artifact.
  */
 export function AnalysisResults({
   analysis,
@@ -61,6 +71,8 @@ export function AnalysisResults({
   selectedGarment,
   onCritiqueModeSelection,
   onShopRecommendations,
+  onGenerateTryOn,
+  tryOnLoading = false,
   preferences,
 }: AnalysisResultsProps) {
   const [showLoading, setShowLoading] = React.useState(true);
@@ -240,78 +252,144 @@ export function AnalysisResults({
     }
   });
 
-  return (
-    <section className="border border-border bg-card">
-      {/* The photo — first, full width, nothing overlaid */}
-      <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted sm:aspect-auto sm:h-[480px]">
-        {previewUrl ? (
-          <SafeImage
-            sources={[previewUrl]}
-            alt="Your analyzed look"
-            fill
-            unoptimized
-            className="object-cover"
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <User className="h-16 w-16 text-muted-foreground/40" />
+  // The issue: cover (the person, uncropped) → the read → the piece →
+  // the last page (the next loop). Products are marginalia, never the page.
+  const pages: LookbookPage[] = [
+    {
+      key: "cover",
+      label: "Cover",
+      node: (
+        <Cover
+          eyebrow="Your issue"
+          title={currentLook[0] || "Your fit read."}
+          byline={`${bodyType}${measurementsLine ? ` · ${measurementsLine}` : ""}`}
+        >
+          <div className="flex h-full w-full items-center justify-center">
+            {previewUrl ? (
+              <div className="relative h-full max-h-full w-full">
+                <SafeImage
+                  sources={[previewUrl]}
+                  alt="Your photo — the cover of this issue"
+                  fill
+                  unoptimized
+                  className="object-contain"
+                />
+              </div>
+            ) : (
+              <div className="flex h-full w-full items-center justify-center border border-border bg-muted/40">
+                <User className="h-16 w-16 text-muted-foreground/40" />
+              </div>
+            )}
           </div>
-        )}
-      </div>
-
-      <div className="space-y-4 p-4 sm:p-5">
-        {/* The read — headline + one quiet profile line */}
-        <div>
-          <h3 className="font-display text-2xl leading-[1.1] tracking-[-0.02em]">
-            {currentLook[0] || "Your fit read."}
-          </h3>
-          <p className="mt-2 font-mono text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
-            {bodyType}
-            {measurementsLine ? ` · ${measurementsLine}` : ""}
-          </p>
-          {currentLook[1] && (
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              {currentLook[1]}
-            </p>
-          )}
-        </div>
-
-        {/* Two notes, flat — no accordion, no tone boxes */}
-        {notes.length > 0 && (
-          <ul className="space-y-2 border-t border-border/60 pt-4">
-            {notes.map((note, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm leading-relaxed text-foreground/80">
-                <Check className="mt-1 h-3.5 w-3.5 shrink-0 text-primary" />
-                <span>{note}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {/* Curator handoff — one row, only when a piece is in play */}
-        {selectedGarment?.name && (
-          <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-4">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-foreground">{selectedGarment.name}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Confirm fit &amp; stock with {curatorName}
+        </Cover>
+      ),
+    },
+    {
+      key: "read",
+      label: "The read",
+      node: (
+        <Spread eyebrow="The read">
+          <div className="space-y-4 overflow-y-auto">
+            {currentLook.slice(1).map((line, i) => (
+              <p key={i} className="font-display text-lg italic leading-snug text-foreground/85">
+                {line}
               </p>
-            </div>
-            <a
-              href={curatorHref}
-              onClick={captureCuratorLead}
-              target={curatorHref.startsWith("http") ? "_blank" : undefined}
-              rel={curatorHref.startsWith("http") ? "noopener noreferrer" : undefined}
-              className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 text-xs font-bold text-primary-foreground hover:bg-primary/90"
-            >
-              <Send className="h-3.5 w-3.5" />
-              Send brief
-            </a>
+            ))}
+            {notes.length > 0 && (
+              <ul className="space-y-2 border-t border-border/60 pt-4">
+                {notes.map((note, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm leading-relaxed text-foreground/80">
+                    <Check className="mt-1 h-3.5 w-3.5 shrink-0 text-primary" />
+                    <span>{note}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-        )}
+        </Spread>
+      ),
+    },
+  ];
 
-        {/* Actions — save and the shareable card; exits on the right */}
-        <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-4">
+  if (selectedGarment?.name) {
+    pages.push({
+      key: "piece",
+      label: "The piece",
+      node: (
+        <Spread eyebrow="The piece">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+            <div className="relative mx-auto aspect-square w-full max-w-[240px] overflow-hidden border border-border bg-muted/40">
+              {selectedGarment.imageUrl ? (
+                <SafeImage
+                  sources={[selectedGarment.imageUrl]}
+                  alt={selectedGarment.name}
+                  fill
+                  unoptimized
+                  className="object-contain"
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center">
+                  <Shirt className="h-10 w-10 text-muted-foreground/40" />
+                </div>
+              )}
+            </div>
+            <div className="text-center">
+              <p className="font-display text-xl leading-tight">{selectedGarment.name}</p>
+              {selectedGarment.description && (
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  {selectedGarment.description}
+                </p>
+              )}
+            </div>
+            <div className="mt-auto border-t border-border/60 pt-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-muted-foreground">
+                  Confirm fit &amp; stock with {curatorName}
+                </p>
+                <a
+                  href={curatorHref}
+                  onClick={captureCuratorLead}
+                  target={curatorHref.startsWith("http") ? "_blank" : undefined}
+                  rel={curatorHref.startsWith("http") ? "noopener noreferrer" : undefined}
+                  className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 text-xs font-bold text-primary-foreground hover:bg-primary/90"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  Send brief
+                </a>
+              </div>
+            </div>
+          </div>
+        </Spread>
+      ),
+    });
+  }
+
+  pages.push({
+    key: "back",
+    label: "The last page",
+    node: (
+      <BackPage eyebrow="The last page">
+        {onGenerateTryOn && (
+          <button
+            type="button"
+            onClick={onGenerateTryOn}
+            disabled={tryOnLoading || !selectedGarment}
+            className="inline-flex min-h-12 w-full max-w-xs items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {tryOnLoading ? (
+              <Busy label="Generating try-on" tone="inverse" />
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                Generate AI Try-On
+              </>
+            )}
+          </button>
+        )}
+        {!selectedGarment && onGenerateTryOn && (
+          <p className="text-xs text-muted-foreground">Pick a piece first — swap below.</p>
+        )}
+        <div className="flex flex-wrap items-center justify-center gap-2">
           <button
             type="button"
             onClick={handleSaveLook}
@@ -352,27 +430,33 @@ export function AnalysisResults({
               Share to community
             </label>
           )}
-          <div className="ml-auto flex items-center gap-4 text-xs font-bold text-muted-foreground">
-            {onCritiqueModeSelection && (
-              <button
-                type="button"
-                onClick={onCritiqueModeSelection}
-                className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
-              >
-                <MessageCircle className="h-3.5 w-3.5" />
-                Critique
-              </button>
-            )}
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-bold text-muted-foreground">
+          {onCritiqueModeSelection && (
             <button
               type="button"
-              onClick={shopRecommendations}
-              className="transition-colors hover:text-foreground"
+              onClick={onCritiqueModeSelection}
+              className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
             >
-              Shop the edit →
+              <MessageCircle className="h-3.5 w-3.5" />
+              Critique
             </button>
-          </div>
+          )}
+          <button
+            type="button"
+            onClick={shopRecommendations}
+            className="transition-colors hover:text-foreground"
+          >
+            Shop the edit →
+          </button>
         </div>
-      </div>
+      </BackPage>
+    ),
+  });
+
+  return (
+    <>
+      <Lookbook pages={pages} widthClassName="max-w-lg" />
 
       {/* Style Report Card modal — the shareable artifact lives here */}
       {showStyleCard && (
@@ -386,6 +470,6 @@ export function AnalysisResults({
           onClose={() => setShowStyleCard(false)}
         />
       )}
-    </section>
+    </>
   );
 }
