@@ -33,6 +33,16 @@ export function useToast() {
   return ctx;
 }
 
+/**
+ * Lenient toast for deeply embedded components (e.g. studio cards rendered
+ * in tests or outside the provider): degrades to a no-op instead of
+ * throwing. Prefer useToast wherever the provider is guaranteed.
+ */
+export function useToastOptional(): ToastContextValue {
+  const ctx = useContext(ToastContext);
+  return ctx ?? { toast: () => {} };
+}
+
 const ICONS: Record<ToastType, React.ReactNode> = {
   success: <CheckCircle className="h-5 w-5 text-green-500" />,
   error: <AlertCircle className="h-5 w-5 text-destructive" />,

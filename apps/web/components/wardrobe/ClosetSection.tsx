@@ -2,7 +2,11 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { Shirt } from "lucide-react";
+import { Button } from "@repo/ui/button";
 import { Lookbook, Cover, Spread, BackPage, type LookbookPage } from "../lookbook";
+import { EmptyState, ErrorState, StagedWait } from "../state";
+import { useToastOptional } from "../toast";
 import { getApiBase } from "../../lib/utils/api-base";
 import {
   CLOSET_FORMALITY,
@@ -57,6 +61,8 @@ export function ClosetSection() {
   const [state, setState] = useState<"idle" | "planning" | "ready" | "failed">("idle");
   const [status, setStatus] = useState("");
   const [dragging, setDragging] = useState(false);
+  const [showWait, setShowWait] = useState(false);
+  const { toast } = useToastOptional();
   const fileRef = useRef<HTMLInputElement | null>(null);
   const resultsRef = useRef<HTMLDivElement | null>(null);
   const pendingRef = useRef<ClosetItem[] | null>(null);
@@ -126,9 +132,12 @@ export function ClosetSection() {
       return;
     }
     setState("planning");
+    setShowWait(false);
     setStatus("Styling your pieces against live inventory…");
     const ctrl = new AbortController();
     const timeout = window.setTimeout(() => ctrl.abort(), 45000);
+    // The planner is usually fast — only stage the wait UI if it lingers.
+    const waitTimer = window.setTimeout(() => setShowWait(true), 1200);
     try {
       const res = await fetch(`${getApiBase()}/api/agent/outfit`, {
         method: "POST",
@@ -137,6 +146,8 @@ export function ClosetSection() {
         signal: ctrl.signal,
       });
       window.clearTimeout(timeout);
+      window.clearTimeout(waitTimer);
+      setShowWait(false);
       if (!res.ok) throw new Error(String(res.status));
       const data = (await res.json()) as { looks?: PlannedLook[] };
       setLooks(data.looks || []);
@@ -155,8 +166,9 @@ export function ClosetSection() {
       }
     } catch {
       window.clearTimeout(timeout);
+      window.clearTimeout(waitTimer);
+      setShowWait(false);
       setState("failed");
-      setStatus("Planning failed — check your connection and try again.");
     }
   };
 
@@ -175,16 +187,15 @@ export function ClosetSection() {
     try {
       if (typeof navigator.share === "function") {
         await navigator.share({ title: "My closet issue", text });
-        setStatus("Shared.");
+        toast("Shared — enjoy your issue.", "success");
       } else if (navigator.clipboard) {
         await navigator.clipboard.writeText(text);
-        setStatus("Copied — paste it anywhere to share your issue.");
+        toast("Copied — paste it anywhere to share your issue.", "success");
       } else {
-        setStatus("Sharing isn't available here — screenshot your issue to share it.");
+        toast("Sharing isn't available here — screenshot your issue to share it.", "warning");
       }
     } catch {
       // Share sheet dismissed; not an error worth surfacing loudly.
-      setStatus("Share dismissed — your issue is still here.");
     }
   };
 
@@ -213,7 +224,7 @@ export function ClosetSection() {
                 <div className="min-w-0">
                   <p className="truncate text-sm font-bold">
                     {item.title || "Untitled"}
-                    {mine && <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">yours</span>}
+                    {mine && <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-primary">yours</span>}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {item.slot || "piece"} · {mine || !item.priceCusd ? "already owned" : `$${Number(item.priceCusd).toFixed(2)} · ${item.curatorSlug}`}
@@ -221,7 +232,7 @@ export function ClosetSection() {
                   {!mine && item.curatorSlug && item.curatorSlug !== "closet" && (
                     <Link
                       href={`/s/${encodeURIComponent(item.curatorSlug)}?item=${encodeURIComponent(item.listingId)}`}
-                      className="text-xs font-bold text-primary hover:underline"
+                      className="text-xs font-bold text-primary underline-offset-4 hover:underline"
                     >
                       Shop this piece
                     </Link>
@@ -266,20 +277,12 @@ export function ClosetSection() {
         <BackPage>
           <p className="font-display text-2xl italic leading-snug">Your closet did half the work.</p>
           <div className="flex flex-wrap items-center justify-center gap-2">
-            <button
-              type="button"
-              onClick={share}
-              className="inline-flex min-h-12 items-center justify-center rounded-full bg-primary px-8 text-sm font-bold text-white hover:bg-primary/90"
-            >
+            <Button onClick={share} className="rounded-full px-8">
               Share this issue
-            </button>
-            <button
-              type="button"
-              onClick={() => { setLooks(null); setState("idle"); }}
-              className="inline-flex min-h-12 items-center justify-center rounded-full border border-border px-8 text-sm font-bold hover:bg-muted/60"
-            >
+            </Button>
+            <Button variant="outline" onClick={() => { setLooks(null); setState("idle"); }} className="rounded-full px-8">
               Restyle
-            </button>
+            </Button>
           </div>
           <Link href="/lab?tab=try-on" className="text-xs font-bold text-primary hover:underline">
             Try a pick on yourself in the fitting room
@@ -298,7 +301,7 @@ export function ClosetSection() {
       className={`rounded-2xl border bg-card p-4 transition-colors sm:p-5 ${dragging ? "border-primary ring-2 ring-primary/30" : "border-border"}`}
     >
       <div className="flex items-baseline justify-between gap-2">
-        <h3 className="text-base font-bold leading-tight">My closet · on this device</h3>
+        <h3 className="font-display text-lg font-bold leading-tight">My closet · on this device</h3>
         <span className="shrink-0 font-mono text-xs text-muted-foreground" aria-label={`${closet.length} of ${MAX_CLOSET_ITEMS} pieces`}>{closet.length}/{MAX_CLOSET_ITEMS}</span>
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
@@ -316,21 +319,17 @@ export function ClosetSection() {
       />
 
       {closet.length === 0 ? (
-        <div className="mt-3">
-          <ol className="flex flex-col gap-1 text-sm text-muted-foreground sm:flex-row sm:gap-4">
-            <li><strong className="text-foreground">1.</strong> Drop a photo (or browse)</li>
-            <li><strong className="text-foreground">2.</strong> Set its type</li>
-            <li><strong className="text-foreground">3.</strong> Style it with live picks</li>
-          </ol>
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            className="mt-3 inline-flex min-h-12 items-center justify-center rounded-full bg-primary px-6 text-sm font-bold text-white hover:bg-primary/90"
-          >
-            Add your first piece
-          </button>
-          <p className="mt-2 text-xs text-muted-foreground">…or drag &amp; drop a photo anywhere in this card.</p>
-        </div>
+        <EmptyState
+          icon={Shirt}
+          title="Your closet is empty"
+          body="Drop a photo, set its type, style it with live picks — or drag & drop a photo anywhere in this card. Photos stay in this browser."
+          action={
+            <Button onClick={() => fileRef.current?.click()} className="rounded-full px-6">
+              Add your first piece
+            </Button>
+          }
+          className="mt-3 rounded-2xl"
+        />
       ) : (
         <div className="mt-3 flex flex-col gap-3">
           {closet.map((piece) => (
@@ -392,25 +391,21 @@ export function ClosetSection() {
                     className="mt-1 min-h-11 w-full rounded-lg border border-border bg-background px-2 py-1.5 text-base font-normal sm:text-sm"
                   />
                 </label>
-                <button
-                  type="button"
+                <Button
+                  variant="link"
                   aria-label={`Remove ${piece.title}`}
                   onClick={() => persist(closet.filter((c) => c.id !== piece.id))}
-                  className="col-span-2 justify-self-start text-xs font-bold text-muted-foreground hover:text-foreground hover:underline"
+                  className="col-span-2 h-auto min-h-0 justify-self-start px-0 text-xs text-muted-foreground"
                 >
                   Remove this piece
-                </button>
+                </Button>
               </div>
             </div>
           ))}
           {closet.length < MAX_CLOSET_ITEMS && (
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="inline-flex min-h-11 items-center justify-center rounded-full border border-border px-6 text-sm font-bold hover:bg-muted/60"
-            >
+            <Button variant="outline" onClick={() => fileRef.current?.click()} className="rounded-full px-6">
               Add another · {MAX_CLOSET_ITEMS - closet.length} of {MAX_CLOSET_ITEMS} left
-            </button>
+            </Button>
           )}
         </div>
       )}
@@ -429,33 +424,46 @@ export function ClosetSection() {
               ))}
             </select>
           </label>
-          <button
-            type="button"
+          <Button
             onClick={plan}
-            disabled={state === "planning"}
-            className="inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-6 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-60 disabled:animate-pulse"
+            loading={state === "planning"}
+            className="rounded-full px-6"
           >
             {state === "planning" ? "Styling…" : `Style my closet${closet.length > 0 ? ` · ${looks ? "restyle" : `${closet.length} piece${closet.length === 1 ? "" : "s"}`}` : ""}`}
-          </button>
+          </Button>
         </div>
       )}
 
       {!storageOk && (
         <p className="mt-2 text-xs text-muted-foreground">Browser storage is unavailable — pieces will last for this visit only.</p>
       )}
-      <p className="mt-2 text-xs text-muted-foreground" role="status" aria-live="polite">{status}</p>
-      {state === "failed" && (
-        <button
-          type="button"
-          onClick={plan}
-          className="mt-2 inline-flex min-h-11 items-center justify-center rounded-full border border-border px-6 text-sm font-bold hover:bg-muted/60"
-        >
-          Try again
-        </button>
+      {state === "planning" && showWait && (
+        <StagedWait
+          bare
+          title="Styling your pieces"
+          stages={[
+            { at: 0, label: "Reading your pieces", detail: "Type, warmth and colors" },
+            { at: 8, label: "Matching live picks", detail: "Tops, bottoms and layers" },
+            { at: 20, label: "Laying out your issue", detail: "Cover, spreads, back page" },
+          ]}
+          lines={["Your photos never leave this browser.", "Already-owned pieces are always free."]}
+          className="mt-2"
+        />
+      )}
+      {state === "failed" ? (
+        <ErrorState
+          title="Styling didn't work"
+          message="Your pieces are still here — check your connection and try again."
+          onRetry={plan}
+          retryLabel="Try again"
+          className="mt-2"
+        />
+      ) : (
+        <p className="mt-2 text-xs text-muted-foreground" role="status" aria-live="polite">{status}</p>
       )}
 
       {state === "ready" && looks && looks.length > 0 && (
-        <div ref={resultsRef} tabIndex={-1} aria-label="Your styled looks" className="mt-4 outline-none">
+        <div ref={resultsRef} tabIndex={-1} aria-label="Your styled looks" className="card-reveal soft-shadow mt-4 outline-none">
           <Lookbook pages={pages} />
         </div>
       )}

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import React from "react";
 import { renderHook, act, cleanup } from "@testing-library/react";
-import { Toaster, useToast } from "../toast";
+import { Toaster, useToast, useToastOptional } from "../toast";
 
 // Helper to render useToast within Toaster provider
 function renderUseToast() {
@@ -24,6 +24,16 @@ describe("Toast System", () => {
     expect(() => {
       renderHook(() => useToast());
     }).toThrow("useToast must be used within ToastProvider");
+  });
+
+  it("useToastOptional degrades to a no-op outside of Toaster", () => {
+    const { result } = renderHook(() => useToastOptional());
+    expect(typeof result.current.toast).toBe("function");
+    expect(() => {
+      act(() => {
+        result.current.toast("Hello");
+      });
+    }).not.toThrow();
   });
 
   it("provides a toast function inside Toaster", () => {

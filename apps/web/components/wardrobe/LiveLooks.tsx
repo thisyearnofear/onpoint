@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { RefreshCw, Shirt, Sparkles, X } from "lucide-react";
+import { Button } from "@repo/ui/button";
 import { LookCard, type LookCardData } from "../LookCard";
 import { getApiBase } from "../../lib/utils/api-base";
 import { OCCASIONS, SEASONS, SORT_OPTIONS, VIBES } from "../../lib/looks/constants";
@@ -25,7 +26,7 @@ const GRID = "grid gap-6 sm:grid-cols-2 lg:grid-cols-3";
 const chip =
   "inline-flex min-h-[44px] items-center rounded-full border px-3 text-sm transition-colors";
 const chipIdle = `${chip} border-border text-muted-foreground hover:text-foreground hover:bg-muted/60`;
-const chipActive = `${chip} border-foreground bg-foreground font-bold text-background`;
+const chipActive = `${chip} border-primary bg-primary/10 font-bold text-primary`;
 
 function FilterRow({
   label,
@@ -182,29 +183,21 @@ export function LiveLooks({ filters, onFiltersChange }: LiveLooksProps) {
           </p>
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
             {hasActiveLooksFilters(filters) ? (
-              <button
-                type="button"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-bold text-background transition-colors hover:bg-foreground/90"
-                onClick={clearAll}
-              >
+              <Button onClick={clearAll} className="gap-2 rounded-full px-5">
                 <RefreshCw className="h-4 w-4" />
                 Clear filters
-              </button>
+              </Button>
             ) : (
               <>
-                <Link
-                  href="/curators"
-                  className="inline-flex items-center justify-center rounded-full bg-foreground px-5 py-2.5 text-sm font-bold text-background transition-colors hover:bg-foreground/90"
-                >
-                  Browse curators
-                </Link>
-                <Link
-                  href="/s/nia"
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-border px-5 py-2.5 text-sm font-bold transition-colors hover:bg-muted"
-                >
-                  <Sparkles className="h-4 w-4" />
-                  Try Nia&apos;s digital looks
-                </Link>
+                <Button asChild className="rounded-full px-5">
+                  <Link href="/curators">Browse curators</Link>
+                </Button>
+                <Button asChild variant="outline" className="rounded-full px-5">
+                  <Link href="/s/nia" className="inline-flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    Try Nia&apos;s digital looks
+                  </Link>
+                </Button>
               </>
             )}
           </div>
