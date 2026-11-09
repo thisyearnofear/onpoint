@@ -9,6 +9,7 @@ import { LookShareButton } from "./LookShareButton";
 import { LookTracker } from "./LookTracker";
 import { EditLookButton } from "./EditLookButton";
 import { LookItemGrid } from "./LookItemGrid";
+import { LookRefreshControls } from "./LookRefreshControls";
 import { RUNWAY_THEME_NAMES } from "../../../lib/utils/runway";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +38,7 @@ interface Look {
   title: string;
   description: string | null;
   curatorSlug: string | null;
+  provenance?: "studio" | "curator" | "partner" | null;
   listingIds: string[];
   heroListingId: string | null;
   coverImageKey: string | null;
@@ -209,6 +211,11 @@ export default async function LookPage({
             {look.title}
           </h1>
           <p className="text-xs text-muted-foreground">
+            {look.provenance === "studio" ? (
+              <span className="text-muted-foreground/80">OnPoint studio · </span>
+            ) : look.curatorSlug ? (
+              <span className="text-muted-foreground/80">From {look.curatorSlug} · </span>
+            ) : null}
             Styled by {agentShort}
             {stats.length > 0 && ` · ${stats.join(" · ")}`}
             {metaTokens.map((t) => (
@@ -286,8 +293,13 @@ export default async function LookPage({
           </div>
         )}
 
-        {/* Share */}
-        <div className="mt-8 flex justify-end border-t border-border pt-6">
+        {/* Refresh controls + share */}
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6">
+          {items.length > 0 ? (
+            <LookRefreshControls lookSlug={look.slug} />
+          ) : (
+            <span />
+          )}
           <LookShareButton
             lookSlug={look.slug}
             title={look.title}

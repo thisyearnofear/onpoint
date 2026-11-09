@@ -187,6 +187,17 @@ export function AnalysisResults({
     });
   }, [saved, analysis, preferences, persona, currentLook, styleRecommendations, fitRecommendations, previewUrl, selectedGarment, addSession, shareToCommunity, isFirstSession]);
 
+  const shopRecommendations = onShopRecommendations || (() => {
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("stylistAnalysis", JSON.stringify({
+        bodyType: analysis.bodyType,
+        measurements: analysis.measurements,
+        styleRecommendations,
+      }));
+      window.location.href = "/shop";
+    }
+  });
+
   // Skeleton gate must sit below every hook — React #310 if a useCallback
   // runs on the second render but not the first.
   if (showLoading) {
@@ -206,9 +217,28 @@ export function AnalysisResults({
           This read is a fallback — it didn&apos;t see your photo.
         </h2>
         <p className="mt-4 text-sm text-muted-foreground">
-          {topStyleTip} Try again in a bit with a clear, well-lit full-body
-          photo for a sharper read — or browse the edit below.
+          {topStyleTip} The photo read is down, but the rest still works —
+          try the render anyway, or come back with a clearer shot.
         </p>
+        <div className="mt-6 flex flex-wrap gap-2">
+          {onGenerateTryOn && (
+            <button
+              type="button"
+              onClick={onGenerateTryOn}
+              disabled={tryOnLoading}
+              className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-bold text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
+            >
+              {tryOnLoading ? <Busy label="Rendering" /> : "See it on you anyway"}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={shopRecommendations}
+            className="inline-flex items-center gap-2 rounded-full border border-border px-5 py-2.5 text-sm font-bold transition-colors hover:border-foreground"
+          >
+            Browse the shop
+          </button>
+        </div>
       </div>
     );
   }
@@ -240,17 +270,6 @@ export function AnalysisResults({
       keepalive: true,
     }).catch(() => undefined);
   };
-
-  const shopRecommendations = onShopRecommendations || (() => {
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem("stylistAnalysis", JSON.stringify({
-        bodyType: analysis.bodyType,
-        measurements: analysis.measurements,
-        styleRecommendations,
-      }));
-      window.location.href = "/shop";
-    }
-  });
 
   // The issue: cover (the person, uncropped) → the read → the piece →
   // the last page (the next loop). Products are marginalia, never the page.

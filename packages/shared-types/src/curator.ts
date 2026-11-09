@@ -228,6 +228,16 @@ export interface CuratorStorefrontResponse {
     trustedOffer: TrustedOfferContract;
     digital?: boolean;
     tryOnUrl?: string;
+    attributes?: {
+      type?: string;
+      formality?: string;
+      warmth?: string;
+      fabric?: string;
+      pattern?: string;
+      fit?: string;
+      colors?: string[];
+      source?: string;
+    } | null;
     kit?: {
       club: string;
       season: string;

@@ -926,6 +926,7 @@ export function VirtualTryOn({ selectedTryOnItem, initialPersona, initialCurator
                             curatorSlug: selectedTryOnItem?.curator?.slug ?? initialCuratorSlug,
                             listingId: selectedTryOnItem?.id,
                           }}
+                          payPhotoData={selectedPhotoData}
                         />
                       </div>
                     )}

@@ -16,6 +16,7 @@ import {
   Shirt,
   Scan,
   Wand2,
+  X,
 } from "lucide-react";
 import { storefrontDoor } from "../../lib/utils/get-it";
 import {
@@ -76,6 +77,8 @@ interface TryOnResultProps {
   similarPhysicalItems?: SimilarPhysicalItem[];
   /** The listing this render is of — what "Get it" buys and "Send it" invites on. */
   sourceListing?: { curatorSlug?: string | null; listingId?: string | null } | null;
+  /** Data-URL of the user's photo, handed to /pay so the paid render skips re-upload. */
+  payPhotoData?: string | null;
 }
 
 // Utility function to parse simple markdown bold text
@@ -127,12 +130,14 @@ export function TryOnResult({
   onChangeGarment,
   similarPhysicalItems,
   sourceListing,
+  payPhotoData,
 }: TryOnResultProps) {
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendFailed, setSendFailed] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
+  const [upsellDismissed, setUpsellDismissed] = useState(false);
   const compareStartRef = useRef<number | null>(null);
   const reduceMotion = useReducedMotion();
 
@@ -186,6 +191,22 @@ export function TryOnResult({
   const getIt = storefrontDoor(buyTarget);
   const sendTarget =
     buyTarget?.curatorSlug && buyTarget?.listingId ? buyTarget : null;
+
+  // Paid-render upsell: approximation results get a door to the image-
+  // conditioned render (/pay), deep-linked to the same curator + listing.
+  const payQuery = [
+    buyTarget?.curatorSlug ? `curator=${encodeURIComponent(buyTarget.curatorSlug)}` : null,
+    buyTarget?.listingId ? `listing=${encodeURIComponent(buyTarget.listingId)}` : null,
+  ].filter(Boolean).join("&");
+  const payHref = `/pay${payQuery ? `?${payQuery}` : ""}`;
+  const showPaidUpsell = isApproximation && !loading && !upsellDismissed;
+  const handlePaidRender = () => {
+    try {
+      if (payPhotoData) sessionStorage.setItem("onpoint-pay-photo", payPhotoData);
+    } catch {
+      // Private mode / quota — /pay falls back to asking for the photo again.
+    }
+  };
 
   const handleSaveLook = useCallback(() => {
     if (saved) return;
@@ -431,6 +452,42 @@ export function TryOnResult({
             </div>
           )}
 
+          {/* Paid-render upsell — only on approximations, where the honest
+              next step is the image-conditioned render, not another retry. */}
+          {showPaidUpsell && (
+            <div className="relative rounded-xl border border-primary/25 bg-primary/[0.06] p-4">
+              <button
+                type="button"
+                onClick={() => setUpsellDismissed(true)}
+                aria-label="Dismiss"
+                className="absolute right-3 top-3 rounded-full p-1 text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                  <Scan className="h-5 w-5 text-primary" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-foreground">
+                    See the real garment on you
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    This preview approximates the piece. The paid render uses the
+                    actual garment photo on your picture — about 30 seconds,
+                    paid in NEAR or PayPal.
+                  </p>
+                  <Button asChild size="sm" className="mt-3 text-xs">
+                    <a href={payHref} onClick={handlePaidRender}>
+                      Render it for real
+                      <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                    </a>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* The next loop, in order — buy it, try something else on, keep it,
               hand it to someone. Never a dead end. */}
           {!loading && (
@@ -540,7 +597,7 @@ export function TryOnResult({
             <Sparkles className="h-3 w-3" />
             <span>
               {isApproximation
-                ? "Style inspiration only — this is an AI-generated preview, not the actual garment. Fabric, print, and fit may differ."
+                ? "AI styling preview — an approximation of how this piece could look on you, not the actual garment. Fabric, print, and fit may differ."
                 : providerLabel || "AI generated visualization"}
             </span>
           </div>

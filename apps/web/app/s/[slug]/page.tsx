@@ -21,6 +21,7 @@ import { CrossCuratorRecommendations } from "../../../components/CrossCuratorRec
 import { AICuratorSection } from "../../../components/AICuratorSection";
 import { StorefrontLooks } from "../../../components/StorefrontLooks";
 import { MpesaPaymentPanel } from "./MpesaPaymentPanel";
+import { AttributeFilterBar, type AttributeFacets } from "../../../components/StorefrontFilters";
 import { CuratorOwnerTools } from "../../../components/Curator/CuratorOwnerTools";
 import { TransitionLink } from "../../../components/ViewTransition";
 import { getApiBase } from "../../../lib/utils/api-base";
@@ -89,10 +90,16 @@ export default async function CuratorStorefrontPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ editLook?: string; item?: string }>;
+  searchParams: Promise<{
+    editLook?: string;
+    item?: string;
+    type?: string;
+    formality?: string;
+    warmth?: string;
+  }>;
 }) {
   const { slug } = await params;
-  const { editLook, item } = await searchParams;
+  const { editLook, item, type, formality, warmth } = await searchParams;
   const storefront = await loadStorefront(slug);
 
   if (!storefront) {
@@ -103,8 +110,43 @@ export default async function CuratorStorefrontPage({
   // A "Get it" link names the listing it came from. Resolve it against this
   // curator's real inventory — an unknown id gets no banner and no scroll.
   const focusListing = item ? listings.find((l) => l.id === item) : undefined;
-  const digitalListings = listings.filter((l) => l.digital || l.inventoryType === "digital");
-  const physicalListings = listings.filter((l) => !l.digital && l.inventoryType !== "digital");
+
+  // Attribute facets (?type=&formality=&warmth=) — computed from the full
+  // unfiltered set so the filter options don't collapse as you narrow down.
+  // Filtering itself mirrors the storefront API's server-side contract.
+  const facets: AttributeFacets = { type: [], formality: [], warmth: [] };
+  for (const listing of listings) {
+    const attrs = listing.attributes;
+    if (!attrs) continue;
+    for (const key of ["type", "formality", "warmth"] as const) {
+      const value = String(attrs[key] || "").toLowerCase();
+      if (value && !facets[key].includes(value)) facets[key].push(value);
+    }
+  }
+  for (const key of ["type", "formality", "warmth"] as const) facets[key].sort();
+
+  const wanted: Array<[keyof AttributeFacets, string | undefined]> = [
+    ["type", type],
+    ["formality", formality],
+    ["warmth", warmth],
+  ];
+  const activeFilters = wanted
+    .map(([key, raw]) => [key, String(raw || "").trim().toLowerCase()] as const)
+    .filter(([, value]) => value);
+  const collectionListings =
+    activeFilters.length === 0
+      ? listings
+      : listings.filter(
+          (listing) =>
+            listing.attributes &&
+            activeFilters.every(
+              ([key, value]) =>
+                String(listing.attributes?.[key] || "").toLowerCase() === value,
+            ),
+        );
+
+  const digitalListings = collectionListings.filter((l) => l.digital || l.inventoryType === "digital");
+  const physicalListings = collectionListings.filter((l) => !l.digital && l.inventoryType !== "digital");
   const primary = curator.brand?.colors?.primary || "#111827";
   const acc = curator.brand?.colors?.accent || "#e94560";
 
@@ -312,6 +354,11 @@ export default async function CuratorStorefrontPage({
             curator to confirm availability directly.
           </p>
         </div>
+        <AttributeFilterBar
+          facets={facets}
+          shown={collectionListings.length}
+          total={listings.length}
+        />
         {listings.length === 0 ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center rounded-lg border border-dashed border-border p-8 text-center">
             <PackageSearch className="h-10 w-10 text-muted-foreground" />
@@ -331,6 +378,21 @@ export default async function CuratorStorefrontPage({
                 Message {curator.name} to add stock
               </a>
             )}
+          </div>
+        ) : collectionListings.length === 0 ? (
+          <div className="flex min-h-[200px] flex-col items-center justify-center rounded-lg border border-dashed border-border p-8 text-center">
+            <PackageSearch className="h-10 w-10 text-muted-foreground" />
+            <h2 className="mt-4 text-xl font-bold">Nothing matches those filters</h2>
+            <p className="mt-2 max-w-md text-sm text-muted-foreground">
+              Try widening the piece, vibe, or weight — or clear the filters
+              to see the full collection.
+            </p>
+            <Link
+              href={`/s/${slug}`}
+              className="mt-5 inline-flex items-center gap-2 rounded-lg border border-border px-5 py-2.5 text-sm font-bold transition-colors hover:border-foreground"
+            >
+              Clear filters
+            </Link>
           </div>
         ) : (
           <>
@@ -492,6 +554,20 @@ export default async function CuratorStorefrontPage({
                       <p className="text-sm text-muted-foreground">
                         {kit?.season ?? ""} season
                       </p>
+                      {(() => {
+                        const attrLine = [
+                          listing.attributes?.type,
+                          listing.attributes?.formality,
+                          listing.attributes?.warmth,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ");
+                        return attrLine ? (
+                          <p className="text-xs capitalize text-muted-foreground/70">
+                            {attrLine}
+                          </p>
+                        ) : null;
+                      })()}
                     </div>
 
                     <div className="flex items-baseline justify-between gap-2">

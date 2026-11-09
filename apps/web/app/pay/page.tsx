@@ -35,6 +35,10 @@ const STEPS: { id: Step; label: string }[] = [
 export default function PayPage() {
   const [step, setStep] = useState<Step>("photo");
   const [method, setMethod] = useState<Method>("near");
+  // Deep links (/pay?curator=&listing=) arrive from try-on upsells — the
+  // render should be of the piece the visitor was just looking at.
+  const [curatorSlug, setCuratorSlug] = useState<string>(DEMO_CURATOR);
+  const preselectListing = useRef<string | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);
   const [photoLoading, setPhotoLoading] = useState(false);
   const [quote, setQuote] = useState<NearQuote | null>(null);
@@ -57,20 +61,20 @@ export default function PayPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        curatorSlug: DEMO_CURATOR,
+        curatorSlug,
         listingId: selected,
         photoData: photoData ?? photo,
         ...extra,
       }),
     });
     return { status: res.status, data: await res.json().catch(() => ({})) };
-  }, [photo, selected]);
+  }, [photo, selected, curatorSlug]);
 
   const getQuote = useCallback(async (photoData: string, listingId?: string) => {
     const res = await fetch("/api/pay/try-on", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ curatorSlug: DEMO_CURATOR, listingId: listingId ?? selected, photoData }),
+      body: JSON.stringify({ curatorSlug, listingId: listingId ?? selected, photoData }),
     });
     const data = await res.json().catch(() => ({}));
     if (res.status === 402) {
@@ -82,7 +86,7 @@ export default function PayPage() {
     }
     setError(data.error || `Couldn't fetch your payment options (${res.status}) — try again.`);
     return false;
-  }, [selected]);
+  }, [selected, curatorSlug]);
 
   const onFile = (file: File) => {
     const reader = new FileReader();
@@ -132,6 +136,12 @@ export default function PayPage() {
   // Restore a photo that survived a wallet/PayPal redirect; pick up returned proofs.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const wantedCurator = params.get("curator");
+    const wantedListing = params.get("listing");
+    if (wantedCurator && /^[a-z0-9][a-z0-9-]{0,63}$/.test(wantedCurator)) {
+      setCuratorSlug(wantedCurator);
+    }
+    if (wantedListing) preselectListing.current = wantedListing;
     const returned = params.get("transactionHashes") || params.get("tx");
     const ppId = params.get("paypalOrderId") || params.get("token");
     let stored: string | null = null;
@@ -153,15 +163,18 @@ export default function PayPage() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/pay/listings")
+    fetch(`/api/pay/listings?curator=${encodeURIComponent(curatorSlug)}`)
       .then((r) => r.json())
       .then((d) => {
         const items = Array.isArray(d.listings) ? d.listings : [];
         setListings(items);
-        if (items.length) setSelected(items[0].id);
+        const wanted = preselectListing.current;
+        preselectListing.current = null;
+        const match = wanted ? items.find((l: Listing) => l.id === wanted) : null;
+        setSelected(match ? match.id : items[0]?.id ?? "");
       })
       .catch(() => {});
-  }, []);
+  }, [curatorSlug]);
 
   const walletUrl = quote?.accountId && quote?.amountNear && typeof window !== "undefined"
     ? `${WALLET_SEND}/${quote.accountId}/${quote.amountNear}?success_url=${encodeURIComponent(`${window.location.origin}/pay?sent=1`)}`
@@ -270,6 +283,20 @@ export default function PayPage() {
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
             {photoLoading ? (
               <p className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Getting your payment options…</p>
+            ) : photo ? (
+              <button
+                type="button"
+                onClick={async () => {
+                  setPhotoLoading(true);
+                  setError(null);
+                  const ok = await getQuote(photo);
+                  setPhotoLoading(false);
+                  if (ok) setStep("method");
+                }}
+                className="mt-4 w-full rounded-full bg-foreground px-6 py-3.5 text-sm font-bold text-background transition-opacity hover:opacity-90"
+              >
+                Continue with this photo
+              </button>
             ) : null}
           </div>
         ) : null}
