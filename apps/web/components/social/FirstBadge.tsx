@@ -44,11 +44,5 @@ export function FirstBadge() {
   );
 }
 
-/** Fire the badge from any social action. */
-export function celebrateFirst(action: FirstAction) {
-  try {
-    window.dispatchEvent(new CustomEvent("onpoint:first", { detail: action }));
-  } catch {
-    /* ignore */
-  }
-}
+// NOTE: fire firsts via celebrateFirst() in ./firsts (mark + toast event +
+// budgeted confetti together). This component only listens and renders.

@@ -88,35 +88,9 @@ describe("TryOnResult next-loop row", () => {
     );
   });
 
-  it("Send it mints an invite and shares the token link, never the image blob", async () => {
+  it("Challenge a friend mints an invite but shares nothing by itself", async () => {
     const share = vi.fn(async () => {});
     setShare(share);
-    render(
-      <TryOnResult
-        result={RESULT}
-        sourceListing={{ curatorSlug: "nia", listingId: "l1" }}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: /Send it/ }));
-    await act(async () => {});
-
-    const [url, init] = fetchMock.mock.calls.find(
-      ([u]) => String(u) === "/api/try-on/invite",
-    ) ?? [];
-    expect(String(url)).toBe("/api/try-on/invite");
-    expect(JSON.parse(String(init?.body))).toMatchObject({
-      curatorSlug: "nia",
-      listingId: "l1",
-    });
-
-    const shared = String(share.mock.calls[0][0].url);
-    expect(shared).toMatch(/^https:\/\/onpoint\.test\/try\/tk1\?sid=[a-z0-9]{6,16}&utm_source=native$/);
-    expect(shared).not.toContain("data:");
-  });
-
-  it("copies the same attributed link when the browser has no share sheet", async () => {
-    setShare(undefined);
     const writeText = vi.fn(async () => {});
     Object.defineProperty(window.navigator, "clipboard", {
       configurable: true,
@@ -129,12 +103,27 @@ describe("TryOnResult next-loop row", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Send it/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Challenge a friend/ }));
     await act(async () => {});
 
-    expect(writeText.mock.calls[0][0]).toMatch(
-      /^https:\/\/onpoint\.test\/try\/tk1\?sid=[a-z0-9]{6,16}&utm_source=copy$/,
-    );
+    // Mint-only: the invite endpoint is hit with the listing context …
+    const [url, init] = fetchMock.mock.calls.find(
+      ([u]) => String(u) === "/api/try-on/invite",
+    ) ?? [];
+    expect(String(url)).toBe("/api/try-on/invite");
+    expect(JSON.parse(String(init?.body))).toMatchObject({
+      curatorSlug: "nia",
+      listingId: "l1",
+    });
+
+    // … but no share and no clipboard write happen at mint time. The
+    // ShareSheet rendered below owns the single send (regression: the old
+    // flow shared here AND in the sheet, double-minting the challenge).
+    expect(share).not.toHaveBeenCalled();
+    expect(writeText).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: /Share challenge/ }),
+    ).toBeTruthy();
   });
 
   it("falls back to supply, and sends nothing, when the render has no listing", () => {
@@ -142,7 +131,7 @@ describe("TryOnResult next-loop row", () => {
     expect(screen.getByRole("link", { name: /Ask a curator who stocks it/ }).getAttribute("href")).toBe(
       "/curators",
     );
-    expect(screen.queryByRole("button", { name: /Send it/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Challenge a friend/ })).toBeNull();
   });
 
   it("holds the row back while the render is still cooking", () => {
@@ -154,6 +143,6 @@ describe("TryOnResult next-loop row", () => {
       />,
     );
     expect(screen.queryByRole("link", { name: /Get it/ })).toBeNull();
-    expect(screen.queryByRole("button", { name: /Send it/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Challenge a friend/ })).toBeNull();
   });
 });

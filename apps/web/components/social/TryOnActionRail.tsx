@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { Heart, Shuffle, Sparkles, Users } from "lucide-react";
 import { useState } from "react";
-import { markFirst } from "./firsts";
-import { celebrateFirst } from "./FirstBadge";
+import { celebrateFirst } from "./firsts";
 
 function vibrate(p: number | number[]) {
   try {
@@ -64,7 +63,7 @@ export function TryOnActionRail({
         }
         setSaved(true);
         vibrate(10);
-        if (markFirst("save")) celebrateFirst("save");
+        celebrateFirst("save");
         void fetch("/api/loop/event", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -94,9 +93,8 @@ export function TryOnActionRail({
           Challenge a friend
         </Link>
         <Link
-          href={remixHref}
-          onClick={() => {
-            if (markFirst("remix")) celebrateFirst("remix");
+          href={remixHref}            onClick={() => {
+              celebrateFirst("remix");
             void fetch("/api/loop/event", {
               method: "POST",
               headers: { "Content-Type": "application/json" },

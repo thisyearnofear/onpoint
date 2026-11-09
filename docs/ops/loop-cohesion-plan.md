@@ -46,5 +46,5 @@ These write to the production catalog — run deliberately, not from a feature b
 
 ## Verification
 
-- `pnpm exec tsc --noEmit` (apps/web): clean. `node --check` on touched API files: clean. `lib/share-attribution.test.js`: 18/18 pass. `share-artifact.test.tsx`: 2/2 pass (updated for the channel sheet: open → pick channel). `reaction-bar.test.tsx`: 2/2 pass. API auth + OTP suites: 62/62 pass.
+- `pnpm exec tsc --noEmit` (apps/web): clean. `node --check` on touched API files: clean. `lib/share-attribution.test.js`: 18/18 pass. `share-artifact.test.tsx`: 2/2 pass (updated for the channel sheet: open → pick channel). `reaction-bar.test.tsx`: 2/2 pass. `try-on-result-doors.test.tsx`: 4/4 pass (mint-only challenge, no double share). `look-share-once.test.tsx`: exactly one look_share per send. `notification-follow-drops.test.tsx`: drops while logged out. API auth + OTP suites: 62/62 pass.
 - Live proof pending deploy: `GET /api/status/funnel/share` should show artifact shares (`lookSlug` null or `p-*`) in byChannel once real shares occur; a forged `shareId` on `/api/orders/record` should produce no `kind:'sale'` funnel row.

@@ -1,11 +1,11 @@
 "use client";
 
 import { ShareArtifact } from "../../../components/ShareArtifact";
-import { postLookEvent } from "../../../lib/utils/share-attribution";
 
 /**
- * ShareArtifact wired to the look funnel — every share mints a sid and posts
- * the look share event so share → visit → try-on joins downstream.
+ * Look share button. ShareSheet already posts the look `share` event via
+ * logShare when `lookSlug` is set — passing an onShare that posts it again
+ * would double-count every share, so there is deliberately no onShare here.
  */
 export function LookShareButton({
   lookSlug,
@@ -28,9 +28,6 @@ export function LookShareButton({
       imageUrl={imageUrl}
       lookSlug={lookSlug}
       label="Share"
-      onShare={(channel, _u, sid) =>
-        postLookEvent(lookSlug, "share", { shareId: sid, channel })
-      }
     />
   );
 }

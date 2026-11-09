@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { markFirst } from "./firsts";
+import { celebrateFirst } from "./firsts";
 
+// NOTE: no save-flavored reaction on purpose — 💾 read as "saved" next to
+// the real wishlist Save and lied about it. ✨ keeps the third tap honest.
 const EMOJIS = [
   { emoji: "🔥", label: "need this" },
   { emoji: "😍", label: "love it" },
-  { emoji: "💾", label: "save" },
+  { emoji: "✨", label: "inspired" },
 ] as const;
 
 function storageKey(targetType: string, targetId: string) {
@@ -80,7 +82,7 @@ export function ReactionBar({
         /* ignore */
       }
       vibrate(10);
-      markFirst("vote");
+      celebrateFirst("vote");
       void fetch("/api/loop/event", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -314,15 +314,31 @@ export function NotificationBell({ direction = "down" }: { direction?: "up" | "d
   // produces a 401 storm in the console and wastes rate-limit budget.
   const { user: authUser, isLoading: authLoading } = useUser();
 
-  // Fetch notifications
+  // Fetch notifications. Follow drops are localStorage-based and work logged
+  // out; server + product notifications need a session/store respectively.
   const fetchNotifications = useCallback(async () => {
     try {
+      const followNotifications = await fetchFollowNotifications();
+      if (!authUser) {
+        const newCount = followNotifications.filter((n) => !n.read).length;
+        const prevCount = prevUnreadRef.current;
+        setNotifications(followNotifications);
+        setUnreadCount(newCount);
+        if (isMobileOverlay && newCount > prevCount && prevCount !== 0) {
+          vibrate(50);
+        }
+        prevUnreadRef.current = newCount;
+        return;
+      }
       const res = await fetch("/api/notifications");
-      if (!res.ok) return;
+      if (!res.ok) {
+        setNotifications(followNotifications);
+        setUnreadCount(followNotifications.filter((n) => !n.read).length);
+        return;
+      }
       const data = await res.json();
       const serverNotifications: Notification[] = data.notifications || [];
       const productNotifications = generateProductNotifications(sessions);
-      const followNotifications = await fetchFollowNotifications();
       const merged = [...followNotifications, ...productNotifications, ...serverNotifications];
       const newCount = merged.filter((n) => !n.read).length;
       const prevCount = prevUnreadRef.current;
@@ -338,16 +354,16 @@ export function NotificationBell({ direction = "down" }: { direction?: "up" | "d
     } catch {
       // Silently fail — notifications are non-critical
     }
-  }, [isMobileOverlay, sessions]);
+  }, [isMobileOverlay, sessions, authUser]);
 
-  // Initial fetch + polling every 30s (only while signed in)
+  // Initial fetch + polling every 30s. Logged-out users still get follow
+  // drops (localStorage-based); the server fetch is skipped without a user.
   useEffect(() => {
     if (authLoading) return;
-    if (!authUser) return;
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30_000);
     return () => clearInterval(interval);
-  }, [fetchNotifications, authUser, authLoading]);
+  }, [fetchNotifications, authLoading]);
 
   // Prevent body scroll when mobile overlay is open
   useEffect(() => {

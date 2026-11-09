@@ -4,8 +4,7 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, Download, Link2, MessageCircle, Send, Share2, X } from "lucide-react";
 import { newShareId, withShareParams, type ShareChannel } from "@/lib/utils/share-attribution";
-import { celebrateFirst } from "./FirstBadge";
-import { markFirst } from "./firsts";
+import { celebrateFirst } from "./firsts";
 
 function vibrate(p: number | number[]) {
   try {
@@ -63,7 +62,7 @@ export function ShareSheet({
     const attributed = withShareParams(base, sid, channel);
     onShare?.(channel, attributed, sid);
     void logShare(channel, url, sid, lookSlug);
-    if (markFirst("share")) celebrateFirst("share");
+    celebrateFirst("share");
     vibrate(10);
     return { attributed, sid };
   };

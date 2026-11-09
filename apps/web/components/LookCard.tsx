@@ -75,36 +75,41 @@ export function LookCard({ look, compact = false }: LookCardProps) {
       : "OnPoint Stylist";
 
   return (
-    <Link
-      href={`/look/${look.slug}`}
-      className="group relative overflow-hidden rounded-2xl border border-border bg-card transition-all hover:border-foreground/20 hover:shadow-xl"
-    >
-      {/* Image — collage or fallback chain */}
-      <div className="relative aspect-[4/5] overflow-hidden bg-muted">
-        <SafeImage
-          sources={imageSources}
-          alt={look.title}
-          fill
-          unoptimized
-          className="object-cover transition-transform duration-300 group-hover:scale-105"
-        />
-        {/* Hover overlay CTA */}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-          <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-black shadow-lg">
-            <Sparkles className="h-4 w-4" />
-            Try this look
-          </span>
+    // Reactions are buttons: they live outside the look link so keyboard
+    // and screen-reader users never land on a button inside a link.
+    <div className="group relative overflow-hidden rounded-2xl border border-border bg-card transition-all hover:border-foreground/20 hover:shadow-xl">
+      <Link href={`/look/${look.slug}`} className="block">
+        {/* Image — collage or fallback chain */}
+        <div className="relative aspect-[4/5] overflow-hidden bg-muted">
+          <SafeImage
+            sources={imageSources}
+            alt={look.title}
+            fill
+            unoptimized
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+          {/* Hover overlay CTA */}
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-black shadow-lg">
+              <Sparkles className="h-4 w-4" />
+              Try this look
+            </span>
+          </div>
         </div>
-      </div>
 
-      {/* Footer — title, attribution, badges, tags, stats */}
-      <div className={`${padding} space-y-2`}>
-        <div>
-          <h3 className={`${titleSize} font-bold leading-tight`}>{look.title}</h3>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {curatorLabel} · {items.length || look.itemCount || 0} pieces
-          </p>
+        {/* Title + attribution — part of the link */}
+        <div className={`${padding} space-y-2 pb-0`}>
+          <div>
+            <h3 className={`${titleSize} font-bold leading-tight`}>{look.title}</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {curatorLabel} · {items.length || look.itemCount || 0} pieces
+            </p>
+          </div>
         </div>
+      </Link>
+
+      {/* Footer — badges, tags, reactions, stats (outside the link) */}
+      <div className={`${padding} space-y-2 pt-2`}>
 
         {/* Structured metadata badges (category, occasion, season) */}
         {look.metadata && (look.metadata.category || look.metadata.occasion || look.metadata.season) && (
@@ -138,9 +143,7 @@ export function LookCard({ look, compact = false }: LookCardProps) {
               </span>
             ))}
           </div>
-          <span onClick={(e) => e.preventDefault()} onMouseDown={(e) => e.stopPropagation()}>
-            <ReactionBar targetType="look" targetId={look.slug} lookSlug={look.slug} compact />
-          </span>
+          <ReactionBar targetType="look" targetId={look.slug} lookSlug={look.slug} compact />
           {look.tryOnCount > 0 && (
             <span className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
               <Eye className="h-3 w-3" />
@@ -149,6 +152,6 @@ export function LookCard({ look, compact = false }: LookCardProps) {
           )}
         </div>
       </div>
-    </Link>
+    </div>
   );
 }

@@ -1,8 +1,12 @@
 "use client";
 
+import { celebrate } from "../state/celebrate";
+
 /**
  * First-time delight: one confetti + badge per action, no points system.
- * markFirst returns true only the very first time (per action per device).
+ * Single owner of "firsts" — components call celebrateFirst() once and get
+ * the toast event plus the budgeted confetti together. Do not call the
+ * state/celebrate budget or dispatch onpoint:first separately.
  */
 
 const ACTIONS = ["tryon", "share", "vote", "remix", "save", "follow"] as const;
@@ -31,6 +35,22 @@ export function markFirst(action: FirstAction): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Mark + celebrate a first-time action. Returns true only the very first
+ * time (per action per device). Fires the onpoint:first toast event and the
+ * budgeted confetti together so the two systems can't drift apart.
+ */
+export function celebrateFirst(action: FirstAction): boolean {
+  if (!markFirst(action)) return false;
+  try {
+    window.dispatchEvent(new CustomEvent("onpoint:first", { detail: action }));
+  } catch {
+    /* ignore */
+  }
+  celebrate(`first:${action}`);
+  return true;
 }
 
 export function hasFirst(action: FirstAction): boolean {

@@ -4,8 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Vote } from "lucide-react";
 import { SafeImage } from "../SafeImage";
-import { markFirst } from "./firsts";
-import { celebrateFirst } from "./FirstBadge";
+import { celebrateFirst } from "./firsts";
 
 export interface FaceoffOption {
   slug: string;
@@ -47,7 +46,7 @@ export function MiniFaceoff({ lookSlug, a, b }: { lookSlug: string; a: FaceoffOp
     } catch {
       /* ignore */
     }
-    if (markFirst("vote")) celebrateFirst("vote");
+    celebrateFirst("vote");
     void fetch("/api/loop/event", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

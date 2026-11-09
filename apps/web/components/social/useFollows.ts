@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { markFirst } from "./firsts";
-import { celebrateFirst } from "./FirstBadge";
+import { celebrateFirst } from "./firsts";
 
 const KEY = "onpoint:follows";
 
@@ -49,7 +48,7 @@ export function useFollows() {
       } catch {
         /* ignore */
       }
-      if (!exists && markFirst("follow")) celebrateFirst("follow");
+      if (!exists) celebrateFirst("follow");
       try {
         if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate(10);
       } catch {

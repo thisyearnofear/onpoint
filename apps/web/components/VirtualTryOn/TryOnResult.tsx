@@ -8,7 +8,6 @@ import {
   Bookmark,
   Sparkles,
   Send,
-  CheckCircle,
   ShoppingBag,
   ArrowRight,
   Palette,
@@ -19,11 +18,6 @@ import {
   X,
 } from "lucide-react";
 import { storefrontDoor } from "../../lib/utils/get-it";
-import {
-  newShareId,
-  withShareParams,
-  type ShareChannel,
-} from "../../lib/utils/share-attribution";
 import {
   trackStylingTipVariantClicked,
   trackResultCompareToggled,
@@ -134,7 +128,6 @@ export function TryOnResult({
   sourceListing,
   payPhotoData,
 }: TryOnResultProps) {
-  const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [sending, setSending] = useState(false);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
@@ -257,33 +250,9 @@ export function TryOnResult({
       return;
     }
     setInviteUrl(inviteUrl);
-
-    // One id per send, so the link can be followed to the recipient's try-on and
-    // order. The token route signs it; nothing here is stored on this device.
-    const sid = newShareId();
-    const channel: ShareChannel = typeof navigator.share === "function" ? "native" : "copy";
-    const url = withShareParams(inviteUrl, sid, channel);
-
-    if (typeof navigator.share === "function") {
-      try {
-        await navigator.share({
-          title: "Try this on — I picked it for you",
-          text: description || "See it on you before you buy it.",
-          url,
-        });
-        return;
-      } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setSendFailed(false);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setSendFailed(true);
-    }
+    // Mint only — the ShareSheet rendered below owns the actual send (one
+    // sid per channel, funnel-logged). Sharing here too would double-mint
+    // and double-count the challenge.
   };
 
   return (
@@ -522,11 +491,7 @@ export function TryOnResult({
               </Button>
               {sendTarget && !inviteUrl && (
                 <Button onClick={() => void handleSend()} loading={sending} className="text-xs">
-                  {copied ? (
-                    <><CheckCircle className="h-3.5 w-3.5 mr-1" /> Link copied</>
-                  ) : (
-                    <><Send className="h-3.5 w-3.5 mr-1" /> {sending ? "Minting…" : "Challenge a friend"}</>
-                  )}
+                  <><Send className="h-3.5 w-3.5 mr-1" /> {sending ? "Minting…" : "Challenge a friend"}</>
                 </Button>
               )}
               {sendTarget && inviteUrl && (
