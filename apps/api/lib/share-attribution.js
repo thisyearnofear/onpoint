@@ -221,11 +221,36 @@ function summarizeShareFunnel(rows) {
   };
 }
 
+/**
+ * True when a `look_share` funnel row exists for this share id — i.e. the sid
+ * was actually minted by a share action, not guessed. Sids are bearer tokens
+ * in URLs, so this is existence verification, not authentication: it stops
+ * attribution being stamped onto ids that never shared anything. The share
+ * funnel already drops downstream rows for unknown shares at aggregation;
+ * this check keeps junk out of the orders ledger join on the money path.
+ */
+async function shareExists(db, shareId) {
+  try {
+    const { funnelEvents } = require('@repo/db');
+    const { sql } = require('drizzle-orm');
+    const rows = await db
+      .select({ id: funnelEvents.id })
+      .from(funnelEvents)
+      .where(sql`${funnelEvents.eventType} = 'look_share' AND ${funnelEvents.metadata}->>'shareId' = ${shareId}`)
+      .limit(1);
+    return rows.length > 0;
+  } catch {
+    // Tracking must never break a sale — on lookup failure keep the attribution.
+    return true;
+  }
+}
+
 module.exports = {
   summarizeShareFunnel,
   MIN_SHARES_FOR_K,
   newShareId,
   sanitizeShareId,
+  shareExists,
   sanitizeChannel,
   sanitizeCtaKind,
   sanitizeStorefrontKind,

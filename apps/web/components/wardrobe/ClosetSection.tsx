@@ -121,6 +121,13 @@ export function ClosetSection() {
       }
       persist([...closet, ...additions]);
       setStatus(`${additions.length} piece${additions.length === 1 ? "" : "s"} added — set each type so the planner can place it.`);
+      // Retention-loop instrumentation (P2.2): closet adds are top-of-loop
+      // for the style-around-what-you-own path. Fire-and-forget.
+      void fetch("/api/loop/event", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "closet_add", meta: { count: additions.length } }),
+      }).catch(() => {});
     } catch {
       setStatus("Could not read that photo — try a JPEG or PNG.");
     }
@@ -152,6 +159,11 @@ export function ClosetSection() {
       const data = (await res.json()) as { looks?: PlannedLook[] };
       setLooks(data.looks || []);
       setState("ready");
+      void fetch("/api/loop/event", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "closet_plan", meta: { looks: (data.looks || []).length, occasion } }),
+      }).catch(() => {});
       const count = (data.looks || []).length;
       setStatus(
         count === 0
@@ -184,12 +196,15 @@ export function ClosetSection() {
   const share = async () => {
     const text = shareText();
     if (!text) return;
+    // The issue itself is device-local, but the share still needs a door —
+    // recipients land on the wardrobe where the same loop starts.
+    const url = typeof window !== "undefined" ? window.location.origin : "";
     try {
       if (typeof navigator.share === "function") {
-        await navigator.share({ title: "My closet issue", text });
+        await navigator.share({ title: "My closet issue", text, url });
         toast("Shared — enjoy your issue.", "success");
       } else if (navigator.clipboard) {
-        await navigator.clipboard.writeText(text);
+        await navigator.clipboard.writeText(`${text}\n\n${url}`);
         toast("Copied — paste it anywhere to share your issue.", "success");
       } else {
         toast("Sharing isn't available here — screenshot your issue to share it.", "warning");

@@ -7,6 +7,7 @@ import { ArtifactShell } from "../../../components/surface/ArtifactShell";
 import { FactList, shortHash } from "../../../components/surface/FactList";
 import { ShareArtifact } from "../../../components/ShareArtifact";
 import { PolaroidGetItLink } from "./PolaroidGetItLink";
+import { PolaroidTracker } from "./PolaroidTracker";
 
 export const dynamic = "force-dynamic";
 
@@ -99,7 +100,9 @@ export default async function PolaroidPage({
   ].slice(0, 2);
 
   return (
-    <ArtifactShell
+    <>
+      <PolaroidTracker polaroidId={id} />
+      <ArtifactShell
       eyebrow="AI try-on"
       artifact={
         <div className="relative aspect-[3/4] border border-border bg-muted/20">
@@ -195,5 +198,6 @@ export default async function PolaroidPage({
         </p>
       </div>
     </ArtifactShell>
+    </>
   );
 }

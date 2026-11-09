@@ -16,7 +16,7 @@ Found by reading the code, not by running the flow with users. Re-verify each on
 | 6 | Storefront arrival           | `/s/[slug]` did not read `sid`, `referral` or `look`, so attribution ended at the CTA click for humans | Fixed: all three captured; arrival, try-on/buy clicks and payment start reported; web try-on and payments carry the share id and referral |
 | 7 | Human purchase               | Human checkout is WhatsApp/M-Pesa and carried no attribution | Fixed for M-Pesa: STK sales are recorded on Safaricom's confirmation, and manual codes when an admin verifies them (ledger first, reused codes refused). WhatsApp-only sales **open** |
 | 8 | Agent order referral         | Self-referral was paid; an unknown referral code was stored as the agent address | Fixed: self-referral skipped; codes resolve to a payable address (prior referral, or unique look owner) or record no commission |
-| 9 | Share card / polaroid        | Share cards created on look try-on are not linked to a share id                                                                           | **Open**                                          |
+| 9 | Share card / polaroid        | Share cards created on look try-on are not linked to a share id                                                                           | Fixed for link shares: `ShareArtifact` sends the minted `sid` with `artifact_shared`, `/api/loop/event` mirrors it into `look_share`/`look_visit` rows, and `/p/{id}` captures arrivals via `PolaroidTracker`. Raw image screenshots still carry no URL — see loop-cohesion-plan.md |
 
 Statuses describe the repository. Confirm each against the deployed build before relying on it: the API changes and the web changes deploy separately.
 
@@ -43,7 +43,7 @@ For each step record: time to complete, drop-off (who stopped), and any confusio
 ## Fix backlog (ranked by funnel position)
 
 1. **WhatsApp-only sales (finding 7).** Decide how a sale that happens entirely in WhatsApp gets a share id, or accept that it stays invisible to the loop. Manual M-Pesa codes are covered once an admin verifies them.
-2. **Share after try-on (finding 9).** Offer sharing the try-on polaroid straight from the result, with a fresh `sid`.
+2. **Share after try-on (finding 9).** Largely done — artifact shares now join the funnel (see finding 9). Remaining: bake a short `/l/{code}` URL into the rendered image so raw screenshots are followable.
 3. **Human referral commissions.** Referrals on M-Pesa orders are stored for attribution only. Decide whether and how to pay 2.5% on KES orders (rail, conversion, who bears exchange risk) before building it.
 4. **ChatGPT plugin links.** Add `utm_source=chatgpt` and a `sid` to deep-links returned by the MCP `get_look` tool.
 

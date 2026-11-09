@@ -250,11 +250,19 @@ export async function createDeliveryNotification(
 export async function createStkConfirmedNotification(
   payment: Record<string, unknown>,
 ): Promise<void> {
+  // When the sale arrived through a shared look/artifact, name the source so
+  // the curator sees which share drove it (loop-cohesion plan P1.3). Synthetic
+  // `p-<id>` keys are artifact ids, not browsable look slugs — skip those.
+  const lookSlug = typeof payment.lookSlug === "string" ? payment.lookSlug : "";
+  const viaShare =
+    payment.shareId && lookSlug && !lookSlug.startsWith("p-")
+      ? ` — via shared look /look/${lookSlug}`
+      : "";
   const notification = {
     id: `notif_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
     curatorSlug: payment.curatorSlug,
     type: "payment_confirmed_stk",
-    message: `STK payment confirmed — KES ${String(payment.verifiedAmount || payment.amount || "0")} for ${String(payment.itemName || "order")}${payment.mpesaCode ? ` (${String(payment.mpesaCode)})` : ""}`,
+    message: `STK payment confirmed — KES ${String(payment.verifiedAmount || payment.amount || "0")} for ${String(payment.itemName || "order")}${payment.mpesaCode ? ` (${String(payment.mpesaCode)})` : ""}${viaShare}`,
     relatedId: payment.id,
     relatedType: "payment",
     read: false,

@@ -18,7 +18,7 @@ const logger = require('../lib/logger');
 const { distributeSplit } = require('../lib/split-setup');
 const { getDb } = require('../lib/db');
 const { logFunnelEvent } = require('../lib/funnel');
-const { sanitizeShareId, sanitizeLookSlug, sanitizeReferralCode } = require('../lib/share-attribution');
+const { sanitizeShareId, sanitizeLookSlug, sanitizeReferralCode, shareExists } = require('../lib/share-attribution');
 
 const router = express.Router();
 
@@ -109,7 +109,7 @@ router.post('/record', async (req, res) => {
     // insert so callback retries never double count.
     const shareId = sanitizeShareId(rawShareId);
     const lookSlug = sanitizeLookSlug(rawLookSlug);
-    if (shareId && lookSlug) {
+    if (shareId && lookSlug && (await shareExists(db, shareId))) {
       logFunnelEvent(db, {
         eventType: 'look_storefront',
         source: 'web',

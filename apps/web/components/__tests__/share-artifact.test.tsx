@@ -45,10 +45,13 @@ describe("ShareArtifact", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe("/api/loop/event");
-    expect(JSON.parse(init.body)).toEqual({
-      type: "artifact_shared",
-      meta: { channel: "copy", path: "/c/card-1" },
-    });
+    const body = JSON.parse(init.body);
+    expect(body.type).toBe("artifact_shared");
+    expect(body.meta.channel).toBe("copy");
+    expect(body.meta.path).toBe("/c/card-1");
+    // The logged shareId must be the same sid baked into the shared link —
+    // the API mirrors it into a look_share row so downstream joins resolve.
+    expect(body.meta.shareId).toBe(shared.searchParams.get("sid"));
   });
 
   it("native share gets the native channel on both the link and the event", async () => {
