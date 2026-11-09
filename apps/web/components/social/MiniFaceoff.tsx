@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { Vote } from "lucide-react";
+import { ArrowRight, Vote } from "lucide-react";
 import { SafeImage } from "../SafeImage";
 import { celebrateFirst } from "./firsts";
 
@@ -79,7 +80,7 @@ export function MiniFaceoff({ lookSlug, a, b }: { lookSlug: string; a: FaceoffOp
             }`}
           >
             <div className="relative aspect-square bg-muted">
-              <SafeImage sources={[opt.imageUrl]} alt={opt.title} fill unoptimized className="object-cover" />
+              <SafeImage sources={[opt.imageUrl]} alt={opt.title} fill sizes="(max-width: 640px) 50vw, 240px" className="object-cover" />
             </div>
             <div className="bg-background px-2.5 py-2">
               <p className="truncate text-xs font-bold">{opt.title}</p>
@@ -104,6 +105,23 @@ export function MiniFaceoff({ lookSlug, a, b }: { lookSlug: string; a: FaceoffOp
         ))}
       </div>
       {!voted && <p className="mt-2 text-center text-[11px] text-muted-foreground">Tap to vote — no sign-in needed.</p>}
+      {voted && (
+        <div className="mt-3 flex flex-wrap justify-center gap-2">
+          <Link
+            href={`/look/${encodeURIComponent(voted)}`}
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-foreground px-4 text-xs font-bold text-background transition-transform hover:scale-[1.02] active:scale-95"
+          >
+            Try the winner
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+          <Link
+            href={`/?tab=outfits&remix=${encodeURIComponent(lookSlug)}`}
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-border px-4 text-xs font-bold transition-transform hover:scale-[1.02] active:scale-95"
+          >
+            Remix it
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

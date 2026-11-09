@@ -203,7 +203,8 @@ export default async function LookPage({
             sources={heroImageSources}
             alt={look.title}
             fill
-            unoptimized
+            priority
+            sizes="(max-width: 768px) 100vw, 512px"
             className="object-cover"
             fallbackIconSize={64}
           />

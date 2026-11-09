@@ -4,12 +4,39 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Shirt } from "lucide-react";
 
+/** Hosts the Next optimizer is allowed to fetch (mirrors next.config.js remotePatterns). */
+const OPTIMIZABLE_SUFFIXES = ["r2.dev", "api.onpoint.famile.xyz"];
+
+/**
+ * Whether a src can go through the Next image optimizer. data:/blob: URLs
+ * can never be optimized; same-origin paths always can; remote hosts only
+ * when they match remotePatterns (otherwise Next throws at render).
+ * Exported for tests.
+ */
+export function isOptimizableImageSrc(src: string): boolean {
+  if (src.startsWith("data:") || src.startsWith("blob:")) return false;
+  if (src.startsWith("/")) return true;
+  try {
+    const u = new URL(src);
+    if (u.protocol !== "https:") return false;
+    const host = u.hostname.toLowerCase();
+    return OPTIMIZABLE_SUFFIXES.some((s) => host === s || host.endsWith(`.${s}`));
+  } catch {
+    return false;
+  }
+}
+
 interface SafeImageProps {
   /** Ordered list of candidate image URLs — tries each in sequence on error */
   sources: (string | null | undefined)[];
   alt: string;
   fill?: boolean;
+  /** Force unoptimized (default: auto — optimize allowlisted remote + local, skip data:/blob:/unknown hosts) */
   unoptimized?: boolean;
+  /** Responsive sizes hint for fill images (defaults to 100vw) */
+  sizes?: string;
+  /** Mark the LCP image so it preloads */
+  priority?: boolean;
   className?: string;
   /** Fallback icon size when all sources fail */
   fallbackIconSize?: number;
@@ -32,6 +59,8 @@ export function SafeImage({
   alt,
   fill = false,
   unoptimized = false,
+  sizes,
+  priority = false,
   className,
   fallbackIconSize = 48,
   referrerPolicy,
@@ -77,7 +106,9 @@ export function SafeImage({
       src={currentSrc}
       alt={alt}
       fill={fill}
-      unoptimized={unoptimized}
+      unoptimized={unoptimized || !isOptimizableImageSrc(currentSrc)}
+      sizes={fill ? (sizes ?? "100vw") : sizes}
+      priority={priority}
       className={className}
       referrerPolicy={referrerPolicy}
       onError={() => {

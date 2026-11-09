@@ -113,7 +113,8 @@ export default async function PolaroidPage({
             sources={[meta.imageUrl]}
             alt={`${meta.item} — AI try-on`}
             fill
-            unoptimized
+            priority
+            sizes="(max-width: 768px) 100vw, 600px"
             className="object-cover"
           />
           {fit?.score != null && (

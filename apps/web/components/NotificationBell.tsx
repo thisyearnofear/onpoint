@@ -358,11 +358,22 @@ export function NotificationBell({ direction = "down" }: { direction?: "up" | "d
 
   // Initial fetch + polling every 30s. Logged-out users still get follow
   // drops (localStorage-based); the server fetch is skipped without a user.
+  // Background tabs skip polling — the badge refreshes on return.
   useEffect(() => {
     if (authLoading) return;
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30_000);
-    return () => clearInterval(interval);
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      fetchNotifications();
+    }, 30_000);
+    const onVisible = () => {
+      if (typeof document !== "undefined" && !document.hidden) fetchNotifications();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [fetchNotifications, authLoading]);
 
   // Prevent body scroll when mobile overlay is open

@@ -21,6 +21,14 @@ const nextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     formats: ['image/webp'],
+    // NOTE: this file previously declared `images` twice — the second key
+    // silently overwrote the first, dropping WebP + deviceSizes site-wide.
+    // Remote images (R2, API host) optimize through Next; data:/blob: URLs
+    // stay unoptimized (see SafeImage.isOptimizableImageSrc).
+    remotePatterns: [
+      { protocol: 'https', hostname: 'api.onpoint.famile.xyz' },
+      { protocol: 'https', hostname: '**.r2.dev' },
+    ],
   },
   experimental: {
     prefetchInlining: true,
@@ -52,7 +60,6 @@ const nextConfig = {
 
     return config;
   },
-  images: { remotePatterns: [{ protocol: 'https', hostname: 'api.onpoint.famile.xyz' }] },
   async rewrites() {
     const hetzner = process.env.NEXT_PUBLIC_AGENT_API_URL;
     if (!hetzner) return [];

@@ -116,11 +116,11 @@ export function TryOnActionRail({
           {saved ? "Saved ✓" : saving ? "Saving…" : "Save it"}
         </button>
         <Link
-          href={`/s/${encodeURIComponent(curatorSlug)}?item=${encodeURIComponent(listingId)}#styled`}
+          href={`/?tab=outfits&curator=${encodeURIComponent(curatorSlug)}`}
           className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-border bg-background px-3 text-xs font-bold transition-transform hover:scale-[1.02] active:scale-95"
         >
           <Sparkles className="h-4 w-4" />
-          Styled 3 ways
+          More styling
         </Link>
       </div>
       <p className="mt-2 text-center text-[11px] text-muted-foreground">
