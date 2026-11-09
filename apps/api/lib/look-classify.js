@@ -119,10 +119,9 @@ async function classifyLook(opts) {
   }
 
   try {
-    const { default: QwenCloudClient } = require('@repo/qwen-cloud');
-    const client = new QwenCloudClient();
+    const client = require('@repo/qwen-cloud').getPrimaryAiClient();
 
-    if (!await client.isAvailable()) {
+    if (!client || !await client.isAvailable()) {
       return ruleBased;
     }
 

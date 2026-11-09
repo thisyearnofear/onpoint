@@ -78,13 +78,45 @@ const geminiClient = geminiKey ? new GoogleGenAI({ apiKey: geminiKey }) : null;
 const openaiClient = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
 const veniceClient = veniceKey ? new OpenAI({ apiKey: veniceKey, baseURL: VENICE_BASE_URL }) : null;
 
+// Otari (Mozilla AI) — primary gateway, OpenAI-compatible.
+const otariKey = process.env.OTARI_API_KEY || null;
+const otariClient = otariKey
+  ? new OpenAI({ apiKey: otariKey, baseURL: process.env.OTARI_BASE_URL || 'https://api.otari.ai/api/v1' })
+  : null;
+const otariVisionModel = process.env.VISION_OTARI_MODEL || process.env.OTARI_VISION_MODEL || process.env.OTARI_MODEL || null;
+const otariChatModel = process.env.OTARI_CHAT_MODEL || process.env.OTARI_MODEL || null;
+const visionAvailable = () => Boolean((otariClient && otariVisionModel) || veniceClient);
+
 // ---------------------------------------------------------------------------
-// generateVisionAnalysis – uses Venice vision model for image analysis
+// generateVisionAnalysis – Otari first, Venice fallback for image analysis
 // ---------------------------------------------------------------------------
 
 async function generateVisionAnalysis({ prompt, imageBase64, veniceModel = 'qwen3-vl-235b-a22b' }) {
+  if (otariClient && otariVisionModel) {
+    try {
+      const response = await otariClient.chat.completions.create({
+        model: otariVisionModel,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              { type: 'image_url', image_url: { url: imageBase64 } },
+            ],
+          },
+        ],
+      });
+      return {
+        text: response.choices[0]?.message?.content ?? '',
+        usedProvider: 'otari-vision',
+      };
+    } catch (err) {
+      logger.warn('Otari vision analysis failed — falling back', { component: 'virtual-tryon' }, err);
+    }
+  }
+
   if (!veniceClient) {
-    throw new Error('Venice API key required for vision analysis');
+    throw new Error('No vision provider available. Configure OTARI_API_KEY (+ model) or VENICE_API_KEY.');
   }
 
   try {
@@ -116,40 +148,54 @@ async function generateVisionAnalysis({ prompt, imageBase64, veniceModel = 'qwen
 }
 
 // ---------------------------------------------------------------------------
-// generateText – tries Gemini → Venice → OpenAI based on availability
-// (Gemini Flash-Lite is 7x cheaper than Venice Llama 3.3 70B for text)
+// generateText – Otari first, then Gemini → Venice → OpenAI fallbacks
 // ---------------------------------------------------------------------------
 
 async function generateText({ prompt, provider = 'auto', veniceModel = 'llama-3.3-70b', geminiModel = 'gemini-3.1-flash-lite-preview', openaiModel = 'gpt-4o', openaiOptions = {} }) {
   const hasVenice = !!veniceClient;
   const hasGemini = !!geminiClient;
   const hasOpenAI = !!openaiClient;
+  const hasOtari = !!(otariClient && otariChatModel);
 
   let selected = null;
-  if (provider === 'venice') {
+  if (provider === 'otari') {
+    selected = hasOtari ? 'otari' : null;
+  } else if (provider === 'venice') {
     selected = hasVenice ? 'venice' : null;
   } else if (provider === 'gemini') {
     selected = hasGemini ? 'gemini' : null;
   } else if (provider === 'openai') {
     selected = hasOpenAI ? 'openai' : null;
   } else {
-    // auto: Gemini (cheapest) → Venice → OpenAI
-    if (hasGemini) selected = 'gemini';
+    // auto: Otari (primary gateway) → Gemini → Venice → OpenAI
+    if (hasOtari) selected = 'otari';
+    else if (hasGemini) selected = 'gemini';
     else if (hasVenice) selected = 'venice';
     else if (hasOpenAI) selected = 'openai';
   }
 
   if (!selected) {
-    throw new Error('No AI provider available. Configure VENICE_API_KEY, GEMINI_API_KEY or OPENAI_API_KEY.');
+    throw new Error('No AI provider available. Configure OTARI_API_KEY, VENICE_API_KEY, GEMINI_API_KEY or OPENAI_API_KEY.');
   }
 
   // Build ordered list of providers to try (selected first, then fallbacks)
-  const all = ['gemini', 'venice', 'openai'];
-  const available = { venice: hasVenice, gemini: hasGemini, openai: hasOpenAI };
+  const all = ['otari', 'gemini', 'venice', 'openai'];
+  const available = { otari: hasOtari, venice: hasVenice, gemini: hasGemini, openai: hasOpenAI };
   const order = [selected, ...all.filter((p) => p !== selected && available[p])];
 
   for (const prov of order) {
     try {
+      if (prov === 'otari') {
+        const response = await otariClient.chat.completions.create({
+          model: otariChatModel,
+          messages: [{ role: 'user', content: prompt }],
+          ...openaiOptions,
+        });
+        return {
+          text: response.choices[0]?.message?.content ?? '',
+          usedProvider: 'otari',
+        };
+      }
       if (prov === 'venice') {
         const response = await veniceClient.chat.completions.create({
           model: veniceModel,
@@ -979,8 +1025,8 @@ Tailor your recommendations and analysis to align with these personal preference
 
     // -- analyze-person (Venice vision API for photo analysis) --
     if (type === 'analyze-person' && data && data.photoData) {
-      if (!veniceClient) {
-        return res.status(500).json({ error: 'Venice API key required for vision analysis' });
+      if (!visionAvailable()) {
+        return res.status(500).json({ error: 'Vision provider required — configure OTARI_API_KEY (+ model) or VENICE_API_KEY' });
       }
 
       const prompt = `Analyze this person's appearance for fashion styling. Be SPECIFIC about what you see:
@@ -1033,8 +1079,8 @@ Be detailed and specific. This will be used to generate highly personalized outf
 
     // -- body-analysis with photo (Venice vision API) --
     if (type === 'body-analysis' && data && data.photoData) {
-      if (!veniceClient) {
-        return res.status(500).json({ error: 'Venice API key required for vision analysis' });
+      if (!visionAvailable()) {
+        return res.status(500).json({ error: 'Vision provider required — configure OTARI_API_KEY (+ model) or VENICE_API_KEY' });
       }
 
       const prompt = `You are an expert fashion stylist analyzing this photo.
@@ -1073,7 +1119,7 @@ Be specific and actionable. Reference what you actually see.${prefContext}`;
       }
 
       try {
-        const { text } = await generateVisionAnalysis({
+        const { text, usedProvider } = await generateVisionAnalysis({
           prompt,
           imageBase64: data.photoData,
         });
@@ -1085,7 +1131,7 @@ Be specific and actionable. Reference what you actually see.${prefContext}`;
 
         return res.json({
           ...sections,
-          provider: 'venice-vision',
+          provider: usedProvider,
           type,
           rawAnalysis: text,
         });
@@ -1102,8 +1148,8 @@ Be specific and actionable. Reference what you actually see.${prefContext}`;
 
     // -- outfit-fit with photo (Venice vision API) --
     if (type === 'outfit-fit' && data && data.photoData) {
-      if (!veniceClient) {
-        return res.status(500).json({ error: 'Venice API key required for vision analysis' });
+      if (!visionAvailable()) {
+        return res.status(500).json({ error: 'Vision provider required — configure OTARI_API_KEY (+ model) or VENICE_API_KEY' });
       }
 
       const outfitDescription = data.items ? data.items.map((item) => `${item.name}: ${item.description || item.type || ''}`).join(', ') : '';
@@ -1128,12 +1174,12 @@ PERSONALIZED STYLING:
 Be SPECIFIC. Reference what you see in the photo. Give actionable, personalized advice.`;
 
       try {
-        const { text } = await generateVisionAnalysis({
+        const { text, usedProvider } = await generateVisionAnalysis({
           prompt,
           imageBase64: data.photoData,
         });
         const analysisData = parseVirtualTryOnResponse(text, 'outfit-fit', data);
-        return res.json({ ...analysisData, provider: 'venice-vision', type });
+        return res.json({ ...analysisData, provider: usedProvider, type });
       } catch (error) {
         logger.tryonError('outfit-analysis', 'Outfit fit analysis failed', error);
         return res.status(500).json({ error: 'Failed to analyze outfit fit' });

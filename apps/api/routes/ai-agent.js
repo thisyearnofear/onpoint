@@ -19,6 +19,70 @@ const ZERO_G_BASE_URL = process.env.ZERO_G_BASE_URL || 'https://router-api.0g.ai
 const ZERO_G_DEFAULT_MODEL = process.env.ZERO_G_MODEL || 'qwen3-vl-30b';
 const ZERO_G_CHAT_MODEL = process.env.ZERO_G_CHAT_MODEL || ZERO_G_DEFAULT_MODEL;
 
+const OTARI_BASE_URL = process.env.OTARI_BASE_URL || 'https://api.otari.ai/api/v1';
+const OTARI_VISION_MODEL = process.env.OTARI_VISION_MODEL || process.env.OTARI_MODEL || null;
+const OTARI_CHAT_MODEL = process.env.OTARI_CHAT_MODEL || process.env.OTARI_MODEL || null;
+
+const ANALYZE_PROMPT = (prefContext) => `You are OnPoint, an AI fashion stylist. Analyze this person's appearance and outfit for styling purposes. Provide:
+
+1. **Overall Style Assessment** — Describe their current look
+2. **Body & Fit Notes** — Key observations for clothing recommendations
+3. **Color Palette Analysis** — What works, what could be enhanced
+4. **3 Specific Recommendations** — Actionable fashion suggestions
+5. **Styling Score** — Rate 1-10 with brief justification${prefContext}
+
+Keep it concise and actionable.`;
+
+function prefContextFor(preferences = {}) {
+  return Object.keys(preferences).length > 0
+    ? `\nUser Preferences:
+- Aesthetics: ${preferences.styleAesthetics?.join(', ') || 'Not specified'}
+- Budget: ${preferences.budgetTier || 'Not specified'}
+- Body Type: ${preferences.bodyType || 'Not specified'}
+Tailor recommendations accordingly.`
+    : '';
+}
+
+/**
+ * Analyze a person's outfit via Otari (Mozilla AI) — primary gateway,
+ * OpenAI-compatible. Requires OTARI_API_KEY + a vision model.
+ */
+async function analyzeWithOtari(imageData, preferences = {}) {
+  const otariKey = process.env.OTARI_API_KEY;
+  if (!otariKey || !OTARI_VISION_MODEL || process.env.OTARI_KILL_SWITCH === '1') {
+    throw new Error('OTARI_API_KEY / OTARI_VISION_MODEL not configured');
+  }
+
+  const response = await fetch(`${OTARI_BASE_URL}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${otariKey}`,
+    },
+    body: JSON.stringify({
+      model: OTARI_VISION_MODEL,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: ANALYZE_PROMPT(prefContextFor(preferences)) },
+            { type: 'image_url', image_url: { url: imageData } },
+          ],
+        },
+      ],
+      max_tokens: 1024,
+    }),
+  });
+
+  if (!response.ok) {
+    const errBody = await response.text().catch(() => '');
+    throw new Error(`Otari error ${response.status}: ${errBody}`);
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || '';
+}
+
 /**
  * Analyze a person's outfit via Venice Vision API
  */
@@ -198,9 +262,11 @@ async function analyzeWithAzure(imageData, preferences = {}) {
 
 /**
  * Run the analyze-outfit chain in order:
- *   Venice → 0G Compute → Replicate → Azure
+ *   Otari → Venice → 0G Compute → Replicate → Azure
  *
- * 0G is positioned second because (a) it is TEE-attested which makes
+ * Otari is the primary gateway (Mozilla AI Dev Wilding); the rest are
+ * fallbacks for when its credits or models are unavailable. 0G stays
+ * second among the fallbacks because (a) it is TEE-attested which makes
  * it a stronger receipt surface than Replicate / Azure, (b) the
  * default model (qwen3-vl-30b) is the cheapest vision-capable model
  * on the live 0G Router catalog, and (c) it adds a verifiable
@@ -208,6 +274,7 @@ async function analyzeWithAzure(imageData, preferences = {}) {
  */
 async function analyzeWithFallbackChain(imageData, preferences = {}) {
   const providers = [
+    { name: 'otari', run: () => analyzeWithOtari(imageData, preferences) },
     { name: 'venice', run: () => analyzeWithVenice(imageData, preferences) },
     { name: '0g', run: () => analyzeWithZeroG(imageData, preferences) },
     { name: 'replicate', run: () => analyzeWithReplicate(imageData, preferences) },
@@ -240,49 +307,54 @@ async function analyzeWithFallbackChain(imageData, preferences = {}) {
  * Generate proactive style suggestions based on user context
  */
 async function generateSuggestions(userContext = {}) {
+  const otariKey = process.env.OTARI_API_KEY;
   const veniceKey = process.env.VENICE_API_KEY;
-  if (!veniceKey) return [];
+  const hasOtari = Boolean(otariKey && OTARI_CHAT_MODEL && process.env.OTARI_KILL_SWITCH !== '1');
+  if (!hasOtari && !veniceKey) return [];
 
   const contextStr = Object.keys(userContext).length > 0
     ? `User context: ${JSON.stringify(userContext)}`
     : 'No specific user context';
 
-  const response = await fetch(`${VENICE_BASE_URL}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${veniceKey}`,
-    },
-    body: JSON.stringify({
-      model: 'qwen3-vl-235b-a22b',
-      messages: [
-        {
-          role: 'user',
-          content: `You are OnPoint's AI stylist agent. Based on this context, suggest 2-3 fashion actions the agent could take proactively.
+  const prompt = `You are OnPoint's AI stylist agent. Based on this context, suggest 2-3 fashion actions the agent could take proactively.
 
 ${contextStr}
 
 Return a JSON array of suggestions, each with: title (string), description (string), category (one of: outfit, accessory, color, trend, event), confidence (0-100).
 
-Return ONLY valid JSON, no markdown.`,
+Return ONLY valid JSON, no markdown.`;
+
+  const upstreams = [];
+  if (hasOtari) upstreams.push({ name: 'otari', baseURL: OTARI_BASE_URL, apiKey: otariKey, model: OTARI_CHAT_MODEL });
+  if (veniceKey) upstreams.push({ name: 'venice', baseURL: VENICE_BASE_URL, apiKey: veniceKey, model: 'qwen3-vl-235b-a22b' });
+
+  for (const up of upstreams) {
+    try {
+      const response = await fetch(`${up.baseURL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${up.apiKey}`,
         },
-      ],
-      max_tokens: 512,
-    }),
-  });
+        body: JSON.stringify({
+          model: up.model,
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 512,
+        }),
+      });
 
-  if (!response.ok) return [];
+      if (!response.ok) continue;
 
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || '[]';
-  const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-
-  try {
-    const suggestions = JSON.parse(cleaned);
-    return Array.isArray(suggestions) ? suggestions.slice(0, 3) : [];
-  } catch {
-    return [];
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || '[]';
+      const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const suggestions = JSON.parse(cleaned);
+      return Array.isArray(suggestions) ? suggestions.slice(0, 3) : [];
+    } catch {
+      // try next upstream
+    }
   }
+  return [];
 }
 
 // POST /api/ai/agent — Analyze outfit with optional preferences

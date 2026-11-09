@@ -389,6 +389,24 @@ Every share of a look can carry a **share id** so the platform can follow it fro
 
 ---
 
+## AI Provider Chain
+
+**Otari (Mozilla AI) is the primary LLM gateway** — OpenAI-compatible at `https://api.otari.ai/api/v1` (EU accounts: `https://eu.api.otari.ai/api/v1`), workspace key `OTARI_API_KEY` (`otk_…`), model IDs (`vendor/model`) from the workspace Models tab. Status: `implemented`, pending live validation.
+
+Env: `OTARI_API_KEY`, `OTARI_CHAT_MODEL`, `OTARI_VISION_MODEL`, `OTARI_IMAGE_MODEL` (optional — image-gen falls back to Qwen Cloud's AIGC endpoint), `OTARI_MODEL` (generic fallback), `OTARI_BASE_URL`, `OTARI_KILL_SWITCH`, `OTARI_TIMEOUT_MS`.
+
+Where it sits:
+
+- `apps/api/lib/vision.js` — `otari` is first in `DEFAULT_ORDER` (requires `OTARI_API_KEY` + a vision model env, or `VISION_OTARI_MODEL`).
+- `packages/qwen-cloud` — `getPrimaryAiClient()` returns Otari → Qwen Cloud fallback chain (`ChainAiClient`); used by garment attributes, look classification, and look collages.
+- `apps/api/routes/ai-agent.js`, `ai-virtual-tryon.js`, `lib/product-search.js` — Otari first, Venice/0G/Replicate/Azure behind it.
+- `apps/web/app/api/ai/_utils/providers.ts` — `"otari"` provider choice; `auto` resolves Otari → Venice → Gemini → OpenAI.
+- `packages/qwen-mcp` — inline vision chain tries Otari then DashScope.
+
+Live-session/realtime providers (Gemini Live, OpenAI Realtime, 0G live) are unchanged — Otari is chat-completions only.
+
+---
+
 ## Pricing
 
 | Action                         | Cost                             | Split                              |

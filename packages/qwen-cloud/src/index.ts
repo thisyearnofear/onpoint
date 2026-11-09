@@ -20,3 +20,12 @@ export {
   getQwenCloudClient,
   _resetQwenCloudClientForTests,
 } from "./client";
+export {
+  OtariClient,
+  OtariSpendGuardError,
+  ChainAiClient,
+  getOtariClient,
+  getPrimaryAiClient,
+  _resetOtariClientForTests,
+} from "./otari";
+export type { OtariClientConfig, PrimaryAiClient } from "./otari";

@@ -108,6 +108,10 @@ export function validateEnv(): { valid: boolean; missing: string[] } {
 
   // Check that at least one AI provider is configured
   const hasAI =
+    (process.env.OTARI_API_KEY &&
+      (process.env.OTARI_CHAT_MODEL ||
+        process.env.OTARI_VISION_MODEL ||
+        process.env.OTARI_MODEL)) ||
     process.env.VENICE_API_KEY ||
     (process.env.GEMINI_API_KEY &&
       process.env.GEMINI_API_KEY !== "your_gemini_api_key_here") ||
@@ -118,7 +122,7 @@ export function validateEnv(): { valid: boolean; missing: string[] } {
 
   if (!hasAI) {
     if (isProduction) {
-      missing.push("VENICE_API_KEY|GEMINI_API_KEY|OPENAI_API_KEY (at least one)");
+      missing.push("OTARI_API_KEY|VENICE_API_KEY|GEMINI_API_KEY|OPENAI_API_KEY (at least one)");
     } else {
       warnings.push(
         "No AI provider configured — AI features will be unavailable",

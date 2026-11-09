@@ -162,9 +162,9 @@ async function extractGarmentAttributes({ imageUrl, title, tags, client: injecte
   }
 
   try {
-    const client = injectedClient || new (require('@repo/qwen-cloud').default)();
+    const client = injectedClient || require('@repo/qwen-cloud').getPrimaryAiClient();
 
-    if (!await client.isAvailable()) {
+    if (!client || !await client.isAvailable()) {
       return ruleBased;
     }
 

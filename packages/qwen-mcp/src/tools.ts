@@ -51,26 +51,26 @@ const QWEN_BASE_URL =
   "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
 const QWEN_VISION_MODEL = process.env.QWEN_CLOUD_VISION_MODEL || "qwen3-vl-flash";
 
-async function qwenVision(
+// Otari (Mozilla AI) — primary gateway, OpenAI-compatible.
+const OTARI_BASE_URL =
+  process.env.OTARI_BASE_URL || "https://api.otari.ai/api/v1";
+const OTARI_VISION_MODEL =
+  process.env.OTARI_VISION_MODEL || process.env.OTARI_MODEL || null;
+
+async function visionComplete(
+  upstream: { name: string; baseURL: string; apiKey: string; model: string; extraBody?: Record<string, unknown> },
   imageDataUrl: string,
   prompt: string,
-  maxTokens = 200,
+  maxTokens: number,
 ): Promise<{ analysis: string; model: string; costUsd: number }> {
-  const apiKey = process.env.DASHSCOPE_API_KEY;
-  if (!apiKey) throw new Error("DASHSCOPE_API_KEY not configured");
-
-  if (process.env.QWEN_CLOUD_KILL_SWITCH === "1") {
-    throw new Error("Qwen Cloud kill switch is active (QWEN_CLOUD_KILL_SWITCH=1)");
-  }
-
-  const res = await fetch(`${QWEN_BASE_URL}/chat/completions`, {
+  const res = await fetch(`${upstream.baseURL}/chat/completions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${upstream.apiKey}`,
     },
     body: JSON.stringify({
-      model: QWEN_VISION_MODEL,
+      model: upstream.model,
       messages: [
         {
           role: "system",
@@ -87,27 +87,71 @@ async function qwenVision(
       ],
       max_tokens: maxTokens,
       temperature: 0.7,
-      enable_thinking: false,
+      ...(upstream.extraBody ?? {}),
     }),
     signal: AbortSignal.timeout(20000),
   });
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`Qwen Cloud error ${res.status}: ${body.slice(0, 200)}`);
+    throw new Error(`${upstream.name} error ${res.status}: ${body.slice(0, 200)}`);
   }
 
   const data = await res.json();
   const analysis = data.choices?.[0]?.message?.content || "";
-  // Cost estimate
-  const pricing = { in: 0.05, out: 0.4 }; // qwen3-vl-flash
+  // Cost estimate (Qwen Cloud pricing; Otari bills via workspace wallet)
+  const pricing = upstream.name === "otari" ? { in: 0, out: 0 } : { in: 0.05, out: 0.4 };
   const costUsd =
     Math.round(
       (((data.usage?.prompt_tokens || 0) / 1e6) * pricing.in +
         ((data.usage?.completion_tokens || 0) / 1e6) * pricing.out) * 1e6,
     ) / 1e6;
 
-  return { analysis, model: data.model || QWEN_VISION_MODEL, costUsd };
+  return { analysis, model: data.model || upstream.model, costUsd };
+}
+
+async function qwenVision(
+  imageDataUrl: string,
+  prompt: string,
+  maxTokens = 200,
+): Promise<{ analysis: string; model: string; costUsd: number; provider: string }> {
+  const upstreams: Array<{ name: string; baseURL: string; apiKey?: string; model: string; extraBody?: Record<string, unknown> }> = [];
+
+  const otariKey = process.env.OTARI_API_KEY;
+  if (otariKey && OTARI_VISION_MODEL && process.env.OTARI_KILL_SWITCH !== "1") {
+    upstreams.push({ name: "otari", baseURL: OTARI_BASE_URL, apiKey: otariKey, model: OTARI_VISION_MODEL });
+  }
+
+  const qwenKey = process.env.DASHSCOPE_API_KEY;
+  if (qwenKey && process.env.QWEN_CLOUD_KILL_SWITCH !== "1") {
+    upstreams.push({
+      name: "qwen-cloud",
+      baseURL: QWEN_BASE_URL,
+      apiKey: qwenKey,
+      model: QWEN_VISION_MODEL,
+      extraBody: { enable_thinking: false },
+    });
+  }
+
+  if (upstreams.length === 0) {
+    throw new Error("No vision provider configured (OTARI_API_KEY or DASHSCOPE_API_KEY)");
+  }
+
+  const errors: string[] = [];
+  for (const up of upstreams) {
+    try {
+      const result = await visionComplete(
+        { ...up, apiKey: up.apiKey as string },
+        imageDataUrl,
+        prompt,
+        maxTokens,
+      );
+      return { ...result, provider: up.name };
+    } catch (err) {
+      errors.push(`${up.name}: ${(err as Error).message}`);
+    }
+  }
+  throw new Error(`All vision providers failed (${errors.join("; ")})`);
 }
 
 // ── API helpers ────────────────────────────────────────────────
@@ -170,7 +214,7 @@ export async function callTool(
       const prompt = prompts[goal] ?? prompts.daily ?? "Analyze this outfit.";
       const result = await qwenVision(imageDataUrl, prompt);
       return {
-        provider: "qwen-cloud",
+        provider: result.provider,
         model: result.model,
         goal,
         analysis: result.analysis,
@@ -187,7 +231,7 @@ export async function callTool(
         "If no African patterns are present, say so and suggest how African elements could be incorporated.";
       const result = await qwenVision(imageDataUrl, prompt, 300);
       return {
-        provider: "qwen-cloud",
+        provider: result.provider,
         model: result.model,
         analysis: result.analysis,
         estimatedCostUsd: result.costUsd,

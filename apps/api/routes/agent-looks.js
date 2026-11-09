@@ -238,13 +238,12 @@ router.post('/', lookAuth, async (req, res) => {
             // Non-fatal — metadata defaults to {}
           }
 
-          // Generate collage (Tier 2 AI if Qwen Cloud available, else Tier 1 sharp)
+          // Generate collage (Tier 2 AI if a vision client is available, else Tier 1 sharp)
           let qwenClient = null;
           if (!process.env.QWEN_CLOUD_KILL_SWITCH) {
             try {
-              const { default: QwenCloudClient } = require('@repo/qwen-cloud');
-              const client = new QwenCloudClient();
-              if (await client.isAvailable()) {
+              const client = require('@repo/qwen-cloud').getPrimaryAiClient();
+              if (client && await client.isAvailable()) {
                 qwenClient = client;
               }
             } catch {
@@ -840,13 +839,12 @@ router.post('/:slug/collage', async (req, res) => {
     let qwenClient = null;
     if (!process.env.QWEN_CLOUD_KILL_SWITCH) {
       try {
-        const { default: QwenCloudClient } = require('@repo/qwen-cloud');
-        const client = new QwenCloudClient();
-        if (await client.isAvailable()) {
+        const client = require('@repo/qwen-cloud').getPrimaryAiClient();
+        if (client && await client.isAvailable()) {
           qwenClient = client;
         }
       } catch {
-        // Qwen Cloud package not available or misconfigured — use Tier 1.
+        // AI client package not available or misconfigured — use Tier 1.
       }
     }
 

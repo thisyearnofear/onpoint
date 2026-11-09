@@ -2,7 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import OpenAI from "openai";
 import { logger } from "../../../../lib/utils/logger";
 
-export type ProviderChoice = "auto" | "gemini" | "openai" | "venice";
+export type ProviderChoice = "auto" | "otari" | "gemini" | "openai" | "venice";
 
 const geminiKey =
   process.env.GEMINI_API_KEY &&
@@ -15,9 +15,21 @@ const openaiKey =
     ? process.env.OPENAI_API_KEY
     : null;
 const veniceKey = process.env.VENICE_API_KEY || null;
+const otariKey = process.env.OTARI_API_KEY || null;
 
 const geminiClient = geminiKey ? new GoogleGenAI({ apiKey: geminiKey }) : null;
 const openaiClient = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
+
+// Otari (Mozilla AI) — primary gateway, OpenAI-compatible
+const OTARI_BASE_URL =
+  process.env.OTARI_BASE_URL || "https://api.otari.ai/api/v1";
+const otariClient = otariKey
+  ? new OpenAI({ apiKey: otariKey, baseURL: OTARI_BASE_URL })
+  : null;
+const otariChatModel =
+  process.env.OTARI_CHAT_MODEL || process.env.OTARI_MODEL || null;
+const otariVisionModel =
+  process.env.OTARI_VISION_MODEL || process.env.OTARI_MODEL || null;
 
 // Venice AI client (OpenAI-compatible, privacy-preserving, no data retention)
 const VENICE_BASE_URL = "https://api.venice.ai/api/v1";
@@ -35,6 +47,14 @@ export function openaiAvailable(): boolean {
 
 export function veniceAvailable(): boolean {
   return !!veniceClient;
+}
+
+export function otariAvailable(): boolean {
+  return !!(otariClient && otariChatModel);
+}
+
+export function otariVisionAvailable(): boolean {
+  return !!(otariClient && otariVisionModel);
 }
 
 /**
@@ -57,6 +77,7 @@ interface GenerateTextOptions {
   veniceModel?: string; // default: 'llama-3.3-70b'
   geminiModel?: string; // default: 'gemini-3.1-flash-lite-preview'
   openaiModel?: string; // default: 'gpt-4o'
+  otariModel?: string; // overrides OTARI_CHAT_MODEL / OTARI_MODEL
   openaiOptions?: {
     max_tokens?: number;
     temperature?: number;
@@ -71,28 +92,34 @@ export async function generateText({
   veniceModel = "llama-3.3-70b",
   geminiModel = "gemini-3.1-flash-lite-preview",
   openaiModel = "gpt-4o",
+  otariModel,
   openaiOptions = {},
 }: GenerateTextOptions): Promise<{
   text: string;
-  usedProvider: "venice" | "gemini" | "openai";
+  usedProvider: "otari" | "venice" | "gemini" | "openai";
 }> {
+  const hasOtari = otariAvailable();
   const hasVenice = veniceAvailable();
   const hasGemini = geminiAvailable();
   const hasOpenAI = openaiAvailable();
 
-  logger.debug("generateText resolving provider", { component: "ai-providers", provider, hasVenice, hasGemini, hasOpenAI });
+  logger.debug("generateText resolving provider", { component: "ai-providers", provider, hasOtari, hasVenice, hasGemini, hasOpenAI });
 
   // Determine provider
-  let selected: "venice" | "gemini" | "openai" | null = null;
-  if (provider === "venice") {
+  let selected: "otari" | "venice" | "gemini" | "openai" | null = null;
+  if (provider === "otari") {
+    selected = hasOtari ? "otari" : null;
+  } else if (provider === "venice") {
     selected = hasVenice ? "venice" : null;
   } else if (provider === "gemini") {
     selected = hasGemini ? "gemini" : null;
   } else if (provider === "openai") {
     selected = hasOpenAI ? "openai" : null;
   } else {
-    // auto: Prioritize Venice, then fallbacks
-    if (hasVenice) {
+    // auto: Otari (primary gateway) → Venice → fallbacks
+    if (hasOtari) {
+      selected = "otari";
+    } else if (hasVenice) {
       selected = "venice";
     } else if (preferGemini && hasGemini) {
       selected = "gemini";
@@ -110,11 +137,22 @@ export async function generateText({
   if (!selected) {
     logger.error("No AI provider available. Check your environment variables.", { component: "ai-providers" });
     throw new Error(
-      "No AI provider available. Please configure VENICE_API_KEY, GEMINI_API_KEY or OPENAI_API_KEY in environment variables.",
+      "No AI provider available. Please configure OTARI_API_KEY, VENICE_API_KEY, GEMINI_API_KEY or OPENAI_API_KEY in environment variables.",
     );
   }
 
   try {
+    if (selected === "otari") {
+      logger.debug("Using Otari", { component: "ai-providers", model: otariModel ?? otariChatModel });
+      const response = await otariClient!.chat.completions.create({
+        model: otariModel ?? otariChatModel!,
+        messages: [{ role: "user", content: prompt }],
+        ...openaiOptions,
+      });
+      const otariResult = response.choices[0]?.message?.content ?? "";
+      return { text: otariResult, usedProvider: "otari" };
+    }
+
     if (selected === "venice") {
       logger.debug("Using Venice", { component: "ai-providers", model: veniceModel });
       const response = await veniceClient!.chat.completions.create({
@@ -175,7 +213,8 @@ export function resolveOpenAIModel(choice: ModelChoice): string {
   }
 }
 
-// Minimal Gemini Vision wrapper (image + prompt)
+// Minimal vision wrappers (image + prompt). Otari first (primary
+// gateway), Gemini fallback.
 export async function generateVision({
   prompt,
   imageBase64,
@@ -186,20 +225,45 @@ export async function generateVision({
   imageBase64: string;
   provider?: ProviderChoice;
   modelChoice?: ModelChoice;
-}): Promise<{ text: string; usedProvider: "gemini" | "openai" }> {
+}): Promise<{ text: string; usedProvider: "otari" | "gemini" | "openai" }> {
+  const hasOtariVision = otariVisionAvailable();
   const hasGemini = geminiAvailable();
   const hasOpenAI = openaiAvailable();
 
-  // Prefer Gemini for vision; OpenAI vision not implemented in this wrapper
-  let selected: "gemini" | "openai" | null = null;
-  if (provider === "gemini" && hasGemini) selected = "gemini";
+  let selected: "otari" | "gemini" | "openai" | null = null;
+  if (provider === "otari" && hasOtariVision) selected = "otari";
+  else if (provider === "gemini" && hasGemini) selected = "gemini";
   else if (provider === "openai" && hasOpenAI) selected = "openai";
+  else if (hasOtariVision) selected = "otari";
   else if (hasGemini) selected = "gemini";
   else if (hasOpenAI) selected = "openai";
 
+  if (selected === "otari") {
+    const response = await otariClient!.chat.completions.create({
+      model: otariVisionModel!,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            {
+              type: "image_url",
+              image_url: {
+                url: imageBase64.startsWith("data:")
+                  ? imageBase64
+                  : `data:image/png;base64,${imageBase64}`,
+              },
+            },
+          ],
+        },
+      ],
+    });
+    return { text: response.choices[0]?.message?.content ?? "", usedProvider: "otari" };
+  }
+
   if (selected !== "gemini") {
     throw new Error(
-      "Vision analysis currently requires Gemini. Configure GEMINI_API_KEY.",
+      "Vision analysis requires Otari (OTARI_API_KEY + OTARI_VISION_MODEL) or Gemini (GEMINI_API_KEY).",
     );
   }
 

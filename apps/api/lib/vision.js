@@ -10,9 +10,10 @@
  * through to the next provider. If every provider fails, throws an Error
  * with code 'VISION_UNAVAILABLE'.
  *
- * Provider order defaults to venice → gemini → openrouter → modal →
- * dashscope → openai and is overridable with VISION_PROVIDERS (comma
- * list). Model names are overridable per provider with VISION_*_MODEL.
+ * Provider order defaults to otari → neon → venice → gemini →
+ * openrouter → modal → dashscope → openai and is overridable with
+ * VISION_PROVIDERS (comma list). Model names are overridable per
+ * provider with VISION_*_MODEL.
  *
  * Keys are never logged and never appear in configuredProviders().
  */
@@ -20,6 +21,14 @@
 const logger = require('./logger');
 
 const PROVIDERS = {
+  otari: {
+    // Otari (Mozilla AI) — primary gateway, OpenAI-compatible.
+    // Workspace key (otk_…) + model IDs from the otari.ai dashboard.
+    keyEnv: 'OTARI_API_KEY',
+    baseURL: () => process.env.OTARI_BASE_URL || 'https://api.otari.ai/api/v1',
+    model: () => process.env.VISION_OTARI_MODEL || process.env.OTARI_VISION_MODEL || process.env.OTARI_MODEL || '',
+    requiresModel: true,
+  },
   neon: {
     // Neon AI Gateway — OpenAI-compatible endpoint on the branch, one Neon
     // credential, models from several labs. Needs both the gateway URL and a
@@ -66,7 +75,7 @@ const PROVIDERS = {
   },
 };
 
-const DEFAULT_ORDER = ['neon', 'venice', 'gemini', 'openrouter', 'modal', 'dashscope', 'openai'];
+const DEFAULT_ORDER = ['otari', 'neon', 'venice', 'gemini', 'openrouter', 'modal', 'dashscope', 'openai'];
 
 function providerOrder() {
   const raw = process.env.VISION_PROVIDERS;
@@ -92,6 +101,7 @@ function providerEnabled(name) {
   const def = PROVIDERS[name];
   if (def.requiresURL) return Boolean(apiKeyFor(name) && baseURLFor(name));
   if (def.optionalKey) return Boolean(apiKeyFor(name) || baseURLFor(name));
+  if (def.requiresModel) return Boolean(apiKeyFor(name) && def.model());
   return Boolean(apiKeyFor(name));
 }
 
