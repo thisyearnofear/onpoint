@@ -12,17 +12,22 @@ export function LookShareButton({
   title,
   text,
   url,
+  imageUrl,
 }: {
   lookSlug: string;
   title: string;
   text?: string;
   url: string;
+  imageUrl?: string | null;
 }) {
   return (
     <ShareArtifact
       title={title}
       text={text}
       url={url}
+      imageUrl={imageUrl}
+      lookSlug={lookSlug}
+      label="Share"
       onShare={(channel, _u, sid) =>
         postLookEvent(lookSlug, "share", { shareId: sid, channel })
       }

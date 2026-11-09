@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-type ExitKind = "reply" | "couple" | "make" | "magazine" | "board";
+type ExitKind = "reply" | "couple" | "make" | "magazine" | "board" | "pair";
 
 interface ExitDef {
   role: "primary" | "link";
@@ -33,6 +33,11 @@ const EXITS: Record<ExitKind, ExitDef> = {
     role: "link",
     label: "Or see what others made →",
     href: () => "/cards",
+  },
+  pair: {
+    role: "link",
+    label: "Or try the same fit on someone →",
+    href: () => "/pair",
   },
 };
 

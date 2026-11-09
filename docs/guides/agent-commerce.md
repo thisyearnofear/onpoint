@@ -152,18 +152,25 @@ Look creation is now open to anyone with a wallet — including human curators s
 
 **Two auth paths:**
 
-1. **Agent**: `x-agent-address` header (wallet address)
-2. **Curator**: `x-curator-slug` + `x-curator-whatsapp` headers (WhatsApp verification) — the curator's wallet address (from `linkedAgentAddress`, `commerce.walletAddress`, or custodial wallet) is used as the creator address
+1. **Agent**: `Authorization: Bearer <session token>` from `POST /api/auth/challenge` → sign → `POST /api/auth/verify` (a bare `x-agent-address` header is rejected for writes)
+2. **Curator**: same Bearer session + `x-curator-slug` header — the signed wallet must be the curator payout/custodial wallet or the linked agent wallet
 
-**Linking an agent to a curator:**
+**Linking an agent to a curator (two-sided consent):**
 
-A curator can link an agent wallet address to their storefront. This is a soft link — not authorization. The agent still uses their own wallet. The link is for attribution and discovery: looks created by that agent appear on the curator's storefront page.
+A curator can link an agent wallet address to their storefront. This is a soft link — not authorization. The agent still uses their own wallet. The link is for attribution and discovery: looks created by that agent appear on the curator's storefront page. Linking requires both sides to sign plus a one-time code to the WhatsApp number on file — a phone number alone is no longer a credential.
 
 ```bash
-# Link an agent to a curator's storefront
-POST /api/looks/curator/{slug}/link-agent
-Body: { "whatsapp": "+254712345678", "agentAddress": "0x..." }
+# 1. Curator (payout-wallet session) requests a code — sent to the stored WhatsApp number
+POST /api/looks/curator/{slug}/link-agent/request
+Headers: Authorization: Bearer <curator-session>, x-curator-slug: {slug}
+
+# 2. Curator confirms with the code + the agent's own session token (agent consent)
+POST /api/looks/curator/{slug}/link-agent/verify
+Headers: Authorization: Bearer <curator-session>, x-curator-slug: {slug}
+Body: { "otp": "123456", "agentAddress": "0x...", "agentToken": "<agent-session>" }
 ```
+
+The legacy `POST /api/looks/curator/{slug}/link-agent` with `{ whatsapp, agentAddress }` returns `410 Gone`.
 
 A curator can also set this to their own wallet to create looks themselves.
 

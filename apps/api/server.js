@@ -53,6 +53,36 @@ if (Sentry) {
   app.use(Sentry.Handlers.requestHandler());
 }
 
+// ── Security headers + CORS ─────────────────────────────────────
+const helmet = require('helmet');
+const cors = require('cors');
+
+// Security headers. CORP is cross-origin so the web app can still load
+// garment/polaroid images hosted here; CSP/COEP are disabled because this
+// is a JSON + image API and those policies would break cross-origin loads.
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
+
+// Agents and curl send no Origin and are always allowed. Browser origins
+// must be allowlisted (CORS_ORIGINS env, plus the web app origin and local
+// dev). Origins are never reflected arbitrarily.
+const corsAllowlist = new Set([
+  process.env.WEB_BASE_URL?.replace(/\/$/, '') || 'https://onpoint.trustfall.xyz',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean) : []),
+]);
+app.use(cors({
+  origin(origin, cb) {
+    if (!origin || corsAllowlist.has(origin)) return cb(null, true);
+    return cb(null, false);
+  },
+  credentials: true,
+}));
+
 // ── Static files (digital garment images) ────────────────────────
 // Uses shared directory so images survive releases without re-upload.
 const digitalGarmentsPath = process.env.NODE_ENV === 'production' ? '/opt/onpoint/shared/api/public/digital-garments' : 'public/digital-garments';
@@ -107,6 +137,7 @@ try {
 // ── Middleware ──────────────────────────────────────────────────
 const { createRateLimiter } = require('./middleware/rate-limit');
 const { createApiKeyAuth } = require('./middleware/api-key-auth');
+const { createServiceApiKeyAuth } = require('./middleware/service-key-auth');
 
 // Rate limit tiers
 const generalRateLimit = createRateLimiter(redis, 'general');
@@ -132,6 +163,10 @@ const aiAnalysisRateLimit = createRateLimiter(redis, 'aiAnalysis');
 const aiAnalysisDailyLimit = createRateLimiter(redis, 'aiAnalysisDaily');
 const artifactIngestRateLimit = createRateLimiter(redis, 'artifactIngest');
 const artifactIngestDailyLimit = createRateLimiter(redis, 'artifactIngestDaily');
+const agentAuthRateLimit = createRateLimiter(redis, 'general', {
+  maxRequests: 20,
+  prefix: 'agent-auth',
+});
 
 // Auth middleware
 const aiAuth = createApiKeyAuth(); // External consumers: require VENICE_API_KEY
@@ -139,38 +174,6 @@ const serviceKeyAuth = createServiceApiKeyAuth(); // Internal services: require 
 
 // Mount serviceKeyAuth on the heartbeat router for POST only
 // (The heartbeat router's POST handler checks SERVICE_API_KEY internally)
-
-/**
- * Service-to-service API key auth middleware.
- * Uses SERVICE_API_KEY env var (separate from VENICE_API_KEY).
- */
-function createServiceApiKeyAuth() {
-  return function serviceAuth(req, res, next) {
-    const serviceKey = process.env.SERVICE_API_KEY;
-
-    // If no SERVICE_API_KEY configured, skip auth (dev mode)
-    if (!serviceKey) {
-      if (process.env.NODE_ENV === 'production') {
-        return res.status(500).json({ error: 'SERVICE_API_KEY not configured on server' });
-      }
-      return next();
-    }
-
-    const provided = req.headers['x-service-key'] ?? req.headers['authorization']?.replace('Bearer ', '')?.trim() ?? null;
-
-    if (!provided) {
-      return res.status(401).json({
-        error: 'Missing service key. Use x-service-key header or Authorization: Bearer <key>.',
-      });
-    }
-
-    if (provided !== serviceKey) {
-      return res.status(403).json({ error: 'Invalid service key' });
-    }
-
-    next();
-  };
-}
 
 // ── Health Check ────────────────────────────────────────────────
 
@@ -192,6 +195,14 @@ app.get('/health', json1k, async (req, res) => {
     status: 'healthy',
     version: '2.1.0',
     redis: redisStatus,
+    timestamp: Date.now(),
+  });
+});
+
+// Detailed integration configuration — service-key only. /health stays
+// minimal so it can't be used to fingerprint which providers/keys are set.
+app.get('/api/status/integrations', serviceKeyAuth, (req, res) => {
+  res.json({
     venice: !!process.env.VENICE_API_KEY,
     openai: !!process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your_openai_api_key_here',
     gemini: !!process.env.GOOGLE_GEMINI_API_KEY,
@@ -260,6 +271,7 @@ app.use('/api/loop', json1k, generalRateLimit, require('./routes/loop'));
 app.use('/api/invites', json1k, generalRateLimit, require('./routes/invites'));
 app.use('/api/wishlist', json1k, generalRateLimit, require('./routes/wishlist'));
 app.use('/api/magazine', json10mb, artifactIngestRateLimit, artifactIngestDailyLimit, require('./routes/magazine'));
+app.use('/api/pair', json10mb, require('./routes/pair'));
 
 // Wallet — service-key auth (exposes private wallet info)
 app.use('/api/agent/wallet', json1k, serviceKeyAuth, require('./routes/agent-wallet'));
@@ -389,7 +401,19 @@ app.use('/api/curator', json1k, generalRateLimit, require('./routes/curator-stor
 
 app.use('/api/referrals', json1k, generalRateLimit, require('./routes/referrals'));
 
-// ── Agent Looks (public read, agent-authed write) ───────────────
+// ── Agent wallet auth (challenge/verify → session token) ────────
+// SIWE-style off-chain signature proof; issues the bearer session required
+// for creator-scoped look writes. Dev/test use an in-memory challenge store;
+// production uses Redis and fails closed (503) when it is unavailable.
+const { createAgentAuthRouter } = require('./routes/agent-auth');
+const { createRedisChallengeStore, createMemoryChallengeStore } = require('./lib/agent-auth-challenges');
+const agentAuthStore =
+  process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test'
+    ? createMemoryChallengeStore()
+    : createRedisChallengeStore(redis);
+app.use('/api/auth', json1k, agentAuthRateLimit, createAgentAuthRouter({ store: agentAuthStore }));
+
+// ── Agent Looks (public read, session-authed write) ─────────────
 // External agents compose OnPoint listings into shareable style boards.
 
 app.use('/api/looks', json10mb, generalRateLimit, require('./routes/agent-looks'));

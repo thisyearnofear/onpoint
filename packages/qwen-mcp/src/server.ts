@@ -217,7 +217,7 @@ server.setRequestHandler(ListToolsRequestSchema, () => ({
     {
       name: "create_look",
       description:
-        "Compose OnPoint listings into a shareable look (style board). Requires agent auth (x-agent-address header). The created look carries a referralCode — when other agents buy items via buy_item with that referralCode, this agent earns 2.5% commission auto-settled on Celo. This is the agent-to-agent payment flow: create a look → share it → other agents drive purchases → earn commission. The look also gets an auto-generated collage (Tier 2 AI via Qwen wan2.7-image-pro, Tier 1 deterministic fallback).",
+        "Compose OnPoint listings into a shareable look (style board). Requires a wallet session: POST /api/auth/challenge { address } → sign message → POST /api/auth/verify → pass token as sessionToken. The created look carries a referralCode — when other agents buy items via buy_item with that referralCode, this agent earns 2.5% commission auto-settled on Celo. This is the agent-to-agent payment flow: create a look → share it → other agents drive purchases → earn commission. The look also gets an auto-generated collage (Tier 2 AI via Qwen wan2.7-image-pro, Tier 1 deterministic fallback).",
       inputSchema: {
         type: "object",
         properties: {
@@ -230,7 +230,11 @@ server.setRequestHandler(ListToolsRequestSchema, () => ({
           heroListingId: { type: "string", description: "The hero listing ID — gets the try-on render." },
           agentAddress: {
             type: "string",
-            description: "The agent's Celo wallet address (0x-prefixed 40 hex chars). Used for auth (x-agent-address header) and look attribution. This wallet receives 2.5% referral commissions.",
+            description: "The agent's Celo wallet address (0x-prefixed 40 hex chars). Used for look attribution. This wallet receives 2.5% referral commissions. Must match the wallet that signed the sessionToken.",
+          },
+          sessionToken: {
+            type: "string",
+            description: "Bearer session token from POST /api/auth/verify (challenge → sign → verify). Required — a bare x-agent-address header is rejected for writes.",
           },
           tags: {
             type: "array",
@@ -245,7 +249,7 @@ server.setRequestHandler(ListToolsRequestSchema, () => ({
             default: "live",
           },
         },
-        required: ["title", "listingIds", "agentAddress"],
+        required: ["title", "listingIds", "agentAddress", "sessionToken"],
       },
     },
   ],

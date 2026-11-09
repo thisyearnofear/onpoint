@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getApiBase } from "@/lib/utils/api-base";
 import { RecordSeen } from "@/components/RecentlySeen";
 import { ShareArtifact } from "@/components/ShareArtifact";
+import { ReactionBar } from "@/components/social/ReactionBar";
 import { ShareAttributionCapture } from "@/components/ShareAttributionCapture";
 import { ArtifactShell } from "@/components/surface/ArtifactShell";
 import { ItemRow, type SurfaceItem } from "@/components/surface/ItemRow";
@@ -84,7 +85,7 @@ export default async function CoupleCardPage({ params }: { params: Promise<{ id:
       }
       exits={
         <>
-          <ExitLinks kinds={["reply", "magazine", "board"]} id={id} />
+          <ExitLinks kinds={["reply", "pair", "magazine", "board"]} id={id} />
           {card.listed && (
             <div className="mt-4 text-center">
               <ReportCard id={id} />
@@ -96,8 +97,9 @@ export default async function CoupleCardPage({ params }: { params: Promise<{ id:
       <RecordSeen entry={{ kind: "card", title: card.theme || "Couple goals", href: `/c/${id}` }} />
       <ShareAttributionCapture />
 
-      <div className="mt-4 flex justify-end">
-        <ShareArtifact title={card.theme || "Couple goals"} text="A card made for us" url={`/c/${id}`} />
+      <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+        <ReactionBar targetType="card" targetId={id} />
+        <ShareArtifact title={card.theme || "Couple goals"} text="A card made for us" url={`/c/${id}`} imageUrl={card.cardUrl} label="Share" />
       </div>
 
       {card.items.length > 0 && (

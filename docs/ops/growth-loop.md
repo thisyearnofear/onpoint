@@ -18,13 +18,30 @@ look_share  look_visit    look_cta      look_storefront(kind)                 tr
 4. **Storefront (humans).** The CTA link carries `sid` and `look`. `CuratorTracker` stores them for the session and records `look_storefront` events via `POST /api/looks/:slug/storefront` with `kind` = `arrive` (once per session), `tryon` (click on "Try with AI"), `buy` (click on an external checkout link), or `order` (M-Pesa STK push sent or manual payment submitted).
 5. **Web try-on and confirmed sale (humans).** The stored `sid` + `look` are sent with the web try-on request (`data.shareId` / `data.lookSlug` → `tryon_complete`, source `web`) and with the M-Pesa STK push / manual payment body. The STK push stores them on the pending payment; when Safaricom confirms, the callback passes them to `POST /api/orders/record`, which records a `look_storefront` event with `kind: 'sale'` **server-side, once per M-Pesa receipt**. Clients cannot emit `sale` through the public endpoint.
 6. **Agent try-on / order.** Agents pass `shareId` in the `POST /api/agent/try-on` body and `X-Share-Id` (or `?sid=`) on `POST /api/curator/:slug/order`. These land in `funnel_events.metadata.shareId`.
-7. **Artifact shares (polaroids `/p/{id}`, couple cards `/c/{id}`, wishlists `/w/{id}`).** `ShareArtifact` mints a `sid` per send and posts `artifact_shared` with `meta.shareId` to `POST /api/loop/event`, which mirrors it into `look_share` (and `artifact_visit` → `look_visit`) rows — `lookSlug` is null for bare artifacts or a synthetic `p-<id>` key on polaroids, which `PolaroidTracker` binds on arrival so downstream try-on/order calls carry the attribution. Confirmed M-Pesa sales only record `kind: 'sale'` attribution when the `sid` resolves to a real `look_share` row (`shareExists`), so guessed ids cannot attach to orders.
+7. **Artifact shares (polaroids `/p/{id}`, couple cards `/c/{id}`, wishlists `/w/{id}`, pair cards `/pair/{id}`).** `ShareArtifact` (back-compat wrapper over the channel-aware `ShareSheet`) mints a `sid` per send and posts `artifact_shared` with `meta.shareId` to `POST /api/loop/event`, which mirrors it into `look_share` (and `artifact_visit` → `look_visit`) rows — `lookSlug` is null for bare artifacts or a synthetic `p-<id>` key on polaroids, which `PolaroidTracker` binds on arrival so downstream try-on/order calls carry the attribution. Confirmed M-Pesa sales only record `kind: 'sale'` attribution when the `sid` resolves to a real `look_share` row (`shareExists`), so guessed ids cannot attach to orders.
 
 All events live in the existing `funnel_events` table (`metadata` JSON); there is no separate share table.
 
 ## Channels
 
 `copy`, `native`, `twitter`, `whatsapp`, `chatgpt`, `agent`, `imessage`, `direct`, `other`. Unknown values map to `other`.
+
+The share UI is channel-aware (`apps/web/components/social/ShareSheet.tsx`): WhatsApp prefilled text, X intent, Farcaster cast compose, native sheet, copy-link, plus an Instagram image download when a collage/polaroid image exists. Each channel mints its own `sid` on click so `byChannel` reflects the actual path. Farcaster sends log as `other` (no dedicated funnel channel yet).
+
+## Social + engagement events (same pipe, not K stages)
+
+Reactions, follows, remixes, mini-faceoff votes, and runway claims post to `POST /api/loop/event` with their own `type` so they are measurable beside acquisition in the funnel report — they do **not** enter the K math (only `look_share` → activated-share stages do):
+
+| `type` | Fired by | `meta` |
+| ------ | -------- | ------ |
+| `reaction` | `ReactionBar` (looks, polaroids, pair/couple cards) | `emoji`, `targetType`, `targetId`, `lookSlug?` |
+| `follow` / `unfollow` | `useFollows` (curator/agent follows) | `kind`, `id` |
+| `remix_open` | Remix links + `RemixBanner` | `lookSlug`, `listingId?` |
+| `mini_faceoff_vote` | `MiniFaceoff` on look pages | `lookSlug`, `pick`, `a`, `b` |
+| `runway_claim` | Runway winners rail CTAs | — |
+| `first_share` / `first_vote` / `first_remix` | `FirstBadge` first-time delight | action |
+
+Counts are client-optimistic + localStorage-deduped; the server rows are the join key for analysis, not a global counter. A `look_reactions` table would make counts shared across devices — deferred.
 
 ## Definitions
 
@@ -72,7 +89,8 @@ No raw IP address or user agent is written by the share/visit/CTA events. `visit
 | Event endpoints         | `apps/api/routes/agent-looks.js` (`/share`, `/visit`, `/cta`)             |
 | Share funnel report     | `apps/api/routes/funnel-analytics.js` (`/share`)                          |
 | Client helpers          | `apps/web/lib/utils/share-attribution.ts`                                 |
-| Share + tracking UI     | `apps/web/app/look/[slug]/ShareBar.tsx`, `LookTracker.tsx`                |
+| Share + tracking UI     | `apps/web/components/social/ShareSheet.tsx` (`ShareArtifact` wraps it), `apps/web/app/look/[slug]/LookShareButton.tsx`, `LookTracker.tsx` |
+| Social primitives         | `apps/web/components/social/` (`ReactionBar`, `FollowButton`/`useFollows`, `MiniFaceoff`, `RemixBanner`, `TryOnActionRail`, `FreshDrops`, `RunwayWinners`, `FirstBadge`) |
 | Storefront attribution  | `apps/web/components/CuratorTracker.tsx`, `apps/web/app/s/[slug]/MpesaPaymentPanel.tsx` |
 | Payment → ledger join   | `apps/web/app/api/curator/stk-push`, `stk-callback`, `apps/api/routes/fulfillment.js` (`/record`) |
 | Web try-on attribution  | `apps/web/components/VirtualTryOn.tsx`, `packages/ai-client/src/hooks.ts`, `apps/api/routes/ai-virtual-tryon.js` |

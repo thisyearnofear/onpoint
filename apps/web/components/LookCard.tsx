@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Eye, Sparkles } from "lucide-react";
+import { ReactionBar } from "./social/ReactionBar";
 import { SafeImage } from "./SafeImage";
 
 export interface LookCardItem {
@@ -137,6 +138,9 @@ export function LookCard({ look, compact = false }: LookCardProps) {
               </span>
             ))}
           </div>
+          <span onClick={(e) => e.preventDefault()} onMouseDown={(e) => e.stopPropagation()}>
+            <ReactionBar targetType="look" targetId={look.slug} lookSlug={look.slug} compact />
+          </span>
           {look.tryOnCount > 0 && (
             <span className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
               <Eye className="h-3 w-3" />

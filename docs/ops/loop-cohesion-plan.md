@@ -21,7 +21,9 @@ The viral hooks feed one instrumented pipe (`funnel_events`), but real sharing b
 ## Phase 2 — Delight reconciliation
 
 - [x] **2.1 Next-action audit.** Closet verified end-to-end: empty state → add piece → plan lookbook → Share issue / Restyle / "Try a pick on yourself" exits, per-item "Shop this piece" links. Fixed a dead share: the closet issue share carried text only — no URL, so recipients had no door. Now passes `url` (native share) / appends origin (clipboard). Runway fixes deep-link into try-on; saved try-ons keep all four exits; G$ streak is a curator-side token loop (separate funnel, not consumer retention).
-- [~] **2.2 Funnel events for retention (started).** Added `closet_add` and `closet_plan` event types to `POST /api/loop/event`; `ClosetSection` fires them on add/plan. Still to add if wanted: streak-milestone, runway-claim, save/share-from-result events.
+- [x] **2.2 Funnel events for retention.** `closet_add` / `closet_plan` were already in; added `reaction`, `follow`/`unfollow`, `remix_open`, `mini_faceoff_vote`, `runway_claim`, `first_share`/`first_vote`/`first_remix` to `POST /api/loop/event` (`apps/api/routes/loop.js`). Fired by `ReactionBar`, `useFollows`, `MiniFaceoff`, `RemixBanner`/remix links, `RunwayWinners`, `FirstBadge`.
+- [x] **2.3 Social primitives batch.** Channel-aware `ShareSheet` (WhatsApp/X/Farcaster/native/copy + IG image download; per-channel `sid` minted on click) backs `ShareArtifact` everywhere; `TryOnActionRail` ends every polaroid render with challenge-a-friend / remix / save / styled-3-ways; `FreshDrops` rail + follow-drop bell notifications close the follow loop; `RemixBanner` handles `?remix=<slug>` arrivals; `RunwayWinners` makes Runway a weekly ritual (theme + Monday countdown + winners rail) on the outfits tab and `/runway`; `FirstBadge` celebrates first try-on/share/vote/remix/save/follow; look pages gained reactions + follow + remix + embedded faceoff, cards/polaroids/pairs gained reactions.
+  - Files: `apps/web/components/social/*`, `apps/web/components/ShareArtifact.tsx`, `apps/web/app/look/[slug]/`, `apps/web/app/p/[id]/`, `apps/web/app/pair/[id]/`, `apps/web/app/c/[id]/`, `apps/web/components/VirtualTryOn/TryOnResult.tsx`, `apps/web/components/wardrobe/WardrobeWorkspace.tsx`, `apps/web/components/NotificationBell.tsx`, `apps/web/app/(consumer)/runway/page.tsx`
 
 ## Phase 3 — Supply density (ops runbook)
 
@@ -44,5 +46,5 @@ These write to the production catalog — run deliberately, not from a feature b
 
 ## Verification
 
-- `npm run check-types` (apps/web): clean. `node --check` on touched API files: clean. `lib/share-attribution.test.js`: 18/18 pass. `share-artifact.test.tsx`: 2/2 pass.
+- `pnpm exec tsc --noEmit` (apps/web): clean. `node --check` on touched API files: clean. `lib/share-attribution.test.js`: 18/18 pass. `share-artifact.test.tsx`: 2/2 pass (updated for the channel sheet: open → pick channel). `reaction-bar.test.tsx`: 2/2 pass. API auth + OTP suites: 62/62 pass.
 - Live proof pending deploy: `GET /api/status/funnel/share` should show artifact shares (`lookSlug` null or `p-*`) in byChannel once real shares occur; a forged `shareId` on `/api/orders/record` should produce no `kind:'sale'` funnel row.

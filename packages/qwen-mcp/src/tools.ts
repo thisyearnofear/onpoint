@@ -336,7 +336,13 @@ export async function callTool(
         throw new Error("title and listingIds (min 2) are required");
       }
       if (!agentAddress || !/^0x[a-fA-F0-9]{40}$/.test(agentAddress)) {
-        throw new Error("agentAddress is required (0x-prefixed 40 hex chars) — used for x-agent-address auth header and look attribution");
+        throw new Error("agentAddress is required (0x-prefixed 40 hex chars) — used for look attribution");
+      }
+      const sessionToken = (args.sessionToken ? String(args.sessionToken) : "").trim();
+      if (!sessionToken) {
+        throw new Error(
+          "sessionToken is required — sign in first: POST /api/auth/challenge { address: agentAddress } → sign `message` with the wallet (personal_sign, no gas) → POST /api/auth/verify { address, signature } → pass the returned `token` as sessionToken. A bare x-agent-address header is rejected for writes.",
+        );
       }
       const body: Record<string, unknown> = { title, listingIds, status };
       if (heroListingId) body.heroListingId = heroListingId;
@@ -345,7 +351,7 @@ export async function callTool(
       const { status: httpStatus, data } = await apiPost(
         "/api/looks",
         body,
-        { "x-agent-address": agentAddress },
+        { Authorization: `Bearer ${sessionToken}` },
       );
       if (httpStatus === 201) {
         return {

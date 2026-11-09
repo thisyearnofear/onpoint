@@ -6,6 +6,9 @@ import { SafeImage } from "../../../components/SafeImage";
 import { ArtifactShell } from "../../../components/surface/ArtifactShell";
 import { FactList, shortHash } from "../../../components/surface/FactList";
 import { ShareArtifact } from "../../../components/ShareArtifact";
+import { ReactionBar } from "../../../components/social/ReactionBar";
+import { TryOnActionRail } from "../../../components/social/TryOnActionRail";
+import { FirstBadge } from "../../../components/social/FirstBadge";
 import { PolaroidGetItLink } from "./PolaroidGetItLink";
 import { PolaroidTracker } from "./PolaroidTracker";
 
@@ -187,16 +190,25 @@ export default async function PolaroidPage({
         />
       </div>
 
-      <div className="mt-6">
+      <div className="mt-6 flex flex-wrap items-center gap-2">
         <ShareArtifact
           title={`${meta.item} — AI try-on`}
           text={`Try-on for ${meta.item} by ${meta.curatorName}${fit?.score ? ` — fit score ${fit.score}/10` : ""}`}
           url={`/p/${id}`}
+          imageUrl={meta.imageUrl}
         />
-        <p className="mt-3 text-xs text-muted-foreground">
-          Share this polaroid — when someone buys through your link you earn 2.5%.
-        </p>
+        <ReactionBar targetType="polaroid" targetId={id} lookSlug={`p-${id}`} />
       </div>
+      <TryOnActionRail
+        curatorSlug={meta.curatorSlug}
+        listingId={meta.listingId}
+        itemTitle={meta.item}
+        imageUrl={meta.imageUrl}
+      />
+      <FirstBadge />
+      <p className="mt-3 text-xs text-muted-foreground">
+        Share this polaroid — when someone buys through your link you earn 2.5%.
+      </p>
     </ArtifactShell>
     </>
   );

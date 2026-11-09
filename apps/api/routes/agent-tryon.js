@@ -35,6 +35,7 @@ const { upload: r2Upload, publicUrl: r2PublicUrl, keyFor: r2KeyFor, mirrorTryOnA
 const { logFunnelEvent } = require('../lib/funnel');
 const { sanitizeShareId } = require('../lib/share-attribution');
 const { getDb, getSql } = require('../lib/db');
+const { acquireTryOnClaim, createDrizzleClaimStore } = require('../lib/tryon-payment-claims');
 const { keyToUrl, listingImageUrl } = require('../lib/r2');
 const { getPlatformWallet } = require('../lib/wallets');
 
@@ -434,19 +435,6 @@ router.post('/', async (req, res) => {
       });
     }
     } // end cUSD verification path
-
-    // Pre-check: has this payment tx already been claimed?
-    // For PayPal the canonical proof is the capture id — replay-guarded the
-    // same way as a chain tx hash, so a captured order can't be spent twice.
-    const proofId = paypalResult?.captureId || nearTxHash || paymentTxHash;
-    const existing = await db
-      .select({ id: payments.id })
-      .from(payments)
-      .where(eq(payments.txHash, proofId))
-      .limit(1);
-    if (existing.length > 0) {
-      return res.status(409).json({ error: 'Payment transaction already used' });
-    }
     }
     } // end else (not okxBypass)
 
@@ -459,11 +447,88 @@ router.post('/', async (req, res) => {
         ? null
         : agentCore.getExplorerUrl('celo', effectiveTxHash);
 
+    // ── Claim-first: lock the payment BEFORE rendering ──
+    // One proof id unlocks exactly one render. The unique tx_hash constraint
+    // + ON CONFLICT make the claim atomic; a lost race returns 409 with NO
+    // render bytes. A completed claim replays its stored artifact instead of
+    // re-rendering; a failed/stale claim can be retaken so a render error
+    // never burns the payment.
+    const claimStore = createDrizzleClaimStore(db, payments);
+    const claimValues = {
+      purpose: 'try_on',
+      curatorSlug: slug,
+      payerAddress: effectivePayer,
+      amountCusd: priceCusd.toFixed(2),
+      resource: '/api/agent/try-on',
+      metadata: {
+        listingId,
+        item: itemLabel,
+        payTo,
+        splitAddress: splitAddress || null,
+        paymentMethod,
+        ...(paymentMethod === 'near'
+          ? { near: { accountId: nearPayer, amountYocto: nearQuote.amountYocto, payTo: nearPayTo, network: nearQuote.network } }
+          : {}),
+        ...(paymentMethod === 'paypal' && paypalResult
+          ? { paypal: { orderId: paypalResult.orderId, captureId: paypalResult.captureId, amountUsd: paypalResult.amountUsd, env: paypalPayments.paypalEnv() } }
+          : {}),
+      },
+    };
+    const claim = await acquireTryOnClaim(claimStore, { proofId: effectiveTxHash, values: claimValues });
+
+    if (claim.outcome === 'replay') {
+      // Same proof, already rendered — serve the stored artifact, no new paid
+      // provider call. Lets an agent recover a render after a dropped response
+      // without paying twice.
+      const imageUrl = r2PublicUrl(claim.row.renderKey);
+      let replayMeta = null;
+      try {
+        const metaRes = await fetch(r2PublicUrl(r2KeyFor.agentPolaroidMeta(String(claim.paymentId))));
+        if (metaRes.ok) replayMeta = await metaRes.json();
+      } catch { /* best-effort: replay still serves the image without metadata */ }
+      logger.info('Try-on replay served from stored artifact', {
+        component: 'agent-tryon', paymentId: claim.paymentId, txHash: effectiveTxHash,
+      });
+      return res.status(200).json({
+        success: true,
+        replay: true,
+        tryOn: {
+          item: itemLabel,
+          curatorSlug: slug,
+          listingId,
+          inventoryType: row.listing.inventoryType,
+          render: { image: imageUrl, provider: 'replay', imageConditioned: true },
+          fitSignal: replayMeta?.fitSignal || null,
+          stylingTips: replayMeta?.stylingTips || [],
+        },
+        polaroid: { imageUrl, webUrl: polaroidWebUrl(String(claim.paymentId)) },
+        payment: {
+          id: claim.paymentId,
+          txHash: effectiveTxHash,
+          amountCusd: priceCusd.toFixed(2),
+          explorerUrl,
+          payoutModel: splitAddress ? '0xSplits (curator earns a share)' : 'platform',
+          paymentMethod,
+        },
+      });
+    }
+
+    if (claim.outcome === 'conflict') {
+      const inProgress = claim.status === 'processing';
+      return res.status(409).json({
+        error: inProgress
+          ? 'Payment is being processed by another request. Retry shortly.'
+          : 'Payment transaction already used',
+        code: 'PAYMENT_ALREADY_CLAIMED',
+        status: claim.status,
+      });
+    }
+
+    const paymentId = claim.paymentId;
+
     // Render + fit analysis run concurrently — independent pipelines.
-    // We run these BEFORE claiming the payment so that a render failure
-    // doesn't burn the agent's payment. The tx is verified but not yet
-    // ledgered — if the render fails, the agent can reuse the tx hash
-    // for a retry.
+    // The payment is already claimed (processing); if the render fails we
+    // release the claim so the agent can retry with the same tx hash.
     const fitJsonSchema = `{
   "bodyType": "athletic|slim|average|curvy|plus-size",
   "measurements": { "shoulders": "small|medium|large", "chest": "small|medium|large", "waist": "small|medium|large", "hips": "small|medium|large" },
@@ -518,61 +583,26 @@ router.post('/', async (req, res) => {
     const [render, fitResult] = await Promise.allSettled([renderPromise, fitPromise]);
 
     if (render.status === 'rejected') {
-      // Render failed — don't claim the payment. The agent can retry
-      // with the same tx hash.
+      // Release the claim so the agent can retry with the same proof. If the
+      // release write itself fails, the claim stays 'processing' and becomes
+      // reclaimable after the stale window rather than burning the payment.
+      try {
+        await claimStore.markFailed(paymentId);
+      } catch (releaseErr) {
+        logger.warn('Failed to release try-on claim after render error', {
+          component: 'agent-tryon', paymentId,
+        }, releaseErr);
+      }
       logger.error(
-        'Try-on render failed — payment NOT claimed (agent can retry)',
+        'Try-on render failed — claim released (agent can retry)',
         { component: 'agent-tryon', listingId, txHash: effectiveTxHash },
         render.reason,
       );
       return res.status(502).json({
-        error: settlementTxHash
-          ? 'Try-on render failed. The facilitator payment was settled on-chain but not ledgered. Contact support.'
-          : 'Try-on render failed — your payment was not claimed. You can retry with the same transaction hash.',
-        retryable: !settlementTxHash,
+        error: 'Try-on render failed — your payment claim was released. You can retry with the same transaction hash.',
+        retryable: true,
       });
     }
-
-    // Render succeeded — now atomically claim the payment.
-    const claimed = await db
-      .insert(payments)
-      .values({
-        purpose: 'try_on',
-        curatorSlug: slug,
-        payerAddress: effectivePayer,
-        amountCusd: priceCusd.toFixed(2),
-        txHash: effectiveTxHash,
-        resource: '/api/agent/try-on',
-        metadata: {
-          listingId,
-          item: itemLabel,
-          payTo,
-          splitAddress: splitAddress || null,
-          paymentMethod,
-          ...(paymentMethod === 'near'
-            ? { near: { accountId: nearPayer, amountYocto: nearQuote.amountYocto, payTo: nearPayTo, network: nearQuote.network } }
-            : {}),
-          ...(paymentMethod === 'paypal' && paypalResult
-            ? { paypal: { orderId: paypalResult.orderId, captureId: paypalResult.captureId, amountUsd: paypalResult.amountUsd, env: paypalPayments.paypalEnv() } }
-            : {}),
-        },
-      })
-      .onConflictDoNothing({ target: payments.txHash })
-      .returning({ id: payments.id });
-
-    if (claimed.length === 0) {
-      // Race: another request claimed this tx between our pre-check and
-      // the render. The render is done but the payment is already used.
-      // Return the render anyway — the agent got value.
-      logger.warn('Try-on payment claimed by concurrent request during render', {
-        component: 'agent-tryon', txHash: effectiveTxHash, listingId,
-      });
-      return res.status(409).json({
-        error: 'Payment transaction already used by a concurrent request',
-        render: { image: render.value.generatedImage, provider: render.value.provider },
-      });
-    }
-    const paymentId = claimed[0].id;
 
     const fit = fitResult.status === 'fulfilled' ? fitResult.value : null;
     const fitSignal = fit
@@ -694,6 +724,7 @@ router.post('/', async (req, res) => {
     // Best-effort: if the upload fails, the try-on still succeeded.
     // The agent gets the render inline; the polaroid URL is a bonus.
     let polaroid = null;
+    let polaroidRenderKey = null;
     try {
       const imageData = render.value.generatedImage;
       // Renders arrive as data URIs, ephemeral provider URLs (YouCam), or raw
@@ -702,6 +733,7 @@ router.post('/', async (req, res) => {
       const imageBuffer = Buffer.from(imageDataUri.split(',')[1], 'base64');
       const imageKey = r2KeyFor.agentPolaroid(String(paymentId));
       await r2Upload(imageKey, imageBuffer, 'image/jpeg');
+      polaroidRenderKey = imageKey;
       const imageUrl = r2PublicUrl(imageKey);
 
       // ── Mirror to Alibaba Cloud OSS (best-effort) ──
@@ -754,6 +786,16 @@ router.post('/', async (req, res) => {
       if (typeof render.value.generatedImage === 'string' && render.value.generatedImage.startsWith('data:')) {
         await setRenderCache(renderCacheKey, render.value.generatedImage);
       }
+    }
+
+    // Mark the claim completed with the stored render key so a duplicate
+    // submission replays the artifact instead of triggering a new paid render.
+    // Best-effort: if this write fails the claim stays 'processing' and is
+    // reclaimable after the stale window (at most one extra render).
+    try {
+      await claimStore.markCompleted(paymentId, polaroidRenderKey);
+    } catch (completeErr) {
+      logger.warn('Failed to mark try-on claim completed', { component: 'agent-tryon', paymentId }, completeErr);
     }
 
     // ── Share card: if this try-on came from a look, generate a collage ──

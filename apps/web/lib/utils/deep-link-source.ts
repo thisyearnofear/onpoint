@@ -7,7 +7,7 @@
  */
 
 /** Words artifact surfaces use instead of a slug. Keep in step with API-side validation. */
-export const ARTIFACT_SOURCES = ["card", "list", "mag"] as const;
+export const ARTIFACT_SOURCES = ["card", "list", "mag", "pair"] as const;
 
 export type ArtifactSource = (typeof ARTIFACT_SOURCES)[number];
 
@@ -40,4 +40,5 @@ const ARTIFACT_CAPTIONS: Record<ArtifactSource, string> = {
   card: "Styled from a card someone sent you",
   list: "Styled from a wish list",
   mag: "Styled from your issue of the magazine",
+  pair: "Styled from a pair card someone sent you",
 };

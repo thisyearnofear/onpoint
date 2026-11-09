@@ -6,11 +6,13 @@
  * patchAgentApi / fetchAgentApi) so they respect the same
  * NEXT_PUBLIC_AGENT_API_URL configuration and default headers.
  *
- * Auth-required endpoints (createLook, updateLook, deleteLook) expect the
- * caller to have configured auth headers on the agent-api client
- * (x-agent-address, or x-curator-slug + x-curator-whatsapp). The public
- * endpoints (browseLooks, getLook, classifyLook, regenerateCollage) need
- * no auth.
+ * Auth-required endpoints (createLook, updateLook, deleteLook) require a
+ * signature-verified session token from POST /api/auth/challenge +
+ * POST /api/auth/verify, sent as `Authorization: Bearer <token>` (plus
+ * `x-curator-slug` for curator-scoped writes). A bare `x-agent-address`
+ * header and plaintext `x-curator-whatsapp` are no longer accepted for
+ * writes. The public endpoints (browseLooks, getLook, classifyLook,
+ * regenerateCollage) need no auth.
  */
 
 import {
@@ -147,16 +149,32 @@ export async function getLook(slug: string): Promise<LookDetail> {
   return getAgentApi<LookDetail>(`/api/looks/${encodeURIComponent(slug)}`);
 }
 
+export interface LookAuth {
+  /** Bearer session token from POST /api/auth/verify. */
+  token?: string;
+  /** Curator context for curator-scoped writes. */
+  curatorSlug?: string;
+}
+
+function lookAuthHeaders(auth?: LookAuth): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (auth?.token) headers.Authorization = `Bearer ${auth.token}`;
+  if (auth?.curatorSlug) headers["x-curator-slug"] = auth.curatorSlug;
+  return headers;
+}
+
 /**
  * Create a new look.
  * POST /api/looks
  *
- * Requires auth headers set on the agent-api client:
- *   - Agent:  x-agent-address
- *   - Curator: x-curator-slug + x-curator-whatsapp
+ * Requires a session token: POST /api/auth/challenge { address } → sign
+ * `message` with the wallet → POST /api/auth/verify { address, signature }
+ * → `token`. Pass it as `auth.token` (plus `auth.curatorSlug` or
+ * `opts.curatorSlug` for curator-scoped writes).
  */
 export async function createLook(
   opts: CreateLookOptions,
+  auth?: LookAuth,
 ): Promise<{ id: string; slug: string }> {
   const body = {
     title: opts.title,
@@ -166,12 +184,19 @@ export async function createLook(
     tags: opts.tags,
     coverImage: opts.coverImage,
     status: opts.status,
-    curatorSlug: opts.curatorSlug,
+    curatorSlug: opts.curatorSlug ?? auth?.curatorSlug,
   };
-  const look = await postAgentApi<
-    { id: string; slug: string },
-    typeof body
-  >(`/api/looks`, body);
+  const headers = lookAuthHeaders(auth);
+  const response = await fetchAgentApi(`/api/looks`, {
+    method: "POST",
+    headers: Object.keys(headers).length > 0 ? headers : undefined,
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`API Error: ${response.status} - ${error}`);
+  }
+  const look = (await response.json()) as { id: string; slug: string };
   return { id: look.id, slug: look.slug };
 }
 
@@ -184,11 +209,22 @@ export async function createLook(
 export async function updateLook(
   slug: string,
   updates: UpdateLookOptions,
+  auth?: LookAuth,
 ): Promise<LookDetail> {
-  return patchAgentApi<LookDetail, UpdateLookOptions>(
+  const headers = lookAuthHeaders(auth);
+  const response = await fetchAgentApi(
     `/api/looks/${encodeURIComponent(slug)}`,
-    updates,
+    {
+      method: "PATCH",
+      headers: Object.keys(headers).length > 0 ? headers : undefined,
+      body: JSON.stringify(updates),
+    },
   );
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`API Error: ${response.status} - ${error}`);
+  }
+  return response.json();
 }
 
 /**
@@ -199,10 +235,10 @@ export async function updateLook(
  * Uses fetchAgentApi directly because agent-api.ts has no typed DELETE
  * wrapper.
  */
-export async function deleteLook(slug: string): Promise<{ ok: boolean }> {
+export async function deleteLook(slug: string, auth?: LookAuth): Promise<{ ok: boolean }> {
   const response = await fetchAgentApi(
     `/api/looks/${encodeURIComponent(slug)}`,
-    { method: "DELETE" },
+    { method: "DELETE", headers: lookAuthHeaders(auth) },
   );
   if (!response.ok) {
     const error = await response.text();

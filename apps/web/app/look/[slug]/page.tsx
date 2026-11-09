@@ -6,6 +6,10 @@ import { OnPointLayout } from "../../../components/OnPointLayout";
 import { SafeImage } from "../../../components/SafeImage";
 import { LookCard, type LookCardData } from "../../../components/LookCard";
 import { LookShareButton } from "./LookShareButton";
+import { ReactionBar } from "../../../components/social/ReactionBar";
+import { FollowButton } from "../../../components/social/FollowButton";
+import { MiniFaceoff } from "../../../components/social/MiniFaceoff";
+import { FirstBadge } from "../../../components/social/FirstBadge";
 import { LookTracker } from "./LookTracker";
 import { EditLookButton } from "./EditLookButton";
 import { LookItemGrid } from "./LookItemGrid";
@@ -271,6 +275,25 @@ export default async function LookPage({
           />
         </div>
 
+        <FirstBadge />
+
+        {/* Which styling wins — embedded faceoff when a sibling look exists */}
+        {moreLooks.length > 0 && moreLooks[0] && (
+          <MiniFaceoff
+            lookSlug={look.slug}
+            a={{
+              slug: look.slug,
+              title: look.title,
+              imageUrl: look.collageUrl || look.coverImageUrl || heroItem?.imageUrl || null,
+            }}
+            b={{
+              slug: moreLooks[0].slug,
+              title: moreLooks[0].title,
+              imageUrl: moreLooks[0].collageUrl || moreLooks[0].coverImageUrl || null,
+            }}
+          />
+        )}
+
         {/* More from this curator */}
         {moreLooks.length > 0 && look.curatorSlug && (
           <div className="mt-8">
@@ -300,12 +323,25 @@ export default async function LookPage({
           ) : (
             <span />
           )}
-          <LookShareButton
-            lookSlug={look.slug}
-            title={look.title}
-            text={look.description || undefined}
-            url={look.shareUrl}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <LookShareButton
+              lookSlug={look.slug}
+              title={look.title}
+              text={look.description || undefined}
+              url={look.shareUrl}
+              imageUrl={look.collageUrl || look.coverImageUrl}
+            />
+            {look.curatorSlug && (
+              <FollowButton target={{ kind: "curator", id: look.curatorSlug, label: look.curatorSlug }} />
+            )}
+            <Link
+              href={`/?tab=outfits&remix=${encodeURIComponent(look.slug)}`}
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-border px-4 text-xs font-bold text-foreground transition-all hover:border-foreground active:scale-95"
+            >
+              🔀 Remix
+            </Link>
+          </div>
+          <ReactionBar targetType="look" targetId={look.slug} lookSlug={look.slug} />
         </div>
       </div>
 

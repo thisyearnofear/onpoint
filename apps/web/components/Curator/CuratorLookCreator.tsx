@@ -5,6 +5,8 @@ import { Sparkles, ChevronDown, ChevronUp, Loader2, Check, X, Upload, ImageIcon 
 import { getApiBase } from "../../lib/utils/api-base";
 import { SafeImage } from "../SafeImage";
 import { TagEditor } from "../ui/TagEditor";
+import { CuratorWalletAuth } from "./CuratorWalletAuth";
+import { agentAuthHeadersFromSession, getAgentSession } from "../../lib/agent-session";
 
 interface StorefrontListing {
   id: string;
@@ -17,7 +19,8 @@ interface StorefrontListing {
 interface CuratorLookCreatorProps {
   curatorSlug: string;
   curatorName: string;
-  whatsapp: string;
+  /** @deprecated kept for prop compat — auth is wallet-session based */
+  whatsapp?: string;
   listings: StorefrontListing[];
   /** When provided, the component operates in edit mode for this look */
   editSlug?: string;
@@ -26,7 +29,6 @@ interface CuratorLookCreatorProps {
 export function CuratorLookCreator({
   curatorSlug,
   curatorName,
-  whatsapp,
   listings,
   editSlug,
 }: CuratorLookCreatorProps) {
@@ -137,13 +139,18 @@ export function CuratorLookCreator({
 
   async function handleSubmit(saveAsDraft = false) {
     if (!title.trim() || selectedIds.length < 2 || !heroId) return;
+    const session = getAgentSession();
+    if (!session) {
+      setResult({
+        ok: false,
+        error: "Sign in with the curator payout or linked agent wallet first — look writes need a wallet signature.",
+      });
+      return;
+    }
     setSubmitting(true);
     setResult(null);
 
-    const authHeaders = {
-      "x-curator-slug": curatorSlug,
-      "x-curator-whatsapp": whatsapp,
-    };
+    const authHeaders = agentAuthHeadersFromSession(session, curatorSlug);
 
     try {
       if (isEditMode && editSlug) {
@@ -257,6 +264,7 @@ export function CuratorLookCreator({
 
       {open && (
         <div className="mt-4 space-y-4">
+          <CuratorWalletAuth curatorSlug={curatorSlug} />
           {loading && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />

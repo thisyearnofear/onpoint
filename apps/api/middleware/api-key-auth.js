@@ -9,6 +9,8 @@
  *   - x-api-key: <key>
  */
 
+const { timingSafeStringEqual } = require("./service-key-auth");
+
 function createApiKeyAuth({ required = true } = {}) {
   // Treat anything that is not explicitly development/test as production so
   // a *missing* NODE_ENV (the footgun) fails closed, not open. A payments API
@@ -39,7 +41,7 @@ function createApiKeyAuth({ required = true } = {}) {
       return res.status(401).json({ error: "Missing API key. Use Authorization: Bearer <key> or x-api-key header." });
     }
 
-    if (apiKey !== configuredKey) {
+    if (!timingSafeStringEqual(apiKey, configuredKey)) {
       return res.status(403).json({ error: "Invalid API key" });
     }
 

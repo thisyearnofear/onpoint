@@ -54,14 +54,11 @@ export function CuratorOwnerTools({
         whatsapp={whatsapp}
       />
       <CuratorInventoryPanel curatorSlug={curatorSlug} skipOwnerCheck />
-      {whatsapp && (
-        <CuratorLinkAgent
-          curatorSlug={curatorSlug}
-          whatsapp={whatsapp}
-          currentLinkedAddress={linkedAgentAddress}
-        />
-      )}
-      {whatsapp && listings.length > 0 && (
+      <CuratorLinkAgent
+        curatorSlug={curatorSlug}
+        currentLinkedAddress={linkedAgentAddress}
+      />
+      {listings.length > 0 && (
         <CuratorLookCreator
           curatorSlug={curatorSlug}
           curatorName={curatorName}

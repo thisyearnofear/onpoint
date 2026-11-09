@@ -9,11 +9,12 @@
  * referral commission (2.5% of order value). The look's referral code is
  * auto-embedded in all try-on and order flows originating from the look page.
  *
- * Auth (two paths):
- *   1. Agent: x-agent-address header (wallet address)
- *   2. Curator: x-curator-slug + x-curator-whatsapp headers (WhatsApp verification)
- *      — the curator's wallet address (from commerce.walletAddress or their
- *        linkedAgentAddress) is used as the look creator address
+ * Auth (creator-scoped writes):
+ *   Signature-verified wallet session via /api/auth/challenge + /api/auth/verify,
+ *   sent as `Authorization: Bearer <token>` (or x-agent-session). Optional
+ *   x-curator-slug binds curator context when the signed wallet belongs to that
+ *   curator. A bare x-agent-address header is only used for public reads and
+ *   share attribution — never as an identity proof for writes.
  *
  * Routes:
  *   POST   /api/looks              — create a look (agent or curator auth)
@@ -53,6 +54,37 @@ const {
   sanitizeStorefrontKind,
   hashVisitor,
 } = require('../lib/share-attribution');
+const { requireAgentSession, extractSessionToken } = require('../middleware/agent-session');
+const { verifySessionToken } = require('../lib/agent-session');
+const {
+  OTP_TTL_SECONDS,
+  generateOtp,
+  hashOtp,
+  verifyOtpFormat,
+  timingSafeStringEqual,
+  normalizePhone,
+  createMemoryLinkOtpStore,
+  createRedisLinkOtpStore,
+} = require('../lib/link-agent-otp');
+
+// OTP store singleton: Redis in production when available, memory otherwise.
+// Tests can override via router._setLinkOtpStore(store).
+let _linkOtpStore = null;
+function getLinkOtpStore() {
+  if (_linkOtpStore) return _linkOtpStore;
+  try {
+    const { getRedis } = require('../lib/redis');
+    const redis = getRedis();
+    if (redis && process.env.NODE_ENV !== 'test' && process.env.NODE_ENV !== 'development') {
+      _linkOtpStore = createRedisLinkOtpStore(redis);
+      return _linkOtpStore;
+    }
+  } catch {
+    // fall through to memory
+  }
+  _linkOtpStore = createMemoryLinkOtpStore();
+  return _linkOtpStore;
+}
 
 const router = express.Router();
 
@@ -84,63 +116,57 @@ async function resolveListings(db, listingIds) {
     .filter(Boolean);
 }
 
-// ── Auth middleware: accept either agent (wallet header) or curator (slug + WhatsApp) ──
+// ── Auth middleware: verified wallet session (agent or curator) ──
+// Both paths require a signature-verified session token from /api/auth/verify.
+// Curator context (x-curator-slug) is bound by checking that the signed wallet
+// belongs to that curator — a plaintext WhatsApp number is no longer an auth
+// factor. A bare x-agent-address header is rejected for writes.
 async function lookAuth(req, res, next) {
-  // Path 1: Agent wallet address
-  const agentAddress = req.headers['x-agent-address'];
-  if (agentAddress && /^0x[a-fA-F0-9]{40}$/.test(agentAddress)) {
-    req.creatorAddress = agentAddress;
+  requireAgentSession(req, res, async () => {
+    const address = req.agentSession.sub;
+    const curatorSlug = req.headers['x-curator-slug'];
+
+    if (curatorSlug) {
+      try {
+        const db = getDb();
+        const [curator] = await db
+          .select()
+          .from(curators)
+          .where(eq(curators.slug, curatorSlug))
+          .limit(1);
+
+        if (!curator) {
+          return res.status(404).json({ error: 'Curator not found' });
+        }
+
+        const curatorWallets = [
+          curator.linkedAgentAddress,
+          curator.commerce?.walletAddress,
+          curator.commerce?.custodialWalletAddress,
+        ]
+          .filter(Boolean)
+          .map((w) => String(w).toLowerCase());
+
+        if (!curatorWallets.includes(address)) {
+          return res.status(403).json({
+            error: 'Authenticated wallet is not linked to this curator',
+            hint: 'Sign in with the curator payout wallet or the linked agent wallet (see /api/auth/challenge).',
+          });
+        }
+
+        req.creatorAddress = address;
+        req.creatorType = 'curator';
+        req.curatorSlug = curatorSlug;
+        return next();
+      } catch (err) {
+        logger.error('Curator session binding failed', { component: 'agent-looks' }, err);
+        return res.status(500).json({ error: 'Auth failed' });
+      }
+    }
+
+    req.creatorAddress = address;
     req.creatorType = 'agent';
     return next();
-  }
-
-  // Path 2: Curator slug + WhatsApp verification
-  const curatorSlug = req.headers['x-curator-slug'];
-  const curatorWhatsapp = req.headers['x-curator-whatsapp'];
-  if (curatorSlug && curatorWhatsapp) {
-    try {
-      const db = getDb();
-      const [curator] = await db
-        .select()
-        .from(curators)
-        .where(eq(curators.slug, curatorSlug))
-        .limit(1);
-
-      if (!curator) {
-        return res.status(401).json({ error: 'Curator not found' });
-      }
-
-      const storedWhatsapp = String(curator.channels?.whatsapp || '').replace(/\s/g, '');
-      const providedWhatsapp = String(curatorWhatsapp).replace(/\s/g, '');
-      if (!storedWhatsapp || storedWhatsapp !== providedWhatsapp) {
-        return res.status(401).json({ error: 'WhatsApp verification failed' });
-      }
-
-      // Use the curator's wallet address as the creator address
-      // If they have a linkedAgentAddress, use that; otherwise use commerce.walletAddress
-      // If neither, generate a deterministic address from their slug (for referral tracking)
-      const creatorAddress = curator.linkedAgentAddress
-        || curator.commerce?.walletAddress
-        || curator.commerce?.custodialWalletAddress;
-
-      if (!creatorAddress) {
-        return res.status(400).json({
-          error: 'No wallet address found. Set up a payout wallet or link an agent address first.',
-        });
-      }
-
-      req.creatorAddress = creatorAddress;
-      req.creatorType = 'curator';
-      req.curatorSlug = curatorSlug;
-      return next();
-    } catch (err) {
-      logger.error('Curator auth failed', { component: 'agent-looks' }, err);
-      return res.status(500).json({ error: 'Auth failed' });
-    }
-  }
-
-  return res.status(401).json({
-    error: 'Authentication required: x-agent-address header OR x-curator-slug + x-curator-whatsapp headers',
   });
 }
 
@@ -188,7 +214,7 @@ router.post('/', lookAuth, async (req, res) => {
         description: description || null,
         listingIds,
         heroListingId: heroListingId || listingIds[0],
-        curatorSlug: curatorSlug || null,
+        curatorSlug: req.curatorSlug || curatorSlug || null,
         coverImageKey,
         tags: tags || [],
         status: lookStatus,
@@ -274,45 +300,22 @@ router.post('/', lookAuth, async (req, res) => {
 });
 
 // ── GET /api/looks — list looks (public) ──
-// Public requests can only see live looks. Authenticated creators can
-// pass ?status=draft (or other non-live values) to see their own looks
-// in that status — the creator's address is resolved from auth headers.
+// Public requests can only see live looks. Creators with a verified wallet
+// session can pass ?status=draft (or other non-live values) to see their own
+// looks in that status.
 router.get('/', async (req, res) => {
   try {
     const db = getDb();
     const { curator, tag, agent, limit, category, occasion, season, status } = req.query;
     const lim = Math.min(parseInt(limit) || 20, 100);
 
-    // Resolve the requester's creator address from auth headers (best-effort).
-    // Used to gate non-live status queries to the creator's own looks.
+    // Resolve the requester's creator address from a verified wallet session
+    // (best-effort). Gates non-live status queries to the creator's own looks;
+    // unauthenticated or header-only requests stay public (live-only).
     let requesterAddress = null;
-    const agentAddressHeader = req.headers['x-agent-address'];
-    if (agentAddressHeader && /^0x[a-fA-F0-9]{40}$/.test(agentAddressHeader)) {
-      requesterAddress = agentAddressHeader;
-    } else {
-      const curatorSlugHeader = req.headers['x-curator-slug'];
-      const curatorWhatsappHeader = req.headers['x-curator-whatsapp'];
-      if (curatorSlugHeader && curatorWhatsappHeader) {
-        try {
-          const [curatorRow] = await db
-            .select()
-            .from(curators)
-            .where(eq(curators.slug, curatorSlugHeader))
-            .limit(1);
-          if (curatorRow) {
-            const storedWhatsapp = String(curatorRow.channels?.whatsapp || '').replace(/\s/g, '');
-            const providedWhatsapp = String(curatorWhatsappHeader).replace(/\s/g, '');
-            if (storedWhatsapp && storedWhatsapp === providedWhatsapp) {
-              requesterAddress = curatorRow.linkedAgentAddress
-                || curatorRow.commerce?.walletAddress
-                || curatorRow.commerce?.custodialWalletAddress
-                || null;
-            }
-          }
-        } catch {
-          // Non-fatal — fall through to public (live-only) behavior
-        }
-      }
+    const sessionPayload = verifySessionToken(extractSessionToken(req));
+    if (sessionPayload) {
+      requesterAddress = sessionPayload.sub;
     }
 
     // Determine the status filter.
@@ -328,7 +331,7 @@ router.get('/', async (req, res) => {
     }
 
     const conditions = [eq(agentLooks.status, statusFilter)];
-    if (scopeToCreator) conditions.push(eq(agentLooks.agentAddress, requesterAddress));
+    if (scopeToCreator) conditions.push(sql`lower(${agentLooks.agentAddress}) = ${requesterAddress}`);
     if (curator) conditions.push(eq(agentLooks.curatorSlug, curator));
     if (agent) conditions.push(eq(agentLooks.agentAddress, agent));
     if (tag) conditions.push(sql`${agentLooks.tags} @> ARRAY[${tag}]::text[]`);
@@ -426,7 +429,7 @@ router.post('/bulk', lookAuth, async (req, res) => {
           failed.push({ slug, error: 'Look not found' });
           continue;
         }
-        if (existing.agentAddress !== req.creatorAddress) {
+        if ((existing.agentAddress || '').toLowerCase() !== req.creatorAddress) {
           failed.push({ slug, error: 'Not the look owner' });
           continue;
         }
@@ -530,12 +533,12 @@ router.patch('/:slug', lookAuth, async (req, res) => {
       .limit(1);
 
     if (!existing) return res.status(404).json({ error: 'Look not found' });
-    if (existing.agentAddress !== req.creatorAddress) {
+    if ((existing.agentAddress || '').toLowerCase() !== req.creatorAddress) {
       return res.status(403).json({
         error: 'Not the look owner',
         provided: req.creatorAddress || 'not provided',
         expected: existing.agentAddress,
-        hint: 'Use x-agent-address header with the wallet address that created this look, or use x-curator-slug + x-curator-whatsapp headers for curator auth.',
+        hint: 'Sign in via /api/auth/challenge + /api/auth/verify with the wallet that created this look, then send Authorization: Bearer <token>.',
       });
     }
 
@@ -576,12 +579,12 @@ router.delete('/:slug', lookAuth, async (req, res) => {
       .limit(1);
 
     if (!existing) return res.status(404).json({ error: 'Look not found' });
-    if (existing.agentAddress !== req.creatorAddress) {
+    if ((existing.agentAddress || '').toLowerCase() !== req.creatorAddress) {
       return res.status(403).json({
         error: 'Not the look owner',
         provided: req.creatorAddress || 'not provided',
         expected: existing.agentAddress,
-        hint: 'Use x-agent-address header with the wallet address that created this look, or use x-curator-slug + x-curator-whatsapp headers for curator auth.',
+        hint: 'Sign in via /api/auth/challenge + /api/auth/verify with the wallet that created this look, then send Authorization: Bearer <token>.',
       });
     }
 
@@ -614,12 +617,12 @@ router.post('/:slug/image', lookAuth, async (req, res) => {
       .limit(1);
 
     if (!existing) return res.status(404).json({ error: 'Look not found' });
-    if (existing.agentAddress !== req.creatorAddress) {
+    if ((existing.agentAddress || '').toLowerCase() !== req.creatorAddress) {
       return res.status(403).json({
         error: 'Not the look owner',
         provided: req.creatorAddress || 'not provided',
         expected: existing.agentAddress,
-        hint: 'Use x-agent-address header with the wallet address that created this look, or use x-curator-slug + x-curator-whatsapp headers for curator auth.',
+        hint: 'Sign in via /api/auth/challenge + /api/auth/verify with the wallet that created this look, then send Authorization: Bearer <token>.',
       });
     }
 
@@ -923,53 +926,172 @@ router.post('/:slug/classify', async (req, res) => {
   }
 });
 
-// ── POST /api/looks/curator/:slug/link-agent — set linkedAgentAddress (curator auth) ──
-// A curator links an agent wallet so that agent's looks appear on their storefront.
-// They can also set this to their own wallet to create looks themselves.
-router.post('/curator/:slug/link-agent', async (req, res) => {
-  try {
-    const { slug } = req.params;
-    const { whatsapp, agentAddress } = req.body;
+// ── Link-agent two-sided consent (closes the phone-as-password hole) ──
+// The legacy route treated a guessable WhatsApp number as a credential and
+// let anyone overwrite linkedAgentAddress (permanent attribution redirect).
+// New flow:
+//   POST .../link-agent/request — curator owner session → OTP to stored number
+//   POST .../link-agent/verify  — curator owner session + OTP + agent session
+// Both sides sign: curator proves wallet + phone, agent proves wallet.
+function curatorOwnerWallets(curator) {
+  return [
+    curator.commerce?.walletAddress,
+    curator.commerce?.custodialWalletAddress,
+  ]
+    .filter(Boolean)
+    .map((w) => String(w).toLowerCase());
+}
 
-    if (!whatsapp || !agentAddress) {
-      return res.status(400).json({ error: 'whatsapp and agentAddress are required' });
+async function requireCuratorOwner(req, res) {
+  const address = req.agentSession?.sub;
+  const slug = req.params.slug;
+  if (!address) {
+    res.status(401).json({ error: 'Wallet session required', code: 'SESSION_REQUIRED' });
+    return null;
+  }
+  const db = getDb();
+  const [curator] = await db.select().from(curators).where(eq(curators.slug, slug)).limit(1);
+  if (!curator) {
+    res.status(404).json({ error: 'Curator not found' });
+    return null;
+  }
+  const owners = curatorOwnerWallets(curator);
+  if (!owners.includes(String(address).toLowerCase())) {
+    res.status(403).json({
+      error: 'Authenticated wallet is not the curator payout wallet',
+      hint: 'Sign in with the curator payout wallet to manage agent linking.',
+    });
+    return null;
+  }
+  return curator;
+}
+
+// POST /api/looks/curator/:slug/link-agent/request — send OTP to stored number
+router.post('/curator/:slug/link-agent/request', requireAgentSession, async (req, res) => {
+  try {
+    const curator = await requireCuratorOwner(req, res);
+    if (!curator) return;
+    const storedWhatsapp = normalizePhone(curator.channels?.whatsapp || '');
+    if (!storedWhatsapp) {
+      return res.status(400).json({ error: 'Curator has no WhatsApp number on file' });
     }
-    if (!/^0x[a-fA-F0-9]{40}$/.test(agentAddress)) {
+    const store = getLinkOtpStore();
+    const { allowed, remaining } = await store.canSend(storedWhatsapp);
+    logger.info('Link-agent OTP requested', {
+      component: 'agent-looks',
+      curatorSlug: curator.slug,
+      actor: req.agentSession.sub,
+      allowed,
+    });
+    if (!allowed) {
+      return res.status(429).json({ error: 'Too many OTP sends — try again in an hour', retryAfter: 3600, remaining });
+    }
+    const otp = generateOtp();
+    await store.saveOtp(curator.slug, hashOtp(otp), OTP_TTL_SECONDS);
+    await store.recordSend(storedWhatsapp);
+    try {
+      const { sendMessage } = require('../lib/linq-client');
+      await sendMessage({
+        to: storedWhatsapp,
+        text: `OnPoint agent link code: ${otp}. Valid 10 minutes. Never share this code — only enter it on your storefront to link an agent wallet.`,
+      });
+    } catch (sendErr) {
+      logger.error('Link-agent OTP send failed', { component: 'agent-looks' }, sendErr);
+      return res.status(503).json({ error: 'Failed to send OTP — try again' });
+    }
+    res.json({ success: true, sent: true, expiresInSeconds: OTP_TTL_SECONDS });
+  } catch (err) {
+    logger.error('Failed to request link OTP', { component: 'agent-looks' }, err);
+    res.status(500).json({ error: 'Failed to request link code' });
+  }
+});
+
+// POST /api/looks/curator/:slug/link-agent/verify — { otp, agentAddress, agentToken }
+router.post('/curator/:slug/link-agent/verify', requireAgentSession, async (req, res) => {
+  try {
+    const curator = await requireCuratorOwner(req, res);
+    if (!curator) return;
+    const { otp, agentAddress, agentToken } = req.body || {};
+    if (!otp || !agentAddress || !agentToken) {
+      return res.status(400).json({ error: 'otp, agentAddress and agentToken are required' });
+    }
+    if (!verifyOtpFormat(String(otp))) {
+      return res.status(400).json({ error: 'otp must be a 6-digit code' });
+    }
+    if (!/^0x[a-fA-F0-9]{40}$/.test(String(agentAddress))) {
       return res.status(400).json({ error: 'agentAddress must be a valid 0x address' });
     }
-
-    const db = getDb();
-    const [curator] = await db
-      .select()
-      .from(curators)
-      .where(eq(curators.slug, slug))
-      .limit(1);
-
-    if (!curator) return res.status(404).json({ error: 'Curator not found' });
-
-    // WhatsApp verification
-    const storedWhatsapp = String(curator.channels?.whatsapp || '').replace(/\s/g, '');
-    const providedWhatsapp = String(whatsapp).replace(/\s/g, '');
-    if (!storedWhatsapp || storedWhatsapp !== providedWhatsapp) {
-      return res.status(401).json({ error: 'WhatsApp verification failed' });
+    // Agent-side consent: token must be a valid session for the linked address.
+    const agentPayload = verifySessionToken(String(agentToken));
+    if (!agentPayload || agentPayload.sub !== String(agentAddress).toLowerCase()) {
+      logger.info('Link-agent verify rejected: agent consent invalid', {
+        component: 'agent-looks',
+        curatorSlug: curator.slug,
+        actor: req.agentSession.sub,
+      });
+      return res.status(403).json({
+        error: 'Agent consent invalid — the agent must sign in and provide their own session token',
+        hint: 'Agent: POST /api/auth/challenge { address } → sign → POST /api/auth/verify → pass token as agentToken.',
+      });
     }
-
-    await db
-      .update(curators)
-      .set({ linkedAgentAddress: agentAddress })
-      .where(eq(curators.slug, slug));
-
-    logger.info('Linked agent address set', {
+    const store = getLinkOtpStore();
+    const record = await store.getOtp(curator.slug);
+    if (!record) {
+      return res.status(401).json({ error: 'No active link code — request a new one', code: 'OTP_NOT_FOUND' });
+    }
+    const expected = String(record.hash);
+    let supplied;
+    try {
+      supplied = hashOtp(String(otp));
+    } catch {
+      return res.status(500).json({ error: 'OTP verification not configured on server' });
+    }
+    if (!timingSafeStringEqual(supplied, expected)) {
+      const attempt = await store.consumeAttempt(curator.slug);
+      logger.info('Link-agent OTP mismatch', {
+        component: 'agent-looks',
+        curatorSlug: curator.slug,
+        actor: req.agentSession.sub,
+        locked: attempt?.locked || false,
+      });
+      if (attempt?.locked) {
+        return res.status(401).json({ error: 'Too many wrong codes — request a new one', code: 'OTP_LOCKED' });
+      }
+      return res.status(401).json({ error: 'Wrong link code', code: 'OTP_MISMATCH' });
+    }
+    await store.clearOtp(curator.slug);
+    const from = curator.linkedAgentAddress || null;
+    const db = getDb();
+    await db.update(curators).set({ linkedAgentAddress: agentAddress }).where(eq(curators.slug, curator.slug));
+    // Audit trail (structured log; curator_link_events table once migrations exist).
+    logger.info('Linked agent address changed', {
       component: 'agent-looks',
-      curatorSlug: slug,
-      agentAddress,
+      curatorSlug: curator.slug,
+      from,
+      to: agentAddress,
+      curatorActor: req.agentSession.sub,
+      agentConsented: agentPayload.sub,
+      method: 'otp+two-sided-session',
     });
-
-    res.json({ success: true, slug, linkedAgentAddress: agentAddress });
+    res.json({ success: true, slug: curator.slug, linkedAgentAddress: agentAddress, previous: from });
   } catch (err) {
-    logger.error('Failed to link agent', { component: 'agent-looks' }, err);
+    logger.error('Failed to verify link agent', { component: 'agent-looks' }, err);
     res.status(500).json({ error: 'Failed to link agent' });
   }
 });
+
+// Legacy route: closed. Plaintext WhatsApp is no longer a credential.
+router.post('/curator/:slug/link-agent', (req, res) => {
+  return res.status(410).json({
+    error: 'link-agent now requires two-sided consent (OTP + wallet sessions)',
+    hint: 'POST .../link-agent/request (curator session) → enter OTP → POST .../link-agent/verify { otp, agentAddress, agentToken }.',
+  });
+});
+
+// Test hook: override the OTP store (memory) for contract tests.
+router._setLinkOtpStore = (store) => {
+  _linkOtpStore = store;
+};
+router._getLinkOtpStore = getLinkOtpStore;
 
 module.exports = router;

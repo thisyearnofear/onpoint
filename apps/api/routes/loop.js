@@ -26,6 +26,11 @@ const EVENT_TYPES = new Set([
   // Retention-loop events (loop-cohesion plan P2.2) — measurable beside
   // acquisition in the funnel report.
   'closet_add', 'closet_plan',
+  // Social primitives — reactions, follows, remixes, mini-faceoff votes,
+  // runway claims. Client-optimistic; server is the join key, not the source
+  // of truth for counts (counts render from local baselines + these rows).
+  'reaction', 'follow', 'unfollow', 'remix_open', 'mini_faceoff_vote',
+  'runway_claim', 'first_share', 'first_vote', 'first_remix',
 ]);
 
 /**

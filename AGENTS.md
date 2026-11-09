@@ -163,9 +163,16 @@ Response: 201 with the created look (slug, id, etc.)
 A curator can link an agent wallet so that agent's looks appear on their storefront page. This is a soft link for attribution and discovery, not authorization.
 
 ```bash
-POST /api/looks/curator/{slug}/link-agent
-Body: { "whatsapp": "+254712345678", "agentAddress": "0x..." }
+# 1. Curator (payout-wallet session) requests a one-time code
+POST /api/looks/curator/{slug}/link-agent/request
+Headers: Authorization: Bearer <curator-session>
+# 2. Curator confirms with the code + the agent's own session token
+POST /api/looks/curator/{slug}/link-agent/verify
+Headers: Authorization: Bearer <curator-session>
+Body: { "otp": "123456", "agentAddress": "0x...", "agentToken": "<agent-session>" }
 ```
+
+The legacy `{ whatsapp, agentAddress }` route returns `410 Gone` — a phone number alone is no longer a credential.
 
 A curator can also set this to their own wallet to create looks themselves. UI for this is on the curator storefront page (owner-only panel).
 

@@ -26,7 +26,7 @@ function slugify(text, maxLen = 60) {
  * curator slugs, so they must never be minted as one or looked up as one.
  * Kept in step with apps/web/lib/utils/deep-link-source.ts.
  */
-const RESERVED_SLUGS = ['card', 'list', 'mag'];
+const RESERVED_SLUGS = ['card', 'list', 'mag', 'pair'];
 
 /**
  * Validate a slug format (lowercase alphanumeric + hyphens, 2-48 chars).

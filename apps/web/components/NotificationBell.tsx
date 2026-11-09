@@ -261,6 +261,41 @@ function generateProductNotifications(
   return result;
 }
 
+// --- Followed-curator drops ---
+
+const FOLLOWS_KEY = "onpoint:follows";
+const FOLLOW_SEEN_KEY = "onpoint:follow-drops-seen";
+
+async function fetchFollowNotifications(): Promise<Notification[]> {
+  try {
+    const raw = typeof window !== "undefined" ? localStorage.getItem(FOLLOWS_KEY) : null;
+    if (!raw) return [];
+    const follows = JSON.parse(raw) as Array<{ kind: string; id: string }>;
+    const curator = follows.find((f) => f.kind === "curator");
+    if (!curator) return [];
+    const res = await fetch(`/api/looks?curator=${encodeURIComponent(curator.id)}&limit=1`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    const newest = (data.looks || [])[0] as { slug: string; title: string; createdAt: string } | undefined;
+    if (!newest?.createdAt) return [];
+    const seenAt = Number(localStorage.getItem(FOLLOW_SEEN_KEY) || 0);
+    if (new Date(newest.createdAt).getTime() <= seenAt) return [];
+    return [
+      {
+        id: `product:follow-drop:${newest.slug}`,
+        type: "persona_unlock",
+        title: `Fresh from ${curator.id}`,
+        message: newest.title,
+        timestamp: new Date(newest.createdAt).getTime(),
+        read: false,
+        actionUrl: `/look/${newest.slug}`,
+      },
+    ];
+  } catch {
+    return [];
+  }
+}
+
 // --- Component ---
 
 export function NotificationBell({ direction = "down" }: { direction?: "up" | "down" }) {
@@ -287,7 +322,8 @@ export function NotificationBell({ direction = "down" }: { direction?: "up" | "d
       const data = await res.json();
       const serverNotifications: Notification[] = data.notifications || [];
       const productNotifications = generateProductNotifications(sessions);
-      const merged = [...productNotifications, ...serverNotifications];
+      const followNotifications = await fetchFollowNotifications();
+      const merged = [...followNotifications, ...productNotifications, ...serverNotifications];
       const newCount = merged.filter((n) => !n.read).length;
       const prevCount = prevUnreadRef.current;
       setNotifications(merged);
@@ -337,6 +373,16 @@ export function NotificationBell({ direction = "down" }: { direction?: "up" | "d
 
   // Mark single notification as read
   const handleMarkRead = async (id: string) => {
+    if (id.startsWith("product:follow-drop:")) {
+      try {
+        localStorage.setItem(FOLLOW_SEEN_KEY, String(Date.now()));
+      } catch {
+        /* ignore */
+      }
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+      setUnreadCount((c) => Math.max(0, c - 1));
+      return;
+    }
     if (id.startsWith("product:")) {
       const dismissed = sessionStorage.getItem("dismissed_product_notifs") || "";
       const key = id.replace("product:", "");

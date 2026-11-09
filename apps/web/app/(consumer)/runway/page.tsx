@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { getApiBase } from "@/lib/utils/api-base";
 import { ScorePaddles } from "@/components/runway/ScorePaddles";
 import { RunwayCtas } from "@/components/runway/RunwayCtas";
+import { RunwayWinners } from "@/components/social/RunwayWinners";
+import { FirstBadge } from "@/components/social/FirstBadge";
 import { JudgePick } from "@/components/runway/JudgePick";
 import type { StylistPersona } from "@repo/ai-client";
 import { RUNWAY_SAMPLES } from "@/lib/runway-samples";
@@ -110,6 +112,9 @@ export default async function RunwayPage() {
             </div>
           </div>
         </div>
+
+        <FirstBadge />
+        <RunwayWinners />
 
         <div className="mt-16">
           <p className={EYEBROW}>No camera needed</p>

@@ -28,6 +28,9 @@ import {
   type CuratorHomeSnapshot,
 } from "../../lib/services/curator-home";
 import { getApiBase } from "../../lib/utils/api-base";
+import { agentAuthHeadersFromSession } from "../../lib/agent-session";
+import { useAgentSession } from "../../lib/hooks/use-agent-session";
+import { CuratorWalletAuth } from "./CuratorWalletAuth";
 
 interface CuratorHomePanelProps {
   curatorSlug: string;
@@ -72,12 +75,10 @@ export function CuratorHomePanel({
   const [draftActionBusy, setDraftActionBusy] = useState<string | null>(null);
   const [lookError, setLookError] = useState<string | null>(null);
 
+  const { session } = useAgentSession();
   const authHeaders = useMemo(
-    () =>
-      whatsapp
-        ? { "x-curator-slug": curatorSlug, "x-curator-whatsapp": whatsapp }
-        : null,
-    [whatsapp, curatorSlug],
+    () => (session ? agentAuthHeadersFromSession(session, curatorSlug) : null),
+    [session, curatorSlug],
   );
 
   const fetchMyLooks = useCallback(async () => {
@@ -97,6 +98,12 @@ export function CuratorHomePanel({
         ),
       ]);
 
+      if (liveRes.status === 401 || draftRes.status === 401) {
+        setLookError("Wallet session expired — sign in with your wallet again.");
+        setMyLooks([]);
+        setDrafts([]);
+        return;
+      }
       const liveData = liveRes.ok ? await liveRes.json().catch(() => ({ looks: [] })) : { looks: [] };
       const draftData = draftRes.ok ? await draftRes.json().catch(() => ({ looks: [] })) : { looks: [] };
 
@@ -172,7 +179,13 @@ export function CuratorHomePanel({
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          setLookError(data.error || "Failed to publish draft");
+          setLookError(
+            res.status === 401
+              ? "Wallet session expired — sign in again."
+              : res.status === 403
+                ? data.hint || data.error || "This wallet is not linked to the curator."
+                : data.error || "Failed to publish draft",
+          );
           return;
         }
       } else {
@@ -182,7 +195,13 @@ export function CuratorHomePanel({
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          setLookError(data.error || "Failed to delete draft");
+          setLookError(
+            res.status === 401
+              ? "Wallet session expired — sign in again."
+              : res.status === 403
+                ? data.hint || data.error || "This wallet is not linked to the curator."
+                : data.error || "Failed to delete draft",
+          );
           return;
         }
       }
@@ -224,7 +243,13 @@ export function CuratorHomePanel({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setLookError(data.error || "Bulk action failed");
+        setLookError(
+          res.status === 401
+            ? "Wallet session expired — sign in again."
+            : res.status === 403
+              ? data.hint || data.error || "This wallet is not linked to the curator."
+              : data.error || "Bulk action failed",
+        );
         return;
       }
       if (data.failed?.length > 0) {
@@ -361,8 +386,15 @@ export function CuratorHomePanel({
         </div>
       )}
 
+      {/* ── Wallet sign-in for look management (creator-only) ── */}
+      {!session && (
+        <div className="mt-6">
+          <CuratorWalletAuth curatorSlug={curatorSlug} />
+        </div>
+      )}
+
       {/* ── Draft looks section (creator-only) ── */}
-      {whatsapp && (
+      {true && (
         <div className="mt-6 rounded-xl border border-border bg-muted/20 p-4">
           <div className="flex items-center justify-between">
             <p className="text-sm font-bold">Draft looks</p>
@@ -427,7 +459,7 @@ export function CuratorHomePanel({
       )}
 
       {/* ── My Looks section with bulk actions (creator-only) ── */}
-      {whatsapp && (
+      {true && (
         <div className="mt-6 rounded-xl border border-border bg-muted/20 p-4">
           <div className="flex items-center justify-between">
             <p className="text-sm font-bold">My Looks</p>

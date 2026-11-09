@@ -35,6 +35,8 @@ describe("ShareArtifact", () => {
     render(<ShareArtifact title="Couple goals" url="/c/card-1" />);
 
     fireEvent.click(screen.getByRole("button", { name: /Send it/ }));
+    // Channel sheet opens — pick copy link explicitly.
+    fireEvent.click(await screen.findByRole("button", { name: /Copy link/ }));
 
     await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
     const shared = new URL(writeText.mock.calls[0][0]);
@@ -60,6 +62,7 @@ describe("ShareArtifact", () => {
     render(<ShareArtifact title="A list" url="/w/list-9" />);
 
     fireEvent.click(screen.getByRole("button", { name: /Send it/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /More/ }));
 
     await waitFor(() => expect(share).toHaveBeenCalledTimes(1));
     const data = share.mock.calls[0][0] as ShareData;

@@ -14,6 +14,10 @@ import {
 } from "../../lib/wardrobe-studio";
 import { useStyleHearts } from "../../lib/stores/style-board-hearts";
 import { LiveLooks } from "./LiveLooks";
+import { FreshDrops } from "../social/FreshDrops";
+import { RunwayWinners } from "../social/RunwayWinners";
+import { FirstBadge } from "../social/FirstBadge";
+import { RemixBanner } from "../social/RemixBanner";
 import { ClosetSection } from "./ClosetSection";
 import {
   DEFAULT_LIVE_LOOKS_FILTERS,
@@ -476,7 +480,11 @@ export function WardrobeWorkspace() {
           <div className={styles.galleryCol} ref={galleryRef}>
             {tab === "outfits" ? (
               <div className="flex flex-col gap-10">
+                <FirstBadge />
+                <RemixBanner />
                 <LiveLooks filters={liveFilters} onFiltersChange={setLiveFilters} />
+                <FreshDrops />
+                <RunwayWinners />
 
                 <div>
                   <h3 className="text-base font-bold leading-tight">Studio references</h3>

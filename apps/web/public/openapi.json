@@ -434,15 +434,30 @@
         }
       }
     },
-    "/api/looks/curator/{slug}/link-agent": {
+    "/api/looks/curator/{slug}/link-agent/request": {
       "post": {
-        "summary": "Link an agent wallet to a curator storefront for look attribution",
+        "summary": "Request a one-time link code (curator payout-wallet session, sent to stored WhatsApp)",
         "parameters": [ { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } } ],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["whatsapp", "agentAddress"], "properties": {
-          "whatsapp": { "type": "string", "description": "Curator WhatsApp number for verification" },
-          "agentAddress": { "type": "string", "description": "Agent wallet address to link" }
+        "responses": { "200": { "description": "OTP sent" }, "429": { "description": "Too many OTP sends" } }
+      }
+    },
+    "/api/looks/curator/{slug}/link-agent/verify": {
+      "post": {
+        "summary": "Verify link code + two-sided wallet sessions to set linkedAgentAddress",
+        "parameters": [ { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["otp", "agentAddress", "agentToken"], "properties": {
+          "otp": { "type": "string", "description": "6-digit code sent to the stored WhatsApp number" },
+          "agentAddress": { "type": "string", "description": "Agent wallet address to link" },
+          "agentToken": { "type": "string", "description": "Agent wallet session token proving agent consent" }
         } } } } },
         "responses": { "200": { "description": "Agent linked successfully" } }
+      }
+    },
+    "/api/looks/curator/{slug}/link-agent": {
+      "post": {
+        "summary": "[Deprecated: 410 Gone] Use request + verify (OTP + two-sided sessions)",
+        "parameters": [ { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } } ],
+        "responses": { "410": { "description": "Use link-agent/request + link-agent/verify" } }
       }
     }
   },

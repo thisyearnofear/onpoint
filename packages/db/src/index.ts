@@ -18,3 +18,4 @@ export * from "./schema/couple-cards.js";
 export * from "./schema/loop-captures.js";
 export * from "./schema/wishlists.js";
 export * from "./schema/magazines.js";
+export * from "./schema/pair-cards.js";

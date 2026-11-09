@@ -440,6 +440,7 @@ module.exports = {
   composeLookCollage,
   composeLookCollageAI,
   composeCoupleCard,
+  composePairCard,
   // Backward-compatible alias
   generateShareCard: composeTryOnShareCard,
 };
@@ -516,6 +517,112 @@ async function composeCoupleCard(opts) {
     .toBuffer();
 
   const r2Key = `couple-cards/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
+  await r2Upload(r2Key, card, 'image/webp');
+  return { r2Key, url: r2PublicUrl(r2Key) };
+}
+
+// ── 4. Pair Card ──
+
+/**
+ * "Same fit, both of us" card: two try-on renders side by side — the
+ * sender's on the left, the recipient's on the right — with a name strip
+ * under each and the shared garment along the bottom.
+ *
+ * @param {Object} opts
+ * @param {string} opts.leftImage   - sender render (data URI or URL)
+ * @param {string} opts.rightImage  - recipient render (data URI or URL)
+ * @param {string} [opts.leftName]  - sender display name (default "You")
+ * @param {string} [opts.rightName] - recipient display name (default "Them")
+ * @param {string} [opts.caption]   - card headline override
+ * @param {string} [opts.garmentTitle] - shared garment label
+ * @param {string} [opts.garmentImageUrl] - garment thumbnail
+ * @param {string} [opts.r2Prefix]  - storage prefix (default pair-cards)
+ * @returns {Promise<{ r2Key: string, url: string }>}
+ */
+async function composePairCard(opts) {
+  const {
+    leftImage,
+    rightImage,
+    leftName,
+    rightName,
+    caption,
+    garmentTitle,
+    garmentImageUrl,
+    r2Prefix = 'pair-cards',
+  } = opts;
+  if (!leftImage || !rightImage) throw new Error('leftImage and rightImage required');
+
+  const HEADER_HEIGHT = 190;
+  const PANELS_HEIGHT = 870;
+  const LABEL_HEIGHT = 76;
+  const GARMENT_HEIGHT = 150;
+  const FOOTER_HEIGHT = CARD_HEIGHT - HEADER_HEIGHT - PANELS_HEIGHT - GARMENT_HEIGHT;
+  const GAP = 16;
+  const PANEL_W = Math.floor((CARD_WIDTH - GAP * 3) / 2);
+  const PANEL_H = PANELS_HEIGHT - LABEL_HEIGHT;
+
+  const [leftBuf, rightBuf] = await Promise.all([
+    fetchImageBuffer(leftImage),
+    fetchImageBuffer(rightImage),
+  ]);
+  if (!leftBuf || !rightBuf) throw new Error('Failed to load pair renders');
+
+  const [leftImg, rightImg] = await Promise.all([
+    sharp(leftBuf).resize(PANEL_W, PANEL_H, { fit: 'cover', position: 'attention' }).toBuffer(),
+    sharp(rightBuf).resize(PANEL_W, PANEL_H, { fit: 'cover', position: 'attention' }).toBuffer(),
+  ]);
+
+  const header = textSvg(CARD_WIDTH, HEADER_HEIGHT, [
+    { text: (caption || 'SAME FIT, BOTH OF US').toUpperCase().slice(0, 44), y: 76, size: 46, weight: 'bold', fill: COLORS.accent },
+    { text: `${leftName || 'You'} × ${rightName || 'Them'}`.slice(0, 60), y: 138, size: 30, fill: COLORS.textMuted },
+  ], { bg: '#f5f5f5' });
+
+  const labelFor = (name, left) => textSvg(PANEL_W, LABEL_HEIGHT, [
+    { text: (name || (left ? 'You' : 'Them')).slice(0, 32), y: 48, size: 30, weight: 'bold', fill: COLORS.textLight, anchor: 'start', x: 28 },
+  ], { bg: '#1a1a1a' });
+
+  const leftLabel = await labelFor(leftName, true);
+  const rightLabel = await labelFor(rightName, false);
+
+  const composites = [
+    { input: header, left: 0, top: 0 },
+    { input: leftImg, left: GAP, top: HEADER_HEIGHT },
+    { input: leftLabel, left: GAP, top: HEADER_HEIGHT + PANEL_H },
+    { input: rightImg, left: GAP * 2 + PANEL_W, top: HEADER_HEIGHT },
+    { input: rightLabel, left: GAP * 2 + PANEL_W, top: HEADER_HEIGHT + PANEL_H },
+  ];
+
+  // Garment strip: thumbnail (when we have one) + the shared item label
+  const garmentBuf = garmentImageUrl ? await fetchImageBuffer(garmentImageUrl) : null;
+  const thumbW = garmentBuf ? 120 : 0;
+  if (garmentBuf) {
+    try {
+      composites.push({
+        input: await sharp(garmentBuf).resize(thumbW, GARMENT_HEIGHT - 20, { fit: 'cover' }).toBuffer(),
+        left: GAP,
+        top: HEADER_HEIGHT + PANELS_HEIGHT + 10,
+      });
+    } catch { /* skip bad thumb */ }
+  }
+  const garmentStrip = textSvg(CARD_WIDTH - thumbW - GAP * 2, GARMENT_HEIGHT, [
+    { text: (garmentTitle || 'the shared piece').slice(0, 48), y: 62, size: 32, weight: 'bold', fill: COLORS.text, anchor: 'start', x: 24 },
+    { text: 'try it on them — /pair', y: 104, size: 24, fill: COLORS.textMuted, anchor: 'start', x: 24 },
+  ], { bg: '#ffffff' });
+  composites.push({ input: garmentStrip, left: GAP + thumbW, top: HEADER_HEIGHT + PANELS_HEIGHT });
+
+  const footer = textSvg(CARD_WIDTH, FOOTER_HEIGHT, [
+    { text: 'ONPOINT', y: FOOTER_HEIGHT / 2 + 12, size: 34, weight: 'bold', fill: COLORS.textLight },
+  ], { bg: '#0a0a0a' });
+  composites.push({ input: footer, left: 0, top: HEADER_HEIGHT + PANELS_HEIGHT + GARMENT_HEIGHT });
+
+  const card = await sharp({
+    create: { width: CARD_WIDTH, height: CARD_HEIGHT, channels: 3, background: COLORS.bg },
+  })
+    .composite(composites)
+    .webp({ quality: 90 })
+    .toBuffer();
+
+  const r2Key = `${r2Prefix}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
   await r2Upload(r2Key, card, 'image/webp');
   return { r2Key, url: r2PublicUrl(r2Key) };
 }

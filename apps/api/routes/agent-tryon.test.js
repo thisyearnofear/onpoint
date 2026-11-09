@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import express from 'express';
 
@@ -194,5 +195,37 @@ describe('POST /api/agent/try-on validation', () => {
       .send({ curatorSlug: 'wanja', listingId: 'abc', photoData: PHOTO, paymentTxHash: '0xnope' })
       .expect(400);
     expect(res.body.error).toMatch(/paymentTxHash/);
+  });
+});
+
+describe('POST /api/agent/try-on claim-first contract', () => {
+  const source = readFileSync(new URL('./agent-tryon.js', import.meta.url), 'utf8');
+
+  it('acquires the payment claim BEFORE running the paid render', () => {
+    const claimAt = source.indexOf('acquireTryOnClaim(claimStore');
+    const renderAt = source.indexOf('engine.buildGeneratedOutfitImageResponse');
+    expect(claimAt).toBeGreaterThan(-1);
+    expect(renderAt).toBeGreaterThan(-1);
+    expect(claimAt).toBeLessThan(renderAt);
+  });
+
+  it('the conflict 409 carries no render bytes', () => {
+    const conflictBlock = source.slice(
+      source.indexOf("if (claim.outcome === 'conflict')"),
+      source.indexOf('const paymentId = claim.paymentId;'),
+    );
+    expect(conflictBlock).toContain('res.status(409)');
+    expect(conflictBlock).not.toContain('generatedImage');
+    expect(conflictBlock).not.toContain('render:');
+  });
+
+  it('releases the claim on render failure and completes it after persistence', () => {
+    expect(source).toContain('claimStore.markFailed(paymentId)');
+    expect(source).toContain('claimStore.markCompleted(paymentId, polaroidRenderKey)');
+  });
+
+  it('no longer returns a render on a lost payment race', () => {
+    expect(source).not.toContain('Return the render anyway');
+    expect(source).not.toContain('already used by a concurrent request');
   });
 });

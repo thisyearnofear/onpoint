@@ -32,6 +32,8 @@ import {
 import { useAnalysisHistory } from "../../lib/stores/analysis-history-store";
 import { SafeImage } from "../SafeImage";
 import { StagedWait } from "../state";
+import { ReactionBar } from "../social/ReactionBar";
+import { ShareSheet } from "../social/ShareSheet";
 
 interface StructuredTipAction {
   type: string;
@@ -135,6 +137,7 @@ export function TryOnResult({
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [sending, setSending] = useState(false);
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [sendFailed, setSendFailed] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
   const [upsellDismissed, setUpsellDismissed] = useState(false);
@@ -253,6 +256,7 @@ export function TryOnResult({
       setSendFailed(true);
       return;
     }
+    setInviteUrl(inviteUrl);
 
     // One id per send, so the link can be followed to the recipient's try-on and
     // order. The token route signs it; nothing here is stored on this device.
@@ -516,19 +520,24 @@ export function TryOnResult({
                   <><Bookmark className="h-3.5 w-3.5 mr-1" /> Save</>
                 )}
               </Button>
-              {sendTarget && (
-                <Button
-                  onClick={() => void handleSend()}
-                  loading={sending}
-                  className="text-xs"
-                >
+              {sendTarget && !inviteUrl && (
+                <Button onClick={() => void handleSend()} loading={sending} className="text-xs">
                   {copied ? (
                     <><CheckCircle className="h-3.5 w-3.5 mr-1" /> Link copied</>
                   ) : (
-                    <><Send className="h-3.5 w-3.5 mr-1" /> {sending ? "Minting…" : "Send it"}</>
+                    <><Send className="h-3.5 w-3.5 mr-1" /> {sending ? "Minting…" : "Challenge a friend"}</>
                   )}
                 </Button>
               )}
+              {sendTarget && inviteUrl && (
+                <ShareSheet
+                  title="Try this on — I picked it for you"
+                  text={description || "See it on you before you buy it."}
+                  url={inviteUrl}
+                  label="Share challenge"
+                />
+              )}
+              <ReactionBar targetType="polaroid" targetId={result && typeof result === "object" && "id" in result ? String((result as { id: string }).id) : "tryon-result"} />
             </div>
           )}
           {sendFailed && (
