@@ -184,6 +184,18 @@ function inferGarmentCategory(listing, kit) {
   return 'auto';
 }
 
+/** Pick the Otari cost block off a vision-analysis result, when served by Otari. */
+function aiCostFrom(vision) {
+  return vision?.usedProvider === 'otari-vision' && vision.costUsd != null
+    ? {
+        provider: 'otari',
+        model: vision.model || null,
+        costUsd: vision.costUsd,
+        meteredBy: vision.meteredBy || 'onpoint-workspace',
+      }
+    : null;
+}
+
 // ── POST /api/agent/try-on ───────────────────────────────────
 router.post('/', async (req, res) => {
   const { curatorSlug, listingId, photoData, personDescription, paymentTxHash, nearAccountId, nearTxHash, paypalOrderId, lookSlug, shareId: rawShareId } =
@@ -220,6 +232,17 @@ router.post('/', async (req, res) => {
   }
   if (paypalOrderId && (paymentTxHash || nearTxHash)) {
     return res.status(400).json({ error: 'Provide exactly one payment proof' });
+  }
+
+  // Agents may bring their own Otari key (x-otari-key) — the fit-analysis
+  // model call is then metered and budget-capped in their Otari workspace,
+  // reconcilable via GET /api/agent/ai-usage.
+  const agentOtariKey = req.headers['x-otari-key'];
+  if (agentOtariKey && !String(agentOtariKey).startsWith('otk_')) {
+    return res.status(400).json({
+      error: 'x-otari-key must be an Otari workspace key (otk_…).',
+      code: 'OTARI_KEY_MALFORMED',
+    });
   }
 
   let db;
@@ -358,6 +381,11 @@ router.post('/', async (req, res) => {
             assignedTag: getAssignedTag(),
             dataSuffix: getAttributionSuffix(),
             instructions: 'Append the dataSuffix to your transfer transaction data to tag it as OnPoint activity on Celo.',
+          },
+          aiMetering: {
+            header: 'x-otari-key',
+            instructions:
+              'Send your own Otari (otk_…) workspace key to meter this call\'s fit-analysis model spend to your workspace — your budget caps apply. Read it back via GET /api/agent/ai-usage.',
           },
           instructions:
             'Transfer the exact cUSD amount to payTo on Celo, then re-POST with paymentTxHash — or pay in NEAR via the quote.near rail.',
@@ -569,15 +597,20 @@ router.post('/', async (req, res) => {
           throw new Error('render not garment-conditioned');
         }
         const renderImage = await ensureDataUri(result.generatedImage);
-        const { text } = await engine.generateVisionAnalysis({
+        const vision = await engine.generateVisionAnalysis({
           prompt: fitPromptRender,
           imageBase64: renderImage,
+          apiKey: agentOtariKey || undefined,
         });
-        return engine.parseBodyAnalysisResponse(text);
+        return { fit: engine.parseBodyAnalysisResponse(vision.text), aiCost: aiCostFrom(vision) };
       })
       .catch(async () => {
-        const { text } = await engine.generateVisionAnalysis({ prompt: fitPrompt, imageBase64: photoData });
-        return engine.parseBodyAnalysisResponse(text);
+        const vision = await engine.generateVisionAnalysis({
+          prompt: fitPrompt,
+          imageBase64: photoData,
+          apiKey: agentOtariKey || undefined,
+        });
+        return { fit: engine.parseBodyAnalysisResponse(vision.text), aiCost: aiCostFrom(vision) };
       });
 
     const [render, fitResult] = await Promise.allSettled([renderPromise, fitPromise]);
@@ -604,7 +637,8 @@ router.post('/', async (req, res) => {
       });
     }
 
-    const fit = fitResult.status === 'fulfilled' ? fitResult.value : null;
+    const fit = fitResult.status === 'fulfilled' ? fitResult.value.fit : null;
+    const aiCost = fitResult.status === 'fulfilled' ? fitResult.value.aiCost : null;
     const fitSignal = fit
       ? {
           bodyType: fit.bodyType || null,
@@ -757,6 +791,7 @@ router.post('/', async (req, res) => {
         inventoryType: row.listing.inventoryType,
         imageUrl,
         fitSignal,
+        ...(aiCost ? { aiCost } : {}),
         stylingTips: render.value.stylingTips || [],
         payment: {
           txHash: effectiveTxHash,
@@ -879,6 +914,7 @@ router.post('/', async (req, res) => {
         fitSignal,
         stylingTips: render.value.stylingTips || [],
       },
+      ...(aiCost ? { aiCost } : {}),
       polaroid,
       ...(shareCard ? { shareCard } : {}),
       payment: {
