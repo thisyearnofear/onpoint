@@ -33,6 +33,9 @@ const nextConfig = {
   experimental: {
     prefetchInlining: true,
     appNewScrollHandler: true,
+    // Cap static-generation workers: multiple workers each holding a 6GB heap
+    // cap OOMs the shared remote builder (SIGKILL 137 during page data).
+    cpus: 1,
   },
   turbopack: {
     resolveAlias: {
