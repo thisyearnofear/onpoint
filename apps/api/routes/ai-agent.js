@@ -46,10 +46,15 @@ Tailor recommendations accordingly.`
 /**
  * Analyze a person's outfit via Otari (Mozilla AI) — primary gateway,
  * OpenAI-compatible. Requires OTARI_API_KEY + a vision model.
+ *
+ * `apiKeyOverride` is the caller's own Otari key (x-otari-key) — when
+ * present, the call is metered and budget-capped in *their* Otari
+ * workspace instead of ours. Otari stamps the settled server-side
+ * cost on the response (`usage.cost_usd`); we surface it as aiCost.
  */
-async function analyzeWithOtari(imageData, preferences = {}) {
-  const otariKey = process.env.OTARI_API_KEY;
-  if (!otariKey || !OTARI_VISION_MODEL || process.env.OTARI_KILL_SWITCH === '1') {
+async function analyzeWithOtari(imageData, preferences = {}, apiKeyOverride = null) {
+  const otariKey = apiKeyOverride || process.env.OTARI_API_KEY;
+  if (!otariKey || !OTARI_VISION_MODEL || (!apiKeyOverride && process.env.OTARI_KILL_SWITCH === '1')) {
     throw new Error('OTARI_API_KEY / OTARI_VISION_MODEL not configured');
   }
 
@@ -80,7 +85,12 @@ async function analyzeWithOtari(imageData, preferences = {}) {
   }
 
   const data = await response.json();
-  return data.choices?.[0]?.message?.content || '';
+  return {
+    content: data.choices?.[0]?.message?.content || '',
+    model: data.model || OTARI_VISION_MODEL,
+    costUsd: data.usage?.cost_usd != null ? Number(data.usage.cost_usd) : null,
+    meteredBy: apiKeyOverride ? 'agent-workspace' : 'onpoint-workspace',
+  };
 }
 
 /**
@@ -272,9 +282,9 @@ async function analyzeWithAzure(imageData, preferences = {}) {
  * on the live 0G Router catalog, and (c) it adds a verifiable
  * alternative for users who care about audit trails.
  */
-async function analyzeWithFallbackChain(imageData, preferences = {}) {
+async function analyzeWithFallbackChain(imageData, preferences = {}, apiKeyOverride = null) {
   const providers = [
-    { name: 'otari', run: () => analyzeWithOtari(imageData, preferences) },
+    { name: 'otari', run: () => analyzeWithOtari(imageData, preferences, apiKeyOverride) },
     { name: 'venice', run: () => analyzeWithVenice(imageData, preferences) },
     { name: '0g', run: () => analyzeWithZeroG(imageData, preferences) },
     { name: 'replicate', run: () => analyzeWithReplicate(imageData, preferences) },
@@ -288,7 +298,8 @@ async function analyzeWithFallbackChain(imageData, preferences = {}) {
       if (typeof result === 'string') {
         return { content: result, provider: provider.name, tee_verified: false };
       }
-      // 0G returns { content, tee_verified, model }
+      // 0G returns { content, tee_verified, model }; Otari returns
+      // { content, model, costUsd, meteredBy }
       return { ...result, provider: provider.name };
     } catch (error) {
       logger.warn?.(`analyze chain: ${provider.name} failed`, {
@@ -306,11 +317,11 @@ async function analyzeWithFallbackChain(imageData, preferences = {}) {
 /**
  * Generate proactive style suggestions based on user context
  */
-async function generateSuggestions(userContext = {}) {
-  const otariKey = process.env.OTARI_API_KEY;
+async function generateSuggestions(userContext = {}, apiKeyOverride = null) {
+  const otariKey = apiKeyOverride || process.env.OTARI_API_KEY;
   const veniceKey = process.env.VENICE_API_KEY;
-  const hasOtari = Boolean(otariKey && OTARI_CHAT_MODEL && process.env.OTARI_KILL_SWITCH !== '1');
-  if (!hasOtari && !veniceKey) return [];
+  const hasOtari = Boolean(otariKey && OTARI_CHAT_MODEL && (apiKeyOverride || process.env.OTARI_KILL_SWITCH !== '1'));
+  if (!hasOtari && !veniceKey) return { suggestions: [], aiCost: null };
 
   const contextStr = Object.keys(userContext).length > 0
     ? `User context: ${JSON.stringify(userContext)}`
@@ -349,12 +360,18 @@ Return ONLY valid JSON, no markdown.`;
       const content = data.choices?.[0]?.message?.content || '[]';
       const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       const suggestions = JSON.parse(cleaned);
-      return Array.isArray(suggestions) ? suggestions.slice(0, 3) : [];
+      return {
+        suggestions: Array.isArray(suggestions) ? suggestions.slice(0, 3) : [],
+        aiCost:
+          up.name === 'otari' && data.usage?.cost_usd != null
+            ? { provider: 'otari', model: data.model || up.model, costUsd: Number(data.usage.cost_usd) }
+            : null,
+      };
     } catch {
       // try next upstream
     }
   }
-  return [];
+  return { suggestions: [], aiCost: null };
 }
 
 // POST /api/ai/agent — Analyze outfit with optional preferences
@@ -366,9 +383,20 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'imageData is required for analysis mode' });
     }
 
+    // Agents may bring their own Otari key (x-otari-key) — their AI
+    // calls are then metered and budget-capped in their own Otari
+    // workspace, visible via GET /api/agent/ai-usage.
+    const agentOtariKey = req.headers['x-otari-key'];
+    if (agentOtariKey && !String(agentOtariKey).startsWith('otk_')) {
+      return res.status(400).json({
+        error: 'x-otari-key must be an Otari workspace key (otk_…).',
+        code: 'OTARI_KEY_MALFORMED',
+      });
+    }
+
     switch (mode) {
       case 'analyze': {
-        const result = await analyzeWithFallbackChain(imageData, stylePreferences);
+        const result = await analyzeWithFallbackChain(imageData, stylePreferences, agentOtariKey);
         return res.json({
           success: true,
           analysis: result.content,
@@ -376,16 +404,20 @@ router.post('/', async (req, res) => {
           tee_verified: result.tee_verified === true,
           type: 'ai-agent-analysis',
           mode: 'analyze',
+          ...(result.costUsd != null
+            ? { aiCost: { provider: 'otari', model: result.model, costUsd: result.costUsd, meteredBy: result.meteredBy } }
+            : {}),
         });
       }
 
       case 'suggest': {
-        const suggestions = await generateSuggestions(stylePreferences);
+        const { suggestions, aiCost } = await generateSuggestions(stylePreferences, agentOtariKey);
         return res.json({
           success: true,
           suggestions,
           type: 'ai-agent-suggestions',
           mode: 'suggest',
+          ...(aiCost ? { aiCost } : {}),
         });
       }
 

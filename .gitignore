@@ -80,6 +80,7 @@ scripts/near-spike/node_modules/
 scripts/near-spike/package-lock.json
 !scripts/manus-research.mjs
 !scripts/youcam-tryon-smoke.mjs
+!scripts/otari-agent-keys.mjs
 !scripts/check-db-migrations.mjs
 !scripts/check-db-runtime.mjs
 !scripts/check-live-db-schema.mjs

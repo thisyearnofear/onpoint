@@ -398,9 +398,11 @@ Every share of a look can carry a **share id** so the platform can follow it fro
 
 ## AI Provider Chain
 
-**Otari (Mozilla AI) is the primary LLM gateway** — OpenAI-compatible at `https://api.otari.ai/api/v1` (EU accounts: `https://eu.api.otari.ai/api/v1`), workspace key `OTARI_API_KEY` (`otk_…`), model IDs (`vendor/model`) from the workspace Models tab. Status: `implemented`, pending live validation.
+**Otari (Mozilla AI) is the primary LLM gateway** — OpenAI-compatible at `https://api.otari.ai/api/v1` (EU accounts: `https://eu.api.otari.ai/api/v1`), workspace key `OTARI_API_KEY` (`otk_…`), model IDs (`vendor/model`) from the workspace Models tab. Status: `live-validated` (chat + vision + usage readback exercised against the hosted EU workspace 2026-11-11).
 
-Env: `OTARI_API_KEY`, `OTARI_CHAT_MODEL`, `OTARI_VISION_MODEL`, `OTARI_IMAGE_MODEL` (optional — image-gen falls back to Qwen Cloud's AIGC endpoint), `OTARI_MODEL` (generic fallback), `OTARI_BASE_URL`, `OTARI_KILL_SWITCH`, `OTARI_TIMEOUT_MS`.
+Env: `OTARI_API_KEY`, `OTARI_CHAT_MODEL`, `OTARI_VISION_MODEL`, `OTARI_IMAGE_MODEL` (optional — image-gen falls back to Qwen Cloud's AIGC endpoint), `OTARI_MODEL` (generic fallback), `OTARI_BASE_URL`, `OTARI_KILL_SWITCH`, `OTARI_TIMEOUT_MS`, `OTARI_ADMIN_KEY` (master key — provisioning only, see below).
+
+**Per-agent metered keys.** Otari is the spend rail that matches OnPoint's payment rails: an agent can send its own Otari key as the `x-otari-key` header on `POST /api/ai/agent` — its model calls are then metered and budget-capped in *its* Otari workspace, not ours. Every Otari response carries the settled server-side cost (`usage.cost_usd`), surfaced to callers as `aiCost` (provider/model/costUsd/meteredBy) — real cost, not an estimate. Agents reconcile spend via `GET /api/agent/ai-usage` (self-serve `/key/usage/summary` + `/key/budget`; works with any `x-otari-key`, falls back to the workspace key). Provisioning a key + scoped budget per agent uses `OtariAdminClient` (`OTARI_ADMIN_KEY`, master-key only — on hosted otari.ai mint keys in the dashboard) or `node scripts/otari-agent-keys.mjs provision|usage|budget|models`.
 
 Where it sits:
 

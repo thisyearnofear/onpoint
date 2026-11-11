@@ -20,6 +20,21 @@
  *   OTARI_MODEL          generic fallback when the above are unset
  *   OTARI_KILL_SWITCH=1  disable all Otari calls
  *   OTARI_TIMEOUT_MS     per-request timeout (default 20s)
+ *   OTARI_ADMIN_KEY      master key for key/budget provisioning
+ *                        (OtariAdminClient — not needed for inference)
+ *
+ * Agent-metered keys (Dev Wilding differentiator): an agent can send
+ * its own Otari key as `x-otari-key` on agent routes — its calls are
+ * then metered and budget-capped in *its* Otari workspace, not ours.
+ * Ops can mint per-agent keys with scoped budgets via OtariAdminClient
+ * (`POST /keys` + `/budgets` + `/scoped-budgets`), and any key can
+ * self-serve its own usage/budget via `/key/usage/summary` +
+ * `/key/budget` — see fetchKeyUsageSummary / fetchKeyBudget.
+ *
+ * Otari also reports per-request server-side cost on every response
+ * (`usage.cost_usd`) — surfaced as `estimatedCostUsd` on results and
+ * as `aiCost` on API responses, so agents see what the model call
+ * actually cost, not an estimate.
  *
  * Callers may pass Qwen-style model ids (e.g. "qwen3-vl-flash") for
  * backward compatibility — they are remapped to the configured Otari
@@ -48,6 +63,19 @@ const MAX_TOKENS_CEILINGS = {
   persona: 500,
   healthCheck: 1,
 } as const;
+
+/**
+ * Read the server-side USD cost Otari stamps on each response
+ * (`usage.cost_usd`, a decimal string). Returns null when the
+ * field is absent (non-Otari upstreams) or unparsable.
+ */
+export function parseCostUsd(
+  usage: QwenCloudChatResponse["usage"] | undefined,
+): number | null {
+  if (!usage?.cost_usd) return null;
+  const cost = Number(usage.cost_usd);
+  return Number.isFinite(cost) ? cost : null;
+}
 
 export interface OtariClientConfig {
   apiKey: string;
@@ -197,9 +225,8 @@ export class OtariClient {
       content: response.choices[0]?.message?.content ?? "",
       model,
       usage: response.usage,
-      // Otari bills through the workspace wallet — cost is visible in
-      // the dashboard, not per-token here.
-      estimatedCostUsd: 0,
+      // Otari reports the settled server-side cost per request.
+      estimatedCostUsd: parseCostUsd(response.usage) ?? 0,
     };
   }
 
@@ -257,7 +284,7 @@ If no African textile patterns are present, return { "patterns": [], "overallAss
       content: response.choices[0]?.message?.content ?? "",
       model,
       usage: response.usage,
-      estimatedCostUsd: 0,
+      estimatedCostUsd: parseCostUsd(response.usage) ?? 0,
     };
   }
 
@@ -289,7 +316,7 @@ If no African textile patterns are present, return { "patterns": [], "overallAss
       content: response.choices[0]?.message?.content ?? "",
       model,
       usage: response.usage,
-      estimatedCostUsd: 0,
+      estimatedCostUsd: parseCostUsd(response.usage) ?? 0,
     };
   }
 
@@ -354,6 +381,7 @@ If no African textile patterns are present, return { "patterns": [], "overallAss
 
     const data = (await response.json()) as {
       data?: Array<{ url?: string; b64_json?: string }>;
+      usage?: QwenCloudChatResponse["usage"];
     };
 
     const urls = (data.data ?? [])
@@ -367,7 +395,7 @@ If no African textile patterns are present, return { "patterns": [], "overallAss
     return {
       urls,
       model: this.defaultImageModel as string,
-      estimatedCostUsd: 0,
+      estimatedCostUsd: parseCostUsd(data.usage) ?? 0,
     };
   }
 
@@ -558,4 +586,271 @@ export function getPrimaryAiClient(): PrimaryAiClient | null {
   if (clients.length === 0) return null;
   if (clients.length === 1) return clients[0]!;
   return new ChainAiClient(clients);
+}
+
+// ── Agent-metered keys (BYO Otari key) ──────────────────────────
+
+/**
+ * Build an OtariClient for an agent-supplied key (the `x-otari-key`
+ * header on agent routes). Model defaults come from the process env —
+ * the key only changes whose workspace the calls are metered and
+ * budget-capped against, not which models are used.
+ *
+ * Returns null for missing/malformed keys so callers can ignore the
+ * header instead of failing the request.
+ */
+export function otariClientForAgentKey(
+  apiKey: string | undefined | null,
+): OtariClient | null {
+  if (!apiKey || !apiKey.startsWith("otk_")) return null;
+  return new OtariClient({
+    apiKey,
+    baseURL: process.env.OTARI_BASE_URL,
+    defaultVisionModel: process.env.OTARI_VISION_MODEL,
+    defaultChatModel: process.env.OTARI_CHAT_MODEL,
+    defaultImageModel: process.env.OTARI_IMAGE_MODEL,
+    defaultModel: process.env.OTARI_MODEL,
+    timeoutMs: process.env.OTARI_TIMEOUT_MS
+      ? Number(process.env.OTARI_TIMEOUT_MS)
+      : undefined,
+    // Agent keys are not subject to our kill switch — their workspace
+    // enforces its own budgets.
+    killSwitch: false,
+  });
+}
+
+// ── Self-serve key usage + budget (any key can call these) ──────
+
+export interface OtariKeyUsageSummary {
+  start_date?: string;
+  end_date?: string;
+  bucket?: string;
+  totals?: {
+    cost?: number;
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+    requests?: number;
+  };
+  [key: string]: unknown;
+}
+
+export interface OtariKeyBudget {
+  budgets_enforced?: boolean;
+  remaining_usd?: number | null;
+  limits?: Array<{
+    budget_id?: string;
+    max_budget?: number;
+    spent?: number;
+    remaining?: number;
+    [key: string]: unknown;
+  }>;
+  [key: string]: unknown;
+}
+
+function otariBaseURL(override?: string): string {
+  return (override ?? process.env.OTARI_BASE_URL ?? DEFAULT_BASE_URL).replace(
+    /\/$/,
+    "",
+  );
+}
+
+/**
+ * GET /key/usage/summary — any Otari key can read its own usage.
+ * `params` are forwarded as query args (e.g. start_date, end_date,
+ * bucket).
+ */
+export async function fetchKeyUsageSummary(
+  apiKey: string,
+  options: { baseURL?: string; params?: Record<string, string> } = {},
+): Promise<OtariKeyUsageSummary> {
+  const qs = options.params
+    ? `?${new URLSearchParams(options.params).toString()}`
+    : "";
+  const response = await fetch(
+    `${otariBaseURL(options.baseURL)}/key/usage/summary${qs}`,
+    { headers: { Authorization: `Bearer ${apiKey}` } },
+  );
+  if (!response.ok) {
+    const errBody = await response.text().catch(() => "");
+    throw new Error(
+      `Otari usage summary error ${response.status}: ${errBody.slice(0, 300)}`,
+    );
+  }
+  return (await response.json()) as OtariKeyUsageSummary;
+}
+
+/**
+ * GET /key/budget — any Otari key can read the budgets enforced on it
+ * (scoped budgets attached by the workspace operator).
+ */
+export async function fetchKeyBudget(
+  apiKey: string,
+  options: { baseURL?: string } = {},
+): Promise<OtariKeyBudget> {
+  const response = await fetch(`${otariBaseURL(options.baseURL)}/key/budget`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  if (!response.ok) {
+    const errBody = await response.text().catch(() => "");
+    throw new Error(
+      `Otari key budget error ${response.status}: ${errBody.slice(0, 300)}`,
+    );
+  }
+  return (await response.json()) as OtariKeyBudget;
+}
+
+// ── Admin client — key + scoped-budget provisioning ─────────────
+//
+// Provisioning (POST /keys, /budgets, /scoped-budgets) requires a
+// master key on the deployment — regular otk_ inference keys get
+// 401 "Invalid master key". On self-hosted Otari that's the operator
+// master key; set it as OTARI_ADMIN_KEY. On hosted otari.ai, mint
+// per-agent keys in the dashboard instead — inference and usage
+// readback work the same either way.
+
+export interface OtariProvisionedKey {
+  keyId: string;
+  /** The raw key — returned once at creation time. */
+  apiKey: string;
+  budgetId?: string;
+  scopedBudgetId?: string;
+}
+
+export class OtariAdminClient {
+  private masterKey: string;
+  private baseURL: string;
+  private timeoutMs: number;
+
+  constructor(config: { masterKey: string; baseURL?: string; timeoutMs?: number }) {
+    if (!config.masterKey) {
+      throw new Error("OtariAdminClient: masterKey is required (set OTARI_ADMIN_KEY).");
+    }
+    this.masterKey = config.masterKey;
+    this.baseURL = otariBaseURL(config.baseURL);
+    this.timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  }
+
+  private async request<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+  ): Promise<T> {
+    const response = await fetch(`${this.baseURL}${path}`, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.masterKey}`,
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(this.timeoutMs),
+    });
+    if (!response.ok) {
+      const errBody = await response.text().catch(() => "");
+      throw new Error(
+        `Otari admin ${method} ${path} error ${response.status}: ${errBody.slice(0, 300)}`,
+      );
+    }
+    return (await response.json()) as T;
+  }
+
+  /** POST /keys — mint a new workspace API key for an agent. */
+  async createKey(input: {
+    userId: string;
+    label?: string;
+  }): Promise<{ id: string; key: string; [k: string]: unknown }> {
+    return this.request("POST", "/keys", {
+      user_id: input.userId,
+      ...(input.label ? { label: input.label } : {}),
+    });
+  }
+
+  /** POST /budgets — define a spend cap. */
+  async createBudget(input: {
+    maxBudgetUsd: number;
+    durationSeconds?: number;
+    label?: string;
+  }): Promise<{ id: string; [k: string]: unknown }> {
+    return this.request("POST", "/budgets", {
+      max_budget: input.maxBudgetUsd,
+      ...(input.durationSeconds
+        ? { duration_seconds: input.durationSeconds }
+        : {}),
+      ...(input.label ? { label: input.label } : {}),
+    });
+  }
+
+  /** POST /scoped-budgets — attach a budget to a specific key. */
+  async attachScopedBudget(input: {
+    keyId: string;
+    budgetId: string;
+  }): Promise<{ id: string; [k: string]: unknown }> {
+    return this.request("POST", "/scoped-budgets", {
+      scope_type: "api_token",
+      scope_id: input.keyId,
+      budget_id: input.budgetId,
+    });
+  }
+
+  /**
+   * Provision a per-agent key with a hard spend cap in one call:
+   * create the key, create the budget, attach it. The returned
+   * apiKey is shown once — persist it before discarding.
+   */
+  async provisionAgentKey(input: {
+    agentId: string;
+    maxBudgetUsd: number;
+    durationSeconds?: number;
+  }): Promise<OtariProvisionedKey> {
+    const key = await this.createKey({
+      userId: input.agentId,
+      label: `onpoint-agent:${input.agentId}`,
+    });
+    const budget = await this.createBudget({
+      maxBudgetUsd: input.maxBudgetUsd,
+      durationSeconds: input.durationSeconds,
+      label: `onpoint-agent:${input.agentId}`,
+    });
+    const scoped = await this.attachScopedBudget({
+      keyId: key.id,
+      budgetId: budget.id,
+    });
+    return {
+      keyId: key.id,
+      apiKey: key.key,
+      budgetId: budget.id,
+      scopedBudgetId: scoped.id,
+    };
+  }
+}
+
+let _otariAdmin: OtariAdminClient | null = null;
+let _otariAdminInitialized = false;
+
+/**
+ * Admin client singleton, or null when OTARI_ADMIN_KEY is unset.
+ * Inference never needs this — only key/budget provisioning does.
+ */
+export function getOtariAdminClient(): OtariAdminClient | null {
+  if (_otariAdminInitialized) return _otariAdmin;
+  _otariAdminInitialized = true;
+  const masterKey = process.env.OTARI_ADMIN_KEY;
+  if (!masterKey) {
+    _otariAdmin = null;
+    return null;
+  }
+  _otariAdmin = new OtariAdminClient({
+    masterKey,
+    baseURL: process.env.OTARI_BASE_URL,
+    timeoutMs: process.env.OTARI_TIMEOUT_MS
+      ? Number(process.env.OTARI_TIMEOUT_MS)
+      : undefined,
+  });
+  return _otariAdmin;
+}
+
+/** Test-only — reset the admin singleton. */
+export function _resetOtariAdminForTests(): void {
+  _otariAdmin = null;
+  _otariAdminInitialized = false;
 }
