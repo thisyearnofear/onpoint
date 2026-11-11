@@ -91,10 +91,15 @@ const visionAvailable = () => Boolean((otariClient && otariVisionModel) || venic
 // generateVisionAnalysis – Otari first, Venice fallback for image analysis
 // ---------------------------------------------------------------------------
 
-async function generateVisionAnalysis({ prompt, imageBase64, veniceModel = 'qwen3-vl-235b-a22b' }) {
-  if (otariClient && otariVisionModel) {
+async function generateVisionAnalysis({ prompt, imageBase64, veniceModel = 'qwen3-vl-235b-a22b', apiKey = null }) {
+  // apiKey is the caller's own Otari key (x-otari-key) — the call is
+  // metered and budget-capped in their workspace, not ours.
+  const client = apiKey
+    ? new OpenAI({ apiKey, baseURL: process.env.OTARI_BASE_URL || 'https://api.otari.ai/api/v1' })
+    : otariClient;
+  if (client && otariVisionModel) {
     try {
-      const response = await otariClient.chat.completions.create({
+      const response = await client.chat.completions.create({
         model: otariVisionModel,
         messages: [
           {
@@ -109,6 +114,10 @@ async function generateVisionAnalysis({ prompt, imageBase64, veniceModel = 'qwen
       return {
         text: response.choices[0]?.message?.content ?? '',
         usedProvider: 'otari-vision',
+        model: response.model || otariVisionModel,
+        // Otari stamps the settled server-side cost on each response.
+        costUsd: response.usage?.cost_usd != null ? Number(response.usage.cost_usd) : null,
+        meteredBy: apiKey ? 'agent-workspace' : 'onpoint-workspace',
       };
     } catch (err) {
       logger.warn('Otari vision analysis failed — falling back', { component: 'virtual-tryon' }, err);
