@@ -315,6 +315,9 @@ app.use('/api/agent/tip-agent', json1k, serviceKeyAuth, generalRateLimit, requir
 // Metrics — public, Prometheus format
 app.use('/api/agent/metrics', json1k, require('./routes/agent-metrics').router);
 
+// AI usage — self-serve Otari key spend/budget read (x-otari-key or workspace key)
+app.use('/api/agent/ai-usage', json1k, generalRateLimit, require('./routes/agent-ai-usage'));
+
 // Tasks — service-key only (worker task processing)
 app.use('/api/agent/tasks', json10kb, serviceKeyAuth, require('./routes/agent-tasks'));
 

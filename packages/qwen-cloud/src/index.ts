@@ -22,10 +22,23 @@ export {
 } from "./client";
 export {
   OtariClient,
+  OtariAdminClient,
   OtariSpendGuardError,
   ChainAiClient,
   getOtariClient,
+  getOtariAdminClient,
   getPrimaryAiClient,
+  otariClientForAgentKey,
+  parseCostUsd,
+  fetchKeyUsageSummary,
+  fetchKeyBudget,
   _resetOtariClientForTests,
+  _resetOtariAdminForTests,
 } from "./otari";
-export type { OtariClientConfig, PrimaryAiClient } from "./otari";
+export type {
+  OtariClientConfig,
+  PrimaryAiClient,
+  OtariProvisionedKey,
+  OtariKeyUsageSummary,
+  OtariKeyBudget,
+} from "./otari";

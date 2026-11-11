@@ -73,6 +73,13 @@ export interface QwenCloudChatResponse {
     prompt_tokens: number;
     completion_tokens: number;
     total_tokens: number;
+    /**
+     * Otari extension — server-side USD cost for this request, as a
+     * decimal string ("0.000044"). Present on calls routed through an
+     * Otari gateway; absent on plain Qwen Cloud / OpenAI-compatible
+     * upstreams.
+     */
+    cost_usd?: string;
     prompt_tokens_details?: {
       cached_tokens?: number;
       image_tokens?: number;

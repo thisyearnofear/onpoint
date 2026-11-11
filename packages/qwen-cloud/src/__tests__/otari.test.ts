@@ -7,10 +7,17 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   OtariClient,
+  OtariAdminClient,
   OtariSpendGuardError,
   ChainAiClient,
   getPrimaryAiClient,
+  getOtariAdminClient,
+  otariClientForAgentKey,
+  parseCostUsd,
+  fetchKeyUsageSummary,
+  fetchKeyBudget,
   _resetOtariClientForTests,
+  _resetOtariAdminForTests,
 } from "../otari";
 import { _resetQwenCloudClientForTests } from "../client";
 
@@ -195,5 +202,175 @@ describe("getPrimaryAiClient", () => {
     delete process.env.DASHSCOPE_API_KEY;
     const client = getPrimaryAiClient();
     expect(client).toBeInstanceOf(OtariClient);
+  });
+});
+
+describe("parseCostUsd", () => {
+  it("parses the Otari usage.cost_usd decimal string", () => {
+    expect(
+      parseCostUsd({ prompt_tokens: 10, completion_tokens: 5, total_tokens: 15, cost_usd: "0.000044" }),
+    ).toBe(0.000044);
+  });
+
+  it("returns null when the field is absent or unparsable", () => {
+    expect(parseCostUsd(undefined)).toBeNull();
+    expect(parseCostUsd({ prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 })).toBeNull();
+    expect(
+      parseCostUsd({ prompt_tokens: 1, completion_tokens: 1, total_tokens: 2, cost_usd: "n/a" }),
+    ).toBeNull();
+  });
+});
+
+describe("OtariClient cost reporting", () => {
+  beforeEach(() => {
+    _resetOtariClientForTests();
+    vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("surfaces usage.cost_usd as estimatedCostUsd on persona calls", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        id: "chatcmpl-test",
+        model: "vendor/chat",
+        choices: [{ index: 0, finish_reason: "stop", message: { role: "assistant", content: "hi" } }],
+        usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15, cost_usd: "0.0001" },
+      }),
+      text: async () => "",
+    } as Response);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = new OtariClient({ apiKey: "otk_test", defaultChatModel: "vendor/chat" });
+    const res = await client.chatPersona("sys", "user");
+    expect(res.estimatedCostUsd).toBe(0.0001);
+  });
+});
+
+describe("otariClientForAgentKey", () => {
+  it("builds a client for a well-formed agent key", () => {
+    const client = otariClientForAgentKey("otk_agent123");
+    expect(client).toBeInstanceOf(OtariClient);
+    expect(client?.provider).toBe("otari");
+  });
+
+  it("returns null for missing or malformed keys", () => {
+    expect(otariClientForAgentKey(undefined)).toBeNull();
+    expect(otariClientForAgentKey(null)).toBeNull();
+    expect(otariClientForAgentKey("")).toBeNull();
+    expect(otariClientForAgentKey("sk-not-an-otari-key")).toBeNull();
+  });
+});
+
+describe("key usage + budget reads", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("fetchKeyUsageSummary hits /key/usage/summary with the caller's key", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ totals: { cost: 0.000044, total_tokens: 231 } }),
+      text: async () => "",
+    } as Response);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const summary = await fetchKeyUsageSummary("otk_agent", {
+      baseURL: "https://eu.api.otari.ai/api/v1",
+      params: { bucket: "day" },
+    });
+    expect(summary.totals?.cost).toBe(0.000044);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://eu.api.otari.ai/api/v1/key/usage/summary?bucket=day");
+    expect((init.headers as Record<string, string>).Authorization).toBe("Bearer otk_agent");
+  });
+
+  it("fetchKeyBudget hits /key/budget", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ budgets_enforced: true, remaining_usd: null, limits: [] }),
+      text: async () => "",
+    } as Response);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const budget = await fetchKeyBudget("otk_agent", {
+      baseURL: "https://eu.api.otari.ai/api/v1",
+    });
+    expect(budget.budgets_enforced).toBe(true);
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toBe("https://eu.api.otari.ai/api/v1/key/budget");
+  });
+
+  it("throws on non-OK responses", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: false, status: 401, text: async () => "bad key" } as Response),
+    );
+    await expect(fetchKeyBudget("otk_bad", { baseURL: "https://x/v1" })).rejects.toThrow(
+      "Otari key budget error 401",
+    );
+  });
+});
+
+describe("OtariAdminClient", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    _resetOtariAdminForTests();
+  });
+
+  it("requires a master key", () => {
+    expect(() => new OtariAdminClient({ masterKey: "" })).toThrow("masterKey is required");
+  });
+
+  it("provisionAgentKey creates key, budget, and scoped budget in order", async () => {
+    const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
+    const fetchMock = vi.fn().mockImplementation(async (url: string, init: RequestInit) => {
+      calls.push({ url, body: JSON.parse(init.body as string) });
+      const id = url.includes("/scoped-budgets") ? "sb_1" : url.includes("/budgets") ? "b_1" : "k_1";
+      return {
+        ok: true,
+        json: async () => ({ id, ...(url.endsWith("/keys") ? { key: "otk_new" } : {}) }),
+        text: async () => "",
+      } as Response;
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const admin = new OtariAdminClient({
+      masterKey: "master_1",
+      baseURL: "https://eu.api.otari.ai/api/v1",
+    });
+    const provisioned = await admin.provisionAgentKey({
+      agentId: "0xABC",
+      maxBudgetUsd: 5,
+      durationSeconds: 2592000,
+    });
+
+    expect(calls.map((c) => c.url)).toEqual([
+      "https://eu.api.otari.ai/api/v1/keys",
+      "https://eu.api.otari.ai/api/v1/budgets",
+      "https://eu.api.otari.ai/api/v1/scoped-budgets",
+    ]);
+    expect(calls[0]!.body).toEqual({ user_id: "0xABC", label: "onpoint-agent:0xABC" });
+    expect(calls[1]!.body.max_budget).toBe(5);
+    expect(calls[2]!.body).toEqual({
+      scope_type: "api_token",
+      scope_id: "k_1",
+      budget_id: "b_1",
+    });
+    expect(provisioned.apiKey).toBe("otk_new");
+  });
+
+  it("getOtariAdminClient returns null without OTARI_ADMIN_KEY and a client with it", () => {
+    delete process.env.OTARI_ADMIN_KEY;
+    _resetOtariAdminForTests();
+    expect(getOtariAdminClient()).toBeNull();
+
+    process.env.OTARI_ADMIN_KEY = "master_x";
+    _resetOtariAdminForTests();
+    expect(getOtariAdminClient()).toBeInstanceOf(OtariAdminClient);
+    delete process.env.OTARI_ADMIN_KEY;
   });
 });
