@@ -66,7 +66,7 @@ node --env-file=apps/api/.env scripts/otari-demo.mjs
 - `b645a0a` — Otari as primary AI gateway, existing providers as ordered fallbacks
 - `8a31429` — Per-agent Otari keys: BYO-key metering, budget readback, aiCost surfacing
 - `b4eca51` — Otari metering in the flagship try-on flow + agent manifest
-- `335abb8` — Otari in the UI: polaroid inference line + agent dashboard AI-spend panel
+- `954afdc` — Otari in the UI: polaroid inference line + agent dashboard AI-spend panel
 
 ## Upstream
 
