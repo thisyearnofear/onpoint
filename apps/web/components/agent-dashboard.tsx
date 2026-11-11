@@ -15,6 +15,22 @@ interface ReferralActivity {
   payoutTxHash?: string;
 }
 
+interface AiUsage {
+  keySource?: string;
+  usage?: {
+    totals?: {
+      cost?: number;
+      request_count?: number;
+      total_tokens?: number;
+    };
+    by_model?: { key: string; cost: number; requests: number }[];
+  };
+  budget?: {
+    budgets_enforced?: boolean;
+    limits?: unknown[];
+  };
+}
+
 interface DashboardData {
   agent: {
     name: string;
@@ -54,11 +70,18 @@ interface DashboardData {
 
 export function AgentDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [aiUsage, setAiUsage] = useState<AiUsage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDashboard();
+    fetch(`${getApiBase()}/api/agent/ai-usage`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (json?.success) setAiUsage(json);
+      })
+      .catch(() => {});
   }, []);
 
   const fetchDashboard = async () => {
@@ -178,6 +201,60 @@ export function AgentDashboard() {
             <p className="mt-3 text-base font-bold capitalize">{data.identity?.self?.status || 'Unregistered'}</p>
           </div>
         </div>
+
+        {aiUsage && (
+          <div className="bg-card rounded-lg border p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xl font-bold">AI spend — metered by Otari</h2>
+              <a
+                href={`${getApiBase()}/api/agent/ai-usage`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
+              >
+                Raw endpoint <ArrowUpRight className="h-4 w-4" />
+              </a>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="bg-muted/50 rounded-lg p-4">
+                <div className="text-sm text-muted-foreground">Settled inference cost</div>
+                <div className="mt-1 text-2xl font-bold">
+                  ${Number(aiUsage.usage?.totals?.cost ?? 0).toFixed(6)}
+                </div>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-4">
+                <div className="text-sm text-muted-foreground">Metered requests</div>
+                <div className="mt-1 text-2xl font-bold">
+                  {aiUsage.usage?.totals?.request_count ?? 0}
+                </div>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-4">
+                <div className="text-sm text-muted-foreground">Budget enforcement</div>
+                <div className="mt-1 flex items-center gap-2 font-bold">
+                  <span
+                    className={`h-2 w-2 rounded-full ${
+                      aiUsage.budget?.budgets_enforced ? 'bg-success' : 'bg-warning'
+                    }`}
+                  />
+                  {aiUsage.budget?.budgets_enforced ? 'Enforced' : 'Off'}
+                </div>
+              </div>
+            </div>
+            {aiUsage.usage?.by_model?.length ? (
+              <p className="mt-4 text-sm text-muted-foreground">
+                Models:{' '}
+                {aiUsage.usage.by_model
+                  .slice(0, 3)
+                  .map((m) => `${m.key.split('/').pop()} ($${m.cost.toFixed(6)})`)
+                  .join(', ')}
+              </p>
+            ) : null}
+            <p className="mt-3 text-xs text-muted-foreground">
+              cUSD pays for actions on Celo; Otari meters the model calls behind them.
+              Agents can meter spend to their own Otari workspace with the x-otari-key header.
+            </p>
+          </div>
+        )}
 
         {/* Referral Stats */}
         <div className="bg-card rounded-lg border p-6">

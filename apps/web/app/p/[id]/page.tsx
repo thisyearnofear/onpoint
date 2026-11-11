@@ -30,6 +30,12 @@ interface PolaroidMeta {
     styleRecommendations: string[];
   } | null;
   stylingTips: string[];
+  aiCost?: {
+    provider: string;
+    model: string | null;
+    costUsd: number | string | null;
+    meteredBy: string;
+  } | null;
   payment: {
     txHash: string;
     amountCusd: string;
@@ -187,6 +193,14 @@ export default async function PolaroidPage({
               href: meta.payment.explorerUrl,
               mono: true,
             },
+            ...(meta.aiCost?.provider === "otari" && meta.aiCost.costUsd != null
+              ? [
+                  {
+                    label: "Inference",
+                    value: `$${Number(meta.aiCost.costUsd).toFixed(6)} via Otari`,
+                  },
+                ]
+              : []),
           ]}
         />
       </div>

@@ -11,10 +11,26 @@ budget-capped, and attributable. Otari is that rail.
 | Otari feature | Where OnPoint uses it |
 | --- | --- |
 | OpenAI-compatible gateway (chat + vision) | Primary upstream for persona chat, outfit/vision analysis, look classification, garment attributes, product search — see `packages/qwen-cloud/src/otari.ts`, `apps/api/routes/ai-agent.js`, `apps/api/lib/vision.js` |
-| Per-request server cost (`usage.cost_usd`) | Surfaced to callers as `aiCost` on `/api/ai/agent` responses and as `estimatedCostUsd` in `qwen-cloud` results — real settled cost, not an estimate |
+| Per-request server cost (`usage.cost_usd`) | Surfaced to callers as `aiCost` on `/api/ai/agent` and `/api/agent/try-on` responses and as `estimatedCostUsd` in `qwen-cloud` results — real settled cost, not an estimate |
 | Self-serve key reads (`/key/usage/summary`, `/key/budget`) | `GET /api/agent/ai-usage` — an agent reconciles its own AI spend, the same ledger shape as its cUSD payment ledger |
 | Virtual keys + scoped budgets (`/keys`, `/budgets`, `/scoped-budgets`) | `OtariAdminClient` + `scripts/otari-agent-keys.mjs provision` mints a budget-capped key per agent (`OTARI_ADMIN_KEY`, master-key only; dashboard on hosted) |
 | BYO-key metering | `x-otari-key` header on agent routes routes the call through the caller's own workspace — their budgets, their Activity view |
+
+## Where judges see it
+
+- **Flagship paid try-on** — `POST /api/agent/try-on`: the 402 quote
+  advertises `aiMetering` (header name + readback endpoint); the 200
+  response and the persisted polaroid carry `aiCost`. The shareable
+  polaroid page (`/p/{id}`) renders "Inference — $… via Otari" next to
+  "Paid — x cUSD / Verified on Celo": one artifact, both ledgers.
+- **Agent dashboard** (`/agent`) — an "AI spend — metered by Otari"
+  panel reads `/api/agent/ai-usage` live: settled cost, metered request
+  count, per-model breakdown, budget-enforcement status.
+- **Agent manifest** — `/.well-known/agent.json` advertises the
+  `metered_agent_ai_keys` capability and an `aiMetering` block so
+  agents discover the header without reading code.
+- **One-command demo** — `scripts/otari-demo.mjs` walks catalog →
+  ai-usage → agent call → BYO-key call → meter moved.
 
 ## Why it's a fit for the hackathon
 
@@ -40,12 +56,17 @@ node scripts/otari-agent-keys.mjs provision --agent=0xAGENT --budget=5 --days=30
 curl -X POST $API/api/ai/agent -H 'x-otari-key: otk_…' \
   -d '{"imageData":"data:image/jpeg;base64,…","mode":"analyze"}'
 # -> response includes aiCost { provider, model, costUsd, meteredBy }
+
+# the whole story in one script (points at api.onpoint.famile.xyz)
+node --env-file=apps/api/.env scripts/otari-demo.mjs
 ```
 
 ## Key commits (branch `devs-wilding`)
 
 - `b645a0a` — Otari as primary AI gateway, existing providers as ordered fallbacks
 - `8a31429` — Per-agent Otari keys: BYO-key metering, budget readback, aiCost surfacing
+- `b4eca51` — Otari metering in the flagship try-on flow + agent manifest
+- `335abb8` — Otari in the UI: polaroid inference line + agent dashboard AI-spend panel
 
 ## Upstream
 
