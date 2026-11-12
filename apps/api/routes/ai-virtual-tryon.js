@@ -14,6 +14,7 @@ const logger = require('../lib/logger');
 const { logFunnelEvent } = require('../lib/funnel');
 const { hashVisitor, sanitizeShareId, sanitizeLookSlug } = require('../lib/share-attribution');
 const youcamVto = require('../lib/youcam-vto');
+const sandbase = require('../lib/sandbase');
 const { runGeminiTryOn } = require('../lib/gemini-tryon');
 
 // ── Caching: fingerprint photo data to avoid redundant Venice API calls ──
@@ -78,29 +79,55 @@ const geminiClient = geminiKey ? new GoogleGenAI({ apiKey: geminiKey }) : null;
 const openaiClient = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
 const veniceClient = veniceKey ? new OpenAI({ apiKey: veniceKey, baseURL: VENICE_BASE_URL }) : null;
 
-// Otari (Mozilla AI) — primary gateway, OpenAI-compatible.
+// Otari (Mozilla AI) — gateway behind Sandbase, OpenAI-compatible.
 const otariKey = process.env.OTARI_API_KEY || null;
-const otariClient = otariKey
-  ? new OpenAI({ apiKey: otariKey, baseURL: process.env.OTARI_BASE_URL || 'https://api.otari.ai/api/v1' })
-  : null;
+const OTARI_BASE_URL = process.env.OTARI_BASE_URL || 'https://api.otari.ai/api/v1';
+const otariClient = otariKey ? new OpenAI({ apiKey: otariKey, baseURL: OTARI_BASE_URL }) : null;
 const otariVisionModel = process.env.VISION_OTARI_MODEL || process.env.OTARI_VISION_MODEL || process.env.OTARI_MODEL || null;
 const otariChatModel = process.env.OTARI_CHAT_MODEL || process.env.OTARI_MODEL || null;
-const visionAvailable = () => Boolean((otariClient && otariVisionModel) || veniceClient);
+const visionAvailable = () =>
+  Boolean((sandbase.client('vision') && sandbase.visionModel()) || (otariClient && otariVisionModel) || veniceClient);
 
 // ---------------------------------------------------------------------------
-// generateVisionAnalysis – Otari first, Venice fallback for image analysis
+// generateVisionAnalysis – Sandbase first, then Otari, Venice last
 // ---------------------------------------------------------------------------
 
 async function generateVisionAnalysis({ prompt, imageBase64, veniceModel = 'qwen3-vl-235b-a22b', apiKey = null }) {
-  // apiKey is the caller's own Otari key (x-otari-key) — the call is
-  // metered and budget-capped in their workspace, not ours.
-  const client = apiKey
-    ? new OpenAI({ apiKey, baseURL: process.env.OTARI_BASE_URL || 'https://api.otari.ai/api/v1' })
-    : otariClient;
-  if (client && otariVisionModel) {
-    try {
-      const response = await client.chat.completions.create({
+  // apiKey is the caller's own Otari key (x-otari-key) — the call is then
+  // metered and budget-capped in their workspace, so it outranks our own
+  // gateways. Without it, spend ours: Sandbase first, Otari behind.
+  const gateways = [];
+  if (apiKey) {
+    gateways.push({
+      provider: 'otari',
+      client: new OpenAI({ apiKey, baseURL: OTARI_BASE_URL }),
+      model: otariVisionModel,
+      meteredBy: 'agent-workspace',
+    });
+  } else {
+    const sandbaseClient = sandbase.client('vision');
+    if (sandbaseClient) {
+      gateways.push({
+        provider: 'sandbase',
+        client: sandbaseClient,
+        model: sandbase.visionModel(),
+        meteredBy: 'onpoint-workspace',
+      });
+    }
+    if (otariClient && otariVisionModel) {
+      gateways.push({
+        provider: 'otari',
+        client: otariClient,
         model: otariVisionModel,
+        meteredBy: 'onpoint-workspace',
+      });
+    }
+  }
+
+  for (const gateway of gateways) {
+    try {
+      const response = await gateway.client.chat.completions.create({
+        model: gateway.model,
         messages: [
           {
             role: 'user',
@@ -111,21 +138,23 @@ async function generateVisionAnalysis({ prompt, imageBase64, veniceModel = 'qwen
           },
         ],
       });
+      // Otari stamps the settled cost on the response; Sandbase reports
+      // plain usage, so its cost is computed from the model card prices.
+      const settledCost = response.usage?.cost_usd != null ? Number(response.usage.cost_usd) : null;
       return {
         text: response.choices[0]?.message?.content ?? '',
-        usedProvider: 'otari-vision',
-        model: response.model || otariVisionModel,
-        // Otari stamps the settled server-side cost on each response.
-        costUsd: response.usage?.cost_usd != null ? Number(response.usage.cost_usd) : null,
-        meteredBy: apiKey ? 'agent-workspace' : 'onpoint-workspace',
+        usedProvider: `${gateway.provider}-vision`,
+        model: response.model || gateway.model,
+        costUsd: settledCost ?? (gateway.provider === 'sandbase' ? await sandbase.costUsd(gateway.model, response.usage) : null),
+        meteredBy: gateway.meteredBy,
       };
     } catch (err) {
-      logger.warn('Otari vision analysis failed — falling back', { component: 'virtual-tryon' }, err);
+      logger.warn(`${gateway.provider} vision analysis failed — falling back`, { component: 'virtual-tryon' }, err);
     }
   }
 
   if (!veniceClient) {
-    throw new Error('No vision provider available. Configure OTARI_API_KEY (+ model) or VENICE_API_KEY.');
+    throw new Error('No vision provider available. Configure SANDBASE_API_KEY (+ model), OTARI_API_KEY (+ model) or VENICE_API_KEY.');
   }
 
   try {
@@ -157,7 +186,7 @@ async function generateVisionAnalysis({ prompt, imageBase64, veniceModel = 'qwen
 }
 
 // ---------------------------------------------------------------------------
-// generateText – Otari first, then Gemini → Venice → OpenAI fallbacks
+// generateText – Sandbase first, then Otari → Gemini → Venice → OpenAI
 // ---------------------------------------------------------------------------
 
 async function generateText({ prompt, provider = 'auto', veniceModel = 'llama-3.3-70b', geminiModel = 'gemini-3.1-flash-lite-preview', openaiModel = 'gpt-4o', openaiOptions = {} }) {
@@ -165,9 +194,13 @@ async function generateText({ prompt, provider = 'auto', veniceModel = 'llama-3.
   const hasGemini = !!geminiClient;
   const hasOpenAI = !!openaiClient;
   const hasOtari = !!(otariClient && otariChatModel);
+  const sandbaseClient = provider === 'auto' || provider === 'sandbase' ? sandbase.client('chat') : null;
+  const hasSandbase = !!(sandbaseClient && sandbase.chatModel());
 
   let selected = null;
-  if (provider === 'otari') {
+  if (provider === 'sandbase') {
+    selected = hasSandbase ? 'sandbase' : null;
+  } else if (provider === 'otari') {
     selected = hasOtari ? 'otari' : null;
   } else if (provider === 'venice') {
     selected = hasVenice ? 'venice' : null;
@@ -176,24 +209,36 @@ async function generateText({ prompt, provider = 'auto', veniceModel = 'llama-3.
   } else if (provider === 'openai') {
     selected = hasOpenAI ? 'openai' : null;
   } else {
-    // auto: Otari (primary gateway) → Gemini → Venice → OpenAI
-    if (hasOtari) selected = 'otari';
+    // auto: Sandbase (primary gateway) → Otari → Gemini → Venice → OpenAI
+    if (hasSandbase) selected = 'sandbase';
+    else if (hasOtari) selected = 'otari';
     else if (hasGemini) selected = 'gemini';
     else if (hasVenice) selected = 'venice';
     else if (hasOpenAI) selected = 'openai';
   }
 
   if (!selected) {
-    throw new Error('No AI provider available. Configure OTARI_API_KEY, VENICE_API_KEY, GEMINI_API_KEY or OPENAI_API_KEY.');
+    throw new Error('No AI provider available. Configure SANDBASE_API_KEY, OTARI_API_KEY, VENICE_API_KEY, GEMINI_API_KEY or OPENAI_API_KEY.');
   }
 
   // Build ordered list of providers to try (selected first, then fallbacks)
-  const all = ['otari', 'gemini', 'venice', 'openai'];
-  const available = { otari: hasOtari, venice: hasVenice, gemini: hasGemini, openai: hasOpenAI };
+  const all = ['sandbase', 'otari', 'gemini', 'venice', 'openai'];
+  const available = { sandbase: hasSandbase, otari: hasOtari, venice: hasVenice, gemini: hasGemini, openai: hasOpenAI };
   const order = [selected, ...all.filter((p) => p !== selected && available[p])];
 
   for (const prov of order) {
     try {
+      if (prov === 'sandbase') {
+        const response = await sandbase.client('chat').chat.completions.create({
+          model: sandbase.chatModel(),
+          messages: [{ role: 'user', content: prompt }],
+          ...openaiOptions,
+        });
+        return {
+          text: response.choices[0]?.message?.content ?? '',
+          usedProvider: 'sandbase',
+        };
+      }
       if (prov === 'otari') {
         const response = await otariClient.chat.completions.create({
           model: otariChatModel,
@@ -1035,7 +1080,7 @@ Tailor your recommendations and analysis to align with these personal preference
     // -- analyze-person (Venice vision API for photo analysis) --
     if (type === 'analyze-person' && data && data.photoData) {
       if (!visionAvailable()) {
-        return res.status(500).json({ error: 'Vision provider required — configure OTARI_API_KEY (+ model) or VENICE_API_KEY' });
+        return res.status(500).json({ error: 'Vision provider required — configure SANDBASE_API_KEY (+ model), OTARI_API_KEY (+ model) or VENICE_API_KEY' });
       }
 
       const prompt = `Analyze this person's appearance for fashion styling. Be SPECIFIC about what you see:
@@ -1089,7 +1134,7 @@ Be detailed and specific. This will be used to generate highly personalized outf
     // -- body-analysis with photo (Venice vision API) --
     if (type === 'body-analysis' && data && data.photoData) {
       if (!visionAvailable()) {
-        return res.status(500).json({ error: 'Vision provider required — configure OTARI_API_KEY (+ model) or VENICE_API_KEY' });
+        return res.status(500).json({ error: 'Vision provider required — configure SANDBASE_API_KEY (+ model), OTARI_API_KEY (+ model) or VENICE_API_KEY' });
       }
 
       const prompt = `You are an expert fashion stylist analyzing this photo.
@@ -1158,7 +1203,7 @@ Be specific and actionable. Reference what you actually see.${prefContext}`;
     // -- outfit-fit with photo (Venice vision API) --
     if (type === 'outfit-fit' && data && data.photoData) {
       if (!visionAvailable()) {
-        return res.status(500).json({ error: 'Vision provider required — configure OTARI_API_KEY (+ model) or VENICE_API_KEY' });
+        return res.status(500).json({ error: 'Vision provider required — configure SANDBASE_API_KEY (+ model), OTARI_API_KEY (+ model) or VENICE_API_KEY' });
       }
 
       const outfitDescription = data.items ? data.items.map((item) => `${item.name}: ${item.description || item.type || ''}`).join(', ') : '';

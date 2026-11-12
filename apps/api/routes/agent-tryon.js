@@ -184,11 +184,12 @@ function inferGarmentCategory(listing, kit) {
   return 'auto';
 }
 
-/** Pick the Otari cost block off a vision-analysis result, when served by Otari. */
+/** Pick the gateway cost block off a vision-analysis result, when a metered gateway served it. */
 function aiCostFrom(vision) {
-  return vision?.usedProvider === 'otari-vision' && vision.costUsd != null
+  const provider = /^(otari|sandbase)-vision$/.exec(vision?.usedProvider || '')?.[1];
+  return provider && vision.costUsd != null
     ? {
-        provider: 'otari',
+        provider,
         model: vision.model || null,
         costUsd: vision.costUsd,
         meteredBy: vision.meteredBy || 'onpoint-workspace',

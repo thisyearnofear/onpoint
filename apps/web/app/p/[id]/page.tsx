@@ -45,6 +45,15 @@ interface PolaroidMeta {
   createdAt: string;
 }
 
+/** Which gateway served the inference, spelled for the receipt line. */
+function gatewayLabel(provider: string): string {
+  const known: Record<string, string> = {
+    otari: "Otari",
+    sandbase: "Sandbase",
+  };
+  return known[provider] ?? provider;
+}
+
 async function loadPolaroid(id: string): Promise<PolaroidMeta | null> {
   const r2Base = process.env.NEXT_PUBLIC_R2_PUBLIC_URL?.replace(/\/$/, "");
   if (!r2Base) return null;
@@ -193,11 +202,11 @@ export default async function PolaroidPage({
               href: meta.payment.explorerUrl,
               mono: true,
             },
-            ...(meta.aiCost?.provider === "otari" && meta.aiCost.costUsd != null
+            ...(meta.aiCost?.costUsd != null
               ? [
                   {
                     label: "Inference",
-                    value: `$${Number(meta.aiCost.costUsd).toFixed(6)} via Otari`,
+                    value: `$${Number(meta.aiCost.costUsd).toFixed(6)} via ${gatewayLabel(meta.aiCost.provider)}`,
                   },
                 ]
               : []),

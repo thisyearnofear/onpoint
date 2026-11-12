@@ -13,6 +13,7 @@
 const express = require('express');
 const router = express.Router();
 const logger = require('../lib/logger');
+const sandbase = require('../lib/sandbase');
 
 const VENICE_BASE_URL = 'https://api.venice.ai/api/v1';
 const ZERO_G_BASE_URL = process.env.ZERO_G_BASE_URL || 'https://router-api.0g.ai/v1';
@@ -90,6 +91,58 @@ async function analyzeWithOtari(imageData, preferences = {}, apiKeyOverride = nu
     model: data.model || OTARI_VISION_MODEL,
     costUsd: data.usage?.cost_usd != null ? Number(data.usage.cost_usd) : null,
     meteredBy: apiKeyOverride ? 'agent-workspace' : 'onpoint-workspace',
+  };
+}
+
+/**
+ * Analyze a person's outfit via Sandbase — the gateway that carries our
+ * own inference spend, ahead of Otari in the chain.
+ *
+ * Sandbase answers with plain OpenAI `usage` and no cost field, so
+ * `costUsd` is computed from the per-token prices on the model card.
+ * When those prices cannot be read, costUsd stays null and the response
+ * simply carries no aiCost.
+ */
+async function analyzeWithSandbase(imageData, preferences = {}) {
+  const model = sandbase.visionModel();
+  const key = sandbase.apiKey();
+  if (!key || !model || !sandbase.configured()) {
+    throw new Error('SANDBASE_API_KEY / SANDBASE_VISION_MODEL not configured');
+  }
+
+  const response = await fetch(`${sandbase.baseURL()}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: ANALYZE_PROMPT(prefContextFor(preferences)) },
+            { type: 'image_url', image_url: { url: imageData } },
+          ],
+        },
+      ],
+      max_tokens: 1024,
+    }),
+    signal: AbortSignal.timeout(sandbase.timeoutMs()),
+  });
+
+  if (!response.ok) {
+    const errBody = await response.text().catch(() => '');
+    throw new Error(`Sandbase error ${response.status}: ${errBody}`);
+  }
+
+  const data = await response.json();
+  return {
+    content: data.choices?.[0]?.message?.content || '',
+    model: data.model || model,
+    costUsd: await sandbase.costUsd(model, data.usage),
+    meteredBy: 'onpoint-workspace',
   };
 }
 
@@ -272,19 +325,26 @@ async function analyzeWithAzure(imageData, preferences = {}) {
 
 /**
  * Run the analyze-outfit chain in order:
- *   Otari → Venice → 0G Compute → Replicate → Azure
+ *   Sandbase → Otari → Venice → 0G Compute → Replicate → Azure
  *
- * Otari is the primary gateway (Mozilla AI Dev Wilding); the rest are
- * fallbacks for when its credits or models are unavailable. 0G stays
- * second among the fallbacks because (a) it is TEE-attested which makes
- * it a stronger receipt surface than Replicate / Azure, (b) the
- * default model (qwen3-vl-30b) is the cheapest vision-capable model
- * on the live 0G Router catalog, and (c) it adds a verifiable
- * alternative for users who care about audit trails.
+ * Sandbase carries the platform-funded inference spend; Otari sits behind
+ * it and is still first when the caller sent an x-otari-key, because that
+ * spend belongs in the agent's own workspace. 0G stays ahead of Replicate
+ * and Azure because (a) it is TEE-attested which makes it a stronger
+ * receipt surface than Replicate / Azure, (b) the default model
+ * (qwen3-vl-30b) is the cheapest vision-capable model on the live 0G
+ * Router catalog, and (c) it adds a verifiable alternative for users who
+ * care about audit trails.
  */
 async function analyzeWithFallbackChain(imageData, preferences = {}, apiKeyOverride = null) {
+  const gateways = apiKeyOverride
+    ? [{ name: 'otari', run: () => analyzeWithOtari(imageData, preferences, apiKeyOverride) }]
+    : [
+        { name: 'sandbase', run: () => analyzeWithSandbase(imageData, preferences) },
+        { name: 'otari', run: () => analyzeWithOtari(imageData, preferences, null) },
+      ];
   const providers = [
-    { name: 'otari', run: () => analyzeWithOtari(imageData, preferences, apiKeyOverride) },
+    ...gateways,
     { name: 'venice', run: () => analyzeWithVenice(imageData, preferences) },
     { name: '0g', run: () => analyzeWithZeroG(imageData, preferences) },
     { name: 'replicate', run: () => analyzeWithReplicate(imageData, preferences) },
@@ -321,7 +381,8 @@ async function generateSuggestions(userContext = {}, apiKeyOverride = null) {
   const otariKey = apiKeyOverride || process.env.OTARI_API_KEY;
   const veniceKey = process.env.VENICE_API_KEY;
   const hasOtari = Boolean(otariKey && OTARI_CHAT_MODEL && (apiKeyOverride || process.env.OTARI_KILL_SWITCH !== '1'));
-  if (!hasOtari && !veniceKey) return { suggestions: [], aiCost: null };
+  const hasSandbase = Boolean(sandbase.configured() && sandbase.chatModel());
+  if (!hasOtari && !hasSandbase && !veniceKey) return { suggestions: [], aiCost: null };
 
   const contextStr = Object.keys(userContext).length > 0
     ? `User context: ${JSON.stringify(userContext)}`
@@ -336,7 +397,16 @@ Return a JSON array of suggestions, each with: title (string), description (stri
 Return ONLY valid JSON, no markdown.`;
 
   const upstreams = [];
-  if (hasOtari) upstreams.push({ name: 'otari', baseURL: OTARI_BASE_URL, apiKey: otariKey, model: OTARI_CHAT_MODEL });
+  const otariUpstream = { name: 'otari', baseURL: OTARI_BASE_URL, apiKey: otariKey, model: OTARI_CHAT_MODEL };
+  if (hasOtari && apiKeyOverride) {
+    // An agent-supplied key meters to its own workspace — it outranks our spend.
+    upstreams.push(otariUpstream);
+  } else {
+    if (hasSandbase) {
+      upstreams.push({ name: 'sandbase', baseURL: sandbase.baseURL(), apiKey: sandbase.apiKey(), model: sandbase.chatModel() });
+    }
+    if (hasOtari) upstreams.push(otariUpstream);
+  }
   if (veniceKey) upstreams.push({ name: 'venice', baseURL: VENICE_BASE_URL, apiKey: veniceKey, model: 'qwen3-vl-235b-a22b' });
 
   for (const up of upstreams) {
@@ -360,12 +430,11 @@ Return ONLY valid JSON, no markdown.`;
       const content = data.choices?.[0]?.message?.content || '[]';
       const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       const suggestions = JSON.parse(cleaned);
+      const settledCost = data.usage?.cost_usd != null ? Number(data.usage.cost_usd) : null;
+      const costUsd = settledCost ?? (up.name === 'sandbase' ? await sandbase.costUsd(up.model, data.usage) : null);
       return {
         suggestions: Array.isArray(suggestions) ? suggestions.slice(0, 3) : [],
-        aiCost:
-          up.name === 'otari' && data.usage?.cost_usd != null
-            ? { provider: 'otari', model: data.model || up.model, costUsd: Number(data.usage.cost_usd) }
-            : null,
+        aiCost: costUsd != null ? { provider: up.name, model: data.model || up.model, costUsd } : null,
       };
     } catch {
       // try next upstream
@@ -405,7 +474,7 @@ router.post('/', async (req, res) => {
           type: 'ai-agent-analysis',
           mode: 'analyze',
           ...(result.costUsd != null
-            ? { aiCost: { provider: 'otari', model: result.model, costUsd: result.costUsd, meteredBy: result.meteredBy } }
+            ? { aiCost: { provider: result.provider, model: result.model, costUsd: result.costUsd, meteredBy: result.meteredBy } }
             : {}),
         });
       }

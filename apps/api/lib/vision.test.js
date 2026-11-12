@@ -14,6 +14,13 @@ const KEY_ENVS = [
   'MODAL_BASE_URL',
   'VISION_MODAL_BASE_URL',
   'VISION_MODAL_MODEL',
+  'SANDBASE_API_KEY',
+  'SANDBASE_BASE_URL',
+  'SANDBASE_VISION_MODEL',
+  'VISION_SANDBASE_MODEL',
+  'OTARI_API_KEY',
+  'OTARI_VISION_MODEL',
+  'VISION_OTARI_MODEL',
 ];
 const saved = {};
 
@@ -55,6 +62,22 @@ describe('vision provider chain', () => {
     expect(out.provider).toBe('gemini');
     expect(calls.length).toBe(1);
     expect(vision.configuredProviders().map((p) => p.name)).toEqual(['gemini', 'openai']);
+  });
+
+  it('ranks sandbase ahead of otari when both are configured, and needs a model', async () => {
+    process.env.SANDBASE_API_KEY = 'sk-test';
+    process.env.OTARI_API_KEY = 'otk-test';
+    process.env.OTARI_VISION_MODEL = 'vendor/vision';
+    // No Sandbase model yet — the provider stays inert rather than guessing an id.
+    expect(vision.configuredProviders().map((p) => p.name)).toEqual(['otari']);
+
+    process.env.SANDBASE_VISION_MODEL = 'vendor/vision';
+    expect(vision.configuredProviders().map((p) => p.name)).toEqual(['sandbase', 'otari']);
+
+    const calls = stubClient(() => Promise.resolve({ choices: [{ message: { content: okJson } }] }));
+    const out = await vision.completeVision({ system: 's', prompt: 'p', imageDataUrl: IMG });
+    expect(out.provider).toBe('sandbase');
+    expect(calls.length).toBe(1);
   });
 
   it('honours VISION_PROVIDERS order override', async () => {

@@ -54,7 +54,12 @@ import type {
 import { getQwenCloudClient, QwenCloudClient } from "./client";
 
 const DEFAULT_BASE_URL = "https://api.otari.ai/api/v1";
+const DEFAULT_SANDBASE_BASE_URL = "https://api.sandbase.ai/v1";
 const DEFAULT_TIMEOUT_MS = 20_000;
+
+function defaultBaseURL(provider: "otari" | "sandbase"): string {
+  return provider === "sandbase" ? DEFAULT_SANDBASE_BASE_URL : DEFAULT_BASE_URL;
+}
 
 /** Hard max_tokens ceilings per call type — spend control. */
 const MAX_TOKENS_CEILINGS = {
@@ -63,6 +68,19 @@ const MAX_TOKENS_CEILINGS = {
   persona: 500,
   healthCheck: 1,
 } as const;
+
+/** Sandbase publishes no cost per response; prices are read once per model. */
+const _sandbasePriceCache = new Map<
+  string,
+  { promptPerMillion: number; completionPerMillion: number } | null
+>();
+
+interface SandbaseModelCardResponse {
+  model_card?: {
+    prompt_token_price?: string;
+    completion_token_price?: string;
+  };
+}
 
 /**
  * Read the server-side USD cost Otari stamps on each response
@@ -77,6 +95,75 @@ export function parseCostUsd(
   return Number.isFinite(cost) ? cost : null;
 }
 
+/**
+ * USD for a Sandbase call. Sandbase answers with plain OpenAI usage and
+ * no cost field, so the figure is computed from the per-1M-token prices
+ * published on the model card — read once per model and cached. Returns
+ * null when the prices cannot be read, so callers never present a guess.
+ */
+export async function sandbaseCostUsd(
+  model: string,
+  usage: { prompt_tokens?: number; completion_tokens?: number } | undefined,
+  apiKey: string | undefined = process.env.SANDBASE_API_KEY,
+  baseURL: string = process.env.SANDBASE_BASE_URL || DEFAULT_SANDBASE_BASE_URL,
+): Promise<number | null> {
+  if (!model || !usage || !apiKey) return null;
+  const prices = await sandbasePrices(
+    model,
+    apiKey,
+    baseURL.replace(/\/$/, ""),
+  );
+  if (!prices) return null;
+  return (
+    ((usage.prompt_tokens ?? 0) * prices.promptPerMillion +
+      (usage.completion_tokens ?? 0) * prices.completionPerMillion) /
+    1_000_000
+  );
+}
+
+async function sandbasePrices(
+  model: string,
+  apiKey: string,
+  baseURL: string,
+): Promise<{ promptPerMillion: number; completionPerMillion: number } | null> {
+  const cached = _sandbasePriceCache.get(model);
+  if (cached !== undefined) return cached;
+  try {
+    const response = await fetch(
+      `${baseURL}/models/${encodeURIComponent(model)}`,
+      {
+        headers: { Authorization: `Bearer ${apiKey}` },
+        signal: AbortSignal.timeout(10_000),
+      },
+    );
+    if (!response.ok) {
+      _sandbasePriceCache.set(model, null);
+      return null;
+    }
+    const card = ((await response.json()) as SandbaseModelCardResponse)
+      .model_card;
+    const promptPerMillion = Number(card?.prompt_token_price);
+    const completionPerMillion = Number(card?.completion_token_price);
+    const prices =
+      Number.isFinite(promptPerMillion) && Number.isFinite(completionPerMillion)
+        ? { promptPerMillion, completionPerMillion }
+        : null;
+    _sandbasePriceCache.set(model, prices);
+    return prices;
+  } catch {
+    _sandbasePriceCache.set(model, null);
+    return null;
+  }
+}
+
+/** OpenAI-compatible gateways OnPoint can spend its own budget through. */
+export type AiGatewayProvider = "otari" | "sandbase";
+
+const PROVIDER_LABEL: Record<AiGatewayProvider, string> = {
+  otari: "Otari",
+  sandbase: "Sandbase",
+};
+
 export interface OtariClientConfig {
   apiKey: string;
   baseURL?: string;
@@ -87,6 +174,8 @@ export interface OtariClientConfig {
   defaultModel?: string;
   timeoutMs?: number;
   killSwitch?: boolean;
+  /** Which gateway this client talks to. Defaults to Otari. */
+  providerName?: AiGatewayProvider;
 }
 
 /** Error thrown when a spend control blocks a call. */
@@ -98,7 +187,7 @@ export class OtariSpendGuardError extends Error {
 }
 
 export class OtariClient {
-  readonly provider = "otari" as const;
+  readonly provider: AiGatewayProvider;
 
   private apiKey: string;
   private baseURL: string;
@@ -110,11 +199,17 @@ export class OtariClient {
   private killSwitch: boolean;
 
   constructor(config: OtariClientConfig) {
+    this.provider = config.providerName ?? "otari";
     if (!config.apiKey) {
-      throw new Error("OtariClient: apiKey is required (set OTARI_API_KEY in env).");
+      throw new Error(
+        `${this.label}Client: apiKey is required (set ${this.envPrefix}_API_KEY in env).`,
+      );
     }
     this.apiKey = config.apiKey;
-    this.baseURL = (config.baseURL ?? DEFAULT_BASE_URL).replace(/\/$/, "");
+    this.baseURL = (config.baseURL ?? defaultBaseURL(this.provider)).replace(
+      /\/$/,
+      "",
+    );
     this.defaultVisionModel = config.defaultVisionModel;
     this.defaultChatModel = config.defaultChatModel;
     this.defaultImageModel = config.defaultImageModel;
@@ -143,13 +238,41 @@ export class OtariClient {
     const model = configured ?? this.defaultModel;
     if (!model) {
       throw new Error(
-        `OtariClient: no ${callType} model configured (set OTARI_${callType.toUpperCase()}_MODEL or OTARI_MODEL).`,
+        `${this.label}Client: no ${callType} model configured (set ${this.envPrefix}_${callType.toUpperCase()}_MODEL or ${this.envPrefix}_MODEL).`,
       );
     }
     return model;
   }
 
   // ── Core API call ─────────────────────────────────────────────
+
+  private get label(): string {
+    return PROVIDER_LABEL[this.provider];
+  }
+
+  /** Env var prefix carrying this gateway's configuration. */
+  private get envPrefix(): string {
+    return this.provider === "sandbase" ? "SANDBASE" : "OTARI";
+  }
+
+  /**
+   * USD for a completed call. Otari stamps the settled cost on the
+   * response (`usage.cost_usd`); Sandbase returns plain OpenAI usage, so
+   * the cost is computed from the token prices published on its model
+   * card. Never a guess: when neither is available the call reports 0 and
+   * the caller can see that no cost was resolved.
+   */
+  private async costFor(
+    model: string,
+    usage: QwenCloudChatResponse["usage"] | undefined,
+  ): Promise<number> {
+    const settled = parseCostUsd(usage);
+    if (settled !== null) return settled;
+    if (this.provider !== "sandbase") return 0;
+    return (
+      (await sandbaseCostUsd(model, usage, this.apiKey, this.baseURL)) ?? 0
+    );
+  }
 
   /**
    * Send a chat-completion request to Otari.
@@ -176,7 +299,7 @@ export class OtariClient {
     if (!response.ok) {
       const errBody = await response.text().catch(() => "");
       throw new Error(
-        `Otari error ${response.status}: ${errBody.slice(0, 300)}`,
+        `${this.label} error ${response.status}: ${errBody.slice(0, 300)}`,
       );
     }
 
@@ -225,8 +348,9 @@ export class OtariClient {
       content: response.choices[0]?.message?.content ?? "",
       model,
       usage: response.usage,
-      // Otari reports the settled server-side cost per request.
-      estimatedCostUsd: parseCostUsd(response.usage) ?? 0,
+      // Settled cost when the gateway stamps it; computed from published
+      // token prices otherwise (see costFor).
+      estimatedCostUsd: await this.costFor(model, response.usage),
     };
   }
 
@@ -284,7 +408,7 @@ If no African textile patterns are present, return { "patterns": [], "overallAss
       content: response.choices[0]?.message?.content ?? "",
       model,
       usage: response.usage,
-      estimatedCostUsd: parseCostUsd(response.usage) ?? 0,
+      estimatedCostUsd: await this.costFor(model, response.usage),
     };
   }
 
@@ -316,7 +440,7 @@ If no African textile patterns are present, return { "patterns": [], "overallAss
       content: response.choices[0]?.message?.content ?? "",
       model,
       usage: response.usage,
-      estimatedCostUsd: parseCostUsd(response.usage) ?? 0,
+      estimatedCostUsd: await this.costFor(model, response.usage),
     };
   }
 
@@ -332,7 +456,7 @@ If no African textile patterns are present, return { "patterns": [], "overallAss
     options: QwenCloudImageGenerationOptions = {},
   ): Promise<QwenCloudImageResult> {
     if (this.defaultImageModel) {
-      return this.generateImageViaOtari(prompt, options);
+      return this.generateImageViaGateway(prompt, options);
     }
 
     const qwen = getQwenCloudClient();
@@ -341,12 +465,12 @@ If no African textile patterns are present, return { "patterns": [], "overallAss
     }
 
     throw new Error(
-      "OtariClient.generateImage: no OTARI_IMAGE_MODEL and no Qwen Cloud fallback configured.",
+      `${this.label}Client.generateImage: no ${this.envPrefix}_IMAGE_MODEL and no Qwen Cloud fallback configured.`,
     );
   }
 
-  /** OpenAI-compatible image generation through Otari. */
-  private async generateImageViaOtari(
+  /** OpenAI-compatible image generation through the configured gateway. */
+  private async generateImageViaGateway(
     prompt: string,
     options: QwenCloudImageGenerationOptions,
   ): Promise<QwenCloudImageResult> {
@@ -375,7 +499,7 @@ If no African textile patterns are present, return { "patterns": [], "overallAss
     if (!response.ok) {
       const errBody = await response.text().catch(() => "");
       throw new Error(
-        `Otari image generation error ${response.status}: ${errBody.slice(0, 300)}`,
+        `${this.label} image generation error ${response.status}: ${errBody.slice(0, 300)}`,
       );
     }
 
@@ -389,13 +513,16 @@ If no African textile patterns are present, return { "patterns": [], "overallAss
       .filter((u): u is string => typeof u === "string" && u.length > 0);
 
     if (urls.length === 0) {
-      throw new Error("Otari image generation returned no image URLs");
+      throw new Error(`${this.label} image generation returned no image URLs`);
     }
 
     return {
       urls,
       model: this.defaultImageModel as string,
-      estimatedCostUsd: parseCostUsd(data.usage) ?? 0,
+      estimatedCostUsd: await this.costFor(
+        this.defaultImageModel as string,
+        data.usage,
+      ),
     };
   }
 
@@ -475,6 +602,49 @@ export function _resetOtariClientForTests(): void {
   _otariInitialized = false;
 }
 
+let _sandbaseClient: OtariClient | null = null;
+let _sandbaseInitialized = false;
+
+/**
+ * Sandbase client singleton, or null when SANDBASE_API_KEY is unset.
+ * Sandbase is an OpenAI-compatible model gateway (https://api.sandbase.ai)
+ * carrying the platform-funded inference: `vendor/model` ids from
+ * GET /v1/models, per-1M-token prices on each model card.
+ *
+ * Configure: SANDBASE_API_KEY, SANDBASE_BASE_URL, SANDBASE_VISION_MODEL,
+ * SANDBASE_CHAT_MODEL, SANDBASE_IMAGE_MODEL, SANDBASE_MODEL,
+ * SANDBASE_TIMEOUT_MS, SANDBASE_KILL_SWITCH=1.
+ */
+export function getSandbaseClient(): OtariClient | null {
+  if (_sandbaseInitialized) return _sandbaseClient;
+  _sandbaseInitialized = true;
+  const apiKey = process.env.SANDBASE_API_KEY;
+  if (!apiKey || apiKey.startsWith("your_")) {
+    _sandbaseClient = null;
+    return null;
+  }
+  _sandbaseClient = new OtariClient({
+    apiKey,
+    providerName: "sandbase",
+    baseURL: process.env.SANDBASE_BASE_URL || DEFAULT_SANDBASE_BASE_URL,
+    defaultVisionModel: process.env.SANDBASE_VISION_MODEL,
+    defaultChatModel: process.env.SANDBASE_CHAT_MODEL,
+    defaultImageModel: process.env.SANDBASE_IMAGE_MODEL,
+    defaultModel: process.env.SANDBASE_MODEL,
+    timeoutMs: process.env.SANDBASE_TIMEOUT_MS
+      ? Number(process.env.SANDBASE_TIMEOUT_MS)
+      : undefined,
+    killSwitch: process.env.SANDBASE_KILL_SWITCH === "1",
+  });
+  return _sandbaseClient;
+}
+
+/** Test-only — reset the singleton so tests can swap env. */
+export function _resetSandbaseClientForTests(): void {
+  _sandbaseClient = null;
+  _sandbaseInitialized = false;
+}
+
 export type PrimaryAiClient = OtariClient | QwenCloudClient | ChainAiClient;
 
 /**
@@ -495,9 +665,9 @@ export class ChainAiClient {
     const errors: string[] = [];
     for (const client of this.clients) {
       try {
-        const fn = (client as unknown as Record<string, (...a: unknown[]) => Promise<T>>)[
-          method as string
-        ];
+        const fn = (
+          client as unknown as Record<string, (...a: unknown[]) => Promise<T>>
+        )[method as string];
         if (typeof fn !== "function") continue;
         return await fn.apply(client, args);
       } catch (err) {
@@ -506,7 +676,9 @@ export class ChainAiClient {
         );
       }
     }
-    throw new Error(`All AI providers failed (${errors.join("; ") || "none configured"})`);
+    throw new Error(
+      `All AI providers failed (${errors.join("; ") || "none configured"})`,
+    );
   }
 
   chat(request: QwenCloudChatRequest) {
@@ -570,19 +742,21 @@ export class ChainAiClient {
 }
 
 /**
- * The primary AI client for OnPoint: Otari when configured, Qwen
- * Cloud otherwise — and when both are configured, a fallback chain
- * that tries Otari first and Qwen Cloud on any failure (credits
- * exhausted, model unavailable, timeout). All expose the same call
- * surface (chat/analyzeOutfit/chatPersona/analyzeAfricanTextile/
- * generateImage/isAvailable).
+ * The primary AI client for OnPoint, for calls the platform pays for:
+ * Sandbase → Otari → Qwen Cloud, skipping any that are not configured.
+ * All three expose the same call surface (chat/analyzeOutfit/
+ * chatPersona/analyzeAfricanTextile/generateImage/isAvailable), so the
+ * chain falls through on credits exhausted, model unavailable or timeout.
+ *
+ * Otari stays first for agent-supplied keys (otariClientForAgentKey) —
+ * that spend is metered in the agent's own workspace, not ours.
  */
 export function getPrimaryAiClient(): PrimaryAiClient | null {
-  const otari = getOtariClient();
-  const qwen = getQwenCloudClient();
-  const clients = [otari, qwen].filter(
-    (c): c is OtariClient | QwenCloudClient => c !== null,
-  );
+  const clients = [
+    getSandbaseClient(),
+    getOtariClient(),
+    getQwenCloudClient(),
+  ].filter((c): c is OtariClient | QwenCloudClient => c !== null);
   if (clients.length === 0) return null;
   if (clients.length === 1) return clients[0]!;
   return new ChainAiClient(clients);
@@ -722,9 +896,15 @@ export class OtariAdminClient {
   private baseURL: string;
   private timeoutMs: number;
 
-  constructor(config: { masterKey: string; baseURL?: string; timeoutMs?: number }) {
+  constructor(config: {
+    masterKey: string;
+    baseURL?: string;
+    timeoutMs?: number;
+  }) {
     if (!config.masterKey) {
-      throw new Error("OtariAdminClient: masterKey is required (set OTARI_ADMIN_KEY).");
+      throw new Error(
+        "OtariAdminClient: masterKey is required (set OTARI_ADMIN_KEY).",
+      );
     }
     this.masterKey = config.masterKey;
     this.baseURL = otariBaseURL(config.baseURL);

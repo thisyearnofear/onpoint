@@ -10,7 +10,7 @@
  * through to the next provider. If every provider fails, throws an Error
  * with code 'VISION_UNAVAILABLE'.
  *
- * Provider order defaults to otari → neon → venice → gemini →
+ * Provider order defaults to sandbase → otari → neon → venice → gemini →
  * openrouter → modal → dashscope → openai and is overridable with
  * VISION_PROVIDERS (comma list). Model names are overridable per
  * provider with VISION_*_MODEL.
@@ -21,8 +21,17 @@
 const logger = require('./logger');
 
 const PROVIDERS = {
+  sandbase: {
+    // Sandbase — OpenAI-compatible model gateway carrying the
+    // platform-funded vision spend. Model ids are `vendor/model` from
+    // GET /v1/models; enabled only when the key and a model are set.
+    keyEnv: 'SANDBASE_API_KEY',
+    baseURL: () => process.env.SANDBASE_BASE_URL || 'https://api.sandbase.ai/v1',
+    model: () => process.env.VISION_SANDBASE_MODEL || process.env.SANDBASE_VISION_MODEL || '',
+    requiresModel: true,
+  },
   otari: {
-    // Otari (Mozilla AI) — primary gateway, OpenAI-compatible.
+    // Otari (Mozilla AI) — OpenAI-compatible gateway behind Sandbase.
     // Workspace key (otk_…) + model IDs from the otari.ai dashboard.
     keyEnv: 'OTARI_API_KEY',
     baseURL: () => process.env.OTARI_BASE_URL || 'https://api.otari.ai/api/v1',
@@ -75,7 +84,7 @@ const PROVIDERS = {
   },
 };
 
-const DEFAULT_ORDER = ['otari', 'neon', 'venice', 'gemini', 'openrouter', 'modal', 'dashscope', 'openai'];
+const DEFAULT_ORDER = ['sandbase', 'otari', 'neon', 'venice', 'gemini', 'openrouter', 'modal', 'dashscope', 'openai'];
 
 function providerOrder() {
   const raw = process.env.VISION_PROVIDERS;
