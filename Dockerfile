@@ -46,7 +46,7 @@ ARG NEXT_PUBLIC_APP_URL \
 # SKIP_DOCKER_TYPECHECK drops the ~30min remote `tsc` phase — the type gate
 # is `pnpm check-types` (tsgo) run locally / in CI.
 RUN SKIP_DOCKER_TYPECHECK=1 pnpm build --filter=web^... \
- && cd apps/web && SKIP_DOCKER_TYPECHECK=1 node ../../node_modules/next/dist/bin/next build
+ && cd apps/web && SKIP_DOCKER_TYPECHECK=1 NODE_OPTIONS="--max-old-space-size=3072" node ../../node_modules/next/dist/bin/next build --webpack
 
 # Runtime — standalone output already contains a traced node_modules.
 FROM node:22-slim AS runner
