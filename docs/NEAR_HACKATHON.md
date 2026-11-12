@@ -68,7 +68,8 @@ Full agent flow proven against the real API on an isolated Neon demo DB:
 - Try-on 402 on a real listing advertises `quote.near` → `onpoint.testnet` (platform fallback).
 - Order 402 on `onpoint-store` shows `payoutModel: "direct_to_curator"` → `store.onpoint.testnet`.
 - **Full prod e2e:** order `b43d1860` — 4.3948 NEAR settled direct ([tx `CvvDFTqq2GB32jdXPhmSxuuUJbp9VrnguyFtKtmDjzRf`](https://testnet.nearblocks.io/txns/CvvDFTqq2GB32jdXPhmSxuuUJbp9VrnguyFtKtmDjzRf)), receipt `receipt_mw0q8w9h_498b2c1f`, curator balance 5.39 → 9.79 NEAR.
-- To re-run against prod: `API_URL=https://api.onpoint.famile.xyz node agent-demo.mjs`.
+- **Re-verified 2026-11-12:** order `efdce511` — 4.9948 NEAR settled direct ([tx `8XHoihupQt526DM5CBBZsJpH7ggNJp2XRMxUH91UMfw4`](https://testnet.nearblocks.io/txns/8XHoihupQt526DM5CBBZsJpH7ggNJp2XRMxUH91UMfw4)), receipt `receipt_mwdwyst2_6d30e1c9`, curator 23.58 → 28.58 NEAR. `NEAR_USD_PRICE` refreshed 3.85 → 3.42 (fresh quote: 5.62 NEAR for the kit).
+- To re-run against prod: `API_URL=https://api.onpoint.famile.xyz node agent-demo.mjs` (top up `agent.onpoint.testnet` first via `node topup.mjs` — it sends 3 NEAR/run; ~5.7 NEAR covers one full order + try-on).
 
 ## Week 2 plan (demo + submission)
 - [x] Polish one end-to-end agent purchase — `agent-demo.mjs` is the canonical run.
@@ -76,7 +77,7 @@ Full agent flow proven against the real API on an isolated Neon demo DB:
 - [ ] Record X demo video (run `agent-demo.mjs` against prod — output is video-ready).
 - [ ] Publish repo and post demo.
 - [ ] Submit form.
-- [ ] Swap picsum placeholder image for a real product photo before sharing the storefront.
+- [x] Swap picsum placeholder image for a real product photo before sharing the storefront — Venice-generated NEAR FC kit (mint/black, NEAR wordmark) now serves at `api.onpoint.famile.xyz/digital-garments/near-fc-home-kit-2627.webp` (done 2026-11-12).
 
 ## Demo script
 1. `GET /api/curator/onpoint-store/storefront` → agent sees a payable offer.
@@ -86,7 +87,7 @@ Full agent flow proven against the real API on an isolated Neon demo DB:
 5. Curator balance on-chain → settled in the same tx; receipt + explorer links.
 
 ## Deployment status
-- [x] `NEAR_NETWORK`, `NEAR_RPC_URL`, `NEAR_USD_PRICE`, `NEAR_PAYOUT_ACCOUNT` on Hetzner (`NEAR_USD_PRICE=3.85` is manual — refresh before recording).
+- [x] `NEAR_NETWORK`, `NEAR_RPC_URL`, `NEAR_USD_PRICE`, `NEAR_PAYOUT_ACCOUNT` on Hetzner (`NEAR_USD_PRICE=3.42` as of 2026-11-12 — manual; refresh before recording. Env changes need `pm2 reload onpoint-api` — the serving process is id 8 on port 48751, not `onpoint-agent-server`).
 - [x] `onpoint-store` seeded in prod with `commerce.nearAccountId = store.onpoint.testnet`.
 - [ ] Set `commerce.nearAccountId` on real curators as they onboard (`onpoint-store` is the always-available fallback).
 
