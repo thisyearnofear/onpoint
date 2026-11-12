@@ -117,6 +117,7 @@ export default function PayPage() {
   // The {curatorSlug, listingId} the current quote was fetched for — verify
   // must send the same listing the PayPal/NEAR order is bound to.
   const quotedIds = useRef<{ curatorSlug: string; listingId: string } | null>(null);
+  const paypalArmed = useRef<{ orderId: string; checks: number; last: number } | null>(null);
 
   const persistContext = useCallback((ctx: {
     curatorSlug: string;
@@ -207,13 +208,13 @@ export default function PayPage() {
     const methodNow: PayMethod = opts?.method ?? (method === "paypal" ? "paypal" : "near");
     if (opts?.method) setMethod(opts.method);
     const ids = opts?.ids ?? verifyIds.current ?? quotedIds.current ?? { curatorSlug, listingId: selected };
-    // PayPal waits on a human logging in and approving — give it five
-    // minutes. NEAR is a wallet send; the 150s window is plenty.
-    const windowMs = methodNow === "paypal" ? 300_000 : 150_000;
-    const intervalMs = methodNow === "paypal" ? 5000 : 4000;
-    const deadline = Date.now() + windowMs;
+    // The API caps this endpoint at 5 requests a minute and 20 a day per
+    // visitor, and every check counts — so never poll it. PayPal gets one
+    // check per return to this tab (or per tap); NEAR gets three spaced
+    // attempts while the transfer finalises.
+    const waits = methodNow === "paypal" ? [] : [8000, 20000];
     setStep("verify");
-    while (Date.now() < deadline) {
+    for (let attempt = 0; attempt <= waits.length; attempt++) {
       const callStart = performance.now();
       const { status, data } = await callRail(extra, pendingPhoto.current ?? photo, ids);
       if (status === 200 && (data.success || data.tryOn)) {
@@ -240,18 +241,28 @@ export default function PayPage() {
       }
       if (status === 402) {
         const err = typeof data.error === "string" ? data.error : "";
-        if (methodNow !== "paypal" || paypalReasonMessage(err).keepPolling) {
-          await new Promise((r) => setTimeout(r, intervalMs));
+        if (methodNow !== "paypal") {
+          const wait = waits[attempt];
+          if (wait === undefined) break;
+          await new Promise((r) => setTimeout(r, wait));
           continue;
         }
-        const { message } = paypalReasonMessage(err);
-        setError(message || err || "PayPal couldn't verify the approval — try again.");
+        const { keepPolling, message } = paypalReasonMessage(err);
+        setError(
+          keepPolling
+            ? "PayPal says this isn't approved yet — finish there, and I'll check again when you come back to this tab."
+            : message || err || "PayPal couldn't verify the approval — try again.",
+        );
         setStep("method");
         polling.current = false;
         verifyIds.current = null;
         return;
       }
-      setError(data.error || `Something went wrong (${status}) — try again.`);
+      setError(
+        status === 429
+          ? "I've checked too many times in a row — give it a minute, then tap “check again”. Your approval is safe."
+          : data.error || `Something went wrong (${status}) — try again.`,
+      );
       setStep("method");
       polling.current = false;
       verifyIds.current = null;
@@ -259,13 +270,33 @@ export default function PayPage() {
     }
     setError(
       methodNow === "paypal"
-        ? "I stopped checking after five minutes — approve the link, then tap “I've approved — check again”."
-        : "Payment hasn't landed yet — check your wallet or approval, then check again.",
+        ? "PayPal couldn't confirm the approval — tap “I've approved — check again”."
+        : "I can't see the payment on NEAR yet — give it a few seconds, then tap Verify again.",
     );
     setStep("method");
     polling.current = false;
     verifyIds.current = null;
   }, [callRail, photo, method, curatorSlug, selected]);
+
+  // After the approve click, check once each time the payer returns to this
+  // tab — at most four automatic checks, eight seconds apart.
+  const paypalOrderIdNow = paypal?.orderId;
+  useEffect(() => {
+    const onReturn = () => {
+      const armed = paypalArmed.current;
+      if (document.visibilityState !== "visible" || !armed || polling.current) return;
+      if (armed.orderId !== paypalOrderIdNow || armed.checks >= 4 || Date.now() - armed.last < 8000) return;
+      armed.checks += 1;
+      armed.last = Date.now();
+      void startVerify({ paypalOrderId: armed.orderId }, { method: "paypal", ids: quotedIds.current ?? undefined });
+    };
+    document.addEventListener("visibilitychange", onReturn);
+    window.addEventListener("focus", onReturn);
+    return () => {
+      document.removeEventListener("visibilitychange", onReturn);
+      window.removeEventListener("focus", onReturn);
+    };
+  }, [startVerify, paypalOrderIdNow]);
 
   // Restore a photo that survived a wallet redirect; pick up returned proofs.
   // The verify must use the persisted curator+listing — listings state hasn't
@@ -563,13 +594,13 @@ export default function PayPage() {
               <div className="space-y-4">
                 <a href={paypal.approveUrl} target="_blank" rel="noreferrer"
                   onClick={() => {
-                    if (paypal.orderId) void startVerify({ paypalOrderId: paypal.orderId }, { method: "paypal", ids: quotedIds.current ?? undefined });
+                    if (paypal.orderId) paypalArmed.current = { orderId: paypal.orderId, checks: 0, last: 0 };
                   }}
                   className="flex w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 py-3.5 text-sm font-bold text-background transition-colors hover:bg-foreground/90">
                   Approve {paypal.amountUsd ? `$${paypal.amountUsd}` : "payment"} on PayPal <ExternalLink className="h-4 w-4" />
                 </a>
                 <p className="text-xs text-muted-foreground">
-                  PayPal asks you, not me — I&rsquo;ll pick it up from here the moment you approve.
+                  PayPal asks you, not me — approve in the new tab, and I&rsquo;ll pick it up when you come back to this one.
                 </p>
                 <button
                   type="button"
