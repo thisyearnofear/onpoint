@@ -482,8 +482,8 @@ function hashCode(str: string): number {
 
 /** Homepage CTA funnel — Phase 1 dual-client clarity */
 export function trackHomepageCta(properties: {
-  cta: "shop" | "supply" | "lab" | "demo" | "developers" | "play";
-  placement: "hero" | "mobile_sticky" | "nav" | "pitch" | "footer" | "how_it_works" | "agent_activity" | "live_items" | "live_items_cta";
+  cta: "shop" | "supply" | "lab" | "demo" | "developers" | "play" | "paid_tryon";
+  placement: "hero" | "mobile_sticky" | "nav" | "pitch" | "footer" | "how_it_works" | "agent_activity" | "live_items" | "live_items_cta" | "wardrobe_stage";
 }): void {
   trackEvent("homepage_cta_click", properties);
 }
