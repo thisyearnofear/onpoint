@@ -25,6 +25,19 @@ if (!NEON_URL) { console.error('NEON_DATABASE_URL required'); process.exit(1); }
 
 const sql = neon(NEON_URL);
 
+// --only="Title A|Title B" limits the run to those concepts.
+// --status=draft inserts hidden listings so each image can be looked at before
+// it goes live (set it live with PUT /api/admin/curators/nia/listings/:id).
+const arg = (name) => process.argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
+const ONLY = arg('only') ? new Set(arg('only').split('|').map((t) => t.trim())) : null;
+const STATUS = arg('status') || 'live';
+if (!['live', 'paused', 'archived', 'draft'].includes(STATUS)) { console.error('--status must be live|paused|archived|draft'); process.exit(1); }
+// Marks are excluded through negative_prompt, not the prompt: naming a mark in
+// the prompt ("no swoosh") makes the model draw it. Football kits still attract
+// maker logos and crests — look at every image before setting it live.
+const NO_MARKS = 'Plain blank unbranded garment. Single garment, front view, whole garment in frame.';
+const NEGATIVE = 'logo, brand logo, crest, badge, emblem, sponsor, text, lettering, numbers, watermark, label, tag, patch, stripes on shoulders';
+
 // ── Digital curator: Nia ──────────────────────────────────────
 const CURATOR = {
   slug: 'nia',
@@ -45,31 +58,9 @@ const CURATOR = {
 
 // ── Digital garments to generate ──────────────────────────────
 const GARMENTS = [
-  {
-    title: 'Arsenal Home — Ankara Reimagined',
-    prompt: 'High-fashion editorial photograph of a football jersey design. Red and white Arsenal-inspired kit with traditional Ankara wax print patterns integrated into the fabric. Full-body mannequin display, studio lighting, white background, premium sportswear design concept.',
-    tags: ['football', 'arsenal', 'home', 'african-fashion', 'ankara'],
-  },
-  {
-    title: 'Chelsea Home — Indigo Wave',
-    prompt: 'High-fashion editorial photograph of a football jersey design. Blue Chelsea-inspired kit with West African indigo dye patterns flowing across the chest. Full-body mannequin display, studio lighting, white background, premium sportswear design concept.',
-    tags: ['football', 'chelsea', 'home', 'african-fashion', 'indigo'],
-  },
-  {
-    title: 'Liverpool Away — Sahel Gold',
-    prompt: 'High-fashion editorial photograph of a football jersey design. White and gold Liverpool-inspired away kit with Sahelian geometric gold embroidery patterns. Full-body mannequin display, studio lighting, white background, premium sportswear design concept.',
-    tags: ['football', 'liverpool', 'away', 'african-fashion', 'sahel'],
-  },
-  {
-    title: 'Man City Home — Kente Crown',
-    prompt: 'High-fashion editorial photograph of a football jersey design. Sky blue Manchester City-inspired kit with Kente cloth strip patterns woven into the sleeves. Full-body mannequin display, studio lighting, white background, premium sportswear design concept.',
-    tags: ['football', 'man-city', 'home', 'african-fashion', 'kente'],
-  },
-  {
-    title: 'Arsenal Away — Mudcloth Minimal',
-    prompt: 'High-fashion editorial photograph of a football jersey design. Black Arsenal-inspired away kit with minimalist Mali mudcloth (bogolanfini) patterns in earth tones. Full-body mannequin display, studio lighting, white background, premium sportswear design concept.',
-    tags: ['football', 'arsenal', 'away', 'african-fashion', 'mudcloth'],
-  },
+  // Club-named kits were removed (2026-11-12): prompts that name a real club
+  // make the image model draw its crest and sponsor marks. Keep every concept
+  // club-free, and never add a real team, league or sponsor to a prompt.
   {
     title: 'Streetwear Bomber — Lagos Nights',
     prompt: 'High-fashion editorial photograph of a bomber jacket design. Matte black bomber with neon Lagos skyline silhouette printed on the back, silver hardware, techwear silhouette. Full-body mannequin display, studio lighting, white background, premium streetwear design concept.',
@@ -193,6 +184,7 @@ const GARMENTS = [
     prompt: 'High-fashion editorial photograph of a bomber jacket design. Earthy browns with subtle mudcloth symbols across back and shoulders on a luxe leather bomber. Full-body mannequin display, studio lighting, white background, premium streetwear design concept.',
     tags: ['bogolan', 'bomber', 'timbuktu', 'date-night', 'african-fashion'],
   },
+];
 
 // ── Generate a single garment image via Venice SD35 ───────────
 async function generateGarment(prompt) {
@@ -205,9 +197,12 @@ async function generateGarment(prompt) {
     body: JSON.stringify({
       model: 'venice-sd35',
       prompt,
+      negative_prompt: NEGATIVE,
       width: 512,
       height: 768,
       format: 'webp',
+      // Venice stamps its wordmark bottom-left unless told not to.
+      hide_watermark: true,
     }),
   });
   if (!res.ok) {
@@ -224,7 +219,9 @@ function uploadToServer(base64DataUri, fileName) {
   const tmpPath = join(tmpdir(), fileName);
   const base64 = base64DataUri.replace(/^data:[^;]+;base64,/, '');
   writeFileSync(tmpPath, Buffer.from(base64, 'base64'));
-  execSync(`scp "${tmpPath}" snel-bot:/opt/onpoint/apps/api/public/digital-garments/${fileName}`, { stdio: 'pipe' });
+  // The API serves /digital-garments from the shared dir; apps/api is a
+  // per-release symlink with no public/ folder, so files put there are never served.
+  execSync(`scp "${tmpPath}" snel-bot:/opt/onpoint/shared/api/public/digital-garments/${fileName}`, { stdio: 'pipe' });
   return `${PUBLIC_BASE}/${fileName}`;
 }
 
@@ -254,6 +251,7 @@ async function main() {
 
   // 3. Generate + upload each garment, then insert listing
   for (const garment of GARMENTS) {
+    if (ONLY && !ONLY.has(garment.title)) continue;
     if (existingTitles.has(garment.title)) {
       console.log(`Skipping (already exists): ${garment.title}`);
       continue;
@@ -262,7 +260,7 @@ async function main() {
     console.log(`Generating: ${garment.title}...`);
     let imageDataUri;
     try {
-      imageDataUri = await generateGarment(garment.prompt);
+      imageDataUri = await generateGarment(`${garment.prompt} ${NO_MARKS}`);
     } catch (err) {
       console.error(`  FAILED to generate: ${err.message}`);
       continue;
@@ -284,9 +282,9 @@ async function main() {
     // Insert digital listing
     await sql.query(`
       INSERT INTO listings (id, curator_slug, sku_id, inventory_type, sizes, photo_keys, title, tags, status, last_verified_at)
-      VALUES ($1, $2, NULL, 'digital', '[]', $3, $4, $5, 'live', NOW())
+      VALUES ($1, $2, NULL, 'digital', '[]', $3, $4, $5, $6, NOW())
       ON CONFLICT (id) DO NOTHING
-    `, [listingId, CURATOR.slug, [publicUrl], garment.title, garment.tags]);
+    `, [listingId, CURATOR.slug, [publicUrl], garment.title, garment.tags, STATUS]);
     console.log(`  Listing created: ${listingId} — ${garment.title}`);
   }
 
