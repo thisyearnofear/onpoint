@@ -10,6 +10,7 @@ export function shouldAutoCheck({
   method,
   armed,
   polling,
+  limited,
   now,
   currentOrderId,
 }: {
@@ -17,11 +18,13 @@ export function shouldAutoCheck({
   method: string | null;
   armed: { orderId: string; checks: number; last: number } | null;
   polling: boolean;
+  /** A 429 notice is showing — an automatic check would just spend another request. */
+  limited: boolean;
   now: number;
   currentOrderId: string | undefined;
 }): boolean {
   if (step !== "pay" || method !== "paypal") return false;
-  if (!armed || polling) return false;
+  if (!armed || polling || limited) return false;
   if (!currentOrderId || armed.orderId !== currentOrderId) return false;
   if (armed.checks >= 4 || now - armed.last < 8000) return false;
   return true;

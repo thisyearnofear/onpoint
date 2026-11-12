@@ -25,5 +25,12 @@ export async function POST(req: NextRequest) {
     signal: AbortSignal.timeout(170_000),
   });
   const data = await upstream.json().catch(() => ({}));
-  return NextResponse.json(data, { status: upstream.status });
+  const out = NextResponse.json(data, { status: upstream.status });
+  // Surface the limiter's own accounting — the page reads Retry-After and
+  // the daily X-RateLimit-* headers to show the wait as a designed moment.
+  for (const h of ["retry-after", "x-ratelimit-limit", "x-ratelimit-remaining", "x-ratelimit-reset"]) {
+    const v = upstream.headers.get(h);
+    if (v != null) out.headers.set(h, v);
+  }
+  return out;
 }

@@ -3,14 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft, CheckCircle2, Copy, ExternalLink,
-  Shirt, Wallet,
+  ArrowLeft, CheckCircle2, Copy, ExternalLink, Home,
+  Play, Shirt, Wallet,
 } from "lucide-react";
 import QRCode from "qrcode";
 import { OnPointLayout } from "../../components/OnPointLayout";
 import { AgentTrace } from "../../components/pay/AgentTrace";
 import { Polaroid } from "../../components/pay/Polaroid";
 import { FitGuess } from "../../components/pay/FitGuess";
+import { LimitNotice } from "../../components/pay/LimitNotice";
 import { ShareArtifact } from "../../components/ShareArtifact";
 import { TryOnActionRail } from "../../components/social/TryOnActionRail";
 import { Busy, ErrorState, StagedWait } from "../../components/state";
@@ -19,6 +20,7 @@ import { buildTrace, type PayMethod, type TraceFacts } from "../../lib/pay/trace
 import { guessOutcome } from "../../lib/pay/guess";
 import { shouldAutoCheck } from "../../lib/pay/auto-check";
 import { addKept, readKept, type Kept } from "../../lib/pay/kept";
+import { classifyLimit, looksLeft, readLimit, type LimitKind } from "../../lib/pay/allowance";
 
 const DEMO_CURATOR = "onpoint-store";
 const WALLET_SEND = "https://testnet.mynearwallet.com/send-money";
@@ -142,6 +144,19 @@ export default function PayPage() {
   // focus and wiped the done screen, repeatedly → 429).
   const resultShown = useRef(false);
   const [keptList, setKeptList] = useState<Kept[]>([]);
+  // Rough daily looks remaining, learned from X-RateLimit-* headers.
+  const [dailyLooksLeft, setDailyLooksLeft] = useState<number | null>(null);
+  // A 429 shown as a designed wait — never an ErrorState. `retried` marks
+  // "the automatic retry already happened; offer a manual button instead".
+  const [limited, setLimited] = useState<{
+    kind: LimitKind;
+    waitSec: number;
+    action: "quote" | "check";
+    safeApproval: boolean;
+    retried: boolean;
+  } | null>(null);
+  // The action a limit paused — re-run once on expiry or on "Try again".
+  const pendingAction = useRef<(() => void) | null>(null);
   const pairRef = useRef<HTMLDivElement>(null);
   const chooseRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
@@ -152,6 +167,38 @@ export default function PayPage() {
     quote?: QuoteFacts | null;
   }) => {
     try { sessionStorage.setItem(CTX_KEY, JSON.stringify(ctx)); } catch { /* quota */ }
+  }, []);
+
+  // The limiter reports its own accounting on every response — headers on
+  // a non-429 describe the daily window (the daily limiter runs last).
+  const trackLimits = useCallback((res: Response, data: unknown) => {
+    const lim = readLimit(res.headers, data);
+    if (res.status !== 429) {
+      const n = looksLeft(lim.remaining, lim.limit);
+      if (n != null) setDailyLooksLeft(n);
+    }
+    return lim;
+  }, []);
+
+  // The request was turned away. Show the wait as the state — the photo,
+  // piece, quote and chosen rail all survive; the paused action is stashed
+  // so the notice can re-run it once (auto for a breather, manual after).
+  const hitLimit = useCallback((
+    retryAfterSec: number | null,
+    action: "quote" | "check",
+    retry: () => void,
+    retried: boolean,
+    safeApproval: boolean,
+  ) => {
+    const sec = retryAfterSec ?? 60;
+    pendingAction.current = retry;
+    setLimited({
+      kind: classifyLimit(sec),
+      waitSec: sec,
+      action,
+      safeApproval,
+      retried,
+    });
   }, []);
 
   const callRail = useCallback(async (
@@ -170,10 +217,11 @@ export default function PayPage() {
         ...extra,
       }),
     });
-    return { status: res.status, data: await res.json().catch(() => ({})) };
-  }, [photo, selected, curatorSlug]);
+    const data = await res.json().catch(() => ({}));
+    return { status: res.status, data, limits: trackLimits(res, data) };
+  }, [photo, selected, curatorSlug, trackLimits]);
 
-  const getQuote = useCallback(async (photoData: string, listingId?: string) => {
+  const getQuote = useCallback(async (photoData: string, listingId?: string, fromRetry = false) => {
     setQuoting(true);
     const started = performance.now();
     const res = await fetch("/api/pay/try-on", {
@@ -182,6 +230,19 @@ export default function PayPage() {
       body: JSON.stringify({ curatorSlug, listingId: listingId ?? selected, photoData }),
     });
     const data = await res.json().catch(() => ({}));
+    const limits = trackLimits(res, data);
+    if (res.status === 429) {
+      hitLimit(
+        limits.retryAfterSec,
+        "quote",
+        () => void getQuote(photoData, listingId, true).then((ok) => { if (ok) setStep("choose"); }),
+        fromRetry,
+        paypalArmed.current != null,
+      );
+      setQuoting(false);
+      setStep("photo");
+      return false;
+    }
     if (res.status === 402) {
       const ms = Math.round(performance.now() - started);
       const near = data.near || data.quote?.near || null;
@@ -213,7 +274,7 @@ export default function PayPage() {
     setQuoting(false);
     setError(data.error || `Couldn't fetch your payment options (${res.status}) — try again.`);
     return false;
-  }, [selected, curatorSlug, persistContext]);
+  }, [selected, curatorSlug, persistContext, trackLimits, hitLimit]);
 
   const onFile = (file: File) => {
     const reader = new FileReader();
@@ -234,9 +295,9 @@ export default function PayPage() {
 
   const startVerify = useCallback(async (
     extra: Record<string, string>,
-    opts?: { method?: PayMethod; ids?: { curatorSlug: string; listingId: string } },
+    opts?: { method?: PayMethod; ids?: { curatorSlug: string; listingId: string }; fromRetry?: boolean },
   ) => {
-    if (polling.current || resultShown.current) return;
+    if (polling.current || resultShown.current || limited) return;
     polling.current = true;
     setError(null);
     const methodNow: PayMethod = opts?.method ?? method ?? "near";
@@ -250,7 +311,7 @@ export default function PayPage() {
     setStep("verify");
     for (let attempt = 0; attempt <= waits.length; attempt++) {
       const callStart = performance.now();
-      const { status, data } = await callRail(extra, pendingPhoto.current ?? photo, ids);
+      const { status, data, limits } = await callRail(extra, pendingPhoto.current ?? photo, ids);
       if (status === 200 && (data.success || data.tryOn)) {
         setResult({
           requestMs: performance.now() - callStart,
@@ -269,6 +330,8 @@ export default function PayPage() {
         });
         setStep("done");
         resultShown.current = true;
+        setLimited(null);
+        pendingAction.current = null;
         // The order is consumed — disarm so a later tab focus can't fire
         // another verify with the already-captured id.
         paypalArmed.current = null;
@@ -314,11 +377,22 @@ export default function PayPage() {
         verifyIds.current = null;
         return;
       }
-      setError(
-        status === 429
-          ? "I've checked too many times in a row — give it a minute, then tap “check again”. Your approval is safe."
-          : data.error || `Something went wrong (${status}) — try again.`,
-      );
+      if (status === 429) {
+        // The wait is the state — not an error. Return to the pay step the
+        // check came from; the approval stays uncaptured and safe.
+        hitLimit(
+          limits.retryAfterSec,
+          "check",
+          () => void startVerify(extra, { method: methodNow, ids, fromRetry: true }),
+          opts?.fromRetry ?? false,
+          methodNow === "paypal" || paypalArmed.current != null,
+        );
+        setStep("pay");
+        polling.current = false;
+        verifyIds.current = null;
+        return;
+      }
+      setError(data.error || `Something went wrong (${status}) — try again.`);
       setStep("pay");
       polling.current = false;
       verifyIds.current = null;
@@ -334,7 +408,7 @@ export default function PayPage() {
     setStep("pay");
     polling.current = false;
     verifyIds.current = null;
-  }, [callRail, photo, method, curatorSlug, selected]);
+  }, [callRail, photo, method, curatorSlug, selected, limited, hitLimit]);
 
   // After the approve click, check once each time the payer returns to this
   // tab — at most four automatic checks, eight seconds apart.
@@ -349,6 +423,7 @@ export default function PayPage() {
           method,
           armed,
           polling: polling.current,
+          limited: limited != null,
           now: Date.now(),
           currentOrderId: paypalOrderIdNow,
         })
@@ -364,7 +439,7 @@ export default function PayPage() {
       document.removeEventListener("visibilitychange", onReturn);
       window.removeEventListener("focus", onReturn);
     };
-  }, [startVerify, paypalOrderIdNow, step, method]);
+  }, [startVerify, paypalOrderIdNow, step, method, limited]);
 
   // "Kept on this device" — read client-side only to avoid hydration drift.
   useEffect(() => {
@@ -481,6 +556,8 @@ export default function PayPage() {
     resultShown.current = false;
     paypalArmed.current = null;
     quotedIds.current = null;
+    setLimited(null);
+    pendingAction.current = null;
     setError(null);
     setStep("photo");
     persistContext({ curatorSlug, listingId: newId, quote: null });
@@ -550,6 +627,68 @@ export default function PayPage() {
   })();
   const otherListings = listings.filter((l) => l.id !== selected).slice(0, 4);
   const fitScore = result?.fitSignal?.score ?? null;
+
+  const keptRow = keptList.length > 0 ? (
+    <div>
+      <p className="mb-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
+        Your try-ons · on this device
+      </p>
+      <div className="flex gap-3 overflow-x-auto pb-1">
+        {keptList.map((k) => (
+          <a key={k.id} href={k.webUrl} target="_blank" rel="noreferrer"
+            className="w-[88px] shrink-0 bg-white p-1 pb-1.5 shadow-sm transition-transform hover:-translate-y-0.5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={k.imageUrl} alt={k.item} className="h-[96px] w-[72px] object-cover" />
+            <span className="mt-1 block truncate text-xs text-neutral-800">{k.item}</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  ) : null;
+
+  const runPending = () => {
+    const fn = pendingAction.current;
+    pendingAction.current = null;
+    setLimited(null);
+    fn?.();
+  };
+
+  // The wait is the state — a breather counts down and picks the flow back
+  // up once; a daily cap hands over real next actions instead of a button.
+  const limitNotice = limited ? (
+    <div className="space-y-4">
+      <LimitNotice
+        kind={limited.kind}
+        waitSec={limited.waitSec}
+        safeApproval={limited.safeApproval}
+        autoRetry={limited.kind === "breather" && !limited.retried}
+        onExpired={runPending}
+        onRetry={runPending}
+      >
+        {limited.kind === "daily" ? (
+          <div className="mt-3">
+            <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Meanwhile</p>
+            <div className="mt-1 flex flex-col items-start">
+              <Link href="/runway" className="inline-flex min-h-11 items-center gap-2 text-sm text-primary underline-offset-2 hover:underline">
+                <Play className="h-4 w-4" /> Play today&rsquo;s Runway theme
+              </Link>
+              <Link href="/" className="inline-flex min-h-11 items-center gap-2 text-sm text-primary underline-offset-2 hover:underline">
+                <Home className="h-4 w-4" /> Open your wardrobe
+              </Link>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">On a different network it will work straight away.</p>
+          </div>
+        ) : null}
+      </LimitNotice>
+      {limited.kind === "daily" ? keptRow : null}
+    </div>
+  ) : null;
+
+  const allowanceHint = dailyLooksLeft === null || dailyLooksLeft > 3 || limited
+    ? null
+    : dailyLooksLeft === 0
+      ? "This is the last one for today on this network."
+      : `About ${dailyLooksLeft} look${dailyLooksLeft === 1 ? "" : "s"} left today on this network.`;
 
   return (
     <OnPointLayout>
@@ -802,18 +941,25 @@ export default function PayPage() {
 
             {/* ── Step: photo (no quote yet) ─────────────────────── */}
             {step === "photo" && photo && !quoteFacts ? (
-              <button
-                type="button"
-                disabled={quoting || photoLoading}
-                onClick={async () => {
-                  setError(null);
-                  const ok = await getQuote(photo);
-                  if (ok) setStep("choose");
-                }}
-                className="mt-6 w-full rounded-full bg-foreground px-6 py-3.5 text-sm font-bold text-background transition-opacity hover:opacity-90 disabled:opacity-60"
-              >
-                {quoting || photoLoading ? <Busy label="Getting the price" /> : "See this piece on me — get the price"}
-              </button>
+              <div className="mt-6 space-y-2">
+                {limited ? (
+                  limitNotice
+                ) : (
+                  <button
+                    type="button"
+                    disabled={quoting || photoLoading || !!limited}
+                    onClick={async () => {
+                      setError(null);
+                      const ok = await getQuote(photo);
+                      if (ok) setStep("choose");
+                    }}
+                    className="w-full rounded-full bg-foreground px-6 py-3.5 text-sm font-bold text-background transition-opacity hover:opacity-90 disabled:opacity-60"
+                  >
+                    {quoting || photoLoading ? <Busy label="Getting the price" /> : "See this piece on me — get the price"}
+                  </button>
+                )}
+                {allowanceHint ? <p className="text-xs text-muted-foreground">{allowanceHint}</p> : null}
+              </div>
             ) : null}
 
             {/* ── Step: choose a rail ────────────────────────────── */}
@@ -822,6 +968,7 @@ export default function PayPage() {
                 <h2 className="font-display text-xl">
                   {price != null ? `It's $${price.toFixed(2)}. How would you like to pay?` : "How would you like to pay?"}
                 </h2>
+                {allowanceHint ? <p className="text-xs text-muted-foreground">{allowanceHint}</p> : null}
                 <div className="grid gap-3 sm:grid-cols-3">
                   {railChoices.map((r) => (
                     <button
@@ -844,6 +991,7 @@ export default function PayPage() {
             {/* ── Step: pay — only the chosen rail's panel ───────── */}
             {step === "pay" ? (
               <div className="mt-6 space-y-4">
+                {limitNotice}
                 {method === "paypal" && paypal?.approveUrl ? (
                   <div className="space-y-4">
                     <a href={paypal.approveUrl} target="_blank" rel="noreferrer"
@@ -858,10 +1006,11 @@ export default function PayPage() {
                     </p>
                     <button
                       type="button"
+                      disabled={!!limited}
                       onClick={() => {
                         if (paypal.orderId) void startVerify({ paypalOrderId: paypal.orderId }, { method: "paypal", ids: quotedIds.current ?? undefined });
                       }}
-                      className="text-sm font-semibold text-primary underline-offset-2 hover:underline"
+                      className="text-sm font-semibold text-primary underline-offset-2 hover:underline disabled:opacity-50"
                     >
                       I&rsquo;ve approved — check again
                     </button>
@@ -907,7 +1056,7 @@ export default function PayPage() {
                             className="min-w-0 flex-1 rounded-xl border border-border bg-background px-4 py-3 font-mono text-sm outline-none focus:border-foreground"
                             aria-label="NEAR transaction hash"
                           />
-                          <button type="button" disabled={!txHash.trim()} onClick={() => startVerify({ nearTxHash: txHash.trim() }, { method: "near", ids: quotedIds.current ?? undefined })}
+                          <button type="button" disabled={!txHash.trim() || !!limited} onClick={() => startVerify({ nearTxHash: txHash.trim() }, { method: "near", ids: quotedIds.current ?? undefined })}
                             className="shrink-0 rounded-full bg-foreground px-5 py-3 text-sm font-bold text-background transition-colors hover:bg-foreground/90 disabled:opacity-40">
                             Verify
                           </button>
@@ -961,7 +1110,7 @@ export default function PayPage() {
                           className="min-w-0 flex-1 rounded-xl border border-border bg-background px-4 py-3 font-mono text-sm outline-none focus:border-foreground"
                           aria-label="Celo transaction hash"
                         />
-                        <button type="button" disabled={!/^0x[0-9a-fA-F]{64}$/.test(txHash.trim())} onClick={() => startVerify({ paymentTxHash: txHash.trim() }, { method: "celo", ids: quotedIds.current ?? undefined })}
+                        <button type="button" disabled={!/^0x[0-9a-fA-F]{64}$/.test(txHash.trim()) || !!limited} onClick={() => startVerify({ paymentTxHash: txHash.trim() }, { method: "celo", ids: quotedIds.current ?? undefined })}
                           className="shrink-0 rounded-full bg-foreground px-5 py-3 text-sm font-bold text-background transition-colors hover:bg-foreground/90 disabled:opacity-40">
                           Verify
                         </button>
@@ -1000,24 +1149,9 @@ export default function PayPage() {
               </div>
             ) : null}
 
-            {/* Kept on this device — the try-ons this browser produced */}
-            {keptList.length > 0 ? (
-              <div className="mt-8">
-                <p className="mb-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
-                  Your try-ons · on this device
-                </p>
-                <div className="flex gap-3 overflow-x-auto pb-1">
-                  {keptList.map((k) => (
-                    <a key={k.id} href={k.webUrl} target="_blank" rel="noreferrer"
-                      className="w-[88px] shrink-0 bg-white p-1 pb-1.5 shadow-sm transition-transform hover:-translate-y-0.5">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={k.imageUrl} alt={k.item} className="h-[96px] w-[72px] object-cover" />
-                      <span className="mt-1 block truncate text-xs text-neutral-800">{k.item}</span>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            ) : null}
+            {/* Kept on this device — skipped here while the daily notice
+                already shows the same row under its "Meanwhile" list */}
+            {limited?.kind === "daily" ? null : keptRow ? <div className="mt-8">{keptRow}</div> : null}
 
             {trace}
           </>

@@ -9,6 +9,7 @@ function base(overrides: Partial<Parameters<typeof shouldAutoCheck>[0]> = {}) {
     method: "paypal",
     armed: { ...ARMED },
     polling: false,
+    limited: false,
     now: 30_000,
     currentOrderId: "ORD-1",
     ...overrides,
@@ -33,9 +34,10 @@ describe("shouldAutoCheck", () => {
     expect(shouldAutoCheck(base({ method: "celo" }))).toBe(false);
   });
 
-  it("disarmed / polling → false", () => {
+  it("disarmed / polling / limited → false", () => {
     expect(shouldAutoCheck(base({ armed: null }))).toBe(false);
     expect(shouldAutoCheck(base({ polling: true }))).toBe(false);
+    expect(shouldAutoCheck(base({ limited: true }))).toBe(false);
   });
 
   it("different or missing order id → false", () => {
