@@ -73,6 +73,7 @@ scripts/*
 !scripts/prava-demo.mjs
 !scripts/prava-webhook-smoke.mjs
 !scripts/seed-digital-curator.mjs
+!scripts/paypal-verify.mjs
 # NEAR demo tooling (credentials stay ignored via near-credentials*.json below)
 !scripts/near-spike/
 scripts/near-spike/near-credentials*.json

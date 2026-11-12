@@ -1,6 +1,9 @@
 # PayPal AI Hackathon — OnPoint
 
-Status: `live-validated` (2026-11-12, sandbox, on production API `api.onpoint.famile.xyz`).
+Status: **`submitted`** (2026-11-12, sandbox, on production API `api.onpoint.famile.xyz`).
+
+- Devpost: https://devpost.com/software/onpoint-b3dory (editable until 12 Nov 20:00 UTC)
+- Demo video: https://youtu.be/tYXxUr_8ibo (unlisted, 82s rough cut — replace with the improved cut before the deadline by editing the video field on the project-details step)
 
 Live evidence (re-verifiable without credentials):
 - Rail advertisement — `POST /api/agent/try-on` returns **HTTP 402** with `quote.paymentRails: ["celo_cusd","near","paypal"]` and `quote.paypal = { env: "sandbox", orderId, approveUrl, amountUsd, currency: "USD", instructions }`.
@@ -8,6 +11,7 @@ Live evidence (re-verifiable without credentials):
 - Try-on and order rails were both exercised end to end on 2026-11-12 (402 → approve → 200/201 with `paymentMethod: "paypal"` and a PayPal capture id as the proof).
 - Recorded run (2026-11-12, after the receipt-persistence fix): PayPal try-on of "Cape Town Shweshwe Matchday" from Nia Digital — capture `13K55568GE972304A`, $0.03, render by `youcam-cloth-v4`, fit read by Otari. Receipt: https://onpoint.trustfall.xyz/receipt/receipt_mwdjib6r_ba423717 · try-on page: https://onpoint.trustfall.xyz/p/a2c86aef-0deb-47f3-8ca2-91412c853bea. Receipt ids from the first runs that morning (`receipt_mwd6vc1f_f41b1052`, `receipt_mwd6q4fj_e03e5326`) no longer resolve — see Risks.
 - Receipts are public: `GET https://api.onpoint.famile.xyz/api/receipts/{receiptId}` — a judge can read the PayPal proof themselves.
+- Independent re-verification against PayPal: `PAYPAL_CLIENT_ID=… PAYPAL_CLIENT_SECRET=… node scripts/paypal-verify.mjs receipt_mwdr4vi4_66d38caf` — pulls the public receipt, then re-reads the order, the capture and the payout batch at PayPal and checks every claim (status, binding, amount, payout receiver). Last run: order `009007747G6744533` COMPLETED, capture `3J9966079R021105P` bound inside it via `custom_id`, `0.03 USD` captured, payout batch `XVLFRCUQ5UCZN` **SUCCESS · SUCCESS** (`0.02 USD` to the seller mailbox).
 
 ### Try it as a judge (PayPal)
 
@@ -34,6 +38,10 @@ Orders and try-ons are captured to the platform account; after capture the agent
 
 ## Configuration
 `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_ENV=sandbox|live` (see `apps/api/.env.example`). Rail is absent from the 402 when unset or if order creation fails. Currently set on the production API in sandbox mode; the rail auto-advertises, so no code flag is involved.
+
+## APIMatic (sponsor tool)
+
+The repo's PayPal verification tooling runs on the **APIMatic-generated PayPal TypeScript SDK** (`paypal` v2.29.0, installed from `github:context-plugins/paypal-typescript-sdk`), integrated under the **APIMatic Context Plugin** (`npx context-plugins install paypal`). `paypal-plan.md` at the repo root is the plugin's contract sheet — every signature, request field, error arm and enum member in `scripts/paypal-verify.mjs` comes from the SDK map that ships inside the package, not from memory. The SDK covers Orders/Payments/Vault/Transaction Search/Subscriptions; the Payouts batch lookup stays on REST because Payouts is outside the generated surface (noted in the plan). The production order/capture path remains on the proven REST helper — the SDK powers the verifier that checks it.
 
 ## Event essentials
 - **Devpost: PayPal AI Hackathon — "Build what's next with PayPal and AI".** Deadline **12 Nov 2026 20:00 UTC**; online, public, $67,500+ cash.
@@ -68,10 +76,11 @@ Example from a live paid try-on served by Otari: `aiCost: { provider: "otari", m
 - [x] Create sandbox business + personal accounts, set secrets in the API environment
 - [x] Record one live sandbox run (402 -> approve -> 201 receipt)
 - [x] Deploy (`PAYPAL_*` on `snel-bot:/opt/onpoint/shared/api/.env`, prod 402 advertises `paypal`)
-- [ ] Add `paypal` result to the demo video
+- [x] Add `paypal` result to the demo video — `onpoint-paypal-demo-v2.mp4` covers 402 → rails → /pay → approval → receipt
 - [x] `/pay` PayPal flow live on the deployed web host (2026-11-12) — quote, choice and approval hand-off verified on production; the result screen verified with a real sandbox approval by the operator
-- [ ] YouTube upload of the <3 min demo, publicly visible
-- [ ] Devpost form: description, tools, repo link, hosted demo link
+- [x] YouTube upload of the <3 min demo, publicly visible — https://youtu.be/tYXxUr_8ibo (unlisted placeholder; upgrade pending)
+- [x] Devpost form: description, tools, repo link, hosted demo link — submitted 2026-11-12 as OnPoint (`onpoint-b3dory`), Individual, Kenya
+- [ ] Swap in the improved demo video before the deadline (video field on project-details step)
 
 ## Related work shipped alongside
 - Garment attributes on listings (`listings.attributes`, migration `0011`) and `?type=&formality=&warmth=` storefront filters.
@@ -83,4 +92,4 @@ Example from a live paid try-on served by Otari: `aiCost: { provider: "otari", m
 - No NEAR-style trustless verification: correctness relies on PayPal API responses and server credentials.
 - **Receipts recorded before 2026-11-12 ~12:45 UTC are gone.** agent-core stored its ledgers through Upstash REST helpers, but the server only has `REDIS_URL`, so receipts lived in the API process's memory and every restart erased them. The API now installs its own Redis as the store (`apps/api/lib/persistent-state-redis.js`), and a failed read can no longer be mistaken for an empty ledger. Orders and payments (Postgres) and polaroids (R2) were never affected. Link a receipt from a run made after that fix.
 - **Rate limit on the try-on endpoint:** 30 requests/minute and 300/day per IP (its own tier since 2026-11-12; it was 5/minute and 20/day, which locked out a person trying three pieces in a minute). Quotes count. `/pay` does not poll, the web proxy forwards the visitor's IP, and hitting the limit shows a countdown or a "today's fitting room" panel rather than an error.
-- **Catalogue marks:** five club-named Nia designs were paused on 2026-11-12 because the generated images carried club crests and sponsor names; the three original Nia images still carry a Venice watermark. Keep both out of the video (no third-party trademarks).
+- **Catalogue marks:** five club-named Nia designs were paused on 2026-11-12 because the generated images carried club crests and sponsor names — keep them out of the video (no third-party trademarks). The three original Nia images (Lagos Nights, Accra Rush, Nairobi Sunrise) were regenerated via the ElevenLabs image API (gpt-image-1.5) on 2026-11-12 and no longer carry the Venice watermark.
