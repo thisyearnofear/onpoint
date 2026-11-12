@@ -35,7 +35,7 @@ interface QuoteFacts { rails: string[]; ms: number; priceUsd?: number; paypal?: 
 interface TryOnResult {
   requestMs: number;
   renderImage: string | null;
-  payment?: { txHash?: string | null; explorerUrl?: string | null; paymentMethod?: string; amountCusd?: number };
+  payment?: { txHash?: string | null; explorerUrl?: string | null; paymentMethod?: string; amountCusd?: number; paypalPayout?: { status?: string; batchId?: string | null; amountUsd?: number } | null };
   renderMeta?: { provider?: string; imageConditioned?: boolean };
   fitSignal?: { score?: number | null; confidence?: number | string | null; recommendedSize?: string | null } | null;
   aiCost?: { provider?: string; model?: string | null; costUsd?: number | string | null } | null;
@@ -883,7 +883,9 @@ export default function PayPage() {
                   <div className="space-y-4 pb-4">
                     <p className="text-sm text-muted-foreground">
                       {result.payment?.paymentMethod === "paypal" || method === "paypal"
-                        ? `${paymentShort}. The seller's payout is recorded on the receipt as pending reconciliation.`
+                        ? result.payment?.paypalPayout?.status === "sent"
+                          ? `${paymentShort}. The seller's share went out over PayPal Payouts — the loop closed on one rail.`
+                          : `${paymentShort}. The seller's payout is recorded on the receipt as pending reconciliation.`
                         : result.payment?.paymentMethod === "cusd" || method === "celo"
                           ? `${paymentShort} — verified against the chain.`
                           : `${paymentShort}, straight to the seller's account — verified against the chain.`}
@@ -1094,6 +1096,7 @@ export default function PayPage() {
                     </a>
                     <p className="text-xs text-muted-foreground">
                       PayPal asks you, not me — approve in the new tab, and I&rsquo;ll pick it up when you come back to this one.
+                      Sandbox — any PayPal test account can approve.
                     </p>
                     <button
                       type="button"

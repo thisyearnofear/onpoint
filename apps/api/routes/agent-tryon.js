@@ -26,7 +26,7 @@ const { curators, listings, kitSkus, payments } = require('@repo/db');
 const sharedTypes = require('@onpoint/shared-types');
 const agentCore = require('@repo/agent-core');
 const logger = require('../lib/logger');
-const { curatorSplitAddress, tryOnPriceCusd, storefrontWebUrl, polaroidWebUrl, webBaseUrl, buildRevenueHint } = require('../lib/agent-commerce');
+const { curatorSplitAddress, curatorSellerBps, tryOnPriceCusd, storefrontWebUrl, polaroidWebUrl, webBaseUrl, buildRevenueHint } = require('../lib/agent-commerce');
 const nearPayments = require('../lib/near-payments');
 const paypalPayments = require('../lib/paypal-payments');
 const { getAttributionSuffix, getAttributionCode, getAssignedTag } = require('../lib/attribution');
@@ -325,6 +325,7 @@ router.post('/', async (req, res) => {
     let payerAddress = null;
     let verification = null;
     let paypalResult = null;
+    let paypalPayout = null;
     let paymentMethod = 'cusd';
 
     if (okxBypass) {
@@ -424,6 +425,26 @@ router.post('/', async (req, res) => {
           error: `PayPal payment not verified: ${paypalResult.reason}`,
           ...sharedTypes.build402Body([requirements]),
         });
+      }
+      // Close the money loop on PayPal rails: pay the seller share out over
+      // Payouts. sender_batch_id is derived from the order id, so a replayed
+      // verify can never double-pay. Failure is non-fatal — the sale stands
+      // and the payout is reconciled operationally.
+      const payoutEmail = paypalPayments.paypalSellerPayoutEmail();
+      if (payoutEmail) {
+        const sellerBps = curatorSellerBps(row.curator) ?? 9500;
+        const sellerShareUsd = Math.floor(paypalResult.amountUsd * (sellerBps / 10000) * 100) / 100;
+        paypalPayout = await paypalPayments.sendPaypalPayout({
+          receiverEmail: payoutEmail,
+          amountUsd: sellerShareUsd,
+          senderBatchId: `payout-tryon-${paypalResult.orderId}`,
+          note: `OnPoint try-on: ${itemLabel}`,
+        });
+        if (!paypalPayout.ok) {
+          logger.warn('PayPal seller payout failed — sale confirmed, payout pending', {
+            component: 'agent-tryon', orderId: paypalResult.orderId, reason: paypalPayout.reason,
+          });
+        }
       }
       verification = { from: paypalResult.payerId || paypalResult.payerEmail, paypal: paypalResult };
     } else if (nearTxHash) {
@@ -667,6 +688,20 @@ router.post('/', async (req, res) => {
           payerAddress: effectivePayer,
           renderProvider: render.value.provider,
           paymentMethod,
+          ...(paymentMethod === 'paypal' && paypalResult
+            ? {
+                paypal: {
+                  orderId: paypalResult.orderId,
+                  captureId: paypalResult.captureId,
+                  amountUsd: paypalResult.amountUsd,
+                  env: paypalPayments.paypalEnv(),
+                  ...(paypalPayout?.ok ? { payoutBatchId: paypalPayout.payoutBatchId } : {}),
+                },
+                curatorPayout: paypalPayout?.ok
+                  ? `${paypalPayout.amountUsd.toFixed(2)} USD via PayPal Payouts (batch ${paypalPayout.payoutBatchId})`
+                  : `${paypalResult.amountUsd} USD (platform, pending reconciliation)`,
+              }
+            : {}),
         },
         txHash: effectiveTxHash,
         chain: paymentMethod === 'near' ? 'near' : paymentMethod === 'paypal' ? 'paypal' : 'celo',
@@ -937,6 +972,11 @@ router.post('/', async (req, res) => {
         explorerUrl,
         payoutModel: splitAddress ? '0xSplits (curator earns a share)' : 'platform',
         paymentMethod,
+        ...(paymentMethod === 'paypal' && paypalPayout
+          ? { paypalPayout: paypalPayout.ok
+              ? { status: 'sent', batchId: paypalPayout.payoutBatchId, amountUsd: paypalPayout.amountUsd }
+              : { status: 'pending_reconciliation', reason: paypalPayout.reason } }
+          : {}),
       },
       receiptId,
       receiptUrl: receiptId ? `${webBaseUrl()}/receipt/${receiptId}` : undefined,

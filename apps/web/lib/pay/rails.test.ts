@@ -170,3 +170,43 @@ describe("buildReceiptView — celo fallback", () => {
     expect(rows.find((r) => r.label === "Buyer")).toBeUndefined();
   });
 });
+
+describe("buildReceiptView — paypal payout sent", () => {
+  it("shows the Payouts batch instead of pending reconciliation", () => {
+    const { rows } = buildReceiptView(
+      {
+        id: "r1",
+        action: "purchase",
+        chain: "paypal",
+        txHash: "CAPTURE1",
+        metadata: {
+          paymentMethod: "paypal",
+          curatorPayout: "0.05 USD via PayPal Payouts (batch BATCH123)",
+          paypal: { captureId: "CAPTURE1", amountUsd: 0.05, payoutBatchId: "BATCH123" },
+        },
+      },
+      "Nia",
+    );
+    const payout = rows.find((r) => r.label === "Payout");
+    expect(payout?.value).toBe("Sent via PayPal Payouts — batch BATCH123");
+    expect(payout?.tone).toBe("success");
+  });
+
+  it("shows the payout row on a paypal try-on receipt when the batch exists", () => {
+    const { rows } = buildReceiptView(
+      {
+        id: "r2",
+        action: "analyze_outfit",
+        chain: "paypal",
+        txHash: "CAPTURE2",
+        metadata: {
+          paymentMethod: "paypal",
+          purpose: "try_on",
+          paypal: { captureId: "CAPTURE2", amountUsd: 0.03, payoutBatchId: "BATCH999" },
+        },
+      },
+      "Nia",
+    );
+    expect(rows.find((r) => r.label === "Payout")?.value).toContain("PayPal Payouts");
+  });
+});

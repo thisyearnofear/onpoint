@@ -79,3 +79,12 @@ After `flyctl deploy` completes and before calling the release done:
 
 - **39 apps/web vitest failures** — all `ReferenceError: React is not defined` in `button.test.tsx`, `LiveStylistView.gate.test.tsx`, `AutoDismissTimer.test.tsx`, `CaptureProgressRing.test.tsx`. Pre-existing test-harness (JSX runtime) issue; production build unaffected.
 - `next.config.js` has an invalid experimental key `appNewScrollHandler` — Next warns and ignores it.
+
+### PayPal seller payout (2026-11-12)
+
+`PAYPAL_SELLER_PAYOUT_EMAIL` in the shared API env enables the second leg of the
+PayPal money loop: after a capture, the API pays the seller share over
+`/v1/payments/payouts` (id derived from the PayPal order id — replay-safe).
+Unset or a failed call leaves `payout.status: pending_reconciliation`; the sale
+never fails on payout. Set it to the sandbox "seller" personal account email
+for the hackathon demo, then `pm2 reload onpoint-api --update-env`.

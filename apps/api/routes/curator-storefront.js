@@ -787,6 +787,7 @@ router.post('/:slug/order', async (req, res) => {
 
     let verification = null;
     let paypalResult = null;
+    let paypalPayout = null;
     if (paypalOrderId) {
       if (!paypalPayments.paypalRailEnabled()) {
         return res.status(409).json({
@@ -806,6 +807,26 @@ router.post('/:slug/order', async (req, res) => {
           error: `PayPal payment not verified: ${paypalResult.reason}`,
           ...sharedTypes.build402Body([requirements]),
         });
+      }
+      // Close the loop on PayPal rails: pay the curator's share out over
+      // Payouts. The batch id is derived from the PayPal order id so a
+      // replayed verify can never double-pay; failure leaves the payout in
+      // pending_reconciliation instead of failing the order.
+      const payoutEmail = paypalPayments.paypalSellerPayoutEmail();
+      if (payoutEmail) {
+        const sellerBps = curatorSellerBps(row.curator) ?? 9500;
+        const sellerShareUsd = Math.floor(paypalResult.amountUsd * (sellerBps / 10000) * 100) / 100;
+        paypalPayout = await paypalPayments.sendPaypalPayout({
+          receiverEmail: payoutEmail,
+          amountUsd: sellerShareUsd,
+          senderBatchId: `payout-order-${paypalResult.orderId}`,
+          note: `OnPoint order: ${itemLabel}`,
+        });
+        if (!paypalPayout.ok) {
+          logger.warn('PayPal curator payout failed — order confirmed, payout pending', {
+            component: 'curator-storefront', orderId: paypalResult.orderId, reason: paypalPayout.reason,
+          });
+        }
       }
       verification = { from: paypalResult.payerId || paypalResult.payerEmail, paypal: paypalResult };
     } else if (nearTxHash) {
@@ -1173,7 +1194,9 @@ router.post('/:slug/order', async (req, res) => {
           curatorPayout: paymentMethod === 'near'
             ? `${nearQuote.amountNear} NEAR ${nearDirectToCurator ? '(direct to curator)' : '(platform, pending reconciliation)'}`
             : paymentMethod === 'paypal'
-              ? `${paypalResult.amountUsd} USD (platform, pending reconciliation)`
+              ? paypalPayout?.ok
+                ? `${paypalPayout.amountUsd.toFixed(2)} USD via PayPal Payouts (batch ${paypalPayout.payoutBatchId})`
+                : `${paypalResult.amountUsd} USD (platform, pending reconciliation)`
               : sellerShare
                 ? `${(Number(sellerShare.amount) / 1e18).toFixed(2)} cUSD`
                 : usingSplit
@@ -1183,7 +1206,8 @@ router.post('/:slug/order', async (req, res) => {
             ? { accountId: effectivePayer, amountYocto: nearQuote.amountYocto, payTo: nearPayTo, network: nearQuote.network }
             : undefined,
           paypal: paymentMethod === 'paypal' && paypalResult
-            ? { orderId: paypalResult.orderId, captureId: paypalResult.captureId, amountUsd: paypalResult.amountUsd, env: paypalPayments.paypalEnv() }
+            ? { orderId: paypalResult.orderId, captureId: paypalResult.captureId, amountUsd: paypalResult.amountUsd, env: paypalPayments.paypalEnv(),
+                ...(paypalPayout?.ok ? { payoutBatchId: paypalPayout.payoutBatchId } : {}) }
             : undefined,
           splitAddress: usingSplit ? splitAddress : undefined,
         },
@@ -1274,11 +1298,19 @@ router.post('/:slug/order', async (req, res) => {
                 note: 'Paid to the platform NEAR account; curator payout is reconciled operationally.',
               }
           : paymentMethod === 'paypal'
-            ? {
-                status: 'pending_reconciliation',
-                asset: 'USD',
-                note: 'Paid to the platform PayPal account; curator payout is reconciled operationally.',
-              }
+            ? paypalPayout?.ok
+              ? {
+                  status: 'settled',
+                  asset: 'USD',
+                  batchId: paypalPayout.payoutBatchId,
+                  amountUsd: paypalPayout.amountUsd,
+                  note: 'Curator share paid out over PayPal Payouts.',
+                }
+              : {
+                  status: 'pending_reconciliation',
+                  asset: 'USD',
+                  note: 'Paid to the platform PayPal account; curator payout is reconciled operationally.',
+                }
             : payoutTxHash
             ? {
                 txHash: payoutTxHash,

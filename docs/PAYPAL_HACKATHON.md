@@ -9,6 +9,14 @@ Live evidence (re-verifiable without credentials):
 - Recorded run (2026-11-12, after the receipt-persistence fix): PayPal try-on of "Cape Town Shweshwe Matchday" from Nia Digital — capture `13K55568GE972304A`, $0.03, render by `youcam-cloth-v4`, fit read by Otari. Receipt: https://onpoint.trustfall.xyz/receipt/receipt_mwdjib6r_ba423717 · try-on page: https://onpoint.trustfall.xyz/p/a2c86aef-0deb-47f3-8ca2-91412c853bea. Receipt ids from the first runs that morning (`receipt_mwd6vc1f_f41b1052`, `receipt_mwd6q4fj_e03e5326`) no longer resolve — see Risks.
 - Receipts are public: `GET https://api.onpoint.famile.xyz/api/receipts/{receiptId}` — a judge can read the PayPal proof themselves.
 
+### Try it as a judge (PayPal)
+
+The demo is completable end-to-end without our credentials:
+
+1. Open https://onpoint.trustfall.xyz/pay?curator=nia, add any photo of a person, pick a piece, get the price.
+2. Choose **PayPal**. The approve link opens PayPal **sandbox** checkout — sign in with **any sandbox personal account**. Every PayPal developer account auto-creates one under developer.paypal.com → Dashboard → Testing tools → Sandbox accounts (type "Personal").
+3. Come back to the tab; the agent verifies, captures, renders, signs a receipt and pays the seller share out over Payouts. The receipt page shows the capture id and the payout batch.
+
 ## Thesis
 One executable fashion offer, three ways to pay: `paymentRails: ['celo_cusd', 'near', 'paypal']`.
 
@@ -22,7 +30,7 @@ Classic PayPal Checkout needs a human to approve at paypal.com, so the agent orc
 5. Server GETs the order, checks `custom_id` binding, currency, amount >= price and status APPROVED, then captures (idempotent via `PayPal-Request-Id`) and requires COMPLETED.
 6. `captureId` is the proof id (replay-guarded in the same column as NEAR/Celo tx hashes). Receipt `chain: 'paypal'`, `paymentMethod: 'paypal'`, asset USD.
 
-Orders are paid to the platform account; curator payout is recorded as `pending_reconciliation` (PayPal Payouts is out of scope for v1).
+Orders and try-ons are captured to the platform account; after capture the agent pays the seller's share out over **PayPal Payouts** (`POST /v1/payments/payouts`) when `PAYPAL_SELLER_PAYOUT_EMAIL` is set — the payout batch id is recorded on the receipt, which then reads "Sent via PayPal Payouts" instead of `pending_reconciliation`. The batch id is derived from the PayPal order id, so a replayed verify can never double-pay. When the env var is unset (or the payout call fails), the sale still stands and the payout is recorded as `pending_reconciliation`. The sandbox receiver stands in for the curator/seller, who in production would configure their own PayPal email.
 
 ## Configuration
 `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_ENV=sandbox|live` (see `apps/api/.env.example`). Rail is absent from the 402 when unset or if order creation fails. Currently set on the production API in sandbox mode; the rail auto-advertises, so no code flag is involved.
