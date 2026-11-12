@@ -87,7 +87,7 @@ POST /api/agent/try-on
 
 Response: **HTTP 402** → pay the cUSD fee by default, or use an eligible gasless USDC facilitator challenge via `X-PAYMENT`, or pay in **NEAR** via the `quote.near` rail (re-POST with `{nearTxHash}` (payer derived from `transaction.signer_id` — `{nearAccountId, nearTxHash}` also accepted)), or pay in **USD via PayPal** via the `quote.paypal` rail (send `approveUrl` to the human payer to approve, then re-POST with `{paypalOrderId}`) → re-POST → **HTTP 200** with try-on render, fit signal, and polaroid (shareable artifact with `imageUrl` and `webUrl`). The facilitator option is endpoint- and eligibility-scoped; it does not apply to physical order checkout. The NEAR rail is advertised in `quote.paymentRails` and `quote.near` when configured (NEAR HACKATHON — see `HACKATHON.md`). The PayPal rail is advertised in `quote.paymentRails` and `quote.paypal` only when `PAYPAL_CLIENT_ID`/`PAYPAL_CLIENT_SECRET` (and `PAYPAL_ENV`, default sandbox) are configured — status `implemented`, not yet live-validated.
 
-Includes `revenueHint` showing economics. Digital listings also return `similarPhysicalItems`.
+Includes `revenueHint` showing economics. Digital listings also return `similarPhysicalItems`. If the shareable polaroid could not be persisted, the 200 carries `polaroidWarning` (`code`, `reason`, `paymentId`, `hint`) alongside `polaroid: null` — the paid render in `tryOn.render.image` is still valid, but `/p/{paymentId}` will not exist.
 
 Full details: [docs/guides/agent-commerce.md](./docs/guides/agent-commerce.md)
 
