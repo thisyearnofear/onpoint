@@ -6,7 +6,7 @@ Live evidence (re-verifiable without credentials):
 - Rail advertisement — `POST /api/agent/try-on` returns **HTTP 402** with `quote.paymentRails: ["celo_cusd","near","paypal"]` and `quote.paypal = { env: "sandbox", orderId, approveUrl, amountUsd, currency: "USD", instructions }`.
 - Human front door — `https://onpoint.trustfall.xyz/pay`: add a photo, choose PayPal, approve in a new tab, and the render develops on the page with its capture id, fit read and public receipt. No order id is pasted; the page checks the quoted order when the payer returns to the tab.
 - Try-on and order rails were both exercised end to end on 2026-11-12 (402 → approve → 200/201 with `paymentMethod: "paypal"` and a PayPal capture id as the proof).
-- **Receipt ids from those first runs no longer resolve** (`receipt_mwd6vc1f_f41b1052`, `receipt_mwd6q4fj_e03e5326` return 404 — see Risks). Replace this line with the receipt and polaroid links from the recorded run before submitting: `<receipt url>` · `<polaroid url>`.
+- Recorded run (2026-11-12, after the receipt-persistence fix): PayPal try-on of "Cape Town Shweshwe Matchday" from Nia Digital — capture `13K55568GE972304A`, $0.03, render by `youcam-cloth-v4`, fit read by Otari. Receipt: https://onpoint.trustfall.xyz/receipt/receipt_mwdjib6r_ba423717 · try-on page: https://onpoint.trustfall.xyz/p/a2c86aef-0deb-47f3-8ca2-91412c853bea. Receipt ids from the first runs that morning (`receipt_mwd6vc1f_f41b1052`, `receipt_mwd6q4fj_e03e5326`) no longer resolve — see Risks.
 - Receipts are public: `GET https://api.onpoint.famile.xyz/api/receipts/{receiptId}` — a judge can read the PayPal proof themselves.
 
 ## Thesis
