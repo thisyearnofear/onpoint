@@ -3,10 +3,13 @@
 > Deadline: **12 Nov 2026 20:00 UTC**. Working doc for the final push.
 > Source of truth for the integration itself: `docs/PAYPAL_HACKATHON.md`.
 >
-> **State (2026-11-12 ~17:00 UTC): submitted, final video live.** Devpost entry
-> https://devpost.com/software/onpoint-b3dory with unlisted demo video
-> https://youtu.be/AXaBYTOj7kY (92s improved cut, embedded on the public
-> project page). Everything remains editable until the deadline.
+> **State (2026-11-12 ~17:45 UTC): submitted, final video live, sponsor tools landed.**
+> Devpost entry https://devpost.com/software/onpoint-b3dory with unlisted demo
+> video https://youtu.be/AXaBYTOj7kY (92s improved cut, embedded). Sponsor tools
+> on the entry: APIMatic (verifier SDK), Channel3 (16-product live storefront
+> + a real PayPal receipt `receipt_mwdthx2x_7ee83234` with payout sent), AG Grid
+> (`/agent/studio` commerce ledger + Studio Agent Framework via Otari adapter).
+> Everything remains editable until the deadline.
 >
 > Frame: the engineering is real, but the submission currently risks losing on
 > legibility — PayPal reads as rail 3-of-3 on a crypto-native product, and the

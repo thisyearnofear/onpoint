@@ -5,6 +5,8 @@
 >
 > **Product focus (2026-11-03):** this API is live and supported, but product effort is on the consumer web app first; curator activation is deferred ([ADR 0023](./docs/adr/0023-consumer-engine-first-curators-deferred.md)). Expect thin supply.
 >
+> **Supply note (2026-11-12):** the `channel3` curator ("Channel3 Market", `/s/channel3`) seeds real retail products from the Channel3 product API as try-on-only digital listings — `attributes.source: "channel3"`, `offerUrl` links out to the retailer. Try-on rails (cUSD/NEAR/PayPal) work on them like any digital listing.
+>
 > Fashion is the current wedge—not a claim that this is already a generic commerce OS. The larger opportunity is agent-ready execution infrastructure for fit-sensitive physical goods; this guide documents the fashion proof point.
 >
 > **Live:** https://onpoint.trustfall.xyz · **API:** https://api.onpoint.famile.xyz · **Manifest:** https://onpoint.fly.dev/.well-known/agent.json

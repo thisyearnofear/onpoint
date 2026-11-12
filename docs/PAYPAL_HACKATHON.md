@@ -43,6 +43,20 @@ Orders and try-ons are captured to the platform account; after capture the agent
 
 The repo's PayPal verification tooling runs on the **APIMatic-generated PayPal TypeScript SDK** (`paypal` v2.29.0, installed from `github:context-plugins/paypal-typescript-sdk`), integrated under the **APIMatic Context Plugin** (`npx context-plugins install paypal`). `paypal-plan.md` at the repo root is the plugin's contract sheet — every signature, request field, error arm and enum member in `scripts/paypal-verify.mjs` comes from the SDK map that ships inside the package, not from memory. The SDK covers Orders/Payments/Vault/Transaction Search/Subscriptions; the Payouts batch lookup stays on REST because Payouts is outside the generated surface (noted in the plan). The production order/capture path remains on the proven REST helper — the SDK powers the verifier that checks it.
 
+## Channel3 (sponsor tool)
+
+Supply is the product's known thin spot (curator activation is deferred, ADR 0023), so the submission's catalogue now comes from the **Channel3 product API** (`https://api.trychannel3.com`, `/v1/search` — 100M+ products, 25k retailers). `scripts/seed-channel3-catalog.mjs` searches garment queries overlapping OnPoint's verticals, downloads each product's `cleaned_url` image (Channel3's background-removed variant — the same shape our cutout pipeline aims for), uploads it to the public garment store, and inserts `inventory_type: 'digital'` listings under a `channel3` curator ("Channel3 Market"). Each listing carries `attributes.source: "channel3"` plus `productId`, `brand`, `category`, `offerUrl`, `offerDomain`, `price`, `currency` — provenance and the buy link are data, not page copy.
+
+Live: `GET https://api.onpoint.famile.xyz/api/curator/channel3/storefront` (16 listings) and https://onpoint.trustfall.xyz/s/channel3. They are try-on-only by design: the identical 402 → PayPal approval → AI render → public receipt loop runs on every one of them — PayPal monetizes the AI service, the garment purchase completes at the retailer via the Channel3 offer link (`/checkout` programmatic buy is the documented next step, not built).
+
+Recorded Channel3 run (2026-11-12): PayPal try-on of "Picture — Everywhere Football Jersey" from Channel3 Market — order `13S671490G737941F`, capture `34P1908960914442P`, $0.03, seller payout sent via PayPal Payouts batch `PCWJ9N9XJMSZJ`. Receipt: https://onpoint.trustfall.xyz/receipt/receipt_mwdthx2x_7ee83234 · try-on page: https://onpoint.trustfall.xyz/p/e6c6dbc1-c594-4ca0-9410-73c63e7cb471
+
+## AG Studio / AG Grid (sponsor tool)
+
+https://onpoint.trustfall.xyz/agent/studio embeds **AG Studio 3** (`ag-studio-react`) as a self-serve commerce-ledger surface over the live public data — three Studio data sources: paid try-ons from the curator earnings endpoint, storefront listings, and agent receipt activity. The AI panel runs the **Studio Agent Framework** through a custom `AgLlmAdapter` (`apps/web/lib/studio/otari-adapter.ts`) pointed at `POST /api/agent/studio-ai`, a new metered API route that proxies the Otari chat-completions gateway — the same AI-spend path as `/pay`, keys stay server-side, 30/min + 120/day caps. A judge can open the ledger and ask in plain language for a slice ("paid try-ons by curator") — the agent builds the widgets; the data underneath is the real ledger a PayPal payment just wrote to.
+
+Deploy note: the remote builder intermittently OOM-kills the Next.js compile with ag-studio in the graph (exit 137). The shipped fix is `next build --webpack` + a 3 GB heap cap in `Dockerfile`; `Dockerfile.prebuilt` (local build → runtime-only image, `fly deploy -c fly.web.toml --dockerfile Dockerfile.prebuilt`) is the fallback if remote builders run out again.
+
 ## Event essentials
 - **Devpost: PayPal AI Hackathon — "Build what's next with PayPal and AI".** Deadline **12 Nov 2026 20:00 UTC**; online, public, $67,500+ cash.
 - Hard requirement: the project must **meaningfully use both PayPal and AI**. No prescribed tracks.
@@ -81,6 +95,8 @@ Example from a live paid try-on served by Otari: `aiCost: { provider: "otari", m
 - [x] YouTube upload of the <3 min demo, publicly visible — https://youtu.be/AXaBYTOj7kY (unlisted, 92s improved cut)
 - [x] Devpost form: description, tools, repo link, hosted demo link — submitted 2026-11-12 as OnPoint (`onpoint-b3dory`), Individual, Kenya
 - [x] Swap in the improved demo video before the deadline — `AXaBYTOj7kY` now embedded on the public project page
+- [x] Channel3 supply layer: `channel3` curator seeded from `/v1/search` (16 real products), sponsor-tools field + `channel3` tag + description section + gallery screenshot on the Devpost entry
+- [x] AG Studio commerce ledger: `/agent/studio` live on prod (Studio + Agent Framework via Otari adapter), deployed via `Dockerfile.prebuilt`
 
 ## Related work shipped alongside
 - Garment attributes on listings (`listings.attributes`, migration `0011`) and `?type=&formality=&warmth=` storefront filters.
