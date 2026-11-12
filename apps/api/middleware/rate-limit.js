@@ -32,6 +32,17 @@ const TIERS = {
   general: { maxRequests: 100, windowMs: 60_000, prefix: 'api' },
   // Tighter limits for expensive AI routes (~$0.03/call)
   aiExpensive: { maxRequests: 5, windowMs: 60_000, prefix: 'ai-expensive' },
+  // Paid agent try-on. The route answers 402 with a quote until a payment
+  // proof verifies, and only then renders — so most requests here are
+  // quotes and payment checks, not AI calls. The aiExpensive tier (5/min,
+  // 20/day) locked out a human trying three pieces in a minute; these
+  // limits still stop a script from minting PayPal orders in a loop.
+  agentTryOn: { maxRequests: 30, windowMs: 60_000, prefix: 'agent-tryon' },
+  agentTryOnDaily: {
+    maxRequests: 300,
+    windowMs: 86_400_000,
+    prefix: 'agent-tryon-daily',
+  },
   // Daily cap for expensive AI routes (20 try-ons/day per IP = ~$0.60 max)
   aiExpensiveDaily: {
     maxRequests: 20,
