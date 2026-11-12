@@ -1,7 +1,7 @@
 /**
  * Reading the try-on endpoint's rate-limit state. The API enforces two
- * fixed windows per visitor IP — five requests a minute, then twenty a
- * day — and reports them through `Retry-After`/`retryAfter` on a 429 and
+ * fixed windows per visitor IP — a per-minute one, then a daily one
+ * (30 and 300 since 2026-11-12) — and reports them through `Retry-After`/`retryAfter` on a 429 and
  * `X-RateLimit-*` headers otherwise. Since the daily limiter runs last,
  * the headers on a non-429 response describe the daily window.
  */
@@ -34,7 +34,8 @@ export function formatWait(sec: number): string {
  * that isn't 20 — e.g. a minute-window header — says nothing here.
  */
 export function looksLeft(remaining: number | null, limit: number | null): number | null {
-  if (limit !== 20 || typeof remaining !== "number" || !Number.isFinite(remaining)) return null;
+  // A limit under 20 is the per-minute window, not the daily one.
+  if (typeof limit !== "number" || limit < 20 || typeof remaining !== "number" || !Number.isFinite(remaining)) return null;
   return Math.max(0, Math.floor(remaining / 2));
 }
 

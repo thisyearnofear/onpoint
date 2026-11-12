@@ -72,7 +72,7 @@ export function LimitNotice({
             Give me {formatWait(remain)} — I&rsquo;m pacing myself.
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            I can make five requests a minute for each visitor, and I&rsquo;ve used them.
+            I can only make so many requests a minute for each visitor, and I&rsquo;ve used them.
             I&rsquo;ll pick this up myself when the clock runs out.
           </p>
           {safeApproval ? (
@@ -106,7 +106,7 @@ export function LimitNotice({
         <>
           <p className="font-display text-xl">That&rsquo;s today&rsquo;s fitting room for this network.</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            While OnPoint is in preview, each network gets twenty requests a day — about ten looks.
+            While OnPoint is in preview, each network gets a daily allowance of looks, and this one is used up.
             It opens again in {formatWait(waitSec)}.
           </p>
           {safeApproval ? (

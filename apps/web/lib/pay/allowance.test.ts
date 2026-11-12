@@ -40,6 +40,7 @@ describe("looksLeft", () => {
     expect(looksLeft(6, 20)).toBe(3);
     expect(looksLeft(1, 20)).toBe(0);
     expect(looksLeft(0, 20)).toBe(0);
+    expect(looksLeft(7, 300)).toBe(3);
   });
   it("is null when the window isn't daily", () => {
     expect(looksLeft(4, 5)).toBeNull();
