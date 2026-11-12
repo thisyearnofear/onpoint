@@ -56,4 +56,15 @@ describe("addKept", () => {
     };
     expect(() => addKept(s, entry("x"))).not.toThrow();
   });
+
+  it("keeps a stored fit score; entries without one still parse", () => {
+    const s = memStorage();
+    addKept(s, { ...entry("a"), score: 8 });
+    addKept(s, { ...entry("b"), score: null });
+    addKept(s, entry("c"));
+    const kept = readKept(s);
+    expect(kept.find((k) => k.id === "a")?.score).toBe(8);
+    expect(kept.find((k) => k.id === "b")?.score).toBeNull();
+    expect(kept.find((k) => k.id === "c")?.score).toBeUndefined();
+  });
 });

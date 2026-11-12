@@ -9,14 +9,17 @@
 export function FitGuess({
   guess,
   onPick,
+  compact = false,
 }: {
   guess: number | null;
   onPick: (n: number) => void;
+  /** Tight variant for the wait deck — smaller prompt and 36px chips. */
+  compact?: boolean;
 }) {
   return (
     <div>
-      <p className="font-display text-lg">
-        While it develops — call it. What will I score the fit?
+      <p className={compact ? "text-sm font-semibold" : "font-display text-lg"}>
+        {compact ? "What will I score the fit?" : "While it develops — call it. What will I score the fit?"}
       </p>
       <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label="Your fit-score guess">
         {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
@@ -26,7 +29,9 @@ export function FitGuess({
             role="radio"
             aria-checked={guess === n}
             onClick={() => onPick(n)}
-            className={`flex h-11 w-11 items-center justify-center rounded-full border text-sm font-bold transition-all ${
+            className={`flex items-center justify-center rounded-full border text-sm font-bold transition-all ${
+              compact ? "h-9 w-9" : "h-11 w-11"
+            } ${
               guess === n
                 ? "border-foreground bg-foreground text-background"
                 : "border-border hover:border-foreground/50"
