@@ -1,6 +1,11 @@
 # PayPal AI Hackathon — OnPoint
 
-Status: `implemented` (mocked-network tests pass). Not yet `live-validated` — needs one recorded sandbox run.
+Status: `live-validated` (2026-11-12, sandbox, on production API `api.onpoint.famile.xyz`).
+
+Live evidence:
+- Try-on rail: 402 → approve (`06J754636E437522A`, $0.03) → **HTTP 200**, polaroid + receipt `receipt_mwd6vc1f_f41b1052`, capture `8R078054E73723054`.
+- Order rail: 402 (`0cc69356-S-1-29907762`, $16.92) → approve (`2TN41181T9243051V`) → **HTTP 201**, order `77b680d6`, receipt `receipt_mwd6q4fj_e03e5326`, `payout.status: pending_reconciliation`.
+- Receipts: `paymentMethod: 'paypal'`, `paymentAsset: 'USD'`, capture id in the replay-guarded txHash column.
 
 ## Thesis
 One executable fashion offer, three ways to pay: `paymentRails: ['celo_cusd', 'near', 'paypal']`.
@@ -25,9 +30,10 @@ Orders are paid to the platform account; curator payout is recorded as `pending_
 - [x] Quote + verify in try-on and order routes; mixed proofs rejected
 - [x] Replay guard; binding of approved order to one resource
 - [x] Demo: `RAIL=paypal node scripts/near-spike/agent-demo.mjs` (local script, gitignored)
-- [ ] Create sandbox business + personal accounts, set secrets in the API environment
-- [ ] Record one live sandbox run (402 -> approve -> 201 receipt)
-- [ ] Deploy and add `paypal` result to the demo video
+- [x] Create sandbox business + personal accounts, set secrets in the API environment
+- [x] Record one live sandbox run (402 -> approve -> 201 receipt)
+- [x] Deploy (`PAYPAL_*` on `snel-bot:/opt/onpoint/shared/api/.env`, prod 402 advertises `paypal`)
+- [ ] Add `paypal` result to the demo video
 
 ## Related work shipped alongside
 - Garment attributes on listings (`listings.attributes`, migration `0011`) and `?type=&formality=&warmth=` storefront filters.
