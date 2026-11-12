@@ -104,7 +104,7 @@ describe("buildTrace — paypal", () => {
     expect(steps.map((s) => s.id)).toEqual(["offer", "quote", "approval", "render", "fit", "receipt"]);
     const quote = steps[steps.findIndex((s) => s.id === "quote")]!;
     expect(quote.label).toBe("I got the price");
-    expect(quote.detail).toBe("$0.05 · pay with PayPal");
+    expect(quote.detail).toBe("$0.05 · pay with PayPal or cUSD");
     expect(quote.tech).toContain("HTTP 402");
     expect(quote.tech).toContain("rails: cUSD, PayPal");
     expect(quote.tech).toContain("412 ms");
@@ -157,6 +157,60 @@ describe("buildTrace — near", () => {
   });
 });
 
+describe("buildTrace — celo", () => {
+  const CELO_QUOTE = {
+    rails: ["celo_cusd", "near", "paypal"],
+    ms: 200,
+    priceUsd: 0.03,
+    celo: { amountCusd: 0.03, payTo: "0xABCDEF1234567890abcdef1234567890ABCDEF12", chainId: 42220 },
+  };
+
+  it("three rails join as 'PayPal, NEAR or cUSD'", () => {
+    const { steps } = buildTrace({ listing: LISTING, quote: CELO_QUOTE, phase: "awaiting" });
+    expect(steps[1]?.detail).toBe("$0.03 · pay with PayPal, NEAR or cUSD");
+  });
+
+  it("awaiting celo: wallet detail + amount/address in tech", () => {
+    const { steps } = buildTrace({ listing: LISTING, quote: CELO_QUOTE, method: "celo", phase: "awaiting" });
+    const approval = steps.find((s) => s.id === "approval");
+    expect(approval?.label).toBe("I'm waiting for your OK");
+    expect(approval?.detail).toBe("Send it from your Celo wallet — I can't sign for you");
+    expect(approval?.tech).toContain("0.03 cUSD on Celo mainnet");
+    expect(approval?.tech).toContain("to 0xABCDEF…CDEF12");
+  });
+
+  it("checking celo: 'looking for your payment on Celo'", () => {
+    const { steps } = buildTrace({ listing: LISTING, quote: CELO_QUOTE, method: "celo", phase: "checking" });
+    expect(steps.find((s) => s.id === "approval")?.label).toBe("I'm looking for your payment on Celo");
+  });
+
+  it("done celo: 'I found your payment' + celoscan href; inferred when method unset", () => {
+    const f = doneFacts({
+      quote: CELO_QUOTE,
+      method: undefined,
+      result: {
+        requestMs: 9000,
+        payment: {
+          txHash: "0x9abc1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+          explorerUrl: "https://celoscan.io/tx/0x9abc",
+          paymentMethod: "cusd",
+        },
+        render: { provider: "otari" },
+        fitSignal: null,
+        aiCost: null,
+        receiptId: null,
+        receiptUrl: null,
+      },
+    });
+    const { steps } = buildTrace(f);
+    const approval = steps.find((s) => s.id === "approval");
+    expect(approval?.label).toBe("I found your payment");
+    expect(approval?.detail).toBe("View the transfer");
+    expect(approval?.href).toBe("https://celoscan.io/tx/0x9abc");
+    expect(approval?.tech).toContain("tx 0x9abc12…567890");
+  });
+});
+
 describe("buildTrace — omissions", () => {
   it("omits fit step when fitSignal is null and aiCost clause when absent", () => {
     const f = doneFacts();
@@ -186,13 +240,13 @@ describe("buildTrace — omissions", () => {
   it("quote detail names only the payable rails; unknown rails stay in tech", () => {
     const f = doneFacts({ quote: { rails: ["celo_cusd", "magic_rail"], ms: 10, priceUsd: 0.03 } });
     const { steps } = buildTrace(f);
-    expect(steps[1]?.detail).toBe("$0.03");
+    expect(steps[1]?.detail).toBe("$0.03 · pay with cUSD");
     expect(steps[1]?.tech).toContain("cUSD, magic_rail");
     const both = doneFacts({ quote: { rails: ["paypal", "near"], ms: 10, priceUsd: 0.03 } });
     expect(buildTrace(both).steps[1]?.detail).toBe("$0.03 · pay with PayPal or NEAR");
-    // Order is fixed PayPal-then-NEAR regardless of the API's rail order.
+    // Order is fixed PayPal, NEAR, cUSD regardless of the API's rail order.
     const reversed = doneFacts({ quote: { rails: ["celo_cusd", "near", "paypal"], ms: 10, priceUsd: 0.03 } });
-    expect(buildTrace(reversed).steps[1]?.detail).toBe("$0.03 · pay with PayPal or NEAR");
+    expect(buildTrace(reversed).steps[1]?.detail).toBe("$0.03 · pay with PayPal, NEAR or cUSD");
   });
 
   it("quote detail degrades gracefully without a price", () => {

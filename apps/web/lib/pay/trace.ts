@@ -1,7 +1,7 @@
 import { shortHash } from "@/components/surface/FactList";
 import { fitVerdict } from "./rails";
 
-export type PayMethod = "near" | "paypal";
+export type PayMethod = "near" | "paypal" | "celo";
 
 export interface TraceFacts {
   listing?: { title: string; curatorSlug: string } | null;
@@ -11,6 +11,7 @@ export interface TraceFacts {
     priceUsd?: number;
     paypal?: { orderId?: string; amountUsd?: number } | null;
     near?: { amountNear?: number; network?: string } | null;
+    celo?: { amountCusd: number; payTo: string; chainId?: number } | null;
   } | null;
   /** May be undefined while awaiting — the user hasn't chosen a rail yet. */
   method?: PayMethod;
@@ -86,12 +87,15 @@ export function buildTrace(f: TraceFacts): { steps: TraceStep[]; verdict: string
     // Of the rails this page supports, name the ones the quote advertises —
     // fixed order PayPal then NEAR, whatever order the API lists them in.
     const rails = f.quote.rails;
-    const payables = (["paypal", "near"] as const)
+    const payables = (["paypal", "near", "celo_cusd"] as const)
       .filter((r) => rails.includes(r))
-      .map(railName)
-      .join(" or ");
+      .map(railName);
+    const payableStr =
+      payables.length <= 2
+        ? payables.join(" or ")
+        : `${payables.slice(0, -1).join(", ")} or ${payables[payables.length - 1]}`;
     const price = f.quote.priceUsd != null ? `$${f.quote.priceUsd.toFixed(2)}` : null;
-    const detail = [price ? `${price}` : null, payables ? `pay with ${payables}` : null]
+    const detail = [price ? `${price}` : null, payableStr ? `pay with ${payableStr}` : null]
       .filter(Boolean)
       .join(" · ") || undefined;
     steps.push({
@@ -103,8 +107,9 @@ export function buildTrace(f: TraceFacts): { steps: TraceStep[]; verdict: string
     });
   }
 
+  const pm = f.result?.payment?.paymentMethod;
   const method: PayMethod | undefined =
-    f.method ?? (done && f.result?.payment?.paymentMethod === "paypal" ? "paypal" : undefined);
+    f.method ?? (done ? (pm === "paypal" ? "paypal" : pm === "near" ? "near" : "celo") : undefined);
   const wantsApproval = f.phase === "awaiting" || f.phase === "checking" || f.phase === "done";
   if (wantsApproval) {
     if (f.phase === "awaiting") {
@@ -119,15 +124,21 @@ export function buildTrace(f: TraceFacts): { steps: TraceStep[]; verdict: string
         const detail =
           method === "paypal"
             ? "Approve at PayPal — I can't do that part for you"
-            : "Send it from your wallet — I can't sign for you";
+            : method === "celo"
+              ? "Send it from your Celo wallet — I can't sign for you"
+              : "Send it from your wallet — I can't sign for you";
         const tech =
           method === "paypal"
             ? f.quote?.paypal?.orderId
               ? `PayPal order ${f.quote.paypal.orderId}${f.quote.paypal.amountUsd != null ? ` · $${f.quote.paypal.amountUsd}` : ""}`
               : "PayPal order pending"
-            : f.quote?.near?.amountNear != null
-              ? `${f.quote.near.amountNear} NEAR on ${f.quote.near.network ?? "testnet"}`
-              : "NEAR transfer";
+            : method === "celo"
+              ? f.quote?.celo
+                ? `${f.quote.celo.amountCusd} cUSD on Celo mainnet · to ${shortHash(f.quote.celo.payTo)}`
+                : "cUSD on Celo mainnet"
+              : f.quote?.near?.amountNear != null
+                ? `${f.quote.near.amountNear} NEAR on ${f.quote.near.network ?? "testnet"}`
+                : "NEAR transfer";
         steps.push({
           id: "approval",
           label: "I'm waiting for your OK",
@@ -143,7 +154,9 @@ export function buildTrace(f: TraceFacts): { steps: TraceStep[]; verdict: string
         label:
           method === "paypal"
             ? "I'm checking with PayPal"
-            : "I'm looking for your payment on NEAR",
+            : method === "celo"
+              ? "I'm looking for your payment on Celo"
+              : "I'm looking for your payment on NEAR",
         state: "pending",
         waitingOn: "me",
       });
@@ -153,7 +166,7 @@ export function buildTrace(f: TraceFacts): { steps: TraceStep[]; verdict: string
       steps.push({
         id: "approval",
         label: method === "paypal" ? "PayPal captured it" : "I found your payment",
-        detail: method === "near" && explorer ? "View the transfer" : undefined,
+        detail: method !== "paypal" && explorer ? "View the transfer" : undefined,
         href: explorer ?? undefined,
         tech: tx ? `${method === "paypal" ? "capture" : "tx"} ${shortHash(tx)}` : undefined,
         state: "done",

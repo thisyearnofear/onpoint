@@ -10,9 +10,15 @@ import QRCode from "qrcode";
 import { OnPointLayout } from "../../components/OnPointLayout";
 import { AgentTrace } from "../../components/pay/AgentTrace";
 import { Polaroid } from "../../components/pay/Polaroid";
+import { FitGuess } from "../../components/pay/FitGuess";
+import { ShareArtifact } from "../../components/ShareArtifact";
+import { TryOnActionRail } from "../../components/social/TryOnActionRail";
 import { Busy, ErrorState, StagedWait } from "../../components/state";
 import { FactList, shortHash } from "../../components/surface/FactList";
 import { buildTrace, type PayMethod, type TraceFacts } from "../../lib/pay/trace";
+import { guessOutcome } from "../../lib/pay/guess";
+import { shouldAutoCheck } from "../../lib/pay/auto-check";
+import { addKept, readKept, type Kept } from "../../lib/pay/kept";
 
 const DEMO_CURATOR = "onpoint-store";
 const WALLET_SEND = "https://testnet.mynearwallet.com/send-money";
@@ -22,7 +28,7 @@ type Step = "photo" | "choose" | "pay" | "verify" | "done";
 interface Listing { id: string; title: string; imageUrl: string | null; cutoutUrl?: string | null; priceKes: number | null }
 interface NearQuote { network?: string; accountId?: string; amountNear?: number }
 interface PaypalQuote { approveUrl?: string; orderId?: string; amountUsd?: number }
-interface QuoteFacts { rails: string[]; ms: number; priceUsd?: number; paypal?: PaypalQuote | null; near?: NearQuote | null }
+interface QuoteFacts { rails: string[]; ms: number; priceUsd?: number; paypal?: PaypalQuote | null; near?: NearQuote | null; celo?: { amountCusd: number; payTo: string; chainId?: number } | null }
 interface TryOnResult {
   requestMs: number;
   renderImage: string | null;
@@ -110,6 +116,8 @@ export default function PayPage() {
   const [quoting, setQuoting] = useState(false);
   const [quote, setQuote] = useState<NearQuote | null>(null);
   const [paypal, setPaypal] = useState<PaypalQuote | null>(null);
+  const [celo, setCelo] = useState<QuoteFacts["celo"]>(null);
+  const [guess, setGuess] = useState<number | null>(null);
   const [quoteFacts, setQuoteFacts] = useState<QuoteFacts | null>(null);
   const [result, setResult] = useState<TryOnResult | null>(null);
   const [txHash, setTxHash] = useState("");
@@ -129,6 +137,11 @@ export default function PayPage() {
   // must send the same listing the PayPal/NEAR order is bound to.
   const quotedIds = useRef<{ curatorSlug: string; listingId: string } | null>(null);
   const paypalArmed = useRef<{ orderId: string; checks: number; last: number } | null>(null);
+  // Set the moment a result is showing — a verify must never fire again
+  // after success (an armed-but-consumed PayPal order 402'd on every tab
+  // focus and wiped the done screen, repeatedly → 429).
+  const resultShown = useRef(false);
+  const [keptList, setKeptList] = useState<Kept[]>([]);
   const pairRef = useRef<HTMLDivElement>(null);
   const chooseRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
@@ -177,13 +190,18 @@ export default function PayPage() {
         ? data.quote.paymentRails
         : Array.isArray(data.paymentRails) ? data.paymentRails : [];
       const priceUsd = data.quote?.priceCusd ?? data.priceCusd ?? undefined;
+      const payTo = data.quote?.payTo ?? data.payTo;
       const facts: QuoteFacts = {
         rails,
         ms,
         priceUsd,
         paypal: pp ? { orderId: pp.orderId, amountUsd: pp.amountUsd } : null,
         near: near ? { amountNear: near.amountNear, network: near.network } : null,
+        celo: rails.includes("celo_cusd") && payTo && priceUsd != null
+          ? { amountCusd: priceUsd, payTo, chainId: data.quote?.chainId ?? data.chainId }
+          : null,
       };
+      setCelo(facts.celo ?? null);
       setQuote(near || null);
       setPaypal(pp || null);
       setQuoteFacts(facts);
@@ -218,7 +236,7 @@ export default function PayPage() {
     extra: Record<string, string>,
     opts?: { method?: PayMethod; ids?: { curatorSlug: string; listingId: string } },
   ) => {
-    if (polling.current) return;
+    if (polling.current || resultShown.current) return;
     polling.current = true;
     setError(null);
     const methodNow: PayMethod = opts?.method ?? method ?? "near";
@@ -250,6 +268,28 @@ export default function PayPage() {
           stylingTips: Array.isArray(data.tryOn?.stylingTips) ? data.tryOn.stylingTips : [],
         });
         setStep("done");
+        resultShown.current = true;
+        // The order is consumed — disarm so a later tab focus can't fire
+        // another verify with the already-captured id.
+        paypalArmed.current = null;
+        const webUrl = data.polaroid?.webUrl;
+        if (webUrl && data.polaroid?.imageUrl) {
+          const id = String(webUrl).split("/").filter(Boolean).pop() ?? "";
+          if (id) {
+            try {
+              setKeptList(
+                addKept(window.localStorage, {
+                  id,
+                  item: data.tryOn?.item ?? "Try-on",
+                  imageUrl: data.polaroid.imageUrl,
+                  webUrl,
+                  receiptUrl: data.receiptUrl ?? null,
+                  at: new Date().toISOString(),
+                }),
+              );
+            } catch { /* storage optional */ }
+          }
+        }
         polling.current = false;
         verifyIds.current = null;
         try { sessionStorage.removeItem(CTX_KEY); sessionStorage.removeItem(PHOTO_KEY); } catch { /* */ }
@@ -287,7 +327,9 @@ export default function PayPage() {
     setError(
       methodNow === "paypal"
         ? "PayPal couldn't confirm the approval — tap “I've approved — check again”."
-        : "I can't see the payment on NEAR yet — give it a few seconds, then tap Verify again.",
+        : methodNow === "celo"
+          ? "I can't see that transfer on Celo yet — give it a few seconds, then tap Verify again."
+          : "I can't see the payment on NEAR yet — give it a few seconds, then tap Verify again.",
     );
     setStep("pay");
     polling.current = false;
@@ -300,11 +342,21 @@ export default function PayPage() {
   useEffect(() => {
     const onReturn = () => {
       const armed = paypalArmed.current;
-      if (document.visibilityState !== "visible" || !armed || polling.current) return;
-      if (armed.orderId !== paypalOrderIdNow || armed.checks >= 4 || Date.now() - armed.last < 8000) return;
-      armed.checks += 1;
-      armed.last = Date.now();
-      void startVerify({ paypalOrderId: armed.orderId }, { method: "paypal", ids: quotedIds.current ?? undefined });
+      if (
+        document.visibilityState !== "visible" ||
+        !shouldAutoCheck({
+          step,
+          method,
+          armed,
+          polling: polling.current,
+          now: Date.now(),
+          currentOrderId: paypalOrderIdNow,
+        })
+      )
+        return;
+      armed!.checks += 1;
+      armed!.last = Date.now();
+      void startVerify({ paypalOrderId: armed!.orderId }, { method: "paypal", ids: quotedIds.current ?? undefined });
     };
     document.addEventListener("visibilitychange", onReturn);
     window.addEventListener("focus", onReturn);
@@ -312,7 +364,12 @@ export default function PayPage() {
       document.removeEventListener("visibilitychange", onReturn);
       window.removeEventListener("focus", onReturn);
     };
-  }, [startVerify, paypalOrderIdNow]);
+  }, [startVerify, paypalOrderIdNow, step, method]);
+
+  // "Kept on this device" — read client-side only to avoid hydration drift.
+  useEffect(() => {
+    try { setKeptList(readKept(window.localStorage)); } catch { /* */ }
+  }, []);
 
   // Restore a photo that survived a wallet redirect; pick up returned proofs.
   // The verify must use the persisted curator+listing — listings state hasn't
@@ -385,6 +442,14 @@ export default function PayPage() {
     QRCode.toDataURL(walletUrl, { width: 240, margin: 1 }).then(setQrDataUrl).catch(() => {});
   }, [walletUrl]);
 
+  const celoPayTo = celo?.payTo;
+  const [celoQrDataUrl, setCeloQrDataUrl] = useState<string | null>(null);
+  useEffect(() => {
+    setCeloQrDataUrl(null);
+    if (!celoPayTo) return;
+    QRCode.toDataURL(celoPayTo, { width: 240, margin: 1 }).then(setCeloQrDataUrl).catch(() => {});
+  }, [celoPayTo]);
+
   const copy = async (text: string) => {
     try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* blocked */ }
   };
@@ -408,8 +473,12 @@ export default function PayPage() {
     // call counts against the API's per-IP cap.
     setQuote(null);
     setPaypal(null);
+    setCelo(null);
     setQuoteFacts(null);
     setMethod(null);
+    setGuess(null);
+    setResult(null);
+    resultShown.current = false;
     paypalArmed.current = null;
     quotedIds.current = null;
     setError(null);
@@ -459,6 +528,13 @@ export default function PayPage() {
       amount: quote?.amountNear != null ? `${quote.amountNear} NEAR` : null,
       line: "From a NEAR wallet. Goes straight to the seller.",
     },
+    {
+      id: "celo" as PayMethod,
+      live: !!celo,
+      title: "cUSD on Celo",
+      amount: celo ? `${celo.amountCusd} cUSD` : null,
+      line: "From MiniPay, Valora or any Celo wallet. Live on Celo mainnet — real cents.",
+    },
   ].filter((r) => r.live);
 
   const trace = active && traceSteps.length > 0 ? (
@@ -466,6 +542,14 @@ export default function PayPage() {
       <AgentTrace steps={traceSteps} verdict={step === "done" ? null : verdict} />
     </div>
   ) : null;
+
+  const polaroidPath = (() => {
+    const u = result?.polaroid?.webUrl;
+    if (!u) return null;
+    try { return new URL(u).pathname; } catch { return u; }
+  })();
+  const otherListings = listings.filter((l) => l.id !== selected).slice(0, 4);
+  const fitScore = result?.fitSignal?.score ?? null;
 
   return (
     <OnPointLayout>
@@ -480,7 +564,7 @@ export default function PayPage() {
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
             Add a photo, pay a few cents for the render, and it develops right here.
-            Sandbox and testnet — the rails are real, nothing costs real money.
+            PayPal runs in sandbox and NEAR on testnet; cUSD on Celo is live and costs real cents.
           </p>
         </div>
 
@@ -499,54 +583,99 @@ export default function PayPage() {
               <p className="border-l-2 border-foreground pl-3 font-display text-xl leading-snug">{verdict}</p>
             ) : null}
 
+            {(() => {
+              const outcome = guessOutcome(guess, result.fitSignal?.score ?? null);
+              return outcome ? <p className="text-sm">{outcome}</p> : null;
+            })()}
+
+            {/* b) Share row — the polaroid is the artifact that travels */}
+            {result.polaroid?.webUrl && polaroidPath ? (
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-4">
+                  <ShareArtifact
+                    title={`${active?.title ?? "This piece"} — tried on with OnPoint`}
+                    text={`Me in ${active?.title ?? "this piece"}${fitScore != null ? ` — fit ${fitScore}/10` : ""}`}
+                    url={polaroidPath}
+                    imageUrl={result.polaroid.imageUrl ?? null}
+                    label="Send it"
+                  />
+                  <a href={result.polaroid.webUrl} target="_blank" rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline">
+                    Open its page <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                  {result.receiptUrl ? (
+                    <a href={result.receiptUrl} target="_blank" rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 text-sm text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline">
+                      Open the receipt <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  ) : null}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Kept on this device — it&rsquo;s under &ldquo;Your try-ons&rdquo; on this page, and its link works anywhere.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {result.polaroidWarning ? (
+                  <p className="text-sm text-muted-foreground">
+                    The render worked, but the shareable polaroid couldn&rsquo;t be saved — your receipt still has everything.
+                  </p>
+                ) : null}
+                {result.receiptUrl ? (
+                  <a href={result.receiptUrl} target="_blank" rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline">
+                    Open the receipt <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                ) : null}
+              </div>
+            )}
+
+            {/* c) Same photo, another piece */}
+            {otherListings.length > 0 ? (
+              <div>
+                <p className="mb-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
+                  Same photo, another piece
+                </p>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {otherListings.map((l) => (
+                    <button
+                      key={l.id}
+                      type="button"
+                      onClick={() => {
+                        pickPiece(l.id);
+                        window.scrollTo({ top: 0 });
+                      }}
+                      className="rounded-xl border border-border bg-card p-2 text-left transition-all hover:border-foreground/50"
+                    >
+                      <SmartImg
+                        urls={[l.cutoutUrl, l.imageUrl]}
+                        alt={l.title}
+                        className="aspect-square w-full rounded-lg object-cover"
+                        tileClassName="flex aspect-square w-full items-center justify-center rounded-lg bg-muted"
+                      />
+                      <span className="mt-2 block truncate text-xs font-semibold">{l.title}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {/* d) The forward paths */}
+            <TryOnActionRail
+              curatorSlug={curatorSlug}
+              listingId={active?.id ?? ""}
+              itemTitle={active?.title ?? null}
+              imageUrl={result.polaroid?.imageUrl ?? result.renderImage}
+            />
+
+            {/* e) What it cost, what it proves */}
             <p className="text-sm text-muted-foreground">
               {result.payment?.paymentMethod === "paypal" || method === "paypal"
                 ? `Paid${paypal?.amountUsd ? ` $${paypal.amountUsd}` : ""} through PayPal. The seller's payout is recorded on the receipt as pending reconciliation.`
-                : `Paid${quote?.amountNear ? ` ${quote.amountNear}` : ""} NEAR, straight to the seller's account — verified against the chain.`}
+                : result.payment?.paymentMethod === "cusd" || method === "celo"
+                  ? `Paid${celo?.amountCusd != null ? ` ${celo.amountCusd}` : ""} cUSD on Celo — verified against the chain.`
+                  : `Paid${quote?.amountNear ? ` ${quote.amountNear}` : ""} NEAR, straight to the seller's account — verified against the chain.`}
             </p>
-
-            <div className="flex flex-wrap gap-3">
-              {result.polaroid?.webUrl ? (
-                <a href={result.polaroid.webUrl} target="_blank" rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-3 text-sm font-bold text-background transition-colors hover:bg-foreground/90">
-                  Share the polaroid <ExternalLink className="h-4 w-4" />
-                </a>
-              ) : result.receiptUrl ? (
-                <a href={result.receiptUrl} target="_blank" rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-3 text-sm font-bold text-background transition-colors hover:bg-foreground/90">
-                  Open the receipt <ExternalLink className="h-4 w-4" />
-                </a>
-              ) : null}
-              {result.polaroid?.webUrl && result.receiptUrl ? (
-                <a href={result.receiptUrl} target="_blank" rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-border px-5 py-3 text-sm font-bold transition-colors hover:bg-muted">
-                  Open the receipt <ExternalLink className="h-4 w-4" />
-                </a>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => {
-                  setResult(null);
-                  setQuote(null);
-                  setPaypal(null);
-                  setQuoteFacts(null);
-                  setMethod(null);
-                  paypalArmed.current = null;
-                  setError(null);
-                  setStep("photo");
-                  window.scrollTo({ top: 0 });
-                }}
-                className="inline-flex items-center gap-2 rounded-full border border-border px-5 py-3 text-sm font-bold transition-colors hover:bg-muted"
-              >
-                Try another piece
-              </button>
-            </div>
-
-            {result.polaroidWarning ? (
-              <p className="text-sm text-muted-foreground">
-                The render worked, but the shareable polaroid couldn&rsquo;t be saved — your receipt still has everything.
-              </p>
-            ) : null}
 
             <FactList
               rows={[
@@ -605,7 +734,8 @@ export default function PayPage() {
                 {step === "verify" && photo ? (
                   // In verify the whole column IS the developing polaroid —
                   // no bordered frame around it, or the caption overflows.
-                  <Polaroid src={photo} caption="Developing…" developing />
+                  // The garment cross-fades over the washed-out photo.
+                  <Polaroid src={photo} developing overlaySrc={active?.cutoutUrl ?? active?.imageUrl ?? undefined} />
                 ) : (
                 <div className="relative aspect-[3/4] border border-border bg-muted/20">
                   {photo ? (
@@ -692,7 +822,7 @@ export default function PayPage() {
                 <h2 className="font-display text-xl">
                   {price != null ? `It's $${price.toFixed(2)}. How would you like to pay?` : "How would you like to pay?"}
                 </h2>
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-3">
                   {railChoices.map((r) => (
                     <button
                       key={r.id}
@@ -796,6 +926,51 @@ export default function PayPage() {
                   </div>
                 ) : null}
 
+                {method === "celo" && celo ? (
+                  <div className="space-y-4">
+                    <p className="rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-xs text-warning">
+                      This rail is live on Celo mainnet — it costs {celo.amountCusd} real cUSD.
+                    </p>
+                    <div>
+                      <p className="text-sm">Send <span className="font-mono font-bold">{celo.amountCusd} cUSD</span> to</p>
+                      <div className="mt-2 flex items-start gap-2">
+                        <p className="min-w-0 flex-1 break-all font-mono text-xs text-muted-foreground">{celo.payTo}</p>
+                        <button type="button" onClick={() => copy(celo.payTo)} className="shrink-0 text-muted-foreground transition-colors hover:text-foreground" aria-label="Copy address">
+                          {copied ? <CheckCircle2 className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {celoQrDataUrl ? (
+                      <details className="text-sm">
+                        <summary className="cursor-pointer text-sm font-semibold text-primary underline-offset-2 hover:underline">Show the address as a QR</summary>
+                        <div className="mt-3 flex items-center gap-4">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={celoQrDataUrl} alt="Scan for the address" className="h-24 w-24 rounded-xl" />
+                          <p className="text-xs text-muted-foreground">Scan for the address, then enter {celo.amountCusd} cUSD.</p>
+                        </div>
+                      </details>
+                    ) : null}
+
+                    <div>
+                      <div className="flex gap-2">
+                        <input
+                          value={txHash}
+                          onChange={(e) => setTxHash(e.target.value)}
+                          placeholder="paste the transaction hash"
+                          className="min-w-0 flex-1 rounded-xl border border-border bg-background px-4 py-3 font-mono text-sm outline-none focus:border-foreground"
+                          aria-label="Celo transaction hash"
+                        />
+                        <button type="button" disabled={!/^0x[0-9a-fA-F]{64}$/.test(txHash.trim())} onClick={() => startVerify({ paymentTxHash: txHash.trim() }, { method: "celo", ids: quotedIds.current ?? undefined })}
+                          className="shrink-0 rounded-full bg-foreground px-5 py-3 text-sm font-bold text-background transition-colors hover:bg-foreground/90 disabled:opacity-40">
+                          Verify
+                        </button>
+                      </div>
+                      <p className="mt-2 text-xs text-muted-foreground">Just the hash — I read the transfer from the chain.</p>
+                    </div>
+                  </div>
+                ) : null}
+
                 <button
                   type="button"
                   onClick={() => { setMethod(null); paypalArmed.current = null; setStep("choose"); }}
@@ -808,16 +983,39 @@ export default function PayPage() {
 
             {/* ── Step: verify — the polaroid develops ───────────── */}
             {step === "verify" ? (
-              <div className="mt-6">
+              <div className="mt-6 space-y-6">
+                <FitGuess guess={guess} onPick={setGuess} />
                 <StagedWait
                   bare
                   title="Developing your try-on"
                   stages={[{ at: 0, label: "Payment check, render and fit read happen in one pass" }]}
                   lines={[
+                    "It's made from your actual photo and the actual garment image.",
+                    "One request checks the payment, renders you, and reads the fit.",
                     "Renders usually land in 15 to 40 seconds.",
                     "Your photo is used once for this render.",
+                    "The receipt is written the moment the render lands.",
                   ]}
                 />
+              </div>
+            ) : null}
+
+            {/* Kept on this device — the try-ons this browser produced */}
+            {keptList.length > 0 ? (
+              <div className="mt-8">
+                <p className="mb-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
+                  Your try-ons · on this device
+                </p>
+                <div className="flex gap-3 overflow-x-auto pb-1">
+                  {keptList.map((k) => (
+                    <a key={k.id} href={k.webUrl} target="_blank" rel="noreferrer"
+                      className="w-[88px] shrink-0 bg-white p-1 pb-1.5 shadow-sm transition-transform hover:-translate-y-0.5">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={k.imageUrl} alt={k.item} className="h-[96px] w-[72px] object-cover" />
+                      <span className="mt-1 block truncate text-xs text-neutral-800">{k.item}</span>
+                    </a>
+                  ))}
+                </div>
               </div>
             ) : null}
 
