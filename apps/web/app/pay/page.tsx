@@ -310,9 +310,13 @@ export default function PayPage() {
   }, []);
 
   useEffect(() => {
+    let stale = false;
+    setListings([]);
+    setSelected("");
     fetch(`/api/pay/listings?curator=${encodeURIComponent(curatorSlug)}`)
       .then((r) => r.json())
       .then((d) => {
+        if (stale) return;
         const items = Array.isArray(d.listings) ? d.listings : [];
         setListings(items);
         const wanted = preselectListing.current;
@@ -322,6 +326,7 @@ export default function PayPage() {
         setSelected(picked);
       })
       .catch(() => {});
+    return () => { stale = true; };
   }, [curatorSlug]);
 
   const walletUrl = quote?.accountId && quote?.amountNear && typeof window !== "undefined"
