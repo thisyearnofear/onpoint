@@ -799,6 +799,7 @@ router.post('/', async (req, res) => {
           txHash: effectiveTxHash,
           amountCusd: priceCusd.toFixed(2),
           explorerUrl,
+          paymentMethod,
         },
         storefrontUrl: storefrontWebUrl(slug),
         createdAt: new Date().toISOString(),

@@ -4,33 +4,88 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  ArrowLeft, Check, CheckCircle2, Copy, CreditCard, ExternalLink,
+  ArrowLeft, CheckCircle2, Copy, CreditCard, ExternalLink,
   HelpCircle, Loader2, Shirt, Wallet,
 } from "lucide-react";
 import QRCode from "qrcode";
 import { OnPointLayout } from "../../components/OnPointLayout";
+import { AgentTrace } from "../../components/pay/AgentTrace";
+import { ErrorState } from "../../components/state";
+import { FactList, shortHash } from "../../components/surface/FactList";
+import { buildTrace, type PayMethod, type TraceFacts } from "../../lib/pay/trace";
 
 const DEMO_CURATOR = "onpoint-store";
 const WALLET_SEND = "https://testnet.mynearwallet.com/send-money";
 
 type Step = "photo" | "method" | "verify" | "done";
-type Method = "near" | "paypal" | "card";
+type Method = PayMethod | "card";
 
-interface Listing { id: string; title: string; imageUrl: string | null; priceKes: number | null }
+interface Listing { id: string; title: string; imageUrl: string | null; cutoutUrl?: string | null; priceKes: number | null }
 interface NearQuote { network?: string; accountId?: string; amountNear?: number }
 interface PaypalQuote { approveUrl?: string; orderId?: string; amountUsd?: number }
+interface QuoteFacts { rails: string[]; ms: number; paypal?: PaypalQuote | null; near?: NearQuote | null }
+interface TryOnResult {
+  requestMs: number;
+  renderImage: string | null;
+  payment?: { txHash?: string | null; explorerUrl?: string | null; paymentMethod?: string; amountCusd?: number };
+  renderMeta?: { provider?: string; imageConditioned?: boolean };
+  fitSignal?: { score?: number | null; confidence?: number | string | null; recommendedSize?: string | null } | null;
+  aiCost?: { provider?: string; model?: string | null; costUsd?: number | string | null } | null;
+  receiptId?: string | null;
+  receiptUrl?: string | null;
+  polaroid?: { imageUrl?: string; webUrl?: string } | null;
+  polaroidWarning?: { reason?: string } | null;
+  stylingTips?: string[];
+}
 
-const STEPS: { id: Step; label: string }[] = [
-  { id: "photo", label: "Your photo" },
-  { id: "method", label: "Choose payment" },
-  { id: "verify", label: "Try-on ready" },
-];
+function ItemThumb({ urls }: { urls: (string | null | undefined)[] }) {
+  // Try each candidate in order (cutout first — dead R2 keys fall through
+  // to the listing photo), then the placeholder tile.
+  const sources = urls.filter((u): u is string => Boolean(u));
+  const [failedCount, setFailedCount] = useState(0);
+  const src = sources[failedCount];
+  if (!src) {
+    return (
+      <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-muted"><Shirt className="h-7 w-7 text-muted-foreground" /></div>
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt="" onError={() => setFailedCount((n) => n + 1)} className="h-20 w-20 rounded-xl object-cover" />
+  );
+}
+
+const CTX_KEY = "onpoint-pay-context";
+const PHOTO_KEY = "onpoint-pay-photo";
+
+/** PayPal reasons meaning "the payer just hasn't approved yet" — keep polling. */
+const PAYPAL_PENDING_REASON = "not_approved";
+
+function paypalReasonMessage(error: string): { keepPolling: boolean; message: string | null } {
+  const m = /^PayPal payment not verified: (.+)$/.exec(error || "");
+  if (!m) return { keepPolling: false, message: null };
+  const reason = m[1] ?? "";
+  if (reason === PAYPAL_PENDING_REASON) return { keepPolling: true, message: null };
+  const friendly: Record<string, string> = {
+    order_not_found: "PayPal couldn't find that order — use the approve link again and I'll pick it up.",
+    reference_mismatch: "That approval was for a different order — approve the link on this page and I'll check again.",
+    currency_mismatch: "That approval was for a different amount — approve the link on this page and I'll check again.",
+    insufficient_amount: "That approval was for a different amount — approve the link on this page and I'll check again.",
+    auth_failed: "The payment rail hiccuped on our side, not yours — try again in a minute.",
+    capture_incomplete: "PayPal approved it but the capture didn't finish — nothing was taken twice. Check again in a moment.",
+  };
+  if (friendly[reason]) return { keepPolling: false, message: friendly[reason] };
+  if (reason.startsWith("capture_failed_") || reason.startsWith("orders_get_")) {
+    return { keepPolling: false, message: "PayPal didn't answer cleanly — nothing was taken twice. Check again in a moment." };
+  }
+  return { keepPolling: false, message: `PayPal couldn't verify the approval (${reason}) — approve the link and check again.` };
+}
 
 /**
  * Human front door to the payment rails — the same 402 → pay → verify flow
- * agents run programmatically, as a checkout. Method-agnostic: the tiles
- * render whatever the quote advertises (NEAR live, PayPal live, card soon).
- * The payer is derived from the transaction itself — one field max.
+ * agents run programmatically, as a checkout. The agent's work shows as a
+ * first-person trace whose every line is backed by real data; nothing
+ * advances on a timer.
  */
 export default function PayPage() {
   const [step, setStep] = useState<Step>("photo");
@@ -41,12 +96,12 @@ export default function PayPage() {
   const preselectListing = useRef<string | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);
   const [photoLoading, setPhotoLoading] = useState(false);
+  const [quoting, setQuoting] = useState(false);
   const [quote, setQuote] = useState<NearQuote | null>(null);
   const [paypal, setPaypal] = useState<PaypalQuote | null>(null);
-  const [render, setRender] = useState<string | null>(null);
+  const [quoteFacts, setQuoteFacts] = useState<QuoteFacts | null>(null);
+  const [result, setResult] = useState<TryOnResult | null>(null);
   const [txHash, setTxHash] = useState("");
-  const [paypalOrderId, setPaypalOrderId] = useState("");
-  const [tick, setTick] = useState(0); // verify stage: 0 quoted,1 payment seen,2 rendering,3 done
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
@@ -55,14 +110,34 @@ export default function PayPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const polling = useRef(false);
   const pendingPhoto = useRef<string | null>(null);
+  // Explicit ids a returned-proof verify is bound to — a wallet redirect
+  // reloads the page before listings land, so state alone isn't reliable
+  // there. Set only on the return path, cleared when a verify ends.
+  const verifyIds = useRef<{ curatorSlug: string; listingId: string } | null>(null);
+  // The {curatorSlug, listingId} the current quote was fetched for — verify
+  // must send the same listing the PayPal/NEAR order is bound to.
+  const quotedIds = useRef<{ curatorSlug: string; listingId: string } | null>(null);
 
-  const callRail = useCallback(async (extra: Record<string, string>, photoData?: string | null) => {
+  const persistContext = useCallback((ctx: {
+    curatorSlug: string;
+    listingId: string;
+    quote?: QuoteFacts | null;
+  }) => {
+    try { sessionStorage.setItem(CTX_KEY, JSON.stringify(ctx)); } catch { /* quota */ }
+  }, []);
+
+  const callRail = useCallback(async (
+    extra: Record<string, string>,
+    photoData?: string | null,
+    ids?: { curatorSlug: string; listingId: string },
+  ) => {
+    const use = ids ?? verifyIds.current ?? { curatorSlug, listingId: selected };
     const res = await fetch("/api/pay/try-on", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        curatorSlug,
-        listingId: selected,
+        curatorSlug: use.curatorSlug,
+        listingId: use.listingId,
         photoData: photoData ?? photo,
         ...extra,
       }),
@@ -71,6 +146,8 @@ export default function PayPage() {
   }, [photo, selected, curatorSlug]);
 
   const getQuote = useCallback(async (photoData: string, listingId?: string) => {
+    setQuoting(true);
+    const started = performance.now();
     const res = await fetch("/api/pay/try-on", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -78,22 +155,39 @@ export default function PayPage() {
     });
     const data = await res.json().catch(() => ({}));
     if (res.status === 402) {
-      const near = data.near || data.quote?.near || (Array.isArray(data.paymentRails) ? null : null);
-      const pp = data.paypal || data.quote?.paypal;
+      const ms = Math.round(performance.now() - started);
+      const near = data.near || data.quote?.near || null;
+      const pp = data.paypal || data.quote?.paypal || null;
+      const rails: string[] = Array.isArray(data.quote?.paymentRails)
+        ? data.quote.paymentRails
+        : Array.isArray(data.paymentRails) ? data.paymentRails : [];
+      const facts: QuoteFacts = {
+        rails,
+        ms,
+        paypal: pp ? { orderId: pp.orderId, amountUsd: pp.amountUsd } : null,
+        near: near ? { amountNear: near.amountNear, network: near.network } : null,
+      };
       setQuote(near || null);
       setPaypal(pp || null);
+      setQuoteFacts(facts);
+      quotedIds.current = { curatorSlug, listingId: listingId ?? selected };
+      // Default to a rail that's actually live.
+      if (!near && pp) setMethod("paypal");
+      persistContext({ curatorSlug, listingId: listingId ?? selected, quote: facts });
+      setQuoting(false);
       return true;
     }
+    setQuoting(false);
     setError(data.error || `Couldn't fetch your payment options (${res.status}) — try again.`);
     return false;
-  }, [selected, curatorSlug]);
+  }, [selected, curatorSlug, persistContext]);
 
   const onFile = (file: File) => {
     const reader = new FileReader();
     reader.onload = async () => {
       const data = String(reader.result);
       setPhoto(data);
-      try { sessionStorage.setItem("onpoint-pay-photo", data); } catch { /* quota */ }
+      try { sessionStorage.setItem(PHOTO_KEY, data); } catch { /* quota */ }
       setPhotoLoading(true);
       setError(null);
       const ok = await getQuote(data);
@@ -103,37 +197,79 @@ export default function PayPage() {
     reader.readAsDataURL(file);
   };
 
-  const startVerify = useCallback(async (extra: Record<string, string>) => {
+  const startVerify = useCallback(async (
+    extra: Record<string, string>,
+    opts?: { method?: PayMethod; ids?: { curatorSlug: string; listingId: string } },
+  ) => {
     if (polling.current) return;
     polling.current = true;
     setError(null);
-    setTick(1);
+    const methodNow: PayMethod = opts?.method ?? (method === "paypal" ? "paypal" : "near");
+    if (opts?.method) setMethod(opts.method);
+    const ids = opts?.ids ?? verifyIds.current ?? quotedIds.current ?? { curatorSlug, listingId: selected };
+    // PayPal waits on a human logging in and approving — give it five
+    // minutes. NEAR is a wallet send; the 150s window is plenty.
+    const windowMs = methodNow === "paypal" ? 300_000 : 150_000;
+    const intervalMs = methodNow === "paypal" ? 5000 : 4000;
+    const deadline = Date.now() + windowMs;
     setStep("verify");
-    const deadline = Date.now() + 150_000;
     while (Date.now() < deadline) {
-      setTick((t) => Math.max(t, Date.now() - (deadline - 150_000) > 10_000 ? 2 : 1));
-      const { status, data } = await callRail(extra, pendingPhoto.current ?? photo);
+      const callStart = performance.now();
+      const { status, data } = await callRail(extra, pendingPhoto.current ?? photo, ids);
       if (status === 200 && (data.success || data.tryOn)) {
-        setTick(3);
-        setRender(data.tryOn?.render?.image || null);
+        setResult({
+          requestMs: performance.now() - callStart,
+          renderImage: data.tryOn?.render?.image || null,
+          payment: data.payment || undefined,
+          renderMeta: data.tryOn?.render
+            ? { provider: data.tryOn.render.provider, imageConditioned: data.tryOn.render.imageConditioned }
+            : undefined,
+          fitSignal: data.tryOn?.fitSignal ?? null,
+          aiCost: data.aiCost ?? null,
+          receiptId: data.receiptId ?? null,
+          receiptUrl: data.receiptUrl ?? null,
+          polaroid: data.polaroid ?? null,
+          polaroidWarning: data.polaroidWarning ?? null,
+          stylingTips: Array.isArray(data.tryOn?.stylingTips) ? data.tryOn.stylingTips : [],
+        });
         setStep("done");
         polling.current = false;
+        verifyIds.current = null;
+        try { sessionStorage.removeItem(CTX_KEY); sessionStorage.removeItem(PHOTO_KEY); } catch { /* */ }
         return;
       }
-      if (status !== 402) {
-        setError(data.error || `Something went wrong (${status}) — try again.`);
+      if (status === 402) {
+        const err = typeof data.error === "string" ? data.error : "";
+        if (methodNow !== "paypal" || paypalReasonMessage(err).keepPolling) {
+          await new Promise((r) => setTimeout(r, intervalMs));
+          continue;
+        }
+        const { message } = paypalReasonMessage(err);
+        setError(message || err || "PayPal couldn't verify the approval — try again.");
         setStep("method");
         polling.current = false;
+        verifyIds.current = null;
         return;
       }
-      await new Promise((r) => setTimeout(r, 4000));
+      setError(data.error || `Something went wrong (${status}) — try again.`);
+      setStep("method");
+      polling.current = false;
+      verifyIds.current = null;
+      return;
     }
-    setError("Payment hasn't landed yet — check your wallet or approval, then retry.");
+    setError(
+      methodNow === "paypal"
+        ? "I stopped checking after five minutes — approve the link, then tap “I've approved — check again”."
+        : "Payment hasn't landed yet — check your wallet or approval, then check again.",
+    );
     setStep("method");
     polling.current = false;
-  }, [callRail, photo]);
+    verifyIds.current = null;
+  }, [callRail, photo, method, curatorSlug, selected]);
 
-  // Restore a photo that survived a wallet/PayPal redirect; pick up returned proofs.
+  // Restore a photo that survived a wallet redirect; pick up returned proofs.
+  // The verify must use the persisted curator+listing — listings state hasn't
+  // loaded yet on return, so `selected` would be "" here.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const wantedCurator = params.get("curator");
@@ -145,18 +281,29 @@ export default function PayPage() {
     const returned = params.get("transactionHashes") || params.get("tx");
     const ppId = params.get("paypalOrderId") || params.get("token");
     let stored: string | null = null;
-    try { stored = sessionStorage.getItem("onpoint-pay-photo"); } catch { /* ssr */ }
+    let storedCtx: { curatorSlug?: string; listingId?: string; quote?: QuoteFacts } | null = null;
+    try {
+      stored = sessionStorage.getItem(PHOTO_KEY);
+      storedCtx = JSON.parse(sessionStorage.getItem(CTX_KEY) || "null");
+    } catch { /* ssr */ }
+    if (storedCtx?.quote) setQuoteFacts(storedCtx.quote);
+    // Only a returned proof binds verify to stored ids — an ordinary reload
+    // must not pin every later request to a stale listing.
+    const ids = storedCtx?.curatorSlug && storedCtx?.listingId
+      ? { curatorSlug: storedCtx.curatorSlug, listingId: storedCtx.listingId }
+      : wantedCurator && wantedListing
+        ? { curatorSlug: wantedCurator, listingId: wantedListing }
+        : undefined;
     if (stored && !photo) { setPhoto(stored); pendingPhoto.current = stored; }
     if (returned) {
       setTxHash(returned);
       window.history.replaceState({}, "", "/pay");
-      if (stored) { void startVerify({ nearTxHash: returned }); }
+      if (stored && ids) { verifyIds.current = ids; void startVerify({ nearTxHash: returned }, { method: "near", ids }); }
       else setStep("photo");
     } else if (ppId) {
-      setPaypalOrderId(ppId);
       setMethod("paypal");
       window.history.replaceState({}, "", "/pay");
-      if (stored) { void startVerify({ paypalOrderId: ppId }); }
+      if (stored && ids) { verifyIds.current = ids; void startVerify({ paypalOrderId: ppId }, { method: "paypal", ids }); }
       else setStep("photo");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -171,7 +318,8 @@ export default function PayPage() {
         const wanted = preselectListing.current;
         preselectListing.current = null;
         const match = wanted ? items.find((l: Listing) => l.id === wanted) : null;
-        setSelected(match ? match.id : items[0]?.id ?? "");
+        const picked = match ? match.id : items[0]?.id ?? "";
+        setSelected(picked);
       })
       .catch(() => {});
   }, [curatorSlug]);
@@ -190,7 +338,30 @@ export default function PayPage() {
   };
 
   const active = listings.find((l) => l.id === selected);
-  const stepIdx = STEPS.findIndex((s) => s.id === (step === "done" ? "verify" : step));
+
+  const phase: TraceFacts["phase"] =
+    step === "done" ? "done"
+      : step === "verify" ? "checking"
+        : quoting ? "quoting"
+          : step === "method" ? "awaiting" : "idle";
+
+  const { steps: traceSteps, verdict } = buildTrace({
+    listing: active ? { title: active.title, curatorSlug } : undefined,
+    quote: quoteFacts,
+    method: method === "card" ? undefined : method,
+    phase,
+    result: result
+      ? {
+          requestMs: result.requestMs,
+          payment: result.payment,
+          render: result.renderMeta,
+          fitSignal: result.fitSignal,
+          aiCost: result.aiCost,
+          receiptId: result.receiptId,
+          receiptUrl: result.receiptUrl,
+        }
+      : undefined,
+  });
 
   return (
     <OnPointLayout>
@@ -206,41 +377,15 @@ export default function PayPage() {
             See it on you, then pay for the render
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            Upload a photo, pick a way to pay, and the try-on lands in about thirty seconds.
-            Demo pricing on testnet — the payment rails are real, nothing here costs real money.
+            Upload a photo, pick a way to pay, and watch the work happen.
+            Sandbox and testnet pricing — the rails are real, nothing here costs real money.
           </p>
         </div>
-
-        {/* Progress */}
-        <ol className="mt-6 flex items-center gap-2">
-          {STEPS.map((s, i) => (
-            <li key={s.id} className="flex flex-1 items-center gap-2">
-              <span
-                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-colors ${
-                  i < stepIdx || step === "done"
-                    ? "bg-foreground text-background"
-                    : i === stepIdx
-                      ? "border-2 border-foreground text-foreground"
-                      : "border border-border text-muted-foreground"
-                }`}
-              >
-                {i < stepIdx || step === "done" ? <Check className="h-3.5 w-3.5" /> : i + 1}
-              </span>
-              <span className={`text-xs font-medium ${i <= stepIdx || step === "done" ? "text-foreground" : "text-muted-foreground"}`}>{s.label}</span>
-              {i < STEPS.length - 1 ? <span className="h-px flex-1 bg-border" /> : null}
-            </li>
-          ))}
-        </ol>
 
         {/* Item card — the purchase, visible */}
         {active ? (
           <div className="mt-6 flex items-center gap-4 rounded-2xl border border-border bg-card p-4">
-            {active.imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={active.imageUrl} alt="" className="h-20 w-20 rounded-xl object-cover" />
-            ) : (
-              <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-muted"><Shirt className="h-7 w-7 text-muted-foreground" /></div>
-            )}
+            <ItemThumb key={active.id} urls={[active.cutoutUrl, active.imageUrl]} />
             <div className="min-w-0">
               <p className="text-sm font-bold leading-snug">{active.title}</p>
               <p className="mt-0.5 text-xs text-muted-foreground">
@@ -250,13 +395,35 @@ export default function PayPage() {
             {listings.length > 1 ? (
               <select
                 value={selected}
-                onChange={(e) => setSelected(e.target.value)}
+                disabled={step === "verify" || quoting}
+                onChange={(e) => {
+                  const newId = e.target.value;
+                  setSelected(newId);
+                  // A quote (and any PayPal order inside it) is bound to the
+                  // listing it was fetched for — switching pieces re-quotes.
+                  if (quoteFacts && photo) {
+                    setQuote(null);
+                    setPaypal(null);
+                    setQuoteFacts(null);
+                    setError(null);
+                    void getQuote(photo, newId);
+                  } else {
+                    persistContext({ curatorSlug, listingId: newId, quote: quoteFacts });
+                  }
+                }}
                 className="ml-auto rounded-xl border border-border bg-background px-3 py-2 text-xs font-medium"
                 aria-label="Choose a piece"
               >
                 {listings.map((l) => <option key={l.id} value={l.id}>{l.title}</option>)}
               </select>
             ) : null}
+          </div>
+        ) : null}
+
+        {/* The agent's work — the spine of the page from the offer onward */}
+        {active ? (
+          <div className="mt-6">
+            <AgentTrace steps={traceSteps} verdict={verdict} />
           </div>
         ) : null}
 
@@ -376,7 +543,7 @@ export default function PayPage() {
                       className="min-w-0 flex-1 rounded-xl border border-border bg-background px-4 py-3 font-mono text-sm outline-none focus:border-foreground"
                       aria-label="NEAR transaction hash"
                     />
-                    <button type="button" disabled={!txHash.trim()} onClick={() => startVerify({ nearTxHash: txHash.trim() })}
+                    <button type="button" disabled={!txHash.trim()} onClick={() => startVerify({ nearTxHash: txHash.trim() }, { method: "near", ids: quotedIds.current ?? undefined })}
                       className="shrink-0 rounded-full bg-foreground px-5 py-3 text-sm font-bold text-background transition-colors hover:bg-foreground/90 disabled:opacity-40">
                       Verify
                     </button>
@@ -386,29 +553,28 @@ export default function PayPage() {
               </div>
             ) : null}
 
-            {/* PayPal body */}
+            {/* PayPal body — no order id to paste; the quote carries it */}
             {method === "paypal" && paypal?.approveUrl ? (
               <div className="space-y-4">
                 <a href={paypal.approveUrl} target="_blank" rel="noreferrer"
+                  onClick={() => {
+                    if (paypal.orderId) void startVerify({ paypalOrderId: paypal.orderId }, { method: "paypal", ids: quotedIds.current ?? undefined });
+                  }}
                   className="flex w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 py-3.5 text-sm font-bold text-background transition-colors hover:bg-foreground/90">
                   Approve {paypal.amountUsd ? `$${paypal.amountUsd}` : "payment"} on PayPal <ExternalLink className="h-4 w-4" />
                 </a>
-                <div className="rounded-2xl border border-border p-4">
-                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Approved it?</p>
-                  <div className="mt-3 flex gap-2">
-                    <input
-                      value={paypalOrderId}
-                      onChange={(e) => setPaypalOrderId(e.target.value)}
-                      placeholder="paste the PayPal order id"
-                      className="min-w-0 flex-1 rounded-xl border border-border bg-background px-4 py-3 font-mono text-sm outline-none focus:border-foreground"
-                      aria-label="PayPal order id"
-                    />
-                    <button type="button" disabled={!paypalOrderId.trim()} onClick={() => startVerify({ paypalOrderId: paypalOrderId.trim() })}
-                      className="shrink-0 rounded-full bg-foreground px-5 py-3 text-sm font-bold text-background transition-colors hover:bg-foreground/90 disabled:opacity-40">
-                      Verify
-                    </button>
-                  </div>
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  PayPal asks you, not me — I&rsquo;ll pick it up from here the moment you approve.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (paypal.orderId) void startVerify({ paypalOrderId: paypal.orderId }, { method: "paypal", ids: quotedIds.current ?? undefined });
+                  }}
+                  className="text-sm font-semibold text-primary underline-offset-2 hover:underline"
+                >
+                  I&rsquo;ve approved — check again
+                </button>
               </div>
             ) : null}
 
@@ -424,55 +590,95 @@ export default function PayPage() {
           </div>
         ) : null}
 
-        {/* ── Step 3: verify — the wait, staged ──────────────────── */}
+        {/* ── Step 3: verify — the trace's pending row is the wait ── */}
         {step === "verify" ? (
-          <div className="mt-6 rounded-xl border border-border bg-card p-8">
-            <ol className="mx-auto max-w-sm space-y-4">
-              {["Payment quote locked in", "Payment seen on-chain", "Rendering your try-on", "Ready"].map((label, i) => (
-                <li key={label} className="flex items-center gap-3">
-                  <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all ${
-                    tick > i ? "bg-foreground text-background" : tick === i ? "border-2 border-foreground" : "border border-border text-muted-foreground"
-                  }`}>
-                    {tick > i ? <Check className="h-3.5 w-3.5" /> : tick === i ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : i + 1}
-                  </span>
-                  <span className={`text-sm ${tick >= i ? "font-semibold text-foreground" : "text-muted-foreground"}`}>{label}</span>
-                </li>
-              ))}
-            </ol>
-            <p className="mt-6 text-center text-xs text-muted-foreground">Verified trustlessly on-chain — usually under 30 seconds.</p>
-          </div>
+          <p className="mt-4 text-xs text-muted-foreground">
+            {method === "paypal"
+              ? "Capture, render and fit read happen in one pass — usually under a minute."
+              : "I verify the transfer against NEAR's own RPC, then render — usually under a minute."}
+          </p>
         ) : null}
 
         {/* ── Done: the render is the hero ────────────────────────── */}
-        {step === "done" ? (
+        {step === "done" && result ? (
           <div className="mt-6 space-y-5">
             <div className="overflow-hidden rounded-xl border border-border bg-card shadow-lg">
-              {render ? (
+              {result.renderImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={render} alt="Your try-on render" className="w-full" />
+                <img src={result.renderImage} alt="Your try-on render" className="w-full" />
               ) : (
                 <div className="flex h-64 items-center justify-center bg-muted"><Shirt className="h-8 w-8 text-muted-foreground" /></div>
               )}
               <div className="border-t border-border p-5">
                 <p className="text-sm font-bold">That&rsquo;s you, wearing it.</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Paid {method === "near" && quote?.amountNear ? `${quote.amountNear} NEAR` : method === "paypal" ? "via PayPal" : ""} — verified on-chain, direct to the seller. No middleman took a cut.
+                  {method === "paypal"
+                    ? `Paid${paypal?.amountUsd ? ` $${paypal.amountUsd}` : ""} through PayPal. The seller's payout is recorded on the receipt as pending reconciliation.`
+                    : `Paid${quote?.amountNear ? ` ${quote.amountNear}` : ""} NEAR, straight to the seller's account — verified against the chain.`}
                 </p>
               </div>
             </div>
+
+            <FactList
+              rows={[
+                result.fitSignal?.score != null ? { label: "Fit score", value: String(result.fitSignal.score) } : null,
+                result.fitSignal?.recommendedSize ? { label: "Recommended size", value: result.fitSignal.recommendedSize } : null,
+                result.renderMeta?.provider ? { label: "Render", value: result.renderMeta.provider } : null,
+                result.aiCost?.costUsd != null
+                  ? {
+                      label: "AI cost",
+                      value: `$${Number(result.aiCost.costUsd).toFixed(6)} via ${result.aiCost.provider ?? "provider"}${result.aiCost.model ? ` · ${result.aiCost.model}` : ""}`,
+                      mono: true,
+                    }
+                  : null,
+                result.payment?.txHash
+                  ? {
+                      label: "Payment",
+                      value: shortHash(result.payment.txHash),
+                      mono: true,
+                      href: result.payment.explorerUrl ?? undefined,
+                    }
+                  : null,
+                result.receiptUrl
+                  ? { label: "Receipt", value: result.receiptId ?? "public receipt", href: result.receiptUrl }
+                  : null,
+              ].filter((r): r is NonNullable<typeof r> => r !== null)}
+            />
+
+            {result.stylingTips && result.stylingTips.length > 0 ? (
+              <ul className="space-y-1.5">
+                {result.stylingTips.slice(0, 3).map((tip, i) => (
+                  <li key={i} className="text-sm text-muted-foreground">{tip}</li>
+                ))}
+              </ul>
+            ) : null}
+
             <div className="flex flex-wrap gap-3">
-              <Link href="/lab/try-on" className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-3 text-sm font-bold text-background transition-colors hover:bg-foreground/90">
+              {result.receiptUrl ? (
+                <a href={result.receiptUrl} target="_blank" rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-3 text-sm font-bold text-background transition-colors hover:bg-foreground/90">
+                  Open the receipt <ExternalLink className="h-4 w-4" />
+                </a>
+              ) : null}
+              {result.polaroid?.webUrl ? (
+                <a href={result.polaroid.webUrl} target="_blank" rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full border border-border px-5 py-3 text-sm font-bold transition-colors hover:bg-muted">
+                  Share the polaroid <ExternalLink className="h-4 w-4" />
+                </a>
+              ) : result.polaroidWarning ? (
+                <p className="text-sm text-muted-foreground">
+                  The render worked, but the shareable polaroid couldn&rsquo;t be saved — your receipt still has everything.
+                </p>
+              ) : null}
+              <Link href="/lab/try-on" className="inline-flex items-center gap-2 rounded-full border border-border px-5 py-3 text-sm font-bold transition-colors hover:bg-muted">
                 Try more pieces <ExternalLink className="h-4 w-4" />
-              </Link>
-              <Link href="/" className="inline-flex items-center gap-2 rounded-full border border-border px-5 py-3 text-sm font-bold transition-colors hover:bg-muted">
-                Back to wardrobe
               </Link>
             </div>
           </div>
         ) : null}
 
         {error ? (
-          <p className="mt-5 rounded-xl border border-error/30 bg-error/10 px-4 py-3 text-sm text-error">{error}</p>
+          <ErrorState className="mt-5" message={error} onDismiss={() => setError(null)} />
         ) : null}
       </div>
     </OnPointLayout>

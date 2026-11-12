@@ -17,10 +17,12 @@ export async function GET(request: Request) {
   const data = await upstream.json().catch(() => ({}));
   const listings = (data.listings ?? [])
     .filter((l: { id?: string }) => l.id)
-    .map((l: { id: string; title?: string; name?: string; imageUrl?: string; image?: string; priceKes?: number }) => ({
+    .map((l: { id: string; title?: string; name?: string; imageUrl?: string; cutoutUrl?: string; image?: string; priceKes?: number }) => ({
       id: l.id,
       title: l.title || l.name || "Listing",
-      imageUrl: l.imageUrl || l.image || null,
+      // The cutout is the real product shot; imageUrl can be a placeholder.
+      imageUrl: l.imageUrl ?? l.image ?? null,
+      cutoutUrl: l.cutoutUrl ?? null,
       priceKes: l.priceKes ?? null,
     }));
   return NextResponse.json({ listings }, { status: upstream.ok ? 200 : 502 });
