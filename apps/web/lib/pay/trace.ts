@@ -8,9 +8,11 @@ export interface TraceFacts {
   quote?: {
     rails: string[];
     ms: number;
+    priceUsd?: number;
     paypal?: { orderId?: string; amountUsd?: number } | null;
     near?: { amountNear?: number; network?: string } | null;
   } | null;
+  /** May be undefined while awaiting — the user hasn't chosen a rail yet. */
   method?: PayMethod;
   phase: "idle" | "quoting" | "awaiting" | "checking" | "done";
   result?: {
@@ -31,8 +33,13 @@ export interface TraceFacts {
 export interface TraceStep {
   id: string;
   label: string;
+  /** The plain sentence — what anyone needs. */
   detail?: string;
   href?: string;
+  /** Developer-grade detail, shown behind the "Show the details" toggle. */
+  tech?: string;
+  /** Pending rows only: who the wait belongs to. "you" rows never spin. */
+  waitingOn?: "you" | "me";
   state: "done" | "pending";
 }
 
@@ -62,20 +69,36 @@ export function buildTrace(f: TraceFacts): { steps: TraceStep[]; verdict: string
   if (f.listing) {
     steps.push({
       id: "offer",
-      label: "I read the offer",
+      label: "I found the piece",
       detail: `${f.listing.title} · from ${f.listing.curatorSlug}`,
       state: "done",
     });
   }
 
   if (f.phase === "quoting" && !f.quote) {
-    steps.push({ id: "quote", label: "I'm asking what it costs", state: "pending" });
-  } else if (f.quote) {
-    const names = f.quote.rails.map(railName).join(", ");
     steps.push({
       id: "quote",
-      label: "I got a quote",
-      detail: `HTTP 402 · ${f.quote.rails.length} way${f.quote.rails.length === 1 ? "" : "s"} to pay: ${names} · ${fmtMs(f.quote.ms)}`,
+      label: "I'm getting the price",
+      state: "pending",
+      waitingOn: "me",
+    });
+  } else if (f.quote) {
+    // Of the rails this page supports, name the ones the quote advertises —
+    // fixed order PayPal then NEAR, whatever order the API lists them in.
+    const rails = f.quote.rails;
+    const payables = (["paypal", "near"] as const)
+      .filter((r) => rails.includes(r))
+      .map(railName)
+      .join(" or ");
+    const price = f.quote.priceUsd != null ? `$${f.quote.priceUsd.toFixed(2)}` : null;
+    const detail = [price ? `${price}` : null, payables ? `pay with ${payables}` : null]
+      .filter(Boolean)
+      .join(" · ") || undefined;
+    steps.push({
+      id: "quote",
+      label: "I got the price",
+      detail,
+      tech: `HTTP 402 · rails: ${f.quote.rails.map(railName).join(", ")} · ${fmtMs(f.quote.ms)}`,
       state: "done",
     });
   }
@@ -83,34 +106,56 @@ export function buildTrace(f: TraceFacts): { steps: TraceStep[]; verdict: string
   const method: PayMethod | undefined =
     f.method ?? (done && f.result?.payment?.paymentMethod === "paypal" ? "paypal" : undefined);
   const wantsApproval = f.phase === "awaiting" || f.phase === "checking" || f.phase === "done";
-  if (method && wantsApproval) {
+  if (wantsApproval) {
     if (f.phase === "awaiting") {
-      const detail =
-        method === "paypal"
-          ? f.quote?.paypal?.orderId
-            ? `PayPal order ${f.quote.paypal.orderId}${f.quote.paypal.amountUsd != null ? ` · $${f.quote.paypal.amountUsd}` : ""} · I can't approve this for you`
-            : "PayPal is asking you, not me — I can't approve this for you"
-          : f.quote?.near?.amountNear != null
-            ? `${f.quote.near.amountNear} NEAR on ${f.quote.near.network ?? "testnet"} · I can't sign for you`
-            : "I can't sign the transfer for you";
-      steps.push({ id: "approval", label: "I'm waiting for you", detail, state: "pending" });
+      if (!method) {
+        steps.push({
+          id: "approval",
+          label: "I'm waiting for you to choose how to pay",
+          state: "pending",
+          waitingOn: "you",
+        });
+      } else {
+        const detail =
+          method === "paypal"
+            ? "Approve at PayPal — I can't do that part for you"
+            : "Send it from your wallet — I can't sign for you";
+        const tech =
+          method === "paypal"
+            ? f.quote?.paypal?.orderId
+              ? `PayPal order ${f.quote.paypal.orderId}${f.quote.paypal.amountUsd != null ? ` · $${f.quote.paypal.amountUsd}` : ""}`
+              : "PayPal order pending"
+            : f.quote?.near?.amountNear != null
+              ? `${f.quote.near.amountNear} NEAR on ${f.quote.near.network ?? "testnet"}`
+              : "NEAR transfer";
+        steps.push({
+          id: "approval",
+          label: "I'm waiting for your OK",
+          detail,
+          tech,
+          state: "pending",
+          waitingOn: "you",
+        });
+      }
     } else if (f.phase === "checking") {
       steps.push({
         id: "approval",
         label:
           method === "paypal"
-            ? "I'm checking your approval with PayPal"
+            ? "I'm checking with PayPal"
             : "I'm looking for your payment on NEAR",
         state: "pending",
+        waitingOn: "me",
       });
-    } else if (done) {
+    } else if (done && method) {
       const tx = f.result?.payment?.txHash;
       const explorer = f.result?.payment?.explorerUrl;
       steps.push({
         id: "approval",
         label: method === "paypal" ? "PayPal captured it" : "I found your payment",
-        detail: tx ? `${method === "paypal" ? "capture" : "tx"} ${shortHash(tx)}` : undefined,
+        detail: method === "near" && explorer ? "View the transfer" : undefined,
         href: explorer ?? undefined,
+        tech: tx ? `${method === "paypal" ? "capture" : "tx"} ${shortHash(tx)}` : undefined,
         state: "done",
       });
     }
@@ -121,24 +166,24 @@ export function buildTrace(f: TraceFacts): { steps: TraceStep[]; verdict: string
     const seconds = (r.requestMs / 1000).toFixed(1);
     steps.push({
       id: "render",
-      label: "I rendered the try-on",
-      detail: `${r.render?.provider ?? "unknown provider"}${r.render?.imageConditioned ? " · from your actual photo and the actual garment" : ""} · ${seconds}s for payment check, render and fit`,
+      label: "I rendered you in the piece",
+      detail: `${seconds}s`,
+      tech: `${r.render?.provider ?? "unknown provider"}${r.render?.imageConditioned ? " · image-conditioned" : ""} · payment check, render and fit in one request`,
       state: "done",
     });
 
     if (r.fitSignal) {
       const parts: string[] = [];
-      if (r.fitSignal.score != null) parts.push(`score ${r.fitSignal.score}`);
+      if (r.fitSignal.score != null) parts.push(`${r.fitSignal.score}/10`);
       if (r.fitSignal.recommendedSize) parts.push(`size ${r.fitSignal.recommendedSize}`);
-      if (r.aiCost?.costUsd != null) {
-        parts.push(
-          `cost me $${Number(r.aiCost.costUsd).toFixed(6)} via ${r.aiCost.provider ?? "the render provider"} — settled, not an estimate`,
-        );
-      }
       steps.push({
         id: "fit",
         label: "I read the fit",
         detail: parts.join(" · ") || undefined,
+        tech:
+          r.aiCost?.costUsd != null
+            ? `cost $${Number(r.aiCost.costUsd).toFixed(6)} via ${r.aiCost.provider ?? "the render provider"} — settled, not an estimate`
+            : undefined,
         state: "done",
       });
     }
@@ -147,8 +192,9 @@ export function buildTrace(f: TraceFacts): { steps: TraceStep[]; verdict: string
       steps.push({
         id: "receipt",
         label: "I wrote a public receipt",
-        detail: `${r.receiptId} · anyone can read it`,
+        detail: "Anyone with the link can check it",
         href: r.receiptUrl ?? undefined,
+        tech: r.receiptId,
         state: "done",
       });
     }

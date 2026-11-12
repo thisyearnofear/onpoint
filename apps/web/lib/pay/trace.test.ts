@@ -5,11 +5,13 @@ const LISTING = { title: "Linen shirt", curatorSlug: "nia" };
 const PAYPAL_QUOTE = {
   rails: ["celo_cusd", "paypal"],
   ms: 412,
+  priceUsd: 0.05,
   paypal: { orderId: "ORDER-7XK", amountUsd: 0.05 },
 };
 const NEAR_QUOTE = {
   rails: ["celo_cusd", "near"],
   ms: 300,
+  priceUsd: 0.03,
   near: { amountNear: 0.5, network: "testnet" },
 };
 
@@ -33,15 +35,28 @@ function doneFacts(overrides: Partial<TraceFacts> = {}): TraceFacts {
 }
 
 describe("buildTrace — paypal", () => {
-  it("quoting phase: offer done, quote pending, nothing else", () => {
+  it("quoting phase: offer done, quote pending on me, nothing else", () => {
     const { steps, verdict } = buildTrace({ listing: LISTING, phase: "quoting" });
     expect(steps.map((s) => s.id)).toEqual(["offer", "quote"]);
     expect(steps[1]?.state).toBe("pending");
-    expect(steps[1]?.label).toBe("I'm asking what it costs");
+    expect(steps[1]?.label).toBe("I'm getting the price");
+    expect(steps[1]?.waitingOn).toBe("me");
     expect(verdict).toBeNull();
   });
 
-  it("awaiting phase: pending 'waiting for you' with the order id", () => {
+  it("awaiting with no method chosen: 'waiting for you to choose', waitingOn you", () => {
+    const { steps } = buildTrace({
+      listing: LISTING,
+      quote: PAYPAL_QUOTE,
+      phase: "awaiting",
+    });
+    const approval = steps.find((s) => s.id === "approval");
+    expect(approval?.state).toBe("pending");
+    expect(approval?.label).toBe("I'm waiting for you to choose how to pay");
+    expect(approval?.waitingOn).toBe("you");
+  });
+
+  it("awaiting with paypal: 'waiting for your OK' with plain detail + order id in tech", () => {
     const { steps } = buildTrace({
       listing: LISTING,
       quote: PAYPAL_QUOTE,
@@ -50,13 +65,28 @@ describe("buildTrace — paypal", () => {
     });
     const approval = steps.find((s) => s.id === "approval");
     expect(approval?.state).toBe("pending");
-    expect(approval?.label).toBe("I'm waiting for you");
-    expect(approval?.detail).toContain("PayPal order ORDER-7XK");
-    expect(approval?.detail).toContain("$0.05");
-    expect(approval?.detail).toContain("I can't approve this for you");
+    expect(approval?.label).toBe("I'm waiting for your OK");
+    expect(approval?.waitingOn).toBe("you");
+    expect(approval?.detail).toContain("Approve at PayPal");
+    expect(approval?.detail).toContain("I can't do that part for you");
+    expect(approval?.tech).toContain("PayPal order ORDER-7XK");
+    expect(approval?.tech).toContain("$0.05");
   });
 
-  it("checking phase: pending approval-check line", () => {
+  it("awaiting with near: wallet detail + network in tech", () => {
+    const { steps } = buildTrace({
+      listing: LISTING,
+      quote: NEAR_QUOTE,
+      method: "near",
+      phase: "awaiting",
+    });
+    const approval = steps.find((s) => s.id === "approval");
+    expect(approval?.label).toBe("I'm waiting for your OK");
+    expect(approval?.detail).toContain("Send it from your wallet");
+    expect(approval?.tech).toContain("0.5 NEAR on testnet");
+  });
+
+  it("checking phase: pending check line, waitingOn me", () => {
     const { steps } = buildTrace({
       listing: LISTING,
       quote: PAYPAL_QUOTE,
@@ -64,36 +94,42 @@ describe("buildTrace — paypal", () => {
       phase: "checking",
     });
     const approval = steps.find((s) => s.id === "approval");
-    expect(approval?.label).toBe("I'm checking your approval with PayPal");
+    expect(approval?.label).toBe("I'm checking with PayPal");
     expect(approval?.state).toBe("pending");
+    expect(approval?.waitingOn).toBe("me");
   });
 
-  it("done phase: full chain with capture short hash and verdict", () => {
+  it("done phase: full chain, tech lines carry the developer detail", () => {
     const { steps, verdict } = buildTrace(doneFacts());
     expect(steps.map((s) => s.id)).toEqual(["offer", "quote", "approval", "render", "fit", "receipt"]);
     const quote = steps[steps.findIndex((s) => s.id === "quote")]!;
-    expect(quote.detail).toContain("HTTP 402");
-    expect(quote.detail).toContain("2 ways to pay: cUSD, PayPal");
-    expect(quote.detail).toContain("412 ms");
+    expect(quote.label).toBe("I got the price");
+    expect(quote.detail).toBe("$0.05 · pay with PayPal");
+    expect(quote.tech).toContain("HTTP 402");
+    expect(quote.tech).toContain("rails: cUSD, PayPal");
+    expect(quote.tech).toContain("412 ms");
     const approval = steps[steps.findIndex((s) => s.id === "approval")]!;
     expect(approval.label).toBe("PayPal captured it");
-    expect(approval.detail).toContain("capture CAPTUREI…abcdef");
+    expect(approval.tech).toContain("capture CAPTUREI…abcdef");
     const render = steps[steps.findIndex((s) => s.id === "render")]!;
-    expect(render.detail).toContain("otari");
-    expect(render.detail).toContain("from your actual photo and the actual garment");
-    expect(render.detail).toContain("42.3s for payment check, render and fit");
+    expect(render.label).toBe("I rendered you in the piece");
+    expect(render.detail).toBe("42.3s");
+    expect(render.tech).toContain("otari");
+    expect(render.tech).toContain("image-conditioned");
+    expect(render.tech).toContain("payment check, render and fit in one request");
     const fit = steps[steps.findIndex((s) => s.id === "fit")]!;
-    expect(fit.detail).toContain("score 78");
-    expect(fit.detail).toContain("size M");
-    expect(fit.detail).toContain("cost me $0.000281 via otari — settled, not an estimate");
+    expect(fit.detail).toBe("78/10 · size M");
+    expect(fit.tech).toContain("cost $0.000281 via otari — settled, not an estimate");
     const receipt = steps[steps.findIndex((s) => s.id === "receipt")]!;
+    expect(receipt.detail).toBe("Anyone with the link can check it");
+    expect(receipt.tech).toBe("rcpt_abc");
     expect(receipt.href).toBe("https://onpoint.trustfall.xyz/receipt/rcpt_abc");
     expect(verdict).toContain("I'd take the M.");
   });
 });
 
 describe("buildTrace — near", () => {
-  it("done: approval href is the explorer url", () => {
+  it("done: 'View the transfer' links the explorer url, hash stays in tech", () => {
     const { steps } = buildTrace(
       doneFacts({
         quote: NEAR_QUOTE,
@@ -115,8 +151,9 @@ describe("buildTrace — near", () => {
     );
     const approval = steps.find((s) => s.id === "approval");
     expect(approval?.label).toBe("I found your payment");
-    expect(approval?.detail).toContain("tx 9xKpQ2Ab…QrStUv");
+    expect(approval?.detail).toBe("View the transfer");
     expect(approval?.href).toBe("https://testnet.nearblocks.io/txns/9xKpQ2");
+    expect(approval?.tech).toContain("tx 9xKpQ2Ab…QrStUv");
   });
 });
 
@@ -129,26 +166,38 @@ describe("buildTrace — omissions", () => {
     expect(verdict).toBe("The render is yours. I couldn't read a fit from this photo, so I'm not guessing a size.");
   });
 
-  it("fit step without aiCost has no cost clause", () => {
+  it("fit step without aiCost has no tech line", () => {
     const f = doneFacts();
     f.result!.aiCost = null;
     const { steps } = buildTrace(f);
     const fit = steps.find((s) => s.id === "fit");
-    expect(fit?.detail).toBe("score 78 · size M");
+    expect(fit?.detail).toBe("78/10 · size M");
+    expect(fit?.tech).toBeUndefined();
   });
 
-  it("quote ms formats as seconds at >= 1000", () => {
-    const f = doneFacts({ quote: { rails: ["paypal"], ms: 12988 } });
+  it("quote ms formats as seconds at >= 1000 (in tech)", () => {
+    const f = doneFacts({ quote: { rails: ["paypal"], ms: 12988, priceUsd: 0.03 } });
     const { steps } = buildTrace(f);
-    expect(steps[1]?.detail).toContain("13.0 s");
-    const f2 = doneFacts({ quote: { rails: ["paypal"], ms: 412 } });
-    expect(buildTrace(f2).steps[1]?.detail).toContain("412 ms");
+    expect(steps[1]?.tech).toContain("13.0 s");
+    const f2 = doneFacts({ quote: { rails: ["paypal"], ms: 412, priceUsd: 0.03 } });
+    expect(buildTrace(f2).steps[1]?.tech).toContain("412 ms");
   });
 
-  it("unknown rails pass through as-is", () => {
-    const f = doneFacts({ quote: { rails: ["celo_cusd", "magic_rail"], ms: 10 } });
+  it("quote detail names only the payable rails; unknown rails stay in tech", () => {
+    const f = doneFacts({ quote: { rails: ["celo_cusd", "magic_rail"], ms: 10, priceUsd: 0.03 } });
     const { steps } = buildTrace(f);
-    expect(steps[1]?.detail).toContain("cUSD, magic_rail");
+    expect(steps[1]?.detail).toBe("$0.03");
+    expect(steps[1]?.tech).toContain("cUSD, magic_rail");
+    const both = doneFacts({ quote: { rails: ["paypal", "near"], ms: 10, priceUsd: 0.03 } });
+    expect(buildTrace(both).steps[1]?.detail).toBe("$0.03 · pay with PayPal or NEAR");
+    // Order is fixed PayPal-then-NEAR regardless of the API's rail order.
+    const reversed = doneFacts({ quote: { rails: ["celo_cusd", "near", "paypal"], ms: 10, priceUsd: 0.03 } });
+    expect(buildTrace(reversed).steps[1]?.detail).toBe("$0.03 · pay with PayPal or NEAR");
+  });
+
+  it("quote detail degrades gracefully without a price", () => {
+    const f = doneFacts({ quote: { rails: ["paypal"], ms: 10 } });
+    expect(buildTrace(f).steps[1]?.detail).toBe("pay with PayPal");
   });
 });
 
