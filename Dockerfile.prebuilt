@@ -1,15 +1,20 @@
 # OnPoint web — prebuilt-runner deploy.
 #
-# The Depot remote builder OOM-kills the Next.js compile now that
-# ag-studio is in the graph (exit 137 under both turbopack and webpack).
-# So the production build runs locally with the same NEXT_PUBLIC_* args
-# as fly.web.toml's [build.args], and this image only ships the result:
-#   build/prebuilt/standalone/  <- apps/web/.next/standalone
-#   build/prebuilt/static/      <- apps/web/.next/static
-#   build/prebuilt/public/      <- apps/web/public
+# The Depot remote builder intermittently OOM-kills the Next.js compile
+# with ag-studio in the graph (exit 137). So the production build runs
+# locally with the same NEXT_PUBLIC_* args as fly.web.toml's [build.args],
+# and this image only ships the result.
 #
-# Deploy:  fly deploy -c fly.web.toml --dockerfile Dockerfile.prebuilt
-# Revert to `Dockerfile` once remote builders can afford the compile again.
+# The payload is a tarball because .dockerignore excludes `**/node_modules`
+# and `**/.next` — a standalone tree copied as files would arrive gutted.
+#
+# Stage it before deploying:
+#   rm -rf build/prebuilt/pkg && mkdir -p build/prebuilt/pkg/apps/web/.next
+#   cp -R apps/web/.next/standalone/ build/prebuilt/pkg/
+#   cp -R apps/web/.next/static      build/prebuilt/pkg/apps/web/.next/
+#   cp -R apps/web/public            build/prebuilt/pkg/apps/web/
+#   tar czf build/prebuilt/web-dist.tar.gz -C build/prebuilt/pkg .
+#   fly deploy -c fly.web.toml        # [build] dockerfile = "Dockerfile.prebuilt"
 FROM node:22-slim
 WORKDIR /app
 ENV NODE_ENV=production \
@@ -17,9 +22,9 @@ ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
     NEXT_PUBLIC_R2_PUBLIC_URL=https://pub-9e9f819de7054860b4755c940999f1fd.r2.dev
 RUN addgroup --system nodejs && adduser --system --ingroup nodejs nextjs
-COPY --chown=nextjs:nodejs build/prebuilt/standalone/ ./
-COPY --chown=nextjs:nodejs build/prebuilt/static/ ./apps/web/.next/static/
-COPY --chown=nextjs:nodejs build/prebuilt/public/ ./apps/web/public/
+COPY build/prebuilt/web-dist.tar.gz /tmp/web-dist.tar.gz
+RUN tar xzf /tmp/web-dist.tar.gz -C /app && rm /tmp/web-dist.tar.gz \
+ && chown -R nextjs:nodejs /app
 USER nextjs
 EXPOSE 8080
 CMD ["node", "apps/web/server.js"]

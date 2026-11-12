@@ -4,7 +4,7 @@ app = "onpoint"
 primary_region = "fra"
 
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = "Dockerfile.prebuilt"
 
 # NEXT_PUBLIC_* vars are inlined at build time — they must be set here,
 # NOT in fly secrets (secrets are runtime-only). Fill values before deploy.
