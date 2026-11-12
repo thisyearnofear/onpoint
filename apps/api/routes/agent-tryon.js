@@ -758,6 +758,7 @@ router.post('/', async (req, res) => {
     // Best-effort: if the upload fails, the try-on still succeeded.
     // The agent gets the render inline; the polaroid URL is a bonus.
     let polaroid = null;
+    let polaroidWarning = null;
     let polaroidRenderKey = null;
     try {
       const imageData = render.value.generatedImage;
@@ -815,6 +816,15 @@ router.post('/', async (req, res) => {
       await setRenderCache(renderCacheKey, imageUrl);
     } catch (polaroidErr) {
       logger.warn('Polaroid upload failed — try-on still succeeded', { component: 'agent-tryon', paymentId }, polaroidErr);
+      // Surfaced in the 200 response so a caller can tell "no shareable
+      // artifact because storage rejected the write" from "no artifact was
+      // asked for" — otherwise the failure is only visible in server logs.
+      polaroidWarning = {
+        code: 'polaroid_storage_write_failed',
+        reason: String(polaroidErr.message || polaroidErr).slice(0, 300),
+        paymentId: String(paymentId),
+        hint: `The /p/${paymentId} page will not exist. Save tryOn.render.image yourself, or re-run the try-on once storage credentials are fixed — a provider-URL render is not cacheable, so a retry costs a new render.`,
+      };
       // No persistent copy exists; still cache inline data-URI renders so a
       // retry skips the paid call. Ephemeral provider URLs are deliberately
       // NOT cached here — they may expire before the cache TTL does.
@@ -916,6 +926,7 @@ router.post('/', async (req, res) => {
       },
       ...(aiCost ? { aiCost } : {}),
       polaroid,
+      ...(polaroidWarning ? { polaroidWarning } : {}),
       ...(shareCard ? { shareCard } : {}),
       payment: {
         id: paymentId,
