@@ -120,6 +120,8 @@ Public reconciled ledger — try-on fees, order payouts, attribution tags.
 
 Agents earn 2.5% commission on purchases made through the agent API (`POST /api/curator/{slug}/order`). Include `X-Referral-Code` header or `?referral=` query param in order requests. Orders placed by humans through storefront M-Pesa checkout record the referral for attribution but do not currently pay a commission. View earnings at `/api/agent/dashboard` or the UI at `https://onpoint.trustfall.xyz/agent`.
 
+The same public ledger is explorable in the AG Studio surface at `/agent/studio` — paid try-ons, listings and receipt activity as Studio data sources, with the Studio Agent Framework answered by `POST /api/agent/studio-ai` (a metered, rate-capped proxy over the Otari chat gateway; OpenAI-shaped `{messages, tools}` body, completion returned verbatim).
+
 Full details: [docs/guides/referral-tracking.md](./docs/guides/referral-tracking.md)
 
 ---
