@@ -119,7 +119,7 @@ describe("buildTrace — paypal", () => {
     expect(render.tech).toContain("payment check, render and fit in one request");
     const fit = steps[steps.findIndex((s) => s.id === "fit")]!;
     expect(fit.detail).toBe("78/10 · size M");
-    expect(fit.tech).toContain("cost $0.000281 via otari — settled, not an estimate");
+    expect(fit.tech).toContain("cost $0.000281 via otari — settled by the gateway, not an estimate");
     const receipt = steps[steps.findIndex((s) => s.id === "receipt")]!;
     expect(receipt.detail).toBe("Anyone with the link can check it");
     expect(receipt.tech).toBe("rcpt_abc");

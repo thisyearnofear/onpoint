@@ -195,7 +195,7 @@ export function buildTrace(f: TraceFacts): { steps: TraceStep[]; verdict: string
         detail: parts.join(" · ") || undefined,
         tech:
           r.aiCost?.costUsd != null
-            ? `cost $${Number(r.aiCost.costUsd).toFixed(6)} via ${r.aiCost.provider ?? "the render provider"} — settled, not an estimate`
+            ? `cost $${Number(r.aiCost.costUsd).toFixed(6)} via ${r.aiCost.provider ?? "the render provider"} — ${r.aiCost.provider === "otari" ? "settled by the gateway, not an estimate" : "metered from token usage at the model's list price"}`
             : undefined,
         state: "done",
       });

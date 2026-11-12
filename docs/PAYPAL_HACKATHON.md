@@ -4,9 +4,10 @@ Status: `live-validated` (2026-11-12, sandbox, on production API `api.onpoint.fa
 
 Live evidence (re-verifiable without credentials):
 - Rail advertisement — `POST /api/agent/try-on` returns **HTTP 402** with `quote.paymentRails: ["celo_cusd","near","paypal"]` and `quote.paypal = { env: "sandbox", orderId, approveUrl, amountUsd, currency: "USD", instructions }`.
-- Try-on rail: 402 → approve (`06J754636E437522A`, $0.03) → **HTTP 200**; polaroid + receipt `receipt_mwd6vc1f_f41b1052` (`paymentMethod: "paypal"`, payer `4B5A6SR9HECG4`, item "NEAR FC home kit (2026-27)" on `onpoint-store`). Capture `8R078054E73723054` is in the run log, not in the receipt payload.
-- Order rail: 402 (`0cc69356-S-1-29907762`, $16.92) → approve (`2TN41181T9243051V`) → **HTTP 201**; order `77b680d6`, receipt `receipt_mwd6q4fj_e03e5326` with `paypal: { orderId: "2TN41181T9243051V", captureId: "7WB40036EN816213E", amountUsd: 16.92, env: "sandbox" }` and `payout.status: "pending_reconciliation"`.
-- Both receipts are public: `GET https://api.onpoint.famile.xyz/api/receipts/{receiptId}` — a judge can read the PayPal proof themselves.
+- Human front door — `https://onpoint.trustfall.xyz/pay`: add a photo, choose PayPal, approve in a new tab, and the render develops on the page with its capture id, fit read and public receipt. No order id is pasted; the page checks the quoted order when the payer returns to the tab.
+- Try-on and order rails were both exercised end to end on 2026-11-12 (402 → approve → 200/201 with `paymentMethod: "paypal"` and a PayPal capture id as the proof).
+- **Receipt ids from those first runs no longer resolve** (`receipt_mwd6vc1f_f41b1052`, `receipt_mwd6q4fj_e03e5326` return 404 — see Risks). Replace this line with the receipt and polaroid links from the recorded run before submitting: `<receipt url>` · `<polaroid url>`.
+- Receipts are public: `GET https://api.onpoint.famile.xyz/api/receipts/{receiptId}` — a judge can read the PayPal proof themselves.
 
 ## Thesis
 One executable fashion offer, three ways to pay: `paymentRails: ['celo_cusd', 'near', 'paypal']`.
@@ -38,15 +39,15 @@ Orders are paid to the platform account; curator payout is recorded as `pending_
 ## AI used, and where
 | Component | What it does |
 | --- | --- |
-| [Otari](https://otari.ai) (Mozilla AI) — OpenAI-compatible gateway | Vision + chat for the fit signal, styling notes, garment attributes and look classification on every paid try-on. Every response carries settled server-side cost, surfaced as `aiCost`. |
+| Sandbase (primary) and [Otari](https://otari.ai) (Mozilla AI; fallback, and always used when an agent sends its own `x-otari-key`) — OpenAI-compatible gateways | Vision + chat for the fit signal, styling notes, garment attributes and look classification on every paid try-on. Every response carries a per-call cost, surfaced as `aiCost`: Otari reports the cost it settled; for Sandbase the cost is computed from the call's token usage at the model's published price, and is left null when that price can't be read. |
 | YouCam `cloth-v4` (→ Replicate IDM-VTON → Venice fallback) | Image-conditioned render: the actual garment on the actual person. |
 | Deterministic rails layer | The agent decides *whether* to spend; PayPal supplies the human approval that releases it. |
 
-Example from a live paid try-on: `aiCost: { provider: "otari", model: "deepseek/deepseek-v4.1-flash-1017", costUsd: 0.000281, meteredBy: "onpoint-workspace" }` — real settled cost, not an estimate, and it is written into the polaroid sidecar a judge can open.
+Example from a live paid try-on served by Otari: `aiCost: { provider: "otari", model: "deepseek/deepseek-v4.1-flash-1017", costUsd: 0.000281, meteredBy: "onpoint-workspace" }` — the cost the gateway settled, written into the polaroid sidecar a judge can open. `aiCost.provider` names whichever gateway actually served the call.
 
 ## How we answer each judging criterion
 - **Technological Implementation** — approval-relay over two endpoints (try-on + order), `custom_id` resource binding, amount/currency/status checks, idempotent capture via `PayPal-Request-Id`, capture id as the replay-guarded proof in the same column as Celo/NEAR hashes.
-- **Design** — the human half is a real screen: `/pay` renders whatever rails the 402 advertises, hands the payer the approve link, then verifies and shows the paid render. Not a curl-only proof of concept.
+- **Design** — the human half is a real screen: `/pay` ("See it on you") keeps the payer's photo beside the piece, offers every rail the 402 advertises as an equal choice (PayPal, NEAR, cUSD — nothing preselected), develops the render as a polaroid while the payer guesses the fit score, and ends on a shareable result with the receipt. The agent's work is a first-person trace; "Show the details" reveals the HTTP 402, PayPal order and capture ids, and the inference cost. Not a curl-only proof of concept.
 - **Potential Impact** — agents cannot today spend a human's PayPal money with the human's consent; this is the consent path for agentic commerce in a category (fashion) where the purchase is fit-dependent.
 - **Innovation** — three rails, one offer: the *same* executable item is payable in cUSD, NEAR, or USD-with-human-approval, and only the PayPal rail keeps a human in the loop by design.
 - **Presentation** — one 402 → approve → 201 arc on camera, then the public receipt readback.
@@ -60,7 +61,7 @@ Example from a live paid try-on: `aiCost: { provider: "otari", model: "deepseek/
 - [x] Record one live sandbox run (402 -> approve -> 201 receipt)
 - [x] Deploy (`PAYPAL_*` on `snel-bot:/opt/onpoint/shared/api/.env`, prod 402 advertises `paypal`)
 - [ ] Add `paypal` result to the demo video
-- [ ] `/pay` PayPal tile verified on the deployed web host (needs the `WEB_BASE_URL` + `NEXT_PUBLIC_R2_PUBLIC_URL` fixes in [docs/ops/deployment.md](ops/deployment.md))
+- [x] `/pay` PayPal flow live on the deployed web host (2026-11-12) — quote, choice and approval hand-off verified on production; the result screen verified with a real sandbox approval by the operator
 - [ ] YouTube upload of the <3 min demo, publicly visible
 - [ ] Devpost form: description, tools, repo link, hosted demo link
 
@@ -72,3 +73,6 @@ Example from a live paid try-on: `aiCost: { provider: "otari", model: "deepseek/
 ## Risks
 - Migration `0011` must be applied before deploying code that selects `listings.attributes`.
 - No NEAR-style trustless verification: correctness relies on PayPal API responses and server credentials.
+- **Receipts can be lost.** The receipt ledger is one Redis value rewritten in full on every save; a failed read is treated as empty and the next save overwrites it. The two receipts from the first PayPal runs are gone, and production reported 2 receipts in total on 2026-11-12. Orders and payments (Postgres) are unaffected. Until the ledger moves to Postgres, record a fresh run close to submission and link that receipt.
+- **Rate limit on the try-on endpoint:** 5 requests/minute and 20/day per IP, and quotes count. `/pay` no longer polls and the web proxy forwards the visitor's IP, but a judge who retries many times from one network will see "too many requests".
+- **Catalogue marks:** five club-named Nia designs were paused on 2026-11-12 because the generated images carried club crests and sponsor names; the three original Nia images still carry a Venice watermark. Keep both out of the video (no third-party trademarks).
