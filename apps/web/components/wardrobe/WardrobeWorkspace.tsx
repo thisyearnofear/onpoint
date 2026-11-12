@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Pin, RotateCcw, Heart } from "lucide-react";
+import { ArrowRight, Pin, RotateCcw, Heart, ScanFace } from "lucide-react";
 import {
   STUDIO_ITEMS,
   STUDIO_GARMENTS,
@@ -19,6 +19,7 @@ import { RunwayWinners } from "../social/RunwayWinners";
 import { FirstBadge } from "../social/FirstBadge";
 import { RemixBanner } from "../social/RemixBanner";
 import { ClosetSection } from "./ClosetSection";
+import { trackHomepageCta } from "@/lib/utils/analytics";
 import {
   DEFAULT_LIVE_LOOKS_FILTERS,
   readLiveLooksFilters,
@@ -453,6 +454,32 @@ export function WardrobeWorkspace() {
                 <Link href="/lab?tab=try-on" className={styles.ctrlGhost}>Use my photo</Link>
               </div>
               <p className={styles.hint}>Judging opens Runway. Personal try-on starts in the fitting room.</p>
+
+              <Link
+                href="/pay?curator=nia"
+                onClick={() => trackHomepageCta({ cta: "paid_tryon", placement: "wardrobe_stage" })}
+                className="group mt-5 flex items-start gap-3.5 border border-border bg-card p-4 transition-colors duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-foreground"
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center border border-border text-foreground">
+                  <ScanFace className="h-5 w-5" strokeWidth={1.5} />
+                </span>
+                <span className="min-w-0">
+                  <span className="block font-mono text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                    Paid try-on · agent rail
+                  </span>
+                  <span className="mt-1 block font-display text-lg font-bold leading-snug text-foreground">
+                    See it on you — for real.
+                  </span>
+                  <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">
+                    An agent quotes the price, you approve the payment — PayPal, NEAR or
+                    cUSD — then it renders you in the piece and signs a public receipt.
+                  </span>
+                  <span className="mt-2.5 inline-flex items-center gap-1.5 text-sm font-bold text-foreground">
+                    Try the agent flow
+                    <ArrowRight className="h-4 w-4 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:translate-x-0.5" />
+                  </span>
+                </span>
+              </Link>
 
               <details className={styles.note}>
                 <summary className={styles.noteSummary}>Styling note</summary>
