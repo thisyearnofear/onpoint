@@ -11,12 +11,14 @@ import {
   OtariSpendGuardError,
   ChainAiClient,
   getPrimaryAiClient,
+  getSandbaseClient,
   getOtariAdminClient,
   otariClientForAgentKey,
   parseCostUsd,
   fetchKeyUsageSummary,
   fetchKeyBudget,
   _resetOtariClientForTests,
+  _resetSandbaseClientForTests,
   _resetOtariAdminForTests,
 } from "../otari";
 import { _resetQwenCloudClientForTests } from "../client";
@@ -28,7 +30,11 @@ function mockChatResponse(content = "ok") {
       id: "chatcmpl-test",
       model: "test/model",
       choices: [
-        { index: 0, finish_reason: "stop", message: { role: "assistant", content } },
+        {
+          index: 0,
+          finish_reason: "stop",
+          message: { role: "assistant", content },
+        },
       ],
       usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
     }),
@@ -84,7 +90,9 @@ describe("OtariClient", () => {
     expect(res.choices[0]?.message?.content).toBe("hello");
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("https://api.otari.ai/api/v1/chat/completions");
-    expect((init.headers as Record<string, string>).Authorization).toBe("Bearer otk_test");
+    expect((init.headers as Record<string, string>).Authorization).toBe(
+      "Bearer otk_test",
+    );
     const body = JSON.parse(init.body as string);
     expect(body.model).toBe("vendor/chat-model");
     // Qwen-only fields are stripped
@@ -104,7 +112,9 @@ describe("OtariClient", () => {
       model: "qwen3-vl-flash", // legacy Qwen id — no "/" so it remaps
     });
 
-    const body = JSON.parse((fetchMock.mock.calls[0] as [string, RequestInit])[1].body as string);
+    const body = JSON.parse(
+      (fetchMock.mock.calls[0] as [string, RequestInit])[1].body as string,
+    );
     expect(body.model).toBe("vendor/vl-model");
   });
 
@@ -112,18 +122,23 @@ describe("OtariClient", () => {
     const fetchMock = vi.fn().mockResolvedValue(mockChatResponse("ok"));
     vi.stubGlobal("fetch", fetchMock);
 
-    const client = new OtariClient({ apiKey: "otk_test", defaultChatModel: "vendor/default" });
+    const client = new OtariClient({
+      apiKey: "otk_test",
+      defaultChatModel: "vendor/default",
+    });
     await client.chatPersona("sys", "user", { model: "other/vendor-model" });
 
-    const body = JSON.parse((fetchMock.mock.calls[0] as [string, RequestInit])[1].body as string);
+    const body = JSON.parse(
+      (fetchMock.mock.calls[0] as [string, RequestInit])[1].body as string,
+    );
     expect(body.model).toBe("other/vendor-model");
   });
 
   it("throws when no model is configured for the call type", async () => {
     const client = new OtariClient({ apiKey: "otk_test" });
-    await expect(
-      client.chatPersona("sys", "user"),
-    ).rejects.toThrow("no chat model configured");
+    await expect(client.chatPersona("sys", "user")).rejects.toThrow(
+      "no chat model configured",
+    );
   });
 
   it("isAvailable returns false when kill-switched or unreachable", async () => {
@@ -135,7 +150,10 @@ describe("OtariClient", () => {
     expect(await killed.isAvailable()).toBe(false);
 
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("boom")));
-    const down = new OtariClient({ apiKey: "otk_test", defaultChatModel: "vendor/model" });
+    const down = new OtariClient({
+      apiKey: "otk_test",
+      defaultChatModel: "vendor/model",
+    });
     expect(await down.isAvailable()).toBe(false);
   });
 });
@@ -149,7 +167,13 @@ describe("ChainAiClient", () => {
     };
     const working = {
       provider: "qwen",
-      chatPersona: vi.fn().mockResolvedValue({ content: "from-qwen", model: "m", estimatedCostUsd: 0 }),
+      chatPersona: vi
+        .fn()
+        .mockResolvedValue({
+          content: "from-qwen",
+          model: "m",
+          estimatedCostUsd: 0,
+        }),
       isAvailable: vi.fn().mockResolvedValue(true),
     };
 
@@ -160,10 +184,18 @@ describe("ChainAiClient", () => {
   });
 
   it("throws when every client fails", async () => {
-    const a = { chatPersona: vi.fn().mockRejectedValue(new Error("a down")), isAvailable: vi.fn() };
-    const b = { chatPersona: vi.fn().mockRejectedValue(new Error("b down")), isAvailable: vi.fn() };
+    const a = {
+      chatPersona: vi.fn().mockRejectedValue(new Error("a down")),
+      isAvailable: vi.fn(),
+    };
+    const b = {
+      chatPersona: vi.fn().mockRejectedValue(new Error("b down")),
+      isAvailable: vi.fn(),
+    };
     const chain = new ChainAiClient([a as never, b as never]);
-    await expect(chain.chatPersona("s", "u")).rejects.toThrow("All AI providers failed");
+    await expect(chain.chatPersona("s", "u")).rejects.toThrow(
+      "All AI providers failed",
+    );
   });
 });
 
@@ -172,12 +204,15 @@ describe("getPrimaryAiClient", () => {
 
   beforeEach(() => {
     _resetOtariClientForTests();
+    _resetSandbaseClientForTests();
     _resetQwenCloudClientForTests();
+    delete process.env.SANDBASE_API_KEY;
   });
 
   afterEach(() => {
     process.env = { ...OLD_ENV };
     _resetOtariClientForTests();
+    _resetSandbaseClientForTests();
     _resetQwenCloudClientForTests();
   });
 
@@ -203,20 +238,46 @@ describe("getPrimaryAiClient", () => {
     const client = getPrimaryAiClient();
     expect(client).toBeInstanceOf(OtariClient);
   });
+
+  it("puts Sandbase ahead of Otari for platform-funded spend", () => {
+    process.env.SANDBASE_API_KEY = "sk_test";
+    process.env.SANDBASE_CHAT_MODEL = "vendor/chat";
+    process.env.OTARI_API_KEY = "otk_test";
+    process.env.OTARI_CHAT_MODEL = "vendor/chat";
+    const client = getPrimaryAiClient();
+    expect(client).toBeInstanceOf(ChainAiClient);
+    const chain = client as unknown as ChainAiClient;
+    expect(chain.provider).toBe("chain");
+    expect(getSandbaseClient()?.provider).toBe("sandbase");
+    // A BYO agent key still routes to that agent's Otari workspace.
+    expect(otariClientForAgentKey("otk_agent123")?.provider).toBe("otari");
+  });
 });
 
 describe("parseCostUsd", () => {
   it("parses the Otari usage.cost_usd decimal string", () => {
     expect(
-      parseCostUsd({ prompt_tokens: 10, completion_tokens: 5, total_tokens: 15, cost_usd: "0.000044" }),
+      parseCostUsd({
+        prompt_tokens: 10,
+        completion_tokens: 5,
+        total_tokens: 15,
+        cost_usd: "0.000044",
+      }),
     ).toBe(0.000044);
   });
 
   it("returns null when the field is absent or unparsable", () => {
     expect(parseCostUsd(undefined)).toBeNull();
-    expect(parseCostUsd({ prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 })).toBeNull();
     expect(
-      parseCostUsd({ prompt_tokens: 1, completion_tokens: 1, total_tokens: 2, cost_usd: "n/a" }),
+      parseCostUsd({ prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 }),
+    ).toBeNull();
+    expect(
+      parseCostUsd({
+        prompt_tokens: 1,
+        completion_tokens: 1,
+        total_tokens: 2,
+        cost_usd: "n/a",
+      }),
     ).toBeNull();
   });
 });
@@ -237,16 +298,125 @@ describe("OtariClient cost reporting", () => {
       json: async () => ({
         id: "chatcmpl-test",
         model: "vendor/chat",
-        choices: [{ index: 0, finish_reason: "stop", message: { role: "assistant", content: "hi" } }],
-        usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15, cost_usd: "0.0001" },
+        choices: [
+          {
+            index: 0,
+            finish_reason: "stop",
+            message: { role: "assistant", content: "hi" },
+          },
+        ],
+        usage: {
+          prompt_tokens: 10,
+          completion_tokens: 5,
+          total_tokens: 15,
+          cost_usd: "0.0001",
+        },
       }),
       text: async () => "",
     } as Response);
     vi.stubGlobal("fetch", fetchMock);
 
-    const client = new OtariClient({ apiKey: "otk_test", defaultChatModel: "vendor/chat" });
+    const client = new OtariClient({
+      apiKey: "otk_test",
+      defaultChatModel: "vendor/chat",
+    });
     const res = await client.chatPersona("sys", "user");
     expect(res.estimatedCostUsd).toBe(0.0001);
+  });
+
+  it("computes the Sandbase cost from model-card prices when usage carries none", async () => {
+    const fetchMock = vi.fn(async (url: string) =>
+      url.includes("/models/")
+        ? ({
+            ok: true,
+            json: async () => ({
+              model_card: {
+                prompt_token_price: "0.30",
+                completion_token_price: "1.20",
+              },
+            }),
+          } as Response)
+        : ({
+            ok: true,
+            json: async () => ({
+              id: "chatcmpl-test",
+              model: "vendor/chat",
+              choices: [
+                {
+                  index: 0,
+                  finish_reason: "stop",
+                  message: { role: "assistant", content: "hi" },
+                },
+              ],
+              usage: {
+                prompt_tokens: 1_000_000,
+                completion_tokens: 500_000,
+                total_tokens: 1_500_000,
+              },
+            }),
+            text: async () => "",
+          } as Response),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = new OtariClient({
+      apiKey: "sk_test",
+      providerName: "sandbase",
+      defaultChatModel: "vendor/chat",
+    });
+    expect(client.provider).toBe("sandbase");
+    const res = await client.chatPersona("sys", "user");
+    // 1M prompt @ $0.30 + 500k completion @ $1.20
+    expect(res.estimatedCostUsd).toBeCloseTo(0.9, 10);
+    expect(fetchMock.mock.calls.map((c) => c[0])).toContain(
+      "https://api.sandbase.ai/v1/models/vendor%2Fchat",
+    );
+  });
+
+  it("reports zero cost when the model card prices are unreadable", async () => {
+    const fetchMock = vi.fn(async (url: string) =>
+      url.includes("/models/")
+        ? ({ ok: false, status: 404 } as unknown as Response)
+        : ({
+            ok: true,
+            json: async () => ({
+              id: "chatcmpl-test",
+              model: "vendor/priced",
+              choices: [
+                {
+                  index: 0,
+                  finish_reason: "stop",
+                  message: { role: "assistant", content: "hi" },
+                },
+              ],
+              usage: {
+                prompt_tokens: 10,
+                completion_tokens: 5,
+                total_tokens: 15,
+              },
+            }),
+            text: async () => "",
+          } as Response),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = new OtariClient({
+      apiKey: "sk_test",
+      providerName: "sandbase",
+      defaultChatModel: "vendor/priced",
+    });
+    const res = await client.chatPersona("sys", "user");
+    expect(res.estimatedCostUsd).toBe(0);
+  });
+
+  it("names the gateway in model-resolution errors", () => {
+    const client = new OtariClient({
+      apiKey: "sk_test",
+      providerName: "sandbase",
+    });
+    expect(() => client["resolveModel"](undefined, "chat")).toThrow(
+      "SandbaseClient: no chat model configured (set SANDBASE_CHAT_MODEL or SANDBASE_MODEL).",
+    );
   });
 });
 
@@ -284,14 +454,22 @@ describe("key usage + budget reads", () => {
     });
     expect(summary.totals?.cost).toBe(0.000044);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe("https://eu.api.otari.ai/api/v1/key/usage/summary?bucket=day");
-    expect((init.headers as Record<string, string>).Authorization).toBe("Bearer otk_agent");
+    expect(url).toBe(
+      "https://eu.api.otari.ai/api/v1/key/usage/summary?bucket=day",
+    );
+    expect((init.headers as Record<string, string>).Authorization).toBe(
+      "Bearer otk_agent",
+    );
   });
 
   it("fetchKeyBudget hits /key/budget", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ budgets_enforced: true, remaining_usd: null, limits: [] }),
+      json: async () => ({
+        budgets_enforced: true,
+        remaining_usd: null,
+        limits: [],
+      }),
       text: async () => "",
     } as Response);
     vi.stubGlobal("fetch", fetchMock);
@@ -307,11 +485,17 @@ describe("key usage + budget reads", () => {
   it("throws on non-OK responses", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({ ok: false, status: 401, text: async () => "bad key" } as Response),
+      vi
+        .fn()
+        .mockResolvedValue({
+          ok: false,
+          status: 401,
+          text: async () => "bad key",
+        } as Response),
     );
-    await expect(fetchKeyBudget("otk_bad", { baseURL: "https://x/v1" })).rejects.toThrow(
-      "Otari key budget error 401",
-    );
+    await expect(
+      fetchKeyBudget("otk_bad", { baseURL: "https://x/v1" }),
+    ).rejects.toThrow("Otari key budget error 401");
   });
 });
 
@@ -322,20 +506,31 @@ describe("OtariAdminClient", () => {
   });
 
   it("requires a master key", () => {
-    expect(() => new OtariAdminClient({ masterKey: "" })).toThrow("masterKey is required");
+    expect(() => new OtariAdminClient({ masterKey: "" })).toThrow(
+      "masterKey is required",
+    );
   });
 
   it("provisionAgentKey creates key, budget, and scoped budget in order", async () => {
     const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
-    const fetchMock = vi.fn().mockImplementation(async (url: string, init: RequestInit) => {
-      calls.push({ url, body: JSON.parse(init.body as string) });
-      const id = url.includes("/scoped-budgets") ? "sb_1" : url.includes("/budgets") ? "b_1" : "k_1";
-      return {
-        ok: true,
-        json: async () => ({ id, ...(url.endsWith("/keys") ? { key: "otk_new" } : {}) }),
-        text: async () => "",
-      } as Response;
-    });
+    const fetchMock = vi
+      .fn()
+      .mockImplementation(async (url: string, init: RequestInit) => {
+        calls.push({ url, body: JSON.parse(init.body as string) });
+        const id = url.includes("/scoped-budgets")
+          ? "sb_1"
+          : url.includes("/budgets")
+            ? "b_1"
+            : "k_1";
+        return {
+          ok: true,
+          json: async () => ({
+            id,
+            ...(url.endsWith("/keys") ? { key: "otk_new" } : {}),
+          }),
+          text: async () => "",
+        } as Response;
+      });
     vi.stubGlobal("fetch", fetchMock);
 
     const admin = new OtariAdminClient({
@@ -353,7 +548,10 @@ describe("OtariAdminClient", () => {
       "https://eu.api.otari.ai/api/v1/budgets",
       "https://eu.api.otari.ai/api/v1/scoped-budgets",
     ]);
-    expect(calls[0]!.body).toEqual({ user_id: "0xABC", label: "onpoint-agent:0xABC" });
+    expect(calls[0]!.body).toEqual({
+      user_id: "0xABC",
+      label: "onpoint-agent:0xABC",
+    });
     expect(calls[1]!.body.max_budget).toBe(5);
     expect(calls[2]!.body).toEqual({
       scope_type: "api_token",

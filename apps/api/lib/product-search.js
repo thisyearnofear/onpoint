@@ -4,10 +4,11 @@
  * Used by both the catalog route and the curated-shop route
  * to search for real products via the Python bridge (Purch / TinyFish / Browser Use)
  * with an LLM fallback for synthetic suggestions. The LLM fallback tries
- * Otari (primary gateway) first, then Venice.
+ * Sandbase (our inference spend) first, then Otari, then Venice.
  */
 
 const logger = require('./logger');
+const sandbase = require('./sandbase');
 
 const BRIDGE_URL = process.env.BRIDGE_URL || 'http://localhost:48752';
 const BRIDGE_API_KEY = process.env.BRIDGE_API_KEY || process.env.SERVICE_API_KEY || '';
@@ -54,12 +55,15 @@ const OTARI_CHAT_MODEL = process.env.OTARI_CHAT_MODEL || process.env.OTARI_MODEL
 async function searchViaVenice(query, limit) {
   const otariKey = process.env.OTARI_API_KEY;
   const veniceKey = process.env.VENICE_API_KEY;
-  if (!otariKey && !veniceKey) return null;
+  if (!otariKey && !veniceKey && !(sandbase.configured() && sandbase.chatModel())) return null;
 
   const prompt = `You are a fashion product catalog. Given the query "${query}", return a JSON array of ${limit} fashion item suggestions. Each item must have: name, brand, category, price (number), description. Return ONLY valid JSON, no markdown.`;
 
-  // Otari (primary gateway) first, Venice as fallback.
+  // Sandbase (carries our inference spend) first, then Otari, Venice last.
   const upstreams = [];
+  if (sandbase.configured() && sandbase.chatModel()) {
+    upstreams.push({ name: 'sandbase', baseURL: sandbase.baseURL(), apiKey: sandbase.apiKey(), model: sandbase.chatModel() });
+  }
   if (otariKey && OTARI_CHAT_MODEL && process.env.OTARI_KILL_SWITCH !== '1') {
     upstreams.push({ name: 'otari', baseURL: OTARI_BASE_URL, apiKey: otariKey, model: OTARI_CHAT_MODEL });
   }

@@ -14,10 +14,12 @@ export function PolaroidGetItLink({
   curatorSlug,
   curatorName,
   listingId,
+  purchasable,
 }: {
   curatorSlug: string;
   curatorName: string;
   listingId: string;
+  purchasable: boolean;
 }) {
   const base = `/s/${encodeURIComponent(curatorSlug)}?item=${encodeURIComponent(listingId)}`;
   const [href, setHref] = useState(base);
@@ -32,8 +34,8 @@ export function PolaroidGetItLink({
       href={href}
       className="flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground hover:bg-primary/90 rounded-full py-4 text-sm font-bold transition-colors"
     >
-      <ShoppingBag className="w-4 h-4" />
-      Shop {curatorName}
+      {purchasable ? <ShoppingBag className="w-4 h-4" /> : null}
+      {purchasable ? `Get it from ${curatorName}` : `See more from ${curatorName}`}
       <ArrowRight className="w-3.5 h-3.5 opacity-60" />
     </TransitionLink>
   );

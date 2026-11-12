@@ -69,6 +69,9 @@ export class QwenCloudSpendGuardError extends Error {
 }
 
 export class QwenCloudClient {
+  /** Uniform with the gateway clients so a chain can report its members. */
+  readonly provider = "qwen" as const;
+
   private apiKey: string;
   private baseURL: string;
   private defaultVisionModel: string;

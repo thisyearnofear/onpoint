@@ -386,6 +386,55 @@ if [[ "$DRY_RUN" == false ]]; then
   rsync deploy/ecosystem.config.js "${SSH_HOST}:${REMOTE_BASE}/deploy/ecosystem.config.js"
 fi
 
+# ── Step 5.65: Add the Linux sharp runtime to the staged release ──────
+# node_modules is installed on this machine, so npm skips sharp's Linux
+# optional deps and the release dies at startup with
+# 'Could not load the "sharp" module using the linux-x64 runtime'.
+# Fetch exactly the versions sharp declares and drop them in node_modules/@img.
+info "🧩 Installing Linux sharp runtime into staged release..."
+if [[ "$DRY_RUN" == false ]]; then
+  ssh "$SSH_HOST" SHARP_TS="$TS" NPM_CACHE_DIR="$NPM_CACHE_DIR" 'bash -s' <<'SHARP_EOF' || fail "❌ Staged release has no loadable Linux sharp runtime"
+set -euo pipefail
+cd "/opt/onpoint/releases/api/${SHARP_TS}"
+LOG="/tmp/onpoint-sharp-${SHARP_TS}.log"
+trap 'rm -f "$LOG"' EXIT
+
+pkgs=$(node -e '
+  const fs = require("fs");
+  const pkg = JSON.parse(fs.readFileSync("node_modules/sharp/package.json", "utf8"));
+  const want = Object.entries(pkg.optionalDependencies || {})
+    .filter(([name]) => /^@img\/sharp(-libvips)?-linux-x64$/.test(name))
+    .map(([name, ver]) => `${name}@${ver}`);
+  if (want.length !== 2) {
+    console.error(`expected 2 linux-x64 sharp packages, got ${want.length}`);
+    process.exit(1);
+  }
+  console.log(want.join(" "));
+') || { echo "   could not read sharp platform requirements"; exit 1; }
+echo "   adding: ${pkgs}"
+
+for spec in ${pkgs}; do
+  name="${spec%@*}"
+  dir="node_modules/${name}"
+  # @img packages version their binaries (sharp-linux-x64-<ver>.node,
+  # libvips-cpp.so.<ver>), so presence of lib/ contents is the signal.
+  if [[ -d "${dir}/lib" && -n "$(ls -A "${dir}/lib" 2>/dev/null)" ]]; then
+    echo "   present: ${name}"
+    continue
+  fi
+  tgz=$(npm pack --silent --cache "${NPM_CACHE_DIR}" --no-audit --no-fund "${spec}" 2>>"$LOG") \
+    || { tail -30 "$LOG"; echo "   npm pack failed for ${spec}"; exit 1; }
+  mkdir -p "${dir}"
+  tar -xzf "${PWD}/${tgz}" -C "${dir}" --strip-components=1
+  rm -f "${PWD}/${tgz}"
+  echo "   installed: ${name}"
+done
+
+node -e 'const s=require("sharp"); console.log("   sharp loads (linux-x64), vips " + s.versions.vips)' \
+  || { tail -30 "$LOG"; exit 1; }
+SHARP_EOF
+fi
+
 # ── Step 5.7: Candidate startup preflight ───────────────────────────
 # Start the staged release directly on an isolated port before PM2 touches
 # the live process. This catches missing bundle assets/imports and fatal

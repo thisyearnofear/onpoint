@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Shirt } from "lucide-react";
 
@@ -42,6 +42,8 @@ interface SafeImageProps {
   fallbackIconSize?: number;
   /** Referrer policy passed to next/image (e.g. "no-referrer" for Auth0 avatars) */
   referrerPolicy?: React.HTMLAttributeReferrerPolicy;
+  /** Called once when every source has failed — lets the caller drop the frame entirely */
+  onAllFailed?: () => void;
 }
 
 /**
@@ -64,6 +66,7 @@ export function SafeImage({
   className,
   fallbackIconSize = 48,
   referrerPolicy,
+  onAllFailed,
 }: SafeImageProps) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [allFailed, setAllFailed] = useState(false);
@@ -77,6 +80,16 @@ export function SafeImage({
     setCurrentIdx(0);
     setAllFailed(false);
   }, [sourcesKey]);
+
+  // Notify once every source has failed (incl. an empty source list).
+  const failed = allFailed || validSources.length === 0;
+  const notified = useRef(false);
+  useEffect(() => {
+    if (failed && !notified.current) {
+      notified.current = true;
+      onAllFailed?.();
+    }
+  }, [failed, onAllFailed]);
 
   if (allFailed || validSources.length === 0) {
     return (

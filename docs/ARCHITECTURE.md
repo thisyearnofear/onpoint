@@ -213,14 +213,16 @@ interface AIProvider {
 
 | Provider                | Tier    | Capabilities                                                    |
 | ----------------------- | ------- | --------------------------------------------------------------- |
+| Sandbase                | Paid    | Primary gateway for platform-funded chat + vision (`vendor/model` catalog) |
+| Otari (Mozilla AI)      | Paid    | Gateway behind Sandbase; first for any call carrying `x-otari-key`, with settled `usage.cost_usd` |
 | Venice AI               | Free    | Vision analysis via polling (`qwen3-vl-235b-a22b`)              |
 | Replicate (GPT-4o-mini) | Free    | Vision analysis via polling (GPT-4o-mini)                       |
 | Azure Computer Vision   | Free    | Object detection + garment tagging + dense captions (AZ CV 4.0) |
 | Gemini Live             | Premium | Real-time WebSocket audio + video streaming                     |
 
 **Shared vision chain** (`apps/api/lib/vision.js`, ADR 0022 §3): an ordered,
-OpenAI-compatible fallback chain — venice → gemini → openrouter → modal →
-dashscope → openai, overridable with `VISION_PROVIDERS`. It serves the Runway
+OpenAI-compatible fallback chain — sandbase → otari → neon → venice → gemini →
+openrouter → modal → dashscope → openai, overridable with `VISION_PROVIDERS`. It serves the Runway
 judge (JSON verdicts) and the free-text live-session analyze routes
 (`expectJson: false`): `ai-venice-analyze` and `ai-analyze-person` delegate
 fully, while `ai-zerog-analyze` and `ai-qwen-analyze` keep their distinctive

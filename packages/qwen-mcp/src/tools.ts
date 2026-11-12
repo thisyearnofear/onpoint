@@ -49,16 +49,57 @@ loadEnv();
 const QWEN_BASE_URL =
   process.env.QWEN_CLOUD_BASE_URL ||
   "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
-const QWEN_VISION_MODEL = process.env.QWEN_CLOUD_VISION_MODEL || "qwen3-vl-flash";
+const QWEN_VISION_MODEL =
+  process.env.QWEN_CLOUD_VISION_MODEL || "qwen3-vl-flash";
 
-// Otari (Mozilla AI) — primary gateway, OpenAI-compatible.
+// Sandbase — OpenAI-compatible gateway carrying our own inference spend.
+const SANDBASE_BASE_URL =
+  process.env.SANDBASE_BASE_URL || "https://api.sandbase.ai/v1";
+const SANDBASE_VISION_MODEL =
+  process.env.SANDBASE_VISION_MODEL || process.env.SANDBASE_MODEL || null;
+
+// Otari (Mozilla AI) — gateway behind Sandbase, OpenAI-compatible.
 const OTARI_BASE_URL =
   process.env.OTARI_BASE_URL || "https://api.otari.ai/api/v1";
 const OTARI_VISION_MODEL =
   process.env.OTARI_VISION_MODEL || process.env.OTARI_MODEL || null;
 
+/** Sandbase model-card prices (USD per 1M tokens), read once per model. */
+const _priceCards = new Map<string, { in: number; out: number } | null>();
+
+async function sandbasePrices(model: string) {
+  if (_priceCards.has(model)) return _priceCards.get(model)!;
+  let prices: { in: number; out: number } | null = null;
+  try {
+    const res = await fetch(
+      `${SANDBASE_BASE_URL}/models/${encodeURIComponent(model)}`,
+      {
+        headers: { Authorization: `Bearer ${process.env.SANDBASE_API_KEY}` },
+        signal: AbortSignal.timeout(10000),
+      },
+    );
+    if (res.ok) {
+      const card = (await res.json())?.model_card;
+      const inP = Number(card?.prompt_token_price);
+      const outP = Number(card?.completion_token_price);
+      if (Number.isFinite(inP) && Number.isFinite(outP))
+        prices = { in: inP, out: outP };
+    }
+  } catch {
+    prices = null;
+  }
+  _priceCards.set(model, prices);
+  return prices;
+}
+
 async function visionComplete(
-  upstream: { name: string; baseURL: string; apiKey: string; model: string; extraBody?: Record<string, unknown> },
+  upstream: {
+    name: string;
+    baseURL: string;
+    apiKey: string;
+    model: string;
+    extraBody?: Record<string, unknown>;
+  },
   imageDataUrl: string,
   prompt: string,
   maxTokens: number,
@@ -94,18 +135,36 @@ async function visionComplete(
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`${upstream.name} error ${res.status}: ${body.slice(0, 200)}`);
+    throw new Error(
+      `${upstream.name} error ${res.status}: ${body.slice(0, 200)}`,
+    );
   }
 
   const data = await res.json();
   const analysis = data.choices?.[0]?.message?.content || "";
-  // Cost estimate (Qwen Cloud pricing; Otari bills via workspace wallet)
-  const pricing = upstream.name === "otari" ? { in: 0, out: 0 } : { in: 0.05, out: 0.4 };
-  const costUsd =
-    Math.round(
-      (((data.usage?.prompt_tokens || 0) / 1e6) * pricing.in +
-        ((data.usage?.completion_tokens || 0) / 1e6) * pricing.out) * 1e6,
-    ) / 1e6;
+  // Real cost, never a guess: Otari stamps the settled cost on the
+  // response, Sandbase prices come from its model card, and Qwen Cloud
+  // falls back to its published per-1M rates.
+  let costUsd: number;
+  const settled = Number(data.usage?.cost_usd);
+  if (
+    upstream.name === "otari" &&
+    Number.isFinite(settled) &&
+    data.usage?.cost_usd != null
+  ) {
+    costUsd = settled;
+  } else if (upstream.name === "sandbase") {
+    const prices = await sandbasePrices(upstream.model);
+    costUsd = prices
+      ? ((data.usage?.prompt_tokens || 0) / 1e6) * prices.in +
+        ((data.usage?.completion_tokens || 0) / 1e6) * prices.out
+      : 0;
+  } else {
+    costUsd =
+      ((data.usage?.prompt_tokens || 0) / 1e6) * 0.05 +
+      ((data.usage?.completion_tokens || 0) / 1e6) * 0.4;
+  }
+  costUsd = Math.round(costUsd * 1e6) / 1e6;
 
   return { analysis, model: data.model || upstream.model, costUsd };
 }
@@ -114,12 +173,42 @@ async function qwenVision(
   imageDataUrl: string,
   prompt: string,
   maxTokens = 200,
-): Promise<{ analysis: string; model: string; costUsd: number; provider: string }> {
-  const upstreams: Array<{ name: string; baseURL: string; apiKey?: string; model: string; extraBody?: Record<string, unknown> }> = [];
+): Promise<{
+  analysis: string;
+  model: string;
+  costUsd: number;
+  provider: string;
+}> {
+  const upstreams: Array<{
+    name: string;
+    baseURL: string;
+    apiKey?: string;
+    model: string;
+    extraBody?: Record<string, unknown>;
+  }> = [];
+
+  const sandbaseKey = process.env.SANDBASE_API_KEY;
+  if (
+    sandbaseKey &&
+    SANDBASE_VISION_MODEL &&
+    process.env.SANDBASE_KILL_SWITCH !== "1"
+  ) {
+    upstreams.push({
+      name: "sandbase",
+      baseURL: SANDBASE_BASE_URL,
+      apiKey: sandbaseKey,
+      model: SANDBASE_VISION_MODEL,
+    });
+  }
 
   const otariKey = process.env.OTARI_API_KEY;
   if (otariKey && OTARI_VISION_MODEL && process.env.OTARI_KILL_SWITCH !== "1") {
-    upstreams.push({ name: "otari", baseURL: OTARI_BASE_URL, apiKey: otariKey, model: OTARI_VISION_MODEL });
+    upstreams.push({
+      name: "otari",
+      baseURL: OTARI_BASE_URL,
+      apiKey: otariKey,
+      model: OTARI_VISION_MODEL,
+    });
   }
 
   const qwenKey = process.env.DASHSCOPE_API_KEY;
@@ -134,7 +223,9 @@ async function qwenVision(
   }
 
   if (upstreams.length === 0) {
-    throw new Error("No vision provider configured (OTARI_API_KEY or DASHSCOPE_API_KEY)");
+    throw new Error(
+      "No vision provider configured (SANDBASE_API_KEY, OTARI_API_KEY or DASHSCOPE_API_KEY)",
+    );
   }
 
   const errors: string[] = [];
@@ -206,10 +297,14 @@ export async function callTool(
       if (!imageDataUrl) throw new Error("imageDataUrl is required");
       const goal = String(args.goal || "daily");
       const prompts: Record<string, string> = {
-        daily: "Analyze this everyday outfit. Focus on comfort, coordination, and practicality.",
-        event: "Analyze this outfit for a formal event. Focus on elegance and appropriateness.",
-        critique: "Give an honest, blunt critique of this outfit. No sugarcoating.",
-        african: "Identify any African textile patterns in this outfit (Ankara, Kente, Adire, Bogolan, Shweshwe, Kitenge, Wax Print). Note cultural context and styling.",
+        daily:
+          "Analyze this everyday outfit. Focus on comfort, coordination, and practicality.",
+        event:
+          "Analyze this outfit for a formal event. Focus on elegance and appropriateness.",
+        critique:
+          "Give an honest, blunt critique of this outfit. No sugarcoating.",
+        african:
+          "Identify any African textile patterns in this outfit (Ankara, Kente, Adire, Bogolan, Shweshwe, Kitenge, Wax Print). Note cultural context and styling.",
       };
       const prompt = prompts[goal] ?? prompts.daily ?? "Analyze this outfit.";
       const result = await qwenVision(imageDataUrl, prompt);
@@ -244,12 +339,18 @@ export async function callTool(
       const curatorSlug = String(args.curatorSlug || "");
       const listingId = String(args.listingId || "");
       const photoData = String(args.photoData || "");
-      const paymentTxHash = args.paymentTxHash ? String(args.paymentTxHash) : undefined;
+      const paymentTxHash = args.paymentTxHash
+        ? String(args.paymentTxHash)
+        : undefined;
       const lookSlug = args.lookSlug ? String(args.lookSlug) : undefined;
       if (!curatorSlug || !listingId || !photoData) {
         throw new Error("curatorSlug, listingId, and photoData are required");
       }
-      const body: Record<string, unknown> = { curatorSlug, listingId, photoData };
+      const body: Record<string, unknown> = {
+        curatorSlug,
+        listingId,
+        photoData,
+      };
       if (paymentTxHash) body.paymentTxHash = paymentTxHash;
       if (lookSlug) body.lookSlug = lookSlug;
       const { status, data } = await apiPost("/api/agent/try-on", body);
@@ -258,7 +359,8 @@ export async function callTool(
         return {
           status: "payment_required",
           challenge: data,
-          nextStep: "Pay cUSD on Celo to the payTo address with the dataSuffix (ERC-8021 attribution), then call try_on again with paymentTxHash.",
+          nextStep:
+            "Pay cUSD on Celo to the payTo address with the dataSuffix (ERC-8021 attribution), then call try_on again with paymentTxHash.",
         };
       }
       return { status: "success", result: data };
@@ -270,9 +372,13 @@ export async function callTool(
       const listingId = String(args.listingId || "");
       const size = String(args.size || "");
       const quantity = Number(args.quantity || 1);
-      const paymentTxHash = args.paymentTxHash ? String(args.paymentTxHash) : undefined;
+      const paymentTxHash = args.paymentTxHash
+        ? String(args.paymentTxHash)
+        : undefined;
       const quoteId = args.quoteId ? String(args.quoteId) : undefined;
-      const referralCode = args.referralCode ? String(args.referralCode) : undefined;
+      const referralCode = args.referralCode
+        ? String(args.referralCode)
+        : undefined;
       if (!curatorSlug || !listingId || !size) {
         throw new Error("curatorSlug, listingId, and size are required");
       }
@@ -291,7 +397,8 @@ export async function callTool(
         return {
           status: "payment_required",
           challenge: data,
-          nextStep: "Pay cUSD on Celo to the payTo address with the dataSuffix (ERC-8021 attribution), then call buy_item again with paymentTxHash and quoteId.",
+          nextStep:
+            "Pay cUSD on Celo to the payTo address with the dataSuffix (ERC-8021 attribution), then call buy_item again with paymentTxHash and quoteId.",
         };
       }
       return { status: "success", result: data };
@@ -327,18 +434,26 @@ export async function callTool(
     case "create_look": {
       const title = String(args.title || "");
       const listingIds = args.listingIds as string[] | undefined;
-      const heroListingId = args.heroListingId ? String(args.heroListingId) : undefined;
+      const heroListingId = args.heroListingId
+        ? String(args.heroListingId)
+        : undefined;
       const agentAddress = String(args.agentAddress || "");
       const tags = args.tags as string[] | undefined;
-      const description = args.description ? String(args.description) : undefined;
+      const description = args.description
+        ? String(args.description)
+        : undefined;
       const status = args.status ? String(args.status) : "live";
       if (!title || !listingIds || listingIds.length < 2) {
         throw new Error("title and listingIds (min 2) are required");
       }
       if (!agentAddress || !/^0x[a-fA-F0-9]{40}$/.test(agentAddress)) {
-        throw new Error("agentAddress is required (0x-prefixed 40 hex chars) — used for look attribution");
+        throw new Error(
+          "agentAddress is required (0x-prefixed 40 hex chars) — used for look attribution",
+        );
       }
-      const sessionToken = (args.sessionToken ? String(args.sessionToken) : "").trim();
+      const sessionToken = (
+        args.sessionToken ? String(args.sessionToken) : ""
+      ).trim();
       if (!sessionToken) {
         throw new Error(
           "sessionToken is required — sign in first: POST /api/auth/challenge { address: agentAddress } → sign `message` with the wallet (personal_sign, no gas) → POST /api/auth/verify { address, signature } → pass the returned `token` as sessionToken. A bare x-agent-address header is rejected for writes.",
@@ -348,11 +463,9 @@ export async function callTool(
       if (heroListingId) body.heroListingId = heroListingId;
       if (tags) body.tags = tags;
       if (description) body.description = description;
-      const { status: httpStatus, data } = await apiPost(
-        "/api/looks",
-        body,
-        { Authorization: `Bearer ${sessionToken}` },
-      );
+      const { status: httpStatus, data } = await apiPost("/api/looks", body, {
+        Authorization: `Bearer ${sessionToken}`,
+      });
       if (httpStatus === 201) {
         return {
           status: "success",

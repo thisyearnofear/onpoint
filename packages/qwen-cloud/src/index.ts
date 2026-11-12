@@ -26,6 +26,7 @@ export {
   OtariSpendGuardError,
   ChainAiClient,
   getOtariClient,
+  getSandbaseClient,
   getOtariAdminClient,
   getPrimaryAiClient,
   otariClientForAgentKey,
@@ -33,10 +34,12 @@ export {
   fetchKeyUsageSummary,
   fetchKeyBudget,
   _resetOtariClientForTests,
+  _resetSandbaseClientForTests,
   _resetOtariAdminForTests,
 } from "./otari";
 export type {
   OtariClientConfig,
+  AiGatewayProvider,
   PrimaryAiClient,
   OtariProvisionedKey,
   OtariKeyUsageSummary,

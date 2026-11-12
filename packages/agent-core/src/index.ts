@@ -50,6 +50,8 @@ export {
   readPersistentState,
   writePersistentState,
   clearPersistentStateCache,
+  setPersistentStateBackend,
+  hasPersistentStateBackend,
 } from "./persistent-state";
 export {
   getAgentApiUrl,

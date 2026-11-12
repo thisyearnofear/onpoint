@@ -228,4 +228,9 @@ describe('POST /api/agent/try-on claim-first contract', () => {
     expect(source).not.toContain('Return the render anyway');
     expect(source).not.toContain('already used by a concurrent request');
   });
+
+  it('a failed polaroid write is reported in the 200, not only in the log', () => {
+    expect(source).toContain("code: 'polaroid_storage_write_failed'");
+    expect(source).toContain('...(polaroidWarning ? { polaroidWarning } : {})');
+  });
 });

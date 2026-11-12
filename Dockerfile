@@ -39,7 +39,8 @@ ARG NEXT_PUBLIC_APP_URL \
     NEXT_PUBLIC_VAPID_PUBLIC_KEY \
     NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID \
     NEXT_PUBLIC_ZERO_G_ENABLED \
-    NEXT_PUBLIC_URL
+    NEXT_PUBLIC_URL \
+    NEXT_PUBLIC_R2_PUBLIC_URL
 # Build workspace deps via turbo, then web via turbopack (default bundler —
 # far lighter than the pinned webpack path, which OOMs shared builders).
 # SKIP_DOCKER_TYPECHECK drops the ~30min remote `tsc` phase — the type gate
@@ -53,6 +54,10 @@ WORKDIR /app
 ENV NODE_ENV=production \
     PORT=8080 \
     HOSTNAME=0.0.0.0
+# /p/{paymentId} is a server component that fetches the polaroid sidecar from
+# R2 at request time, so it needs the value at runtime as well as inlined.
+ARG NEXT_PUBLIC_R2_PUBLIC_URL
+ENV NEXT_PUBLIC_R2_PUBLIC_URL=$NEXT_PUBLIC_R2_PUBLIC_URL
 RUN addgroup --system nodejs && adduser --system --ingroup nodejs nextjs
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static

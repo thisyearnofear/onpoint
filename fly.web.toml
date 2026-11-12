@@ -23,6 +23,9 @@ primary_region = "fra"
   NEXT_PUBLIC_ZERO_G_ENABLED = "false"
   NEXT_PUBLIC_URL = ""
   NEXT_PUBLIC_ONPOINT_NFT_CONTRACT = "0x8e0a3BcF07Ec8133408A3837DD2DCe398A42f576"
+  # /p/{paymentId} reads its polaroid sidecar straight from R2 — unset means
+  # every shareable try-on artifact 404s. Keep in sync with R2_PUBLIC_URL on the API.
+  NEXT_PUBLIC_R2_PUBLIC_URL = "https://pub-9e9f819de7054860b4755c940999f1fd.r2.dev"
 
 [env]
   NODE_ENV = "production"

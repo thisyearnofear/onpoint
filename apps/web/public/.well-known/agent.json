@@ -163,8 +163,11 @@
     "docs": "https://github.com/thisyearnofear/onpoint/blob/master/AGENTS.md#okxai-marketplace-a2mcp-facade"
   },
   "aiMetering": {
-    "gateway": "Otari (Mozilla AI) — OpenAI-compatible, https://api.otari.ai/api/v1",
-    "description": "OnPoint's model calls route through Otari first, so inference spend is metered and budget-capped the same way commerce spend is metered in cUSD. Send your own Otari workspace key as x-otari-key on POST /api/agent/try-on and POST /api/ai/agent to meter those calls to YOUR Otari workspace — your budgets enforce the cap. Responses return aiCost { provider, model, costUsd, meteredBy }: the settled per-request cost Otari stamps on usage.cost_usd, not an estimate.",
+    "gateways": [
+      "Sandbase (primary, platform-funded) — OpenAI-compatible, https://api.sandbase.ai/v1",
+      "Otari (Mozilla AI, fallback + agent-supplied keys) — OpenAI-compatible, https://api.otari.ai/api/v1"
+    ],
+    "description": "OnPoint pays for its own inference through Sandbase first, with Otari behind it, so inference spend is metered and budget-capped the same way commerce spend is metered in cUSD. Send your own Otari workspace key as x-otari-key on POST /api/agent/try-on and POST /api/ai/agent to meter those calls to YOUR Otari workspace instead — your budgets enforce the cap, and that call still routes through Otari. Responses return aiCost { provider, model, costUsd, meteredBy }: for Otari the settled per-request cost it stamps on usage.cost_usd; for Sandbase the same figure computed from the per-token prices published on that model's card. Neither is an estimate.",
     "byoKeyHeader": "x-otari-key",
     "usageReadback": "https://api.onpoint.famile.xyz/api/agent/ai-usage",
     "costField": "aiCost.costUsd",

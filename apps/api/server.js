@@ -106,6 +106,13 @@ const raw10kb = express.raw({ type: 'application/json', limit: '10kb' });
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 const redis = new Redis(redisUrl);
 
+// Receipts and the other agent-core ledgers must outlive this process.
+if (require('./lib/persistent-state-redis').installPersistentStateBackend()) {
+  console.log('[PersistentState] agent-core state is stored in Redis');
+} else {
+  console.warn('[PersistentState] no Redis backend installed — agent-core state follows UPSTASH_* or stays in memory');
+}
+
 redis.on('error', (err) => {
   console.error('[Redis] Connection error:', err.message);
 });
@@ -159,6 +166,8 @@ const veniceBurstLimit = createRateLimiter(redis, 'veniceBurst');
 const liveSessionRateLimit = createRateLimiter(redis, 'liveSession');
 const aiExpensiveRateLimit = createRateLimiter(redis, 'aiExpensive');
 const aiExpensiveDailyLimit = createRateLimiter(redis, 'aiExpensiveDaily');
+const agentTryOnRateLimit = createRateLimiter(redis, 'agentTryOn');
+const agentTryOnDailyLimit = createRateLimiter(redis, 'agentTryOnDaily');
 const aiAnalysisRateLimit = createRateLimiter(redis, 'aiAnalysis');
 const aiAnalysisDailyLimit = createRateLimiter(redis, 'aiAnalysisDaily');
 const artifactIngestRateLimit = createRateLimiter(redis, 'artifactIngest');
@@ -346,7 +355,7 @@ app.use('/api/agent/whatsapp', json1k, serviceKeyAuth, generalRateLimit, require
 // External agents render a listing on their human before buying.
 // Large body limit: the person photo arrives as a base64 data URI.
 
-app.use('/api/agent/try-on', json10mb, aiExpensiveRateLimit, aiExpensiveDailyLimit, require('./routes/agent-tryon'));
+app.use('/api/agent/try-on', json10mb, agentTryOnRateLimit, agentTryOnDailyLimit, require('./routes/agent-tryon'));
 
 // ── Agent Outfit Planner (public, free) ────────────────────────
 // Deterministic look composition over live agent-purchasable inventory.

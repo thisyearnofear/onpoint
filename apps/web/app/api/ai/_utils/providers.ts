@@ -2,7 +2,13 @@ import { GoogleGenAI } from "@google/genai";
 import OpenAI from "openai";
 import { logger } from "../../../../lib/utils/logger";
 
-export type ProviderChoice = "auto" | "otari" | "gemini" | "openai" | "venice";
+export type ProviderChoice =
+  | "auto"
+  | "sandbase"
+  | "otari"
+  | "gemini"
+  | "openai"
+  | "venice";
 
 const geminiKey =
   process.env.GEMINI_API_KEY &&
@@ -20,7 +26,26 @@ const otariKey = process.env.OTARI_API_KEY || null;
 const geminiClient = geminiKey ? new GoogleGenAI({ apiKey: geminiKey }) : null;
 const openaiClient = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
 
-// Otari (Mozilla AI) — primary gateway, OpenAI-compatible
+// Sandbase — OpenAI-compatible gateway carrying our own inference spend.
+// Model ids are `vendor/model` from GET /v1/models.
+const SANDBASE_BASE_URL =
+  process.env.SANDBASE_BASE_URL || "https://api.sandbase.ai/v1";
+const sandbaseKey = process.env.SANDBASE_API_KEY || null;
+const sandbaseEnabled =
+  !!sandbaseKey && process.env.SANDBASE_KILL_SWITCH !== "1";
+const sandbaseClient = sandbaseEnabled
+  ? new OpenAI({
+      apiKey: sandbaseKey!,
+      baseURL: SANDBASE_BASE_URL,
+      maxRetries: 0,
+    })
+  : null;
+const sandbaseChatModel =
+  process.env.SANDBASE_CHAT_MODEL || process.env.SANDBASE_MODEL || "";
+const sandbaseVisionModel =
+  process.env.SANDBASE_VISION_MODEL || process.env.SANDBASE_MODEL || "";
+
+// Otari (Mozilla AI) — gateway behind Sandbase, OpenAI-compatible
 const OTARI_BASE_URL =
   process.env.OTARI_BASE_URL || "https://api.otari.ai/api/v1";
 const otariClient = otariKey
@@ -51,6 +76,14 @@ export function veniceAvailable(): boolean {
 
 export function otariAvailable(): boolean {
   return !!(otariClient && otariChatModel);
+}
+
+export function sandbaseAvailable(): boolean {
+  return !!(sandbaseClient && sandbaseChatModel);
+}
+
+export function sandbaseVisionAvailable(): boolean {
+  return !!(sandbaseClient && sandbaseVisionModel);
 }
 
 export function otariVisionAvailable(): boolean {
@@ -96,18 +129,30 @@ export async function generateText({
   openaiOptions = {},
 }: GenerateTextOptions): Promise<{
   text: string;
-  usedProvider: "otari" | "venice" | "gemini" | "openai";
+  usedProvider: "sandbase" | "otari" | "venice" | "gemini" | "openai";
 }> {
+  const hasSandbase = sandbaseAvailable();
   const hasOtari = otariAvailable();
   const hasVenice = veniceAvailable();
   const hasGemini = geminiAvailable();
   const hasOpenAI = openaiAvailable();
 
-  logger.debug("generateText resolving provider", { component: "ai-providers", provider, hasOtari, hasVenice, hasGemini, hasOpenAI });
+  logger.debug("generateText resolving provider", {
+    component: "ai-providers",
+    provider,
+    hasSandbase,
+    hasOtari,
+    hasVenice,
+    hasGemini,
+    hasOpenAI,
+  });
 
   // Determine provider
-  let selected: "otari" | "venice" | "gemini" | "openai" | null = null;
-  if (provider === "otari") {
+  let selected: "sandbase" | "otari" | "venice" | "gemini" | "openai" | null =
+    null;
+  if (provider === "sandbase") {
+    selected = hasSandbase ? "sandbase" : null;
+  } else if (provider === "otari") {
     selected = hasOtari ? "otari" : null;
   } else if (provider === "venice") {
     selected = hasVenice ? "venice" : null;
@@ -116,8 +161,10 @@ export async function generateText({
   } else if (provider === "openai") {
     selected = hasOpenAI ? "openai" : null;
   } else {
-    // auto: Otari (primary gateway) → Venice → fallbacks
-    if (hasOtari) {
+    // auto: Sandbase (our spend) → Otari → Venice → fallbacks
+    if (hasSandbase) {
+      selected = "sandbase";
+    } else if (hasOtari) {
       selected = "otari";
     } else if (hasVenice) {
       selected = "venice";
@@ -135,15 +182,37 @@ export async function generateText({
   }
 
   if (!selected) {
-    logger.error("No AI provider available. Check your environment variables.", { component: "ai-providers" });
+    logger.error(
+      "No AI provider available. Check your environment variables.",
+      { component: "ai-providers" },
+    );
     throw new Error(
-      "No AI provider available. Please configure OTARI_API_KEY, VENICE_API_KEY, GEMINI_API_KEY or OPENAI_API_KEY in environment variables.",
+      "No AI provider available. Please configure SANDBASE_API_KEY, OTARI_API_KEY, VENICE_API_KEY, GEMINI_API_KEY or OPENAI_API_KEY in environment variables.",
     );
   }
 
   try {
+    if (selected === "sandbase") {
+      logger.debug("Using Sandbase", {
+        component: "ai-providers",
+        model: sandbaseChatModel,
+      });
+      const response = await sandbaseClient!.chat.completions.create({
+        model: sandbaseChatModel,
+        messages: [{ role: "user", content: prompt }],
+        ...openaiOptions,
+      });
+      return {
+        text: response.choices[0]?.message?.content ?? "",
+        usedProvider: "sandbase",
+      };
+    }
+
     if (selected === "otari") {
-      logger.debug("Using Otari", { component: "ai-providers", model: otariModel ?? otariChatModel });
+      logger.debug("Using Otari", {
+        component: "ai-providers",
+        model: otariModel ?? otariChatModel,
+      });
       const response = await otariClient!.chat.completions.create({
         model: otariModel ?? otariChatModel!,
         messages: [{ role: "user", content: prompt }],
@@ -154,7 +223,10 @@ export async function generateText({
     }
 
     if (selected === "venice") {
-      logger.debug("Using Venice", { component: "ai-providers", model: veniceModel });
+      logger.debug("Using Venice", {
+        component: "ai-providers",
+        model: veniceModel,
+      });
       const response = await veniceClient!.chat.completions.create({
         model: veniceModel,
         messages: [{ role: "user", content: prompt }],
@@ -165,14 +237,23 @@ export async function generateText({
     }
 
     if (selected === "gemini") {
-      logger.debug("Using Gemini", { component: "ai-providers", model: geminiModel });
-      const response = await geminiClient!.models.generateContent({ model: geminiModel, contents: prompt });
+      logger.debug("Using Gemini", {
+        component: "ai-providers",
+        model: geminiModel,
+      });
+      const response = await geminiClient!.models.generateContent({
+        model: geminiModel,
+        contents: prompt,
+      });
       const textResult = response.text;
       return { text: textResult ?? "", usedProvider: "gemini" };
     }
 
     // OpenAI
-    logger.debug("Using OpenAI", { component: "ai-providers", model: openaiModel });
+    logger.debug("Using OpenAI", {
+      component: "ai-providers",
+      model: openaiModel,
+    });
     const response = await openaiClient!.chat.completions.create({
       model: openaiModel,
       messages: [{ role: "user", content: prompt }],
@@ -181,7 +262,11 @@ export async function generateText({
     const openaiResult = response.choices[0]?.message?.content ?? "";
     return { text: openaiResult, usedProvider: "openai" };
   } catch (err: any) {
-    logger.error(`generateText failed with ${selected}`, { component: "ai-providers", provider: selected }, err);
+    logger.error(
+      `generateText failed with ${selected}`,
+      { component: "ai-providers", provider: selected },
+      err,
+    );
     throw err;
   }
 }
@@ -213,8 +298,8 @@ export function resolveOpenAIModel(choice: ModelChoice): string {
   }
 }
 
-// Minimal vision wrappers (image + prompt). Otari first (primary
-// gateway), Gemini fallback.
+// Minimal vision wrappers (image + prompt). Sandbase first (our spend),
+// then Otari, then Gemini.
 export async function generateVision({
   prompt,
   imageBase64,
@@ -225,22 +310,35 @@ export async function generateVision({
   imageBase64: string;
   provider?: ProviderChoice;
   modelChoice?: ModelChoice;
-}): Promise<{ text: string; usedProvider: "otari" | "gemini" | "openai" }> {
+}): Promise<{
+  text: string;
+  usedProvider: "sandbase" | "otari" | "gemini" | "openai";
+}> {
+  const hasSandbaseVision = sandbaseVisionAvailable();
   const hasOtariVision = otariVisionAvailable();
   const hasGemini = geminiAvailable();
   const hasOpenAI = openaiAvailable();
 
-  let selected: "otari" | "gemini" | "openai" | null = null;
-  if (provider === "otari" && hasOtariVision) selected = "otari";
+  let selected: "sandbase" | "otari" | "gemini" | "openai" | null = null;
+  if (provider === "sandbase" && hasSandbaseVision) selected = "sandbase";
+  else if (provider === "otari" && hasOtariVision) selected = "otari";
   else if (provider === "gemini" && hasGemini) selected = "gemini";
   else if (provider === "openai" && hasOpenAI) selected = "openai";
+  else if (hasSandbaseVision) selected = "sandbase";
   else if (hasOtariVision) selected = "otari";
   else if (hasGemini) selected = "gemini";
   else if (hasOpenAI) selected = "openai";
 
-  if (selected === "otari") {
-    const response = await otariClient!.chat.completions.create({
-      model: otariVisionModel!,
+  const gateway =
+    selected === "sandbase"
+      ? { client: sandbaseClient!, model: sandbaseVisionModel }
+      : selected === "otari"
+        ? { client: otariClient!, model: otariVisionModel! }
+        : null;
+
+  if (gateway) {
+    const response = await gateway.client.chat.completions.create({
+      model: gateway.model,
       messages: [
         {
           role: "user",
@@ -258,12 +356,15 @@ export async function generateVision({
         },
       ],
     });
-    return { text: response.choices[0]?.message?.content ?? "", usedProvider: "otari" };
+    return {
+      text: response.choices[0]?.message?.content ?? "",
+      usedProvider: selected!,
+    };
   }
 
   if (selected !== "gemini") {
     throw new Error(
-      "Vision analysis requires Otari (OTARI_API_KEY + OTARI_VISION_MODEL) or Gemini (GEMINI_API_KEY).",
+      "Vision analysis requires Sandbase (SANDBASE_API_KEY + SANDBASE_VISION_MODEL), Otari (OTARI_API_KEY + OTARI_VISION_MODEL) or Gemini (GEMINI_API_KEY).",
     );
   }
 
