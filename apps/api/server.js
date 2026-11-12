@@ -106,6 +106,13 @@ const raw10kb = express.raw({ type: 'application/json', limit: '10kb' });
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 const redis = new Redis(redisUrl);
 
+// Receipts and the other agent-core ledgers must outlive this process.
+if (require('./lib/persistent-state-redis').installPersistentStateBackend()) {
+  console.log('[PersistentState] agent-core state is stored in Redis');
+} else {
+  console.warn('[PersistentState] no Redis backend installed — agent-core state follows UPSTASH_* or stays in memory');
+}
+
 redis.on('error', (err) => {
   console.error('[Redis] Connection error:', err.message);
 });
