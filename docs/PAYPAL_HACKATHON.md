@@ -3,7 +3,7 @@
 Status: **`submitted`** (2026-11-12, sandbox, on production API `api.onpoint.famile.xyz`).
 
 - Devpost: https://devpost.com/software/onpoint-b3dory (editable until 12 Nov 20:00 UTC)
-- Demo video: https://youtu.be/tYXxUr_8ibo (unlisted, 82s rough cut — replace with the improved cut before the deadline by editing the video field on the project-details step)
+- Demo video: https://youtu.be/AXaBYTOj7kY (unlisted, 92s — improved cut, embedded on the Devpost entry)
 
 Live evidence (re-verifiable without credentials):
 - Rail advertisement — `POST /api/agent/try-on` returns **HTTP 402** with `quote.paymentRails: ["celo_cusd","near","paypal"]` and `quote.paypal = { env: "sandbox", orderId, approveUrl, amountUsd, currency: "USD", instructions }`.
@@ -78,9 +78,9 @@ Example from a live paid try-on served by Otari: `aiCost: { provider: "otari", m
 - [x] Deploy (`PAYPAL_*` on `snel-bot:/opt/onpoint/shared/api/.env`, prod 402 advertises `paypal`)
 - [x] Add `paypal` result to the demo video — `onpoint-paypal-demo-v2.mp4` covers 402 → rails → /pay → approval → receipt
 - [x] `/pay` PayPal flow live on the deployed web host (2026-11-12) — quote, choice and approval hand-off verified on production; the result screen verified with a real sandbox approval by the operator
-- [x] YouTube upload of the <3 min demo, publicly visible — https://youtu.be/tYXxUr_8ibo (unlisted placeholder; upgrade pending)
+- [x] YouTube upload of the <3 min demo, publicly visible — https://youtu.be/AXaBYTOj7kY (unlisted, 92s improved cut)
 - [x] Devpost form: description, tools, repo link, hosted demo link — submitted 2026-11-12 as OnPoint (`onpoint-b3dory`), Individual, Kenya
-- [ ] Swap in the improved demo video before the deadline (video field on project-details step)
+- [x] Swap in the improved demo video before the deadline — `AXaBYTOj7kY` now embedded on the public project page
 
 ## Related work shipped alongside
 - Garment attributes on listings (`listings.attributes`, migration `0011`) and `?type=&formality=&warmth=` storefront filters.

@@ -89,6 +89,8 @@ node scripts/agent-buyer.mjs --dry-run                      # Celo flow without 
 
 `GET /.well-known/agent.json` → `GET /api/curator/directory?agentPurchasable=1` → `GET /api/curator/onpoint-store/storefront` (add `?type=top&formality=casual`) → `POST /api/agent/outfit` → free web try-on at [onpoint.trustfall.xyz/pay](https://onpoint.trustfall.xyz/pay). Paid steps print a real 402 without a wallet, so the challenge itself is inspectable; completed receipts stay readable at `GET /api/receipts/{receiptId}`.
 
+**PayPal AI Hackathon** (submitted 2026-11-12): [Devpost entry](https://devpost.com/software/onpoint-b3dory) · [demo video](https://youtu.be/AXaBYTOj7kY) · [a real sandbox PayPal try-on receipt](https://onpoint.trustfall.xyz/receipt/receipt_mwdjib6r_ba423717) (`paymentMethod: "paypal"`, capture `13K55568GE972304A`) · [integration notes](docs/PAYPAL_HACKATHON.md).
+
 
 ---
 

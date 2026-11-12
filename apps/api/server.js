@@ -273,6 +273,11 @@ app.use('/api/agent/heartbeat', json1k, require('./routes/agent-heartbeat'));
 
 // Dashboard — public read (agent operational state)
 app.use('/api/agent/dashboard', json1k, require('./routes/agent-dashboard'));
+
+// Studio AI — metered chat proxy for the AG Studio agent on /agent/studio.
+const studioAiRateLimit = createRateLimiter(redis, 'general', { maxRequests: 30, prefix: 'studio-ai' });
+const studioAiDailyLimit = createRateLimiter(redis, 'general', { maxRequests: 120, windowMs: 86_400_000, prefix: 'studio-ai-daily' });
+app.use('/api/agent/studio-ai', express.json({ limit: '120kb' }), studioAiRateLimit, studioAiDailyLimit, require('./routes/agent-studio-ai'));
 app.use('/api/receipts', json1k, require('./routes/receipts'));
 app.use('/api/gift', json1k, generalRateLimit, require('./routes/gift-claim'));
 app.use('/api/couple', json10mb, artifactIngestRateLimit, artifactIngestDailyLimit, require('./routes/couple'));

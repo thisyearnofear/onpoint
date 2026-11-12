@@ -5,6 +5,11 @@
 > Repo: https://github.com/thisyearnofear/onpoint
 > Live: https://onpoint.trustfall.xyz
 
+Other hackathon lanes: [`docs/WIF_HACKATHON.md`](docs/WIF_HACKATHON.md)
+(Robinhood Chain, closes Nov 12) · [`docs/PAYPAL_HACKATHON.md`](docs/PAYPAL_HACKATHON.md)
+(live-validated) · [`docs/SWITCH_HACKATHON.md`](docs/SWITCH_HACKATHON.md) ·
+[`docs/NEAR_HACKATHON.md`](docs/NEAR_HACKATHON.md) (integration detail).
+
 ## 1. Event essentials
 - Build window: **Nov 1 00:00 UTC → Nov 14 23:59 UTC, 2026**.
 - Judging: Nov 16–18; results by Nov 18 23:59 UTC.
@@ -81,7 +86,7 @@ Out of scope for the hackathon: ChatGPT plugin directory approval, multi-curator
 
 **Three rails now live on the same offer (2026-11-12):** `quote.paymentRails: ["celo_cusd","near","paypal"]`. NEAR stays the showcased rail — it is the only one an agent settles alone, trustlessly verified server-side against JSON-RPC — and PayPal is the contrast case that proves the point: an agent that can pay without a human *should not always*. Say both; the comparison is what makes the NEAR property legible.
 
-**Order of submission matters.** The PayPal AI Hackathon closes 12 Nov 20:00 UTC and the NEAR form locks on send ([docs/PAYPAL_HACKATHON.md](./docs/PAYPAL_HACKATHON.md)). Finish the PayPal sandbox proof first, then submit NEAR so that form describes three working rails instead of one.
+**Order of submission matters.** The PayPal AI Hackathon closed 12 Nov 20:00 UTC — OnPoint was submitted there as [onpoint-b3dory](https://devpost.com/software/onpoint-b3dory) ([docs/PAYPAL_HACKATHON.md](./docs/PAYPAL_HACKATHON.md)). The NEAR form locks on send; it can now describe three working rails instead of one.
 
 ## 8. Submission checklist
 - [ ] Repo public by Nov 14 23:59 UTC
