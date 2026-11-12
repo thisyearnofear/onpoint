@@ -23,28 +23,38 @@ function detectRail(tx: string): string {
 }
 
 async function loadSources(api: string): Promise<Row[]> {
-  const [earnings, storefront, dashboard] = await Promise.all([
+  const [niaEarnings, c3Earnings, niaStore, c3Store, dashboard] = await Promise.all([
     fetch(`${api}/api/curator/nia/earnings`).then((r) => r.json()),
+    fetch(`${api}/api/curator/channel3/earnings`).then((r) => r.json()),
     fetch(`${api}/api/curator/nia/storefront`).then((r) => r.json()),
+    fetch(`${api}/api/curator/channel3/storefront`).then((r) => r.json()),
     fetch(`${api}/api/agent/dashboard`).then((r) => r.json()),
   ]);
 
-  const tryons: Row[] = (earnings.tryOns || []).map((t: any) => ({
+  const tryons: Row[] = [
+    ...(niaEarnings.tryOns || []).map((t: any) => ({ ...t, curator: "nia" })),
+    ...(c3Earnings.tryOns || []).map((t: any) => ({ ...t, curator: "channel3" })),
+  ].map((t: any) => ({
     id: t.id,
+    curator: t.curator,
     amount_usd: Number(t.amountCusd),
     rail: detectRail(String(t.paymentTx || "")),
     tx: t.paymentTx,
     at: t.createdAt,
   }));
-  const listings: Row[] = (storefront.listings || []).map((l: any) => ({
+  const listings: Row[] = [
+    ...(niaStore.listings || []).map((l: any) => ({ ...l, curator: "nia" })),
+    ...(c3Store.listings || []).map((l: any) => ({ ...l, curator: "channel3" })),
+  ].map((l: any) => ({
     id: l.id,
+    curator: l.curator,
     title: l.title,
-    price_usd: l.pricing?.priceCusd ?? l.priceCusd ?? null,
-    type: l.attributes?.type || "",
-    formality: l.attributes?.formality || "",
-    warmth: l.attributes?.warmth || "",
-    colors: (l.attributes?.colors || []).join(", "),
+    price_usd: l.attributes?.price ?? l.pricing?.priceCusd ?? l.priceCusd ?? null,
+    brand: l.attributes?.brand || "",
+    category: l.attributes?.category || l.attributes?.type || "",
+    source: l.attributes?.source || "",
     status: l.status || "",
+    offer_url: l.attributes?.offerUrl || "",
   }));
   const actions: Row[] = (dashboard.activity?.recentReceipts || []).map((r: any) => ({
     action: r.action,
@@ -94,7 +104,7 @@ export function StudioShell() {
           data={{
             sources: sources as any,
             description:
-              "OnPoint agent-commerce ledger: paid AI try-ons with their payment rail (paypal capture ids, celo 0x hashes, near tx ids), the curator's live listings, and the agent's signed receipt activity.",
+              "OnPoint agent-commerce ledger: paid AI try-ons across two curators (nia, channel3) with their payment rail (paypal capture ids, celo 0x hashes, near tx ids), 24 live listings with brand/price/offer links, and the agent's signed receipt activity.",
           }}
           ai={({ api: studioApi }) =>
             createAiHarness(studioApi as any, {
