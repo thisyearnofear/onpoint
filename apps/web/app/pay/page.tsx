@@ -3,15 +3,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft, CheckCircle2, Copy, ExternalLink, Home,
+  ArrowLeft, CheckCircle2, ChevronDown, Copy, ExternalLink, Home,
   Play, Shirt, Wallet,
 } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 import QRCode from "qrcode";
 import { OnPointLayout } from "../../components/OnPointLayout";
 import { AgentTrace } from "../../components/pay/AgentTrace";
 import { Polaroid } from "../../components/pay/Polaroid";
-import { FitGuess } from "../../components/pay/FitGuess";
 import { LimitNotice } from "../../components/pay/LimitNotice";
+import { WaitDeck } from "../../components/pay/WaitDeck";
 import { ShareArtifact } from "../../components/ShareArtifact";
 import { TryOnActionRail } from "../../components/social/TryOnActionRail";
 import { Busy, ErrorState, StagedWait } from "../../components/state";
@@ -120,6 +121,11 @@ export default function PayPage() {
   const [paypal, setPaypal] = useState<PaypalQuote | null>(null);
   const [celo, setCelo] = useState<QuoteFacts["celo"]>(null);
   const [guess, setGuess] = useState<number | null>(null);
+  // The piece the user queued from the wait deck — becomes "Next: {title}"
+  // on the done screen. No request is fired while it's only queued.
+  const [queuedPieceId, setQueuedPieceId] = useState<string | null>(null);
+  // The full trace sits collapsed behind "Show what I did" during verify.
+  const [traceOpen, setTraceOpen] = useState(false);
   const [quoteFacts, setQuoteFacts] = useState<QuoteFacts | null>(null);
   const [result, setResult] = useState<TryOnResult | null>(null);
   const [txHash, setTxHash] = useState("");
@@ -160,6 +166,7 @@ export default function PayPage() {
   const pairRef = useRef<HTMLDivElement>(null);
   const chooseRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
+  const othersRef = useRef<HTMLDivElement>(null);
 
   const persistContext = useCallback((ctx: {
     curatorSlug: string;
@@ -347,6 +354,7 @@ export default function PayPage() {
                   imageUrl: data.polaroid.imageUrl,
                   webUrl,
                   receiptUrl: data.receiptUrl ?? null,
+                  score: data.tryOn?.fitSignal?.score ?? null,
                   at: new Date().toISOString(),
                 }),
               );
@@ -552,6 +560,8 @@ export default function PayPage() {
     setQuoteFacts(null);
     setMethod(null);
     setGuess(null);
+    setQueuedPieceId(null);
+    setTraceOpen(false);
     setResult(null);
     resultShown.current = false;
     paypalArmed.current = null;
@@ -625,8 +635,17 @@ export default function PayPage() {
     if (!u) return null;
     try { return new URL(u).pathname; } catch { return u; }
   })();
-  const otherListings = listings.filter((l) => l.id !== selected).slice(0, 4);
+  const otherListings = listings.filter((l) => l.id !== selected);
+  const queuedListing = listings.find((l) => l.id === queuedPieceId) ?? null;
   const fitScore = result?.fitSignal?.score ?? null;
+  const pendingTraceLabel = traceSteps.find((s) => s.state === "pending")?.label ?? null;
+  const inVerify = step === "verify";
+  const showPieceRail = listings.length > 1 && !inVerify;
+  const paymentShort = result?.payment?.paymentMethod === "paypal" || method === "paypal"
+    ? `Paid${paypal?.amountUsd ? ` $${paypal.amountUsd}` : ""} through PayPal`
+    : result?.payment?.paymentMethod === "cusd" || method === "celo"
+      ? `Paid${celo?.amountCusd != null ? ` ${celo.amountCusd}` : ""} cUSD on Celo`
+      : `Paid${quote?.amountNear ? ` ${quote.amountNear}` : ""} NEAR`;
 
   const keptRow = keptList.length > 0 ? (
     <div>
@@ -690,10 +709,19 @@ export default function PayPage() {
       ? "This is the last one for today on this network."
       : `About ${dailyLooksLeft} look${dailyLooksLeft === 1 ? "" : "s"} left today on this network.`;
 
+  // Staged reveal on done — the polaroid develops, then each line lands.
+  // Reduced motion skips the delays entirely (everything immediate).
+  const reduceMotion = useReducedMotion();
+  const reveal = (delay: number) => ({
+    initial: reduceMotion ? false : ({ opacity: 0, y: 6 } as const),
+    animate: { opacity: 1, y: 0 },
+    transition: reduceMotion ? { duration: 0 } : { delay, duration: 0.5, ease: [0.16, 1, 0.3, 1] as const },
+  });
+
   return (
     <OnPointLayout>
       <div className="mx-auto max-w-2xl px-4 py-8 md:py-12">
-        <Link href="/" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+        <Link href="/" className="mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> Back
         </Link>
 
@@ -701,16 +729,19 @@ export default function PayPage() {
           <h1 className="font-display text-3xl font-semibold tracking-tight md:text-4xl">
             See it on you
           </h1>
-          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            Add a photo, pay a few cents for the render, and it develops right here.
-            PayPal runs in sandbox and NEAR on testnet; cUSD on Celo is live and costs real cents.
-          </p>
+          {!inVerify && step !== "done" ? (
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              Add a photo, pay a few cents for the render, and it develops right here.
+              PayPal runs in sandbox and NEAR on testnet; cUSD on Celo is live and costs real cents.
+            </p>
+          ) : null}
         </div>
 
         {/* ── Done: the polaroid is the hero ─────────────────────── */}
         {step === "done" && result ? (
-          <div ref={heroRef} className="mt-8 space-y-6">
-            <div className="mx-auto max-w-sm -rotate-1">
+          <div ref={heroRef} className="mt-2 space-y-4">
+            {/* 1 — the look: polaroid develops, then the lines land */}
+            <div className="mx-auto max-w-[280px] -rotate-1">
               {result.renderImage ? (
                 <Polaroid src={result.renderImage} caption={active?.title ?? "Your try-on"} />
               ) : (
@@ -718,18 +749,22 @@ export default function PayPage() {
               )}
             </div>
 
-            {verdict ? (
-              <p className="border-l-2 border-foreground pl-3 font-display text-xl leading-snug">{verdict}</p>
-            ) : null}
+            <motion.div {...reveal(1.4)}>
+              {verdict ? (
+                <p className="border-l-2 border-foreground pl-3 font-display text-xl leading-snug">{verdict}</p>
+              ) : null}
+            </motion.div>
 
-            {(() => {
-              const outcome = guessOutcome(guess, result.fitSignal?.score ?? null);
-              return outcome ? <p className="text-sm">{outcome}</p> : null;
-            })()}
+            <motion.div {...reveal(1.9)}>
+              {(() => {
+                const outcome = guessOutcome(guess, result.fitSignal?.score ?? null);
+                return outcome ? <p className="text-sm">{outcome}</p> : null;
+              })()}
+            </motion.div>
 
-            {/* b) Share row — the polaroid is the artifact that travels */}
-            {result.polaroid?.webUrl && polaroidPath ? (
-              <div className="space-y-3">
+            {/* 2 — the action row: send it, or line up the next piece */}
+            <motion.div {...reveal(2.3)} className="space-y-2">
+              {result.polaroid?.webUrl && polaroidPath ? (
                 <div className="flex flex-wrap items-center gap-4">
                   <ShareArtifact
                     title={`${active?.title ?? "This piece"} — tried on with OnPoint`}
@@ -738,123 +773,185 @@ export default function PayPage() {
                     imageUrl={result.polaroid.imageUrl ?? null}
                     label="Send it"
                   />
+                  {queuedListing ? (
+                    <button
+                      type="button"
+                      onClick={() => { pickPiece(queuedListing.id); window.scrollTo({ top: 0 }); }}
+                      className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-3 text-sm font-bold text-background transition-colors hover:bg-foreground/90"
+                    >
+                      Next: {queuedListing.title}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => othersRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" })}
+                      className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-3 text-sm font-bold text-background transition-colors hover:bg-foreground/90"
+                    >
+                      Try another piece
+                    </button>
+                  )}
                   <a href={result.polaroid.webUrl} target="_blank" rel="noreferrer"
                     className="inline-flex items-center gap-1.5 text-sm text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline">
-                    Open its page <ExternalLink className="h-3.5 w-3.5" />
+                    Its page <ExternalLink className="h-3.5 w-3.5" />
                   </a>
                   {result.receiptUrl ? (
                     <a href={result.receiptUrl} target="_blank" rel="noreferrer"
                       className="inline-flex items-center gap-1.5 text-sm text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline">
-                      Open the receipt <ExternalLink className="h-3.5 w-3.5" />
+                      Receipt <ExternalLink className="h-3.5 w-3.5" />
                     </a>
                   ) : null}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Kept on this device — it&rsquo;s under &ldquo;Your try-ons&rdquo; on this page, and its link works anywhere.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {result.polaroidWarning ? (
-                  <p className="text-sm text-muted-foreground">
-                    The render worked, but the shareable polaroid couldn&rsquo;t be saved — your receipt still has everything.
-                  </p>
-                ) : null}
-                {result.receiptUrl ? (
-                  <a href={result.receiptUrl} target="_blank" rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline">
-                    Open the receipt <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                ) : null}
-              </div>
-            )}
-
-            {/* c) Same photo, another piece */}
-            {otherListings.length > 0 ? (
-              <div>
-                <p className="mb-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
-                  Same photo, another piece
-                </p>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {otherListings.map((l) => (
-                    <button
-                      key={l.id}
-                      type="button"
-                      onClick={() => {
-                        pickPiece(l.id);
-                        window.scrollTo({ top: 0 });
-                      }}
-                      className="rounded-xl border border-border bg-card p-2 text-left transition-all hover:border-foreground/50"
-                    >
-                      <SmartImg
-                        urls={[l.cutoutUrl, l.imageUrl]}
-                        alt={l.title}
-                        className="aspect-square w-full rounded-lg object-cover"
-                        tileClassName="flex aspect-square w-full items-center justify-center rounded-lg bg-muted"
-                      />
-                      <span className="mt-2 block truncate text-xs font-semibold">{l.title}</span>
-                    </button>
-                  ))}
+              ) : (
+                <div className="space-y-3">
+                  {result.polaroidWarning ? (
+                    <p className="text-sm text-muted-foreground">
+                      The render worked, but the shareable polaroid couldn&rsquo;t be saved — your receipt still has everything.
+                    </p>
+                  ) : null}
+                  {result.receiptUrl ? (
+                    <a href={result.receiptUrl} target="_blank" rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 text-sm text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline">
+                      Receipt <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  ) : null}
                 </div>
+              )}
+              <p className="text-xs text-muted-foreground">Kept on this device.</p>
+            </motion.div>
+
+            {/* 3 — same photo, another piece: one compact scrollable row */}
+            <motion.div {...reveal(2.6)} className="space-y-4">
+              {otherListings.length > 0 ? (
+                <div ref={othersRef}>
+                  <p className="mb-1 font-mono text-xs uppercase tracking-wider text-muted-foreground">
+                    Same photo, another piece
+                  </p>
+                  <div className="flex gap-3 overflow-x-auto pb-1">
+                    {[
+                      ...(queuedListing ? [queuedListing] : []),
+                      ...otherListings.filter((l) => l.id !== queuedPieceId),
+                    ].slice(0, 6).map((l) => (
+                      <button
+                        key={l.id}
+                        type="button"
+                        onClick={() => { pickPiece(l.id); window.scrollTo({ top: 0 }); }}
+                        className={`w-[72px] shrink-0 text-left transition-opacity ${
+                          l.id === queuedPieceId ? "rounded-xl ring-2 ring-foreground" : "opacity-80 hover:opacity-100"
+                        }`}
+                      >
+                        <SmartImg
+                          urls={[l.cutoutUrl, l.imageUrl]}
+                          alt={l.title}
+                          className="h-14 w-14 rounded-xl object-cover"
+                          tileClassName="flex h-14 w-14 items-center justify-center rounded-xl bg-muted"
+                        />
+                        <span className="mt-1 block truncate text-xs font-semibold">{l.title}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {/* 4 — the detail shelves: hairline disclosures, previews only */}
+              <div className="border-b border-border">
+                <details className="group border-t border-border">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 py-3 [&::-webkit-details-marker]:hidden">
+                    <span className="text-sm font-semibold">More to do</span>
+                    <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                      Challenge a friend · Remix · Save
+                      <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+                    </span>
+                  </summary>
+                  <div className="pb-4">
+                    <TryOnActionRail
+                      curatorSlug={curatorSlug}
+                      listingId={active?.id ?? ""}
+                      itemTitle={active?.title ?? null}
+                      imageUrl={result.polaroid?.imageUrl ?? result.renderImage}
+                    />
+                  </div>
+                </details>
+
+                <details className="group border-t border-border">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 py-3 [&::-webkit-details-marker]:hidden">
+                    <span className="text-sm font-semibold">Payment and receipt</span>
+                    <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                      {paymentShort}
+                      <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+                    </span>
+                  </summary>
+                  <div className="space-y-4 pb-4">
+                    <p className="text-sm text-muted-foreground">
+                      {result.payment?.paymentMethod === "paypal" || method === "paypal"
+                        ? `${paymentShort}. The seller's payout is recorded on the receipt as pending reconciliation.`
+                        : result.payment?.paymentMethod === "cusd" || method === "celo"
+                          ? `${paymentShort} — verified against the chain.`
+                          : `${paymentShort}, straight to the seller's account — verified against the chain.`}
+                    </p>
+                    <FactList
+                      rows={[
+                        result.fitSignal?.score != null ? { label: "Fit score", value: String(result.fitSignal.score) } : null,
+                        result.fitSignal?.recommendedSize ? { label: "Recommended size", value: result.fitSignal.recommendedSize } : null,
+                        result.renderMeta?.provider ? { label: "Render", value: result.renderMeta.provider } : null,
+                        result.aiCost?.costUsd != null
+                          ? {
+                              label: "AI cost",
+                              value: `$${Number(result.aiCost.costUsd).toFixed(6)} via ${result.aiCost.provider ?? "provider"}${result.aiCost.model ? ` · ${result.aiCost.model}` : ""}`,
+                              mono: true,
+                            }
+                          : null,
+                        result.payment?.txHash
+                          ? {
+                              label: "Payment",
+                              value: shortHash(result.payment.txHash),
+                              mono: true,
+                              href: result.payment.explorerUrl ?? undefined,
+                            }
+                          : null,
+                        result.receiptUrl
+                          ? { label: "Receipt", value: result.receiptId ?? "public receipt", href: result.receiptUrl }
+                          : null,
+                      ].filter((r): r is NonNullable<typeof r> => r !== null)}
+                    />
+                  </div>
+                </details>
+
+                <details className="group border-t border-border">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 py-3 [&::-webkit-details-marker]:hidden">
+                    <span className="text-sm font-semibold">What I did</span>
+                    <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                      {traceSteps.length} steps · {Math.round(result.requestMs / 1000)}s render
+                      <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+                    </span>
+                  </summary>
+                  <div className="pb-4">
+                    <AgentTrace steps={traceSteps} verdict={null} />
+                  </div>
+                </details>
               </div>
-            ) : null}
-
-            {/* d) The forward paths */}
-            <TryOnActionRail
-              curatorSlug={curatorSlug}
-              listingId={active?.id ?? ""}
-              itemTitle={active?.title ?? null}
-              imageUrl={result.polaroid?.imageUrl ?? result.renderImage}
-            />
-
-            {/* e) What it cost, what it proves */}
-            <p className="text-sm text-muted-foreground">
-              {result.payment?.paymentMethod === "paypal" || method === "paypal"
-                ? `Paid${paypal?.amountUsd ? ` $${paypal.amountUsd}` : ""} through PayPal. The seller's payout is recorded on the receipt as pending reconciliation.`
-                : result.payment?.paymentMethod === "cusd" || method === "celo"
-                  ? `Paid${celo?.amountCusd != null ? ` ${celo.amountCusd}` : ""} cUSD on Celo — verified against the chain.`
-                  : `Paid${quote?.amountNear ? ` ${quote.amountNear}` : ""} NEAR, straight to the seller's account — verified against the chain.`}
-            </p>
-
-            <FactList
-              rows={[
-                result.fitSignal?.score != null ? { label: "Fit score", value: String(result.fitSignal.score) } : null,
-                result.fitSignal?.recommendedSize ? { label: "Recommended size", value: result.fitSignal.recommendedSize } : null,
-                result.renderMeta?.provider ? { label: "Render", value: result.renderMeta.provider } : null,
-                result.aiCost?.costUsd != null
-                  ? {
-                      label: "AI cost",
-                      value: `$${Number(result.aiCost.costUsd).toFixed(6)} via ${result.aiCost.provider ?? "provider"}${result.aiCost.model ? ` · ${result.aiCost.model}` : ""}`,
-                      mono: true,
-                    }
-                  : null,
-                result.payment?.txHash
-                  ? {
-                      label: "Payment",
-                      value: shortHash(result.payment.txHash),
-                      mono: true,
-                      href: result.payment.explorerUrl ?? undefined,
-                    }
-                  : null,
-                result.receiptUrl
-                  ? { label: "Receipt", value: result.receiptId ?? "public receipt", href: result.receiptUrl }
-                  : null,
-              ].filter((r): r is NonNullable<typeof r> => r !== null)}
-            />
-
-            {result.stylingTips && result.stylingTips.length > 0 ? (
-              <ul className="space-y-1.5">
-                {result.stylingTips.slice(0, 3).map((tip, i) => (
-                  <li key={i} className="text-sm text-muted-foreground">{tip}</li>
-                ))}
-              </ul>
-            ) : null}
-
-            {trace}
+            </motion.div>
           </div>
         ) : (
           <>
-            {/* ── The pair: the piece | you — visible until done ───── */}
+            {/* ── Verify: one compact stage — developing polaroid | deck ── */}
+            {step === "verify" ? (
+              <div ref={pairRef} className="mt-6 grid grid-cols-[120px_1fr] items-start gap-4 sm:grid-cols-[minmax(0,180px)_1fr]">
+                {photo ? (
+                  <Polaroid src={photo} developing overlaySrc={active?.cutoutUrl ?? active?.imageUrl ?? undefined} />
+                ) : (
+                  <div />
+                )}
+                <WaitDeck
+                  guess={guess}
+                  onGuess={setGuess}
+                  pieces={otherListings.slice(0, 4).map((l) => ({ id: l.id, title: l.title, urls: [l.cutoutUrl, l.imageUrl] }))}
+                  queuedId={queuedPieceId}
+                  onQueue={setQueuedPieceId}
+                  kept={keptList}
+                />
+              </div>
+            ) : (
+            /* ── The pair: the piece | you — visible until done ───── */
             <div ref={pairRef} className="mt-6 grid grid-cols-2 gap-3">
               <div>
                 <div className="relative aspect-[3/4] overflow-hidden border border-border bg-muted/20">
@@ -870,12 +967,6 @@ export default function PayPage() {
                 <p className="mt-0.5 text-xs text-muted-foreground">from {curatorSlug}</p>
               </div>
               <div>
-                {step === "verify" && photo ? (
-                  // In verify the whole column IS the developing polaroid —
-                  // no bordered frame around it, or the caption overflows.
-                  // The garment cross-fades over the washed-out photo.
-                  <Polaroid src={photo} developing overlaySrc={active?.cutoutUrl ?? active?.imageUrl ?? undefined} />
-                ) : (
                 <div className="relative aspect-[3/4] border border-border bg-muted/20">
                   {photo ? (
                     <>
@@ -903,14 +994,14 @@ export default function PayPage() {
                     </button>
                   )}
                 </div>
-                )}
                 <p className="mt-2 text-sm font-bold leading-snug">You</p>
               </div>
             </div>
+            )}
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
 
-            {/* ── Piece rail ─────────────────────────────────────── */}
-            {listings.length > 1 ? (
+            {/* ── Piece rail — hidden during verify (the deck owns the wait) ── */}
+            {showPieceRail ? (
               <div className="mt-5">
                 <p className="mb-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">Pieces</p>
                 <div className="flex gap-2 overflow-x-auto pb-1">
@@ -919,7 +1010,7 @@ export default function PayPage() {
                       key={l.id}
                       type="button"
                       aria-pressed={l.id === selected}
-                      disabled={quoting || step === "verify"}
+                      disabled={quoting || inVerify}
                       onClick={() => pickPiece(l.id)}
                       aria-label={l.title}
                       title={l.title}
@@ -1130,14 +1221,14 @@ export default function PayPage() {
               </div>
             ) : null}
 
-            {/* ── Step: verify — the polaroid develops ───────────── */}
+            {/* ── Step: verify — the wait, staged ────────────────── */}
             {step === "verify" ? (
-              <div className="mt-6 space-y-6">
-                <FitGuess guess={guess} onPick={setGuess} />
+              <div className="mt-6 min-w-0 space-y-6 overflow-hidden">
                 <StagedWait
                   bare
+                  className="min-w-0 !px-0"
                   title="Developing your try-on"
-                  stages={[{ at: 0, label: "Payment check, render and fit read happen in one pass" }]}
+                  stages={[{ at: 0, label: "One pass: payment, render, fit" }]}
                   lines={[
                     "It's made from your actual photo and the actual garment image.",
                     "One request checks the payment, renders you, and reads the fit.",
@@ -1146,14 +1237,29 @@ export default function PayPage() {
                     "The receipt is written the moment the render lands.",
                   ]}
                 />
+                {pendingTraceLabel ? (
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">{pendingTraceLabel}</span>
+                    {" · "}
+                    <button
+                      type="button"
+                      aria-expanded={traceOpen}
+                      onClick={() => setTraceOpen((v) => !v)}
+                      className="font-semibold text-primary underline-offset-2 hover:underline"
+                    >
+                      {traceOpen ? "Hide what I did" : "Show what I did"}
+                    </button>
+                    {traceOpen ? trace : null}
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
-            {/* Kept on this device — skipped here while the daily notice
-                already shows the same row under its "Meanwhile" list */}
-            {limited?.kind === "daily" ? null : keptRow ? <div className="mt-8">{keptRow}</div> : null}
+            {/* Kept on this device — skipped while the daily notice shows
+                the same row, and during verify (the deck owns the wait) */}
+            {!inVerify && limited?.kind !== "daily" && keptRow ? <div className="mt-8">{keptRow}</div> : null}
 
-            {trace}
+            {!inVerify ? trace : null}
           </>
         )}
 

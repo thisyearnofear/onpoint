@@ -14,6 +14,8 @@ export interface Kept {
   imageUrl: string;
   webUrl: string;
   receiptUrl?: string | null;
+  /** Fit score at render time, if the signal read one — absent on old entries. */
+  score?: number | null;
   at: string;
 }
 
