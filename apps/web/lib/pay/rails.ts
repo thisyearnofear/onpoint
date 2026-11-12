@@ -70,7 +70,7 @@ interface ReceiptMetadata {
   renderProvider?: string;
   splitAddress?: string;
   near?: { accountId?: string; amountYocto?: string; payTo?: string; network?: string };
-  paypal?: { orderId?: string; captureId?: string; amountUsd?: number; env?: string };
+  paypal?: { orderId?: string; captureId?: string; amountUsd?: number; env?: string; payoutBatchId?: string };
 }
 
 export interface ReceiptLike {
@@ -136,13 +136,22 @@ export function buildReceiptView(
     }
   }
 
-  if (isPurchase) {
+  if (isPurchase || (isTryOn && rail === "paypal" && meta.paypal?.payoutBatchId)) {
     if (rail === "paypal") {
-      rows.push({
-        label: "Payout",
-        value: "Held by OnPoint — the curator's payout is pending reconciliation",
-        tone: "warning",
-      });
+      rows.push(
+        meta.paypal?.payoutBatchId
+          ? {
+              label: "Payout",
+              value: `Sent via PayPal Payouts — batch ${meta.paypal.payoutBatchId}`,
+              tone: "success",
+              mono: true,
+            }
+          : {
+              label: "Payout",
+              value: "Held by OnPoint — the curator's payout is pending reconciliation",
+              tone: "warning",
+            },
+      );
     } else if (rail === "near") {
       if (meta.curatorPayout?.includes("direct to curator")) {
         rows.push({

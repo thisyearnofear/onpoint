@@ -11,10 +11,12 @@ const {
   createPaypalOrder,
   verifyAndCapturePaypalOrder,
   paypalQuoteForUsd,
+  paypalSellerPayoutEmail,
+  sendPaypalPayout,
   __test,
 } = require('./paypal-payments');
 
-const ENV_KEYS = ['PAYPAL_ENV', 'PAYPAL_CLIENT_ID', 'PAYPAL_CLIENT_SECRET'];
+const ENV_KEYS = ['PAYPAL_ENV', 'PAYPAL_CLIENT_ID', 'PAYPAL_CLIENT_SECRET', 'PAYPAL_SELLER_PAYOUT_EMAIL'];
 
 function setEnv() {
   process.env.PAYPAL_CLIENT_ID = 'client-id';
@@ -234,5 +236,57 @@ describe('paypal-payments helpers', () => {
       .mockResolvedValueOnce(TOKEN_RESPONSE)
       .mockResolvedValueOnce({ ok: false, status: 503 });
     expect(await paypalQuoteForUsd({ amountUsd: 1, referenceId: 'r', fetchImpl })).toBeNull();
+  });
+});
+
+describe('sendPaypalPayout', () => {
+  beforeEach(() => {
+    setEnv();
+    process.env.PAYPAL_SELLER_PAYOUT_EMAIL = 'seller@example.com';
+  });
+
+  it('posts a payout batch and returns the batch id', async () => {
+    const calls = [];
+    const fetchImpl = vi.fn(async (url, init) => {
+      calls.push(url);
+      if (url.includes('/v1/oauth2/token')) return TOKEN_RESPONSE;
+      return {
+        ok: true,
+        json: async () => ({ batch_header: { payout_batch_id: 'BATCH123', batch_status: 'PENDING' } }),
+      };
+    });
+    const res = await sendPaypalPayout({
+      receiverEmail: 'seller@example.com',
+      amountUsd: 0.0285,
+      senderBatchId: 'payout-tryon-ORDER1',
+      fetchImpl,
+    });
+    expect(res).toEqual({ ok: true, payoutBatchId: 'BATCH123', batchStatus: 'PENDING', amountUsd: 0.0285 });
+    expect(calls[1]).toContain('/v1/payments/payouts');
+  });
+
+  it('is disabled without config and refuses sub-cent amounts', async () => {
+    delete process.env.PAYPAL_CLIENT_ID;
+    expect(await sendPaypalPayout({ receiverEmail: 's@x.com', amountUsd: 1, senderBatchId: 'b' }))
+      .toEqual({ ok: false, reason: 'not_configured' });
+    setEnv();
+    expect(await sendPaypalPayout({ receiverEmail: 's@x.com', amountUsd: 0.005, senderBatchId: 'b' }))
+      .toEqual({ ok: false, reason: 'below_minimum' });
+  });
+
+  it('returns a reason instead of throwing on PayPal errors', async () => {
+    const fetchImpl = vi.fn(async (url) => {
+      if (url.includes('/v1/oauth2/token')) return TOKEN_RESPONSE;
+      return { ok: false, status: 422, json: async () => ({ name: 'VALIDATION_ERROR' }) };
+    });
+    const res = await sendPaypalPayout({ receiverEmail: 's@x.com', amountUsd: 1, senderBatchId: 'b', fetchImpl });
+    expect(res.ok).toBe(false);
+    expect(res.reason).toBe('payout_failed_422_VALIDATION_ERROR');
+  });
+
+  it('reads the seller email from env only', () => {
+    expect(paypalSellerPayoutEmail()).toBe('seller@example.com');
+    delete process.env.PAYPAL_SELLER_PAYOUT_EMAIL;
+    expect(paypalSellerPayoutEmail()).toBe(null);
   });
 });

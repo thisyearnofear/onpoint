@@ -13,6 +13,9 @@
  *   PAYPAL_CLIENT_ID      REST app client id
  *   PAYPAL_CLIENT_SECRET  REST app secret (never logged)
  *   PAYPAL_ENV            'sandbox' (default) | 'live'
+ *   PAYPAL_SELLER_PAYOUT_EMAIL  sandbox/live PayPal email that stands in for
+ *                               the seller; when set, the platform pays out the
+ *                               seller share over Payouts after capture.
  */
 
 const logger = require('./logger');
@@ -207,6 +210,71 @@ async function verifyAndCapturePaypalOrder({
   };
 }
 
+function paypalSellerPayoutEmail() {
+  const email = process.env.PAYPAL_SELLER_PAYOUT_EMAIL;
+  return typeof email === 'string' && email.includes('@') ? email : null;
+}
+
+/**
+ * Pay the seller share over PayPal Payouts after a capture.
+ *
+ * `senderBatchId` must be deterministic per payment so a retried verify
+ * (the claim-first replay path re-checks the order) can never double-pay:
+ * PayPal dedupes on sender_batch_id and returns the existing batch.
+ *
+ * @returns {Promise<{ok:true, payoutBatchId, batchStatus, amountUsd} |
+ *   {ok:false, reason:string}>}
+ */
+async function sendPaypalPayout({
+  receiverEmail,
+  amountUsd,
+  senderBatchId,
+  note,
+  fetchImpl = fetch,
+} = {}) {
+  if (!paypalRailEnabled()) return { ok: false, reason: 'not_configured' };
+  const amount = Number(amountUsd);
+  if (!Number.isFinite(amount) || amount < 0.01) {
+    return { ok: false, reason: 'below_minimum' };
+  }
+  let token;
+  try {
+    token = await getAccessToken({ fetchImpl });
+  } catch (err) {
+    return { ok: false, reason: 'auth_failed' };
+  }
+  const res = await fetchImpl(`${paypalBaseUrl()}/v1/payments/payouts`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      sender_batch_header: {
+        sender_batch_id: String(senderBatchId).slice(0, 64),
+        email_subject: 'Your OnPoint sale payout',
+        email_message: note || 'OnPoint curator payout',
+      },
+      items: [
+        {
+          recipient_type: 'EMAIL',
+          amount: { value: amount.toFixed(2), currency: 'USD' },
+          receiver: receiverEmail,
+          note: note || 'OnPoint curator payout',
+          sender_item_id: String(senderBatchId).slice(0, 64),
+        },
+      ],
+    }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { ok: false, reason: `payout_failed_${res.status}_${data?.name || 'unknown'}` };
+  }
+  return {
+    ok: true,
+    payoutBatchId: data?.batch_header?.payout_batch_id || null,
+    batchStatus: data?.batch_header?.batch_status || null,
+    amountUsd: amount,
+  };
+}
+
 /**
  * Best-effort PayPal quote block for a 402 challenge. Returns null when
  * the rail is disabled or order creation fails — never throws.
@@ -240,6 +308,8 @@ module.exports = {
   createPaypalOrder,
   verifyAndCapturePaypalOrder,
   paypalQuoteForUsd,
+  paypalSellerPayoutEmail,
+  sendPaypalPayout,
 };
 module.exports.__test = {
   resetTokenCache() { cachedToken = null; cachedTokenExpiry = 0; },
