@@ -61,6 +61,37 @@ pnpm install && cp apps/web/.env.example apps/web/.env.local && pnpm dev
 
 ---
 
+## Pay the same offer three ways
+
+One listing, one quote, three settled rails — the agent picks, and only one of them lets it spend without a human:
+
+| Rail | Token | Proof an agent sends back | Human in the loop? |
+| --- | --- | --- | --- |
+| Celo x402 | cUSD / USDC | `paymentTxHash` (+ `quoteId`) | no |
+| NEAR | NEAR | `nearTxHash` — payer derived from `transaction.signer_id`, verified trustlessly over JSON-RPC | no |
+| PayPal | USD (sandbox/live) | `paypalOrderId` → the human approves at paypal.com, server captures, `captureId` is the proof | **yes, by design** |
+
+`POST /api/agent/try-on` answers **HTTP 402** with `quote.paymentRails` listing what is currently configured; the paid re-POST returns the render, a fit signal and a shareable polaroid whose page prints the AI inference cost next to the payment.
+
+```bash
+# See the challenge (no wallet, no payment)
+curl -sS -X POST https://api.onpoint.famile.xyz/api/agent/try-on \
+  -H 'Content-Type: application/json' \
+  -d '{"curatorSlug":"nia","listingId":"08fa3061-3054-4e6a-99ca-a146e2e88063","photoData":"data:image/jpeg;base64,…"}' | head -c 400
+
+# Run a whole rail end to end (testnet/sandbox funds required)
+node scripts/near-spike/agent-demo.mjs                      # RAIL=near (default)
+RAIL=paypal node scripts/near-spike/agent-demo.mjs          # prints approveUrl; open it, approve, the script continues
+node scripts/agent-buyer.mjs --dry-run                      # Celo flow without paying
+```
+
+### Judging path (no credentials needed)
+
+`GET /.well-known/agent.json` → `GET /api/curator/directory?agentPurchasable=1` → `GET /api/curator/onpoint-store/storefront` (add `?type=top&formality=casual`) → `POST /api/agent/outfit` → free web try-on at [onpoint.trustfall.xyz/pay](https://onpoint.trustfall.xyz/pay). Paid steps print a real 402 without a wallet, so the challenge itself is inspectable; completed receipts stay readable at `GET /api/receipts/{receiptId}`.
+
+
+---
+
 ## Docs
 
 | | |

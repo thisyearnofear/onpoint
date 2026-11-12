@@ -7,6 +7,8 @@
 
 - **Auto-deploys** via `.github/workflows/deploy-api.yml` on every push to `master` that touches `apps/api/**`, `packages/**`, `pnpm-lock.yaml`, the workflow, or `scripts/deploy-api.sh`. It SSHes to the Hetzner box and runs `scripts/deploy-api.sh` (local build → rsync → symlink flip → `pm2 reload`).
 - `deploy-api.sh` runs `scripts/check-db-migrations.mjs` — a **verification** step that fails on hash drift for the reconciled migrations (it currently pins hashes for 0008–0010 only). It does **not** apply migrations.
+- **Native modules:** the bundle's `node_modules` is installed on the operator's laptop, so npm skips sharp's Linux optional deps and the release dies at startup with `Could not load the "sharp" module using the linux-x64 runtime`. Step 5.65 of `deploy-api.sh` fixes this on the server: it reads the `@img/*-linux-x64` versions sharp declares, `npm pack`s them into the staged release and `require`s sharp before preflight. If a future dependency ships prebuilt natives the same way, extend that step rather than patching a release directory by hand — a hand-patched release looks healthy and silently disappears from the next build.
+- **Read the script's own exit status.** `./scripts/deploy-api.sh > log; echo $?` reports the exit code of `echo`, not the deploy, and a failed release then gets logged as a success. Use `&& echo OK || echo FAILED`, and confirm the release it names: `ssh snel-bot readlink /opt/onpoint/apps/api`.
 
 ### DB migrations are manual — apply before deploying code
 
@@ -41,8 +43,13 @@ psql "$NEON" -f -' < packages/db/migrations/<file>.sql
   ```
 
   `-a onpoint` is required: `fly.web.toml` says `app = "onpoint-web"` but the live app is `onpoint`.
-- `NEXT_PUBLIC_*` values are inlined at build time via `fly.web.toml [build.args]`, not fly secrets.
-- Web was stale from 2026-10-16 until redeployed 2026-11-03 (release v12); that release took `/runway` and `/runway/play` live for the first time.
+- `NEXT_PUBLIC_*` values are inlined at build time and must be declared in **three** places, or they are silently dropped:
+  1. `fly.web.toml [build.args]` — supplies the value.
+  2. the `ARG` whitelist in the `builder` stage of [../../Dockerfile](../../Dockerfile) — an arg not listed here never reaches `next build`.
+  3. `ARG` + `ENV` in the `runner` stage — needed when a **server component** reads `process.env` at request time rather than relying on build-time inlining.
+- **Incident record (2026-11-12):** `/p/{paymentId}` 404'd on every polaroid. `apps/web/app/p/[id]/page.tsx` reads `NEXT_PUBLIC_R2_PUBLIC_URL` in a server component; the value was in `fly.web.toml` but missing from the Dockerfile `ARG` list, so `loadPolaroid()` returned null and the page called `notFound()`. Symptom: paying for a try-on produced a valid `imageUrl` and a dead share link. When touching `/p`, verify with a real `paymentId`: `curl -o /dev/null -w '%{http_code}' https://onpoint.trustfall.xyz/p/<id>`.
+- The API builds human-facing links (`polaroid.webUrl`, receipt URLs) from `WEB_BASE_URL` on the box, defaulting to `https://onpoint.trustfall.xyz`. **Incident record (2026-11-12):** it was pinned to `https://beonpoint.netlify.app`, a decommissioned host that 404s at the apex — so agents were republishing dead links while the Fly app served the same path fine. Set it explicitly on `snel-bot:/opt/onpoint/shared/api/.env` and re-check with a 402 response after any hosting move.
+- Web was stale from 2026-10-16 until redeployed 2026-11-03 (release v12); that release took `/runway` and `/runway/play` live for the first time. It went stale again for 9 days (105 `apps/web` commits, incl. `/pay` as a checkout and the Otari metering UI) before the 2026-11-12 redeploy. **Rule: before any demo, judged submission or press moment, run `git log --since=<last deploy date> --oneline -- apps/web | wc -l` — a live API plus a stale web bundle demos as a broken product.**
 - A remote build once hung ~18 min in "Collecting page data" (root cause unconfirmed). As mitigation, all server-side API fetches in `apps/web/app` now carry `AbortSignal.timeout(5000)`; the build is also sensitive to the `.npmrc` hoisting config (`shamefully-hoist`, `node-linker=hoisted`) — without it the pruned install fails to resolve transitive deps (`lru-cache`, `bls-eth-wasm`).
 
 ### Release validation checklist (wardrobe studio release)
