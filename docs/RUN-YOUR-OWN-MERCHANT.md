@@ -31,19 +31,24 @@ near account create-account fund-later use-auto-generation \
   autogenerate-new-keypair save-to-keychain \
   network-config testnet create
 
-# 2. Register storage on the settlement FT so the wallet can RECEIVE
-#    withdrawals. One-time, ~0.00125 NEAR.
-near tokens usdc.fakes.testnet storage_deposit \
-  '{"account_id":"yourshop.testnet"}' --deposit 0.00125 \
-  network-config testnet sign-as yourshop.testnet send
+# 2. Skip — your agent does this: on first boot it registers storage on the
+#    settlement FT (~0.00125 NEAR, idempotent) so the wallet can RECEIVE
+#    withdrawals, and calls add_public_key(1 yocto) on the verifier so your
+#    signatures verify. No platform writes needed.
 
-# 3. Point your curator at the account (DB update on the platform side —
-#    ask the operator, or set it on your own curator):
-#    curators.commerce.nearAccountId = "yourshop.testnet"
+# 3. Point your storefront at the account — self-serve, no platform write:
+#    sign in with your curator payout wallet, then:
+TOKEN=$(curl -s -X POST https://api.onpoint.famile.xyz/api/auth/challenge \
+  -H 'content-type: application/json' -d '{"address":"0xYOUR_PAYOUT_WALLET"}' \
+  | jq -r .message)   # sign that message, POST /api/auth/verify → token
+curl -X POST https://api.onpoint.famile.xyz/api/curator/YOUR_SLUG/near-account \
+  -H "authorization: Bearer $TOKEN" -H 'content-type: application/json' \
+  -d '{"nearAccountId":"yourshop.testnet"}'
+#    → { sovereign: true } — note: session auth REJECTS onpoint.* accounts.
+#    A hosted payee is provably non-sovereign; external registration is
+#    sovereign by construction (the platform has no key for your account).
 
-# 4. Run your agent. On first boot it calls add_public_key(1 yocto) on the
-#    verifier — your pubkey must be in the verifier's registry before your
-#    ft_withdraw signatures verify. The agent does it for you.
+# 4. Run your agent.
 cd scripts/near-spike && npm i
 SELLER=yourshop.testnet SELLER_KEY=ed25519:YOUR_KEY \
   API_URL=https://api.onpoint.famile.xyz node seller-agent.mjs
@@ -105,6 +110,15 @@ agent quotes/counters/refuses and signs accepted prices with your key
 fallback — an account like yours has no hosted key, so the platform
 physically cannot sign for you). Until then, your listings negotiate
 against the platform's policy stub or post fixed prices.
+
+## Variant: run as a solver, not a merchant
+
+The same agent watches the open queue for *swap* intents — you supply
+liquidity on the diff legs (you are NOT the payee). `SOLVER=you.testnet
+SELLER_KEY=...` picks up solver-mode; your `minUsdcPerWnear` policy in
+`seller-policy.json` is your quoting rule. Mint yourself mock liquidity
+(`usdc.fakes.testnet` mint is open on testnet) and some wNEAR before racing
+other solvers — first executed bundle wins.
 
 ## Caveats (say them out loud)
 

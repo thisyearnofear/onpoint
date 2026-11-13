@@ -492,9 +492,15 @@ themselves.
 
 ### Acceptance
 
+- [x] Self-serve wiring shipped: `POST /api/curator/{slug}/near-account`
+      (curator wallet session or service key; session auth rejects
+      `onpoint.*` — external payees are sovereign by construction).
+      seller-agent auto-registers FT storage + verifier key at boot.
+- [x] Meridian order delivers a downloadable artifact: digital listings
+      carrying `attributes.deliverableKey`+`priceUsd` are orderable;
+      402 verified live (listing `7e57cc1d`, poster in R2, $4.99).
 - [ ] A fresh testnet account runs the runbook end-to-end with zero DB
-      writes by us.
-- [ ] Meridian order delivers a downloadable artifact on the receipt.
+      writes by us. (Needs the outside operator — human task.)
 
 ## M — Printful sandbox probe (dev 4) · 3h timebox, then kill
 
