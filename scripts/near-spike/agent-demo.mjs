@@ -154,7 +154,7 @@ async function payEscrowed({ receiverId, amountBase }) {
 // never holds a seller key: two agents, disjoint keys, API as mailbox.
 async function publishIntent({ path, body, payee, amountBase, who }) {
   const signed = await intents.signTransferIntent({ buyer: agentFak, receiverId: payee, amountBase });
-  const res = await post(path, { ...body, signedIntent: signed });
+  const res = await post(path, { ...body, nearAccountId: agent.accountId, signedIntent: signed });
   const accepted = await res.json();
   if (res.status !== 202) {
     return { ok: false, failure: `mailbox ${res.status}: ${JSON.stringify(accepted).slice(0, 220)}` };

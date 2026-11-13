@@ -205,8 +205,10 @@ async function verifyIntentsSettlement({
  * fails fast instead of leaving a dead letter in the mailbox.
  *
  * Checks: standard === 'nep413', payload.message parses, signer_id =
- * buyer, verifying_contract = our verifier, deadline unexpired, and a
- * transfer intent to expectedPayeeId for >= minAmountBase of tokenId.
+ * buyer (when buyerAccountId is declared — the payload's signer_id is
+ * authoritative and returned either way), verifying_contract = our
+ * verifier, deadline unexpired, and a transfer intent to expectedPayeeId
+ * for >= minAmountBase of tokenId.
  */
 function validateSignedIntentPayload({ signed, buyerAccountId, expectedPayeeId, minAmountBase }) {
   const cfg = intentsConfig();
@@ -226,8 +228,11 @@ function validateSignedIntentPayload({ signed, buyerAccountId, expectedPayeeId, 
   } catch {
     return { ok: false, reason: 'message_unparseable' };
   }
-  if (msg?.signer_id !== buyerAccountId) {
-    return { ok: false, reason: 'signer_mismatch', signer: msg?.signer_id };
+  if (typeof msg?.signer_id !== 'string' || !msg.signer_id) {
+    return { ok: false, reason: 'signer_missing' };
+  }
+  if (buyerAccountId && msg.signer_id !== buyerAccountId) {
+    return { ok: false, reason: 'signer_mismatch', signer: msg.signer_id };
   }
   if (msg?.verifying_contract !== cfg.verifier) {
     return { ok: false, reason: 'verifier_mismatch', verifier: msg?.verifying_contract };
@@ -251,7 +256,7 @@ function validateSignedIntentPayload({ signed, buyerAccountId, expectedPayeeId, 
   if (amount < min) {
     return { ok: false, reason: 'amount_below_quote', amount: amount.toString(), minAmount: min.toString() };
   }
-  return { ok: true, msg, amount: amount.toString(), deadline: msg.deadline };
+  return { ok: true, msg, signer: msg.signer_id, amount: amount.toString(), deadline: msg.deadline };
 }
 
 module.exports = {

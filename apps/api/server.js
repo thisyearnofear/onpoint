@@ -410,10 +410,15 @@ app.use('/linq', require('./routes/linq-agent'));
 // Self-serve curator onboarding (ADR 0002). No API key needed.
 
 app.use('/api/curator/apply', json1k, generalRateLimit, require('./routes/curator-apply'));
-app.use('/api/curator', json1k, generalRateLimit, require('./routes/curator-wallet'));
+// The storefront mount must come FIRST: its json10kb parser runs before
+// wallet's json1k, so signedIntent + quoteToken order bodies (a few KB)
+// aren't rejected by the earlier mount's smaller limit. body-parser is
+// idempotent — once parsed, downstream json1k parsers are no-ops.
 app.use('/api/curator', json10kb, generalRateLimit, require('./routes/curator-storefront'));
+app.use('/api/curator', json1k, generalRateLimit, require('./routes/curator-wallet'));
 app.use('/api/curator', json1k, generalRateLimit, require('./routes/agent-negotiate'));
-app.use('/api/pending-intents', json1k, generalRateLimit, require('./routes/pending-intents'));
+// complete carries the redemption response (order JSON) back to the buyer
+app.use('/api/pending-intents', json10kb, generalRateLimit, require('./routes/pending-intents'));
 
 // ── Referral Routes (public, rate-limited) ──────────────────────
 // Agent referral tracking and stats.

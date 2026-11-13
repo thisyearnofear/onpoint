@@ -53,7 +53,7 @@ function submit({ signed, buyerAccountId, payee, minAmountBase, redeem }) {
   pending.set(pendingId, {
     pendingId,
     payee,
-    buyer: buyerAccountId,
+    buyer: check.signer, // the payload's signer_id is authoritative
     signed: {
       standard: signed.standard,
       payload: signed.payload,

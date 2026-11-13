@@ -78,16 +78,16 @@ async function fulfill(p, seller) {
   }
   say(`   ${C.g}✓${C.x} executed — ${txLink(exec.txHash)}`);
 
-  if (p.redeem?.endpoint && p.redeem?.body) {
-    const res = await fetch(p.redeem.endpoint, {
+  if (p.redeem?.path && p.redeem?.body) {
+    const res = await fetch(new URL(p.redeem.path, API).href, {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ...p.redeem.body, intentsTxHash: exec.txHash }),
+      body: JSON.stringify({ ...p.redeem.body, nearAccountId: p.buyer, intentsTxHash: exec.txHash }),
     });
     const body = await res.json().catch(() => ({}));
     say(`   ${res.ok ? `${C.g}✓` : `${C.y}✗`}${C.x} redeem ${res.status} — order ${body.orderId ?? body.status ?? "?"}${body.receiptUrl ? `  receipt ${body.receiptUrl}` : ""}`);
     // Hand the redemption back to the buyer through the mailbox (capped).
     const result = { status: res.status, orderId: body.orderId, receiptUrl: body.receiptUrl };
-    if (JSON.stringify(body).length <= 30_000) result.body = body;
+    if (JSON.stringify(body).length <= 8_000) result.body = body; // fits the mailbox's 10kb limit
     await fetch(`${API}/api/pending-intents/${p.pendingId}/complete`, {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ txHash: exec.txHash, status: res.ok ? "settled" : "failed", result }),

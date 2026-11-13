@@ -73,14 +73,22 @@ there is no official testnet deploy. Flow:
    `signMessage`) — needs a full-access key; FCAKs can't sign off-chain
    messages. That layering is a feature: FAK = agent identity/commitments,
    FCAK+escrow = bounded on-chain budget on the other rail.
-3. **The payee executes** — seller/stylist calls `execute_intents({signed:…})`
-   on the verifier; the ledger moves atomically. Buyer publishes a signed
-   commitment, the seller fulfills it — agent-to-agent, no solver.
-4. Re-POST with `{intentsTxHash}` → `lib/near-intents.js`
+3. Buyer **publishes** the signed payload — POST `{signedIntent}` to the
+   order/try-on endpoint → structural validation → a pending-intent mailbox
+   (`GET /api/pending-intents`) → `202 {pendingId}`.
+4. **The payee executes** — a separate `seller-agent.mjs` process holding
+   only the payee's key polls the mailbox, calls `execute_intents({signed:…})`
+   on the verifier (the ledger moves atomically), replays the stored redeem
+   body + `intentsTxHash`, and reports the outcome through the mailbox. The
+   demo buyer holds no seller key — two processes, disjoint keys, the API as
+   keyless mailbox. Safe by construction: a signed intent can only pay its
+   own `receiver_id`, whoever submits it.
+5. Re-POST with `{intentsTxHash}` → `lib/near-intents.js`
    `verifyIntentsSettlement` checks trustlessly: tx final + all receipts ok,
    receiver = verifier, **tx signer = payee** (the seller executed), and the
    NEP-413 inner message carries a transfer intent from the claimed buyer to
-   the payee for ≥ the quoted amount of `tokenId`.
+   the payee for ≥ the quoted amount of `tokenId`. The buyer polls
+   `GET /api/pending-intents/:id` for the settled outcome.
 
 The verifier WASM is sha256 `f67f9559…1fb20e5`, verified at download
 (`deploy-intents-verifier.mjs` + `intents-verifier/`). Sellers "collect" via a
@@ -135,6 +143,7 @@ Full agent flow proven against the real API on an isolated Neon demo DB:
   - *Stylist leg:* `mo` tryon-scope session refused $0.01, countered $0.03, token signed by `curator.onpoint.testnet`; buyer-signed transfer intent executed by the stylist via `execute_intents` — [tx `3hq38PKCG3yDMBreSg87pYXqjNd4YZGV4mwfbRxPBsqV`](https://testnet.nearblocks.io/txns/3hq38PKCG3yDMBreSg87pYXqjNd4YZGV4mwfbRxPBsqV) (0.03 USDC.e → curator ledger).
   - *Merchant leg:* `onpoint-store` order session refused $8, converged to **16.79** (bundle-discounted below the 17.31 flat floor — only the signed token authorizes that price), token signed by `store.onpoint.testnet`; seller executed the intent — [tx `5RZyK2by5b3ssPkNW1pPgDUgrmF4gPiQGKvtqX2TAFyq`](https://testnet.nearblocks.io/txns/5RZyK2by5b3ssPkNW1pPgDUgrmF4gPiQGKvtqX2TAFyq) (16.79 USDC.e → store ledger). Proof POST `{quoteToken, intentsTxHash}` → order `bf392428` **201**, `paymentMethod: "near_intents"`, `payout.status: "settled"`.
   - Ledger truth (`mt_balance_of` on `intents.onpoint.testnet`): agent −16.79, store +16.79, curator retains +0.03 fee. Over-cap scoped-key rejection still demonstrated on the direct rail (30 USDC.e vs 25 cap).
+- **Two-process agent settlement on PRODUCTION (2026-11-14, release `20261113-172904`):** `node seller-agent.mjs` + `node agent-demo.mjs` as disjoint-key processes against `api.onpoint.famile.xyz` — the buyer holds no seller key; the API is a keyless mailbox. Stylist session: $0.01 countered to $0.02 → signed token from `curator.onpoint.testnet` → intent published (`pin_cd6a992094bf7414d4`) → the stylist's own process executed it ([tx `AT4AyJmYVY5duPHJE2C6GMHGt19SC4tMkjPrSrBWsfa7`](https://testnet.nearblocks.io/txns/AT4AyJmYVY5duPHJE2C6GMHGt19SC4tMkjPrSrBWsfa7)) → redeem 200, `youcam-cloth-v4` + polaroid `p/41259d98-b563-45d0-a8e6-d2d52861129f`, receipt `receipt_mwf97fn9_47750039`. Kit session: $8 **refused** → $14 → countered $16.79 (bundle discount — the store verifiably saw the stylist payment) → accept → signed token from `store.onpoint.testnet` → intent published (`pin_c3c84a2c652844e959`) → merchant's process executed 16.79 USDC.e atomically ([tx `GF5sdPPm3Fs2B3ykx1LXTe2sTc5ZaUZckU9wTqiw5smg`](https://testnet.nearblocks.io/txns/GF5sdPPm3Fs2B3ykx1LXTe2sTc5ZaUZckU9wTqiw5smg)) → redeem **201**, order `fc5c0ce3`, `paymentMethod: "near_intents"`, payout `settled → store.onpoint.testnet`, receipt [`receipt_mwf97uqr_b7a80444`](https://onpoint.trustfall.xyz/receipt/receipt_mwf97uqr_b7a80444). Also in the run: deposit `4WaGpQvBXPzCjucyy61eBeux2DyN18rfGictN7b8UjEs`, over-cap 30 USDC.e rejection `CTaKWKHd4GxL3YPZLaixf448Eq7e3yYx8R5YThRzYiy5`. Ledger readback: agent 17.5 → 0.69, stylist +0.02, merchant +16.79. Reproduce: terminal 2 `API_URL=https://api.onpoint.famile.xyz node seller-agent.mjs`, terminal 1 `API_URL=https://api.onpoint.famile.xyz node agent-demo.mjs` (mint `usdc.fakes.testnet` to the agent first if needed — `mint(account_id, amount)` is open). Caveats, unchanged: mock USDC on our own verifier deployment; no solver/1-Click; sessions + mailbox are in-memory.
 - **Bargain + Intents run (local API + testnet, 2026-11-14):** `RAIL=intents node agent-demo.mjs` — the full new story on our own canonical verifier `intents.onpoint.testnet` (deploy `EofkVESL8mmi8yGPVkBPYTh1EFsm6fgb2E31qeWC2XPx`, init `kH7mBcqi7mjcJrYSfSt8n6J2Teea9SL4SLZCKmdSxpu`). Stylist session: $0.01 offer **refused** → $0.02 → countered $0.03 → accepted, signed token from `curator.onpoint.testnet`; stylist executed the buyer's NEP-413 intent (0.03 USDC.e, tx `DUHjbJgT7i4uW9c6yTifUdfkDPDWnQqX6htF9XGz1kLF`) and delivered `youcam-cloth-v4`. Kit session: $8 **refused** ("below my cost"), reopened $14 → countered $16.79 (bundle-discounted floor — the store saw the stylist payment) → accept; signed token from `store.onpoint.testnet`. Merchant executed the 16.79 intent (tx `Jz5pqd1P6tvFwG87QP7MwMZcAPPWZFNbhsEc45AxP8m`) → order `d3866a4b` 201, `paymentMethod: near_intents`, payout `settled → store.onpoint.testnet`, receipt `receipt_mwf0zceb_bf875706`. Ledger deltas read back from RPC: agent 17.5 → 0.68, stylist +0.03, merchant +16.79 — plus a `ft_withdraw` closer (store pulled 25 USDC.e off-ledger, tx `5HBXNGmVSQFxnvxEMit4gnNvuTVApiJRVrwxVqiuMXkU`). Caveats, unchanged: `usdc.fakes.testnet` is a testnet mock; the verifier is our deployment of the canonical wasm, not upstream `intents.near`.
 
 ## Week 2 plan (demo + submission)
@@ -159,7 +168,7 @@ Full agent flow proven against the real API on an isolated Neon demo DB:
 - [x] `onpoint-store` seeded in prod with `commerce.nearAccountId = store.onpoint.testnet` + `commerce.priceFloorPct = 0.9` (enables order negotiation).
 - [x] `mo` (prod DB) has `commerce.nearAccountId = curator.onpoint.testnet` — the stylist-service payee; already in the forwarder allow-list.
 - [x] Deploy the negotiation code to prod — release `20261113-125059`, 409/402 verified live. Re-run `agent-demo.mjs` against prod for the recording (escrow is topped to ~20 USDC.e; one run needs ~17.4).
-- [ ] Deploy the negotiate-session + intents code to prod — needs `NEAR_INTENTS_VERIFIER=intents.onpoint.testnet`, `NEAR_QUOTE_SIGNING_KEYS`, and `NEAR_RPC_URL=https://rpc.testnet.fastnear.com` (`rpc.testnet.near.org` is now rate-limit-deprecated) in `/opt/onpoint/shared/api/.env`, then `pm2 reload onpoint-api`. **In-memory negotiation sessions mean PM2 must stay single-fork** (already true) — multi-instance needs session persistence first.
+- [x] Deploy the negotiate-session + intents code to prod — done in release `20261113-172904`: `NEAR_INTENTS_VERIFIER=intents.onpoint.testnet`, `NEAR_QUOTE_SIGNING_KEYS`, and `NEAR_RPC_URL=https://rpc.testnet.fastnear.com` are in `/opt/onpoint/shared/api/.env`. **In-memory negotiation sessions + mailbox mean PM2 must stay single-fork** (already true) — multi-instance needs session persistence first.
 - [ ] Set `commerce.nearAccountId` on real curators as they onboard (`onpoint-store` is the always-available fallback).
 
 ## Risks and fallbacks

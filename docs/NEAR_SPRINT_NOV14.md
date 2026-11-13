@@ -135,24 +135,35 @@ call admin methods at all (key-layer rejection before contract logic).
 Re-cut narrated demo: bargain with a visible refusal → hire stylist →
 settle via signed intent → receipts. Update HACKATHON/NEAR_HACKATHON docs.
 
-## E — Seller-agent split (Devin, in progress)
+## E — Seller-agent split (DONE — prod-verified 2026-11-14, release 20261113-172904)
 
 Kills "the demo holds the keys that accept and execute." The verifier
 accepts `execute_intents` from ANYONE — a signed intent can only pay its
 named receiver_id, so publishing it is safe. That lets us split custody:
 
 - Buyer POSTs `{quoteToken, signedIntent}` → API validates the payload
-  structurally (signer=buyer, verifying_contract, deadline, transfer →
-  payee ≥ quote) → stores `pending` → **202** `{pendingId}`.
+  structurally (verifying_contract, deadline, transfer → payee ≥ quote;
+  the payload's `signer_id` is the authoritative buyer) → stores `pending`
+  → **202** `{pendingId}`.
 - `scripts/near-spike/seller-agent.mjs` — separate process holding ONLY
   the seller key — polls `GET /api/pending-intents?payee=…`, executes
-  `execute_intents`, re-POSTs `{…redeemBody, intentsTxHash}` through the
-  existing verify path, then `POST /api/pending-intents/:id/complete`.
+  `execute_intents`, replays `{…redeem.body, nearAccountId: buyer,
+  intentsTxHash}` to the stored `redeem.path` through the normal verify
+  path, then `POST /api/pending-intents/:id/complete`.
 - Buyer polls `GET /api/pending-intents/:id` → settled + orderId + receipt.
 
 API stays keyless (mailbox + verifier). Two processes, disjoint keys —
 "a merchant could run without this demo's keys" becomes literal:
 merchant = `seller-agent.mjs` + one NEAR account.
+
+Prod e2e: stylist `AT4AyJmY…sfa7`, merchant `GF5sdPPm…5smg` → order
+`fc5c0ce3` 201 `near_intents`, receipt `receipt_mwf97uqr_b7a80444`.
+Bugs the e2e flushed out: mailbox redeem stored `req.protocol` (http →
+301 → GET → 401 on the service-key catch-all; now stores the relative
+path); `/api/curator` mount order — `curator-wallet`'s json1k ran before
+the storefront's json10kb and 413'd order bodies (storefront now first —
+body-parser is idempotent); `/api/pending-intents` was json1k while
+`complete` carries the redeem response (now json10kb, result.body ≤8KB).
 
 ## F — Multi-asset leg (dev 1)
 
@@ -169,15 +180,15 @@ Checklist: `signTokenDiffIntent` in intents-lib.mjs; verify wNEAR diff
 + USDC transfer + seller counter-diff in one tx; ledger deltas show
 buyer −wNEAR, merchant +wNEAR.
 
-## G — Session persistence + prod deploy (dev 2)
+## G — Session persistence + prod deploy (deploy DONE; persistence remains)
 
+- Prod env: DONE — `NEAR_INTENTS_VERIFIER=intents.onpoint.testnet`,
+  `NEAR_QUOTE_SIGNING_KEYS`, `NEAR_RPC_URL=https://rpc.testnet.fastnear.com`
+  in `/opt/onpoint/shared/api/.env`; release `20261113-172904` live;
+  full RAIL=intents two-process e2e verified on prod.
 - Persist negotiation sessions + pending-intent mailbox to Postgres
   (kills "in-memory on one process" — sessions table keyed by id, JSON
-  history, TTL sweep on read).
-- Prod env: `NEAR_INTENTS_VERIFIER=intents.onpoint.testnet`,
-  `NEAR_QUOTE_SIGNING_KEYS`, `NEAR_RPC_URL=https://rpc.testnet.fastnear.com`
-  (rpc.testnet.near.org is deprecated). Then deploy-api.sh + pm2 reload
-  + full RAIL=intents e2e on prod before recording.
+  history, TTL sweep on read). STILL OPEN — in-memory is disclosed.
 
 ## Honest framing to keep in docs
 

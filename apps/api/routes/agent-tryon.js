@@ -511,7 +511,7 @@ router.post('/', async (req, res) => {
         payee: nearPayTo,
         minAmountBase: intentsQuote.amount,
         redeem: {
-          endpoint: `${req.protocol}://${req.get('host')}${req.originalUrl}`,
+          path: req.originalUrl, // relative — the seller resolves it against the API it already talks to
           body: { ...req.body, signedIntent: undefined },
         },
       });
