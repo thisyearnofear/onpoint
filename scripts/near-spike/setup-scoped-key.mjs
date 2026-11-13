@@ -116,8 +116,9 @@ const escrowed = await ftBalanceOf(forwarder);
 console.log(`escrow balance: ${fmt(escrowed)} USDC.e in ${forwarder}`);
 if (escrowed < escrowTarget) {
   const move = escrowTarget - escrowed;
-  if (balance < escrowTarget) {
-    throw new Error(`agent balance ${fmt(balance)} < escrow target ${fmt(escrowTarget)}`);
+  balance = await ftBalanceOf(agent.accountId); // re-read after minting
+  if (balance < move) {
+    throw new Error(`agent balance ${fmt(balance)} < top-up needed ${fmt(move)}`);
   }
   // Escrow top-up uses the agent's FULL key — the operator budgets the agent;
   // day-to-day spend goes out through the scoped key only.

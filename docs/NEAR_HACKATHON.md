@@ -26,11 +26,13 @@ Show an AI agent paying for a fashion service (try-on/checkout) with value movin
 
 ### Payment flow
 1. Agent requests `try_on` or `buy_item`.
-2. Server returns a payment challenge referencing a NEAR transaction/payment request.
-3. Agent signs/pays using its function-call key or via NEAR Intent.
-4. Server verifies the NEAR transaction/receipt.
+2. Server returns a payment challenge: `quote.near` carries both a native amount (`amountNear`/`amountYocto`, priced via `NEAR_USD_PRICE`) and, when `NEAR_TOKEN_*` is configured, a token form (`token.contractId`, `token.method`, `token.amount` in the FT's base units — dollar-denominated, no rate needed).
+3. Agent pays with either form:
+   - native `Transfer` to the payout account (full-access key, human wallets), or
+   - a **function-call access key** scoped to `escrow.onpoint.testnet::pay` — the forwarder contract (`scripts/near-spike/pay-forwarder`, raw-export Rust) releases escrowed `usdc.fakes.testnet` USDC.e to the allow-listed payee via `ft_transfer`, attaching the 1 yoctoNEAR an FCAK cannot attach itself.
+4. Server verifies the transaction trustlessly via `EXPERIMENTAL_tx_status` — auto-detects the form by tx receiver, checks signer, method, decoded args (`receiver_id` = payee, `amount` ≥ quote), finality, and receipt outcomes.
 5. Server fulfills try-on/order and stores the NEAR receipt reference.
-6. Curator payout is recorded/settled in NEAR or stablecoin.
+6. Curator payout is settled in the same transaction (native NEAR or the FT), or recorded `pending_reconciliation` on the platform fallback account.
 
 ### Cross-chain value movement
 - Use **NEAR Intents** to let an agent pay in a non-NEAR asset and settle the curator in NEAR/stablecoin.
@@ -70,6 +72,8 @@ Full agent flow proven against the real API on an isolated Neon demo DB:
 - **Full prod e2e:** order `b43d1860` — 4.3948 NEAR settled direct ([tx `CvvDFTqq2GB32jdXPhmSxuuUJbp9VrnguyFtKtmDjzRf`](https://testnet.nearblocks.io/txns/CvvDFTqq2GB32jdXPhmSxuuUJbp9VrnguyFtKtmDjzRf)), receipt `receipt_mw0q8w9h_498b2c1f`, curator balance 5.39 → 9.79 NEAR.
 - **Re-verified 2026-11-12:** order `efdce511` — 4.9948 NEAR settled direct ([tx `8XHoihupQt526DM5CBBZsJpH7ggNJp2XRMxUH91UMfw4`](https://testnet.nearblocks.io/txns/8XHoihupQt526DM5CBBZsJpH7ggNJp2XRMxUH91UMfw4)), receipt `receipt_mwdwyst2_6d30e1c9`, curator 23.58 → 28.58 NEAR. `NEAR_USD_PRICE` refreshed 3.85 → 3.42 (fresh quote: 5.62 NEAR for the kit).
 - To re-run against prod: `API_URL=https://api.onpoint.famile.xyz node agent-demo.mjs` (top up `agent.onpoint.testnet` first via `node topup.mjs` — it sends 3 NEAR/run; ~5.7 NEAR covers one full order + try-on).
+- **Scoped-key stablecoin e2e (2026-11-13, release 20261113-070655):** order `7463ccce` — the agent's FCAK (`ed25519:3nqE4ACneFCmeGTvpxtDPAXJWWoMJ1i3myR79vTsjuvu`, scoped to `escrow.onpoint.testnet::pay`, zero deposit allowed) signed [tx `Le7M3xTLTrGBueXynX3UPxgtUforD3cqVN9wVLNEWSQ`](https://testnet.nearblocks.io/txns/Le7M3xTLTrGBueXynX3UPxgtUforD3cqVN9wVLNEWSQ); the forwarder released 19.23 USDC.e escrow → `store.onpoint.testnet` (escrow 19.5 → 0.27, curator 0.5 → 19.73). Receipt `receipt_mwen004p_8fae4930`. Contract deployed at `escrow.onpoint.testnet` ([deploy tx `Ha7LjRdHFvxJq5p9t1C9U9go5pcPhUHTswV5idqcK4AG`](https://testnet.nearblocks.io/txns/Ha7LjRdHFvxJq5p9t1C9U9go5pcPhUHTswV5idqcK4AG)); setup is `deploy-payforwarder.mjs` → `setup-scoped-key.mjs` (storage regs, mint, escrow top-up, key scoping — idempotent). Caveat: `usdc.fakes.testnet` is a testnet mock — same code path as mainnet USDC, not real dollars.
+- Env added to `/opt/onpoint/shared/api/.env`: `NEAR_TOKEN_CONTRACT=usdc.fakes.testnet`, `NEAR_TOKEN_FORWARDER=escrow.onpoint.testnet`, `NEAR_TOKEN_DECIMALS=6`, `NEAR_TOKEN_SYMBOL=USDC.e`. Unsetting `NEAR_TOKEN_FORWARDER` flips the quote to direct `ft_transfer` on the FT (1 yocto attach, full-access key); unsetting `NEAR_TOKEN_CONTRACT` returns the rail to native-NEAR-only.
 
 ## Week 2 plan (demo + submission)
 - [x] Polish one end-to-end agent purchase — `agent-demo.mjs` is the canonical run.
