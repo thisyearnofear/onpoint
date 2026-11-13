@@ -197,8 +197,66 @@ async function verifyIntentsSettlement({
   };
 }
 
+/**
+ * Structural validation of a NEP-413 signed intent payload BEFORE it is
+ * published for execution — the mailbox path (seller-agent split). The
+ * verifier contract is still the authority on the signature itself; this
+ * just rejects payloads that can never pay the quoted payee, so the buyer
+ * fails fast instead of leaving a dead letter in the mailbox.
+ *
+ * Checks: standard === 'nep413', payload.message parses, signer_id =
+ * buyer, verifying_contract = our verifier, deadline unexpired, and a
+ * transfer intent to expectedPayeeId for >= minAmountBase of tokenId.
+ */
+function validateSignedIntentPayload({ signed, buyerAccountId, expectedPayeeId, minAmountBase }) {
+  const cfg = intentsConfig();
+  if (!cfg) return { ok: false, reason: 'intents_not_configured' };
+  if (!signed || signed.standard !== 'nep413') {
+    return { ok: false, reason: 'not_nep413' };
+  }
+  if (typeof signed.signature !== 'string' || !signed.signature.startsWith('ed25519:')) {
+    return { ok: false, reason: 'signature_missing' };
+  }
+  if (typeof signed.public_key !== 'string' || !signed.public_key.startsWith('ed25519:')) {
+    return { ok: false, reason: 'public_key_missing' };
+  }
+  let msg;
+  try {
+    msg = JSON.parse(signed.payload?.message ?? '');
+  } catch {
+    return { ok: false, reason: 'message_unparseable' };
+  }
+  if (msg?.signer_id !== buyerAccountId) {
+    return { ok: false, reason: 'signer_mismatch', signer: msg?.signer_id };
+  }
+  if (msg?.verifying_contract !== cfg.verifier) {
+    return { ok: false, reason: 'verifier_mismatch', verifier: msg?.verifying_contract };
+  }
+  if (msg?.deadline && Date.parse(msg.deadline) <= Date.now()) {
+    return { ok: false, reason: 'deadline_expired', deadline: msg.deadline };
+  }
+  const transfer = (msg.intents ?? []).find(
+    (i) => i?.intent === 'transfer' && i?.receiver_id === expectedPayeeId,
+  );
+  if (!transfer) {
+    return { ok: false, reason: 'no_transfer_to_payee', payee: expectedPayeeId };
+  }
+  let amount;
+  try {
+    amount = BigInt(transfer.tokens?.[cfg.tokenId] ?? '0');
+  } catch {
+    return { ok: false, reason: 'amount_unparseable' };
+  }
+  const min = BigInt(minAmountBase ?? '0');
+  if (amount < min) {
+    return { ok: false, reason: 'amount_below_quote', amount: amount.toString(), minAmount: min.toString() };
+  }
+  return { ok: true, msg, amount: amount.toString(), deadline: msg.deadline };
+}
+
 module.exports = {
   intentsConfig,
   intentsQuoteForUsd,
   verifyIntentsSettlement,
+  validateSignedIntentPayload,
 };

@@ -135,6 +135,50 @@ call admin methods at all (key-layer rejection before contract logic).
 Re-cut narrated demo: bargain with a visible refusal → hire stylist →
 settle via signed intent → receipts. Update HACKATHON/NEAR_HACKATHON docs.
 
+## E — Seller-agent split (Devin, in progress)
+
+Kills "the demo holds the keys that accept and execute." The verifier
+accepts `execute_intents` from ANYONE — a signed intent can only pay its
+named receiver_id, so publishing it is safe. That lets us split custody:
+
+- Buyer POSTs `{quoteToken, signedIntent}` → API validates the payload
+  structurally (signer=buyer, verifying_contract, deadline, transfer →
+  payee ≥ quote) → stores `pending` → **202** `{pendingId}`.
+- `scripts/near-spike/seller-agent.mjs` — separate process holding ONLY
+  the seller key — polls `GET /api/pending-intents?payee=…`, executes
+  `execute_intents`, re-POSTs `{…redeemBody, intentsTxHash}` through the
+  existing verify path, then `POST /api/pending-intents/:id/complete`.
+- Buyer polls `GET /api/pending-intents/:id` → settled + orderId + receipt.
+
+API stays keyless (mailbox + verifier). Two processes, disjoint keys —
+"a merchant could run without this demo's keys" becomes literal:
+merchant = `seller-agent.mjs` + one NEAR account.
+
+## F — Multi-asset leg (dev 1)
+
+`token_diff` intents inside the verifier: buyer deposits wNEAR
+(`wrap.testnet` — deposit via `near_deposit`, then `ft_transfer_call`
+to the verifier), signs `{give wNEAR, want USDC.e}`; the merchant signs
+the complementary diff (it supplies the USDC liquidity and receives
+wNEAR at the quoted rate) plus the buyer's USDC transfer intent — one
+atomic `execute_intents` bundle of 3 signed payloads. Value comes in as
+wNEAR, lands as USDC. Frame honestly: merchant-as-solver — on mainnet
+the solver network provides liquidity; here the merchant quotes its own
+spread. Extend `verifyIntentsSettlement` to accept diff bundles.
+Checklist: `signTokenDiffIntent` in intents-lib.mjs; verify wNEAR diff
++ USDC transfer + seller counter-diff in one tx; ledger deltas show
+buyer −wNEAR, merchant +wNEAR.
+
+## G — Session persistence + prod deploy (dev 2)
+
+- Persist negotiation sessions + pending-intent mailbox to Postgres
+  (kills "in-memory on one process" — sessions table keyed by id, JSON
+  history, TTL sweep on read).
+- Prod env: `NEAR_INTENTS_VERIFIER=intents.onpoint.testnet`,
+  `NEAR_QUOTE_SIGNING_KEYS`, `NEAR_RPC_URL=https://rpc.testnet.fastnear.com`
+  (rpc.testnet.near.org is deprecated). Then deploy-api.sh + pm2 reload
+  + full RAIL=intents e2e on prod before recording.
+
 ## Honest framing to keep in docs
 
 - Verifier is OUR testnet deployment of the canonical contract (upstream is

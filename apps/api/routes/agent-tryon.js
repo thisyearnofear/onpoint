@@ -29,6 +29,7 @@ const logger = require('../lib/logger');
 const { curatorSplitAddress, curatorSellerBps, tryOnPriceCusd, storefrontWebUrl, polaroidWebUrl, webBaseUrl, buildRevenueHint } = require('../lib/agent-commerce');
 const nearPayments = require('../lib/near-payments');
 const nearIntents = require('../lib/near-intents');
+const intentMailbox = require('../lib/intent-mailbox');
 const paypalPayments = require('../lib/paypal-payments');
 const { getAttributionSuffix, getAttributionCode, getAssignedTag } = require('../lib/attribution');
 const { engine } = require('./ai-virtual-tryon');
@@ -200,7 +201,7 @@ function aiCostFrom(vision) {
 
 // ── POST /api/agent/try-on ───────────────────────────────────
 router.post('/', async (req, res) => {
-  const { curatorSlug, listingId, photoData, personDescription, paymentTxHash, nearAccountId, nearTxHash, intentsTxHash, paypalOrderId, lookSlug, shareId: rawShareId } =
+  const { curatorSlug, listingId, photoData, personDescription, paymentTxHash, nearAccountId, nearTxHash, intentsTxHash, signedIntent, paypalOrderId, lookSlug, shareId: rawShareId } =
     req.body || {};
   const shareId = sanitizeShareId(rawShareId);
   const slug = String(curatorSlug || '').toLowerCase();
@@ -235,10 +236,16 @@ router.post('/', async (req, res) => {
   if (intentsTxHash && (paymentTxHash || nearTxHash)) {
     return res.status(400).json({ error: 'Provide exactly one NEAR payment proof (nearTxHash or intentsTxHash)' });
   }
+  if (signedIntent !== undefined && (typeof signedIntent !== 'object' || signedIntent === null || Array.isArray(signedIntent))) {
+    return res.status(400).json({ error: 'signedIntent must be a NEP-413 signed payload object' });
+  }
+  if (signedIntent && (paymentTxHash || nearTxHash || intentsTxHash)) {
+    return res.status(400).json({ error: 'Provide exactly one NEAR payment proof (nearTxHash, intentsTxHash, or signedIntent)' });
+  }
   if (paypalOrderId !== undefined && !paypalPayments.isPaypalOrderId(paypalOrderId)) {
     return res.status(400).json({ error: 'paypalOrderId must be a PayPal order id' });
   }
-  if (paypalOrderId && (paymentTxHash || nearTxHash || intentsTxHash)) {
+  if (paypalOrderId && (paymentTxHash || nearTxHash || intentsTxHash || signedIntent)) {
     return res.status(400).json({ error: 'Provide exactly one payment proof' });
   }
 
@@ -338,7 +345,7 @@ router.post('/', async (req, res) => {
     // Only create the order when a challenge is actually needed — the
     // reference binds the approved PayPal order to this listing.
     let paypalQuote = null;
-    if (!okxBypass && !paymentTxHash && !nearTxHash && !intentsTxHash && !paypalOrderId && !req.headers['x-payment']) {
+    if (!okxBypass && !paymentTxHash && !nearTxHash && !intentsTxHash && !signedIntent && !paypalOrderId && !req.headers['x-payment']) {
       paypalQuote = await paypalPayments.paypalQuoteForUsd({
         amountUsd: priceCusd,
         referenceId: `tryon:${slug}:${listingId}:${crypto.randomUUID()}`,
@@ -365,7 +372,7 @@ router.post('/', async (req, res) => {
     const xPaymentHeader = req.headers['x-payment'];
 
     // ── Step 1: no payment proof → 402 challenge ──
-    if (!paymentTxHash && !xPaymentHeader && !nearTxHash && !intentsTxHash && !paypalOrderId) {
+    if (!paymentTxHash && !xPaymentHeader && !nearTxHash && !intentsTxHash && !signedIntent && !paypalOrderId) {
       return res.status(402).json({
         ...sharedTypes.build402Body([requirements]),
         quote: {
@@ -488,6 +495,40 @@ router.post('/', async (req, res) => {
         }
       }
       verification = { from: paypalResult.payerId || paypalResult.payerEmail, paypal: paypalResult };
+    } else if (signedIntent) {
+      // Mailbox path: the buyer publishes its signed commitment; the
+      // stylist's own agent process picks it up and executes it — a signed
+      // intent can only pay its receiver_id, whoever submits it.
+      if (!nearPayTo || !intentsQuote) {
+        return res.status(409).json({
+          error: 'NEAR Intents payment rail is not configured for this resource.',
+          code: 'PAYMENT_RAIL_UNAVAILABLE',
+        });
+      }
+      const submitted = intentMailbox.submit({
+        signed: signedIntent,
+        buyerAccountId: nearPayer,
+        payee: nearPayTo,
+        minAmountBase: intentsQuote.amount,
+        redeem: {
+          endpoint: `${req.protocol}://${req.get('host')}${req.originalUrl}`,
+          body: { ...req.body, signedIntent: undefined },
+        },
+      });
+      if (!submitted.ok) {
+        return res.status(402).json({
+          error: `Signed intent rejected: ${submitted.reason}`,
+          detail: submitted.detail,
+          code: 'SIGNED_INTENT_INVALID',
+        });
+      }
+      return res.status(202).json({
+        status: 'pending_execution',
+        pendingId: submitted.pendingId,
+        payee: nearPayTo,
+        message: 'Signed intent published — the payee executes it via execute_intents, then this try-on completes.',
+        poll: `/api/pending-intents/${submitted.pendingId}`,
+      });
     } else if (intentsTxHash) {
       paymentMethod = 'near_intents';
       if (!nearPayTo || !intentsQuote) {

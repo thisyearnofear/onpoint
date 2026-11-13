@@ -5,8 +5,9 @@
  *   a buying agent NEGOTIATES over multiple rounds (real counters AND a
  *   refusal, sealed by the seller's ed25519 quote signature), HIRES a
  *   styling service the same way, and SETTLES both through the NEAR
- *   Intents verifier — the buyer signs a NEP-413 intent off-chain, each
- *   seller executes it, and the verifier settles atomically.
+ *   Intents verifier — the buyer signs a NEP-413 intent off-chain and
+ *   PUBLISHES it; a separate seller-agent process (its own key only)
+ *   picks it up and executes it. Two agents, disjoint keys.
  *
  *     try-on fee  → curator.onpoint.testnet   (the hired "stylist")
  *     kit order   → store.onpoint.testnet     (the merchant)
@@ -22,7 +23,8 @@
  *   node deploy-payforwarder.mjs      # once — deploys the escrow forwarder
  *   node deploy-intents-verifier.mjs  # once — deploys the defuse verifier
  *   node setup-scoped-key.mjs         # once — FCAK scoped to escrow::pay
- *   node agent-demo.mjs               # the story below
+ *   node seller-agent.mjs             # terminal 2 — the merchant/stylist agent
+ *   node agent-demo.mjs               # terminal 1 — the buyer's story below
  *
  * Knobs:
  *   API_URL     default http://localhost:48751 (also works against prod)
@@ -78,7 +80,6 @@ let agent = null;
 let agentFak = null;   // full-access account — signs NEP-413 intents
 let scopedKey = null;  // function-call key — the bounded escrow rail
 let agentSigner = null;
-let sellers = {};      // accountId → Account (the demo plays the sellers too)
 let FT = "usdc.fakes.testnet";
 let nearBalance = async () => null;
 let ftBalance = async () => null;
@@ -111,10 +112,6 @@ if (!IS_PAYPAL) {
   FT = creds.payForwarder?.ftContract || FT;
   agentFak = intents.accountOf(agent.accountId, agent.secretKey);
   agentSigner = new Account(agent.accountId, provider, KeyPairSigner.fromSecretKey(scopedKey.secretKey));
-  for (const [name, id] of [["store", "store.onpoint.testnet"], ["curator", "curator.onpoint.testnet"]]) {
-    const rec = creds.accounts[name];
-    if (rec?.secretKey) sellers[id] = intents.accountOf(id, rec.secretKey);
-  }
 }
 
 const post = async (path, body) =>
@@ -151,16 +148,34 @@ async function payEscrowed({ receiverId, amountBase }) {
   }
 }
 
-// ── Intents settlement: buyer signs, the SELLER executes ──
-// The agent's full-access key signs the NEP-413 intent (FCAKs cannot sign
-// off-chain messages — that stays the bounded rail). The payee then submits
-// it: buyer publishes a commitment, the seller fulfills it.
-async function settleViaIntents({ payee, amountBase }) {
-  const seller = sellers[payee];
-  if (!seller) return { ok: false, failure: `no seller key for ${payee}` };
+// ── Intents settlement via the mailbox: the buyer SIGNS and PUBLISHES —
+// the seller's OWN agent process (seller-agent.mjs, a separate process
+// holding only the payee's key) picks it up and executes it. This script
+// never holds a seller key: two agents, disjoint keys, API as mailbox.
+async function publishIntent({ path, body, payee, amountBase, who }) {
   const signed = await intents.signTransferIntent({ buyer: agentFak, receiverId: payee, amountBase });
-  const ex = await intents.executeIntents(seller, signed);
-  return { ok: ex.ok, txHash: ex.txHash, failure: ex.failure };
+  const res = await post(path, { ...body, signedIntent: signed });
+  const accepted = await res.json();
+  if (res.status !== 202) {
+    return { ok: false, failure: `mailbox ${res.status}: ${JSON.stringify(accepted).slice(0, 220)}` };
+  }
+  const pendingId = accepted.pendingId;
+  agentSays(`signed + published → ${pendingId}. waiting for ${who}'s agent to execute it…`);
+  const deadline = Date.now() + 90_000;
+  let nudged = false;
+  while (Date.now() < deadline) {
+    await SLEEP(2500);
+    const p = await (await fetch(`${API}/api/pending-intents/${pendingId}`)).json().catch(() => null);
+    if (p?.status === "settled") return { ok: true, txHash: p.txHash, result: p.result };
+    if (p?.status === "failed" || p?.status === "expired") {
+      return { ok: false, failure: `${p.status}: ${JSON.stringify(p.result ?? {}).slice(0, 200)}` };
+    }
+    if (!nudged && Date.now() > deadline - 72_000) {
+      nudged = true;
+      info(`   (${who}'s agent hasn't picked it up — run ${C.b}API_URL=${API} node seller-agent.mjs${C.x}${C.dim} in another terminal)`);
+    }
+  }
+  return { ok: false, failure: `timed out waiting for ${who}'s agent — is seller-agent.mjs running?` };
 }
 
 // ── Negotiation driver: open a session, haggle until accepted ──
@@ -342,16 +357,22 @@ if (!tryOnQuote) { say(`expected a 402 try-on quote, got ${tryOnRes.status}: ${J
 payees.stylist = IS_INTENTS ? tryOnQuote.intents?.payTo : tryOnQuote.near?.accountId;
 if (!payees.stylist) { say(`no NEAR payee on the try-on quote: ${JSON.stringify(tryOnQuote).slice(0, 300)}`); process.exit(1); }
 
-let tryOnProof = {};
+let tryOnResult = null;
+let tryOnStatus = 0;
 if (IS_INTENTS) {
   const iq = tryOnQuote.intents;
   if (!iq) { say(`no intents rail on try-on quote — is NEAR_INTENTS_VERIFIER configured on the API?`); process.exit(1); }
-  agentSays(`fit fee: ${iq.display} ${iq.symbol} → ${C.b}${iq.payTo}${C.x}. I sign the intent — the stylist settles it themselves.`);
-  const fee = await settleViaIntents({ payee: iq.payTo, amountBase: iq.amount });
-  if (!fee.ok) { say(`stylist intent execution failed: ${JSON.stringify(fee.failure).slice(0, 300)}`); process.exit(1); }
+  agentSays(`fit fee: ${iq.display} ${iq.symbol} → ${C.b}${iq.payTo}${C.x}. I sign + publish the intent — the stylist's own agent settles it.`);
+  const fee = await publishIntent({
+    path: "/api/agent/try-on",
+    body: { ...tryOnBodyBase, ...(tryOnQuoteToken ? { quoteToken: tryOnQuoteToken } : {}) },
+    payee: iq.payTo, amountBase: iq.amount, who: "the stylist",
+  });
+  if (!fee.ok) { say(`stylist intent failed: ${fee.failure}`); process.exit(1); }
   chain(`stylist ${iq.payTo} executed my signed intent — ${iq.display} ${iq.symbol} moved on the verifier`);
   chain(txLink(fee.txHash));
-  tryOnProof = { nearAccountId: agent.accountId, intentsTxHash: fee.txHash };
+  tryOnResult = fee.result?.body ?? null;
+  tryOnStatus = fee.result?.status ?? 200;
 } else {
   const t = tryOnQuote.near?.token;
   if (!t) { say(`expected a NEAR token try-on quote, got ${JSON.stringify(tryOnQuote).slice(0, 300)}`); process.exit(1); }
@@ -359,18 +380,17 @@ if (IS_INTENTS) {
   if (!feePay.ok) { say(`try-on payment failed on-chain: ${JSON.stringify(feePay.failure)}`); process.exit(1); }
   chain(`paid ${t.display} ${t.symbol} → ${payees.stylist} via ${scopedKey.contractId}::pay`);
   chain(txLink(feePay.txHash));
-  tryOnProof = { nearAccountId: agent.accountId, nearTxHash: feePay.txHash };
+  await SLEEP(2500);
+  const tryOnFinal = await post("/api/agent/try-on", {
+    ...tryOnBodyBase,
+    ...(tryOnQuoteToken ? { quoteToken: tryOnQuoteToken } : {}),
+    nearAccountId: agent.accountId, nearTxHash: feePay.txHash,
+  });
+  tryOnResult = await tryOnFinal.json();
+  tryOnStatus = tryOnFinal.status;
 }
-await SLEEP(2500);
-
-const tryOnFinal = await post("/api/agent/try-on", {
-  ...tryOnBodyBase,
-  ...(tryOnQuoteToken ? { quoteToken: tryOnQuoteToken } : {}),
-  ...tryOnProof,
-});
-const tryOnResult = await tryOnFinal.json();
-if (tryOnFinal.status !== 200) {
-  info(`try-on render returned ${tryOnFinal.status} — the fee is still settled on-chain (the hire is what this beat proves)`);
+if (tryOnStatus !== 200 || !tryOnResult) {
+  info(`try-on render returned ${tryOnStatus} — the fee is still settled on-chain (the hire is what this beat proves)`);
 } else {
   const rprovider = tryOnResult.tryOn?.render?.provider || tryOnResult.provider || "render ok";
   agentSays(`stylist delivered — ${rprovider}${tryOnResult.polaroid?.webUrl ? ` · polaroid ${tryOnResult.polaroid.webUrl}` : ""}`);
@@ -420,16 +440,22 @@ if (res402.status !== 402 || !q) { say(`expected a 402 quote, got ${res402.statu
 agentSays(`HTTP 402 — agreed ${q.totalCusd} USD (posted ${q.negotiation?.listCusd ?? "—"}). Rails: ${q.paymentRails.join(" + ")}`);
 info(`quoteId ${q.quoteId} — the agreed price is bound in the id itself`);
 
-let settleProof = {};
+let order = null;
+let orderStatus = 0;
 if (IS_INTENTS) {
   const iq = q.intents;
   if (!iq) { say(`no intents rail on the order quote — is NEAR_INTENTS_VERIFIER configured on the API?`); process.exit(1); }
   agentSays(`signing: transfer ${iq.amount} base of ${iq.tokenId} → ${iq.payTo}, verified by ${iq.verifier}`);
-  const pay = await settleViaIntents({ payee: iq.payTo, amountBase: iq.amount });
-  if (!pay.ok) { say(`merchant intent execution failed: ${JSON.stringify(pay.failure).slice(0, 300)}`); process.exit(1); }
+  const pay = await publishIntent({
+    path: `/api/curator/${MERCHANT_SLUG}/order`,
+    body: { ...orderBody, quoteToken: kitToken },
+    payee: iq.payTo, amountBase: iq.amount, who: "the merchant",
+  });
+  if (!pay.ok) { say(`merchant intent failed: ${pay.failure}`); process.exit(1); }
   chain(`merchant ${iq.payTo} executed the intent — ${iq.display} ${iq.symbol} settled atomically on the verifier`);
   chain(txLink(pay.txHash));
-  settleProof = { quoteId: q.quoteId, nearAccountId: agent.accountId, intentsTxHash: pay.txHash };
+  order = pay.result?.body ?? null;
+  orderStatus = pay.result?.status ?? 0;
 } else {
   const t = q.near?.token;
   if (!t) { say("near token rail not advertised — is NEAR_TOKEN_* configured on the API?"); process.exit(1); }
@@ -441,18 +467,17 @@ if (IS_INTENTS) {
   if (!orderPay.ok) { say(`order payment failed on-chain: ${JSON.stringify(orderPay.failure)}`); process.exit(1); }
   chain(`sent ${t.display} ${t.symbol} → ${q.near.accountId} (${t.contractId}::${t.method})`);
   chain(txLink(orderPay.txHash));
-  settleProof = { quoteId: q.quoteId, nearAccountId: agent.accountId, nearTxHash: orderPay.txHash };
+  await SLEEP(2500);
+  const res201 = await post(`/api/curator/${MERCHANT_SLUG}/order`, {
+    ...orderBody,
+    quoteToken: kitToken, // the seller's signed commitment — quoteId alone re-floors and 409s on bundle-discounted prices
+    quoteId: q.quoteId, nearAccountId: agent.accountId, nearTxHash: orderPay.txHash,
+  });
+  order = await res201.json();
+  orderStatus = res201.status;
 }
-await SLEEP(2500);
-
-const res201 = await post(`/api/curator/${MERCHANT_SLUG}/order`, {
-  ...orderBody,
-  quoteToken: kitToken, // the seller's signed commitment — quoteId alone re-floors and 409s on bundle-discounted prices
-  ...settleProof,
-});
-const order = await res201.json();
-if (!order.success) { say(`${C.y}   response ${res201.status}: ${JSON.stringify(order).slice(0, 400)}${C.x}`); process.exit(1); }
-agentSays(`HTTP ${res201.status} — order ${order.order.id.slice(0, 8)} confirmed at ${order.order.totalCusd} USD.`);
+if (!order?.success) { say(`${C.y}   response ${orderStatus}: ${JSON.stringify(order ?? {}).slice(0, 400)}${C.x}`); process.exit(1); }
+agentSays(`HTTP ${orderStatus} — order ${order.order.id.slice(0, 8)} confirmed at ${order.order.totalCusd} USD.`);
 say(`${C.y}   payment ›${C.x} ${order.order.payment.paymentMethod} · ${order.order.payment.explorerUrl ?? "off-chain"}`);
 say(`${C.y}   payout  ›${C.x} ${order.order.payout.status} → ${order.order.payout.to ?? "platform"} ${order.order.payout.amountTokenDisplay ?? order.order.payout.amountNear ?? ""} ${order.order.payout.asset ?? ""}`);
 say(`${C.y}   receipt ›${C.x} ${order.order.receiptUrl}`);
@@ -480,4 +505,4 @@ if (IS_INTENTS) {
   chain(`merchant  ${payees.merchant}:  ${before.merchant} → ${after.merchant} USDC.e   (+${(after.merchant - before.merchant).toFixed(6)} earned — the order)`);
 }
 
-say(`\n${C.b}${C.g}agent economy:${C.x} bargained over rounds (with a refusal) → hired a stylist the same way → settled via signed intents executed by the sellers — plus a scoped key that provably can't overspend.\n`);
+say(`\n${C.b}${C.g}agent economy:${C.x} bargained over rounds (with a refusal) → hired a stylist the same way → published signed intents that each seller's own agent picked up and executed — two processes, disjoint keys — plus a scoped key that provably can't overspend.\n`);

@@ -411,8 +411,9 @@ app.use('/linq', require('./routes/linq-agent'));
 
 app.use('/api/curator/apply', json1k, generalRateLimit, require('./routes/curator-apply'));
 app.use('/api/curator', json1k, generalRateLimit, require('./routes/curator-wallet'));
-app.use('/api/curator', json1k, generalRateLimit, require('./routes/curator-storefront'));
+app.use('/api/curator', json10kb, generalRateLimit, require('./routes/curator-storefront'));
 app.use('/api/curator', json1k, generalRateLimit, require('./routes/agent-negotiate'));
+app.use('/api/pending-intents', json1k, generalRateLimit, require('./routes/pending-intents'));
 
 // ── Referral Routes (public, rate-limited) ──────────────────────
 // Agent referral tracking and stats.
