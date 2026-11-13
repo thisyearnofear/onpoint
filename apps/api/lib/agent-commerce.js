@@ -61,6 +61,59 @@ function curatorSellerBps(curator) {
 }
 
 /**
+ * Curator's negotiation floor: `commerce.priceFloorPct` in (0, 1] — the
+ * minimum fraction of the listed total they'll accept from an agent offer.
+ * Absent or out-of-range → null (posted price only, no discounting).
+ */
+function curatorPriceFloorPct(curator) {
+  const pct = Number(curator?.commerce?.priceFloorPct);
+  return Number.isFinite(pct) && pct > 0 && pct <= 1 ? pct : null;
+}
+
+/**
+ * Resolve an agent's price offer for an order.
+ *
+ * `offerUsd` is the total USD offered for the whole order. The curator's
+ * floor is commerce.priceFloorPct of the listed total; when the field is
+ * absent the floor IS the listed total (posted price only — below-list
+ * offers get countered at list). Below floor → countered at the floor
+ * price; at/above floor → agreed = min(offer, list), so a negotiated quote
+ * never exceeds the listed price. Omit the offer and pricing is unchanged.
+ *
+ * The agreed price also round-trips inside the quoteId's `-o<cents>`
+ * segment, so the payment-proof re-POST needn't repeat offerUsd — it is
+ * re-validated against the floor here either way.
+ */
+function resolveOrderOffer({ listCusd, curator, offerUsd, clientQuoteId, quoteIdPrefix }) {
+  const floorPct = curatorPriceFloorPct(curator) ?? 1;
+  // Ceiling — the curator never rounds their own floor down.
+  const floorCusd = Math.ceil(listCusd * floorPct * 100) / 100;
+  const floorCents = Math.round(floorCusd * 100);
+
+  let offerCents = offerUsd !== undefined && offerUsd !== null
+    ? Math.round(Number(offerUsd) * 100)
+    : null;
+  if (offerCents === null && typeof clientQuoteId === 'string') {
+    // Only honor an offer encoded for THIS listing+size+quantity — a quote
+    // minted for a smaller order must not reprice a bigger one.
+    const match = clientQuoteId.match(/-o(\d+)-\d+$/);
+    if (match && (!quoteIdPrefix || clientQuoteId.startsWith(`${quoteIdPrefix}-o`))) {
+      offerCents = parseInt(match[1], 10);
+    }
+  }
+
+  const base = { listCusd, floorCusd, negotiable: floorCusd < listCusd };
+  if (offerCents === null) {
+    return { ...base, offerUsd: null, agreedCusd: listCusd, negotiated: false, countered: false, counterOfferUsd: null };
+  }
+  if (offerCents < floorCents) {
+    return { ...base, offerUsd: offerCents / 100, agreedCusd: listCusd, negotiated: false, countered: true, counterOfferUsd: floorCusd };
+  }
+  const agreedCusd = Math.min(offerCents / 100, listCusd);
+  return { ...base, offerUsd: offerCents / 100, agreedCusd, negotiated: agreedCusd < listCusd, countered: false, counterOfferUsd: null };
+}
+
+/**
  * Evaluate whether a listing is a trusted executable offer.
  *
  * This is deliberately separate from `agentPurchasable`: the legacy flag
@@ -205,11 +258,23 @@ function buildListingAgentCommerce(curator, listing) {
   const offers = validStockOffers(listing);
   if (offers.length === 0) return null;
 
+  const priceFloorPct = curatorPriceFloorPct(curator);
+
   return {
     available: true,
     currency: 'cUSD',
     offers,
     contract,
+    ...(priceFloorPct !== null
+      ? {
+          negotiation: {
+            offerParam: 'offerUsd',
+            offerSemantics: 'total USD offered for the order (all sizes × quantity)',
+            priceFloorPct,
+            belowFloor: 'HTTP 409 with a machine-readable counterOfferUsd at the floor price',
+          },
+        }
+      : {}),
   };
 }
 
@@ -346,6 +411,8 @@ module.exports = {
   isIntegerValue,
   inventoryVerificationBlockers,
   evaluateTrustedOffer,
+  curatorPriceFloorPct,
+  resolveOrderOffer,
   curatorPayoutAddress,
   curatorSplitAddress,
   curatorSellerBps,

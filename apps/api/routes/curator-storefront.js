@@ -33,6 +33,7 @@ const {
   storefrontWebUrl,
   webBaseUrl,
   buildRevenueHint,
+  resolveOrderOffer,
 } = require('../lib/agent-commerce');
 const { getAttributionSuffix, getAttributionCode, getAssignedTag } = require('../lib/attribution');
 const { logFunnelEvent } = require('../lib/funnel');
@@ -539,7 +540,7 @@ router.post('/:slug/order', async (req, res) => {
     return res.status(400).json({ error: 'Invalid curator slug' });
   }
 
-  const { listingId, size, paymentTxHash, nearAccountId, nearTxHash, paypalOrderId, agentId, quoteId: clientQuoteId, gift } = req.body || {};
+  const { listingId, size, paymentTxHash, nearAccountId, nearTxHash, paypalOrderId, agentId, quoteId: clientQuoteId, gift, offerUsd } = req.body || {};
   const giftClaimToken = gift ? require('crypto').randomUUID() : null;
   const quantity = Number(req.body?.quantity ?? 1);
 
@@ -570,6 +571,9 @@ router.post('/:slug/order', async (req, res) => {
   }
   if (paypalOrderId && (paymentTxHash || nearTxHash)) {
     return res.status(400).json({ error: 'Provide exactly one payment proof' });
+  }
+  if (offerUsd !== undefined && offerUsd !== null && (!Number.isFinite(Number(offerUsd)) || Number(offerUsd) <= 0)) {
+    return res.status(400).json({ error: 'offerUsd must be a positive USD amount — the total offered for the order' });
   }
 
   let db;
@@ -641,7 +645,43 @@ router.post('/:slug/order', async (req, res) => {
       return res.status(409).json({ error: 'Listing has no valid price' });
     }
     // Integer cents math — no float drift on quantity multiplication
-    const totalCusd = (Math.round(unitCusd * 100) * quantity) / 100;
+    const listCusd = (Math.round(unitCusd * 100) * quantity) / 100;
+
+    // ── Agent price negotiation (offerUsd) ──
+    // A buying agent may propose a total price. The curator's floor is
+    // commerce.priceFloorPct of the posted total; when the field is absent
+    // the floor IS the posted price (no negotiation — posted price only).
+    // Below floor → 409 with a machine-readable counter-offer at the floor.
+    // At/above floor → the 402 charges min(offer, posted): a negotiated
+    // quote never exceeds the listed price. Omit offerUsd and the flow is
+    // unchanged. The agreed price is bound into the quoteId (-o<cents>), so
+    // the proof re-POST stays priced at the agreed amount even when the
+    // client doesn't repeat offerUsd.
+    const orderOffer = resolveOrderOffer({
+      listCusd,
+      curator: row.curator,
+      offerUsd,
+      clientQuoteId,
+      quoteIdPrefix: `${listingId.slice(0, 8)}-${requestedSize}-${quantity}`,
+    });
+    if (orderOffer.countered) {
+      return res.status(409).json({
+        error: `Offer of ${orderOffer.offerUsd.toFixed(2)} USD is below this curator's floor`,
+        code: 'OFFER_BELOW_FLOOR',
+        counterOffer: {
+          offerUsd: orderOffer.counterOfferUsd,
+          currency: 'USD',
+          listCusd,
+          listingId,
+          size: requestedSize,
+          quantity,
+        },
+        instructions:
+          `Re-POST the same body with { "offerUsd": ${orderOffer.counterOfferUsd} } to receive a 402 payment quote at the countered price.`,
+      });
+    }
+    const offerCusd = orderOffer.offerUsd;
+    const totalCusd = orderOffer.agreedCusd;
 
     const itemLabel = row.kit
       ? `${row.kit.club} ${row.kit.kitType} (${requestedSize}) x${quantity}`
@@ -686,7 +726,11 @@ router.post('/:slug/order', async (req, res) => {
     // within its validity window but rotates over time.
     const QUOTE_TTL_SECONDS = parseInt(process.env.QUOTE_TTL_SECONDS || '900', 10); // 15 min
     const quoteBucket = Math.floor(Date.now() / 1000 / 60); // minute bucket
-    const quoteId = `${listingId.slice(0, 8)}-${requestedSize}-${quantity}-${quoteBucket}`;
+    // A negotiated quote carries the agreed price in the id (-o<cents>) so
+    // the counter-party can't reprice the order on the proof re-POST.
+    const quoteId = orderOffer.negotiated
+      ? `${listingId.slice(0, 8)}-${requestedSize}-${quantity}-o${Math.round(totalCusd * 100)}-${quoteBucket}`
+      : `${listingId.slice(0, 8)}-${requestedSize}-${quantity}-${quoteBucket}`;
     const quoteExpiresAt = new Date(Date.now() + QUOTE_TTL_SECONDS * 1000).toISOString();
 
     // ── PayPal rail (approval-relay; capture id is the replay-guarded proof) ──
@@ -713,6 +757,14 @@ router.post('/:slug/order', async (req, res) => {
           quantity,
           unitCusd,
           totalCusd,
+          negotiation: {
+            offerParam: 'offerUsd',
+            negotiable: orderOffer.negotiable,
+            hint: 'POST with { offerUsd } to propose a total price (USD); below-floor offers get a 409 counter-offer. The quoteId binds the agreed price.',
+            ...(offerCusd !== null
+              ? { offerUsd: offerCusd, listCusd, agreedCusd: totalCusd }
+              : {}),
+          },
           payTo,
           token: sharedTypes.X402_ASSET,
           chainId: sharedTypes.X402_CHAIN_ID,

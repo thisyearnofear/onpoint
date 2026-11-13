@@ -16,7 +16,8 @@
    Response includes fit signal / recommended size; digital try-ons may return `similarPhysicalItems`. This facilitator option applies to eligible try-on requests, not physical order checkout.
 4. **Buy** — `POST /api/curator/{slug}/order`  
    `{ listingId, size, quantity }` → 402 → transfer exact cUSD to `payTo` (append attribution `dataSuffix` if provided) → re-POST with `paymentTxHash` (+ `quoteId`).  
-   `201` includes order + Celoscan links; curator is paid on-chain. The current order route accepts cUSD via `paymentTxHash`; it rejects `X-PAYMENT`/USDC facilitator checkout until treasury conversion and liquidity policy are explicitly enabled.
+   `201` includes order + Celoscan links; curator is paid on-chain. The current order route accepts cUSD via `paymentTxHash`; it rejects `X-PAYMENT`/USDC facilitator checkout until treasury conversion and liquidity policy are explicitly enabled.  
+   **Negotiate (optional):** pass `offerUsd` — the total USD you're offering for the order. The curator's floor is `commerce.priceFloorPct` of the listed total; no floor field = posted price only. Below the floor → **HTTP 409** `{ code: "OFFER_BELOW_FLOOR", counterOffer: { offerUsd, currency, listCusd, listingId, size, quantity } }` — re-POST with the countered `offerUsd` to continue. At/above the floor → **402** quoted at `min(offer, list)`, and the agreed price is bound into `quoteId` (`-o<cents>` segment) so the proof re-POST cannot be repriced. Omit `offerUsd` and behavior is unchanged.
 5. **Earn referrals** — Pass `X-Referral-Code` header or `?referral=` query param to earn 2.5% commission on referred purchases.
 6. **Create looks** — Compose listings into shareable style boards (`POST /api/looks`). Each look has a public page at `/look/:slug` with try-on CTAs and share buttons.
 7. **Dashboard** — `GET /api/agent/dashboard` to view wallet health, referral earnings, and activity.

@@ -11,6 +11,7 @@
 // Security model (all enforced on-chain):
 //   - only AGENT may be the predecessor (the scoped key can't spoof it)
 //   - receiver must be in PAYEES
+//   - amount is bounded per call by MAX_PER_TX
 //   - no attached deposit allowed
 //   - escrow balance check is enforced by the FT contract itself
 //
@@ -23,14 +24,16 @@ use near_sdk::serde_json::{self, json};
 
 const FT_CONTRACT: &str = "usdc.fakes.testnet";
 const AGENT: &str = "agent.onpoint.testnet";
-/// Max base units per `pay` call — 25 USDC.e. Spend authority is bounded
-/// twice: by this cap per call and by the escrowed balance in total.
-const MAX_PER_TX: u128 = 25_000_000;
 const PAYEES: &[&str] = &[
     "store.onpoint.testnet",
     "curator.onpoint.testnet",
     "onpoint.testnet",
 ];
+/// Per-call spend cap in token base units: 25 USDC.e at 6 decimals.
+/// "Can empty escrow in one call" becomes "bounded per-call AND bounded
+/// by escrow" — a compromised or buggy agent can move at most this much
+/// per transaction no matter what the escrow holds.
+const MAX_PER_TX: u128 = 25_000_000;
 
 #[derive(Deserialize)]
 #[serde(crate = "near_sdk::serde")]
@@ -68,11 +71,14 @@ pub extern "C" fn pay() {
     let amount: u128 = args
         .amount
         .parse()
-        .unwrap_or_else(|_| env::panic_str("amount is not a u128"));
-    if amount == 0 || amount > MAX_PER_TX {
-        env::panic_str("amount out of bounds");
+        .unwrap_or_else(|_| env::panic_str("amount must be a base-unit integer"));
+    if amount == 0 {
+        env::panic_str("amount must be positive");
     }
-    env::log_str("pay: amount ok");
+    if amount > MAX_PER_TX {
+        env::panic_str("amount exceeds per-call cap");
+    }
+    env::log_str("pay: amount within per-call cap");
 
     let ft: AccountId = FT_CONTRACT
         .parse()
@@ -80,7 +86,7 @@ pub extern "C" fn pay() {
 
     let call_args = json!({
         "receiver_id": args.receiver_id,
-        "amount": args.amount,
+        "amount": amount.to_string(),
     })
     .to_string()
     .into_bytes();

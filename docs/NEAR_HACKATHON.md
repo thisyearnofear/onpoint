@@ -34,6 +34,14 @@ Show an AI agent paying for a fashion service (try-on/checkout) with value movin
 5. Server fulfills try-on/order and stores the NEAR receipt reference.
 6. Curator payout is settled in the same transaction (native NEAR or the FT), or recorded `pending_reconciliation` on the platform fallback account.
 
+### Agent price negotiation
+- `POST /api/curator/{slug}/order` accepts an optional `offerUsd` — the total USD the agent offers for the order.
+- The curator's floor is `commerce.priceFloorPct` of the listed total (e.g. `0.9`); absent or out-of-range → floor = posted price (no discounting, posted price only).
+- Below floor → **HTTP 409** `{ code: "OFFER_BELOW_FLOOR", counterOffer: { offerUsd: <floor>, currency, listCusd, listingId, size, quantity } }` — a machine-readable counter-offer, not an error string.
+- At/above floor → **HTTP 402** quote at `min(offer, list)` — a negotiated quote never exceeds the posted price. The agreed price is bound into `quoteId` (a `-o<cents>` segment), so the proof re-POST cannot be repriced and needn't repeat `offerUsd`.
+- Omit `offerUsd` and the flow is byte-identical to before.
+- Implemented in `apps/api/lib/agent-commerce.js` (`resolveOrderOffer`); tests in `lib/agent-commerce.test.js` + `routes/curator-storefront.negotiate.test.js`.
+
 ### Cross-chain value movement
 - Use **NEAR Intents** to let an agent pay in a non-NEAR asset and settle the curator in NEAR/stablecoin.
 - Use **1-Click Swap SDK** for conversion.
@@ -75,6 +83,8 @@ Full agent flow proven against the real API on an isolated Neon demo DB:
 - **Scoped-key stablecoin e2e (2026-11-13, release 20261113-070655):** order `7463ccce` — the agent's FCAK (`ed25519:3nqE4ACneFCmeGTvpxtDPAXJWWoMJ1i3myR79vTsjuvu`, scoped to `escrow.onpoint.testnet::pay`, zero deposit allowed) signed [tx `Le7M3xTLTrGBueXynX3UPxgtUforD3cqVN9wVLNEWSQ`](https://testnet.nearblocks.io/txns/Le7M3xTLTrGBueXynX3UPxgtUforD3cqVN9wVLNEWSQ); the forwarder released 19.23 USDC.e escrow → `store.onpoint.testnet` (escrow 19.5 → 0.27, curator 0.5 → 19.73). Receipt `receipt_mwen004p_8fae4930`. Contract deployed at `escrow.onpoint.testnet` ([deploy tx `Ha7LjRdHFvxJq5p9t1C9U9go5pcPhUHTswV5idqcK4AG`](https://testnet.nearblocks.io/txns/Ha7LjRdHFvxJq5p9t1C9U9go5pcPhUHTswV5idqcK4AG)); setup is `deploy-payforwarder.mjs` → `setup-scoped-key.mjs` (storage regs, mint, escrow top-up, key scoping — idempotent). Caveat: `usdc.fakes.testnet` is a testnet mock — same code path as mainnet USDC, not real dollars.
 - **Spend-policy cap verified (2026-11-13):** redeploy with `MAX_PER_TX` = 25 USDC.e ([tx `4S7RTjMbAGxLkSEe6SKs9PQBF9epFMDJPDBYyZVEFLZS`](https://testnet.nearblocks.io/txns/4S7RTjMbAGxLkSEe6SKs9PQBF9epFMDJPDBYyZVEFLZS)). A 26 USDC.e `pay` call is rejected at the amount guard (receipt logs end at `pay: payee ok`, tx `FzXhJx6ZGmq32qaHbJsULPawjVkX9FoDMMRTv2s1ZRLm`); a 1 USDC.e call settles (`5P9vA3LB1dynUwpHXJh3tDuNGJTBUFQKZep7BY3eYp9p`). Spend authority is now bounded per-call AND by escrowed balance.
 - Env added to `/opt/onpoint/shared/api/.env`: `NEAR_TOKEN_CONTRACT=usdc.fakes.testnet`, `NEAR_TOKEN_FORWARDER=escrow.onpoint.testnet`, `NEAR_TOKEN_DECIMALS=6`, `NEAR_TOKEN_SYMBOL=USDC.e`. Unsetting `NEAR_TOKEN_FORWARDER` flips the quote to direct `ft_transfer` on the FT (1 yocto attach, full-access key); unsetting `NEAR_TOKEN_CONTRACT` returns the rail to native-NEAR-only.
+- **Negotiate → hire → settle, two payees (local API on unreleased code + prod DB + testnet, 2026-11-14):** full `agent-demo.mjs` run — hired the `mo` stylist (try-on fee 0.05 USDC.e → `curator.onpoint.testnet`, [tx `29cHWHJmjQbR3MB9Y7KRzPP4SGyhgq49Yz6ydmur1EJK`](https://testnet.nearblocks.io/txns/29cHWHJmjQbR3MB9Y7KRzPP4SGyhgq49Yz6ydmur1EJK), render `youcam-cloth-v4`); offered `offerUsd: 17` on the kit → **409** `OFFER_BELOW_FLOOR` counter at **17.31** (`priceFloorPct 0.9` × 19.23); accepted → 402 at the agreed price (quoteId `0cc69356-M-1-o1731-…`); a 30 USDC.e `pay` call rejected on-chain (tx `B4cSCivzp2kawLB35LgDJJdXmCGky8zaiacjnusZAWMP`); order `bd78f04e` settled 17.31 USDC.e → `store.onpoint.testnet` ([tx `G1HKEc1Fe5dwQWLBTB3AfQqZi4WwrBtkmHMaN7HQBCfr`](https://testnet.nearblocks.io/txns/G1HKEc1Fe5dwQWLBTB3AfQqZi4WwrBtkmHMaN7HQBCfr)), receipt `receipt_mwepvlrq_72e7a630`. On-chain deltas: escrow 18.99→1.63, stylist 0.01→0.06 (**+0.05 earned**), merchant 20.73→38.04 (**+17.31 earned**). Two roles (service provider + merchant), two payees, one scoped key. Negotiation deployed in release `20261113-125059` — prod verified: `offerUsd: 17` → 409 counter at 17.31, accepted → 402 (`quoteId …-o1731-…`, `quote.near` → `store.onpoint.testnet`), `mo` try-on 402 → `curator.onpoint.testnet`.
+- **Full narrated run on prod (2026-11-14):** `API_URL=https://api.onpoint.famile.xyz node agent-demo.mjs` — hire fee 0.03 USDC.e → `curator.onpoint.testnet` (tx `7GuhLReBvsHzU19ix35QjWMSrRQn4z31ADR7x4JoZQaH`); 30 USDC.e cap rejection (tx `9u7Txj4C6YYftGwHmHkBHxXSp9x74YCR4cmwb5wrRymi`); order `b5199664` settled 17.31 USDC.e → `store.onpoint.testnet` (tx `7vK5KoFhfkrgE1hVjdqrp2SsvqFxs6EAR5qYNGHaHR13`), receipt `receipt_mwezcf8s_31852f5f`. Deltas: escrow 20→2.66, stylist +0.03, merchant +17.31. Forwarder redeployed to match current source (tx `7Xj5Ud3wP23BryydDLVPia94nGukYizw2wf2cRPrCswt`). `RAIL=paypal` mode retained for the PayPal-hackathon demo (README documents both).
 
 ## Week 2 plan (demo + submission)
 - [x] Polish one end-to-end agent purchase — `agent-demo.mjs` is the canonical run.
@@ -85,15 +95,18 @@ Full agent flow proven against the real API on an isolated Neon demo DB:
 - [x] Swap picsum placeholder image for a real product photo before sharing the storefront — Venice-generated NEAR FC kit (mint/black, NEAR wordmark) now serves at `api.onpoint.famile.xyz/digital-garments/near-fc-home-kit-2627.webp` (done 2026-11-12).
 
 ## Demo script
-1. `GET /api/curator/onpoint-store/storefront` → agent sees a payable offer.
-2. `POST /api/agent/try-on` → 402 with `quote.near` rail.
-3. Agent pays on NEAR testnet → server verifies on-chain.
-4. `POST /api/curator/onpoint-store/order` + `nearTxHash` → 201, order confirmed.
-5. Curator balance on-chain → settled in the same tx; receipt + explorer links.
+1. `GET /api/curator/{onpoint-store,mo}/storefront` → agent finds the kit (merchant) and a try-on service (stylist).
+2. `POST /api/agent/try-on` on a `mo` listing → 402 → pay the fee → `curator.onpoint.testnet` — **hire**: agent hires agent; the stylist's balance grows on-chain.
+3. `POST /api/curator/onpoint-store/order` + `offerUsd` below floor → **409** machine-readable counter-offer → re-POST with the counter → **402** at the agreed price — **negotiate**.
+4. Optional beat: an over-cap `pay` call is rejected on-chain — spend authority is consensus-enforced, not just policy.
+5. Agent pays the agreed amount via the scoped key → re-POST `{quoteId, nearAccountId, nearTxHash}` → **201**, settled → `store.onpoint.testnet` — **settle programmatically**.
+6. Before/after `ft_balance_of` on testnet: escrow down, stylist +fee, merchant +order — the provider visibly earns.
 
 ## Deployment status
 - [x] `NEAR_NETWORK`, `NEAR_RPC_URL`, `NEAR_USD_PRICE`, `NEAR_PAYOUT_ACCOUNT` on Hetzner (`NEAR_USD_PRICE=3.42` as of 2026-11-12 — manual; refresh before recording. Env changes need `pm2 reload onpoint-api` — the serving process is id 8 on port 48751, not `onpoint-agent-server`).
-- [x] `onpoint-store` seeded in prod with `commerce.nearAccountId = store.onpoint.testnet`.
+- [x] `onpoint-store` seeded in prod with `commerce.nearAccountId = store.onpoint.testnet` + `commerce.priceFloorPct = 0.9` (enables order negotiation).
+- [x] `mo` (prod DB) has `commerce.nearAccountId = curator.onpoint.testnet` — the stylist-service payee; already in the forwarder allow-list.
+- [x] Deploy the negotiation code to prod — release `20261113-125059`, 409/402 verified live. Re-run `agent-demo.mjs` against prod for the recording (escrow is topped to ~20 USDC.e; one run needs ~17.4).
 - [ ] Set `commerce.nearAccountId` on real curators as they onboard (`onpoint-store` is the always-available fallback).
 
 ## Risks and fallbacks
@@ -117,16 +130,19 @@ The NEAR rail lets an agent pay for try-on/checkout and settle the curator **dir
 ```bash
 cd scripts/near-spike
 npm install
-node provision.mjs   # creates + funds onpoint.testnet sub-accounts (~30s)
-node agent-demo.mjs  # narrated run: offer → 402 → pay → 201 → settled payout
+node provision.mjs            # creates + funds onpoint.testnet sub-accounts (~30s)
+node deploy-payforwarder.mjs  # deploys the escrow forwarder to escrow.onpoint.testnet
+node setup-scoped-key.mjs     # FCAK scoped to escrow::pay + tops escrow to 20 USDC.e
+node agent-demo.mjs           # narrated run: discover → hire → negotiate → settle
 ```
 
 What you see:
 
-1. `GET /api/curator/onpoint-store/storefront` — a payable offer (house catalog; no third-party curator needed)
-2. `POST /api/agent/try-on` → **HTTP 402** with `quote.paymentRails: ["celo_cusd","near"]` and a `quote.near` block (account, yoctoNEAR, network)
-3. Agent sends NEAR on testnet → re-POSTs `{nearAccountId, nearTxHash}` → server verifies on-chain via JSON-RPC
-4. `POST /api/curator/onpoint-store/order` → **HTTP 201** — order confirmed, `payout.status: "settled"`, nearblocks explorer links, receipt URL
-5. Curator's NEAR balance increases **in the same transaction** — payment *is* the payout
+1. Two storefronts discovered — `onpoint-store` (the merchant) and `mo` (a styling service).
+2. `POST /api/agent/try-on` on `mo` → **HTTP 402** → the agent pays the fee in USDC.e → `curator.onpoint.testnet`. Agent hires agent; the stylist's on-chain balance grows.
+3. `POST /api/curator/onpoint-store/order` with `offerUsd` below the curator's floor → **HTTP 409** with a machine-readable `counterOffer`; re-POST at the counter → **HTTP 402** quoted at the agreed price (bound into `quoteId`).
+4. An over-`MAX_PER_TX` `pay` call is rejected on-chain — the scoped key can only spend what's escrowed, to allow-listed payees, capped per call.
+5. The agent pays the agreed amount → re-POST `{quoteId, nearAccountId, nearTxHash}` → **HTTP 201**, `payout.status: "settled"` → `store.onpoint.testnet`, explorer links + receipt URL.
+6. Before/after `ft_balance_of`: escrow down, stylist +fee, merchant +order total — two NEAR payees, two roles, one scoped key.
 
 API surface: `apps/api/lib/near-payments.js` (dependency-free `EXPERIMENTAL_tx_status` verification), rail wired into `routes/agent-tryon.js` and `routes/curator-storefront.js`. Config via `NEAR_NETWORK`, `NEAR_RPC_URL`, `NEAR_USD_PRICE`, `NEAR_PAYOUT_ACCOUNT` (see `apps/api/.env.example`); per-curator override via `commerce.nearAccountId`.

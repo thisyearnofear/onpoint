@@ -15,6 +15,7 @@ const {
   normalizeSize,
   buildStorefrontAgentCommerce,
   tryOnPriceCusd,
+  resolveOrderOffer,
 } = require('./agent-commerce');
 
 const WALLET = '0x1111111111111111111111111111111111111111';
@@ -370,6 +371,73 @@ describe('agent-commerce helpers', () => {
     it('is disabled without a wallet', () => {
       const block = buildStorefrontAgentCommerce({}, 'wanja');
       expect(block.enabled).toBe(false);
+    });
+  });
+
+  describe('resolveOrderOffer', () => {
+    const LIST = 19.23; // NEAR FC kit demo price
+    const floorCurator = { commerce: { walletAddress: WALLET, priceFloorPct: 0.9 } };
+
+    it('defaults the floor to the listed total when priceFloorPct is absent', () => {
+      const r = resolveOrderOffer({ listCusd: LIST, curator: { commerce: {} } });
+      expect(r.floorCusd).toBe(LIST);
+      expect(r.negotiable).toBe(false);
+      expect(r.agreedCusd).toBe(LIST);
+    });
+
+    it('counters an offer below the configured floor at the floor price', () => {
+      const r = resolveOrderOffer({ listCusd: LIST, curator: floorCurator, offerUsd: 17 });
+      expect(r.countered).toBe(true);
+      expect(r.counterOfferUsd).toBe(17.31); // ceil(19.23 * 0.9)
+      expect(r.agreedCusd).toBe(LIST);
+    });
+
+    it('accepts an offer at/above the floor at the offered price', () => {
+      const r = resolveOrderOffer({ listCusd: LIST, curator: floorCurator, offerUsd: 17.31 });
+      expect(r.countered).toBe(false);
+      expect(r.negotiated).toBe(true);
+      expect(r.agreedCusd).toBe(17.31);
+    });
+
+    it('never agrees above the listed total', () => {
+      const r = resolveOrderOffer({ listCusd: LIST, curator: floorCurator, offerUsd: 50 });
+      expect(r.agreedCusd).toBe(LIST);
+      expect(r.negotiated).toBe(false);
+    });
+
+    it('decodes an agreed offer from the quoteId -o segment', () => {
+      const r = resolveOrderOffer({
+        listCusd: LIST,
+        curator: floorCurator,
+        clientQuoteId: '0cc69356-M-1-o1731-46000',
+        quoteIdPrefix: '0cc69356-M-1',
+      });
+      expect(r.offerUsd).toBe(17.31);
+      expect(r.agreedCusd).toBe(17.31);
+      expect(r.negotiated).toBe(true);
+    });
+
+    it('refuses a -o quote minted for a different size/quantity', () => {
+      const r = resolveOrderOffer({
+        listCusd: 38.46, // qty 2
+        curator: floorCurator,
+        clientQuoteId: '0cc69356-M-1-o1731-46000',
+        quoteIdPrefix: '0cc69356-M-2',
+      });
+      expect(r.offerUsd).toBeNull();
+      expect(r.agreedCusd).toBe(38.46);
+      expect(r.negotiated).toBe(false);
+    });
+
+    it('still counters a below-floor offer smuggled into a quoteId', () => {
+      const r = resolveOrderOffer({
+        listCusd: LIST,
+        curator: floorCurator,
+        clientQuoteId: '0cc69356-M-1-o1-46000',
+        quoteIdPrefix: '0cc69356-M-1',
+      });
+      expect(r.countered).toBe(true);
+      expect(r.counterOfferUsd).toBe(17.31);
     });
   });
 });
