@@ -25,10 +25,11 @@
  */
 
 const crypto = require('crypto');
+const { persistedMap } = require('./kv-state');
 
 const MAX_PENDING = 200;
 const PENDING_TTL_MS = 60 * 1000; // seller polls ~3s; a dead seller expires fast
-const pending = new Map(); // pendingId → record
+const pending = persistedMap('negotiation_mailbox', { expiresAtOf: (p) => p.expiresAt }); // pendingId → record
 
 function sweep(now = Date.now()) {
   for (const [id, p] of pending) {
@@ -49,8 +50,11 @@ function sweep(now = Date.now()) {
  */
 function enqueue({ sessionId, payee, round, offer, context }, now = Date.now()) {
   sweep(now);
-  for (const p of pending.values()) {
-    if (p.sessionId === sessionId && p.status === 'pending') p.status = 'superseded';
+  for (const [id, p] of pending.entries()) {
+    if (p.sessionId === sessionId && p.status === 'pending') {
+      p.status = 'superseded';
+      pending.set(id, p); // flush the mutation
+    }
   }
   const pendingId = `pnx_${crypto.randomBytes(9).toString('hex')}`;
   const rec = {
@@ -88,6 +92,7 @@ function answer(pendingId, response) {
   p.status = 'answered';
   p.response = response;
   p.answeredAt = new Date().toISOString();
+  pending.set(pendingId, p); // flush the mutation
   return p;
 }
 
@@ -95,7 +100,10 @@ function answer(pendingId, response) {
 function cancel(pendingId, status = 'expired') {
   const p = pending.get(pendingId);
   if (!p) return null;
-  if (p.status === 'pending') p.status = status;
+  if (p.status === 'pending') {
+    p.status = status;
+    pending.set(pendingId, p); // flush the mutation
+  }
   return p;
 }
 

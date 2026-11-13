@@ -176,7 +176,7 @@ function solveSwap(p, payee, transferAmountBase) {
   }
   const minRate = policyFor(policyCfg, payee).minUsdcPerWnear ?? 0;
   if (swap.giveTokenId === "nep141:wrap.testnet" && minRate > 0) {
-    const impliedUsdcPerWnear = Number(getAmt) / (Number(giveAmt) / 1e24);
+    const impliedUsdcPerWnear = (Number(getAmt) / 1e6) / (Number(giveAmt) / 1e24);
     if (impliedUsdcPerWnear < minRate) {
       return { ok: false, why: `rate ${impliedUsdcPerWnear.toFixed(3)} USDC/wNEAR < my minimum ${minRate}` };
     }
@@ -187,20 +187,29 @@ function solveSwap(p, payee, transferAmountBase) {
 
 async function fulfill(p, seller, amountBase) {
   let exec;
-  if (p.swap) {
-    const decision = solveSwap(p, seller.accountId, amountBase);
-    if (!decision.ok) {
-      say(`   ${C.y}✗${C.x} refused to solve the swap: ${decision.why} — bundle cannot settle without my counter-diff`);
-      return; // leave it pending — the buyer can re-offer at a better rate
+  try {
+    if (p.swap) {
+      const decision = solveSwap(p, seller.accountId, amountBase);
+      if (!decision.ok) {
+        say(`   ${C.y}✗${C.x} refused to solve the swap: ${decision.why} — bundle cannot settle without my counter-diff`);
+        return; // leave it pending — the buyer can re-offer at a better rate
+      }
+      const mirror = await intents.signIntents({
+        signer: seller,
+        intents: [{ intent: "token_diff", diff: intents.counterDiff(p.swap.diff) }],
+      });
+      say(`   ${C.g}✓ countersigned the diff with my own key — supplying liquidity${C.x}`);
+      // Order matters: diffs first so the buyer's settlement-token credit
+      // lands before its transfer debits. The contract fails the whole call
+      // if any leg is unbalanced mid-flight.
+      exec = await intents.executeBundle(seller, [p.swap.signed, mirror, p.signed]);
+    } else {
+      exec = await intents.executeIntents(seller, p.signed);
     }
-    const mirror = await intents.signIntents({
-      signer: seller,
-      intents: [{ intent: "token_diff", diff: intents.counterDiff(p.swap.diff) }],
-    });
-    say(`   ${C.g}✓ countersigned the diff with my own key — supplying liquidity${C.x}`);
-    exec = await intents.executeBundle(seller, [p.signed, p.swap.signed, mirror]);
-  } else {
-    exec = await intents.executeIntents(seller, p.signed);
+  } catch (e) {
+    // A contract panic throws rather than returning a failed outcome —
+    // record it and keep the agent alive for the next item.
+    exec = { ok: false, failure: String(e?.message ?? e).slice(0, 300) };
   }
   if (!exec.ok) {
     say(`   ${C.y}✗${C.x} execute_intents failed: ${JSON.stringify(exec.failure ?? {}).slice(0, 160)}`);
@@ -218,9 +227,11 @@ async function fulfill(p, seller, amountBase) {
       body: JSON.stringify({ ...p.redeem.body, nearAccountId: p.buyer, intentsTxHash: exec.txHash }),
     });
     const body = await res.json().catch(() => ({}));
-    say(`   ${res.ok ? `${C.g}✓` : `${C.y}✗`}${C.x} redeem ${res.status} — order ${body.orderId ?? body.status ?? "?"}${body.receiptUrl ? `  receipt ${body.receiptUrl}` : ""}`);
+    const orderId = body.order?.id ?? body.orderId;
+    const receiptUrl = body.order?.receiptUrl ?? body.receiptUrl;
+    say(`   ${res.ok ? `${C.g}✓` : `${C.y}✗`}${C.x} redeem ${res.status} — order ${orderId ?? body.status ?? "?"}${receiptUrl ? `  receipt ${receiptUrl}` : ""}`);
     // Hand the redemption back to the buyer through the mailbox (capped).
-    const result = { status: res.status, orderId: body.orderId, receiptUrl: body.receiptUrl };
+    const result = { status: res.status, orderId, receiptUrl };
     if (JSON.stringify(body).length <= 8_000) result.body = body; // fits the mailbox's 10kb limit
     await fetch(`${API}/api/pending-intents/${p.pendingId}/complete`, {
       method: "POST", headers: { "content-type": "application/json" },

@@ -58,6 +58,33 @@ is byte-identical to before.
 Implemented in `apps/api/lib/agent-negotiation.js` + `routes/agent-negotiate.js`
 (sessions/policy/tokens) and `lib/agent-commerce.js` (`resolveOrderOffer`).
 
+**Sovereign sellers (hosted vs sovereign authority):** `sellerMode` decides who
+answers each round, re-evaluated per round — never assumed from session start.
+
+- `POST /api/seller-presence {payee}` — the seller's own process heartbeats
+  (unsigned liveness by design: it only routes offers, it can never mint a
+  binding artifact). Fresh <45s → **sovereign**: the offer enqueues in the
+  negotiation mailbox (`lib/negotiation-mailbox.js`, `round` field kills stale
+  answers) → `202 pending_seller` → the seller's own agent polls
+  `GET /api/pending-negotiations?payee=…`, decides with its **own policy**
+  (`scripts/near-spike/seller-policy.{mjs,json}` — independent of the API's),
+  and POSTs `respond`. Buyer polls `GET /api/negotiations/{sessionId}`.
+- Stale heartbeat → **hosted** fallback — only possible when the platform
+  holds a key for the payee (`NEAR_QUOTE_SIGNING_KEYS`). A payee with no
+  hosted key stays `pending_seller`: the platform mechanically cannot sign
+  as it. Kill the seller mid-session and `sellerMode` visibly flips
+  `sovereign → hosted` (expired pending offer resolves through hosted policy).
+- Integrity split: counters/refusals are unsigned relay text — non-binding.
+  The only commitment is the `quoteToken`, verified by ed25519 signature
+  **plus** signer authorization: a hosted payee's token must carry the
+  platform key exactly; a sovereign payee's key must exist in the verifier's
+  `has_public_key` registry (`authorizeQuoteSigner` — one registry backs
+  quote-signing and intent-signing). Redemption (`/order`, `/agent/try-on`)
+  runs the same authorization, so a seller-signed token redeems unchanged.
+- Canonicalization gotcha, handled: `canonicalPayload` (fixed-key-order JSON)
+  lives in `lib/quote-token-codec.js` — the seller's `intents-lib.mjs`
+  `signQuoteToken` imports the same module, so bytes match by construction.
+
 ### Intents settlement rail
 
 `NEAR_INTENTS_VERIFIER=intents.onpoint.testnet` adds `"near_intents"` to every

@@ -547,7 +547,8 @@ if (IS_INTENTS) {
     // Buy the settlement token with wNEAR: give (amountUsdc / myRate)
     // wNEAR for the full amount the transfer needs. The merchant decides
     // whether to counter-sign — the swap + payment is one atomic bundle.
-    const giveWnear = (BigInt(iq.amount) * BigInt(1e6) * BigInt(1e24)) / BigInt(Math.round(SWAP_RATE_USDC_PER_WNEAR * 1e6));
+    // Units: amount is USDC.e base (6dp) → wNEAR base (24dp): ×1e18 / rate.
+    const giveWnear = (BigInt(iq.amount) * 10n ** 18n * 1000n) / BigInt(Math.round(SWAP_RATE_USDC_PER_WNEAR * 1000));
     swap = { giveTokenId: WNEAR_ID, giveAmountBase: giveWnear.toString() };
     agentSays(`signing: {give ${(Number(giveWnear) / 1e24).toFixed(3)} wNEAR, get ${iq.display} USDC.e} + transfer → ${iq.payTo} — the merchant's agent must countersign my diff, or nothing settles`);
   } else {
@@ -606,6 +607,11 @@ if (IS_INTENTS) {
   chain(`agent    intents-ledger: ${Number(before.internal) / 1e6} → ${after.internal} USDC.e`);
   chain(`stylist  ${payees.stylist}:  +${((after.stylist.wallet - before.stylist.wallet) + (after.stylist.ledger - before.stylist.ledger)).toFixed(6)} USDC.e earned — ledger ${before.stylist.ledger} → ${after.stylist.ledger}, wallet ${before.stylist.wallet} → ${after.stylist.wallet} (its own agent withdrew)`);
   chain(`merchant ${payees.merchant}:  +${((after.merchant.wallet - before.merchant.wallet) + (after.merchant.ledger - before.merchant.ledger)).toFixed(6)} USDC.e earned — ledger ${before.merchant.ledger} → ${after.merchant.ledger}, wallet ${before.merchant.wallet} → ${after.merchant.wallet} (its own agent withdrew)`);
+  if (SWAP_FUNDING) {
+    const wAgent = Number(await intents.internalBalance(agent.accountId, WNEAR_ID)) / 1e24;
+    const wMerchant = Number(await intents.internalBalance(payees.merchant, WNEAR_ID)) / 1e24;
+    chain(`swap leg — agent wNEAR now ${wAgent}, merchant wNEAR ${wMerchant}: the payment settled as USDC.e but I funded it with wNEAR, atomically`);
+  }
   info(`verifier ${intents.VERIFIER} holds the ledger — each payee collects with a signed ft_withdraw of its own`);
 } else {
   const after = {

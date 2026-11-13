@@ -124,6 +124,7 @@ function enqueueRound(session, offer) {
   session.status = 'pending_seller';
   session.sellerMode = 'sovereign';
   session.pendingId = item.pendingId;
+  neg.saveSession(session);
   return item;
 }
 
@@ -270,6 +271,7 @@ router.post('/:slug/negotiate/:sessionId', async (req, res) => {
       if (action === 'walk') {
         session.status = 'rejected';
         session.reasoning = 'Buyer walked away.';
+        neg.saveSession(session);
         return res.json(neg.sessionSnapshot(session));
       }
       if (action === 'accept') {
@@ -305,11 +307,13 @@ router.post('/:slug/negotiate/:sessionId', async (req, res) => {
     session.status = 'accepted';
     session.agreedCents = session.askCents;
     session.reasoning = 'Done — locked at my asking price.';
+    neg.saveSession(session);
     return res.json(acceptedBody(session));
   }
   if (action === 'walk') {
     session.status = 'rejected';
     session.reasoning = 'Buyer walked away.';
+    neg.saveSession(session);
     return res.json(neg.sessionSnapshot(session));
   }
 

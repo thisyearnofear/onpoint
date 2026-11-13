@@ -91,6 +91,7 @@ async function resolvePendingSession(session) {
       agreedCusd: session.agreedCents / 100, sessionId: session.sessionId, payee: session.payee,
     });
   }
+  neg.saveSession(session); // applySellerDecision flushed earlier; the token lands after it
   return session;
 }
 

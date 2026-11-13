@@ -54,7 +54,14 @@ function negotiationConfig(curator) {
 }
 
 // ── session store ─────────────────────────────────────────────────────────
-const sessions = new Map(); // sessionId → session
+const { persistedMap } = require('./kv-state');
+const sessions = persistedMap('negotiation_sessions', { expiresAtOf: (s) => s.expiresAt }); // sessionId → session
+
+// In-place session mutations persist only via an explicit re-set — call
+// this after updating status/history/etc.
+function saveSession(session) {
+  sessions.set(session.sessionId, session);
+}
 
 function pruneSessions(now) {
   for (const [id, s] of sessions) {
@@ -68,6 +75,7 @@ function getSession(id, now = Date.now()) {
   if (s.expiresAt <= now && s.status !== 'expired') {
     s.status = 'expired';
     s.reasoning = 'Session timed out — the offer is off the table.';
+    sessions.set(id, s); // flush the expiry
   }
   return s;
 }
@@ -361,6 +369,7 @@ function applySellerDecision(session, { decision, priceCents, why, reasoning }) 
   session.reasoning = reasoning;
   session.pendingId = null;
   session.history.push({ actor: 'seller', cents: priceCents ?? null, round: session.round, why });
+  saveSession(session);
 }
 
 function sessionSnapshot(s, extra = {}) {
@@ -387,6 +396,7 @@ function sessionSnapshot(s, extra = {}) {
 module.exports = {
   createSession,
   getSession,
+  saveSession,
   evaluateSellerPolicy,
   applySellerDecision,
   veniceReasoning,

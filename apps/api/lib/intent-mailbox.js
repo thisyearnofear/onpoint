@@ -23,9 +23,10 @@
 
 const crypto = require('crypto');
 const nearIntents = require('./near-intents');
+const { persistedMap } = require('./kv-state');
 
 const MAX_PENDING = 200;
-const pending = new Map(); // pendingId → record
+const pending = persistedMap('intent_mailbox', { expiresAtOf: (p) => p.expiresAt }); // pendingId → record
 
 function sweep(now = Date.now()) {
   for (const [id, p] of pending) {
@@ -116,6 +117,7 @@ function complete(pendingId, { txHash, status = 'settled', result } = {}) {
   p.txHash = txHash ?? p.txHash;
   p.result = result ?? p.result;
   p.completedAt = new Date().toISOString();
+  pending.set(pendingId, p); // flush the mutated record
   return p;
 }
 

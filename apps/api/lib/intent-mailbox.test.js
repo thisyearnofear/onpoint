@@ -103,3 +103,83 @@ describe('intent mailbox', () => {
     expect(mailbox.list({ payee: PAYEE }).some((x) => x.pendingId === r.pendingId)).toBe(false);
   });
 });
+
+const { validateSignedDiffPayload } = require('./near-intents');
+
+function signedDiff({ buyer = BUYER, give = '2500000000000000000000000', get = '16790000', giveTokenId = 'nep141:wrap.testnet', deadline } = {}) {
+  const message = JSON.stringify({
+    signer_id: buyer,
+    verifying_contract: CFG_ENV.NEAR_INTENTS_VERIFIER,
+    deadline: deadline ?? new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    nonce: 'AA==',
+    intents: [{ intent: 'token_diff', diff: { [giveTokenId]: `-${give}`, 'nep141:usdc.fakes.testnet': get } }],
+  });
+  return {
+    standard: 'nep413',
+    payload: { message, nonce: 'AA==', recipient: CFG_ENV.NEAR_INTENTS_VERIFIER },
+    signature: 'ed25519:sig',
+    public_key: 'ed25519:pk',
+    giveTokenId,
+  };
+}
+
+describe('validateSignedDiffPayload', () => {
+  it('accepts a well-formed diff funding the transfer', () => {
+    const r = validateSignedDiffPayload({ signed: signedDiff(), expectedSigner: BUYER, giveTokenId: 'nep141:wrap.testnet', minGetBase: '16790000' });
+    expect(r.ok).toBe(true);
+    expect(r.giveAmount).toBe('2500000000000000000000000');
+    expect(r.getAmount).toBe('16790000');
+  });
+
+  it('rejects a diff signed by someone other than the buyer', () => {
+    const r = validateSignedDiffPayload({ signed: signedDiff({ buyer: 'mallory.testnet' }), expectedSigner: BUYER, giveTokenId: 'nep141:wrap.testnet', minGetBase: '1' });
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe('diff_signer_mismatch');
+  });
+
+  it('rejects a diff that gets less than the transfer needs', () => {
+    const r = validateSignedDiffPayload({ signed: signedDiff({ get: '100' }), expectedSigner: BUYER, giveTokenId: 'nep141:wrap.testnet', minGetBase: '16790000' });
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe('diff_get_below_quote');
+  });
+
+  it('rejects a diff whose give leg is not negative', () => {
+    const bad = signedDiff();
+    const msg = JSON.parse(bad.payload.message);
+    msg.intents[0].diff['nep141:wrap.testnet'] = '5';
+    bad.payload.message = JSON.stringify(msg);
+    const r = validateSignedDiffPayload({ signed: bad, expectedSigner: BUYER, giveTokenId: 'nep141:wrap.testnet', minGetBase: '1' });
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe('diff_give_not_negative');
+  });
+});
+
+describe('swap-funded mailbox', () => {
+  it('stores the buyer diff with the pending intent for the seller to solve', () => {
+    const r = mailbox.submit({
+      signed: signedIntent(), signedSwap: signedDiff(), buyerAccountId: BUYER,
+      payee: PAYEE, minAmountBase: '16790000', redeem: { path: '/x', body: {} },
+    });
+    expect(r.ok).toBe(true);
+    const p = mailbox.list({ payee: PAYEE }).find((x) => x.pendingId === r.pendingId);
+    expect(p.swap).toBeTruthy();
+    expect(p.swap.giveTokenId).toBe('nep141:wrap.testnet');
+    expect(p.swap.signed.signature).toBe('ed25519:sig');
+  });
+
+  it('rejects a swap signed by a different account than the transfer', () => {
+    const r = mailbox.submit({
+      signed: signedIntent(), signedSwap: signedDiff({ buyer: 'mallory.testnet' }),
+      buyerAccountId: BUYER, payee: PAYEE, minAmountBase: '100',
+    });
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe('swap_diff_signer_mismatch');
+  });
+
+  it('still works with no swap — the direct-USDC path is unchanged', () => {
+    const r = mailbox.submit({ signed: signedIntent(), buyerAccountId: BUYER, payee: PAYEE, minAmountBase: '100' });
+    expect(r.ok).toBe(true);
+    const p = mailbox.get(r.pendingId);
+    expect(p.swap).toBeNull();
+  });
+});
