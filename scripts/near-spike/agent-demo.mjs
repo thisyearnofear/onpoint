@@ -195,7 +195,7 @@ async function publishIntent({ path, body, payee, amountBase, who, swap }) {
   while (Date.now() < deadline) {
     await SLEEP(2500);
     const p = await (await fetch(`${API}/api/pending-intents/${pendingId}`)).json().catch(() => null);
-    if (p?.status === "settled") return { ok: true, txHash: p.txHash, result: p.result };
+    if (p?.status === "settled") return { ok: true, txHash: p.txHash, result: p.result, executor: p.executor };
     if (p?.status === "failed" || p?.status === "expired") {
       return { ok: false, failure: `${p.status}: ${JSON.stringify(p.result ?? {}).slice(0, 200)}` };
     }
@@ -554,6 +554,7 @@ info(`quoteId ${q.quoteId} — the agreed price is bound in the id itself`);
 
 let order = null;
 let orderStatus = 0;
+let xchainResult = null;
 if (IS_INTENTS) {
   const iq = q.intents;
   if (!iq) { say(`no intents rail on the order quote — is NEAR_INTENTS_VERIFIER configured on the API?`); process.exit(1); }
@@ -566,7 +567,7 @@ if (IS_INTENTS) {
     // Units: amount is USDC.e base (6dp) → wNEAR base (24dp): ×1e18 / rate.
     const giveWnear = (BigInt(iq.amount) * 10n ** 18n * 1000n) / BigInt(Math.round(SWAP_RATE_USDC_PER_WNEAR * 1000));
     swap = { giveTokenId: WNEAR_ID, giveAmountBase: giveWnear.toString() };
-    agentSays(`signing: {give ${(Number(giveWnear) / 1e24).toFixed(3)} wNEAR, get ${iq.display} USDC.e} + transfer → ${iq.payTo} — the merchant's agent must countersign my diff, or nothing settles`);
+    agentSays(`signing: {give ${(Number(giveWnear) / 1e24).toFixed(3)} wNEAR, get ${iq.display} USDC.e} + transfer → ${iq.payTo} — ANY solver can countersign my diff and take the wNEAR, or nothing settles`);
   } else {
     agentSays(`signing: transfer ${iq.amount} base of ${iq.tokenId} → ${iq.payTo}, verified by ${iq.verifier}`);
   }
@@ -576,10 +577,17 @@ if (IS_INTENTS) {
     payee: iq.payTo, amountBase: iq.amount, who: "the merchant", swap,
   });
   if (!pay.ok) { say(`merchant intent failed: ${pay.failure}`); process.exit(1); }
-  chain(`merchant ${iq.payTo} executed the intent${useSwap ? " — and its own signature funded the USDC.e leg from my wNEAR, atomically" : ` — ${iq.display} ${iq.symbol} settled atomically on the verifier`}`);
+  const solverWon = pay.executor && pay.executor !== iq.payTo;
+  if (solverWon) {
+    chain(`${pay.executor} won the solver race — it counter-signed my diff, executed the bundle, and fronted ${iq.display} ${iq.symbol} to ${iq.payTo} with its own liquidity, atomically`);
+    agentSays(`a solver I never hired settled my order — solver ≠ payee, and the payee still got paid because my signed intent says so`);
+  } else {
+    chain(`${pay.executor ?? iq.payTo} executed the intent${useSwap ? " — its signature funded the USDC.e leg from my wNEAR, atomically" : ` — ${iq.display} ${iq.symbol} settled atomically on the verifier`}`);
+  }
   chain(txLink(pay.txHash));
   order = pay.result?.body ?? null;
   orderStatus = pay.result?.status ?? 0;
+  xchainResult = pay.result?.xchain ?? null;
 } else {
   const t = q.near?.token;
   if (!t) { say("near token rail not advertised — is NEAR_TOKEN_* configured on the API?"); process.exit(1); }
@@ -605,9 +613,9 @@ agentSays(`HTTP ${orderStatus} — order ${order.order.id.slice(0, 8)} confirmed
 say(`${C.y}   payment ›${C.x} ${order.order.payment.paymentMethod} · ${order.order.payment.explorerUrl ?? "off-chain"}`);
 say(`${C.y}   payout  ›${C.x} ${order.order.payout.status} → ${order.order.payout.to ?? "platform"} ${order.order.payout.amountTokenDisplay ?? order.order.payout.amountNear ?? ""} ${order.order.payout.asset ?? ""}`);
 say(`${C.y}   receipt ›${C.x} ${order.order.receiptUrl}`);
-if (pay.result?.xchain) {
+if (xchainResult) {
   agentSays(`and the settlement hopped chains — the payee's earnings land on Sepolia at an address derived from its NEAR account via MPC. No Ethereum key exists anywhere.`);
-  say(`${C.g}   xchain ›${C.x} ${pay.result.xchain.explorer}`);
+  say(`${C.g}   xchain ›${C.x} ${xchainResult.explorer}`);
 }
 if (order.order.referralCode) {
   agentSays(`and the stylist who got me here earns too — ${order.order.referralCode} pays them 2.5% on the sale they drove (referral ledger — off-chain, unlike the on-chain settle).`);

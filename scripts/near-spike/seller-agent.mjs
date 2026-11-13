@@ -18,6 +18,11 @@
  *   API_URL=… SELLER=store.onpoint.testnet node seller-agent.mjs   # one
  *   SELLER=you.testnet SELLER_KEY=ed25519:… node seller-agent.mjs  # YOUR account —
  *                                                                   no demo creds needed
+ *   SOLVER=me.testnet [SOLVER_KEY=ed25519:…]                        # solver job —
+ *     polls the OPEN solver queue (?solver=1): swap-funded intents broadcast
+ *     to ANY solver, whoever the payee is. I counter-sign the mirror diff,
+ *     execute the bundle, take the give asset — solver ≠ payee on the
+ *     receipt is the point. Can name an account already in SELLER creds.
  *
  * Keys: reads ONLY creds.accounts.store / .curator from
  * near-credentials.testnet.json (optional), or SELLER_KEY directly —
@@ -60,14 +65,32 @@ for (const [name, rec] of Object.entries(creds.accounts || {})) {
 if (process.env.SELLER && process.env.SELLER_KEY) {
   sellers.set(process.env.SELLER, intents.accountOf(process.env.SELLER, process.env.SELLER_KEY));
 }
-if (sellers.size === 0) {
-  console.error(`no seller keys — SELLER=${process.env.SELLER || "(any)"} not found in creds.accounts.{store,curator} and no SELLER_KEY given`);
+// Open solver queue: SOLVER= gives this process a second job — race other
+// solvers for swap-funded intents addressed to ANY payee. The solver's
+// counter-diff signature must verify on-chain, so its key needs the same
+// verifier registration a payee's does.
+const solverIds = process.env.SOLVER ? process.env.SOLVER.split(",").map((s) => s.trim()) : [];
+const solvers = new Map(); // solverId → Account
+for (const id of solverIds) {
+  if (sellers.has(id)) solvers.set(id, sellers.get(id));
+}
+if (process.env.SOLVER && process.env.SOLVER_KEY) {
+  for (const id of solverIds) solvers.set(id, intents.accountOf(id, process.env.SOLVER_KEY));
+}
+if (process.env.SOLVER && solvers.size === 0) {
+  console.error(`SOLVER=${process.env.SOLVER} resolves to no key — add it to creds, SELLER= it too, or pass SOLVER_KEY`);
   process.exit(1);
 }
+if (sellers.size === 0 && solvers.size === 0) {
+  console.error(`no keys — SELLER=${process.env.SELLER || "(any)"} not found in creds and neither SELLER_KEY nor SOLVER_KEY given`);
+  process.exit(1);
+}
+
 // The verifier keeps its own pubkey registry — a payee's key must be
 // registered before its signatures (ft_withdraw intents included) verify.
 // Idempotent view+payable call; a fresh merchant does this once at boot.
-for (const [payee, seller] of sellers) {
+const registrationAccounts = new Map([...sellers, ...solvers]);
+for (const [payee, seller] of registrationAccounts) {
   await intents.ensureVerifierKey(seller).catch((e) =>
     say(`   ${C.y}⚠${C.x} verifier key registration for ${payee}: ${String(e).slice(0, 120)}`),
   );
@@ -155,7 +178,7 @@ function acceptanceCheck(p, myAccountId) {
 // the payee's MPC-derived address — no EVM private key exists on either
 // side; v1.signer-prod.testnet (public MPC) signs, not me.
 async function settleXchain(seller, payee, amountBase) {
-  const pol = POLICY[seller.accountId] ?? POLICY.default ?? {};
+  const pol = policyCfg[seller.accountId] ?? policyCfg.default ?? {};
   if (!pol.xchainPayoutWei) return null;
   try {
     const cs = await import("./chain-sig.mjs");
@@ -173,15 +196,41 @@ async function settleXchain(seller, payee, amountBase) {
   }
 }
 
-async function collect(seller, amountBase) {
+// A solver's own acceptance check — mirror of the payee's, minus "pays
+// me". Trust nothing the mailbox says: the buyer's transfer must pay the
+// stated payee (I earn the swap's give asset instead), and a swap must
+// exist for me to counter-sign at all.
+function solverCheck(p, solverId) {
+  if (!p.swap?.signed) return { ok: false, why: "no swap leg to solve" };
+  if (p.payee === solverId) return { ok: false, why: "addressed to me — my payee queue owns it" };
+  if (Date.parse(p.expiresAt) <= Date.now()) return { ok: false, why: "deadline passed" };
+  let msg;
+  try { msg = JSON.parse(p.signed.payload.message); } catch { return { ok: false, why: "message unparseable" }; }
+  const transfer = (msg.intents ?? []).find((i) => i?.intent === "transfer" && i?.receiver_id === p.payee);
+  if (!transfer) return { ok: false, why: "no transfer to the stated payee" };
+  return { ok: true, amountBase: transfer.tokens?.[intents.TOKEN_ID] ?? "0" };
+}
+
+// Collect: pull what the settle just earned off the verifier's internal
+// ledger into my own wallet — earn → custody, signed by my key, executed
+// by me. Earnings stay on-ledger if this fails; the redeem already landed.
+// A solver earns the swap's give asset, not the settlement token.
+async function collect(seller, amountBase, tokenId = intents.TOKEN_ID) {
+  const isUsd = tokenId === intents.TOKEN_ID;
+  const fmt = (v) => (isUsd ? (Number(v) / 1e6).toFixed(2) : (Number(v) / 1e24).toFixed(4));
+  // Solver earnings land in the give token — its FT contract needs storage
+  // too, not just the settlement token's. Idempotent registration first.
+  if (!isUsd) {
+    const contract = tokenId.replace(/^nep141:/, "");
+    await intents.ensureFtStorage(seller, contract).catch(() => {});
+  }
   const withdraw = await intents
-    .signWithdrawIntent({ owner: seller, amountBase })
+    .signWithdrawIntent({ owner: seller, amountBase, tokenId })
     .then((signed) => intents.executeIntents(seller, signed))
     .catch((e) => ({ ok: false, failure: String(e) }));
   if (withdraw.ok) {
-    const display = (Number(amountBase) / 1e6).toFixed(2);
-    const ledger = await intents.internalBalance(seller.accountId).catch(() => null);
-    say(`   ${C.g}✓${C.x} collected ${display} USDC.e → my wallet (ledger → ${ledger === null ? "?" : (Number(ledger) / 1e6).toFixed(2)})`);
+    const ledger = await intents.internalBalance(seller.accountId, tokenId).catch(() => null);
+    say(`   ${C.g}✓${C.x} collected ${fmt(amountBase)} ${isUsd ? "USDC.e" : tokenId.replace("nep141:", "")} → my wallet (ledger → ${ledger === null ? "?" : fmt(ledger)})`);
     say(`   ${C.dim}${txLink(withdraw.txHash)}${C.x}`);
   } else {
     say(`   ${C.y}⚠${C.x} withdraw intent failed (earnings stay on the ledger): ${JSON.stringify(withdraw.failure ?? {}).slice(0, 140)}`);
@@ -194,7 +243,7 @@ async function collect(seller, amountBase) {
 // supply the settlement-token liquidity and take the other asset. The
 // rate is MY decision — below my policy's minimum I refuse to sign, and
 // the whole bundle cannot execute.
-function solveSwap(p, payee, transferAmountBase) {
+function solveSwap(p, deciderId, transferAmountBase) {
   const swap = p.swap;
   if (!swap?.diff || !swap?.signed) return { ok: false, why: "malformed swap record" };
   let giveAmt, getAmt;
@@ -205,21 +254,23 @@ function solveSwap(p, payee, transferAmountBase) {
   if (getAmt < BigInt(transferAmountBase)) {
     return { ok: false, why: `diff gets ${getAmt} < the ${transferAmountBase} it must fund` };
   }
-  const minRate = policyFor(policyCfg, payee).minUsdcPerWnear ?? 0;
+  const minRate = policyFor(policyCfg, deciderId).minUsdcPerWnear ?? 0;
   if (swap.giveTokenId === "nep141:wrap.testnet" && minRate > 0) {
     const impliedUsdcPerWnear = (Number(getAmt) / 1e6) / (Number(giveAmt) / 1e24);
     if (impliedUsdcPerWnear < minRate) {
       return { ok: false, why: `rate ${impliedUsdcPerWnear.toFixed(3)} USDC/wNEAR < my minimum ${minRate}` };
     }
-    say(`   ${C.c}solver policy${C.x} (${payee}): ${impliedUsdcPerWnear.toFixed(3)} USDC/wNEAR ≥ my ${minRate} — I'll take the wNEAR`);
+    say(`   ${C.c}solver policy${C.x} (${deciderId}): ${impliedUsdcPerWnear.toFixed(3)} USDC/wNEAR ≥ my ${minRate} — I'll take the wNEAR`);
   }
   return { ok: true };
 }
 
-async function fulfill(p, seller, amountBase) {
+async function fulfill(p, seller, amountBase, { solver = false } = {}) {
   let exec;
   try {
     if (p.swap) {
+      // Who decides the rate is my account's own policy — payee or solver,
+      // it is MY liquidity that counter-signs the mirror.
       const decision = solveSwap(p, seller.accountId, amountBase);
       if (!decision.ok) {
         say(`   ${C.y}✗${C.x} refused to solve the swap: ${decision.why} — bundle cannot settle without my counter-diff`);
@@ -248,7 +299,7 @@ async function fulfill(p, seller, amountBase) {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ status: "failed", result: { failure: exec.failure }, executor: seller.accountId }),
     }).catch(() => {});
-    return;
+    return false;
   }
   say(`   ${C.g}✓${C.x} executed — ${txLink(exec.txHash)}`);
 
@@ -272,20 +323,27 @@ async function fulfill(p, seller, amountBase) {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ txHash: exec.txHash, status: res.ok ? "settled" : "failed", result, executor: seller.accountId }),
     }).catch(() => {});
-    if (res.ok) await collect(seller, amountBase);
-    return;
+    // The payee collects the transfer it earned; a solver collects the
+    // swap's give asset — solver ≠ payee on the receipt, and in the wallet.
+    if (res.ok) await collect(seller, solver ? p.swap.giveAmount : amountBase, solver ? p.swap.giveTokenId : undefined);
+    return res.ok;
   }
   await fetch(`${API}/api/pending-intents/${p.pendingId}/complete`, {
     method: "POST", headers: { "content-type": "application/json" },
     body: JSON.stringify({ txHash: exec.txHash, status: "settled", executor: seller.accountId }),
   }).catch(() => {});
+  return true;
 }
 
-say(`${C.b}seller agent${C.x}  ·  api: ${API}  ·  payees: ${[...sellers.keys()].join(", ")}`);
+say(`${C.b}seller agent${C.x}  ·  api: ${API}  ·  payees: ${[...sellers.keys()].join(", ") || "(none — solver only)"}`);
+if (solvers.size) say(`${C.c}solver job${C.x}  ·  ${[...solvers.keys()].join(", ")} — racing the open queue for swap intents`);
 say(`${C.dim}watching pending-intents + pending-negotiations — I only hold my own key${C.x}`);
 say(`${C.dim}heartbeating every ${HEARTBEAT_MS / 1000}s — while I live, offers come to ME (sovereign)${C.x}`);
 
+const attempted = new Map(); // solverId:pendingId → last failed attempt ms (60s cooldown)
+
 for (;;) {
+  const seen = new Set(); // dedupe per account+item — different solvers MUST each get their attempt (that's the race)
   for (const [payee, seller] of sellers) {
     await heartbeat(payee).catch(() => {});
     let list;
@@ -293,6 +351,8 @@ for (;;) {
       list = await (await fetch(`${API}/api/pending-intents?payee=${payee}`)).json();
     } catch { continue; }
     for (const p of list.pending ?? []) {
+      if (seen.has(`${payee}:${p.pendingId}`)) continue;
+      seen.add(`${payee}:${p.pendingId}`);
       const check = acceptanceCheck(p, payee);
       if (!check.ok) {
         say(`${C.dim}   skip ${p.pendingId}: ${check.why}${C.x}`);
@@ -307,6 +367,33 @@ for (;;) {
     } catch { continue; }
     for (const n of negList.pending ?? []) {
       await answerNegotiation(n, payee).catch((e) => say(`   ${C.y}✗ negotiate ${n.pendingId}: ${e.message}${C.x}`));
+    }
+  }
+  // Open solver queue: swap items broadcast to ANY solver — I race for
+  // them regardless of payee. Losers burn a failed execute_intents; the
+  // mailbox's first-wins complete() keeps the receipt honest. A failed
+  // attempt cools down — spamming execute on an unwinnable item just
+  // burns gas.
+  for (const [solverId, solver] of solvers) {
+    let list;
+    try {
+      list = await (await fetch(`${API}/api/pending-intents?solver=1`)).json();
+    } catch { continue; }
+    for (const p of list.pending ?? []) {
+      const key = `${solverId}:${p.pendingId}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const lastTry = attempted.get(key) ?? 0;
+      if (Date.now() - lastTry < 60_000) continue;
+      const check = solverCheck(p, solverId);
+      if (!check.ok) {
+        say(`${C.dim}   solver skip ${p.pendingId}: ${check.why}${C.x}`);
+        continue;
+      }
+      const give = p.swap?.giveAmount ? `${(Number(p.swap.giveAmount) / 1e24).toFixed(4)} ${(p.swap.giveTokenId ?? "?").replace("nep141:", "")}` : "?";
+      say(`\n${C.m}━━${C.x} solver ${solverId}: swap ${p.pendingId} — funds ${(Number(check.amountBase) / 1e6).toFixed(2)} USDC.e → ${C.b}${p.payee}${C.x}, I take ${give}`);
+      const ok = await fulfill(p, solver, check.amountBase, { solver: true });
+      if (ok === false) attempted.set(key, Date.now());
     }
   }
   await new Promise((r) => setTimeout(r, POLL_MS));

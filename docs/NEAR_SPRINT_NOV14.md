@@ -465,10 +465,18 @@ solver "because we pre-funded it." Split the roles.
 
 ### Acceptance
 
-- [ ] Order settles with solver ≠ payee: transfer → store, diff legs ⇄
-      meridian, all in one `execute_intents`.
-- [ ] Second solver offline → the other still solves (queue degrades to 1).
-- [ ] Mailbox record shows `solver:` distinct from `payee:`.
+- [x] Order settles with solver ≠ payee: transfer → store, diff legs ⇄
+      meridian, all in one `execute_intents` — tx `4m1UerABGauxT55cP7PeJz5xoger188rGkHPuYMhGhQA`,
+      order `74ac786c` (local API + live testnet). Ledger: meridian −16.79
+      USDC.e / +2.7983 wNEAR, store +16.79, buyer −2.7983 wNEAR.
+- [x] Second solver offline → the other still solves — stronger variant
+      proven: a BROKE solver (curator, 0.26 USDC.e) raced, failed 10×
+      (`insufficient balance`, recorded as non-terminal `attempts`), the
+      funded solver won; item stayed fillable throughout.
+- [x] Mailbox record shows `executor:` distinct from `payee:` —
+      `executor: meridian-goods.testnet` vs `payee: store.onpoint.testnet`;
+      `verifyIntentsSettlement` reports `executorKind:"solver"`,
+      `solverExecuted:true` on the receipt.
 
 ## L — Self-serve merchant onboarding + runbook (dev 3)
 
