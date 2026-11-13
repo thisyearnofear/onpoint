@@ -27,13 +27,24 @@ OnPoint already turns live fashion inventory into **fit-aware, machine-readable,
 
 The NEAR story is direct: **an AI agent pays for a service (try-on/checkout) and value moves across chains to the curator.**
 
-## 3. NEAR tools we will use (name these in README)
-- **NEAR Intents** — let the agent pay in one asset and settle the curator in another.
-- **1-Click Swap SDK** — convert buyer/agent funds to the curator’s preferred asset.
-- **Chain Signatures** — allow the agent to authorize/control value across chains without holding a root key.
-- **Sub-accounts + function-call keys** — scoped agent identity and spend permissions (“agent never holds the key”).
-- **NEAR AI Cloud** — optional: fit/try-on inference or agent decisioning.
-- **Named accounts** — human-readable agent/curator identities.
+## 3. NEAR tools in the build
+
+**Built and verifiable in the repo:**
+
+- **Named accounts + sub-account tree** — `onpoint.testnet` → `agent.onpoint.testnet` (scoped agent wallet, limited funds), `store.onpoint.testnet` (curator payout). Human-readable identities a judge can inspect on nearblocks.
+- **Direct-to-curator settlement** — the agent's payment tx *is* the payout tx: the transfer lands on the curator's account in the same transaction the API verifies. No platform custody step.
+- **Trustless on-chain verification** — the server never trusts the client-supplied hash: `apps/api/lib/near-payments.js` re-reads the transaction via raw JSON-RPC (`EXPERIMENTAL_tx_status`) and checks signer, receiver, amount, and finality before fulfilling.
+- **Programmable spend scoping** — the agent pays from `agent.onpoint.testnet`, a sub-account holding only a demo balance: the blast radius of a leaked agent key is the wallet, not the platform.
+- **Multi-rail 402 quoting** — the same offer advertises `celo_cusd`, `near`, and `paypal`; the agent chooses, and NEAR is the rail it can complete with zero human in the loop.
+
+**Documented next steps (not in the build — listed so judges can find the seam):**
+
+- **Function-call access keys + stablecoin settlement** — scope the agent's key to `ft_transfer` on a token contract so it provably cannot move NEAR or call anything else, and settle the curator in a dollar-denominated FT instead of env-priced NEAR. `usdc.fakes.testnet` verified as the testnet path.
+- **NEAR Intents / 1-Click Swap** — the USD→asset conversion seam (`NEAR_USD_PRICE` / token pricing in `near-payments.js` is the placeholder). An intent would let the agent pay in any asset and settle the curator in their preferred one.
+- **Chain Signatures** — for the agent to authorize value on other chains without holding root keys.
+- **NEAR AI Cloud** — optional fit/try-on inference or agent decisioning.
+- **Meta-transactions** — a relayer could cover the agent's gas so it holds only spend authority.
+
 
 ## 4. Minimum viable win (2 weeks)
 Scope to **one curator, one item, one agent flow**.
