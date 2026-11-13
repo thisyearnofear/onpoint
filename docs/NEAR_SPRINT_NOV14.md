@@ -47,12 +47,18 @@ Reuse the same endpoint for the try-on service: buyer negotiates the stylist
 fee (mo can refuse if below its render cost), then the existing try-on payment
 settles it. `commerce.nearAccountId` already routes the payout.
 
-### Acceptance
+### Acceptance — VERIFIED (Nov 14 demo run)
 
-- [ ] Multi-round bargain converges; refusal reachable; quoteToken verifies;
-      tampered token → 401/409.
-- [ ] No-offer order flow byte-identical to today.
-- [ ] Tests: convergence, refusal, token forgery, expiry, back-compat.
+- [x] Multi-round bargain converges; refusal reachable; quoteToken verifies;
+      tampered token → 401/409. Demo: $8 offer → `rejected` ("below my
+      cost"), reopened at $14 → countered $16.79 → accepted in 3 rounds
+      (bundle-discounted floor — buyer had just paid the stylist).
+- [x] No-offer order flow byte-identical to today.
+- [x] Tests: convergence, refusal, token forgery, expiry, back-compat
+      (508 green in `apps/api`).
+- Fix discovered during the demo: `redeemedAt` was set at token
+      *verification*, burning the token on the quote-issuing POST. Now only
+      consumed when a payment proof accompanies the token.
 
 ## B — Intents on our own testnet verifier (dev 2)
 
@@ -84,14 +90,34 @@ code. Deploy the real contract ourselves.
    — shows the full loop; skip if time is short, ledger balance is already
    provable.
 
-### Acceptance
+### Acceptance — VERIFIED on testnet (Nov 14)
 
-- [ ] Real `execute_intents` tx on testnet moves USDC.e ledger balance
-      agent→store; nearblocks link in the demo + receipt.
-- [ ] `agent-demo.mjs` gains `RAIL=intents` (or makes intents the NEAR
-      settlement leg inside the narrated run — pick one, wire cleanly).
-- [ ] Docs updated: "deployed the canonical verifier to testnet because the
-      upstream deployment is mainnet-only" — honest, not overclaimed.
+- [x] Real `execute_intents` tx moves USDC.e agent→seller on the verifier
+      ledger. Deploy `EofkVESL8mmi8yGPVkBPYTh1EFsm6fgb2E31qeWC2XPx`, init
+      `kH7mBcqi7mjcJrYSfSt8n6J2Teea9SL4SLZCKmdSxpu`. Demo settlements:
+      stylist fee `DUHjbJgT7i4uW9c6yTifUdfkDPDWnQqX6htF9XGz1kLF` (0.03 →
+      curator), order `Jz5pqd1P6tvFwG87QP7MwMZcAPPWZFNbhsEc45AxP8m`
+      (16.79 → store), deposit `3NEZ2mLqRJZVpgKx8Q5Ckt1N25XS8q6254A1H9gG2Abr`,
+      store `ft_withdraw` `5HBXNGmVSQFxnvxEMit4gnNvuTVApiJRVrwxVqiuMXkU`
+      (the "collect your earnings" leg — optional closer, done).
+- [x] `agent-demo.mjs` defaults to `RAIL=intents`: refusal → multi-round
+      bargaining → signed quote tokens → both payees execute the buyer's
+      signed intents → ledger deltas read back from RPC.
+- [x] API rail `near_intents` live in the 402 quote (`quote.intents`) +
+      `intentsTxHash` verification in `lib/near-intents.js` (9 unit tests).
+- [x] Docs updated — honest testnet framing everywhere.
+
+Discovered constraints worth keeping in docs:
+
+- The verifier keeps its **own** pubkey registry — NEAR access keys are NOT
+  visible to it. Each intent signer must `add_public_key` (1 yocto) once;
+  the demo's `ensureVerifierKey` handles it.
+- `intents.onpoint.testnet`'s creation key was lost during the first deploy
+  (account created, script crashed before persisting it). Root called `new`
+  to init (super_admin) — the contract works fine, but the account can never
+  sign txs/upgrade the wasm. Acceptable for the demo; on mainnet the deploy
+  script must persist the key first.
+- `ft_withdraw.token` takes the FT contract id, not the `nep141:` ledger id.
 
 ## C — Contract v2: managed policy (DONE, verified on-chain)
 

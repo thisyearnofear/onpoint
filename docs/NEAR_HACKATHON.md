@@ -35,17 +35,62 @@ Show an AI agent paying for a fashion service (try-on/checkout) with value movin
 6. Curator payout is settled in the same transaction (native NEAR or the FT), or recorded `pending_reconciliation` on the platform fallback account.
 
 ### Agent price negotiation
-- `POST /api/curator/{slug}/order` accepts an optional `offerUsd` — the total USD the agent offers for the order.
-- The curator's floor is `commerce.priceFloorPct` of the listed total (e.g. `0.9`); absent or out-of-range → floor = posted price (no discounting, posted price only).
-- Below floor → **HTTP 409** `{ code: "OFFER_BELOW_FLOOR", counterOffer: { offerUsd: <floor>, currency, listCusd, listingId, size, quantity } }` — a machine-readable counter-offer, not an error string.
-- At/above floor → **HTTP 402** quote at `min(offer, list)` — a negotiated quote never exceeds the posted price. The agreed price is bound into `quoteId` (a `-o<cents>` segment), so the proof re-POST cannot be repriced and needn't repeat `offerUsd`.
-- Omit `offerUsd` and the flow is byte-identical to before.
-- Implemented in `apps/api/lib/agent-commerce.js` (`resolveOrderOffer`); tests in `lib/agent-commerce.test.js` + `routes/curator-storefront.negotiate.test.js`.
 
-### Cross-chain value movement
-- Use **NEAR Intents** to let an agent pay in a non-NEAR asset and settle the curator in NEAR/stablecoin.
-- Use **1-Click Swap SDK** for conversion.
-- Use **Chain Signatures** if the agent must authorize value on another chain.
+**Session protocol (current):** `POST /api/curator/{slug}/negotiate` opens a
+haggling session `{scope:"order"|"tryon", listingId, size, quantity, offerUsd}`;
+`POST .../negotiate/{sessionId}` continues rounds with `{offerUsd}` or
+`{action:"accept"|"walk"}` until `accepted | rejected | expired`. The seller is
+a policy function with memory — cost floor, margin target, round fatigue
+(stagnant offers → walk-away), max rounds, stock, and **bundle context** (a
+buyer who just paid the stylist gets a deeper floor). Refusals are reachable
+and happen in the demo ($8 on a $19.23 kit → `rejected`). On `accepted`, the
+seller mints a **signed quote token** — an ed25519 signature over
+`{scope, listing, size, qty, agreedCusd, sessionId, expiry}` keyed to the
+payee's signing key (`NEAR_QUOTE_SIGNING_KEYS`, per-payee) — redeemable once on
+`/order` or `/agent/try-on` as `quoteToken`. Seller `reasoning` is optionally
+voiced by Venice; the decision is always the deterministic policy.
+
+**One-shot (back-compat):** `POST /order` still accepts `offerUsd` — below
+floor → 409 `OFFER_BELOW_FLOOR` counter; at/above → 402 at `min(offer, list)`
+with the price bound in `quoteId` (`-o<cents>`). Omit `offerUsd` and the flow
+is byte-identical to before.
+
+Implemented in `apps/api/lib/agent-negotiation.js` + `routes/agent-negotiate.js`
+(sessions/policy/tokens) and `lib/agent-commerce.js` (`resolveOrderOffer`).
+
+### Intents settlement rail
+
+`NEAR_INTENTS_VERIFIER=intents.onpoint.testnet` adds `"near_intents"` to every
+402's `paymentRails` with a `quote.intents` block. We run the **canonical
+unmodified defuse verifier** (release `defuse/v0.4.2`, sha256-verified at
+download) on our own account — the upstream `intents.near` is mainnet-only and
+there is no official testnet deploy. Flow:
+
+1. Buyer deposits `usdc.fakes.testnet` to the verifier's NEP-245 ledger
+   (`ft_transfer_call`, token id `nep141:usdc.fakes.testnet`) and registers its
+   FAK once via `add_public_key` — the verifier keeps its own key registry.
+2. Buyer signs a **NEP-413** transfer intent (`near-api-js/nep413`,
+   `signMessage`) — needs a full-access key; FCAKs can't sign off-chain
+   messages. That layering is a feature: FAK = agent identity/commitments,
+   FCAK+escrow = bounded on-chain budget on the other rail.
+3. **The payee executes** — seller/stylist calls `execute_intents({signed:…})`
+   on the verifier; the ledger moves atomically. Buyer publishes a signed
+   commitment, the seller fulfills it — agent-to-agent, no solver.
+4. Re-POST with `{intentsTxHash}` → `lib/near-intents.js`
+   `verifyIntentsSettlement` checks trustlessly: tx final + all receipts ok,
+   receiver = verifier, **tx signer = payee** (the seller executed), and the
+   NEP-413 inner message carries a transfer intent from the claimed buyer to
+   the payee for ≥ the quoted amount of `tokenId`.
+
+The verifier WASM is sha256 `f67f9559…1fb20e5`, verified at download
+(`deploy-intents-verifier.mjs` + `intents-verifier/`). Sellers "collect" via a
+signed `ft_withdraw` intent back to their wallet (`signWithdrawIntent` in
+`intents-lib.mjs`); `intents-settle.mjs` is the standalone spike for the whole
+deposit → sign → execute → verify cycle.
+
+### Cross-chain value movement (future)
+- **1-Click Swap SDK** for pay-in-any-asset conversion on top of the intents rail.
+- **Chain Signatures** if the agent must authorize value on another chain.
 
 ### AI layer
 - Keep existing try-on provider.
@@ -86,6 +131,11 @@ Full agent flow proven against the real API on an isolated Neon demo DB:
 - Env added to `/opt/onpoint/shared/api/.env`: `NEAR_TOKEN_CONTRACT=usdc.fakes.testnet`, `NEAR_TOKEN_FORWARDER=escrow.onpoint.testnet`, `NEAR_TOKEN_DECIMALS=6`, `NEAR_TOKEN_SYMBOL=USDC.e`. Unsetting `NEAR_TOKEN_FORWARDER` flips the quote to direct `ft_transfer` on the FT (1 yocto attach, full-access key); unsetting `NEAR_TOKEN_CONTRACT` returns the rail to native-NEAR-only.
 - **Negotiate → hire → settle, two payees (local API on unreleased code + prod DB + testnet, 2026-11-14):** full `agent-demo.mjs` run — hired the `mo` stylist (try-on fee 0.05 USDC.e → `curator.onpoint.testnet`, [tx `29cHWHJmjQbR3MB9Y7KRzPP4SGyhgq49Yz6ydmur1EJK`](https://testnet.nearblocks.io/txns/29cHWHJmjQbR3MB9Y7KRzPP4SGyhgq49Yz6ydmur1EJK), render `youcam-cloth-v4`); offered `offerUsd: 17` on the kit → **409** `OFFER_BELOW_FLOOR` counter at **17.31** (`priceFloorPct 0.9` × 19.23); accepted → 402 at the agreed price (quoteId `0cc69356-M-1-o1731-…`); a 30 USDC.e `pay` call rejected on-chain (tx `B4cSCivzp2kawLB35LgDJJdXmCGky8zaiacjnusZAWMP`); order `bd78f04e` settled 17.31 USDC.e → `store.onpoint.testnet` ([tx `G1HKEc1Fe5dwQWLBTB3AfQqZi4WwrBtkmHMaN7HQBCfr`](https://testnet.nearblocks.io/txns/G1HKEc1Fe5dwQWLBTB3AfQqZi4WwrBtkmHMaN7HQBCfr)), receipt `receipt_mwepvlrq_72e7a630`. On-chain deltas: escrow 18.99→1.63, stylist 0.01→0.06 (**+0.05 earned**), merchant 20.73→38.04 (**+17.31 earned**). Two roles (service provider + merchant), two payees, one scoped key. Negotiation deployed in release `20261113-125059` — prod verified: `offerUsd: 17` → 409 counter at 17.31, accepted → 402 (`quoteId …-o1731-…`, `quote.near` → `store.onpoint.testnet`), `mo` try-on 402 → `curator.onpoint.testnet`.
 - **Full narrated run on prod (2026-11-14):** `API_URL=https://api.onpoint.famile.xyz node agent-demo.mjs` — hire fee 0.03 USDC.e → `curator.onpoint.testnet` (tx `7GuhLReBvsHzU19ix35QjWMSrRQn4z31ADR7x4JoZQaH`); 30 USDC.e cap rejection (tx `9u7Txj4C6YYftGwHmHkBHxXSp9x74YCR4cmwb5wrRymi`); order `b5199664` settled 17.31 USDC.e → `store.onpoint.testnet` (tx `7vK5KoFhfkrgE1hVjdqrp2SsvqFxs6EAR5qYNGHaHR13`), receipt `receipt_mwezcf8s_31852f5f`. Deltas: escrow 20→2.66, stylist +0.03, merchant +17.31. Forwarder redeployed to match current source (tx `7Xj5Ud3wP23BryydDLVPia94nGukYizw2wf2cRPrCswt`). `RAIL=paypal` mode retained for the PayPal-hackathon demo (README documents both).
+- **Signed-intent settlement verified (2026-11-14, local API + own testnet verifier):** multi-round negotiation → signed `quoteToken` → NEP-413 intents settle → API redemption, per leg:
+  - *Stylist leg:* `mo` tryon-scope session refused $0.01, countered $0.03, token signed by `curator.onpoint.testnet`; buyer-signed transfer intent executed by the stylist via `execute_intents` — [tx `3hq38PKCG3yDMBreSg87pYXqjNd4YZGV4mwfbRxPBsqV`](https://testnet.nearblocks.io/txns/3hq38PKCG3yDMBreSg87pYXqjNd4YZGV4mwfbRxPBsqV) (0.03 USDC.e → curator ledger).
+  - *Merchant leg:* `onpoint-store` order session refused $8, converged to **16.79** (bundle-discounted below the 17.31 flat floor — only the signed token authorizes that price), token signed by `store.onpoint.testnet`; seller executed the intent — [tx `5RZyK2by5b3ssPkNW1pPgDUgrmF4gPiQGKvtqX2TAFyq`](https://testnet.nearblocks.io/txns/5RZyK2by5b3ssPkNW1pPgDUgrmF4gPiQGKvtqX2TAFyq) (16.79 USDC.e → store ledger). Proof POST `{quoteToken, intentsTxHash}` → order `bf392428` **201**, `paymentMethod: "near_intents"`, `payout.status: "settled"`.
+  - Ledger truth (`mt_balance_of` on `intents.onpoint.testnet`): agent −16.79, store +16.79, curator retains +0.03 fee. Over-cap scoped-key rejection still demonstrated on the direct rail (30 USDC.e vs 25 cap).
+- **Bargain + Intents run (local API + testnet, 2026-11-14):** `RAIL=intents node agent-demo.mjs` — the full new story on our own canonical verifier `intents.onpoint.testnet` (deploy `EofkVESL8mmi8yGPVkBPYTh1EFsm6fgb2E31qeWC2XPx`, init `kH7mBcqi7mjcJrYSfSt8n6J2Teea9SL4SLZCKmdSxpu`). Stylist session: $0.01 offer **refused** → $0.02 → countered $0.03 → accepted, signed token from `curator.onpoint.testnet`; stylist executed the buyer's NEP-413 intent (0.03 USDC.e, tx `DUHjbJgT7i4uW9c6yTifUdfkDPDWnQqX6htF9XGz1kLF`) and delivered `youcam-cloth-v4`. Kit session: $8 **refused** ("below my cost"), reopened $14 → countered $16.79 (bundle-discounted floor — the store saw the stylist payment) → accept; signed token from `store.onpoint.testnet`. Merchant executed the 16.79 intent (tx `Jz5pqd1P6tvFwG87QP7MwMZcAPPWZFNbhsEc45AxP8m`) → order `d3866a4b` 201, `paymentMethod: near_intents`, payout `settled → store.onpoint.testnet`, receipt `receipt_mwf0zceb_bf875706`. Ledger deltas read back from RPC: agent 17.5 → 0.68, stylist +0.03, merchant +16.79 — plus a `ft_withdraw` closer (store pulled 25 USDC.e off-ledger, tx `5HBXNGmVSQFxnvxEMit4gnNvuTVApiJRVrwxVqiuMXkU`). Caveats, unchanged: `usdc.fakes.testnet` is a testnet mock; the verifier is our deployment of the canonical wasm, not upstream `intents.near`.
 
 ## Week 2 plan (demo + submission)
 - [x] Polish one end-to-end agent purchase — `agent-demo.mjs` is the canonical run.
@@ -95,19 +145,21 @@ Full agent flow proven against the real API on an isolated Neon demo DB:
 - [ ] Submit form.
 - [x] Swap picsum placeholder image for a real product photo before sharing the storefront — Venice-generated NEAR FC kit (mint/black, NEAR wordmark) now serves at `api.onpoint.famile.xyz/digital-garments/near-fc-home-kit-2627.webp` (done 2026-11-12).
 
-## Demo script
+## Demo script (RAIL=intents, current)
 1. `GET /api/curator/{onpoint-store,mo}/storefront` → agent finds the kit (merchant) and a try-on service (stylist).
-2. `POST /api/agent/try-on` on a `mo` listing → 402 → pay the fee → `curator.onpoint.testnet` — **hire**: agent hires agent; the stylist's balance grows on-chain.
-3. `POST /api/curator/onpoint-store/order` + `offerUsd` below floor → **409** machine-readable counter-offer → re-POST with the counter → **402** at the agreed price — **negotiate**.
-4. Optional beat: an over-cap `pay` call is rejected on-chain — spend authority is consensus-enforced, not just policy.
-5. Agent pays the agreed amount via the scoped key → re-POST `{quoteId, nearAccountId, nearTxHash}` → **201**, settled → `store.onpoint.testnet` — **settle programmatically**.
-6. Before/after `ft_balance_of` on testnet: escrow down, stylist +fee, merchant +order — the provider visibly earns.
+2. `POST /api/curator/mo/negotiate` `{scope:"tryon", offerUsd:0.01}` → **refused** → counter-rounds → `accepted` with a signed quote token — **hire**: the stylist prices its service with memory, not a fixed fee.
+3. Buyer signs a NEP-413 transfer intent for the fee; the **stylist** executes it via `execute_intents` → re-POST `{quoteToken, intentsTxHash}` → render delivered.
+4. `POST /api/curator/onpoint-store/negotiate` `{offerUsd:8}` → **refused** ("below my cost"); reopen $14 → countered $16.79 (bundle context: the stylist payment is visible) → accept → signed quote token — **negotiate**, quote/accept/refuse all on screen.
+5. Optional beat: an over-cap `pay` call is rejected on-chain — the scoped key can only spend what's escrowed.
+6. Buyer signs the order intent; the **merchant** executes it → re-POST `{quoteToken, intentsTxHash}` → **201**, `paymentMethod: near_intents`, `payout.status: settled` → `store.onpoint.testnet` — **settle programmatically** through the canonical verifier, no solver.
+7. Before/after `mt_batch_balance_of` on the verifier: buyer down, stylist +fee, merchant +order — each provider's ledger balance visibly earns (an `ft_withdraw` intent pulls it to the wallet).
 
 ## Deployment status
 - [x] `NEAR_NETWORK`, `NEAR_RPC_URL`, `NEAR_USD_PRICE`, `NEAR_PAYOUT_ACCOUNT` on Hetzner (`NEAR_USD_PRICE=3.42` as of 2026-11-12 — manual; refresh before recording. Env changes need `pm2 reload onpoint-api` — the serving process is id 8 on port 48751, not `onpoint-agent-server`).
 - [x] `onpoint-store` seeded in prod with `commerce.nearAccountId = store.onpoint.testnet` + `commerce.priceFloorPct = 0.9` (enables order negotiation).
 - [x] `mo` (prod DB) has `commerce.nearAccountId = curator.onpoint.testnet` — the stylist-service payee; already in the forwarder allow-list.
 - [x] Deploy the negotiation code to prod — release `20261113-125059`, 409/402 verified live. Re-run `agent-demo.mjs` against prod for the recording (escrow is topped to ~20 USDC.e; one run needs ~17.4).
+- [ ] Deploy the negotiate-session + intents code to prod — needs `NEAR_INTENTS_VERIFIER=intents.onpoint.testnet`, `NEAR_QUOTE_SIGNING_KEYS`, and `NEAR_RPC_URL=https://rpc.testnet.fastnear.com` (`rpc.testnet.near.org` is now rate-limit-deprecated) in `/opt/onpoint/shared/api/.env`, then `pm2 reload onpoint-api`. **In-memory negotiation sessions mean PM2 must stay single-fork** (already true) — multi-instance needs session persistence first.
 - [ ] Set `commerce.nearAccountId` on real curators as they onboard (`onpoint-store` is the always-available fallback).
 
 ## Risks and fallbacks
@@ -131,19 +183,22 @@ The NEAR rail lets an agent pay for try-on/checkout and settle the curator **dir
 ```bash
 cd scripts/near-spike
 npm install
-node provision.mjs            # creates + funds onpoint.testnet sub-accounts (~30s)
-node deploy-payforwarder.mjs  # deploys the escrow forwarder to escrow.onpoint.testnet
-node setup-scoped-key.mjs     # FCAK scoped to escrow::pay + tops escrow to 20 USDC.e
-node agent-demo.mjs           # narrated run: discover → hire → negotiate → settle
+node provision.mjs               # creates + funds onpoint.testnet sub-accounts (~30s)
+node deploy-payforwarder.mjs     # deploys the escrow forwarder to escrow.onpoint.testnet
+node deploy-intents-verifier.mjs # deploys the canonical defuse verifier (one-time)
+node setup-scoped-key.mjs        # FCAK scoped to escrow::pay + tops escrow to 20 USDC.e
+node agent-demo.mjs              # RAIL=intents default: bargain → hire → settle via signed intents
 ```
 
 What you see:
 
 1. Two storefronts discovered — `onpoint-store` (the merchant) and `mo` (a styling service).
-2. `POST /api/agent/try-on` on `mo` → **HTTP 402** → the agent pays the fee in USDC.e → `curator.onpoint.testnet`. Agent hires agent; the stylist's on-chain balance grows.
-3. `POST /api/curator/onpoint-store/order` with `offerUsd` below the curator's floor → **HTTP 409** with a machine-readable `counterOffer`; re-POST at the counter → **HTTP 402** quoted at the agreed price (bound into `quoteId`).
-4. An over-cap `pay` call is rejected on-chain — the scoped key can only spend what's escrowed, to allow-listed payees, bounded by the owner-set per-call cap (`get_state` on `escrow.onpoint.testnet` shows the live policy).
-5. The agent pays the agreed amount → re-POST `{quoteId, nearAccountId, nearTxHash}` → **HTTP 201**, `payout.status: "settled"` → `store.onpoint.testnet`, explorer links + receipt URL.
-6. Before/after `ft_balance_of`: escrow down, stylist +fee, merchant +order total — two NEAR payees, two roles, one scoped key.
+2. **Hire:** a `/negotiate` session on `mo` — a too-low offer is refused, counter-rounds converge, the stylist signs a quote token — then the stylist executes the buyer's NEP-413 intent for the fee on `intents.onpoint.testnet` and delivers the render.
+3. **Negotiate:** an insulting offer on the kit is refused outright; a serious session counters twice (bundle context visible) and the seller signs the agreed price with its own ed25519 key.
+4. An over-cap `pay` call is rejected on-chain — the scoped key can only spend what's escrowed, to allow-listed payees, capped per call (`get_state` on `escrow.onpoint.testnet` shows the live policy).
+5. **Settle:** the merchant executes the buyer's signed intent → re-POST `{quoteToken, intentsTxHash}` → **HTTP 201**, `payout.status: "settled"`, explorer links + receipt URL.
+6. Before/after `mt_batch_balance_of` on the verifier: buyer down, stylist +fee, merchant +order — two payees, two roles, earned on the ledger (withdrawable via `ft_withdraw` intents).
 
-API surface: `apps/api/lib/near-payments.js` (dependency-free `EXPERIMENTAL_tx_status` verification), rail wired into `routes/agent-tryon.js` and `routes/curator-storefront.js`. Config via `NEAR_NETWORK`, `NEAR_RPC_URL`, `NEAR_USD_PRICE`, `NEAR_PAYOUT_ACCOUNT` (see `apps/api/.env.example`); per-curator override via `commerce.nearAccountId`.
+`RAIL=near` keeps the escrow-forwarder variant (FCAK `pay` → `nearTxHash`); `RAIL=paypal` keeps the human-approval variant.
+
+API surface: `apps/api/lib/near-payments.js` + `lib/near-intents.js` (dependency-free `EXPERIMENTAL_tx_status` verification), `lib/agent-negotiation.js` (sessions, policy, ed25519 quote tokens), rails wired into `routes/agent-tryon.js`, `routes/agent-negotiate.js`, `routes/curator-storefront.js`. Config via `NEAR_NETWORK`, `NEAR_RPC_URL`, `NEAR_USD_PRICE`, `NEAR_PAYOUT_ACCOUNT`, `NEAR_TOKEN_*`, `NEAR_INTENTS_VERIFIER`, `NEAR_QUOTE_SIGNING_KEYS` (see `apps/api/.env.example`); per-curator override via `commerce.nearAccountId`.
