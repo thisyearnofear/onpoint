@@ -12,6 +12,7 @@ Live evidence (re-verifiable without credentials):
 - Recorded run (2026-11-12, after the receipt-persistence fix): PayPal try-on of "Cape Town Shweshwe Matchday" from Nia Digital — capture `13K55568GE972304A`, $0.03, render by `youcam-cloth-v4`, fit read by Otari. Receipt: https://onpoint.trustfall.xyz/receipt/receipt_mwdjib6r_ba423717 · try-on page: https://onpoint.trustfall.xyz/p/a2c86aef-0deb-47f3-8ca2-91412c853bea. Receipt ids from the first runs that morning (`receipt_mwd6vc1f_f41b1052`, `receipt_mwd6q4fj_e03e5326`) no longer resolve — see Risks.
 - Receipts are public: `GET https://api.onpoint.famile.xyz/api/receipts/{receiptId}` — a judge can read the PayPal proof themselves.
 - Independent re-verification against PayPal: `PAYPAL_CLIENT_ID=… PAYPAL_CLIENT_SECRET=… node scripts/paypal-verify.mjs receipt_mwdr4vi4_66d38caf` — pulls the public receipt, then re-reads the order, the capture and the payout batch at PayPal and checks every claim (status, binding, amount, payout receiver). Last run: order `009007747G6744533` COMPLETED, capture `3J9966079R021105P` bound inside it via `custom_id`, `0.03 USD` captured, payout batch `XVLFRCUQ5UCZN` **SUCCESS · SUCCESS** (`0.02 USD` to the seller mailbox).
+- **Negotiated price binds the approval amount** (added post-submission, live-verified 2026-11-14): `POST /api/curator/onpoint-store/negotiate` → the merchant's own agent process countered `$14.00 → $14.73` and signed the quote with `store.onpoint.testnet`'s own key → `POST /order` with that `quoteToken` returns a 402 where `paypal.amountUsd` is **`14.73`**, not the `16.92` list — the human on PayPal approves the *seller-signed* price. The token is verified on the quote-issuing POST but only consumed once a payment proof verifies (`quoteSession.redeemedAt` after `paypalResult`), so asking for a 402 never burns it.
 
 ### Try it as a judge (PayPal)
 
@@ -22,17 +23,18 @@ The demo is completable end-to-end without our credentials:
 3. Come back to the tab; the agent verifies, captures, renders, signs a receipt and pays the seller share out over Payouts. The receipt page shows the capture id and the payout batch.
 
 ## Thesis
-One executable fashion offer, three ways to pay: `paymentRails: ['celo_cusd', 'near', 'paypal']`.
+One executable fashion offer, three ways to pay: `paymentRails: ['celo_cusd', 'near', 'paypal']` — and one negotiated commitment underneath all of them. The same seller-signed `quoteToken` (refusals, counter-offers, the payee's own key) prices whichever rail the payer picks: PayPal shows the human the negotiated amount, NEAR Intents settles it trustlessly, cUSD pays it on-chain. Two settlement personalities — human-approval fiat vs. autonomous agent rail — on one offer.
 
 ## Architecture: approval relay
 Classic PayPal Checkout needs a human to approve at paypal.com, so the agent orchestrates and the human authorizes.
 
-1. Agent calls `POST /api/agent/try-on` or `POST /api/curator/{slug}/order` -> HTTP 402.
-2. `quote.paypal = { env, orderId, approveUrl, amountUsd, currency: 'USD' }` (order created server-side, intent CAPTURE).
-3. Agent relays `approveUrl` to its human; human approves.
-4. Agent re-POSTs with `{ paypalOrderId }` (orders also send `quoteId`).
-5. Server GETs the order, checks `custom_id` binding, currency, amount >= price and status APPROVED, then captures (idempotent via `PayPal-Request-Id`) and requires COMPLETED.
-6. `captureId` is the proof id (replay-guarded in the same column as NEAR/Celo tx hashes). Receipt `chain: 'paypal'`, `paymentMethod: 'paypal'`, asset USD.
+1. *(Optional)* Agent negotiates first: `POST /api/curator/{slug}/negotiate` — refusals and counters are answered by the seller's own agent process, and `accept` mints an Ed25519 `quoteToken` signed by the **payee's own key**. The token rides the order POST and pins `totalCusd` to `agreedCusd` — the PayPal order is then created for the negotiated amount, not list.
+2. Agent calls `POST /api/agent/try-on` or `POST /api/curator/{slug}/order` -> HTTP 402.
+3. `quote.paypal = { env, orderId, approveUrl, amountUsd, currency: 'USD' }` (order created server-side, intent CAPTURE).
+4. Agent relays `approveUrl` to its human; human approves.
+5. Agent re-POSTs with `{ paypalOrderId, quoteToken }` (orders also send `quoteId`) — the token is consumed only after capture verifies.
+6. Server GETs the order, checks `custom_id` binding, currency, amount >= price and status APPROVED, then captures (idempotent via `PayPal-Request-Id`) and requires COMPLETED.
+7. `captureId` is the proof id (replay-guarded in the same column as NEAR/Celo tx hashes). Receipt `chain: 'paypal'`, `paymentMethod: 'paypal'`, asset USD.
 
 Orders and try-ons are captured to the platform account; after capture the agent pays the seller's share out over **PayPal Payouts** (`POST /v1/payments/payouts`) when `PAYPAL_SELLER_PAYOUT_EMAIL` is set — the payout batch id is recorded on the receipt, which then reads "Sent via PayPal Payouts" instead of `pending_reconciliation`. The batch id is derived from the PayPal order id, so a replayed verify can never double-pay. When the env var is unset (or the payout call fails), the sale still stands and the payout is recorded as `pending_reconciliation`. The sandbox receiver stands in for the curator/seller, who in production would configure their own PayPal email.
 
@@ -79,14 +81,14 @@ Example from a live paid try-on served by Otari: `aiCost: { provider: "otari", m
 - **Technological Implementation** — approval-relay over two endpoints (try-on + order), `custom_id` resource binding, amount/currency/status checks, idempotent capture via `PayPal-Request-Id`, capture id as the replay-guarded proof in the same column as Celo/NEAR hashes.
 - **Design** — the human half is a real screen: `/pay` ("See it on you") keeps the payer's photo beside the piece, offers every rail the 402 advertises as an equal choice (PayPal, NEAR, cUSD — nothing preselected), develops the render as a polaroid while the payer guesses the fit score, and ends on a shareable result with the receipt. The agent's work is a first-person trace; "Show the details" reveals the HTTP 402, PayPal order and capture ids, and the inference cost. Not a curl-only proof of concept.
 - **Potential Impact** — agents cannot today spend a human's PayPal money with the human's consent; this is the consent path for agentic commerce in a category (fashion) where the purchase is fit-dependent.
-- **Innovation** — three rails, one offer: the *same* executable item is payable in cUSD, NEAR, or USD-with-human-approval, and only the PayPal rail keeps a human in the loop by design.
+- **Innovation** — one negotiated commitment, three settlement personalities: the *same* seller-signed price is payable in cUSD, NEAR (autonomous — solver-settled, cross-chain collectible), or USD-with-human-approval, and only the PayPal rail keeps a human in the loop by design. Agent negotiates, human approves — the division of labour PayPal's agentic-commerce story assumes.
 - **Presentation** — one 402 → approve → 201 arc on camera, then the public receipt readback.
 
 ## Checklist
 - [x] `apps/api/lib/paypal-payments.js` (token cache, create, verify+capture)
 - [x] Quote + verify in try-on and order routes; mixed proofs rejected
 - [x] Replay guard; binding of approved order to one resource
-- [x] Demo: `RAIL=paypal node scripts/near-spike/agent-demo.mjs` — committed, runnable by judges
+- [x] Demo: `RAIL=paypal node scripts/near-spike/agent-demo.mjs` — committed, runnable by judges. Now includes the sovereign negotiation leg: the agent haggles, the seller's own process signs, and PayPal quotes the negotiated amount before the human approves.
 - [x] Create sandbox business + personal accounts, set secrets in the API environment
 - [x] Record one live sandbox run (402 -> approve -> 201 receipt)
 - [x] Deploy (`PAYPAL_*` on `snel-bot:/opt/onpoint/shared/api/.env`, prod 402 advertises `paypal`)

@@ -232,7 +232,7 @@ async function negotiate({ slug, scope, listingId, size, quantity, offers }) {
     const openOffer = offers[attempt] ?? offers[offers.length - 1];
     const open = await post(`/api/curator/${slug}/negotiate`, {
       scope, listingId, size, quantity: quantity ?? 1,
-      offerUsd: openOffer, nearAccountId: agent.accountId,
+      offerUsd: openOffer, nearAccountId: agent?.accountId,
     });
     let body = await open.json();
     if (open.status !== 200 && open.status !== 202) return { error: `negotiate open ${open.status}: ${JSON.stringify(body)}` };
@@ -320,17 +320,32 @@ if (IS_PAYPAL) {
     info("no paypal rail advertised on the try-on quote — continuing to the order demo");
   }
 
-  step(3, "Request the order quote → HTTP 402");
+  step(3, "NEGOTIATE the kit — the seller's own agent signs the agreed price");
   const size = offer?.size || "M";
-  const orderBody = { listingId: kitListing.id, size, quantity: 1 };
+  agentSays(`posted ~${offer?.priceCusd ?? "?"} USD — I'll lowball and let the merchant's own policy answer.`);
+  const kitNego = await negotiate({
+    slug: MERCHANT_SLUG, scope: "order", listingId: kitListing.id, size, quantity: 1,
+    offers: [8, 14, 16], // lowball → refusal is part of the story
+  });
+  for (const t of kitNego.transcript ?? []) {
+    if (t.actor === "buyer") agentSays(t.usd ? `offer $${t.usd}` : t.note);
+    else sellerSays(t.usd ? `asks $${t.usd}${t.note ? ` — "${String(t.note).slice(0, 110)}"` : ""}` : (t.note || "…"));
+  }
+  if (kitNego.error) { say(`kit negotiation failed: ${kitNego.error}`); process.exit(1); }
+  const kitToken = kitNego.quoteToken;
+  agentSays(`deal — the merchant signed {listing, size, agreed ${kitToken.payload?.agreedCusd} USD} with its own key. PayPal now quotes THAT price, not list.`);
+  info(`token signer ${kitToken.signer?.accountId} · pubkey ${kitToken.signer?.publicKey?.slice(0, 24)}…`);
+
+  step(4, "Request the order quote → HTTP 402 (priced at the negotiated amount)");
+  const orderBody = { listingId: kitListing.id, size, quantity: 1, quoteToken: kitToken };
   const res402 = await post(`/api/curator/${MERCHANT_SLUG}/order`, orderBody);
   const res402Body = await res402.json();
   const q = res402Body.quote;
   if (!q?.paypal) { say(`paypal rail not advertised (status ${res402.status}) — is PAYPAL_CLIENT_ID/SECRET configured on the API?`); process.exit(1); }
-  agentSays(`HTTP 402 — the server quotes me ${q.totalCusd} cUSD, payable via: ${q.paymentRails.join(" + ")}`);
+  agentSays(`HTTP 402 — quoted ${q.totalCusd} USD (the seller-signed price), payable via: ${q.paymentRails.join(" + ")}`);
   say(`${C.y}   quote ›${C.x} ${q.quoteId} · $${q.paypal.amountUsd} via PayPal ${q.paypal.env} → order ${q.paypal.orderId}`);
 
-  step(4, "Human approves on PayPal");
+  step(5, "Human approves on PayPal");
   say(`${C.y}   approve ›${C.x} ${q.paypal.approveUrl}`);
   info(`send that URL to the payer. Once approved, re-run with PAYPAL_ORDER_ID=${q.paypal.orderId} or paste the id below.`);
   const paypalOrderId = process.env.PAYPAL_ORDER_ID
@@ -341,7 +356,7 @@ if (IS_PAYPAL) {
     || q.paypal.orderId;
   agentSays(`relaying approval — order ${paypalOrderId}`);
 
-  step(5, "Re-POST with payment proof → order confirmed");
+  step(6, "Re-POST with payment proof → order confirmed");
   const res201 = await post(`/api/curator/${MERCHANT_SLUG}/order`, {
     ...orderBody,
     quoteId: q.quoteId,
@@ -353,7 +368,7 @@ if (IS_PAYPAL) {
   say(`${C.y}   payment ›${C.x} ${order.order.payment.paymentMethod} · ${order.order.payment.explorerUrl ?? "off-chain"}`);
   say(`${C.y}   payout  ›${C.x} ${order.order.payout.status} → ${order.order.payout.to ?? "platform"} ${order.order.payout.amountNear ?? ""} ${order.order.payout.asset ?? ""}`);
   say(`${C.y}   receipt ›${C.x} ${order.order.receiptUrl}`);
-  say(`\n${C.b}${C.g}loop closed:${C.x} agent paid → platform captured (curator payout reconciled) → receipt issued — one proof, zero custodial steps.\n`);
+  say(`\n${C.b}${C.g}loop closed:${C.x} seller-signed price → human-approved capture → seller share out via PayPal Payouts → receipt — negotiated commitment, fiat settlement.\n`);
   process.exit(0);
 }
 
