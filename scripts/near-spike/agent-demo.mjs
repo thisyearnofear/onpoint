@@ -160,7 +160,7 @@ if (IS_PAYPAL) {
       say(`scoped key is for ${scopedKey.contractId}, quote asks ${t.contractId} — run setup-scoped-key.mjs`);
       process.exit(1);
     }
-    agentSays(`my key can't move NEAR — it can only call ${t.method} on ${t.contractId}. The chain enforces that, not the server. And that contract only releases escrowed ${t.symbol} to allow-listed curators.`);
+    agentSays(`my key can't move NEAR — it can only call ${t.method} on ${t.contractId}. The chain enforces that, not the server. And that contract only releases escrowed ${t.symbol} to allow-listed curators, capped per call.`);
     chain(`key: ${scopedKey.publicKey} → ${t.contractId}::${t.method}`);
     before.agentUsdc = await ftBalance(agent.accountId, t.tokenContractId, t.decimals);
     before.escrowUsdc = await ftBalance(t.contractId, t.tokenContractId, t.decimals);

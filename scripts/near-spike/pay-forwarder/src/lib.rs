@@ -23,6 +23,9 @@ use near_sdk::serde_json::{self, json};
 
 const FT_CONTRACT: &str = "usdc.fakes.testnet";
 const AGENT: &str = "agent.onpoint.testnet";
+/// Max base units per `pay` call — 25 USDC.e. Spend authority is bounded
+/// twice: by this cap per call and by the escrowed balance in total.
+const MAX_PER_TX: u128 = 25_000_000;
 const PAYEES: &[&str] = &[
     "store.onpoint.testnet",
     "curator.onpoint.testnet",
@@ -61,6 +64,15 @@ pub extern "C" fn pay() {
         env::panic_str("receiver is not on the payee allow-list");
     }
     env::log_str("pay: payee ok");
+
+    let amount: u128 = args
+        .amount
+        .parse()
+        .unwrap_or_else(|_| env::panic_str("amount is not a u128"));
+    if amount == 0 || amount > MAX_PER_TX {
+        env::panic_str("amount out of bounds");
+    }
+    env::log_str("pay: amount ok");
 
     let ft: AccountId = FT_CONTRACT
         .parse()
