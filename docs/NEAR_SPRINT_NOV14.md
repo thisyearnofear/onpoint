@@ -165,30 +165,84 @@ the storefront's json10kb and 413'd order bodies (storefront now first —
 body-parser is idempotent); `/api/pending-intents` was json1k while
 `complete` carries the redeem response (now json10kb, result.body ≤8KB).
 
-## F — Multi-asset leg (dev 1)
+## F — Atomic cross-asset settlement (dev 1) · ~1 dev-day · PRIORITY 1
 
-`token_diff` intents inside the verifier: buyer deposits wNEAR
-(`wrap.testnet` — deposit via `near_deposit`, then `ft_transfer_call`
-to the verifier), signs `{give wNEAR, want USDC.e}`; the merchant signs
-the complementary diff (it supplies the USDC liquidity and receives
-wNEAR at the quoted rate) plus the buyer's USDC transfer intent — one
-atomic `execute_intents` bundle of 3 signed payloads. Value comes in as
-wNEAR, lands as USDC. Frame honestly: merchant-as-solver — on mainnet
-the solver network provides liquidity; here the merchant quotes its own
-spread. Extend `verifyIntentsSettlement` to accept diff bundles.
-Checklist: `signTokenDiffIntent` in intents-lib.mjs; verify wNEAR diff
-+ USDC transfer + seller counter-diff in one tx; ledger deltas show
-buyer −wNEAR, merchant +wNEAR.
+`token_diff` intents inside the verifier — the primitive that actually
+differentiates Intents from a transfer, and our testnet-max answer to
+"value should come in as one asset and land as another":
 
-## G — Session persistence + prod deploy (deploy DONE; persistence remains)
+- Buyer holds only wNEAR (`wrap.testnet`: `near_deposit` to wrap, then
+  `ft_transfer_call` to the verifier ledger — same deposit path as
+  USDC.e, token id `nep141:wrap.testnet`).
+- Merchant-as-solver: buyer signs `{give wNEAR, want USDC.e}`; merchant
+  signs the complementary diff (supplies USDC.e liquidity, receives the
+  wNEAR at its quoted spread) — plus the buyer's transfer intent paying
+  the kit price. **One atomic `execute_intents` bundle, ≤3 signed
+  payloads.** Net: buyer −wNEAR, merchant +wNEAR — the kit settles as
+  the asset the buyer held, quoted by the seller.
+- Frame honestly: on mainnet the solver network provides liquidity;
+  on testnet the merchant quotes its own spread — which is literally
+  what small merchants do when solvers don't list their pair.
+- Extend `verifyIntentsSettlement` to accept diff bundles (atomicity +
+  the diff pair nets correctly + transfer ≥ quote).
+- **GATE — first 2h:** spike the defuse `token_diff` message format
+  against `intents.onpoint.testnet` (check `defuse-intents` docs +
+  the contract's `execute_intents` expectations for diff bundles). If
+  it resists, STOP — ship E+G+H only.
+- Checklist: `signTokenDiffIntent` in intents-lib.mjs; wrap+deposit
+  script for agent wNEAR; seller-agent gains `signTokenDiff` for its
+  counter-diff; one tx showing buyer −wNEAR / merchant +wNEAR deltas.
 
-- Prod env: DONE — `NEAR_INTENTS_VERIFIER=intents.onpoint.testnet`,
-  `NEAR_QUOTE_SIGNING_KEYS`, `NEAR_RPC_URL=https://rpc.testnet.fastnear.com`
-  in `/opt/onpoint/shared/api/.env`; release `20261113-172904` live;
-  full RAIL=intents two-process e2e verified on prod.
-- Persist negotiation sessions + pending-intent mailbox to Postgres
-  (kills "in-memory on one process" — sessions table keyed by id, JSON
-  history, TTL sweep on read). STILL OPEN — in-memory is disclosed.
+## G — Independent party + persistence (dev 2) · ~1 dev-day · PRIORITY 2
+
+Two kills in one stream:
+
+1. **A payee outside `onpoint.*`.** Create a personal testnet account
+   (`<you>.testnet`), `storage_deposit` on `usdc.fakes.testnet`, give me
+   the account id — owner tx adds it to the forwarder allow-list and a
+   second storefront's `commerce.nearAccountId`. Then YOU run
+   `SELLER=<you>.testnet API_URL=https://api.onpoint.famile.xyz node
+   seller-agent.mjs` on your own machine during the recording. The demo
+   pays an account OnPoint doesn't control, held by a process OnPoint
+   doesn't run — the only way "both sides are yours" actually dies.
+2. **Postgres persistence** for negotiation sessions + pending-intent
+   mailbox (sessions table keyed by id, JSON history, TTL sweep on read
+   — mirror `lib/agent-negotiation.js` + `lib/intent-mailbox.js`
+   interfaces). Kills "in-memory on one process"; makes multi-instance
+   safe. Keep the in-memory impl as the test/dev path.
+
+## H — The earn leg + run-your-own-merchant docs (dev 3) · ~0.5 dev-day
+
+- Seller-agent auto-`ft_withdraw`s after each successful redeem
+  (`signWithdrawIntent` already in intents-lib.mjs) — the provider
+  COLLECTS earnings to its wallet on-chain, closing earn → custody.
+- Referral beat: buyer sends the stylist's `X-Referral-Code` on the kit
+  order → the stylist earns 2.5% on the sale it drove
+  (agent-hires-agent → agent-earns-through-agent). Check whether the
+  commission lands on-chain or only the API ledger — if ledger-only,
+  it stays a narrated +2.5% beat, not a headline.
+- Write `docs/RUN-YOUR-OWN-MERCHANT.md`: seller-agent.mjs + one NEAR
+  account + `commerce.nearAccountId` — the "a merchant could deploy
+  tomorrow" claim as a runnable runbook.
+
+## D — Final assembly (Devin)
+
+Review the F spike, integrate, prod deploys, recording-ready e2e
+(3 terminals / 4 keys), docs honesty pass, PayPal rail intact.
+
+## Recording cut — 3+ terminals, disjoint custody
+
+- T1: buyer `agent-demo.mjs` (agent key only)
+- T2: `SELLER=curator.onpoint.testnet node seller-agent.mjs`
+- T3: `SELLER=store.onpoint.testnet node seller-agent.mjs`
+- T4 (if G lands): dev 2's machine, `SELLER=<you>.testnet`
+
+## Drop lines (Nov 14 ~12:00 UTC)
+
+F spike fails → ship E+G+H (still strictly stronger than today).
+G external account slips → three terminals on our accounts still shows
+disjoint custody. H referral slips → keep withdraw (already built).
+Postgres slips → in-memory stays a disclosed limitation.
 
 ## Honest framing to keep in docs
 
