@@ -6,8 +6,9 @@
  *   DIRECTLY in NEAR, and gets a receipt — all on-chain.
  *
  * Run:
- *   node provision.mjs      # once — creates + funds the testnet accounts
- *   node agent-demo.mjs     # the story below
+ *   node provision.mjs          # once — creates + funds the testnet accounts
+ *   node setup-scoped-key.mjs   # once — FCAK scoped to usdc.fakes.testnet::ft_transfer + USDC.e
+ *   node agent-demo.mjs         # the story below
  *
  * Knobs:
  *   API_URL     default http://localhost:48751 (also works against prod)
@@ -43,6 +44,7 @@ const IS_PAYPAL = RAIL === "paypal";
 let creds = null;
 let provider = null;
 let nearBalance = async () => null;
+let ftBalance = async () => null;
 if (!IS_PAYPAL) {
   if (!existsSync(CREDS_PATH)) {
     say(`no credentials — run ${C.b}node provision.mjs${C.x} first`);
@@ -55,6 +57,14 @@ if (!IS_PAYPAL) {
       (await provider.query({ request_type: "view_account", finality: "final", account_id: id })).amount,
       4,
     );
+  ftBalance = async (accountId, contractId, decimals = 6) => {
+    const raw = await provider.callFunction({
+      contractId,
+      method: "ft_balance_of",
+      args: { account_id: accountId },
+    });
+    return Number(raw ?? "0") / 10 ** decimals;
+  };
 }
 const post = async (path, body) =>
   (await fetch(`${API}${path}`, {
@@ -91,11 +101,13 @@ if (tryOnRail) {
   agentSays(
     IS_PAYPAL
       ? `fit check costs ${tryOnQuote.priceCusd} cUSD — or $${tryOnRail.amountUsd} via PayPal ${tryOnRail.env}`
-      : `fit check costs ${tryOnQuote.priceCusd} cUSD — or ${tryOnRail.amountNear} NEAR on the ${tryOnRail.network} rail`,
+      : `fit check costs ${tryOnQuote.priceCusd} cUSD — or ${tryOnRail.amountNear} NEAR on the ${tryOnRail.network} rail` +
+          (tryOnRail.token ? `, or ${tryOnRail.token.display} ${tryOnRail.token.symbol} via ${tryOnRail.token.contractId}::${tryOnRail.token.method}` : ""),
   );
   info(IS_PAYPAL
     ? `try-on PayPal order → ${tryOnRail.orderId}`
-    : `try-on NEAR quote → ${tryOnRail.accountId} · ${tryOnRail.amountYocto} yocto`);
+    : `try-on NEAR quote → ${tryOnRail.accountId}` +
+        (tryOnRail.token ? ` · token ${tryOnRail.token.amount} @ ${tryOnRail.token.contractId}` : ` · ${tryOnRail.amountYocto} yocto`));
 } else {
   info(`no ${RAIL} rail advertised on the try-on quote — continuing to the order demo`);
 }
@@ -114,12 +126,14 @@ if (IS_PAYPAL && !q.paypal) { say("paypal rail not advertised — is PAYPAL_CLIE
 if (!IS_PAYPAL && !q.near) { say("near rail not advertised — is NEAR_USD_PRICE + a payout account configured?"); process.exit(1); }
 say(`${C.y}   quote ›${C.x} ${q.quoteId} · ${IS_PAYPAL
   ? `$${q.paypal.amountUsd} via PayPal ${q.paypal.env} → order ${q.paypal.orderId}`
-  : `${q.near.amountNear} NEAR → ${q.near.accountId} (${q.near.payoutModel})`}`);
+  : `${q.near.amountNear} NEAR → ${q.near.accountId} (${q.near.payoutModel})` +
+      (q.near.token ? `  ·  or ${q.near.token.display} ${q.near.token.symbol} via ${q.near.token.contractId}::${q.near.token.method}` : "")}`);
 
 // ── 4. Pay on the chosen rail ──
 let proofBody;
 let before = null;
 let agent = null;
+let usedToken = false;
 if (IS_PAYPAL) {
   step(4, "Human approves on PayPal");
   say(`${C.y}   approve ›${C.x} ${q.paypal.approveUrl}`);
@@ -133,14 +147,43 @@ if (IS_PAYPAL) {
   proofBody = { paypalOrderId };
   agentSays(`relaying approval — order ${paypalOrderId}`);
 } else {
-  step(4, "Pay on NEAR testnet");
+  const scopedKey = creds.accounts.agent.functionCallKey;
+  usedToken = Boolean(q.near.token && scopedKey);
+  step(4, usedToken ? "Pay with a scoped function-call key" : "Pay on NEAR testnet");
   agent = creds.accounts.agent;
   before = { agent: await nearBalance(agent.accountId), store: await nearBalance(q.near.accountId) };
   info(`balances before — agent ${before.agent} Ⓝ · curator ${before.store} Ⓝ`);
-  const signer = new Account(agent.accountId, provider, KeyPairSigner.fromSecretKey(agent.secretKey));
-  const payOut = await signer.transfer({ receiverId: q.near.accountId, amount: q.near.amountYocto });
-  const txHash = payOut.transaction?.hash ?? payOut.transaction_outcome?.id;
-  chain(`sent ${q.near.amountNear} NEAR → ${q.near.accountId}`);
+  let txHash;
+  if (usedToken) {
+    const t = q.near.token;
+    if (t.contractId !== scopedKey.contractId) {
+      say(`scoped key is for ${scopedKey.contractId}, quote asks ${t.contractId} — run setup-scoped-key.mjs`);
+      process.exit(1);
+    }
+    agentSays(`my key can't move NEAR — it can only call ${t.method} on ${t.contractId}. The chain enforces that, not the server. And that contract only releases escrowed ${t.symbol} to allow-listed curators.`);
+    chain(`key: ${scopedKey.publicKey} → ${t.contractId}::${t.method}`);
+    before.agentUsdc = await ftBalance(agent.accountId, t.tokenContractId, t.decimals);
+    before.escrowUsdc = await ftBalance(t.contractId, t.tokenContractId, t.decimals);
+    before.storeUsdc = await ftBalance(q.near.accountId, t.tokenContractId, t.decimals);
+    info(`escrow wallet ${t.contractId} holds ${before.escrowUsdc} ${t.symbol} — my spendable budget`);
+    const signer = new Account(agent.accountId, provider, KeyPairSigner.fromSecretKey(scopedKey.secretKey));
+    const payOut = await signer.callFunctionRaw({
+      contractId: t.contractId,
+      methodName: t.method,
+      args: { receiver_id: q.near.accountId, amount: t.amount },
+      deposit: t.attachYocto ?? "1",
+    });
+    txHash = payOut.transaction?.hash ?? payOut.transaction_outcome?.id;
+    chain(`sent ${t.display} ${t.symbol} → ${q.near.accountId} (${t.contractId}::${t.method})`);
+  } else {
+    if (q.near.token && !scopedKey) {
+      info("quote offers USDC.e but creds have no functionCallKey — run setup-scoped-key.mjs; paying native NEAR");
+    }
+    const signer = new Account(agent.accountId, provider, KeyPairSigner.fromSecretKey(agent.secretKey));
+    const payOut = await signer.transfer({ receiverId: q.near.accountId, amount: q.near.amountYocto });
+    txHash = payOut.transaction?.hash ?? payOut.transaction_outcome?.id;
+    chain(`sent ${q.near.amountNear} NEAR → ${q.near.accountId}`);
+  }
   chain(`https://testnet.nearblocks.io/txns/${txHash}`);
   await SLEEP(2500);
   proofBody = { nearAccountId: agent.accountId, nearTxHash: txHash };
@@ -154,9 +197,9 @@ const res201 = await post(`/api/curator/onpoint-store/order`, {
 });
 const order = await res201.json();
 if (!order.success) { say(`${C.y}   response ${res201.status}: ${JSON.stringify(order)}${C.x}`); process.exit(1); }
-agentSays(`HTTP ${res201.status} — order ${order.order.id.slice(0, 8)} confirmed. ${order.order.payout.status === "settled" ? "The curator already has my NEAR." : ""}`);
+agentSays(`HTTP ${res201.status} — order ${order.order.id.slice(0, 8)} confirmed. ${order.order.payout.status === "settled" ? `The curator already has my ${order.order.payout.asset ?? "payment"}.` : ""}`);
 say(`${C.y}   payment ›${C.x} ${order.order.payment.paymentMethod} · ${order.order.payment.explorerUrl ?? "off-chain"}`);
-say(`${C.y}   payout  ›${C.x} ${order.order.payout.status} → ${order.order.payout.to ?? "platform"} ${order.order.payout.amountNear ?? order.order.payout.asset ?? ""}`);
+say(`${C.y}   payout  ›${C.x} ${order.order.payout.status} → ${order.order.payout.to ?? "platform"} ${order.order.payout.amountTokenDisplay ?? order.order.payout.amountNear ?? ""} ${order.order.payout.asset ?? ""}`);
 say(`${C.y}   receipt ›${C.x} ${order.order.receiptUrl}`);
 
 // ── 6. On-chain after state ──
@@ -164,7 +207,18 @@ if (!IS_PAYPAL) {
   step(6, "Verify on-chain");
   const after = { agent: await nearBalance(agent.accountId), store: await nearBalance(q.near.accountId) };
   chain(`agent:   ${before.agent} Ⓝ  →  ${after.agent} Ⓝ`);
-  chain(`curator: ${before.store} Ⓝ  →  ${after.store} Ⓝ   (+${(after.store - before.store).toFixed(4)} Ⓝ direct)`);
+  chain(`curator: ${before.store} Ⓝ  →  ${after.store} Ⓝ`);
+  if (usedToken && q.near.token) {
+    const t = q.near.token;
+    const afterUsdc = {
+      escrow: await ftBalance(t.contractId, t.tokenContractId, t.decimals),
+      store: await ftBalance(q.near.accountId, t.tokenContractId, t.decimals),
+    };
+    chain(`escrow:  ${before.escrowUsdc} ${t.symbol}  →  ${afterUsdc.escrow} ${t.symbol}`);
+    chain(`curator: ${before.storeUsdc} ${t.symbol}  →  ${afterUsdc.store} ${t.symbol}   (+${(afterUsdc.store - before.storeUsdc).toFixed(t.decimals)} ${t.symbol} settled)`);
+  } else {
+    chain(`curator settled +${(after.store - before.store).toFixed(4)} Ⓝ direct`);
+  }
 }
 
 say(`\n${C.b}${C.g}loop closed:${C.x} agent paid → ${IS_PAYPAL ? "platform captured (curator payout reconciled)" : "curator settled"} → receipt issued — one proof, zero custodial steps.\n`);

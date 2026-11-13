@@ -734,11 +734,26 @@ router.post('/:slug/order', async (req, res) => {
                 near: {
                   network: nearQuote.network,
                   accountId: nearPayTo,
-                  amountNear: nearQuote.amountNear,
-                  amountYocto: nearQuote.amountYocto,
-                  usdRate: nearQuote.usdRate,
                   payoutModel: nearDirectToCurator ? 'direct_to_curator' : 'platform',
-                  instructions: `Send exactly ${nearQuote.amountYocto} yoctoNEAR (~${nearQuote.amountNear} NEAR) to ${nearPayTo} on NEAR ${nearQuote.network}, then re-POST with { nearAccountId, nearTxHash, quoteId }.`,
+                  ...(nearQuote.amountYocto
+                    ? {
+                        amountNear: nearQuote.amountNear,
+                        amountYocto: nearQuote.amountYocto,
+                        usdRate: nearQuote.usdRate,
+                      }
+                    : {}),
+                  ...(nearQuote.token ? { token: nearQuote.token } : {}),
+                  instructions: [
+                    nearQuote.amountYocto
+                      ? `send ${nearQuote.amountYocto} yoctoNEAR (~${nearQuote.amountNear} NEAR) to ${nearPayTo} on NEAR ${nearQuote.network}`
+                      : null,
+                    nearQuote.token
+                      ? `call ${nearQuote.token.method} on ${nearQuote.token.contractId} with {"receiver_id":"${nearPayTo}","amount":"${nearQuote.token.amount}"}${nearQuote.token.attachYocto !== '0' ? ' (attach 1 yoctoNEAR)' : ''}`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' or ') +
+                  ', then re-POST with { nearAccountId, nearTxHash, quoteId }.',
                 },
               }
             : {}),
@@ -841,6 +856,7 @@ router.post('/:slug/order', async (req, res) => {
         signerAccountId: nearPayer,
         expectedReceiverId: nearPayTo,
         minDepositYocto: nearQuote.amountYocto,
+        token: nearQuote.token,
       });
       if (!nearResult.ok) {
         return res.status(402).json({
@@ -1192,7 +1208,10 @@ router.post('/:slug/order', async (req, res) => {
           payoutTxHash,
           paymentMethod,
           curatorPayout: paymentMethod === 'near'
-            ? `${nearQuote.amountNear} NEAR ${nearDirectToCurator ? '(direct to curator)' : '(platform, pending reconciliation)'}`
+            ? (() => {
+                const s = nearPayments.nearSettlementSummary(verification?.near, nearQuote);
+                return `${s.display} ${s.asset} ${nearDirectToCurator ? '(direct to curator)' : '(platform, pending reconciliation)'}`;
+              })()
             : paymentMethod === 'paypal'
               ? paypalPayout?.ok
                 ? `${paypalPayout.amountUsd.toFixed(2)} USD via PayPal Payouts (batch ${paypalPayout.payoutBatchId})`
@@ -1203,7 +1222,17 @@ router.post('/:slug/order', async (req, res) => {
                   ? `${totalCusd.toFixed(2)} cUSD via Split (pending distribution)`
                   : null,
           near: paymentMethod === 'near'
-            ? { accountId: effectivePayer, amountYocto: nearQuote.amountYocto, payTo: nearPayTo, network: nearQuote.network }
+            ? {
+                accountId: effectivePayer,
+                payTo: nearPayTo,
+                network: nearQuote.network,
+                ...(() => {
+                  const s = nearPayments.nearSettlementSummary(verification?.near, nearQuote);
+                  return s.mode === 'token'
+                    ? { tokenContract: s.tokenContract, tokenSymbol: s.asset, amountToken: s.amountToken }
+                    : { amountYocto: s.amountYocto };
+                })(),
+              }
             : undefined,
           paypal: paymentMethod === 'paypal' && paypalResult
             ? { orderId: paypalResult.orderId, captureId: paypalResult.captureId, amountUsd: paypalResult.amountUsd, env: paypalPayments.paypalEnv(),
@@ -1286,15 +1315,19 @@ router.post('/:slug/order', async (req, res) => {
                 status: 'settled',
                 txHash: payoutTxHash,
                 to: nearPayTo,
-                asset: 'NEAR',
-                amountNear: nearQuote.amountNear,
+                ...(() => {
+                  const s = nearPayments.nearSettlementSummary(verification?.near, nearQuote);
+                  return s.mode === 'token'
+                    ? { asset: s.asset, amountToken: s.amountToken, amountTokenDisplay: s.display, tokenContract: s.tokenContract }
+                    : { asset: s.asset, amountNear: s.display };
+                })(),
                 explorerUrl: nearPayments.nearExplorerTxUrl(payoutTxHash),
                 note: 'Paid directly to the curator NEAR account — payment and payout are the same transaction.',
               }
             : {
                 status: 'pending_reconciliation',
                 to: nearPayTo,
-                asset: 'NEAR',
+                asset: verification?.near?.mode === 'token' ? (nearQuote.token?.symbol ?? 'USDC') : 'NEAR',
                 note: 'Paid to the platform NEAR account; curator payout is reconciled operationally.',
               }
           : paymentMethod === 'paypal'

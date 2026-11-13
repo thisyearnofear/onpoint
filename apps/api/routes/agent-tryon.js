@@ -371,10 +371,25 @@ router.post('/', async (req, res) => {
                 near: {
                   network: nearQuote.network,
                   accountId: nearPayTo,
-                  amountNear: nearQuote.amountNear,
-                  amountYocto: nearQuote.amountYocto,
-                  usdRate: nearQuote.usdRate,
-                  instructions: `Send exactly ${nearQuote.amountYocto} yoctoNEAR (~${nearQuote.amountNear} NEAR) to ${nearPayTo} on NEAR ${nearQuote.network}, then re-POST with { nearAccountId, nearTxHash }.`,
+                  ...(nearQuote.amountYocto
+                    ? {
+                        amountNear: nearQuote.amountNear,
+                        amountYocto: nearQuote.amountYocto,
+                        usdRate: nearQuote.usdRate,
+                      }
+                    : {}),
+                  ...(nearQuote.token ? { token: nearQuote.token } : {}),
+                  instructions: [
+                    nearQuote.amountYocto
+                      ? `send ${nearQuote.amountYocto} yoctoNEAR (~${nearQuote.amountNear} NEAR) to ${nearPayTo} on NEAR ${nearQuote.network}`
+                      : null,
+                    nearQuote.token
+                      ? `call ${nearQuote.token.method} on ${nearQuote.token.contractId} with {"receiver_id":"${nearPayTo}","amount":"${nearQuote.token.amount}"}${nearQuote.token.attachYocto !== '0' ? ' (attach 1 yoctoNEAR)' : ''}`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' or ') +
+                  ', then re-POST with { nearAccountId, nearTxHash }.',
                 },
               }
             : {}),
@@ -460,6 +475,7 @@ router.post('/', async (req, res) => {
         signerAccountId: nearPayer,
         expectedReceiverId: nearPayTo,
         minDepositYocto: nearQuote.amountYocto,
+        token: nearQuote.token,
       });
       if (!nearResult.ok) {
         return res.status(402).json({
@@ -517,7 +533,19 @@ router.post('/', async (req, res) => {
         splitAddress: splitAddress || null,
         paymentMethod,
         ...(paymentMethod === 'near'
-          ? { near: { accountId: nearPayer, amountYocto: nearQuote.amountYocto, payTo: nearPayTo, network: nearQuote.network } }
+          ? {
+              near: {
+                accountId: nearPayer,
+                payTo: nearPayTo,
+                network: nearQuote.network,
+                ...(() => {
+                  const s = nearPayments.nearSettlementSummary(verification?.near, nearQuote);
+                  return s.mode === 'token'
+                    ? { tokenContract: s.tokenContract, tokenSymbol: s.asset, amountToken: s.amountToken }
+                    : { amountYocto: s.amountYocto };
+                })(),
+              },
+            }
           : {}),
         ...(paymentMethod === 'paypal' && paypalResult
           ? { paypal: { orderId: paypalResult.orderId, captureId: paypalResult.captureId, amountUsd: paypalResult.amountUsd, env: paypalPayments.paypalEnv() } }

@@ -79,6 +79,8 @@ scripts/*
 scripts/near-spike/near-credentials*.json
 scripts/near-spike/node_modules/
 scripts/near-spike/package-lock.json
+scripts/near-spike/pay-forwarder/target/
+scripts/near-spike/pay-forwarder/Cargo.lock
 !scripts/manus-research.mjs
 !scripts/youcam-tryon-smoke.mjs
 !scripts/otari-agent-keys.mjs
