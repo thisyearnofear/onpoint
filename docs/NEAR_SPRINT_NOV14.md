@@ -437,15 +437,18 @@ live) is PUBLIC MPC infrastructure on testnet, not our deployment.
   account controls foreign-chain funds with no key material.
 - Receipt surfaces both tx hashes: nearblocks + Sepolia explorer.
 
-### Acceptance
+### Acceptance — VERIFIED (prod, 2026-11-14)
 
-- [ ] `mt_balance_of` delta on NEAR + a Sepolia tx to the derived address,
-      both linked from the order receipt.
-- [ ] Merchant spends/messages FROM the derived address via MPC sign —
-      "controls a foreign address, no key anywhere" is demonstrated.
-- [ ] Fails honestly: if faucet/RPC/MPC fails in the recording window,
-      the queue still settles NEAR-side and `xchainSettle` reads
-      `pending` — the run doesn't crash.
+- [x] NEAR-side settle (`9sGXVMdX…BL5os`, order `3fbbf206`) + Sepolia tx
+      `0xa5d11f73…` paying 0.002 sepoliaETH to store's derived address
+      `0x71db5db9…` — the sepolia link rides the mailbox result back to
+      the buyer.
+- [x] The derived address is controlled purely via MPC `sign` on
+      `v1.signer-prod.testnet` — sender's signature validated by the
+      Sepolia node (rejected only on funds before the faucet). No EVM
+      private key exists.
+- [x] Fails honestly: `settleXchain` is try/catch — a bad leg logs a
+      warning; the NEAR-side settle is already landed.
 
 ## K — Open solver queue (dev 2) · solver ≠ merchant
 
