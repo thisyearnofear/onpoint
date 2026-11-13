@@ -182,6 +182,37 @@ async function verifyIntentsSettlement({
     };
   }
 
+  // Optional: surface a token_diff funding leg when the same atomic
+  // bundle contains one — the buyer swapped another asset into tokenId to
+  // fund the transfer. Report it; the transfer match above is what pays.
+  let swap = null;
+  const diffs = [];
+  for (const entry of signed) {
+    if (entry?.standard !== 'nep413' || typeof entry?.payload?.message !== 'string') continue;
+    let m;
+    try {
+      m = JSON.parse(entry.payload.message);
+    } catch {
+      continue;
+    }
+    const d = (m.intents ?? []).find((i) => i?.intent === 'token_diff' && i?.diff);
+    if (d) diffs.push({ signer: m.signer_id, diff: d.diff });
+  }
+  if (diffs.length >= 2) {
+    const nets = {};
+    for (const { diff } of diffs) {
+      for (const [t, a] of Object.entries(diff)) {
+        try {
+          nets[t] = (nets[t] ?? 0n) + BigInt(a);
+        } catch { /* ignore unparseable deltas */ }
+      }
+    }
+    swap = {
+      intents: diffs,
+      netsZero: Object.values(nets).every((n) => n === 0n),
+    };
+  }
+
   return {
     ok: true,
     mode: 'intents',
@@ -194,6 +225,7 @@ async function verifyIntentsSettlement({
     tokenId: cfg.tokenId,
     amountToken: match.amount.toString(),
     finalExecutionStatus: finality,
+    ...(swap ? { swap } : {}),
   };
 }
 
@@ -259,9 +291,122 @@ function validateSignedIntentPayload({ signed, buyerAccountId, expectedPayeeId, 
   return { ok: true, msg, signer: msg.signer_id, amount: amount.toString(), deadline: msg.deadline };
 }
 
+/**
+ * Structural validation of a signed token_diff payload — the funding leg
+ * of a swap-funded settlement. The buyer publishes it next to its
+ * transfer intent; an independent counterparty (merchant-as-solver)
+ * countersigns the mirror and executes the whole set in ONE
+ * execute_intents call. The contract enforces per-token conservation
+ * (`unmatched_deltas`), so the diff pair + transfer is atomic.
+ *
+ * Checks: nep413, message parses, signer_id = expectedSigner (the same
+ * buyer as the transfer), verifier match, unexpired, and the message
+ * contains a token_diff whose diff map gives `giveTokenId` (negative) for
+ * `tokenId` (positive, >= minGetBase). The API does not judge the rate —
+ * that is the counterparty's sovereign decision.
+ */
+function validateSignedDiffPayload({ signed, expectedSigner, giveTokenId, minGetBase }) {
+  const cfg = intentsConfig();
+  if (!cfg) return { ok: false, reason: 'intents_not_configured' };
+  if (!signed || signed.standard !== 'nep413') {
+    return { ok: false, reason: 'not_nep413' };
+  }
+  if (typeof signed.signature !== 'string' || !signed.signature.startsWith('ed25519:')) {
+    return { ok: false, reason: 'signature_missing' };
+  }
+  if (typeof signed.public_key !== 'string' || !signed.public_key.startsWith('ed25519:')) {
+    return { ok: false, reason: 'public_key_missing' };
+  }
+  let msg;
+  try {
+    msg = JSON.parse(signed.payload?.message ?? '');
+  } catch {
+    return { ok: false, reason: 'message_unparseable' };
+  }
+  if (typeof msg?.signer_id !== 'string' || !msg.signer_id) {
+    return { ok: false, reason: 'signer_missing' };
+  }
+  if (expectedSigner && msg.signer_id !== expectedSigner) {
+    return { ok: false, reason: 'diff_signer_mismatch', signer: msg.signer_id };
+  }
+  if (msg?.verifying_contract !== cfg.verifier) {
+    return { ok: false, reason: 'verifier_mismatch', verifier: msg?.verifying_contract };
+  }
+  if (msg?.deadline && Date.parse(msg.deadline) <= Date.now()) {
+    return { ok: false, reason: 'deadline_expired', deadline: msg.deadline };
+  }
+  const diffIntent = (msg.intents ?? []).find((i) => i?.intent === 'token_diff' && i?.diff);
+  if (!diffIntent) return { ok: false, reason: 'no_token_diff' };
+  let getAmount, giveAmount;
+  try {
+    getAmount = BigInt(diffIntent.diff[cfg.tokenId] ?? '0');
+    giveAmount = BigInt(diffIntent.diff[giveTokenId] ?? '0');
+  } catch {
+    return { ok: false, reason: 'diff_unparseable' };
+  }
+  if (getAmount <= 0n || getAmount < BigInt(minGetBase ?? '0')) {
+    return { ok: false, reason: 'diff_get_below_quote', amount: String(getAmount), minAmount: String(minGetBase ?? '0') };
+  }
+  if (giveAmount >= 0n) {
+    return { ok: false, reason: 'diff_give_not_negative', giveTokenId, amount: String(giveAmount) };
+  }
+  return {
+    ok: true,
+    msg,
+    signer: msg.signer_id,
+    diff: diffIntent.diff,
+    giveTokenId,
+    giveAmount: String(-giveAmount),
+    getAmount: String(getAmount),
+  };
+}
+
+/**
+ * Check the verifier's on-chain public-key registry — `has_public_key(
+ * account_id, public_key)`. The registry is the same one that authorizes
+ * intent signing (the account registered the key itself via add_public_key,
+ * 1 yocto, self-call only), so it also authorizes quote-token signing for
+ * sovereign sellers the platform cannot sign as.
+ *
+ * Returns {ok:true} / {ok:false} for a definitive answer, or
+ * {ok:null, reason} when the question can't be answered (rail unconfigured,
+ * RPC down) — callers fail closed.
+ */
+async function verifierHasPublicKey(accountId, publicKey, { rpcUrl = nearPayments.nearRpcUrl() } = {}) {
+  const cfg = intentsConfig();
+  if (!cfg) return { ok: null, reason: 'intents_not_configured' };
+  const res = await fetch(rpcUrl, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 'near-intents-keycheck',
+      method: 'query',
+      params: {
+        request_type: 'call_function',
+        finality: 'final',
+        account_id: cfg.verifier,
+        method_name: 'has_public_key',
+        args_base64: Buffer.from(JSON.stringify({ account_id: accountId, public_key: publicKey })).toString('base64'),
+      },
+    }),
+  }).catch((e) => ({ ok: false, error: e }));
+  if (!res?.ok) return { ok: null, reason: `rpc_http_${res?.status ?? 'unreachable'}` };
+  const data = await res.json();
+  if (data.error) return { ok: null, reason: data.error.name ?? 'rpc_error' };
+  try {
+    const json = Buffer.from(data.result.result).toString('utf8');
+    return { ok: JSON.parse(json) === true };
+  } catch {
+    return { ok: null, reason: 'result_unparseable' };
+  }
+}
+
 module.exports = {
   intentsConfig,
   intentsQuoteForUsd,
   verifyIntentsSettlement,
   validateSignedIntentPayload,
+  validateSignedDiffPayload,
+  verifierHasPublicKey,
 };

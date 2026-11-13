@@ -1,8 +1,15 @@
 # Sprint: Grand-prize shape — Nov 14
 
-Bar from the critique: *"agents settle through Intents or actually bargain."*
-Constraints: full scope, testnet only (no mainnet funding). NEAR Intents has no
-public testnet deployment — we deploy the canonical verifier ourselves.
+Bar from the critique: *"a merchant the platform does not key-hold
+refuses a price and withdraws the proceeds."* That decomposes into
+three workstreams: I (sovereign refusal + signature), G (an account we
+don't control, run by a machine we don't run), H (the withdrawal).
+Constraints: full scope, testnet only. NEAR Intents has no public
+testnet deployment — we deploy the canonical verifier ourselves.
+
+Assignments: dev 1 → I (seller-sovereign negotiation) · dev 2 → G
+(external payee + Postgres) · dev 3 → H (collect leg + docs) · Devin →
+F (token_diff, gated) + integration/deploys/e2e.
 
 ## A — Real bargaining (dev 1)
 
@@ -165,7 +172,100 @@ the storefront's json10kb and 413'd order bodies (storefront now first —
 body-parser is idempotent); `/api/pending-intents` was json1k while
 `complete` carries the redeem response (now json10kb, result.body ≤8KB).
 
-## F — Atomic cross-asset settlement (dev 1) · ~1 dev-day · PRIORITY 1
+## I — Seller-sovereign negotiation (dev 1) · ~1 dev-day · PRIORITY 1
+
+The deepest remaining hole: **the price "yes" is still the platform.**
+`NEAR_QUOTE_SIGNING_KEYS` on the server signs quoteTokens *as*
+`curator.onpoint.testnet` and `store.onpoint.testnet`. Settlement is
+sovereign (E) but pricing is impersonation — and an external merchant
+can't be onboarded for negotiation at all, because their key can't go
+in `NEAR_QUOTE_SIGNING_KEYS`. Fix: the seller's decision AND signature
+move into `seller-agent.mjs`.
+
+### Sovereignty test
+
+A payee is sovereign when its seller-agent is alive: presence via
+`POST /api/seller-presence {payee}` heartbeat (every ~15s, unsigned —
+presence isn't security-sensitive). Fresh (<45s) → sovereign path.
+Stale → hosted path (current API policy + `NEAR_QUOTE_SIGNING_KEYS`).
+External merchants have no hosted key, so ONLY the sovereign path
+exists for them — the platform physically cannot sign. That's the
+claim, made mechanically.
+
+### Negotiation mailbox (mirrors intent-mailbox.js)
+
+`lib/negotiation-mailbox.js` — pending items `{id, sessionId, payee,
+round, offer, expiresAt}`; lifecycle pending → answered | expired.
+
+```
+POST /api/curator/{slug}/negotiate        → 202 {sessionId, status:"pending_seller", sellerMode:"sovereign"}
+POST /api/curator/{slug}/negotiate/{sid}  → 202 {status:"pending_seller", round}   (each buyer offer enqueues)
+GET  /api/pending-negotiations?payee=…    → seller-agent's work queue
+POST /api/pending-negotiations/{id}/respond
+      {decision:"counter"|"refuse"|"accept", price?, reasoning?, quoteToken?}
+GET  /api/negotiations/{sessionId}        → buyer's poll: full session state
+POST /api/seller-presence {payee}         → heartbeat
+```
+
+Session rows keep full history (relay every round); pending items carry
+`round` so stale/duplicate seller responses are ignored.
+
+### Response integrity
+
+Mailbox responses are unauthenticated but **non-binding** — refuse and
+counter are just relayed text; the only commitment is the quoteToken.
+On `accept`, the API verifies: ed25519 signature over the token payload
+AND `has_public_key(payee, publicKey)` in the verifier's key registry
+AND `signer.accountId === session.payee`. The same registry that
+authorizes intent-signing authorizes quote-signing — one sovereignty
+claim. Disclose the unsigned counter/refuse path plainly (rate-limited,
+worst case is noise, never a binding artifact).
+
+### seller-agent.mjs gains a policy
+
+- Polls BOTH queues per payee (`pending-intents`, `pending-negotiations`)
+  + heartbeat loop.
+- `seller-policy.json` next to creds: `{payee: {floorPct, marginPct,
+  bundleRule, reasoningTone}}` — or an LLM hook behind the same
+  interface. Dev 1's `agent-negotiation.js` policy moves processes;
+  the API keeps it only as the hosted fallback.
+- On accept, signs the existing quoteToken shape `{v,scope,curatorSlug,
+  listingId,size,qty,agreedCusd,sessionId,payee,iat,exp}` with the
+  payee's key — `intents-lib.mjs` gains `signQuoteToken` (plain ed25519
+  over `canonicalPayload()`'s fixed-key-order JSON, base58 — NOT
+  NEP-413). Extract `canonicalPayload`/`base58Encode` from
+  `lib/agent-negotiation.js` (lines ~276-307) into a tiny shared module
+  both sides import — byte-exact canonicalization is the whole game.
+  Redemption format unchanged: `/order` and `/agent/try-on` only swap
+  how the signature is verified.
+
+### API changes
+
+- `routes/agent-negotiate.js`: presence check → sovereign (enqueue) vs
+  hosted (current policy). Response gains `sellerMode`.
+- quoteToken validation: if `signer.accountId` has a hosted key, verify
+  there; else verify against the verifier registry.
+- `intent-mailbox` pattern reused — same in-memory store, same TTL
+  discipline; dev 2's Postgres work covers both mailboxes.
+
+### Demo changes
+
+`agent-demo.mjs` `negotiate()` handles `202 pending_seller` — poll
+`GET /api/negotiations/{sid}` per round (seller-agent responds in ~2s;
+60s round timeout). Buyer's narration unchanged; seller's lines now
+read "the SELLER's agent answered" — true, not narrated.
+
+### Acceptance
+
+- Hosted: everything as today (regression).
+- Sovereign: run seller-agent → full session through the mailbox →
+  token verifies via registry (not config) → redeem 201.
+- Proof for the video: kill the seller-agent mid-session → session
+  stays `pending_seller` then falls to hosted with `sellerMode` flipping
+  — a judge can SEE custody. (Or for the external merchant: no
+  fallback at all — the offer just waits for a process that can sign.)
+
+## F — Atomic cross-asset settlement (Devin) · ~1 dev-day · PRIORITY 3
 
 `token_diff` intents inside the verifier — the primitive that actually
 differentiates Intents from a transfer, and our testnet-max answer to
@@ -198,39 +298,59 @@ differentiates Intents from a transfer, and our testnet-max answer to
 Two kills in one stream:
 
 1. **A payee outside `onpoint.*`.** Create a personal testnet account
-   (`<you>.testnet`), `storage_deposit` on `usdc.fakes.testnet`, give me
-   the account id — owner tx adds it to the forwarder allow-list and a
-   second storefront's `commerce.nearAccountId`. Then YOU run
-   `SELLER=<you>.testnet API_URL=https://api.onpoint.famile.xyz node
-   seller-agent.mjs` on your own machine during the recording. The demo
-   pays an account OnPoint doesn't control, held by a process OnPoint
-   doesn't run — the only way "both sides are yours" actually dies.
-2. **Postgres persistence** for negotiation sessions + pending-intent
-   mailbox (sessions table keyed by id, JSON history, TTL sweep on read
-   — mirror `lib/agent-negotiation.js` + `lib/intent-mailbox.js`
-   interfaces). Kills "in-memory on one process"; makes multi-instance
-   safe. Keep the in-memory impl as the test/dev path.
+   (`<you>.testnet`), `storage_deposit` on `usdc.fakes.testnet`,
+   `add_public_key` on `intents.onpoint.testnet` for its FAK (the quote
+   registry), give me the account id — owner tx adds it to the forwarder
+   allow-list and a second storefront's `commerce.nearAccountId`. Then
+   YOU run `SELLER=<you>.testnet node seller-agent.mjs` on your own
+   machine during the recording — and once I lands, your agent answers
+   the negotiation AND signs the quote with a key the platform doesn't
+   hold. Live on camera: a refusal the platform couldn't have produced.
+2. **Postgres persistence** for negotiation sessions + both mailboxes
+   (sessions table keyed by id, JSON history, TTL sweep on read —
+   mirror `lib/agent-negotiation.js` + `lib/intent-mailbox.js` +
+   `lib/negotiation-mailbox.js` interfaces). Kills "in-memory on one
+   process"; makes multi-instance safe. Keep in-memory as test/dev path.
 
-## H — The earn leg + run-your-own-merchant docs (dev 3) · ~0.5 dev-day
+## H — The earn leg + run-your-own-merchant docs (dev 3) · ~0.5 dev-day · PRIORITY 4 · DONE (verified 2026-11-14)
 
-- Seller-agent auto-`ft_withdraw`s after each successful redeem
-  (`signWithdrawIntent` already in intents-lib.mjs) — the provider
-  COLLECTS earnings to its wallet on-chain, closing earn → custody.
-- Referral beat: buyer sends the stylist's `X-Referral-Code` on the kit
-  order → the stylist earns 2.5% on the sale it drove
-  (agent-hires-agent → agent-earns-through-agent). Check whether the
-  commission lands on-chain or only the API ledger — if ledger-only,
-  it stays a narrated +2.5% beat, not a headline.
-- Write `docs/RUN-YOUR-OWN-MERCHANT.md`: seller-agent.mjs + one NEAR
-  account + `commerce.nearAccountId` — the "a merchant could deploy
-  tomorrow" claim as a runnable runbook.
+- ✅ Seller-agent auto-`ft_withdraw`s after each successful redeem —
+  `collect()` in `seller-agent.mjs` signs + executes a withdraw intent
+  for the just-earned amount, prints ledger→wallet deltas. Verified in
+  the e2e run: stylist collected 0.03 (tx `FZnx6wGYNKN1sKB2Xex2Mqhav2PPm876XFftaosvkZGY`),
+  merchant collected 16.79 (tx `zihX9Ny7T6o4QNjH9tWgWKkC4ZxUvJBuEYc2Q9x9f2Z`)
+  — each to its own wallet, signed by its own key. Seller-agent also
+  registers the payee's verifier key at boot (`add_public_key`) — needed
+  by fresh/external accounts — and accepts `SELLER`+`SELLER_KEY` env so a
+  merchant runs it with zero repo creds. Demo step-6 now proves "earned"
+  as the race-immune ledger+wallet delta.
+- ✅ Referral beat — buyer rides `?referral=0x181eD62B…3532` (mo's payout
+  wallet) on the kit order → the stylist who drove the sale earns 2.5%.
+  Query param, not `X-Referral-Code`: the mailbox replay carries
+  `redeem.path` (URL), not headers — the code survives it. **Ledger-only**:
+  a `agent_referrals` row, 2.5% `commission_cusd`, `status:'pending'` —
+  NOT on-chain, so it stays a narrated beat per spec. Raw address, not a
+  `ref_` code: codes only resolve via prior referrals/`agent_looks`
+  history (first-run demos get `unknown` → nothing records); a 0x address
+  resolves directly. `order.referralCode` now echoes in the 201.
+- ✅ `docs/RUN-YOUR-OWN-MERCHANT.md` — the runnable runbook: one NEAR
+  account + `SELLER_KEY` + `commerce.nearAccountId`; covers storage_deposit,
+  boot-time verifier key registration, the custody boundary, and the
+  honest testnet/in-memory caveats.
 
 ## D — Final assembly (Devin)
 
 Review the F spike, integrate, prod deploys, recording-ready e2e
 (3 terminals / 4 keys), docs honesty pass, PayPal rail intact.
 
-## Recording cut — 3+ terminals, disjoint custody
+## Recording cut — rail-first, not polaroid-first
+
+The 60s video leads with the rail, not the render: refusal printed in
+the buyer terminal → seller terminal (different process, different key,
+ideally a different machine) counters → signed token → buyer publishes
+the intent → seller executes → nearblocks shows the payee's ledger
+balance moving → withdrawal. The try-on render is ~5s of texture.
+ChatGPT wins "show me in this" — we don't compete on the picture.
 
 - T1: buyer `agent-demo.mjs` (agent key only)
 - T2: `SELLER=curator.onpoint.testnet node seller-agent.mjs`
@@ -239,7 +359,8 @@ Review the F spike, integrate, prod deploys, recording-ready e2e
 
 ## Drop lines (Nov 14 ~12:00 UTC)
 
-F spike fails → ship E+G+H (still strictly stronger than today).
+I slips → hosted negotiation stays with an explicit "platform-signed
+quote" disclosure line — F+G+H still land. F spike fails → ship I+G+H.
 G external account slips → three terminals on our accounts still shows
 disjoint custody. H referral slips → keep withdraw (already built).
 Postgres slips → in-memory stays a disclosed limitation.
@@ -248,7 +369,15 @@ Postgres slips → in-memory stays a disclosed limitation.
 
 - Verifier is OUR testnet deployment of the canonical contract (upstream is
   mainnet-only); USDC.e is a testnet mock.
-- Seller agent is a policy function + optional LLM reasoning, not a third
-  party. Say it plainly.
+- Two seller modes, disclosed: **sovereign** (a separate process holds the
+  payee key — for external merchants the ONLY mode) vs **hosted** (the API
+  holds a demo key and signs as the payee — fallback for our own testnet
+  accounts). `sellerMode` is in every negotiate response; never blur it.
+- Mailbox responses (counter/refuse) are unsigned and non-binding — only
+  the quoteToken commits, and it's verified against the payee's registry
+  key or hosted key. Noise is possible; forgery of a *binding* artifact
+  is not.
 - FCAK can't sign NEP-413 (protocol rule) — layered key model: FAK = intent
   identity, FCAK = bounded on-chain budget.
+- Presence is unsigned by design (freshness = "is an agent process alive"),
+  not an auth claim.

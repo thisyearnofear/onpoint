@@ -311,6 +311,15 @@ router.post('/', async (req, res) => {
           code: 'QUOTE_TOKEN_MISMATCH',
         });
       }
+      // Signer authorization: hosted-key match or the payee's own key in the
+      // verifier registry (sovereign signatures the platform cannot produce).
+      const auth = await require('../lib/agent-negotiation').authorizeQuoteSigner({
+        signerAccountId: check.signerAccountId,
+        publicKey: check.signerPublicKey,
+      });
+      if (!auth.ok) {
+        return res.status(409).json({ error: `quoteToken signer not authorized: ${auth.reason}`, code: 'SIGNER_UNAUTHORIZED' });
+      }
       priceCusd = p.agreedCusd;
     }
     const splitAddress = curatorSplitAddress(row.curator);

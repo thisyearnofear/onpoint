@@ -17,32 +17,11 @@
  */
 
 const crypto = require('crypto');
-
-// ── base58 (NEAR keys are base58; apps/api carries no codec dep) ──────────
-const B58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-const B58_MAP = new Map([...B58_ALPHABET].map((ch, i) => [ch, BigInt(i)]));
-
-function base58Decode(str) {
-  let num = 0n;
-  for (const ch of String(str)) {
-    const v = B58_MAP.get(ch);
-    if (v === undefined) throw new Error('invalid base58');
-    num = num * 58n + v;
-  }
-  const bytes = [];
-  while (num > 0n) { bytes.unshift(Number(num & 0xffn)); num >>= 8n; }
-  const pad = String(str).match(/^1+/)?.[0].length ?? 0;
-  return Buffer.from([...Array(pad).fill(0), ...bytes]);
-}
-
-function base58Encode(buf) {
-  let num = 0n;
-  for (const b of buf) num = num * 256n + BigInt(b);
-  let out = '';
-  while (num > 0n) { out = B58_ALPHABET[Number(num % 58n)] + out; num /= 58n; }
-  const pad = Buffer.from(buf).findIndex((b) => b !== 0);
-  return '1'.repeat(pad === -1 ? buf.length : pad) + out;
-}
+const {
+  base58Decode, base58Encode, canonicalPayload,
+  nearSecretToKeyPair, signQuotePayload, verifyQuoteSignature,
+} = require('./quote-token-codec');
+const nearIntents = require('./near-intents');
 
 // ── config ───────────────────────────────────────────────────────────────
 const SESSION_TTL_MS = 10 * 60 * 1000; // sessions die fast — haggling is quick
@@ -215,28 +194,11 @@ async function veniceReasoning({ session, decision, priceCents, offerCents }) {
   }
 }
 
-// ── signed quote token (ed25519 via node:crypto — zero deps) ─────────────
+// ── signed quote token (ed25519 via quote-token-codec — zero deps) ───────
 // Secret: env NEAR_QUOTE_SIGNING_KEY in NEAR "ed25519:<base58>" form
 // (64 bytes = seed ‖ pubkey). Public half is exposed on the token so any
 // agent can verify offline; on testnet it also resolves to the curator's
 // on-chain key.
-function nearSecretToKeyPair(secret) {
-  const m = /^ed25519:([1-9A-HJ-NP-Za-km-z]+)$/.exec(String(secret || '').trim());
-  if (!m) throw new Error('NEAR_QUOTE_SIGNING_KEY must be ed25519:<base58>');
-  const raw = base58Decode(m[1]);
-  if (raw.length !== 64) throw new Error('NEAR secret key must decode to 64 bytes');
-  const seed = raw.subarray(0, 32);
-  const publicKey = raw.subarray(32, 64);
-  const jwk = {
-    kty: 'OKP', crv: 'Ed25519',
-    d: seed.toString('base64url'),
-    x: publicKey.toString('base64url'),
-  };
-  return {
-    privateKey: crypto.createPrivateKey({ format: 'jwk', key: jwk }),
-    publicKeyBytes: publicKey,
-  };
-}
 
 // Per-seller keys: NEAR_QUOTE_SIGNING_KEYS is a JSON map
 // {"store.onpoint.testnet":"ed25519:...","curator.onpoint.testnet":"ed25519:..."}
@@ -272,21 +234,14 @@ function quoteSigningKey(accountId) {
   };
 }
 
-function canonicalPayload(payload) {
-  // fixed key order → one canonical encoding both sides sign/verify
-  return JSON.stringify({
-    v: payload.v,
-    scope: payload.scope,
-    curatorSlug: payload.curatorSlug,
-    listingId: payload.listingId,
-    size: payload.size ?? null,
-    quantity: payload.quantity ?? null,
-    agreedCusd: payload.agreedCusd,
-    sessionId: payload.sessionId,
-    payee: payload.payee,
-    issuedAt: payload.issuedAt,
-    expiresAt: payload.expiresAt,
-  });
+// A hosted key for this payee means the platform CAN sign as it — the
+// hosted fallback path exists. No hosted key → sovereign-only payee: the
+// platform physically cannot sign, the seller's own process must.
+function hasHostedKey(accountId) {
+  if (!accountId) return false;
+  const map = signingKeyMap();
+  if (map[accountId]) return true;
+  return process.env.NEAR_QUOTE_SIGNER_ACCOUNT === accountId && !!process.env.NEAR_QUOTE_SIGNING_KEY;
 }
 
 function mintQuoteToken({ scope, curatorSlug, listingId, size, quantity, agreedCusd, sessionId, payee, ttlMs = 10 * 60 * 1000 }) {
@@ -300,46 +255,66 @@ function mintQuoteToken({ scope, curatorSlug, listingId, size, quantity, agreedC
     expiresAt: new Date(now + ttlMs).toISOString(),
   };
   if (!key) return { payload, signature: null, signer: null, signed: false };
-  const signature = crypto.sign(null, Buffer.from(canonicalPayload(payload)), key.privateKey);
+  const signed = signQuotePayload(payload, (signingKeyMap()[payee] || process.env.NEAR_QUOTE_SIGNING_KEY));
   return {
     payload,
-    signature: base58Encode(signature),
-    signer: { accountId: key.signerAccountId, publicKey: key.publicKeyBase58 },
+    signature: signed.signature,
+    signer: { accountId: key.signerAccountId, publicKey: signed.publicKey },
     signed: true,
   };
 }
 
+// Structural + signature check — sync, no trust decision. The signature
+// proves the token was signed by signer.publicKey; WHOSE key that is (and
+// whether it may speak for the payee) is authorizeQuoteSigner's job.
 function verifyQuoteToken(token) {
   if (!token || typeof token !== 'object') return { ok: false, error: 'quoteToken is required' };
   const { payload, signature, signer } = token;
   if (!payload || !signature || !signer?.publicKey) return { ok: false, error: 'quoteToken must carry payload, signature and signer.publicKey' };
   if (Date.parse(payload.expiresAt) <= Date.now()) return { ok: false, error: 'quoteToken expired' };
-  let pub;
-  try {
-    const m = /^ed25519:([1-9A-HJ-NP-Za-km-z]+)$/.exec(signer.publicKey);
-    if (!m) return { ok: false, error: 'signer.publicKey must be ed25519:<base58>' };
-    const pubBytes = base58Decode(m[1]);
-    if (pubBytes.length !== 32) return { ok: false, error: 'bad public key length' };
-    pub = crypto.createPublicKey({ format: 'jwk', key: { kty: 'OKP', crv: 'Ed25519', x: pubBytes.toString('base64url') } });
-  } catch (e) {
-    return { ok: false, error: `bad signer public key: ${e.message}` };
+  if (!verifyQuoteSignature(payload, signature, signer.publicKey)) {
+    return { ok: false, error: 'quoteToken signature invalid' };
   }
-  const ok = crypto.verify(
-    null,
-    Buffer.from(canonicalPayload(payload)),
-    pub,
-    base58Decode(signature),
-  );
-  if (!ok) return { ok: false, error: 'quoteToken signature invalid' };
-  const trusted = trustedSignerAccounts();
-  if (trusted.size > 0 && !trusted.has(signer.accountId)) {
-    return { ok: false, error: `quoteToken signer ${signer.accountId} is not trusted` };
+  return { ok: true, payload, signerAccountId: signer.accountId, signerPublicKey: signer.publicKey };
+}
+
+// Trust decision — async, may hit chain. A signer is authorized when:
+//   1. HOSTED: the platform holds a key for signer.accountId
+//      (NEAR_QUOTE_SIGNING_KEYS / NEAR_QUOTE_SIGNER_ACCOUNT) and the
+//      token's publicKey is exactly that key — the platform signed as
+//      itself, no spoofing by a foreign key.
+//   2. SOVEREIGN: has_public_key(signer.accountId, publicKey) on the
+//      intents verifier — the payee registered that key itself on-chain.
+//      One registry backs both quote-signing and intent-signing: the same
+//      proof that the seller holds the key that earns.
+// Everything else fails closed.
+async function authorizeQuoteSigner({ signerAccountId, publicKey, rpcUrl } = {}) {
+  if (!signerAccountId || !publicKey) return { ok: false, reason: 'signer_incomplete' };
+  const map = signingKeyMap();
+  const hostedSecret = map[signerAccountId]
+    || (process.env.NEAR_QUOTE_SIGNER_ACCOUNT === signerAccountId ? process.env.NEAR_QUOTE_SIGNING_KEY : null);
+  if (hostedSecret) {
+    try {
+      const { publicKeyBytes } = nearSecretToKeyPair(hostedSecret);
+      if (`ed25519:${base58Encode(publicKeyBytes)}` === publicKey) {
+        return { ok: true, via: 'hosted' };
+      }
+      // A hosted payee's token MUST carry the platform's key — a foreign
+      // key claiming a hosted account is never registry-authorized here
+      // (a real sovereign registration by that account would be its own
+      // statement anyway, but the hosted key is the intended signer).
+      return { ok: false, via: 'hosted', reason: 'public_key_mismatch' };
+    } catch {
+      return { ok: false, via: 'hosted', reason: 'hosted_key_unusable' };
+    }
   }
-  return { ok: true, payload, signerAccountId: signer.accountId };
+  const has = await nearIntents.verifierHasPublicKey(signerAccountId, publicKey, { rpcUrl });
+  if (has.ok === true) return { ok: true, via: 'registry' };
+  return { ok: false, via: 'registry', reason: has.ok === false ? 'key_not_registered' : has.reason };
 }
 
 // ── session lifecycle ─────────────────────────────────────────────────────
-function createSession({ scope, curatorSlug, listingId, size, quantity, listCusd, curator, payee, bundle }) {
+function createSession({ scope, curatorSlug, listingId, size, quantity, listCusd, curator, payee, bundle, sellerMode = 'hosted' }) {
   pruneSessions(Date.now());
   const config = negotiationConfig(curator);
   const listCents = Math.round(listCusd * 100);
@@ -355,6 +330,9 @@ function createSession({ scope, curatorSlug, listingId, size, quantity, listCusd
     listCents, floorCents,
     askCents: listCents, // seller's current price
     config, payee, bundle: !!bundle,
+    sellerMode, // 'hosted' (platform policy+key) | 'sovereign' (seller's own process+key)
+    pendingId: null, // live negotiation-mailbox item while awaiting the seller
+    quoteToken: null, // stored on accept — hosted-minted or seller-supplied
     round: 0, stagnation: 0,
     status: 'open',
     history: [], // {actor:'buyer'|'seller', cents, round, why}
@@ -366,6 +344,25 @@ function createSession({ scope, curatorSlug, listingId, size, quantity, listCusd
   return session;
 }
 
+// Apply a seller's decision to a session — shared by the hosted policy
+// (runRound in the route) and the sovereign mailbox (respond handler).
+// The buyer's offer is pushed by the caller; this records the seller's move.
+function applySellerDecision(session, { decision, priceCents, why, reasoning }) {
+  if (decision === 'accept') {
+    session.status = 'accepted';
+    session.agreedCents = priceCents;
+    session.askCents = priceCents;
+  } else if (decision === 'reject') {
+    session.status = 'rejected';
+  } else {
+    session.status = 'countered';
+    session.askCents = priceCents;
+  }
+  session.reasoning = reasoning;
+  session.pendingId = null;
+  session.history.push({ actor: 'seller', cents: priceCents ?? null, round: session.round, why });
+}
+
 function sessionSnapshot(s, extra = {}) {
   return {
     sessionId: s.sessionId,
@@ -374,6 +371,8 @@ function sessionSnapshot(s, extra = {}) {
     listingId: s.listingId,
     round: s.round,
     status: s.status,
+    sellerMode: s.sellerMode,
+    ...(s.status === 'pending_seller' && s.pendingId ? { pendingId: s.pendingId } : {}),
     listCusd: s.listCents / 100,
     sellerAskUsd: s.askCents / 100,
     agreedUsd: s.agreedCents !== null ? s.agreedCents / 100 : null,
@@ -389,12 +388,16 @@ module.exports = {
   createSession,
   getSession,
   evaluateSellerPolicy,
+  applySellerDecision,
   veniceReasoning,
   mintQuoteToken,
   verifyQuoteToken,
+  authorizeQuoteSigner,
+  hasHostedKey,
   trustedSignerAccounts,
   sessionSnapshot,
   negotiationConfig,
+  canonicalPayload,
   base58Decode,
   base58Encode,
   SESSION_TTL_MS,

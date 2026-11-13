@@ -1,7 +1,8 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 
 const crypto = require('crypto');
 const neg = require('./agent-negotiation');
+const nearIntents = require('./near-intents');
 
 // Generate a NEAR-format ed25519 secret ("ed25519:<base58(seed‖pub)>") for tests.
 function nearKey() {
@@ -116,13 +117,17 @@ describe('quote token', () => {
     expect(neg.verifyQuoteToken(forged).ok).toBe(false);
   });
 
-  it('rejects an untrusted signer account', () => {
+  it('passes a validly-signed token from an unknown account — trust is authorizeQuoteSigner\'s job', () => {
     const t = neg.mintQuoteToken({
       scope: 'order', curatorSlug: 'onpoint-store', listingId: 'l-1',
       agreedCusd: 17.31, sessionId: 'neg_x', payee: 'store.onpoint.testnet',
     });
-    const bad = { ...t, signer: { ...t.signer, accountId: 'mallory.near' } };
-    expect(neg.verifyQuoteToken(bad).ok).toBe(false);
+    // verifyQuoteToken is structural + signature only: WHO may speak for the
+    // payee is decided by authorizeQuoteSigner (hosted match or registry).
+    const renamed = { ...t, signer: { ...t.signer, accountId: 'mallory.near' } };
+    const check = neg.verifyQuoteToken(renamed);
+    expect(check.ok).toBe(true);
+    expect(check.signerAccountId).toBe('mallory.near');
   });
 
   it('rejects an expired token', () => {
@@ -144,5 +149,88 @@ describe('quote token', () => {
     });
     expect(t.signer.accountId).toBe('onpoint.testnet');
     expect(neg.verifyQuoteToken(t).ok).toBe(true);
+  });
+});
+
+describe('hasHostedKey', () => {
+  it('true for a key-mapped account, false otherwise', () => {
+    expect(neg.hasHostedKey('store.onpoint.testnet')).toBe(true);
+    expect(neg.hasHostedKey('external.onpoint.testnet')).toBe(false);
+    expect(neg.hasHostedKey(null)).toBe(false);
+    expect(neg.hasHostedKey('')).toBe(false);
+  });
+
+  it('honours the legacy single-key env pair', () => {
+    delete process.env.NEAR_QUOTE_SIGNING_KEYS;
+    process.env.NEAR_QUOTE_SIGNING_KEY = KEY.secret;
+    process.env.NEAR_QUOTE_SIGNER_ACCOUNT = 'onpoint.testnet';
+    expect(neg.hasHostedKey('onpoint.testnet')).toBe(true);
+    expect(neg.hasHostedKey('store.onpoint.testnet')).toBe(false);
+  });
+});
+
+describe('authorizeQuoteSigner', () => {
+  let saved;
+
+  beforeEach(() => {
+    saved = nearIntents.verifierHasPublicKey;
+  });
+
+  // vitest runs each test file in one process — restore the seam after each.
+  afterEach(() => {
+    nearIntents.verifierHasPublicKey = saved;
+  });
+
+  it('hosted: authorizes only the platform\'s own public key for that account', async () => {
+    nearIntents.verifierHasPublicKey = async () => ({ ok: false });
+    const auth = await neg.authorizeQuoteSigner({
+      signerAccountId: 'store.onpoint.testnet', publicKey: KEY.publicKey,
+    });
+    expect(auth).toEqual({ ok: true, via: 'hosted' });
+  });
+
+  it('hosted: a FOREIGN key is never registry-authorized for a hosted account', async () => {
+    const foreign = nearKey();
+    let registryCalled = false;
+    nearIntents.verifierHasPublicKey = async () => { registryCalled = true; return { ok: true }; };
+    const auth = await neg.authorizeQuoteSigner({
+      signerAccountId: 'store.onpoint.testnet', publicKey: foreign.publicKey,
+    });
+    expect(auth.ok).toBe(false);
+    expect(auth.reason).toBe('public_key_mismatch');
+    expect(registryCalled).toBe(false); // hosted is stricter — registry not consulted
+  });
+
+  it('sovereign: authorizes a payee key registered on the verifier', async () => {
+    nearIntents.verifierHasPublicKey = async (accountId, publicKey) =>
+      ({ ok: accountId === 'merchant.testnet' && publicKey === 'ed25519:good' });
+    const auth = await neg.authorizeQuoteSigner({
+      signerAccountId: 'merchant.testnet', publicKey: 'ed25519:good',
+    });
+    expect(auth).toEqual({ ok: true, via: 'registry' });
+  });
+
+  it('sovereign: fails closed when the key is not registered', async () => {
+    nearIntents.verifierHasPublicKey = async () => ({ ok: false });
+    const auth = await neg.authorizeQuoteSigner({
+      signerAccountId: 'mallory.near', publicKey: 'ed25519:x',
+    });
+    expect(auth.ok).toBe(false);
+    expect(auth.reason).toBe('key_not_registered');
+  });
+
+  it('sovereign: fails closed when the registry is unreachable', async () => {
+    nearIntents.verifierHasPublicKey = async () => ({ ok: null, reason: 'rpc_down' });
+    const auth = await neg.authorizeQuoteSigner({
+      signerAccountId: 'merchant.testnet', publicKey: 'ed25519:x',
+    });
+    expect(auth.ok).toBe(false);
+    expect(auth.reason).toBe('rpc_down');
+  });
+
+  it('fails closed on incomplete input', async () => {
+    expect((await neg.authorizeQuoteSigner({})).ok).toBe(false);
+    expect((await neg.authorizeQuoteSigner({ signerAccountId: 'a' })).ok).toBe(false);
+    expect((await neg.authorizeQuoteSigner({ publicKey: 'ed25519:x' })).ok).toBe(false);
   });
 });

@@ -419,6 +419,8 @@ app.use('/api/curator', json1k, generalRateLimit, require('./routes/curator-wall
 app.use('/api/curator', json1k, generalRateLimit, require('./routes/agent-negotiate'));
 // complete carries the redemption response (order JSON) back to the buyer
 app.use('/api/pending-intents', json10kb, generalRateLimit, require('./routes/pending-intents'));
+// Seller queues: pending-negotiations + /api/negotiations/:sid + /api/seller-presence
+app.use('/api', json10kb, generalRateLimit, require('./routes/pending-negotiations'));
 
 // ── Referral Routes (public, rate-limited) ──────────────────────
 // Agent referral tracking and stats.

@@ -20,6 +20,11 @@
 import { Account, JsonRpcProvider, KeyPairSigner, baseEncode } from "near-api-js";
 import { signMessage } from "near-api-js/nep413";
 import { randomBytes, createHash } from "node:crypto";
+import { createRequire } from "node:module";
+
+// Shared quote-token codec — the SAME canonicalization the API verifies.
+// Byte-exactness is the whole game: one module, both sides.
+const codec = createRequire(import.meta.url)("../../apps/api/lib/quote-token-codec.js");
 
 export const VERIFIER = process.env.INTENTS_VERIFIER || "intents.onpoint.testnet";
 export const FT_CONTRACT = process.env.INTENTS_FT || "usdc.fakes.testnet";
@@ -134,6 +139,27 @@ export async function signTransferIntent({ buyer, receiverId, amountBase, tokenI
   });
 }
 
+// Seller signs a negotiation quoteToken — plain ed25519 over the shared
+// canonical payload (NOT NEP-413). This is the sovereign signature: the
+// payee's own key, which the platform does not hold, committing to a price.
+export function signQuoteToken({ secretKey, accountId, scope, curatorSlug, listingId, size, quantity, agreedCusd, sessionId, payee, ttlMs = 10 * 60 * 1000 }) {
+  const now = Date.now();
+  const payload = {
+    v: 1, scope, curatorSlug, listingId,
+    size: size ?? null, quantity: quantity ?? null,
+    agreedCusd, sessionId, payee,
+    issuedAt: new Date(now).toISOString(),
+    expiresAt: new Date(now + ttlMs).toISOString(),
+  };
+  const signed = codec.signQuotePayload(payload, secretKey);
+  return {
+    payload,
+    signature: signed.signature,
+    signer: { accountId, publicKey: signed.publicKey },
+    signed: true,
+  };
+}
+
 // Owner signs an ft_withdraw intent — moves tokens from their internal
 // ledger balance back to their wallet via the verifier's custody. This is
 // how a seller "collects" what it earned.
@@ -172,6 +198,59 @@ export async function executeIntents(seller /* Account */, signedPayload) {
       ],
     },
     gas: "120000000000000",
+    deposit: "0",
+  });
+  const failed = (out.receipts_outcome ?? []).find((r) => r?.outcome?.status?.Failure);
+  return {
+    ok: !failed,
+    txHash: out.transaction?.hash ?? out.transaction_outcome?.id,
+    failure: failed?.outcome?.status?.Failure ?? out.status?.Failure,
+    logs: (out.receipts_outcome ?? []).flatMap((r) => r?.outcome?.logs ?? []),
+  };
+}
+
+// ── token_diff: atomic cross-asset swap inside the verifier ────────────
+// A token_diff intent is a signed accounting delta over the internal
+// ledger: {intent:"token_diff", diff:{"nep141:<contract>":"<signed amount>"}}.
+// Per token, every negative delta must be matched by a positive delta
+// somewhere else in the SAME execute_intents call — the contract fails
+// with `unmatched_deltas` otherwise, which is what makes a multi-signer
+// bundle atomic. Verified live on our unmodified defuse deployment:
+// https://testnet.nearblocks.io/txns/85TCELdBRWcxkHnFcKDkUwuFyQWmYLLab6dDKgT9FAVJ
+
+// Signer proposes a diff: give `give` (tokenId → negative) for `get`
+// (tokenId → positive). E.g. a buyer holding wNEAR swaps into USDC.e to
+// pay a quote denominated in USDC.
+export async function signTokenDiffIntent({ signer, give /* {tokenId: amountBase} */, get /* {tokenId: amountBase} */, deadlineMs }) {
+  const diff = {};
+  for (const [t, a] of Object.entries(give)) diff[t] = `-${a}`;
+  for (const [t, a] of Object.entries(get)) diff[t] = `${a}`;
+  return signIntents({ signer, deadlineMs, intents: [{ intent: "token_diff", diff }] });
+}
+
+// The mirror image — what the counterparty (merchant-as-solver) signs.
+export function counterDiff(diff /* {tokenId: signedString} */) {
+  const out = {};
+  for (const [t, a] of Object.entries(diff)) out[t] = `${-BigInt(a)}`;
+  return out;
+}
+
+// Execute N signed payloads (possibly from different signers) in ONE
+// atomic call. Order inside `signed` doesn't matter — the contract
+// applies the whole set or nothing.
+export async function executeBundle(executor /* Account */, signedPayloads /* array */) {
+  const out = await executor.callFunctionRaw({
+    contractId: VERIFIER,
+    methodName: "execute_intents",
+    args: {
+      signed: signedPayloads.map((p) => ({
+        standard: p.standard,
+        payload: p.payload,
+        signature: p.signature,
+        public_key: p.public_key,
+      })),
+    },
+    gas: "240000000000000",
     deposit: "0",
   });
   const failed = (out.receipts_outcome ?? []).find((r) => r?.outcome?.status?.Failure);

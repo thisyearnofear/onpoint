@@ -40,7 +40,7 @@ function sweep(now = Date.now()) {
  * Validate + store a published intent.
  * Returns {ok, pendingId} or {ok:false, reason}.
  */
-function submit({ signed, buyerAccountId, payee, minAmountBase, redeem }) {
+function submit({ signed, signedSwap, buyerAccountId, payee, minAmountBase, redeem }) {
   const check = nearIntents.validateSignedIntentPayload({
     signed,
     buyerAccountId,
@@ -48,6 +48,32 @@ function submit({ signed, buyerAccountId, payee, minAmountBase, redeem }) {
     minAmountBase,
   });
   if (!check.ok) return { ok: false, reason: check.reason, detail: check };
+  // Optional swap funding: the buyer also published a signed token_diff
+  // (give another asset, get the settlement token). Its signer must be the
+  // same buyer as the transfer; the counterparty mirror is the seller's
+  // own sovereign signature, added at execution time.
+  let swap = null;
+  if (signedSwap) {
+    const dCheck = nearIntents.validateSignedDiffPayload({
+      signed: signedSwap,
+      expectedSigner: check.signer,
+      giveTokenId: signedSwap?.giveTokenId,
+      minGetBase: check.amount,
+    });
+    if (!dCheck.ok) return { ok: false, reason: `swap_${dCheck.reason}`, detail: dCheck };
+    swap = {
+      signed: {
+        standard: signedSwap.standard,
+        payload: signedSwap.payload,
+        signature: signedSwap.signature,
+        public_key: signedSwap.public_key,
+      },
+      diff: dCheck.diff,
+      giveTokenId: dCheck.giveTokenId,
+      giveAmount: dCheck.giveAmount,
+      getAmount: dCheck.getAmount,
+    };
+  }
   sweep();
   const pendingId = `pin_${crypto.randomBytes(9).toString('hex')}`;
   pending.set(pendingId, {
@@ -60,6 +86,7 @@ function submit({ signed, buyerAccountId, payee, minAmountBase, redeem }) {
       signature: signed.signature,
       public_key: signed.public_key,
     },
+    swap,
     amountBase: check.amount,
     redeem: redeem || null, // { endpoint, body } the seller replays with intentsTxHash
     status: 'pending',

@@ -1,0 +1,7 @@
+{
+  "_comment": "The seller's OWN pricing policy — held by the seller's process, never the platform. floorPct = hard cost floor; marginPct = target (null = midpoint of haggle band); bundleDiscountPct = extra cut when the buyer hired the stylist; maxRounds = patience.",
+  "store.onpoint.testnet":   { "floorPct": 0.87, "marginPct": null, "bundleDiscountPct": 0.03, "maxRounds": 6, "reasoningTone": "plain", "minUsdcPerWnear": 3.5 },
+  "meridian-goods.testnet":  { "floorPct": 0.8, "marginPct": null, "bundleDiscountPct": 0, "maxRounds": 4, "reasoningTone": "plain", "minUsdcPerWnear": 3.5 },
+  "curator.onpoint.testnet": { "tryOnFloorPct": 0.6, "floorPct": 0.9, "marginPct": null, "maxRounds": 5, "reasoningTone": "plain" },
+  "default":                 { "floorPct": 0.9, "tryOnFloorPct": 0.6, "marginPct": null, "bundleDiscountPct": 0.03, "maxRounds": 5 }
+}

@@ -91,8 +91,9 @@ there is no official testnet deploy. Flow:
    `GET /api/pending-intents/:id` for the settled outcome.
 
 The verifier WASM is sha256 `f67f9559…1fb20e5`, verified at download
-(`deploy-intents-verifier.mjs` + `intents-verifier/`). Sellers "collect" via a
-signed `ft_withdraw` intent back to their wallet (`signWithdrawIntent` in
+(`deploy-intents-verifier.mjs` + `intents-verifier/`). Sellers collect
+automatically — after each successful redeem `seller-agent.mjs` signs + executes
+an `ft_withdraw` intent for the just-earned amount (`signWithdrawIntent` in
 `intents-lib.mjs`); `intents-settle.mjs` is the standalone spike for the whole
 deposit → sign → execute → verify cycle.
 
@@ -161,7 +162,7 @@ Full agent flow proven against the real API on an isolated Neon demo DB:
 4. `POST /api/curator/onpoint-store/negotiate` `{offerUsd:8}` → **refused** ("below my cost"); reopen $14 → countered $16.79 (bundle context: the stylist payment is visible) → accept → signed quote token — **negotiate**, quote/accept/refuse all on screen.
 5. Optional beat: an over-cap `pay` call is rejected on-chain — the scoped key can only spend what's escrowed.
 6. Buyer signs the order intent; the **merchant** executes it → re-POST `{quoteToken, intentsTxHash}` → **201**, `paymentMethod: near_intents`, `payout.status: settled` → `store.onpoint.testnet` — **settle programmatically** through the canonical verifier, no solver.
-7. Before/after `mt_batch_balance_of` on the verifier: buyer down, stylist +fee, merchant +order — each provider's ledger balance visibly earns (an `ft_withdraw` intent pulls it to the wallet).
+7. Before/after `mt_batch_balance_of` + `ft_balance_of`: buyer down; each provider earns on the ledger then **collects to its own wallet** — `seller-agent.mjs` signs + executes an `ft_withdraw` after every redeem (stylist withdraw `FZnx6wGYNKN1sKB2Xex2Mqhav2PPm876XFftaosvkZGY`, merchant `zihX9Ny7T6o4QNjH9tWgWKkC4ZxUvJBuEYc2Q9x9f2Z`). Ledger+wallet delta is the earn proof.
 
 ## Deployment status
 - [x] `NEAR_NETWORK`, `NEAR_RPC_URL`, `NEAR_USD_PRICE`, `NEAR_PAYOUT_ACCOUNT` on Hetzner (`NEAR_USD_PRICE=3.42` as of 2026-11-12 — manual; refresh before recording. Env changes need `pm2 reload onpoint-api` — the serving process is id 8 on port 48751, not `onpoint-agent-server`).

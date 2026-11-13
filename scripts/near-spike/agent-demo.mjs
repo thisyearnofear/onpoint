@@ -58,6 +58,12 @@ const SLEEP = (ms) => new Promise((r) => setTimeout(r, ms));
 // The merchant (kit order) and the hired stylist (try-on service).
 const MERCHANT_SLUG = "onpoint-store";
 const STYLIST_SLUG = "mo";
+// The stylist's referral — mo's payout wallet address. A raw 0x address
+// resolves directly (resolveReferralAgent path 1), so the commission row
+// actually lands; a bare ref_ code only resolves with prior history.
+// Sent via ?referral= (not the X-Referral-Code header) so it survives the
+// mailbox replay — redeem.path carries the URL, not headers.
+const STYLIST_REFERRAL = "0x181eD62BDdeFa6f8FFCdCa339c28a75454be3532";
 
 // ── tiny presentation kit ──
 const C = { dim: "\x1b[2m", b: "\x1b[1m", g: "\x1b[32m", c: "\x1b[36m", y: "\x1b[33m", m: "\x1b[35m", x: "\x1b[0m" };
@@ -152,15 +158,27 @@ async function payEscrowed({ receiverId, amountBase }) {
 // the seller's OWN agent process (seller-agent.mjs, a separate process
 // holding only the payee's key) picks it up and executes it. This script
 // never holds a seller key: two agents, disjoint keys, API as mailbox.
-async function publishIntent({ path, body, payee, amountBase, who }) {
+async function publishIntent({ path, body, payee, amountBase, who, swap }) {
   const signed = await intents.signTransferIntent({ buyer: agentFak, receiverId: payee, amountBase });
-  const res = await post(path, { ...body, nearAccountId: agent.accountId, signedIntent: signed });
+  // Swap funding: the transfer is paid for by a token_diff the seller
+  // countersigns (merchant-as-solver). I sign {−giveToken, +settlementToken}
+  // — the bundle settles only if the seller mirrors it.
+  let signedSwap;
+  if (swap) {
+    signedSwap = await intents.signTokenDiffIntent({
+      signer: agentFak,
+      give: { [swap.giveTokenId]: swap.giveAmountBase },
+      get: { [intents.TOKEN_ID]: amountBase },
+    });
+    signedSwap.giveTokenId = swap.giveTokenId; // wire hint for the API's diff check
+  }
+  const res = await post(path, { ...body, nearAccountId: agent.accountId, signedIntent: signed, ...(signedSwap ? { signedSwap } : {}) });
   const accepted = await res.json();
   if (res.status !== 202) {
     return { ok: false, failure: `mailbox ${res.status}: ${JSON.stringify(accepted).slice(0, 220)}` };
   }
   const pendingId = accepted.pendingId;
-  agentSays(`signed + published → ${pendingId}. waiting for ${who}'s agent to execute it…`);
+  agentSays(`signed + published → ${pendingId}${signedSwap ? " (with my swap diff)" : ""}. waiting for ${who}'s agent to execute it…`);
   const deadline = Date.now() + 90_000;
   let nudged = false;
   while (Date.now() < deadline) {
@@ -180,8 +198,25 @@ async function publishIntent({ path, body, payee, amountBase, who }) {
 
 // ── Negotiation driver: open a session, haggle until accepted ──
 // Returns { quoteToken, agreedUsd, transcript: [{actor, usd, note}] }.
+// Sovereign sellers answer asynchronously — a 202 pending_seller means the
+// offer is with the seller's OWN process (seller-agent.mjs); we poll the
+// session until it answers (or the hosted fallback kicks in).
 async function negotiate({ slug, scope, listingId, size, quantity, offers }) {
   const transcript = [];
+  const pollSession = async (sessionId) => {
+    const deadline = Date.now() + 60_000;
+    let nudged = false;
+    for (;;) {
+      const snap = await (await fetch(`${API}/api/curator/${slug}/negotiate/${sessionId}`)).json().catch(() => null);
+      if (!snap || snap.status !== "pending_seller") return snap;
+      if (!nudged) {
+        nudged = true;
+        info(`   (the seller's OWN agent is deciding — waiting; run ${C.b}API_URL=${API} node seller-agent.mjs${C.x}${C.dim} in another terminal)`);
+      }
+      if (Date.now() > deadline) return { status: "pending_seller", timedOut: true };
+      await SLEEP(2000);
+    }
+  };
   for (let attempt = 0; attempt < 3; attempt++) {
     const openOffer = offers[attempt] ?? offers[offers.length - 1];
     const open = await post(`/api/curator/${slug}/negotiate`, {
@@ -189,13 +224,18 @@ async function negotiate({ slug, scope, listingId, size, quantity, offers }) {
       offerUsd: openOffer, nearAccountId: agent.accountId,
     });
     let body = await open.json();
-    if (open.status !== 200) return { error: `negotiate open ${open.status}: ${JSON.stringify(body)}` };
+    if (open.status !== 200 && open.status !== 202) return { error: `negotiate open ${open.status}: ${JSON.stringify(body)}` };
     transcript.push({ actor: "buyer", usd: openOffer });
+    const sessionId = body.sessionId;
+    if (open.status === 202) {
+      body = await pollSession(sessionId);
+      if (body?.timedOut) return { error: "timed out waiting for the seller's agent", transcript };
+      if (!body) return { error: "session poll failed", transcript };
+    }
     if (body.status === "rejected") {
       transcript.push({ actor: "seller", note: `refused — ${body.reasoning || body.status}`, status: "rejected" });
       continue; // reopen with a better offer
     }
-    const sessionId = body.sessionId;
     let guard = 0;
     while (body.status === "countered" && guard++ < 8) {
       const counter = body.counterOffer?.offerUsd;
@@ -205,10 +245,16 @@ async function negotiate({ slug, scope, listingId, size, quantity, offers }) {
       const lastBid = transcript.filter((t) => t.actor === "buyer").at(-1).usd;
       const meet = counter != null && counter <= lastBid * 1.15;
       const nxt = meet ? null : Number(Math.min(counter, lastBid + Math.max(0.01, (counter - lastBid) * 0.5)).toFixed(2));
-      body = await (await post(`/api/curator/${slug}/negotiate/${sessionId}`,
-        nxt === null || body.round >= 4 ? { action: "accept" } : { offerUsd: nxt })).json();
+      const r = await post(`/api/curator/${slug}/negotiate/${sessionId}`,
+        nxt === null || body.round >= 4 ? { action: "accept" } : { offerUsd: nxt });
+      body = await r.json();
       if (nxt === null || body.round >= 4) transcript.push({ actor: "buyer", note: "accept" });
       else transcript.push({ actor: "buyer", usd: nxt });
+      if (r.status === 202) {
+        body = await pollSession(sessionId);
+        if (body?.timedOut) return { error: "timed out waiting for the seller's agent", transcript };
+        if (!body) return { error: "session poll failed", transcript };
+      }
     }
     if (body.status === "accepted") {
       return { quoteToken: body.quoteToken, agreedUsd: body.agreedUsd ?? body.agreedCusd, sessionId, transcript };
@@ -322,9 +368,59 @@ if (IS_INTENTS) {
 const escrowBefore = await ftBalance(scopedKey.contractId, FT);
 info(`escrow wallet ${scopedKey.contractId} holds ${escrowBefore} USDC.e — the bounded budget rail stays live too`);
 
+// ── Optional swap funding: pay the kit with wNEAR via token_diff ──
+// The merchant acts as its own solver — I sign {give wNEAR, get USDC.e},
+// it countersigns the mirror if the rate clears ITS policy, and one
+// execute_intents settles swap + payment atomically.
+const SWAP_FUNDING = process.env.SWAP_FUNDING === "1";
+const WNEAR_ID = "nep141:wrap.testnet";
+const WNEAR_CONTRACT = "wrap.testnet";
+const SWAP_RATE_USDC_PER_WNEAR = Number(process.env.SWAP_RATE_USDC_PER_WNEAR || "6");
+if (SWAP_FUNDING && IS_INTENTS) {
+  const WNEAR_UNIT = BigInt("1000000000000000000000000"); // 1e24
+  const TARGET_WNEAR = WNEAR_UNIT * 6n;
+  const wInternal = await intents.internalBalance(agent.accountId, WNEAR_ID);
+  const short = TARGET_WNEAR - wInternal;
+  if (short > 0n) {
+    step("·", "Fund the swap leg — wrap NEAR and deposit wNEAR into the verifier");
+    await agentFak.callFunctionRaw({
+      contractId: WNEAR_CONTRACT, methodName: "storage_deposit",
+      args: { account_id: agent.accountId }, gas: "30000000000000", deposit: "1250000000000000000000",
+    }).catch(() => {});
+    const state = await intents.provider.query({ request_type: "view_account", account_id: agent.accountId, finality: "final" });
+    const spendable = BigInt(state.amount) - WNEAR_UNIT; // keep ~1 NEAR for gas
+    const wrap = short < spendable ? short : spendable;
+    if (wrap <= 0n) {
+      info(`not enough NEAR to top up wNEAR — the seller solves from existing wNEAR if it can`);
+    } else {
+      const w = await agentFak.callFunctionRaw({
+        contractId: WNEAR_CONTRACT, methodName: "near_deposit", args: {},
+        gas: "30000000000000", deposit: wrap.toString(),
+      });
+      chain(`wrapped ${Number(wrap) / 1e24} NEAR → wNEAR (${txLink(w.transaction?.hash)})`);
+      await agentFak.callFunctionRaw({
+        contractId: WNEAR_CONTRACT, methodName: "storage_deposit",
+        args: { account_id: intents.VERIFIER }, gas: "30000000000000", deposit: "1250000000000000000000",
+      }).catch(() => {});
+      const dep = await agentFak.callFunctionRaw({
+        contractId: WNEAR_CONTRACT, methodName: "ft_transfer_call",
+        args: { receiver_id: intents.VERIFIER, amount: wrap.toString(), msg: "" },
+        gas: "100000000000000", deposit: "1",
+      });
+      chain(`deposited ${Number(wrap) / 1e24} wNEAR → ${intents.VERIFIER} ledger (${txLink(dep.transaction?.hash)})`);
+    }
+  }
+  info(`agent wNEAR in verifier ledger: ${Number(await intents.internalBalance(agent.accountId, WNEAR_ID)) / 1e24}`);
+}
+
 const payees = { stylist: "curator.onpoint.testnet", merchant: "store.onpoint.testnet" };
 for (const [k, id] of Object.entries(payees)) {
-  before[k] = IS_INTENTS ? Number(await intents.internalBalance(id)) / 1e6 : await ftBalance(id, FT);
+  // For intents, "earned" is ledger+wallet: the seller-agent auto-collects
+  // each settle via ft_withdraw, so the fee may sit on the ledger OR in the
+  // payee's wallet when we read — the combined delta is the truth either way.
+  before[k] = IS_INTENTS
+    ? { ledger: Number(await intents.internalBalance(id)) / 1e6, wallet: await ftBalance(id, FT) }
+    : await ftBalance(id, FT);
 }
 
 // ── 2. HIRE: negotiate the stylist's fee, settle it via an intent ──
@@ -445,14 +541,25 @@ let orderStatus = 0;
 if (IS_INTENTS) {
   const iq = q.intents;
   if (!iq) { say(`no intents rail on the order quote — is NEAR_INTENTS_VERIFIER configured on the API?`); process.exit(1); }
-  agentSays(`signing: transfer ${iq.amount} base of ${iq.tokenId} → ${iq.payTo}, verified by ${iq.verifier}`);
+  const useSwap = SWAP_FUNDING;
+  let swap;
+  if (useSwap) {
+    // Buy the settlement token with wNEAR: give (amountUsdc / myRate)
+    // wNEAR for the full amount the transfer needs. The merchant decides
+    // whether to counter-sign — the swap + payment is one atomic bundle.
+    const giveWnear = (BigInt(iq.amount) * BigInt(1e6) * BigInt(1e24)) / BigInt(Math.round(SWAP_RATE_USDC_PER_WNEAR * 1e6));
+    swap = { giveTokenId: WNEAR_ID, giveAmountBase: giveWnear.toString() };
+    agentSays(`signing: {give ${(Number(giveWnear) / 1e24).toFixed(3)} wNEAR, get ${iq.display} USDC.e} + transfer → ${iq.payTo} — the merchant's agent must countersign my diff, or nothing settles`);
+  } else {
+    agentSays(`signing: transfer ${iq.amount} base of ${iq.tokenId} → ${iq.payTo}, verified by ${iq.verifier}`);
+  }
   const pay = await publishIntent({
-    path: `/api/curator/${MERCHANT_SLUG}/order`,
+    path: `/api/curator/${MERCHANT_SLUG}/order?referral=${STYLIST_REFERRAL}`,
     body: { ...orderBody, quoteToken: kitToken },
-    payee: iq.payTo, amountBase: iq.amount, who: "the merchant",
+    payee: iq.payTo, amountBase: iq.amount, who: "the merchant", swap,
   });
   if (!pay.ok) { say(`merchant intent failed: ${pay.failure}`); process.exit(1); }
-  chain(`merchant ${iq.payTo} executed the intent — ${iq.display} ${iq.symbol} settled atomically on the verifier`);
+  chain(`merchant ${iq.payTo} executed the intent${useSwap ? " — and its own signature funded the USDC.e leg from my wNEAR, atomically" : ` — ${iq.display} ${iq.symbol} settled atomically on the verifier`}`);
   chain(txLink(pay.txHash));
   order = pay.result?.body ?? null;
   orderStatus = pay.result?.status ?? 0;
@@ -468,7 +575,7 @@ if (IS_INTENTS) {
   chain(`sent ${t.display} ${t.symbol} → ${q.near.accountId} (${t.contractId}::${t.method})`);
   chain(txLink(orderPay.txHash));
   await SLEEP(2500);
-  const res201 = await post(`/api/curator/${MERCHANT_SLUG}/order`, {
+  const res201 = await post(`/api/curator/${MERCHANT_SLUG}/order?referral=${STYLIST_REFERRAL}`, {
     ...orderBody,
     quoteToken: kitToken, // the seller's signed commitment — quoteId alone re-floors and 409s on bundle-discounted prices
     quoteId: q.quoteId, nearAccountId: agent.accountId, nearTxHash: orderPay.txHash,
@@ -481,19 +588,25 @@ agentSays(`HTTP ${orderStatus} — order ${order.order.id.slice(0, 8)} confirmed
 say(`${C.y}   payment ›${C.x} ${order.order.payment.paymentMethod} · ${order.order.payment.explorerUrl ?? "off-chain"}`);
 say(`${C.y}   payout  ›${C.x} ${order.order.payout.status} → ${order.order.payout.to ?? "platform"} ${order.order.payout.amountTokenDisplay ?? order.order.payout.amountNear ?? ""} ${order.order.payout.asset ?? ""}`);
 say(`${C.y}   receipt ›${C.x} ${order.order.receiptUrl}`);
+if (order.order.referralCode) {
+  agentSays(`and the stylist who got me here earns too — ${order.order.referralCode} pays them 2.5% on the sale they drove (referral ledger — off-chain, unlike the on-chain settle).`);
+}
 
 // ── 6. Verify on-chain: the verifier's ledger shows who earned what ──
 step(6, "Verify on-chain — two payees earned, on two different settlements");
 if (IS_INTENTS) {
+  await SLEEP(3000); // let the sellers' in-flight ft_withdraw receipts land —
+  // the wallet credit applies a block or two after the ledger debit
   const after = {
     internal: Number(await intents.internalBalance(agent.accountId)) / 1e6,
-    stylist: Number(await intents.internalBalance(payees.stylist)) / 1e6,
-    merchant: Number(await intents.internalBalance(payees.merchant)) / 1e6,
   };
+  for (const [k, id] of Object.entries(payees)) {
+    after[k] = { ledger: Number(await intents.internalBalance(id)) / 1e6, wallet: await ftBalance(id, FT) };
+  }
   chain(`agent    intents-ledger: ${Number(before.internal) / 1e6} → ${after.internal} USDC.e`);
-  chain(`stylist  ${payees.stylist}:  ${before.stylist} → ${after.stylist} USDC.e   (+${(after.stylist - before.stylist).toFixed(6)} earned — the hired service)`);
-  chain(`merchant ${payees.merchant}:  ${before.merchant} → ${after.merchant} USDC.e   (+${(after.merchant - before.merchant).toFixed(6)} earned — the order)`);
-  info(`verifier ${intents.VERIFIER} holds the ledger — withdrawals are a separate intent each payee can make`);
+  chain(`stylist  ${payees.stylist}:  +${((after.stylist.wallet - before.stylist.wallet) + (after.stylist.ledger - before.stylist.ledger)).toFixed(6)} USDC.e earned — ledger ${before.stylist.ledger} → ${after.stylist.ledger}, wallet ${before.stylist.wallet} → ${after.stylist.wallet} (its own agent withdrew)`);
+  chain(`merchant ${payees.merchant}:  +${((after.merchant.wallet - before.merchant.wallet) + (after.merchant.ledger - before.merchant.ledger)).toFixed(6)} USDC.e earned — ledger ${before.merchant.ledger} → ${after.merchant.ledger}, wallet ${before.merchant.wallet} → ${after.merchant.wallet} (its own agent withdrew)`);
+  info(`verifier ${intents.VERIFIER} holds the ledger — each payee collects with a signed ft_withdraw of its own`);
 } else {
   const after = {
     escrow: await ftBalance(scopedKey.contractId, FT),

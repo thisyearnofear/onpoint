@@ -543,7 +543,7 @@ router.post('/:slug/order', async (req, res) => {
     return res.status(400).json({ error: 'Invalid curator slug' });
   }
 
-  const { listingId, size, paymentTxHash, nearAccountId, nearTxHash, intentsTxHash, signedIntent, paypalOrderId, agentId, quoteId: clientQuoteId, gift, offerUsd, quoteToken } = req.body || {};
+  const { listingId, size, paymentTxHash, nearAccountId, nearTxHash, intentsTxHash, signedIntent, signedSwap, paypalOrderId, agentId, quoteId: clientQuoteId, gift, offerUsd, quoteToken } = req.body || {};
   const giftClaimToken = gift ? require('crypto').randomUUID() : null;
   const quantity = Number(req.body?.quantity ?? 1);
 
@@ -577,6 +577,12 @@ router.post('/:slug/order', async (req, res) => {
   }
   if (signedIntent !== undefined && (typeof signedIntent !== 'object' || signedIntent === null || Array.isArray(signedIntent))) {
     return res.status(400).json({ error: 'signedIntent must be a NEP-413 signed payload object' });
+  }
+  if (signedSwap !== undefined && (typeof signedSwap !== 'object' || signedSwap === null || Array.isArray(signedSwap))) {
+    return res.status(400).json({ error: 'signedSwap must be a NEP-413 signed token_diff payload object' });
+  }
+  if (signedSwap && !signedIntent) {
+    return res.status(400).json({ error: 'signedSwap requires signedIntent — the diff funds the transfer' });
   }
   if (signedIntent && (paymentTxHash || nearTxHash || intentsTxHash)) {
     return res.status(400).json({ error: 'Provide exactly one NEAR payment proof (nearTxHash, intentsTxHash, or signedIntent)' });
@@ -692,6 +698,15 @@ router.post('/:slug/order', async (req, res) => {
           error: 'quoteToken does not match this order (scope/curator/listing/size/quantity)',
           code: 'QUOTE_TOKEN_MISMATCH',
         });
+      }
+      // Signer authorization: hosted-key match or the payee's own key in the
+      // verifier registry (sovereign signatures the platform cannot produce).
+      const auth = await agentNegotiation.authorizeQuoteSigner({
+        signerAccountId: check.signerAccountId,
+        publicKey: check.signerPublicKey,
+      });
+      if (!auth.ok) {
+        return res.status(409).json({ error: `quoteToken signer not authorized: ${auth.reason}`, code: 'SIGNER_UNAUTHORIZED' });
       }
       const session = agentNegotiation.getSession(p.sessionId);
       if (session?.redeemedAt) {
@@ -959,12 +974,13 @@ router.post('/:slug/order', async (req, res) => {
       }
       const submitted = intentMailbox.submit({
         signed: signedIntent,
+        signedSwap,
         buyerAccountId: nearPayer,
         payee: nearPayTo,
         minAmountBase: intentsQuote.amount,
         redeem: {
           path: req.originalUrl, // relative — the seller resolves it against the API it already talks to
-          body: { ...req.body, signedIntent: undefined },
+          body: { ...req.body, signedIntent: undefined, signedSwap: undefined },
         },
       });
       if (!submitted.ok) {
@@ -978,6 +994,7 @@ router.post('/:slug/order', async (req, res) => {
         status: 'pending_execution',
         pendingId: submitted.pendingId,
         payee: nearPayTo,
+        swapFunded: Boolean(signedSwap),
         message: 'Signed intent published — the payee executes it via execute_intents, then this order completes.',
         poll: `/api/pending-intents/${submitted.pendingId}`,
       });
@@ -1463,6 +1480,7 @@ router.post('/:slug/order', async (req, res) => {
         quantity,
         totalCusd,
         status: 'confirmed',
+        referralCode: referralCode || null,
         payment: {
           txHash: effectiveTxHash,
           from: effectivePayer,

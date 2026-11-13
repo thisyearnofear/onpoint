@@ -31,6 +31,9 @@ const {
 } = require('../lib/agent-commerce');
 const { nearPayoutAccount } = require('../lib/near-payments');
 const neg = require('../lib/agent-negotiation');
+const presence = require('../lib/seller-presence');
+const mailbox = require('../lib/negotiation-mailbox');
+const pendingNegotiations = require('./pending-negotiations');
 
 const router = express.Router();
 
@@ -81,33 +84,80 @@ async function runRound(session, offerCents) {
   const llmText = await neg.veniceReasoning({ session, decision, priceCents: decision.priceCents, offerCents });
   const reasoning = llmText || decision.reasoning;
 
-  if (decision.decision === 'accept') {
-    session.status = 'accepted';
-    session.agreedCents = decision.priceCents;
-    session.askCents = decision.priceCents;
-  } else if (decision.decision === 'reject') {
-    session.status = 'rejected';
-  } else {
-    session.status = 'countered';
-    session.askCents = decision.priceCents;
-  }
-  session.reasoning = reasoning;
   session.history.push({ actor: 'buyer', cents: offerCents, round: session.round });
-  session.history.push({ actor: 'seller', cents: decision.priceCents, round: session.round, why: decision.why });
+  neg.applySellerDecision(session, {
+    decision: decision.decision,
+    priceCents: decision.priceCents,
+    why: decision.why,
+    reasoning,
+  });
   return decision;
 }
 
-function acceptedBody(session) {
-  const token = neg.mintQuoteToken({
-    scope: session.scope,
-    curatorSlug: session.curatorSlug,
-    listingId: session.listingId,
-    size: session.size,
-    quantity: session.quantity,
-    agreedCusd: session.agreedCents / 100,
+// Sovereign round: the buyer's offer goes to the SELLER'S OWN PROCESS through
+// the negotiation mailbox — the platform doesn't decide and can't sign.
+function enqueueRound(session, offer) {
+  session.round += 1;
+  session.history.push({
+    actor: 'buyer',
+    cents: offer.kind === 'offer' ? offer.cents : session.askCents,
+    round: session.round,
+    why: offer.kind === 'accept' ? 'accepted_ask' : undefined,
+  });
+  const item = mailbox.enqueue({
     sessionId: session.sessionId,
     payee: session.payee,
+    round: session.round,
+    offer,
+    context: {
+      scope: session.scope,
+      curatorSlug: session.curatorSlug,
+      listingId: session.listingId,
+      size: session.size,
+      quantity: session.quantity,
+      listCents: session.listCents,
+      askCents: session.askCents,
+      bundle: session.bundle,
+      history: session.history.map((h) => ({ actor: h.actor, cents: h.cents, round: h.round, why: h.why })),
+    },
   });
+  session.status = 'pending_seller';
+  session.sellerMode = 'sovereign';
+  session.pendingId = item.pendingId;
+  return item;
+}
+
+function pendingBody(session) {
+  return neg.sessionSnapshot(session, {
+    sellerMode: 'sovereign',
+    note: 'Offer is with the seller’s own agent — poll GET /api/negotiations/' + session.sessionId,
+  });
+}
+
+// Who is deciding this round right now? Fresh heartbeat → the seller's own
+// process; stale → the hosted fallback, which only exists when the platform
+// holds a key for the payee. Payees with no hosted key stay sovereign-or-
+// nothing — the platform physically cannot sign as them.
+function roundMode(session) {
+  if (presence.isFresh(session.payee)) return 'sovereign';
+  return neg.hasHostedKey(session.payee) ? 'hosted' : 'sovereign';
+}
+
+function acceptedBody(session) {
+  // Hosted mints here; sovereign stores the seller-supplied token on accept.
+  if (!session.quoteToken) {
+    session.quoteToken = neg.mintQuoteToken({
+      scope: session.scope,
+      curatorSlug: session.curatorSlug,
+      listingId: session.listingId,
+      size: session.size,
+      quantity: session.quantity,
+      agreedCusd: session.agreedCents / 100,
+      sessionId: session.sessionId,
+      payee: session.payee,
+    });
+  }
+  const token = session.quoteToken;
   return neg.sessionSnapshot(session, {
     quoteToken: token,
     redeem: session.scope === 'tryon'
@@ -174,8 +224,16 @@ router.post('/:slug/negotiate', async (req, res) => {
       listCusd, curator: row.curator,
       payee: nearPayoutAccount(row.curator),
       bundle,
+      sellerMode: presence.isFresh(nearPayoutAccount(row.curator)) ? 'sovereign' : 'hosted',
     });
 
+    // Sovereign payee (its seller process is alive) → the offer goes to the
+    // mailbox for THEIR agent to decide. Hosted → the platform policy answers.
+    if (roundMode(session) === 'sovereign') {
+      enqueueRound(session, { kind: 'offer', cents: offerCents });
+      return res.status(202).json(pendingBody(session));
+    }
+    session.sellerMode = 'hosted';
     const decision = await runRound(session, offerCents);
     const body = neg.sessionSnapshot(session, {
       counterOffer: session.status === 'countered' ? { offerUsd: session.askCents / 100, currency: 'USD' } : undefined,
@@ -201,9 +259,47 @@ router.post('/:slug/negotiate/:sessionId', async (req, res) => {
   if (session.status === 'accepted') return res.json(acceptedBody(session));
   if (session.status === 'rejected') return res.json(neg.sessionSnapshot(session));
 
+  // Awaiting the seller's process — first let an expired pending item resolve
+  // (dead seller → hosted fallback where a hosted key exists).
+  if (session.status === 'pending_seller') {
+    await pendingNegotiations.resolvePendingSession(session).catch(() => session);
+    if (session.status === 'pending_seller') {
+      // Still waiting — a fresh offer supersedes the pending one; accept/walk
+      // are answered below.
+      const { action } = req.body || {};
+      if (action === 'walk') {
+        session.status = 'rejected';
+        session.reasoning = 'Buyer walked away.';
+        return res.json(neg.sessionSnapshot(session));
+      }
+      if (action === 'accept') {
+        enqueueRound(session, { kind: 'accept' });
+        return res.status(202).json(pendingBody(session));
+      }
+      const offerCents = Math.round(Number(req.body?.offerUsd) * 100);
+      if (Number.isFinite(offerCents) && offerCents > 0) {
+        enqueueRound(session, { kind: 'offer', cents: offerCents });
+        return res.status(202).json(pendingBody(session));
+      }
+      return res.status(202).json(pendingBody(session));
+    }
+    // Resolved by the hosted fallback — report the outcome now.
+    if (session.status === 'accepted') return res.json(acceptedBody(session));
+    return res.json(neg.sessionSnapshot(session, {
+      counterOffer: session.status === 'countered' ? { offerUsd: session.askCents / 100, currency: 'USD' } : undefined,
+      reasoning: session.reasoning,
+    }));
+  }
+
   const { action } = req.body || {};
   if (action === 'accept') {
-    // Buyer takes the seller's current ask.
+    // Buyer takes the seller's current ask. Sovereign seller → the signed
+    // commitment still belongs to the seller's process.
+    if (roundMode(session) === 'sovereign') {
+      enqueueRound(session, { kind: 'accept' });
+      return res.status(202).json(pendingBody(session));
+    }
+    session.sellerMode = 'hosted';
     session.round += 1;
     session.history.push({ actor: 'buyer', cents: session.askCents, round: session.round, why: 'accepted_ask' });
     session.status = 'accepted';
@@ -222,6 +318,11 @@ router.post('/:slug/negotiate/:sessionId', async (req, res) => {
     return res.status(400).json({ error: 'offerUsd must be a positive USD amount — or send { "action": "accept" | "walk" }' });
   }
   try {
+    if (roundMode(session) === 'sovereign') {
+      enqueueRound(session, { kind: 'offer', cents: offerCents });
+      return res.status(202).json(pendingBody(session));
+    }
+    session.sellerMode = 'hosted';
     await runRound(session, offerCents);
     if (session.status === 'accepted') return res.json(acceptedBody(session));
     return res.json(neg.sessionSnapshot(session, {
@@ -235,12 +336,13 @@ router.post('/:slug/negotiate/:sessionId', async (req, res) => {
 });
 
 // ── GET /api/curator/:slug/negotiate/:sessionId — inspect ─────────────────
-router.get('/:slug/negotiate/:sessionId', (req, res) => {
+router.get('/:slug/negotiate/:sessionId', async (req, res) => {
   const session = neg.getSession(req.params.sessionId);
   if (!session || session.curatorSlug !== String(req.params.slug).toLowerCase()) {
     return res.status(404).json({ error: 'Negotiation session not found or expired' });
   }
-  return res.json(neg.sessionSnapshot(session));
+  await pendingNegotiations.resolvePendingSession(session).catch(() => session);
+  return res.json(pendingNegotiations.sessionSnapshotForBuyer(session));
 });
 
 module.exports = router;
