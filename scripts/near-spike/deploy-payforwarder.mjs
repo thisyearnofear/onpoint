@@ -92,6 +92,30 @@ const code = readFileSync(WASM);
 const out = await payAccount.deployContract(code);
 console.log(`deployed ${code.length} bytes → ${payId} (${out.transaction.hash})`);
 
+// ── 2b. init the spend policy (owner-managed; self-call only, one-time) ──
+const agentId = creds.accounts?.agent?.accountId ?? `agent.${root.accountId}`;
+const storeId = creds.accounts?.store?.accountId ?? `store.${root.accountId}`;
+const curatorId = creds.accounts?.curator?.accountId ?? `curator.${root.accountId}`;
+const state = await provider
+  .callFunction({ contractId: payId, method: "get_state", args: {} })
+  .catch(() => null);
+if (state) {
+  console.log(`already initialized: ${JSON.stringify(state)}`);
+} else {
+  const initOut = await payAccount.callFunctionRaw({
+    contractId: payId,
+    methodName: "init",
+    args: {
+      owner: root.accountId,
+      agent: agentId,
+      token: FT_CONTRACT,
+      max_per_tx: "25000000", // 25 USDC.e at 6 decimals
+      payees: [storeId, curatorId, root.accountId],
+    },
+  });
+  console.log(`init(owner=${root.accountId}, agent=${agentId}, cap=25 USDC.e) (${initOut.transaction.hash})`);
+}
+
 // ── 3. storage_deposit so the contract can hold the FT (escrow) ──
 const registered = await provider.callFunction({
   contractId: FT_CONTRACT,
