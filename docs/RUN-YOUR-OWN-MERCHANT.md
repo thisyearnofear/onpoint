@@ -127,7 +127,10 @@ other solvers — first executed bundle wins.
   unmodified** defuse wasm (`v0.4.2`, sha256-pinned in
   `intents-verifier/`); upstream `intents.near` is mainnet-only. On mainnet
   the same code path runs against the canonical verifier + real USDC.
-- The mailbox + negotiation sessions are **in-memory, single-process** —
-  pending items die on API restart (a buyer's signed intent is not lost:
-  they re-publish). Postgres persistence is a tracked follow-up.
+- Mailbox + sessions persist via Postgres write-through (`kv-state`) on
+  prod — a pending intent published before a restart survives it.
+- Optional: `xchainPayoutWei` in your policy makes your agent's collect leg
+  MPC-sign (`v1.signer-prod.testnet`) a Sepolia payout to the payee's
+  derived address — the cross-chain settle shown in the demo. Fund the
+  derived EVM address for gas first.
 - `ft_withdraw` costs gas — your account needs a little NEAR for it.
