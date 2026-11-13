@@ -111,15 +111,40 @@ describe('near-intents rail', () => {
       expect(r.mode).toBe('intents');
       expect(r.signer).toBe('agent.onpoint.testnet');
       expect(r.executor).toBe('store.onpoint.testnet');
+      expect(r.executorKind).toBe('payee');
+      expect(r.solverExecuted).toBe(false);
       expect(r.amountToken).toBe('50000');
     });
 
-    it('rejects when the executing signer is not the payee', async () => {
+    it('accepts a solver-executed intent — solver ≠ payee on the receipt', async () => {
       setEnv();
-      stubRpc(txStatus({ signer: 'random.testnet', intents: GOOD_MSG }));
-      const r = await verifyIntentsSettlement(VERIFY_ARGS);
+      stubRpc(txStatus({ signer: 'solver.onpoint.testnet', intents: GOOD_MSG }));
+      const r = await verifyIntentsSettlement({ ...VERIFY_ARGS, executorAccountId: 'solver.onpoint.testnet' });
+      expect(r.ok).toBe(true);
+      expect(r.executor).toBe('solver.onpoint.testnet');
+      expect(r.executorKind).toBe('solver');
+      expect(r.solverExecuted).toBe(true);
+      // The receipt still binds the payee — the inner transfer is the authority.
+      expect(r.receiver).toBe('store.onpoint.testnet');
+      expect(r.signer).toBe('agent.onpoint.testnet');
+    });
+
+    it('rejects when the tx signer does not match the declared executor', async () => {
+      setEnv();
+      stubRpc(txStatus({ signer: 'solver-a.testnet', intents: GOOD_MSG }));
+      const r = await verifyIntentsSettlement({ ...VERIFY_ARGS, executorAccountId: 'solver-b.testnet' });
       expect(r.ok).toBe(false);
-      expect(r.reason).toBe('executor_not_payee');
+      expect(r.reason).toBe('executor_mismatch');
+      expect(r.signer).toBe('solver-a.testnet');
+    });
+
+    it('a solver cannot redirect the transfer to itself', async () => {
+      setEnv();
+      const msg = { ...GOOD_MSG, intents: [{ intent: 'transfer', receiver_id: 'solver.onpoint.testnet', tokens: { 'nep141:usdc.fakes.testnet': '50000' } }] };
+      stubRpc(txStatus({ signer: 'solver.onpoint.testnet', intents: msg }));
+      const r = await verifyIntentsSettlement({ ...VERIFY_ARGS, executorAccountId: 'solver.onpoint.testnet' });
+      expect(r.ok).toBe(false);
+      expect(r.reason).toBe('no_matching_intent');
     });
 
     it('rejects an intent paying a different payee', async () => {

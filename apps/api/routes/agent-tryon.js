@@ -551,6 +551,10 @@ router.post('/', async (req, res) => {
         buyerAccountId: nearPayer,
         expectedPayeeId: nearPayTo,
         minAmountBase: intentsQuote.amount,
+        // Whoever executed the bundle (payee or solver) — the tx_status
+        // lookup keys on (tx_hash, signer). Solver ≠ payee is expected on
+        // the open solver queue.
+        executorAccountId: req.body?.intentsExecutor ? String(req.body.intentsExecutor) : undefined,
       });
       if (!intentsResult.ok) {
         return res.status(402).json({

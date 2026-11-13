@@ -34,6 +34,9 @@ const neg = require('../lib/agent-negotiation');
 const presence = require('../lib/seller-presence');
 const mailbox = require('../lib/negotiation-mailbox');
 const pendingNegotiations = require('./pending-negotiations');
+const { verifySessionToken } = require('../lib/agent-session');
+const { extractSessionToken } = require('../middleware/agent-session');
+const { timingSafeStringEqual } = require('../middleware/service-key-auth');
 
 const router = express.Router();
 
@@ -347,6 +350,127 @@ router.get('/:slug/negotiate/:sessionId', async (req, res) => {
   }
   await pendingNegotiations.resolvePendingSession(session).catch(() => session);
   return res.json(pendingNegotiations.sessionSnapshotForBuyer(session));
+});
+
+
+// ── POST /api/curator/:slug/near-account — self-serve payee wiring ────────
+// A merchant binds their own NEAR account to their storefront's
+// commerce.nearAccountId. Auth is either the ops service key, or a wallet
+// session whose address is an owner wallet of this curator
+// (commerce.walletAddress / custodialWalletAddress). For session
+// registration the account must NOT live under the platform account —
+// a hosted account implies the platform holds a key for it, which is
+// exactly the custody claim sovereign merchants exist to disprove.
+const NEAR_ACCOUNT_ID = /^(?=.{2,64}$)([a-z0-9_-]+\.)*[a-z0-9_-]+$/;
+const PLATFORM_NEAR_ACCOUNT = process.env.NEAR_PLATFORM_ACCOUNT || 'onpoint.testnet';
+const NEAR_RPC = process.env.NEAR_RPC_URL || 'https://rpc.testnet.fastnear.com';
+
+function nearAccountExists(accountId) {
+  return fetch(NEAR_RPC, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0', id: 'near-account-check', method: 'query',
+      params: { request_type: 'view_account', finality: 'final', account_id: accountId },
+    }),
+  })
+    .then(async (r) => {
+      const body = await r.json().catch(() => ({}));
+      if (typeof body?.result?.amount === 'string') return true;
+      const blob = JSON.stringify(body?.error ?? '');
+      if (blob.includes('does not exist') || blob.includes('UNKNOWN_ACCOUNT')) return false;
+      return null; // RPC answered but the shape is unknown — be honest
+    })
+    .catch(() => null);
+}
+
+function isPlatformAccount(accountId) {
+  return accountId === PLATFORM_NEAR_ACCOUNT || accountId.endsWith(`.${PLATFORM_NEAR_ACCOUNT}`);
+}
+
+function curatorOwnerWallets(curator) {
+  return [curator.commerce?.walletAddress, curator.commerce?.custodialWalletAddress]
+    .filter(Boolean)
+    .map((w) => String(w).toLowerCase());
+}
+
+router.post('/:slug/near-account', async (req, res) => {
+  const slug = String(req.params.slug || '').toLowerCase();
+  const nearAccountId = String(req.body?.nearAccountId || '').trim().toLowerCase();
+
+  if (!NEAR_ACCOUNT_ID.test(nearAccountId)) {
+    return res.status(400).json({ error: 'nearAccountId is not a valid NEAR account id' });
+  }
+
+  let db;
+  try {
+    db = getDb({ curators });
+  } catch {
+    return res.status(503).json({ error: 'Database not configured' });
+  }
+
+  // Auth: ops service key, or a wallet session that owns the storefront.
+  const serviceKey = process.env.SERVICE_API_KEY;
+  const providedKey = req.headers['x-service-key'];
+  const isService =
+    typeof providedKey === 'string' && serviceKey && timingSafeStringEqual(providedKey, serviceKey);
+
+  let sessionWallet = null;
+  if (!isService) {
+    const token = extractSessionToken(req);
+    const payload = token && verifySessionToken(token);
+    if (!payload?.sub) {
+      return res.status(401).json({
+        error: 'Curator wallet session required (or ops service key)',
+        code: 'SESSION_REQUIRED',
+        hint: 'Sign in via /api/auth/challenge + /api/auth/verify with the curator payout wallet.',
+      });
+    }
+    sessionWallet = String(payload.sub).toLowerCase();
+  }
+
+  try {
+    const [curator] = await db.select().from(curators).where(eq(curators.slug, slug)).limit(1);
+    if (!curator) return res.status(404).json({ error: 'Curator not found' });
+
+    if (sessionWallet && !curatorOwnerWallets(curator).includes(sessionWallet)) {
+      return res.status(403).json({
+        error: 'Authenticated wallet does not own this storefront',
+        hint: 'Sign in with the curator payout wallet (commerce.walletAddress).',
+      });
+    }
+
+    // External merchants register sovereign accounts only — the platform
+    // must be unable to sign as the payee. Service-keyed ops wiring (e.g.
+    // seeding onpoint-store) may bind hosted subaccounts.
+    if (!isService && isPlatformAccount(nearAccountId)) {
+      return res.status(403).json({
+        error: `External merchants must register an account outside ${PLATFORM_NEAR_ACCOUNT} — the platform holds keys for its subaccounts, so a hosted payee would be provably non-sovereign.`,
+      });
+    }
+
+    const exists = await nearAccountExists(nearAccountId);
+    if (exists === null) {
+      return res.status(502).json({ error: 'Could not verify account on-chain — NEAR RPC unreachable or returned an unexpected shape' });
+    }
+    if (exists === false) {
+      return res.status(404).json({ error: `No NEAR account exists at ${nearAccountId} — create it before wiring the payee` });
+    }
+
+    const commerce = { ...(curator.commerce || {}), nearAccountId };
+    await db.update(curators).set({ commerce }).where(eq(curators.slug, slug));
+
+    return res.json({
+      ok: true,
+      slug,
+      nearAccountId,
+      sovereign: !isPlatformAccount(nearAccountId),
+      auth: isService ? 'service' : 'curator-wallet',
+      next: 'Run your seller process: SELLER=<account> SELLER_KEY=<secret> node scripts/near-spike/seller-agent.mjs — it heartbeats, answers negotiation offers with your own policy, executes intents, and collects.',
+    });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to bind nearAccountId' });
+  }
 });
 
 module.exports = router;

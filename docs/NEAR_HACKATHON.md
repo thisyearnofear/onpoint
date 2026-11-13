@@ -103,18 +103,25 @@ there is no official testnet deploy. Flow:
 3. Buyer **publishes** the signed payload — POST `{signedIntent}` to the
    order/try-on endpoint → structural validation → a pending-intent mailbox
    (`GET /api/pending-intents`) → `202 {pendingId}`.
-4. **The payee executes** — a separate `seller-agent.mjs` process holding
-   only the payee's key polls the mailbox, calls `execute_intents({signed:…})`
-   on the verifier (the ledger moves atomically), replays the stored redeem
-   body + `intentsTxHash`, and reports the outcome through the mailbox. The
-   demo buyer holds no seller key — two processes, disjoint keys, the API as
+4. **A fulfiller executes** — a separate `seller-agent.mjs` process holding
+   only its own key polls the mailbox (`?payee=` for its orders, `?solver=1`
+   for the open solver queue: swap-funded intents broadcast to ANY solver),
+   calls `execute_intents({signed:…})` on the verifier (the ledger moves
+   atomically), replays the stored redeem body + `intentsTxHash` +
+   `intentsExecutor` (the submitting account), and reports through the
+   mailbox. The demo buyer holds no seller key — disjoint keys, the API as
    keyless mailbox. Safe by construction: a signed intent can only pay its
-   own `receiver_id`, whoever submits it.
-5. Re-POST with `{intentsTxHash}` → `lib/near-intents.js`
+   own `receiver_id`, whoever submits it — **solver ≠ payee is expected**.
+   Races are settled on-chain: the verifier consumes nonces, so a second
+   executor's tx fails; `complete()` is first-wins and a losing solver's
+   `failed` report never poisons a still-fillable swap item.
+5. Re-POST with `{intentsTxHash, intentsExecutor}` → `lib/near-intents.js`
    `verifyIntentsSettlement` checks trustlessly: tx final + all receipts ok,
-   receiver = verifier, **tx signer = payee** (the seller executed), and the
-   NEP-413 inner message carries a transfer intent from the claimed buyer to
-   the payee for ≥ the quoted amount of `tokenId`. The buyer polls
+   receiver = verifier, declared executor = tx signer, and the NEP-413 inner
+   message carries a transfer intent from the claimed buyer to the **payee**
+   for ≥ the quoted amount of `tokenId` — the inner intent is the authority,
+   the outer tx signer is just the relayer. The receipt records `executor`
+   and `executorKind` (`payee` | `solver`) distinctly. The buyer polls
    `GET /api/pending-intents/:id` for the settled outcome.
 
 The verifier WASM is sha256 `f67f9559…1fb20e5`, verified at download

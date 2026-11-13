@@ -249,8 +249,26 @@ function evaluateTrustedOffer(curator, listing, now = new Date()) {
  * the listing remains browsable and exposes its contract separately.
  */
 function buildListingAgentCommerce(curator, listing) {
-  // Digital designs are try-on only — never expose purchase offers.
-  if (listing?.inventoryType === 'digital') return null;
+  // Digital designs are try-on only — EXCEPT listings carrying a real
+  // deliverable file (attributes.deliverableKey + attributes.priceUsd):
+  // those are purchasable and delivered as a download.
+  if (listing?.inventoryType === 'digital') {
+    const deliverableKey = listing?.attributes?.deliverableKey;
+    const priceUsd = Number(listing?.attributes?.priceUsd);
+    if (!(typeof deliverableKey === 'string' && deliverableKey && Number.isFinite(priceUsd) && priceUsd > 0)) {
+      return null;
+    }
+    const contract = evaluateTrustedOffer(curator, listing);
+    if (!contract.readiness) return null;
+    return {
+      available: true,
+      currency: 'cUSD',
+      kind: 'purchase',
+      deliverable: { type: 'download' },
+      offers: [{ size: 'digital', priceCusd: priceUsd }],
+      contract,
+    };
+  }
 
   const contract = evaluateTrustedOffer(curator, listing);
   if (!contract.readiness) return null;

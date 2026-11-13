@@ -605,6 +605,10 @@ agentSays(`HTTP ${orderStatus} — order ${order.order.id.slice(0, 8)} confirmed
 say(`${C.y}   payment ›${C.x} ${order.order.payment.paymentMethod} · ${order.order.payment.explorerUrl ?? "off-chain"}`);
 say(`${C.y}   payout  ›${C.x} ${order.order.payout.status} → ${order.order.payout.to ?? "platform"} ${order.order.payout.amountTokenDisplay ?? order.order.payout.amountNear ?? ""} ${order.order.payout.asset ?? ""}`);
 say(`${C.y}   receipt ›${C.x} ${order.order.receiptUrl}`);
+if (pay.result?.xchain) {
+  agentSays(`and the settlement hopped chains — the payee's earnings land on Sepolia at an address derived from its NEAR account via MPC. No Ethereum key exists anywhere.`);
+  say(`${C.g}   xchain ›${C.x} ${pay.result.xchain.explorer}`);
+}
 if (order.order.referralCode) {
   agentSays(`and the stylist who got me here earns too — ${order.order.referralCode} pays them 2.5% on the sale they drove (referral ledger — off-chain, unlike the on-chain settle).`);
 }

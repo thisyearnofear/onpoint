@@ -545,7 +545,7 @@ router.post('/:slug/order', async (req, res) => {
 
   const { listingId, size, paymentTxHash, nearAccountId, nearTxHash, intentsTxHash, signedIntent, signedSwap, paypalOrderId, agentId, quoteId: clientQuoteId, gift, offerUsd, quoteToken } = req.body || {};
   const giftClaimToken = gift ? require('crypto').randomUUID() : null;
-  const quantity = Number(req.body?.quantity ?? 1);
+  let quantity = Number(req.body?.quantity ?? 1);
 
   if (!listingId || typeof listingId !== 'string') {
     return res.status(400).json({ error: 'listingId is required' });
@@ -621,8 +621,21 @@ router.post('/:slug/order', async (req, res) => {
       return res.status(409).json({ error: 'Listing is not live' });
     }
     // Digital listings can't be ordered — they're try-on only.
-    // Redirect agents to the try-on endpoint.
+    // Exception: a digital listing carrying a real deliverable file
+    // (attributes.deliverableKey + attributes.priceUsd) IS purchasable —
+    // delivery is a download, not a shipping claim.
+    let digitalOrder = null;
     if (row.listing.inventoryType === 'digital') {
+      const deliverableKey = row.listing.attributes?.deliverableKey;
+      const digitalPriceUsd = Number(row.listing.attributes?.priceUsd);
+      if (typeof deliverableKey === 'string' && deliverableKey && Number.isFinite(digitalPriceUsd) && digitalPriceUsd > 0) {
+        digitalOrder = {
+          deliverableKey,
+          priceUsd: digitalPriceUsd,
+          fileName: row.listing.attributes.fileName || 'digital-download',
+        };
+        quantity = 1; // digital goods are single-item by construction
+      } else {
       return res.status(409).json({
         error: 'This is a digital listing and cannot be ordered as a physical product.',
         tryOn: {
@@ -632,6 +645,7 @@ router.post('/:slug/order', async (req, res) => {
           hint: 'Try on this digital design first, then check similarPhysicalItems in the response for physical alternatives from human curators.',
         },
       });
+      }
     }
 
     const trustedOffer = evaluateTrustedOffer(row.curator, { ...row.listing, kit: row.kit });
@@ -650,18 +664,20 @@ router.post('/:slug/order', async (req, res) => {
       });
     }
 
-    const requestedSize = normalizeSize(size);
-    const sizeEntry = (row.listing.sizes || []).find(
-      (entry) => normalizeSize(entry.size) === requestedSize,
-    );
+    const requestedSize = digitalOrder ? 'digital' : normalizeSize(size);
+    const sizeEntry = digitalOrder
+      ? { size: 'digital' }
+      : (row.listing.sizes || []).find(
+          (entry) => normalizeSize(entry.size) === requestedSize,
+        );
     if (!sizeEntry) {
       return res.status(404).json({ error: `Size not found: ${requestedSize}` });
     }
-    if (Number(sizeEntry.stock) < quantity) {
+    if (!digitalOrder && Number(sizeEntry.stock) < quantity) {
       return res.status(409).json({ error: `Insufficient stock for size ${requestedSize}` });
     }
 
-    const unitCusd = kesToCusd(sizeEntry.price);
+    const unitCusd = digitalOrder ? digitalOrder.priceUsd : kesToCusd(sizeEntry.price);
     if (unitCusd === null) {
       return res.status(409).json({ error: 'Listing has no valid price' });
     }
@@ -744,9 +760,11 @@ router.post('/:slug/order', async (req, res) => {
     const offerCusd = orderOffer.offerUsd;
     const totalCusd = orderOffer.agreedCusd;
 
-    const itemLabel = row.kit
-      ? `${row.kit.club} ${row.kit.kitType} (${requestedSize}) x${quantity}`
-      : `${row.listing.title || 'Item'} (${requestedSize}) x${quantity}`;
+    const itemLabel = digitalOrder
+      ? `${row.listing.title || 'Item'} — digital download`
+      : row.kit
+        ? `${row.kit.club} ${row.kit.kitType} (${requestedSize}) x${quantity}`
+        : `${row.listing.title || 'Item'} (${requestedSize}) x${quantity}`;
 
     // ── Referral tracking ──
     // Extract referral code from request (header or query param)
@@ -1010,6 +1028,10 @@ router.post('/:slug/order', async (req, res) => {
         buyerAccountId: nearPayer,
         expectedPayeeId: nearPayTo,
         minAmountBase: intentsQuote.amount,
+        // Whoever executed the bundle (payee or solver) — the tx_status
+        // lookup keys on (tx_hash, signer). Solver ≠ payee is expected on
+        // the open solver queue.
+        executorAccountId: req.body?.intentsExecutor ? String(req.body.intentsExecutor) : undefined,
       });
       if (!intentsResult.ok) {
         return res.status(402).json({
@@ -1152,7 +1174,9 @@ router.post('/:slug/order', async (req, res) => {
     // Decrement stock atomically — prevents oversell on concurrent orders.
     // This is a single guarded UPDATE; the database re-evaluates the JSONB
     // stock value while acquiring the listing row lock.
-    const stockResult = await db.execute(sql`
+    const stockResult = digitalOrder
+      ? { rows: [{ id: 'digital' }] }
+      : await db.execute(sql`
       UPDATE ${listings} AS inventory
       SET sizes = (
         SELECT jsonb_agg(
@@ -1387,6 +1411,7 @@ router.post('/:slug/order', async (req, res) => {
           listingId,
           item: itemLabel,
           totalCusd,
+          ...(digitalOrder ? { delivery: { type: 'download', url: keyToUrl(digitalOrder.deliverableKey), fileName: digitalOrder.fileName } } : {}),
           buyerAddress: effectivePayer,
           payoutTxHash,
           paymentMethod,
@@ -1481,6 +1506,14 @@ router.post('/:slug/order', async (req, res) => {
         totalCusd,
         status: 'confirmed',
         referralCode: referralCode || null,
+        ...(digitalOrder ? {
+          delivery: {
+            type: 'download',
+            url: keyToUrl(digitalOrder.deliverableKey),
+            fileName: digitalOrder.fileName,
+            note: 'Digital good — delivered instantly, no shipping claim.',
+          },
+        } : {}),
         payment: {
           txHash: effectiveTxHash,
           from: effectivePayer,

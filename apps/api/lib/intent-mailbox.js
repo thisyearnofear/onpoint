@@ -97,10 +97,15 @@ function submit({ signed, signedSwap, buyerAccountId, payee, minAmountBase, rede
   return { ok: true, pendingId };
 }
 
-function list({ payee } = {}) {
+function list({ payee, solver } = {}) {
   sweep();
   return [...pending.values()]
     .filter((p) => p.status === 'pending' && (!payee || p.payee === payee))
+    // Open solver queue: swap-funded intents are broadcast to ANY solver
+    // (the mirror diff is counter-signed by whoever fills it) — the race is
+    // won on-chain: the verifier consumes nonces, so a second executor's tx
+    // fails and its late complete() report loses to the first.
+    .filter((p) => !solver || !!p.swap)
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
@@ -109,16 +114,34 @@ function get(pendingId) {
   return pending.get(pendingId) ?? null;
 }
 
-/** Seller executed + redeemed — record the outcome for the buyer's poll. */
-function complete(pendingId, { txHash, status = 'settled', result } = {}) {
+/**
+ * Executor (payee or solver) reports the outcome — RACE SEMANTICS: the
+ * first completion wins. A solver that lost the on-chain race (its
+ * execute_intents failed on consumed nonces, or a peer completed first)
+ * gets { won:false, ...record } — the winning outcome is never overwritten.
+ * Returns null only when the pendingId doesn't exist at all.
+ */
+function complete(pendingId, { txHash, status = 'settled', result, executor } = {}) {
   const p = pending.get(pendingId);
   if (!p) return null;
+  if (p.status !== 'pending') return { ...p, won: false };
+  // Solver-queue items: one executor's failure is NOT terminal — in a race,
+  // a losing solver's report could land before the winner's, and the item
+  // is still fillable by anyone else. Record the attempt, stay pending.
+  // (Payee-only items keep first-wins semantics — the payee's own failure
+  // is its sovereign decision to stop filling.)
+  if (status === 'failed' && p.swap) {
+    p.attempts = [...(p.attempts ?? []), { executor: executor ?? null, result, at: new Date().toISOString() }].slice(-10);
+    pending.set(pendingId, p);
+    return { ...p, won: false, attemptRecorded: true };
+  }
   p.status = status;
   p.txHash = txHash ?? p.txHash;
   p.result = result ?? p.result;
+  if (executor) p.executor = executor;
   p.completedAt = new Date().toISOString();
   pending.set(pendingId, p); // flush the mutated record
-  return p;
+  return { ...p, won: true };
 }
 
 module.exports = { submit, list, get, complete };

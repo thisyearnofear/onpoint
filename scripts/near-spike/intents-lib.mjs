@@ -77,6 +77,27 @@ export async function ensureVerifierKey(signer /* Account */) {
   return { already: false, ok: !failed, publicKey: pub, txHash: out.transaction?.hash ?? out.transaction_outcome?.id, failure: failed?.outcome?.status?.Failure };
 }
 
+// Register the seller on the FT's storage registry (idempotent) — a fresh
+// account cannot receive NEP-141 tokens until it has paid storage. The
+// merchant's own agent does this at boot; the platform never needs to.
+export async function ensureFtStorage(signer /* Account */, ftContract = FT_CONTRACT) {
+  const bal = await provider.callFunction({
+    contractId: ftContract,
+    method: "storage_balance_of",
+    args: { account_id: signer.accountId },
+  }).catch(() => null);
+  if (bal && bal.total) return { already: true };
+  const out = await signer.callFunctionRaw({
+    contractId: ftContract,
+    methodName: "storage_deposit",
+    args: { account_id: signer.accountId, registration_only: true },
+    gas: "30000000000000",
+    deposit: "1250000000000000000000", // 0.00125 NEAR
+  });
+  const failed = (out.receipts_outcome ?? []).find((r) => r?.outcome?.status?.Failure);
+  return { already: false, ok: !failed, txHash: out.transaction?.hash ?? out.transaction_outcome?.id, failure: failed?.outcome?.status?.Failure };
+}
+
 // Deposit NEP-141 into the verifier's internal ledger for `signer`.
 export async function deposit(signer /* Account */, amountBase) {
   const out = await signer.callFunctionRaw({

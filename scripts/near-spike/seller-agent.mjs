@@ -71,6 +71,14 @@ for (const [payee, seller] of sellers) {
   await intents.ensureVerifierKey(seller).catch((e) =>
     say(`   ${C.y}⚠${C.x} verifier key registration for ${payee}: ${String(e).slice(0, 120)}`),
   );
+  // Same for the FT's storage registry — a fresh account can't receive
+  // NEP-141 tokens until it registers. Idempotent; the merchant's own
+  // agent pays the 0.00125 NEAR once, the platform never has to.
+  await intents.ensureFtStorage(seller).then((r) =>
+    !r?.already && say(`   ${C.g}✓${C.x} FT storage registered for ${payee}`),
+  ).catch((e) =>
+    say(`   ${C.y}⚠${C.x} FT storage registration for ${payee}: ${String(e).slice(0, 120)}`),
+  );
 }
 
 // ── Sovereign negotiation: presence + the offer queue ────────────────────
@@ -142,6 +150,29 @@ function acceptanceCheck(p, myAccountId) {
 // Collect: pull what the settle just earned off the verifier's internal
 // ledger into my own wallet — earn → custody, signed by my key, executed
 // by me. Earnings stay on-ledger if this fails; the redeem already landed.
+// Cross-chain collection (workstream J): my policy says earnings leave on
+// another chain. I sign a Sepolia transfer FROM my MPC-derived address TO
+// the payee's MPC-derived address — no EVM private key exists on either
+// side; v1.signer-prod.testnet (public MPC) signs, not me.
+async function settleXchain(seller, payee, amountBase) {
+  const pol = POLICY[seller.accountId] ?? POLICY.default ?? {};
+  if (!pol.xchainPayoutWei) return null;
+  try {
+    const cs = await import("./chain-sig.mjs");
+    const wei = BigInt(pol.xchainPayoutWei);
+    const r = await cs.sendEvmTransfer({
+      nearAccount: seller, nearAccountId: seller.accountId,
+      to: await cs.deriveEvmAddress(payee), weiAmount: wei,
+    });
+    say(`   ${C.g}✓${C.x} cross-chain settle — MPC signed my ${Number(wei) / 1e18} sepoliaETH to ${payee}'s derived address ${r.to}`);
+    say(`   ${C.dim}${r.explorer}${C.x}`);
+    return { chain: "sepolia", txHash: r.evmTx, explorer: r.explorer, to: r.to, wei: wei.toString() };
+  } catch (e) {
+    say(`   ${C.y}⚠${C.x} cross-chain leg failed (NEAR-side settle already landed): ${String(e?.message ?? e).slice(0, 160)}`);
+    return null;
+  }
+}
+
 async function collect(seller, amountBase) {
   const withdraw = await intents
     .signWithdrawIntent({ owner: seller, amountBase })
@@ -215,7 +246,7 @@ async function fulfill(p, seller, amountBase) {
     say(`   ${C.y}✗${C.x} execute_intents failed: ${JSON.stringify(exec.failure ?? {}).slice(0, 160)}`);
     await fetch(`${API}/api/pending-intents/${p.pendingId}/complete`, {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ status: "failed", result: { failure: exec.failure } }),
+      body: JSON.stringify({ status: "failed", result: { failure: exec.failure }, executor: seller.accountId }),
     }).catch(() => {});
     return;
   }
@@ -224,7 +255,7 @@ async function fulfill(p, seller, amountBase) {
   if (p.redeem?.path && p.redeem?.body) {
     const res = await fetch(new URL(p.redeem.path, API).href, {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ...p.redeem.body, nearAccountId: p.buyer, intentsTxHash: exec.txHash }),
+      body: JSON.stringify({ ...p.redeem.body, nearAccountId: p.buyer, intentsTxHash: exec.txHash, intentsExecutor: seller.accountId }),
     });
     const body = await res.json().catch(() => ({}));
     const orderId = body.order?.id ?? body.orderId;
@@ -232,17 +263,21 @@ async function fulfill(p, seller, amountBase) {
     say(`   ${res.ok ? `${C.g}✓` : `${C.y}✗`}${C.x} redeem ${res.status} — order ${orderId ?? body.status ?? "?"}${receiptUrl ? `  receipt ${receiptUrl}` : ""}`);
     // Hand the redemption back to the buyer through the mailbox (capped).
     const result = { status: res.status, orderId, receiptUrl };
+    if (res.ok) {
+      const xchain = await settleXchain(seller, p.payee ?? seller.accountId, amountBase);
+      if (xchain) result.xchain = xchain;
+    }
     if (JSON.stringify(body).length <= 8_000) result.body = body; // fits the mailbox's 10kb limit
     await fetch(`${API}/api/pending-intents/${p.pendingId}/complete`, {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ txHash: exec.txHash, status: res.ok ? "settled" : "failed", result }),
+      body: JSON.stringify({ txHash: exec.txHash, status: res.ok ? "settled" : "failed", result, executor: seller.accountId }),
     }).catch(() => {});
     if (res.ok) await collect(seller, amountBase);
     return;
   }
   await fetch(`${API}/api/pending-intents/${p.pendingId}/complete`, {
     method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify({ txHash: exec.txHash, status: "settled" }),
+    body: JSON.stringify({ txHash: exec.txHash, status: "settled", executor: seller.accountId }),
   }).catch(() => {});
 }
 

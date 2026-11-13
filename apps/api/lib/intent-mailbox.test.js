@@ -183,3 +183,62 @@ describe('swap-funded mailbox', () => {
     expect(p.swap).toBeNull();
   });
 });
+
+describe('open solver queue — race semantics', () => {
+  const SOLVER = 'solver-7.onpoint.testnet';
+
+  function submitSwap() {
+    return mailbox.submit({
+      signed: signedIntent(), signedSwap: signedDiff(), buyerAccountId: BUYER,
+      payee: PAYEE, minAmountBase: '16790000', redeem: { path: '/x', body: {} },
+    });
+  }
+
+  it('lists swap items to solvers regardless of payee, payee items excluded', () => {
+    const swapItem = submitSwap();
+    const plain = mailbox.submit({ signed: signedIntent(), buyerAccountId: BUYER, payee: PAYEE, minAmountBase: '100' });
+    const solverList = mailbox.list({ solver: true });
+    const ids = solverList.map((p) => p.pendingId);
+    expect(ids).toContain(swapItem.pendingId);
+    expect(ids).not.toContain(plain.pendingId);
+    // The payee's own queue still sees both.
+    expect(mailbox.list({ payee: PAYEE }).map((p) => p.pendingId)).toContain(plain.pendingId);
+  });
+
+  it('first completion wins — a late solver loses without overwriting', () => {
+    const r = submitSwap();
+    const win = mailbox.complete(r.pendingId, { txHash: 'W'.repeat(44), status: 'settled', executor: SOLVER });
+    expect(win.won).toBe(true);
+    expect(win.executor).toBe(SOLVER);
+    const lose = mailbox.complete(r.pendingId, { txHash: 'L'.repeat(44), status: 'settled', executor: 'solver-b.testnet' });
+    expect(lose.won).toBe(false);
+    const p = mailbox.get(r.pendingId);
+    expect(p.status).toBe('settled');
+    expect(p.txHash).toBe('W'.repeat(44));
+    expect(p.executor).toBe(SOLVER);
+  });
+
+  it('a losing solver\'s failed report does not poison a fillable swap item', () => {
+    const r = submitSwap();
+    const lose = mailbox.complete(r.pendingId, { status: 'failed', executor: SOLVER, result: { failure: 'nonce consumed' } });
+    expect(lose.won).toBe(false);
+    expect(lose.attemptRecorded).toBe(true);
+    const p = mailbox.get(r.pendingId);
+    expect(p.status).toBe('pending'); // still fillable by another solver
+    expect(p.attempts[0].executor).toBe(SOLVER);
+    // The winner can still land.
+    const win = mailbox.complete(r.pendingId, { txHash: 'W'.repeat(44), status: 'settled', executor: 'solver-b.testnet' });
+    expect(win.won).toBe(true);
+  });
+
+  it('payee-only items keep first-wins — a failed report closes them', () => {
+    const r = mailbox.submit({ signed: signedIntent(), buyerAccountId: BUYER, payee: PAYEE, minAmountBase: '100' });
+    const out = mailbox.complete(r.pendingId, { status: 'failed', executor: PAYEE });
+    expect(out.won).toBe(true);
+    expect(mailbox.get(r.pendingId).status).toBe('failed');
+  });
+
+  it('unknown pendingIds complete to null', () => {
+    expect(mailbox.complete('pin_nope', { txHash: 'x' })).toBeNull();
+  });
+});

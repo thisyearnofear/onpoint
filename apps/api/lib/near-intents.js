@@ -3,10 +3,11 @@
  *
  * Third NEAR payment form alongside native transfer and forwarder `pay`.
  * The buyer deposits the settlement FT to the verifier's internal ledger,
- * signs a NEP-413 transfer intent off-chain, and the SELLER executes it via
+ * signs a NEP-413 transfer intent off-chain, and the SELLER — or any
+ * registered solver racing the open queue — executes it via
  * `execute_intents` — agent-to-agent settlement: buyer publishes the signed
- * intent, seller fulfills it, the verifier settles atomically. The API's
- * job is verification only; it holds no keys.
+ * intent, a fulfiller settles it, the verifier enforces atomicity. The
+ * API's job is verification only; it holds no keys.
  *
  * Config (rail disabled unless all set):
  *   NEAR_INTENTS_VERIFIER  verifier contract id (intents.onpoint.testnet /
@@ -17,9 +18,11 @@
  *   NEAR_TOKEN_DECIMALS / NEAR_TOKEN_SYMBOL  as the forwarder rail
  *
  * Proof: the order re-POST carries { intentsTxHash } — the hash of the
- * seller's execute_intents tx. We verify on-chain that it carried a valid
- * NEP-413 signed intent from the claimed buyer paying the quoted amount to
- * the quoted payee, and that the seller executed it (tx signer = payee).
+ * fulfiller's execute_intents tx — plus { intentsExecutor } naming the
+ * submitting account. We verify on-chain that the tx carried a valid
+ * NEP-413 signed intent from the claimed buyer paying the quoted amount
+ * to the quoted payee; the inner intent is the authority, so the executor
+ * may be the payee OR any solver (reported distinctly on the receipt).
  */
 
 const nearPayments = require('./near-payments');
@@ -65,20 +68,27 @@ function intentsQuoteForUsd(usd, payTo) {
 }
 
 /**
- * Verify a seller-executed intents settlement on-chain.
+ * Verify an intents settlement on-chain — executed by the payee OR a solver.
  *
- * Checks: tx final + succeeded (all receipts), receiver = verifier,
- * signer = expected payee (the seller executes), args contain a NEP-413
+ * Whoever submits `execute_intents`, the signed payload inside is the
+ * authority: the verifier enforces the signatures and atomicity, and funds
+ * can only move per the inner intents. So the proof is: tx final +
+ * succeeded (all receipts), receiver = verifier, args contain a NEP-413
  * payload whose inner message has signer_id = buyer, verifying_contract =
- * verifier, unexpired deadline, and a transfer intent paying >= minAmountBase
- * of tokenId to the payee. Nonce replay is impossible — the verifier
- * consumes nonces on-chain, and orders guard tx-hash reuse.
+ * verifier, and a transfer intent paying >= minAmountBase of tokenId to
+ * the payee. The executor is recorded + classified (payee | solver) — an
+ * OPEN solver queue means solver ≠ payee on the receipt is expected.
+ * `executorAccountId` (the declared submitter) is needed for the
+ * EXPERIMENTAL_tx_status lookup, which keys on (tx_hash, signer), and is
+ * consistency-checked when provided. Nonce replay is impossible — the
+ * verifier consumes nonces on-chain, and orders guard tx-hash reuse.
  */
 async function verifyIntentsSettlement({
   txHash,
   buyerAccountId,
   expectedPayeeId,
   minAmountBase,
+  executorAccountId,
   rpcUrl = nearPayments.nearRpcUrl(),
 }) {
   const cfg = intentsConfig();
@@ -93,7 +103,7 @@ async function verifyIntentsSettlement({
       method: 'EXPERIMENTAL_tx_status',
       params: {
         tx_hash: txHash,
-        sender_account_id: expectedPayeeId,
+        sender_account_id: executorAccountId || expectedPayeeId,
         wait_until: 'FINAL',
       },
     }),
@@ -128,11 +138,13 @@ async function verifyIntentsSettlement({
   if (tx.receiver_id !== cfg.verifier) {
     return { ok: false, reason: 'verifier_mismatch', receiver: tx.receiver_id };
   }
-  // The story: the seller fulfills the buyer's intent — the payee must be
-  // the executing signer.
-  if (tx.signer_id !== expectedPayeeId) {
-    return { ok: false, reason: 'executor_not_payee', signer: tx.signer_id };
+  // Any registered account may submit the signed intents — the payee itself
+  // or a solver racing the open queue. When the caller declares who
+  // executed (the mailbox records it), the claim must match the tx signer.
+  if (executorAccountId && tx.signer_id !== executorAccountId) {
+    return { ok: false, reason: 'executor_mismatch', signer: tx.signer_id, declared: executorAccountId };
   }
+  const solverExecuted = tx.signer_id !== expectedPayeeId;
 
   const fc = (tx.actions ?? []).find(
     (a) => a?.FunctionCall?.method_name === 'execute_intents',
@@ -219,6 +231,8 @@ async function verifyIntentsSettlement({
     txHash: r.transaction_outcome?.id ?? txHash,
     signer: buyerAccountId, // the intent signer is the payer, not the tx signer
     executor: tx.signer_id,
+    executorKind: solverExecuted ? 'solver' : 'payee',
+    solverExecuted,
     receiver: expectedPayeeId,
     verifier: cfg.verifier,
     tokenContract: cfg.tokenContractId,
