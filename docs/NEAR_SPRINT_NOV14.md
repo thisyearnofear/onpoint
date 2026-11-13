@@ -381,3 +381,166 @@ Postgres slips → in-memory stays a disclosed limitation.
   identity, FCAK = bounded on-chain budget.
 - Presence is unsigned by design (freshness = "is an agent process alive"),
   not an auth claim.
+
+---
+
+# Sprint 2: Close the cross-chain critique — Nov 14 (final day)
+
+Bar from the critique, verbatim:
+
+> "The track's sentence is markets and agents settling across chains
+> through NEAR Intents. This is the Defuse contract executing a swap you
+> inventoried on testnet." — "meridian-goods.testnet proves the platform
+> does not hold the key. It does not prove a merchant." — "The person
+> watching the demo sees a ceremony around a product ChatGPT would have
+> shown them without the ceremony."
+
+Four holes → four workstreams + one human task. Everything remains
+testnet-only.
+
+Assignments: Devin → J (chain-signatures leg, gated) · dev 2 → K (open
+solver queue) · dev 3 → L (self-serve onboarding + runbook + digital
+listing) · dev 4 → M (Printful sandbox probe, timeboxed) · human task:
+recruit one outside operator.
+
+## J — Cross-chain leg via Chain Signatures (Devin) · 2h spike gate
+
+`v2.signer.testnet` (or `v1.signer-prod.testnet` — spike determines which is
+live) is PUBLIC MPC infrastructure on testnet, not our deployment.
+
+### Spike (kill if it fails)
+
+1. View `v2.signer.testnet` code + `public_key()`/`derived_public_key` view.
+2. Derive the merchant's Sepolia address: `store.onpoint.testnet` + path
+   `sepolia-1` → secp256k1 pubkey → EVM address. No private key exists.
+3. `sign({path, payload, key_version})` from the merchant account → parse
+   the MPC signature from receipts → assemble + broadcast a legacy EVM tx
+   to Sepolia via a public RPC.
+4. Sepolia faucet funds the SOLVER's EOA (meridian) — solver needs spendable
+   sepoliaETH, merchant only needs a derived receive address.
+
+### Build (if spike passes)
+
+- `chain-sig.mjs` lib: `deriveEvmAddress(nearAccount, path)`, `signEvmTx
+  (account, path, txFields)` → returns signed raw tx; `broadcastSepolia`
+  via `https://ethereum-sepolia-rpc.publicnode.com`.
+- **Solver-fronted payout**: after meridian's solver executes the NEAR-side
+  bundle, its collection policy fires a second leg — a hot Sepolia EOA
+  (faucet-funded) sends `amountUsd / ethUsdRate` sepoliaETH to the
+  merchant's DERIVED address. Posted back as `xchainSettle` on the pending
+  record: `{chain:"sepolia", txHash, to:derivedAddress, via:"solver-fronted"}`.
+  The NEAR leg is atomic; the far-chain leg is solver-fronted — the same
+  shape production intent bridges use, disclosed as such.
+- Proof the merchant controls the derived address: merchant's agent calls
+  MPC `sign` itself once — a Sepolia tx from the derived address moving a
+  dust amount (or a signed message `eth_sign`-style) proves the NEAR
+  account controls foreign-chain funds with no key material.
+- Receipt surfaces both tx hashes: nearblocks + Sepolia explorer.
+
+### Acceptance
+
+- [ ] `mt_balance_of` delta on NEAR + a Sepolia tx to the derived address,
+      both linked from the order receipt.
+- [ ] Merchant spends/messages FROM the derived address via MPC sign —
+      "controls a foreign address, no key anywhere" is demonstrated.
+- [ ] Fails honestly: if faucet/RPC/MPC fails in the recording window,
+      the queue still settles NEAR-side and `xchainSettle` reads
+      `pending` — the run doesn't crash.
+
+## K — Open solver queue (dev 2) · solver ≠ merchant
+
+Today a swap intent lands in the PAYEE's mailbox, so the merchant is the
+solver "because we pre-funded it." Split the roles.
+
+- Pending intents carrying `signedSwap` join an **open queue**: visible to
+  any registered solver, not filtered to the payee. Transfer intent still
+  pays the merchant; the solver only supplies (and receives) the diff legs.
+- `solver-agent` mode in `seller-agent.mjs`: `SOLVER=meridian-goods.testnet`
+  watches the queue, counter-signs at ITS `minUsdcPerWnear`, executes the
+  bundle, collects. The merchant's agent never touches the diff.
+- Race semantics: first executed bundle wins; losers see `settled` and skip.
+  Best-rate selection is a stretch — race is honest for v1.
+- Rate competition: `meridian` policy quotes 6.0, `store`'s solver-side
+  policy quotes 5.5 — the demo prints which solver won and why.
+
+### Acceptance
+
+- [ ] Order settles with solver ≠ payee: transfer → store, diff legs ⇄
+      meridian, all in one `execute_intents`.
+- [ ] Second solver offline → the other still solves (queue degrades to 1).
+- [ ] Mailbox record shows `solver:` distinct from `payee:`.
+
+## L — Self-serve merchant onboarding + runbook (dev 3)
+
+"meridian is an account you created" only dies when a stranger can onboard
+themselves.
+
+- `POST /api/curator/{slug}/near-account` (service-or-curator-auth —
+  cheapest honest auth is fine): sets `commerce.nearAccountId`; the route
+  validates the account exists on testnet and is NOT under `onpoint.*`
+  for external registrations (hosted key unavailable by construction).
+- Auto-provisioning on registration: storage_deposit on USDC.e + the
+  verifier `add_public_key` call are done BY THE MERCHANT's agent on first
+  boot (seller-agent already knows how — make it idempotent), not by us.
+- `docs/RUN_YOUR_OWN_SELLER.md` — one page: create testnet account →
+  `SELLER=you.testnet SELLER_KEY=… node seller-agent.mjs` → set
+  `nearAccountId` → you are live in the market. Includes the solver-mode
+  variant.
+- Meridian listing → `inventoryType: 'digital'` stadium poster — delivery
+  is a real file, not a fake shipping claim. The kit listing stays but the
+  hero purchase in the video should be the digital good.
+
+### Acceptance
+
+- [ ] A fresh testnet account runs the runbook end-to-end with zero DB
+      writes by us.
+- [ ] Meridian order delivers a downloadable artifact on the receipt.
+
+## M — Printful sandbox probe (dev 4) · 3h timebox, then kill
+
+A NEAR intent that creates a real confirmed POD order in a real
+fulfillment system. Free sandbox, real order objects.
+
+- Spike: sandbox API key → create order → `confirm` → webhook/poll status.
+- If viable: order redemption triggers a draft→confirmed Printful order;
+  receipt links the Printful order id. "The thing purchased actually
+  entered a fulfillment pipeline."
+- Kill criteria: no sandbox access, shipping-address friction, or >3h.
+
+## Human task — one outside operator (not devs)
+
+No code proves a merchant. Recruit ONE human (friend, another hackathon
+team, NEAR TG) to run `SELLER=theiraccount.testnet node seller-agent.mjs`
+on THEIR machine before recording — ideally as a second solver (feeds K)
+or a third merchant. One external process in the terminal grid is worth
+more than another day of code.
+
+## New recording cut
+
+1. Buyer publishes signed intent — *pay 16.24 USDC.e, funding with wNEAR*.
+2. Intent lands in the open solver queue — TWO solvers' terminals quote
+   different rates; winner's policy line prints.
+3. Merchant sovereign-signed the price earlier (refusal beat stays).
+4. Solver executes the atomic bundle — merchant paid on NEAR.
+5. Collection leg fires — MPC signs, sepoliaETH lands at the merchant's
+   DERIVED address. Two explorers side by side: nearblocks + Sepolia.
+6. Polaroid for ≤5s of texture.
+
+## Drop lines (final-day reality)
+
+- J spike fails → ship K+L+M, disclose "cross-chain via intents is
+  mainnet-only today" as the known gap.
+- K slips → merchant-as-solver stays with explicit framing (already true).
+- L onboarding slips → keep the runbook + manual wiring, still recruit
+  the outside operator.
+- M slips → digital-good delivery alone answers "nothing ships."
+- No outside operator → record three terminals on our machines and say
+  custody is disjoint but all ours — do not imply otherwise.
+
+## Submission mechanics (unchecked — do these)
+
+- [ ] X post draft (rail-first framing, tx links, 60s cut).
+- [ ] Submission form — NEAR deadline Nov 14 23:59 UTC.
+- [ ] First line of the submission owns the caveat: "testnet mock assets
+      on an unmodified Defuse deployment — the rail is real, the money
+      isn't."
