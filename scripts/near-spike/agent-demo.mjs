@@ -516,7 +516,7 @@ const kitNego = await negotiate({
   slug: MERCHANT_SLUG, scope: "order", listingId: kitListing.id, size, quantity: 1,
   offers: [8, 14, 16], // session 1 lowballs hard → a real refusal, then we come back serious
 });
-for (const t of kitNego.transcript) {
+for (const t of kitNego.transcript ?? []) {
   if (t.actor === "buyer") agentSays(t.usd ? `offer $${t.usd}` : t.note);
   else sellerSays(t.usd ? `asks $${t.usd}${t.note ? ` — "${String(t.note).slice(0, 110)}"` : ""}` : (t.note || "…"));
 }
