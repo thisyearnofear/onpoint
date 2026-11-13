@@ -35,6 +35,8 @@ const {
   buildRevenueHint,
   resolveOrderOffer,
 } = require('../lib/agent-commerce');
+const agentNegotiation = require('../lib/agent-negotiation');
+const nearIntents = require('../lib/near-intents');
 const { getAttributionSuffix, getAttributionCode, getAssignedTag } = require('../lib/attribution');
 const { logFunnelEvent } = require('../lib/funnel');
 const { sanitizeShareId, isSelfReferral } = require('../lib/share-attribution');
@@ -540,7 +542,7 @@ router.post('/:slug/order', async (req, res) => {
     return res.status(400).json({ error: 'Invalid curator slug' });
   }
 
-  const { listingId, size, paymentTxHash, nearAccountId, nearTxHash, paypalOrderId, agentId, quoteId: clientQuoteId, gift, offerUsd } = req.body || {};
+  const { listingId, size, paymentTxHash, nearAccountId, nearTxHash, intentsTxHash, paypalOrderId, agentId, quoteId: clientQuoteId, gift, offerUsd, quoteToken } = req.body || {};
   const giftClaimToken = gift ? require('crypto').randomUUID() : null;
   const quantity = Number(req.body?.quantity ?? 1);
 
@@ -563,13 +565,19 @@ router.post('/:slug/order', async (req, res) => {
   if (nearAccountId !== undefined && !nearPayments.isNearAccountId(nearPayer || '')) {
     return res.status(400).json({ error: 'nearAccountId must be a valid NEAR account' });
   }
+  if (intentsTxHash !== undefined && !nearPayments.isNearTxHash(intentsTxHash)) {
+    return res.status(400).json({ error: 'intentsTxHash must be a base58 NEAR transaction hash' });
+  }
   if (nearTxHash && paymentTxHash) {
     return res.status(400).json({ error: 'Provide either paymentTxHash (Celo cUSD) or nearTxHash (NEAR), not both' });
+  }
+  if (intentsTxHash && (paymentTxHash || nearTxHash)) {
+    return res.status(400).json({ error: 'Provide exactly one NEAR payment proof (nearTxHash or intentsTxHash)' });
   }
   if (paypalOrderId !== undefined && !paypalPayments.isPaypalOrderId(paypalOrderId)) {
     return res.status(400).json({ error: 'paypalOrderId must be a PayPal order id' });
   }
-  if (paypalOrderId && (paymentTxHash || nearTxHash)) {
+  if (paypalOrderId && (paymentTxHash || nearTxHash || intentsTxHash)) {
     return res.status(400).json({ error: 'Provide exactly one payment proof' });
   }
   if (offerUsd !== undefined && offerUsd !== null && (!Number.isFinite(Number(offerUsd)) || Number(offerUsd) <= 0)) {
@@ -657,13 +665,44 @@ router.post('/:slug/order', async (req, res) => {
     // unchanged. The agreed price is bound into the quoteId (-o<cents>), so
     // the proof re-POST stays priced at the agreed amount even when the
     // client doesn't repeat offerUsd.
-    const orderOffer = resolveOrderOffer({
-      listCusd,
-      curator: row.curator,
-      offerUsd,
-      clientQuoteId,
-      quoteIdPrefix: `${listingId.slice(0, 8)}-${requestedSize}-${quantity}`,
-    });
+    // A signed quoteToken from /api/curator/{slug}/negotiate supersedes the
+    // flat-offer path: the agreed price is bound by the seller's ed25519
+    // signature over {scope, listing, size, quantity, agreedCusd, sessionId,
+    // expiry} — verified off-chain, redeemable once per session.
+    let orderOffer;
+    let quoteSession = null;
+    if (quoteToken !== undefined && quoteToken !== null) {
+      const check = agentNegotiation.verifyQuoteToken(quoteToken);
+      const p = check.payload || {};
+      if (!check.ok) {
+        return res.status(409).json({ error: check.error, code: 'QUOTE_TOKEN_INVALID' });
+      }
+      if (
+        p.scope !== 'order' || p.curatorSlug !== slug || p.listingId !== listingId
+        || normalizeSize(p.size || '') !== requestedSize || p.quantity !== quantity
+      ) {
+        return res.status(409).json({
+          error: 'quoteToken does not match this order (scope/curator/listing/size/quantity)',
+          code: 'QUOTE_TOKEN_MISMATCH',
+        });
+      }
+      const session = agentNegotiation.getSession(p.sessionId);
+      if (session?.redeemedAt) {
+        return res.status(409).json({ error: 'quoteToken already redeemed', code: 'QUOTE_TOKEN_REDEEMED' });
+      }
+      // NOT redeemed yet — a no-proof POST issues a 402 and must not burn the
+      // token. Consumed below, once a payment proof accompanies the token.
+      quoteSession = session;
+      orderOffer = { offerUsd: null, agreedCusd: p.agreedCusd, negotiated: true };
+    } else {
+      orderOffer = resolveOrderOffer({
+        listCusd,
+        curator: row.curator,
+        offerUsd,
+        clientQuoteId,
+        quoteIdPrefix: `${listingId.slice(0, 8)}-${requestedSize}-${quantity}`,
+      });
+    }
     if (orderOffer.countered) {
       return res.status(409).json({
         error: `Offer of ${orderOffer.offerUsd.toFixed(2)} USD is below this curator's floor`,
@@ -719,6 +758,10 @@ router.post('/:slug/order', async (req, res) => {
     const nearDirectToCurator = nearPayments.isNearAccountId(row.curator?.commerce?.nearAccountId || '');
     const nearPayTo = nearPayments.nearPayoutAccount(row.curator);
     const nearQuote = nearPayTo ? nearPayments.nearQuoteForUsd(totalCusd) : null;
+    // Intents rail: buyer deposits to the verifier, signs a NEP-413 transfer
+    // intent, the SELLER executes it via execute_intents — then re-POSTs the
+    // execution tx hash as intentsTxHash.
+    const intentsQuote = nearPayTo ? nearIntents.intentsQuoteForUsd(totalCusd, nearPayTo) : null;
 
     // Deterministic quote ID — same listing+size+quantity+price produces the
     // same ID, so retries after a network blip get the same quote. Includes
@@ -736,7 +779,7 @@ router.post('/:slug/order', async (req, res) => {
     // ── PayPal rail (approval-relay; capture id is the replay-guarded proof) ──
     // The reference binds the approved PayPal order to this listing+size+quote.
     let paypalQuote = null;
-    if (!paymentTxHash && !xPaymentHeader && !nearTxHash && !paypalOrderId) {
+    if (!paymentTxHash && !xPaymentHeader && !nearTxHash && !intentsTxHash && !paypalOrderId) {
       paypalQuote = await paypalPayments.paypalQuoteForUsd({
         amountUsd: totalCusd,
         referenceId: `order:${slug}:${listingId}:${requestedSize}:${quoteId}`,
@@ -745,7 +788,7 @@ router.post('/:slug/order', async (req, res) => {
     }
 
     // ── Step 1: no payment proof yet → 402 challenge with quote ──
-    if (!paymentTxHash && !xPaymentHeader && !nearTxHash && !paypalOrderId) {
+    if (!paymentTxHash && !xPaymentHeader && !nearTxHash && !intentsTxHash && !paypalOrderId) {
       return res.status(402).json({
         ...sharedTypes.build402Body([requirements]),
         quote: {
@@ -768,7 +811,7 @@ router.post('/:slug/order', async (req, res) => {
           payTo,
           token: sharedTypes.X402_ASSET,
           chainId: sharedTypes.X402_CHAIN_ID,
-          paymentRails: ['celo_cusd', ...(nearQuote ? ['near'] : []), ...(paypalQuote ? ['paypal'] : [])],
+          paymentRails: ['celo_cusd', ...(nearQuote ? ['near'] : []), ...(intentsQuote ? ['near_intents'] : []), ...(paypalQuote ? ['paypal'] : [])],
           ...(paypalQuote
             ? {
                 paypal: {
@@ -781,10 +824,11 @@ router.post('/:slug/order', async (req, res) => {
                 },
               }
             : {}),
+          ...(intentsQuote ? { intents: intentsQuote } : {}),
           ...(nearQuote
             ? {
                 near: {
-                  network: nearQuote.network,
+                  network: nearQuote?.network || nearPayments.nearNetwork(),
                   accountId: nearPayTo,
                   payoutModel: nearDirectToCurator ? 'direct_to_curator' : 'platform',
                   ...(nearQuote.amountYocto
@@ -896,6 +940,27 @@ router.post('/:slug/order', async (req, res) => {
         }
       }
       verification = { from: paypalResult.payerId || paypalResult.payerEmail, paypal: paypalResult };
+    } else if (intentsTxHash) {
+      if (!nearPayTo || !intentsQuote) {
+        return res.status(409).json({
+          error: 'NEAR Intents payment rail is not configured for this resource.',
+          code: 'PAYMENT_RAIL_UNAVAILABLE',
+        });
+      }
+      const intentsResult = await nearIntents.verifyIntentsSettlement({
+        txHash: String(intentsTxHash),
+        buyerAccountId: nearPayer,
+        expectedPayeeId: nearPayTo,
+        minAmountBase: intentsQuote.amount,
+      });
+      if (!intentsResult.ok) {
+        return res.status(402).json({
+          error: `NEAR intents settlement not verified: ${intentsResult.reason}`,
+          detail: intentsResult.expected ?? intentsResult.failure ?? intentsResult.detail,
+          ...sharedTypes.build402Body([requirements]),
+        });
+      }
+      verification = { from: intentsResult.signer, near: intentsResult };
     } else if (nearTxHash) {
       if (!nearPayTo || !nearQuote) {
         return res.status(409).json({
@@ -943,18 +1008,25 @@ router.post('/:slug/order', async (req, res) => {
       }
     }
 
+    // Consume the signed quote now that a payment proof verified — a
+    // quote-issuing POST never reaches here, so tokens aren't burned by
+    // asking for a 402.
+    if (quoteSession) quoteSession.redeemedAt = Date.now();
+
     // The effective tx hash and payer for this request — for PayPal the
     // capture id is the canonical proof (replay-guarded like a tx hash).
-    const effectiveTxHash = paypalResult?.captureId || nearTxHash || paymentTxHash;
-    const effectivePayer = paypalOrderId ? verification.from : (nearTxHash ? (verification?.near?.signer || verification?.from || nearPayer) : verification.from);
+    const effectiveTxHash = paypalResult?.captureId || nearTxHash || intentsTxHash || paymentTxHash;
+    const effectivePayer = paypalOrderId ? verification.from : ((nearTxHash || intentsTxHash) ? (verification?.near?.signer || verification?.from || nearPayer) : verification.from);
     const paymentMethod = paypalOrderId
       ? 'paypal'
       : nearTxHash
         ? 'near'
-        : paymentMethodForOrder({ usingSplit, settlementTxHash: null });
+        : intentsTxHash
+          ? 'near_intents'
+          : paymentMethodForOrder({ usingSplit, settlementTxHash: null });
     const paymentAsset = paypalOrderId
       ? 'USD'
-      : nearTxHash
+      : (nearTxHash || intentsTxHash)
         ? 'NEAR'
         : paymentAssetForOrder({
           usingSplit,
@@ -1168,8 +1240,9 @@ router.post('/:slug/order', async (req, res) => {
     // a separate cUSD transfer from the agent wallet to the curator.
     let payoutTxHash = null;
     let sellerShare = null;
+    const isNearRail = paymentMethod === 'near' || paymentMethod === 'near_intents';
 
-    if (paymentMethod === 'near') {
+    if (isNearRail) {
       if (nearDirectToCurator) {
         // The buyer's transfer already landed in the curator's NEAR account —
         // the payment tx IS the payout. No forward tx or server-side NEAR
@@ -1259,9 +1332,9 @@ router.post('/:slug/order', async (req, res) => {
           buyerAddress: effectivePayer,
           payoutTxHash,
           paymentMethod,
-          curatorPayout: paymentMethod === 'near'
+          curatorPayout: isNearRail
             ? (() => {
-                const s = nearPayments.nearSettlementSummary(verification?.near, nearQuote);
+                const s = nearPayments.nearSettlementSummary(verification?.near, nearQuote, intentsQuote);
                 return `${s.display} ${s.asset} ${nearDirectToCurator ? '(direct to curator)' : '(platform, pending reconciliation)'}`;
               })()
             : paymentMethod === 'paypal'
@@ -1273,14 +1346,15 @@ router.post('/:slug/order', async (req, res) => {
                 : usingSplit
                   ? `${totalCusd.toFixed(2)} cUSD via Split (pending distribution)`
                   : null,
-          near: paymentMethod === 'near'
+          near: isNearRail
             ? {
                 accountId: effectivePayer,
                 payTo: nearPayTo,
-                network: nearQuote.network,
+                network: nearQuote?.network || nearPayments.nearNetwork(),
+                ...(verification?.near?.verifier ? { verifier: verification.near.verifier, executor: verification.near.executor } : {}),
                 ...(() => {
-                  const s = nearPayments.nearSettlementSummary(verification?.near, nearQuote);
-                  return s.mode === 'token'
+                  const s = nearPayments.nearSettlementSummary(verification?.near, nearQuote, intentsQuote);
+                  return (s.mode === 'token' || s.mode === 'intents')
                     ? { tokenContract: s.tokenContract, tokenSymbol: s.asset, amountToken: s.amountToken }
                     : { amountYocto: s.amountYocto };
                 })(),
@@ -1293,7 +1367,7 @@ router.post('/:slug/order', async (req, res) => {
           splitAddress: usingSplit ? splitAddress : undefined,
         },
         txHash: effectiveTxHash,
-        chain: paymentMethod === 'near' ? 'near' : paymentMethod === 'paypal' ? 'paypal' : 'celo',
+        chain: isNearRail ? 'near' : paymentMethod === 'paypal' ? 'paypal' : 'celo',
       });
       receiptId = receipt.id;
     } catch (receiptErr) {
@@ -1351,7 +1425,7 @@ router.post('/:slug/order', async (req, res) => {
         payment: {
           txHash: effectiveTxHash,
           from: effectivePayer,
-          explorerUrl: paymentMethod === 'near'
+          explorerUrl: isNearRail
             ? nearPayments.nearExplorerTxUrl(effectiveTxHash)
             : paymentMethod === 'paypal'
               ? null
@@ -1361,25 +1435,27 @@ router.post('/:slug/order', async (req, res) => {
             ? { paypal: { orderId: paypalResult.orderId, captureId: paypalResult.captureId, amountUsd: paypalResult.amountUsd, env: paypalPayments.paypalEnv() } }
             : {}),
         },
-        payout: paymentMethod === 'near'
+        payout: isNearRail
           ? nearDirectToCurator
             ? {
                 status: 'settled',
                 txHash: payoutTxHash,
                 to: nearPayTo,
                 ...(() => {
-                  const s = nearPayments.nearSettlementSummary(verification?.near, nearQuote);
-                  return s.mode === 'token'
+                  const s = nearPayments.nearSettlementSummary(verification?.near, nearQuote, intentsQuote);
+                  return (s.mode === 'token' || s.mode === 'intents')
                     ? { asset: s.asset, amountToken: s.amountToken, amountTokenDisplay: s.display, tokenContract: s.tokenContract }
                     : { asset: s.asset, amountNear: s.display };
                 })(),
                 explorerUrl: nearPayments.nearExplorerTxUrl(payoutTxHash),
-                note: 'Paid directly to the curator NEAR account — payment and payout are the same transaction.',
+                note: paymentMethod === 'near_intents'
+                  ? 'Settled to the curator balance inside the Intents verifier — the seller executed the buyer signed intent.'
+                  : 'Paid directly to the curator NEAR account — payment and payout are the same transaction.',
               }
             : {
                 status: 'pending_reconciliation',
                 to: nearPayTo,
-                asset: verification?.near?.mode === 'token' ? (nearQuote.token?.symbol ?? 'USDC') : 'NEAR',
+                asset: (verification?.near?.mode === 'token' || verification?.near?.mode === 'intents') ? (nearQuote?.token?.symbol ?? intentsQuote?.symbol ?? 'USDC') : 'NEAR',
                 note: 'Paid to the platform NEAR account; curator payout is reconciled operationally.',
               }
           : paymentMethod === 'paypal'

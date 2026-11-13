@@ -28,6 +28,7 @@ const agentCore = require('@repo/agent-core');
 const logger = require('../lib/logger');
 const { curatorSplitAddress, curatorSellerBps, tryOnPriceCusd, storefrontWebUrl, polaroidWebUrl, webBaseUrl, buildRevenueHint } = require('../lib/agent-commerce');
 const nearPayments = require('../lib/near-payments');
+const nearIntents = require('../lib/near-intents');
 const paypalPayments = require('../lib/paypal-payments');
 const { getAttributionSuffix, getAttributionCode, getAssignedTag } = require('../lib/attribution');
 const { engine } = require('./ai-virtual-tryon');
@@ -199,7 +200,7 @@ function aiCostFrom(vision) {
 
 // ── POST /api/agent/try-on ───────────────────────────────────
 router.post('/', async (req, res) => {
-  const { curatorSlug, listingId, photoData, personDescription, paymentTxHash, nearAccountId, nearTxHash, paypalOrderId, lookSlug, shareId: rawShareId } =
+  const { curatorSlug, listingId, photoData, personDescription, paymentTxHash, nearAccountId, nearTxHash, intentsTxHash, paypalOrderId, lookSlug, shareId: rawShareId } =
     req.body || {};
   const shareId = sanitizeShareId(rawShareId);
   const slug = String(curatorSlug || '').toLowerCase();
@@ -225,13 +226,19 @@ router.post('/', async (req, res) => {
   if (nearAccountId !== undefined && !nearPayments.isNearAccountId(nearPayer || '')) {
     return res.status(400).json({ error: 'nearAccountId must be a valid NEAR account' });
   }
+  if (intentsTxHash !== undefined && !nearPayments.isNearTxHash(intentsTxHash)) {
+    return res.status(400).json({ error: 'intentsTxHash must be a base58 NEAR transaction hash' });
+  }
   if (nearTxHash && paymentTxHash) {
     return res.status(400).json({ error: 'Provide either paymentTxHash (Celo cUSD) or nearTxHash (NEAR), not both' });
+  }
+  if (intentsTxHash && (paymentTxHash || nearTxHash)) {
+    return res.status(400).json({ error: 'Provide exactly one NEAR payment proof (nearTxHash or intentsTxHash)' });
   }
   if (paypalOrderId !== undefined && !paypalPayments.isPaypalOrderId(paypalOrderId)) {
     return res.status(400).json({ error: 'paypalOrderId must be a PayPal order id' });
   }
-  if (paypalOrderId && (paymentTxHash || nearTxHash)) {
+  if (paypalOrderId && (paymentTxHash || nearTxHash || intentsTxHash)) {
     return res.status(400).json({ error: 'Provide exactly one payment proof' });
   }
 
@@ -281,7 +288,24 @@ router.post('/', async (req, res) => {
     const itemLabel = isDigital
       ? row.listing.title || 'Digital garment'
       : `${row.kit.club} ${row.kit.kitType} kit (${row.kit.season})`;
-    const priceCusd = tryOnPriceCusd(row.curator, row.listing.inventoryType);
+    // A signed quoteToken (scope "tryon") from /api/curator/{slug}/negotiate
+    // overrides the posted fee — the stylist's signature binds the agreed price.
+    let priceCusd = tryOnPriceCusd(row.curator, row.listing.inventoryType);
+    const { quoteToken } = req.body || {};
+    if (quoteToken !== undefined && quoteToken !== null) {
+      const check = require('../lib/agent-negotiation').verifyQuoteToken(quoteToken);
+      const p = check.payload || {};
+      if (!check.ok) {
+        return res.status(409).json({ error: check.error, code: 'QUOTE_TOKEN_INVALID' });
+      }
+      if (p.scope !== 'tryon' || p.curatorSlug !== slug || p.listingId !== listingId) {
+        return res.status(409).json({
+          error: 'quoteToken does not match this try-on (scope/curator/listing)',
+          code: 'QUOTE_TOKEN_MISMATCH',
+        });
+      }
+      priceCusd = p.agreedCusd;
+    }
     const splitAddress = curatorSplitAddress(row.curator);
     const payTo = splitAddress || getPlatformWallet();
     const resourceUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
@@ -308,12 +332,13 @@ router.post('/', async (req, res) => {
     // via NEAR_USD_PRICE; rail is absent from the challenge when unpriced.
     const nearPayTo = nearPayments.nearPayoutAccount(row.curator);
     const nearQuote = nearPayTo ? nearPayments.nearQuoteForUsd(priceCusd) : null;
+    const intentsQuote = nearPayTo ? nearIntents.intentsQuoteForUsd(priceCusd, nearPayTo) : null;
 
     // ── PayPal rail (approval-relay; capture is the replay-guarded proof) ──
     // Only create the order when a challenge is actually needed — the
     // reference binds the approved PayPal order to this listing.
     let paypalQuote = null;
-    if (!okxBypass && !paymentTxHash && !nearTxHash && !paypalOrderId && !req.headers['x-payment']) {
+    if (!okxBypass && !paymentTxHash && !nearTxHash && !intentsTxHash && !paypalOrderId && !req.headers['x-payment']) {
       paypalQuote = await paypalPayments.paypalQuoteForUsd({
         amountUsd: priceCusd,
         referenceId: `tryon:${slug}:${listingId}:${crypto.randomUUID()}`,
@@ -340,7 +365,7 @@ router.post('/', async (req, res) => {
     const xPaymentHeader = req.headers['x-payment'];
 
     // ── Step 1: no payment proof → 402 challenge ──
-    if (!paymentTxHash && !xPaymentHeader && !nearTxHash && !paypalOrderId) {
+    if (!paymentTxHash && !xPaymentHeader && !nearTxHash && !intentsTxHash && !paypalOrderId) {
       return res.status(402).json({
         ...sharedTypes.build402Body([requirements]),
         quote: {
@@ -353,7 +378,8 @@ router.post('/', async (req, res) => {
           payoutModel: splitAddress ? '0xSplits (curator earns a share)' : 'platform',
           token: sharedTypes.X402_ASSET,
           chainId: sharedTypes.X402_CHAIN_ID,
-          paymentRails: ['celo_cusd', ...(nearQuote ? ['near'] : []), ...(paypalQuote ? ['paypal'] : [])],
+          paymentRails: ['celo_cusd', ...(nearQuote ? ['near'] : []), ...(intentsQuote ? ['near_intents'] : []), ...(paypalQuote ? ['paypal'] : [])],
+          ...(intentsQuote ? { intents: intentsQuote } : {}),
           ...(paypalQuote
             ? {
                 paypal: {
@@ -462,6 +488,28 @@ router.post('/', async (req, res) => {
         }
       }
       verification = { from: paypalResult.payerId || paypalResult.payerEmail, paypal: paypalResult };
+    } else if (intentsTxHash) {
+      paymentMethod = 'near_intents';
+      if (!nearPayTo || !intentsQuote) {
+        return res.status(409).json({
+          error: 'NEAR Intents payment rail is not configured for this resource.',
+          code: 'PAYMENT_RAIL_UNAVAILABLE',
+        });
+      }
+      const intentsResult = await nearIntents.verifyIntentsSettlement({
+        txHash: String(intentsTxHash),
+        buyerAccountId: nearPayer,
+        expectedPayeeId: nearPayTo,
+        minAmountBase: intentsQuote.amount,
+      });
+      if (!intentsResult.ok) {
+        return res.status(402).json({
+          error: `NEAR intents settlement not verified: ${intentsResult.reason}`,
+          detail: intentsResult.expected ?? intentsResult.failure ?? intentsResult.detail,
+          ...sharedTypes.build402Body([requirements]),
+        });
+      }
+      verification = { from: intentsResult.signer, near: intentsResult };
     } else if (nearTxHash) {
       paymentMethod = 'near';
       if (!nearPayTo || !nearQuote) {
@@ -505,9 +553,9 @@ router.post('/', async (req, res) => {
     } // end else (not okxBypass)
 
     // The effective tx hash and payer for this request
-    const effectiveTxHash = settlementTxHash || paypalResult?.captureId || nearTxHash || paymentTxHash;
-    const effectivePayer = settlementTxHash ? payerAddress : (nearTxHash ? (verification?.near?.signer || nearPayer) : (verification?.from || null));
-    const explorerUrl = paymentMethod === 'near'
+    const effectiveTxHash = settlementTxHash || paypalResult?.captureId || nearTxHash || intentsTxHash || paymentTxHash;
+    const effectivePayer = settlementTxHash ? payerAddress : ((nearTxHash || intentsTxHash) ? (verification?.near?.signer || nearPayer) : (verification?.from || null));
+    const explorerUrl = (paymentMethod === 'near' || paymentMethod === 'near_intents')
       ? nearPayments.nearExplorerTxUrl(effectiveTxHash)
       : paymentMethod === 'paypal'
         ? null
@@ -532,15 +580,16 @@ router.post('/', async (req, res) => {
         payTo,
         splitAddress: splitAddress || null,
         paymentMethod,
-        ...(paymentMethod === 'near'
+        ...((paymentMethod === 'near' || paymentMethod === 'near_intents')
           ? {
               near: {
                 accountId: nearPayer,
                 payTo: nearPayTo,
-                network: nearQuote.network,
+                network: nearQuote?.network || nearPayments.nearNetwork(),
+                ...(verification?.near?.verifier ? { verifier: verification.near.verifier, executor: verification.near.executor } : {}),
                 ...(() => {
-                  const s = nearPayments.nearSettlementSummary(verification?.near, nearQuote);
-                  return s.mode === 'token'
+                  const s = nearPayments.nearSettlementSummary(verification?.near, nearQuote, intentsQuote);
+                  return (s.mode === 'token' || s.mode === 'intents')
                     ? { tokenContract: s.tokenContract, tokenSymbol: s.asset, amountToken: s.amountToken }
                     : { amountYocto: s.amountYocto };
                 })(),

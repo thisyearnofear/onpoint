@@ -2,28 +2,32 @@
  * OnPoint × NEAR — the agent economy, end to end.
  *
  * A narrated walkthrough of the demo story:
- *   a buying agent NEGOTIATES a price, HIRES a styling service, and SETTLES
- *   two different NEAR accounts in stablecoin — with a function-call key
- *   that can only spend what's escrowed, to allow-listed payees, capped
- *   per call. The service provider visibly EARNS its fee on-chain.
+ *   a buying agent NEGOTIATES over multiple rounds (real counters AND a
+ *   refusal, sealed by the seller's ed25519 quote signature), HIRES a
+ *   styling service the same way, and SETTLES both through the NEAR
+ *   Intents verifier — the buyer signs a NEP-413 intent off-chain, each
+ *   seller executes it, and the verifier settles atomically.
  *
  *     try-on fee  → curator.onpoint.testnet   (the hired "stylist")
  *     kit order   → store.onpoint.testnet     (the merchant)
  *
- * Both payments run through escrow.onpoint.testnet::pay, the only method
- * the agent's key is scoped to — spend authority is enforced by consensus.
+ * Settlement layers, deliberately separate:
+ *   · NEP-413 signature = the agent's identity/commitment layer (off-chain)
+ *   · Intents verifier  = settlement (internal ledger, atomic)
+ *   · FCAK + escrow     = the bounded on-chain budget rail — still shown:
+ *                         one over-cap call gets rejected by the contract.
  *
  * Run:
- *   node provision.mjs            # once — creates + funds the testnet accounts
- *   node deploy-payforwarder.mjs  # once — deploys the escrow forwarder
- *   node setup-scoped-key.mjs     # once — FCAK scoped to escrow::pay + USDC.e escrow
- *   node agent-demo.mjs           # the story below
+ *   node provision.mjs                # once — creates + funds testnet accounts
+ *   node deploy-payforwarder.mjs      # once — deploys the escrow forwarder
+ *   node deploy-intents-verifier.mjs  # once — deploys the defuse verifier
+ *   node setup-scoped-key.mjs         # once — FCAK scoped to escrow::pay
+ *   node agent-demo.mjs               # the story below
  *
  * Knobs:
  *   API_URL     default http://localhost:48751 (also works against prod)
- *   RAIL        near (default — the scoped-key story below) | paypal
- *               (human approves on PayPal, agent relays — the PayPal
- *               hackathon demo; needs no NEAR credentials)
+ *   RAIL        intents (default — verifier settlement) | near (escrow
+ *               forwarder) | paypal (human approves on PayPal)
  *   SKIP_CAP    set to 1 to skip the over-cap rejection beat
  */
 import {
@@ -35,6 +39,7 @@ import {
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import * as intents from "./intents-lib.mjs";
 
 const API = process.env.API_URL || "http://localhost:48751";
 const CREDS_PATH = join(dirname(fileURLToPath(import.meta.url)), "near-credentials.testnet.json");
@@ -45,32 +50,35 @@ const PHOTO_PATH = join(
 const photoData = existsSync(PHOTO_PATH)
   ? `data:image/jpeg;base64,${readFileSync(PHOTO_PATH).toString("base64")}`
   : "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDASIAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQBAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhADEAAAAT8n/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AqA//2Q==";
-const RPC = "https://rpc.testnet.near.org";
+const RPC = "https://test.rpc.fastnear.com";
 const SLEEP = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // The merchant (kit order) and the hired stylist (try-on service).
 const MERCHANT_SLUG = "onpoint-store";
 const STYLIST_SLUG = "mo";
-const LOWBALL_USD = 17; // posted ≈19.23 — below the 0.9 floor, so we get countered
 
 // ── tiny presentation kit ──
 const C = { dim: "\x1b[2m", b: "\x1b[1m", g: "\x1b[32m", c: "\x1b[36m", y: "\x1b[33m", m: "\x1b[35m", x: "\x1b[0m" };
 const say = (s) => console.log(s);
 const step = (n, t) => say(`\n${C.b}${C.m}── STEP ${n} ── ${t}${C.x}`);
 const agentSays = (s) => say(`${C.c}   agent ›${C.x} ${s}`);
-const merchantSays = (s) => say(`${C.y}   store ›${C.x} ${s}`);
+const sellerSays = (s) => say(`${C.y}   seller ›${C.x} ${s}`);
 const chain = (s) => say(`${C.g}   chain ›${C.x} ${s}`);
 const info = (s) => say(`${C.dim}   ${s}${C.x}`);
+const txLink = (h) => `https://testnet.nearblocks.io/txns/${h}`;
 
-// RAIL=near (default — scoped-key stablecoin story) | paypal (human approval)
-const RAIL = (process.env.RAIL || "near").toLowerCase();
+// RAIL=intents (default) | near (escrow forwarder) | paypal (human approval)
+const RAIL = (process.env.RAIL || "intents").toLowerCase();
 const IS_PAYPAL = RAIL === "paypal";
+const IS_INTENTS = RAIL === "intents";
 
 let creds = null;
 let provider = null;
 let agent = null;
-let scopedKey = null;
+let agentFak = null;   // full-access account — signs NEP-413 intents
+let scopedKey = null;  // function-call key — the bounded escrow rail
 let agentSigner = null;
+let sellers = {};      // accountId → Account (the demo plays the sellers too)
 let FT = "usdc.fakes.testnet";
 let nearBalance = async () => null;
 let ftBalance = async () => null;
@@ -80,7 +88,7 @@ if (!IS_PAYPAL) {
     process.exit(1);
   }
   creds = JSON.parse(readFileSync(CREDS_PATH, "utf8"));
-  provider = new JsonRpcProvider({ url: RPC });
+  provider = intents.provider;
   nearBalance = async (id) =>
     formatNearAmount(
       (await provider.query({ request_type: "view_account", finality: "final", account_id: id })).amount,
@@ -101,7 +109,12 @@ if (!IS_PAYPAL) {
     process.exit(1);
   }
   FT = creds.payForwarder?.ftContract || FT;
+  agentFak = intents.accountOf(agent.accountId, agent.secretKey);
   agentSigner = new Account(agent.accountId, provider, KeyPairSigner.fromSecretKey(scopedKey.secretKey));
+  for (const [name, id] of [["store", "store.onpoint.testnet"], ["curator", "curator.onpoint.testnet"]]) {
+    const rec = creds.accounts[name];
+    if (rec?.secretKey) sellers[id] = intents.accountOf(id, rec.secretKey);
+  }
 }
 
 const post = async (path, body) =>
@@ -113,7 +126,7 @@ const post = async (path, body) =>
 
 // Pay a NEAR payee in stablecoin through the escrow forwarder — the ONLY
 // thing the scoped key can do. Returns { ok, txHash, failure }.
-async function payEscrowed({ receiverId, amountBase, symbol = "USDC.e" }) {
+async function payEscrowed({ receiverId, amountBase }) {
   try {
     const out = await agentSigner.callFunctionRaw({
       contractId: scopedKey.contractId,
@@ -128,7 +141,6 @@ async function payEscrowed({ receiverId, amountBase, symbol = "USDC.e" }) {
     }
     return { ok: true, txHash };
   } catch (err) {
-    // contract panics surface as a thrown ContractExecutionError carrying the result
     const res = err?.transactionResult;
     const receiptFail = (res?.receipts_outcome ?? []).find((r) => r?.outcome?.status?.Failure)?.outcome?.status?.Failure;
     return {
@@ -139,12 +151,71 @@ async function payEscrowed({ receiverId, amountBase, symbol = "USDC.e" }) {
   }
 }
 
-say(`${C.b}OnPoint × ${IS_PAYPAL ? "PayPal" : "NEAR"} — ${IS_PAYPAL ? "agentic fashion commerce" : "an agent that negotiates, hires, and settles"}${C.x}`);
+// ── Intents settlement: buyer signs, the SELLER executes ──
+// The agent's full-access key signs the NEP-413 intent (FCAKs cannot sign
+// off-chain messages — that stays the bounded rail). The payee then submits
+// it: buyer publishes a commitment, the seller fulfills it.
+async function settleViaIntents({ payee, amountBase }) {
+  const seller = sellers[payee];
+  if (!seller) return { ok: false, failure: `no seller key for ${payee}` };
+  const signed = await intents.signTransferIntent({ buyer: agentFak, receiverId: payee, amountBase });
+  const ex = await intents.executeIntents(seller, signed);
+  return { ok: ex.ok, txHash: ex.txHash, failure: ex.failure };
+}
+
+// ── Negotiation driver: open a session, haggle until accepted ──
+// Returns { quoteToken, agreedUsd, transcript: [{actor, usd, note}] }.
+async function negotiate({ slug, scope, listingId, size, quantity, offers }) {
+  const transcript = [];
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const openOffer = offers[attempt] ?? offers[offers.length - 1];
+    const open = await post(`/api/curator/${slug}/negotiate`, {
+      scope, listingId, size, quantity: quantity ?? 1,
+      offerUsd: openOffer, nearAccountId: agent.accountId,
+    });
+    let body = await open.json();
+    if (open.status !== 200) return { error: `negotiate open ${open.status}: ${JSON.stringify(body)}` };
+    transcript.push({ actor: "buyer", usd: openOffer });
+    if (body.status === "rejected") {
+      transcript.push({ actor: "seller", note: `refused — ${body.reasoning || body.status}`, status: "rejected" });
+      continue; // reopen with a better offer
+    }
+    const sessionId = body.sessionId;
+    let guard = 0;
+    while (body.status === "countered" && guard++ < 8) {
+      const counter = body.counterOffer?.offerUsd;
+      transcript.push({ actor: "seller", usd: counter, note: body.reasoning });
+      // Buyer policy: meet the ask when it's within ~15% of our last bid,
+      // else creep up halfway — never bidding past their ask.
+      const lastBid = transcript.filter((t) => t.actor === "buyer").at(-1).usd;
+      const meet = counter != null && counter <= lastBid * 1.15;
+      const nxt = meet ? null : Number(Math.min(counter, lastBid + Math.max(0.01, (counter - lastBid) * 0.5)).toFixed(2));
+      body = await (await post(`/api/curator/${slug}/negotiate/${sessionId}`,
+        nxt === null || body.round >= 4 ? { action: "accept" } : { offerUsd: nxt })).json();
+      if (nxt === null || body.round >= 4) transcript.push({ actor: "buyer", note: "accept" });
+      else transcript.push({ actor: "buyer", usd: nxt });
+    }
+    if (body.status === "accepted") {
+      return { quoteToken: body.quoteToken, agreedUsd: body.agreedUsd ?? body.agreedCusd, sessionId, transcript };
+    }
+    if (body.status === "rejected") {
+      transcript.push({ actor: "seller", note: `refused — ${body.reasoning || "walked"}`, status: "rejected" });
+      continue;
+    }
+    return { error: `negotiation ended ${body.status}: ${JSON.stringify(body).slice(0, 200)}`, transcript };
+  }
+  return { error: "seller refused all offers", transcript };
+}
+
+say(`${C.b}OnPoint × ${IS_PAYPAL ? "PayPal" : "NEAR"} — ${IS_PAYPAL ? "agentic fashion commerce" : "agents that bargain, hire, and settle"}${C.x}`);
 info(`api: ${API}  ·  rail: ${RAIL}${IS_PAYPAL ? "" : `  ·  network: ${creds.network}  ·  agent: ${agent.accountId}`}`);
-if (!IS_PAYPAL) info(`scoped key: ${scopedKey.publicKey} → ${scopedKey.contractId}::pay only`);
+if (!IS_PAYPAL) {
+  info(`scoped key: ${scopedKey.publicKey} → ${scopedKey.contractId}::pay only (bounded budget rail)`);
+  if (IS_INTENTS) info(`intents verifier: ${intents.VERIFIER} (unmodified defuse wasm — no official testnet deploy)`);
+}
 agentSays(IS_PAYPAL
   ? "I have a job: buy a football kit for my human. Let's see what's for sale."
-  : "My human wants the NEAR FC kit for the match. Plan: hire a stylist to check fit, haggle on price, pay for both in stablecoin.");
+  : "My human wants the NEAR FC kit for the match. Plan: hire a stylist to check fit, haggle the price down, settle both with signed intents.");
 
 // ── 1. Discover the offers ──
 step(1, "Discover two services — a stylist and a merchant");
@@ -161,7 +232,6 @@ agentSays(`"${STYLIST_SLUG}" runs a try-on service — I'll hire them to check f
 info(`kit listing: ${kitListing.id}  ·  stylist listing: ${stylistListing.id}`);
 
 // ── PayPal rail: the human approves, the agent relays ──
-// (The NEAR story continues below — this branch exits early.)
 if (IS_PAYPAL) {
   step(2, "Check fit first (paid try-on rail)");
   const tryOnRes = await post("/api/agent/try-on", {
@@ -214,126 +284,200 @@ if (IS_PAYPAL) {
   process.exit(0);
 }
 
-// snapshot balances lazily per payee so the "earn" beat has a before/after
-const before = { escrow: await ftBalance(scopedKey.contractId, FT) };
-const payees = { stylist: null, merchant: null };
-info(`escrow wallet ${scopedKey.contractId} holds ${before.escrow} USDC.e — that is my whole spendable budget`);
+// ── Fund the Intents wallet (one deposit covers both settlements) ──
+let before = {};
+if (IS_INTENTS) {
+  const needBase = 17_500_000; // ~kit price + service fee, base units
+  const internal = await intents.internalBalance(agent.accountId);
+  if (internal < BigInt(needBase)) {
+    step("·", "Fund the Intents wallet — deposit into the verifier's ledger");
+    const wallet = BigInt(Math.round((await ftBalance(agent.accountId, FT)) * 1e6));
+    const shortfall = BigInt(needBase) - internal;
+    const depAmount = shortfall > wallet ? wallet : shortfall;
+    const dep = await intents.deposit(agentFak, depAmount);
+    chain(`deposited ${Number(depAmount) / 1e6} USDC.e → ${intents.VERIFIER} internal ledger`);
+    chain(txLink(dep.txHash));
+    info(`internal balance now ${Number(await intents.internalBalance(agent.accountId)) / 1e6} USDC.e`);
+  } else {
+    info(`intents wallet already holds ${Number(internal) / 1e6} USDC.e`);
+  }
+  before.internal = await intents.internalBalance(agent.accountId);
+}
 
-// ── 2. HIRE: pay the stylist's try-on fee → curator.onpoint.testnet ──
-step(2, "HIRE the stylist — pay-per-use, agent to agent");
+const escrowBefore = await ftBalance(scopedKey.contractId, FT);
+info(`escrow wallet ${scopedKey.contractId} holds ${escrowBefore} USDC.e — the bounded budget rail stays live too`);
+
+const payees = { stylist: "curator.onpoint.testnet", merchant: "store.onpoint.testnet" };
+for (const [k, id] of Object.entries(payees)) {
+  before[k] = IS_INTENTS ? Number(await intents.internalBalance(id)) / 1e6 : await ftBalance(id, FT);
+}
+
+// ── 2. HIRE: negotiate the stylist's fee, settle it via an intent ──
+step(2, "HIRE the stylist — negotiate a fee, then the stylist executes my intent");
+const tryOnBodyBase = { curatorSlug: STYLIST_SLUG, listingId: stylistListing.id, photoData };
+
+let tryOnQuoteToken = null;
+let tryOnNego = null;
+if (IS_INTENTS) {
+  tryOnNego = await negotiate({
+    slug: STYLIST_SLUG, scope: "tryon", listingId: stylistListing.id,
+    offers: [0.01, 0.02, 0.03],
+  });
+  for (const t of tryOnNego.transcript) {
+    if (t.actor === "buyer") agentSays(t.usd ? `offer $${t.usd}` : t.note);
+    else sellerSays(t.usd ? `asks $${t.usd}${t.note ? ` — "${String(t.note).slice(0, 110)}"` : ""}` : (t.note || "…"));
+  }
+  if (tryOnNego.error) { say(`try-on negotiation failed: ${tryOnNego.error}`); process.exit(1); }
+  tryOnQuoteToken = tryOnNego.quoteToken;
+  agentSays(`deal — signed quote token from ${tryOnNego.quoteToken.signer?.accountId ?? "the stylist"} (${tryOnNego.quoteToken.payload?.agreedCusd} USD, scope tryon)`);
+}
+
 const tryOnRes = await post("/api/agent/try-on", {
-  curatorSlug: STYLIST_SLUG,
-  listingId: stylistListing.id,
-  photoData,
+  ...tryOnBodyBase,
+  ...(tryOnQuoteToken ? { quoteToken: tryOnQuoteToken } : {}),
 });
 const tryOnBody402 = await tryOnRes.json();
 const tryOnQuote = tryOnBody402.quote;
-const tryOnNear = tryOnQuote?.near;
-if (!tryOnNear?.token) { say(`expected a NEAR token try-on quote, got ${tryOnRes.status}: ${JSON.stringify(tryOnBody402)}`); process.exit(1); }
-payees.stylist = tryOnNear.accountId;
-before.stylist = await ftBalance(payees.stylist, FT);
-agentSays(`fit check costs $${tryOnQuote.priceCusd} — payee is ${C.b}${payees.stylist}${C.x} (the stylist's own account)`);
-const feePay = await payEscrowed({ receiverId: payees.stylist, amountBase: tryOnNear.token.amount });
-if (!feePay.ok) { say(`try-on payment failed on-chain: ${JSON.stringify(feePay.failure)}`); process.exit(1); }
-chain(`paid ${tryOnNear.token.display} ${tryOnNear.token.symbol} → ${payees.stylist} via ${scopedKey.contractId}::pay`);
-chain(`https://testnet.nearblocks.io/txns/${feePay.txHash}`);
+if (!tryOnQuote) { say(`expected a 402 try-on quote, got ${tryOnRes.status}: ${JSON.stringify(tryOnBody402).slice(0, 300)}`); process.exit(1); }
+payees.stylist = IS_INTENTS ? tryOnQuote.intents?.payTo : tryOnQuote.near?.accountId;
+if (!payees.stylist) { say(`no NEAR payee on the try-on quote: ${JSON.stringify(tryOnQuote).slice(0, 300)}`); process.exit(1); }
+
+let tryOnProof = {};
+if (IS_INTENTS) {
+  const iq = tryOnQuote.intents;
+  if (!iq) { say(`no intents rail on try-on quote — is NEAR_INTENTS_VERIFIER configured on the API?`); process.exit(1); }
+  agentSays(`fit fee: ${iq.display} ${iq.symbol} → ${C.b}${iq.payTo}${C.x}. I sign the intent — the stylist settles it themselves.`);
+  const fee = await settleViaIntents({ payee: iq.payTo, amountBase: iq.amount });
+  if (!fee.ok) { say(`stylist intent execution failed: ${JSON.stringify(fee.failure).slice(0, 300)}`); process.exit(1); }
+  chain(`stylist ${iq.payTo} executed my signed intent — ${iq.display} ${iq.symbol} moved on the verifier`);
+  chain(txLink(fee.txHash));
+  tryOnProof = { nearAccountId: agent.accountId, intentsTxHash: fee.txHash };
+} else {
+  const t = tryOnQuote.near?.token;
+  if (!t) { say(`expected a NEAR token try-on quote, got ${JSON.stringify(tryOnQuote).slice(0, 300)}`); process.exit(1); }
+  const feePay = await payEscrowed({ receiverId: payees.stylist, amountBase: t.amount });
+  if (!feePay.ok) { say(`try-on payment failed on-chain: ${JSON.stringify(feePay.failure)}`); process.exit(1); }
+  chain(`paid ${t.display} ${t.symbol} → ${payees.stylist} via ${scopedKey.contractId}::pay`);
+  chain(txLink(feePay.txHash));
+  tryOnProof = { nearAccountId: agent.accountId, nearTxHash: feePay.txHash };
+}
 await SLEEP(2500);
 
-const tryOnBody = {
-  curatorSlug: STYLIST_SLUG,
-  listingId: stylistListing.id,
-  photoData,
-  nearAccountId: agent.accountId,
-  nearTxHash: feePay.txHash,
-};
-const tryOnFinal = await post("/api/agent/try-on", tryOnBody);
+const tryOnFinal = await post("/api/agent/try-on", {
+  ...tryOnBodyBase,
+  ...(tryOnQuoteToken ? { quoteToken: tryOnQuoteToken } : {}),
+  ...tryOnProof,
+});
 const tryOnResult = await tryOnFinal.json();
 if (tryOnFinal.status !== 200) {
   info(`try-on render returned ${tryOnFinal.status} — the fee is still settled on-chain (the hire is what this beat proves)`);
 } else {
-  const provider = tryOnResult.tryOn?.render?.provider || tryOnResult.provider || "render ok";
-  agentSays(`stylist delivered — ${provider}${tryOnResult.polaroid?.webUrl ? ` · polaroid ${tryOnResult.polaroid.webUrl}` : ""}`);
+  const rprovider = tryOnResult.tryOn?.render?.provider || tryOnResult.provider || "render ok";
+  agentSays(`stylist delivered — ${rprovider}${tryOnResult.polaroid?.webUrl ? ` · polaroid ${tryOnResult.polaroid.webUrl}` : ""}`);
 }
 
-// ── 3. NEGOTIATE: lowball the merchant → machine-readable counter-offer ──
-step(3, "NEGOTIATE the kit price — offer, counter, accept");
-const size = offer?.size || "M";
-const orderBody = { listingId: kitListing.id, size, quantity: 1 };
-agentSays(`posted price is ~${offer?.priceCusd ?? "?"} USD. I'm offering ${LOWBALL_USD}.`);
-const resOffer = await post(`/api/curator/${MERCHANT_SLUG}/order`, { ...orderBody, offerUsd: LOWBALL_USD });
-
-const offerResult = await resOffer.json();
-if (resOffer.status !== 409 || offerResult.code !== "OFFER_BELOW_FLOOR") {
-  say(`expected a 409 counter-offer, got ${resOffer.status}: ${JSON.stringify(offerResult)}`);
-  process.exit(1);
-}
-merchantSays(`too low — counter-offer: ${C.b}${offerResult.counterOffer.offerUsd} USD${C.x} (their floor, machine-readable)`);
-info(`counter: ${JSON.stringify(offerResult.counterOffer)}`);
-
-agentSays(`accepted at ${offerResult.counterOffer.offerUsd} — requesting the payment quote.`);
-const res402 = await post(`/api/curator/${MERCHANT_SLUG}/order`, {
-  ...orderBody,
-  offerUsd: offerResult.counterOffer.offerUsd,
+// ── 3. NEGOTIATE the kit — multi-round, with a refusal visible ──
+step(3, "NEGOTIATE the kit — lowball → refusal → counter-rounds → signed token");
+const size = offer?.size || "L";
+agentSays(`posted ~${offer?.priceCusd ?? "?"} USD${tryOnNego ? " — and the store can see I just paid their stylist" : ""}.`);
+const kitNego = await negotiate({
+  slug: MERCHANT_SLUG, scope: "order", listingId: kitListing.id, size, quantity: 1,
+  offers: [8, 14, 16], // session 1 lowballs hard → a real refusal, then we come back serious
 });
-const res402Body = await res402.json();
-const q = res402Body.quote;
-if (res402.status !== 402 || !q) { say(`expected a 402 quote, got ${res402.status}: ${JSON.stringify(res402Body)}`); process.exit(1); }
-agentSays(`HTTP 402 — agreed ${q.totalCusd} USD (was ${q.negotiation?.listCusd}). Rails: ${q.paymentRails.join(" + ")}`);
-if (!q.near?.token) { say("near token rail not advertised — is NEAR_TOKEN_* configured on the API?"); process.exit(1); }
-say(`${C.y}   quote ›${C.x} ${q.quoteId} · ${q.near.token.display} ${q.near.token.symbol} → ${q.near.accountId} via ${q.near.token.contractId}::${q.near.token.method}`);
+for (const t of kitNego.transcript) {
+  if (t.actor === "buyer") agentSays(t.usd ? `offer $${t.usd}` : t.note);
+  else sellerSays(t.usd ? `asks $${t.usd}${t.note ? ` — "${String(t.note).slice(0, 110)}"` : ""}` : (t.note || "…"));
+}
+if (kitNego.error) { say(`kit negotiation failed: ${kitNego.error}`); process.exit(1); }
+const kitToken = kitNego.quoteToken;
+agentSays(`deal — the seller signed {listing, size, agreed ${kitToken.payload?.agreedCusd} USD, session, expiry} with its own key.`);
+info(`token signer ${kitToken.signer?.accountId} · pubkey ${kitToken.signer?.publicKey?.slice(0, 24)}… — verifiable off-chain vs the payee's on-chain key`);
 
 // ── 4. The contract enforces the cap — over-limit calls fail on-chain ──
 if (process.env.SKIP_CAP !== "1") {
-  step(4, "Prove the key is bounded — one call can never drain the escrow");
-  const overCap = 30_000_000; // 30 USDC.e > MAX_PER_TX (25)
-  agentSays(`watch me TRY to move ${overCap / 1e6} USDC.e in one call — the contract caps ${q.near.token.method} at 25.`);
-  const cap = await payEscrowed({ receiverId: q.near.accountId, amountBase: overCap });
-  if (cap.txHash) chain(`https://testnet.nearblocks.io/txns/${cap.txHash}`);
+  step(4, "Prove the scoped key stays bounded — one call can never drain the escrow");
+  agentSays(`watch me TRY to move 30 USDC.e in one escrow call — the contract caps pay() at 25.`);
+  const cap = await payEscrowed({ receiverId: payees.merchant, amountBase: 30_000_000 });
+  if (cap.txHash) chain(txLink(cap.txHash));
   if (cap.ok) {
     info(`over-cap call unexpectedly landed (${cap.txHash}) — MAX_PER_TX not enforced?`);
   } else {
     chain(`rejected on-chain: ${JSON.stringify(cap.failure).slice(0, 140)}`);
-    agentSays(`bounded twice: per call by the contract cap, in total by the ${before.escrow} USDC.e escrow. That's the whole point of the key.`);
+    agentSays(`bounded twice: per call by the contract cap, in total by the ${escrowBefore} USDC.e escrow. That key can only ever spend what's escrowed.`);
   }
 }
 
-// ── 5. SETTLE: pay the agreed amount → store.onpoint.testnet ──
-step(5, "SETTLE the order — pay the merchant's own account");
-const t = q.near.token;
-if (t.contractId !== scopedKey.contractId) {
-  say(`scoped key is for ${scopedKey.contractId}, quote asks ${t.contractId} — run setup-scoped-key.mjs`);
-  process.exit(1);
+// ── 5. SETTLE the order — the merchant executes my signed intent ──
+step(5, "SETTLE the order — buyer signs the intent, the seller executes it");
+const orderBody = { listingId: kitListing.id, size, quantity: 1 };
+const res402 = await post(`/api/curator/${MERCHANT_SLUG}/order`, {
+  ...orderBody,
+  quoteToken: kitToken, // first presentation mints the 402 at the signed price
+});
+const res402Body = await res402.json();
+const q = res402Body.quote;
+if (res402.status !== 402 || !q) { say(`expected a 402 quote, got ${res402.status}: ${JSON.stringify(res402Body).slice(0, 300)}`); process.exit(1); }
+agentSays(`HTTP 402 — agreed ${q.totalCusd} USD (posted ${q.negotiation?.listCusd ?? "—"}). Rails: ${q.paymentRails.join(" + ")}`);
+info(`quoteId ${q.quoteId} — the agreed price is bound in the id itself`);
+
+let settleProof = {};
+if (IS_INTENTS) {
+  const iq = q.intents;
+  if (!iq) { say(`no intents rail on the order quote — is NEAR_INTENTS_VERIFIER configured on the API?`); process.exit(1); }
+  agentSays(`signing: transfer ${iq.amount} base of ${iq.tokenId} → ${iq.payTo}, verified by ${iq.verifier}`);
+  const pay = await settleViaIntents({ payee: iq.payTo, amountBase: iq.amount });
+  if (!pay.ok) { say(`merchant intent execution failed: ${JSON.stringify(pay.failure).slice(0, 300)}`); process.exit(1); }
+  chain(`merchant ${iq.payTo} executed the intent — ${iq.display} ${iq.symbol} settled atomically on the verifier`);
+  chain(txLink(pay.txHash));
+  settleProof = { quoteId: q.quoteId, nearAccountId: agent.accountId, intentsTxHash: pay.txHash };
+} else {
+  const t = q.near?.token;
+  if (!t) { say("near token rail not advertised — is NEAR_TOKEN_* configured on the API?"); process.exit(1); }
+  if (t.contractId !== scopedKey.contractId) {
+    say(`scoped key is for ${scopedKey.contractId}, quote asks ${t.contractId} — run setup-scoped-key.mjs`);
+    process.exit(1);
+  }
+  const orderPay = await payEscrowed({ receiverId: q.near.accountId, amountBase: t.amount });
+  if (!orderPay.ok) { say(`order payment failed on-chain: ${JSON.stringify(orderPay.failure)}`); process.exit(1); }
+  chain(`sent ${t.display} ${t.symbol} → ${q.near.accountId} (${t.contractId}::${t.method})`);
+  chain(txLink(orderPay.txHash));
+  settleProof = { quoteId: q.quoteId, nearAccountId: agent.accountId, nearTxHash: orderPay.txHash };
 }
-payees.merchant = q.near.accountId;
-before.merchant = await ftBalance(payees.merchant, FT);
-const orderPay = await payEscrowed({ receiverId: payees.merchant, amountBase: t.amount });
-if (!orderPay.ok) { say(`order payment failed on-chain: ${JSON.stringify(orderPay.failure)}`); process.exit(1); }
-chain(`sent ${t.display} ${t.symbol} → ${payees.merchant} (${t.contractId}::${t.method})`);
-chain(`https://testnet.nearblocks.io/txns/${orderPay.txHash}`);
 await SLEEP(2500);
 
 const res201 = await post(`/api/curator/${MERCHANT_SLUG}/order`, {
   ...orderBody,
-  quoteId: q.quoteId, // binds the negotiated price — no need to repeat offerUsd
-  nearAccountId: agent.accountId,
-  nearTxHash: orderPay.txHash,
+  quoteToken: kitToken, // the seller's signed commitment — quoteId alone re-floors and 409s on bundle-discounted prices
+  ...settleProof,
 });
 const order = await res201.json();
-if (!order.success) { say(`${C.y}   response ${res201.status}: ${JSON.stringify(order)}${C.x}`); process.exit(1); }
-agentSays(`HTTP ${res201.status} — order ${order.order.id.slice(0, 8)} confirmed at ${order.order.totalCusd} USD. ${order.order.payout.status === "settled" ? "The merchant already has the stablecoin." : ""}`);
+if (!order.success) { say(`${C.y}   response ${res201.status}: ${JSON.stringify(order).slice(0, 400)}${C.x}`); process.exit(1); }
+agentSays(`HTTP ${res201.status} — order ${order.order.id.slice(0, 8)} confirmed at ${order.order.totalCusd} USD.`);
 say(`${C.y}   payment ›${C.x} ${order.order.payment.paymentMethod} · ${order.order.payment.explorerUrl ?? "off-chain"}`);
 say(`${C.y}   payout  ›${C.x} ${order.order.payout.status} → ${order.order.payout.to ?? "platform"} ${order.order.payout.amountTokenDisplay ?? order.order.payout.amountNear ?? ""} ${order.order.payout.asset ?? ""}`);
 say(`${C.y}   receipt ›${C.x} ${order.order.receiptUrl}`);
 
-// ── 6. Verify on-chain: two payees, two roles, one scoped key ──
-step(6, "Verify on-chain — two payees got paid, the provider EARNED");
-const after = {
-  escrow: await ftBalance(scopedKey.contractId, FT),
-  stylist: await ftBalance(payees.stylist, FT),
-  merchant: await ftBalance(payees.merchant, FT),
-};
-chain(`escrow:   ${before.escrow} → ${after.escrow} USDC.e   (−${(before.escrow - after.escrow).toFixed(6)})`);
-chain(`stylist   ${payees.stylist}:  ${before.stylist} → ${after.stylist} USDC.e   (+${(after.stylist - before.stylist).toFixed(6)} earned — the hired service)`);
-chain(`merchant  ${payees.merchant}:  ${before.merchant} → ${after.merchant} USDC.e   (+${(after.merchant - before.merchant).toFixed(6)} earned — the order)`);
+// ── 6. Verify on-chain: the verifier's ledger shows who earned what ──
+step(6, "Verify on-chain — two payees earned, on two different settlements");
+if (IS_INTENTS) {
+  const after = {
+    internal: Number(await intents.internalBalance(agent.accountId)) / 1e6,
+    stylist: Number(await intents.internalBalance(payees.stylist)) / 1e6,
+    merchant: Number(await intents.internalBalance(payees.merchant)) / 1e6,
+  };
+  chain(`agent    intents-ledger: ${Number(before.internal) / 1e6} → ${after.internal} USDC.e`);
+  chain(`stylist  ${payees.stylist}:  ${before.stylist} → ${after.stylist} USDC.e   (+${(after.stylist - before.stylist).toFixed(6)} earned — the hired service)`);
+  chain(`merchant ${payees.merchant}:  ${before.merchant} → ${after.merchant} USDC.e   (+${(after.merchant - before.merchant).toFixed(6)} earned — the order)`);
+  info(`verifier ${intents.VERIFIER} holds the ledger — withdrawals are a separate intent each payee can make`);
+} else {
+  const after = {
+    escrow: await ftBalance(scopedKey.contractId, FT),
+    stylist: await ftBalance(payees.stylist, FT),
+    merchant: await ftBalance(payees.merchant, FT),
+  };
+  chain(`escrow:   ${escrowBefore} → ${after.escrow} USDC.e   (−${(escrowBefore - after.escrow).toFixed(6)})`);
+  chain(`stylist   ${payees.stylist}:  ${before.stylist} → ${after.stylist} USDC.e   (+${(after.stylist - before.stylist).toFixed(6)} earned — the hired service)`);
+  chain(`merchant  ${payees.merchant}:  ${before.merchant} → ${after.merchant} USDC.e   (+${(after.merchant - before.merchant).toFixed(6)} earned — the order)`);
+}
 
-say(`\n${C.b}${C.g}agent economy:${C.x} negotiated → hired → settled programmatically — two NEAR payees, one key that can only spend what's escrowed, to allow-listed payees, capped per call.\n`);
+say(`\n${C.b}${C.g}agent economy:${C.x} bargained over rounds (with a refusal) → hired a stylist the same way → settled via signed intents executed by the sellers — plus a scoped key that provably can't overspend.\n`);

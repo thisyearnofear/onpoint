@@ -302,7 +302,19 @@ async function verifyNearPayment({
 }
 
 /** Display summary of what actually settled — for payout/receipt fields. */
-function nearSettlementSummary(nearResult, nearQuote) {
+function nearSettlementSummary(nearResult, nearQuote, intentsQuote) {
+  if (nearResult?.mode === 'intents') {
+    const token = nearQuote?.token || intentsQuote;
+    if (token) {
+      return {
+        mode: 'intents',
+        asset: token.symbol,
+        tokenContract: nearResult.tokenContract,
+        amountToken: nearResult.amountToken,
+        display: Number(nearResult.amountToken) / 10 ** token.decimals,
+      };
+    }
+  }
   if (nearResult?.mode === 'token' && nearQuote?.token) {
     return {
       mode: 'token',
