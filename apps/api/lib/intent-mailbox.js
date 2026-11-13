@@ -60,6 +60,7 @@ function submit({ signed, signedSwap, buyerAccountId, payee, minAmountBase, rede
       expectedSigner: check.signer,
       giveTokenId: signedSwap?.giveTokenId,
       minGetBase: check.amount,
+      verifierId: check.msg?.verifying_contract, // the diff must live on the transfer's venue
     });
     if (!dCheck.ok) return { ok: false, reason: `swap_${dCheck.reason}`, detail: dCheck };
     swap = {

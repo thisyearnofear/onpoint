@@ -318,7 +318,14 @@ async function authorizeQuoteSigner({ signerAccountId, publicKey, rpcUrl } = {})
   }
   const has = await nearIntents.verifierHasPublicKey(signerAccountId, publicKey, { rpcUrl });
   if (has.ok === true) return { ok: true, via: 'registry' };
-  return { ok: false, via: 'registry', reason: has.ok === false ? 'key_not_registered' : has.reason };
+  // Sovereign merchant on the canonical deployment: its signing key may live
+  // only in the intents.near registry — a quote signed there is just as
+  // sovereign as one signed against our testnet verifier.
+  const hasMain = await nearIntents.verifierHasPublicKey(signerAccountId, publicKey, {
+    verifierId: nearIntents.MAINNET_VERIFIER,
+  });
+  if (hasMain.ok === true) return { ok: true, via: 'registry_mainnet' };
+  return { ok: false, via: 'registry', reason: has.ok === false ? 'key_not_registered' : (hasMain.reason ?? has.reason) };
 }
 
 // ── session lifecycle ─────────────────────────────────────────────────────

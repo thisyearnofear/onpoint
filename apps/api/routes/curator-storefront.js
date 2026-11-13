@@ -802,6 +802,13 @@ router.post('/:slug/order', async (req, res) => {
     // intent, the SELLER executes it via execute_intents — then re-POSTs the
     // execution tx hash as intentsTxHash.
     const intentsQuote = nearPayTo ? nearIntents.intentsQuoteForUsd(totalCusd, nearPayTo) : null;
+    // Canonical venue: commerce.nearMainnetAccountId advertises settlement
+    // on intents.near in native USDC — same rail, real asset, public
+    // deployment. The signed intent's verifying_contract picks the venue.
+    const nearMainnetPayTo = nearPayments.isNearAccountId(row.curator?.commerce?.nearMainnetAccountId || '')
+      ? row.curator.commerce.nearMainnetAccountId : null;
+    const intentsMainnetQuote = nearMainnetPayTo
+      ? nearIntents.intentsQuoteForUsd(totalCusd, nearMainnetPayTo, nearIntents.MAINNET_VERIFIER) : null;
 
     // Deterministic quote ID — same listing+size+quantity+price produces the
     // same ID, so retries after a network blip get the same quote. Includes
@@ -865,6 +872,7 @@ router.post('/:slug/order', async (req, res) => {
               }
             : {}),
           ...(intentsQuote ? { intents: intentsQuote } : {}),
+          ...(intentsMainnetQuote ? { intentsMainnet: intentsMainnetQuote } : {}),
           ...(nearQuote
             ? {
                 near: {
@@ -984,9 +992,20 @@ router.post('/:slug/order', async (req, res) => {
       // Mailbox path: the buyer publishes its signed commitment; the
       // SELLER's own agent process picks it up and executes it. Safe by
       // construction — a signed intent can only pay its receiver_id.
-      if (!nearPayTo || !intentsQuote) {
+      if ((!nearPayTo || !intentsQuote) && (!nearMainnetPayTo || !intentsMainnetQuote)) {
         return res.status(409).json({
           error: 'NEAR Intents payment rail is not configured for this resource.',
+          code: 'PAYMENT_RAIL_UNAVAILABLE',
+        });
+      }
+      let signedVenue = null;
+      try { signedVenue = JSON.parse(signedIntent?.payload?.message ?? '')?.verifying_contract ?? null; } catch {}
+      const venuePayTo = signedVenue === nearIntents.MAINNET_VERIFIER ? nearMainnetPayTo : nearPayTo;
+      if (!venuePayTo) {
+        return res.status(409).json({
+          error: signedVenue === nearIntents.MAINNET_VERIFIER
+            ? 'This storefront has no NEAR mainnet payee (commerce.nearMainnetAccountId).'
+            : 'NEAR Intents payment rail is not configured for this resource.',
           code: 'PAYMENT_RAIL_UNAVAILABLE',
         });
       }
@@ -994,8 +1013,8 @@ router.post('/:slug/order', async (req, res) => {
         signed: signedIntent,
         signedSwap,
         buyerAccountId: nearPayer,
-        payee: nearPayTo,
-        minAmountBase: intentsQuote.amount,
+        payee: venuePayTo,
+        minAmountBase: (intentsQuote ?? intentsMainnetQuote).amount,
         redeem: {
           path: req.originalUrl, // relative — the seller resolves it against the API it already talks to
           body: { ...req.body, signedIntent: undefined, signedSwap: undefined },
@@ -1011,28 +1030,42 @@ router.post('/:slug/order', async (req, res) => {
       return res.status(202).json({
         status: 'pending_execution',
         pendingId: submitted.pendingId,
-        payee: nearPayTo,
+        payee: venuePayTo,
         swapFunded: Boolean(signedSwap),
         message: 'Signed intent published — the payee executes it via execute_intents, then this order completes.',
         poll: `/api/pending-intents/${submitted.pendingId}`,
       });
     } else if (intentsTxHash) {
-      if (!nearPayTo || !intentsQuote) {
+      if ((!nearPayTo || !intentsQuote) && (!nearMainnetPayTo || !intentsMainnetQuote)) {
         return res.status(409).json({
           error: 'NEAR Intents payment rail is not configured for this resource.',
           code: 'PAYMENT_RAIL_UNAVAILABLE',
         });
       }
-      const intentsResult = await nearIntents.verifyIntentsSettlement({
+      let intentsResult = await nearIntents.verifyIntentsSettlement({
         txHash: String(intentsTxHash),
         buyerAccountId: nearPayer,
         expectedPayeeId: nearPayTo,
-        minAmountBase: intentsQuote.amount,
+        minAmountBase: (intentsQuote ?? intentsMainnetQuote).amount,
         // Whoever executed the bundle (payee or solver) — the tx_status
         // lookup keys on (tx_hash, signer). Solver ≠ payee is expected on
         // the open solver queue.
         executorAccountId: req.body?.intentsExecutor ? String(req.body.intentsExecutor) : undefined,
       });
+      // Canonical venue: the settlement may have executed on intents.near —
+      // a mainnet tx hash reads as unknown/failed on the testnet RPC, so
+      // re-verify on the mainnet venue against the mainnet payee whenever
+      // one is configured. The re-verify re-checks everything itself.
+      if (!intentsResult.ok && nearMainnetPayTo && intentsMainnetQuote) {
+        intentsResult = await nearIntents.verifyIntentsSettlement({
+          txHash: String(intentsTxHash),
+          buyerAccountId: nearPayer,
+          expectedPayeeId: nearMainnetPayTo,
+          minAmountBase: intentsMainnetQuote.amount,
+          executorAccountId: req.body?.intentsExecutor ? String(req.body.intentsExecutor) : undefined,
+          verifierId: nearIntents.MAINNET_VERIFIER,
+        });
+      }
       if (!intentsResult.ok) {
         return res.status(402).json({
           error: `NEAR intents settlement not verified: ${intentsResult.reason}`,

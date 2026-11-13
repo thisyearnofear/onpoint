@@ -27,13 +27,33 @@
 
 const nearPayments = require('./near-payments');
 
-function intentsConfig() {
+// The canonical public deployment. A signed intent's verifying_contract
+// declares its venue, so the same rail settles on our testnet deployment
+// OR on intents.near — verification just routes by that declared venue.
+const MAINNET_VERIFIER = 'intents.near';
+const MAINNET_USDC = '17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1'; // native USDC (Circle), 6dp
+const MAINNET_RPC = () => process.env.NEAR_MAINNET_RPC_URL || 'https://free.rpc.fastnear.com';
+
+function intentsConfig(verifierId) {
+  if (verifierId === MAINNET_VERIFIER) {
+    return {
+      verifier: MAINNET_VERIFIER,
+      rpc: MAINNET_RPC(),
+      tokenId: `nep141:${MAINNET_USDC}`,
+      tokenContractId: MAINNET_USDC,
+      symbol: 'USDC',
+      decimals: 6,
+      mainnet: true,
+    };
+  }
   const verifier = process.env.NEAR_INTENTS_VERIFIER;
+  if (verifierId && verifierId !== verifier) return null;
   const token = nearPayments.nearTokenConfig();
   if (!verifier || !nearPayments.isNearAccountId(verifier)) return null;
   if (!token?.contractId) return null;
   return {
     verifier,
+    rpc: nearPayments.nearRpcUrl(),
     tokenId: `nep141:${token.contractId}`,
     tokenContractId: token.contractId,
     symbol: token.symbol,
@@ -43,10 +63,11 @@ function intentsConfig() {
 
 /**
  * The intents block for a 402 quote — tells the buying agent what to sign.
- * amount is base units of the settlement token.
+ * amount is base units of the settlement token. verifierId picks the venue:
+ * unset = configured (testnet) deployment, 'intents.near' = canonical mainnet.
  */
-function intentsQuoteForUsd(usd, payTo) {
-  const cfg = intentsConfig();
+function intentsQuoteForUsd(usd, payTo, verifierId) {
+  const cfg = intentsConfig(verifierId);
   if (!cfg || !payTo || !Number.isFinite(usd) || usd <= 0) return null;
   const amount = BigInt(Math.ceil(usd * 10 ** cfg.decimals));
   return {
@@ -89,10 +110,12 @@ async function verifyIntentsSettlement({
   expectedPayeeId,
   minAmountBase,
   executorAccountId,
-  rpcUrl = nearPayments.nearRpcUrl(),
+  verifierId, // 'intents.near' routes to the canonical deployment + mainnet RPC
+  rpcUrl,
 }) {
-  const cfg = intentsConfig();
+  const cfg = intentsConfig(verifierId);
   if (!cfg) return { ok: false, reason: 'intents_not_configured' };
+  rpcUrl = rpcUrl || cfg.rpc;
 
   const res = await fetch(rpcUrl, {
     method: 'POST',
@@ -257,8 +280,6 @@ async function verifyIntentsSettlement({
  * for >= minAmountBase of tokenId.
  */
 function validateSignedIntentPayload({ signed, buyerAccountId, expectedPayeeId, minAmountBase }) {
-  const cfg = intentsConfig();
-  if (!cfg) return { ok: false, reason: 'intents_not_configured' };
   if (!signed || signed.standard !== 'nep413') {
     return { ok: false, reason: 'not_nep413' };
   }
@@ -280,7 +301,10 @@ function validateSignedIntentPayload({ signed, buyerAccountId, expectedPayeeId, 
   if (buyerAccountId && msg.signer_id !== buyerAccountId) {
     return { ok: false, reason: 'signer_mismatch', signer: msg.signer_id };
   }
-  if (msg?.verifying_contract !== cfg.verifier) {
+  // The signed message declares its venue — intents.near routes to the
+  // canonical deployment; anything else must be our configured verifier.
+  const cfg = intentsConfig(msg?.verifying_contract);
+  if (!cfg) {
     return { ok: false, reason: 'verifier_mismatch', verifier: msg?.verifying_contract };
   }
   if (msg?.deadline && Date.parse(msg.deadline) <= Date.now()) {
@@ -319,8 +343,8 @@ function validateSignedIntentPayload({ signed, buyerAccountId, expectedPayeeId, 
  * `tokenId` (positive, >= minGetBase). The API does not judge the rate —
  * that is the counterparty's sovereign decision.
  */
-function validateSignedDiffPayload({ signed, expectedSigner, giveTokenId, minGetBase }) {
-  const cfg = intentsConfig();
+function validateSignedDiffPayload({ signed, expectedSigner, giveTokenId, minGetBase, verifierId }) {
+  const cfg = intentsConfig(verifierId);
   if (!cfg) return { ok: false, reason: 'intents_not_configured' };
   if (!signed || signed.standard !== 'nep413') {
     return { ok: false, reason: 'not_nep413' };
@@ -386,9 +410,10 @@ function validateSignedDiffPayload({ signed, expectedSigner, giveTokenId, minGet
  * {ok:null, reason} when the question can't be answered (rail unconfigured,
  * RPC down) — callers fail closed.
  */
-async function verifierHasPublicKey(accountId, publicKey, { rpcUrl = nearPayments.nearRpcUrl() } = {}) {
-  const cfg = intentsConfig();
+async function verifierHasPublicKey(accountId, publicKey, { rpcUrl, verifierId } = {}) {
+  const cfg = intentsConfig(verifierId);
   if (!cfg) return { ok: null, reason: 'intents_not_configured' };
+  rpcUrl = rpcUrl || cfg.rpc;
   const res = await fetch(rpcUrl, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -418,6 +443,7 @@ async function verifierHasPublicKey(accountId, publicKey, { rpcUrl = nearPayment
 
 module.exports = {
   intentsConfig,
+  MAINNET_VERIFIER,
   intentsQuoteForUsd,
   verifyIntentsSettlement,
   validateSignedIntentPayload,

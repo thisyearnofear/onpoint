@@ -38,12 +38,16 @@ import { decide, policyFor } from "./seller-policy.mjs";
 const API = process.env.API_URL || "http://localhost:48751";
 const POLL_MS = Number(process.env.POLL_MS || 3000);
 const HEARTBEAT_MS = Number(process.env.HEARTBEAT_MS || 15000);
-const CREDS_PATH = join(dirname(fileURLToPath(import.meta.url)), "near-credentials.testnet.json");
-const POLICY_PATH = join(dirname(fileURLToPath(import.meta.url)), "seller-policy.json");
+const CREDS_PATH = join(dirname(fileURLToPath(import.meta.url)), intents.NET.credsFile);
+// Per-network policy file: seller-policy.<network>.json wins, then the plain file.
+const POLICY_PATH = [
+  join(dirname(fileURLToPath(import.meta.url)), `seller-policy.${intents.NET.network}.json`),
+  join(dirname(fileURLToPath(import.meta.url)), "seller-policy.json"),
+].find(existsSync);
 
 const C = { dim: "\x1b[2m", b: "\x1b[1m", g: "\x1b[32m", c: "\x1b[36m", y: "\x1b[33m", m: "\x1b[35m", x: "\x1b[0m" };
 const say = (s) => console.log(s);
-const txLink = (h) => `https://testnet.nearblocks.io/txns/${h}`;
+const txLink = (h) => `${intents.NET.explorerTx}${h}`;
 
 const creds = existsSync(CREDS_PATH)
   ? JSON.parse(readFileSync(CREDS_PATH, "utf8"))
@@ -165,6 +169,7 @@ function acceptanceCheck(p, myAccountId) {
   if (Date.parse(p.expiresAt) <= Date.now()) return { ok: false, why: "deadline passed" };
   let msg;
   try { msg = JSON.parse(p.signed.payload.message); } catch { return { ok: false, why: "message unparseable" }; }
+  if (msg.verifying_contract !== intents.VERIFIER) return { ok: false, why: `venue ${msg.verifying_contract}, not ${intents.VERIFIER}` };
   const transfer = (msg.intents ?? []).find((i) => i?.intent === "transfer" && i?.receiver_id === myAccountId);
   if (!transfer) return { ok: false, why: "no transfer paying me" };
   return { ok: true, amountBase: transfer.tokens?.[intents.TOKEN_ID] ?? "0", buyer: msg.signer_id };
@@ -206,6 +211,7 @@ function solverCheck(p, solverId) {
   if (Date.parse(p.expiresAt) <= Date.now()) return { ok: false, why: "deadline passed" };
   let msg;
   try { msg = JSON.parse(p.signed.payload.message); } catch { return { ok: false, why: "message unparseable" }; }
+  if (msg.verifying_contract !== intents.VERIFIER) return { ok: false, why: `venue ${msg.verifying_contract}, not ${intents.VERIFIER}` };
   const transfer = (msg.intents ?? []).find((i) => i?.intent === "transfer" && i?.receiver_id === p.payee);
   if (!transfer) return { ok: false, why: "no transfer to the stated payee" };
   return { ok: true, amountBase: transfer.tokens?.[intents.TOKEN_ID] ?? "0" };
@@ -255,7 +261,7 @@ function solveSwap(p, deciderId, transferAmountBase) {
     return { ok: false, why: `diff gets ${getAmt} < the ${transferAmountBase} it must fund` };
   }
   const minRate = policyFor(policyCfg, deciderId).minUsdcPerWnear ?? 0;
-  if (swap.giveTokenId === "nep141:wrap.testnet" && minRate > 0) {
+  if (swap.giveTokenId === `nep141:${intents.NET.wnear}` && minRate > 0) {
     const impliedUsdcPerWnear = (Number(getAmt) / 1e6) / (Number(giveAmt) / 1e24);
     if (impliedUsdcPerWnear < minRate) {
       return { ok: false, why: `rate ${impliedUsdcPerWnear.toFixed(3)} USDC/wNEAR < my minimum ${minRate}` };

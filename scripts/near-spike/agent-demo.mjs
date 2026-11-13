@@ -44,7 +44,7 @@ import { dirname, join } from "node:path";
 import * as intents from "./intents-lib.mjs";
 
 const API = process.env.API_URL || "http://localhost:48751";
-const CREDS_PATH = join(dirname(fileURLToPath(import.meta.url)), "near-credentials.testnet.json");
+const CREDS_PATH = join(dirname(fileURLToPath(import.meta.url)), intents.NET.credsFile);
 const PHOTO_PATH = join(
   dirname(fileURLToPath(import.meta.url)),
   "../../videos/youcam-demo/assets/person-src.jpg",
@@ -56,8 +56,8 @@ const RPC = "https://test.rpc.fastnear.com";
 const SLEEP = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // The merchant (kit order) and the hired stylist (try-on service).
-const MERCHANT_SLUG = "onpoint-store";
-const STYLIST_SLUG = "mo";
+const MERCHANT_SLUG = process.env.MERCHANT_SLUG || "onpoint-store";
+const STYLIST_SLUG = process.env.STYLIST_SLUG || "mo";
 // The stylist's referral — mo's payout wallet address. A raw 0x address
 // resolves directly (resolveReferralAgent path 1), so the commission row
 // actually lands; a bare ref_ code only resolves with prior history.
@@ -73,7 +73,7 @@ const agentSays = (s) => say(`${C.c}   agent ›${C.x} ${s}`);
 const sellerSays = (s) => say(`${C.y}   seller ›${C.x} ${s}`);
 const chain = (s) => say(`${C.g}   chain ›${C.x} ${s}`);
 const info = (s) => say(`${C.dim}   ${s}${C.x}`);
-const txLink = (h) => `https://testnet.nearblocks.io/txns/${h}`;
+const txLink = (h) => `${intents.NET.explorerTx}${h}`;
 
 // RAIL=intents (default) | near (escrow forwarder) | paypal (human approval)
 const RAIL = (process.env.RAIL || "intents").toLowerCase();
@@ -86,7 +86,7 @@ let agent = null;
 let agentFak = null;   // full-access account — signs NEP-413 intents
 let scopedKey = null;  // function-call key — the bounded escrow rail
 let agentSigner = null;
-let FT = "usdc.fakes.testnet";
+let FT = intents.NET.ftContract;
 let nearBalance = async () => null;
 let ftBalance = async () => null;
 if (!IS_PAYPAL) {
@@ -111,13 +111,15 @@ if (!IS_PAYPAL) {
   };
   agent = creds.accounts.agent;
   scopedKey = agent.functionCallKey;
-  if (!scopedKey) {
+  if (!scopedKey && !(IS_INTENTS && intents.NET.network === "mainnet")) {
     say(`no scoped key — run ${C.b}node setup-scoped-key.mjs${C.x} first`);
     process.exit(1);
   }
   FT = creds.payForwarder?.ftContract || FT;
   agentFak = intents.accountOf(agent.accountId, agent.secretKey);
-  agentSigner = new Account(agent.accountId, provider, KeyPairSigner.fromSecretKey(scopedKey.secretKey));
+  agentSigner = scopedKey
+    ? new Account(agent.accountId, provider, KeyPairSigner.fromSecretKey(scopedKey.secretKey))
+    : null;
 }
 
 const post = async (path, body) => {
@@ -375,7 +377,7 @@ if (IS_PAYPAL) {
 // ── Fund the Intents wallet (one deposit covers both settlements) ──
 let before = {};
 if (IS_INTENTS) {
-  const needBase = 17_500_000; // ~kit price + service fee, base units
+  const needBase = Math.round(Number(process.env.INTENTS_NEED_USDC || "17.5") * 1e6); // ~kit price + service fee, base units
   const internal = await intents.internalBalance(agent.accountId);
   if (internal < BigInt(needBase)) {
     step("·", "Fund the Intents wallet — deposit into the verifier's ledger");
@@ -396,16 +398,16 @@ if (IS_INTENTS) {
   before.internal = await intents.internalBalance(agent.accountId);
 }
 
-const escrowBefore = await ftBalance(scopedKey.contractId, FT);
-info(`escrow wallet ${scopedKey.contractId} holds ${escrowBefore} USDC.e — the bounded budget rail stays live too`);
+const escrowBefore = scopedKey ? await ftBalance(scopedKey.contractId, FT) : 0;
+if (scopedKey) info(`escrow wallet ${scopedKey.contractId} holds ${escrowBefore} USDC.e — the bounded budget rail stays live too`);
 
 // ── Optional swap funding: pay the kit with wNEAR via token_diff ──
 // The merchant acts as its own solver — I sign {give wNEAR, get USDC.e},
 // it countersigns the mirror if the rate clears ITS policy, and one
 // execute_intents settles swap + payment atomically.
 const SWAP_FUNDING = process.env.SWAP_FUNDING === "1";
-const WNEAR_ID = "nep141:wrap.testnet";
-const WNEAR_CONTRACT = "wrap.testnet";
+const WNEAR_ID = `nep141:${intents.NET.wnear}`;
+const WNEAR_CONTRACT = intents.NET.wnear;
 const SWAP_RATE_USDC_PER_WNEAR = Number(process.env.SWAP_RATE_USDC_PER_WNEAR || "6");
 if (SWAP_FUNDING && IS_INTENTS) {
   const WNEAR_UNIT = BigInt("1000000000000000000000000"); // 1e24
@@ -444,7 +446,9 @@ if (SWAP_FUNDING && IS_INTENTS) {
   info(`agent wNEAR in verifier ledger: ${Number(await intents.internalBalance(agent.accountId, WNEAR_ID)) / 1e24}`);
 }
 
-const payees = { stylist: "curator.onpoint.testnet", merchant: "store.onpoint.testnet" };
+const payees = intents.NET.network === "mainnet"
+  ? { merchant: creds.accounts.merchant?.accountId }
+  : { stylist: "curator.onpoint.testnet", merchant: "store.onpoint.testnet" };
 for (const [k, id] of Object.entries(payees)) {
   // For intents, "earned" is ledger+wallet: the seller-agent auto-collects
   // each settle via ft_withdraw, so the fee may sit on the ledger OR in the
@@ -455,11 +459,15 @@ for (const [k, id] of Object.entries(payees)) {
 }
 
 // ── 2. HIRE: negotiate the stylist's fee, settle it via an intent ──
+// (mainnet run: skipped — the stylist's payee is a testnet account and this
+// leg would burn real USDC to a testnet address. The order leg carries the
+// whole "merchant keeps real dollars" proof.)
+let tryOnNego = null;
+if (intents.NET.network !== "mainnet") {
 step(2, "HIRE the stylist — negotiate a fee, then the stylist executes my intent");
 const tryOnBodyBase = { curatorSlug: STYLIST_SLUG, listingId: stylistListing.id, photoData };
 
 let tryOnQuoteToken = null;
-let tryOnNego = null;
 if (IS_INTENTS) {
   tryOnNego = await negotiate({
     slug: STYLIST_SLUG, scope: "tryon", listingId: stylistListing.id,
@@ -523,6 +531,8 @@ if (tryOnStatus !== 200 || !tryOnResult) {
   agentSays(`stylist delivered — ${rprovider}${tryOnResult.polaroid?.webUrl ? ` · polaroid ${tryOnResult.polaroid.webUrl}` : ""}`);
 }
 
+} // end mainnet-skip of the stylist hire leg
+
 // ── 3. NEGOTIATE the kit — multi-round, with a refusal visible ──
 step(3, "NEGOTIATE the kit — lowball → refusal → counter-rounds → signed token");
 const size = offer?.size || "L";
@@ -571,7 +581,7 @@ let order = null;
 let orderStatus = 0;
 let xchainResult = null;
 if (IS_INTENTS) {
-  const iq = q.intents;
+  const iq = q.intentsMainnet ?? q.intents;
   if (!iq) { say(`no intents rail on the order quote — is NEAR_INTENTS_VERIFIER configured on the API?`); process.exit(1); }
   const useSwap = SWAP_FUNDING;
   let swap;
@@ -648,7 +658,7 @@ if (IS_INTENTS) {
     after[k] = { ledger: Number(await intents.internalBalance(id)) / 1e6, wallet: await ftBalance(id, FT) };
   }
   chain(`agent    intents-ledger: ${Number(before.internal) / 1e6} → ${after.internal} USDC.e`);
-  chain(`stylist  ${payees.stylist}:  +${((after.stylist.wallet - before.stylist.wallet) + (after.stylist.ledger - before.stylist.ledger)).toFixed(6)} USDC.e earned — ledger ${before.stylist.ledger} → ${after.stylist.ledger}, wallet ${before.stylist.wallet} → ${after.stylist.wallet} (its own agent withdrew)`);
+  if (payees.stylist) chain(`stylist  ${payees.stylist}:  +${((after.stylist.wallet - before.stylist.wallet) + (after.stylist.ledger - before.stylist.ledger)).toFixed(6)} USDC.e earned — ledger ${before.stylist.ledger} → ${after.stylist.ledger}, wallet ${before.stylist.wallet} → ${after.stylist.wallet} (its own agent withdrew)`);
   chain(`merchant ${payees.merchant}:  +${((after.merchant.wallet - before.merchant.wallet) + (after.merchant.ledger - before.merchant.ledger)).toFixed(6)} USDC.e earned — ledger ${before.merchant.ledger} → ${after.merchant.ledger}, wallet ${before.merchant.wallet} → ${after.merchant.wallet} (its own agent withdrew)`);
   if (SWAP_FUNDING) {
     const wAgent = Number(await intents.internalBalance(agent.accountId, WNEAR_ID)) / 1e24;

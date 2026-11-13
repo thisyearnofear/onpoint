@@ -26,10 +26,38 @@ import { createRequire } from "node:module";
 // Byte-exactness is the whole game: one module, both sides.
 const codec = createRequire(import.meta.url)("../../apps/api/lib/quote-token-codec.js");
 
-export const VERIFIER = process.env.INTENTS_VERIFIER || "intents.onpoint.testnet";
-export const FT_CONTRACT = process.env.INTENTS_FT || "usdc.fakes.testnet";
+// Network profile — NEAR_NETWORK=mainnet flips the whole rail to the
+// canonical public deployment (intents.near + native USDC + wrap.near).
+// INTENTS_* env vars still win as explicit overrides.
+const NET_PROFILES = {
+  testnet: {
+    rpc: "https://test.rpc.fastnear.com",
+    verifier: "intents.onpoint.testnet",
+    ftContract: "usdc.fakes.testnet",
+    wnear: "wrap.testnet",
+    explorerTx: "https://testnet.nearblocks.io/txns/",
+    credsFile: "near-credentials.testnet.json",
+    mpc: "v1.signer-prod.testnet",
+  },
+  mainnet: {
+    rpc: "https://free.rpc.fastnear.com",
+    verifier: "intents.near",
+    ftContract: "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1", // native USDC
+    wnear: "wrap.near",
+    explorerTx: "https://nearblocks.io/txns/",
+    credsFile: "near-credentials.mainnet.json",
+    mpc: "v1.signer",
+  },
+};
+export const NET = {
+  network: process.env.NEAR_NETWORK === "mainnet" ? "mainnet" : "testnet",
+  ...NET_PROFILES[process.env.NEAR_NETWORK === "mainnet" ? "mainnet" : "testnet"],
+};
+
+export const VERIFIER = process.env.INTENTS_VERIFIER || NET.verifier;
+export const FT_CONTRACT = process.env.INTENTS_FT || NET.ftContract;
 export const TOKEN_ID = `nep141:${FT_CONTRACT}`; // internal ledger id
-export const RPC = process.env.INTENTS_RPC || "https://test.rpc.fastnear.com";
+export const RPC = process.env.INTENTS_RPC || NET.rpc;
 
 export const provider = new JsonRpcProvider({ url: RPC });
 export const accountOf = (accountId, secretKey) =>
