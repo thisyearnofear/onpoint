@@ -30,6 +30,10 @@ const TIERS = {
   veniceBurst: { maxRequests: 10, windowMs: 1_000, prefix: 'venice-burst' },
   liveSession: { maxRequests: 10, windowMs: 3_600_000, prefix: 'live-session' },
   general: { maxRequests: 100, windowMs: 60_000, prefix: 'api' },
+  // Agent-machine endpoints (mailbox polls, presence heartbeats): seller
+  // agents poll these continuously — 100/min shared with human traffic
+  // starves the very queue the rail depends on. Still bounded per-IP.
+  agentPoll: { maxRequests: 600, windowMs: 60_000, prefix: 'agent-poll' },
   // Tighter limits for expensive AI routes (~$0.03/call)
   aiExpensive: { maxRequests: 5, windowMs: 60_000, prefix: 'ai-expensive' },
   // Paid agent try-on. The route answers 402 with a quote until a payment

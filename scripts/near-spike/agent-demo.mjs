@@ -120,12 +120,23 @@ if (!IS_PAYPAL) {
   agentSigner = new Account(agent.accountId, provider, KeyPairSigner.fromSecretKey(scopedKey.secretKey));
 }
 
-const post = async (path, body) =>
-  (await fetch(`${API}${path}`, {
+const post = async (path, body) => {
+  for (let i = 0; i < 4; i++) {
+    const res = await fetch(`${API}${path}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (res.status !== 429) return res;
+    const wait = (Number((await res.clone().json().catch(() => ({}))).retryAfter) || 5) * 1000;
+    await SLEEP(wait + 500);
+  }
+  return fetch(`${API}${path}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
-  }));
+  });
+};
 
 // Pay a NEAR payee in stablecoin through the escrow forwarder — the ONLY
 // thing the scoped key can do. Returns { ok, txHash, failure }.
@@ -245,6 +256,7 @@ async function negotiate({ slug, scope, listingId, size, quantity, offers }) {
       const lastBid = transcript.filter((t) => t.actor === "buyer").at(-1).usd;
       const meet = counter != null && counter <= lastBid * 1.15;
       const nxt = meet ? null : Number(Math.min(counter, lastBid + Math.max(0.01, (counter - lastBid) * 0.5)).toFixed(2));
+      await SLEEP(2500); // stay under the API rate limit between rounds
       const r = await post(`/api/curator/${slug}/negotiate/${sessionId}`,
         nxt === null || body.round >= 4 ? { action: "accept" } : { offerUsd: nxt });
       body = await r.json();
@@ -355,9 +367,13 @@ if (IS_INTENTS) {
     const wallet = BigInt(Math.round((await ftBalance(agent.accountId, FT)) * 1e6));
     const shortfall = BigInt(needBase) - internal;
     const depAmount = shortfall > wallet ? wallet : shortfall;
-    const dep = await intents.deposit(agentFak, depAmount);
-    chain(`deposited ${Number(depAmount) / 1e6} USDC.e → ${intents.VERIFIER} internal ledger`);
-    chain(txLink(dep.txHash));
+    if (depAmount <= 0n) {
+      info(`wallet empty and ledger short ${Number(shortfall) / 1e6} USDC.e — faucet the agent or lower spend`);
+    } else {
+      const dep = await intents.deposit(agentFak, depAmount);
+      chain(`deposited ${Number(depAmount) / 1e6} USDC.e → ${intents.VERIFIER} internal ledger`);
+      chain(txLink(dep.txHash));
+    }
     info(`internal balance now ${Number(await intents.internalBalance(agent.accountId)) / 1e6} USDC.e`);
   } else {
     info(`intents wallet already holds ${Number(internal) / 1e6} USDC.e`);
