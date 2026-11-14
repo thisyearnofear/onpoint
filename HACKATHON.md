@@ -4,6 +4,8 @@
 > Track: **Agent Economy** (secondary: **Real-World Money**)
 > Repo: https://github.com/thisyearnofear/onpoint
 > Live: https://onpoint.trustfall.xyz
+>
+> **The one-line story:** an agent hired a stylist, haggled a merchant down from $19.23 to $14.29 with a seller-signed quote, and settled atomically on NEAR — [receipt](https://onpoint.trustfall.xyz/receipt/receipt_mwgg6eu4_abaed49e).
 
 Other hackathon lanes: [`docs/WIF_HACKATHON.md`](docs/WIF_HACKATHON.md)
 (Robinhood Chain, closes Nov 12) · [`docs/PAYPAL_HACKATHON.md`](docs/PAYPAL_HACKATHON.md)
