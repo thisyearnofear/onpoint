@@ -114,13 +114,14 @@ Out of scope for the hackathon: ChatGPT plugin directory approval, multi-curator
 **Order of submission matters.** The PayPal AI Hackathon closed 12 Nov 20:00 UTC — OnPoint was submitted there as [onpoint-b3dory](https://devpost.com/software/onpoint-b3dory) ([docs/PAYPAL_HACKATHON.md](./docs/PAYPAL_HACKATHON.md)). The NEAR form locks on send; it can now describe three working rails instead of one.
 
 ## 8. Submission checklist
-- [ ] Repo public by Nov 14 23:59 UTC
-- [ ] X demo post with video/screenshots and “built for NEAR HACKATHON”
-- [ ] README has setup + “do X, see Y” steps
-- [ ] HACKATHON.md present
-- [ ] NEAR account address for prize payout
-- [ ] Form submitted once, details double-checked
-- [ ] Everything shown in the video exists on the **deployed** hosts — `apps/web` was 105 commits ahead of prod on 2026-11-12; check before recording ([deployment rule](docs/ops/deployment.md))
+- [x] Repo public by Nov 14 23:59 UTC
+- [x] X demo post with video — https://x.com/UNgethe/status/2121739244876239297 ("built at NEAR HACKATHON", `@NEARProtocol`, `#NEARHackathon`)
+- [x] README has setup + "do X, see Y" steps (judge path: one-liner + receipt + reproducer)
+- [x] HACKATHON.md present
+- [x] NEAR account address for prize payout — `papajams.near` (mainnet, same as Fourcast)
+- [x] Form submitted 2026-11-14 ~23:15 UTC via https://nearhackathon.com/#apply — HTTP 201; tracks `agents` + `realworld`; changes go to /request-changes. Note: the optional "Website" field is a honeypot — leave it empty or the API 400s.
+- [x] Everything shown in the video exists on the **deployed** hosts — all video artifacts are from the 2026-11-14 production run
+- [x] Two-projects-per-person rule — READMEs of onpoint and fourcast name each other (onpoint `4b82ecb`, fourcast `c8308cc`)
 
 ## 9. Related docs
 - Agent commerce guide: `docs/guides/agent-commerce.md`
