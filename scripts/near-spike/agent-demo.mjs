@@ -63,7 +63,7 @@ const STYLIST_SLUG = process.env.STYLIST_SLUG || "mo";
 // actually lands; a bare ref_ code only resolves with prior history.
 // Sent via ?referral= (not the X-Referral-Code header) so it survives the
 // mailbox replay — redeem.path carries the URL, not headers.
-const STYLIST_REFERRAL = "0x181eD62BDdeFa6f8FFCdCa339c28a75454be3532";
+const STYLIST_REFERRAL = process.env.STYLIST_REFERRAL || "0x181eD62BDdeFa6f8FFCdCa339c28a75454be3532";
 
 // ── tiny presentation kit ──
 const C = { dim: "\x1b[2m", b: "\x1b[1m", g: "\x1b[32m", c: "\x1b[36m", y: "\x1b[33m", m: "\x1b[35m", x: "\x1b[0m" };

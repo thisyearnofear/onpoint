@@ -61,14 +61,19 @@ pnpm install && cp apps/web/.env.example apps/web/.env.local && pnpm dev
 
 ---
 
-## Pay the same offer three ways
+## One agent. Two shops. Four rails. One atomic transaction.
 
-One listing, one quote, three settled rails — the agent picks, and only one of them lets it spend without a human:
+An agent hired a stylist, haggled a merchant down from $19.23 to $14.29 with a seller-signed quote, and settled atomically on NEAR — [here's the receipt](https://onpoint.trustfall.xyz/receipt/receipt_mwgg6eu4_abaed49e). Built for the [NEAR HACKATHON](./HACKATHON.md) (Agent Economy track): [watch the 2-minute demo](./videos/near-demo/README.md) · [reproduce it yourself](./HACKATHON.md#4-minimum-viable-win-2-weeks).
+
+## Pay the same offer four ways
+
+One listing, one quote, four settled rails — the agent picks, and only some of them let it spend without a human:
 
 | Rail | Token | Proof an agent sends back | Human in the loop? |
 | --- | --- | --- | --- |
 | Celo x402 | cUSD / USDC | `paymentTxHash` (+ `quoteId`) | no |
 | NEAR | NEAR | `nearTxHash` — payer derived from `transaction.signer_id`, verified trustlessly over JSON-RPC | no |
+| NEAR Intents | USDC.e (testnet) | signed NEP-413 intent, executed atomically (swap + pay) by payee or open solver; `intentsTxHash` + executor verified on-chain | no |
 | PayPal | USD (sandbox/live) | `paypalOrderId` → the human approves at paypal.com, server captures, `captureId` is the proof | **yes, by design** |
 
 `POST /api/agent/try-on` answers **HTTP 402** with `quote.paymentRails` listing what is currently configured; the paid re-POST returns the render, a fit signal and a shareable polaroid whose page prints the AI inference cost next to the payment.
@@ -88,6 +93,8 @@ node scripts/agent-buyer.mjs --dry-run                      # Celo flow without 
 ### Judging path (no credentials needed)
 
 `GET /.well-known/agent.json` → `GET /api/curator/directory?agentPurchasable=1` → `GET /api/curator/onpoint-store/storefront` (add `?type=top&formality=casual`) → `POST /api/agent/outfit` → free web try-on at [onpoint.trustfall.xyz/pay](https://onpoint.trustfall.xyz/pay). Paid steps print a real 402 without a wallet, so the challenge itself is inspectable; completed receipts stay readable at `GET /api/receipts/{receiptId}`.
+
+**60-second NEAR proof, no setup:** the negotiation, intents settlement and scoped-key escrow receipts are public — open [receipt_mwgg6eu4_abaed49e](https://onpoint.trustfall.xyz/receipt/receipt_mwgg6eu4_abaed49e) (NEAR Intents, tx `ArkjuSYb…`), then [HACKATHON.md §3](./HACKATHON.md#3-near-tools-in-the-build) lists every on-chain artifact with its tx hash. Full local reproducer: `cd scripts/near-spike && npm i && node agent-demo.mjs` (~2 min, narrated).
 
 **PayPal AI Hackathon** (submitted 2026-11-12): [Devpost entry](https://devpost.com/software/onpoint-b3dory) · [demo video](https://youtu.be/AXaBYTOj7kY) · [a real sandbox PayPal try-on receipt](https://onpoint.trustfall.xyz/receipt/receipt_mwdjib6r_ba423717) (`paymentMethod: "paypal"`, capture `13K55568GE972304A`) · [integration notes](docs/PAYPAL_HACKATHON.md). Sponsor tools: APIMatic Context Plugin (PayPal verifier) and **Channel3** — the [Channel3 Market storefront](https://onpoint.trustfall.xyz/s/channel3) serves 16 real retail products as try-on-only listings, each payable through the same PayPal rail ([receipt](https://onpoint.trustfall.xyz/receipt/receipt_mwdthx2x_7ee83234) — payout sent via PayPal Payouts).
 
