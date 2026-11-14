@@ -65,6 +65,8 @@ pnpm install && cp apps/web/.env.example apps/web/.env.local && pnpm dev
 
 An agent hired a stylist, haggled a merchant down from $19.23 to $14.29 with a seller-signed quote, and settled atomically on NEAR — [here's the receipt](https://onpoint.trustfall.xyz/receipt/receipt_mwgg6eu4_abaed49e). Built for the [NEAR HACKATHON](./HACKATHON.md) (Agent Economy track): [watch the 2-minute demo](./videos/near-demo/README.md) · [reproduce it yourself](./HACKATHON.md#4-minimum-viable-win-2-weeks).
 
+Also at NEAR HACKATHON by the same team: [Fourcast](https://github.com/thisyearnofear/fourcast) — an autonomous prediction-market operator (independent project, separate submission).
+
 ## Pay the same offer four ways
 
 One listing, one quote, four settled rails — the agent picks, and only some of them let it spend without a human:
