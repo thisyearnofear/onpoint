@@ -18,6 +18,7 @@ export const sampleById = (id: string | null) =>
   RUNWAY_SAMPLES.find((s) => s.id === id) ||
   OUTFIT_SAMPLES.find((s) => s.id === id) ||
   STUDIO_MODEL_SAMPLES.find((s) => s.id === id) ||
+  STUDIO_TRYON_SAMPLES.find((s) => s.id === id) ||
   null;
 
 export const FEATURED_OUTFIT_IDS = [
@@ -38,4 +39,12 @@ export const STUDIO_MODEL_SAMPLES = [
   { id: "studio-graphic-01", label: "Graphic 01 + denim shorts", src: "/assets/1Model.png" },
   { id: "studio-graphic-02", label: "Graphic 02 + denim shorts", src: "/assets/2Model.png" },
   { id: "studio-graphic-03", label: "Graphic 03 + denim shorts", src: "/assets/3Model.png" },
+] as const;
+
+/** Fuser virtual-try-on renders (assets/fuser/MANIFEST.md) — the studio
+ *  models above wearing the flat garment shots, clean gray backdrops. */
+export const STUDIO_TRYON_SAMPLES = [
+  { id: "studio-tryon-01", label: "Try-on: Graphic 01 on model 01", src: "/assets/1TryOn.jpg" },
+  { id: "studio-tryon-02", label: "Try-on: Graphic 02 on model 02", src: "/assets/2TryOn.jpg" },
+  { id: "studio-tryon-03", label: "Try-on: Graphic 03 on model 03", src: "/assets/3TryOn.jpg" },
 ] as const;
