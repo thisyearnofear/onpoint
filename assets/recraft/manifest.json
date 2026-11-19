@@ -1,0 +1,24 @@
+{
+  "account": "papaandthejimjams",
+  "style": {
+    "id": "a144e664-6472-4a61-a691-2a1551eff76b",
+    "name": "onpoint-wardrobe-editorial",
+    "note": "Fashion editorial illustration: ink line + restrained watercolor wash on warm cream paper. Reuse for outfit references, personas, editorial surfaces."
+  },
+  "files": {
+    "judges/miranda.webp": "Runway judge portrait \u2014 stern fashion editor archetype. Wired into components/runway/JudgeAvatar.tsx (public/judges/).",
+    "judges/edina.webp": "Runway judge portrait \u2014 flamboyant maximalist archetype.",
+    "judges/shaft.webp": "Runway judge portrait \u2014 cool leather-coat archetype.",
+    "scenes/runway-front-row.webp": "Runway from the front row \u2014 intro banner in components/runway/play/IntroStage.tsx (public/illustrations/).",
+    "illustrations/masthead-daily-fit.svg": "\"The Daily Fit\" vector masthead \u2014 magazine page header (app/magazine/page.tsx).",
+    "illustrations/fitting-mirror.webp": "Empty fitting-mirror illustration \u2014 WardrobeWorkspace empty Saved tab.",
+    "illustrations/empty-rail.webp": "Empty clothing-rail illustration \u2014 ClosetSection EmptyState image (new image prop in components/state/EmptyState.tsx).",
+    "judges/luxury.webp": "Luxury Expert portrait \u2014 stern editor archetype (bob + dark sunglasses). STYLE map + PersonalityCard portrait.",
+    "judges/streetwear.webp": "Streetwear Guru portrait \u2014 creative director archetype (glasses + workwear).",
+    "judges/sustainable.webp": "Eco Stylist portrait \u2014 earth-toned designer archetype."
+  },
+  "copied_to": [
+    "apps/web/public/judges/",
+    "apps/web/public/illustrations/"
+  ]
+}

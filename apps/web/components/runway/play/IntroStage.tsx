@@ -25,6 +25,13 @@ export function IntroStage({
         </p>
       </div>
 
+      {/* eslint-disable-next-line @next/next/no-img-element -- static illustration, no optimization needed */}
+      <img
+        src="/illustrations/runway-front-row.webp"
+        alt=""
+        className="w-full max-w-md border border-border object-cover"
+      />
+
       <div className="grid w-full grid-cols-3 gap-3">
         {JUDGES.map((j) => (
           <button

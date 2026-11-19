@@ -2,7 +2,6 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Shirt } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { Lookbook, Cover, Spread, BackPage, type LookbookPage } from "../lookbook";
 import { EmptyState, ErrorState, StagedWait } from "../state";
@@ -335,7 +334,7 @@ export function ClosetSection() {
 
       {closet.length === 0 ? (
         <EmptyState
-          icon={Shirt}
+          image={{ src: "/illustrations/empty-rail.webp" }}
           title="Your closet is empty"
           body="Drop a photo, set its type, style it with live picks — or drag & drop a photo anywhere in this card. Photos stay in this browser."
           action={

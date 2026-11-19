@@ -5,6 +5,7 @@ import { Lock, Volume2, Square, Eye, X } from "lucide-react";
 import type { StylistPersona } from "@repo/ai-client";
 import { getPersonaConfig } from "../../lib/utils/persona-config";
 import { speakAsPersona, stopSpeaking } from "../../lib/utils/persona-voice";
+import { JUDGE_NAMES } from "../runway/JudgeAvatar";
 
 interface PersonalityCardProps {
   persona: StylistPersona;
@@ -96,7 +97,15 @@ export function PersonalityCard({
       )}
       
       <div className="flex flex-col items-center gap-2">
-        <Icon className={`h-6 w-6 ${isSelected ? config.lightColor : isLocked ? "text-gray-400" : config.lightColor}`} />
+        {JUDGE_NAMES[persona] && (
+          // eslint-disable-next-line @next/next/no-img-element -- static persona portrait
+          <img
+            src={`/judges/${persona}.webp`}
+            alt={config.characterName}
+            className={`h-14 w-14 rounded-full border object-cover ${isLocked ? "opacity-50 grayscale" : "border-border"} `}
+          />
+        )}
+        <Icon className={`h-5 w-5 ${isSelected ? config.lightColor : isLocked ? "text-gray-400" : config.lightColor}`} />
         <div className="text-sm font-medium text-center">
           {config.characterName}
         </div>

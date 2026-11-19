@@ -575,6 +575,8 @@ export function WardrobeWorkspace() {
 
                 {tab === "saved" && savedIds.length === 0 ? (
                   <div className={styles.empty}>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- static illustration */}
+                    <img src="/illustrations/fitting-mirror.webp" alt="" className="mx-auto mb-3 h-28 w-auto" />
                     <p>Nothing saved yet — the pieces you keep will wait for you here.</p>
                     <button type="button" className={`${styles.loadMore} mt-3`} onClick={() => { setTab("all"); clearFilters(); }}>Browse all</button>
                   </div>

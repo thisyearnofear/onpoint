@@ -14,6 +14,8 @@ export default async function MagazinePage({ searchParams }: { searchParams: Pro
     <div className="min-h-dvh bg-background text-foreground">
       <main className="mx-auto max-w-xl px-4 pb-20 pt-14 md:pt-20">
         <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-primary">The issue of one</p>
+        {/* eslint-disable-next-line @next/next/no-img-element -- static masthead */}
+        <img src="/illustrations/masthead-daily-fit.svg" alt="The Daily Fit" className="mt-6 w-64 max-w-full opacity-90" />
         <h1 className="mt-3 font-display text-4xl leading-[1.05] tracking-[-0.02em] sm:text-5xl">
           A magazine, made for her.
         </h1>
